@@ -127,13 +127,16 @@ jest.mock("../../../hooks/script/useScripts", () => ({
   __esModule: true,
   useCreateScript: () => ({ mutateAsync: createScript })
 }));
-const startImageFlowMock = jest.fn(async () => ({
-  documentId: "sketch-1",
-  name: "A picture"
-}));
+const startImageFlowMock = jest.fn(
+  async (_options: { name: string; projectId: string; brief: string }) => ({
+    documentId: "sketch-1",
+    name: "A picture"
+  })
+);
 jest.mock("../../setup/image/startImageFlow", () => ({
   __esModule: true,
-  startImageFlow: (options: unknown) => startImageFlowMock(options)
+  startImageFlow: (options: { name: string; projectId: string; brief: string }) =>
+    startImageFlowMock(options)
 }));
 const timelineUpdate = jest.fn().mockResolvedValue({ id: "seq-1" });
 jest.mock("../../../trpc/client", () => ({

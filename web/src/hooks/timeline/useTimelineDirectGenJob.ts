@@ -66,7 +66,17 @@ function fail(timeline: TimelineStoreApi, clipId: string): void {
 export function subscribeDirectGen(
   timeline: TimelineStoreApi,
   clipId: string,
-  requestId: string
+  requestId: string,
+  /**
+   * The sequence this request was sent for. Passed in rather than read off the
+   * store when the reply lands: a reply arrives minutes later, and the creator
+   * may have opened another sequence by then. Settling against whatever is open
+   * would leave this sequence's entry in the pending list forever, and
+   * reattachment would later restore it, set the clip back to `generating` and
+   * subscribe to a request that has already answered — a clip stuck rendering
+   * over a render that was paid for and thrown away.
+   */
+  sequenceId: string | null
 ): () => void {
   clearInFlight(clipId);
   let unsubscribe: (() => void) | undefined;
@@ -80,7 +90,6 @@ export function subscribeDirectGen(
 
   const settle = (msg: DirectGenRpcResponse) => {
     cleanup();
-    const sequenceId = timeline.getState().sequenceId;
     const store = timeline.getState();
     if (msg.error) {
       if (sequenceId) {
@@ -103,15 +112,21 @@ export function subscribeDirectGen(
       return;
     }
 
-    const current = store.clips.find((c) => c.id === clipId);
-    if (!current) return;
     if (sequenceId) {
+      // Settled before the clip is looked up, because the pending entry belongs
+      // to the request, not to whether its clip is still on screen. Returning
+      // early with the entry still listed is what let a sequence resurrect a
+      // request that had already answered.
+      //
       // Only a request that produced an asset files a duration: a refusal
       // measures the provider's error path, not its render time (D14).
       useDirectGenPendingStore
         .getState()
         .settle(sequenceId, clipId, Date.now());
     }
+
+    const current = store.clips.find((c) => c.id === clipId);
+    if (!current) return;
     // Locked clips don't get their currentAssetId replaced — but the version
     // is still recorded so the user can restore it later.
     const patch: Partial<TimelineClip> = {
@@ -178,7 +193,7 @@ export async function reattachSequenceJobs(
       continue;
     }
     timeline.getState().patchClip(job.clipId, { status: "generating" });
-    subscribeDirectGen(timeline, job.clipId, job.requestId);
+    subscribeDirectGen(timeline, job.clipId, job.requestId, sequenceId);
   }
 }
 
@@ -242,9 +257,17 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
       }
 
       const requestId = crypto.randomUUID();
-      timeline.getState().patchClip(clipId, { status: "generating" });
-      const cleanup = subscribeDirectGen(timeline, clipId, requestId);
+      // Read before the subscription, and captured by it: the reply is settled
+      // against the sequence the request was sent for, not whichever one is
+      // open when it lands.
       const sequenceId = timeline.getState().sequenceId;
+      timeline.getState().patchClip(clipId, { status: "generating" });
+      const cleanup = subscribeDirectGen(
+        timeline,
+        clipId,
+        requestId,
+        sequenceId
+      );
       if (sequenceId) {
         // Recorded before the send, so a reply that arrives after the tab is
         // closed still has an entry to be reattached through.
@@ -298,9 +321,10 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         });
       } catch {
         cleanup();
-        const openSequence = timeline.getState().sequenceId;
-        if (openSequence) {
-          useDirectGenPendingStore.getState().settle(openSequence, clipId);
+        // The same captured id: the send failed, so the entry to drop is the
+        // one this request wrote, not whatever is open.
+        if (sequenceId) {
+          useDirectGenPendingStore.getState().settle(sequenceId, clipId);
         }
         fail(timeline, clipId);
         return null;

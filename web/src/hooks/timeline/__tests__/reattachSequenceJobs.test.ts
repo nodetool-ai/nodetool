@@ -101,6 +101,51 @@ describe("reattachSequenceJobs (criterion 6)", () => {
     expect(clip.currentAssetId).toBe("asset-9");
   });
 
+  // The reply lands minutes after the send, and the creator may have opened
+  // another sequence by then. Settling against whatever is open now would leave
+  // this sequence's entry in the pending list forever; reattachment would later
+  // restore it, put the clip back to `generating` and subscribe to a request
+  // that has already answered — a clip stuck rendering over a paid render that
+  // was thrown away.
+  it("settles the sequence the request was sent for, not the one now open", async () => {
+    const store = seedSequence();
+    useDirectGenPendingStore.getState().remember("seq-1", {
+      clipId: "c1",
+      requestId: "req-1",
+      startedAt: Date.now() - 1000,
+      bucket: "text-to-video:nodetool/kling-turbo"
+    });
+
+    await reattachSequenceJobs(store, "seq-1");
+
+    // The creator moves to another sequence while the render is out.
+    store.getState().loadSequence({
+      id: "seq-2",
+      projectId: "p1",
+      name: "Another cut",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      durationMs: 0,
+      tracks: [],
+      clips: [],
+      markers: [],
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z"
+    });
+
+    handlers.get("req-1")?.({
+      type: "rpc_response",
+      request_id: "req-1",
+      result: { asset_ids: ["asset-9"] }
+    });
+
+    // seq-1's entry is gone, so reopening it cannot resurrect a dead request.
+    expect(
+      useDirectGenPendingStore.getState().pending["seq-1"] ?? []
+    ).toHaveLength(0);
+  });
+
   it("files how long the request took, so a later batch can say (D14)", async () => {
     const store = seedSequence();
     useDirectGenPendingStore.getState().remember("seq-1", {

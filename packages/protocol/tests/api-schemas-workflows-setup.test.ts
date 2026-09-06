@@ -65,3 +65,31 @@ describe("workflow settings.setup", () => {
     expect(workflowSetup.safeParse({ stage: "look" }).success).toBe(false);
   });
 });
+
+describe("writeWorkflowSetup keeps the rest of the bag", () => {
+  // The bag is client-owned and holds more than `setup`. A `setup` this build
+  // cannot parse — a stage a newer client or an agent wrote — must not cost the
+  // caller every sibling setting on the next write.
+  it("preserves sibling settings when the stored setup does not parse", () => {
+    const written = writeWorkflowSetup(
+      { hide_ui: true, setup: { stage: "planning" } },
+      { stage: "review" }
+    );
+
+    expect(written["hide_ui"]).toBe(true);
+    expect(written["setup"]).toMatchObject({ stage: "review" });
+  });
+
+  it("preserves sibling settings when the stored setup parses", () => {
+    const written = writeWorkflowSetup(
+      { hide_ui: true, setup: { stage: "idea", brief: "a thing" } },
+      { stage: "category" }
+    );
+
+    expect(written["hide_ui"]).toBe(true);
+    expect(written["setup"]).toMatchObject({
+      stage: "category",
+      brief: "a thing"
+    });
+  });
+});

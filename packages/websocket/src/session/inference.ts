@@ -89,9 +89,16 @@ function messageChars(content: DirectTextContent): number {
   if (typeof content === "string") {
     return content.length;
   }
+  // A block's shape is only checked as `{ type: string }` + passthrough on the
+  // wire, so a `{ type: "text" }` with no `text` reaches here. Reading `.length`
+  // off it threw before the spend estimate was taken — a crash on the admission
+  // path, not a refusal.
   return content.reduce(
     (sum, block) =>
-      sum + (block.type === "text" ? block.text.length : IMAGE_ESTIMATE_CHARS),
+      sum +
+      (block.type === "text" && typeof block.text === "string"
+        ? block.text.length
+        : IMAGE_ESTIMATE_CHARS),
     0
   );
 }

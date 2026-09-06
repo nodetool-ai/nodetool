@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isRecord } from "../predicates.js";
 
 // ── WorkflowRunMode ──────────────────────────────────────────────────────────
 
@@ -750,9 +751,15 @@ export function writeWorkflowSetup(
   patch: Partial<WorkflowSetup>
 ): Record<string, unknown> {
   const parsed = workflowSettingsWithSetup.safeParse(settings ?? {});
+  // Keep the caller's own keys even when `setup` does not parse. A `setup` a
+  // newer client or an agent wrote — a stage outside this build's enum, say —
+  // fails the parse, and starting from `{}` would drop every sibling setting
+  // (`hide_ui` and the rest) on the next write. Only `setup` is replaced.
   const base: Record<string, unknown> = parsed.success
     ? { ...parsed.data }
-    : {};
+    : isRecord(settings)
+      ? { ...settings }
+      : {};
   const current = parsed.success ? (parsed.data.setup ?? null) : null;
   base["setup"] = workflowSetup.parse({
     stage: "idea",
