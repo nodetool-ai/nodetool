@@ -15,8 +15,7 @@
       the `storyboard` and `entity` names in `scripts/verify-backend-bundle.mjs`.
       Test: DSL generation emits `storyboard`/`entity` typed inputs for the
       constant nodes.
-- [ ] **Lineage fields.** `templateId`/`recastKey`/`templateFingerprint` on
-      `StoryboardDocument`
+- [ ] **Lineage fields.** `templateId`/`recastKey` on `StoryboardDocument`
       (`packages/models/src/storyboard.ts`, `api-schemas/storyboards.ts`),
       `templateId` on `ScriptDocument` and `TimelineSequence`, `source` on
       `EntityMarker` (`creative.ts` zod + reader). Tests: old fixtures parse
@@ -54,14 +53,15 @@
       `CLAUDE.md`, an entry in `packages/AGENTS.md`, workspace + turbo wiring,
       dependency order `protocol → timeline → storyboard`. `npm run
       check:agents-docs` green.
-- [ ] **`recastStoryboard` + `templateFingerprint`.** Per design §3.1 with
+- [ ] **`recastStoryboard`.** Per design §3.1 with
       the fixture suite: explicit `replaces`, single-of-kind, ambiguous kind
       appends, whole-word rename (`Nova`/`Novak` case), explicit `entity_ids`
       rewrite, hash-based invalidation keeping product-free shots, lineage
       stamping, `recastKey` stable under cast order and different for the
       swapped assignment, re-derive over `existing` (edited template action
-      invalidates one shot, added shot appears, dropped shot reported,
-      unchanged fingerprint short-circuits).
+      invalidates one shot, renamed destination entity under the same id
+      invalidates only the shots naming it, added shot appears, dropped shot
+      reported).
 - [ ] **`planShotRenders` + `renderShots`.** Lift the plan and the IO from
       `packages/agents/src/capabilities/storyboards.ts`; the capability's
       `render_storyboard_stills`/`render_storyboard_clips`/`filterStale` call
@@ -118,8 +118,9 @@
       each passing `validate_workflow` once models are stamped.
 - [ ] **Fake-mode fixtures.** The same graphs with `nodetool.fake.*`
       generators and `provider: fake` on the render nodes, runnable by
-      `nodetool debug` with no keys. The E1 run asserts the filled overlay
-      text is on the exported sequence.
+      `nodetool debug` with no keys, E4 included. The E1 run asserts the
+      filled overlay text is on the exported sequence; the E4 run asserts
+      the source cut's clip placements are unchanged on both retargets.
 - [ ] **Harness registry.** `graph-resources` entry in
       `packages/cli/src/harness/registry.ts` whose selfcheck runs the pure
       suites and the fake-mode debug runs; `nodetool harness audit` clean;

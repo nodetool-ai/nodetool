@@ -82,11 +82,8 @@ Storyboard document lineage (`packages/models/src/storyboard.ts`,
 ```ts
 StoryboardDocument
 ├─ templateId?: string | null        // board this one was recast from
-├─ recastKey?: string | null         // the canonical substitution mapping
-│                                    // (§3.1), so a re-run finds its copy
-└─ templateFingerprint?: string | null
-                                     // hash of the template content the copy
-                                     // was last derived from (§3.1, reuse)
+└─ recastKey?: string | null         // the canonical substitution mapping
+                                     // (§3.1), so a re-run finds its copy
 ```
 
 Script document lineage (`packages/models/src/script.ts`):
@@ -189,12 +186,8 @@ export interface RecastResult {
   /** Shots the template no longer has; their takes on `existing` are gone. */
   droppedShotIds: string[];
   recastKey: string;
-  templateFingerprint: string;
 }
 export function recastStoryboard(input: RecastInput): RecastResult;
-export function templateFingerprint(
-  doc: StoryboardDocument, entities: Entity[]
-): string;
 ```
 
 Rules, each pinned by a test:
@@ -218,22 +211,23 @@ Rules, each pinned by a test:
 - Copies keep the template's shot ids, so a later re-derive merges by id.
   `timeline_id` is not copied; the approved cut is carried by
   `AssembleTimeline` (§4.2).
-- `templateFingerprint` hashes the fields a derivation reads and nothing
-  else: each shot's text fields, `camera`, `entity_ids`, `render_mode`,
-  `duration_seconds`, its scene's `lighting`; the board's `style`,
-  `aspectRatio`, `imageModel`, `videoModel`; each board entity's `descriptor`.
-  Takes and versions are not in it.
 
 **Reuse re-derives, it does not return.** With `existing` set, the function
-still derives from the *current* template, then merges: for every shot id in
-both documents the existing copy's `keyframe*`, `clip*`, `status` and
-`render_inputs` are carried over, and the hash rule above decides whether they
-survive. Shots new on the template appear; shots the template dropped
-disappear and are named in `droppedShotIds`. A template edit to one shot's
-action therefore invalidates that shot on every reused copy and no other, and
-the next `only_stale` render sees the new prompt against the old
-`render_inputs`. When the stored `templateFingerprint` equals the current one
-the merge is skipped and `existing` comes back unchanged.
+still derives from the *current* template and the *current* cast, every
+time. There is no shortcut keyed on a fingerprint: such a key would have to
+cover every derivation input (template text, board entity descriptors, the
+incoming entities' names and descriptors, the mapping), and the derivation
+is one pass over one document. It then merges: for every shot id in both
+documents the existing copy's `keyframe*`, `clip*`, `status` and
+`render_inputs` are carried over, and the hash rule above decides whether
+they survive. Shots new on the template appear; shots the template dropped
+disappear and are named in `droppedShotIds`. So a template edit to one
+shot's action invalidates that shot on every reused copy and no other; a
+renamed destination entity (same id, a `CreateEntity` upsert under the same
+`key`) has its new name rewritten into the shots and invalidates exactly the
+shots that name it; an edited descriptor invalidates the shots it seasons,
+because the descriptor is in the injected prompt. The next `only_stale`
+render sees each new prompt against the old `render_inputs`.
 
 ```ts
 // render-plan.ts
@@ -518,11 +512,16 @@ path seasons a shot, so the pack is consistent by construction.
 ### E4. One cut, three ratios
 
 ```
-Constant.Storyboard("Launch film 16:9") → AssembleTimeline → timeline
-RetargetTimeline(timeline, "9:16", fit: cover)  → t1  (cropped: [...])
-RetargetTimeline(timeline, "1:1",  fit: cover)  → t2
+Constant.Timeline("Launch film 16:9 cut")        → timeline   (the approved cut, read-only)
+RetargetTimeline(timeline, "9:16", fit: cover)   → t1  (new row; cropped: [...])
+RetargetTimeline(timeline, "1:1",  fit: cover)   → t2  (new row)
 RenderTimeline(t1), RenderTimeline(t2), RenderTimeline(timeline)
 ```
+
+The graph starts from the cut, not the board. A picker ref is read-only
+under the write contract, and `RetargetTimeline` derives a new row from it
+without writing the source, so the approved trims and placements carry over
+unchanged. Re-assembling from the board would rebuild the shot clips (§3.2).
 
 Honest limit: a 16:9 clip cropped to 9:16 loses the sides. `cropped` names
 the clips so the director can decide which shots need a real 9:16 board
@@ -554,6 +553,8 @@ the clips so the director can decide which shots need a real 9:16 board
   the swapped assignment (A→X, B→Y versus A→Y, B→X) yields two keys; a
   re-run after editing one shot's action on the template, cast ids
   unchanged, invalidates that shot on the reused copy and keeps the rest;
+  a re-run after renaming a destination entity under the same id, template
+  unchanged, rewrites the name and invalidates only the shots naming it;
   a cloned cut keeps its foreign clips and, after `fillTimelineText`, carries
   the filled overlay text.
 - Vitest, nodes: each node against a `ProcessingContext` with in-memory model
@@ -565,7 +566,7 @@ the clips so the director can decide which shots need a real 9:16 board
   exported sequence.
 - Harness registry (`packages/cli/src/harness/registry.ts`): a
   `graph-resources` entry whose selfcheck runs the suites above plus
-  `nodetool debug` on the three example workflows in fake mode
+  `nodetool debug` on the four example workflows in fake mode
   (`nodetool.fake.GenerateImage` in place of the generators; render nodes
   take a `provider` override the fixture sets to `fake`). `harness gate`
   picks it up on diffs under `packages/storyboard/`, the new node files, and
