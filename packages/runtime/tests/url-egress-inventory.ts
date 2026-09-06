@@ -266,6 +266,21 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Reads the uri a workflow output named before storing the bytes as an asset."
   ),
 
+  {
+    file: "packages/websocket/src/external-mcp.ts",
+    owner: "external MCP server (HTTP transport)",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope:
+      "The headers the user configured for that server, resolved from their own secrets; safeFetch strips Authorization on a cross-origin hop.",
+    redirects: "checked-per-hop",
+    dnsRebinding: "deployment-egress",
+    policy: "guarded",
+    guardedBy: ["safeFetch", "assertSafePublicHttpsUrl"],
+    note:
+      "A user's own MCP server URL. Under the cloud profile the MCP transport is handed safeFetch and the URL is checked on save and probe; a local install may reach its own loopback servers and uses the global fetch."
+  },
+
   // -------------------------------------------- guarded (provider result URLs)
   guardedSafeFetch(
     "packages/kie-nodes/src/kie-base.ts",
