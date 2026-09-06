@@ -38,6 +38,24 @@ describe("generate_media request payload", () => {
     expect(generateMediaDataSchema.safeParse(frame).success).toBe(true);
   });
 
+  it("carries the seed one variation of a set is rendered with", () => {
+    // web/src/hooks/sketch/useGenerateVariations.ts — N frames alike but for
+    // this field (PRD § 10.7, criterion 4).
+    const frame: GenerateMediaRequest = {
+      mode: "image",
+      provider: "fal",
+      model: "flux",
+      prompt: "a ceramic dripper",
+      width: 1024,
+      height: 1024,
+      seed: 4242,
+      variations: 1
+    };
+    const parsed = generateMediaDataSchema.safeParse(frame);
+    expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data.seed).toBe(4242);
+  });
+
   it("rejects a mode the server does not map", () => {
     const parsed = generateMediaDataSchema.safeParse({ mode: "hologram" });
     expect(parsed.success).toBe(false);

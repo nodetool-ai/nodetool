@@ -21,10 +21,17 @@ describe("buildTimelineDocumentPayload", () => {
       "clips",
       "markers",
       "scriptEnabled",
+      "setup",
       "tempo",
       "tracks",
       "transcript"
     ]);
+  });
+
+  it("sends the guided-setup state as undefined when there is none", () => {
+    // Undefined, not null: `timelineDocument` reads an absent `setup` as a
+    // sequence that never went through the flow, and null would not parse.
+    expect(buildTimelineDocumentPayload(baseState as never).setup).toBeUndefined();
   });
 
   it("preserves the tracks array by reference", () => {

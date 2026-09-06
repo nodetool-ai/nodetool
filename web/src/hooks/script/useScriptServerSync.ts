@@ -41,7 +41,10 @@ type ScriptWireDocument = ScriptResponse["document"];
 /** The saved payload: the script minus identity and transient UI state. */
 const scriptToDocument = (script: ScriptDraft): ScriptWireDocument => ({
   cast: script.cast,
-  sections: script.sections
+  sections: script.sections,
+  // Omitted when the script has none, so a script written before the guided
+  // flow existed is saved back exactly as it was read (PRD § 9.5).
+  setup: script.setup ?? undefined
 });
 
 const responseToScript = (
@@ -52,6 +55,7 @@ const responseToScript = (
     title: res.name === "Untitled script" ? "" : res.name,
     cast: doc.cast,
     sections: doc.sections,
+    setup: doc.setup ?? null,
     timelineId: res.timelineId ?? null,
     storyboardId: res.storyboardId ?? null
   };

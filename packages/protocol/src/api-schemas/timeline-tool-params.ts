@@ -1308,5 +1308,11 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   // A2's note edits. Each rewrites the clip's whole note list, keeping ids.
   "ui_timeline_transpose_clip",
   "ui_timeline_quantize_notes",
-  "ui_timeline_scale_velocity"
+  "ui_timeline_scale_velocity",
+  // The guided video flow (PRD § 8.6). Both surfaces register them; the
+  // headless one writes the plan itself where the editor asks the Director.
+  "ui_timeline_set_setup",
+  "ui_timeline_plan_beats",
+  "ui_timeline_update_beat",
+  "ui_timeline_generate_from_beats"
 ] as const;

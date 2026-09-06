@@ -321,6 +321,39 @@ describe("generate_text RPC", () => {
     expect(ws.sentText).toHaveLength(0);
   });
 
+  // The storyboard's "Add your own style" shows the model reference pictures,
+  // so a message's content can be content blocks rather than a string.
+  it("passes image content blocks through to the provider", async () => {
+    const { calls, provider } = fakeProvider({ content: "warm 16mm grain" });
+    const runner = await makeRunner(ws, async () => provider as never);
+    const content = [
+      { type: "text", text: "Describe the style." },
+      {
+        type: "image_url",
+        image: { type: "image", uri: "data:image/png;base64,AAA" }
+      }
+    ];
+
+    const out = await runOne(ws, runner, {
+      command: "generate_text",
+      request_id: "t-5",
+      data: {
+        provider: "fake",
+        model: "fake-model",
+        messages: [
+          { role: "system", content: "You describe how pictures are made." },
+          { role: "user", content }
+        ]
+      }
+    });
+
+    expect(out.error).toBeUndefined();
+    expect(calls[0].messages).toMatchObject([
+      { role: "system", content: "You describe how pictures are made." },
+      { role: "user", content }
+    ]);
+  });
+
   it("reports a request with neither prompt nor messages", async () => {
     const { provider } = fakeProvider({ content: "" });
     const runner = await makeRunner(ws, async () => provider as never);

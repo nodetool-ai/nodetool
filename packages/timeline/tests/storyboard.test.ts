@@ -3,13 +3,14 @@
  */
 
 import { describe, it, expect } from "vitest";
-import type { Shot } from "@nodetool-ai/protocol";
+import type { Scene, Screenplay, Shot } from "@nodetool-ai/protocol";
 import {
   DEFAULT_SHOT_MS,
   buildStoryboardPreviewTimeline,
   buildStoryboardTimeline,
   frameSizeForAspect
 } from "../src/storyboard.js";
+import type { AssembledTimeline } from "../src/storyboard.js";
 import type { TimelineClip } from "../src/types.js";
 
 function makeShot(overrides: Partial<Shot> & Pick<Shot, "id" | "index">): Shot {
@@ -589,5 +590,239 @@ describe("covered shots", () => {
       currentAssetId: "fused",
       inPointMs: 2500
     });
+  });
+});
+
+// ── Scenes are grouping, not order (PRD D5, § 7.7.3) ──────────────────
+//
+// `Scene`, `Screenplay.scenes` and `Shot.scene_id` group shots for the
+// screenplay surface. `shot.index` stays the one global order that assembly
+// reads, so putting a board's shots into scenes must not move a frame.
+
+describe("scenes do not change the cut", () => {
+  /**
+   * Eight shots in one global order, carrying no scene.
+   *
+   * Deliberately mixed so a regression has somewhere to show: a render that
+   * came back longer than it was directed at (s0), a clip whose source length
+   * is unknown (s1), a shot with no clip at all (s2), a fused generation and
+   * the shot covered out of it (s3/s4), a slugged shot (s5), a shot with no
+   * media (s6), and a render shorter than the direction (s7).
+   */
+  const unscenedShots = (): Shot[] => [
+    makeShot({
+      id: "s0",
+      index: 0,
+      status: "rendered",
+      duration_seconds: 1.5,
+      clip: { type: "video", asset_id: "asset-0", duration: 5.184 }
+    }),
+    makeShot({
+      id: "s1",
+      index: 1,
+      status: "rendered",
+      duration_seconds: 2,
+      clip: clipRef("asset-1")
+    }),
+    makeShot({
+      id: "s2",
+      index: 2,
+      status: "keyframe_ready",
+      duration_seconds: 3,
+      keyframe: keyframeRef("still-2")
+    }),
+    makeShot({
+      id: "s3",
+      index: 3,
+      status: "rendered",
+      duration_seconds: 1.25,
+      clip: { type: "video", asset_id: "fused", duration: 4 }
+    }),
+    makeShot({
+      id: "s4",
+      index: 4,
+      status: "rendered",
+      covered_by: { shot_id: "s3", start_seconds: 1.25, end_seconds: 4 }
+    }),
+    makeShot({
+      id: "s5",
+      index: 5,
+      slug: "Harbour wide",
+      status: "rendered",
+      duration_seconds: 3,
+      clip: { type: "video", asset_id: "asset-5", duration: 3 }
+    }),
+    makeShot({ id: "s6", index: 6, status: "planned" }),
+    makeShot({
+      id: "s7",
+      index: 7,
+      status: "rendered",
+      duration_seconds: 0.75,
+      clip: { type: "video", asset_id: "asset-7", duration: 2.2 }
+    })
+  ];
+
+  /**
+   * Three contiguous scenes whose boundaries cut across everything else the
+   * builder could group by: the fused run s3/s4 is split between scene B and
+   * scene C, and the skipped shots s2 and s6 land in different scenes.
+   */
+  const SCENE_OF: Record<string, string> = {
+    s0: "sc-a",
+    s1: "sc-a",
+    s2: "sc-b",
+    s3: "sc-b",
+    s4: "sc-c",
+    s5: "sc-c",
+    s6: "sc-c",
+    s7: "sc-c"
+  };
+
+  const scenes: Scene[] = [
+    { type: "scene", id: "sc-a", slugline: "EXT. HARBOUR — DAWN" },
+    {
+      type: "scene",
+      id: "sc-b",
+      slugline: "INT. WHEELHOUSE — DAWN",
+      lighting: "sodium wash through glass"
+    },
+    { type: "scene", id: "sc-c", slugline: "EXT. BREAKWATER — DUSK" }
+  ];
+
+  const scenedShots = (sceneOf: Record<string, string> = SCENE_OF): Shot[] =>
+    unscenedShots().map((shot) => ({ ...shot, scene_id: sceneOf[shot.id] }));
+
+  const screenplay = (shots: Shot[], boardScenes?: Scene[]): Screenplay => ({
+    type: "screenplay",
+    id: "screenplay-1",
+    title: "Harbour",
+    aspect_ratio: "16:9",
+    narration: "the light turns",
+    music_prompt: "low strings, no percussion",
+    shots,
+    ...(boardScenes ? { scenes: boardScenes } : {})
+  });
+
+  const assemble = (board: Screenplay): AssembledTimeline =>
+    buildStoryboardTimeline({
+      boardId: "board-1",
+      shots: board.shots,
+      narration: board.narration,
+      musicPrompt: board.music_prompt
+    });
+
+  /**
+   * The three generated id fields, relabelled by first appearance.
+   *
+   * `makeTrack`, `makeClip` and the audio twin's `linkId` each call
+   * `createTimeOrderedUuid`, so `track.id`, `clip.id`, `clip.trackId` and
+   * `clip.linkId` are fresh every run and no two builds could ever be deeply
+   * equal on them. Relabelling preserves which clip points at which track and
+   * which pair is linked, so the identity relations are still compared. Every
+   * other field is a function of the input and is compared as it comes back.
+   */
+  const normalize = (result: AssembledTimeline) => {
+    const tokens = new Map<string, string>();
+    const token = (prefix: string, id: string): string => {
+      const seen = tokens.get(id);
+      if (seen !== undefined) return seen;
+      const next = `${prefix}:${tokens.size}`;
+      tokens.set(id, next);
+      return next;
+    };
+    return {
+      ...result,
+      tracks: result.tracks.map((track) => ({
+        ...track,
+        id: token("track", track.id)
+      })),
+      clips: result.clips.map((clip) => ({
+        ...clip,
+        id: token("clip", clip.id),
+        trackId: token("track", clip.trackId),
+        linkId: clip.linkId === undefined ? undefined : token("link", clip.linkId)
+      }))
+    };
+  };
+
+  it("assembles a board that has scenes exactly as it did without them", () => {
+    const unscened = assemble(screenplay(unscenedShots()));
+    const scened = assemble(screenplay(scenedShots(), scenes));
+
+    expect(normalize(scened)).toEqual(normalize(unscened));
+
+    // The cut both sides produced, so the equality above is not two empties.
+    expect(pictureClips(unscened.clips).map((c) => c.storyboardShotId)).toEqual([
+      "s0",
+      "s1",
+      "s3",
+      "s4",
+      "s5",
+      "s7"
+    ]);
+    expect(
+      pictureClips(unscened.clips).map((c) => [c.startMs, c.durationMs])
+    ).toEqual([
+      [0, 5184],
+      [5184, 2000],
+      [7184, 1250],
+      [8434, 2750],
+      [11184, 3000],
+      [14184, 2200]
+    ]);
+    expect(unscened.durationMs).toBe(16384);
+    expect(unscened.skippedShotIds).toEqual(["s2", "s6"]);
+    expect(unscened.tracks.map((t) => t.name)).toEqual([
+      "Shots",
+      "Shot Audio",
+      "Narration",
+      "Music"
+    ]);
+  });
+
+  it("assembles the same cut however the shots are grouped", () => {
+    // One scene per shot: a different grouping of the same order, so nothing
+    // about the cut may follow from how many scenes there are.
+    const perShot = Object.fromEntries(
+      unscenedShots().map((shot) => [shot.id, `sc-${shot.id}`])
+    );
+    const oneSceneEach = assemble(
+      screenplay(
+        scenedShots(perShot),
+        unscenedShots().map((shot) => ({
+          type: "scene" as const,
+          id: `sc-${shot.id}`,
+          slugline: `EXT. ${shot.id.toUpperCase()} — DAY`
+        }))
+      )
+    );
+
+    expect(normalize(oneSceneEach)).toEqual(
+      normalize(assemble(screenplay(unscenedShots())))
+    );
+  });
+
+  it("moves the cut when shot.index moves, scenes untouched", () => {
+    // The guard on the two equalities above: they would also hold against a
+    // builder that ignored its input, so reversing the order has to change
+    // the output while every scene stays where it was.
+    const shots = scenedShots();
+    const reversed = shots.map((shot, i) => ({
+      ...shot,
+      index: shots.length - 1 - i
+    }));
+    const result = assemble(screenplay(reversed, scenes));
+
+    expect(pictureClips(result.clips).map((c) => c.storyboardShotId)).toEqual([
+      "s7",
+      "s5",
+      "s4",
+      "s3",
+      "s1",
+      "s0"
+    ]);
+    expect(normalize(result)).not.toEqual(
+      normalize(assemble(screenplay(scenedShots(), scenes)))
+    );
   });
 });

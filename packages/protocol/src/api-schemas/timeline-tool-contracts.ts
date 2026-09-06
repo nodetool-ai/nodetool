@@ -612,6 +612,91 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
             '"move" slides the clip, "trim" changes its length. Default "move".'
           )
       }
+    },
+
+    // ── Guided video flow (PRD § 8.6) ────────────────────────────────────
+
+    ui_timeline_set_setup: {
+      description:
+        "Write the guided video flow's state onto a sequence: the brief it is being built from, the format card it follows, and the step it sits on. Stages are idea, format, review, look, done — a surface showing the flow resumes at whichever one is stored, and `done` hands the sequence back to the editor. Nothing here generates or places anything.",
+      shape: {
+        stage: z
+          .enum(["idea", "format", "review", "look", "done"])
+          .optional()
+          .describe("The step the flow resumes at. Omit to leave it alone."),
+        brief: z
+          .string()
+          .optional()
+          .describe("What the video is, in the creator's own words."),
+        format: z
+          .string()
+          .optional()
+          .describe(
+            'Format card id: "ad-15", "spot-30", "explainer-60", "social-9x16", "trailer", "music-video", "slideshow".'
+          )
+      }
+    },
+
+    ui_timeline_plan_beats: {
+      description:
+        "Write the beat plan a video is cut from — one row per shot, each with its prompt, its length in milliseconds, an optional transition into it, and an optional voiceover line. Pass `beats` to set the plan yourself; omit it in the editor and the Director drafts one from the sequence's brief and format. This is the cheap step: it creates no clip and starts no job, and the plan stays editable until generate_from_beats runs. Sets the stage to review.",
+      shape: {
+        beats: z
+          .array(
+            z.object({
+              prompt: z.string().trim().min(1),
+              durationMs: z.number().positive(),
+              transition: z.string().optional(),
+              voiceover: z.string().optional(),
+              music: z.boolean().optional()
+            })
+          )
+          .optional()
+          .describe("The plan, in cut order. Replaces any existing beats."),
+        replan: z
+          .boolean()
+          .optional()
+          .describe(
+            "Re-run the Director over the beats already stored, using them as context, rather than starting fresh."
+          )
+      }
+    },
+
+    ui_timeline_update_beat: {
+      description:
+        "Change one beat of the plan, by its id or its 1-based position. Only the fields you pass are touched; pass an empty `voiceover` to drop the line and `transition: null` to make the beat a straight cut. Editing a beat never touches a clip that was already generated from it.",
+      shape: {
+        beat: z
+          .string()
+          .trim()
+          .min(1)
+          .describe('A beat id, or its 1-based position as a string ("3").'),
+        prompt: z.string().optional(),
+        durationMs: z.number().positive().optional(),
+        transition: z.string().nullable().optional(),
+        voiceover: z.string().optional(),
+        music: z.boolean().optional()
+      }
+    },
+
+    ui_timeline_generate_from_beats: {
+      description:
+        "Turn the reviewed plan into a cut: one text-to-video clip per beat on the video track, one text-to-audio clip per beat that carries a voiceover, one music clip when any beat asks for music, and each beat's transition applied to its clip. In the editor every clip's generation is enqueued and the clips appear as placeholders that fill in; headlessly the clips are authored and nothing renders. Sets the stage to done.",
+      shape: {
+        model: z
+          .string()
+          .optional()
+          .describe("Video model id for the beat clips."),
+        provider: z.string().optional(),
+        voice: z
+          .string()
+          .optional()
+          .describe("Voice id for the voiceover clips. Omit for no voiceover."),
+        music: z
+          .boolean()
+          .optional()
+          .describe("Add the music clip. Default: whether any beat asks for it.")
+      }
     }
 ,
 

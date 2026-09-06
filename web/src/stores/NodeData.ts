@@ -68,6 +68,12 @@ export type NodeData = {
    * metadata input_fields / inline_fields off their default placement.
    */
   exposedInputsHidden?: string[];
+  /**
+   * The plan step this node was placed from, when it came out of the Workflow
+   * creation flow's build (PRD § 11.5). Kept so the plan can be shown beside
+   * the graph later; nothing in the runtime reads it.
+   */
+  setupStepId?: string;
   // Original node type from the workflow graph (useful when React Flow falls back to "default" type)
   originalType?: string;
   size?: {

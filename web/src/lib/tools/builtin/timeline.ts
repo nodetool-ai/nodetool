@@ -646,6 +646,52 @@ FrontendToolRegistry.register({
   }
 });
 
+// ── Guided video flow (PRD § 8.6) ───────────────────────────────────────────
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_set_setup"),
+  async execute({ timeline_id, ...patch }) {
+    const setup = getTimelineAgentHandler(timeline_id).setSetup(patch);
+    return { ok: true, setup, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_plan_beats"),
+  async execute({ timeline_id, ...opts }) {
+    const beats = await getTimelineAgentHandler(timeline_id).planBeats(opts);
+    // Named in the answer because it is the tool's contract: the plan is text
+    // and costs nothing until generate_from_beats runs (D4).
+    return {
+      ok: true,
+      beats,
+      clipsCreated: 0,
+      jobsStarted: 0,
+      url: docUrl("timeline", timeline_id)
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_update_beat"),
+  async execute({ timeline_id, beat, ...patch }) {
+    const updated = getTimelineAgentHandler(timeline_id).updateBeat(
+      beat,
+      patch
+    );
+    return { ok: true, beat: updated, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_generate_from_beats"),
+  async execute({ timeline_id, ...opts }) {
+    const result =
+      await getTimelineAgentHandler(timeline_id).generateFromBeats(opts);
+    return { ok: true, ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
 FrontendToolRegistry.register({
   ...shared("ui_timeline_add_midi_clip"),
   async execute({ timeline_id, track, start_ms, duration_ms, name, notes }) {

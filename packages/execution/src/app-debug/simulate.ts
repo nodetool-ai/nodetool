@@ -235,16 +235,22 @@ function conditionalNodeIds(graph: DebugGraph): Set<string> {
  * the mapping is repeated here against the kernel shape (`node.properties`);
  * `parseInputStateKey` — the shared inverse of the state key — is what both
  * sides actually agree on.
+ *
+ * Only the running operation's slots apply: two operations can bind the same
+ * node id in different workflows, so an unscoped merge would let one
+ * operation's slider drive the other's run.
  */
 export function withNodePropertyOverlays(
   graph: DebugGraph,
-  inputs: Record<string, InputSlot>
+  inputs: Record<string, InputSlot>,
+  operationId: string
 ): DebugGraph {
   const byNode = new Map<string, Record<string, unknown>>();
   for (const [key, slot] of Object.entries(inputs)) {
     if (slot.value === undefined) continue;
     const parsed = parseInputStateKey(key);
     if (!parsed?.property) continue;
+    if (parsed.operationId !== operationId) continue;
     const existing = byNode.get(parsed.nodeId);
     if (existing) existing[parsed.property] = slot.value;
     else byNode.set(parsed.nodeId, { [parsed.property]: slot.value });
@@ -764,7 +770,11 @@ export async function simulateApp(
     ) => {
       log(`Running operation "${operationId}"…`);
       const runInput: Parameters<typeof deps.runOnServer>[0] = {
-        graph: withNodePropertyOverlays(graph, runtime.state.inputs),
+        graph: withNodePropertyOverlays(
+          graph,
+          runtime.state.inputs,
+          operationId
+        ),
         workflowId,
         params
       };

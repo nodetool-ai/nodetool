@@ -421,7 +421,10 @@ export const editTimelineSpec: CapabilitySpec = {
     "shape clips, split, trim, move, duplicate and delete clips, set clip " +
     "params and workflow bindings, group clips under a shared transform, " +
     "set transitions, masks, mattes and effect chains, and animate clips " +
-    "with presets or keyframed custom curves. Pass a " +
+    "with presets or keyframed custom curves. It also drives the guided video " +
+    "flow: set_setup writes the brief and stage, plan_beats writes the beat " +
+    "plan (text only — no clip, no job), update_beat edits one row, and " +
+    "generate_from_beats turns the plan into clips. Pass a " +
     "list of operations; they run in order against the stored document and " +
     "the result is saved. An open editor picks the change up live. Call " +
     "list_timelines to find a sequence and validate_timeline afterwards. " +

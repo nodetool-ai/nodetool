@@ -22,7 +22,10 @@ import type {
   MidiNote,
   QuantizeOptions,
   StaggerUnit,
-  TimelineTempo
+  TimelineTempo,
+  TimelineBeat,
+  TimelineSetup,
+  TimelineSetupStage
 } from "@nodetool-ai/timeline";
 import type { timeline } from "@nodetool-ai/protocol/api-schemas";
 import type {
@@ -512,6 +515,64 @@ export interface TimelineAgentHandler {
   ) => TimelineClipNode;
   /** Scale every velocity in a midi clip, clamped to 1..127. */
   scaleClipVelocity: (target: string, factor: number) => TimelineClipNode;
+
+  // ── Guided video flow (PRD § 8.6) ─────────────────────────────────────────
+
+  /** Write the flow's stage, brief and format. Returns the whole setup. */
+  setSetup: (patch: TimelineSetupPatch) => TimelineSetup;
+  /**
+   * Write the beat plan, or draft one with the Director when no beats are
+   * given. Creates no clip and starts no job either way (D4).
+   */
+  planBeats: (opts: TimelinePlanBeatsOptions) => Promise<TimelineBeat[]>;
+  /** Change one beat, by id or 1-based position. */
+  updateBeat: (target: string, patch: TimelineBeatPatch) => TimelineBeat;
+  /** Turn the plan into clips and enqueue them. */
+  generateFromBeats: (
+    opts: TimelineGenerateFromBeatsOptions
+  ) => Promise<TimelineGenerateFromBeatsResult>;
+}
+
+/** What `ui_timeline_set_setup` may write. Omitted fields are left alone. */
+export interface TimelineSetupPatch {
+  stage?: TimelineSetupStage;
+  brief?: string;
+  format?: string;
+}
+
+export interface TimelinePlanBeatsOptions {
+  /** The plan, written verbatim. Without it the Director drafts one. */
+  beats?: readonly {
+    prompt: string;
+    durationMs: number;
+    transition?: string;
+    voiceover?: string;
+    music?: boolean;
+  }[];
+  replan?: boolean;
+}
+
+export interface TimelineBeatPatch {
+  prompt?: string;
+  durationMs?: number;
+  /** `null` clears it, making the beat a straight cut. */
+  transition?: string | null;
+  voiceover?: string;
+  music?: boolean;
+}
+
+export interface TimelineGenerateFromBeatsOptions {
+  provider?: string;
+  model?: string;
+  voice?: string;
+  music?: boolean;
+}
+
+export interface TimelineGenerateFromBeatsResult {
+  videoClipIds: string[];
+  voiceoverClipIds: string[];
+  musicClipId: string | null;
+  startedClipIds: string[];
 }
 
 const handlers = new Map<string, TimelineAgentHandler>();

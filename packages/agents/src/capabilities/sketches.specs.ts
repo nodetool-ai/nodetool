@@ -127,7 +127,8 @@ export const EDIT_SKETCH_SCHEMA: JsonSchema = {
         "set_layer_props {target, visible?, locked?, opacity?, blendMode?}, " +
         "set_layer_image {target, image, x?, y?, width?, height?}, " +
         "reorder_layer {target, index}, duplicate_layer {target}, " +
-        "select_layer {target}, resize_canvas {width, height}. " +
+        "select_layer {target}, resize_canvas {width, height}, " +
+        "set_setup {brief?, use_case?, variations?, stage?}. " +
         '`target` is a layer id, its name, or "active". Layer index 0 is the ' +
         "bottom layer. " +
         "`image` puts a picture on the layer: an asset id (from list_assets), " +
@@ -135,7 +136,12 @@ export const EDIT_SKETCH_SCHEMA: JsonSchema = {
         "its natural size from the top-left of {x, y, width, height}, which " +
         "defaults to the whole canvas — pass the image's own dimensions when " +
         "you know them. Pass `image` to add_layer to place a picture on a new " +
-        "layer in one op.",
+        "layer in one op. " +
+        "set_setup writes the guided image flow's state: the `brief`, the " +
+        "`use_case` (product, portrait, key-art, social, logo, concept, " +
+        "texture — which also sets the canvas size), how many `variations` to " +
+        "render, and the `stage` the flow resumes at (idea, useCase, review, " +
+        "look, or done for the plain editor). It renders nothing.",
       items: { type: "object" }
     }
   },
@@ -352,6 +358,42 @@ export const editSketchSpec: CapabilitySpec = {
   }
 };
 
+export const REFINE_IMAGE_BRIEF_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    image_document_id: {
+      type: "string",
+      description: "Sketch (image document) id whose brief is expanded."
+    },
+    provider: {
+      type: "string",
+      description:
+        "Language-model provider. Omit to use the session's default."
+    },
+    model: {
+      type: "string",
+      description: "Language model id. Omit to use the session's default."
+    }
+  },
+  required: ["image_document_id"]
+};
+
+export const refineImageBriefSpec: CapabilitySpec = {
+  name: "refine_image_brief",
+  description:
+    "Expand a sketch's one-line brief into the five fields an image model " +
+    "needs — subject, composition, lighting, style words, and what to leave " +
+    "out — and leave the guided flow at its review step. Write the brief with " +
+    "edit_sketch's set_setup first. This creates no layer and starts no " +
+    "generation: it is the cheap text pass a person edits before anything is " +
+    "rendered. Generate from it with the image tools once the fields read " +
+    "right.",
+  inputSchema: REFINE_IMAGE_BRIEF_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Refining the brief for sketch ${String(params["image_document_id"])}`
+};
+
 export const validateSketchSpec: CapabilitySpec = {
   name: "validate_sketch",
   description:
@@ -402,6 +444,7 @@ export const sketchesSpecs: readonly CapabilitySpec[] = [
   restoreSketchVersionSpec,
   deleteSketchVersionSpec,
   editSketchSpec,
+  refineImageBriefSpec,
   validateSketchSpec,
   deleteSketchSpec
 ];

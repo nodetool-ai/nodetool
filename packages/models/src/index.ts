@@ -300,6 +300,7 @@ export type { JsScriptSaveType } from "./js-script-version.js";
 export { createJsScriptResolver } from "./js-script-resolver.js";
 export type {
   ScriptDocument,
+  ScriptSetup,
   ScriptResponse,
   ScriptSection,
   ScriptLine,

@@ -40,9 +40,44 @@ const cameraParam = z
     framing: z.string().optional(),
     lens: z.string().optional(),
     angle: z.string().optional(),
-    movement: z.string().optional()
+    movement: z.string().optional(),
+    equipment: z
+      .string()
+      .optional()
+      .describe(
+        "What the camera is on: handheld, tripod, steadicam, gimbal, dolly, slider, crane, drone. The rig, not the direction of the move."
+      )
   })
-  .describe("Structured camera direction (framing, lens, angle, movement).");
+  .describe(
+    "Structured camera direction (framing, lens, angle, movement, equipment)."
+  );
+
+const sceneIdParam = z
+  .string()
+  .describe(
+    "Scene id, as listed under `scenes` by ui_storyboard_get_state."
+  );
+
+const versionKindParam = z
+  .enum(["keyframe", "clip"])
+  .describe(
+    'Which media list to address: "keyframe" for the shot\'s stills, "clip" for its takes.'
+  );
+
+const versionIndexParam = z
+  .number()
+  .int()
+  .min(0)
+  .describe(
+    "0-based position in that list, oldest first. Counts come from ui_storyboard_get_state."
+  );
+
+const staleOnlyParam = z
+  .boolean()
+  .optional()
+  .describe(
+    "Render only the selected shots whose current version is stale — rendered from a style, model, aspect ratio or prompt the shot no longer has. Omitted or false renders every selected shot."
+  );
 
 /**
  * One shot as the agent supplies it. Only `action` is required — the tool layer
@@ -59,8 +94,27 @@ const screenplayShotParam = z
     motion: z.string().optional(),
     dialogue: z.string().optional(),
     narration: z.string().optional(),
+    notes: z.string().optional(),
     durationSeconds: z.number().optional(),
+    sceneId: z
+      .string()
+      .optional()
+      .describe("Id of the scene this shot belongs to, from `scenes`."),
     entityIds: z.array(z.string()).optional()
+  })
+  .passthrough();
+
+/** One scene. Its position is derived from its shots, never stored. */
+const screenplaySceneParam = z
+  .object({
+    slugline: z
+      .string()
+      .describe('e.g. "INT. SOPHIA\'S FLAT - HALLWAY - EARLY MORNING".'),
+    id: z.string().optional().describe("Generated when omitted."),
+    lighting: z
+      .string()
+      .optional()
+      .describe("Lighting for every shot in the scene; enters still prompts.")
   })
   .passthrough();
 
@@ -82,6 +136,16 @@ const screenplayParam = z
       .describe("The look applied to every shot (alias of styleBible)."),
     styleBible: z.string().optional(),
     aspectRatio: z.string().optional(),
+    genre: z
+      .string()
+      .optional()
+      .describe("The genre this screenplay was directed in."),
+    scenes: z
+      .array(screenplaySceneParam)
+      .optional()
+      .describe(
+        "The scenes, in order. Every shot's `sceneId` must name one of these; shots in a scene must be contiguous."
+      ),
     narration: z.string().optional(),
     musicPrompt: z.string().optional(),
     entityIds: z.array(z.string()).optional()
@@ -121,7 +185,7 @@ const shotStatusEnum = z.enum([
 FrontendToolRegistry.register({
   name: "ui_storyboard_get_state",
   description:
-    "Read the specified storyboard: title, brief, style, aspect ratio, the entity ids cast on the board, whether a screenplay is loaded, the selected shot, and every shot with its index, slug, action, camera, motion, duration, status, and whether it has a rendered keyframe/clip. Call this first to discover the shot ids/indexes the other tools need.",
+    "Read the specified storyboard: title, brief, style, genre, setup stage, aspect ratio, the entity ids cast on the board, the scenes with the shots under each, whether a screenplay is loaded, the selected shot, and every shot with its index, slug, action, camera, motion, duration, scene, dialogue, status, how many stills and takes it holds, and whether its selected still or clip is stale. Call this first to discover the shot and scene ids the other tools need.",
   parameters: z.object({ storyboard_id: storyboardIdParam }),
   async execute({ storyboard_id }) {
     const snapshot = getStoryboardAgentHandler(storyboard_id).getSnapshot();
@@ -191,7 +255,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_add_shot",
   description:
-    "Add a new shot to the specified storyboard. `action` is the concrete visual (required). `slug` is the shot's short title, e.g. 'Lighthouse at dusk' — give every shot one. Optionally set `camera`, `motion`, `durationSeconds`, and an `index` to insert at (appended when omitted). The shot starts in the 'planned' status.",
+    "Add a new shot to the specified storyboard. `action` is the concrete visual (required). `slug` is the shot's short title, e.g. 'Lighthouse at dusk' — give every shot one. Optionally set `camera`, `motion`, `durationSeconds`, and where it lands: `afterShotId` inserts it directly after that shot in that shot's scene (the scene-safe way), `index` puts it at a board position. The shot starts in the 'planned' status.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     action: z.string().min(1),
@@ -199,7 +263,12 @@ FrontendToolRegistry.register({
     camera: cameraParam.optional(),
     motion: z.string().optional(),
     durationSeconds: z.number().optional(),
-    index: z.number().optional()
+    index: z.number().optional(),
+    afterShotId: targetParam
+      .optional()
+      .describe(
+        "Insert directly after this shot, in its scene. Wins over `index`, which cannot say which scene a position belongs to."
+      )
   }),
   async execute({
     storyboard_id,
@@ -208,7 +277,8 @@ FrontendToolRegistry.register({
     camera,
     motion,
     durationSeconds,
-    index
+    index,
+    afterShotId
   }) {
     const shot = getStoryboardAgentHandler(storyboard_id).addShot({
       action,
@@ -216,7 +286,8 @@ FrontendToolRegistry.register({
       camera,
       motion,
       durationSeconds,
-      index
+      index,
+      afterShotId
     });
     const persisted = await persistBoard(storyboard_id, "The shot");
     return {
@@ -231,7 +302,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_update_shot",
   description:
-    "Edit an existing shot's `slug` (its short title), `action`, `camera`, `motion`, `durationSeconds` (which pins the shot to that length), or `status`. Omit a field to leave it unchanged.",
+    "Edit an existing shot's `slug` (its short title), `action`, `camera` (including its `equipment` rig), `motion`, `dialogue`, `notes`, `durationSeconds` (which pins the shot to that length), `durationSource`, or `status`. Omit a field to leave it unchanged. A shot's scene is not a field here — move it with ui_storyboard_move_shot.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     target: targetParam,
@@ -239,7 +310,23 @@ FrontendToolRegistry.register({
     slug: z.string().optional(),
     camera: cameraParam.optional(),
     motion: z.string().optional(),
+    dialogue: z
+      .string()
+      .optional()
+      .describe(
+        "Spoken line delivered in-shot. On a board linked to a script the words belong to the script — edit them there and re-project."
+      ),
+    notes: z
+      .string()
+      .optional()
+      .describe("Direction for the crew. Never enters a render prompt."),
     durationSeconds: z.number().positive().optional(),
+    durationSource: z
+      .enum(["audio", "manual"])
+      .optional()
+      .describe(
+        'Where the length comes from: "audio" times the shot from the takes of the script lines it covers, "manual" pins durationSeconds.'
+      ),
     status: shotStatusEnum.optional()
   }),
   async execute({
@@ -249,7 +336,10 @@ FrontendToolRegistry.register({
     slug,
     camera,
     motion,
+    dialogue,
+    notes,
     durationSeconds,
+    durationSource,
     status
   }) {
     const shot = getStoryboardAgentHandler(storyboard_id).updateShot(target, {
@@ -257,7 +347,10 @@ FrontendToolRegistry.register({
       slug,
       camera,
       motion,
+      dialogue,
+      notes,
       durationSeconds,
+      durationSource,
       status
     });
     const persisted = await persistBoard(storyboard_id, "The shot edit");
@@ -273,20 +366,25 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_generate_keyframe",
   description:
-    "Generate (or regenerate) the cheap keyframe still for a shot from its action + the board style. Kicks off the job and returns the shot; poll ui_storyboard_get_state for the resulting status.",
+    'Generate (or regenerate) the cheap keyframe still for a shot from its action + the board style. `target` takes one shot, or the literal "all" for every shot on the board. With `staleOnly` only the shots whose selected still is out of date are rendered. Kicks the jobs off and returns the shots it enqueued plus the ids it skipped; poll ui_storyboard_get_state for the resulting statuses.',
   parameters: z.object({
     storyboard_id: storyboardIdParam,
-    target: targetParam
+    target: targetParam.describe(
+      'Shot id, 0-based shot index (as a string), "selected", or "all" for every shot.'
+    ),
+    staleOnly: staleOnlyParam
   }),
-  async execute({ storyboard_id, target }) {
-    const shot =
-      await getStoryboardAgentHandler(storyboard_id).generateKeyframe(target);
+  async execute({ storyboard_id, target, staleOnly }) {
+    const result = await getStoryboardAgentHandler(
+      storyboard_id
+    ).generateKeyframe(target, { staleOnly });
     const persisted = await persistBoard(storyboard_id, "The keyframe");
     return {
       ok: true,
-      shot,
+      ...result,
+      shot: result.shots[0] ?? null,
       ...persisted,
-      url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
+      url: docUrl("storyboard", storyboard_id)
     };
   }
 });
@@ -294,20 +392,26 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_generate_clip",
   description:
-    "Render the final clip for a shot, animating its selected keyframe still. The shot must have a still. Kicks off the job and returns the shot; poll ui_storyboard_get_state for the resulting status.",
+    'Render the final clip for a shot, animating its selected keyframe still. The shot must have a still. `target` takes one shot, or the literal "all" for every shot on the board. With `staleOnly` only the shots whose selected clip is out of date are rendered. This is the expensive step. Kicks the jobs off and returns the shots it enqueued plus the ids it skipped; poll ui_storyboard_get_state for the resulting statuses.',
   parameters: z.object({
     storyboard_id: storyboardIdParam,
-    target: targetParam
+    target: targetParam.describe(
+      'Shot id, 0-based shot index (as a string), "selected", or "all" for every shot.'
+    ),
+    staleOnly: staleOnlyParam
   }),
-  async execute({ storyboard_id, target }) {
-    const shot =
-      await getStoryboardAgentHandler(storyboard_id).generateClip(target);
+  async execute({ storyboard_id, target, staleOnly }) {
+    const result = await getStoryboardAgentHandler(storyboard_id).generateClip(
+      target,
+      { staleOnly }
+    );
     const persisted = await persistBoard(storyboard_id, "The clip");
     return {
       ok: true,
-      shot,
+      ...result,
+      shot: result.shots[0] ?? null,
       ...persisted,
-      url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
+      url: docUrl("storyboard", storyboard_id)
     };
   }
 });
@@ -451,5 +555,353 @@ FrontendToolRegistry.register({
   async execute({ storyboard_id, target }) {
     const shot = getStoryboardAgentHandler(storyboard_id).selectShot(target);
     return { ok: true, selected: shot };
+  }
+});
+
+// ── Guided setup ────────────────────────────────────────────────────────────
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_set_setup",
+  description:
+    "Write the guided-setup answers on the specified storyboard: the `brief` (what the piece is), the `genre` the Director works in, and the `stage` the flow sits at. Omit a field to leave it unchanged. The stages run idea → genre → review → look → done; a board that has finished setup, or was built before the flow existed, reads 'done'. Setting the stage is what moves the open flow to that step.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    brief: z
+      .string()
+      .optional()
+      .describe("What the piece is for — the Director's input."),
+    genre: z
+      .string()
+      .optional()
+      .describe("Genre, e.g. 'noir thriller'. Seasons the Director run."),
+    stage: storyboards.storyboardSetupStage
+      .optional()
+      .describe(
+        "Where the guided flow should resume: idea, genre, review, look, or done."
+      )
+  }),
+  async execute({ storyboard_id, brief, genre, stage }) {
+    const snapshot = getStoryboardAgentHandler(storyboard_id).setSetup({
+      brief,
+      genre,
+      stage
+    });
+    const persisted = await persistBoard(storyboard_id, "The setup");
+    return {
+      ok: true,
+      ...snapshot,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id)
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_direct",
+  description:
+    "Run the Director over the specified storyboard's brief, genre and style, and load the screenplay it writes. Pass `redirect: true` to re-run over a screenplay that is already there: shots the revision keeps hold their ids, their rendered stills and clips, and their status, so a re-direct is a rewrite and not a reset. Without `redirect` a board that already has a screenplay is refused. Write the brief with ui_storyboard_set_setup first — directing without one fails.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    redirect: z
+      .boolean()
+      .describe(
+        "True to re-run over the existing screenplay, keeping the ids and media of retained shots. Required to overwrite one."
+      ),
+    shotCount: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe("How many shots to ask for. Defaults to 6.")
+  }),
+  async execute({ storyboard_id, redirect, shotCount }) {
+    const snapshot = await getStoryboardAgentHandler(storyboard_id).direct({
+      redirect,
+      shotCount
+    });
+    const persisted = await persistBoard(storyboard_id, "The screenplay");
+    return {
+      ok: true,
+      ...snapshot,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id)
+    };
+  }
+});
+
+// ── Ordering ────────────────────────────────────────────────────────────────
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_move_shot",
+  description:
+    "Move a shot into a scene at a position within it. `sceneId` names the target scene (null moves it into the board's implicit header, the group unscened shots render under); `position` is 0-based inside that scene and clamps to its length. Every shot is renumbered afterwards, so a scene's shots always stay contiguous. This is how a shot changes scene — ui_storyboard_update_shot does not take one.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    target: targetParam,
+    sceneId: sceneIdParam
+      .nullable()
+      .describe(
+        "Scene to move into, or null for the implicit header holding unscened shots."
+      ),
+    position: z
+      .number()
+      .int()
+      .min(0)
+      .describe("0-based position within that scene; clamped to its length.")
+  }),
+  async execute({ storyboard_id, target, sceneId, position }) {
+    const shot = getStoryboardAgentHandler(storyboard_id).moveShot(
+      target,
+      sceneId,
+      position
+    );
+    const persisted = await persistBoard(storyboard_id, "The move");
+    return {
+      ok: true,
+      shot,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_duplicate_shot",
+  description:
+    "Copy a shot in directly after itself, in the same scene. The copy keeps the direction and every still and take, and becomes the selected shot. It covers no script line, so the script link is dropped and its length reads as manual — an alternate take of the same beat, free to diverge.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    target: targetParam
+  }),
+  async execute({ storyboard_id, target }) {
+    const shot = getStoryboardAgentHandler(storyboard_id).duplicateShot(target);
+    const persisted = await persistBoard(storyboard_id, "The duplicate");
+    return {
+      ok: true,
+      shot,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_remove_shot",
+  description:
+    "Delete a shot from the specified storyboard, including any still or clip it holds. The remaining shots are renumbered. This cannot be undone from the agent side — read ui_storyboard_get_state and confirm the id before calling.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    target: targetParam
+  }),
+  requireUserConsent: true,
+  async execute({ storyboard_id, target }) {
+    const removed = getStoryboardAgentHandler(storyboard_id).removeShot(target);
+    const persisted = await persistBoard(storyboard_id, "The deletion");
+    return {
+      ok: true,
+      ...removed,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id)
+    };
+  }
+});
+
+// ── Scenes ──────────────────────────────────────────────────────────────────
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_update_scene",
+  description:
+    "Edit a scene's `slugline` (its heading, e.g. 'INT. SOPHIA'S FLAT - HALLWAY - EARLY MORNING') and `lighting`. The lighting is pasted into the still prompt of every shot in the scene, so it is the one place to set the light for a run of shots. Omit a field to leave it unchanged.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    sceneId: sceneIdParam,
+    slugline: z.string().optional(),
+    lighting: z
+      .string()
+      .optional()
+      .describe("Lighting for every shot in the scene; enters still prompts.")
+  }),
+  async execute({ storyboard_id, sceneId, slugline, lighting }) {
+    const scene = getStoryboardAgentHandler(storyboard_id).updateScene(
+      sceneId,
+      { slugline, lighting }
+    );
+    const persisted = await persistBoard(storyboard_id, "The scene edit");
+    return {
+      ok: true,
+      scene,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id)
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_create_scene",
+  description:
+    "Add a scene after `afterSceneId` (or at the end of the board), holding one blank shot which becomes the selection. A scene needs that shot: a scene's position is the position of its first shot, so an empty one has no place on the board. Write its heading with ui_storyboard_update_scene and its shot with ui_storyboard_update_shot.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    afterSceneId: sceneIdParam
+      .nullable()
+      .optional()
+      .describe("Insert after this scene. Appended when omitted or null.")
+  }),
+  async execute({ storyboard_id, afterSceneId }) {
+    const scene = getStoryboardAgentHandler(storyboard_id).createScene(
+      afterSceneId ?? null
+    );
+    const persisted = await persistBoard(storyboard_id, "The scene");
+    return {
+      ok: true,
+      scene,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id)
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_merge_scene",
+  description:
+    "Fold a scene's shots into the scene before it and drop the emptied scene. The shots keep their order, their direction and their media — only their scene changes. Refused on the first scene, which has nothing before it.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    sceneId: sceneIdParam
+  }),
+  async execute({ storyboard_id, sceneId }) {
+    const merged = getStoryboardAgentHandler(storyboard_id).mergeScene(sceneId);
+    const persisted = await persistBoard(storyboard_id, "The merge");
+    return {
+      ok: true,
+      ...merged,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id)
+    };
+  }
+});
+
+// ── Style ───────────────────────────────────────────────────────────────────
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_set_style",
+  description:
+    "Set the look every shot renders in. Pass `entityId` to apply a style entity from the library as a preset: it replaces whatever style entity the board carried, its descriptor becomes the board style, and per-shot exclusions of a style are dropped — a style is board-wide. Pass `descriptor` instead to set the style text on its own, with no entity behind it. Discover style entity ids with ui_entity_list. This renders nothing: stills and clips made under the old style read as stale, and you re-render them with staleOnly.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    entityId: z
+      .string()
+      .optional()
+      .describe(
+        "Id of a library entity of kind 'style'. Applies it as the board's preset."
+      ),
+    descriptor: z
+      .string()
+      .optional()
+      .describe(
+        "Raw style text, when no library entity carries the look. Ignored when entityId is given."
+      )
+  }),
+  async execute({ storyboard_id, entityId, descriptor }) {
+    const snapshot = getStoryboardAgentHandler(storyboard_id).setStyle({
+      entityId,
+      descriptor
+    });
+    const persisted = await persistBoard(storyboard_id, "The style");
+    return {
+      ok: true,
+      ...snapshot,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id)
+    };
+  }
+});
+
+// ── Versions ────────────────────────────────────────────────────────────────
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_select_version",
+  description:
+    "Choose which of a shot's preserved stills or takes is the selected one — the still the board shows and a clip animates, or the take assembly exports. Versions are 0-based, oldest first; the counts are in ui_storyboard_get_state. Nothing is deleted and nothing re-renders.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    target: targetParam,
+    kind: versionKindParam,
+    version: versionIndexParam
+  }),
+  async execute({ storyboard_id, target, kind, version }) {
+    const shot = getStoryboardAgentHandler(storyboard_id).selectVersion(
+      target,
+      kind,
+      version
+    );
+    const persisted = await persistBoard(storyboard_id, "The version");
+    return {
+      ok: true,
+      shot,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_delete_version",
+  description:
+    "Remove one of a shot's preserved stills or takes. When the removed version was the selected one, the next version at the same position becomes selected (or the last, at the end); removing the last one clears the selection and steps the shot's status back. The generated asset stays in the asset library.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    target: targetParam,
+    kind: versionKindParam,
+    version: versionIndexParam
+  }),
+  requireUserConsent: true,
+  async execute({ storyboard_id, target, kind, version }) {
+    const shot = getStoryboardAgentHandler(storyboard_id).deleteVersion(
+      target,
+      kind,
+      version
+    );
+    const persisted = await persistBoard(storyboard_id, "The version deletion");
+    return {
+      ok: true,
+      shot,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_add_keyframe_version",
+  description:
+    "Add a stored asset to a shot as a new still and select it — an upload, a horizontal flip, or an image-editor pass. Existing stills are kept: this never overwrites a version. `flipOf` records which version the image was derived from. A still added this way carries no render record, so it never reads stale.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    target: targetParam,
+    assetId: z
+      .string()
+      .min(1)
+      .describe("Id of the stored image asset to attach (not a URL)."),
+    flipOf: z
+      .string()
+      .optional()
+      .describe(
+        "Asset id of the still this one was derived from, when it is a flip or an edit of it."
+      )
+  }),
+  async execute({ storyboard_id, target, assetId, flipOf }) {
+    const shot = getStoryboardAgentHandler(storyboard_id).addKeyframeVersion(
+      target,
+      assetId,
+      flipOf
+    );
+    const persisted = await persistBoard(storyboard_id, "The still");
+    return {
+      ok: true,
+      shot,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
+    };
   }
 });

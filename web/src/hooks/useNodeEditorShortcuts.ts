@@ -35,13 +35,18 @@ import { useSketchCanvasRefStore } from "../stores/sketch/SketchCanvasRefStore";
 /**
  * Registers the node editor's keyboard shortcuts with KeyPressedStore, using the
  * combinations defined in NODE_EDITOR_SHORTCUTS. `active` gates registration;
- * `onShowShortcuts` opens the shortcuts help dialog.
+ * `onShowShortcuts` opens the shortcuts help dialog; `getRoot` returns this
+ * editor's root element so a shortcut only fires while that editor is
+ * reachable — several editors bind the same keys (Space opens the node menu
+ * here and plays/pauses in the timeline), and every open workspace tab stays
+ * mounted with inactive ones `inert`.
  */
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
 export const useNodeEditorShortcuts = (
   active: boolean,
-  onShowShortcuts?: () => void
+  onShowShortcuts?: () => void,
+  getRoot?: () => HTMLElement | null
 ): void => {
   // Subscribe to undo/redo functions only (stable) to prevent re-renders on history changes
   const undoHistory = useTemporalNodes((state) => state.undo);
@@ -654,7 +659,8 @@ export const useNodeEditorShortcuts = (
           registerComboCallback(normalized, {
             callback: meta.callback,
             preventDefault: meta.preventDefault ?? true,
-            active: meta.active ?? true
+            active: meta.active ?? true,
+            target: getRoot
           })
         );
       });
@@ -664,6 +670,6 @@ export const useNodeEditorShortcuts = (
       disposers.forEach((dispose) => dispose());
     };
     // selectedNodeCount affects active flags for align shortcuts
-  }, [active, selectedNodeCount, electronDetails, shortcutMeta]);
+  }, [active, selectedNodeCount, electronDetails, shortcutMeta, getRoot]);
 
 };

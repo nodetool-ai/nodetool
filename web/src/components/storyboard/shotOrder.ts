@@ -4,28 +4,6 @@
  * what the store should be told; neither reads the DOM.
  */
 
-/**
- * The order after dropping `draggedId` onto `targetId`: the dragged shot
- * takes the target's slot, so dropping on an earlier card lands before it and
- * dropping on a later card lands after it. Unknown ids and a drop on itself
- * return the input untouched.
- */
-export const dropShotOrder = (
-  ids: readonly string[],
-  draggedId: string,
-  targetId: string
-): string[] => {
-  const from = ids.indexOf(draggedId);
-  const to = ids.indexOf(targetId);
-  if (from === -1 || to === -1 || from === to) {
-    return [...ids];
-  }
-  const next = [...ids];
-  next.splice(from, 1);
-  next.splice(to, 0, draggedId);
-  return next;
-};
-
 export type ShotNavigationKey = "ArrowLeft" | "ArrowRight" | "Home" | "End";
 
 export const isShotNavigationKey = (key: string): key is ShotNavigationKey =>

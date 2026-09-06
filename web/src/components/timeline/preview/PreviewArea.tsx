@@ -815,7 +815,12 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       [seek]
     );
 
-    useCombo([" "], handlePlayPauseToggle);
+    // Targeted at the preview root: every open workspace tab stays mounted, and
+    // an inert one must not swallow Space from the visible editor.
+    const previewTarget = useCallback(() => containerRef.current, []);
+    useCombo([" "], handlePlayPauseToggle, true, true, {
+      target: previewTarget
+    });
 
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLDivElement>) => {

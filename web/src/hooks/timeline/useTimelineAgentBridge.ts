@@ -13,6 +13,7 @@
 
 import { useEffect, useMemo } from "react";
 import {
+  createTimeOrderedUuid,
   makeClip,
   moveTrackOrder,
   presetIdForInstrument,
@@ -31,6 +32,8 @@ import type {
   TimelineClip,
   TimelineMarker,
   TimelineTempo,
+  TimelineBeat,
+  TimelineSetup,
   TimelineTrack
 } from "@nodetool-ai/timeline";
 import {
@@ -41,6 +44,9 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { parseSvgPath } from "@nodetool-ai/timeline/scene";
 import { buildClipAnimation } from "./buildClipAnimation";
+import { applyBeatPlan, planBeats } from "./usePlanBeats";
+import { generateFromBeats } from "./useGenerateFromBeats";
+import { videoFormatById } from "../../components/setup/video/formats";
 
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
@@ -294,6 +300,42 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           (known.length > 0
             ? `Markers: ${known}.`
             : "This sequence has no markers yet.")
+      );
+    };
+
+    /**
+     * The flow's state on this sequence. A tool that reads it before anything
+     * wrote one starts the flow rather than failing: writing a brief onto a
+     * finished timeline is the agent asking for the flow.
+     */
+    const requireSetup = (): TimelineSetup => {
+      const setup = doc.getState().setup;
+      if (setup) {
+        return setup;
+      }
+      doc.getState().setSetup({});
+      const started = doc.getState().setup;
+      if (!started) {
+        throw new Error("This sequence has no guided setup.");
+      }
+      return started;
+    };
+
+    /** Resolve a beat by id, or by its 1-based position in the plan. */
+    const requireBeat = (target: string): TimelineBeat => {
+      const beats = doc.getState().setup?.beats ?? [];
+      const byId = beats.find((beat) => beat.id === target);
+      if (byId) return byId;
+      const position = Number.parseInt(target, 10);
+      const byPosition = beats[position - 1];
+      if (Number.isFinite(position) && byPosition) {
+        return byPosition;
+      }
+      throw new Error(
+        `No beat matches "${target}". Use a beat id or its 1-based position. ` +
+          (beats.length > 0
+            ? `This plan has ${beats.length} beats.`
+            : "This sequence has no beat plan yet; run ui_timeline_plan_beats first.")
       );
     };
 
@@ -1157,6 +1199,69 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           next,
           doc.getState().clips.filter((c) => c.trackId === next.id).length
         );
+      },
+
+      // ── Guided video flow (PRD § 8.6) ───────────────────────────────────
+
+      setSetup(patch) {
+        doc.getState().setSetup(patch);
+        return requireSetup();
+      },
+
+      async planBeats(opts) {
+        const setup = requireSetup();
+        // The written form takes the plan verbatim; the drafted form asks the
+        // Director. Both write text and nothing else (D4, criterion 3).
+        if (opts.beats && opts.beats.length > 0) {
+          const beats: TimelineBeat[] = opts.beats.map((beat) => ({
+            id: createTimeOrderedUuid(),
+            prompt: beat.prompt,
+            duration_ms: Math.max(1, Math.round(beat.durationMs)),
+            transition: beat.transition,
+            voiceover: beat.voiceover,
+            music: beat.music
+          }));
+          applyBeatPlan(doc, beats);
+          return beats;
+        }
+        const format = videoFormatById(setup.format);
+        if (!format) {
+          throw new Error(
+            "This sequence has no format yet. Set one with ui_timeline_set_setup, or pass `beats` to write the plan yourself."
+          );
+        }
+        const beats = await planBeats({
+          brief: setup.brief,
+          format,
+          previous: opts.replan ? setup.beats : undefined
+        });
+        applyBeatPlan(doc, beats);
+        return beats;
+      },
+
+      updateBeat(target, patch) {
+        const beat = requireBeat(target);
+        doc.getState().updateBeat(beat.id, {
+          prompt: patch.prompt,
+          duration_ms:
+            patch.durationMs === undefined
+              ? undefined
+              : Math.max(1, Math.round(patch.durationMs)),
+          transition: patch.transition,
+          voiceover: patch.voiceover,
+          music: patch.music
+        });
+        const updated = (doc.getState().setup?.beats ?? []).find(
+          (candidate) => candidate.id === beat.id
+        );
+        if (!updated) {
+          throw new Error(`Beat ${beat.id} is no longer in the plan.`);
+        }
+        return updated;
+      },
+
+      generateFromBeats(opts) {
+        return generateFromBeats(doc, { ...opts, startJob: startDirectGen });
       }
     };
     return handlerImpl;

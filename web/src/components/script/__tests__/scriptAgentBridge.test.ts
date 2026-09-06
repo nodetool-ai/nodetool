@@ -8,6 +8,8 @@ import type { ScriptAgentHandler } from "../scriptAgentBridge";
 
 const makeMockHandler = (): ScriptAgentHandler => ({
   getSnapshot: jest.fn(),
+  setSetup: jest.fn(),
+  write: jest.fn(),
   addSpeaker: jest.fn(),
   setSpeakerVoice: jest.fn(),
   addLine: jest.fn(),

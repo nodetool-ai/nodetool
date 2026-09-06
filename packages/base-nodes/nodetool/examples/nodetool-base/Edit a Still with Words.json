@@ -57,6 +57,46 @@
         "dynamic_outputs": {}
       },
       {
+        "id": "dirs",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "directions",
+          "value": "",
+          "description": "Extra directions, optional"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 500
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Directions"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tpl",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{{ instruction }} {{ directions }}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true,
+          "title": "4  Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "ed",
         "type": "nodetool.image.ImageToImage",
         "data": {
@@ -77,13 +117,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 400,
+            "x": 800,
             "y": 240
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "3  Edit"
+          "title": "5  Edit"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -96,13 +136,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 760,
+            "x": 1160,
             "y": 260
           },
           "zIndex": 0,
           "width": 240,
           "selectable": true,
-          "title": "4  Result"
+          "title": "6  Result"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -120,11 +160,25 @@
         "id": "e2",
         "source": "ins",
         "sourceHandle": "output",
+        "target": "tpl",
+        "targetHandle": "instruction"
+      },
+      {
+        "id": "e3",
+        "source": "dirs",
+        "sourceHandle": "output",
+        "target": "tpl",
+        "targetHandle": "directions"
+      },
+      {
+        "id": "e4",
+        "source": "tpl",
+        "sourceHandle": "output",
         "target": "ed",
         "targetHandle": "prompt"
       },
       {
-        "id": "e3",
+        "id": "e5",
         "source": "ed",
         "sourceHandle": "output",
         "target": "out",
@@ -157,11 +211,17 @@
         "type": "string",
         "default": "Make it golden hour, warm low sun raking across the subject",
         "label": ""
+      },
+      "directions": {
+        "type": "string",
+        "default": "",
+        "label": ""
       }
     },
     "required": [
       "picture",
-      "instruction"
+      "instruction",
+      "directions"
     ]
   },
   "output_schema": {

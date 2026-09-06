@@ -326,6 +326,12 @@ export class StorageWorkspace implements Workspace {
 
   async deleteAll(path: string): Promise<number> {
     const key = normalize(path);
+    // Same containment rule as every other mutating operation: without it a
+    // symlinked directory inside the workspace (`out -> ~/Documents`) makes
+    // this delete the link's target. `list` reads through the symlink and
+    // hands back keys that are lexically inside the root, so the adapter's own
+    // lexical check passes and `unlink` follows the link out.
+    if (key) await this.assertContained(key);
     const listing = await this.storage.list(key ? `${key}/` : "");
     let deleted = 0;
     for (const entry of listing.entries) {
@@ -350,7 +356,9 @@ export class StorageWorkspace implements Workspace {
     // into it.
     if (this.localDir) {
       const key = normalize(path);
-      if (key) await requireNode().fs.mkdir(resolvePath(this.localDir, key), {
+      if (!key) return;
+      await this.assertContained(key);
+      await requireNode().fs.mkdir(resolvePath(this.localDir, key), {
         recursive: true
       });
     }

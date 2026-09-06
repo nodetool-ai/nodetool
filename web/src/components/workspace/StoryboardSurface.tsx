@@ -29,6 +29,11 @@ import StoryboardQueueOverlay from "../storyboard/StoryboardQueueOverlay";
 import StoryboardAgentPanel from "../storyboard/StoryboardAgentPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import DocumentLoadStatus from "./DocumentLoadStatus";
+import { SetupFlow } from "../setup/SetupFlow";
+import {
+  useStoryboardSetupFlow,
+  useStoryboardSetupStage
+} from "../setup/storyboard/useStoryboardSetupFlow";
 
 interface StoryboardSurfaceProps {
   refId: string;
@@ -92,7 +97,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   }, [setTabTitle, refId, boardTitle]);
 
   useStoryboardAgentBridge(refId);
-  useStoryboardGenerationSubscriptions();
+  useStoryboardGenerationSubscriptions(refId);
 
   const conflicts = useDocumentConflicts("storyboard", refId);
   const conflictBanner = conflicts.items.length > 0 && (
@@ -119,6 +124,12 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     (shotCount: number) => direct(refId, shotCount),
     [direct, refId]
   );
+
+  // A board still in setup renders the flow in place of the board (PRD § 6.4).
+  // The stage is the only signal read — a board with no stage reads `done` and
+  // opens as the board, as it always did (D3).
+  const setupStage = useStoryboardSetupStage(refId);
+  const setupConfig = useStoryboardSetupFlow({ boardId: refId });
 
   const { assemble, assembling, error: assembleError } = useAssembleTimeline();
   const handleAssemble = useCallback(() => {
@@ -156,6 +167,10 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   // copy lands looks like a board with no shots.
   if (loadState !== "ready") {
     return <DocumentLoadStatus state={loadState} label="storyboard" />;
+  }
+
+  if (setupStage !== "done") {
+    return <SetupFlow config={setupConfig} />;
   }
 
   if (isMobile && mode !== "view") {

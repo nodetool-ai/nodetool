@@ -113,6 +113,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "restore_sketch_version",
   "delete_sketch_version",
   "edit_sketch",
+  "refine_image_brief",
   "validate_sketch",
 
   // Timeline snapshot history (find a cut, pin a state, roll one back)

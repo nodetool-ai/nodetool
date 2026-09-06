@@ -53,6 +53,8 @@ interface DocumentSnapshot {
   transcript: TimelineStoreState["transcript"];
   scriptEnabled: TimelineStoreState["scriptEnabled"];
   tempo: TimelineStoreState["tempo"];
+  /** Undefined, not null: the payload's shape, so the two cannot diverge. */
+  setup: NonNullable<TimelineStoreState["setup"]> | undefined;
 }
 
 // `durationMs` is intentionally NOT tracked: the PATCH schema has no
@@ -122,7 +124,10 @@ const sameDocument = (
   a.markers === b.markers &&
   a.transcript === b.transcript &&
   a.scriptEnabled === b.scriptEnabled &&
-  a.tempo === b.tempo;
+  a.tempo === b.tempo &&
+  // The guided flow's stage and plan are persisted document state, so a step
+  // the creator advanced past has to make the sequence dirty like any edit.
+  a.setup === b.setup;
 
 interface UseTimelineAutosaveOptions {
   debounceMs?: number;

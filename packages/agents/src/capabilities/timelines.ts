@@ -614,7 +614,8 @@ async function applyOps(
       tracks: document.tracks,
       clips: document.clips,
       markers: document.markers,
-      tempo: document.tempo
+      tempo: document.tempo,
+      setup: document.setup
     },
     resolveAsset: (ref) => resolveTimelineAsset(run, ref),
     bakeAnimation: (request) => bakeTimelineAnimation(run, request),
@@ -812,6 +813,12 @@ const editTimeline: CapabilityExport = {
       // stored document keeps the old BPM while the clips carry the rescaled
       // milliseconds, so the part plays at the wrong speed on the next read.
       if (state.tempo) next.tempo = state.tempo;
+      // The guided flow's stage and plan are document state like the rest: an
+      // op run that moved the flow on has to be what the row holds afterwards,
+      // or the next surface to open the sequence resumes at the old step.
+      if (state.setup) {
+        next.setup = state.setup;
+      }
       const saved = await TimelineSequence.updateDocumentIfUnchanged(
         timelineId,
         sequence.updated_at,

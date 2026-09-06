@@ -1,0 +1,5 @@
+scene,shot,description,dialogue,duration_seconds,size,perspective,movement,equipment,focal_length,notes
+INT. KITCHEN - MORNING,1,"Sam sets two cups down without looking up.","SAM
+Sit. You will want to be sitting.",5,medium,eye level,static,tripod,35mm,Steam should read
+INT. KITCHEN - MORNING,2,"The second cup, untouched, going cold.",,3,close-up,high angle,slow push in,slider,85mm,
+EXT. STREET - LATER,1,"Sam walks out into flat grey light.",,4,wide,eye level,tracking,gimbal,35mm,

@@ -58,6 +58,8 @@ export interface DirectMediaGenerationRequest {
   resolution?: string;
   strength?: number;
   numInferenceSteps?: number;
+  /** Sampling seed; providers that take none ignore it. */
+  seed?: number;
   durationSeconds?: number;
   variations?: number;
   voice?: string;
@@ -75,6 +77,33 @@ const ESTIMATE_CHARS_PER_TOKEN = 3;
 const ESTIMATE_DEFAULT_OUTPUT_TOKENS = 4096;
 
 /**
+ * What one image block is worth to the estimate. A reference image costs on
+ * the order of a thousand tokens across the providers that take them; the
+ * estimate only has to over-book, and the real token cost is recorded when the
+ * call returns.
+ */
+const IMAGE_ESTIMATE_CHARS = 4000;
+
+/** Characters a message contributes to the estimate, text blocks included. */
+function messageChars(content: DirectTextContent): number {
+  if (typeof content === "string") {
+    return content.length;
+  }
+  // A block's shape is only checked as `{ type: string }` + passthrough on the
+  // wire, so a `{ type: "text" }` with no `text` reaches here. Reading `.length`
+  // off it threw before the spend estimate was taken — a crash on the admission
+  // path, not a refusal.
+  return content.reduce(
+    (sum, block) =>
+      sum +
+      (block.type === "text" && typeof block.text === "string"
+        ? block.text.length
+        : IMAGE_ESTIMATE_CHARS),
+    0
+  );
+}
+
+/**
  * A conservative up-front price for one text generation, in USD: every
  * character the messages carry counted as input tokens, plus the request's
  * whole output budget as output tokens, at the delegate model's rate.
@@ -87,14 +116,14 @@ const ESTIMATE_DEFAULT_OUTPUT_TOKENS = 4096;
 export function estimateDirectTextSpend(req: {
   provider: string;
   model: string;
-  messages: Array<{ content: string }>;
+  messages: Array<{ content: DirectTextContent }>;
   maxTokens?: number;
 }): number {
   const delegate =
     req.provider === "nodetool" ? resolveNodetoolDelegate(req.model) : null;
   const modelId = delegate?.model ?? req.model;
   const providerId = delegate?.provider ?? req.provider;
-  const chars = req.messages.reduce((sum, m) => sum + m.content.length, 0);
+  const chars = req.messages.reduce((sum, m) => sum + messageChars(m.content), 0);
   const inputTokens = Math.ceil(chars / ESTIMATE_CHARS_PER_TOKEN);
   const outputTokens = req.maxTokens ?? ESTIMATE_DEFAULT_OUTPUT_TOKENS;
   try {
@@ -106,10 +135,17 @@ export function estimateDirectTextSpend(req: {
   }
 }
 
+/**
+ * One message's content. An array carries image blocks alongside the text —
+ * the storyboard's "Add your own style" hands the model reference pictures,
+ * and the providers already read the same shape from a chat turn.
+ */
+export type DirectTextContent = string | MessageContent[];
+
 export interface DirectTextGenerationRequest {
   provider: string;
   model: string;
-  messages: Array<{ role: string; content: string }>;
+  messages: Array<{ role: string; content: DirectTextContent }>;
   maxTokens?: number;
   /** Present → the call is structured output against this JSON Schema. */
   schema?: Record<string, unknown>;
@@ -787,7 +823,8 @@ export class DirectInferenceHandler {
         width,
         height,
         aspectRatio: req.aspectRatio ?? null,
-        resolution: req.resolution ?? null
+        resolution: req.resolution ?? null,
+        seed: req.seed ?? null
       };
       generated = await generate(
         "text_to_image",
@@ -797,6 +834,7 @@ export class DirectInferenceHandler {
           height,
           aspect_ratio: req.aspectRatio ?? null,
           resolution: req.resolution ?? null,
+          seed: req.seed ?? null,
           num_images: variations
         },
         {},

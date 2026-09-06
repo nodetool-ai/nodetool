@@ -15,15 +15,21 @@ import { NodeData } from "../../stores/NodeData";
 /**
  * Group the live values of node-property bindings by node id, from the input
  * namespace of an app instance: nodeId → { property: value }.
+ *
+ * Scoped to one operation: two operations can bind the same node id in
+ * different workflows, so an overlay only applies to the operation whose run it
+ * was set for.
  */
 export const collectNodePropertyOverlays = (
-  inputs: Record<string, { value: unknown }>
+  inputs: Record<string, { value: unknown }>,
+  operationId: string
 ): Map<string, Record<string, unknown>> => {
   const byNode = new Map<string, Record<string, unknown>>();
   for (const [key, slot] of Object.entries(inputs)) {
     if (slot.value === undefined) continue;
     const parsed = parseInputStateKey(key);
     if (!parsed?.property) continue;
+    if (parsed.operationId !== operationId) continue;
     const existing = byNode.get(parsed.nodeId);
     if (existing) {
       existing[parsed.property] = slot.value;
