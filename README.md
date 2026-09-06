@@ -14,6 +14,11 @@ creative studio. Describe what you want and the agent builds it. What comes
 back is a project, not a render: open it in the workflow canvas, storyboard, or
 timeline and re-roll one shot, re-voice one line, re-cut the ending.
 
+The closed AI studios will generate your trailer too, on the model list they
+picked, priced in their credits, saved in a project only their app opens. When
+they raise the price or drop the model, the film goes with it. NodeTool hands
+the project back, on your keys.
+
 **[Download NodeTool Studio](https://github.com/nodetool-ai/nodetool/releases/latest)** ·
 **[Quick start](#first-run-in-studio)** ·
 **[Documentation](https://docs.nodetool.ai/)** · **[MCP setup](#mcp)** ·
@@ -30,8 +35,10 @@ them in one click, or run open weights locally through Ollama, vLLM, LM Studio,
 or llama.cpp.
 
 You connect the provider and NodeTool calls it with your key, so you pay that
-provider directly at their published price. There is no NodeTool billing unit
-in between, and a price the provider drops is a price you get the same day.
+provider directly at their published price. An image that costs $0.03 at the
+provider costs $0.03 here. There is no NodeTool billing unit in between, and a
+price the provider drops is a price you get the same day. When a better model
+ships, add it the day it ships — no roster has to catch up first.
 [Models and Providers](docs/models-and-providers.md) lists what runs where.
 
 ## Why NodeTool
@@ -68,49 +75,190 @@ Connect providers through **Settings → Models & Providers** when you are ready
 to generate new media. Cloud generation uses paid provider calls and needs no
 GPU.
 
-## From brief to editable film
+## One workspace, brief through final cut
 
 Write a brief and ask the agent for a storyboard. Approve the stills before
 spending on video generation, then assemble the clips on a timeline. Trim and
 reorder the cut, add narration, and export an MP4. Revise an individual shot
-without regenerating the rest of the film.
+without regenerating the rest of the film. The
+[film quick start](docs/getting-started.md) walks through each step, including
+model setup and export.
+
+Five editors share one project, so a piece never leaves the studio to be
+finished, and an agent drives every one of them through the same actions you
+have.
+
+### Storyboard
 
 ![NodeTool storyboard](marketing/public/surface-storyboard-poster.webp)
 
-The [film quick start](docs/getting-started.md) walks through each step,
-including model setup and export.
+Board the film shot by shot. Pitch a concept and a visual style, pick a shot
+count, and the Director node returns a typed screenplay: one structured shot
+per card with action, camera, motion, and duration, plus the logline, style
+bible, narration, and music direction.
+
+- **Cheap stages first.** A still costs cents, a clip costs dollars. Generate
+  stills until one looks right, pick it, and only then generate the clip.
+- **Revise one shot, not the reel.** "Make it darker, add rain" runs
+  video-to-video on the existing clip and swaps the result in place. Fixing
+  shot 3 never re-rolls shots 1 to 5.
+- **Entities keep the cast steady.** Characters, locations, styles, and props
+  are named objects whose canonical descriptor is pasted verbatim into every
+  prompt that names them.
+- **Assemble the cut.** One click lays the rendered shots onto a timeline with
+  narration and music tracks, each clip still linked to its shot.
+
+Agents drive the same board through the `ui_storyboard_*` tools, or headlessly
+with `render_storyboard_stills`, `render_storyboard_clips`, and
+`assemble_storyboard_timeline`.
+[Creative agent guide →](https://docs.nodetool.ai/creative-agent)
+
+### Script and voice
+
+![NodeTool script editor: the transcript panel beside the sequence it assembles into](marketing/public/surface-script-poster.webp)
+
+Draft the dialogue, cast a provider, model, and voice per character, and
+audition alternate line readings. Voicing a line saves a take with its own word
+timings rather than overwriting the last one. Change the words and the take
+flags itself stale, so you see exactly what still needs voicing. The current
+takes assemble into a sequence end to end, word timings riding along as
+captions.
+
+Without the editor open, `voice_script_lines` voices every draft or stale line
+with its cast voice, and `assemble_script_timeline` cuts the result into a
+saved sequence that `validate_timeline` then checks.
+
+### Timeline
+
+![NodeTool timeline](marketing/public/surface-timeline-poster.webp)
+
+Arrange, trim, and layer generated video and audio across multiple tracks, down
+to the frame and the stem. Drop in your own footage or bind a workflow to a
+clip (text-to-image, image-to-video, or text-to-speech) and generate it in
+place: change a parameter and the clip regenerates, tweak the bound workflow
+and the clip flags itself stale. Export the sequence to MP4. The agent edits
+the same document when you ask it to tighten the opening.
+[Video editor guide →](https://docs.nodetool.ai/video-editor)
+
+### Sketch
+
+![NodeTool sketch editor](marketing/public/screen_sketch_editor.webp)
+
+Build a composition in layers with blend modes and masks, then bind a layer to
+a model or one of your own workflows and generate where you are painting.
+Change a prompt or an upstream input and the layer flags itself stale. The node
+hands the rest of the workflow a flattened image, a mask, and per-layer
+outputs, so it pairs with the mask, inpaint, outpaint, and compositing nodes.
+[Sketch editor guide →](https://docs.nodetool.ai/sketch-editor)
+
+### 3D
+
+![NodeTool 3D scene editor](marketing/public/surface-3d-poster.webp)
+
+Place primitives and lights in a glTF scene by hand or by tool call, then
+capture a view as a depth or composition reference for an image or video model.
+The same operations run headlessly through `create_model3d`, `get_model3d`,
+`edit_model3d`, `validate_model3d`, and `render_model3d`, so a scene is
+reproducible with no editor open.
 
 ## Recipes
 
-These recipes link to downloadable workflows and describe their outputs and
-limitations. Whether the result is an editable timeline or an exported video
-depends on the workflow you choose.
+Each recipe is a downloadable bundle that runs on your keys at provider list
+prices. Whether the result is an editable timeline or an exported video depends
+on the workflow you choose.
 
-| Example | Output | Link |
+| Recipe | What you end up holding | Models the shipped chain calls |
 | --- | --- | --- |
-| Viral video ad | Vertical product ad, hooks, and thumbnails | [Open recipe](https://nodetool.ai/recipes/viral-video-ad-engine) |
-| Multilingual dub | Lip-synced presenter clip with subtitles | [Open recipe](https://nodetool.ai/recipes/multilingual-video-dubber) |
-| SKU visual set | Packshot cutout, scenes, relight, and listing copy | [Open recipe](https://nodetool.ai/recipes/ecommerce-sku-visual-factory) |
-| Storyboard to trailer | Beat sheet, shot list, teaser, and score | [Open recipe](https://nodetool.ai/recipes/storyboard-to-trailer) |
+| [Viral video ad](https://nodetool.ai/recipes/viral-video-ad-engine) | A vertical product ad, plus the hook lines and thumbnails to test it against | GPT-5 mini, FLUX.1 Schnell, Kling 2.6 |
+| [Multilingual dub](https://nodetool.ai/recipes/multilingual-video-dubber) | One presenter clip in a second language, lip-synced, with subtitles and a back-translation | GPT-4o mini Transcribe, GPT-5 mini, OpenAI TTS, Inworld TTS, Sync Lipsync |
+| [SKU visual set](https://nodetool.ai/recipes/ecommerce-sku-visual-factory) | One packshot becomes the channel set: cutout, studio scene, seasonal relight, turntable clip, print master, listing copy | Bria background removal, Nano Banana, image relighting, LTX 2.3, Clarity upscaler, GPT-5 mini |
+| [Storyboard to trailer](https://nodetool.ai/recipes/storyboard-to-trailer) | A logline becomes a beat sheet, a numbered shot list, a cut teaser, and a score under it | GPT-5 mini, Gemini 3.1 Pro, GPT Image 2, Veo 3.1, Stable Audio 2.5 |
 
 The [recipe gallery](https://nodetool.ai/recipes) has the model chain and
-contact sheet for each run.
+contact sheet for each run. The [showcase](https://nodetool.ai/showcase) and
+[template gallery](https://nodetool.ai/templates) hold the single workflows the
+recipes chain.
 
-## Agents and workflows
+## How NodeTool compares
 
-Beyond the film workflow, the studio supports:
+The comparison is against the closed AI studios, because that is what a
+production team is choosing between.
 
-- image generation and editing, audio and speech, video, and text
-- storyboards, scripts, and multi-track timelines
-- JavaScript scripts and mini apps on top of a workflow
-- custom TypeScript and Python nodes
-- local inference or provider APIs, where the relevant model is available
+| | NodeTool | Closed AI studios |
+| :--- | :--- | :--- |
+| **Models** | Every major provider, switched in one click | The list they picked |
+| **When a better model ships** | Add it the day it ships | Wait for them to add it |
+| **What you pay** | Provider list prices, on your own keys | Their credits |
+| **What you keep** | The board, the takes, and the multi-track cut as an editable project | An exported video; the project stays in their app |
+| **Source** | Open, AGPL-3.0 | Closed |
+| **Where it runs** | Desktop app and browser, self-host any time | Their servers only |
 
-Read the [Creative Agent guide](https://docs.nodetool.ai/creative-agent),
-[Video Editor guide](https://docs.nodetool.ai/video-editor), and
-[Sketch Editor guide](https://docs.nodetool.ai/sketch-editor).
+Choosing against a node tool instead? See
+[ComfyUI](https://nodetool.ai/alternatives/comfyui) and
+[Figma Weave](https://nodetool.ai/alternatives/figma-weave).
+
+## The agent
+
+Most tools bolt a chat panel onto an editor. NodeTool built the editors around
+the agent: every surface hands it the same actions you have — wire a graph,
+paint a layer, cut a clip, revise a shot, voice a line.
+
+- **Build workflows.** Describe the pipeline. The agent picks the nodes, wires
+  the edges, and validates the graph, and what it leaves behind is a workflow
+  you own.
+- **Build apps.** Ask for a custom UI. The agent plans the workflow, places
+  widgets, and replays interactions. A separate judge model grades the result.
+  No passing verdict, no app.
+- **Repair on the fly.** Put an agent on the failure path and it decides
+  whether to retry, repair, skip, or stop, within the cost budget you set.
+- **Bring your own agent.** The toolbelt is exposed over [MCP](#mcp), so Claude
+  Desktop, Claude Code, or Codex can drive the studio.
+
+Underneath, a planner turns an objective into a DAG of steps, executors walk it
+in parallel, and every LLM call emits an OpenTelemetry span with tokens and
+cost. See the [agent guide](https://docs.nodetool.ai/agents/) and
+[docs/AGENTS.md](docs/AGENTS.md).
+
+## What is underneath
+
+The film surfaces sit on a node canvas, and everything on it is reachable
+without the film.
+
+| | |
+| :--- | :--- |
+| **Node canvas** | Drag-and-drop nodes with type-safe connections. Live output at every step. |
+| **Mini apps** | Give a workflow a screen: inputs, a Run button, a place for the result. Hand it to a teammate who never sees the canvas. |
+| **Editing tools as nodes** | Mask, inpaint, outpaint, relight, upscale, layer, and composite. |
+| **Every modality** | Image, video, audio, and text in one workflow. |
+| **Every major provider** | OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace, plus one node for every model on Replicate, fal.ai, and KIE. |
+| **Open weights** | Ollama, MLX (Apple Silicon), and GGUF on your own hardware. |
+| **Document search** | Index and query your files with the built-in vector store. |
+| **JS scripts** | Versioned JavaScript documents with declared ports, saved test cases, and a QuickJS sandbox. |
+| **MCP server** | Point Claude Desktop, Claude Code, Codex, or any MCP agent at the toolbelt. |
+| **Custom nodes** | Extend in TypeScript or Python. |
+| **Deploy and scale** | Self-host with Docker. Rent GPU workers on RunPod or Vast. |
 
 ![NodeTool workflow canvas](marketing/public/screen_workflow.webp)
+
+Double-click the canvas to search and add a node, or drag a connection into
+empty space to see compatible next steps. The editor refuses a mismatch, so an
+image cannot land in a text field.
+
+## Documentation
+
+- **[Getting Started](https://docs.nodetool.ai/getting-started)** — Build your first workflow
+- **[Agents](https://docs.nodetool.ai/agents/)** — Let an agent build, run, and repair your workflows
+- **[Mini Apps](https://docs.nodetool.ai/mini-apps)** — Wrap a workflow in an interface
+- **[App Builder](https://docs.nodetool.ai/app-builder)** — Place widgets, wire them to a workflow, publish
+- **[Creative Agent](https://docs.nodetool.ai/creative-agent)** — Storyboard a film, gate the spend, assemble the cut
+- **[JavaScript Sandbox](https://docs.nodetool.ai/javascript-sandbox)** — What JS scripts and Code nodes can reach
+- **[Video Editor](https://docs.nodetool.ai/video-editor)** — Sequence and generate clips on a timeline
+- **[Sketch Editor](https://docs.nodetool.ai/sketch-editor)** — Draw, mask, and generate on a layered canvas
+- **[Node Packs](https://docs.nodetool.ai/packs)** — Available nodes and integrations
+- **[Custom Nodes](https://docs.nodetool.ai/developer/custom-nodes-guide)** — Extend NodeTool
+- **[Provider Guides](https://docs.nodetool.ai/developer/providers/)** — Add new models and nodes for any provider
+- **[Deployment](https://docs.nodetool.ai/deployment)** — Share your work
+- **[API Reference](https://docs.nodetool.ai/api)** — Programmatic access
 
 ## MCP
 
