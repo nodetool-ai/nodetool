@@ -30,6 +30,7 @@ import {
   MAX_MESSAGES_PER_CALL,
   DEFAULT_MAX_CHARS
 } from "./threads.specs.js";
+import { mapWithConcurrency } from "./concurrency.js";
 import { isObjectLike, isString } from "../utils/type-guards.js";
 
 type ToolError = { error: string };
@@ -136,28 +137,6 @@ function summarizeThread(thread: Thread) {
     created_at: thread.created_at,
     updated_at: thread.updated_at
   };
-}
-
-/** Run `task` over `items`, at most `limit` in flight. */
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  task: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let next = 0;
-  const workers = Array.from(
-    { length: Math.min(limit, items.length) },
-    async () => {
-      for (;;) {
-        const index = next++;
-        if (index >= items.length) return;
-        results[index] = await task(items[index]);
-      }
-    }
-  );
-  await Promise.all(workers);
-  return results;
 }
 
 const listThreads: CapabilityExport = {
