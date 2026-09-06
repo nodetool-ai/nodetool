@@ -34,12 +34,28 @@ interface EntityAssetPickerDialogProps {
   open: boolean;
   onClose: () => void;
   onPick: (assetId: string) => void;
+  /** Dialog heading. Defaults to the "tag a new entity" wording. */
+  title?: string;
+  /** When given, only these asset ids are offered — e.g. entities already tagged. */
+  assetIds?: readonly string[];
+  /** Shown when nothing matches, so a filtered picker can say why. */
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 
 const EntityAssetPickerDialogInternal: React.FC<
   EntityAssetPickerDialogProps
-> = ({ open, onClose, onPick }) => {
+> = ({
+  open,
+  onClose,
+  onPick,
+  title = "Pick a reference image",
+  assetIds,
+  emptyTitle = "No images",
+  emptyDescription = "Generate or upload an image first."
+}) => {
   const theme = useTheme();
+  const allowed = assetIds ? new Set(assetIds) : null;
   const { data, isLoading } = useQuery({
     queryKey: ["entity-asset-picker"],
     queryFn: async (): Promise<Asset[]> => {
@@ -55,22 +71,26 @@ const EntityAssetPickerDialogInternal: React.FC<
     staleTime: 30_000
   });
 
+  const assets = allowed
+    ? data?.filter((asset) => allowed.has(asset.id))
+    : data;
+
   return (
-    <Dialog open={open} onClose={onClose} title="Pick a reference image">
+    <Dialog open={open} onClose={onClose} title={title}>
       {isLoading ? (
         <FlexRow align="center" justify="center" sx={{ p: 3 }}>
           <LoadingSpinner />
         </FlexRow>
-      ) : !data || data.length === 0 ? (
+      ) : !assets || assets.length === 0 ? (
         <EmptyState
           variant="no-data"
-          title="No images"
-          description="Generate or upload an image first."
+          title={emptyTitle}
+          description={emptyDescription}
           size="small"
         />
       ) : (
         <div style={gridStyle}>
-          {data.map((asset) => (
+          {assets.map((asset) => (
             <button
               key={asset.id}
               type="button"

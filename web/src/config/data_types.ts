@@ -161,6 +161,30 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "Description"
   },
   {
+    value: "storyboard",
+    label: "Storyboard",
+    description:
+      "Reference to a storyboard. Can be opened and edited in the storyboard editor and passed between nodes.",
+    color: colour("video"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "ViewCarousel"
+  },
+  {
+    value: "entity",
+    label: "Entity",
+    description:
+      "A character, location, style or prop from the entity library, injected into prompts to hold a look consistent across shots.",
+    color: colour("texture"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Person"
+  },
+  {
     value: "bool",
     label: "Boolean",
     description:
