@@ -33,10 +33,6 @@ describe.runIf(godot)("real Godot", () => {
     rmSync(work, { recursive: true, force: true });
   });
 
-  it("reports the binary in use", () => {
-    expect(godot).toBeTruthy();
-  });
-
   describe.each(listTemplates())("$id", (template) => {
     let dir: string;
     beforeAll(() => {
