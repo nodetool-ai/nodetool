@@ -69,7 +69,7 @@
                         "label": "Scale",
                         "min": 2,
                         "max": 4,
-                        "step": 1,
+                        "step": 2,
                         "events": []
                       }
                     },
@@ -154,7 +154,7 @@
                         "label": "Scale",
                         "min": 2,
                         "max": 4,
-                        "step": 1,
+                        "step": 2,
                         "events": []
                       }
                     },

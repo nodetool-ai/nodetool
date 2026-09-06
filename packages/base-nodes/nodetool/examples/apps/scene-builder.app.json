@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "Scene Builder",
-  "description": "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and colour.",
+  "description": "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and color.",
   "app": {
     "schemaVersion": 3,
     "ui": {
@@ -159,7 +159,7 @@
                         "binding": "op:motion/prop:vid#duration",
                         "label": "Seconds",
                         "min": 2,
-                        "max": 8,
+                        "max": 6,
                         "step": 1,
                         "events": []
                       }

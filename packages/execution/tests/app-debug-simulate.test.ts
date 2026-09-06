@@ -129,6 +129,109 @@ describe("app debug — node-property bindings", () => {
   });
 });
 
+/** A two-operation bundle whose workflows both contain a node called `up`. */
+const sharedNodeIdBundle = (upscale: string) => ({
+  schemaVersion: 1,
+  name: "Upscale",
+  description: "",
+  app: {
+    schemaVersion: 3,
+    ui: {
+      root: { props: { title: "Upscale" } },
+      content: [
+        {
+          type: "Slider",
+          props: { id: "Slider-faithful", binding: "op:faithful/prop:up#scale" }
+        },
+        {
+          type: "Slider",
+          props: { id: "Slider-clarity", binding: "op:clarity/prop:up#scale" }
+        },
+        {
+          type: "Button",
+          props: {
+            id: "Button-faithful",
+            label: "Faithful",
+            events: [
+              { trigger: "click", kind: "run", operationId: "faithful" }
+            ]
+          }
+        },
+        {
+          type: "Button",
+          props: {
+            id: "Button-clarity",
+            label: "Clarity",
+            events: [{ trigger: "click", kind: "run", operationId: "clarity" }]
+          }
+        }
+      ],
+      zones: {}
+    },
+    operations: ["faithful", "clarity"].map((id) => ({
+      id,
+      name: id,
+      workflowId: `wf-${id}`,
+      inputs: {},
+      outputs: {},
+      policy: "replace" as const
+    })),
+    resources: [],
+    variables: []
+  },
+  workflows: ["faithful", "clarity"].map((id) => ({
+    key: `wf-${id}`,
+    name: id,
+    graph: {
+      nodes: [
+        { id: "up", type: upscale, data: { scale: 1 } },
+        {
+          id: "out1",
+          type: "nodetool.output.StringOutput",
+          data: { name: "result" }
+        }
+      ],
+      edges: []
+    }
+  }))
+});
+
+describe("app debug — overlays are scoped to one operation", () => {
+  it("keeps each operation's node-property override out of the other's run", async () => {
+    const { runOnServer } = await run(
+      resolvedBundle(sharedNodeIdBundle("nodetool.image.Upscale")),
+      [
+        { set: { key: "op:faithful/prop:up#scale", value: 2 } },
+        { set: { key: "op:clarity/prop:up#scale", value: 4 } },
+        { click: "Button-faithful" },
+        { click: "Button-clarity" }
+      ]
+    );
+
+    expect(runOnServer).toHaveBeenCalledTimes(2);
+    expect(propsOf(runOnServer.mock.calls[0][0], "up")).toMatchObject({
+      scale: 2
+    });
+    expect(propsOf(runOnServer.mock.calls[1][0], "up")).toMatchObject({
+      scale: 4
+    });
+  });
+
+  it("leaves an operation's run untouched by another operation's override", async () => {
+    const { runOnServer } = await run(
+      resolvedBundle(sharedNodeIdBundle("nodetool.image.Upscale")),
+      [
+        { set: { key: "op:faithful/prop:up#scale", value: 2 } },
+        { click: "Button-clarity" }
+      ]
+    );
+
+    expect(propsOf(runOnServer.mock.calls[0][0], "up")).toMatchObject({
+      scale: 1
+    });
+  });
+});
+
 describe("app debug — writes that cannot land", () => {
   it("fails a set step that names an output", async () => {
     const { report } = await run(

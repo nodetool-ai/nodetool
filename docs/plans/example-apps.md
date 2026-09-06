@@ -10,7 +10,7 @@ Today every template gets a generated app from the CURATION table in
 `scripts/generate-template-apps.mjs` — 36 variations of one form. This spec
 replaces that with **11 curated studio apps binding 23 workflows**; the
 remaining templates ship as workflows only. A second set of **10 single-job
-apps** ([below](#single-job-apps)) binds 16 more templates.
+apps** ([below](#single-job-apps)) binds the templates listed below.
 
 ## Selection criteria
 
@@ -216,9 +216,20 @@ one; C2 comes from variables carrying one upload into several operations, and
 from Select and Slider widgets driving node properties inside the graph rather
 than Input nodes.
 
+Six jobs in the Runway gallery have no counterpart here because no shipped
+template does them: video upscaling, removing an object from a video, driving a
+performance from a reference take, slide design, localizing an ad image, and
+outpainting or expanding an aspect ratio. Each needs a graph first, so adding
+one is a template change before it is an app change.
+
+Four of the ten are not literally one operation: Product Reshoot, Product Shot
+Video, Upscale Image and Ad Maker put two or three operations behind a single
+upload, each with its own button and result panel. The shape still holds, since
+the choice is which treatment to run, not how to wire a pipeline.
+
 | App | Workflows bound | Operations | Key widgets | Needs |
 |---|---|---|---|---|
-| Vary Image | Edit a Still with Words | `edit` | ImageInput, Select (what to change), Slider (`ed.strength`), Image | FAL |
+| Vary Image | Edit a Still with Words | `edit` | ImageInput, Select (what to change), TextInput (extra directions), Slider (`ed.strength`), Image | FAL |
 | Product Reshoot | Put a Product on a Studio Backdrop, Relight a Product for a Seasonal Campaign, Cut a Product Out of Its Background | `backdrop`, `relight`, `cutout` | ImageInput, Select (`comp.prompt`), Select (`rl.prompt`), Image ×3 | FAL |
 | Product Shot Video | Ad Loop from a Product Photo, Spin a Packshot into a Turntable Clip | `loop`, `turntable` | ImageInput, Select, Select (`v.prompt`), Video ×2 | KIE for `loop`, FAL for `turntable` |
 | Multi-Shot Video | Movie Trailer Generator | `trailer` | TextInput, Select, Slider (shot count), Video | Gemini + OpenAI + Veo; cost note |
@@ -232,8 +243,11 @@ than Input nodes.
 Per-app notes, where the table does not say it all:
 
 - **Vary Image.** The Select is bound to the `instruction` Input, so each option
-  is a complete edit instruction; the first one is the graph's own default.
-  Strength drives `ed.strength` directly.
+  is a complete edit instruction; the first one is the graph's own default. A
+  second TextInput is bound to the `directions` Input, which the template's
+  `tpl` node appends to the instruction, so a typed line can qualify the chosen
+  option instead of replacing it. Leaving it empty changes nothing. Strength
+  drives `ed.strength` directly.
 - **Product Reshoot.** One `productPhoto` variable feeds all three operations.
   The setting and season selects drive the prompt property of the edit and
   relight nodes, so the graph's Input nodes stay as they are.

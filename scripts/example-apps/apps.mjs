@@ -785,7 +785,7 @@ export const EXAMPLE_APPS = [
     featured: true,
     tagline: "Change one thing about a photo and keep the rest.",
     description:
-      "Pick what should change — lighting, background, pose, palette, camera angle — and an edit model alters only that. Composition and subject survive because the model edits in place instead of regenerating.",
+      "Pick what should change: lighting, background, pose, palette, camera angle. An edit model alters only that, and composition and subject survive because it edits in place instead of regenerating.",
     note: "🔑 Needs a FAL key (Nano Banana edit). Billed per image.",
     workflows: { edit: "Edit a Still with Words" },
     variables: [
@@ -816,10 +816,16 @@ export const EXAMPLE_APPS = [
               "Replace the background with a quiet city street at dusk, keep the subject exactly as is",
               "Change the subject's pose so they face the camera with arms relaxed",
               "Change the subject's outfit to a black tailored suit, keep face and pose",
-              "Shift the colour palette to muted teal and sand tones",
-              "Render it as a loose watercolour illustration, keep the composition",
+              "Shift the color palette to muted teal and sand tones",
+              "Render it as a loose watercolor illustration, keep the composition",
               "Move the camera to a low angle looking up, same subject and setting"
             ]
+          },
+          {
+            text: "directions",
+            op: "edit",
+            label: "Add directions (optional)",
+            multiline: true
           },
           {
             slider: { node: "ed", prop: "strength" },
@@ -997,7 +1003,7 @@ export const EXAMPLE_APPS = [
               "Slow orbit around the product as a soft highlight travels across its surface",
               "Slow push in toward the product as the background falls out of focus",
               "Gentle dolly from left to right, product fixed, light sweeping across",
-              "Rise from a low angle to eye level, product centred, soft reflections",
+              "Rise from a low angle to eye level, product centered, soft reflections",
               "Hold still while steam and light drift around the product"
             ]
           },
@@ -1016,12 +1022,12 @@ export const EXAMPLE_APPS = [
             select: { node: "v", prop: "prompt" },
             op: "turntable",
             label: "Spin",
-            default: "slow orbit around the product, fixed lighting, product stays centred",
+            default: "slow orbit around the product, fixed lighting, product stays centered",
             options: [
-              "slow orbit around the product, fixed lighting, product stays centred",
-              "full 360 degree turntable rotation, product centred, studio lighting fixed",
+              "slow orbit around the product, fixed lighting, product stays centered",
+              "full 360 degree turntable rotation, product centered, studio lighting fixed",
               "slow half turn revealing the back of the product, fixed lighting",
-              "gentle rocking turn, product centred, soft studio light"
+              "gentle rocking turn, product centered, soft studio light"
             ]
           },
           { run: ["turntable"], label: "Spin it" }
@@ -1062,7 +1068,7 @@ export const EXAMPLE_APPS = [
               "cinematic film still, theatrical key art, anamorphic framing, high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, fine film grain, gritty",
               "moody neo-noir, wet streets, sodium and neon, deep shadows, slow dolly moves, shallow focus",
               "warm indie drama, natural window light, handheld 35mm, soft grain, muted pastel palette",
-              "clean sci-fi, cool white light, wide static compositions, glass and steel, minimal colour",
+              "clean sci-fi, cool white light, wide static compositions, glass and steel, minimal color",
               "animated storybook, painterly textures, soft gradients, gentle camera drift"
             ]
           },
@@ -1085,7 +1091,7 @@ export const EXAMPLE_APPS = [
     featured: true,
     tagline: "See the look as a still, then bring it to life.",
     description:
-      "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and colour.",
+      "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and color.",
     note: "🔑 Needs a FAL key. The still is one FLUX call, the motion one LTX call.",
     workflows: { look: "Editorial Still from a Line", motion: "Bring a Still to Life" },
     variables: [
@@ -1141,7 +1147,7 @@ export const EXAMPLE_APPS = [
             op: "motion",
             label: "Seconds",
             min: 2,
-            max: 8,
+            max: 6,
             step: 1,
             default: 6
           },
@@ -1180,7 +1186,7 @@ export const EXAMPLE_APPS = [
             op: "restyle",
             label: "The look",
             options: [
-              "1980s anime cel animation, hand-inked outlines, flat gouache colour, visible film grain",
+              "1980s anime cel animation, hand-inked outlines, flat gouache color, visible film grain",
               "claymation, soft studio light, fingerprints in the clay, stop-motion cadence",
               "black and white 16mm documentary, heavy grain, high contrast",
               "oil painting, thick impasto brushwork, warm gallery light",
@@ -1216,7 +1222,7 @@ export const EXAMPLE_APPS = [
     featured: false,
     tagline: "Give a presenter clip a new script.",
     description:
-      "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localise a take, fix a fluffed line, or spin one recording into many variants.",
+      "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localize a take, fix a fluffed line, or spin one recording into many variants.",
     note: "🔑 Needs a FAL key for lip-sync and an Inworld key for the voice. Both steps are billed per run.",
     workflows: { revoice: "AI Spokesperson" },
     operations: [
@@ -1296,7 +1302,7 @@ export const EXAMPLE_APPS = [
             label: "Scale",
             min: 2,
             max: 4,
-            step: 1,
+            step: 2,
             default: 4
           },
           { run: ["faithful"], label: "Upscale (ESRGAN)" }
@@ -1316,7 +1322,7 @@ export const EXAMPLE_APPS = [
             label: "Scale",
             min: 2,
             max: 4,
-            step: 1,
+            step: 2,
             default: 4
           },
           { run: ["clarity"], label: "Upscale (Clarity)" }

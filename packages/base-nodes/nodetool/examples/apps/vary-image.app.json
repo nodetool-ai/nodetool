@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "Vary Image",
-  "description": "Pick what should change — lighting, background, pose, palette, camera angle — and an edit model alters only that. Composition and subject survive because the model edits in place instead of regenerating.",
+  "description": "Pick what should change: lighting, background, pose, palette, camera angle. An edit model alters only that, and composition and subject survive because it edits in place instead of regenerating.",
   "app": {
     "schemaVersion": 3,
     "ui": {
@@ -75,15 +75,25 @@
                             "value": "Change the subject's outfit to a black tailored suit, keep face and pose"
                           },
                           {
-                            "value": "Shift the colour palette to muted teal and sand tones"
+                            "value": "Shift the color palette to muted teal and sand tones"
                           },
                           {
-                            "value": "Render it as a loose watercolour illustration, keep the composition"
+                            "value": "Render it as a loose watercolor illustration, keep the composition"
                           },
                           {
                             "value": "Move the camera to a low angle looking up, same subject and setting"
                           }
                         ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-edit-directions",
+                        "binding": "op:edit/in:dirs",
+                        "label": "Add directions (optional)",
+                        "multiline": true,
                         "events": []
                       }
                     },
@@ -243,6 +253,46 @@
             "dynamic_outputs": {}
           },
           {
+            "id": "dirs",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "directions",
+              "value": "",
+              "description": "Extra directions, optional"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 500
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Directions"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "tpl",
+            "type": "nodetool.text.Template",
+            "data": {
+              "string": "{{ instruction }} {{ directions }}"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 400,
+                "y": 340
+              },
+              "zIndex": 0,
+              "width": 320,
+              "selectable": true,
+              "title": "4  Prompt"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "ed",
             "type": "nodetool.image.ImageToImage",
             "data": {
@@ -263,13 +313,13 @@
             },
             "ui_properties": {
               "position": {
-                "x": 400,
+                "x": 800,
                 "y": 240
               },
               "zIndex": 0,
               "width": 280,
               "selectable": true,
-              "title": "3  Edit"
+              "title": "5  Edit"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -282,13 +332,13 @@
             },
             "ui_properties": {
               "position": {
-                "x": 760,
+                "x": 1160,
                 "y": 260
               },
               "zIndex": 0,
               "width": 240,
               "selectable": true,
-              "title": "4  Result"
+              "title": "6  Result"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -306,11 +356,25 @@
             "id": "e2",
             "source": "ins",
             "sourceHandle": "output",
+            "target": "tpl",
+            "targetHandle": "instruction"
+          },
+          {
+            "id": "e3",
+            "source": "dirs",
+            "sourceHandle": "output",
+            "target": "tpl",
+            "targetHandle": "directions"
+          },
+          {
+            "id": "e4",
+            "source": "tpl",
+            "sourceHandle": "output",
             "target": "ed",
             "targetHandle": "prompt"
           },
           {
-            "id": "e3",
+            "id": "e5",
             "source": "ed",
             "sourceHandle": "output",
             "target": "out",

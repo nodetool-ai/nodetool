@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "AI Spokesperson",
-  "description": "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localise a take, fix a fluffed line, or spin one recording into many variants.",
+  "description": "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localize a take, fix a fluffed line, or spin one recording into many variants.",
   "app": {
     "schemaVersion": 3,
     "ui": {

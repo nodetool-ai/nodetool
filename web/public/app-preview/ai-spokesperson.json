@@ -2,7 +2,7 @@
   "slug": "ai-spokesperson",
   "name": "AI Spokesperson",
   "emoji": "🗣️",
-  "description": "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localise a take, fix a fluffed line, or spin one recording into many variants.",
+  "description": "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localize a take, fix a fluffed line, or spin one recording into many variants.",
   "tagline": "Give a presenter clip a new script.",
   "note": "🔑 Needs a FAL key for lip-sync and an Inworld key for the voice. Both steps are billed per run.",
   "featured": false,

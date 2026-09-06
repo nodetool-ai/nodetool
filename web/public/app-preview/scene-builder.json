@@ -2,7 +2,7 @@
   "slug": "scene-builder",
   "name": "Scene Builder",
   "emoji": "🎞️",
-  "description": "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and colour.",
+  "description": "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and color.",
   "tagline": "See the look as a still, then bring it to life.",
   "note": "🔑 Needs a FAL key. The still is one FLUX call, the motion one LTX call.",
   "featured": true,
@@ -164,7 +164,7 @@
                         "binding": "op:motion/prop:vid#duration",
                         "label": "Seconds",
                         "min": 2,
-                        "max": 8,
+                        "max": 6,
                         "step": 1,
                         "events": []
                       }

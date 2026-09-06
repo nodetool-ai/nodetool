@@ -77,7 +77,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "indexable": false,
     "slug": "ai-spokesperson",
     "name": "AI Spokesperson",
-    "summary": "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localise a take, fix a fluffed line, or spin one recording into many variants.",
+    "summary": "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localize a take, fix a fluffed line, or spin one recording into many variants.",
     "featured": false,
     "note": "🔑 Needs a FAL key for lip-sync and an Inworld key for the voice. Both steps are billed per run.",
     "workflows": [
@@ -1122,7 +1122,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "indexable": false,
     "slug": "scene-builder",
     "name": "Scene Builder",
-    "summary": "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and colour.",
+    "summary": "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and color.",
     "featured": true,
     "note": "🔑 Needs a FAL key. The still is one FLUX call, the motion one LTX call.",
     "workflows": [
@@ -1308,7 +1308,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "indexable": false,
     "slug": "vary-image",
     "name": "Vary Image",
-    "summary": "Pick what should change — lighting, background, pose, palette, camera angle — and an edit model alters only that. Composition and subject survive because the model edits in place instead of regenerating.",
+    "summary": "Pick what should change: lighting, background, pose, palette, camera angle. An edit model alters only that, and composition and subject survive because it edits in place instead of regenerating.",
     "featured": true,
     "note": "🔑 Needs a FAL key (Nano Banana edit). Billed per image.",
     "workflows": [
@@ -1337,6 +1337,10 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "choice"
       },
       {
+        "label": "Add directions (optional)",
+        "kind": "text"
+      },
+      {
         "label": "How far to go",
         "kind": "number"
       }
@@ -1347,7 +1351,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       }
     ],
-    "widgetCount": 13
+    "widgetCount": 14
   },
   {
     "route": "/apps/vertical-cut",

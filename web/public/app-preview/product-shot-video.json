@@ -83,7 +83,7 @@
                             "value": "Gentle dolly from left to right, product fixed, light sweeping across"
                           },
                           {
-                            "value": "Rise from a low angle to eye level, product centred, soft reflections"
+                            "value": "Rise from a low angle to eye level, product centered, soft reflections"
                           },
                           {
                             "value": "Hold still while steam and light drift around the product"
@@ -172,16 +172,16 @@
                         "label": "Spin",
                         "options": [
                           {
-                            "value": "slow orbit around the product, fixed lighting, product stays centred"
+                            "value": "slow orbit around the product, fixed lighting, product stays centered"
                           },
                           {
-                            "value": "full 360 degree turntable rotation, product centred, studio lighting fixed"
+                            "value": "full 360 degree turntable rotation, product centered, studio lighting fixed"
                           },
                           {
                             "value": "slow half turn revealing the back of the product, fixed lighting"
                           },
                           {
-                            "value": "gentle rocking turn, product centred, soft studio light"
+                            "value": "gentle rocking turn, product centered, soft studio light"
                           }
                         ],
                         "events": []
@@ -418,7 +418,7 @@
     "op:loop/out:output-loop": {
       "$demo": "video"
     },
-    "op:turntable/prop:v#prompt": "slow orbit around the product, fixed lighting, product stays centred",
+    "op:turntable/prop:v#prompt": "slow orbit around the product, fixed lighting, product stays centered",
     "op:turntable/out:out": {
       "$demo": "video"
     }
