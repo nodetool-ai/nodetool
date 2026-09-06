@@ -66,6 +66,18 @@ describe("codegen output", () => {
     expect(content).toContain("createNode");
   });
 
+  test("the storyboard and entity constants take their own ref types", () => {
+    const content = fs.readFileSync(
+      path.join(generatedDir, "nodetool.constant.ts"),
+      "utf-8"
+    );
+    expect(content).toContain("value?: Connectable<StoryboardRef>;");
+    expect(content).toContain('createNode("nodetool.constant.Storyboard"');
+    expect(content).toContain("value?: Connectable<Entity>;");
+    expect(content).toContain('createNode("nodetool.constant.Entity"');
+    expect(content).toContain("StoryboardRef, Entity } from \"../types.js\"");
+  });
+
   test("kie.dynamic_schema uses string model_info input", () => {
     const kiePath = path.join(generatedDir, "kie.dynamic_schema.ts");
     expect(fs.existsSync(kiePath)).toBe(true);

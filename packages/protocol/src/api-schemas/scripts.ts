@@ -116,7 +116,9 @@ export type ScriptSetup = z.infer<typeof scriptSetup>;
 export const scriptDocument = z.object({
   cast: z.array(speaker).default([]),
   sections: z.array(scriptSection).default([]),
-  setup: scriptSetup.optional()
+  setup: scriptSetup.optional(),
+  /** Script this one was filled from. Absent on a script written directly. */
+  templateId: z.string().nullable().optional()
 });
 export type ScriptDocumentSchema = z.infer<typeof scriptDocument>;
 

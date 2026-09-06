@@ -27,6 +27,16 @@ import { ENTITY_METADATA_KEY } from "./style-presets.js";
 export type EntityKind = "character" | "location" | "style" | "prop";
 
 /**
+ * Where a graph-created entity came from. `key` is the upsert identity the run
+ * used (a SKU, say), so a re-run finds its own entity even after the name
+ * changed.
+ */
+export interface EntitySource {
+  workflow_id?: string;
+  key?: string;
+}
+
+/**
  * A reusable production entity. One shape, discriminated by {@link kind}, so it
  * maps to a single storage row and a single picker UI. Kind-specific fields are
  * optional and only meaningful for their kind (e.g. `voice_id` for characters,
@@ -61,6 +71,8 @@ export interface Entity {
   project_id?: string;
   created_at?: string;
   updated_at?: string;
+  /** Set only on an entity a graph created or derived. */
+  source?: EntitySource;
 }
 
 /** The kinds an entity marker may declare. Anything else is not an entity. */
@@ -92,6 +104,8 @@ export interface EntityMarker {
    * entity that changed asset would leave every one of them dangling.
    */
   reference_asset_id?: string;
+  /** Set only on an entity a graph created or derived. */
+  source?: EntitySource;
 }
 
 /**
@@ -133,7 +147,14 @@ const entityMarkerSchema = z.object({
     .nullable()
     .optional()
     .catch(null),
-  reference_asset_id: z.string().optional().catch(undefined)
+  reference_asset_id: z.string().optional().catch(undefined),
+  source: z
+    .object({
+      workflow_id: z.string().optional(),
+      key: z.string().optional()
+    })
+    .optional()
+    .catch(undefined)
 });
 
 /**
@@ -167,6 +188,9 @@ export function readEntityMarker(
   const swapped = parsed.data.reference_asset_id?.trim();
   if (swapped) {
     marker.reference_asset_id = swapped;
+  }
+  if (parsed.data.source !== undefined) {
+    marker.source = parsed.data.source;
   }
   return marker;
 }

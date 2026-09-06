@@ -292,7 +292,11 @@ export const storyboardDocument = z.object({
   genre: z.string().default(""),
   directorModel: modelSelection.nullable(),
   imageModel: modelSelection.nullable(),
-  videoModel: modelSelection.nullable()
+  videoModel: modelSelection.nullable(),
+  /** Board this one was recast from. Absent on a board authored directly. */
+  templateId: z.string().nullable().optional(),
+  /** Canonical substitution mapping, so a re-run finds the copy it made. */
+  recastKey: z.string().nullable().optional()
 });
 export type StoryboardDocumentSchema = z.infer<typeof storyboardDocument>;
 

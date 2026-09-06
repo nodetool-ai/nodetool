@@ -3,7 +3,7 @@
 // "@nodetool-ai/sandbox-nodetool/flow" — see ../guest-core.ts.
 
 import { callNode } from "../guest-core.js";
-import type { ImageRef, AudioRef, VideoRef, DataframeRef } from "../../types.js";
+import type { ImageRef, AudioRef, VideoRef, DataframeRef, StoryboardRef, Entity } from "../../types.js";
 
 // Bool — nodetool.constant.Bool
 export type BoolInputs = {
@@ -192,6 +192,32 @@ export interface ScriptOutputs {
 
 export function script(inputs: ScriptInputs): Promise<ScriptOutputs> {
   return callNode<ScriptOutputs>("nodetool.constant.Script", inputs);
+}
+
+// Storyboard — nodetool.constant.Storyboard
+export type StoryboardInputs = {
+  value?: StoryboardRef;
+};
+
+export interface StoryboardOutputs {
+  output: StoryboardRef;
+}
+
+export function storyboard(inputs: StoryboardInputs): Promise<StoryboardOutputs> {
+  return callNode<StoryboardOutputs>("nodetool.constant.Storyboard", inputs);
+}
+
+// Entity — nodetool.constant.Entity
+export type EntityInputs = {
+  value?: Entity;
+};
+
+export interface EntityOutputs {
+  output: Entity;
+}
+
+export function entity(inputs: EntityInputs): Promise<EntityOutputs> {
+  return callNode<EntityOutputs>("nodetool.constant.Entity", inputs);
 }
 
 // JSON — nodetool.constant.JSON

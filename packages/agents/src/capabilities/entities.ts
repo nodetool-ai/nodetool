@@ -17,10 +17,9 @@
 import {
   ENTITY_KINDS,
   ENTITY_METADATA_KEY,
-  readEntityMarker,
   type Entity
 } from "@nodetool-ai/protocol";
-import type { Asset } from "@nodetool-ai/models";
+import { entityFromAsset } from "@nodetool-ai/models";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -38,7 +37,6 @@ import {
   deleteEntitySpec,
   updateEntitySpec
 } from "./entities.specs.js";
-import { MIME_TO_EXT } from "../tools/asset-persist.js";
 import { userIdOf } from "../tools/mcp-tool-support.js";
 import { isRecord, isString } from "../utils/type-guards.js";
 import { DEFAULT_PROJECT_ID, resolveProjectId } from "./project-scope.js";
@@ -63,45 +61,11 @@ const stringArray = (value: unknown): string[] | undefined =>
     : undefined;
 
 /**
- * Read the entity marker off an asset, or null when it carries none. Mirrors
- * `assetToEntity` in the web library: the asset's own bytes are the entity's
- * primary reference image unless the marker names a swapped one, the marker
- * holds everything else, and the asset row says which project it belongs to.
+ * The one reader of an entity's marker, re-exported so callers that already
+ * import this module keep reaching it here. It lives in `@nodetool-ai/models`
+ * because the websocket host serves the same entities to a running graph.
  */
-export function entityFromAsset(
-  asset: Pick<Asset, "id" | "content_type" | "metadata" | "created_at"> & {
-    /** Absent on a row read before the column existed — the loose bucket. */
-    project_id?: string;
-  }
-): Entity | null {
-  const marker = readEntityMarker(asset.metadata);
-  if (!marker) return null;
-
-  const { reference_asset_id: swapped, ...fields } = marker;
-  const ext = MIME_TO_EXT[asset.content_type] ?? "png";
-  // A swapped picture is another asset, whose content type is not in hand
-  // here — `asset://<id>` with no extension is what the web library writes
-  // too, and resolves through the extension-tolerant asset lookup.
-  const referenceImage =
-    swapped && swapped !== asset.id
-      ? { type: "image" as const, asset_id: swapped, uri: `asset://${swapped}` }
-      : {
-          type: "image" as const,
-          asset_id: asset.id,
-          uri: `asset://${asset.id}.${ext}`
-        };
-  const entity: Entity = {
-    ...fields,
-    type: "entity",
-    id: asset.id,
-    project_id: asset.project_id || DEFAULT_PROJECT_ID,
-    reference_images: [referenceImage]
-  };
-  if (asset.created_at) {
-    entity.created_at = asset.created_at;
-  }
-  return entity;
-}
+export { entityFromAsset };
 
 /**
  * Every entity in the caller's library, or only one project's when

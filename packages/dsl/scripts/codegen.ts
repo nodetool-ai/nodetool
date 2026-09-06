@@ -133,7 +133,9 @@ const MEDIA_TYPES: Record<string, string> = {
   dataframe: "DataframeRef",
   dataframeref: "DataframeRef",
   folder: "FolderRef",
-  folderref: "FolderRef"
+  folderref: "FolderRef",
+  storyboard: "StoryboardRef",
+  entity: "Entity"
 };
 
 const ALL_MEDIA_IMPORTS = [
@@ -142,7 +144,9 @@ const ALL_MEDIA_IMPORTS = [
   "VideoRef",
   "TextRef",
   "DataframeRef",
-  "FolderRef"
+  "FolderRef",
+  "StoryboardRef",
+  "Entity"
 ];
 
 function mapType(tm: TypeMetadata): string {

@@ -6,6 +6,8 @@ export type {
   TextRef,
   DataframeRef,
   FolderRef,
+  StoryboardRef,
+  Entity,
   ChartConfig,
   ChartData,
   ChartSeries

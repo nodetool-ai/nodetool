@@ -69,6 +69,11 @@ export interface TimelineSequence {
    * through the flow, which is what makes those open straight in the editor.
    */
   setup?: TimelineSetup;
+  /**
+   * Sequence this one was retargeted from. Absent on a sequence built
+   * directly.
+   */
+  templateId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

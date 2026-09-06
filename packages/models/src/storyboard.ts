@@ -31,6 +31,10 @@ export interface StoryboardDocument {
   directorModel: Record<string, unknown> | null;
   imageModel: Record<string, unknown> | null;
   videoModel: Record<string, unknown> | null;
+  /** Board this one was recast from. Absent on a board authored directly. */
+  templateId?: string | null;
+  /** Canonical substitution mapping, so a re-run finds the copy it made. */
+  recastKey?: string | null;
 }
 
 export interface StoryboardResponse {

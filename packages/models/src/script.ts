@@ -86,6 +86,8 @@ export interface ScriptDocument {
   cast: ScriptSpeaker[];
   sections: ScriptSection[];
   setup?: ScriptSetup;
+  /** Script this one was filled from. Absent on a script written directly. */
+  templateId?: string | null;
 }
 
 export interface ScriptResponse {
