@@ -528,11 +528,7 @@ export function App() {
     if (!threadId) return;
     socketRef.current?.stop(threadId);
     setPlanApprovals((previous) =>
-      Object.fromEntries(
-        Object.entries(previous).filter(
-          ([, request]) => request.thread_id !== null
-        )
-      )
+      withoutRequestsForThread(previous, threadId)
     );
   }
 

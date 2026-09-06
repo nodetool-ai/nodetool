@@ -113,7 +113,7 @@ The panel supports **chat only**. Image, video, audio and other media-generation
 Two things to know when pointing the panel at something other than a local server:
 
 - **The host has to be one Chrome lets the extension reach.** `localhost`, `127.0.0.1` and any HTTPS host are granted in the manifest. Anything else — a LAN box over plain HTTP — prompts for permission when you save it; decline, and every request to that server is blocked by CORS even though the chat socket still connects.
-- **Tool calls run without asking.** The panel has no approval cards, so it sends turns in the permissive mode. Point it at a server you trust.
+- **The agent's tool calls are gated by the permission mode.** The picker in the panel offers **Plan** (no actions), **Default** (a write, execute or external call parks on an approval card) and **Auto** (everything runs unasked). It starts on Default and remembers what you last chose. Auto points a running agent at whatever the server can reach, so pick it only for a server you trust.
 
 ---
 
@@ -227,7 +227,7 @@ The action loop itself is `@nodetool-ai/browser` (`packages/browser/`), which kn
 - **Mutually exclusive with DevTools.** You can't have Chrome DevTools open on a tab while the extension is attached to it (both use `chrome.debugger`).
 - **Session-only.** Attaching does not persist across Chrome restarts — reattach after restarting your browser.
 - **One session per server process.** The browser session is a process singleton shared by every agent and workflow on that server, so two concurrent runs drive the same tab. Sequence them, or give each its own server.
-- **Chat only in the panel.** Media generation, the workflow editor and tool-approval prompts are the full app's job — the panel sends turns in the permissive tool mode rather than asking.
+- **Chat only in the panel.** Media generation and the workflow editor are the full app's job. Tool, plan and secret approvals do render in the panel.
 - **Manual build.** The `chrome-extension/` package isn't part of `npm run build:packages` — build it on demand. A diff touching it does run the `live-browser` surface's selfcheck through `nodetool harness gate`, but that covers the capability seam, not the relay: the extension → `chrome.debugger` → page round trip runs only in `npm run test:integration --workspace=packages/browser`, which needs Chrome and port 7777. Keep the two protocol definitions (`chrome-extension/src/lib/protocol.ts` and `packages/browser/src/extension/protocol.ts`) in sync by hand if you change the wire format, and likewise `chrome-extension/src/lib/chat-socket.ts` with `packages/sdk/src/chat.ts` for the chat panel.
 
 ---

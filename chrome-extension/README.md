@@ -78,9 +78,11 @@ ship in `host_permissions`; anything else (a LAN box over plain HTTP) is
 covered by `optional_host_permissions` and requested when you save it in the
 panel's server settings.
 
-The panel sends turns with `permission_mode: "auto"`. It renders no approval
-cards, so a gated tool call would otherwise stall the turn with nothing to
-answer it.
+The panel sends each turn with the permission mode the picker holds —
+`plan`, `default` or `auto`, persisted in `chrome.storage.local` and defaulting
+to `default`. A gated call parks on a card rendered by
+`src/sidepanel/components/ApprovalCards.tsx`: `tool_approval_request`,
+`plan_approval_request` and `secret_request` each have one.
 
 ## The CDP proxy
 
