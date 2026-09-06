@@ -1,8 +1,17 @@
 {
   "$comment": "E2E suite config. The harness runs every workflow graph discovered in sourceDir against the e2e-server, which fakes all providers (LLM + external/media nodes return type-correct placeholder outputs). prepareSuite.ts reads each template's embedded params; add per-id overrides below when a template needs specific inputs. ids are slugified from the filename (e.g. 'Movie Posters' -> 'movie-posters').",
   "sourceDir": "packages/base-nodes/nodetool/examples/nodetool-base",
-  "$excludeComment": "Trigger workflows whose adapter listens forever. Their genProcess waits on a live scheduler or filesystem watcher, and the e2e-server supplies neither, so the run only ends at the timeout. That is the node behaving correctly — an interval trigger left at max_events 0 is supposed to tick forever. Webhook and manual triggers have no genProcess to loop in and stay in the suite. Delivered-event coverage for all four is packages/base-nodes/tests/trigger-examples-run.test.ts.",
-  "exclude": ["every-hour-on-the-hour", "watch-a-folder-act-on-what-lands"],
-  "defaultExpect": { "status": "completed" },
+  "$excludeComment": "Trigger workflows whose adapter listens forever. Their genProcess waits on a live scheduler or filesystem watcher, and the e2e-server supplies neither, so the run only ends at the timeout. That is the node behaving correctly — an interval trigger left at max_events 0 is supposed to tick forever. Webhook and manual triggers have no genProcess to loop in and stay in the suite. Delivered-event coverage for all four is packages/base-nodes/tests/trigger-examples-run.test.ts. The graph-resource templates are excluded for a different reason: each starts from a Constant.Storyboard, Constant.Timeline or Constant.Entity picker, and the e2e-server runs against an empty database, so the document a picker names does not exist and the run fails before it reaches a node. They are templates a person fills in from their own library, not self-contained graphs. Their coverage is `npm run fixtures:graph-resources`, which seeds a scratch install and runs them on the fake provider; the graph-resources harness entry runs that, and `harness gate` selects it on any diff touching them.",
+  "exclude": [
+    "every-hour-on-the-hour",
+    "watch-a-folder-act-on-what-lands",
+    "per-sku-ad-factory",
+    "localized-explainer",
+    "platformer-asset-pack",
+    "three-ratios"
+  ],
+  "defaultExpect": {
+    "status": "completed"
+  },
   "overrides": {}
 }

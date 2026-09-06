@@ -60,7 +60,26 @@ export function parsePorcelainLine(line: string): string | null {
     return null;
   }
   const arrow = rest.indexOf(" -> ");
-  return arrow >= 0 ? rest.slice(arrow + 4).trim() : rest;
+  return unquotePath(arrow >= 0 ? rest.slice(arrow + 4).trim() : rest);
+}
+
+/**
+ * Undo git's C-style quoting. Porcelain status wraps a path in double quotes
+ * as soon as it holds a space or a non-ASCII byte, and every shipped example
+ * workflow has a space in its name — so without this a gate run over
+ * uncommitted work sees `"…/Three Ratios.json"`, matches it against no
+ * surface, and reports it unmapped. `git diff --name-only` does not quote, so
+ * only this half needs it.
+ */
+function unquotePath(path: string): string {
+  if (path.length < 2 || !path.startsWith('"') || !path.endsWith('"')) {
+    return path;
+  }
+  return path
+    .slice(1, -1)
+    .replace(/\\(["\\])/g, "$1")
+    .replace(/\\t/g, "\t")
+    .replace(/\\n/g, "\n");
 }
 
 function parseNameOnlyDiff(output: string): string[] {

@@ -36,6 +36,10 @@ export default defineConfig({
         replacement: resolve(__dirname, "../runtime/src/context.ts")
       },
       {
+        find: "@nodetool-ai/runtime/entities",
+        replacement: resolve(__dirname, "../runtime/src/entities.ts")
+      },
+      {
         find: "@nodetool-ai/runtime/media-ref-bytes",
         replacement: resolve(__dirname, "../runtime/src/media-ref-bytes.ts")
       },

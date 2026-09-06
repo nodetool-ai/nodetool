@@ -3,7 +3,7 @@
 // "@nodetool-ai/sandbox-nodetool/flow" — see ../guest-core.ts.
 
 import { callNode, streamNode } from "../guest-core.js";
-import type { ImageRef, FolderRef } from "../../types.js";
+import type { ImageRef, FolderRef, Entity } from "../../types.js";
 
 // Paste — nodetool.image.Paste
 export type PasteInputs = {
@@ -339,7 +339,7 @@ export type TextToImageInputs = {
   model?: unknown;
   prompt?: string;
   negative_prompt?: string;
-  entities?: Record<string, unknown>[];
+  entities?: Entity[];
   aspect_ratio?: string;
   resolution?: string;
 };

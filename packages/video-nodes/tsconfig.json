@@ -36,6 +36,9 @@
       "path": "../timeline"
     },
     {
+      "path": "../storyboard"
+    },
+    {
       "path": "../gpu"
     }
   ]

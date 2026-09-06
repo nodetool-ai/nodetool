@@ -1,6 +1,7 @@
 // Auto-generated — do not edit manually
 
 import { createNode, Connectable, DslNode } from "../core.js";
+import type { Entity } from "../types.js";
 
 // Load Script — nodetool.script.LoadScript
 export type LoadScriptInputs = {
@@ -60,4 +61,44 @@ export interface ScriptToSubtitlesOutputs {
 
 export function scriptToSubtitles(inputs: ScriptToSubtitlesInputs): DslNode<ScriptToSubtitlesOutputs> {
   return createNode("nodetool.script.ScriptToSubtitles", inputs, { outputNames: ["subtitles", "cue_count"] });
+}
+
+// Write Script — nodetool.script.WriteScript
+export type WriteScriptInputs = {
+  model?: Connectable<unknown>;
+  brief?: Connectable<string>;
+  format?: Connectable<"voiceover" | "dialogue" | "interview" | "ad-read" | "tutorial">;
+  cast?: Connectable<Entity[]>;
+  language?: Connectable<string>;
+  pace?: Connectable<"slow" | "normal" | "fast">;
+  length_seconds?: Connectable<number>;
+  voice_provider?: Connectable<string>;
+  voice_model?: Connectable<string>;
+  name?: Connectable<string>;
+};
+
+export interface WriteScriptOutputs {
+  script: unknown;
+  line_count: number;
+}
+
+export function writeScript(inputs: WriteScriptInputs): DslNode<WriteScriptOutputs> {
+  return createNode("nodetool.script.WriteScript", inputs, { outputNames: ["script", "line_count"] });
+}
+
+// Fill Script — nodetool.script.FillScript
+export type FillScriptInputs = {
+  script?: Connectable<unknown>;
+  values?: Connectable<Record<string, unknown>>;
+  name?: Connectable<string>;
+};
+
+export interface FillScriptOutputs {
+  script: unknown;
+  filled: string[];
+  unresolved: string[];
+}
+
+export function fillScript(inputs: FillScriptInputs): DslNode<FillScriptOutputs> {
+  return createNode("nodetool.script.FillScript", inputs, { outputNames: ["script", "filled", "unresolved"] });
 }

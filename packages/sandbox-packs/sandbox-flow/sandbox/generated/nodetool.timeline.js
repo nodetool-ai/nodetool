@@ -9,8 +9,16 @@ function transcript(inputs) {
 function addClips(inputs) {
   return callNode("nodetool.timeline.AddClips", inputs);
 }
+function fillTimelineText(inputs) {
+  return callNode("nodetool.timeline.FillTimelineText", inputs);
+}
+function retargetTimeline(inputs) {
+  return callNode("nodetool.timeline.RetargetTimeline", inputs);
+}
 export {
   addClips,
+  fillTimelineText,
   renderTimeline,
+  retargetTimeline,
   transcript
 };

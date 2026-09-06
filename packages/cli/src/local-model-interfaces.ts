@@ -27,9 +27,16 @@ export async function localModelInterfaces(): Promise<ProcessingContextModelInte
   // WebSocket runner and the HTTP server, which a local run does not need.
   const { createAssetModelInterface, updateAssetBytesModelInterface } =
     await import("@nodetool-ai/websocket/assets");
+  // Storyboards, the entity library and the game templates, from the same
+  // module the server installs — a harness run has to write the rows a server
+  // run writes, or it proves nothing about the server.
+  const { documentModelInterfaces } = await import(
+    "@nodetool-ai/websocket/documents"
+  );
   return {
     createAsset: createAssetModelInterface,
     updateAssetBytes: updateAssetBytesModelInterface,
+    ...documentModelInterfaces(),
     // Timeline nodes persist their sequence rather than passing it down the
     // graph, so `AddClips` and everything after it needs these to run at all.
     getTimelineSequence: async ({ userId, id }) => {

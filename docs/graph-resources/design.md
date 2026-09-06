@@ -1,6 +1,6 @@
 # Graph Resources — Technical Design
 
-> Status: proposed. Companion: [tasks.md](tasks.md).
+> Status: shipped, phases 1–5. Companion: [tasks.md](tasks.md).
 > Precedent: [script-storyboard-link/design.md](../script-storyboard-link/design.md)
 > for the "pure functions in a shared package, consumed by editor, agent tools
 > and nodes alike" pattern this design continues.
@@ -140,6 +140,10 @@ Same shape as the script trio, installed in
 getStoryboard:    ({userId, id}) => StoryboardResponse | null
 createStoryboard: ({userId, name, projectId?, document}) => StoryboardResponse
 updateStoryboard: ({userId, id, document, timelineId?, baseUpdatedAt?}) => StoryboardResponse | null
+findRecastStoryboard: ({userId, projectId?, templateId, recastKey}) => StoryboardResponse | null
+               // the copy a previous run derived, asked for by identity:
+               // `listStoryboards` answers with a window of the most recently
+               // updated rows, which a catalog batch outgrows
 
 listEntities:  ({userId, projectId?, kind?, tags?, nameContains?, limit?}) => Entity[]
 getEntity:     ({userId, id}) => Entity | null
@@ -278,8 +282,11 @@ export function cloneTimelineForBoard(
 // is copied verbatim. The next re-assemble fills the owned clips from the
 // copy's renders and, through `foreignTimelineParts` (`reassemble.ts`),
 // leaves the text overlay, the music bed and any other edit alone. Hand
-// edits on the shot clips themselves (a trim, a moved cut) are rebuilt from
-// the shots, exactly as today's re-assemble does.
+// edits on the shot clips themselves (a trim, a moved cut, a transform)
+// survive too: the re-assemble refills each shot clip by the shot it plays
+// (`refillShotClips`, `reassemble.ts`) and swaps only the media, appending a
+// shot added since and dropping the clip of one deleted. A script-linked
+// board is still rebuilt, because there the words decide the timing.
 
 // retarget.ts
 export function retargetSequence(
@@ -341,8 +348,9 @@ entity ids twice.
 | `AssembleTimeline` | `storyboard`, `name?: str` | `timeline: timeline`, `skipped_shots: list[str]`, `retimed: list[dict]` |
 
 `RecastStoryboard` with `reuse_existing` looks up a board in the same project
-with the same `templateId` and `recastKey` and passes it to `recastStoryboard`
-as `existing`: the copy is re-derived from the current template (§3.1), so a
+with the same `templateId` and `recastKey` (`findRecastStoryboard`, §2.3 —
+scoped, because a listing is windowed and a catalog batch outgrows it) and
+passes it to `recastStoryboard` as `existing`: the copy is re-derived from the current template (§3.1), so a
 template edit reaches every reused copy on the next run and nothing else is
 re-rendered. The output ref carries `writable: true`.
 
@@ -361,9 +369,9 @@ protected as a template, whatever its lineage.
 `AssembleTimeline` writes `timeline_id` on the board. When the board has no
 cut yet and its template has one (`templateId` → that board's `timeline_id`),
 it first clones the template's sequence for the copy (`cloneTimelineForBoard`,
-§3.2), then re-assembles in place: only the shot clips are regenerated from
-the copy's renders, and the text overlay, the music bed and every other
-track survive. A copy therefore inherits the approved cut, not a bare
+§3.2), then re-assembles in place: the shot clips are refilled from the
+copy's renders where they sit, and the text overlay, the music bed and every
+other track survive. A copy therefore inherits the approved cut, not a bare
 assembly. When the board is script-linked it calls `buildLinkedTimeline`, as
 the capability does.
 

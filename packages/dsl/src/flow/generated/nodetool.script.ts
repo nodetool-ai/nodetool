@@ -3,6 +3,7 @@
 // "@nodetool-ai/sandbox-nodetool/flow" — see ../guest-core.ts.
 
 import { callNode } from "../guest-core.js";
+import type { Entity } from "../../types.js";
 
 // Load Script — nodetool.script.LoadScript
 export type LoadScriptInputs = {
@@ -62,4 +63,44 @@ export interface ScriptToSubtitlesOutputs {
 
 export function scriptToSubtitles(inputs: ScriptToSubtitlesInputs): Promise<ScriptToSubtitlesOutputs> {
   return callNode<ScriptToSubtitlesOutputs>("nodetool.script.ScriptToSubtitles", inputs);
+}
+
+// Write Script — nodetool.script.WriteScript
+export type WriteScriptInputs = {
+  model?: unknown;
+  brief?: string;
+  format?: "voiceover" | "dialogue" | "interview" | "ad-read" | "tutorial";
+  cast?: Entity[];
+  language?: string;
+  pace?: "slow" | "normal" | "fast";
+  length_seconds?: number;
+  voice_provider?: string;
+  voice_model?: string;
+  name?: string;
+};
+
+export interface WriteScriptOutputs {
+  script: unknown;
+  line_count: number;
+}
+
+export function writeScript(inputs: WriteScriptInputs): Promise<WriteScriptOutputs> {
+  return callNode<WriteScriptOutputs>("nodetool.script.WriteScript", inputs);
+}
+
+// Fill Script — nodetool.script.FillScript
+export type FillScriptInputs = {
+  script?: unknown;
+  values?: Record<string, unknown>;
+  name?: string;
+};
+
+export interface FillScriptOutputs {
+  script: unknown;
+  filled: string[];
+  unresolved: string[];
+}
+
+export function fillScript(inputs: FillScriptInputs): Promise<FillScriptOutputs> {
+  return callNode<FillScriptOutputs>("nodetool.script.FillScript", inputs);
 }

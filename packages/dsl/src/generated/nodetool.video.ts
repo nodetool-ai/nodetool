@@ -1,13 +1,14 @@
 // Auto-generated — do not edit manually
 
 import { createNode, Connectable, DslNode } from "../core.js";
-import type { ImageRef, AudioRef, VideoRef, FolderRef } from "../types.js";
+import type { ImageRef, AudioRef, VideoRef, FolderRef, Entity } from "../types.js";
 
 // Text To Video — nodetool.video.TextToVideo
 export type TextToVideoInputs = {
   model?: Connectable<unknown>;
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;
+  entities?: Connectable<Entity[]>;
   aspect_ratio?: Connectable<string>;
   resolution?: Connectable<string>;
   duration?: Connectable<number>;
@@ -28,7 +29,7 @@ export type ImageToVideoInputs = {
   model?: Connectable<unknown>;
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;
-  entities?: Connectable<Record<string, unknown>[]>;
+  entities?: Connectable<Entity[]>;
   aspect_ratio?: Connectable<string>;
   resolution?: Connectable<string>;
   duration?: Connectable<number>;

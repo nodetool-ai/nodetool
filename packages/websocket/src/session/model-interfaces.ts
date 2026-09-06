@@ -3,9 +3,7 @@ import {
   getSecret,
   ImageDocument,
   Message,
-  Script,
-  Setting,
-  TimelineSequence
+  Setting
 } from "@nodetool-ai/models";
 import {
   ProcessingContext as RuntimeProcessingContext,
@@ -16,6 +14,7 @@ import {
   createAssetModelInterface,
   updateAssetBytesModelInterface
 } from "../lib/asset-model-interface.js";
+import { documentModelInterfaces } from "../lib/document-model-interfaces.js";
 import { getAssetAdapter, getTempAdapter } from "../lib/storage.js";
 import { createTempUrlResolver } from "../lib/temp-url-resolver.js";
 import { getAssetStoragePath } from "./asset-autosave.js";
@@ -127,77 +126,9 @@ export function serverModelInterfaces(): ProcessingContextModelInterfaces {
       await doc.save();
       return doc.toResponse();
     },
-    getTimelineSequence: async ({ userId, id }) => {
-      const seq = await TimelineSequence.findById(id);
-      if (!seq || seq.user_id !== userId) return null;
-      return seq.toTimelineSequence();
-    },
-    createTimelineSequence: async ({ userId, sequence }) => {
-      const seq = TimelineSequence.fromTimelineSequence(
-        userId,
-        sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
-      );
-      await seq.save();
-      return seq.toTimelineSequence();
-    },
-    updateTimelineSequence: async ({ userId, id, sequence }) => {
-      const existing = await TimelineSequence.findById(id);
-      if (!existing || existing.user_id !== userId) return null;
-      const next = TimelineSequence.fromTimelineSequence(
-        userId,
-        sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
-      );
-      const updated = await TimelineSequence.updateFieldsIfUnchanged(
-        id,
-        next.updated_at,
-        {
-          name: next.name,
-          fps: next.fps,
-          width: next.width,
-          height: next.height,
-          duration_ms: next.duration_ms,
-          document: next.document
-        }
-      );
-      return updated ? updated.toTimelineSequence() : null;
-    },
-    getScript: async ({ userId, id }) => {
-      const script = await Script.findById(id);
-      if (!script || script.user_id !== userId) return null;
-      return script.toResponse();
-    },
-    createScript: async ({ userId, name, projectId, document }) => {
-      const script = new Script({
-        user_id: userId,
-        name: name ?? "Untitled script",
-        project_id: projectId ?? "default",
-        document: JSON.stringify(document)
-      });
-      await script.save();
-      return script.toResponse();
-    },
-    updateScript: async ({
-      userId,
-      id,
-      document,
-      timelineId,
-      baseUpdatedAt
-    }) => {
-      const existing = await Script.findById(id);
-      if (!existing || existing.user_id !== userId) return null;
-      const fields: Partial<{
-        document: string;
-        timeline_id: string | null;
-      }> = {};
-      if (document !== undefined) fields.document = JSON.stringify(document);
-      if (timelineId !== undefined) fields.timeline_id = timelineId;
-      const updated = await Script.updateFieldsIfUnchanged(
-        id,
-        baseUpdatedAt ?? existing.updated_at,
-        fields
-      );
-      return updated ? updated.toResponse() : null;
-    }
+    // Documents, the entity library and the game templates: shared with the
+    // CLI's local runs so a harness run writes the rows the server writes.
+    ...documentModelInterfaces()
   };
 }
 

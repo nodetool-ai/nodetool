@@ -1,7 +1,7 @@
 // Auto-generated — do not edit manually
 
 import { createNode, Connectable, DslNode } from "../core.js";
-import type { ImageRef, FolderRef } from "../types.js";
+import type { ImageRef, FolderRef, Entity } from "../types.js";
 
 // Paste — nodetool.image.Paste
 export type PasteInputs = {
@@ -329,7 +329,7 @@ export type TextToImageInputs = {
   model?: Connectable<unknown>;
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;
-  entities?: Connectable<Record<string, unknown>[]>;
+  entities?: Connectable<Entity[]>;
   aspect_ratio?: Connectable<string>;
   resolution?: Connectable<string>;
 };

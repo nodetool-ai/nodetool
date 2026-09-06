@@ -3,13 +3,14 @@
 // "@nodetool-ai/sandbox-nodetool/flow" — see ../guest-core.ts.
 
 import { callNode, streamNode } from "../guest-core.js";
-import type { ImageRef, AudioRef, VideoRef, FolderRef } from "../../types.js";
+import type { ImageRef, AudioRef, VideoRef, FolderRef, Entity } from "../../types.js";
 
 // Text To Video — nodetool.video.TextToVideo
 export type TextToVideoInputs = {
   model?: unknown;
   prompt?: string;
   negative_prompt?: string;
+  entities?: Entity[];
   aspect_ratio?: string;
   resolution?: string;
   duration?: number;
@@ -30,7 +31,7 @@ export type ImageToVideoInputs = {
   model?: unknown;
   prompt?: string;
   negative_prompt?: string;
-  entities?: Record<string, unknown>[];
+  entities?: Entity[];
   aspect_ratio?: string;
   resolution?: string;
   duration?: number;

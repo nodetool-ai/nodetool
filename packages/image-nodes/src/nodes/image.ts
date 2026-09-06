@@ -9,6 +9,7 @@ import {
   type LayerTransform2D
 } from "@nodetool-ai/gpu/node";
 import type {
+  Entity,
   FolderRef,
   ImageModel,
   InputMode,
@@ -24,6 +25,7 @@ import type {
 } from "@nodetool-ai/runtime";
 // Import from browser-safe subpaths (not the runtime barrel, which drags in the
 // provider / python-bridge stack) so this module can bundle for the browser.
+import { resolveEntities } from "@nodetool-ai/runtime/entities";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime/media-ref-bytes";
 import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime/prompt-asset-refs";
 // node:fs / node:path / node:url are loaded lazily (only by the node-only
@@ -1784,13 +1786,13 @@ export class TextToImageNode extends BaseNode {
   declare negative_prompt: string;
 
   @prop({
-    type: "list[dict]",
+    type: "list[entity]",
     default: [],
     title: "Entities",
     description:
       "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt"
   })
-  declare entities: Record<string, unknown>[];
+  declare entities: Entity[];
 
   @prop({
     type: "str",
@@ -1832,7 +1834,7 @@ export class TextToImageNode extends BaseNode {
         aspect_ratio: aspectRatio,
         resolution,
         negative_prompt: this.negative_prompt,
-        entities: this.entities
+        entities: await resolveEntities(this.entities, context)
       }
     })) as Uint8Array;
     const meta = await metadataFor(output);

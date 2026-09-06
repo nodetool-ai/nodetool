@@ -1,0 +1,411 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-09-06T12:00:00.000Z",
+  "updated_at": "2026-09-06T12:00:00.000Z",
+  "name": "Localized Explainer",
+  "tool_name": null,
+  "description": "One brief, one narrator and one approved b-roll board become an explainer in every language you list. WriteScript writes the words with the narrator as its cast, VoiceScript pays only for the lines whose text moved, and the board is read and never written — its stills become the picture under the voiceover.",
+  "tags": [
+    "video",
+    "script",
+    "localization",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "languages",
+        "type": "nodetool.control.Collection",
+        "data": {
+          "items": [
+            "en",
+            "de",
+            "fr"
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "1  One run per language"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "brief",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "brief",
+          "value": "",
+          "description": "What this week's explainer is about."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 160
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "2  Brief"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "narrator",
+        "type": "nodetool.constant.Entity",
+        "data": {
+          "value": {
+            "type": "entity",
+            "id": "",
+            "kind": "character",
+            "name": "",
+            "descriptor": ""
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "3  Narrator"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "board",
+        "type": "nodetool.constant.Storyboard",
+        "data": {
+          "value": {
+            "type": "storyboard",
+            "id": null,
+            "data": null
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 460
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "4  B-roll board (read only)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "script",
+        "type": "nodetool.script.WriteScript",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "format": "voiceover",
+          "pace": "normal",
+          "length_seconds": 60
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true,
+          "title": "5  Write the script in this language"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "voice",
+        "type": "nodetool.script.VoiceScript",
+        "data": {
+          "speed": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "6  Voice the changed lines"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "timeline",
+        "type": "nodetool.script.ScriptToTimeline",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 920,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "7  Script into a cut"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "shots",
+        "type": "nodetool.storyboard.StoryboardShots",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 460
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "8  Stream the b-roll stills"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "stills",
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 620,
+            "y": 460
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "9  Collect the stills"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "broll",
+        "type": "nodetool.timeline.AddClips",
+        "data": {
+          "image_duration_ms": 4000,
+          "name": "Localized explainer"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1200,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "10  Lay the b-roll over it"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "subtitles",
+        "type": "nodetool.script.ScriptToSubtitles",
+        "data": {
+          "format": "srt",
+          "granularity": "line"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1200,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "11  Subtitles"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "render",
+        "type": "nodetool.timeline.RenderTimeline",
+        "data": {
+          "format": "mp4",
+          "include_audio": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1480,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "12  Render"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out_video",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "videos",
+          "description": "One explainer per language."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1740,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true,
+          "title": "13  Videos"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out_srt",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "subtitles",
+          "description": "One SRT per language."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1480,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true,
+          "title": "14  Subtitles"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "brief",
+        "sourceHandle": "output",
+        "target": "script",
+        "targetHandle": "brief"
+      },
+      {
+        "id": "e2",
+        "source": "languages",
+        "sourceHandle": "output",
+        "target": "script",
+        "targetHandle": "language"
+      },
+      {
+        "id": "e3",
+        "source": "narrator",
+        "sourceHandle": "output",
+        "target": "script",
+        "targetHandle": "cast"
+      },
+      {
+        "id": "e4",
+        "source": "script",
+        "sourceHandle": "script",
+        "target": "voice",
+        "targetHandle": "script"
+      },
+      {
+        "id": "e5",
+        "source": "voice",
+        "sourceHandle": "output",
+        "target": "timeline",
+        "targetHandle": "script"
+      },
+      {
+        "id": "e6",
+        "source": "voice",
+        "sourceHandle": "output",
+        "target": "subtitles",
+        "targetHandle": "script"
+      },
+      {
+        "id": "e7",
+        "source": "board",
+        "sourceHandle": "output",
+        "target": "shots",
+        "targetHandle": "storyboard"
+      },
+      {
+        "id": "e8",
+        "source": "shots",
+        "sourceHandle": "keyframe",
+        "target": "stills",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e9",
+        "source": "timeline",
+        "sourceHandle": "output",
+        "target": "broll",
+        "targetHandle": "timeline"
+      },
+      {
+        "id": "e10",
+        "source": "stills",
+        "sourceHandle": "output",
+        "target": "broll",
+        "targetHandle": "clips"
+      },
+      {
+        "id": "e11",
+        "source": "broll",
+        "sourceHandle": "output",
+        "target": "render",
+        "targetHandle": "timeline"
+      },
+      {
+        "id": "e12",
+        "source": "render",
+        "sourceHandle": "output",
+        "target": "out_video",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e13",
+        "source": "subtitles",
+        "sourceHandle": "subtitles",
+        "target": "out_srt",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

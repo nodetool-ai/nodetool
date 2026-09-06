@@ -115,6 +115,12 @@ export { WorkflowNode, WORKFLOW_NODES } from "@nodetool-ai/core-nodes/nodes/work
 export { SubgraphNode, SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
 export { CompareImagesNode, COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
 export {
+  LoadEntityNode,
+  ListEntitiesNode,
+  CreateEntityNode,
+  ENTITY_NODES
+} from "@nodetool-ai/core-nodes/nodes/entity";
+export {
   LoadDocumentFileNode,
   SaveDocumentFileNode,
   ListDocumentsNode,
@@ -264,6 +270,15 @@ export {
   SCRIPT_NODES
 } from "@nodetool-ai/video-nodes/nodes/script";
 export {
+  LoadStoryboardNode,
+  StoryboardShotsNode,
+  RecastStoryboardNode,
+  RenderStillsNode,
+  RenderClipsNode,
+  AssembleTimelineNode,
+  STORYBOARD_NODES
+} from "@nodetool-ai/video-nodes/nodes/storyboard";
+export {
   SummarizerNode,
   EnhancePromptNode,
   CreateThreadNode,
@@ -329,6 +344,12 @@ export {
   MusicLoopNode,
   GAME_NODES as GAME_AUDIO_NODES
 } from "@nodetool-ai/audio-nodes/nodes/game";
+export {
+  LoadGameTemplateNode,
+  SlotPromptNode,
+  ExportGodotProjectNode,
+  GAME_TEMPLATE_NODES
+} from "@nodetool-ai/game-nodes";
 export {
   DocumentLibNode,
   SVGToImageLibNode,
@@ -432,6 +453,7 @@ import { OUTPUT_NODES } from "@nodetool-ai/audio-nodes/nodes/output";
 import { WORKFLOW_NODES } from "@nodetool-ai/core-nodes/nodes/workflow";
 import { SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
 import { COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
+import { ENTITY_NODES } from "@nodetool-ai/core-nodes/nodes/entity";
 import { DOCUMENT_NODES } from "@nodetool-ai/document-nodes/nodes/document";
 import { DATA_NODES } from "@nodetool-ai/data-nodes/nodes/data";
 import { CodeNode } from "@nodetool-ai/code-nodes/nodes/code-node";
@@ -444,17 +466,18 @@ import { SKETCH_NODES } from "@nodetool-ai/image-nodes/nodes/sketch";
 import { VIDEO_NODES } from "@nodetool-ai/video-nodes/nodes/video";
 import { TIMELINE_NODES } from "@nodetool-ai/video-nodes/nodes/timeline";
 import { SCRIPT_NODES } from "@nodetool-ai/video-nodes/nodes/script";
+import { STORYBOARD_NODES } from "@nodetool-ai/video-nodes/nodes/storyboard";
 import { AGENT_NODES } from "@nodetool-ai/llm-nodes/nodes/agents";
 import { GENERATOR_NODES } from "@nodetool-ai/llm-nodes/nodes/generators";
 import { DIRECTOR_NODES } from "@nodetool-ai/llm-nodes/nodes/director";
 import { SHOTS_NODES } from "@nodetool-ai/llm-nodes/nodes/shots";
 import { MODEL3D_NODES } from "@nodetool-ai/video-nodes/nodes/model3d";
 import { BLENDER_NODES } from "@nodetool-ai/blender-nodes";
-import { LIB_APPLE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-apple";
 import { LIB_YTDLP_NODES } from "@nodetool-ai/video-nodes/nodes/lib-video-download";
 import { LIB_GRID_NODES } from "@nodetool-ai/image-nodes/nodes/lib-grid";
 import { GAME_NODES as GAME_IMAGE_NODES } from "@nodetool-ai/image-nodes/nodes/game";
 import { GAME_NODES as GAME_AUDIO_NODES } from "@nodetool-ai/audio-nodes/nodes/game";
+import { GAME_TEMPLATE_NODES } from "@nodetool-ai/game-nodes";
 import { LIB_SVG_NODES } from "@nodetool-ai/text-nodes/nodes/lib-svg";
 import { LIB_IMAGE_ENHANCE_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-enhance";
 import { LIB_IMAGE_FILTER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-filter";
@@ -495,6 +518,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...WORKFLOW_NODES,
   ...SUBGRAPH_NODES,
   ...COMPARE_NODES,
+  ...ENTITY_NODES,
   ...DOCUMENT_NODES,
   ...DATA_NODES,
   CodeNode,
@@ -507,17 +531,18 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...VIDEO_NODES,
   ...TIMELINE_NODES,
   ...SCRIPT_NODES,
+  ...STORYBOARD_NODES,
   ...AGENT_NODES,
   ...GENERATOR_NODES,
   ...DIRECTOR_NODES,
   ...SHOTS_NODES,
   ...MODEL3D_NODES,
   ...BLENDER_NODES,
-  ...(process.platform === "darwin" ? LIB_APPLE_NODES : []),
   ...LIB_YTDLP_NODES,
   ...LIB_GRID_NODES,
   ...GAME_IMAGE_NODES,
   ...GAME_AUDIO_NODES,
+  ...GAME_TEMPLATE_NODES,
   ...LIB_SVG_NODES,
   ...LIB_IMAGE_ENHANCE_NODES,
   ...LIB_IMAGE_FILTER_NODES,

@@ -3,7 +3,7 @@
 // "@nodetool-ai/sandbox-nodetool/flow" — see ../guest-core.ts.
 
 import { callNode, streamNode } from "../guest-core.js";
-import type { ImageRef, VideoRef } from "../../types.js";
+import type { ImageRef, VideoRef, Entity } from "../../types.js";
 
 // Director — nodetool.creative.Director
 export type DirectorInputs = {
@@ -49,7 +49,7 @@ screenplayShots.stream = function (inputs: ScreenplayShotsInputs): AsyncIterable
 // Apply Entities — nodetool.creative.ApplyEntities
 export type ApplyEntitiesInputs = {
   text?: string;
-  entities?: Record<string, unknown>[];
+  entities?: Entity[];
 };
 
 export interface ApplyEntitiesOutputs {

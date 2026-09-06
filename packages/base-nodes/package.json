@@ -25,6 +25,7 @@
     "@nodetool-ai/core-nodes": "*",
     "@nodetool-ai/data-nodes": "*",
     "@nodetool-ai/document-nodes": "*",
+    "@nodetool-ai/game-nodes": "*",
     "@nodetool-ai/image-nodes": "*",
     "@nodetool-ai/integration-nodes": "*",
     "@nodetool-ai/llm-nodes": "*",

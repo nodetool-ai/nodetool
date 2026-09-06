@@ -16,6 +16,8 @@ export {
   type AssetInfoEntry,
   type FolderAssetEntry,
   type ProcessingContextModelInterfaces,
+  type EntityUpsertArgs,
+  type GameTemplateInfo,
   type GenerationRequest,
   type GenerationResult,
   type InjectedTool,
@@ -139,6 +141,10 @@ export {
   type Counter
 } from "./turn-budget.js";
 export { packContext, type PackedContext } from "./context-packer.js";
+export {
+  resolveEntities,
+  type EntityLibraryContext
+} from "./entities.js";
 // Public API re-export — the source of truth lives in @nodetool-ai/protocol
 export {
   isZodSchema,

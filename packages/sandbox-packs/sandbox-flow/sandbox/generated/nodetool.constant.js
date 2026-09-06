@@ -42,6 +42,12 @@ function timeline(inputs) {
 function script(inputs) {
   return callNode("nodetool.constant.Script", inputs);
 }
+function storyboard(inputs) {
+  return callNode("nodetool.constant.Storyboard", inputs);
+}
+function entity(inputs) {
+  return callNode("nodetool.constant.Entity", inputs);
+}
 function json(inputs) {
   return callNode("nodetool.constant.JSON", inputs);
 }
@@ -101,6 +107,7 @@ export {
   dict,
   document,
   embeddingModelConstant,
+  entity,
   float,
   image,
   imageList,
@@ -114,6 +121,7 @@ export {
   script,
   select,
   sketch,
+  storyboard,
   string,
   textList,
   timeline,
