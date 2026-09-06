@@ -553,6 +553,18 @@ describe("KeyPressedStore", () => {
       });
     };
 
+    const pressSpace = () => {
+      document.body.focus();
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      act(() => {
+        setKeysPressed(
+          { " ": true },
+          new KeyboardEvent("keydown", { key: " " })
+        );
+        setKeysPressed({ " ": false });
+      });
+    };
+
     it("fires the most recently registered binding for a shared combo", () => {
       const first = jest.fn();
       const second = jest.fn();
@@ -622,6 +634,56 @@ describe("KeyPressedStore", () => {
 
       disposeBg();
       disposeFg();
+    });
+
+    it("falls through when the topmost binding's target cannot take focus", () => {
+      // The regression: Space is bound by the node editor (open node menu) and
+      // by the timeline (play/pause). Every open workspace tab stays mounted
+      // and inactive ones are `inert`, so the background tab's binding sat on
+      // top of the stack and swallowed Space for the visible editor.
+      const visible = jest.fn();
+      const background = jest.fn();
+
+      const visibleEl = document.createElement("div");
+      document.body.appendChild(visibleEl);
+      const inertLayer = document.createElement("div");
+      inertLayer.setAttribute("inert", "");
+      const backgroundEl = document.createElement("div");
+      inertLayer.appendChild(backgroundEl);
+      document.body.appendChild(inertLayer);
+
+      const disposeVisible = registerComboCallback(" ", {
+        callback: visible,
+        target: () => visibleEl
+      });
+      const disposeBackground = registerComboCallback(" ", {
+        callback: background,
+        target: () => backgroundEl
+      });
+
+      pressSpace();
+
+      expect(visible).toHaveBeenCalledTimes(1);
+      expect(background).not.toHaveBeenCalled();
+
+      disposeVisible();
+      disposeBackground();
+      document.body.removeChild(visibleEl);
+      document.body.removeChild(inertLayer);
+    });
+
+    it("fires nothing when every binding's target is unreachable", () => {
+      const background = jest.fn();
+      const detached = document.createElement("div");
+      const dispose = registerComboCallback(" ", {
+        callback: background,
+        target: () => detached
+      });
+
+      pressSpace();
+
+      expect(background).not.toHaveBeenCalled();
+      dispose();
     });
   });
 

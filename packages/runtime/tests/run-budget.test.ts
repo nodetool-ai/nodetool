@@ -317,10 +317,11 @@ describe("RunBudget", () => {
     // Reporting the deadline for a run that had already run out of money would
     // point whoever reads it at the wrong limit.
     //
-    // The clock is faked because the deadline is measured against `Date.now()`
-    // from the moment the budget is built. On real time a loaded runner can
-    // spend the whole 10ms getting to the first `reserve`, so the deadline
-    // wins the race and the case never tests what it is named for.
+    // On a fake clock, because `reserve` checks the deadline before the cost:
+    // against the wall clock, any pause between construction and the first
+    // reserve longer than the deadline (a loaded CI runner, a GC pause) marks
+    // the run exhausted on "deadline" and the first assertion fails. Time here
+    // moves only when the test moves it.
     vi.useFakeTimers();
     try {
       const budget = createRunBudget({ ...options, capUsd: 0, deadlineMs: 10 });

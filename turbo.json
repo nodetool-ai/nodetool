@@ -41,7 +41,15 @@
       "outputs": ["dist/**", "tsconfig.tsbuildinfo"]
     },
     "test": {
-      "dependsOn": ["^build"],
+      // Also the package's OWN build: 84 test files across 13 node packages
+      // import their package by name (`@nodetool-ai/document-nodes`), which
+      // resolves through `exports` to `dist/`. With only `^build`, a package
+      // that nothing in the selected set depends on is tested without ever
+      // being built, and vitest fails at import with "Failed to resolve entry
+      // for package" — `npm run test:affected` on a clean checkout hit exactly
+      // that for document-nodes. Builds are cached, so this costs one cache
+      // hit per package after the first run.
+      "dependsOn": ["^build", "build"],
       "inputs": [
         "src/**",
         "__tests__/**",
