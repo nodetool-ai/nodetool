@@ -18,6 +18,7 @@ import {
   extFromUri,
   isMediaRef,
   runComfyWorkflow,
+  stripTrailingSlashes,
   UPLOAD_DEFAULTS,
   v2Transport,
   type ComfyPrompt,
@@ -34,7 +35,7 @@ function httpBaseUrl(address: string): string {
   const withScheme = /^https?:\/\//i.test(address)
     ? address
     : `http://${address}`;
-  return withScheme.replace(/\/+$/, "");
+  return stripTrailingSlashes(withScheme);
 }
 
 /**

@@ -209,7 +209,14 @@ function normalizeBaseUrl(baseUrl: string): string {
         `(e.g. "http://127.0.0.1:8189"), got ${JSON.stringify(baseUrl)}`
     );
   }
-  return raw.replace(/\/+$/, "");
+  return stripTrailingSlashes(raw);
+}
+
+/** Drop every trailing `/` without a regex that backtracks on long runs. */
+export function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") end--;
+  return value.slice(0, end);
 }
 
 /** `setTimeout` sleep that rejects as soon as `signal` aborts. */
