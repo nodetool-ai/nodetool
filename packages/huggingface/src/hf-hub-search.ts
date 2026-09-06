@@ -11,6 +11,7 @@ import { listModels } from "@huggingface/hub";
 import type { PipelineType } from "@huggingface/hub";
 
 import { resolveHfToken } from "./hf-auth.js";
+import { tableLookup } from "./lookup.js";
 import {
   GENERIC_HF_TYPES,
   HF_SEARCH_TYPE_CONFIG,
@@ -79,7 +80,7 @@ interface HfHubQueryParams {
  * `HF_SEARCH_TYPE_CONFIG`. For hf.* types without an entry here, we derive
  * params from HF_SEARCH_TYPE_CONFIG at runtime.
  */
-const HF_HUB_QUERY_CONFIG: Record<string, HfHubQueryParams> = {
+const HF_HUB_QUERY_CONFIG = {
   // llama.cpp GGUF types: post-filter by library_name (not tags) to match the
   // HF API's `library=gguf` parameter which filters on the library_name field.
   qwen2: { query: "qwen2", libraryName: "gguf" },
@@ -94,7 +95,17 @@ const HF_HUB_QUERY_CONFIG: Record<string, HfHubQueryParams> = {
   gemma3n: { query: "gemma-3n", libraryName: "gguf" },
   phi3: { query: "phi-3", libraryName: "gguf" },
   phi4: { query: "phi-4", libraryName: "gguf" }
-};
+} satisfies Readonly<Record<string, HfHubQueryParams>>;
+
+/** Pass a pipeline tag to the Hub's `pipeline_tag` filter. */
+function asPipelineTask(tag: string): PipelineType {
+  // SAFETY: `PipelineType` is a snapshot of the tags `@huggingface/tasks` knew
+  // when it was published, but the filter is free text — the Hub answers an
+  // unrecognized tag with an empty result set, not an error. Narrowing here
+  // would reject a tag the Hub added since, and the ones nodetool's own search
+  // config carries that were never pipeline tags ("image-inpainting").
+  return tag as PipelineType;
+}
 
 /** Build HF Hub API query params from HF_SEARCH_TYPE_CONFIG for hf.* types. */
 function deriveFromSearchConfig(modelType: string): HfHubQueryParams | null {
@@ -104,7 +115,7 @@ function deriveFromSearchConfig(modelType: string): HfHubQueryParams | null {
 
   const pipelineTags = cfg["pipeline_tag"];
   if (Array.isArray(pipelineTags) && pipelineTags.length > 0) {
-    out.task = pipelineTags[0]! as PipelineType;
+    out.task = asPipelineTask(pipelineTags[0]!);
   }
 
   const tagFilters = cfg["tag"];
@@ -141,14 +152,14 @@ function buildQueryParams(modelType: string, task?: string): HfHubQueryParams {
         `Model type '${modelType}' requires --task (e.g. 'text-to-image').`
       );
     }
-    return { task: task.replace(/_/g, "-") as PipelineType };
+    return { task: asPipelineTask(task.replace(/_/g, "-")) };
   }
 
   if (task) {
-    return { task: task.replace(/_/g, "-") as PipelineType };
+    return { task: asPipelineTask(task.replace(/_/g, "-")) };
   }
 
-  const direct = HF_HUB_QUERY_CONFIG[normalized];
+  const direct = tableLookup(HF_HUB_QUERY_CONFIG, normalized);
   if (direct) return direct;
 
   const derived = deriveFromSearchConfig(normalized);

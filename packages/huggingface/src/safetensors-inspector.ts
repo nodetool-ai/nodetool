@@ -8,16 +8,31 @@
 import * as fs from "fs";
 import * as path from "path";
 
+import {
+  jsonNumberArray,
+  jsonObject,
+  jsonString,
+  parseJsonObject,
+  type JsonValue
+} from "./json.js";
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
+
+/** Counts and a key sample describing the files a detection was read from. */
+export interface DetectionDetails {
+  num_files?: number;
+  num_tensors?: number;
+  sample_keys?: string[];
+}
 
 export interface DetectionResult {
   family: string;
   component: string;
   confidence: number;
   evidence: string[];
-  details: Record<string, unknown>;
+  details: DetectionDetails;
 }
 
 // ---------------------------------------------------------------------------
@@ -32,10 +47,32 @@ interface Index {
   headerMeta: Map<string, Record<string, TensorMeta>>;
 }
 
+/**
+ * One entry of a safetensors header. Every field is optional: the header is
+ * third-party JSON, and a field that is absent or of the wrong type is dropped
+ * by the decoder rather than trusted.
+ */
 interface TensorMeta {
-  dtype: string;
-  shape: number[];
-  data_offsets: [number, number];
+  dtype?: string;
+  shape?: number[];
+  data_offsets?: [number, number];
+}
+
+/** Decode one header entry, keeping only the fields that hold their contract. */
+function decodeTensorMeta(value: JsonValue): TensorMeta {
+  const entry = jsonObject(value);
+  if (entry === null) return {};
+
+  const meta: TensorMeta = {};
+  const dtype = jsonString(entry.dtype);
+  if (dtype !== null) meta.dtype = dtype;
+  const shape = jsonNumberArray(entry.shape);
+  if (shape !== null) meta.shape = shape;
+  const [start, end] = jsonNumberArray(entry.data_offsets) ?? [];
+  if (start !== undefined && end !== undefined) {
+    meta.data_offsets = [start, end];
+  }
+  return meta;
 }
 
 // ---------------------------------------------------------------------------
@@ -55,14 +92,17 @@ function readSafetensorsHeader(filePath: string) {
 
     const headerBuf = Buffer.alloc(headerLen);
     fs.readSync(fd, headerBuf, 0, headerLen, 8);
-    const parsed = JSON.parse(headerBuf.toString("utf-8"));
+    const parsed = parseJsonObject(headerBuf.toString("utf-8"));
+    if (parsed === null) {
+      throw new Error(`Unreadable safetensors header: ${filePath}`);
+    }
 
     // The header JSON contains tensor entries keyed by name, plus an optional
     // "__metadata__" key. Filter out __metadata__.
     const result: Record<string, TensorMeta> = {};
     for (const [key, value] of Object.entries(parsed)) {
       if (key === "__metadata__") continue;
-      result[key] = value as TensorMeta;
+      result[key] = decodeTensorMeta(value);
     }
     return result;
   } finally {
@@ -97,8 +137,7 @@ function getShape(index: Index, key: string): number[] | null {
   const meta = index.headerMeta.get(filePath);
   if (!meta) return null;
   const entry = meta[key];
-  if (!entry || !entry.shape) return null;
-  return entry.shape;
+  return entry?.shape ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -106,7 +145,7 @@ function getShape(index: Index, key: string): number[] | null {
 // ---------------------------------------------------------------------------
 
 function normalizeInputs(src: string | string[]): string[] {
-  const paths = typeof src === "string" ? [src] : src;
+  const paths = Array.isArray(src) ? src : [src];
   const out: string[] = [];
   for (const p of paths) {
     try {
