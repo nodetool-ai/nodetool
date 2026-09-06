@@ -530,3 +530,132 @@ export function createAnimatedGlb(): Uint8Array {
   );
   return glb;
 }
+
+/**
+ * Two-animation fixture: two quads side by side, each moved by its own named
+ * glTF animation — `MoveA` slides the left quad in x, `MoveB` lifts the right
+ * one in y. With no `animation_name` both play (the D2 default); naming one
+ * leaves the other quad still, so the three renders differ from each other.
+ */
+export function createTwoAnimationGlb(): Uint8Array {
+  const quad = (ox: number, oy: number): number[] => [
+    ox, oy, 0,
+    ox + 1, oy, 0,
+    ox + 1, oy + 1, 0,
+    ox, oy + 1, 0
+  ];
+  const positions = new Float32Array([...quad(-1.5, -0.5), ...quad(0.5, -0.5)]);
+  // Counter-clockwise from +Z, the same winding the other fixtures use.
+  const indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
+  const times = new Float32Array([0, 1]);
+  const slideX = new Float32Array([0, 0, 0, 2, 0, 0]);
+  const liftY = new Float32Array([0, 0, 0, 0, 2, 0]);
+
+  const bin = new Uint8Array(
+    positions.byteLength +
+      indices.byteLength * 2 +
+      times.byteLength +
+      slideX.byteLength +
+      liftY.byteLength
+  );
+  let at = 0;
+  const put = (view: ArrayBufferView): number => {
+    const offset = at;
+    bin.set(
+      new Uint8Array(view.buffer, view.byteOffset, view.byteLength),
+      offset
+    );
+    at += view.byteLength;
+    return offset;
+  };
+  const positionsAt = put(positions);
+  const indicesAAt = put(indices);
+  const indicesBAt = put(indices);
+  const timesAt = put(times);
+  const slideAt = put(slideX);
+  const liftAt = put(liftY);
+
+  const gltf: Record<string, unknown> = {
+    asset: { version: "2.0" },
+    scene: 0,
+    scenes: [{ nodes: [0, 1] }],
+    nodes: [{ mesh: 0 }, { mesh: 1 }],
+    meshes: [
+      { primitives: [{ attributes: { POSITION: 0 }, indices: 2 }] },
+      { primitives: [{ attributes: { POSITION: 1 }, indices: 3 }] }
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        byteOffset: 0,
+        componentType: 5126,
+        count: 4,
+        type: "VEC3",
+        min: [-1.5, -0.5, 0],
+        max: [-0.5, 0.5, 0]
+      },
+      {
+        bufferView: 0,
+        byteOffset: 48,
+        componentType: 5126,
+        count: 4,
+        type: "VEC3",
+        min: [0.5, -0.5, 0],
+        max: [1.5, 0.5, 0]
+      },
+      { bufferView: 1, componentType: 5123, count: 6, type: "SCALAR" },
+      { bufferView: 2, componentType: 5123, count: 6, type: "SCALAR" },
+      {
+        bufferView: 3,
+        componentType: 5126,
+        count: 2,
+        type: "SCALAR",
+        min: [0],
+        max: [1]
+      },
+      { bufferView: 4, componentType: 5126, count: 2, type: "VEC3" },
+      { bufferView: 5, componentType: 5126, count: 2, type: "VEC3" }
+    ],
+    bufferViews: [
+      { buffer: 0, byteOffset: positionsAt, byteLength: positions.byteLength },
+      { buffer: 0, byteOffset: indicesAAt, byteLength: indices.byteLength },
+      { buffer: 0, byteOffset: indicesBAt, byteLength: indices.byteLength },
+      { buffer: 0, byteOffset: timesAt, byteLength: times.byteLength },
+      { buffer: 0, byteOffset: slideAt, byteLength: slideX.byteLength },
+      { buffer: 0, byteOffset: liftAt, byteLength: liftY.byteLength }
+    ],
+    buffers: [{ byteLength: bin.byteLength }],
+    animations: [
+      {
+        name: "MoveA",
+        samplers: [{ input: 4, output: 5, interpolation: "LINEAR" }],
+        channels: [{ sampler: 0, target: { node: 0, path: "translation" } }]
+      },
+      {
+        name: "MoveB",
+        samplers: [{ input: 4, output: 6, interpolation: "LINEAR" }],
+        channels: [{ sampler: 0, target: { node: 1, path: "translation" } }]
+      }
+    ]
+  };
+
+  const jsonBytes = new TextEncoder().encode(JSON.stringify(gltf));
+  const jsonPad = pad4(jsonBytes.byteLength);
+  const binPad = pad4(bin.byteLength);
+  const total =
+    12 + 8 + jsonBytes.byteLength + jsonPad + 8 + bin.byteLength + binPad;
+  const glb = new Uint8Array(total);
+  const view = new DataView(glb.buffer);
+  view.setUint32(0, 0x46546c67, true);
+  view.setUint32(4, 2, true);
+  view.setUint32(8, total, true);
+  view.setUint32(12, jsonBytes.byteLength + jsonPad, true);
+  view.setUint32(16, 0x4e4f534a, true);
+  glb.set(jsonBytes, 20);
+  glb.fill(0x20, 20 + jsonBytes.byteLength, 20 + jsonBytes.byteLength + jsonPad);
+  const binOffset = 20 + jsonBytes.byteLength + jsonPad;
+  view.setUint32(binOffset, bin.byteLength + binPad, true);
+  view.setUint32(binOffset + 4, 0x004e4942, true);
+  glb.set(bin, binOffset + 8);
+  return glb;
+}

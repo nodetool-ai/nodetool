@@ -54,6 +54,7 @@ import {
   setTimeRemapParams,
   setTrackInstrumentParams,
   SET_MODEL3D_STYLE_DESCRIPTION,
+  BAKE_MODEL3D_CLIP_DESCRIPTION,
   shapeStyleParams,
   transposeClipParams,
   targetParam,
@@ -338,6 +339,14 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
       shape: {
         target: targetParam,
         patch: model3dStyleParams
+      },
+      finalize: strictParams
+    },
+
+    ui_timeline_bake_model3d_clip: {
+      description: BAKE_MODEL3D_CLIP_DESCRIPTION,
+      shape: {
+        target: targetParam
       },
       finalize: strictParams
     },

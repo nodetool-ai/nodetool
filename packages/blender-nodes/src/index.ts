@@ -12,6 +12,8 @@ export { RenderImageNode } from "./nodes/render-image.js";
 export { BLENDER_PASSES_NODES } from "./nodes/render-passes.js";
 export { RenderPassesNode } from "./nodes/render-passes.js";
 export { BLENDER_ANIMATION_NODES } from "./nodes/render-animation.js";
+export { BLENDER_BAKE_NODES } from "./nodes/bake-timeline-clip.js";
+export { BakeTimelineClipNode } from "./nodes/bake-timeline-clip.js";
 export { RenderAnimationNode } from "./nodes/render-animation.js";
 export { BLENDER_PREPARE_NODES } from "./nodes/prepare-for-engine.js";
 export { PrepareForEngineNode } from "./nodes/prepare-for-engine.js";
@@ -30,6 +32,7 @@ export {
   blenderResultSchema
 } from "./job.js";
 export type {
+  BakeCameraParams,
   BakeMode,
   BlenderEngine,
   BlenderJob,
@@ -65,6 +68,19 @@ export type {
   BlenderRunResult
 } from "./runner.js";
 export {
+  bakeFrameOutputs,
+  bakeModel3DClipToMp4,
+  bakeRenderAnimationParams,
+  muxPngSequenceToMp4,
+  renderModel3DBakeFrames,
+  MAX_BAKE_FRAMES
+} from "./bake.js";
+export type {
+  Model3DBakeOptions,
+  Model3DBakeRequest,
+  Model3DBakeResult
+} from "./bake.js";
+export {
   resolveBlenderRunner,
   runBlenderJob,
   __setBlenderRunnerForTesting,
@@ -74,6 +90,7 @@ export {
 import { BLENDER_RENDER_NODES } from "./nodes/render-image.js";
 import { BLENDER_PASSES_NODES } from "./nodes/render-passes.js";
 import { BLENDER_ANIMATION_NODES } from "./nodes/render-animation.js";
+import { BLENDER_BAKE_NODES } from "./nodes/bake-timeline-clip.js";
 import { BLENDER_PREPARE_NODES } from "./nodes/prepare-for-engine.js";
 import { BLENDER_EXPORT_NODES } from "./nodes/export-model.js";
 
@@ -81,6 +98,7 @@ export const BLENDER_NODES = [
   ...BLENDER_RENDER_NODES,
   ...BLENDER_PASSES_NODES,
   ...BLENDER_ANIMATION_NODES,
+  ...BLENDER_BAKE_NODES,
   ...BLENDER_PREPARE_NODES,
   ...BLENDER_EXPORT_NODES
 ];

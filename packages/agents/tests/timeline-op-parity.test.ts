@@ -115,7 +115,12 @@ function seedClips(): TimelineClip[] {
       sourceType: "imported",
       status: "generated",
       currentAssetId: "asset_glb",
-      model3dStyle: DEFAULT_MODEL3D_STYLE
+      // Opaque on purpose: a transparent style is refused until the alpha
+      // encode lands (T13), and `bake_model3d_clip` has to be drivable here.
+      model3dStyle: {
+        ...DEFAULT_MODEL3D_STYLE,
+        background: { transparent: false, color: "#101010" }
+      }
     }),
     makeClip({
       id: "clip_g",
@@ -172,7 +177,8 @@ function directContext(state: TimelineOpState): TimelineOpContext {
     track: 0,
     clip: 0,
     anim: 0,
-    marker: 0
+    marker: 0,
+    version: 0
   };
   return {
     newId: (kind) => {
@@ -263,6 +269,11 @@ const FIXTURES: Fixture[] = [
       target: "clip_m",
       patch: { camera: { azimuthDeg: 120 }, lighting: "soft" }
     }
+  },
+  {
+    tool: "bake_model3d_clip",
+    args: { target: "clip_m" },
+    op: { op: "bake_model3d_clip", target: "clip_m" }
   },
   {
     tool: "add_group",

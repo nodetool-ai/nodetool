@@ -15,7 +15,7 @@ import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 
 import type { TimelineClip } from "@nodetool-ai/timeline";
-import { hasTimeRemap } from "@nodetool-ai/timeline";
+import { computeModel3DBakeHash, hasTimeRemap } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -34,6 +34,7 @@ import { createCompositor } from "./gpu/createCompositor";
 import type { CompositeLayer, TimelineCompositor } from "./gpu/types";
 import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
 import {
+  bakedClipSourceTimeSec,
   clipSourceTimeSec,
   computeActiveLayers,
   computeActiveLayersWithHorizon,
@@ -156,6 +157,12 @@ const previewMagicOverlayStyles = css({
 interface ActiveVideoSlot {
   clipId: string;
   assetUrl: string;
+  /**
+   * Set when the slot plays a `model3d` clip's Blender bake: the bake is the
+   * clip's evaluated picture from its own first frame, so the element seeks by
+   * clip-local time rather than by the clip's source mapping (§D6).
+   */
+  baked?: boolean;
 }
 
 type AssetUrlEntry =
@@ -188,14 +195,16 @@ export const PreviewCompositor: React.FC = memo(() => {
   const [sceneTimeMs, setSceneTimeMs] = useState(reactiveTimeMs);
   const currentTimeMs = sceneTimeMs;
 
-  const { tracks, clips, sequenceWidth, sequenceHeight } = useTimelineStore(
-    useShallow((s) => ({
-      tracks: s.tracks,
-      clips: s.clips,
-      sequenceWidth: s.width,
-      sequenceHeight: s.height
-    }))
-  );
+  const { tracks, clips, sequenceWidth, sequenceHeight, sequenceFps } =
+    useTimelineStore(
+      useShallow((s) => ({
+        tracks: s.tracks,
+        clips: s.clips,
+        sequenceWidth: s.width,
+        sequenceHeight: s.height,
+        sequenceFps: s.fps
+      }))
+    );
 
   const patchClip = useTimelineStore((s) => s.patchClip);
   const selectedClipId = useTimelineUIStore((s) =>
@@ -448,6 +457,21 @@ export const PreviewCompositor: React.FC = memo(() => {
     }),
     [sequenceWidth, sequenceHeight]
   );
+  /**
+   * A `model3d` clip whose Blender bake still matches the live document plays
+   * that bake as a video layer; on any mismatch the live 3D layer draws (§D6).
+   * Without this resolver the scene model has nothing to compare against and
+   * every 3D clip stays live.
+   */
+  const model3dBakeHash = useCallback(
+    (clip: TimelineClip): string =>
+      computeModel3DBakeHash(clip, {
+        fps: sequenceFps,
+        width: sequenceWidth,
+        height: sequenceHeight
+      }),
+    [sequenceFps, sequenceWidth, sequenceHeight]
+  );
   // Latest sequence resolution, read by the rAF loop (whose closure only
   // rebinds on [gpuReady, isPlaying]) to resolve animation offsets in px.
   const canvasSizeRef = useRef({
@@ -479,7 +503,8 @@ export const PreviewCompositor: React.FC = memo(() => {
         {
           maxVideoLayers: HOT_POOL_SIZE,
           canvas: sceneCanvas,
-          animationCache: animCacheRef.current
+          animationCache: animCacheRef.current,
+          model3dBakeHash
         }
       );
       let sig = "";
@@ -492,7 +517,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       }
       return { signature: sig, nextChangeMs, layers };
     },
-    [tracks, clips, sceneCanvas]
+    [tracks, clips, sceneCanvas, model3dBakeHash]
   );
 
   const { sceneLayers, precomposites, activeVideoSlots, placeholderLayers } =
@@ -508,7 +533,8 @@ export const PreviewCompositor: React.FC = memo(() => {
         {
           maxVideoLayers: HOT_POOL_SIZE,
           canvas: sceneCanvas,
-          animationCache: animCacheRef.current
+          animationCache: animCacheRef.current,
+          model3dBakeHash
         }
       );
 
@@ -537,7 +563,12 @@ export const PreviewCompositor: React.FC = memo(() => {
           return;
         }
         if (layer.kind === "video") {
-          videoSlots.push({ clipId: layer.clipId, assetUrl: url });
+          const slot: ActiveVideoSlot = {
+            clipId: layer.clipId,
+            assetUrl: url
+          };
+          if (layer.bakeSourceTimeSec !== undefined) slot.baked = true;
+          videoSlots.push(slot);
           return;
         }
         if (
@@ -701,9 +732,12 @@ export const PreviewCompositor: React.FC = memo(() => {
         // Read the live transient playhead instead, and do it here (at
         // call time, not effect-run time) so the loadedmetadata-deferred
         // path also gets a fresh value rather than a stale closure.
-        const targetSec = clip
-          ? clipSourceTimeSec(clip, isPlaying ? getTimeMs() : currentTimeMs)
-          : 0;
+        const atMs = isPlaying ? getTimeMs() : currentTimeMs;
+        const targetSec = !clip
+          ? 0
+          : slot.baked
+            ? bakedClipSourceTimeSec(clip, atMs)
+            : clipSourceTimeSec(clip, atMs);
         // A remapped element never runs on its own clock, so its position is
         // always wrong by more than a playing element's tolerance would allow.
         const toleranceSec = isPlaying && !remapped ? 0.15 : 0.04;
@@ -844,7 +878,8 @@ export const PreviewCompositor: React.FC = memo(() => {
         ? computeActiveLayers(tracks, clips, atMs, {
             maxVideoLayers: HOT_POOL_SIZE,
             canvas: sceneCanvas,
-            animationCache: cache
+            animationCache: cache,
+            model3dBakeHash
           })
         : sceneLayers;
 

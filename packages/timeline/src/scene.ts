@@ -13,6 +13,7 @@
  */
 
 export * from "./render/sceneModel.js";
+export * from "./render/model3dBakeSamples.js";
 export * from "./render/transform.js";
 export * from "./render/transition.js";
 export * from "./render/draw.js";

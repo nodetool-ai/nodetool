@@ -78,6 +78,12 @@ export interface BlenderRunOptions {
   /** Cap on the sum of all outputs. Default MAX_TOTAL_OUTPUT_BYTES (1 GiB). */
   maxTotalOutputBytes?: number;
   /**
+   * Ceiling on declared outputs. Default {@link MAX_OUTPUT_COUNT}. Raised only
+   * by the 3D bake, whose PNG sequence is one declared output per frame; the
+   * byte caps above still bound what that costs.
+   */
+  maxOutputCount?: number;
+  /**
    * Parent directory for the per-run scratch directory. `runBlenderJob`
    * derives this from `context.workspace.scratchDir()` (D6 step 1), so the
    * run stages through the workspace seam instead of a bare temp path. The

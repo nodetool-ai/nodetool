@@ -24,6 +24,13 @@ contract, local and worker runner implementations, `runBlenderJob`, and the
   it confines model-authored argv for ffmpeg and yt-dlp.
 - **Fake blender mode travels in the filename** (`fake-<mode>.mjs`), not env:
   the runner scrubs the child environment by design.
+- **Only the timeline bake needs ffmpeg.** `render_animation`'s video mode
+  writes MP4 with Blender's own FFMPEG writer, so the op path needs no
+  binary on PATH. The sampled mode `src/bake.ts` drives (design §D6) renders
+  a PNG per output frame and muxes them with ffmpeg through the same bounded
+  `runHostBinary` the Blender run uses — because the sequence is also the
+  producer for the alpha bake, and Blender cannot write VP9 with alpha. A
+  machine without ffmpeg fails there, with the binary named.
 - **The runner stages through the workspace seam**: `runBlenderJob` passes
   `context.workspace.scratchDir()` as the scratch parent; the runner owns a
   per-run subdir under it and deletes only that. No `os.tmpdir()` fallback

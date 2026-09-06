@@ -24,6 +24,7 @@ export * from "./dropResolve.js";
 export * from "./transitionAtCut.js";
 export * from "./keyframes.js";
 export * from "./model3d.js";
+export * from "./model3dBake.js";
 export * from "./sourceRate.js";
 export * from "./timeRemap.js";
 export * from "./snap.js";

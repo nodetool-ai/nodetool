@@ -1863,6 +1863,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
+      "packages/agents/tests/capabilities-timeline-bake.test.ts",
     ],
   },
   {
@@ -1873,6 +1874,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
+      "packages/agents/tests/capabilities-timeline-bake.test.ts",
     ],
   },
   {

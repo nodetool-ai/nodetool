@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_MODEL3D_STYLE, makeClip, makeTrack } from "../src/index.js";
+import {
+  computeModel3DBakeHash,
+  DEFAULT_MODEL3D_STYLE,
+  makeClip,
+  makeTrack
+} from "../src/index.js";
 import type {
   ClipModel3DStyle,
   TimelineClip,
@@ -121,6 +126,75 @@ describe("computeActiveLayersWithHorizon — model3d clips", () => {
     });
     const { layers } = computeActiveLayersWithHorizon([t], [clip], 1000);
     expect(layers[0].kind).toBe("model3d");
+  });
+
+  /**
+   * The freshness rule end to end, against the real hash rather than a stub:
+   * an edit that changes the picture puts the live layer back, and an edit
+   * that applies to the baked video the way it applies to any video does not
+   * (D6, dependency hash).
+   */
+  describe("bake freshness under the real hash", () => {
+    const SEQUENCE = { fps: 30, width: 1920, height: 1080 };
+    const t = track({ id: "t1", index: 0 });
+
+    /** A clip whose bake was taken at the picture it currently has. */
+    const freshlyBaked = (overrides: Partial<TimelineClip> = {}): TimelineClip => {
+      const clip = model3dClip({ trackId: "t1", startMs: 1000, ...overrides });
+      clip.model3dStyle = style({
+        ...clip.model3dStyle,
+        bake: {
+          assetId: "mp4-1",
+          dependencyHash: computeModel3DBakeHash(clip, SEQUENCE)
+        }
+      });
+      return clip;
+    };
+
+    const kindOf = (
+      clip: TimelineClip,
+      sequence = SEQUENCE
+    ): string =>
+      computeActiveLayersWithHorizon([t], [clip], 1500, {
+        model3dBakeHash: (c) => computeModel3DBakeHash(c, sequence)
+      }).layers[0].kind;
+
+    /** Re-read a baked clip after an edit, keeping the bake it already had. */
+    const edited = (
+      clip: TimelineClip,
+      patch: Partial<TimelineClip>
+    ): TimelineClip => ({ ...clip, ...patch });
+
+    it("plays the bake while nothing about the picture has changed", () => {
+      expect(kindOf(freshlyBaked())).toBe("video");
+    });
+
+    it("goes live again on a trim, a speed change, a remap, a duration or the fps", () => {
+      const clip = freshlyBaked();
+      expect(kindOf(edited(clip, { inPointMs: 500 }))).toBe("model3d");
+      expect(kindOf(edited(clip, { speedMultiplier: 2 }))).toBe("model3d");
+      expect(
+        kindOf(
+          edited(clip, {
+            timeRemap: {
+              keyframes: [
+                { t: 0, sourceMs: 0 },
+                { t: 1, sourceMs: 2000 }
+              ]
+            }
+          })
+        )
+      ).toBe("model3d");
+      expect(kindOf(edited(clip, { durationMs: 8000 }))).toBe("model3d");
+      expect(kindOf(clip, { ...SEQUENCE, fps: 24 })).toBe("model3d");
+    });
+
+    it("keeps playing the bake when only the layer's placement changed", () => {
+      const clip = freshlyBaked();
+      // Still under the playhead at 1500 ms, just parked elsewhere.
+      expect(kindOf(edited(clip, { startMs: 1200 }))).toBe("video");
+      expect(kindOf(edited(clip, { opacity: 0.3 }))).toBe("video");
+    });
   });
 
   it("drops the 3D clips past the layer cap and names why", () => {

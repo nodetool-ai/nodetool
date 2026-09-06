@@ -650,6 +650,18 @@ export const SET_MODEL3D_STYLE_DESCRIPTION =
   "animate_clip with the `orbit` preset for a camera move over time rather " +
   "than a fixed pose.";
 
+export const BAKE_MODEL3D_CLIP_DESCRIPTION =
+  "Render a 3D clip through Blender and store the result on it, so the clip " +
+  "plays that video instead of the live proxy. The bake is the clip as it " +
+  "stands — its trim, speed, time remap, animation choice and camera move all " +
+  "applied — at the sequence's fps and resolution, and it is played from the " +
+  "clip's own first frame. Any later edit that changes the picture (the " +
+  "style, the model, the trim, the duration, the speed, the remap, a camera " +
+  "animation, or the sequence settings) makes it stale and the live 3D layer " +
+  "draws again until it is baked afresh; validate_timeline reports that as " +
+  "`bake_stale`. A clip with a transparent background is refused: an alpha " +
+  "bake needs a WebM VP9 encode this build does not have.";
+
 /**
  * A caption's look. Every field is optional and an absent one keeps the
  * built-in value, so a partial patch restyles one thing rather than resetting
@@ -1364,6 +1376,7 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   // timeline adds on top.
   "ui_timeline_add_model3d_clip",
   "ui_timeline_set_model3d_style",
+  "ui_timeline_bake_model3d_clip",
   "ui_timeline_add_group",
   "ui_timeline_generate_clip",
   "ui_timeline_split_clip",

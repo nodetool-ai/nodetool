@@ -619,6 +619,10 @@ async function applyOps(
     },
     resolveAsset: (ref) => resolveTimelineAsset(run, ref),
     bakeAnimation: (request) => bakeTimelineAnimation(run, request),
+    bakeModel3DClip: async (request) => {
+      const { bakeModel3DClipOnServer } = await import("./timeline-bake.js");
+      return bakeModel3DClipOnServer(run.context, request);
+    },
     loadComposition: {
       get: async (id) => {
         const { loadComposition } = await import("./compositions.js");

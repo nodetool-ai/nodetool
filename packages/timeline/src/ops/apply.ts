@@ -42,10 +42,15 @@ import {
   DEFAULT_MODEL3D_CLIP_NAME,
   DEFAULT_TEXT_CLIP_DURATION_MS,
   makeClip,
+  makeClipVersion,
   makeTrack,
   mediaTypeForContentType,
   trackTypeForMediaType
 } from "../defaults.js";
+import {
+  computeModel3DBakeHash,
+  TRANSPARENT_BAKE_REFUSAL
+} from "../model3dBake.js";
 import {
   model3dStyleWithPatch,
   shapeStyleWithDefaults,
@@ -762,6 +767,76 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
       clip.model3dStyle = model3dStyleWithPatch(clip.model3dStyle, op.patch);
       scope.touch(clip.id);
       return { ok: true, clip: scope.clipOut(clip) };
+    }
+
+    case "bake_model3d_clip": {
+      const clip = scope.resolveClip(op.target);
+      if (clip.mediaType !== "model3d") {
+        throw new Error(
+          `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip — ` +
+            "only a 3D clip has a camera, lighting and a glTF to render."
+        );
+      }
+      const style = clip.model3dStyle;
+      if (!style) {
+        throw new Error(
+          `Clip "${clip.name}" has no model3dStyle, so nothing names the ` +
+            "camera, lighting or animation a bake would render."
+        );
+      }
+      if (!clip.currentAssetId) {
+        throw new Error(
+          `Clip "${clip.name}" has no glTF asset to bake — a 3D clip draws ` +
+            "its asset the way an image clip draws its image."
+        );
+      }
+      // A transparent bake is a WebM VP9 `yuva420p` encode, which this build
+      // does not ship (T13). Refusing by name beats writing an opaque box over
+      // the footage the clip was made to sit on.
+      if (style.background.transparent) {
+        throw new Error(
+          `Clip "${clip.name}" has a transparent background. ${TRANSPARENT_BAKE_REFUSAL}`
+        );
+      }
+      const sequence = {
+        fps: state.fps,
+        width: state.width,
+        height: state.height
+      };
+      const dependencyHash = computeModel3DBakeHash(clip, sequence);
+      if (!scope.ctx.bakeModel3DClip) {
+        return {
+          ok: true,
+          clip: scope.clipOut(clip),
+          bakeStarted: false,
+          note: "This surface has no Blender renderer, so nothing was baked."
+        };
+      }
+      const baked = await scope.ctx.bakeModel3DClip({
+        clip,
+        sequence,
+        dependencyHash
+      });
+      const now = (scope.ctx.now ?? (() => new Date().toISOString()))();
+      clip.model3dStyle = {
+        ...style,
+        bake: { assetId: baked.assetId, dependencyHash }
+      };
+      // The bake joins the clip's own version history, so an earlier one can
+      // be restored the way an earlier generation can.
+      clip.versions = [
+        ...(clip.versions ?? []),
+        makeClipVersion({
+          id: scope.ctx.newId("version"),
+          createdAt: now,
+          workflowUpdatedAt: now,
+          jobId: baked.jobId ?? "",
+          assetId: baked.assetId,
+          dependencyHash
+        })
+      ];
+      scope.touch(clip.id);
+      return { ok: true, clip: scope.clipOut(clip), bakeStarted: true };
     }
 
     case "add_group": {

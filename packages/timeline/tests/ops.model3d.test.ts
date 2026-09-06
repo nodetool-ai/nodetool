@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import { applyTimelineOp } from "../src/ops/apply.js";
 import type { TimelineOpContext, TimelineOpState } from "../src/ops/types.js";
 import {
+  computeModel3DBakeHash,
   DEFAULT_MODEL3D_CLIP_DURATION_MS,
   DEFAULT_MODEL3D_STYLE,
   makeClip,
@@ -232,6 +233,116 @@ describe("set_model3d_style", () => {
     );
     expect(out.error).toContain("not a 3D clip");
     expect(out.state.clips[0].model3dStyle).toBeUndefined();
+  });
+});
+
+describe("bake_model3d_clip", () => {
+  /** A sequence holding one opaque 3D clip, ready to bake. */
+  function withClip(
+    style: Partial<typeof DEFAULT_MODEL3D_STYLE> = {}
+  ): TimelineOpState {
+    const before = state([overlay()]);
+    before.clips.push(
+      makeClip({
+        id: "clip_m",
+        trackId: "track_o",
+        name: "Model",
+        startMs: 0,
+        durationMs: 2000,
+        mediaType: "model3d",
+        sourceType: "imported",
+        status: "generated",
+        currentAssetId: "asset_glb",
+        model3dStyle: {
+          ...DEFAULT_MODEL3D_STYLE,
+          background: { transparent: false, color: "#101010" },
+          ...style
+        }
+      })
+    );
+    return before;
+  }
+
+  const bake = { op: "bake_model3d_clip" as const, target: "clip_m" };
+
+  it("stores the bake, its hash and a version when a host can render", async () => {
+    const before = withClip();
+    const ctx: TimelineOpContext = {
+      ...context(),
+      now: () => "2026-01-01T00:00:00.000Z",
+      bakeModel3DClip: async (request) => {
+        // The op hands over the hash it checked, so the host cannot store one
+        // taken from a clip that has moved on.
+        expect(request.sequence).toEqual({ fps: 30, width: 1920, height: 1080 });
+        expect(request.dependencyHash).toBe(
+          computeModel3DBakeHash(before.clips[0], request.sequence)
+        );
+        return { assetId: "asset_mp4", jobId: "job_1" };
+      }
+    };
+    const out = await applyTimelineOp(before, bake, ctx);
+
+    expect(out.error).toBeUndefined();
+    expect(out.result.bakeStarted).toBe(true);
+    const clip = out.state.clips[0];
+    expect(clip.model3dStyle?.bake).toEqual({
+      assetId: "asset_mp4",
+      dependencyHash: computeModel3DBakeHash(clip, {
+        fps: 30,
+        width: 1920,
+        height: 1080
+      })
+    });
+    expect(clip.versions).toHaveLength(1);
+    expect(clip.versions?.[0]).toMatchObject({
+      assetId: "asset_mp4",
+      jobId: "job_1",
+      createdAt: "2026-01-01T00:00:00.000Z"
+    });
+    expect(out.changedClipIds).toContain("clip_m");
+  });
+
+  it("says so instead of pretending, on a surface with no renderer", async () => {
+    const out = await applyTimelineOp(withClip(), bake, context());
+    expect(out.error).toBeUndefined();
+    expect(out.result.bakeStarted).toBe(false);
+    expect(out.result.note).toMatch(/no Blender renderer/);
+    expect(out.state.clips[0].model3dStyle?.bake).toBeUndefined();
+  });
+
+  it("refuses a transparent style, naming the encode it needs", async () => {
+    const out = await applyTimelineOp(
+      withClip({ background: { transparent: true } }),
+      bake,
+      { ...context(), bakeModel3DClip: async () => ({ assetId: "nope" }) }
+    );
+    expect(out.error).toMatch(/WebM VP9/);
+    expect(out.state.clips[0].model3dStyle?.bake).toBeUndefined();
+  });
+
+  it("refuses a clip that is not 3D, and one with no model", async () => {
+    const notThreeD = state([overlay()]);
+    notThreeD.clips.push(
+      makeClip({
+        id: "clip_m",
+        trackId: "track_o",
+        name: "Title",
+        startMs: 0,
+        durationMs: 1000,
+        mediaType: "text",
+        sourceType: "imported",
+        status: "generated"
+      })
+    );
+    expect((await applyTimelineOp(notThreeD, bake, context())).error).toMatch(
+      /not a 3D clip/
+    );
+
+    const noModel = withClip();
+    noModel.clips[0].currentAssetId = undefined;
+    expect((await applyTimelineOp(noModel, bake, context())).error).toMatch(
+      /no glTF asset/
+    );
   });
 });
 

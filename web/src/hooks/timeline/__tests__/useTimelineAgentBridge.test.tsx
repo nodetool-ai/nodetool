@@ -205,13 +205,18 @@ jest.mock("../../../components/timeline/Tracks/clipThumbnails", () => ({
       }))
   )
 }));
-jest.mock("../../../stores/AssetStore", () => ({
-  useAssetStore: {
-    getState: () => ({
-      get: async () => ({ id: "asset-1", get_url: "https://example.test/a.mp4" })
-    })
-  }
-}));
+jest.mock("../../../stores/AssetStore", () => {
+  const getState = () => ({
+    get: async () => ({ id: "asset-1", get_url: "https://example.test/a.mp4" }),
+    createAsset: jest.fn()
+  });
+  // The bridge reads the store both ways: `getState()` for a one-off lookup,
+  // and as a selector hook from `useModel3DBake`.
+  const useAssetStore = <T,>(selector?: (s: unknown) => T): unknown =>
+    selector ? selector(getState()) : getState();
+  useAssetStore.getState = getState;
+  return { useAssetStore };
+});
 
 describe("useTimelineAgentBridge getClipFrames", () => {
   /** A clip whose media starts a long way into the cut, as an assembly lays it. */

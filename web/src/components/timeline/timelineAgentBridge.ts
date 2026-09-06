@@ -437,6 +437,11 @@ export interface TimelineAgentHandler {
     target: string,
     patch: ClipModel3DStylePatch
   ) => TimelineClipNode;
+  /**
+   * Render a 3D clip through Blender and store the bake on it (design §D6).
+   * Resolves once the video is an asset and the clip carries it.
+   */
+  bakeModel3DClip: (target: string) => Promise<TimelineClipNode>;
   /** Split a clip at the given time (defaults to the playhead). */
   splitClip: (target: string, atMs?: number) => TimelineClipNode[];
   trimClip: (target: string, patch: TimelineTrimPatch) => TimelineClipNode;

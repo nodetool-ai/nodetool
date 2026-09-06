@@ -76,6 +76,7 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   addShapeClip: jest.fn(),
   addModel3DClip: jest.fn(),
   setModel3DStyle: jest.fn(),
+  bakeModel3DClip: jest.fn(),
   generateClip: jest.fn(),
   splitClip: jest.fn(),
   trimClip: jest.fn(),

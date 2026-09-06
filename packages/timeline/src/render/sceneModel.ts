@@ -218,6 +218,19 @@ export function clipSourceTimeSec(
 }
 
 /**
+ * The time a **baked** `model3d` clip's video is seeked to (design §D6, time
+ * origin). A bake is the clip's evaluated picture rendered from its own first
+ * frame, so it plays from 0 however the clip is trimmed, sped up or reversed:
+ * the seek is clip-local time and nothing else.
+ */
+export function bakedClipSourceTimeSec(
+  clip: TimelineClip,
+  currentTimeMs: number
+): number {
+  return Math.max(0, (currentTimeMs - clip.startMs) / 1000);
+}
+
+/**
  * Resolve a clip's caption to its on-screen word state at `currentTimeMs`.
  * Returns `undefined` for clips that carry no caption. Word timings are
  * clip-local (relative to `clip.startMs`), so moving or splitting the clip
@@ -910,7 +923,7 @@ export function computeActiveLayersWithHorizon(
             kind: "video",
             ...common3d,
             assetId: bake.assetId,
-            bakeSourceTimeSec: (currentTimeMs - clip.startMs) / 1000
+            bakeSourceTimeSec: bakedClipSourceTimeSec(clip, currentTimeMs)
           });
           continue;
         }

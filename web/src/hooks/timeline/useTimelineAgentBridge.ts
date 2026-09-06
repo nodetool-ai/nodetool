@@ -66,6 +66,7 @@ import {
   isCompatibleWithTrack
 } from "../../components/timeline/dnd/assetToClipAdapter";
 import { getAssetUrl } from "../../utils/assetHelpers";
+import { useModel3DBake } from "./useModel3DBake";
 import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
 import {
   getTimelineAgentHandler,
@@ -261,6 +262,7 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
   const ui = useTimelineUIStoreApi();
   const playback = useTimelinePlaybackStoreApi();
   const { start: startDirectGen } = useTimelineDirectGenJob();
+  const { bakeClip } = useModel3DBake();
 
   const handler = useMemo<TimelineAgentHandler>(() => {
     const trackMap = (): Map<string, TimelineTrack> =>
@@ -764,6 +766,15 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         doc.getState().patchClip(clip.id, {
           model3dStyle: model3dStyleWithPatch(clip.model3dStyle, patch)
         });
+        return clipNode(reReadClip(clip.id));
+      },
+
+      async bakeModel3DClip(target) {
+        const clip = requireClip(target);
+        // Every refusal a bake has — not a 3D clip, no style, no asset, a
+        // transparent background — is `bakeClip`'s, so it is the one place
+        // the browser and the server can be compared against each other.
+        await bakeClip(clip.id);
         return clipNode(reReadClip(clip.id));
       },
 
@@ -1328,7 +1339,7 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       }
     };
     return handlerImpl;
-  }, [doc, ui, playback, startDirectGen]);
+  }, [doc, ui, playback, startDirectGen, bakeClip]);
 
   useEffect(() => {
     if (!sequenceId) return;

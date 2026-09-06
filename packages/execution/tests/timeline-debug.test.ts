@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { ClipModel3DStyle } from "@nodetool-ai/timeline";
-import { computeModel3DBakeHash } from "@nodetool-ai/timeline/dependencyHash.js";
+import type { ClipModel3DStyle, TimelineClip } from "@nodetool-ai/timeline";
+import { computeModel3DBakeHash } from "@nodetool-ai/timeline";
 
 import {
   buildTimelineDebugReport,
@@ -852,9 +852,14 @@ describe("validateTimelineSequence — model3d clips", () => {
   it("accepts a bake whose hash matches the style", () => {
     // The hash covers the style without its own `bake`, so a fresh one is the
     // hash of the style the clip already carries.
-    const dependencyHash = computeModel3DBakeHash({
-      currentAssetId: "asset-glb",
-      model3dStyle: model3dStyle()
+    // The hash also reads the clip's trim, duration, speed, remap and the
+    // sequence's own settings, so it is taken from the very clip validated
+    // below and against the validator's own defaults.
+    const baked = model3dClip() as unknown as TimelineClip;
+    const dependencyHash = computeModel3DBakeHash(baked, {
+      fps: 30,
+      width: 1920,
+      height: 1080
     });
     const result = validateTimelineSequence(
       doc({

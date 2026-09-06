@@ -22,6 +22,7 @@
 
 import { createCanvas, loadImage, type Canvas } from "@napi-rs/canvas";
 import {
+  computeModel3DBakeHash,
   resolveModel3DCamera,
   type ClipModel3DCamera,
   type TimelineClip,
@@ -233,17 +234,18 @@ function frameSize(
 }
 
 /**
- * Decode one video frame at the source time the clip is showing at `timeMs`.
+ * Decode one video frame at an already-resolved source time.
  *
- * `clipSourceTimeSec` is the same mapping the preview seeks with, so trims,
- * speed changes and offsets land on the frame the editor shows.
+ * The caller resolves it, because which mapping applies is the layer's to
+ * decide: an ordinary video clip seeks by `clipSourceTimeSec`, and a baked 3D
+ * clip by `bakeSourceTimeSec`, whose origin is the clip's own first frame
+ * however the clip is trimmed (design §D6, time origin).
  */
 async function decodeVideoFrameAt(
   bytes: Uint8Array,
-  clip: TimelineClip,
-  timeMs: number
+  sourceTimeSec: number
 ): Promise<{ canvas: Canvas; width: number; height: number } | null> {
-  const sourceSec = Math.max(0, clipSourceTimeSec(clip, timeMs));
+  const sourceSec = Math.max(0, sourceTimeSec);
   let out: { canvas: Canvas; width: number; height: number } | null = null;
   await forEachVideoFrame(bytes, [sourceSec], (frame) => {
     const canvas = createCanvas(frame.width, frame.height);
@@ -316,6 +318,22 @@ export async function renderTimelineFrames(
 
   const rasterizer = new PreviewRasterizer(width, height);
   const animCache = createAnimationCompileCache();
+  /**
+   * The scene options every resolve in this pass shares. `model3dBakeHash` is
+   * what lets a `model3d` clip play its Blender bake as a video layer: without
+   * a resolver the scene model has no live hash to compare against and always
+   * draws the live 3D layer (design §D6).
+   */
+  const sceneOptions = {
+    canvas: animationCanvas,
+    animationCache: animCache,
+    model3dBakeHash: (clip: TimelineClip): string =>
+      computeModel3DBakeHash(clip, {
+        fps: Math.max(1, sequence.fps || 30),
+        width: animationCanvas.width,
+        height: animationCanvas.height
+      })
+  };
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d") as unknown as CompositeContext2D<
     PreviewSource
@@ -476,7 +494,7 @@ export async function renderTimelineFrames(
       timeMs,
       // Group transforms are authored against the sequence resolution, the
       // same space the animations are sampled in.
-      { canvas: animationCanvas, animationCache: animCache }
+      sceneOptions
     );
     const drawPrecomposites: Canvas2DPrecomposite[] = precomposites.map(
       (group) => ({
@@ -610,11 +628,13 @@ export async function renderTimelineFrames(
       }
 
       if (layer.kind === "video") {
-        const frame = await decodeVideoFrameAt(bytes, layer.clip, timeMs);
+        const sourceTimeSec =
+          layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, timeMs);
+        const frame = await decodeVideoFrameAt(bytes, sourceTimeSec);
         if (!frame) {
           return {
             skipped: `no decodable frame at ${Math.round(
-              clipSourceTimeSec(layer.clip, timeMs) * 1000
+              sourceTimeSec * 1000
             )}ms into the source`
           };
         }
@@ -807,7 +827,7 @@ export async function renderTimelineFrames(
       sequence.tracks,
       sequence.clips,
       timeMs,
-      { canvas: animationCanvas, animationCache: animCache }
+      sceneOptions
     );
     for (const layer of collectModel3DLayers(layers)) {
       const style = layer.model3dStyle;
@@ -838,7 +858,7 @@ export async function renderTimelineFrames(
       sequence.tracks,
       sequence.clips,
       timeMs,
-      { canvas: animationCanvas, animationCache: animCache }
+      sceneOptions
     );
     return shutterWindowIsStatic(
       layers,

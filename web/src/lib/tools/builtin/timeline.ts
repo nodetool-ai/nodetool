@@ -293,6 +293,20 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  ...shared("ui_timeline_bake_model3d_clip"),
+  async execute({ timeline_id, target }) {
+    const clip =
+      await getTimelineAgentHandler(timeline_id).bakeModel3DClip(target);
+    return {
+      ok: true,
+      clip,
+      bakeStarted: true,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
   ...shared("ui_timeline_generate_clip"),
   async execute({ timeline_id, ...args }) {
     const result =

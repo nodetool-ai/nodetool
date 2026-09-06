@@ -107,6 +107,19 @@ export interface SetModel3DStyleOp {
   patch: ClipModel3DStylePatch;
 }
 
+/**
+ * Render a 3D clip through Blender and store the result on it (design §D6).
+ *
+ * The bake is the clip's evaluated picture as an ordinary video: while its
+ * hash matches the live document the clip plays it, and any edit that changes
+ * the picture makes it stale and puts the live 3D layer back. A host with no
+ * renderer reports that rather than pretending a render started.
+ */
+export interface BakeModel3DClipOp {
+  op: "bake_model3d_clip";
+  target: string;
+}
+
 export type AddGroupOp = { op: "add_group" } & AddGroupParams;
 
 export interface GenerateClipOp {
@@ -313,6 +326,7 @@ export type TimelineOp =
   | AddShapeClipOp
   | AddModel3DClipOp
   | SetModel3DStyleOp
+  | BakeModel3DClipOp
   | AddGroupOp
   | GenerateClipOp
   | SplitClipOp
@@ -355,6 +369,7 @@ export const TIMELINE_OP_NAMES = [
   "add_shape_clip",
   "add_model3d_clip",
   "set_model3d_style",
+  "bake_model3d_clip",
   "add_group",
   "generate_clip",
   "split_clip",

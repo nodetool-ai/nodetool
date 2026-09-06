@@ -27,13 +27,14 @@ import {
   parseEasing,
   resolveFontFamily,
   resolveCustomMask,
+  computeModel3DBakeHash,
   sourceRate,
   DEFAULT_TEMPO,
   resolveTempo,
   validateNotes,
   visibleNotes
 } from "@nodetool-ai/timeline";
-import { computeModel3DBakeHash } from "@nodetool-ai/timeline/dependencyHash.js";
+import type { Model3DBakeSequence } from "@nodetool-ai/timeline";
 import {
   MASK_KINDS,
   MAX_VIDEO_LAYERS,
@@ -243,7 +244,8 @@ function checkDuplicateIds(doc: TimelineDocument): TimelineDebugIssue[] {
 function checkClip(
   clip: TimelineClip,
   trackIds: ReadonlySet<string>,
-  fps: number
+  fps: number,
+  canvas: { width: number; height: number }
 ): TimelineDebugIssue[] {
   const issues: TimelineDebugIssue[] = [];
   const at = { clipId: clip.id, trackId: clip.trackId };
@@ -465,7 +467,7 @@ function checkClip(
   issues.push(...unknownEffectIssues(clip));
   const shapeKind = unknownShapeKindIssue(clip);
   if (shapeKind) issues.push(shapeKind);
-  issues.push(...model3dIssues(clip));
+  issues.push(...model3dIssues(clip, { fps, ...canvas }));
   issues.push(...fontPortabilityIssues(clip));
 
   const frameMs = 1000 / fps;
@@ -580,7 +582,10 @@ function unknownShapeKindIssue(clip: TimelineClip): TimelineDebugIssue | null {
  * layer, so what plays is the intended picture at proxy quality rather than a
  * render of a style the clip no longer has.
  */
-function model3dIssues(clip: TimelineClip): TimelineDebugIssue[] {
+function model3dIssues(
+  clip: TimelineClip,
+  sequence: Model3DBakeSequence
+): TimelineDebugIssue[] {
   if (clip.mediaType !== "model3d") return [];
   const issues: TimelineDebugIssue[] = [];
   const at = { clipId: clip.id, trackId: clip.trackId };
@@ -606,7 +611,7 @@ function model3dIssues(clip: TimelineClip): TimelineDebugIssue[] {
   }
 
   const bake = clip.model3dStyle?.bake;
-  if (bake && bake.dependencyHash !== computeModel3DBakeHash(clip)) {
+  if (bake && bake.dependencyHash !== computeModel3DBakeHash(clip, sequence)) {
     issues.push({
       severity: "warning",
       code: "bake_stale",
@@ -1162,7 +1167,7 @@ export function validateTimelineSequence(
   const issues: TimelineDebugIssue[] = [
     ...checkFieldStripping(raw, doc),
     ...checkDuplicateIds(doc),
-    ...doc.clips.flatMap((clip) => checkClip(clip, trackIds, fps)),
+    ...doc.clips.flatMap((clip) => checkClip(clip, trackIds, fps, canvas)),
     ...doc.clips.flatMap((clip) => checkClipMotion(clip, canvas)),
     ...checkLegibility(doc, canvas.height),
     ...checkParents(doc),

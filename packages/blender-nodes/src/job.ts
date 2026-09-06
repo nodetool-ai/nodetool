@@ -62,6 +62,18 @@ export interface RenderPassesParams extends CameraParams {
   depth_format: DepthFormat;
 }
 
+/**
+ * One frame's camera in a sampled render (design §D6). `CameraParams` plus the
+ * two things a timeline clip's camera carries that the DTO did not: which glTF
+ * camera `scene` mode renders through, and where the orbit looks.
+ */
+export interface BakeCameraParams extends CameraParams {
+  /** `scene` mode: the glTF camera by name; the first one when absent. */
+  scene_camera_name?: string;
+  /** Look-at offset from the bounding-sphere center, in world units. */
+  target_offset?: [number, number, number];
+}
+
 export interface RenderAnimationParams extends CameraParams {
   width: number;
   height: number;
@@ -71,6 +83,21 @@ export interface RenderAnimationParams extends CameraParams {
   fps: number;
   /** Orbit sweep in degrees across the range when glTF has no animation. */
   orbit_degrees: number;
+  /**
+   * Sampled mode (§D6): one model time in seconds per output frame. Present
+   * turns the op into a still-per-entry render — the frame range, the orbit
+   * sweep and the video writer are all unused — and it writes
+   * `frame_%06d.png` for the caller to mux. Absent leaves the op exactly as
+   * it was, which is what keeps `RenderAnimation` unchanged.
+   */
+  frame_times?: number[];
+  /**
+   * Which glTF animation plays in sampled mode. Absent leaves every action
+   * playing, which is the default a `model3d` clip carries.
+   */
+  animation_name?: string;
+  /** The camera of each `frame_times` entry. Must be the same length. */
+  cameras?: BakeCameraParams[];
 }
 
 export interface PrepareForEngineParams {
@@ -132,7 +159,15 @@ export const blenderResultSchema = z.discriminatedUnion("ok", [
        * camera's name, or the orbit camera the op created. Lets the
        * camera-mode test assert the selection without reading pixels.
        */
-      camera: z.string().optional()
+      camera: z.string().optional(),
+      /**
+       * Sampled `render_animation` only: the world-space location the camera
+       * held for each rendered frame, in order. What a camera-move test reads
+       * instead of comparing pixels.
+       */
+      frame_camera_locations: z
+        .array(z.tuple([z.number(), z.number(), z.number()]))
+        .optional()
     })
   }),
   z.object({

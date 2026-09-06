@@ -26,6 +26,7 @@ import type {
   Quality,
   VideoCodec
 } from "mediabunny";
+import { computeModel3DBakeHash } from "@nodetool-ai/timeline";
 import type {
   TimelineClip,
   TimelineTempo,
@@ -414,6 +415,17 @@ export async function renderTimeline(
       measureText: textMeasurer()
     };
     const animCache = createAnimationCompileCache();
+    /**
+     * A `model3d` clip plays its Blender bake as a video layer while the bake
+     * still matches the live document, so the export resolves the same hash
+     * the inspector and the validator do (design §D6).
+     */
+    const model3dBakeHash = (clip: TimelineClip): string =>
+      computeModel3DBakeHash(clip, {
+        fps,
+        width: opts.width,
+        height: opts.height
+      });
 
     const frameDurationSec = 1 / fps;
     const frameMs = 1000 / fps;
@@ -433,7 +445,8 @@ export async function renderTimeline(
         {
           // Group transforms live in the same space the animations sample in.
           canvas: animCanvas,
-          animationCache: animCache
+          animationCache: animCache,
+          model3dBakeHash
         }
       );
 
@@ -494,10 +507,13 @@ export async function renderTimeline(
         if (!url) return null;
 
         if (layer.kind === "video") {
+          // A baked 3D clip's video starts at its own first frame however the
+          // clip is trimmed or retimed, so the scene model hands the seek time
+          // down rather than letting the source mapping recompute it (§D6).
           const el = await videoPool.seek(
             layer.clipId,
             url,
-            clipSourceTimeSec(layer.clip, timeMs),
+            layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, timeMs),
             signal
           );
           return el.videoWidth === 0 ? null : { source: el };

@@ -34,7 +34,10 @@ import {
   CUSTOM_ANIMATION_PRESET_ID,
   normalizeCustomCurves,
   resolveCustomMask,
+  computeModel3DBakeHash,
+  TRANSPARENT_BAKE_REFUSAL,
   makeClip,
+  makeClipVersion,
   makeTrack,
   DEFAULT_TEXT_CLIP_DURATION_MS,
   DEFAULT_MEDIA_CLIP_DURATION_MS,
@@ -97,6 +100,10 @@ import {
   type QuantizeTarget,
   type TimelineTempo
 } from "@nodetool-ai/timeline";
+import type {
+  TimelineOpBakeModel3DRequest,
+  TimelineOpBakeModel3DResult
+} from "@nodetool-ai/timeline/ops";
 import {
   computeActiveLayers,
   countTextStaggerUnits,
@@ -229,6 +236,11 @@ export type TimelineAnimationBaker = (
   request: TimelineAnimationBakeRequest
 ) => Promise<TimelineAnimationBakeResult>;
 
+/** Renders one 3D clip through Blender and stores the video (design §D6). */
+export type TimelineModel3DBaker = (
+  request: TimelineOpBakeModel3DRequest
+) => Promise<TimelineOpBakeModel3DResult>;
+
 /** Case-supplied starting point for a run. */
 export interface TimelineBridgeInitialState {
   fps?: number;
@@ -254,6 +266,12 @@ export interface TimelineBridgeInitialState {
    * body nothing ever ran.
    */
   bakeAnimation?: TimelineAnimationBaker;
+  /**
+   * Render `ui_timeline_bake_model3d_clip` through Blender and store the
+   * video. Without one the op reports that this surface has no renderer,
+   * rather than stamping a bake nothing produced.
+   */
+  bakeModel3DClip?: TimelineModel3DBaker;
   /**
    * Resolve a composition for `ui_timeline_insert_composition`, and report the
    * ids this host offers so a bad one can name the alternatives. Without one
@@ -665,6 +683,7 @@ export function createTimelineToolBridge(
   const seed = initial.sequence;
   const resolveAsset = initial.resolveAsset;
   const bakeAnimation = initial.bakeAnimation;
+  const bakeModel3DClip = initial.bakeModel3DClip;
   const loadComposition = initial.loadComposition;
   const sequenceId = initial.sequenceId ?? "seq_eval";
   const fps = seed?.fps ?? initial.fps ?? 30;
@@ -680,6 +699,7 @@ export function createTimelineToolBridge(
   let clipSeq = 0;
   let animSeq = 0;
   let markerSeq = 0;
+  let versionSeq = 0;
   const tracks: TimelineTrack[] = [];
   let clips: TimelineClip[] = [];
   let markers: TimelineMarker[] = [];
@@ -704,6 +724,7 @@ export function createTimelineToolBridge(
   const nextClipId = () => mint("clip", () => ++clipSeq);
   const nextAnimId = () => mint("anim", () => ++animSeq);
   const nextMarkerId = () => mint("marker", () => ++markerSeq);
+  const nextVersionId = () => mint("version", () => ++versionSeq);
 
   function addTrackInternal(
     type: TimelineTrack["type"],
@@ -1491,6 +1512,64 @@ export function createTimelineToolBridge(
         patch as ClipModel3DStylePatch
       );
       return { ok: true, clip: serializeClip(clip) };
+    }),
+
+    sharedTool("ui_timeline_bake_model3d_clip", async ({ target }) => {
+      const clip = resolveClip(target as string);
+      if (clip.mediaType !== "model3d") {
+        throw new Error(
+          `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip — ` +
+            "only a 3D clip has a camera, lighting and a glTF to render."
+        );
+      }
+      const style = clip.model3dStyle;
+      if (!style) {
+        throw new Error(
+          `Clip "${clip.name}" has no model3dStyle, so nothing names the ` +
+            "camera, lighting or animation a bake would render."
+        );
+      }
+      if (!clip.currentAssetId) {
+        throw new Error(
+          `Clip "${clip.name}" has no glTF asset to bake — a 3D clip draws ` +
+            "its asset the way an image clip draws its image."
+        );
+      }
+      // T13 owns the alpha encode; until it lands a transparent style is
+      // refused by name rather than baked into an opaque box (design §D6).
+      if (style.background.transparent) {
+        throw new Error(
+          `Clip "${clip.name}" has a transparent background. ${TRANSPARENT_BAKE_REFUSAL}`
+        );
+      }
+      const sequence = { fps, width, height };
+      const dependencyHash = computeModel3DBakeHash(clip, sequence);
+      if (!bakeModel3DClip) {
+        return {
+          ok: true,
+          clip: serializeClip(clip),
+          bakeStarted: false,
+          note: "This surface has no Blender renderer, so nothing was baked."
+        };
+      }
+      const baked = await bakeModel3DClip({ clip, sequence, dependencyHash });
+      clip.model3dStyle = {
+        ...style,
+        bake: { assetId: baked.assetId, dependencyHash }
+      };
+      const now = new Date().toISOString();
+      clip.versions = [
+        ...(clip.versions ?? []),
+        makeClipVersion({
+          id: nextVersionId(),
+          createdAt: now,
+          workflowUpdatedAt: now,
+          jobId: baked.jobId ?? "",
+          assetId: baked.assetId,
+          dependencyHash
+        })
+      ];
+      return { ok: true, clip: serializeClip(clip), bakeStarted: true };
     }),
 
     sharedTool(

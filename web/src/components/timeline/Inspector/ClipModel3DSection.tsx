@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useCallback, useRef } from "react";
+import { useShallow } from "zustand/react/shallow";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import type {
   ClipModel3DStyle,
@@ -20,17 +21,24 @@ import type {
   Model3DCameraMode,
   TimelineClip
 } from "@nodetool-ai/timeline";
-import { model3dStyleWithPatch } from "@nodetool-ai/timeline";
+import {
+  computeModel3DBakeHash,
+  model3dStyleWithPatch,
+  TRANSPARENT_BAKE_REFUSAL
+} from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
   Button,
   Caption,
+  Chip,
   CollapsibleSection,
   FlexColumn,
+  LoadingSpinner,
   SPACING,
   TextInput
 } from "../../ui_primitives";
+import { useModel3DBake } from "../../../hooks/timeline/useModel3DBake";
 import { usePersistedFold } from "./usePersistedFold";
 import {
   InspectorDivider,
@@ -76,9 +84,18 @@ const BACKGROUND_COLOR_INPUT_PROPS = { "aria-label": "Background color" };
  */
 const DEFAULT_BACKGROUND_COLOR = "#ffffff";
 
-/** Why the Bake row is inert. T11 turns it into a Blender render. */
-const BAKE_DISABLED_REASON =
-  "Baking is not available yet: it renders this clip in Blender, and that job is not wired up.";
+/**
+ * The button's label while a bake runs. It cancels while it runs, so the
+ * label says what pressing it does as well as how far along the render is —
+ * the frame counter arrives with the op's first rendered still.
+ */
+function bakeProgressLabel(
+  progress: { done: number; total: number } | null
+): string {
+  if (!progress || progress.total <= 0) return "Cancel bake";
+  return `Cancel (${progress.done}/${progress.total})`;
+}
+
 
 export interface ClipModel3DSectionProps {
   clip: TimelineClip;
@@ -96,6 +113,25 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
     clipIdRef.current = clip.id;
 
     const names = useModel3DSessionNames(clip, model3dStyle);
+
+    const bake = useModel3DBake();
+    const baking = bake.state.clipId === clip.id;
+    const sequence = useTimelineStore(
+      useShallow((s) => ({ fps: s.fps, width: s.width, height: s.height }))
+    );
+    /**
+     * The same comparison `validate_timeline` reports as `bake_stale`: a bake
+     * whose hash no longer names this clip's picture is not played, so the row
+     * says why the canvas is showing the live proxy again.
+     */
+    const stale =
+      model3dStyle.bake !== undefined &&
+      computeModel3DBakeHash(clip, sequence) !==
+        model3dStyle.bake.dependencyHash;
+    const handleBake = useCallback(() => {
+      // The hook already holds the failure on its own state for the row below.
+      void bake.bakeClip(clipIdRef.current).catch(() => {});
+    }, [bake]);
 
     const patchStyle = useCallback(
       (patch: ClipModel3DStylePatch) => {
@@ -324,16 +360,40 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
             )}
 
             <InspectorRow label="Bake">
-              <Button size="small" variant="outlined" disabled>
-                Bake with Blender
-              </Button>
+              <FlexColumn gap={SPACING.xs}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={!baking && background.transparent}
+                  onClick={baking ? bake.cancel : handleBake}
+                  startIcon={
+                    baking ? <LoadingSpinner inline size={14} /> : undefined
+                  }
+                >
+                  {baking
+                    ? bakeProgressLabel(bake.state.progress)
+                    : "Bake with Blender"}
+                </Button>
+                {stale && (
+                  <Chip
+                    compact
+                    color="warning"
+                    label="Stale — the clip changed since this bake"
+                  />
+                )}
+              </FlexColumn>
             </InspectorRow>
             <Caption color="muted">
               A bake is the intended look: Blender renders this clip and the
               clip plays that video. What you see on the canvas now is the live
               proxy, and its lighting is close, not identical.
             </Caption>
-            <Caption color="muted">{BAKE_DISABLED_REASON}</Caption>
+            {background.transparent && (
+              <Caption color="muted">{TRANSPARENT_BAKE_REFUSAL}</Caption>
+            )}
+            {bake.state.error && (
+              <Caption color="error">{bake.state.error}</Caption>
+            )}
           </FlexColumn>
         </CollapsibleSection>
         <InspectorDivider />
