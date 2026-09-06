@@ -24,6 +24,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import type {
   BakeCameraParams,
+  BlenderJob,
   BlenderResultStats,
   RenderAnimationParams
 } from "./job.js";
@@ -111,8 +112,8 @@ function frameName(index: number): string {
  * The `frame_*` outputs a sampled job declares: one per entry, in play order.
  * The op writes the file each name carries and reports the names back.
  */
-export function bakeFrameOutputs(count: number): Record<string, string> {
-  const outputs: Record<string, string> = {};
+export function bakeFrameOutputs(count: number): BlenderJob["outputs"] {
+  const outputs: BlenderJob["outputs"] = {};
   for (let i = 0; i < count; i += 1) {
     outputs[frameName(i)] = `${frameName(i)}.png`;
   }

@@ -23,7 +23,7 @@ import { bakeModel3DClipToVideo, type Model3DBakeRequest } from "../bake.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import type { ModelBytesRefLike } from "@nodetool-ai/nodes-utils";
 import type { BakeCameraParams } from "../job.js";
-import { rethrowBlenderError } from "./blender-error.js";
+import { runBlenderNodeStep } from "./blender-error.js";
 import { blenderProgressHandler } from "./progress.js";
 
 const NODE_NAME = "nodetool.blender.BakeTimelineClip";
@@ -106,6 +106,10 @@ export class BakeTimelineClipNode extends BaseNode {
     }
     // `asset://` is how the browser names the clip's glTF, which the media-ref
     // reader dereferences and `resolveModelBytes` does not.
+    // SAFETY: `model` is declared as a model3d prop, so the graph only ever
+    // binds a media ref or nothing; the reader reads these three fields and
+    // treats every one of them as optional, and an empty object yields no
+    // bytes, which the next check refuses by name.
     const bytes = await loadMediaRefBytes(
       (this.model ?? {}) as {
         data?: Uint8Array | string;
@@ -119,6 +123,9 @@ export class BakeTimelineClipNode extends BaseNode {
         `${NODE_NAME}: model input is empty — connect the clip's glTF (GLB)`
       );
     }
+    // SAFETY: guarded by the `Array.isArray` above, and every element goes
+    // through `Number()` before the finite check below, so an element of any
+    // type is either a number or refused.
     const frameTimes = Array.isArray(this.frame_times)
       ? (this.frame_times as unknown[]).map((value) => Number(value))
       : [];
@@ -127,6 +134,10 @@ export class BakeTimelineClipNode extends BaseNode {
         `${NODE_NAME}: frame_times must be a non-empty list of finite seconds.`
       );
     }
+    // SAFETY: guarded by the `Array.isArray` above. The entries are the
+    // camera DTOs `computeModel3DBakeSamples` built, and the op validates
+    // their count against `frame_times` and reads each field with a default,
+    // so a malformed entry is refused there rather than here.
     const cameras = Array.isArray(this.cameras)
       ? (this.cameras as BakeCameraParams[])
       : [];
@@ -142,23 +153,28 @@ export class BakeTimelineClipNode extends BaseNode {
     // An empty prop is "no selection", which leaves every animation playing.
     const animationName = String(this.animation_name ?? "").trim();
     if (animationName) request.animationName = animationName;
-    try {
-      const baked = await bakeModel3DClipToVideo(context, bytes, request, {
-        timeoutMs,
-        signal: context.signal,
-        onProgress: blenderProgressHandler(context, this.__node_id)
-      });
-      return {
-        video: {
-          type: "video",
-          uri: "",
-          asset_id: null,
-          data: bytesToBase64(baked.video)
-        }
-      };
-    } catch (err) {
-      rethrowBlenderError(err, NODE_NAME, timeoutMessage(timeoutMs), context.signal);
-    }
+    return runBlenderNodeStep(
+      {
+        nodeName: NODE_NAME,
+        timeoutMessage: timeoutMessage(timeoutMs),
+        signal: context.signal
+      },
+      async () => {
+        const baked = await bakeModel3DClipToVideo(context, bytes, request, {
+          timeoutMs,
+          signal: context.signal,
+          onProgress: blenderProgressHandler(context, this.__node_id)
+        });
+        return {
+          video: {
+            type: "video",
+            uri: "",
+            asset_id: null,
+            data: bytesToBase64(baked.video)
+          }
+        };
+      }
+    );
   }
 }
 
