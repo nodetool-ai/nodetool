@@ -4,7 +4,7 @@
   "description": "Driving one real Chrome page over CDP: the action loop, element indexing, media capture, file upload, and the Chrome-extension relay that reaches the user's own signed-in browser",
   "type": "module",
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=22.0.0"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
