@@ -804,7 +804,7 @@ ride into the assembled clips as captions. The voice, staleness, and script →
 timeline rules live in `@nodetool-ai/timeline`
 (`effectiveVoice`/`needsVoicing`/`buildScriptTimeline`), shared with the editor
 and the `nodetool.script.*` nodes. Code:
-`packages/agents/src/tools/script-voice-tools.ts`. The `ui_script_*` tools
+`packages/agents/src/capabilities/scripts.ts`. The `ui_script_*` tools
 remain the path when the script is open in a browser.
 
 ### Storyboard render tools (no workflow, no browser)
@@ -844,7 +844,7 @@ The prompts, entity seasoning, and shot → timeline
 mapping are the editor's own (`entitiesForShot` in `@nodetool-ai/protocol`,
 `buildStoryboardTimeline` in `@nodetool-ai/timeline`), so a headless render
 matches one done in the UI. Code:
-`packages/agents/src/tools/storyboard-render-tools.ts`. The `ui_storyboard_*`
+`packages/agents/src/capabilities/storyboards.ts`. The `ui_storyboard_*`
 tools remain the path when the board is open in a browser and the user should
 watch it fill in.
 

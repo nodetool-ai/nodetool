@@ -23,7 +23,8 @@ These apply to **every** deployment, regardless of environment:
 > **⚠️ `NODETOOL_TRUST_LOCAL_NETWORKS` bypasses login entirely.** Every source
 > IP in that list is trusted as admin user `"1"` with no password — full access
 > to data, secrets, and API keys. The Docker Compose file trusts the Docker
-> bridge (`172.16.0.0/12`) so a single-user local install works out of the box.
+> bridge (`172.16.0.0/12`) and Docker Desktop's VM gateway subnet
+> (`192.168.65.0/24`) so a single-user local install works out of the box.
 > **Never set it to `0.0.0.0/0` on a public IP, and never widen it as a
 > substitute for real auth** — enable Supabase mode instead. See
 > [Authentication → Local mode in Docker](authentication.md#local-mode-in-docker).

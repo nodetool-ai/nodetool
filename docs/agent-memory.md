@@ -271,7 +271,7 @@ The execution engine for a single step.
   - any key supplied via `CodeActExecutorOptions.upstreamMemoryKeys` (typically `task:<id>` from the parent task's `dependsOn`).
 - Values are not included; the agent calls `read_shared` to fetch them.
 
-**Tool attachment**: `getMemoryTools()` — a belt built from the `shared` capability module's specs — is auto-pushed into the step's tool list at construction time, alongside any caller-supplied tools. Mount policy stays with the executor: the host never mounts these. Completion is `finish(result)` in the sandbox, validated host-side against the step's schema.
+**Tool attachment**: `getSharedTools()` (`packages/agents/src/tools/shared-tools.ts`) — a belt built from the `shared` capability module's specs — is auto-pushed into the step's tool list at construction time, alongside any caller-supplied tools. Mount policy stays with the executor: the host never mounts these. Completion is `finish(result)` in the sandbox, validated host-side against the step's schema.
 
 **Custom prompts are preambles, not replacements**: A caller-supplied `systemPrompt` is layered before the default execution prompt, so the contract — including the tool catalog and the `finish()` discipline — is non-bypassable.
 
@@ -517,7 +517,7 @@ The LLM has to read keys back from the tool result and pass them to `read_shared
 **Why isn't memory shared across `context.copy()`?**
 Copies are designed for isolated sub-runs. If a sub-run should inherit memory, the caller can `set` entries from the parent before kicking it off. Default isolation is the safer choice.
 
-**Why does `customPrompt` no longer replace the default execution prompt?**
+**Why does `systemPrompt` no longer replace the default execution prompt?**
 Replacing it stripped the memory-tool documentation and the `finish_step` discipline. The fix layers any caller preamble before the default prompt rather than replacing it. The execution contract (memory tools, output schema, completion protocol, conclusion-stage rules) is now non-bypassable.
 
 ---

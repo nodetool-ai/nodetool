@@ -6,19 +6,19 @@ description: "Ingest documents for semantic search and RAG with NodeTool's vecto
 
 
 
-NodeTool ships a lightweight ingestion pipeline for semantic search and retrieval-augmented generation (RAG) tasks. The indexing logic is split across `@nodetool-ai/vectorstore` (store and embedding) and `@nodetool-ai/deploy` (collection routes).
+NodeTool ships a lightweight ingestion pipeline for semantic search and retrieval-augmented generation (RAG) tasks. The indexing logic is split across `@nodetool-ai/vectorstore` (store, chunking, and embedding) and `@nodetool-ai/websocket` (the upload route).
 
 ## Overview
 
 - **Collection metadata** (`CollectionResponse` in `@nodetool-ai/protocol` `packages/protocol/src/api-types.ts`) carries the collection's name, document count, free-form metadata, and `workflow_name` — the resolved name of the workflow id stored under `metadata.workflow`, shown in listings.
 - **Vector store** -- the default backend is SQLite-vec (`@nodetool-ai/vectorstore` `packages/vectorstore/src/sqlite-vec-store.ts`). Embeddings flow through the `VectorProvider` abstraction — see [Vector Storage](vector-storage.md) for swapping backends (Pinecone, Supabase/pgvector).
-- **Indexing route** -- `handleCollectionIndex()` (`@nodetool-ai/deploy` `packages/deploy/src/collection-routes.ts`) validates the upload and delegates the actual ingestion to a caller-supplied `indexFn` callback (typed `IndexFileToCollectionFn`). The route itself does not resolve collections or run workflows; that logic lives in the provided callback.
+- **Indexing route** -- `handleCollectionRequest()` (`@nodetool-ai/websocket` `packages/websocket/src/collection-api.ts`) handles the multipart upload and performs the ingestion itself. It is the one collection endpoint that stayed on REST; every other CRUD and query endpoint moved to the tRPC `collections` router.
 
 ### Default Flow
 
-1. The HTTP layer receives an uploaded file and calls `handleCollectionIndex()` with the collection name, file path, MIME type, and an `indexFn`.
-2. The `indexFn` callback performs the ingestion: it resolves the target collection (e.g. via `resolveCollection()` in `@nodetool-ai/vectorstore` `packages/vectorstore/src/index.ts`), splits the document with `splitDocument()`, embeds it, and stores embeddings in SQLite-vec.
-3. `handleCollectionIndex()` returns an `IndexResult` (`{ path, error }`) per file, or throws a `CollectionHttpError` on failure.
+1. `handleCollectionRequest()` matches `POST /api/collections/:name/index`, resolves the collection through `getDefaultVectorProvider().getCollection()`, and checks ownership with `canAccessCollection()` — someone else's collection answers `404`, not `403`, so the endpoint cannot be used to probe for names.
+2. The uploaded file is rejected above `getMaxUploadBytes()` (`NODETOOL_MAX_UPLOAD_BYTES`), then read as text, split with `splitDocument()` from `@nodetool-ai/vectorstore`, and upserted into the collection as `<file name>#<n>` chunks carrying `source` and `start_index` metadata.
+3. The route returns `{ path, chunks, error }`. A `CollectionNotFoundError` becomes `404`; any other provider error is logged and returned as a generic `500`, because provider errors carry SQL text, file paths, and upstream URLs.
 
 ## Configuring the vector store
 
@@ -36,8 +36,8 @@ See [Vector Storage](vector-storage.md) for backend-specific setup.
 ## CLI & API Integration
 
 - `POST /api/collections/:name/index` (see `@nodetool-ai/websocket` `packages/websocket/src/collection-api.ts`) triggers ingestion via HTTP (multipart/form-data file upload).
-- The MCP server (`@nodetool-ai/websocket` `packages/websocket/src/mcp-server.ts`) exposes two tools, `execute_code` and `view_image`. An IDE plug-in reads collections from inside an action — `nodetool.collections.list()` and `nodetool.collections.query()`. It does **not** index assets.
-- Admin routes under `@nodetool-ai/deploy` `packages/deploy/src/admin-routes.ts` provide remote ingestion endpoints for deployed servers.
+- The MCP server (`@nodetool-ai/websocket` `packages/websocket/src/mcp-server.ts`) exposes the CodeAct action tool `execute_code` plus `view_image` and the direct set. An IDE plug-in reads collections from inside an action — `nodetool.collections.list()` and `nodetool.collections.query()`. It does **not** index assets.
+- A deployed server exposes no separate admin ingestion endpoints. The `/admin/*` surface `@nodetool-ai/deploy`'s client used to carry was ported from the retired Python server and never mounted; use `POST /api/collections/:name/index` against the deployment instead.
 
 ## Troubleshooting
 

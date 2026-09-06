@@ -8,18 +8,18 @@ NodeTool is an open-source visual workflow runtime for AI models, tools, agents,
 
 ## Start here
 
-1. [Install NodeTool](../installation) and start a server with `npm run dev:server`.
+1. [Install NodeTool](../installation.md) and start a server with `npm run dev:server`.
 2. [Find node schemas](../nodes/) or fetch the [node catalog](../nodes/catalog.json).
-3. [Create and validate a workflow](../workflow-api).
-4. [Run and inspect a workflow](../cli) with the CLI or API.
+3. [Create and validate a workflow](../workflow-api.md).
+4. [Run and inspect a workflow](../cli.md) with the CLI or API.
 
 ## Machine-readable resources
 
 - [Documentation index](../llms.txt)
 - [Complete documentation](../llms-full.txt)
 - [Node catalog](../nodes/catalog.json)
-- [Workflow API](../workflow-api)
-- [WebSocket API](../websocket-api)
+- [Workflow API](../workflow-api.md)
+- [WebSocket API](../websocket-api.md)
 
 ## Verify a workflow
 
