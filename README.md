@@ -28,12 +28,6 @@ the project back, on your keys.
 
 ## Every model you need, on your own keys
 
-Route a shot through GPT-5.6, Claude Opus 5, Gemini, or Grok for text; FLUX,
-Nano Banana, Seedream, or Ideogram for stills; Sora 2, Veo 3.1, Kling, Wan, or
-Seedance for motion; ElevenLabs, Suno, or Whisper for sound. Switch between
-them in one click, or run open weights locally through Ollama, vLLM, LM Studio,
-or llama.cpp.
-
 You connect the provider and NodeTool calls it with your key, so you pay that
 provider directly at their published price. An image that costs $0.03 at the
 provider costs $0.03 here. There is no NodeTool billing unit in between, and a
