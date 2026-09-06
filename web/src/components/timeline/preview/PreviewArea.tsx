@@ -12,7 +12,16 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import {
+  DEFAULT_MIDI_INSTRUMENT,
+  midiRenderKey,
+  resolveTempo
+} from "@nodetool-ai/timeline";
+import type {
+  MidiInstrument,
+  TimelineClip,
+  TimelineTrack
+} from "@nodetool-ai/timeline";
 
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
@@ -44,6 +53,8 @@ import {
 import { useAssetStore } from "../../../stores/AssetStore";
 import { PlaybackClock } from "./PlaybackClock";
 import { AudioGraph } from "./AudioGraph";
+import type { ScheduledAudioClip } from "./AudioGraph";
+import { getMidiClipBuffer } from "./midiRender";
 import { PreviewCompositor } from "./PreviewCompositor";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import { useCombo } from "../../../stores/KeyPressedStore";
@@ -67,16 +78,34 @@ const AUDIO_TOPUP_INTERVAL_MS = 5_000;
  *  for asset resolution + decode + a fresh clock start. */
 const SEEK_RESTART_DEBOUNCE_MS = 120;
 
-/** True if `clip` is a schedulable audio clip that hasn't finished by `atMs`. */
+/**
+ * True if `clip` is a schedulable sounding clip that hasn't finished by `atMs`.
+ *
+ * A midi clip has no asset and no generation to wait for — its notes are the
+ * content — so it needs neither `currentAssetId` nor a status; an empty note
+ * list would render silence, so it is skipped instead.
+ */
 function isPendingAudioClip(clip: TimelineClip, atMs: number): boolean {
+  if (clip.muted || clip.startMs + clip.durationMs <= atMs) return false;
+  if (clip.mediaType === "midi") {
+    return (clip.notes?.length ?? 0) > 0;
+  }
   return (
     clip.mediaType === "audio" &&
-    !clip.muted &&
     !!clip.currentAssetId &&
     (clip.status === "generated" ||
       clip.status === "stale" ||
-      clip.status === "locked") &&
-    clip.startMs + clip.durationMs > atMs
+      clip.status === "locked")
+  );
+}
+
+/** The voice a midi clip on this track plays. */
+function instrumentForTrack(
+  tracks: readonly TimelineTrack[],
+  trackId: string
+): MidiInstrument {
+  return (
+    tracks.find((t) => t.id === trackId)?.instrument ?? DEFAULT_MIDI_INSTRUMENT
   );
 }
 
@@ -281,6 +310,13 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
      *  on every stop/restart so the top-up interval can tell which clips
      *  still need scheduling. */
     const scheduledClipIdsRef = useRef<Set<string>>(new Set());
+
+    /**
+     * The render key of every midi clip scheduled this session, so an edit to
+     * its notes, its track's instrument or the tempo can be spotted while
+     * playing. Cleared with the rest of the session.
+     */
+    const scheduledMidiKeysRef = useRef<Map<string, string>>(new Map());
     /** Windowed-audio top-up interval id — started in handlePlay, cleared
      *  with the rest of the session. */
     const topUpIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
@@ -314,6 +350,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       clearTopUpInterval();
       clearSeekDebounce();
       scheduledClipIdsRef.current.clear();
+      scheduledMidiKeysRef.current.clear();
     }, [clearTopUpInterval, clearSeekDebounce]);
 
     useEffect(() => {
@@ -335,11 +372,64 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     }, [tracks]);
 
     /**
+     * The PCM a clip should play: an asset URL for an audio clip, or a freshly
+     * rendered buffer for a midi one (cached by `midiRenderKey`, so a repeat
+     * of the same notes/tempo/instrument costs nothing). `null` when the asset
+     * cannot be resolved or the render fails — the clip is then skipped rather
+     * than silencing the whole gesture.
+     */
+    const resolveScheduledClip = useCallback(
+      async (clip: TimelineClip): Promise<ScheduledAudioClip | null> => {
+        if (clip.mediaType === "midi") {
+          const state = timelineApi.getState();
+          try {
+            const buffer = await getMidiClipBuffer(
+              graphRef.current.getContext(),
+              clip,
+              resolveTempo(state).bpm,
+              instrumentForTrack(state.tracks, clip.trackId)
+            );
+            return { clip, buffer };
+          } catch {
+            return null;
+          }
+        }
+        try {
+          const asset = await getAsset(clip.currentAssetId!);
+          const url = getAssetUrl(asset);
+          return url ? { clip, assetUrl: url } : null;
+        } catch {
+          return null;
+        }
+      },
+      [getAsset, timelineApi]
+    );
+
+    /** The key `clip`'s current render answers to, or null when it is not midi. */
+    const midiKeyOf = useCallback(
+      (clip: TimelineClip): string | null => {
+        if (clip.mediaType !== "midi") return null;
+        const state = timelineApi.getState();
+        return midiRenderKey({
+          clip,
+          bpm: resolveTempo(state).bpm,
+          instrument: instrumentForTrack(state.tracks, clip.trackId),
+          sampleRate: graphRef.current.context?.sampleRate ?? 48_000
+        });
+      },
+      [timelineApi]
+    );
+
+    /**
      * Re-scan for audio clips that entered the lookahead window since the
      * last check and schedule only those, without touching clips already
      * playing. Runs on a timer started in handlePlay so a long timeline's
      * audio is brought in incrementally instead of decoding everything up
      * front.
+     *
+     * The same pass re-renders a midi clip whose key moved: an edit while
+     * playing changes what the clip should sound like, and the source already
+     * running holds the pre-edit buffer.
      */
     const topUpAudio = useCallback(
       async (isStale: () => boolean) => {
@@ -355,25 +445,33 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             c.startMs < windowEndMs &&
             !scheduledClipIdsRef.current.has(c.id)
         );
-        if (newlyEnteredClips.length === 0) return;
+
+        // A midi clip already scheduled whose render key moved (its notes, its
+        // track's instrument, or the tempo changed) is stopped and re-added at
+        // the live position, so the edit is heard rather than waiting for the
+        // next play.
+        const restaleMidiClips = clipsNow.filter((c) => {
+          if (!scheduledClipIdsRef.current.has(c.id)) return false;
+          if (!isPendingAudioClip(c, liveMs)) return false;
+          const key = midiKeyOf(c);
+          return key !== null && key !== scheduledMidiKeysRef.current.get(c.id);
+        });
+        if (restaleMidiClips.length > 0) {
+          graph.stopClips(restaleMidiClips.map((c) => c.id));
+        }
+
+        const pending = [...newlyEnteredClips, ...restaleMidiClips];
+        if (pending.length === 0) return;
 
         // Mark up front so an overlapping tick (a slow asset fetch outliving
         // the 5 s interval) can't attempt the same clip twice.
-        for (const c of newlyEnteredClips) {
+        for (const c of pending) {
           scheduledClipIdsRef.current.add(c.id);
+          const key = midiKeyOf(c);
+          if (key !== null) scheduledMidiKeysRef.current.set(c.id, key);
         }
 
-        const resolved = await Promise.all(
-          newlyEnteredClips.map(async (clip) => {
-            try {
-              const asset = await getAsset(clip.currentAssetId!);
-              const url = getAssetUrl(asset);
-              return url ? { clip, assetUrl: url } : null;
-            } catch {
-              return null;
-            }
-          })
-        );
+        const resolved = await Promise.all(pending.map(resolveScheduledClip));
         if (isStale()) return;
 
         const validClips = resolved.filter(
@@ -392,7 +490,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           playbackApi.getState().rate
         );
       },
-      [getAsset, getTimeMs, playbackApi, timelineApi]
+      [getTimeMs, midiKeyOf, playbackApi, resolveScheduledClip, timelineApi]
     );
 
     /** The rate the running clock was started with; the rate-change restart
@@ -479,18 +577,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       );
 
       const scheduledClips = await Promise.all(
-        windowedClips.map(async (clip) => {
-          try {
-            const asset = await getAsset(clip.currentAssetId!);
-            const url = getAssetUrl(asset);
-            if (!url) {
-              return null;
-            }
-            return { clip, assetUrl: url };
-          } catch {
-            return null;
-          }
-        })
+        windowedClips.map(resolveScheduledClip)
       );
 
       const validClips = scheduledClips.filter(
@@ -506,6 +593,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
       for (const { clip } of validClips) {
         scheduledClipIdsRef.current.add(clip.id);
+        const key = midiKeyOf(clip);
+        if (key !== null) scheduledMidiKeysRef.current.set(clip.id, key);
       }
 
       clock.start(startMs, globalRate, ctx, endMs || Infinity, clockOptions);
@@ -518,7 +607,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       tracks,
       contentEndMs,
       fps,
-      getAsset,
+      midiKeyOf,
+      resolveScheduledClip,
       setCurrentTimeMs,
       stopAudioSession,
       topUpAudio,

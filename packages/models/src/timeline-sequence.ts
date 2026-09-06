@@ -4,6 +4,7 @@ import type {
   TimelineTrack,
   TimelineClip,
   TimelineMarker,
+  TimelineTempo,
   TimelineSetup,
   TranscriptLine
 } from "@nodetool-ai/timeline";
@@ -76,6 +77,8 @@ export interface TimelineDocument {
   transcript?: TranscriptLine[];
   /** Whether the script lane + transcript panel are shown. Unset on legacy. */
   scriptEnabled?: boolean;
+  /** Document tempo for midi clips. Unset until the first midi track. */
+  tempo?: TimelineTempo;
   /** Guided video-flow state (PRD § 8.5). Unset outside the flow. */
   setup?: TimelineSetup;
 }
@@ -152,6 +155,7 @@ export class TimelineSequence extends DBModel {
       markers: doc.markers,
       transcript: doc.transcript ?? [],
       scriptEnabled: doc.scriptEnabled,
+      tempo: doc.tempo,
       setup: doc.setup,
       createdAt: this.created_at,
       updatedAt: this.updated_at
@@ -168,6 +172,7 @@ export class TimelineSequence extends DBModel {
       markers: seq.markers,
       transcript: seq.transcript ?? [],
       scriptEnabled: seq.scriptEnabled,
+      tempo: seq.tempo,
       setup: seq.setup
     };
     return new TimelineSequence({

@@ -33,7 +33,8 @@ import {
   collectSnapCandidates,
   publishGestureFeedback,
   readoutFor,
-  snapEdge
+  snapEdge,
+  snapGridSpecFrom
 } from "./clipSnap";
 
 interface UseClipTrimOptions {
@@ -141,7 +142,8 @@ export function useClipTrim({
           state.clips,
           state.durationMs,
           useTimelinePlaybackStore.getState().getTimeMs(),
-          new Set([clip.id])
+          new Set([clip.id]),
+          snapGridSpecFrom(state, useTimelineUIStore.getState())
         ),
         durationMsAtStart: clip.durationMs,
         mode,

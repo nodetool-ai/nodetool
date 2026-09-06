@@ -14,9 +14,20 @@
  */
 
 import { create, type StoreApi, type UseBoundStore } from "zustand";
-import type { DropMode, KeyframeProperty } from "@nodetool-ai/timeline";
+import type {
+  DropMode,
+  KeyframeProperty,
+  TempoGridDivision
+} from "@nodetool-ai/timeline";
 
 export type TimelineTool = "select" | "cut";
+
+/**
+ * What the ruler counts. `"timecode"` is minutes and seconds; `"bars"` reads
+ * the same milliseconds against the document tempo, which is what a part
+ * written in bars is edited in.
+ */
+export type RulerMode = "timecode" | "bars";
 
 /**
  * Rubber-band marquee rectangle in lanes-content space (the coordinate space
@@ -90,6 +101,20 @@ export interface TimelineUIState {
   selectedEdit: SelectedEdit | null;
   /** Magnet: edges snap to clips, the playhead and the grid. Alt-drag bypasses. */
   snapEnabled: boolean;
+  /** Whether the ruler counts seconds or bars. */
+  rulerMode: RulerMode;
+  /**
+   * The musical grid the ruler draws and snapping offers, as a note value
+   * ("1/16"), a beat, or a bar. Read against the document tempo.
+   */
+  gridDivision: TempoGridDivision;
+  /**
+   * Visible width of the lanes viewport (px), written by the tracks region's
+   * resize observer. The tempo grid is built for what is on screen, so a
+   * sixteenth grid over a long document never asks for more lines than the
+   * view can hold.
+   */
+  lanesViewportWidthPx: number;
   /** The property Alt+K keyframes; the inspector's last-touched row. */
   keyframeProperty: KeyframeProperty;
   /** In and out on the source viewer's asset, clip-source milliseconds. */
@@ -198,6 +223,10 @@ export interface TimelineUIState {
   setDropMode: (mode: DropMode) => void;
   setSelectedEdit: (edit: SelectedEdit | null) => void;
   toggleSnap: () => void;
+  setRulerMode: (mode: RulerMode) => void;
+  toggleRulerMode: () => void;
+  setGridDivision: (division: TempoGridDivision) => void;
+  setLanesViewportWidthPx: (px: number) => void;
   setKeyframeProperty: (property: KeyframeProperty) => void;
   setSourceRange: (range: { inMs: number; outMs: number } | null) => void;
 
@@ -210,6 +239,34 @@ export interface TimelineUIState {
   setExpandedFxTrackId: (trackId: string | null) => void;
   /** Toggle the inline DSP chain editor for the given track. */
   toggleExpandedFx: (trackId: string) => void;
+
+  // ── Piano roll ────────────────────────────────────────────────────────────
+
+  /**
+   * Id of the midi clip open in the clip-editor panel below the tracks, or
+   * null when the panel is closed. One clip at a time, the way a DAW's clip
+   * view works: the panel is a view onto the selected part, not a window
+   * manager.
+   */
+  pianoRollClipId: string | null;
+  /** Height of the clip-editor panel, in px. In memory, like the tracks height. */
+  pianoRollHeightPx: number;
+  /** Open the clip editor on a clip. */
+  openPianoRoll: (clipId: string) => void;
+  /** Close the clip editor. */
+  closePianoRoll: () => void;
+  /** Resize the clip-editor panel, clamped to its bounds. */
+  setPianoRollHeightPx: (px: number) => void;
+
+  // ── Instrument panel ──────────────────────────────────────────────────────
+
+  /**
+   * Id of the midi track whose instrument editor is expanded inline below its
+   * row, or null. One at a time, like the DSP chain editor.
+   */
+  expandedInstrumentTrackId: string | null;
+  /** Toggle the inline instrument editor for the given midi track. */
+  toggleExpandedInstrument: (trackId: string) => void;
 
   // ── Track drag-reorder ─────────────────────────────────────────────────────
 
@@ -224,6 +281,11 @@ export interface TimelineUIState {
 }
 
 export const MIN_MS_PER_PX = 0.5;
+
+export const DEFAULT_PIANO_ROLL_HEIGHT_PX = 280;
+export const MIN_PIANO_ROLL_HEIGHT_PX = 160;
+export const MAX_PIANO_ROLL_HEIGHT_PX = 720;
+
 export const MAX_MS_PER_PX = 500;
 
 export type TimelineUIStoreApi = UseBoundStore<StoreApi<TimelineUIState>>;
@@ -238,6 +300,9 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   dropMode: "overwrite",
   selectedEdit: null,
   snapEnabled: true,
+  rulerMode: "timecode",
+  gridDivision: "beat",
+  lanesViewportWidthPx: 0,
   keyframeProperty: "opacity",
   sourceRange: null,
   msPerPx: 10,
@@ -245,6 +310,9 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   revealRequest: null,
   fullscreen: false,
   expandedFxTrackId: null,
+  expandedInstrumentTrackId: null,
+  pianoRollClipId: null,
+  pianoRollHeightPx: DEFAULT_PIANO_ROLL_HEIGHT_PX,
   draggingTrackId: null,
   trackDropTarget: null,
   selectClip: (id) =>
@@ -328,6 +396,22 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
 
   toggleSnap: () => set((state) => ({ snapEnabled: !state.snapEnabled })),
 
+  setRulerMode: (mode) => set({ rulerMode: mode }),
+
+  toggleRulerMode: () =>
+    set((state) => ({
+      rulerMode: state.rulerMode === "bars" ? "timecode" : "bars"
+    })),
+
+  setGridDivision: (division) => set({ gridDivision: division }),
+
+  setLanesViewportWidthPx: (px) =>
+    set((state) =>
+      state.lanesViewportWidthPx === px
+        ? state
+        : { lanesViewportWidthPx: Math.max(0, px) }
+    ),
+
   setKeyframeProperty: (property) => set({ keyframeProperty: property }),
 
   setSourceRange: (range) => set({ sourceRange: range }),
@@ -338,6 +422,24 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     set((state) => ({
       expandedFxTrackId:
         state.expandedFxTrackId === trackId ? null : trackId
+    })),
+
+  openPianoRoll: (clipId) => set({ pianoRollClipId: clipId }),
+
+  closePianoRoll: () => set({ pianoRollClipId: null }),
+
+  setPianoRollHeightPx: (px) =>
+    set({
+      pianoRollHeightPx: Math.min(
+        MAX_PIANO_ROLL_HEIGHT_PX,
+        Math.max(MIN_PIANO_ROLL_HEIGHT_PX, px)
+      )
+    }),
+
+  toggleExpandedInstrument: (trackId) =>
+    set((state) => ({
+      expandedInstrumentTrackId:
+        state.expandedInstrumentTrackId === trackId ? null : trackId
     })),
 
   beginTrackDrag: (trackId) =>

@@ -41,6 +41,12 @@ describe("trackTypeMeta", () => {
     expect(meta.label).toBe("Text");
   });
 
+  it("returns correct meta for midi", () => {
+    const meta = trackTypeMeta("midi");
+    expect(meta.prefix).toBe("M");
+    expect(meta.label).toBe("MIDI");
+  });
+
   it("falls back to video for unknown types", () => {
     const meta = trackTypeMeta("unknown" as never);
     expect(meta.prefix).toBe("V");

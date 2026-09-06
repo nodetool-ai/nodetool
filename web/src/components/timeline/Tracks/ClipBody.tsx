@@ -15,8 +15,10 @@ import type { Theme } from "@mui/material/styles";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LoopOutlinedIcon from "@mui/icons-material/LoopOutlined";
 
+import { resolveTempo } from "@nodetool-ai/timeline";
 import type { TimelineClip, ClipStatus } from "@nodetool-ai/timeline";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
   StatusIndicator,
   BORDER_RADIUS,
@@ -33,6 +35,7 @@ import { useAudioPeaks } from "./useAudioPeaks";
 import { samplePeaksWindow } from "./audioPeaks";
 import { clipSurfaceTint, clipBorderTint } from "./trackVisuals";
 import { GroupBracket } from "./GroupBracket";
+import { MidiNotesCanvas } from "./MidiNotesCanvas";
 import { deriveClipAnimationMarkers } from "./clipAnimationMarkers";
 import { deriveClipFadeMarkers } from "./clipFadeGeometry";
 import {
@@ -537,6 +540,8 @@ export interface ClipBodyProps {
   statusInfo: (typeof CLIP_STATUS_MAP)[ClipStatus];
   handleDragPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleClick: (e: React.MouseEvent<HTMLDivElement>) => void;
+  /** Opens the clip editor for a midi clip; a no-op for every other type. */
+  handleDoubleClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   handleContextMenu: (e: React.MouseEvent<HTMLDivElement>) => void;
   handleTrimStartPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
@@ -569,6 +574,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     statusInfo,
     handleDragPointerDown,
     handleClick,
+    handleDoubleClick,
     handleKeyDown,
     handleContextMenu,
     handleTrimStartPointerDown,
@@ -601,6 +607,10 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     const audioUrl = useAssetUrl(
       clip.mediaType === "audio" ? clip.currentAssetId : undefined
     );
+    // A note's ticks only become a position once read against the tempo, so
+    // the note bars need it. A primitive selector, so a document edit that
+    // leaves the tempo alone does not re-render every clip.
+    const bpm = useTimelineStore((s) => resolveTempo(s).bpm);
 
     const thumbnails = useClipThumbnails(videoUrl);
     const cellCount = Math.max(1, Math.floor(widthPx / FILMSTRIP_CELL_PX));
@@ -629,6 +639,8 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         case "shape":
         case "group":
           return theme.vars.palette.secondary.main;
+        case "midi":
+          return theme.vars.palette.primary.main;
         case "image":
         case "video":
         default:
@@ -742,6 +754,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         style={positionStyle}
         onPointerDown={handleDragPointerDown}
         onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
         data-testid={`clip-${clipId}`}
@@ -867,6 +880,16 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
             url={audioUrl}
             inPointMs={clip.inPointMs ?? 0}
             outPointMs={(clip.inPointMs ?? 0) + clip.durationMs}
+            widthPx={widthPx}
+          />
+        )}
+
+        {clip.mediaType === "midi" && (
+          <MidiNotesCanvas
+            notes={clip.notes}
+            inPointMs={clip.inPointMs ?? 0}
+            durationMs={clip.durationMs}
+            bpm={bpm}
             widthPx={widthPx}
           />
         )}

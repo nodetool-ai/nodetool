@@ -55,6 +55,7 @@ import {
   ClipTimeRemapSection
 } from "./ClipTimeRemap";
 import { ClipKeyframes } from "./ClipKeyframes";
+import { ClipMidiSection } from "./ClipMidiSection";
 import { ClipShapeSection } from "./ClipShapeSection";
 import { ClipTextStyleSection } from "./ClipTextStyleSection";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
@@ -431,6 +432,8 @@ export const TimelineInspector: React.FC = memo(() => {
       {textStyle && <ClipTextStyleSection clip={clip} textStyle={textStyle} />}
 
       {shapeStyle && <ClipShapeSection clip={clip} shapeStyle={shapeStyle} />}
+
+      {clip.mediaType === "midi" && <ClipMidiSection clip={clip} />}
 
       <CollapsibleSection
         title={

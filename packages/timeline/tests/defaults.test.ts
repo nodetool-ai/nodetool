@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
+  clipFitsTrack,
   createTimeOrderedUuid,
   makeMarker,
   makeClipVersion,
@@ -222,5 +223,22 @@ describe("makeSequence", () => {
     const b = makeSequence();
     a.tracks.push(makeTrack());
     expect(b.tracks).toHaveLength(0);
+  });
+});
+
+describe("clipFitsTrack", () => {
+  it("keeps midi on midi tracks and everything else off them", () => {
+    expect(clipFitsTrack("midi", "midi")).toBe(true);
+    expect(clipFitsTrack("midi", "video")).toBe(false);
+    expect(clipFitsTrack("midi", "audio")).toBe(false);
+    expect(clipFitsTrack("audio", "midi")).toBe(false);
+    expect(clipFitsTrack("video", "midi")).toBe(false);
+  });
+
+  it("leaves the pre-existing rules alone", () => {
+    expect(clipFitsTrack("audio", "audio")).toBe(true);
+    expect(clipFitsTrack("video", "video")).toBe(true);
+    expect(clipFitsTrack("text", "overlay")).toBe(true);
+    expect(clipFitsTrack("video", "subtitle")).toBe(false);
   });
 });

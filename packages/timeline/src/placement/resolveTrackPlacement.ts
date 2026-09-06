@@ -30,6 +30,14 @@ function isMediaCompatible(
   if (mediaType === "audio") {
     return trackType === "audio";
   }
+  // A midi clip is played by its track's instrument, so it belongs on a midi
+  // track and a midi track carries nothing else.
+  if (mediaType === "midi") {
+    return trackType === "midi";
+  }
+  if (trackType === "midi") {
+    return false;
+  }
   if (mediaType === "overlay") {
     return trackType === "video" || trackType === "overlay";
   }

@@ -3,7 +3,7 @@
  *
  * Subscribes to the document slice of `TimelineStore` and PATCHes the
  * persisted sequence via `trpc.timeline.update` whenever the user mutates
- * tracks / clips / markers / transcript.
+ * tracks / clips / markers / transcript / tempo.
  *
  * Robustness:
  *   - Debounces saves so a burst of edits coalesces into one PATCH.
@@ -52,6 +52,7 @@ interface DocumentSnapshot {
   markers: TimelineStoreState["markers"];
   transcript: TimelineStoreState["transcript"];
   scriptEnabled: TimelineStoreState["scriptEnabled"];
+  tempo: TimelineStoreState["tempo"];
   /** Undefined, not null: the payload's shape, so the two cannot diverge. */
   setup: NonNullable<TimelineStoreState["setup"]> | undefined;
 }
@@ -123,6 +124,7 @@ const sameDocument = (
   a.markers === b.markers &&
   a.transcript === b.transcript &&
   a.scriptEnabled === b.scriptEnabled &&
+  a.tempo === b.tempo &&
   // The guided flow's stage and plan are persisted document state, so a step
   // the creator advanced past has to make the sequence dirty like any edit.
   a.setup === b.setup;
@@ -274,6 +276,7 @@ export function useTimelineAutosave(
       initial.transcript;
     let lastScriptEnabled: TimelineStoreState["scriptEnabled"] =
       initial.scriptEnabled;
+    let lastTempo: TimelineStoreState["tempo"] = initial.tempo;
 
     const dirtyProbe: DirtyProbe = (sequenceId) => {
       const state = store.getState();
@@ -298,7 +301,8 @@ export function useTimelineAutosave(
         state.clips === lastClips &&
         state.markers === lastMarkers &&
         state.transcript === lastTranscript &&
-        state.scriptEnabled === lastScriptEnabled;
+        state.scriptEnabled === lastScriptEnabled &&
+        state.tempo === lastTempo;
       if (docUnchanged) return;
       const isLoad = state.sequenceId !== lastSequenceId;
       lastSequenceId = state.sequenceId;
@@ -307,6 +311,7 @@ export function useTimelineAutosave(
       lastMarkers = state.markers;
       lastTranscript = state.transcript;
       lastScriptEnabled = state.scriptEnabled;
+      lastTempo = state.tempo;
       if (isLoad && !consumeMigratedLoad(state.sequenceId)) {
         // Loading a sequence is not an edit: re-baseline without scheduling
         // a redundant PATCH of the document we just fetched. Record it as the

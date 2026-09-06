@@ -96,6 +96,7 @@ const TRACK_ICONS = {
   audio: 'musical-notes-outline',
   overlay: 'layers-outline',
   subtitle: 'text-outline',
+  midi: 'musical-notes-outline',
 } satisfies Record<TimelineTrackType, keyof typeof Ionicons.glyphMap>;
 
 function formatTime(ms: number): string {

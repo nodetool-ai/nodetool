@@ -7,7 +7,7 @@
  * primary accent + subtle filled background; tooltip carries the shortcut.
  * Pairs with the V (select) / C (cut) keyboard shortcuts in TracksRegion.
  */
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -19,10 +19,13 @@ import FlipToFrontOutlinedIcon from "@mui/icons-material/FlipToFrontOutlined";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import LinkOffOutlinedIcon from "@mui/icons-material/LinkOffOutlined";
 import GridGoldenratioOutlinedIcon from "@mui/icons-material/GridGoldenratioOutlined";
+import StraightenOutlinedIcon from "@mui/icons-material/StraightenOutlined";
+import type { TempoGridDivision } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 
 import {
   FlexRow,
+  SelectField,
   Tooltip,
   MOTION,
   BORDER_RADIUS,
@@ -30,6 +33,7 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
+import { GRID_DIVISION_OPTIONS } from "./Tracks/tempoGrid";
 
 /** Custom pointer cursor — monoline, 1.6px stroke. */
 const PointerIcon: React.FC = () => (
@@ -84,6 +88,29 @@ const buttonStyles = (theme: Theme, active: boolean, compact: boolean) =>
       fontSize: compact ? 16 : 14
     }
   });
+
+/** The division select sits in a 28px toolbar row, so it gets the pill height
+ *  the tool buttons have rather than the field default. */
+const gridSelectStyles = css({
+  minWidth: 74,
+  "& .MuiInputBase-root": {
+    height: 24
+  }
+});
+
+/**
+ * The phone toolbar is one 44px row on a 390px viewport, and this strip now
+ * carries eight toggles plus the grid select — more than fits. Scroll it
+ * rather than clip it, the way the track header's control row does: a control
+ * pushed past the edge of a `overflow: hidden` toolbar cannot be reached at all.
+ */
+const compactRowStyles = css({
+  overflowX: "auto",
+  scrollbarWidth: "none",
+  minWidth: 0,
+  "&::-webkit-scrollbar": { display: "none" },
+  "& > *": { flexShrink: 0 }
+});
 
 const dividerStyles = css({
   width: 1,
@@ -141,10 +168,22 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
   const setDropMode = useTimelineUIStore((s) => s.setDropMode);
   const snapEnabled = useTimelineUIStore((s) => s.snapEnabled);
   const toggleSnap = useTimelineUIStore((s) => s.toggleSnap);
+  const rulerMode = useTimelineUIStore((s) => s.rulerMode);
+  const toggleRulerMode = useTimelineUIStore((s) => s.toggleRulerMode);
+  const gridDivision = useTimelineUIStore((s) => s.gridDivision);
+  const setGridDivision = useTimelineUIStore((s) => s.setGridDivision);
   const linkedSelection = useTimelineStore((s) => s.linkedSelection);
   const setLinkedSelection = useTimelineStore((s) => s.setLinkedSelection);
+  const handleGridChange = useCallback(
+    (value: string) => setGridDivision(value as TempoGridDivision),
+    [setGridDivision]
+  );
   return (
-    <FlexRow gap={0.5} align="center">
+    <FlexRow
+      gap={0.5}
+      align="center"
+      css={compact ? compactRowStyles : undefined}
+    >
       <ToolButton
         label="Select"
         shortcut="V"
@@ -210,6 +249,25 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       >
         <GridGoldenratioOutlinedIcon />
       </ToolButton>
+      <ToolButton
+        label="Bars"
+        shortcut="the ruler counts bars and beats, not seconds"
+        active={rulerMode === "bars"}
+        compact={compact}
+        onClick={toggleRulerMode}
+      >
+        <StraightenOutlinedIcon />
+      </ToolButton>
+      <SelectField
+        label="Grid division"
+        hideLabel
+        size="small"
+        value={gridDivision}
+        options={GRID_DIVISION_OPTIONS}
+        onChange={handleGridChange}
+        css={gridSelectStyles}
+      />
+      <span css={dividerStyles} aria-hidden />
       <ToolButton
         label="Linked"
         shortcut="video and its audio move together"

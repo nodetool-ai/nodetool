@@ -270,3 +270,193 @@ describe("useTimelineAgentBridge getClipFrames", () => {
     ).rejects.toThrow(/15552–20736ms.*0–5184ms/s);
   });
 });
+
+describe("useTimelineAgentBridge midi", () => {
+  /** One midi track with one two-note clip, addressed by name. */
+  const seedMidi = (): string => {
+    mockDoc.getState().addTrack("midi", "Bass");
+    const trackId = mockDoc.getState().tracks[0].id;
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    return getTimelineAgentHandler(SEQ_ID).addMidiClip({
+      trackId,
+      startMs: 1000,
+      durationMs: 2000,
+      name: "Riff",
+      notes: [
+        { pitch: 60, startTick: 0, durationTick: 480 },
+        { pitch: 64, startTick: 480, durationTick: 480 }
+      ]
+    }).id;
+  };
+
+  it("places a midi clip and reports its note count", () => {
+    const clipId = seedMidi();
+    const clip = getTimelineAgentHandler(SEQ_ID)
+      .getSnapshot()
+      .clips.find((c) => c.id === clipId);
+    expect(clip?.mediaType).toBe("midi");
+    expect(clip?.noteCount).toBe(2);
+  });
+
+  it("creates a midi track when the caller names none", () => {
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const clip = getTimelineAgentHandler(SEQ_ID).addMidiClip({
+      durationMs: 2000,
+      notes: [{ pitch: 60, startTick: 0, durationTick: 480 }]
+    });
+    const track = mockDoc.getState().tracks.find((t) => t.id === clip.trackId);
+    expect(track?.type).toBe("midi");
+    // Placed after the (empty) track's content, which is the top.
+    expect(clip.startMs).toBe(0);
+  });
+
+  it("refuses a midi clip on a track that is not midi", () => {
+    mockDoc.getState().addTrack("video", "Video 1");
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    expect(() =>
+      getTimelineAgentHandler(SEQ_ID).addMidiClip({
+        trackId: "Video 1",
+        startMs: 0,
+        durationMs: 1000
+      })
+    ).toThrow(/midi track/i);
+  });
+
+  it("reports the resolved tempo even when the document stores none", () => {
+    seedMidi();
+    expect(getTimelineAgentHandler(SEQ_ID).getSnapshot().tempo).toEqual({
+      bpm: 120,
+      offsetMs: 0,
+      timeSignature: { beatsPerBar: 4, beatUnit: 4 }
+    });
+  });
+
+  it("replaces a clip's whole note list", () => {
+    const clipId = seedMidi();
+    const node = getTimelineAgentHandler(SEQ_ID).setNotes(clipId, [
+      { pitch: 55, startTick: 0, durationTick: 960 }
+    ]);
+    expect(node.noteCount).toBe(1);
+    expect(clipById(clipId).notes?.[0].pitch).toBe(55);
+  });
+
+  it("refuses a note the document cannot store", () => {
+    const clipId = seedMidi();
+    expect(() =>
+      getTimelineAgentHandler(SEQ_ID).setNotes(clipId, [
+        { pitch: 200, startTick: 0, durationTick: 480 }
+      ])
+    ).toThrow(/pitch/);
+    expect(clipById(clipId).notes).toHaveLength(2);
+  });
+
+  it("rescales the midi clips on a tempo change and answers with the document", () => {
+    const clipId = seedMidi();
+    const snapshot = getTimelineAgentHandler(SEQ_ID).setTempo({
+      bpm: 60,
+      offsetMs: 0,
+      timeSignature: { beatsPerBar: 4, beatUnit: 4 }
+    });
+    expect(snapshot.tempo.bpm).toBe(60);
+    const clip = snapshot.clips.find((c) => c.id === clipId)!;
+    expect(clip.startMs).toBe(2000);
+    expect(clip.durationMs).toBe(4000);
+  });
+
+  it("sets a midi track's instrument and reports it in the snapshot", () => {
+    seedMidi();
+    const track = getTimelineAgentHandler(SEQ_ID).setTrackInstrument("Bass", {
+      type: "subtractive",
+      waveform: "square",
+      attackMs: 1,
+      decayMs: 50,
+      sustain: 0.5,
+      releaseMs: 100,
+      cutoffHz: 2000,
+      resonance: 1,
+      gainDb: -3
+    });
+    expect(track.instrument?.waveform).toBe("square");
+    expect(
+      getTimelineAgentHandler(SEQ_ID).getSnapshot().tracks[0].instrument
+        ?.waveform
+    ).toBe("square");
+  });
+
+  it("names the preset a track's voice matches, and drops it once edited", () => {
+    seedMidi();
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    // A new midi track gets DEFAULT_MIDI_INSTRUMENT, which is the saw lead.
+    expect(handler.getSnapshot().tracks[0].presetId).toBe("saw-lead");
+
+    handler.setTrackInstrument("Bass", {
+      type: "subtractive",
+      waveform: "saw",
+      attackMs: 5,
+      decayMs: 120,
+      sustain: 0.7,
+      releaseMs: 150,
+      cutoffHz: 1234,
+      resonance: 0.7,
+      gainDb: -6
+    });
+    expect(handler.getSnapshot().tracks[0].presetId).toBeUndefined();
+  });
+
+  it("transposes, quantizes and scales a clip's notes", () => {
+    const clipId = seedMidi();
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    const notes = () =>
+      mockDoc.getState().clips.find((c) => c.id === clipId)!.notes!;
+
+    handler.transposeClip("Riff", -12);
+    expect(notes().map((n) => n.pitch)).toEqual([48, 52]);
+
+    handler.setNotes("Riff", [
+      { pitch: 48, startTick: 20, durationTick: 200 }
+    ]);
+    handler.quantizeClip("Riff", { division: "1/8" });
+    expect(notes()[0].startTick).toBe(0);
+
+    handler.scaleClipVelocity("Riff", 0.5);
+    expect(notes()[0].velocity).toBe(50);
+  });
+
+  it("refuses a note edit on a clip that carries no notes", () => {
+    seedMidi();
+    mockDoc.getState().addTrack("video", "V1");
+    const videoTrackId = mockDoc.getState().tracks[1].id;
+    mockDoc.getState().addClip(
+      makeClip({
+        id: "shot-1",
+        trackId: videoTrackId,
+        name: "Shot",
+        mediaType: "video",
+        sourceType: "imported",
+        startMs: 0,
+        durationMs: 1000
+      })
+    );
+    expect(() =>
+      getTimelineAgentHandler(SEQ_ID).transposeClip("shot-1", 1)
+    ).toThrow(/only a midi clip/i);
+  });
+
+  it("refuses an instrument on a track that is not midi", () => {
+    mockDoc.getState().addTrack("audio", "VO");
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    expect(() =>
+      getTimelineAgentHandler(SEQ_ID).setTrackInstrument("VO", {
+        type: "subtractive",
+        waveform: "sine",
+        attackMs: 1,
+        decayMs: 50,
+        sustain: 0.5,
+        releaseMs: 100,
+        cutoffHz: 2000,
+        resonance: 1,
+        gainDb: -3
+      })
+    ).toThrow(/midi track/i);
+  });
+});

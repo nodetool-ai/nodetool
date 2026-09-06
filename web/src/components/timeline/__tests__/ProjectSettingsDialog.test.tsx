@@ -1,10 +1,11 @@
 /**
  * ProjectSettingsDialog tests.
  *
- * The dialog edits the sequence-level canvas size + frame rate. It seeds its
- * draft from the store on open, lets a resolution preset fill width/height, and
- * persists via useTimelineProjectSettings. Apply is gated on valid + changed
- * values.
+ * The dialog edits the sequence-level canvas size, frame rate and tempo. It
+ * seeds its draft from the store on open, lets a resolution preset fill
+ * width/height, and persists via useTimelineProjectSettings — except the
+ * tempo, which is document state the autosave already carries, so it goes
+ * straight to the store's `setTempo`. Apply is gated on valid + changed values.
  */
 
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -14,7 +15,34 @@ import { ProjectSettingsDialog } from "../ProjectSettingsDialog";
 
 // ── Store + persistence hook mocks ───────────────────────────────────────────
 
-let storeState = { fps: 30, width: 1920, height: 1080 };
+const mockSetTempo = jest.fn();
+
+interface MockClip {
+  mediaType: string;
+}
+
+let storeState: {
+  fps: number;
+  width: number;
+  height: number;
+  tempo?: {
+    bpm: number;
+    offsetMs: number;
+    timeSignature: { beatsPerBar: number; beatUnit: number };
+  };
+  clips: MockClip[];
+  setTempo: typeof mockSetTempo;
+};
+
+const freshStore = () => ({
+  fps: 30,
+  width: 1920,
+  height: 1080,
+  clips: [] as MockClip[],
+  setTempo: mockSetTempo
+});
+
+storeState = freshStore();
 
 jest.mock("../../../stores/timeline/TimelineStore", () => ({
   useTimelineStore: <T,>(selector: (s: typeof storeState) => T) =>
@@ -39,10 +67,16 @@ const heightInput = () =>
   screen.getByRole("spinbutton", { name: /height/i }) as HTMLInputElement;
 const fpsInput = () =>
   screen.getByRole("spinbutton", { name: /fps/i }) as HTMLInputElement;
+const bpmInput = () =>
+  screen.getByRole("spinbutton", { name: /bpm/i }) as HTMLInputElement;
+const beatsPerBarInput = () =>
+  screen.getByRole("spinbutton", {
+    name: /beats per bar/i
+  }) as HTMLInputElement;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  storeState = { fps: 30, width: 1920, height: 1080 };
+  storeState = freshStore();
 });
 
 describe("ProjectSettingsDialog", () => {
@@ -85,5 +119,49 @@ describe("ProjectSettingsDialog", () => {
     fireEvent.change(widthInput(), { target: { value: "4" } }); // below MIN_DIM
     expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
     expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it("seeds the tempo draft at the document default", () => {
+    renderDialog();
+    expect(bpmInput().value).toBe("120");
+    expect(beatsPerBarInput().value).toBe("4");
+  });
+
+  it("sets the tempo on the store and leaves the canvas PATCH alone", async () => {
+    const onClose = jest.fn();
+    renderDialog(onClose);
+
+    fireEvent.change(bpmInput(), { target: { value: "90" } });
+    fireEvent.change(beatsPerBarInput(), { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+
+    await waitFor(() =>
+      expect(mockSetTempo).toHaveBeenCalledWith({
+        bpm: 90,
+        offsetMs: 0,
+        timeSignature: { beatsPerBar: 3, beatUnit: 4 }
+      })
+    );
+    // Tempo rides in the document slice; only width/height/fps are PATCHed.
+    expect(mockSave).not.toHaveBeenCalled();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it("keeps Apply disabled for a BPM outside 20–300", () => {
+    renderDialog();
+    fireEvent.change(bpmInput(), { target: { value: "1000" } });
+    expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
+    expect(mockSetTempo).not.toHaveBeenCalled();
+  });
+
+  it("says what a tempo change does to the parts already in the document", () => {
+    storeState = { ...freshStore(), clips: [{ mediaType: "midi" }] };
+    renderDialog();
+    expect(screen.getByText(/play at the new speed/i)).toBeInTheDocument();
+  });
+
+  it("says nothing about parts when the document has none", () => {
+    renderDialog();
+    expect(screen.queryByText(/play at the new speed/i)).toBeNull();
   });
 });

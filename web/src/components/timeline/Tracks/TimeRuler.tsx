@@ -22,6 +22,7 @@ import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
+import { resolveTempo } from "@nodetool-ai/timeline";
 import type { TimelineMarker } from "@nodetool-ai/timeline";
 import {
   useTimelinePlaybackStore,
@@ -30,6 +31,7 @@ import {
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { BORDER_RADIUS, FONT_SIZE_MONO } from "../../ui_primitives";
+import { computeBarRulerTicks } from "./tempoGrid";
 
 interface RulerColors {
   bg: string;
@@ -288,6 +290,8 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
     const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
+    const rulerMode = useTimelineUIStore((s) => s.rulerMode);
+    const tempo = useTimelineStore((s) => resolveTempo(s));
     const seek = useTimelinePlaybackStore((s) => s.seek);
     const playbackStoreApi = useTimelinePlaybackStoreApi();
     const markers = useTimelineStore((s) => s.markers);
@@ -358,7 +362,9 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       markers,
       fps,
       rangeInMs,
-      rangeOutMs
+      rangeOutMs,
+      rulerMode,
+      tempo
     });
     drawInputsRef.current = {
       msPerPx,
@@ -368,7 +374,9 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       markers,
       fps,
       rangeInMs,
-      rangeOutMs
+      rangeOutMs,
+      rulerMode,
+      tempo
     };
 
     const rafIdRef = useRef<number | null>(null);
@@ -387,8 +395,10 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
         markers: marks,
         fps: frameRate,
         rangeInMs: rangeIn,
-        rangeOutMs: rangeOut
+        rangeOutMs: rangeOut,
+        tempo: docTempo
       } = drawInputsRef.current;
+      const barsMode = drawInputsRef.current.rulerMode === "bars";
 
       const dpr = window.devicePixelRatio || 1;
       const w = canvas.offsetWidth;
@@ -452,29 +462,43 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       ctx.textBaseline = "top";
       ctx.textAlign = "left";
 
-      for (
-        let tMs = firstTickMs;
-        tMs <= visibleEndMs + minorMs;
-        tMs += minorMs
-      ) {
-        const px = tMs / mpp - scrollLeft;
-
-        if (px < 0 || px > w) {
-          continue;
-        }
-
-        const isMajor = Math.round(tMs) % Math.round(majorMs) === 0;
-
+      const drawTick = (px: number, major: boolean, label?: string) => {
+        if (px < 0 || px > w) return;
         ctx.strokeStyle = tickColor;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(px, h);
-        ctx.lineTo(px, isMajor ? h / 2 : h * 0.75);
+        ctx.lineTo(px, major ? h / 2 : h * 0.75);
         ctx.stroke();
+        if (label === undefined) return;
+        ctx.fillStyle = textColor;
+        ctx.fillText(label, px + 3, 3);
+      };
 
-        if (isMajor) {
-          ctx.fillStyle = textColor;
-          ctx.fillText(formatTimecode(tMs, majorMs, frameRate), px + 3, 3);
+      if (barsMode) {
+        // Bars read the same milliseconds against the tempo: a bar line where
+        // the bar starts, the bar number on it, and beat ticks between when
+        // the zoom leaves room for them.
+        for (const tick of computeBarRulerTicks({
+          tempo: docTempo,
+          msPerPx: mpp,
+          fromMs: visibleStartMs,
+          toMs: visibleEndMs
+        })) {
+          drawTick(tick.timeMs / mpp - scrollLeft, tick.kind === "bar", tick.label);
+        }
+      } else {
+        for (
+          let tMs = firstTickMs;
+          tMs <= visibleEndMs + minorMs;
+          tMs += minorMs
+        ) {
+          const isMajor = Math.round(tMs) % Math.round(majorMs) === 0;
+          drawTick(
+            tMs / mpp - scrollLeft,
+            isMajor,
+            isMajor ? formatTimecode(tMs, majorMs, frameRate) : undefined
+          );
         }
       }
 
@@ -523,6 +547,8 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       fps,
       rangeInMs,
       rangeOutMs,
+      rulerMode,
+      tempo,
       resizeTick,
       scheduleDraw
     ]);
@@ -570,7 +596,11 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
           style={{ width: "100%", height: "100%" }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
-          aria-label="Time ruler — click or drag to set playhead"
+          aria-label={
+            rulerMode === "bars"
+              ? "Bars ruler — click or drag to set playhead"
+              : "Time ruler — click or drag to set playhead"
+          }
           role="slider"
           aria-valuemin={0}
         />

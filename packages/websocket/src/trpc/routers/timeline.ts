@@ -370,6 +370,7 @@ export const timelineRouter = router({
             input.document.transcript ?? current.transcript,
           scriptEnabled:
             input.document.scriptEnabled ?? current.scriptEnabled,
+          tempo: input.document.tempo ?? current.tempo,
           setup: input.document.setup ?? current.setup
         };
         fields.document = JSON.stringify(merged);

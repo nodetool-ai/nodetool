@@ -51,9 +51,22 @@ import {
   makeClip,
   makeMarker,
   makeTrackEffect,
-  createTimeOrderedUuid
+  createTimeOrderedUuid,
+  createMidiNote,
+  quantizeNotes,
+  rescaleClipsForTempo,
+  DEFAULT_TEMPO,
+  resolveTempo,
+  scaleVelocity,
+  sortNotes,
+  transposeNotes,
+  DEFAULT_MIDI_INSTRUMENT
 } from "@nodetool-ai/timeline";
-import type { AnimatedProperty, DropMode } from "@nodetool-ai/timeline";
+import type {
+  AnimatedProperty,
+  DropMode,
+  QuantizeOptions
+} from "@nodetool-ai/timeline";
 import type {
   TimelineSequence,
   TimelineTrack,
@@ -62,6 +75,9 @@ import type {
   TrackEffect,
   ClipBindingKind,
   ClipAnimation,
+  MidiInstrument,
+  MidiNote,
+  TimelineTempo,
   TranscriptLine,
   TimelineBeat,
   TimelineSetup
@@ -113,6 +129,12 @@ export interface TimelineStoreState {
    * Single source of truth, always a definite boolean post-normalization.
    */
   scriptEnabled: boolean;
+  /**
+   * The document's constant tempo. Absent means `DEFAULT_TEMPO` (120 BPM,
+   * 4/4, beat one at 0) — `resolveTempo` is the one place that decides, so a
+   * document written before midi existed reads the same everywhere.
+   */
+  tempo?: TimelineTempo;
   /**
    * Guided video-flow state (PRD § 8.5). Null on every sequence not built
    * through the flow, which is what makes those open straight in the editor.
@@ -261,6 +283,56 @@ export interface TimelineStoreState {
     oldIndex: number,
     newIndex: number
   ) => void;
+
+  // ── MIDI ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Set the document tempo and rescale the midi clips for it (through
+   * `rescaleClipsForTempo`, from the tempo the document is currently read at).
+   * Clips that are not midi keep their position: milliseconds are the master
+   * clock and a picture cut is where the editor put it. One undo entry.
+   */
+  setTempo: (tempo: TimelineTempo) => void;
+  /** Set the synth a midi track plays. Every clip on the track uses it. */
+  setTrackInstrument: (trackId: string, instrument: MidiInstrument) => void;
+  /**
+   * Place a midi clip and return its id. The notes ride inside the clip in
+   * ticks from its content start; ids and velocities are filled in by
+   * `createMidiNote`.
+   */
+  addMidiClip: (opts: {
+    trackId: string;
+    startMs: number;
+    durationMs: number;
+    name?: string;
+    notes?: Array<
+      Pick<MidiNote, "pitch" | "startTick" | "durationTick"> & Partial<MidiNote>
+    >;
+  }) => string;
+  /** Replace a midi clip's whole note list. */
+  setClipNotes: (
+    clipId: string,
+    notes: Array<
+      Pick<MidiNote, "pitch" | "startTick" | "durationTick"> & Partial<MidiNote>
+    >
+  ) => void;
+  /**
+   * Move every note in a midi clip by whole semitones, clamped to the 0..127
+   * MIDI range. Ids survive, so the selection still points at the same notes.
+   * One undo entry; a non-midi clip and a zero shift are both no-ops.
+   */
+  transposeClip: (clipId: string, semitones: number) => void;
+  /**
+   * Snap a midi clip's onsets — and, with `target: "start_and_length"`, its
+   * held lengths — to a note grid. Ticks are the grid, so the result does not
+   * depend on the document tempo. One undo entry.
+   */
+  quantizeClip: (clipId: string, options: QuantizeOptions) => void;
+  /**
+   * Scale how hard every note in a midi clip is struck, clamped to 1..127.
+   * One undo entry.
+   */
+  scaleClipVelocity: (clipId: string, factor: number) => void;
 
   // ── Clip mutations ───────────────────────────────────────────────────────
 
@@ -624,11 +696,30 @@ export interface TimelineStoreState {
   removeScene: (markerId: string) => void;
 }
 
+/**
+ * The tempo a document with midi tracks and no stored tempo plays at. Stored
+ * explicitly rather than left implicit: the PATCH merge keeps the server's
+ * tempo when the payload carries none, so an undo that restored `undefined`
+ * after the first tempo change would leave the row at the new BPM while the
+ * clips went back to their old positions.
+ */
+function impliedTempo(
+  tracks: readonly TimelineTrack[]
+): TimelineTempo | undefined {
+  return tracks.some((t) => t.type === "midi") ? DEFAULT_TEMPO : undefined;
+}
+
 // ── Partialized type for the temporal middleware (only document state is undo-able)
 
 type PartializedState = Pick<
   TimelineStoreState,
-  "tracks" | "clips" | "markers" | "durationMs" | "transcript" | "scriptEnabled"
+  | "tracks"
+  | "clips"
+  | "markers"
+  | "durationMs"
+  | "transcript"
+  | "scriptEnabled"
+  | "tempo"
 >;
 
 // ── Temporal equality (dedupe no-op sets) ───────────────────────────────────
@@ -685,7 +776,8 @@ function partializedEqual(
   ) {
     return (
       pastState.durationMs === currentState.durationMs &&
-      pastState.scriptEnabled === currentState.scriptEnabled
+      pastState.scriptEnabled === currentState.scriptEnabled &&
+      shallowRecordEqual(pastState.tempo, currentState.tempo)
     );
   }
   // `&&` short-circuits, so a diverging earlier slice avoids scanning later
@@ -696,7 +788,8 @@ function partializedEqual(
     shallowArrayEqual(pastState.clips, currentState.clips) &&
     shallowArrayEqual(pastState.markers, currentState.markers) &&
     shallowArrayEqual(pastState.transcript, currentState.transcript) &&
-    pastState.scriptEnabled === currentState.scriptEnabled
+    pastState.scriptEnabled === currentState.scriptEnabled &&
+    shallowRecordEqual(pastState.tempo, currentState.tempo)
   );
 }
 
@@ -738,6 +831,50 @@ function patchById<T extends { id: string }>(
     return items;
   }
   return items.map((it) => (it.id === id ? { ...it, ...patch } : it));
+}
+
+/**
+ * Rewrite one midi clip's note list through `edit`, as one undo entry.
+ *
+ * The clip's other fields do not move: a note edit changes what is played
+ * inside the window, never where the window sits. A clip that is not midi, or
+ * an edit that returns the notes unchanged, writes nothing.
+ */
+function editMidiNotes(
+  set: (
+    updater: (state: TimelineStoreState) => Partial<TimelineStoreState>
+  ) => void,
+  clipId: string,
+  edit: (notes: readonly MidiNote[]) => MidiNote[]
+): void {
+  set((state) => {
+    const clip = state.clips.find((c) => c.id === clipId);
+    if (!clip || clip.mediaType !== "midi") {
+      return state;
+    }
+    const notes = sortNotes(edit(clip.notes ?? []));
+    if (sameNotes(clip.notes ?? [], notes)) {
+      return state;
+    }
+    return {
+      clips: state.clips.map((c) => (c.id === clipId ? { ...c, notes } : c))
+    };
+  });
+}
+
+/** Whether two note lists carry the same notes, field for field. */
+function sameNotes(a: readonly MidiNote[], b: readonly MidiNote[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((note, index) => {
+    const other = b[index];
+    return (
+      note.id === other.id &&
+      note.pitch === other.pitch &&
+      note.velocity === other.velocity &&
+      note.startTick === other.startTick &&
+      note.durationTick === other.durationTick
+    );
+  });
 }
 
 /** Ids of the tracks a ripple must leave alone. */
@@ -982,6 +1119,7 @@ const emptyState = {
   markers: [],
   transcript: [],
   scriptEnabled: false,
+  tempo: undefined,
   setup: null,
   linkedSelection: true,
   syncedDocument: null
@@ -997,6 +1135,7 @@ const emptyState = {
   markers: TimelineMarker[];
   transcript: TranscriptLine[];
   scriptEnabled: boolean;
+  tempo: TimelineTempo | undefined;
   setup: TimelineSetup | null;
   linkedSelection: boolean;
   syncedDocument: TimelineStoreState["syncedDocument"];
@@ -1095,6 +1234,7 @@ export const createTimelineStore = (
               markers: seq.markers,
               transcript: [] as TranscriptLine[],
               scriptEnabled: seq.scriptEnabled ?? clips.some(isTranscriptClip),
+              tempo: seq.tempo ?? impliedTempo(seq.tracks),
               setup: seq.setup ?? null
             };
             set({
@@ -1116,6 +1256,7 @@ export const createTimelineStore = (
             markers: seq.markers,
             transcript: [],
             scriptEnabled: seq.scriptEnabled ?? seq.clips.some(isTranscriptClip),
+            tempo: seq.tempo ?? impliedTempo(seq.tracks),
             setup: seq.setup ?? null
           };
           set({
@@ -1239,9 +1380,22 @@ export const createTimelineStore = (
             type,
             name: name ?? `${type} ${get().tracks.length + 1}`
           });
-          set((state) => ({
-            tracks: insertTrackAt(state.tracks, track, atIndex)
-          }));
+          // A midi track is nothing without a voice: a clip on an
+          // instrument-less track would render silence. `makeTrack` in
+          // `@nodetool-ai/timeline` does not fill it in, so the store does.
+          if (type === "midi") {
+            track.instrument = DEFAULT_MIDI_INSTRUMENT;
+          }
+          set((state) => {
+            const next: Partial<TimelineStoreState> = {
+              tracks: insertTrackAt(state.tracks, track, atIndex)
+            };
+            // The first midi track fixes the tempo the part is written at.
+            if (type === "midi" && state.tempo === undefined) {
+              next.tempo = DEFAULT_TEMPO;
+            }
+            return next;
+          });
           return track.id;
         },
 
@@ -1931,6 +2085,80 @@ export const createTimelineStore = (
             return { clips };
           }),
 
+        // ── MIDI ──────────────────────────────────────────────────────────
+
+        setTempo: (tempo) =>
+          set((state) => {
+            const previous = resolveTempo(state);
+            // A repeat of the stored tempo is a no-op. A document that stores
+            // none is NOT: setting it to 120 changes nothing about playback but
+            // does record the tempo the part was written at, which is what a
+            // later change rescales from.
+            if (
+              state.tempo !== undefined &&
+              previous.bpm === tempo.bpm &&
+              previous.offsetMs === tempo.offsetMs &&
+              previous.timeSignature.beatsPerBar ===
+                tempo.timeSignature.beatsPerBar &&
+              previous.timeSignature.beatUnit === tempo.timeSignature.beatUnit
+            ) {
+              return state;
+            }
+            return {
+              tempo,
+              clips: rescaleClipsForTempo(
+                state.clips,
+                state.tracks,
+                previous,
+                tempo
+              )
+            };
+          }),
+
+        setTrackInstrument: (trackId, instrument) =>
+          set((state) => {
+            const tracks = patchById(state.tracks, trackId, { instrument });
+            return tracks === state.tracks ? state : { tracks };
+          }),
+
+        addMidiClip: (opts) => {
+          const clip = makeClip({
+            id: createTimeOrderedUuid(),
+            trackId: opts.trackId,
+            name: opts.name ?? "MIDI",
+            startMs: Math.max(0, opts.startMs),
+            durationMs: Math.max(1, opts.durationMs),
+            mediaType: "midi",
+            // The notes ARE the clip's content — nothing generates it and
+            // there is no asset to wait for — so it is imported+generated,
+            // exactly as an authored text clip is, and no generation path
+            // picks it up.
+            sourceType: "imported",
+            status: "generated",
+            locked: false,
+            versions: [],
+            notes: sortNotes((opts.notes ?? []).map(createMidiNote))
+          });
+          set((state) => ({ clips: [...state.clips, clip] }));
+          return clip.id;
+        },
+
+        setClipNotes: (clipId, notes) =>
+          get().patchClip(clipId, {
+            notes: sortNotes(notes.map(createMidiNote))
+          }),
+
+        transposeClip: (clipId, semitones) =>
+          editMidiNotes(set, clipId, (notes) =>
+            transposeNotes(notes, Math.trunc(semitones))
+          ),
+
+        quantizeClip: (clipId, options) =>
+          editMidiNotes(set, clipId, (notes) => quantizeNotes(notes, options)),
+
+        scaleClipVelocity: (clipId, factor) =>
+          editMidiNotes(set, clipId, (notes) => scaleVelocity(notes, factor)),
+
         addClip: (clip) =>
           set((state) => ({
             clips: [...state.clips, clip]
@@ -2392,7 +2620,8 @@ export const createTimelineStore = (
           markers: state.markers,
           durationMs: state.durationMs,
           transcript: state.transcript,
-          scriptEnabled: state.scriptEnabled
+          scriptEnabled: state.scriptEnabled,
+          tempo: state.tempo
         })
       }
     )

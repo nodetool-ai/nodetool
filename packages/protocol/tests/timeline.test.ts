@@ -12,7 +12,9 @@ import { describe, it, expect } from "vitest";
 import {
   createTimelineVersionInput,
   listTimelineVersionsInput,
+  midiNote,
   timelineClip,
+  timelineDocument,
   timelineVersionListItem,
   timelineVersionResponse
 } from "../src/api-schemas/timeline.js";
@@ -269,5 +271,81 @@ describe("timeline version schemas", () => {
       createTimelineVersionInput.safeParse({ id: "s", name: "x".repeat(201) })
         .success
     ).toBe(false);
+  });
+});
+
+describe("midi", () => {
+  const notes = [
+    { id: "n1", pitch: 60, velocity: 100, startTick: 0, durationTick: 960 },
+    { id: "n2", pitch: 67, velocity: 80, startTick: 960, durationTick: 480 }
+  ];
+
+  const document = {
+    tracks: [
+      {
+        id: "t-midi",
+        name: "Keys",
+        type: "midi" as const,
+        index: 0,
+        visible: true,
+        locked: false,
+        instrument: {
+          type: "subtractive" as const,
+          waveform: "saw" as const,
+          attackMs: 5,
+          decayMs: 120,
+          sustain: 0.7,
+          releaseMs: 150,
+          cutoffHz: 4000,
+          resonance: 0.7,
+          gainDb: -6
+        }
+      }
+    ],
+    clips: [
+      {
+        ...baseClip,
+        trackId: "t-midi",
+        mediaType: "midi" as const,
+        inPointMs: 0,
+        durationMs: 2000,
+        notes
+      }
+    ],
+    markers: [],
+    tempo: {
+      bpm: 90,
+      offsetMs: 250,
+      timeSignature: { beatsPerBar: 3, beatUnit: 4 }
+    }
+  };
+
+  it("round-trips a midi track, its clip's notes and the tempo", () => {
+    const parsed = timelineDocument.parse(document);
+    expect(parsed).toEqual(document);
+    expect(parsed.clips[0].notes).toEqual(notes);
+    expect(parsed.tracks[0].instrument).toEqual(document.tracks[0].instrument);
+    expect(parsed.tempo).toEqual(document.tempo);
+  });
+
+  it("refuses a pitch outside 0..127 and a velocity outside 1..127", () => {
+    expect(() => midiNote.parse({ ...notes[0], pitch: 128 })).toThrow();
+    expect(() => midiNote.parse({ ...notes[0], velocity: 0 })).toThrow();
+    expect(() => midiNote.parse({ ...notes[0], startTick: -1 })).toThrow();
+    expect(() => midiNote.parse({ ...notes[0], durationTick: 0 })).toThrow();
+    expect(() => midiNote.parse({ ...notes[0], pitch: 60.5 })).toThrow();
+  });
+
+  it("refuses a clip carrying more notes than the cap", () => {
+    const many = Array.from({ length: 4097 }, (_, i) => ({
+      id: `n${i}`,
+      pitch: 60,
+      velocity: 100,
+      startTick: i,
+      durationTick: 1
+    }));
+    expect(() =>
+      timelineClip.parse({ ...baseClip, mediaType: "midi", notes: many })
+    ).toThrow();
   });
 });

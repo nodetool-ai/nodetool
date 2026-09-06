@@ -26,7 +26,11 @@ import type {
   Quality,
   VideoCodec
 } from "mediabunny";
-import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
+import type {
+  TimelineClip,
+  TimelineTempo,
+  TimelineTrack
+} from "@nodetool-ai/timeline";
 
 import type { CompositeLayer } from "../preview/gpu/types";
 import {
@@ -90,6 +94,8 @@ interface RenderTimelineOptions {
   durationMs: number;
   /** Resolve an asset id to a playable URL (or undefined when unavailable). */
   resolveUrl: (assetId: string) => Promise<string | undefined>;
+  /** Tempo the midi clips are read against. Defaults to `DEFAULT_TEMPO`. */
+  tempo?: TimelineTempo;
   /**
    * Container to write. Default `"mp4"`. `"webm"` muxes VP9 + Opus;
    * `"png_sequence"` skips the muxer and zips one PNG per frame.
@@ -359,7 +365,8 @@ export async function renderTimeline(
           clips,
           tracks,
           durationMs,
-          resolveUrl: resolveCached
+          resolveUrl: resolveCached,
+          tempo: opts.tempo
         })
       : null;
     throwIfAborted(signal);

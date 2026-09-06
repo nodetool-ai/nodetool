@@ -128,7 +128,9 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "set_matte, set_time_remap, set_effects, animate_clip, " +
         "clear_animations, list_animation_presets, select_clip, seek, " +
         "add_marker, delete_marker, set_markers_from_beats, snap_to_beats, " +
-        "insert_composition. " +
+        "insert_composition, add_midi_clip, set_notes, set_tempo, " +
+        "set_track_instrument, transpose_clip, quantize_notes, " +
+        "scale_velocity. " +
         "Start with get_state to " +
         "read track and clip ids. To lay existing videos end to end, call " +
         'add_media_clip once per asset ({"op": "add_media_clip", "asset": ' +
@@ -200,7 +202,39 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "callout — in as a group with its children, each template track " +
         "becoming an overlay track of its own so the layering survives. " +
         "`params` overrides the template's defaults by name; list_compositions " +
-        "reports the ids and what each one takes.",
+        "reports the ids and what each one takes. " +
+        'A played part is midi: add_track {"type": "midi"} makes a track that ' +
+        "owns the synth (and gives the document a 120 BPM tempo if it had " +
+        'none), add_midi_clip takes {"track", "start_ms", "duration_ms", ' +
+        'name?, notes?} and set_notes {"clip", "notes"} replaces the whole ' +
+        "list. A note is {pitch (0..127, 60 is middle C), start_tick, " +
+        "duration_tick, velocity? (1..127, default 100), id?} in ticks from " +
+        "the clip's content start, 960 ticks to a quarter note — so trimming " +
+        "the clip hides notes instead of deleting them. " +
+        'set_track_instrument takes {"track", "instrument"}, either a named ' +
+        'voice — {"preset": "bass"}, one of saw-lead, square-lead, soft-pad, ' +
+        "pluck, bass, bell — or the synth spelled out: {type: " +
+        '"subtractive", waveform, attackMs, decayMs, sustain, releaseMs, ' +
+        "cutoffHz, resonance, gainDb}. get_state reports the preset a track's " +
+        "instrument matches as presetId. " +
+        'set_tempo takes {"bpm", offset_ms?, beats_per_bar?, beat_unit?} and ' +
+        "rescales every midi clip around offset_ms — halving the BPM doubles " +
+        "each midi clip's start and length — while picture and audio stay " +
+        "where they are. " +
+        "Three ops edit a phrase already placed, each rewriting the clip's " +
+        "whole note list and keeping every id: transpose_clip " +
+        '{"clip", "semitones"} moves every note by whole semitones (12 is an ' +
+        "octave; a note pushed past 0..127 is held at the end, so up and back " +
+        'down is not always the same phrase), quantize_notes {"clip", ' +
+        '"division", strength?, target?} snaps onsets to a note grid — ' +
+        "division is 1/4, 1/8, 1/16, 1/32 or the triplets 1/8T and 1/16T, " +
+        "read in ticks at PPQ 960 (1/4 is 960 ticks, 1/16 is 240, 1/8T is " +
+        "320), strength 0..1 moves each note part of the way and keeps the " +
+        'feel, target "start_and_length" also rounds the held lengths — and ' +
+        'reports movedNoteCount, and scale_velocity {"clip", "factor"} ' +
+        "multiplies every velocity, clamped to 1..127. Each is refused on a " +
+        "clip that is not midi. get_state reports every midi clip's start as " +
+        "startBarsBeats (bar.beat.tick) against the document tempo.",
       items: { type: "object" }
     }
   },

@@ -140,6 +140,21 @@ describe("computeActiveLayers", () => {
     expect(layers.map((l) => l.clipId)).toEqual(["vid"]);
   });
 
+  it("excludes midi clips and midi tracks — notes are not pixels", () => {
+    const tracks = [
+      track({ id: "v", index: 0, type: "video" }),
+      track({ id: "m", index: 1, type: "midi" })
+    ];
+    const clips = [
+      clip({ id: "vid", trackId: "v", startMs: 0, durationMs: 1000 }),
+      // On its own track, and mistakenly on a picture track: neither draws.
+      clip({ id: "onMidi", trackId: "m", startMs: 0, durationMs: 1000, mediaType: "midi" }),
+      clip({ id: "onVideo", trackId: "v", startMs: 0, durationMs: 1000, mediaType: "midi" })
+    ];
+    const layers = computeActiveLayers(tracks, clips, 100);
+    expect(layers.map((l) => l.clipId)).toEqual(["vid"]);
+  });
+
   it("orders layers bottom track first (ascending track index)", () => {
     const tracks = [
       track({ id: "top", index: 0 }),

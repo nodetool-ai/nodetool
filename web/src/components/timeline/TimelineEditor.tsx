@@ -57,6 +57,7 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
+import { PlayheadReadout } from "./PlayheadReadout";
 import { useTimelineCostEstimate } from "../../hooks/timeline/useTimelineCostEstimate";
 import { ProjectSettingsDialog } from "./ProjectSettingsDialog";
 import { ExportVideoDialog } from "./ExportVideoDialog";
@@ -68,6 +69,7 @@ import {
   useTimelines
 } from "../../hooks/useTimelineSequence";
 import { TracksRegion } from "./Tracks/TracksRegion";
+import { PianoRollPanel } from "./pianoRoll/PianoRollPanel";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
@@ -467,6 +469,7 @@ const TimelineStatusBar: React.FC<{ actionSlot?: React.ReactNode }> = memo(
       failedCount={failedCount}
       costEstimate={costEstimate}
       actionSlot={actionSlot}
+      readoutSlot={<PlayheadReadout />}
     />
   );
   }
@@ -505,6 +508,8 @@ const TimelineEditorBody: React.FC<
   const openPanelSheet = useCallback(() => setPanelSheetOpen(true), []);
   const closePanelSheet = useCallback(() => setPanelSheetOpen(false), []);
   const hasSelection = useTimelineUIStore((s) => s.selectedClipIds.size > 0);
+  const pianoRollOpen = useTimelineUIStore((s) => s.pianoRollClipId !== null);
+  const pianoRollFullScreen = isMobile && pianoRollOpen;
 
   // Register the ui_timeline_* agent tools against this instance, addressable
   // by sequence id whether or not this editor is the focused surface.
@@ -849,22 +854,29 @@ const TimelineEditorBody: React.FC<
       </FlexRow>
 
       {/* ── Horizontal drag handle (pointer + keyboard resizable) ─── */}
-      <div
-        ref={handleRef}
-        role="separator"
-        aria-orientation="horizontal"
-        aria-label="Resize tracks panel"
-        aria-valuenow={tracksHeight}
-        aria-valuemin={MIN_TRACKS_HEIGHT_PX}
-        aria-valuemax={MAX_TRACKS_HEIGHT_PX}
-        tabIndex={0}
-        css={dragHandleStyles(theme, isMobile)}
-        onPointerDown={handlePointerDown}
-        onKeyDown={handleKeyDown}
-      />
+      {!pianoRollFullScreen && (
+        <div
+          ref={handleRef}
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize tracks panel"
+          aria-valuenow={tracksHeight}
+          aria-valuemin={MIN_TRACKS_HEIGHT_PX}
+          aria-valuemax={MAX_TRACKS_HEIGHT_PX}
+          tabIndex={0}
+          css={dragHandleStyles(theme, isMobile)}
+          onPointerDown={handlePointerDown}
+          onKeyDown={handleKeyDown}
+        />
+      )}
 
       {/* ── Tracks ────────────────────────────────────────────────── */}
-      <TracksRegion heightPx={tracksHeight} />
+      {/* A phone has no room to stack a clip editor under the tracks, so the
+       *  piano roll replaces them and carries a Back control of its own. */}
+      {!pianoRollFullScreen && <TracksRegion heightPx={tracksHeight} />}
+
+      {/* ── Clip editor (piano roll) ──────────────────────────────── */}
+      <PianoRollPanel fullHeight={pianoRollFullScreen} />
 
       {/* ── Bottom status bar ─────────────────────────────────────── */}
       <TimelineStatusBar

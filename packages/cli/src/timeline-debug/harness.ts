@@ -61,6 +61,8 @@ export interface TimelineBridgeSnapshot {
   documentTracks?: TimelineDocument["tracks"];
   documentClips?: TimelineDocument["clips"];
   markers?: TimelineDocument["markers"];
+  /** The tempo the session ended on — `set_tempo`, or the first midi track. */
+  tempo?: TimelineDocument["tempo"];
 }
 
 export interface TimelineBridge {
@@ -73,6 +75,7 @@ export type CreateTimelineBridge = (initial: {
     tracks: TimelineDocument["tracks"];
     clips: TimelineDocument["clips"];
     markers?: TimelineDocument["markers"];
+    tempo?: TimelineDocument["tempo"];
   };
 }) => TimelineBridge;
 
@@ -172,7 +175,10 @@ export async function runTimelineDebug(
         ...resolved.meta,
         tracks: resolved.document.tracks,
         clips: resolved.document.clips,
-        markers: resolved.document.markers
+        markers: resolved.document.markers,
+        // Ticks are read against it, so a session that never sees the stored
+        // tempo rescales the midi clips off the 120 BPM default.
+        tempo: resolved.document.tempo
       }
     });
     const byName = new Map(bridge.tools.map((t) => [t.name, t]));
@@ -221,7 +227,8 @@ export async function runTimelineDebug(
       ? {
           tracks: snapshot.documentTracks,
           clips: snapshot.documentClips,
-          markers: snapshot.markers ?? resolved.document.markers
+          markers: snapshot.markers ?? resolved.document.markers,
+          tempo: snapshot.tempo ?? resolved.document.tempo
         }
       : undefined;
 

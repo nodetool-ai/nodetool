@@ -87,6 +87,7 @@ import {
   TIMELINE_SCROLLBAR_HEIGHT_PX
 } from "./TimelineScrollbar";
 import { TrackEffectsPanel } from "./TrackEffectsPanel";
+import { TrackInstrumentPanel } from "./TrackInstrumentPanel";
 import {
   ScriptLane,
   ScriptLaneHeader,
@@ -795,6 +796,14 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         target instanceof HTMLTextAreaElement ||
         (target instanceof HTMLElement && target.isContentEditable);
 
+      // The piano roll binds Delete, Ctrl+A, Ctrl+D, the arrows and Escape to
+      // its own notes. It stops propagation, but this listener sits on
+      // `window` and would still see an event React let through, so the panel
+      // is excluded by marker attribute rather than by trusting one path.
+      const isPianoRollTarget = (target: EventTarget | null): boolean =>
+        target instanceof HTMLElement &&
+        target.closest("[data-timeline-piano-roll]") !== null;
+
       // Arrow-key nudge undo batching: a held key repeats ~30×/s, each nudge
       // mutating the store. Without batching that's one undo entry per
       // repeat; begin() on the first nudge of a burst, mark() per nudge, and
@@ -816,7 +825,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       };
 
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (isEditableTarget(e.target)) {
+        if (isEditableTarget(e.target) || isPianoRollTarget(e.target)) {
           return;
         }
         // Another timeline surface (e.g. the focused preview's frame-step
@@ -1225,6 +1234,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const expandedFxTrackId = useTimelineUIStore(
       (s) => s.expandedFxTrackId
     );
+    const expandedInstrumentTrackId = useTimelineUIStore(
+      (s) => s.expandedInstrumentTrackId
+    );
 
     // Precompute per-type index map (O(n)) to avoid O(n²) per-header lookups.
     const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
@@ -1234,7 +1246,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         (sum, t) =>
           sum +
           (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) +
-          (t.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0),
+          (t.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0) +
+          (t.id === expandedInstrumentTrackId ? FX_PANEL_HEIGHT_PX : 0),
         0
       ) + (hasScript ? SCRIPT_LANE_HEIGHT_PX : 0);
 
@@ -1247,15 +1260,23 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     // visible while clips scroll horizontally. Its width matches the
     // scrollable area's visible width.
     const [fxPanelWidth, setFxPanelWidth] = useState(0);
+    const setLanesViewportWidthPx = useTimelineUIStore(
+      (s) => s.setLanesViewportWidthPx
+    );
     useEffect(() => {
       const el = scrollableRef.current;
       if (!el) return;
-      const update = () => setFxPanelWidth(el.clientWidth);
+      // The same measurement answers two questions: how wide the sticky
+      // panels are, and how much of the timeline the tempo grid has to cover.
+      const update = () => {
+        setFxPanelWidth(el.clientWidth);
+        setLanesViewportWidthPx(el.clientWidth);
+      };
       update();
       const ro = new ResizeObserver(update);
       ro.observe(el);
       return () => ro.disconnect();
-    }, []);
+    }, [setLanesViewportWidthPx]);
 
     return (
       <div
@@ -1343,6 +1364,12 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                     aria-hidden="true"
                   />
                 )}
+                {expandedInstrumentTrackId === track.id && (
+                  <div
+                    style={{ height: FX_PANEL_HEIGHT_PX }}
+                    aria-hidden="true"
+                  />
+                )}
               </React.Fragment>
             ))}
             {hasScript && scriptBeforeTrackId === null && <ScriptLaneHeader />}
@@ -1381,6 +1408,19 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                       }}
                     >
                       <TrackEffectsPanel trackId={track.id} />
+                    </div>
+                  )}
+                  {expandedInstrumentTrackId === track.id && (
+                    <div
+                      style={{
+                        position: "sticky",
+                        left: 0,
+                        width: fxPanelWidth,
+                        height: FX_PANEL_HEIGHT_PX,
+                        zIndex: Z_INDEX.base + 2
+                      }}
+                    >
+                      <TrackInstrumentPanel trackId={track.id} />
                     </div>
                   )}
                 </React.Fragment>

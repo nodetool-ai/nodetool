@@ -1,4 +1,5 @@
 import { timeRemapAudioSegments } from "@nodetool-ai/timeline";
+import type { TimeRemapAudioSegment } from "@nodetool-ai/timeline";
 import type {
   TimelineClip,
   TimelineTrack,
@@ -9,11 +10,26 @@ import type {
   TrackGainEffect
 } from "@nodetool-ai/timeline";
 
-export interface ScheduledAudioClip {
-  clip: TimelineClip;
-  /** Resolved HTTP URL for the audio asset. */
-  assetUrl: string;
-}
+/**
+ * One clip handed to the graph for scheduling, with the PCM it should play:
+ * either an asset URL the graph decodes (an audio clip) or a buffer the caller
+ * already rendered (a midi clip, from `midiRender.ts`). Everything downstream —
+ * clip gain, fades, the track chain, mute/solo, the offline export — treats the
+ * two identically.
+ */
+export type ScheduledAudioClip =
+  | {
+      clip: TimelineClip;
+      /** Resolved HTTP URL for the audio asset. */
+      assetUrl: string;
+      buffer?: undefined;
+    }
+  | {
+      clip: TimelineClip;
+      assetUrl?: undefined;
+      /** Already-rendered PCM — no asset, no decode. */
+      buffer: AudioBuffer;
+    };
 
 /**
  * Internal state for a single effect's audio nodes. Each effect chains
@@ -36,6 +52,23 @@ interface TrackChainState {
 }
 
 const DB_TO_LIN = (db: number): number => Math.pow(10, db / 20);
+
+/**
+ * One stretch over a buffer that already is the clip's window: source offset
+ * zero, unit rate, the clip's own span on the timeline.
+ */
+function windowSegments(clip: TimelineClip): TimeRemapAudioSegment[] {
+  return [
+    {
+      timelineStartMs: clip.startMs,
+      timelineEndMs: clip.startMs + clip.durationMs,
+      sourceStartMs: 0,
+      sourceEndMs: clip.durationMs,
+      rate: 1,
+      reverse: false
+    }
+  ];
+}
 
 /**
  * LRU cap on decoded AudioBuffer entries. A 3-min stereo @ 48 kHz buffer is
@@ -354,13 +387,21 @@ export class AudioGraph {
     }
   }
 
-  /** Solo rule: if any audio track is soloed, non-solo tracks are silenced. */
+  /**
+   * Solo rule: if any audible track is soloed, non-solo tracks are silenced.
+   *
+   * A midi track is mixed like an audio one — it carries gain, mute/solo and
+   * the same DSP chain — so it belongs in the same solo group; leaving it out
+   * would let a soloed audio track play over an unmuted synth part.
+   */
   updateTracks(tracks: TimelineTrack[]): void {
     if (!this.ctx) {
       return;
     }
     this.retainTracks(tracks.map((t) => t.id));
-    const audioTracks = tracks.filter((t) => t.type === "audio");
+    const audioTracks = tracks.filter(
+      (t) => t.type === "audio" || t.type === "midi"
+    );
     const hasSolo = audioTracks.some((t) => t.solo);
     const now = this.ctx.currentTime;
 
@@ -388,28 +429,38 @@ export class AudioGraph {
     globalRate = 1
   ): Promise<void> {
     const activeIds = new Set(clips.map((c) => c.clip.id));
-
-    for (const [id, sources] of this.clipSources) {
-      if (!activeIds.has(id)) {
-        for (const src of sources) {
-          try {
-            src.stop();
-          } catch {
-            // source may already have stopped at its natural end
-          }
-        }
-        const gain = this.clipGains.get(id);
-        try {
-          gain?.disconnect();
-        } catch {
-          /* not connected */
-        }
-        this.clipSources.delete(id);
-        this.clipGains.delete(id);
-      }
-    }
+    this.stopClips(
+      [...this.clipSources.keys()].filter((id) => !activeIds.has(id))
+    );
 
     await this.addClips(clips, tracks, currentTimeMs, shouldCancel, globalRate);
+  }
+
+  /**
+   * Stop and release the sources of named clips, leaving every other clip
+   * playing. This is how a clip whose audio changed mid-playback (a midi clip
+   * whose notes, instrument or tempo were edited) is taken out before being
+   * re-added with its new render.
+   */
+  stopClips(clipIds: Iterable<string>): void {
+    for (const id of clipIds) {
+      const sources = this.clipSources.get(id);
+      if (!sources) continue;
+      for (const src of sources) {
+        try {
+          src.stop();
+        } catch {
+          // source may already have stopped at its natural end
+        }
+      }
+      try {
+        this.clipGains.get(id)?.disconnect();
+      } catch {
+        /* not connected */
+      }
+      this.clipSources.delete(id);
+      this.clipGains.delete(id);
+    }
   }
 
   /**
@@ -435,12 +486,23 @@ export class AudioGraph {
     const g = Math.max(0.0001, globalRate);
     this.updateTracks(tracks);
 
-    const bufferPromises = clips.map(async ({ clip, assetUrl }) => {
-      if (this.clipSources.has(clip.id) || !clip.currentAssetId) {
-        return { clipId: clip.id, buffer: null };
+    const bufferPromises = clips.map(async (scheduled) => {
+      const { clip } = scheduled;
+      if (this.clipSources.has(clip.id)) {
+        return { clipId: clip.id, buffer: null, windowed: false };
       }
-      const buffer = await this.loadBuffer(clip.currentAssetId, assetUrl);
-      return { clipId: clip.id, buffer };
+      // A caller-supplied buffer is the clip's audio; nothing is fetched.
+      if (scheduled.buffer) {
+        return { clipId: clip.id, buffer: scheduled.buffer, windowed: true };
+      }
+      if (!clip.currentAssetId) {
+        return { clipId: clip.id, buffer: null, windowed: false };
+      }
+      const buffer = await this.loadBuffer(
+        clip.currentAssetId,
+        scheduled.assetUrl
+      );
+      return { clipId: clip.id, buffer, windowed: false };
     });
 
     const loadedBuffers = await Promise.all(bufferPromises);
@@ -449,18 +511,16 @@ export class AudioGraph {
     if (shouldCancel?.()) {
       return;
     }
-    const bufferMap = new Map(loadedBuffers.map((b) => [b.clipId, b.buffer]));
+    const bufferMap = new Map(loadedBuffers.map((b) => [b.clipId, b]));
 
     for (const { clip } of clips) {
       if (this.clipSources.has(clip.id)) {
         continue;
       }
-      if (!clip.currentAssetId) {
-        continue;
-      }
 
-      const buffer = bufferMap.get(clip.id);
-      if (!buffer) {
+      const loaded = bufferMap.get(clip.id);
+      const buffer = loaded?.buffer;
+      if (!loaded || !buffer) {
         continue;
       }
 
@@ -468,7 +528,14 @@ export class AudioGraph {
       // `timeRemap` that is one stretch carrying the clip's own rate (a baked
       // speed reads as 1:1, the asset already playing at the right speed) and
       // its in-point, so an ordinary clip is scheduled exactly as before.
-      const segments = timeRemapAudioSegments(clip);
+      //
+      // A caller-supplied buffer is already the clip's window: its first
+      // sample is the clip's in-point. Reading `inPointMs` again would seek
+      // that far into a buffer that no longer contains it — on a clip split
+      // at its midpoint, past the end of the right half's buffer.
+      const segments = loaded.windowed
+        ? windowSegments(clip)
+        : timeRemapAudioSegments(clip);
 
       const volumeLinear = clip.volumeDb
         ? Math.pow(10, clip.volumeDb / 20)

@@ -15,6 +15,7 @@ interface TimelineDocumentPayload {
   markers: TimelineStoreState["markers"];
   transcript: TimelineStoreState["transcript"];
   scriptEnabled: TimelineStoreState["scriptEnabled"];
+  tempo: TimelineStoreState["tempo"];
   /** Undefined rather than null: a sequence never in the flow stays without
    * the key, which is what `timelineDocument` reads as "opens in the editor". */
   setup: NonNullable<TimelineStoreState["setup"]> | undefined;
@@ -24,7 +25,7 @@ interface TimelineDocumentPayload {
 export function buildTimelineDocumentPayload(
   state: Pick<
     TimelineStoreState,
-    "tracks" | "clips" | "markers" | "transcript" | "scriptEnabled"
+    "tracks" | "clips" | "markers" | "transcript" | "scriptEnabled" | "tempo"
     // Null on the store, undefined on the payload it produces — so the builder
     // takes either and answers only the payload's shape.
   > & { setup?: TimelineStoreState["setup"] }
@@ -35,6 +36,7 @@ export function buildTimelineDocumentPayload(
     markers: state.markers,
     transcript: state.transcript,
     scriptEnabled: state.scriptEnabled,
+    tempo: state.tempo,
     setup: state.setup ?? undefined
   };
 }

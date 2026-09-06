@@ -324,8 +324,10 @@ describe("harness gate", () => {
     );
     expect(check).toBeDefined();
     expect(check!.surfaces.sort()).toEqual(["script", "storyboard"]);
-    // timeline-validate and eval need a target or a model, so they are manual.
-    expect(plan.manual.map((m) => m.harnessId)).toContain("timeline-validate");
+    // `eval` needs a model, so it stays manual; `timeline-validate` carries a
+    // selfcheck (the validator's rule suites) and runs.
+    expect(plan.manual.map((m) => m.harnessId)).toContain("eval");
+    expect(plan.checks.map((c) => c.harnessId)).toContain("timeline-validate");
     expect(plan.unmappedFiles).toEqual([]);
   });
 

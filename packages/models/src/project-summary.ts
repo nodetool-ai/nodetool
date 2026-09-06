@@ -114,7 +114,7 @@ export interface TimelinePreviewClip {
 }
 
 export interface TimelinePreviewTrack {
-  type: "video" | "audio" | "overlay" | "subtitle";
+  type: "video" | "audio" | "overlay" | "subtitle" | "midi";
   name: string;
   clips: TimelinePreviewClip[];
 }
@@ -263,7 +263,7 @@ export function timelinePreview(
   tracks: readonly {
     id: string;
     name: string;
-    type: "video" | "audio" | "overlay" | "subtitle";
+    type: "video" | "audio" | "overlay" | "subtitle" | "midi";
     index: number;
   }[],
   clips: readonly { trackId: string; startMs: number; durationMs: number }[],

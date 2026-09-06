@@ -1,14 +1,20 @@
 /** @jsxImportSource @emotion/react */
 /**
- * ProjectSettingsDialog — sequence-level canvas & frame-rate settings.
+ * ProjectSettingsDialog — sequence-level canvas, frame-rate and tempo settings.
  *
  * Like the project settings in a video editor: pick a canvas resolution
  * (preset or custom width/height) and a frame rate. Both feed the live preview
  * compositor and the offline export, which read `width`/`height`/`fps` from the
  * {@link TimelineStore}. Applying persists via {@link useTimelineProjectSettings}.
+ *
+ * Tempo takes a different route: `width`/`height`/`fps` are top-level columns
+ * this dialog PATCHes, while `tempo` rides in the document slice the autosave
+ * hook already carries, so applying it is one `setTempo` call on the store.
  */
 import React, { memo, useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
+
+import { resolveTempo } from "@nodetool-ai/timeline";
 
 import {
   Caption,
@@ -29,6 +35,17 @@ const MIN_DIM = 16;
 const MAX_DIM = 7680;
 const MIN_FPS = 1;
 const MAX_FPS = 240;
+
+const MIN_BPM = 20;
+const MAX_BPM = 300;
+const MIN_BEATS_PER_BAR = 1;
+const MAX_BEATS_PER_BAR = 16;
+
+const BEAT_UNITS = [2, 4, 8, 16] as const;
+const BEAT_UNIT_OPTIONS: readonly SelectOption[] = BEAT_UNITS.map((unit) => ({
+  value: String(unit),
+  label: `/ ${unit}`
+}));
 
 const CUSTOM = "custom";
 
@@ -71,6 +88,14 @@ const isValidDim = (n: number): boolean =>
 const isValidFps = (n: number): boolean =>
   Number.isInteger(n) && n >= MIN_FPS && n <= MAX_FPS;
 
+const isValidBpm = (n: number): boolean =>
+  Number.isFinite(n) && n >= MIN_BPM && n <= MAX_BPM;
+
+const isValidBeatsPerBar = (n: number): boolean =>
+  Number.isInteger(n) && n >= MIN_BEATS_PER_BAR && n <= MAX_BEATS_PER_BAR;
+
+const isValidOffset = (n: number): boolean => Number.isFinite(n) && n >= 0;
+
 // ── Component ──────────────────────────────────────────────────────────────────
 
 interface ProjectSettingsDialogProps {
@@ -85,12 +110,25 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
   const { fps, width, height } = useTimelineStore(
     useShallow((s) => ({ fps: s.fps, width: s.width, height: s.height }))
   );
+  const tempo = useTimelineStore((s) => resolveTempo(s));
+  const setTempo = useTimelineStore((s) => s.setTempo);
+  const midiClipCount = useTimelineStore(
+    (s) => s.clips.filter((c) => c.mediaType === "midi").length
+  );
   const { save, isSaving } = useTimelineProjectSettings();
 
   // Local draft as strings so partially-typed input doesn't fight the parser.
   const [widthText, setWidthText] = useState(String(width));
   const [heightText, setHeightText] = useState(String(height));
   const [fpsText, setFpsText] = useState(String(fps));
+  const [bpmText, setBpmText] = useState(String(tempo.bpm));
+  const [beatsPerBarText, setBeatsPerBarText] = useState(
+    String(tempo.timeSignature.beatsPerBar)
+  );
+  const [beatUnit, setBeatUnit] = useState(
+    String(tempo.timeSignature.beatUnit)
+  );
+  const [offsetText, setOffsetText] = useState(String(tempo.offsetMs));
 
   // Re-seed the draft from the store each time the dialog opens.
   useEffect(() => {
@@ -98,17 +136,30 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
       setWidthText(String(width));
       setHeightText(String(height));
       setFpsText(String(fps));
+      setBpmText(String(tempo.bpm));
+      setBeatsPerBarText(String(tempo.timeSignature.beatsPerBar));
+      setBeatUnit(String(tempo.timeSignature.beatUnit));
+      setOffsetText(String(tempo.offsetMs));
     }
-  }, [open, width, height, fps]);
+  }, [open, width, height, fps, tempo]);
 
   const widthNum = Number(widthText);
   const heightNum = Number(heightText);
   const fpsNum = Number(fpsText);
 
+  const bpmNum = Number(bpmText);
+  const beatsPerBarNum = Number(beatsPerBarText);
+  const beatUnitNum = Number(beatUnit);
+  const offsetNum = Number(offsetText);
+
   const widthValid = isValidDim(widthNum);
   const heightValid = isValidDim(heightNum);
   const fpsValid = isValidFps(fpsNum);
-  const allValid = widthValid && heightValid && fpsValid;
+  const bpmValid = isValidBpm(bpmNum);
+  const beatsPerBarValid = isValidBeatsPerBar(beatsPerBarNum);
+  const offsetValid = isValidOffset(offsetNum);
+  const tempoValid = bpmValid && beatsPerBarValid && offsetValid;
+  const allValid = widthValid && heightValid && fpsValid && tempoValid;
 
   const resolutionPreset = useMemo(
     () =>
@@ -135,12 +186,30 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
     if (value !== CUSTOM) setFpsText(value);
   };
 
-  const dirty =
-    allValid && (widthNum !== width || heightNum !== height || fpsNum !== fps);
+  const canvasDirty =
+    widthNum !== width || heightNum !== height || fpsNum !== fps;
+  const tempoDirty =
+    bpmNum !== tempo.bpm ||
+    beatsPerBarNum !== tempo.timeSignature.beatsPerBar ||
+    beatUnitNum !== tempo.timeSignature.beatUnit ||
+    offsetNum !== tempo.offsetMs;
+  const dirty = allValid && (canvasDirty || tempoDirty);
 
   const handleApply = async () => {
     if (!allValid) return;
-    await save({ width: widthNum, height: heightNum, fps: fpsNum });
+    if (tempoDirty) {
+      setTempo({
+        bpm: bpmNum,
+        offsetMs: offsetNum,
+        timeSignature: {
+          beatsPerBar: beatsPerBarNum,
+          beatUnit: beatUnitNum
+        }
+      });
+    }
+    if (canvasDirty) {
+      await save({ width: widthNum, height: heightNum, fps: fpsNum });
+    }
     onClose();
   };
 
@@ -238,6 +307,74 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
               sx={{ width: 120 }}
             />
           </FlexRow>
+        </FlexColumn>
+
+        {/* ── Tempo ───────────────────────────────────────────────── */}
+        <FlexColumn gap={1.5}>
+          <Text size="small" weight={600} sx={{ mb: 1.5 }}>
+            Tempo
+          </Text>
+          <FlexRow gap={1.5} align="flex-start">
+            <TextInput
+              label="BPM"
+              type="number"
+              size="small"
+              value={bpmText}
+              onChange={(e) => setBpmText(e.target.value)}
+              errorMessage={
+                bpmText !== "" && !bpmValid ? `${MIN_BPM}–${MAX_BPM}` : undefined
+              }
+              inputProps={{ min: MIN_BPM, max: MAX_BPM, step: 1 }}
+              sx={{ flex: 1 }}
+            />
+            <TextInput
+              label="Beats per bar"
+              type="number"
+              size="small"
+              value={beatsPerBarText}
+              onChange={(e) => setBeatsPerBarText(e.target.value)}
+              errorMessage={
+                beatsPerBarText !== "" && !beatsPerBarValid
+                  ? `${MIN_BEATS_PER_BAR}–${MAX_BEATS_PER_BAR}`
+                  : undefined
+              }
+              inputProps={{
+                min: MIN_BEATS_PER_BAR,
+                max: MAX_BEATS_PER_BAR,
+                step: 1
+              }}
+              sx={{ flex: 1 }}
+            />
+            <FlexColumn sx={{ flex: 1 }}>
+              <SelectField
+                label="Beat unit"
+                variant="outlined"
+                value={beatUnit}
+                onChange={setBeatUnit}
+                options={BEAT_UNIT_OPTIONS}
+                size="small"
+              />
+            </FlexColumn>
+          </FlexRow>
+          <TextInput
+            label="Beat one at"
+            type="number"
+            size="small"
+            value={offsetText}
+            onChange={(e) => setOffsetText(e.target.value)}
+            errorMessage={
+              offsetText !== "" && !offsetValid ? "0 or more" : undefined
+            }
+            inputProps={{ min: 0, step: 1 }}
+            sx={{ mt: 2, width: 160 }}
+          />
+          {midiClipCount > 0 && (
+            <Caption sx={{ color: "text.secondary" }}>
+              Your {midiClipCount === 1 ? "part" : "parts"} keep the same notes
+              and play at the new speed — the {midiClipCount === 1 ? "clip" : "clips"}{" "}
+              stretch around beat one. Picture and audio clips stay where they are.
+            </Caption>
+          )}
         </FlexColumn>
 
         <Caption sx={{ color: "text.secondary" }}>

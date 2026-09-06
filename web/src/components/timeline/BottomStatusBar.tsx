@@ -71,6 +71,11 @@ interface BottomStatusBarProps {
    * with the zoom controls on the right.
    */
   actionSlot?: React.ReactNode;
+  /**
+   * Optional readout rendered left of the zoom controls — the editor puts the
+   * playhead position here, in the units the ruler is counting.
+   */
+  readoutSlot?: React.ReactNode;
 }
 
 const noop = () => {};
@@ -83,7 +88,8 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
     costEstimate = null,
     zoom = 1,
     onZoomChange,
-    actionSlot
+    actionSlot,
+    readoutSlot
   }) => {
     const theme = useTheme();
 
@@ -131,8 +137,9 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
           />
         </FlexRow>
 
-        {/* Right: zoom */}
+        {/* Right: playhead readout + zoom */}
         <FlexRow gap={2} align="center">
+          {readoutSlot}
           <ZoomControls
             zoom={zoom}
             onZoomChange={onZoomChange ?? noop}

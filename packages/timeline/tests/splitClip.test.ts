@@ -155,3 +155,34 @@ describe("splitClip", () => {
     expect(left.durationMs + right.durationMs).toBe(clip.durationMs);
   });
 });
+
+describe("splitClip on a midi clip", () => {
+  const midiClip = (): TimelineClip => ({
+    ...makeBaseClip(),
+    mediaType: "midi",
+    startMs: 0,
+    durationMs: 1000,
+    inPointMs: 0,
+    outPointMs: 1000,
+    notes: [
+      { id: "n1", pitch: 60, velocity: 100, startTick: 0, durationTick: 960 },
+      { id: "n2", pitch: 67, velocity: 90, startTick: 960, durationTick: 960 }
+    ]
+  });
+
+  it("copies the notes to both halves and advances the right in-point", () => {
+    const clip = midiClip();
+    const [left, right] = splitClip(clip, 400);
+
+    // Notes are content-relative, so both halves keep the whole list; what
+    // changes is the window each half opens on it.
+    expect(left.notes).toEqual(clip.notes);
+    expect(right.notes).toEqual(clip.notes);
+    expect(left.inPointMs).toBe(0);
+    expect(left.outPointMs).toBe(400);
+    expect(right.inPointMs).toBe(400);
+    expect(right.outPointMs).toBe(1000);
+    expect(left.durationMs).toBe(400);
+    expect(right.durationMs).toBe(600);
+  });
+});

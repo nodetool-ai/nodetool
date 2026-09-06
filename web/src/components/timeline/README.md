@@ -101,6 +101,119 @@ This keeps the upload and clip-creation paths separate, ensures assets are
 persisted in the database before being referenced by a clip, and avoids
 partial-upload states in the timeline document.
 
+## MIDI tracks
+
+A `midi` track carries clips whose content is notes rather than a file, played
+by the track's own synth. It mixes exactly like an audio track — gain, fades,
+mute/solo, the DSP chain, the offline export — because the notes become an
+`AudioBuffer` before they reach any of that.
+
+- **Milliseconds stay the master clock.** A note's `startTick` / `durationTick`
+  are ticks (960 per quarter note) counted from its clip's *content* start, so
+  trimming the clip hides notes instead of deleting them, and a split copies
+  them and moves `inPointMs`. Reading a tick as a time needs the tempo, so
+  `setTempo` rescales every midi clip around `tempo.offsetMs` through
+  `rescaleClipsForTempo` and leaves every other clip where the editor put it —
+  a picture cut does not move because the music got slower.
+- **The track owns the instrument**, not the clip: moving a clip to another
+  midi track changes its sound. A new midi track gets
+  `DEFAULT_MIDI_INSTRUMENT`.
+- **Render path**: `preview/midiRender.ts` turns a clip into a mono buffer with
+  the pure renderer in `@nodetool-ai/timeline/midi`, caches it under
+  `midiRenderKey` (notes + window + tempo + instrument + sample rate) and runs
+  it in a module worker when the host has one. `AudioGraph` takes
+  `{ clip, buffer }` where an audio clip gives `{ clip, assetUrl }`; everything
+  downstream is unchanged. An edit while playing moves the render key, and the
+  audio top-up pass stops that clip's sources and re-adds it at the playhead.
+  `render/renderAudio.ts` renders midi clips inline on the offline context, so
+  an export sounds like the preview. `preview/audition.ts` plays one note
+  through the same voice on its own short-lived context.
+- **Not supported on a midi clip**: `speedMultiplier` and `timeRemap`. The
+  validator rejects them; the editor ignores them.
+
+### Editing a part
+
+- **Tempo** lives in Project settings (the TopBar's Settings): BPM, time
+  signature and where beat one sits. It is document state the autosave already
+  carries, so applying it calls the store's `setTempo` rather than the
+  `width`/`height`/`fps` PATCH the same dialog does — and the dialog says what
+  the change will do to the parts already in the document.
+- **Bars ruler and grid**: the toolbar's Bars toggle switches `TimeRuler` from
+  timecode to bar lines with beat ticks (`rulerMode` on `TimelineUIStore`; the
+  tick list is `computeBarRulerTicks` in `Tracks/tempoGrid.ts`, so the labels
+  are testable without a canvas). The division select next to it sets
+  `gridDivision` — bar, beat, or a note value — which is what `collectSnapCandidates`
+  offers as extra snap targets, over the visible range only, whenever the
+  magnet is on and the document either has a midi track or is read in bars.
+  The status bar's readout follows the ruler: bar.beat.tick in bars mode,
+  timecode otherwise.
+- **Instrument**: a midi track header carries a preset select
+  (`MIDI_INSTRUMENT_PRESETS`, reading "Custom" when the voice matches none) and
+  an Edit toggle that expands `TrackInstrumentPanel` under the row, the way the
+  DSP chain editor does. Waveform, ADSR, cutoff (log 20 Hz–20 kHz), resonance
+  and gain each write the track and audition a middle C, debounced so a slider
+  drag plays one note rather than sixty.
+- **Note edits**: selecting a midi clip shows `Inspector/ClipMidiSection` —
+  note and audible-note counts, transpose (±1, ±12), quantize (division,
+  strength, onsets or onsets+lengths) and velocity scaling. Each Apply is one
+  store action (`transposeClip`, `quantizeClip`, `scaleClipVelocity`) and one
+  undo entry.
+
+### The piano roll
+
+`pianoRoll/PianoRollPanel` is the clip editor: a resizable strip under the
+tracks, opened by double-clicking a midi clip, by "Edit notes" in the clip
+menu, or by the Inspector's Edit notes button. `pianoRollClipId`,
+`pianoRollHeightPx`, `openPianoRoll` and `closePianoRoll` live on
+`TimelineUIStore`; the panel closes itself when the clip it edits is gone. The
+side dock is 360 px wide, so the panel stacks below the tracks instead — and on
+a phone it replaces the tracks region with a Back control.
+
+- **What it draws** (`PianoRoll` + `PianoRollGrid`, `PianoRollKeyboard`,
+  `PianoRollRuler`, `PianoRollVelocityLane`): a clickable keyboard column that
+  auditions through the track's own voice, a bars:beats ruler built from
+  `computeBarRulerTicks` over the timeline milliseconds the clip's content
+  plays at, the note grid, and one velocity bar per note. It shows the clip's
+  **content**, not its window: everything outside `inPointMs …
+  inPointMs + durationMs` is shaded, because a trim hides notes rather than
+  deleting them. The playhead is written into the DOM from the playback store's
+  transient time channel, so a playing timeline does not re-render the panel.
+- **Gestures**: click empty space to add a note one grid unit long at velocity
+  100 (auditioned); click to select, Shift+click to toggle, drag empty space to
+  marquee-select (overlap, not containment); drag a note body to move it in
+  ticks and semitones, snapped to `gridDivision` unless Alt is held, auditioning
+  each new pitch; drag the last 8 px to resize; double-click to delete; drag a
+  velocity bar to set that note's velocity.
+- **Keys** (the panel is focusable and `TracksRegion`'s window handler skips
+  `[data-timeline-piano-roll]`, so these never reach the clip keymap):
+  Delete/Backspace removes the selection, Ctrl/Cmd+A selects all, Ctrl/Cmd+D
+  duplicates one grid unit past the selection's end, ←/→ nudge by a grid unit,
+  ↑/↓ by a semitone (Shift for an octave), Escape clears the selection and then
+  closes the panel.
+- **Zoom and scroll** follow `timelineWheel.ts`: Ctrl/Cmd+wheel zooms anchored
+  at the cursor, Shift+wheel and a two-finger horizontal swipe pan, a plain
+  vertical wheel scrolls the 128 pitches. The view opens framed on the clip's
+  window and centred on its notes (C3..C5 when there are none).
+- **Undo**: every pointer gesture is one entry — the drag writes through
+  `setClipNotes` on each move (so the audio top-up pass re-renders the clip as
+  you edit) with the temporal middleware paused by `useTimelineHistoryBatch`,
+  the same way a clip drag works. Each keyboard action writes once, so it is
+  one entry by construction.
+- **Where the math lives**: the note-list edits are pure functions in
+  `@nodetool-ai/timeline` (`midi/notesEdit.ts`: `addNote`, `removeNotes`,
+  `moveNotes` — clamped as a group so a chord keeps its spacing — `resizeNotes`,
+  `setVelocity`, `duplicateNotes`, `notesInRect`, `snapTick`), and the pixel
+  mapping is `pianoRoll/pianoRollGeometry.ts` (`tickToX`, `xToTick`, `pitchToY`,
+  `yToPitch`, `noteRect`, `hitTestNote` with its 8 px end grip, `isBlackKey`,
+  `pitchName`, `initialTopPitch`). Both are unit-tested without a canvas.
+
+Seven agent tools drive it — `ui_timeline_add_midi_clip`,
+`ui_timeline_set_notes` (the whole list, not a merge), `ui_timeline_set_tempo`,
+`ui_timeline_set_track_instrument`, `ui_timeline_transpose_clip`,
+`ui_timeline_quantize_notes` and `ui_timeline_scale_velocity`.
+`ui_timeline_get_state` reports the resolved tempo, each track's instrument and
+the preset it matches, and each midi clip's note count.
+
 ## Persistence
 
 Every `TimelineStore` mutation (clip add, move, trim, split, delete) is
@@ -182,7 +295,7 @@ frontend tools.
 | Tool | What it does |
 |------|--------------|
 | `ui_timeline_get_state` | Read tracks, clips, selection, playhead, resolution, fps, duration. Call first. |
-| `ui_timeline_add_track` | Add a video / audio / overlay / subtitle track. |
+| `ui_timeline_add_track` | Add a video / audio / overlay / subtitle / midi track. |
 | `ui_timeline_generate_clip` | Generate a clip from a prompt (text-to-video / -image / -audio) and start generation. |
 | `ui_timeline_split_clip` | Cut a clip in two (razor) at a time or the playhead. |
 | `ui_timeline_trim_clip` | Set on-timeline duration and/or source in/out points. |
@@ -193,6 +306,13 @@ frontend tools.
 | `ui_timeline_set_clip_binding` | Edit a generated clip's prompt / provider / model / voice and optionally regenerate. |
 | `ui_timeline_select_clip` | Select a clip (drives the inspector). |
 | `ui_timeline_seek` | Move the playhead. |
+| `ui_timeline_add_midi_clip` | Place a midi phrase on a midi track, notes in ticks. |
+| `ui_timeline_set_notes` | Replace a midi clip's whole note list. |
+| `ui_timeline_set_tempo` | Set the document tempo; rescales the midi clips. |
+| `ui_timeline_set_track_instrument` | Set the synth a midi track plays, spelled out or as `{"preset": "soft-pad"}`. |
+| `ui_timeline_transpose_clip` | Move every note in a midi clip by whole semitones. |
+| `ui_timeline_quantize_notes` | Snap a midi clip's onsets (and optionally lengths) to a note grid. |
+| `ui_timeline_scale_velocity` | Scale how hard every note in a midi clip is struck. |
 
 Clips and tracks are addressed by id, by case-insensitive name, or — for the
 selected clip — the literal `"selected"`. Times are milliseconds on the

@@ -65,6 +65,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   );
 
   const selectClip = useTimelineUIStore((s) => s.selectClip);
+  const openPianoRoll = useTimelineUIStore((s) => s.openPianoRoll);
   const addToSelection = useTimelineUIStore((s) => s.addToSelection);
   const toggleSelection = useTimelineUIStore((s) => s.toggleSelection);
 
@@ -219,6 +220,20 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     [clipId, isDraggingRef, selectClip, addToSelection, toggleSelection]
   );
 
+  // A midi clip's content is notes, and the way a DAW opens them is a
+  // double-click on the clip. Every other media type has nothing to open.
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (clip?.mediaType !== "midi") {
+        return;
+      }
+      e.stopPropagation();
+      selectClip(clipId);
+      openPianoRoll(clipId);
+    },
+    [clip?.mediaType, clipId, openPianoRoll, selectClip]
+  );
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -252,6 +267,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         statusInfo={statusInfo}
         handleDragPointerDown={handleDragPointerDown}
         handleClick={handleClick}
+        handleDoubleClick={handleDoubleClick}
         handleKeyDown={handleKeyDown}
         handleContextMenu={handleContextMenu}
         handleTrimStartPointerDown={handleTrimStartPointerDown}

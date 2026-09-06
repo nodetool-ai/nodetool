@@ -1,5 +1,7 @@
 import { z } from "zod";
 import {
+  findInstrumentPreset,
+  MIDI_INSTRUMENT_PRESETS,
   ANIMATED_PROPERTIES,
   ANIMATION_PRESETS,
   CUSTOM_ANIMATION_CONTRACT,
@@ -9,6 +11,8 @@ import {
   buildBeatGrid,
   snapClipsToGrid,
   type ClipSnapResult,
+  type MidiInstrument,
+  type QuantizeOptions,
   type SnapBoundaryMode,
   type SnapAction
 } from "@nodetool-ai/timeline";
@@ -17,7 +21,8 @@ import {
   resolveMoveTrackArgs,
   resolveShapeArg,
   targetParam,
-  textStylePatchParams
+  textStylePatchParams,
+  type MidiNoteParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import {
   buildTimelineToolContracts,
@@ -31,6 +36,7 @@ import { FrontendToolRegistry } from "../frontendTools";
 import {
   getTimelineAgentHandler,
   type ClipAnimationInput,
+  type MidiNoteInput,
   type TimelineAgentHandler,
   type TimelineClipNode,
   type TimelineMarkerNode
@@ -108,6 +114,44 @@ const sharedWithoutSequence = <K extends TimelineToolName>(name: K) => ({
   description: TIMELINE_CONTRACTS[name].description,
   parameters: uiToolParams(TIMELINE_CONTRACTS[name])
 });
+
+/** One note as the tool schema writes it, in the document's own field names. */
+const toNoteInput = (note: MidiNoteParams): MidiNoteInput => {
+  const input: MidiNoteInput = {
+    pitch: note.pitch,
+    startTick: note.start_tick,
+    durationTick: note.duration_tick
+  };
+  if (note.id !== undefined) {
+    input.id = note.id;
+  }
+  if (note.velocity !== undefined) {
+    input.velocity = note.velocity;
+  }
+  return input;
+};
+
+/**
+ * A voice, either spelled out or named. A preset is resolved to the full
+ * instrument here rather than stored as a reference, so the track keeps the
+ * sound it was given after the preset table changes.
+ */
+const resolveInstrumentArg = (
+  instrument: MidiInstrument | { preset: string }
+): { instrument: MidiInstrument } | { error: string } => {
+  if (!("preset" in instrument)) {
+    return { instrument };
+  }
+  const preset = findInstrumentPreset(instrument.preset);
+  if (!preset) {
+    return {
+      error: `No instrument preset named "${instrument.preset}". Valid ids: ${MIDI_INSTRUMENT_PRESETS.map(
+        (p) => p.id
+      ).join(", ")}.`
+    };
+  }
+  return { instrument: preset.instrument };
+};
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_get_state"),
@@ -645,6 +689,121 @@ FrontendToolRegistry.register({
     const result =
       await getTimelineAgentHandler(timeline_id).generateFromBeats(opts);
     return { ok: true, ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_add_midi_clip"),
+  async execute({ timeline_id, track, start_ms, duration_ms, name, notes }) {
+    const clip = getTimelineAgentHandler(timeline_id).addMidiClip({
+      trackId: track,
+      startMs: start_ms,
+      durationMs: duration_ms,
+      name,
+      notes: (notes ?? []).map(toNoteInput)
+    });
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_set_notes"),
+  async execute({ timeline_id, clip: target, notes }) {
+    const clip = getTimelineAgentHandler(timeline_id).setNotes(
+      target,
+      notes.map(toNoteInput)
+    );
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_set_tempo"),
+  async execute({ timeline_id, bpm, offset_ms, beats_per_bar, beat_unit }) {
+    const snapshot = getTimelineAgentHandler(timeline_id).setTempo({
+      bpm,
+      offsetMs: offset_ms ?? 0,
+      timeSignature: {
+        beatsPerBar: beats_per_bar ?? 4,
+        beatUnit: beat_unit ?? 4
+      }
+    });
+    return { ok: true, ...snapshot, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_set_track_instrument"),
+  async execute({ timeline_id, track, instrument }) {
+    const resolved = resolveInstrumentArg(instrument);
+    if ("error" in resolved) {
+      return { ok: false, error: resolved.error };
+    }
+    const updated = getTimelineAgentHandler(timeline_id).setTrackInstrument(
+      track,
+      resolved.instrument
+    );
+    return { ok: true, track: updated, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_transpose_clip"),
+  async execute({ timeline_id, clip: target, semitones }) {
+    const clip = getTimelineAgentHandler(timeline_id).transposeClip(
+      target,
+      semitones
+    );
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_quantize_notes"),
+  async execute({ timeline_id, clip: target, division, strength, target: to }) {
+    const options: QuantizeOptions = { division };
+    if (strength !== undefined) {
+      options.strength = strength;
+    }
+    if (to !== undefined) {
+      options.target = to;
+    }
+    const clip = getTimelineAgentHandler(timeline_id).quantizeClip(
+      target,
+      options
+    );
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_scale_velocity"),
+  async execute({ timeline_id, clip: target, factor }) {
+    const clip = getTimelineAgentHandler(timeline_id).scaleClipVelocity(
+      target,
+      factor
+    );
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
   }
 });
 
