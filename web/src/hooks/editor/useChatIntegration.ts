@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
 import type * as monaco from "monaco-editor";
-import { useShallow } from "zustand/react/shallow";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useChatViewThread } from "../chat/useChatViewThread";
+import useThreadModel from "../chat/useThreadModel";
 import type {
   MessageContent,
   Message
@@ -37,13 +37,7 @@ export function useChatIntegration(params: {
     currentText
   } = params;
 
-  const { selectedModel, setSelectedModel, createThread } = useGlobalChatStore(
-    useShallow((state) => ({
-      selectedModel: state.selectedModel,
-      setSelectedModel: state.setSelectedModel,
-      createThread: state.createNewThread
-    }))
-  );
+  const createThread = useGlobalChatStore((state) => state.createNewThread);
   const {
     threadId,
     messages,
@@ -52,6 +46,10 @@ export function useChatIntegration(params: {
     sendMessage: sendThreadMessage,
     stopGeneration
   } = useChatViewThread();
+
+  // The editor's conversation keeps its own model.
+  const { model: selectedModel, setModel: setSelectedModel } =
+    useThreadModel(threadId);
 
   // Register editor adapter so frontend tools can read/edit the document
   useEffect(() => {

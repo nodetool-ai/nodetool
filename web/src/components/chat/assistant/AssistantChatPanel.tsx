@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo } from "react";
-import { useShallow } from "zustand/react/shallow";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import type { ChatSource, UiContext, UiDocumentRef } from "@nodetool-ai/protocol";
 
@@ -12,6 +11,7 @@ import ChatView from "../containers/ChatView";
 import ChatPanelHeader from "../containers/ChatPanelHeader";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useChatViewThread } from "../../../hooks/chat/useChatViewThread";
+import useThreadModel from "../../../hooks/chat/useThreadModel";
 import { useInStudio } from "../../../studio/StudioContext";
 import type { DocsTopic } from "../../../config/docsLinks";
 import type { BuildUiContextOptions } from "../../../lib/chat/uiContext";
@@ -76,12 +76,6 @@ const AssistantChatPanel = ({
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const hideModelPicker = useInStudio();
 
-  const { selectedModel, setSelectedModel } = useGlobalChatStore(
-    useShallow((state) => ({
-      selectedModel: state.selectedModel,
-      setSelectedModel: state.setSelectedModel
-    }))
-  );
   const connect = useGlobalChatStore((state) => state.connect);
   const {
     threadId,
@@ -92,6 +86,10 @@ const AssistantChatPanel = ({
     sendMessage,
     stopGeneration
   } = useChatViewThread({ isolated: true });
+
+  // This panel's conversation keeps its own model, independent of the chat
+  // tabs and the other assistant panels.
+  const { model, setModel } = useThreadModel(threadId);
 
   useEffect(() => {
     connect().catch((err) => {
@@ -158,8 +156,8 @@ const AssistantChatPanel = ({
           progress={runtime.progress.current}
           total={runtime.progress.total}
           progressMessage={runtime.statusMessage}
-          model={selectedModel}
-          onModelChange={setSelectedModel}
+          model={model}
+          onModelChange={setModel}
           hideModelPicker={hideModelPicker}
           onStop={stopGeneration}
           onNewChat={handleNewChat}
