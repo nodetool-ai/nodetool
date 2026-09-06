@@ -89,6 +89,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | `save_asset` / `view_image` | `packages/agents/src/capabilities/assets.ts` | model |
 | `yt_dlp` download | `packages/agents/src/capabilities/media.ts` | model |
 | Apify run artifacts → assets | `packages/agents/src/apify/assets.ts` | provider response |
+| `isolate_subject` mask video → asset | `packages/agents/src/capabilities/timeline-isolate-subject.ts` | provider response |
 | Reve reference image | `packages/reve-nodes/src/reve-base.ts` | workflow |
 | HF pipeline media input | `packages/huggingface-nodes/src/huggingface-base.ts` | workflow |
 | FAL media upload | `packages/fal-nodes/src/fal-base.ts` | workflow |

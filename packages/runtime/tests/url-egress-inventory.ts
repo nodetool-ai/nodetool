@@ -387,6 +387,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "provider-response",
     "Key-value store and dataset file URLs out of an actor run."
   ),
+  guardedMedia(
+    "packages/agents/src/capabilities/timeline-isolate-subject.ts",
+    "isolate_subject mask video → asset",
+    "The mask_video URL BiRefNet returns for a clip's source asset, stored as the clip's generated matte.",
+    "provider-response"
+  ),
   guardedSafeFetch(
     "packages/websocket/src/lib/asset-export.ts",
     "asset ref → bytes on export",
