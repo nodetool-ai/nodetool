@@ -126,6 +126,17 @@ const TIMELINE_MODEL3D_SUITES =
   "npm run test --workspace=packages/agents -- timeline-model3d-frames";
 
 /**
+ * The audio-driven-motion suites: `bake_audio_animation`'s own arithmetic
+ * (the two clock hops, the envelope/beats curve shapes) plus the end-to-end
+ * demonstration that bakes a beat-synced pulse onto a clip that already
+ * carries a hand-authored preset and checks the two compose by multiplying
+ * rather than one replacing the other. One constant so the entry's `command`
+ * and its `selfcheck` cannot drift.
+ */
+const TIMELINE_AUDIO_DRIVE_SUITES =
+  "npm run test --workspace=packages/agents -- timeline-audio-drive-demo capabilities-bake-audio-animation";
+
+/**
  * The per-capability contract suites. One constant because the entry's
  * `command` and its `selfcheck` must not drift — a selfcheck that runs less
  * than the command it stands for reports green on code it never executed.
@@ -303,6 +314,25 @@ export const HARNESSES: HarnessEntry[] = [
     agentTool: "preview_timeline_frame",
     docs: "docs/harnesses.md § 3D clips in preview_timeline_frame",
     selfcheck: { command: TIMELINE_MODEL3D_SUITES, cost: "cheap" }
+  },
+  {
+    id: "timeline-audio-drive",
+    title: "Audio-driven clip motion (bake_audio_animation → the animation fold)",
+    // No CLI command owns it: the surface is the `bake_audio_animation`
+    // capability plus the compose rule it depends on in the animation engine
+    // (`scale: "multiply"` in `ANIMATED_PROPERTY_FOLD` — a baked curve must
+    // drive a clip alongside a hand-authored preset, not replace it). The
+    // checked-in suites are the headless surface: the bake's own arithmetic
+    // (the two clock hops, envelope vs. beats curve shapes) plus the product
+    // demonstration that bakes a beat-synced pulse onto a clip already
+    // carrying a `pop` entrance, samples the result through
+    // `resolveAnimatedLayerProps`, and confirms it in rendered pixels.
+    command: TIMELINE_AUDIO_DRIVE_SUITES,
+    kind: "static",
+    capabilities: ["no-db"],
+    agentTool: "bake_audio_animation",
+    docs: "docs/harnesses.md § Audio-driven timeline motion",
+    selfcheck: { command: TIMELINE_AUDIO_DRIVE_SUITES, cost: "cheap" }
   },
   {
     id: "sketch-validate",
@@ -898,6 +928,19 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/components/timeline/preview/Model3DLayerSource.ts",
       "web/src/components/timeline/preview/bakeDecoding.ts",
       "web/src/components/timeline/Tracks/model3dClipFrames.ts"
+    ]
+  },
+  {
+    id: "timeline-audio-drive",
+    title: "Audio-driven timeline motion (bake_audio_animation, audio analysis)",
+    harnesses: ["timeline-audio-drive", "capability-suites"],
+    // Overlaps the wholesale claims on `packages/timeline/` (surface
+    // `timeline`) and `packages/agents/` (surface `workflow-authoring`), so a
+    // diff here runs their checks too.
+    paths: [
+      "packages/timeline/src/animation/",
+      "packages/agents/src/capabilities/timeline-audio-bake.ts",
+      "packages/agents/src/capabilities/analysis.ts"
     ]
   },
   {

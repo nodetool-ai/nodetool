@@ -672,6 +672,33 @@ that selected nothing because the glTF importer's active action played over the
 muted NLA tracks, and RGB output where `render_image` and `render_passes` both
 write RGBA, which made a bake frame incomparable to a still.
 
+### Audio-driven timeline motion
+
+`bake_audio_animation` measures a clip's audio (an envelope follower, or one
+pulse per detected onset in `mode: "beats"`) and writes the result as a
+source-anchored `custom` animation on another clip's property — commonly
+`scale`, so a title or a shape pulses with the beat. The write is additive: a
+clip can carry a hand-authored preset (a `pop` entrance, a `slide`) alongside
+the bake, and the two compose the way any two animations driving the same
+channel do — `scale: "multiply"` in `ANIMATED_PROPERTY_FOLD`
+(`packages/timeline/src/animation/types.ts`), so the resolved scale at any
+instant is the product of both, not one replacing the other. A re-bake with
+new settings replaces only the curve it produced before
+(`custom.bakedFrom.kind`), never a hand-keyframed animation.
+
+`packages/agents/tests/timeline-audio-drive-demo.test.ts` is the product
+demonstration: a 4-second music bed with four kick bursts drives a "DROP"
+text clip's `scale` in `beats` mode, on a clip that also carries a 600ms `pop`
+entrance. It asserts on the saved document (exactly one baked animation next
+to the untouched `pop`, one peak per kick), on motion (`resolveAnimatedLayerProps`
+sampled at each kick and between them, checking the resolved scale equals the
+product of the pop's own sample and the baked curve's own sample), and on
+pixels (`preview_timeline_frame`'s rendering path draws the title measurably
+larger on a kick than between kicks). `capabilities-bake-audio-animation.test.ts`
+pins the arithmetic itself — the two clock hops from audio-source time through
+timeline time to the target clip's own source time — with a synthesized WAV
+and no network.
+
 ### nodetool timeline versions (Timeline Version History)
 
 `timeline versions` reads and writes a sequence's snapshot history against the
