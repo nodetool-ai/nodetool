@@ -93,3 +93,16 @@ export const WrenchIcon = (p: IconProps) => (
     <path d="M14.7 6.3a4 4 0 0 0 4.6 5.3l-8.3 8.3a2.1 2.1 0 0 1-3-3l8.3-8.3a4 4 0 0 0 5.3 4.6" />
   </Svg>
 );
+
+export const CopyIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </Svg>
+);
+
+export const CheckIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <polyline points="20 6 9 17 4 12" />
+  </Svg>
+);

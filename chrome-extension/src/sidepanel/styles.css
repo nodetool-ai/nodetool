@@ -178,6 +178,19 @@ button {
   background: var(--c-primary);
 }
 
+.icon-button--ghost {
+  width: 22px;
+  height: 22px;
+  opacity: 0;
+  transition: var(--motion-all);
+}
+
+.tool-call__section-header:hover .icon-button--ghost,
+.chat-message:hover .icon-button--ghost,
+.icon-button--ghost:focus-visible {
+  opacity: 1;
+}
+
 .icon-button--danger:hover:not(:disabled) {
   color: #fff;
   background: var(--c-danger);
@@ -269,7 +282,19 @@ button {
   border-color: var(--c-gray4);
 }
 
-.model-picker__trigger[data-empty="true"] {
+/* Nothing chosen yet: the chip is the one thing standing between the user and
+   a first message, so it carries the accent rather than fading out. */
+.model-picker__trigger[data-state="empty"] {
+  color: var(--c-primary);
+  border-color: var(--c-primary-dark);
+}
+
+.model-picker__trigger[data-state="unavailable"] {
+  color: var(--c-warning);
+  border-color: var(--c-warning);
+}
+
+.model-picker__trigger[data-state="loading"] {
   color: var(--c-gray5);
 }
 
@@ -280,6 +305,7 @@ button {
 }
 
 .model-picker__menu {
+  outline: none;
   position: absolute;
   top: calc(100% + var(--spacing-xs));
   right: 0;
@@ -330,7 +356,9 @@ button {
 }
 
 .model-picker__item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-lg);
   overflow: hidden;
@@ -339,12 +367,33 @@ button {
   border: none;
   font-size: var(--fontSizeSmaller);
   text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   transition: var(--motion-background);
 }
 
-.model-picker__item:hover {
+.model-picker__item-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--spacing-micro);
+  min-width: 0;
+}
+
+.model-picker__item-name,
+.model-picker__item-id {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-picker__item-id {
+  color: var(--c-gray5);
+  font-family: var(--fontFamily2);
+  font-size: var(--fontSizeSmaller);
+}
+
+/* The pointer and the arrow keys drive the same highlight, so a mouse move
+   never leaves two rows looking active. */
+.model-picker__item[data-active="true"] {
   color: var(--text-primary);
   background: var(--c-gray2);
 }
@@ -352,6 +401,20 @@ button {
 .model-picker__item[aria-selected="true"] {
   color: var(--text-primary);
   background: rgb(102 144 212 / 0.18);
+}
+
+.model-picker__check {
+  display: flex;
+  color: var(--c-primary);
+}
+
+.model-picker__notice {
+  margin: 0 var(--spacing-md) var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--c-warning);
+  background: rgb(245 158 11 / 0.12);
+  border-radius: var(--rounded-sm);
+  font-size: var(--fontSizeSmaller);
 }
 
 .model-picker__empty {
@@ -509,6 +572,48 @@ button {
   font-family: var(--fontFamily2);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.tool-call__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  min-height: 22px;
+}
+
+.tool-call__section-header h3 {
+  margin: 0;
+}
+
+.tool-call__status.shimmer {
+  animation: shimmer-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.message-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--spacing-micro);
+}
+
+.tool-call__code {
+  white-space: pre;
+  overflow-wrap: normal;
+  tab-size: 2;
+}
+
+.tool-call__code code {
+  font-family: inherit;
 }
 
 .thinking-block {
@@ -841,6 +946,29 @@ button {
   font-size: var(--fontSizeSmall);
 }
 
+.starter-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xl);
+}
+
+.starter-chip {
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--text-secondary);
+  background: var(--c-gray1);
+  border: 1px solid var(--c-gray2);
+  border-radius: var(--rounded-md);
+  font-size: var(--fontSizeSmall);
+  text-align: left;
+  transition: var(--motion-all);
+}
+
+.starter-chip:hover {
+  color: var(--text-primary);
+  border-color: var(--c-gray4);
+}
+
 /* ── Composer ──────────────────────────────────────────────────── */
 
 .composer {
@@ -898,6 +1026,10 @@ button {
   color: var(--c-gray5);
   font-size: var(--fontSizeSmaller);
   text-align: center;
+}
+
+.composer__hint--blocked {
+  color: var(--c-warning);
 }
 
 /* ── Banner ────────────────────────────────────────────────────── */
@@ -1024,4 +1156,17 @@ button {
   margin: 0;
   color: var(--c-gray5);
   font-size: var(--fontSizeSmaller);
+}
+
+/* ── Reduced motion ────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

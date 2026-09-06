@@ -24,7 +24,7 @@ describe("tool call details", () => {
     expect(html).toContain("<details");
     expect(html).toContain("<summary");
     expect(html).toContain("Failed");
-    expect(html).toContain("Arguments");
+    expect(html).toContain("<h3>Code</h3>");
     expect(html).toContain("Debugger is not attached to any tab.");
     expect(html).not.toContain('open=""');
   });
@@ -63,5 +63,34 @@ describe("tool call details", () => {
     ]);
     expect(rows).toHaveLength(20000);
     expect(rows[19999]).toMatchObject({ isError: true, result: { error: "Not attached" } });
+  });
+
+  it("unfolds an execute_code call as a titled code block", () => {
+    const html = renderToStaticMarkup(
+      <MessageList
+        rows={[
+          {
+            kind: "tool_call",
+            id: "call-1",
+            name: "execute_code",
+            args: {
+              title: "List workflows",
+              code: "  const listed = await nodetool.workflows.list();\n  return listed;",
+              timeout: 30
+            },
+            result: { count: 2 }
+          }
+        ]}
+        streaming={false}
+      />
+    );
+    expect(html).toContain("List workflows");
+    expect(html).toContain("language-javascript");
+    expect(html).toContain("const listed = await nodetool.workflows.list();");
+    // The common indent is stripped and `code`/`title` leave the argument bag.
+    expect(html).not.toContain("  const listed");
+    expect(html).toContain("Arguments");
+    expect(html).toContain("timeout");
+    expect(html).not.toContain("&quot;code&quot;");
   });
 });

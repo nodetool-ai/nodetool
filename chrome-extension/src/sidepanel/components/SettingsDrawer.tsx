@@ -46,6 +46,7 @@ export function SettingsDrawer({
           <input
             id="api-base-url"
             className="field__input"
+            autoFocus
             value={url}
             spellCheck={false}
             autoComplete="off"

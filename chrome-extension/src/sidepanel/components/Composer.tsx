@@ -18,6 +18,30 @@ interface ComposerProps {
   onStop: () => void;
   disabled: boolean;
   streaming: boolean;
+  /**
+   * Why this message cannot be sent yet — no model chosen, or one the server
+   * does not offer. The text stays editable; only sending is blocked, and the
+   * reason is on screen rather than waiting for a failed send.
+   */
+  blockedReason?: string | null;
+}
+
+/**
+ * Whether this message may be sent. The send button and the Enter key share
+ * it, so a blocked model cannot slip through one path while the other holds.
+ */
+export function canSend(state: {
+  text: string;
+  disabled: boolean;
+  streaming: boolean;
+  blockedReason?: string | null;
+}): boolean {
+  return (
+    !!state.text.trim() &&
+    !state.disabled &&
+    !state.streaming &&
+    !state.blockedReason
+  );
 }
 
 export function Composer({
@@ -25,6 +49,7 @@ export function Composer({
   onStop,
   disabled,
   streaming,
+  blockedReason,
 }: ComposerProps) {
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -36,10 +61,16 @@ export function Composer({
     el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`;
   }, [text]);
 
+  // The panel opens on the composer, and the caret returns to it when the
+  // connection comes up or a turn ends, so a follow-up needs no click.
+  useEffect(() => {
+    if (disabled || streaming) return;
+    inputRef.current?.focus();
+  }, [disabled, streaming]);
+
   function submit() {
-    const value = text.trim();
-    if (!value || streaming || disabled) return;
-    onSend(value);
+    if (!canSend({ text, disabled, streaming, blockedReason })) return;
+    onSend(text.trim());
     setText("");
   }
 
@@ -79,14 +110,19 @@ export function Composer({
             type="button"
             className="icon-button icon-button--primary"
             aria-label="Send"
-            title="Send"
-            disabled={disabled || !text.trim()}
+            disabled={!canSend({ text, disabled, streaming, blockedReason })}
+            title={blockedReason ?? "Send"}
             onClick={submit}
           >
             <SendIcon />
           </button>
         )}
       </div>
+      {!disabled && blockedReason && (
+        <p className="composer__hint composer__hint--blocked" role="status">
+          {blockedReason}
+        </p>
+      )}
     </div>
   );
 }

@@ -60,6 +60,7 @@ import {
   SettingsIcon
 } from "./components/Icons.js";
 import { MessageList, type ChatRow } from "./components/MessageList.js";
+import { isModelAvailable, sendBlockedReason } from "./modelSelection.js";
 import { ModelPicker } from "./components/ModelPicker.js";
 import { PermissionModePicker } from "./components/PermissionModePicker.js";
 import { SettingsDrawer } from "./components/SettingsDrawer.js";
@@ -107,13 +108,13 @@ export function App() {
   const [settings, setSettings] = useState<ServerSettings | null>(null);
   const [drawer, setDrawer] = useState<Drawer>(null);
   const [error, setError] = useState<string | null>(null);
+  // The last banner the user dismissed. A query error keeps coming back from
+  // the cache, so dismissing has to remember the text, not just clear state.
+  const [dismissedBanner, setDismissedBanner] = useState<string | null>(null);
 
   const [model, setModel] = useState<LanguageModelOption | null>(null);
   const [permissionMode, setPermissionMode] =
     useState<PermissionMode>("default");
-  // Only after settings load do we know whether a model was already chosen;
-  // until then the picker must not overwrite it with a default.
-  const modelRestoredRef = useRef(false);
 
   useEffect(() => {
     void loadChatSettings().then((stored) => {
@@ -123,9 +124,19 @@ export function App() {
       });
       setModel(stored.selectedModel);
       setPermissionMode(stored.permissionMode);
-      modelRestoredRef.current = true;
     });
   }, []);
+
+  // A side panel has no window chrome to click away to, so Escape is the only
+  // dismissal gesture a drawer can rely on.
+  useEffect(() => {
+    if (!drawer) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setDrawer(null);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [drawer]);
 
   const client = useMemo(
     () =>
@@ -451,21 +462,23 @@ export function App() {
     queryFn: () => client!.listLanguageModels()
   });
 
-  // Fall back to the first available model only when nothing was restored and
-  // nothing is chosen — a stored pick that this server no longer offers is
-  // left alone rather than silently swapped.
-  useEffect(() => {
-    if (!modelRestoredRef.current || model) return;
-    const first = modelsQuery.data?.[0];
-    if (first) selectModel(first);
-  }, [model, modelsQuery.data, selectModel]);
+  // Nothing is chosen by default: a model the user did not pick is a model
+  // they did not price, and the first one the server happens to list is a poor
+  // guess. Sending stays blocked until the picker holds a model this server
+  // actually offers.
+  const modelAvailable = isModelAvailable(model, modelsQuery.data);
+  const sendBlocked = sendBlockedReason(
+    model,
+    modelsQuery.data,
+    modelsQuery.isLoading,
+  );
 
   /* ─── Send ───────────────────────────────────────────────────── */
 
   function handleSend(text: string) {
     if (streaming) return;
-    if (!model) {
-      setError("Select a model before sending.");
+    if (!model || !modelAvailable) {
+      setError(sendBlocked ?? "Choose a model to send.");
       return;
     }
     // There is no create endpoint — the server writes the thread row from this
@@ -617,7 +630,8 @@ export function App() {
   const activeThread = threads.find((t) => t.id === activeThreadId);
   const queryError =
     threadsQuery.error ?? messagesQuery.error ?? modelsQuery.error;
-  const banner = error ?? (queryError ? errorText(queryError) : null);
+  const bannerText = error ?? (queryError ? errorText(queryError) : null);
+  const banner = bannerText === dismissedBanner ? null : bannerText;
   const visibleToolApprovals = Object.entries(toolApprovals).filter(
     ([, request]) => request.thread_id === activeThreadId
   );
@@ -655,6 +669,7 @@ export function App() {
             value={model}
             onChange={selectModel}
             loading={modelsQuery.isLoading}
+            valid={modelAvailable}
           />
           <PermissionModePicker
             value={permissionMode}
@@ -688,7 +703,10 @@ export function App() {
             type="button"
             className="icon-button"
             aria-label="Dismiss"
-            onClick={() => setError(null)}
+            onClick={() => {
+              setError(null);
+              setDismissedBanner(bannerText);
+            }}
           >
             <CloseIcon size={14} />
           </button>
@@ -698,6 +716,7 @@ export function App() {
       <MessageList
         rows={rows}
         streaming={streaming}
+        onStarter={handleSend}
         pendingContent={
           hasPendingRequests ? (
             <div
@@ -744,6 +763,7 @@ export function App() {
         onStop={handleStop}
         disabled={connection !== "connected"}
         streaming={streaming}
+        blockedReason={sendBlocked}
       />
 
       {drawer === "threads" && (
