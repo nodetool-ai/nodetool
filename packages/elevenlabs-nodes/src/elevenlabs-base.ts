@@ -5,7 +5,7 @@ export function getElevenLabsApiKey(secrets: Record<string, string>): string {
   return key;
 }
 
-export const VOICE_ID_MAP: Record<string, string> = {
+export const VOICE_ID_MAP = {
   Aria: "9BWtsMINqrJLrRacOk9x",
   Roger: "CwhRBWXzGAHq8TQ4Fs17",
   Sarah: "EXAVITQu4vr4xnSDxMaL",
@@ -28,3 +28,10 @@ export const VOICE_ID_MAP: Record<string, string> = {
 };
 
 export const VOICE_NAMES = Object.keys(VOICE_ID_MAP);
+
+const VOICE_IDS_BY_NAME = new Map(Object.entries(VOICE_ID_MAP));
+
+/** The voice id for a standard voice name, or undefined when unknown. */
+export function resolveVoiceId(name: string): string | undefined {
+  return VOICE_IDS_BY_NAME.get(name);
+}

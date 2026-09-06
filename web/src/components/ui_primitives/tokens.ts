@@ -288,6 +288,41 @@ export const CONTROL = {
 } as const;
 
 /**
+ * Elevation scale. Every drop shadow in the app comes from here — never write
+ * a literal `boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"`, which hardcodes both
+ * a depth and a color.
+ *
+ * The scale is a helper, not a const map, because the shadow color must come
+ * from the palette (`common.blackChannel`) rather than an `rgba(0, 0, 0, …)`
+ * literal.
+ *
+ * Levels:
+ *   ambient     no offset — the halo under slider thumbs and small round controls
+ *   sm          resting lift — chips, badges, small buttons sitting on a surface
+ *   md          hover lift and small popovers
+ *   lg          dropdowns, menus, floating panels, dialogs
+ *   xl          modals and full-screen overlays
+ *   panelLeft   the left panel's right edge
+ *   panelRight  the right panel's left edge
+ *
+ * @example
+ * boxShadow: SHADOW(theme).lg
+ */
+export const SHADOW = (theme: Theme) => {
+  const black = theme.vars.palette.common.blackChannel ?? "0 0 0";
+  const shade = (alpha: number) => `rgba(${black} / ${alpha})`;
+  return {
+    ambient: `0 0 5px 1px ${shade(0.25)}`,
+    sm: `0 1px 3px ${shade(0.3)}`,
+    md: `0 4px 12px ${shade(0.35)}`,
+    lg: `0 8px 32px ${shade(0.4)}`,
+    xl: `0 16px 64px ${shade(0.45)}`,
+    panelLeft: `4px 0 8px ${shade(0.05)}`,
+    panelRight: `-4px 0 8px ${shade(0.05)}`,
+  } as const;
+};
+
+/**
  * Standard themed scrollbar styles using the palette's custom scroll colors.
  * Spread into Emotion css() blocks wherever you need consistent scrollbars.
  *

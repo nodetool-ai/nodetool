@@ -294,11 +294,13 @@ function checkStoryboard(file) {
   return problems.length > 0 ? problems.join("\n") : null;
 }
 
-// A recipe manifest carries no graph either: it names the shipped example
-// workflows its chain runs, in order. What rots is a step whose example was
-// renamed — the app drops such a recipe from its Examples page and the site's
-// bundle generator fails, so catch it here with the rest of the examples.
-function checkRecipe(file, exampleNames) {
+// A recipe manifest carries no graph and no app document either: it names the
+// shipped example workflows its chain runs, in order, and the shipped app
+// bundles that surface them. What rots is a step whose example was renamed, or
+// an app that stopped binding the chain — the server drops such a recipe from
+// its Examples page and the site's bundle generator fails, so catch it here
+// with the rest of the examples.
+function checkRecipe(file, exampleNames, appWorkflows) {
   let recipe;
   try {
     recipe = JSON.parse(readFileSync(file, "utf8"));
@@ -338,7 +340,51 @@ function checkRecipe(file, exampleNames) {
   if (!named.includes(recipe?.hero)) {
     problems.push(`hero "${recipe?.hero}" is not one of its steps`);
   }
+  const apps = Array.isArray(recipe?.apps) ? recipe.apps : [];
+  if (apps.length === 0) {
+    problems.push("recipe names no app — a chain nobody can run from one surface");
+  }
+  for (const [index, entry] of apps.entries()) {
+    const where = entry?.app ? `app "${entry.app}"` : `app ${index}`;
+    const bound = appWorkflows.get(entry?.app);
+    if (!bound) {
+      problems.push(`${where} matches no shipped example app bundle`);
+      continue;
+    }
+    if (typeof entry?.role !== "string" || entry.role.trim() === "") {
+      problems.push(`${where} has no role text`);
+    }
+    // The first app is the one built for this chain, so it has to bind all of
+    // it; the rest are companions that cover part of it on purpose.
+    if (index === 0) {
+      const missing = named.filter((name) => !bound.has(name));
+      if (missing.length > 0) {
+        problems.push(
+          `${where} is this recipe's app but does not bind ${missing.join(", ")}`
+        );
+      }
+    }
+  }
   return problems.length > 0 ? problems.join("\n") : null;
+}
+
+/** Example app slug → the set of workflow names its bundle binds. */
+function readAppWorkflows(bundleFiles) {
+  const byslug = new Map();
+  for (const file of bundleFiles) {
+    let bundle;
+    try {
+      bundle = JSON.parse(readFileSync(file, "utf8"));
+    } catch {
+      continue;
+    }
+    const workflows = Array.isArray(bundle?.workflows) ? bundle.workflows : [];
+    byslug.set(
+      basename(file, ".app.json"),
+      new Set(workflows.map((workflow) => workflow?.name))
+    );
+  }
+  return byslug;
 }
 
 function statSafe(file) {
@@ -529,15 +575,17 @@ async function main() {
       failure: await checkComposition(file)
     });
   }
-  // A recipe is checked against the workflow examples this scan already found,
-  // by the name each step gives — the same name the app resolves at runtime.
+  // A recipe is checked against the workflow examples and app bundles this scan
+  // already found, by the names its steps and apps give — the same names the
+  // server resolves at runtime.
   const exampleNames = new Set(
     workflowExamples.map((file) => basename(file, ".json"))
   );
+  const appWorkflows = readAppWorkflows(bundles);
   for (const file of recipes) {
     jobs.push({
       label: file.slice(repoRoot.length + 1),
-      failure: checkRecipe(file, exampleNames)
+      failure: checkRecipe(file, exampleNames, appWorkflows)
     });
   }
 

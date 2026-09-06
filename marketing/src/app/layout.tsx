@@ -24,7 +24,7 @@ const jetBrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "NodeTool | Open-source creative AI workspace",
   description:
-    "Open-source creative AI workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together.",
+    "Open-source creative AI workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/",
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "NodeTool | Open-source creative AI workspace",
     description:
-      "Open-source creative AI workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together.",
+      "Open-source creative AI workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
     url: "https://nodetool.ai",
     siteName: "NodeTool",
     images: [
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NodeTool | Open-source creative AI workspace",
     description:
-      "Open-source creative AI workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together.",
+      "Open-source creative AI workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
     images: ["/preview.png"],
   },
 };

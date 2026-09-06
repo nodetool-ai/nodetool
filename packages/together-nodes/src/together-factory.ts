@@ -15,6 +15,10 @@ import {
   classifyFields,
   classNameToTitle,
   defaultForPropType,
+  isBoolean,
+  isNumber,
+  isRecord,
+  isString,
   propertyOf,
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
@@ -83,23 +87,28 @@ export interface TogetherManifestEntry {
 
 const ASSET_TYPES = new Set<TogetherFieldType>(["image", "audio", "video"]);
 
+/** The three field types that carry media rather than a scalar. */
+function isAssetField(type: TogetherFieldType): type is AssetMediaKind {
+  return ASSET_TYPES.has(type);
+}
+
 type ProcessContext = Parameters<BaseNode["process"]>[0] & AssetResolveContext;
 
 function coerceScalar(v: NodeValue, type: TogetherFieldType): NodeValue {
   switch (type) {
     case "int": {
-      if (typeof v === "number") return Math.trunc(v);
+      if (isNumber(v)) return Math.trunc(v);
       const n = parseInt(String(v), 10);
       return Number.isNaN(n) ? null : n;
     }
     case "float": {
-      if (typeof v === "number") return v;
+      if (isNumber(v)) return v;
       const f = parseFloat(String(v));
       return Number.isNaN(f) ? null : f;
     }
     case "bool": {
-      if (typeof v === "boolean") return v;
-      if (typeof v === "string") return v.toLowerCase() === "true";
+      if (isBoolean(v)) return v;
+      if (isString(v)) return v.toLowerCase() === "true";
       return Boolean(v);
     }
     default:
@@ -107,13 +116,13 @@ function coerceScalar(v: NodeValue, type: TogetherFieldType): NodeValue {
   }
 }
 
-function refHasSource(value: unknown): boolean {
-  if (!value || typeof value !== "object") return false;
-  const r = value as { uri?: string; data?: unknown; asset_id?: unknown };
-  if (typeof r.uri === "string" && r.uri.trim() !== "") return true;
-  if (typeof r.data === "string" && r.data.length > 0) return true;
-  if (r.data instanceof Uint8Array && r.data.byteLength > 0) return true;
-  return r.asset_id != null && r.asset_id !== "";
+function refHasSource(value: NodeValue): boolean {
+  if (!isRecord(value)) return false;
+  if (isString(value.uri) && value.uri.trim() !== "") return true;
+  const data = value.data;
+  if (isString(data) && data.length > 0) return true;
+  if (data instanceof Uint8Array && data.byteLength > 0) return true;
+  return value.asset_id != null && value.asset_id !== "";
 }
 
 /**
@@ -125,15 +134,15 @@ function promptAssetOverrides(
   instance: BaseNode,
   spec: TogetherManifestEntry,
   context: ProcessContext | undefined
-): Promise<Record<string, unknown>> {
+): Promise<Record<string, NodeValue>> {
   const textFields: PromptAssetTextField[] = [];
   const assetFields: PromptAssetInputField[] = [];
   for (const field of spec.fields) {
     const value = propertyOf(instance, field.name);
-    if (ASSET_TYPES.has(field.type)) {
+    if (isAssetField(field.type)) {
       assetFields.push({
         name: field.name,
-        kind: field.type as AssetMediaKind,
+        kind: field.type,
         list: false,
         hasSource: refHasSource(value)
       });
@@ -141,35 +150,45 @@ function promptAssetOverrides(
       textFields.push({ name: field.name, value: String(value ?? "") });
     }
   }
-  return mapPromptAssetsToInputs(textFields, assetFields, context);
+  // SAFETY: the overrides are the asset refs this call routed out of `asset://`
+  // mentions, so they are node property values like the ones they replace.
+  return mapPromptAssetsToInputs(textFields, assetFields, context) as Promise<
+    Record<string, NodeValue>
+  >;
 }
 
-const MEDIA_EXT: Record<string, string> = {
+const MEDIA_EXT = {
   image: "png",
   video: "mp4",
   audio: "mp3"
-};
-const MEDIA_MIME: Record<string, string> = {
+} satisfies Record<AssetMediaKind, string>;
+const MEDIA_MIME = {
   image: "image/png",
   video: "video/mp4",
   audio: "audio/mpeg"
+} satisfies Record<AssetMediaKind, string>;
+
+/** The media ref a generated asset is emitted as: stored, or embedded inline. */
+type StoredMedia = {
+  type: AssetMediaKind;
+  uri: string;
+  data?: string;
 };
 
-type StorageWriter = {
-  store?: (key: string, bytes: Uint8Array, mime?: string) => Promise<string>;
-};
+/** What a Together node emits: a media ref, or the transcriber's text. */
+type TogetherNodeOutput = { output: StoredMedia } | { text: string };
 
 async function storeMedia(
   bytes: Uint8Array,
-  outputType: "image" | "video" | "audio",
+  outputType: AssetMediaKind,
   mimeOverride: string | undefined,
   context: ProcessContext | undefined
-): Promise<Record<string, unknown>> {
+): Promise<TogetherNodeOutput> {
   const mime = mimeOverride ?? MEDIA_MIME[outputType];
   const ext = mime === "audio/wav" ? "wav" : MEDIA_EXT[outputType];
   const filename = `together-${outputType}-${Date.now()}.${ext}`;
 
-  const storage = context?.storage as StorageWriter | null | undefined;
+  const storage = context?.storage;
   if (storage?.store) {
     try {
       const uri = await storage.store(filename, bytes, mime);
@@ -193,40 +212,36 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
   const isMedia = spec.outputType !== "string";
 
   const TogetherNodeClass = class extends BaseNode {
-    async process(context?: ProcessContext): Promise<Record<string, unknown>> {
+    async process(context?: ProcessContext): Promise<TogetherNodeOutput> {
       const apiKey = getApiKey(this._secrets);
 
       const overrides = await promptAssetOverrides(this, spec, context);
-      // SAFETY: both sources hold node property values, and NodeTool restricts
-      // those to its own property types — the shapes `NodeValue` names.
       const read = (name: string): NodeValue =>
-        (name in overrides
-          ? overrides[name]
-          : propertyOf(this, name)) as NodeValue;
+        name in overrides ? overrides[name] : propertyOf(this, name);
 
       // Collect scalar field values; resolve asset fields to raw bytes.
-      const scalars: Record<string, unknown> = {};
+      const scalars: Record<string, NodeValue> = {};
       const assets: Record<string, Uint8Array> = {};
       for (const f of spec.fields) {
         const v = read(f.name);
         if (v === undefined || v === null) continue;
-        if (ASSET_TYPES.has(f.type)) {
-          const bytes = await resolveAssetBytes(
-            v,
-            context,
-            f.type as "image" | "audio" | "video"
-          );
+        if (isAssetField(f.type)) {
+          const bytes = await resolveAssetBytes(v, context, f.type);
           if (bytes) assets[f.name] = bytes;
           continue;
         }
-        if (typeof v === "string" && v === "") continue;
+        if (v === "") continue;
         scalars[f.name] = coerceScalar(v, f.type);
       }
 
-      const num = (name: string): number | null =>
-        typeof scalars[name] === "number" ? (scalars[name] as number) : null;
-      const str = (name: string): string | undefined =>
-        typeof scalars[name] === "string" ? (scalars[name] as string) : undefined;
+      const num = (name: string): number | null => {
+        const value = scalars[name];
+        return isNumber(value) ? value : null;
+      };
+      const str = (name: string): string | undefined => {
+        const value = scalars[name];
+        return isString(value) ? value : undefined;
+      };
 
       const requireAsset = (name: string, kind: string): Uint8Array => {
         const bytes = assets[name];
@@ -365,6 +380,6 @@ export function loadTogetherNodesFromManifest(
   return manifest.map(createTogetherNodeClass);
 }
 
-function define(target: unknown, key: string, value: unknown): void {
+function define(target: NodeClass, key: string, value: NodeValue): void {
   Object.defineProperty(target, key, { value, configurable: true });
 }

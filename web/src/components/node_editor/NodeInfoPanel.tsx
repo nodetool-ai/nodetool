@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { shallow } from "zustand/shallow";
-import { Tooltip, Text, EditorButton, FlexRow, CloseButton, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Tooltip, Text, EditorButton, FlexRow, CloseButton, Box, MOTION, BORDER_RADIUS, SHADOW, SPACING, getSpacingPx } from "../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { useReactFlow, useViewport } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -73,7 +73,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       backgroundColor: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.xl,
-      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+      boxShadow: SHADOW(theme).lg,
       border: `1px solid ${theme.vars.palette.divider}`,
       overflow: "hidden",
       animation: `slideIn ${MOTION.normal} forwards`,

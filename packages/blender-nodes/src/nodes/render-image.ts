@@ -18,10 +18,9 @@ import { prop } from "@nodetool-ai/node-sdk";
 import { bytesToBase64, resolveModelBytes } from "@nodetool-ai/nodes-utils";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
-import type { BlenderEngine, CameraMode, LightingPreset } from "../job.js";
 import { BlenderJobError } from "../runner.js";
 import { runBlenderJob } from "../run-job.js";
-import { rethrowBlenderError } from "./blender-error.js";
+import { runBlenderNodeStep } from "./blender-error.js";
 import { blenderProgressHandler } from "./progress.js";
 import { BlenderRenderBase } from "./render-base.js";
 
@@ -55,10 +54,7 @@ export class RenderImageNode extends BlenderRenderBase {
   declare timeout: number;
 
   async process(context?: ProcessingContext): Promise<RenderImageNodeOutputs> {
-    const bytes = await resolveModelBytes(
-      (this.model ?? {}) as { data?: Uint8Array | string; uri?: string },
-      context
-    );
+    const bytes = await resolveModelBytes(this.model, context);
     if (bytes.length === 0) {
       throw new Error(
         `${NODE_NAME}: model input is empty — connect a 3D model (GLB)`
@@ -66,63 +62,63 @@ export class RenderImageNode extends BlenderRenderBase {
     }
 
     const timeoutMs = Math.max(1, Number(this.timeout ?? 600)) * 1000;
-    try {
-      const result = await runBlenderJob(
-        context,
-        bytes,
-        {
-          op: "render_image",
-          params: {
-            camera_mode: String(this.camera_mode ?? "auto") as CameraMode,
-            azimuth: Number(this.azimuth ?? 45),
-            elevation: Number(this.elevation ?? 25),
-            fov: Number(this.fov ?? 35),
-            zoom: Number(this.zoom ?? 1),
-            lighting: String(this.lighting ?? "studio") as LightingPreset,
-            light_intensity: Number(this.light_intensity ?? 1),
-            background_color: String(this.background_color ?? "#808080"),
-            transparent: this.transparent === true,
-            engine: String(this.engine ?? "eevee") as BlenderEngine,
-            samples: Math.max(1, Math.round(Number(this.samples ?? 16))),
-            denoise: this.denoise !== false,
-            resolution_percentage: Math.max(
-              1,
-              Math.round(Number(this.resolution_percentage ?? 100))
-            ),
-            width: Math.max(1, Math.round(Number(this.width ?? 1024))),
-            height: Math.max(1, Math.round(Number(this.height ?? 1024)))
+    return runBlenderNodeStep(
+      {
+        nodeName: NODE_NAME,
+        timeoutMessage: timeoutMessage(timeoutMs),
+        signal: context?.signal
+      },
+      async () => {
+        const result = await runBlenderJob(
+          context,
+          bytes,
+          {
+            op: "render_image",
+            params: {
+              camera_mode: this.camera_mode ?? "auto",
+              azimuth: Number(this.azimuth ?? 45),
+              elevation: Number(this.elevation ?? 25),
+              fov: Number(this.fov ?? 35),
+              zoom: Number(this.zoom ?? 1),
+              lighting: this.lighting ?? "studio",
+              light_intensity: Number(this.light_intensity ?? 1),
+              background_color: String(this.background_color ?? "#808080"),
+              transparent: this.transparent === true,
+              engine: this.engine ?? "eevee",
+              samples: Math.max(1, Math.round(Number(this.samples ?? 16))),
+              denoise: this.denoise !== false,
+              resolution_percentage: Math.max(
+                1,
+                Math.round(Number(this.resolution_percentage ?? 100))
+              ),
+              width: Math.max(1, Math.round(Number(this.width ?? 1024))),
+              height: Math.max(1, Math.round(Number(this.height ?? 1024)))
+            }
+          },
+          { image: "render.png" },
+          {
+            timeoutMs,
+            signal: context?.signal,
+            onProgress: blenderProgressHandler(context, this.__node_id)
           }
-        },
-        { image: "render.png" },
-        {
-          timeoutMs,
-          signal: context?.signal,
-          onProgress: blenderProgressHandler(context, this.__node_id)
-        }
-      );
-      const png = result.outputs["image"];
-      if (!png || png.length === 0) {
-        throw new BlenderJobError(
-          "missing_output",
-          "Blender produced no image bytes."
         );
-      }
-      return {
-        image: {
-          type: "image",
-          uri: "",
-          asset_id: null,
-          data: bytesToBase64(png)
+        const png = result.outputs["image"];
+        if (!png || png.length === 0) {
+          throw new BlenderJobError(
+            "missing_output",
+            "Blender produced no image bytes."
+          );
         }
-      };
-    } catch (err) {
-      rethrowBlenderError(
-        err,
-        NODE_NAME,
-        timeoutMessage(timeoutMs),
-        context?.signal
-      );
-    }
+        return {
+          image: {
+            type: "image",
+            uri: "",
+            asset_id: null,
+            data: bytesToBase64(png)
+          }
+        };
+      }
+    );
   }
 }
 

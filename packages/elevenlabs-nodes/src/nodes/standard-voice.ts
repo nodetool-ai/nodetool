@@ -1,6 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
-import { VOICE_ID_MAP, VOICE_NAMES } from "../elevenlabs-base.js";
+import { resolveVoiceId, VOICE_NAMES } from "../elevenlabs-base.js";
 
 /** Output handles StandardVoiceNode.process() emits. */
 type StandardVoiceNodeOutputs = {
@@ -33,7 +33,7 @@ export class StandardVoiceNode extends BaseNode {
 
   async process(): Promise<StandardVoiceNodeOutputs> {
     const voice = String(this.voice ?? "Aria");
-    const voiceId = VOICE_ID_MAP[voice];
+    const voiceId = resolveVoiceId(voice);
     if (!voiceId) throw new Error(`Unknown voice: ${voice}`);
 
     return { voice_id: voiceId };

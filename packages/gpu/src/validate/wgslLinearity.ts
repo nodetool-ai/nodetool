@@ -123,6 +123,10 @@ interface LinearityValidationArgs {
  * Anything else (including unset) leaves it enabled.
  */
 function validatorDisabled(): boolean {
+  // SAFETY: this package compiles without @types/node, so `process` is not a
+  // declared global here. The asserted shape only claims optional members, and
+  // the optional chain reads the flag as unset in a host that has no
+  // `process` (browser, worker) — which leaves the validator enabled.
   const env = (globalThis as { process?: { env?: Record<string, string | undefined> } })
     .process?.env;
   return env?.NODETOOL_GPU_VALIDATE === "off";

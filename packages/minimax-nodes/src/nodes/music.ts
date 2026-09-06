@@ -9,8 +9,16 @@ import {
   minimaxHeaders,
   resolveAudioPayload
 } from "../minimax-base.js";
+import type { MinimaxResponse } from "../minimax-base.js";
 
 const MUSIC_FORMATS = ["mp3", "wav"];
+
+/** `/v1/music_generation` reply: hex-encoded audio, or a download URL. */
+interface MinimaxMusicResponse extends MinimaxResponse {
+  data?: {
+    audio?: string;
+  };
+}
 
 /** Output handles MinimaxMusicNode.process() emits. */
 type MinimaxMusicNodeOutputs = {
@@ -96,7 +104,7 @@ export class MinimaxMusicNode extends BaseNode {
         format
       },
       output_format: "hex"
-    } satisfies Record<string, unknown>;
+    };
 
     const res = await fetch(`${MINIMAX_BASE_URL}/v1/music_generation`, {
       method: "POST",
@@ -108,11 +116,10 @@ export class MinimaxMusicNode extends BaseNode {
         `MiniMax music_generation failed: ${res.status} ${await res.text()}`
       );
     }
-    const data = (await res.json()) as Record<string, unknown>;
+    const data: MinimaxMusicResponse = await res.json();
     assertBaseResp(data, "music_generation");
 
-    const payload = data.data as Record<string, unknown> | undefined;
-    const audio = payload?.audio as string | undefined;
+    const audio = data.data?.audio;
     if (!audio) {
       throw new Error(
         `MiniMax music_generation returned no audio data: ${JSON.stringify(data)}`

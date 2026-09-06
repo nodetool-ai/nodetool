@@ -33,6 +33,7 @@ const SLIDERS_IMAGE_ENHANCE = [
 
 const IMG = { $demo: "image" };
 const VIDEO = { $demo: "video" };
+const AUDIO = { $demo: "audio" };
 
 export const EXAMPLE_APPS = [
   // ── 1 ──────────────────────────────────────────────────────────────────────
@@ -1428,6 +1429,521 @@ export const EXAMPLE_APPS = [
           { show: "headlines", op: "headlines", as: "Markdown", label: "Headlines", demo: "1. Lighter than your excuses\n2. Grip that argues with gravity\n3. Built for the rock, not the treadmill" },
           { show: "image", op: "visual", as: "Image", label: "Hero image", demo: IMG },
           { show: "prompt_used", op: "visual", as: "Markdown", label: "Prompt used" }
+        ]
+      }
+    ]
+  },
+
+  // ── 22 ─────────────────────────────────────────────────────────────────────
+  // The four apps below each bind one shipped recipe
+  // (packages/base-nodes/nodetool/examples/recipes/*.recipe.json) end to end:
+  // the recipe's steps become operations on one surface, and the handoff the
+  // manifest describes in prose becomes a variable carried between them.
+  {
+    slug: "trailer-room",
+    name: "Trailer Room",
+    emoji: "🎞️",
+    featured: false,
+    tagline: "Premise to beat sheet to shot list to a scored teaser, on one page.",
+    description:
+      "The Storyboard to Trailer chain behind one surface. Rewrite the beat sheet and the shot list while they still cost one text call each, then spend once on the footage and lay a score under the cut.",
+    note: "💸 Beats and shots are text calls. Shoot spends on a per-second video model and Score on one audio generation.",
+    workflows: {
+      beats: "Trailer Beats from a Premise",
+      shots: "Shot List from a Synopsis",
+      trailer: "Movie Trailer Generator",
+      score: "Score a Silent Clip"
+    },
+    variables: [
+      {
+        id: "premise",
+        name: "Premise",
+        scope: "instance",
+        type: "str",
+        default:
+          "A getaway driver speeds onto a bridge as it starts to collapse behind her."
+      },
+      {
+        id: "synopsis",
+        name: "Synopsis",
+        scope: "instance",
+        type: "str",
+        default: ""
+      },
+      { id: "cut", name: "The cut", scope: "instance", type: "video" }
+    ],
+    operations: [
+      {
+        id: "beats",
+        name: "Beats",
+        workflow: "beats",
+        policy: "replace",
+        inputs: { premise: { from: "variable", variableId: "premise" } }
+      },
+      {
+        id: "shots",
+        name: "Shots",
+        workflow: "shots",
+        policy: "replace",
+        inputs: { synopsis: { from: "variable", variableId: "synopsis" } }
+      },
+      {
+        id: "trailer",
+        name: "Shoot",
+        workflow: "trailer",
+        policy: "queue",
+        timeoutMs: 1800000,
+        inputs: { Logline: { from: "variable", variableId: "premise" } },
+        outputs: { trailer: { to: "variable", variableId: "cut" } }
+      },
+      {
+        id: "score",
+        name: "Score",
+        workflow: "score",
+        policy: "queue",
+        inputs: { clip: { from: "variable", variableId: "cut" } }
+      }
+    ],
+    sections: [
+      {
+        title: "The paperwork",
+        controls: [
+          { textVar: "premise", label: "Your trailer in one line", multiline: true },
+          { run: ["beats"], label: "Write the beats" },
+          { textVar: "synopsis", label: "Synopsis to break into shots", multiline: true },
+          { run: ["shots"], label: "Break it into shots" }
+        ],
+        results: [
+          { progress: "beats", label: "Structuring the trailer…" },
+          {
+            show: "beats",
+            op: "beats",
+            as: "Markdown",
+            label: "Beat sheet",
+            demo: "**Hook (0:00–0:08)** — Headlights on wet asphalt, the bridge ahead already wrong.\n\n**Escalation (0:08–0:24)** — Concrete gives. She does not lift off.\n\n**Turn (0:24–0:36)** — The span behind her is gone. So is the way back.\n\n**Title card (0:36–0:42)** — THE LAST SPAN."
+          },
+          { progress: "shots", label: "Numbering the shots…" },
+          {
+            show: "shot_list",
+            op: "shots",
+            as: "Markdown",
+            label: "Shot list",
+            demo: "1. Close on the speedometer, handheld, 2s\n2. Low wide of the bridge mouth, locked off, 3s\n3. Tracking side profile of the car, dolly right, 4s"
+          }
+        ]
+      },
+      {
+        title: "The footage",
+        controls: [
+          { note: "💸 Shooting the teaser runs one video generation per shot." },
+          { text: "Visual Style", op: "trailer", label: "Visual style", multiline: true },
+          { number: "Shot Count", op: "trailer", label: "Number of shots", min: 3, max: 10 },
+          { run: ["trailer"], label: "Shoot the teaser" },
+          { text: "mood", op: "score", label: "Score mood", multiline: true },
+          { run: ["score"], label: "Score the cut" }
+        ],
+        results: [
+          { progress: "trailer", label: "Directing, rendering & cutting…" },
+          { showVar: "cut", as: "Video", label: "The cut", demo: VIDEO },
+          { progress: "score", label: "Writing the bed…" },
+          { show: "scored_clip", op: "score", as: "Video", label: "Scored teaser" }
+        ]
+      }
+    ]
+  },
+
+  // ── 23 ─────────────────────────────────────────────────────────────────────
+  {
+    slug: "sku-factory",
+    name: "SKU Factory",
+    emoji: "🏷️",
+    featured: false,
+    tagline: "One packshot in, the whole channel set out.",
+    description:
+      "The E-commerce SKU Visual Factory chain behind one surface. Drop a product photo once and the cutout, the studio scene, the seasonal relight and the listing copy all read the same image; motion and print resolution stay on their own buttons because they cost more.",
+    note: "🔑 Needs a FAL key for the image steps and an OpenAI key for the listing. The turntable is a video model and is metered per second.",
+    workflows: {
+      cutout: "Cut a Product Out of Its Background",
+      backdrop: "Put a Product on a Studio Backdrop",
+      relight: "Relight a Product for a Seasonal Campaign",
+      turntable: "Spin a Packshot into a Turntable Clip",
+      print: "Take a Product Shot to Print Resolution",
+      listing: "Write a Listing from the Product Photo"
+    },
+    variables: [
+      { id: "packshot", name: "The packshot", scope: "instance", type: "image" }
+    ],
+    operations: [
+      {
+        id: "cutout",
+        name: "Cutout",
+        workflow: "cutout",
+        policy: "parallel",
+        inputs: { photo: { from: "variable", variableId: "packshot" } }
+      },
+      {
+        id: "backdrop",
+        name: "Studio scene",
+        workflow: "backdrop",
+        policy: "parallel",
+        inputs: { photo: { from: "variable", variableId: "packshot" } }
+      },
+      {
+        id: "relight",
+        name: "Seasonal relight",
+        workflow: "relight",
+        policy: "parallel",
+        inputs: { photo: { from: "variable", variableId: "packshot" } }
+      },
+      {
+        id: "listing",
+        name: "Listing",
+        workflow: "listing",
+        policy: "parallel",
+        inputs: { photo: { from: "variable", variableId: "packshot" } }
+      },
+      {
+        id: "turntable",
+        name: "Turntable",
+        workflow: "turntable",
+        policy: "queue",
+        timeoutMs: 900000,
+        inputs: { photo: { from: "variable", variableId: "packshot" } }
+      },
+      {
+        id: "print",
+        name: "Print master",
+        workflow: "print",
+        policy: "queue",
+        inputs: { photo: { from: "variable", variableId: "packshot" } }
+      }
+    ],
+    sections: [
+      {
+        title: "The still set",
+        controls: [
+          { image: "packshot", label: "Your packshot" },
+          {
+            text: { node: "comp", prop: "prompt" },
+            op: "backdrop",
+            label: "The set it stands on",
+            multiline: true
+          },
+          {
+            select: { node: "comp", prop: "aspect_ratio" },
+            op: "backdrop",
+            label: "Frame",
+            options: ["1:1", "4:5", "3:2", "16:9"],
+            default: "1:1"
+          },
+          {
+            text: { node: "rl", prop: "prompt" },
+            op: "relight",
+            label: "The light to put on it",
+            multiline: true
+          },
+          {
+            run: ["cutout", "backdrop", "relight", "listing"],
+            label: "Make the still set"
+          }
+        ],
+        results: [
+          { progress: "backdrop", label: "Placing the product…" },
+          { show: "cutout", op: "cutout", as: "Image", label: "Cutout", demo: IMG },
+          { show: "styled", op: "backdrop", as: "Image", label: "Studio scene", demo: IMG },
+          { show: "seasonal", op: "relight", as: "Image", label: "Seasonal", demo: IMG },
+          {
+            show: "listing",
+            op: "listing",
+            as: "Markdown",
+            label: "Listing copy",
+            demo: "**Aurora Trail Runner — Recycled Knit, 240g**\n\nA trail shoe built around wet rock. The knit upper drains instead of holding water, and the outsole lugs bite at an angle rather than flat."
+          }
+        ]
+      },
+      {
+        title: "Motion and print",
+        controls: [
+          { note: "💸 The turntable is metered per second of video." },
+          {
+            text: { node: "v", prop: "prompt" },
+            op: "turntable",
+            label: "Camera move",
+            multiline: true
+          },
+          {
+            slider: { node: "v", prop: "duration" },
+            op: "turntable",
+            label: "Seconds",
+            min: 4,
+            max: 8,
+            step: 2,
+            default: 4
+          },
+          { run: ["turntable"], label: "Spin it" },
+          {
+            slider: { node: "up", prop: "scale" },
+            op: "print",
+            label: "Upscale",
+            min: 2,
+            max: 4,
+            step: 2,
+            default: 4
+          },
+          { run: ["print"], label: "Take it to print" }
+        ],
+        results: [
+          { progress: "turntable", label: "Spinning the packshot…" },
+          { show: "turntable", op: "turntable", as: "Video", label: "Turntable clip", demo: VIDEO },
+          { progress: "print", label: "Upscaling…" },
+          { show: "print_ready", op: "print", as: "Image", label: "Print master" }
+        ]
+      }
+    ]
+  },
+
+  // ── 24 ─────────────────────────────────────────────────────────────────────
+  {
+    slug: "dubbing-desk",
+    name: "Dubbing Desk",
+    emoji: "🌍",
+    featured: false,
+    tagline: "One presenter clip, spoken in another language, checked and subtitled.",
+    description:
+      "The Multilingual Video Dubber chain behind one surface. Transcribing writes the script into a variable the revoice and back-translation steps both read, so the words that get dubbed are the words you can see.",
+    note: "🔑 Needs a FAL key for transcription, speech and lip-sync, and an OpenAI key for the translation.",
+    workflows: {
+      transcribe: "Transcribe a Clip",
+      revoice: "Localise a Script and Revoice It",
+      check: "One Tagline, Six Markets",
+      spokesperson: "AI Spokesperson",
+      subtitles: "Subtitle Text from a Recording"
+    },
+    variables: [
+      { id: "clip", name: "The clip", scope: "instance", type: "video" },
+      {
+        id: "script",
+        name: "Script",
+        scope: "instance",
+        type: "str",
+        default: ""
+      }
+    ],
+    operations: [
+      {
+        id: "transcribe",
+        name: "Transcribe",
+        workflow: "transcribe",
+        policy: "replace",
+        inputs: { clip: { from: "variable", variableId: "clip" } },
+        outputs: { transcript: { to: "variable", variableId: "script" } }
+      },
+      {
+        id: "revoice",
+        name: "Revoice",
+        workflow: "revoice",
+        policy: "replace",
+        inputs: { script: { from: "variable", variableId: "script" } }
+      },
+      {
+        id: "check",
+        name: "Back-translate",
+        workflow: "check",
+        policy: "parallel"
+      },
+      {
+        id: "spokesperson",
+        name: "Lip-sync",
+        workflow: "spokesperson",
+        policy: "queue",
+        timeoutMs: 900000,
+        inputs: {
+          presenter_clip: { from: "variable", variableId: "clip" },
+          script: { from: "variable", variableId: "script" }
+        }
+      },
+      {
+        id: "subtitles",
+        name: "Subtitles",
+        workflow: "subtitles",
+        policy: "parallel",
+        inputs: { recording: { from: "variable", variableId: "clip" } }
+      }
+    ],
+    sections: [
+      {
+        title: "The footage",
+        controls: [
+          { video: "clip", label: "Presenter clip" },
+          { run: ["transcribe"], label: "Get the script back out" },
+          { textVar: "script", label: "The script that gets dubbed", multiline: true },
+          { run: ["revoice", "subtitles"], label: "Revoice and subtitle" }
+        ],
+        results: [
+          { progress: "transcribe", label: "Transcribing…" },
+          { progress: "revoice", label: "Translating and voicing…" },
+          {
+            show: "spanish_audio",
+            op: "revoice",
+            as: "Audio",
+            label: "Localised voice track",
+            demo: AUDIO
+          },
+          {
+            show: "captions",
+            op: "subtitles",
+            as: "Markdown",
+            label: "Subtitle lines",
+            demo: "1\n00:00:00,000 --> 00:00:02,400\nOur spring release ships today."
+          }
+        ]
+      },
+      {
+        title: "Make the mouth match",
+        controls: [
+          { note: "💸 Lip-sync redraws the footage and is metered per second." },
+          { run: ["spokesperson"], label: "Lip-sync the clip" }
+        ],
+        results: [
+          { progress: "spokesperson", label: "Redriving the mouth…" },
+          {
+            show: "revoiced_clip",
+            op: "spokesperson",
+            as: "Video",
+            label: "Dubbed cut",
+            demo: VIDEO
+          }
+        ]
+      },
+      {
+        title: "Check what you shipped",
+        controls: [
+          { text: "tagline", op: "check", label: "A line to read back", multiline: true },
+          { run: ["check"], label: "Show me all six" }
+        ],
+        results: [
+          { progress: "check", label: "Localising…" },
+          {
+            show: "localised",
+            op: "check",
+            as: "Markdown",
+            label: "Six markets, back-translated",
+            demo: "**de** — Schneller als letzte Saison. _(Faster than last season.)_\n\n**fr** — Plus rapide que la saison dernière. _(Faster than last season.)_"
+          }
+        ]
+      }
+    ]
+  },
+
+  // ── 25 ─────────────────────────────────────────────────────────────────────
+  {
+    slug: "viral-ad-engine",
+    name: "Viral Ad Engine",
+    emoji: "📈",
+    featured: false,
+    tagline: "Settle the line, fan it into a test set, then put the product in motion.",
+    description:
+      "The Viral Video Ad Engine chain behind one surface. The offer drives both the copy registers and the hook-and-thumbnail set, so the line you pick and the thumbnails you test come from the same brief.",
+    note: "🔑 Needs an OpenAI key for the writing and a FAL key for the thumbnails. The ad loop is a video model; the vertical cut runs locally.",
+    workflows: {
+      copy: "Ad Copy in Three Registers",
+      hooks: "Hook & Thumbnail Factory",
+      loop: "Ad Loop from a Product Photo",
+      vertical: "Cut a Landscape Clip for Vertical"
+    },
+    variables: [
+      {
+        id: "offer",
+        name: "The offer",
+        scope: "instance",
+        type: "str",
+        default:
+          "Aurora Trail running shoes: a third lighter than last season, grip that holds on wet rock, launching Friday"
+      },
+      { id: "photo", name: "Product photo", scope: "instance", type: "image" },
+      { id: "landscape", name: "Landscape cut", scope: "instance", type: "video" }
+    ],
+    operations: [
+      {
+        id: "copy",
+        name: "Copy",
+        workflow: "copy",
+        policy: "parallel",
+        inputs: { offer: { from: "variable", variableId: "offer" } }
+      },
+      {
+        id: "hooks",
+        name: "Hooks",
+        workflow: "hooks",
+        policy: "parallel",
+        inputs: { "Video Topic": { from: "variable", variableId: "offer" } }
+      },
+      {
+        id: "loop",
+        name: "Ad loop",
+        workflow: "loop",
+        policy: "queue",
+        timeoutMs: 900000,
+        inputs: { product_photo: { from: "variable", variableId: "photo" } }
+      },
+      {
+        id: "vertical",
+        name: "Vertical",
+        workflow: "vertical",
+        policy: "parallel",
+        inputs: { clip: { from: "variable", variableId: "landscape" } }
+      }
+    ],
+    sections: [
+      {
+        title: "The line",
+        controls: [
+          { textVar: "offer", label: "What are you advertising?", multiline: true },
+          { text: "Target Audience", op: "hooks", label: "Who it is for" },
+          { number: "Number of Hooks", op: "hooks", label: "How many hooks", min: 2, max: 8 },
+          { run: ["copy", "hooks"], label: "Write it and fan it out" }
+        ],
+        results: [
+          { progress: "copy", label: "Writing copy…" },
+          {
+            show: "variants",
+            op: "copy",
+            as: "Markdown",
+            label: "Three registers",
+            demo: "**Plain**\nAurora Trail. A third lighter. Grips wet rock. Out Friday.\n\n**Playful**\nYour old shoes just got a text: it's over.\n\n**Premium**\nEngineered for the ground that gives nothing back."
+          },
+          { progress: "hooks", label: "Making the test set…" },
+          {
+            show: "hooks",
+            op: "hooks",
+            as: "Markdown",
+            label: "Hook lines",
+            demo: "1. The shoe that argues with wet rock\n2. A third lighter. Same ground.\n3. Friday, or never"
+          },
+          {
+            show: "thumbnail_gallery",
+            op: "hooks",
+            as: "Image",
+            label: "Thumbnails",
+            demo: IMG
+          }
+        ]
+      },
+      {
+        title: "The footage",
+        controls: [
+          { note: "💸 The ad loop is a video model. The vertical cut runs on your machine." },
+          { image: "photo", label: "Product photo" },
+          { text: "motion", op: "loop", label: "Camera move", multiline: true },
+          { run: ["loop"], label: "Put it in motion" },
+          { video: "landscape", label: "A landscape cut to reframe" },
+          { run: ["vertical"], label: "Cut it to 9:16" }
+        ],
+        results: [
+          { progress: "loop", label: "Animating the still…" },
+          { show: "ad_loop", op: "loop", as: "Video", label: "Ad loop", demo: VIDEO },
+          { progress: "vertical", label: "Reframing…" },
+          { show: "vertical", op: "vertical", as: "Video", label: "Vertical cut" }
         ]
       }
     ]

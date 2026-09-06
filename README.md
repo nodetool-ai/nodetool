@@ -7,14 +7,16 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 [![Powered by Atlas Cloud](https://www.atlascloud.ai/oss-program/powered-by-atlas-cloud.svg)](https://www.atlascloud.ai/?ref=PW9AD2)
 
-**Open-source Agent-First Creative Workspace**
+**Open-source creative AI workspace**
 
-Create and edit AI media in NodeTool, an open-source
-creative studio. Describe what you want and the agent builds it. What comes
-back is an editable project: open it and re-roll, re-voice or re-cut.
+Create and edit images, video, audio, and text with agents that work alongside
+you. Describe what you want, let the agent build it, then take over whenever you
+like. Refine a shot, try a different voice, or rework the cut, yourself or with
+the agent.
 
-The closed AI studios will generate your media too, priced in their credits, 
-saved in their cloud, locked away. NodeTool hands the project back, on your keys.
+You get an editable project, not just a finished file. Your workflows, assets,
+and edits stay together, so you can inspect how something was made and change
+individual parts without starting over.
 
 **[Download NodeTool Studio](https://github.com/nodetool-ai/nodetool/releases/latest)** ·
 **[Quick start](#first-run-in-studio)** ·
@@ -23,23 +25,12 @@ saved in their cloud, locked away. NodeTool hands the project back, on your keys
 
 ![NodeTool: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film](marketing/public/hero-project-poster.webp)
 
-## The node editor
-
-![NodeTool workflow canvas](marketing/public/screen_workflow.webp)
-
-Every project is a graph you can open. Drag nodes in, connect typed ports, and
-read the live output at each step. Double-click the canvas to search and add a
-node, or drag a connection into empty space to see compatible next steps. The
-editor refuses a mismatch, so an image cannot land in a text field.
-
-The storyboard, script, timeline, sketch, and 3D editors all sit on this
-canvas, and an agent wires it through the same actions you have.
-
 ## Every model you need, on your own keys
 
-You connect the provider and NodeTool calls it with your key, so you pay that
-provider directly at their price. There is no NodeTool billing unit in between. 
-When a better model ships, add it the day it ships.
+Run local models or connect cloud providers with your own API keys. Choose your
+models and pay providers directly: NodeTool calls the provider with your key at
+their price, with no NodeTool billing unit in between. When a better model
+ships, add it the day it ships.
 
 [Models and Providers](docs/models-and-providers.md) lists what runs where.
 
@@ -153,6 +144,18 @@ capture a view as a depth or composition reference for an image or video model.
 The same operations run headlessly through `create_model3d`, `get_model3d`,
 `edit_model3d`, `validate_model3d`, and `render_model3d`, so a scene is
 reproducible with no editor open.
+
+## The node editor
+
+![NodeTool workflow canvas](marketing/public/screen_workflow.webp)
+
+Every project is a graph you can open. Drag nodes in, connect typed ports, and
+read the live output at each step. Double-click the canvas to search and add a
+node, or drag a connection into empty space to see compatible next steps. The
+editor refuses a mismatch, so an image cannot land in a text field.
+
+Every editor above sits on this canvas, and an agent wires it through the
+same actions you have.
 
 ## Recipes
 

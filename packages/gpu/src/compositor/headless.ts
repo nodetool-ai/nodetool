@@ -106,6 +106,10 @@ export async function compositeLayersHeadless(
     });
     // Re-wrap as an ArrayBuffer-backed view: `writeTexture` rejects
     // SharedArrayBuffer-backed sources under the DOM WebGPU typings.
+    // SAFETY: narrows `ArrayBufferLike` to `ArrayBuffer` for the typings only.
+    // The wrap is a view over the same bytes and `writeTexture` copies out of
+    // it identically whichever buffer kind actually backs `layer.rgba`, and
+    // the explicit byteOffset/byteLength below keep the view's bounds.
     const data = new Uint8Array(
       layer.rgba.buffer as ArrayBuffer,
       layer.rgba.byteOffset,

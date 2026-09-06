@@ -1276,38 +1276,6 @@ export const handleUpdate = (
   runnerStore: WorkflowRunnerStore,
   getNodeStore: (workflowId: string) => NodeStore | undefined
 ): void => {
-  const runner = runnerStore.getState();
-  const upsertLiveGeneration = useResultsStore.getState().upsertLiveGeneration;
-  const setOutputResult = useResultsStore.getState().setOutputResult;
-  const setStatus = useStatusStore.getState().setStatus;
-  const appendLog = useLogsStore.getState().appendLog;
-  const setProgress = useResultsStore.getState().setProgress;
-  const setTask = useResultsStore.getState().setTask;
-  const setToolCall = useResultsStore.getState().setToolCall;
-  const appendToolResult = useResultsStore.getState().appendToolResult;
-  const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
-  const setEdge = useResultsStore.getState().setEdge;
-  const addNotification = useNotificationStore.getState().addNotification;
-
-  if (data.type === "log_update") {
-    appendLog({
-      workflowId: workflow.id,
-      workflowName: workflow.name,
-      nodeId: data.node_id,
-      nodeName: data.node_name,
-      content: data.content,
-      severity: data.severity,
-      timestamp: Date.now()
-    });
-  }
-
-  if (data.type === "notification") {
-    addNotification({
-      type: data.severity,
-      content: data.content
-    });
-  }
-
   // Per-node results/progress/edges are scoped by the run (job) that produced
   // them so concurrent same-workflow runs stay isolated. The backend stamps
   // job_id on every data message; if it's absent, skip the per-job write rather
@@ -1328,151 +1296,193 @@ export const handleUpdate = (
     runnerStore.setState({ jobReplayCursor: jobSeq });
   }
 
-  if (data.type === "job_resumed") {
-    handleJobResumed(data, runnerStore);
-    return;
-  }
+  switch (data.type) {
+    case "log_update":
+      useLogsStore.getState().appendLog({
+        workflowId: workflow.id,
+        workflowName: workflow.name,
+        nodeId: data.node_id,
+        nodeName: data.node_name,
+        content: data.content,
+        severity: data.severity,
+        timestamp: Date.now()
+      });
+      break;
 
-  if (data.type === "edge_update") {
-    const currentState = runnerStore.getState().state;
-    if (
-      currentState !== "cancelled" &&
-      currentState !== "error" &&
-      messageJobId &&
-      // Silent preview jobs don't animate edges (scrub-frame noise).
-      !isSilentJob(messageJobId)
-    ) {
-      setEdge(
-        workflow.id,
-        messageJobId,
-        data.edge_id,
-        data.status,
-        data.counter ?? undefined
-      );
-    }
-  }
+    case "notification":
+      useNotificationStore.getState().addNotification({
+        type: data.severity,
+        content: data.content
+      });
+      break;
 
-  if (data.type === "planning_update") {
-    if (data.node_id && messageJobId) {
-      setPlanningUpdate(workflow.id, messageJobId, data.node_id, data);
-    } else if (!data.node_id) {
-      console.error("PlanningUpdate has no node_id");
-    }
-  }
-  if (data.type === "tool_call_update") {
-    if (data.node_id && messageJobId) {
-      setToolCall(workflow.id, messageJobId, data.node_id, data);
-    }
-    appendTrace("tool_call", data.message || `Tool: ${data.name}`, data, {
-      nodeId: data.node_id ?? undefined
-    });
-  }
+    case "job_resumed":
+      handleJobResumed(data, runnerStore);
+      break;
 
-  if (data.type === "tool_result_update") {
-    // A tool result is an artifact of an agent's run, not its output value.
-    // It accumulates in the toolResults channel (read by the agent tool log),
-    // never in the output/value paths.
-    if (data.node_id && messageJobId) {
-      appendToolResult(workflow.id, messageJobId, data.node_id, data.result);
-    }
-    appendTrace(
-      "tool_result",
-      `${data.name ?? "Tool"} result${data.is_error ? " (error)" : ""}`,
-      data,
-      { nodeId: data.node_id ?? undefined }
-    );
-  }
-
-  if (data.type === "task_update") {
-    if (data.node_id && messageJobId) {
-      setTask(workflow.id, messageJobId, data.node_id, data.task);
-    } else if (!data.node_id) {
-      console.error("TaskUpdate has no node_id");
-    }
-  }
-
-  // Agent nodes emit step_result / todo_update during a run. The chat path
-  // handles these separately; in the workflow path they were previously
-  // dropped (step_result was even in the union with no branch). Record them on
-  // the trace timeline alongside tool_call/tool_result so an agent node's
-  // progress is observable in the editor.
-  if (data.type === "step_result") {
-    const stepName = data.step?.name ?? data.step?.id ?? "";
-    appendTrace(
-      "step_result",
-      `Step ${stepName}${data.is_task_result ? " (task result)" : ""}${
-        data.error ? " — error" : ""
-      }`,
-      data
-    );
-  }
-
-  if (data.type === "todo_update") {
-    const todos = data.todos ?? [];
-    const done = todos.filter((t) => t.status === "completed").length;
-    appendTrace("todo_update", `Todos ${done}/${todos.length}`, data, {
-      nodeId: data.node_id ?? undefined
-    });
-  }
-
-  if (data.type === "llm_call") {
-    const tokensIn = data.tokens_input ?? 0;
-    const tokensOut = data.tokens_output ?? 0;
-    const duration = data.duration_ms != null ? ` (${data.duration_ms}ms)` : "";
-    appendTrace(
-      "llm_call",
-      `${data.provider}/${data.model}: ${tokensIn}→${tokensOut} tok${duration}${
-        data.error ? " — error" : ""
-      }`,
-      data,
-      { nodeId: data.node_id, nodeName: data.node_name ?? undefined }
-    );
-  }
-
-  if (data.type === "output_update") {
-    const normalizedValue = normalizeOutputUpdateValue(data);
-
-    // Realtime audio streams emit ~50 chunks/s per node; logging/tracing each
-    // one would copy the (capped) log array per chunk for entries nobody
-    // reads. Skip audio chunks entirely.
-    const isAudioChunk = isAudioChunkValue(normalizedValue);
-
-    // output_update feeds the output-node stream buffer only. It does NOT
-    // create or modify a live generation — generations are driven solely by
-    // node_update (see the live-generations branch below). Audio chunks are
-    // coalesced and flushed on a timer; everything else lands immediately.
-    if (messageJobId) {
-      if (isAudioChunk) {
-        queueAudioAppend(
-          workflow.id,
-          messageJobId,
-          data.node_id,
-          normalizedValue
-        );
-      } else {
-        setOutputResult(
-          workflow.id,
-          messageJobId,
-          data.node_id,
-          normalizedValue,
-          // Append accumulates chunks; an explicit "replace" must OVERWRITE the
-          // stored value — appending replace snapshots made hydration
-          // concatenate "H","He","Hel" into "HHeHel" (app opened after a
-          // graph-editor run). Absent disposition appends (protocol default).
-          (data as { disposition?: "append" | "replace" }).disposition !==
-            "replace"
-        );
+    case "edge_update": {
+      const currentState = runnerStore.getState().state;
+      if (
+        currentState !== "cancelled" &&
+        currentState !== "error" &&
+        messageJobId &&
+        // Silent preview jobs don't animate edges (scrub-frame noise).
+        !isSilentJob(messageJobId)
+      ) {
+        useResultsStore
+          .getState()
+          .setEdge(
+            workflow.id,
+            messageJobId,
+            data.edge_id,
+            data.status,
+            data.counter ?? undefined
+          );
       }
+      break;
     }
 
-    if (isAudioChunk && data.node_id) {
-      // React-free fast path to the playback worklet: deliver in this task,
-      // not after the store→render→effect round trip. Same object identity
-      // as the store append above, so playback dedupes the two paths.
-      publishRealtimeAudioChunk(data.node_id, normalizedValue);
+    case "planning_update":
+      if (data.node_id && messageJobId) {
+        useResultsStore
+          .getState()
+          .setPlanningUpdate(workflow.id, messageJobId, data.node_id, data);
+      } else if (!data.node_id) {
+        console.error("PlanningUpdate has no node_id");
+      }
+      break;
+
+    case "tool_call_update":
+      if (data.node_id && messageJobId) {
+        useResultsStore
+          .getState()
+          .setToolCall(workflow.id, messageJobId, data.node_id, data);
+      }
+      appendTrace("tool_call", data.message || `Tool: ${data.name}`, data, {
+        nodeId: data.node_id ?? undefined
+      });
+      break;
+
+    case "tool_result_update":
+      // A tool result is an artifact of an agent's run, not its output value.
+      // It accumulates in the toolResults channel (read by the agent tool log),
+      // never in the output/value paths.
+      if (data.node_id && messageJobId) {
+        useResultsStore
+          .getState()
+          .appendToolResult(
+            workflow.id,
+            messageJobId,
+            data.node_id,
+            data.result
+          );
+      }
+      appendTrace(
+        "tool_result",
+        `${data.name ?? "Tool"} result${data.is_error ? " (error)" : ""}`,
+        data,
+        { nodeId: data.node_id ?? undefined }
+      );
+      break;
+
+    case "task_update":
+      if (data.node_id && messageJobId) {
+        useResultsStore
+          .getState()
+          .setTask(workflow.id, messageJobId, data.node_id, data.task);
+      } else if (!data.node_id) {
+        console.error("TaskUpdate has no node_id");
+      }
+      break;
+
+    // Agent nodes emit step_result / todo_update during a run. The chat path
+    // handles these separately; in the workflow path they were previously
+    // dropped (step_result was even in the union with no branch). Record them
+    // on the trace timeline alongside tool_call/tool_result so an agent node's
+    // progress is observable in the editor.
+    case "step_result": {
+      const stepName = data.step?.name ?? data.step?.id ?? "";
+      appendTrace(
+        "step_result",
+        `Step ${stepName}${data.is_task_result ? " (task result)" : ""}${
+          data.error ? " — error" : ""
+        }`,
+        data
+      );
+      break;
     }
 
-    if (!isAudioChunk) {
+    case "todo_update": {
+      const todos = data.todos ?? [];
+      const done = todos.filter((t) => t.status === "completed").length;
+      appendTrace("todo_update", `Todos ${done}/${todos.length}`, data, {
+        nodeId: data.node_id ?? undefined
+      });
+      break;
+    }
+
+    case "llm_call": {
+      const tokensIn = data.tokens_input ?? 0;
+      const tokensOut = data.tokens_output ?? 0;
+      const duration =
+        data.duration_ms != null ? ` (${data.duration_ms}ms)` : "";
+      appendTrace(
+        "llm_call",
+        `${data.provider}/${data.model}: ${tokensIn}→${tokensOut} tok${duration}${
+          data.error ? " — error" : ""
+        }`,
+        data,
+        { nodeId: data.node_id, nodeName: data.node_name ?? undefined }
+      );
+      break;
+    }
+
+    case "output_update": {
+      const normalizedValue = normalizeOutputUpdateValue(data);
+
+      // Realtime audio streams emit ~50 chunks/s per node; logging/tracing each
+      // one would copy the (capped) log array per chunk for entries nobody
+      // reads. Skip audio chunks entirely.
+      const isAudioChunk = isAudioChunkValue(normalizedValue);
+
+      // output_update feeds the output-node stream buffer only. It does NOT
+      // create or modify a live generation — generations are driven solely by
+      // node_update (see the generation_complete branch). Audio chunks are
+      // coalesced and flushed on a timer; everything else lands immediately.
+      if (messageJobId) {
+        if (isAudioChunk) {
+          queueAudioAppend(
+            workflow.id,
+            messageJobId,
+            data.node_id,
+            normalizedValue
+          );
+        } else {
+          useResultsStore.getState().setOutputResult(
+            workflow.id,
+            messageJobId,
+            data.node_id,
+            normalizedValue,
+            // Append accumulates chunks; an explicit "replace" must OVERWRITE
+            // the stored value — appending replace snapshots made hydration
+            // concatenate "H","He","Hel" into "HHeHel" (app opened after a
+            // graph-editor run). Absent disposition appends (protocol default).
+            (data as { disposition?: "append" | "replace" }).disposition !==
+              "replace"
+          );
+        }
+      }
+
+      if (isAudioChunk) {
+        if (data.node_id) {
+          // React-free fast path to the playback worklet: deliver in this task,
+          // not after the store→render→effect round trip. Same object identity
+          // as the store append above, so playback dedupes the two paths.
+          publishRealtimeAudioChunk(data.node_id, normalizedValue);
+        }
+        break;
+      }
+
       // Media payloads normalize to `{ type: "image" | "video" | ..., data: <bytes> }`
       // (or `uri`/`asset_id` refs); stringifying those would serialize multi-MB
       // payloads into the log line before the log store's truncation runs.
@@ -1488,7 +1498,7 @@ export const handleUpdate = (
         : isMediaRef
           ? `<${String((normalizedValue as { type: unknown }).type)}>`
           : JSON.stringify(normalizedValue);
-      appendLog({
+      useLogsStore.getState().appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,
         nodeId: data.node_id,
@@ -1497,93 +1507,111 @@ export const handleUpdate = (
         severity: "info",
         timestamp: Date.now()
       });
-
       appendTrace(
         "output",
         `${data.node_name || data.node_id} → ${data.output_name}`,
         data,
         { nodeId: data.node_id, nodeName: data.node_name }
       );
+      break;
     }
-  }
 
-  if (data.type === "generation_complete") {
-    // The sole generation driver: a generator committed one complete artifact.
-    const jobId = extractJobId(data);
-    if (jobId) {
+    case "generation_complete": {
+      // The sole generation driver: a generator committed one complete artifact.
+      const jobId = extractJobId(data);
+      if (!jobId) break;
       sawGenerationCompleteKeys.add(genKey(jobId, data.node_id));
       // Silent jobs (slider scrubs) reuse one jobId across frames — pin slot 0
       // (replace) so a scrub stays ONE preview (D2/§9). Otherwise use the
       // relay-stamped index. outputs are already normalized at the relay — pass
       // through, do NOT re-coerce.
       const slot = isSilentJob(jobId) ? 0 : (data.index ?? 0);
-      upsertLiveGeneration(workflow.id, data.node_id, jobId, {
-        index: slot,
-        status: "completed",
-        outputs: data.outputs,
-        // Stamp the signature so a later resolve/buildRunSubgraph can reuse this
-        // cached output (Computed cache key, spec §3.4). Recomputed at completion
-        // so a descendant of a generative that ran this job is keyed to the
-        // generation it consumed, not the dispatch-time pin. Absent for partial
-        // runs of computed nodes → simply not cached.
-        inputSignature: stampSignatureForCompletion(
-          getNodeStore,
-          workflow.id,
-          jobId,
-          data.node_id
-        )
-      });
+      useResultsStore
+        .getState()
+        .upsertLiveGeneration(workflow.id, data.node_id, jobId, {
+          index: slot,
+          status: "completed",
+          outputs: data.outputs,
+          // Stamp the signature so a later resolve/buildRunSubgraph can reuse
+          // this cached output (Computed cache key, spec §3.4). Recomputed at
+          // completion so a descendant of a generative that ran this job is
+          // keyed to the generation it consumed, not the dispatch-time pin.
+          // Absent for partial runs of computed nodes → simply not cached.
+          inputSignature: stampSignatureForCompletion(
+            getNodeStore,
+            workflow.id,
+            jobId,
+            data.node_id
+          )
+        });
+      break;
     }
-  }
 
-  if (data.type === "chunk") {
-    // Binary (audio) chunk payloads don't belong in the text-chunk channel.
-    if (
-      data.node_id &&
-      isString(data.content) &&
-      data.content &&
-      messageJobId
-    ) {
-      queueTextChunk(workflow.id, messageJobId, data.node_id, data.content);
-    }
-  }
-  if (data.type === "job_update") {
-    handleJobUpdate(workflow, data, runnerStore, runner, getNodeStore);
-  }
-
-  if (data.type === "prediction") {
-    appendLog({
-      workflowId: workflow.id,
-      workflowName: workflow.name,
-      nodeId: data.node_id,
-      nodeName: "",
-      content: data.logs || "",
-      severity: "info",
-      timestamp: Date.now()
-    });
-    if (data.status === "booting") {
-      const predictionJobId = extractJobId(data);
-      if (predictionJobId) {
-        setStatus(workflow.id, predictionJobId, data.node_id, "booting");
+    case "chunk":
+      // Binary (audio) chunk payloads don't belong in the text-chunk channel.
+      if (
+        data.node_id &&
+        isString(data.content) &&
+        data.content &&
+        messageJobId
+      ) {
+        queueTextChunk(workflow.id, messageJobId, data.node_id, data.content);
       }
-    }
-  }
+      break;
 
-  if (data.type === "node_progress") {
-    const currentState = runnerStore.getState().state;
-    if (currentState !== "cancelled" && messageJobId) {
-      setProgress(
-        workflow.id,
-        messageJobId,
-        data.node_id,
-        data.progress,
-        data.total
+    case "job_update":
+      handleJobUpdate(
+        workflow,
+        data,
+        runnerStore,
+        runnerStore.getState(),
+        getNodeStore
       );
-    }
-  }
+      break;
 
-  if (data.type === "node_update") {
-    handleNodeUpdate(workflow, data, runnerStore, runner, getNodeStore);
+    case "prediction": {
+      useLogsStore.getState().appendLog({
+        workflowId: workflow.id,
+        workflowName: workflow.name,
+        nodeId: data.node_id,
+        nodeName: "",
+        content: data.logs || "",
+        severity: "info",
+        timestamp: Date.now()
+      });
+      const predictionJobId =
+        data.status === "booting" ? extractJobId(data) : undefined;
+      if (predictionJobId) {
+        useStatusStore
+          .getState()
+          .setStatus(workflow.id, predictionJobId, data.node_id, "booting");
+      }
+      break;
+    }
+
+    case "node_progress":
+      if (runnerStore.getState().state !== "cancelled" && messageJobId) {
+        useResultsStore
+          .getState()
+          .setProgress(
+            workflow.id,
+            messageJobId,
+            data.node_id,
+            data.progress,
+            data.total
+          );
+      }
+      break;
+
+    case "node_update":
+      handleNodeUpdate(
+        workflow,
+        data,
+        runnerStore,
+        runnerStore.getState(),
+        getNodeStore
+      );
+      break;
   }
 };
 

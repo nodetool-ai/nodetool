@@ -2534,7 +2534,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "create_entity",
     module: "entities",
     impl: "packages/agents/src/capabilities/entities.ts",
-    contract: "b6b443b827d6",
+    contract: "fb242b420a90",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-entities.test.ts",
@@ -2544,7 +2544,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "update_entity",
     module: "entities",
     impl: "packages/agents/src/capabilities/entities.ts",
-    contract: "b090a0ab6d1a",
+    contract: "3bf2ff8ece5a",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-entities.test.ts",

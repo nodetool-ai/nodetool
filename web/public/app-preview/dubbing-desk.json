@@ -1,0 +1,718 @@
+{
+  "slug": "dubbing-desk",
+  "name": "Dubbing Desk",
+  "emoji": "🌍",
+  "description": "The Multilingual Video Dubber chain behind one surface. Transcribing writes the script into a variable the revoice and back-translation steps both read, so the words that get dubbed are the words you can see.",
+  "tagline": "One presenter clip, spoken in another language, checked and subtitled.",
+  "note": "🔑 Needs a FAL key for transcription, speech and lip-sync, and an OpenAI key for the translation.",
+  "featured": false,
+  "image": "/app-preview/img/dubbing-desk.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🌍 Dubbing Desk",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One presenter clip, spoken in another language, checked and subtitled."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs a FAL key for transcription, speech and lip-sync, and an OpenAI key for the translation."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-footage",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-footage",
+                  "title": "The footage",
+                  "content": [
+                    {
+                      "type": "VideoInput",
+                      "props": {
+                        "id": "in-clip",
+                        "binding": "var:clip",
+                        "label": "Presenter clip",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-transcribe",
+                        "label": "Get the script back out",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "transcribe",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-script",
+                        "binding": "var:script",
+                        "label": "The script that gets dubbed",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-revoice-subtitles",
+                        "label": "Revoice and subtitle",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "revoice",
+                            "key": "",
+                            "value": ""
+                          },
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "subtitles",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-footage-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-transcribe",
+                        "binding": "op:transcribe/exec#progress",
+                        "label": "Transcribing…"
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-revoice",
+                        "binding": "op:revoice/exec#progress",
+                        "label": "Translating and voicing…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-revoice-spanish-audio",
+                        "text": "Localised voice track",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Audio",
+                      "props": {
+                        "id": "out-revoice-spanish-audio",
+                        "binding": "op:revoice/out:out",
+                        "placeholder": "Your audio appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-subtitles-captions",
+                        "text": "Subtitle lines",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-subtitles-captions",
+                        "binding": "op:subtitles/out:out",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-make-the-mouth-match",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-make-the-mouth-match",
+                  "title": "Make the mouth match",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "💸 Lip-sync redraws the footage and is metered per second."
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-spokesperson",
+                        "label": "Lip-sync the clip",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "spokesperson",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-make-the-mouth-match-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-spokesperson",
+                        "binding": "op:spokesperson/exec#progress",
+                        "label": "Redriving the mouth…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-spokesperson-revoiced-clip",
+                        "text": "Dubbed cut",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-spokesperson-revoiced-clip",
+                        "binding": "op:spokesperson/out:output-clip",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-check-what-you-shipped",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-check-what-you-shipped",
+                  "title": "Check what you shipped",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-check-tagline",
+                        "binding": "op:check/in:in",
+                        "label": "A line to read back",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-check",
+                        "label": "Show me all six",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "check",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-check-what-you-shipped-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-check",
+                        "binding": "op:check/exec#progress",
+                        "label": "Localising…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-check-localised",
+                        "text": "Six markets, back-translated",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-check-localised",
+                        "binding": "op:check/out:out",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "transcribe",
+        "name": "Transcribe",
+        "workflowId": "transcribe",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "clip"
+          }
+        },
+        "outputs": {
+          "out": {
+            "to": "variable",
+            "variableId": "script"
+          }
+        },
+        "policy": "replace"
+      },
+      {
+        "id": "revoice",
+        "name": "Revoice",
+        "workflowId": "revoice",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "script"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "check",
+        "name": "Back-translate",
+        "workflowId": "check",
+        "inputs": {},
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "spokesperson",
+        "name": "Lip-sync",
+        "workflowId": "spokesperson",
+        "inputs": {
+          "in-clip": {
+            "from": "variable",
+            "variableId": "clip"
+          },
+          "in-script": {
+            "from": "variable",
+            "variableId": "script"
+          }
+        },
+        "outputs": {},
+        "policy": "queue",
+        "timeoutMs": 900000
+      },
+      {
+        "id": "subtitles",
+        "name": "Subtitles",
+        "workflowId": "subtitles",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "clip"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "clip",
+        "name": "The clip",
+        "type": {
+          "type": "video",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "script",
+        "name": "Script",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "",
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "transcribe",
+      "name": "Transcribe a Clip",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "clip",
+              "value": null,
+              "description": "The clip to transcribe"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 180
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "transcript"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1040,
+                "y": 200
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "4  Transcript"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "revoice",
+      "name": "Localise a Script and Revoice It",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "script",
+              "value": "",
+              "description": "The English script"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Script"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "spanish_audio"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 990,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "4  Audio"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "check",
+      "name": "One Tagline, Six Markets",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "tagline",
+              "value": "",
+              "description": "The tagline to localise"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Input"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "localised"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Output"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "spokesperson",
+      "name": "AI Spokesperson",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-clip",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "presenter_clip",
+              "value": null,
+              "description": "Footage of a person speaking to camera"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 240
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Presenter clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-script",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "script",
+              "value": "Our spring release ships today. Faster renders, sharper output, and a price that did not move.",
+              "description": "The new words the presenter should say"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 400
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  New script"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-clip",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "revoiced_clip"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1120,
+                "y": 320
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "5  Re-voiced clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "subtitles",
+      "name": "Subtitle Text from a Recording",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "recording",
+              "value": null,
+              "description": "The recording to work from"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Recording"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "captions"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "5  Output"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:revoice/out:out": {
+      "$demo": "audio"
+    },
+    "op:subtitles/out:out": "1\n00:00:00,000 --> 00:00:02,400\nOur spring release ships today.",
+    "op:spokesperson/out:output-clip": {
+      "$demo": "video"
+    },
+    "op:check/in:in": "",
+    "op:check/out:out": "**de** — Schneller als letzte Saison. _(Faster than last season.)_\n\n**fr** — Plus rapide que la saison dernière. _(Faster than last season.)_",
+    "var:script": ""
+  }
+}

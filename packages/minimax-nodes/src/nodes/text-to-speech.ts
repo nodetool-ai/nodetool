@@ -13,8 +13,42 @@ import {
   minimaxHeaders,
   resolveAudioPayload
 } from "../minimax-base.js";
+import type { MinimaxResponse } from "../minimax-base.js";
 
 const TTS_FORMATS = ["mp3", "wav", "flac"];
+
+/**
+ * `/v1/t2a_v2` request. `emotion` and `language_boost` are omitted entirely
+ * when the node's "auto" sentinel is selected.
+ */
+interface MinimaxVoiceSetting {
+  voice_id: string;
+  speed: number;
+  vol: number;
+  pitch: number;
+  emotion?: string;
+}
+
+interface MinimaxTtsRequest {
+  model: string;
+  text: string;
+  stream: boolean;
+  voice_setting: MinimaxVoiceSetting;
+  audio_setting: {
+    sample_rate: number;
+    bitrate: number;
+    format: string;
+    channel: number;
+  };
+  language_boost?: string;
+}
+
+/** `/v1/t2a_v2` reply: hex-encoded audio, or a download URL. */
+interface MinimaxTtsResponse extends MinimaxResponse {
+  data?: {
+    audio?: string;
+  };
+}
 
 /** Output handles MinimaxTextToSpeechNode.process() emits. */
 type MinimaxTextToSpeechNodeOutputs = {
@@ -141,7 +175,7 @@ export class MinimaxTextToSpeechNode extends BaseNode {
     const languageBoost = String(this.language_boost ?? "auto");
     const format = String(this.format ?? "mp3");
 
-    const voiceSetting: Record<string, unknown> = {
+    const voiceSetting: MinimaxVoiceSetting = {
       voice_id: voiceId,
       speed: Math.max(0.5, Math.min(2.0, Number(this.speed ?? 1.0))),
       vol: Math.max(0.1, Math.min(10.0, Number(this.volume ?? 1.0))),
@@ -151,7 +185,7 @@ export class MinimaxTextToSpeechNode extends BaseNode {
       voiceSetting.emotion = emotion;
     }
 
-    const body: Record<string, unknown> = {
+    const body: MinimaxTtsRequest = {
       model,
       text,
       stream: false,
@@ -175,11 +209,10 @@ export class MinimaxTextToSpeechNode extends BaseNode {
     if (!res.ok) {
       throw new Error(`MiniMax t2a_v2 failed: ${res.status} ${await res.text()}`);
     }
-    const data = (await res.json()) as Record<string, unknown>;
+    const data: MinimaxTtsResponse = await res.json();
     assertBaseResp(data, "t2a_v2");
 
-    const payload = data.data as Record<string, unknown> | undefined;
-    const audio = payload?.audio as string | undefined;
+    const audio = data.data?.audio;
     if (!audio) {
       throw new Error(
         `MiniMax t2a_v2 returned no audio data: ${JSON.stringify(data)}`

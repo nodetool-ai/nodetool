@@ -7,7 +7,7 @@
  * model or independent variants.
  */
 
-import * as fs from "fs";
+import { readSafetensorsHeader } from "./safetensors-inspector.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -29,42 +29,6 @@ export interface SafetensorSummary {
 }
 
 // ---------------------------------------------------------------------------
-// Internal: header reading
-// ---------------------------------------------------------------------------
-
-interface TensorHeaderEntry {
-  dtype: string;
-  shape: number[];
-  data_offsets: [number, number];
-}
-
-/**
- * Read the JSON header from a .safetensors file.
- * Format: 8-byte LE uint64 header length, then UTF-8 JSON.
- */
-function readHeader(filePath: string) {
-  const fd = fs.openSync(filePath, "r");
-  try {
-    const lenBuf = Buffer.alloc(8);
-    fs.readSync(fd, lenBuf, 0, 8, 0);
-    const headerLen = Number(lenBuf.readBigUInt64LE(0));
-
-    const headerBuf = Buffer.alloc(headerLen);
-    fs.readSync(fd, headerBuf, 0, headerLen, 8);
-    const parsed = JSON.parse(headerBuf.toString("utf-8"));
-
-    const result: Record<string, TensorHeaderEntry> = {};
-    for (const [key, value] of Object.entries(parsed)) {
-      if (key === "__metadata__") continue;
-      result[key] = value as TensorHeaderEntry;
-    }
-    return result;
-  } finally {
-    fs.closeSync(fd);
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -79,14 +43,14 @@ export function summarizeSafetensor(
   filePath: string,
   sampleLimit: number = 32
 ): SafetensorSummary {
-  const header = readHeader(filePath);
+  const header = readSafetensorsHeader(filePath);
   const allKeys = Object.keys(header);
   const sampled: Record<string, number[]> = {};
 
   for (const key of allKeys.slice(0, sampleLimit)) {
-    const entry = header[key];
-    if (entry && entry.shape) {
-      sampled[key] = entry.shape;
+    const shape = header[key]?.shape;
+    if (shape) {
+      sampled[key] = shape;
     }
   }
 

@@ -40,16 +40,23 @@ export interface DebugViolation {
 export interface DebugReadback {
   readonly moduleKey: string;
   readonly buffer: GPUBuffer;
+  /**
+   * The counters buffer the validation pass wrote, copied into `buffer`. Only
+   * needed while the encoder runs; the consumer destroys it once the readback
+   * completes.
+   */
+  readonly countersBuffer?: GPUBuffer;
 }
 
-/** Mutable list of pending readbacks; lazily attached to {@link GPUContext}. */
+/** Mutable list of pending readbacks; one per {@link GPUContext}. */
 export type DebugSink = DebugReadback[];
 
-/** Shape we extend onto {@link GPUContext} at runtime. */
-interface DebugContextExtension {
-  debugSink?: DebugSink;
-  debugValidatorPipeline?: GPUComputePipeline;
-}
+/**
+ * Pending readbacks per context. Kept beside the context rather than on it:
+ * the sink is this module's own bookkeeping, not part of the {@link GPUContext}
+ * contract, and a weak key lets a discarded context take its queue with it.
+ */
+const debugSinks = new WeakMap<GPUContext, DebugSink>();
 
 const COUNTERS_SIZE_BYTES = 16; // 4 × u32: rgbExceedsA, negative, nan, totalChecked
 
@@ -88,6 +95,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
 let cachedFlag: boolean | null = null;
 
 function readEnvFlag(): boolean {
+  // SAFETY: this package compiles without @types/node, so `process` is not a
+  // declared global here. The asserted shape only claims optional members, and
+  // the optional chain reads the flag as unset in a host that has no
+  // `process` (browser, worker) — which leaves the validator off.
   const raw = (globalThis as { process?: { env?: Record<string, string | undefined> } })
     .process?.env?.NODETOOL_GPU_DEBUG;
   if (!raw) {
@@ -170,9 +181,9 @@ export interface EncodeValidationArgs {
 
 /**
  * Encode a debug validation pass into the given encoder, then schedule a
- * buffer-to-buffer copy into a fresh readback buffer registered on
- * `ctx.debugSink`. Caller is responsible for `consumePremulDebugWarnings`
- * after submit to actually map the readback.
+ * buffer-to-buffer copy into a fresh readback buffer queued for this context.
+ * Caller is responsible for `consumePremulDebugWarnings` after submit to
+ * actually map the readback.
  *
  * Silently skips if the output texture lacks `TEXTURE_BINDING` usage: the
  * pass needs to sample the output and we will not silently re-allocate
@@ -223,19 +234,16 @@ export function encodePremulValidationPass(args: EncodeValidationArgs): void {
 
   encoder.copyBufferToBuffer(counters, 0, readback, 0, COUNTERS_SIZE_BYTES);
 
-  const ext = ctx as GPUContext & DebugContextExtension;
-  if (!ext.debugSink) {
-    ext.debugSink = [];
+  let sink = debugSinks.get(ctx);
+  if (!sink) {
+    sink = [];
+    debugSinks.set(ctx, sink);
   }
-  ext.debugSink.push({
+  sink.push({
     moduleKey: moduleKey(module.id, module.version),
-    buffer: readback
+    buffer: readback,
+    countersBuffer: counters
   });
-  // counters is only needed while the encoder runs; stash it on the readback
-  // entry so the consumer can destroy it once the readback completes.
-  (ext.debugSink[ext.debugSink.length - 1] as DebugReadback & {
-    countersBuffer?: GPUBuffer;
-  }).countersBuffer = counters;
 }
 
 // --- Readback / reporting ----------------------------------------------------
@@ -250,21 +258,19 @@ export function encodePremulValidationPass(args: EncodeValidationArgs): void {
 export async function consumePremulDebugWarnings(
   ctx: GPUContext
 ): Promise<DebugViolation[]> {
-  const ext = ctx as GPUContext & DebugContextExtension;
-  const sink = ext.debugSink;
+  const sink = debugSinks.get(ctx);
   if (!sink || sink.length === 0) {
     return [];
   }
   // Detach so concurrent encoders can begin a fresh batch.
-  ext.debugSink = [];
+  debugSinks.delete(ctx);
   const violations: DebugViolation[] = [];
   for (const entry of sink) {
     await entry.buffer.mapAsync(GPUMapMode.READ);
     const view = new Uint32Array(entry.buffer.getMappedRange().slice(0));
     entry.buffer.unmap();
     entry.buffer.destroy();
-    const sibling = entry as DebugReadback & { countersBuffer?: GPUBuffer };
-    sibling.countersBuffer?.destroy();
+    entry.countersBuffer?.destroy();
     const violation: DebugViolation = {
       moduleKey: entry.moduleKey,
       rgbExceedsA: view[0] ?? 0,
@@ -280,6 +286,9 @@ export async function consumePremulDebugWarnings(
       // `console` is not in this package's tsconfig `lib`, but every host
       // (browser, Electron, Node) has it on globalThis. Routed through a
       // typed alias so DOM lib isn't required.
+      // SAFETY: the asserted shape claims one optional member, read through
+      // `?.` below, so a host without `console` logs nothing instead of
+      // throwing.
       const con = (globalThis as { console?: { warn(...args: unknown[]): void } })
         .console;
       con?.warn(

@@ -110,6 +110,21 @@ describe("the marker convention", () => {
       ]
     });
 
+    expect(
+      entityFromAsset({
+        ...tagged,
+        metadata: {
+          nodetool_entity: {
+            ...tagged.metadata.nodetool_entity,
+            reference_asset_id: "a9"
+          }
+        }
+      })
+    ).toMatchObject({
+      id: "a1",
+      reference_images: [{ type: "image", asset_id: "a9", uri: "asset://a9" }]
+    });
+
     const base = { id: "a2", content_type: "image/png", created_at: "" };
     expect(entityFromAsset({ ...base, metadata: null })).toBeNull();
     expect(
@@ -366,7 +381,7 @@ describe("create_entity and update_entity", () => {
     ).toMatchObject({ error: expect.stringMatching(/was not found/) });
   });
 
-  it("moves an entity to a new image asset when asset_id is passed", async () => {
+  it("swaps an entity's picture without moving its id", async () => {
     const mara = await makeEntity("Mara", "character", "red hair", {
       voice_id: "v1"
     });
@@ -376,48 +391,84 @@ describe("create_entity and update_entity", () => {
       content_type: "image/png"
     })) as Asset;
 
-    const moved = (await run().invoke("update_entity", {
+    const swapped = (await run().invoke("update_entity", {
       entity_id: mara.id,
       asset_id: target.id,
       descriptor: "a tall woman with cropped red hair"
     })) as {
-      entity: { id: string; descriptor: string; voice_id: string | null };
-      moved_from: string;
-      moved_to: string;
+      entity: {
+        id: string;
+        descriptor: string;
+        voice_id: string | null;
+        reference_images: Array<{ asset_id: string; uri: string }>;
+      };
     };
-    expect(moved.entity.id).toBe(target.id);
-    expect(moved.entity.descriptor).toBe("a tall woman with cropped red hair");
-    expect(moved.moved_from).toBe(mara.id);
-    expect(moved.moved_to).toBe(target.id);
+    // The id every board and script cast is the marker asset's, and it stays.
+    expect(swapped.entity.id).toBe(mara.id);
+    expect(swapped.entity.voice_id).toBe("v1");
+    expect(swapped.entity.descriptor).toBe("a tall woman with cropped red hair");
+    expect(swapped.entity.reference_images[0]).toEqual({
+      type: "image",
+      asset_id: target.id,
+      uri: `asset://${target.id}`
+    });
 
-    // Source no longer lists, target does; source asset keeps bytes.
+    // The library still lists it once, under the id it always had, and the
+    // target asset did not become an entity of its own.
     const listed = (await run().invoke("list_entities", {})) as {
       entities: Array<{ id: string }>;
     };
-    expect(listed.entities.map((e) => e.id)).not.toContain(mara.id);
-    expect(listed.entities.map((e) => e.id)).toContain(target.id);
-    const sourceStill = await Asset.find(USER, mara.id);
-    expect(sourceStill?.metadata?.["nodetool_entity"]).toBeUndefined();
-
-    // Refuses a target that is already an entity or not an image.
-    const other = await makeEntity("Rex", "character", "a dog");
+    expect(listed.entities.map((e) => e.id)).toContain(mara.id);
+    expect(listed.entities.map((e) => e.id)).not.toContain(target.id);
     expect(
-      await run().invoke("update_entity", {
-        entity_id: target.id,
-        asset_id: other.id
-      })
-    ).toMatchObject({ error: expect.stringMatching(/already an entity/) });
+      (await Asset.find(USER, target.id))?.metadata?.["nodetool_entity"]
+    ).toBeUndefined();
+
+    // apply_entities hands the model the swapped picture, not the old one.
+    const applied = (await run().invoke("apply_entities", {
+      text: "",
+      entity_ids: [mara.id]
+    })) as { referenceAssetIds: string[] };
+    expect(applied.referenceAssetIds).toEqual([target.id]);
+
+    // null puts the entity back on its own bytes.
+    const reset = (await run().invoke("update_entity", {
+      entity_id: mara.id,
+      asset_id: null
+    })) as { entity: { reference_images: Array<{ asset_id: string }> } };
+    expect(reset.entity.reference_images[0]?.asset_id).toBe(mara.id);
+  });
+
+  it("refuses a picture that is missing, not an image, or not yours", async () => {
+    const mara = await makeEntity("Mara", "character", "red hair");
     const doc = (await Asset.create({
       user_id: USER,
       name: "notes.pdf",
       content_type: "application/pdf"
     })) as Asset;
-    expect(
-      await run().invoke("update_entity", {
-        entity_id: target.id,
-        asset_id: doc.id
-      })
-    ).toMatchObject({ error: expect.stringMatching(/entities are image assets/) });
+    const theirs = (await Asset.create({
+      user_id: "someone-else",
+      name: "theirs.png",
+      content_type: "image/png"
+    })) as Asset;
+
+    for (const [assetId, pattern] of [
+      [doc.id, /entities are image assets/],
+      [theirs.id, /was not found/],
+      ["gone", /was not found/]
+    ] as const) {
+      expect(
+        await run().invoke("update_entity", {
+          entity_id: mara.id,
+          asset_id: assetId
+        })
+      ).toMatchObject({ error: expect.stringMatching(pattern) });
+    }
+    // A refused swap leaves the entity showing what it showed before.
+    const after = (await run().invoke("get_entity", {
+      entity_id: mara.id
+    })) as { entity: { reference_images: Array<{ asset_id: string }> } };
+    expect(after.entity.reference_images[0]?.asset_id).toBe(mara.id);
   });
 
   it("removes the marker but keeps the asset, and reports missing ids", async () => {

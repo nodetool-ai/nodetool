@@ -4,7 +4,14 @@ import {
   cleanParams,
   getHfToken,
   hfChatCompletion,
-  hfPipelineJson
+  hfPipelineJson,
+  jsonArray,
+  jsonFirst,
+  jsonNumber,
+  jsonObject,
+  jsonString,
+  type HfJsonObject,
+  type HfJsonValue
 } from "../huggingface-base.js";
 
 type EmbedBody = { inputs: string; normalize?: boolean };
@@ -195,19 +202,21 @@ export class TextGenerationNode extends BaseNode {
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const result = await hfPipelineJson<
-      Array<{ generated_text?: string }> | { generated_text?: string }
-    >(token, String(this.model ?? "HuggingFaceH4/zephyr-7b-beta"), {
-      inputs: prompt,
-      parameters: cleanParams({
-        max_new_tokens: Number(this.max_new_tokens ?? 256),
-        temperature: Number(this.temperature ?? 0.7),
-        return_full_text: Boolean(this.return_full_text ?? false)
-      })
-    });
+    const result = await hfPipelineJson(
+      token,
+      String(this.model ?? "HuggingFaceH4/zephyr-7b-beta"),
+      {
+        inputs: prompt,
+        parameters: cleanParams({
+          max_new_tokens: Number(this.max_new_tokens ?? 256),
+          temperature: Number(this.temperature ?? 0.7),
+          return_full_text: Boolean(this.return_full_text ?? false)
+        })
+      }
+    );
 
-    const first = Array.isArray(result) ? result[0] : result;
-    return { output: String(first?.generated_text ?? "") };
+    const first = jsonObject(jsonFirst(result));
+    return { output: jsonString(first["generated_text"]) };
   }
 }
 
@@ -274,18 +283,20 @@ export class SummarizationNode extends BaseNode {
     const maxLength = Number(this.max_length ?? 0);
     const minLength = Number(this.min_length ?? 0);
 
-    const result = await hfPipelineJson<
-      Array<{ summary_text?: string }> | { summary_text?: string }
-    >(token, String(this.model ?? "facebook/bart-large-cnn"), {
-      inputs: text,
-      parameters: cleanParams({
-        max_length: maxLength > 0 ? maxLength : undefined,
-        min_length: minLength > 0 ? minLength : undefined
-      })
-    });
+    const result = await hfPipelineJson(
+      token,
+      String(this.model ?? "facebook/bart-large-cnn"),
+      {
+        inputs: text,
+        parameters: cleanParams({
+          max_length: maxLength > 0 ? maxLength : undefined,
+          min_length: minLength > 0 ? minLength : undefined
+        })
+      }
+    );
 
-    const first = Array.isArray(result) ? result[0] : result;
-    return { output: String(first?.summary_text ?? "") };
+    const first = jsonObject(jsonFirst(result));
+    return { output: jsonString(first["summary_text"]) };
   }
 }
 
@@ -348,25 +359,27 @@ export class TranslationNode extends BaseNode {
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
 
-    const result = await hfPipelineJson<
-      Array<{ translation_text?: string }> | { translation_text?: string }
-    >(token, String(this.model ?? "facebook/nllb-200-distilled-600M"), {
-      inputs: text,
-      parameters: cleanParams({
-        src_lang: String(this.src_lang ?? ""),
-        tgt_lang: String(this.tgt_lang ?? "")
-      })
-    });
+    const result = await hfPipelineJson(
+      token,
+      String(this.model ?? "facebook/nllb-200-distilled-600M"),
+      {
+        inputs: text,
+        parameters: cleanParams({
+          src_lang: String(this.src_lang ?? ""),
+          tgt_lang: String(this.tgt_lang ?? "")
+        })
+      }
+    );
 
-    const first = Array.isArray(result) ? result[0] : result;
-    return { output: String(first?.translation_text ?? "") };
+    const first = jsonObject(jsonFirst(result));
+    return { output: jsonString(first["translation_text"]) };
   }
 }
 
 /** Output handles FillMaskNode.process() emits. */
 type FillMaskNodeOutputs = {
   output: string;
-  predictions: { sequence?: string; score?: number; token_str?: string }[];
+  predictions: HfJsonValue[];
 };
 
 export class FillMaskNode extends BaseNode {
@@ -405,13 +418,15 @@ export class FillMaskNode extends BaseNode {
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
 
-    const result = await hfPipelineJson<
-      Array<{ sequence?: string; score?: number; token_str?: string }>
-    >(token, String(this.model ?? "bert-base-uncased"), { inputs: text });
+    const result = await hfPipelineJson(
+      token,
+      String(this.model ?? "bert-base-uncased"),
+      { inputs: text }
+    );
 
-    const predictions = Array.isArray(result) ? result : [];
+    const predictions = jsonArray(result);
     return {
-      output: String(predictions[0]?.token_str ?? "").trim(),
+      output: jsonString(jsonObject(predictions[0])["token_str"]).trim(),
       predictions
     };
   }
@@ -469,18 +484,17 @@ export class QuestionAnsweringNode extends BaseNode {
     if (!question) throw new Error("Question cannot be empty");
     if (!context) throw new Error("Context cannot be empty");
 
-    const result = await hfPipelineJson<{
-      answer?: string;
-      score?: number;
-      start?: number;
-      end?: number;
-    }>(token, String(this.model ?? "deepset/roberta-base-squad2"), {
-      inputs: { question, context }
-    });
+    const result = jsonObject(
+      await hfPipelineJson(
+        token,
+        String(this.model ?? "deepset/roberta-base-squad2"),
+        { inputs: { question, context } }
+      )
+    );
 
     return {
-      output: String(result?.answer ?? ""),
-      score: Number(result?.score ?? 0)
+      output: jsonString(result["answer"]),
+      score: jsonNumber(result["score"])
     };
   }
 }
@@ -534,7 +548,7 @@ export class TableQuestionAnsweringNode extends BaseNode {
     description:
       "The table as an object mapping each column name to an array of string cell values."
   })
-  declare table: Record<string, unknown>;
+  declare table: HfJsonObject;
 
   async process(): Promise<TableQuestionAnsweringNodeOutputs> {
     const token = getHfToken(this._secrets);
@@ -543,7 +557,7 @@ export class TableQuestionAnsweringNode extends BaseNode {
 
     const rawTable = this.table ?? {};
     // The API requires every cell to be a string.
-    const table: Record<string, string[]> = {};
+    const table: HfJsonObject = {};
     for (const [col, values] of Object.entries(rawTable)) {
       table[col] = (Array.isArray(values) ? values : [values]).map((v) =>
         String(v)
@@ -553,26 +567,25 @@ export class TableQuestionAnsweringNode extends BaseNode {
       throw new Error("Table cannot be empty");
     }
 
-    const result = await hfPipelineJson<{
-      answer?: string;
-      cells?: string[];
-      aggregator?: string;
-      coordinates?: number[][];
-    }>(token, String(this.model ?? "google/tapas-base-finetuned-wtq"), {
-      inputs: { query: question, table }
-    });
+    const result = jsonObject(
+      await hfPipelineJson(
+        token,
+        String(this.model ?? "google/tapas-base-finetuned-wtq"),
+        { inputs: { query: question, table } }
+      )
+    );
 
     return {
-      output: String(result?.answer ?? ""),
-      cells: result?.cells ?? [],
-      aggregator: String(result?.aggregator ?? "")
+      output: jsonString(result["answer"]),
+      cells: jsonArray(result["cells"]).map(jsonString),
+      aggregator: jsonString(result["aggregator"])
     };
   }
 }
 
 /** Output handles FeatureExtractionNode.process() emits. */
 type FeatureExtractionNodeOutputs = {
-  output: number[] | number[][];
+  output: HfJsonValue;
 };
 
 export class FeatureExtractionNode extends BaseNode {
@@ -618,7 +631,7 @@ export class FeatureExtractionNode extends BaseNode {
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
 
-    const result = await hfPipelineJson<number[] | number[][]>(
+    const result = await hfPipelineJson(
       token,
       String(this.model ?? "sentence-transformers/all-MiniLM-L6-v2"),
       embedBody(text, Boolean(this.normalize))
@@ -631,7 +644,7 @@ export class FeatureExtractionNode extends BaseNode {
 /** Output handles TextClassificationNode.process() emits. */
 type TextClassificationNodeOutputs = {
   output: string;
-  scores: { label?: string; score?: number }[];
+  scores: HfJsonValue[];
 };
 
 export class TextClassificationNode extends BaseNode {
@@ -669,25 +682,28 @@ export class TextClassificationNode extends BaseNode {
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
 
-    const result = await hfPipelineJson<
-      | Array<{ label?: string; score?: number }>
-      | Array<Array<{ label?: string; score?: number }>>
-    >(
-      token,
-      String(this.model ?? "distilbert-base-uncased-finetuned-sst-2-english"),
-      { inputs: text }
+    const result = jsonArray(
+      await hfPipelineJson(
+        token,
+        String(this.model ?? "distilbert-base-uncased-finetuned-sst-2-english"),
+        { inputs: text }
+      )
     );
 
     // The API may return a flat list or a list-of-lists (one per input).
-    const scores = Array.isArray(result[0])
-      ? result[0]
-      : (result as Array<{ label?: string; score?: number }>);
+    const first = result[0];
+    const scores = Array.isArray(first) ? first : result;
     return {
-      output: String(scores[0]?.label ?? ""),
+      output: jsonString(jsonObject(scores[0])["label"]),
       scores
     };
   }
 }
+
+/** Output handles TokenClassificationNode.process() emits. */
+type TokenClassificationNodeOutputs = {
+  output: HfJsonValue[];
+};
 
 export class TokenClassificationNode extends BaseNode {
   static readonly nodeType = "huggingface.TokenClassification";
@@ -728,19 +744,19 @@ export class TokenClassificationNode extends BaseNode {
   })
   declare aggregation_strategy: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TokenClassificationNodeOutputs> {
     const token = getHfToken(this._secrets);
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
 
     const strategy = String(this.aggregation_strategy ?? "simple");
-    const result = await hfPipelineJson<Array<Record<string, unknown>>>(
+    const result = await hfPipelineJson(
       token,
       String(this.model ?? "dslim/bert-base-NER"),
       nerBody(text, strategy)
     );
 
-    return { output: Array.isArray(result) ? result : [] };
+    return { output: jsonArray(result) };
   }
 }
 
@@ -809,29 +825,37 @@ export class ZeroShotClassificationNode extends BaseNode {
       throw new Error("Provide at least one candidate label");
     }
 
-    const result = await hfPipelineJson<
-      | { labels?: string[]; scores?: number[]; sequence?: string }
-      | Array<{ label?: string; score?: number }>
-    >(token, String(this.model ?? "facebook/bart-large-mnli"), {
-      inputs: text,
-      parameters: {
-        candidate_labels: labels,
-        multi_label: Boolean(this.multi_label ?? false)
+    const result = await hfPipelineJson(
+      token,
+      String(this.model ?? "facebook/bart-large-mnli"),
+      {
+        inputs: text,
+        parameters: {
+          candidate_labels: labels,
+          multi_label: Boolean(this.multi_label ?? false)
+        }
       }
-    });
+    );
 
     // Newer providers return [{label, score}], the classic API returns
     // {labels, scores}. Normalize both into a sorted list.
     let scores: Array<{ label: string; score: number }>;
     if (Array.isArray(result)) {
-      scores = result.map((r) => ({
-        label: String(r.label ?? ""),
-        score: Number(r.score ?? 0)
-      }));
+      scores = result.map((entry) => {
+        const item = jsonObject(entry);
+        return {
+          label: jsonString(item["label"]),
+          score: jsonNumber(item["score"])
+        };
+      });
     } else {
-      const ls = result.labels ?? [];
-      const ss = result.scores ?? [];
-      scores = ls.map((label, i) => ({ label, score: Number(ss[i] ?? 0) }));
+      const envelope = jsonObject(result);
+      const ls = jsonArray(envelope["labels"]);
+      const ss = jsonArray(envelope["scores"]);
+      scores = ls.map((label, i) => ({
+        label: jsonString(label),
+        score: jsonNumber(ss[i])
+      }));
     }
     scores.sort((a, b) => b.score - a.score);
 

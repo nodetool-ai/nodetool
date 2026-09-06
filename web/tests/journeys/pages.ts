@@ -74,6 +74,135 @@ export class EditorPage {
       .catch(() => {});
   }
 
+  /** A node's output handle — the surface the output menu opens from. */
+  outputHandle(nodeId: string): Locator {
+    return this.page
+      .locator(`[data-id="${nodeId}"] .react-flow__handle.source`)
+      .first();
+  }
+
+  /**
+   * Create a node from `nodeId`'s output handle via the row matching
+   * `rowClass` (e.g. `create-preview-node`), and return its id.
+   */
+  async createFromOutputHandle(
+    nodeId: string,
+    rowClass: string
+  ): Promise<string> {
+    const idsBefore = await this.nodeIds();
+    await this.outputHandle(nodeId).click({ button: "right" });
+    await this.page
+      .locator(".output-context-menu")
+      .waitFor({ state: "visible", timeout: 15_000 });
+    await this.page.locator(`.${rowClass}`).click();
+    await this.page.waitForFunction(
+      (count) => document.querySelectorAll(".react-flow__node").length > count,
+      idsBefore.length,
+      { timeout: 15_000 }
+    );
+    const created = (await this.nodeIds()).find(
+      (id) => !idsBefore.includes(id)
+    );
+    if (!created) {
+      throw new Error("no node was created from the output handle");
+    }
+    await this.waitForNodeSettled(created);
+    return created;
+  }
+
+  /** Drag a node by its header, the way a user moves one. */
+  async dragNode(nodeId: string, dx: number, dy: number): Promise<void> {
+    const header = this.page
+      .locator(`[data-id="${nodeId}"] .node-header`)
+      .first();
+    const box = await header.boundingBox();
+    if (!box) {
+      throw new Error(`node ${nodeId} has no header to drag`);
+    }
+    const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    await this.page.mouse.move(from.x, from.y);
+    await this.page.mouse.down();
+    await this.page.mouse.move(from.x + dx, from.y + dy, { steps: 10 });
+    await this.page.mouse.up();
+    await this.waitForNodeSettled(nodeId);
+  }
+
+  /**
+   * Resolve once `nodeId` has stopped moving.
+   *
+   * A programmatic move tweens (`transform var(--motion-normal)` in
+   * `nodes.base.css`), so a rect read straight after creation is mid-slide.
+   */
+  async waitForNodeSettled(nodeId: string): Promise<void> {
+    await this.page.waitForFunction(
+      (id) => {
+        const el = document.querySelector(
+          `.react-flow__node[data-id="${id}"]`
+        ) as HTMLElement | null;
+        if (!el) {
+          return false;
+        }
+        const w = window as unknown as {
+          __settle?: { id: string; y: number; hits: number };
+        };
+        const y = el.getBoundingClientRect().y;
+        const prev = w.__settle;
+        if (!prev || prev.id !== id || Math.abs(prev.y - y) > 0.5) {
+          w.__settle = { id, y, hits: 0 };
+          return false;
+        }
+        prev.hits += 1;
+        return prev.hits >= 3;
+      },
+      nodeId,
+      { timeout: 15_000, polling: 100 }
+    );
+  }
+
+  async nodeIds(): Promise<string[]> {
+    return await this.page.evaluate(() =>
+      Array.from(document.querySelectorAll(".react-flow__node")).map(
+        (el) => el.getAttribute("data-id") ?? ""
+      )
+    );
+  }
+
+  /**
+   * Screen-space geometry of a node and of the handles the layout is judged
+   * by: its own first input handle, and its box.
+   */
+  async nodeGeometry(nodeId: string): Promise<{
+    box: { x: number; y: number; width: number; height: number };
+    inputHandle: { x: number; y: number } | null;
+  }> {
+    return await this.page.evaluate((id) => {
+      const el = document.querySelector(
+        `.react-flow__node[data-id="${id}"]`
+      ) as HTMLElement | null;
+      if (!el) {
+        throw new Error(`node ${id} is not on the canvas`);
+      }
+      const r = el.getBoundingClientRect();
+      const handle = el.querySelector(".react-flow__handle.target");
+      const hr = handle?.getBoundingClientRect() ?? null;
+      return {
+        box: { x: r.x, y: r.y, width: r.width, height: r.height },
+        inputHandle: hr
+          ? { x: hr.x + hr.width / 2, y: hr.y + hr.height / 2 }
+          : null
+      };
+    }, nodeId);
+  }
+
+  /** Screen-space centre of a node's output handle. */
+  async outputHandleCenter(nodeId: string): Promise<{ x: number; y: number }> {
+    const box = await this.outputHandle(nodeId).boundingBox();
+    if (!box) {
+      throw new Error(`node ${nodeId} has no output handle`);
+    }
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  }
+
   async run(): Promise<void> {
     await this.page.getByRole("button", { name: "Run workflow" }).click();
   }

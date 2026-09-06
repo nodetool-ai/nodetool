@@ -135,7 +135,8 @@ export async function resolveHfToken(
 ): Promise<string | null> {
   if (token === false) return null;
 
-  if (typeof token === "string") return token;
+  // Anything left that is neither `true` nor nullish is the token string.
+  if (token !== true && token != null) return token;
 
   const cached = await getHfToken();
   const disableImplicit = envBool("HF_HUB_DISABLE_IMPLICIT_TOKEN");
@@ -188,8 +189,8 @@ export async function resolveWorkerHfToken(
 ): Promise<string | undefined> {
   if (readSecret) {
     try {
-      const stored = await readSecret("HF_TOKEN");
-      if (typeof stored === "string" && stored.trim()) return stored.trim();
+      const stored = (await readSecret("HF_TOKEN"))?.trim();
+      if (stored) return stored;
     } catch {
       // A locked or missing secret store is not an error here — fall through
       // to the environment. Never log: the failure can carry the key material.

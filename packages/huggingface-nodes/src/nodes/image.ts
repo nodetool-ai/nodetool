@@ -7,7 +7,12 @@ import {
   hfPipelineJson,
   imageRefFromBase64,
   imageRefFromBytes,
+  jsonArray,
+  jsonNumber,
+  jsonObject,
+  jsonString,
   refToBase64,
+  type HfJsonValue,
   type MediaRef
 } from "../huggingface-base.js";
 
@@ -259,7 +264,7 @@ export class ImageToImageNode extends BaseNode {
 /** Output handles ImageClassificationNode.process() emits. */
 type ImageClassificationNodeOutputs = {
   output: string;
-  scores: { label?: string; score?: number }[];
+  scores: HfJsonValue[];
 };
 
 export class ImageClassificationNode extends BaseNode {
@@ -312,15 +317,17 @@ export class ImageClassificationNode extends BaseNode {
     }
 
     const base64 = await refToBase64(image, context);
-    const result = await hfPipelineJson<
-      Array<{ label?: string; score?: number }>
-    >(token, String(this.model ?? "google/vit-base-patch16-224"), {
-      inputs: base64,
-      parameters: { top_k: Number(this.top_k ?? 5) }
-    });
+    const result = await hfPipelineJson(
+      token,
+      String(this.model ?? "google/vit-base-patch16-224"),
+      {
+        inputs: base64,
+        parameters: { top_k: Number(this.top_k ?? 5) }
+      }
+    );
 
-    const scores = Array.isArray(result) ? result : [];
-    return { output: String(scores[0]?.label ?? ""), scores };
+    const scores = jsonArray(result);
+    return { output: jsonString(jsonObject(scores[0])["label"]), scores };
   }
 }
 
@@ -369,18 +376,23 @@ export class ImageSegmentationNode extends BaseNode {
     }
 
     const base64 = await refToBase64(image, context);
-    const result = await hfPipelineJson<
-      Array<{ label?: string; score?: number; mask?: string }>
-    >(token, String(this.model ?? "nvidia/segformer-b0-finetuned-ade-512-512"), {
-      inputs: base64
-    });
+    const result = await hfPipelineJson(
+      token,
+      String(this.model ?? "nvidia/segformer-b0-finetuned-ade-512-512"),
+      { inputs: base64 }
+    );
 
     // Each segment's mask comes back as a base64 PNG — expose it as an image ref.
-    const segments = (Array.isArray(result) ? result : []).map((seg) => ({
-      label: String(seg.label ?? ""),
-      score: seg.score != null ? Number(seg.score) : null,
-      mask: seg.mask ? imageRefFromBase64(seg.mask) : null
-    }));
+    const segments = jsonArray(result).map((entry) => {
+      const seg = jsonObject(entry);
+      const score = seg["score"];
+      const mask = jsonString(seg["mask"]);
+      return {
+        label: jsonString(seg["label"]),
+        score: score != null ? jsonNumber(score) : null,
+        mask: mask ? imageRefFromBase64(mask) : null
+      };
+    });
 
     return { output: segments };
   }
@@ -388,7 +400,7 @@ export class ImageSegmentationNode extends BaseNode {
 
 /** Output handles ObjectDetectionNode.process() emits. */
 type ObjectDetectionNodeOutputs = {
-  output: { label?: string; score?: number; box?: { xmin: number; ymin: number; xmax: number; ymax: number } }[];
+  output: HfJsonValue[];
 };
 
 export class ObjectDetectionNode extends BaseNode {
@@ -441,18 +453,16 @@ export class ObjectDetectionNode extends BaseNode {
     }
 
     const base64 = await refToBase64(image, context);
-    const result = await hfPipelineJson<
-      Array<{
-        label?: string;
-        score?: number;
-        box?: { xmin: number; ymin: number; xmax: number; ymax: number };
-      }>
-    >(token, String(this.model ?? "facebook/detr-resnet-50"), {
-      inputs: base64,
-      parameters: { threshold: Number(this.threshold ?? 0.5) }
-    });
+    const result = await hfPipelineJson(
+      token,
+      String(this.model ?? "facebook/detr-resnet-50"),
+      {
+        inputs: base64,
+        parameters: { threshold: Number(this.threshold ?? 0.5) }
+      }
+    );
 
-    return { output: Array.isArray(result) ? result : [] };
+    return { output: jsonArray(result) };
   }
 }
 

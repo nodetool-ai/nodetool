@@ -44,7 +44,7 @@ const ModelListIndex = React.lazy(
   () => import("../hugging_face/model_list/ModelListIndex")
 );
 const AssetExplorer = React.lazy(() => import("../assets/AssetExplorer"));
-const ConfirmDialog = React.lazy(() => import("../dialogs/ConfirmDialog"));
+const ConfirmDialog = React.lazy(() => import("../ui_primitives/ConfirmDialog"));
 const ColorPickerModal = React.lazy(
   () => import("../color_picker/ColorPickerModal")
 );

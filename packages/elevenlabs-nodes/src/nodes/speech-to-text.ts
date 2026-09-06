@@ -1,7 +1,16 @@
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { BaseNode, isRecord, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
-import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import { loadMediaRefBytes, type MediaRefValue } from "@nodetool-ai/runtime";
 import { getElevenLabsApiKey } from "../elevenlabs-base.js";
+
+/** Output handles SpeechToTextNode.process() emits. */
+type SpeechToTextNodeOutputs = {
+  text: string;
+  language_code: string;
+  language_probability: number;
+  words: readonly unknown[];
+  transcription_id: string | null;
+};
 
 export class SpeechToTextNode extends BaseNode {
   static readonly nodeType = "elevenlabs.SpeechToText";
@@ -100,11 +109,11 @@ export class SpeechToTextNode extends BaseNode {
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
-  ): Promise<Record<string, unknown>> {
+  ): Promise<SpeechToTextNodeOutputs> {
     const apiKey = getElevenLabsApiKey(this._secrets);
 
-    const audio = this.audio as Record<string, unknown> | undefined;
-    if (!audio || typeof audio !== "object") {
+    const audio: MediaRefValue | undefined = this.audio;
+    if (!isRecord(audio)) {
       throw new Error("Audio input is required");
     }
 
@@ -164,14 +173,22 @@ export class SpeechToTextNode extends BaseNode {
       throw new Error(`ElevenLabs API error: ${errorText}`);
     }
 
-    const result = (await response.json()) as Record<string, unknown>;
+    const result: unknown = await response.json();
+    if (!isRecord(result)) {
+      throw new Error("ElevenLabs API returned a non-object transcription");
+    }
+
+    const transcriptionId = result.transcription_id;
 
     return {
       text: String(result.text ?? ""),
       language_code: String(result.language_code ?? ""),
       language_probability: Number(result.language_probability ?? 0),
-      words: (result.words as unknown[]) ?? [],
-      transcription_id: result.transcription_id ?? null
+      words: Array.isArray(result.words) ? result.words : [],
+      transcription_id:
+        transcriptionId === null || transcriptionId === undefined
+          ? null
+          : String(transcriptionId)
     };
   }
 }

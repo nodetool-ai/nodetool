@@ -13,6 +13,16 @@
     "Continuity across shots comes from a shared style bible, not from a persistent character model. Faces drift over a long cut."
   ],
   "hero": "Movie Trailer Generator",
+  "apps": [
+    {
+      "app": "trailer-room",
+      "role": "The whole chain on one page: rewrite the beats and the shot list for the price of a text call, then shoot once and score the cut it produced."
+    },
+    {
+      "app": "film-studio",
+      "role": "Where the chain ends on an editable sequence instead of a file — the same direction-to-shots run, delivered to the timeline, plus the poster."
+    }
+  ],
   "steps": [
     {
       "example": "Trailer Beats from a Premise",

@@ -145,5 +145,33 @@
     "emoji": "📣",
     "featured": false,
     "workflows": 3
+  },
+  {
+    "slug": "trailer-room",
+    "name": "Trailer Room",
+    "emoji": "🎞️",
+    "featured": false,
+    "workflows": 4
+  },
+  {
+    "slug": "sku-factory",
+    "name": "SKU Factory",
+    "emoji": "🏷️",
+    "featured": false,
+    "workflows": 6
+  },
+  {
+    "slug": "dubbing-desk",
+    "name": "Dubbing Desk",
+    "emoji": "🌍",
+    "featured": false,
+    "workflows": 5
+  },
+  {
+    "slug": "viral-ad-engine",
+    "name": "Viral Ad Engine",
+    "emoji": "📈",
+    "featured": false,
+    "workflows": 4
   }
 ]

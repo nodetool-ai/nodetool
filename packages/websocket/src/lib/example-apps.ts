@@ -31,7 +31,7 @@ const EXAMPLES_THUMBNAILS_PREFIX = "/api/workflows/examples/thumbnails/";
 
 export type { ExampleAppSummary };
 
-interface ExampleAppsOptions {
+export interface ExampleAppsOptions {
   examplesDir?: string;
   examplesAssetsFallbackDir?: string;
   exampleAppsDir?: string;
@@ -93,6 +93,19 @@ function readBundle(dir: string, file: string): ApplicationBundle | null {
 
 const slugOf = (file: string): string => file.slice(0, -BUNDLE_SUFFIX.length);
 
+const summarize = (
+  bundle: ApplicationBundle,
+  slug: string,
+  options: ExampleAppsOptions
+): ExampleAppSummary => ({
+  slug,
+  name: bundle.name,
+  description: bundle.description,
+  workflows: bundle.workflows.map((workflow) => workflow.name),
+  operationCount: bundle.app.operations.length,
+  thumbnailUrl: thumbnailFor(bundle, options)
+});
+
 /** Every shipped example app, sorted by slug. Invalid files are skipped. */
 export function listExampleApps(
   options: ExampleAppsOptions
@@ -111,14 +124,7 @@ export function listExampleApps(
   for (const file of files) {
     const bundle = readBundle(dir, file);
     if (!bundle) continue;
-    apps.push({
-      slug: slugOf(file),
-      name: bundle.name,
-      description: bundle.description,
-      workflows: bundle.workflows.map((workflow) => workflow.name),
-      operationCount: bundle.app.operations.length,
-      thumbnailUrl: thumbnailFor(bundle, options)
-    });
+    apps.push(summarize(bundle, slugOf(file), options));
   }
   return apps;
 }
@@ -143,6 +149,19 @@ export function getExampleAppBundle(
   }
   if (!file) return null;
   return readBundle(dir, file);
+}
+
+/**
+ * One example's summary, or null when the slug names nothing shipped — what a
+ * recipe naming an app resolves through, so a recipe cannot advertise an app
+ * this install does not have.
+ */
+export function getExampleAppSummary(
+  options: ExampleAppsOptions,
+  slug: string
+): ExampleAppSummary | null {
+  const bundle = getExampleAppBundle(options, slug);
+  return bundle ? summarize(bundle, slug, options) : null;
 }
 
 /**

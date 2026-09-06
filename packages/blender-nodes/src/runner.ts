@@ -253,7 +253,7 @@ export class LocalBlenderRunner implements BlenderRunner {
     const cwd = await mkdtemp(path.join(parent, "nodetool-blender-"));
     try {
       for (const [name, bytes] of Object.entries(inputs)) {
-        const file = job.inputs[name as keyof typeof job.inputs];
+        const file = declaredInputFile(job, name);
         if (file === undefined) {
           throw new BlenderJobError(
             "bad_job",
@@ -318,7 +318,8 @@ export class LocalBlenderRunner implements BlenderRunner {
         if (options.signal?.aborted) throw err;
         throw new BlenderJobError(
           "bad_result",
-          `Blender run failed before producing a result: ${messageOf(err)}`
+          `Blender run failed before producing a result: ` +
+            `${err instanceof Error ? err.message : String(err)}`
         );
       }
 
@@ -618,12 +619,17 @@ async function collectOpBlobs(
   }
 }
 
-function isTimeout(result: { exitCode: number; stderr: string }): boolean {
-  return result.exitCode === 124 && result.stderr.includes("timed out after");
+/**
+ * The file a job declares for a logical input name. `BlenderJob.inputs` names
+ * exactly one input, so anything else is an undeclared input the caller
+ * passed and the runner refuses.
+ */
+function declaredInputFile(job: BlenderJob, name: string): string | undefined {
+  return name === "model" ? job.inputs.model : undefined;
 }
 
-function messageOf(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
+function isTimeout(result: { exitCode: number; stderr: string }): boolean {
+  return result.exitCode === 124 && result.stderr.includes("timed out after");
 }
 
 async function readResult(

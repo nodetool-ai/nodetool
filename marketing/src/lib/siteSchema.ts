@@ -14,7 +14,7 @@ export const softwareApplicationSchema: JsonLdObject = {
   "@type": "SoftwareApplication",
   name: "NodeTool",
   description:
-    "NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Let them build and revise workflows, then inspect and edit the results yourself. Your project keeps the brief, assets, and edits together. Studio runs on macOS, Windows, and Linux. Cloud is the hosted browser edition, in alpha.",
+    "NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Studio runs on macOS, Windows, and Linux. Cloud is the hosted browser edition, in alpha.",
   applicationCategory: "MultimediaApplication",
   applicationSubCategory: "Creative AI Workspace",
   operatingSystem: "macOS, Windows, Linux",
@@ -68,7 +68,7 @@ export const organizationSchema: JsonLdObject = {
     "https://discord.gg/WmQTWZRcYE",
   ],
   description:
-    "NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Let them build and revise workflows, then inspect and edit the results yourself. Your project keeps the brief, assets, and edits together. Studio runs on macOS, Windows, and Linux. Cloud is the hosted browser edition, in alpha.",
+    "NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Studio runs on macOS, Windows, and Linux. Cloud is the hosted browser edition, in alpha.",
 };
 
 /** The demo video on the home page. Emitted by the page that shows it. */

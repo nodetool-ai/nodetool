@@ -15,6 +15,7 @@ import { resolveBlenderBinary } from "./blender-binary.js";
 import {
   jobFileNameSchema,
   BLENDER_JOB_VERSION,
+  type BlenderEngine,
   type BlenderJob,
   type BlenderOp
 } from "./job.js";
@@ -80,9 +81,16 @@ export function __setBlenderBinaryResolverForTesting(
   blenderBinaryResolverForTesting = resolver;
 }
 
-function engineOf(op: BlenderOp): string | undefined {
-  const params = op.params as unknown as { engine?: unknown };
-  return typeof params.engine === "string" ? params.engine : undefined;
+/** Only the render ops carry an engine; the mesh ops have no such param. */
+function engineOf(op: BlenderOp): BlenderEngine | undefined {
+  switch (op.op) {
+    case "render_image":
+    case "render_passes":
+    case "render_animation":
+      return op.params.engine;
+    default:
+      return undefined;
+  }
 }
 
 export async function runBlenderJob(

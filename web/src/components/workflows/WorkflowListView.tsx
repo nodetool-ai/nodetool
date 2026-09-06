@@ -3,11 +3,11 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo, useRef, useEffect, useCallback } from "react";
-import { Text, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
+import { Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX, VirtualList } from "../ui_primitives";
+import type { VirtualListHandle } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { useShowGraphPreview, useSortBy } from "../../stores/WorkflowListViewStore";
 import { groupByDate } from "../../utils/groupByDate";
 
@@ -223,7 +223,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   );
   const showGraphPreview = useShowGraphPreview();
   const sortBy = useSortBy();
-  const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<VirtualListHandle>(null);
 
   const WORKFLOW_HEIGHT = showGraphPreview ? 280 : 28;
   const HEADER_HEIGHT = 16;
@@ -269,24 +269,32 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     return items;
   }, [workflows, sortBy]);
 
-  const virtualizer = useVirtualizer({
-    count: flatList.length,
-    getScrollElement: () => containerRef.current,
-    estimateSize: (index) =>
+  const estimateSize = useCallback(
+    (index: number) =>
       flatList[index]?.type === "header" ? HEADER_HEIGHT : WORKFLOW_HEIGHT,
-    overscan: theme.virtualScroll.overscan.normal,
-    getItemKey: (index) => {
-      const item = flatList[index];
-      return item.type === "header"
+    [flatList, HEADER_HEIGHT, WORKFLOW_HEIGHT]
+  );
+
+  const getItemKey = useCallback(
+    (item: ListItem) =>
+      item.type === "header"
         ? `header-${item.label}`
-        : `workflow-${item.workflow.id}`;
-    },
-  });
+        : `workflow-${item.workflow.id}`,
+    []
+  );
+
+  const getItemProps = useCallback(
+    (item: ListItem) => ({
+      className: item.type === "header" ? "date-header-row" : undefined,
+      style: { display: "flex" } as React.CSSProperties
+    }),
+    []
+  );
 
   // Reset measurement cache when row sizes or list contents change
   useEffect(() => {
-    virtualizer.measure();
-  }, [flatList, showGraphPreview, sortBy, virtualizer]);
+    listRef.current?.measure();
+  }, [flatList, showGraphPreview, sortBy]);
 
   const handleScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
@@ -295,70 +303,70 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     [onScroll]
   );
 
+  const renderItem = useCallback(
+    (item: ListItem) => {
+      if (item.type === "header") {
+        return (
+          <Text
+            className="date-header"
+            size="small"
+            color="secondary"
+            weight={400}
+            sx={{ lineHeight: 1.1, textTransform: "uppercase", textAlign: "right", width: "100%" }}
+          >
+            {item.label}
+          </Text>
+        );
+      }
+      const { workflow } = item;
+      return (
+        <WorkflowListItem
+          workflow={workflow}
+          isSelected={selectedWorkflows?.includes(workflow.id) || false}
+          isCurrent={currentWorkflowId === workflow.id}
+          showCheckboxes={showCheckboxes}
+          hideDate={sortBy === "date"}
+          onOpenWorkflow={onOpenWorkflow}
+          onDuplicateWorkflow={onDuplicateWorkflow}
+          onSelect={onSelect}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          onRename={onRename}
+          onOpenAsApp={onOpenAsApp}
+        />
+      );
+    },
+    [
+      selectedWorkflows,
+      currentWorkflowId,
+      showCheckboxes,
+      sortBy,
+      onOpenWorkflow,
+      onDuplicateWorkflow,
+      onSelect,
+      onDelete,
+      onEdit,
+      onRename,
+      onOpenAsApp
+    ]
+  );
+
   return (
-    <Box
-      ref={containerRef}
+    <VirtualList
+      ref={listRef}
       className="container list"
       css={cssStyles}
       onScroll={handleScroll}
+      direction="both"
       sx={{ height: "100%", width: "100%", overflow: "auto" }}
-    >
-      <div
-        style={{
-          height: virtualizer.getTotalSize(),
-          width: "100%",
-          position: "relative",
-          flexShrink: 0,
-        }}
-      >
-        {virtualizer.getVirtualItems().map((vi) => {
-          const item = flatList[vi.index];
-          const itemStyle: React.CSSProperties = {
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: vi.size,
-            transform: `translateY(${vi.start}px)`,
-            display: "flex",
-          };
-          if (item.type === "header") {
-            return (
-              <div key={vi.key} className="date-header-row" style={itemStyle}>
-                <Text
-                  className="date-header"
-                  size="small"
-                  color="secondary"
-                  weight={400}
-                  sx={{ lineHeight: 1.1, textTransform: "uppercase", textAlign: "right", width: "100%" }}
-                >
-                  {item.label}
-                </Text>
-              </div>
-            );
-          }
-          const { workflow } = item;
-          return (
-            <div key={vi.key} style={itemStyle}>
-              <WorkflowListItem
-                workflow={workflow}
-                isSelected={selectedWorkflows?.includes(workflow.id) || false}
-                isCurrent={currentWorkflowId === workflow.id}
-                showCheckboxes={showCheckboxes}
-                hideDate={sortBy === "date"}
-                onOpenWorkflow={onOpenWorkflow}
-                onDuplicateWorkflow={onDuplicateWorkflow}
-                onSelect={onSelect}
-                onDelete={onDelete}
-                onEdit={onEdit}
-                onRename={onRename}
-                onOpenAsApp={onOpenAsApp}
-              />
-            </div>
-          );
-        })}
-      </div>
-    </Box>
+      items={flatList}
+      estimateSize={estimateSize}
+      overscan={theme.virtualScroll.overscan.normal}
+      getItemKey={getItemKey}
+      getItemProps={getItemProps}
+      ariaLabel="Workflows"
+      renderItem={renderItem}
+    />
   );
 };
 
