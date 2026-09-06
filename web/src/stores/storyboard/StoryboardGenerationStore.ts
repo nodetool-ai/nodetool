@@ -801,15 +801,15 @@ const handleShotJobMessage = (
 
   if (message.type === "rpc_response") {
     const response = message as DirectGenRpcResponse;
-  const assetIds = Array.isArray(response.result?.asset_ids)
-    ? (response.result!.asset_ids as unknown[]).filter(
-        (v): v is string => typeof v === "string"
-      )
-    : [];
-  settleDirectShotJob(requestId, context, {
-    assetIds,
-    errorMessage: response.error?.message ?? ""
-  });
+    const assetIds = Array.isArray(response.result?.asset_ids)
+      ? (response.result!.asset_ids as unknown[]).filter(
+          (v): v is string => typeof v === "string"
+        )
+      : [];
+    settleDirectShotJob(requestId, context, {
+      assetIds,
+      errorMessage: response.error?.message ?? ""
+    });
   }
 };
 
