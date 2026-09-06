@@ -17,6 +17,15 @@ const createProject = jest.fn(async () => ({
 }));
 const openProject = jest.fn(async () => true);
 
+// The Workflow card creates through the manager store, as the workspace's own
+// surfaces do; the provider is mounted app-wide in `index.tsx`.
+const managerCreateWorkflow = jest.fn(async () => ({ id: "wf-new" }));
+jest.mock("../../../contexts/WorkflowManagerContext", () => ({
+  __esModule: true,
+  useWorkflowManager: <T,>(selector: (state: { create: jest.Mock }) => T) =>
+    selector({ create: managerCreateWorkflow })
+}));
+
 jest.mock("../../../hooks/useProjects", () => ({
   useCreateProject: () => ({ mutateAsync: createProject }),
   useOpenProject: () => openProject,
@@ -104,6 +113,53 @@ const createStoryboard = jest.fn(async () => ({
 jest.mock("../../../hooks/storyboard/useStoryboards", () => ({
   useExampleStoryboards: () => ({ data: [], isLoading: false }),
   useCreateStoryboard: () => ({ mutateAsync: createStoryboard })
+}));
+
+// The other four flows' creates. Each card makes its document before the
+// surface becomes the flow, so the surface renders these hooks on every mount.
+const createTimeline = jest.fn(async () => ({ id: "seq-1" }));
+jest.mock("../../../hooks/useTimelineSequence", () => ({
+  __esModule: true,
+  useCreateTimeline: () => ({ mutateAsync: createTimeline })
+}));
+const createScript = jest.fn(async () => ({ id: "script-1" }));
+jest.mock("../../../hooks/script/useScripts", () => ({
+  __esModule: true,
+  useCreateScript: () => ({ mutateAsync: createScript })
+}));
+const startImageFlowMock = jest.fn(async () => ({
+  documentId: "sketch-1",
+  name: "A picture"
+}));
+jest.mock("../../setup/image/startImageFlow", () => ({
+  __esModule: true,
+  startImageFlow: (options: unknown) => startImageFlowMock(options)
+}));
+const timelineUpdate = jest.fn().mockResolvedValue({ id: "seq-1" });
+jest.mock("../../../trpc/client", () => ({
+  __esModule: true,
+  trpcClient: { timeline: { update: { mutate: timelineUpdate } } }
+}));
+
+// Each flow's host is exercised by its own suite; here they only have to be
+// the thing the surface swapped itself for.
+jest.mock("../../setup/video/VideoSetupHost", () => ({
+  __esModule: true,
+  default: ({ sequenceId }: { sequenceId: string }) => (
+    <div data-testid="setup-flow">{sequenceId}</div>
+  )
+}));
+jest.mock("../../setup/script/ScriptSetupHost", () => ({
+  __esModule: true,
+  default: ({ scriptId }: { scriptId: string }) => (
+    <div data-testid="setup-flow">{scriptId}</div>
+  )
+}));
+jest.mock("../../setup/workflow/WorkflowSetupHost", () => ({
+  __esModule: true,
+  default: ({ workflowId }: { workflowId: string }) => (
+    <div data-testid="setup-flow">{workflowId}</div>
+  )
 }));
 
 // The flow's real host runs the board's server sync and agent bridge; this
@@ -695,26 +751,45 @@ describe("NewProjectSurface", () => {
     expect(openProject).not.toHaveBeenCalled();
   });
 
-  it("names the phase that turns each unbuilt flow on", () => {
+  // All five flows are built, so no card names a phase any more. The check
+  // that matters now is that each one starts its own document kind rather than
+  // falling through to the project agent (D2).
+  it("offers all five flows, none of them disabled", () => {
     renderSurface();
     const cards = screen.getByRole("group", {
       name: "Guided creation flows"
     });
-    const off = [
-      ["Video", "Video ships in phase P6."],
-      ["Script", "Script ships in phase P7."],
-      ["Image", "Image ships in phase P8."],
-      ["Workflow", "Workflow ships in phase P9."]
-    ] as const;
-    for (const [title, reason] of off) {
-      const card = within(cards).getByRole("button", {
-        name: new RegExp(`^${title} `)
-      });
-      expect(card).toHaveAttribute("aria-disabled", "true");
-      expect(card).toHaveAttribute("title", reason);
+    for (const title of [
+      "Storyboard",
+      "Video",
+      "Script",
+      "Image",
+      "Workflow"
+    ]) {
+      expect(
+        within(cards).getByRole("button", {
+          name: new RegExp(`^${title} `)
+        })
+      ).not.toHaveAttribute("aria-disabled");
     }
-    expect(
-      within(cards).getByRole("button", { name: /^Storyboard / })
-    ).not.toHaveAttribute("aria-disabled");
+  });
+
+  it.each([
+    ["Video", () => createTimeline],
+    ["Script", () => createScript],
+    ["Image", () => startImageFlowMock],
+    ["Workflow", () => managerCreateWorkflow]
+  ])("starts the %s flow from its own card", async (title, mock) => {
+    const user = userEvent.setup();
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+
+    await user.click(
+      within(cards).getByRole("button", { name: new RegExp(`^${title} `) })
+    );
+
+    await waitFor(() => expect(mock()).toHaveBeenCalledTimes(1));
   });
 });

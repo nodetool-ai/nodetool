@@ -613,7 +613,8 @@ async function applyOps(
       height: sequence.height,
       tracks: document.tracks,
       clips: document.clips,
-      markers: document.markers
+      markers: document.markers,
+      setup: document.setup
     },
     resolveAsset: (ref) => resolveTimelineAsset(run, ref),
     bakeAnimation: (request) => bakeTimelineAnimation(run, request),
@@ -785,6 +786,12 @@ const editTimeline: CapabilityExport = {
         clips: state.documentClips,
         markers: state.markers
       };
+      // The guided flow's stage and plan are document state like the rest: an
+      // op run that moved the flow on has to be what the row holds afterwards,
+      // or the next surface to open the sequence resumes at the old step.
+      if (state.setup) {
+        next.setup = state.setup;
+      }
       const saved = await TimelineSequence.updateDocumentIfUnchanged(
         timelineId,
         sequence.updated_at,

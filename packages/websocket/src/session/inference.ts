@@ -58,6 +58,8 @@ export interface DirectMediaGenerationRequest {
   resolution?: string;
   strength?: number;
   numInferenceSteps?: number;
+  /** Sampling seed; providers that take none ignore it. */
+  seed?: number;
   durationSeconds?: number;
   variations?: number;
   voice?: string;
@@ -814,7 +816,8 @@ export class DirectInferenceHandler {
         width,
         height,
         aspectRatio: req.aspectRatio ?? null,
-        resolution: req.resolution ?? null
+        resolution: req.resolution ?? null,
+        seed: req.seed ?? null
       };
       generated = await generate(
         "text_to_image",
@@ -824,6 +827,7 @@ export class DirectInferenceHandler {
           height,
           aspect_ratio: req.aspectRatio ?? null,
           resolution: req.resolution ?? null,
+          seed: req.seed ?? null,
           num_images: variations
         },
         {},

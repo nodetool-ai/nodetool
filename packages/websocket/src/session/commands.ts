@@ -769,6 +769,7 @@ export class CommandRouter {
       const numInferenceSteps = isNumber(data.num_inference_steps)
         ? (data.num_inference_steps as number)
         : undefined;
+      const seed = isNumber(data.seed) ? (data.seed as number) : undefined;
       const durationSeconds = isNumber(data.duration)
         ? (data.duration as number)
         : undefined;
@@ -794,6 +795,7 @@ export class CommandRouter {
           resolution,
           strength,
           numInferenceSteps,
+          seed,
           durationSeconds,
           variations,
           voice,

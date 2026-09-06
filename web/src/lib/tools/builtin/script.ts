@@ -45,11 +45,59 @@ const voiceParam = z
 FrontendToolRegistry.register({
   name: "ui_script_get_state",
   description:
-    "Read the specified script: title, whether it has been assembled into a timeline, the cast (each speaker's id, name, and voice binding), and every line in document order with its id, index, section, speaker, text, direction, voicing status (draft/voiced/stale), take count, and current-take duration. Call this first to discover the line/speaker ids the other tools need.",
+    "Read the specified script: title, whether it has been assembled into a timeline, the cast (each speaker's id, name, and voice binding), and every line in document order with its id, index, section, speaker, text, direction, voicing status (draft/voiced/stale), take count, and current-take duration, plus the guided setup (stage, brief, format, length, pace, language) when the script has one. Call this first to discover the line/speaker ids the other tools need.",
   parameters: z.object({ script_id: scriptIdParam }),
   async execute({ script_id }) {
     const snapshot = getScriptAgentHandler(script_id).getSnapshot();
     return { ok: true, ...snapshot };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_script_set_setup",
+  description:
+    "Write the guided setup on a script: its `stage` (idea, format, review, voices, done — where the creator is standing), the `brief` the script is written from, the `format` (voiceover, dialogue, interview, ad-read, tutorial), the `length_seconds` it should run to, the reading `pace`, and the `language`. Fields you leave out keep their value. This places nothing and writes no line — use ui_script_write for that.",
+  parameters: z.object({
+    script_id: scriptIdParam,
+    stage: z
+      .enum(["idea", "format", "review", "voices", "done"])
+      .optional()
+      .describe("Where the script sits in the guided flow."),
+    brief: z.string().optional().describe("What the script is about."),
+    format: z
+      .enum(["voiceover", "dialogue", "interview", "ad-read", "tutorial"])
+      .optional()
+      .describe("The format, which sets the cast shape and section layout."),
+    length_seconds: z
+      .number()
+      .optional()
+      .describe("How long the script should run when read aloud."),
+    pace: z
+      .enum(["slow", "normal", "fast"])
+      .optional()
+      .describe("How fast it is read, which turns words into seconds."),
+    language: z.string().optional().describe("The language to write it in.")
+  }),
+  async execute({ script_id, ...patch }) {
+    const setup = getScriptAgentHandler(script_id).setSetup(patch);
+    return { ok: true, setup, url: docUrl("script", script_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_script_write",
+  description:
+    "Write the script from its brief, format and length (set them first with ui_script_set_setup), replacing the cast and the lines with what the writer returns. Pass `rewrite: true` to rewrite the script that is already there — the lines it keeps keep their ids, so their takes and their storyboard links survive. Words imported from a file or pasted in are never rewritten: they are only split into lines and given speakers. Records no take; voice the lines with ui_script_voice_all.",
+  parameters: z.object({
+    script_id: scriptIdParam,
+    rewrite: z
+      .boolean()
+      .optional()
+      .describe("Rewrite the existing script instead of writing a new one.")
+  }),
+  async execute({ script_id, rewrite }) {
+    const result = await getScriptAgentHandler(script_id).write({ rewrite });
+    return { ok: true, ...result, url: docUrl("script", script_id) };
   }
 });
 

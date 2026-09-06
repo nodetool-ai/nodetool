@@ -17,6 +17,7 @@
  */
 
 import type { BlendMode } from "@nodetool-ai/gpu";
+import type { SketchSetup } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import type { SketchTool } from "./types";
 
 
@@ -48,6 +49,12 @@ export interface SketchLayerNode {
   bindingStatus?: string;
 }
 
+/**
+ * The guided-setup block as the agent reads and writes it (PRD § 10.6). Same
+ * five fields the document carries; the stage is what a resumed flow reads.
+ */
+export type SketchSetupPatch = Partial<SketchSetup>;
+
 /** Full snapshot of the open document the agent reads to plan edits. */
 export interface SketchSnapshot {
   documentId: string | null;
@@ -65,6 +72,8 @@ export interface SketchSnapshot {
   hasSelection: boolean;
   /** Layers from bottom to top. */
   layers: SketchLayerNode[];
+  /** Guided-setup state, when the document has any. */
+  setup?: SketchSetupPatch;
 }
 
 interface SketchGenerateOptions {
@@ -80,6 +89,12 @@ interface SketchGenerateOptions {
   height?: number;
   aspectRatio?: string;
   resolution?: string;
+  /**
+   * Sampling seed. Calling this once per variation with the same prompt, size
+   * and model and a different seed each time is how a headless caller renders
+   * a set of variations (PRD § 10.6).
+   */
+  seed?: number;
   /** Kick off generation immediately (default true). */
   autoGenerate?: boolean;
 }
@@ -366,6 +381,17 @@ export interface SketchAgentHandler {
   mergeLayerDown: (target: string) => SketchLayerNode | null;
   flattenVisible: () => SketchLayerNode;
   generate: (opts: SketchGenerateOptions) => Promise<SketchGenerateResult>;
+  /**
+   * Patch the guided-setup block. This is how a headless caller walks the
+   * image flow: it writes the brief, the use case, the variation count and the
+   * stage, and nothing else moves on its own (PRD § 10.6).
+   */
+  setSetup: (patch: SketchSetupPatch) => SketchSetupPatch;
+  /**
+   * Expand the document's brief into the five review fields and leave the
+   * stage at `review`. Creates no layer and starts no job (D4).
+   */
+  refineBrief: () => Promise<SketchSetupPatch>;
   /**
    * Put an existing image — an asset or a URL — onto a layer. The layer stores
    * the locator, not the pixels, so the document stays small and the canvas

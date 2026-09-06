@@ -640,3 +640,125 @@ export const sharedWithMeOutput = z.object({
   workflows: z.array(sharedWorkflowItem)
 });
 export type SharedWithMeOutput = z.infer<typeof sharedWithMeOutput>;
+
+// ── Guided setup (PRD § 11.5) ────────────────────────────────────────────────
+// The Workflow creation flow keeps its state on the workflow it produces, under
+// `settings.setup`. One optional field on an existing bag: a workflow saved
+// before the flow existed has no `setup` key, parses fine, and opens as the
+// editor it always did.
+
+/** Where a workflow sits in the guided setup. One built before it reads "done". */
+export const workflowSetupStage = z.enum([
+  "idea",
+  "category",
+  "review",
+  "setup",
+  "done"
+]);
+export type WorkflowSetupStage = z.infer<typeof workflowSetupStage>;
+
+/** How the finished workflow is meant to be run (PRD § 11.3). */
+export const workflowSetupRunMode = z.enum(["manual", "app", "trigger"]);
+export type WorkflowSetupRunMode = z.infer<typeof workflowSetupRunMode>;
+
+export const workflowPlanInput = z
+  .object({
+    name: z.string(),
+    type: z.string(),
+    /** Prefilled sample the test run uses. Editable on the setup step. */
+    sample: z.unknown().optional()
+  })
+  .passthrough();
+export type WorkflowPlanInput = z.infer<typeof workflowPlanInput>;
+
+export const workflowPlanStep = z
+  .object({
+    id: z.string(),
+    title: z.string(),
+    summary: z.string(),
+    /**
+     * The registry node type this step maps to, or null when the planner could
+     * not name one. Null blocks step 3 rather than the build (D23): a step the
+     * plan cannot name never reaches `ui_add_node`.
+     */
+    node_type: z.string().nullable(),
+    /** "language" | "image" | "video" | "audio" — the model tile row it needs. */
+    model_role: z.string().optional()
+  })
+  .passthrough();
+export type WorkflowPlanStep = z.infer<typeof workflowPlanStep>;
+
+export const workflowPlanOutput = z
+  .object({ name: z.string(), type: z.string() })
+  .passthrough();
+export type WorkflowPlanOutput = z.infer<typeof workflowPlanOutput>;
+
+export const workflowSetupPlan = z
+  .object({
+    inputs: z.array(workflowPlanInput).default([]),
+    steps: z.array(workflowPlanStep).default([]),
+    outputs: z.array(workflowPlanOutput).default([])
+  })
+  .passthrough();
+export type WorkflowSetupPlan = z.infer<typeof workflowSetupPlan>;
+
+export const workflowSetup = z
+  .object({
+    stage: workflowSetupStage.default("done"),
+    brief: z.string().default(""),
+    category: z.string().optional(),
+    plan: workflowSetupPlan.optional(),
+    run_mode: workflowSetupRunMode.optional()
+  })
+  .passthrough();
+export type WorkflowSetup = z.infer<typeof workflowSetup>;
+
+/**
+ * A workflow's `settings` bag, with the one field this flow owns. Additive and
+ * permissive on purpose: `settings` is a client-owned record shared with
+ * `hide_ui` and whatever else a surface put there, so anything but `setup`
+ * travels untouched.
+ */
+export const workflowSettingsWithSetup = z
+  .object({ setup: workflowSetup.optional() })
+  .passthrough();
+export type WorkflowSettingsWithSetup = z.infer<
+  typeof workflowSettingsWithSetup
+>;
+
+/**
+ * Read `settings.setup` off a workflow's settings bag.
+ *
+ * Returns null both for a workflow that never went through the flow and for one
+ * whose `setup` is malformed — the flow then does not open, which is the same
+ * thing the creator sees today. Callers get a stage or nothing, never a
+ * half-parsed plan.
+ */
+export function readWorkflowSetup(settings: unknown): WorkflowSetup | null {
+  const parsed = workflowSettingsWithSetup.safeParse(settings ?? {});
+  return parsed.success ? (parsed.data.setup ?? null) : null;
+}
+
+/**
+ * Merge a patch into `settings.setup` and hand back the whole settings bag.
+ * The flow writes one field at a time (the brief as it is typed, then the
+ * category, then the plan), and every write has to leave the rest of the bag —
+ * and the rest of `setup` — alone.
+ */
+export function writeWorkflowSetup(
+  settings: unknown,
+  patch: Partial<WorkflowSetup>
+): Record<string, unknown> {
+  const parsed = workflowSettingsWithSetup.safeParse(settings ?? {});
+  const base: Record<string, unknown> = parsed.success
+    ? { ...parsed.data }
+    : {};
+  const current = parsed.success ? (parsed.data.setup ?? null) : null;
+  base["setup"] = workflowSetup.parse({
+    stage: "idea",
+    brief: "",
+    ...(current ?? {}),
+    ...patch
+  });
+  return base;
+}

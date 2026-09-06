@@ -10,7 +10,10 @@
  * A clip tile is laid out differently on purpose: the player carries its own
  * controls, and putting those inside the tile button would nest one focusable
  * control in another. Such a tile frames the player and puts the select
- * control beneath it.
+ * control beneath it. A voice tile is laid out the same way, and its sample is
+ * made on demand rather than shipped: `onPlaySample` is called the first time
+ * someone asks to hear it, and the caller passes `audio` back once the sample
+ * exists (PRD § 9.3).
  *
  * A preset whose art is missing or fails to load falls back to a typographic
  * sample — its name set in the space the picture would fill. A broken-image
@@ -23,8 +26,10 @@ import AddIcon from "@mui/icons-material/Add";
 import { useTheme } from "@mui/material/styles";
 
 import {
+  AudioPlayback,
   BORDER_RADIUS,
   Box,
+  EditorButton,
   FlexColumn,
   GAP,
   PADDING,
@@ -42,6 +47,15 @@ export interface PresetTile {
   image?: MediaLocator;
   /** A clip sample. When set it replaces the still. */
   video?: MediaLocator;
+  /** An audio sample. When set it replaces the still and plays on arrival. */
+  audio?: MediaLocator;
+  /**
+   * Make this tile's sample. Set when the sample costs something to produce,
+   * so it is made once, when someone asks for it, rather than on every render.
+   */
+  onPlaySample?: () => void;
+  /** True while {@link PresetTile.onPlaySample} is in flight. */
+  samplePending?: boolean;
   disabled?: boolean;
   disabledReason?: string;
 }
@@ -108,6 +122,91 @@ const StillSample: React.FC<{
   );
 };
 
+/**
+ * A tile whose sample carries its own controls: the media sits in the card
+ * frame and the select control goes beneath it, so no focusable control is
+ * nested inside another.
+ */
+const FramedTile: React.FC<{
+  preset: PresetTile;
+  selected: boolean;
+  onSelect: () => void;
+  children: React.ReactNode;
+}> = ({ preset, selected, onSelect, children }) => {
+  const theme = useTheme();
+  const handleSelect = useCallback(() => {
+    if (!preset.disabled) {
+      onSelect();
+    }
+  }, [onSelect, preset.disabled]);
+
+  return (
+    <FlexColumn
+      gap={GAP.none}
+      sx={setupCardSx(theme, {
+        selected,
+        disabled: preset.disabled,
+        padding: PADDING.none,
+        interactive: false
+      })}
+    >
+      {children}
+      <Box
+        component="button"
+        type="button"
+        aria-pressed={selected}
+        aria-disabled={preset.disabled || undefined}
+        onClick={handleSelect}
+        sx={{
+          appearance: "none",
+          background: "none",
+          border: "none",
+          color: "inherit",
+          font: "inherit",
+          textAlign: "left",
+          width: "100%",
+          padding: PADDING.compact,
+          cursor: preset.disabled ? "not-allowed" : "pointer"
+        }}
+      >
+        <Text size="small" component="span">
+          {preset.title}
+        </Text>
+      </Box>
+    </FlexColumn>
+  );
+};
+
+/** The sample half of a voice tile: a button until the audio exists. */
+const VoiceSample: React.FC<{ preset: PresetTile }> = ({ preset }) => {
+  const handlePlay = useCallback(() => {
+    preset.onPlaySample?.();
+  }, [preset]);
+
+  if (preset.audio !== undefined) {
+    return (
+      <Box sx={{ padding: PADDING.compact }}>
+        <AudioPlayback
+          locator={preset.audio}
+          label={`${preset.title} sample`}
+          autoPlay
+        />
+      </Box>
+    );
+  }
+  return (
+    <Box sx={{ padding: PADDING.compact }}>
+      <EditorButton
+        variant="outlined"
+        onClick={handlePlay}
+        disabled={preset.samplePending === true || preset.disabled === true}
+      >
+        {preset.samplePending === true ? "Listening…" : "Hear this voice"}
+      </EditorButton>
+    </Box>
+  );
+};
+
 const PresetTileGridInternal: React.FC<PresetTileGridProps> = ({
   label,
   presets,
@@ -120,7 +219,6 @@ const PresetTileGridInternal: React.FC<PresetTileGridProps> = ({
   aspectRatio = "16/9",
   minColumnWidth = 160
 }) => {
-  const theme = useTheme();
   const selectClip = useCallback(
     (preset: PresetTile) => () => {
       if (!preset.disabled) {
@@ -142,40 +240,23 @@ const PresetTileGridInternal: React.FC<PresetTileGridProps> = ({
     >
       {presets.map((preset) =>
         preset.video !== undefined ? (
-          <FlexColumn
+          <FramedTile
             key={preset.id}
-            gap={GAP.none}
-            sx={setupCardSx(theme, {
-              selected: preset.id === selectedId,
-              disabled: preset.disabled,
-              padding: PADDING.none,
-              interactive: false
-            })}
+            preset={preset}
+            selected={preset.id === selectedId}
+            onSelect={selectClip(preset)}
           >
             <VideoPlayer locator={preset.video} label={`${preset.title} sample`} />
-            <Box
-              component="button"
-              type="button"
-              aria-pressed={preset.id === selectedId}
-              aria-disabled={preset.disabled || undefined}
-              onClick={selectClip(preset)}
-              sx={{
-                appearance: "none",
-                background: "none",
-                border: "none",
-                color: "inherit",
-                font: "inherit",
-                textAlign: "left",
-                width: "100%",
-                padding: PADDING.compact,
-                cursor: preset.disabled ? "not-allowed" : "pointer"
-              }}
-            >
-              <Text size="small" component="span">
-                {preset.title}
-              </Text>
-            </Box>
-          </FlexColumn>
+          </FramedTile>
+        ) : preset.onPlaySample !== undefined || preset.audio !== undefined ? (
+          <FramedTile
+            key={preset.id}
+            preset={preset}
+            selected={preset.id === selectedId}
+            onSelect={selectClip(preset)}
+          >
+            <VoiceSample preset={preset} />
+          </FramedTile>
         ) : (
           <SetupCardButton
             key={preset.id}

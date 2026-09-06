@@ -896,18 +896,28 @@ setup?: {
   pace?: "slow" | "normal" | "fast";
   language?: string;
 };
+
+// scriptLine gains one, written only by a subtitle import:
+targetDurationMs?: number; // the cue's own timing, the take's target
 ```
 
 Nothing else changes. Reuse: cast and voice bindings, `useVoiceCostEstimate`,
 `ui_script_*`, the § 7.6 extraction route, a new pure `parseSrt` beside
 `parseFdx`.
 
+The writer's prompt, schema and parse live in `@nodetool-ai/protocol`
+(`script-authoring.ts`), as the Director's do, so the flow and the headless
+`write_script` capability author the same artifact. Imported words never reach
+the writer's schema: they are split by `splitImportedText` and attributed by a
+call whose schema has no text field, so a model that ignores the schema can
+misattribute a line but cannot reword it.
+
 ### 9.6 Headless parity
 
 | Operation | Tool |
 | --- | --- |
-| Set brief, format, length, stage | new `ui_script_set_setup` |
-| Write or rewrite | new `ui_script_write` (`rewrite: boolean`) |
+| Set brief, format, length, stage | new `ui_script_set_setup`, mirrored by `edit_script`'s `set_setup` op |
+| Write or rewrite | new `ui_script_write` (`rewrite: boolean`), mirrored headlessly by `write_script` |
 | Edit lines and speakers | existing `ui_script_set_line_text`, `ui_script_set_speaker`, `ui_script_add_line`, `ui_script_add_speaker` |
 | Bind voices, voice all | existing `ui_script_set_speaker_voice`, `ui_script_voice_all` |
 | Import | `parseFdx`, `parseSrt`, then the line and speaker tools |
@@ -958,9 +968,11 @@ to look` sets stage `look`.
 
 Heading "Choose the look". Size as preset tiles per aspect (square, portrait,
 landscape, story, banner) with the pixel size shown. Style as the same twelve
-`style` entities as E1, one library. Image model as `PresetTileGrid`, each
-tile a sample of that model on a fixed prompt. Cost from the sketch generate
-estimate times the variation count.
+`style` entities as E1, one library. Image model as `PresetTileGrid`. A tile
+shows a sample of that model on a fixed prompt where one exists; nothing
+serves per-model samples yet and R5 forbids shipping them, so the tile falls
+back to the model's name. Cost from the sketch generate estimate times the
+variation count.
 
 `Generate your image` sets stage `done` and enqueues N generated layers
 through the sketch editor's `text-to-image` binding, one per variation, each
@@ -997,10 +1009,10 @@ estimate.
 
 | Operation | Tool |
 | --- | --- |
-| Set brief, use case, variations, stage | new `ui_sketch_set_setup` |
-| Refine or re-refine | new `ui_sketch_refine_brief` |
-| Generate variations | `ui_sketch_generate` called once per variation with the composed prompt |
-| Pick | `ui_sketch_select_layer` plus visibility through `ui_sketch_adjust_layer` |
+| Set brief, use case, variations, stage | new `ui_sketch_set_setup`, mirrored by `edit_sketch`'s `set_setup` op |
+| Refine or re-refine | new `ui_sketch_refine_brief`, mirrored headlessly by `refine_image_brief` |
+| Generate variations | `ui_sketch_generate` called once per variation with the composed prompt and its own `seed` |
+| Pick | `ui_sketch_select_layer` plus visibility through `ui_sketch_set_layer_props` |
 
 ### 10.7 Acceptance criteria
 

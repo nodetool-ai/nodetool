@@ -17,9 +17,11 @@ import {
   FlexColumn,
   FlexRow,
   GAP,
+  SelectField,
   Text,
   TextInput
 } from "../ui_primitives";
+import type { SelectOption } from "../ui_primitives";
 
 export interface PlanReviewField {
   id: string;
@@ -32,6 +34,12 @@ export interface PlanReviewField {
   placeholder?: string;
   /** A field the flow owns elsewhere, e.g. dialogue on a script-linked board. */
   readOnly?: boolean;
+  /**
+   * A field whose value is one of a known set — a line's speaker, a step's
+   * node type. Rendered as a select, so the row cannot be left holding a value
+   * the document has no meaning for.
+   */
+  options?: readonly SelectOption[];
 }
 
 export interface PlanReviewSection {
@@ -71,17 +79,28 @@ const PlanReviewInternal: React.FC<PlanReviewProps> = ({
             </Text>
           ) : null}
         </FlexColumn>
-        {section.rows.map((row) => (
-          <TextInput
-            key={row.id}
-            label={row.label}
-            value={row.value}
-            multiline={row.multiline}
-            placeholder={row.placeholder}
-            onChange={(event) => row.onChange(event.target.value)}
-            slotProps={{ input: { readOnly: row.readOnly } }}
-          />
-        ))}
+        {section.rows.map((row) =>
+          row.options ? (
+            <SelectField
+              key={row.id}
+              label={row.label}
+              value={row.value}
+              options={row.options}
+              disabled={row.readOnly}
+              onChange={row.onChange}
+            />
+          ) : (
+            <TextInput
+              key={row.id}
+              label={row.label}
+              value={row.value}
+              multiline={row.multiline}
+              placeholder={row.placeholder}
+              onChange={(event) => row.onChange(event.target.value)}
+              slotProps={{ input: { readOnly: row.readOnly } }}
+            />
+          )
+        )}
       </FlexColumn>
     ))}
     <FlexRow gap={GAP.normal} justify="flex-start">

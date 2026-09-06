@@ -4,6 +4,7 @@
 
 import type { StateCreator } from "zustand";
 import type { SketchStore } from "../useSketchStore";
+import type { SketchSetup } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import type {
   SketchDocument,
   Layer,
@@ -148,6 +149,12 @@ export interface DocumentSlice {
   // Document actions
   setDocument: (doc: SketchDocument) => void;
   resetDocument: (width?: number, height?: number) => void;
+  /**
+   * Patch the guided-setup block (PRD § 10.5). The image flow is a function of
+   * this and nothing else, so every step writes through here — including the
+   * stage, which is what a reload resumes from (D3).
+   */
+  setSetup: (patch: Partial<SketchSetup>) => void;
 
   // Layer actions
   setActiveLayer: (layerId: string) => void;
@@ -212,6 +219,14 @@ export const createDocumentSlice: StateCreator<
       transientMoveModifierHeld: false
     });
   },
+
+  setSetup: (patch: Partial<SketchSetup>) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        setup: { stage: "done", brief: "", ...state.document.setup, ...patch }
+      }
+    })),
 
   resetDocument: (width = 512, height = 512) => {
     const defaultDoc = createDefaultDocument(width, height);

@@ -54,6 +54,8 @@ const createMockHandler = (): jest.Mocked<SketchAgentHandler> => ({
   mergeLayerDown: jest.fn(),
   flattenVisible: jest.fn(),
   generate: jest.fn(),
+  setSetup: jest.fn(),
+  refineBrief: jest.fn(),
   placeImage: jest.fn(),
   setForegroundColor: jest.fn(),
   setBackgroundColor: jest.fn(),

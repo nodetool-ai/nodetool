@@ -80,6 +80,12 @@ export interface LayerWorkflowBinding {
   resolution?: string;
   strength?: number;
   numInferenceSteps?: number;
+  /**
+   * Sampling seed. Layers alike in prompt, size and model and different only
+   * here are one request asked N times — which is what makes a set of
+   * variations a set (PRD § 10.7, criterion 4).
+   */
+  seed?: number;
   // Common fields ─────────────────────────────────────────────────────────
   dependencyHash?: string;
   lastGeneratedHash?: string;
@@ -146,6 +152,24 @@ export interface SketchDocumentLike {
   metadata?: {
     createdAt: string;
     updatedAt: string;
+  };
+  /**
+   * Guided image-flow state (PRD § 10.5). Absent on every document that never
+   * entered the flow; the zod shape in `@nodetool-ai/protocol` is the one that
+   * validates it.
+   */
+  setup?: {
+    stage: "idea" | "useCase" | "review" | "look" | "done";
+    brief: string;
+    use_case?: string;
+    refined?: {
+      subject: string;
+      composition: string;
+      lighting: string;
+      style_words: string;
+      negative: string;
+    };
+    variations?: number;
   };
 }
 

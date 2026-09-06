@@ -36,6 +36,7 @@ import {
   restoreSketchVersionSpec,
   deleteSketchVersionSpec,
   editSketchSpec,
+  refineImageBriefSpec,
   validateSketchSpec,
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT,
@@ -50,7 +51,13 @@ import {
 } from "../utils/type-guards.js";
 
 import { resolveProjectId } from "./project-scope.js";
-import { encodeSketchLayerData } from "@nodetool-ai/protocol/api-schemas/sketch.js";
+import {
+  encodeSketchLayerData,
+  findImageUseCase,
+  IMAGE_USE_CASES,
+  type SketchSetup,
+  type SketchSetupStage
+} from "@nodetool-ai/protocol/api-schemas/sketch.js";
 
 type ToolError = { error: string };
 
@@ -483,6 +490,15 @@ type LayerBinding = ImageDocumentData["layerBindings"][number];
 /** Operations one call may apply, so a runaway script cannot rewrite a sketch. */
 const MAX_OPS = 60;
 
+/** Stages the guided image flow can resume at (PRD § 10.5). */
+const SETUP_STAGES: readonly SketchSetupStage[] = [
+  "idea",
+  "useCase",
+  "review",
+  "look",
+  "done"
+];
+
 interface ParsedOp {
   op: string;
   args: Record<string, unknown>;
@@ -497,7 +513,8 @@ const OPS = [
   "duplicate_layer",
   "select_layer",
   "resize_canvas",
-  "set_layer_image"
+  "set_layer_image",
+  "set_setup"
 ] as const;
 
 type OpName = (typeof OPS)[number];
@@ -624,6 +641,8 @@ interface SketchState {
   activeLayerId: string;
   canvas: { width: number; height: number; backgroundColor?: string };
   bindings: LayerBinding[];
+  /** Guided image-flow state (PRD § 10.5); absent until a flow writes one. */
+  setup?: SketchSetup;
 }
 
 /**
@@ -876,6 +895,54 @@ function applyOp(
       return { width, height };
     }
 
+    case "set_setup": {
+      const current: SketchSetup = state.setup ?? { stage: "done", brief: "" };
+      const next: SketchSetup = { ...current };
+      if (args["brief"] !== undefined) {
+        if (!isString(args["brief"])) {
+          throw new Error("set_setup's `brief` must be a string.");
+        }
+        next.brief = args["brief"];
+      }
+      if (args["use_case"] !== undefined) {
+        const useCase = findImageUseCase(
+          isString(args["use_case"]) ? args["use_case"] : null
+        );
+        if (!useCase) {
+          throw new Error(
+            `set_setup's \`use_case\` must be one of ${IMAGE_USE_CASES.map((entry) => entry.id).join(", ")}.`
+          );
+        }
+        next.use_case = useCase.id;
+        // The card writes the same two defaults in the editor, so a headless
+        // caller that picks a use case gets the same document.
+        next.variations ??= useCase.defaultVariations;
+        state.canvas = {
+          ...state.canvas,
+          width: useCase.defaultSize.width,
+          height: useCase.defaultSize.height
+        };
+      }
+      if (args["variations"] !== undefined) {
+        const variations = Number(args["variations"]);
+        if (!Number.isInteger(variations) || variations < 1 || variations > 8) {
+          throw new Error("set_setup's `variations` must be 1..8.");
+        }
+        next.variations = variations;
+      }
+      if (args["stage"] !== undefined) {
+        const stage = isString(args["stage"]) ? args["stage"].trim() : "";
+        if (!SETUP_STAGES.includes(stage as SketchSetupStage)) {
+          throw new Error(
+            `set_setup's \`stage\` must be one of ${SETUP_STAGES.join(", ")}.`
+          );
+        }
+        next.stage = stage as SketchSetupStage;
+      }
+      state.setup = next;
+      return next;
+    }
+
     default:
       throw new Error(`Unknown operation "${op}".`);
   }
@@ -997,7 +1064,8 @@ const editSketch: CapabilityExport = {
             layers: [...sketch.layers],
             activeLayerId: sketch.activeLayerId,
             canvas: { ...sketch.canvas },
-            bindings: [...data.layerBindings]
+            bindings: [...data.layerBindings],
+            setup: sketch.setup
           };
           // A failing op is recorded and the script continues: stopping at the
           // first error hides every problem behind it.
@@ -1021,7 +1089,8 @@ const editSketch: CapabilityExport = {
             ...sketch,
             canvas: state.canvas,
             layers: state.layers,
-            activeLayerId: state.activeLayerId
+            activeLayerId: state.activeLayerId,
+            setup: state.setup
           };
           data.layerBindings = state.bindings;
           records = applied;
@@ -1058,6 +1127,106 @@ const editSketch: CapabilityExport = {
       }
       throw e;
     }
+  }
+};
+
+// ---------------------------------------------------------------------------
+// refine_image_brief
+// ---------------------------------------------------------------------------
+
+/**
+ * The brief expansion, headless. The browser sends the same prompt and schema
+ * from `@nodetool-ai/protocol` through `generate_text`; keeping both halves on
+ * one module is what makes a brief refined here and one refined in the editor
+ * the same artifact.
+ *
+ * D4: one language-model call and one document write. No layer is added and no
+ * generation is started.
+ */
+const refineImageBrief: CapabilityExport = {
+  spec: refineImageBriefSpec,
+  impl: async (run, params) => {
+    const doc = await loadSketch(run, params["image_document_id"]);
+    if (isError(doc)) return doc;
+
+    const data = doc.toDocumentData();
+    const setup = data.sketch.setup;
+    const brief = setup?.brief?.trim() ?? "";
+    if (!brief) {
+      return {
+        error: `Sketch ${doc.id} has no brief, so there is nothing to refine. Write one with edit_sketch's set_setup op.`
+      };
+    }
+
+    const provider = isNonBlankString(params["provider"])
+      ? params["provider"].trim()
+      : "";
+    const model = isNonBlankString(params["model"])
+      ? params["model"].trim()
+      : "";
+    if (!provider || !model) {
+      return {
+        error:
+          "Pass provider + model for the language model that expands the brief (use find_model with capability=generate_text)."
+      };
+    }
+
+    const {
+      REFINE_BRIEF_SCHEMA,
+      REFINE_BRIEF_SYSTEM_PROMPT,
+      REFINE_BRIEF_TOOL_DESCRIPTION,
+      REFINE_BRIEF_TOOL_NAME,
+      buildRefineBriefPrompt,
+      parseRefinedBrief
+    } = await import("@nodetool-ai/protocol/api-schemas/sketch.js");
+    const { generateStructured } = await import("@nodetool-ai/runtime");
+
+    const languageProvider = await run.context.getProvider(provider);
+    const raw = await generateStructured(languageProvider, {
+      model,
+      maxTokens: 2048,
+      messages: [
+        { role: "system", content: REFINE_BRIEF_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: buildRefineBriefPrompt(brief, setup?.use_case)
+        }
+      ],
+      toolName: REFINE_BRIEF_TOOL_NAME,
+      toolDescription: REFINE_BRIEF_TOOL_DESCRIPTION,
+      schema: REFINE_BRIEF_SCHEMA
+    });
+    const refined = raw ? parseRefinedBrief(raw) : null;
+    if (!refined) {
+      return {
+        error: `${model} returned no usable brief. Try again, or pass a model that supports structured output.`
+      };
+    }
+
+    const { ImageDocument } = await import("@nodetool-ai/models");
+    const mutated = await ImageDocument.mutateDocumentData(doc.id, (current) => {
+      current.sketch = {
+        ...current.sketch,
+        setup: {
+          brief,
+          ...current.sketch.setup,
+          refined,
+          // The flow's next step is the review, whatever stage the caller was
+          // on when it asked (PRD § 10.2).
+          stage: "review"
+        }
+      };
+      return refined;
+    });
+    if (!mutated) {
+      return { error: `Sketch ${doc.id} was not found.` };
+    }
+    return {
+      image_document_id: doc.id,
+      stage: "review",
+      refined,
+      updated_at: mutated.document.updated_at
+    };
   }
 };
 
@@ -1193,6 +1362,7 @@ export const SKETCH_CAPABILITIES: readonly CapabilityExport[] = [
   restoreSketchVersion,
   deleteSketchVersion,
   editSketch,
+  refineImageBrief,
   validateSketch,
   deleteSketch
 ];
@@ -1212,6 +1382,7 @@ export {
   restoreSketchVersion,
   deleteSketchVersion,
   editSketch,
+  refineImageBrief,
   validateSketch,
   deleteSketch
 };

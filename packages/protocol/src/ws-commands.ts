@@ -206,6 +206,12 @@ export const generateMediaDataSchema = z
     resolution: z.string().optional(),
     strength: z.number().optional(),
     num_inference_steps: z.number().optional(),
+    /**
+     * Sampling seed. Two image requests alike but for this one are a set of
+     * variations rather than unrelated pictures; providers that take no seed
+     * ignore it.
+     */
+    seed: z.number().optional(),
     /** Number of variations to request (1..8, clamped server-side). */
     variations: z.number().optional(),
     /** TTS voice id, when mode === "audio". */

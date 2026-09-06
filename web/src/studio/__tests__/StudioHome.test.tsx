@@ -52,8 +52,10 @@ jest.mock("../../hooks/script/useScripts", () => ({
   useCreateScript: () => ({ mutateAsync: jest.fn() })
 }));
 
+const createTimeline = jest.fn(async () => ({ id: "t-new" }));
 jest.mock("../../hooks/useTimelineSequence", () => ({
   __esModule: true,
+  useCreateTimeline: () => ({ mutateAsync: createTimeline }),
   useTimelines: () => ({
     data: [
       {
@@ -67,9 +69,12 @@ jest.mock("../../hooks/useTimelineSequence", () => ({
   })
 }));
 
+const timelineUpdate = jest.fn().mockResolvedValue({ id: "t-new" });
 jest.mock("../../trpc/client", () => ({
   __esModule: true,
   trpcClient: {
+    // The video card writes its setup as one PATCH after the create.
+    timeline: { update: { mutate: timelineUpdate } },
     scripts: {
       get: {
         query: jest.fn().mockResolvedValue({
@@ -141,7 +146,9 @@ describe("StudioHome", () => {
 
   // PRD § 6.1 and D24: Studio offers Storyboard, Video and Script — Image and
   // Workflow are workspace flows and are not here at all.
-  it("offers three entry cards and names the phase behind each unbuilt one", async () => {
+  // D24: Studio offers three of the five flows — Image and Workflow are
+  // workspace flows. All three are built now, so none is disabled.
+  it("offers its three entry cards, all live", async () => {
     renderHome();
 
     const cards = await screen.findByRole("group", {
@@ -157,17 +164,33 @@ describe("StudioHome", () => {
       "ScriptFrom a topic to voiced lines, ready to place."
     ]);
 
-    const video = within(cards).getByRole("button", { name: /^Video / });
-    expect(video).toHaveAttribute("aria-disabled", "true");
-    expect(video).toHaveAttribute("title", "Video ships in phase P6.");
+    for (const name of [/^Storyboard /, /^Video /, /^Script /]) {
+      expect(within(cards).getByRole("button", { name })).not.toHaveAttribute(
+        "aria-disabled"
+      );
+    }
+  });
 
-    const script = within(cards).getByRole("button", { name: /^Script / });
-    expect(script).toHaveAttribute("aria-disabled", "true");
-    expect(script).toHaveAttribute("title", "Script ships in phase P7.");
+  it("starts the video flow from its card", async () => {
+    const user = userEvent.setup();
+    renderHome();
 
-    expect(
-      within(cards).getByRole("button", { name: /^Storyboard / })
-    ).not.toHaveAttribute("aria-disabled");
+    const cards = await screen.findByRole("group", {
+      name: "What are you making?"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+
+    await waitFor(() => expect(createTimeline).toHaveBeenCalledTimes(1));
+    // The setup has to reach the sequence, or the flow opens at no stage.
+    await waitFor(() =>
+      expect(timelineUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          document: expect.objectContaining({
+            setup: expect.objectContaining({ stage: "idea" })
+          })
+        })
+      )
+    );
   });
 
   it("creates a board at stage idea and opens it", async () => {

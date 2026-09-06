@@ -2,10 +2,12 @@
  * The creation-flow entry cards (PRD § 6.1) — one list, two hosts.
  *
  * The New Project surface shows all five, Studio shows three (D24: Image and
- * Workflow are workspace flows). Only Storyboard is built, so the rest name
- * the phase that turns them on rather than dying on a click. The promise line
- * on each card is PRD § 6.1 verbatim, kept here so both hosts say the same
- * thing.
+ * Workflow are workspace flows). The promise line on each card is PRD § 6.1
+ * verbatim, kept here so both hosts say the same thing.
+ *
+ * `disabled` with a `disabledReason` naming the phase is how a card waits for
+ * its flow to be built. All five are live now; the field stays on the type for
+ * the next one.
  */
 
 import type { OptionCardItem } from "./OptionCardGrid";
@@ -30,30 +32,22 @@ export const ENTRY_CARDS: readonly EntryCard[] = [
   {
     id: "video",
     title: "Video",
-    description: "From a sentence to a cut on the timeline, no board.",
-    disabled: true,
-    disabledReason: "Video ships in phase P6."
+    description: "From a sentence to a cut on the timeline, no board."
   },
   {
     id: "script",
     title: "Script",
-    description: "From a topic to voiced lines, ready to place.",
-    disabled: true,
-    disabledReason: "Script ships in phase P7."
+    description: "From a topic to voiced lines, ready to place."
   },
   {
     id: "image",
     title: "Image",
-    description: "From a description to a picked variation in the editor.",
-    disabled: true,
-    disabledReason: "Image ships in phase P8."
+    description: "From a description to a picked variation in the editor."
   },
   {
     id: "workflow",
     title: "Workflow",
-    description: "From a task to a running graph, with the plan reviewed first.",
-    disabled: true,
-    disabledReason: "Workflow ships in phase P9."
+    description: "From a task to a running graph, with the plan reviewed first."
   }
 ];
 

@@ -32,6 +32,10 @@ import { STUDIO_ENTRY_CARDS } from "../components/setup/entryCards";
 import { newStoryboardSetupDocument } from "../components/setup/storyboard/useStoryboardSetupFlow";
 import { useCreateStoryboard } from "../hooks/storyboard/useStoryboards";
 import { useCreateScript } from "../hooks/script/useScripts";
+import { useCreateTimeline } from "../hooks/useTimelineSequence";
+import { newScriptSetupDocument } from "../components/setup/script/useScriptSetupFlow";
+import { newVideoSetupDocument } from "../components/setup/video/useVideoSetupFlow";
+import { trpcClient } from "../trpc/client";
 import StudioShell from "./StudioShell";
 import { useStudioProjects } from "./useStudioProjects";
 import type {
@@ -136,6 +140,7 @@ const StudioHome = () => {
   const navigate = useNavigate();
   const createStoryboard = useCreateStoryboard();
   const createScript = useCreateScript();
+  const createTimeline = useCreateTimeline();
   const [creating, setCreating] = useState<StudioDocumentKind | null>(null);
 
   const { projects } = useStudioProjects();
@@ -177,13 +182,61 @@ const StudioHome = () => {
       });
   }, [createStoryboard, navigate]);
 
+
+  // The Script entry card: a script at stage `idea`. The script page renders
+  // the flow from that stage, same as the board does.
+  const startScriptFlow = useCallback(() => {
+    if (creatingRef.current) return;
+    creatingRef.current = true;
+    setCreating("script");
+    createScript
+      .mutateAsync({
+        name: "Untitled script",
+        projectId: creationProjectId(),
+        document: newScriptSetupDocument("")
+      })
+      .then((created) => navigate(`/studio/script/${created.id}`))
+      .finally(() => {
+        creatingRef.current = false;
+        setCreating(null);
+      });
+  }, [createScript, navigate]);
+
+  // The Video card. `timeline.create` takes no document, so the setup lands as
+  // one PATCH straight after the create.
+  const startVideoFlow = useCallback(() => {
+    if (creatingRef.current) return;
+    creatingRef.current = true;
+    setCreating("timeline");
+    createTimeline
+      .mutateAsync({
+        name: "Untitled video",
+        projectId: creationProjectId()
+      })
+      .then(async (created) => {
+        await trpcClient.timeline.update.mutate({
+          id: created.id,
+          document: newVideoSetupDocument("")
+        });
+        navigate(`/studio/timeline/${created.id}`);
+      })
+      .finally(() => {
+        creatingRef.current = false;
+        setCreating(null);
+      });
+  }, [createTimeline, navigate]);
+
   const handleEntryCard = useCallback(
     (id: string) => {
       if (id === "storyboard") {
         startStoryboardFlow();
+      } else if (id === "script") {
+        startScriptFlow();
+      } else if (id === "video") {
+        startVideoFlow();
       }
     },
-    [startStoryboardFlow]
+    [startScriptFlow, startStoryboardFlow, startVideoFlow]
   );
 
   const startScript = useCallback(() => {

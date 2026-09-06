@@ -61,8 +61,11 @@ import {
   type ClipMask,
   type SnapBoundaryMode,
   type SnapAction,
+  type TimelineBeat,
   type TimelineClip,
   type TimelineMarker,
+  type TimelineSetup,
+  type TimelineSetupStage,
   type TimelineTrack,
   type ClipAnimation,
   instantiateComposition,
@@ -88,7 +91,8 @@ import {
   resolveShapeArg,
   textStyleParams,
   textStylePatchParams,
-  transitionParams
+  transitionParams,
+  type TransitionParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import {
   buildTimelineToolContracts,
@@ -158,6 +162,8 @@ export interface TimelineBridgeSequenceSeed {
   clips: TimelineClip[];
   /** The document's markers. Absent reads as a sequence with none. */
   markers?: TimelineMarker[];
+  /** Guided video-flow state. Absent reads as a sequence never in the flow. */
+  setup?: TimelineSetup;
 }
 
 /**
@@ -277,6 +283,12 @@ export interface TimelineBridgeFinalState {
    * wide, so a predicate and a document reader want the same shape.
    */
   markers: TimelineMarker[];
+  /**
+   * Guided video-flow state, or null on a sequence that was never in it.
+   * `edit_timeline` writes it back, so the flow's stage and plan survive an
+   * op run the same way tracks and clips do.
+   */
+  setup: TimelineSetup | null;
   /**
    * Every tool this bridge ran, in call order, by name — failed calls
    * included, because a call that errored still happened. A document cannot
@@ -524,6 +536,10 @@ export function createTimelineToolBridge(
   const tracks: TimelineTrack[] = [];
   let clips: TimelineClip[] = [];
   let markers: TimelineMarker[] = [];
+  let setup: TimelineSetup | null = seed?.setup
+    ? structuredClone(seed.setup)
+    : null;
+  let beatSeq = 0;
   const toolLog: string[] = [];
 
   // Ids the sequence already uses. A seeded document brings its own, which the
@@ -900,6 +916,22 @@ export function createTimelineToolBridge(
         sourceType: "imported",
         status: "generated"
       })
+    );
+  }
+
+  /** Resolve a beat by id, or by its 1-based position in the plan. */
+  function resolveBeat(target: string): TimelineBeat {
+    const beats = setup?.beats ?? [];
+    const byId = beats.find((beat) => beat.id === target);
+    if (byId) return byId;
+    const position = Number.parseInt(target, 10);
+    const byPosition = beats[position - 1];
+    if (Number.isFinite(position) && byPosition) return byPosition;
+    throw new Error(
+      `No beat matches "${target}". Use a beat id or its 1-based position. ` +
+        (beats.length > 0
+          ? `This plan has ${beats.length} beats.`
+          : "This sequence has no beat plan yet; run ui_timeline_plan_beats first.")
     );
   }
 
@@ -1658,6 +1690,203 @@ export function createTimelineToolBridge(
       }
     ),
 
+    // ── Guided video flow (PRD § 8.6) ───────────────────────────────────
+
+    sharedTool(
+      "ui_timeline_set_setup",
+      async ({ stage, brief, format }) => {
+        setup = {
+          stage: (stage as TimelineSetupStage | undefined) ?? setup?.stage ?? "idea",
+          brief: (brief as string | undefined) ?? setup?.brief ?? "",
+          format: (format as string | undefined) ?? setup?.format,
+          beats: setup?.beats
+        };
+        return { ok: true, setup: structuredClone(setup) };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_plan_beats",
+      async ({ beats }) => {
+        // There is no Director on this surface — the caller *is* the model, so
+        // it writes the plan rather than asking for one. Refusing without
+        // `beats` says which half of the shared contract this host implements.
+        const written = beats as
+          | {
+              prompt: string;
+              durationMs: number;
+              transition?: string;
+              voiceover?: string;
+              music?: boolean;
+            }[]
+          | undefined;
+        if (!written || written.length === 0) {
+          throw new Error(
+            "This surface has no Director: pass `beats` with the plan you want. Each beat needs a prompt and a durationMs."
+          );
+        }
+        const planned: TimelineBeat[] = written.map((beat) => ({
+          id: `beat_${++beatSeq}`,
+          prompt: beat.prompt,
+          duration_ms: Math.max(1, Math.round(beat.durationMs)),
+          transition: beat.transition,
+          voiceover: beat.voiceover,
+          music: beat.music
+        }));
+        setup = {
+          stage: "review",
+          brief: setup?.brief ?? "",
+          format: setup?.format,
+          beats: planned
+        };
+        // Named in the answer because it is the contract: the plan is text,
+        // and costs nothing until generate_from_beats runs (D4).
+        return {
+          ok: true,
+          beats: planned.map((beat) => ({ ...beat })),
+          clipsCreated: 0,
+          jobsStarted: 0
+        };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_update_beat",
+      async ({ beat, prompt, durationMs, transition, voiceover, music }) => {
+        const found = resolveBeat(beat as string);
+        const next: TimelineBeat = { ...found };
+        if (prompt !== undefined) next.prompt = prompt as string;
+        if (durationMs !== undefined) {
+          next.duration_ms = Math.max(1, Math.round(durationMs as number));
+        }
+        if (transition !== undefined) {
+          next.transition = (transition as string | null) ?? undefined;
+        }
+        if (voiceover !== undefined) next.voiceover = voiceover as string;
+        if (music !== undefined) next.music = music as boolean;
+        setup = {
+          stage: setup?.stage ?? "review",
+          brief: setup?.brief ?? "",
+          format: setup?.format,
+          beats: (setup?.beats ?? []).map((candidate) =>
+            candidate.id === found.id ? next : candidate
+          )
+        };
+        return { ok: true, beat: { ...next } };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_generate_from_beats",
+      async ({ model, provider, voice, music }) => {
+        const plan = setup?.beats ?? [];
+        if (plan.length === 0) {
+          throw new Error(
+            "There is no beat plan to generate from; call ui_timeline_plan_beats first."
+          );
+        }
+        const videoTrack = findOrCreateTrack("video");
+        const wantsMusic =
+          (music as boolean | undefined) ??
+          plan.some((beat) => beat.music === true);
+        const voiceTrack =
+          voice !== undefined && plan.some((beat) => (beat.voiceover ?? "") !== "")
+            ? findOrCreateTrack("audio")
+            : null;
+
+        const videoClipIds: string[] = [];
+        const voiceoverClipIds: string[] = [];
+        const planned: TimelineBeat[] = [];
+        let startMs = 0;
+        for (const [index, beat] of plan.entries()) {
+          const durationMs = Math.max(1, Math.round(beat.duration_ms));
+          const clip = makeClip({
+            id: nextClipId(),
+            trackId: videoTrack.id,
+            name: `Beat ${index + 1}`,
+            startMs,
+            durationMs,
+            mediaType: "video",
+            sourceType: "generated",
+            bindingKind: "text-to-video",
+            prompt: beat.prompt,
+            provider: provider as string | undefined,
+            model: model as string | undefined,
+            beatId: beat.id,
+            status: "draft"
+          });
+          if (beat.transition) {
+            clip.transitionIn = buildTransition({
+              type: beat.transition as TransitionParams["type"],
+              durationMs: 500
+            });
+          }
+          clips.push(clip);
+          videoClipIds.push(clip.id);
+
+          const line = (beat.voiceover ?? "").trim();
+          if (voiceTrack && line.length > 0) {
+            const voiceClip = makeClip({
+              id: nextClipId(),
+              trackId: voiceTrack.id,
+              name: `Beat ${index + 1} voiceover`,
+              startMs,
+              durationMs,
+              mediaType: "audio",
+              sourceType: "generated",
+              bindingKind: "text-to-audio",
+              prompt: line,
+              voice: voice as string | undefined,
+              beatId: beat.id,
+              status: "draft"
+            });
+            clips.push(voiceClip);
+            voiceoverClipIds.push(voiceClip.id);
+          }
+          planned.push({ ...beat, clip_id: clip.id });
+          startMs += durationMs;
+        }
+
+        let musicClipId: string | null = null;
+        if (wantsMusic) {
+          // One bed under the whole cut, never one per beat: overlapping music
+          // clips would play at once.
+          const musicTrack = findOrCreateTrack("audio");
+          const musicClip = makeClip({
+            id: nextClipId(),
+            trackId: musicTrack.id,
+            name: "Music",
+            startMs: 0,
+            durationMs: startMs,
+            mediaType: "audio",
+            sourceType: "generated",
+            bindingKind: "text-to-audio",
+            prompt: `Instrumental score under: ${setup?.brief ?? ""}`,
+            status: "draft"
+          });
+          clips.push(musicClip);
+          musicClipId = musicClip.id;
+        }
+
+        setup = {
+          stage: "done",
+          brief: setup?.brief ?? "",
+          format: setup?.format,
+          beats: planned
+        };
+        return {
+          ok: true,
+          videoClipIds,
+          voiceoverClipIds,
+          musicClipId,
+          // Nothing renders headlessly: this authors the cut, and the clips are
+          // drafts until a renderer runs them.
+          startedClipIds: [],
+          note: "Clips created as drafts — this surface renders nothing."
+        };
+      }
+    ),
+
     sharedTool(
       "ui_timeline_delete_marker",
       async ({ target }) => {
@@ -1976,6 +2205,7 @@ export function createTimelineToolBridge(
       documentTracks: tracks.map((t) => structuredClone(t)),
       documentClips: clips.map((c) => structuredClone(c)),
       markers: markers.map((m) => structuredClone(m)),
+      setup: setup ? structuredClone(setup) : null,
       toolLog: [...toolLog]
     })
   };
@@ -2358,6 +2588,54 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
             test: (s) =>
               s.clips.some((c) => c.mediaType === "text") &&
               previewedAfterLastEdit(s.toolLog)
+          }
+        ]
+      }
+    },
+    {
+      id: "video-flow-plan-then-generate",
+      description:
+        "Plan a video's beats, then cut it — the guided flow through the tools",
+      objective:
+        "This is a 15-second ad for a paper boat. Write the brief onto the sequence, plan four beats — the second and fourth each carry a voiceover line — then generate the video from that plan with model 'nodetool/kling-turbo' and voice 'alloy'.",
+      createBridge: () => createTimelineToolBridge(),
+      systemPrompt: TIMELINE_SYSTEM_PROMPT,
+      expect: {
+        requiredTools: [
+          "ui_timeline_plan_beats",
+          "ui_timeline_generate_from_beats"
+        ],
+        noErrorResults: true,
+        minToolCalls: 2,
+        maxToolCalls: 12,
+        finalState: [
+          {
+            name: "onePictureClipPerBeat",
+            detail:
+              "the picture track does not hold exactly one clip per planned beat",
+            test: (s) =>
+              (s.setup?.beats?.length ?? 0) > 0 &&
+              s.clips.filter((c) => c.mediaType === "video").length ===
+                (s.setup?.beats?.length ?? 0)
+          },
+          {
+            name: "oneVoiceoverClipPerVoicedBeat",
+            detail:
+              "the voiceover clips do not match the beats that carry a line",
+            test: (s) => {
+              const voiced = (s.setup?.beats ?? []).filter(
+                (beat) => (beat.voiceover ?? "").trim().length > 0
+              ).length;
+              const audio = s.documentClips.filter(
+                (c) => c.bindingKind === "text-to-audio" && c.beatId
+              ).length;
+              return voiced > 0 && audio === voiced;
+            }
+          },
+          {
+            name: "flowFinished",
+            detail: "the flow's stage is not done after generating",
+            test: (s) => s.setup?.stage === "done"
           }
         ]
       }

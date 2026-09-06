@@ -29,6 +29,7 @@ export * from "./shot-prompt.js";
 export * from "./render-record.js";
 export * from "./style-presets.js";
 export * from "./screenplay-authoring.js";
+export * from "./script-authoring.js";
 export * from "./script-link.js";
 export * from "./sha256.js";
 export * from "./builtin-packs.js";
@@ -58,3 +59,4 @@ export {
 } from "./platform.js";
 export * from "./nodetool-models.js";
 export * from "./predicates.js";
+export * from "./workflow-plan.js";

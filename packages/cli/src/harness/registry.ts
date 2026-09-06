@@ -101,6 +101,33 @@ const SCRIPT_STORYBOARD_LINK_SUITES =
   "npm run test --workspace=packages/execution -- linked-timeline-validate && " +
   "npm run test --workspace=web -- src/lib/storyboard src/components/setup";
 
+/**
+ * The Workflow flow's pure suites (PRD § 11): the plan schema and the plan→graph
+ * builder in protocol, the shipped inspiration chips built against the real node
+ * registry, the plan-to-graph case's grading, and the browser flow's steps and
+ * tools. One constant so the entry's `command` and its `selfcheck` cannot drift.
+ */
+const WORKFLOW_PLAN_SUITES =
+  "npm run test --workspace=packages/protocol -- workflow && " +
+  "npm run test --workspace=packages/base-nodes -- workflow-plan-chips && " +
+  "npm run test --workspace=packages/agents -- app-build-workflow-plan && " +
+  "npm run test --workspace=web -- src/components/setup/workflow src/hooks/workflow src/lib/tools/builtin/__tests__/workflowSetupTools";
+
+/**
+ * The per-capability contract suites. One constant because the entry's
+ * `command` and its `selfcheck` must not drift — a selfcheck that runs less
+ * than the command it stands for reports green on code it never executed.
+ *
+ * The arguments are vitest path filters, so a suite whose filename matches
+ * none of them is not run however well it is written: `timeline-video-flow`
+ * is named explicitly for that reason.
+ */
+const CAPABILITY_SUITES =
+  "npm run test --workspace=packages/agents -- capabilities capability " +
+  "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
+  "sandbox-package-docs sandbox-package-listing browser-tools " +
+  "timelines-op-input timeline-video-flow";
+
 export const HARNESSES: HarnessEntry[] = [
   {
     id: "validate",
@@ -200,11 +227,15 @@ export const HARNESSES: HarnessEntry[] = [
     capabilities: ["json", "watch", "supervise", "gated:pr"],
     docs: "docs/harnesses.md § nodetool app build",
     selfcheck: {
-      // The suite's two deterministic cases: scripted author, real kernel,
+      // The suite's three keyless cases: two scripted app authors and the
+      // Workflow flow's plan-to-graph case, all on the real kernel with the
       // provider constructed but never called — the same invocation the
-      // Quality Gate's app-build leg runs.
+      // Quality Gate's app-build leg runs. `workflow-plan-to-graph` is graded
+      // on what its built graph produced, not only on whether it validated
+      // (PRD R6), so a plan that wires into a graph that runs and returns
+      // nothing fails here.
       command:
-        "npm run dev:nodetool -- eval app-build --cases greeting-card,draft-then-publish -p ollama -m none --no-find-model --min-success 1",
+        "npm run dev:nodetool -- eval app-build --cases greeting-card,draft-then-publish,workflow-plan-to-graph -p ollama -m none --no-find-model --min-success 1",
       cost: "cheap"
     }
   },
@@ -434,6 +465,21 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "workflow-plan",
+    title: "Workflow plan → graph (planner contract, builder, inspiration chips)",
+    // No CLI command owns the planner: the surface is a plan on a workflow's
+    // `settings.setup` and the graph it builds. The checked-in suites are the
+    // headless surface — they build every shipped chip's plan against the real
+    // node registry and hand the graph to the same validator
+    // `validate_workflow` runs. What a graph *produces* is graded one harness
+    // over, by the app-build suite's `workflow-plan-to-graph` case (PRD R6).
+    command: WORKFLOW_PLAN_SUITES,
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "docs/creation-flows/prd.md § 11",
+    selfcheck: { command: WORKFLOW_PLAN_SUITES, cost: "cheap" }
+  },
+  {
     id: "capability-suites",
     title: "Agent capability suites (per-capability contract tests)",
     // No CLI command owns a capability: the surface is the wire name a guest
@@ -441,10 +487,7 @@ export const HARNESSES: HarnessEntry[] = [
     // `packages/cli/src/harness/capability-table.ts` says which suite covers
     // which capability — the audit fails on one that names none.
     command:
-      "npm run test --workspace=packages/agents -- capabilities capability " +
-      "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
-      "sandbox-package-docs sandbox-package-listing browser-tools " +
-      "timelines-op-input",
+CAPABILITY_SUITES,
     kind: "static",
     // Runs in CI as part of the whole-package `--filter=@nodetool-ai/agents`
     // leg, but no workflow names this filtered command specifically, so it
@@ -456,10 +499,7 @@ export const HARNESSES: HarnessEntry[] = [
       // a capability added without a mapping fails here rather than in review.
       command:
         "npm run capabilities:check && " +
-        "npm run test --workspace=packages/agents -- capabilities capability " +
-        "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
-        "sandbox-package-docs sandbox-package-listing browser-tools " +
-        "timelines-op-input",
+CAPABILITY_SUITES,
       cost: "cheap"
     }
   },
@@ -760,6 +800,21 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/agents/src/capabilities/flow.ts",
       "packages/agents/src/capabilities/flow.specs.ts",
       "packages/sandbox-packs/sandbox-flow/"
+    ]
+  },
+  {
+    id: "workflow-creation-flow",
+    title:
+      "Workflow creation flow (settings.setup, planner, plan review, build from plan)",
+    harnesses: ["workflow-plan", "app-build", "capability-suites", "validate"],
+    paths: [
+      "packages/protocol/src/workflow-plan.ts",
+      "packages/protocol/src/api-schemas/workflows.ts",
+      "packages/agents/src/evals/app-build-plan.ts",
+      "packages/base-nodes/tests/workflow-plan-chips.test.ts",
+      "web/src/components/setup/workflow/",
+      "web/src/hooks/workflow/",
+      "web/src/lib/tools/builtin/workflowSetup.ts"
     ]
   },
   {

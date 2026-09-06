@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { isNumber, isString } from "../predicates.js";
+import { isNumber, isRecord, isString } from "../predicates.js";
 
 // ── Layer version ──────────────────────────────────────────────────────────
 
@@ -54,6 +54,13 @@ export const layerWorkflowBinding = z.object({
   height: z.number().optional(),
   strength: z.number().optional(),
   numInferenceSteps: z.number().optional(),
+  /**
+   * Sampling seed. Two layers that share a prompt, a size and a model and
+   * differ only here are the same request asked twice — which is what makes a
+   * set of variations a set rather than N unrelated pictures (PRD § 10.7,
+   * criterion 4).
+   */
+  seed: z.number().optional(),
   // Common ───────────────────────────────────────────────────────────────
   dependencyHash: z.string().optional(),
   lastGeneratedHash: z.string().optional(),
@@ -85,6 +92,243 @@ export const sketchLayerLike = z.object({
   exposedAsOutput: z.boolean().optional()
 });
 
+// ── Image flow: use cases and brief refinement ─────────────────────────────
+
+/** A pixel size, as the size tiles and the generate call both use it. */
+export interface ImageSize {
+  width: number;
+  height: number;
+}
+
+/**
+ * One of the seven kinds of picture the image flow offers (PRD § 10.2).
+ *
+ * Three defaults and a line of composition guidance, not a branch: picking one
+ * writes a size and a variation count and seasons the refinement prompt, and
+ * every later step can still overrule all three. It lives here because the
+ * card grid, the `ui_sketch_set_setup` tool and the headless mirror all have
+ * to agree on what "product shot" means.
+ */
+export interface ImageUseCase {
+  /** Stable slug, persisted as `setup.use_case`. */
+  id: string;
+  title: string;
+  /** One line under the title on the card. */
+  description: string;
+  defaultSize: ImageSize;
+  /** Aspect id matching `defaultSize`, for the size tiles and the provider. */
+  defaultAspectRatio: string;
+  /**
+   * How this kind of picture is usually framed — the part a one-sentence brief
+   * never states, handed to the refinement prompt.
+   */
+  composition: string;
+  defaultVariations: number;
+}
+
+export const IMAGE_USE_CASES: readonly ImageUseCase[] = [
+  {
+    id: "product",
+    title: "Product shot",
+    description: "One object, clean background, ready to place",
+    defaultSize: { width: 1024, height: 1024 },
+    defaultAspectRatio: "1:1",
+    composition:
+      "The product fills the frame on a plain seamless background, lit so its " +
+      "material reads and its edges stay clean.",
+    defaultVariations: 4
+  },
+  {
+    id: "portrait",
+    title: "Portrait",
+    description: "A person, framed head and shoulders",
+    defaultSize: { width: 819, height: 1024 },
+    defaultAspectRatio: "4:5",
+    composition:
+      "Head and shoulders, eyes on the upper third, background falling away " +
+      "behind the subject.",
+    defaultVariations: 4
+  },
+  {
+    id: "key-art",
+    title: "Key art",
+    description: "A poster frame with room for a title",
+    defaultSize: { width: 683, height: 1024 },
+    defaultAspectRatio: "2:3",
+    composition:
+      "One dominant subject, deep negative space above it for a title, and a " +
+      "clear read at thumbnail size.",
+    defaultVariations: 2
+  },
+  {
+    id: "social",
+    title: "Social post",
+    description: "A square that survives a feed",
+    defaultSize: { width: 1024, height: 1024 },
+    defaultAspectRatio: "1:1",
+    composition:
+      "One idea centred, high contrast, nothing important within a phone's " +
+      "width of the edges.",
+    defaultVariations: 4
+  },
+  {
+    id: "logo",
+    title: "Logo",
+    description: "A flat mark on a plain field",
+    defaultSize: { width: 1024, height: 1024 },
+    defaultAspectRatio: "1:1",
+    composition:
+      "A single flat mark, centred, no gradients or photographic detail, " +
+      "readable in one colour.",
+    defaultVariations: 4
+  },
+  {
+    id: "concept",
+    title: "Concept art",
+    description: "A world, painted wide",
+    defaultSize: { width: 1024, height: 683 },
+    defaultAspectRatio: "3:2",
+    composition:
+      "A wide establishing view with a foreground, a middle ground and a " +
+      "horizon, painted rather than photographed.",
+    defaultVariations: 2
+  },
+  {
+    id: "texture",
+    title: "Texture",
+    description: "A flat surface that tiles",
+    defaultSize: { width: 1024, height: 1024 },
+    defaultAspectRatio: "1:1",
+    composition:
+      "A flat surface shot square on, evenly lit, filling the frame with no " +
+      "subject and no perspective.",
+    defaultVariations: 2
+  }
+];
+
+export const findImageUseCase = (
+  id: string | undefined | null
+): ImageUseCase | undefined =>
+  IMAGE_USE_CASES.find((useCase) => useCase.id === id);
+
+export const REFINE_BRIEF_TOOL_NAME = "image_brief";
+
+export const REFINE_BRIEF_TOOL_DESCRIPTION =
+  "Return the expanded brief as five fields.";
+
+export const REFINE_BRIEF_SYSTEM_PROMPT =
+  "You expand a one-line image brief into the five fields an image model " +
+  "needs. Describe only what a camera or a brush could record. Keep each " +
+  "field to one sentence, name concrete things rather than adjectives, and " +
+  "never restate the brief verbatim. `negative` lists what must not appear, " +
+  "as a short comma-separated list; leave it empty when nothing needs " +
+  "excluding.";
+
+export const REFINE_BRIEF_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    subject: {
+      type: "string",
+      description: "What the picture is of, stated concretely."
+    },
+    composition: {
+      type: "string",
+      description: "Framing, camera position and where the subject sits."
+    },
+    lighting: {
+      type: "string",
+      description: "Light source, direction and quality."
+    },
+    style_words: {
+      type: "string",
+      description: "Medium, era, lens or render words. No brand names."
+    },
+    negative: {
+      type: "string",
+      description: "What must not appear. Empty when nothing needs excluding."
+    }
+  },
+  required: ["subject", "composition", "lighting", "style_words", "negative"]
+};
+
+/** What the model is asked, given the brief and the picked use case. */
+export function buildRefineBriefPrompt(
+  brief: string,
+  useCaseId?: string | null
+): string {
+  const useCase = findImageUseCase(useCaseId);
+  const lines = [`Brief: ${brief.trim()}`];
+  if (useCase) {
+    lines.push(
+      `This is a ${useCase.title.toLowerCase()}. ${useCase.composition}`
+    );
+  }
+  return lines.join("\n\n");
+}
+
+/**
+ * The model's answer, read into the five fields. Missing fields read empty; an
+ * answer with neither a subject nor a composition is a failed run rather than
+ * an empty brief, because the review step would otherwise show five blank
+ * boxes with no reason why.
+ */
+export function parseRefinedBrief(data: unknown): SketchRefinedBrief | null {
+  if (!isRecord(data)) {
+    return null;
+  }
+  const record = data;
+  const field = (key: string): string =>
+    isString(record[key]) ? record[key].trim() : "";
+  const refined: SketchRefinedBrief = {
+    subject: field("subject"),
+    composition: field("composition"),
+    lighting: field("lighting"),
+    style_words: field("style_words"),
+    negative: field("negative")
+  };
+  return refined.subject.length > 0 || refined.composition.length > 0
+    ? refined
+    : null;
+}
+
+/**
+ * The prompt N variations are rendered from (PRD § 10.3).
+ *
+ * One function, because three surfaces compose it — the look step's generate
+ * action, `ui_sketch_refine_brief`'s caller and the headless mirror — and a
+ * prompt each of them assembled itself is a prompt they can each get subtly
+ * wrong. The refined fields win over the raw brief once they exist: the
+ * creator reviewed and edited them, and the brief is what the model was asked
+ * to expand.
+ *
+ * `negative` is stated as words to avoid rather than dropped, because the
+ * direct-generation RPC carries no negative-prompt field.
+ */
+export function composeImagePrompt(
+  setup: Pick<SketchSetup, "brief" | "refined"> | undefined,
+  styleDescriptor?: string
+): string {
+  const refined = setup?.refined;
+  const parts: string[] = [];
+  const subject = refined?.subject?.trim();
+  parts.push(subject && subject.length > 0 ? subject : (setup?.brief ?? "").trim());
+  for (const field of [refined?.composition, refined?.lighting, refined?.style_words]) {
+    const value = field?.trim();
+    if (value) {
+      parts.push(value);
+    }
+  }
+  const style = styleDescriptor?.trim();
+  if (style) {
+    parts.push(style);
+  }
+  const negative = refined?.negative?.trim();
+  if (negative) {
+    parts.push(`Avoid: ${negative}`);
+  }
+  return parts.filter((part) => part.length > 0).join(". ");
+}
+
 // ── Sketch document (minimal for protocol) ─────────────────────────────────
 
 const pointLike = z.object({
@@ -108,6 +352,47 @@ const persistedHistoryEntry = z.object({
   action: z.string(),
   timestamp: z.number()
 });
+
+/**
+ * Where an image sits in the guided setup (PRD § 10.5). A document made before
+ * the flow existed carries no `setup` at all and opens as the editor, which is
+ * what `done` means — the stage is persisted, never inferred (D3).
+ */
+export const sketchSetupStage = z.enum([
+  "idea",
+  "useCase",
+  "review",
+  "look",
+  "done"
+]);
+export type SketchSetupStage = z.infer<typeof sketchSetupStage>;
+
+/**
+ * The brief after the language model expands it (PRD § 10.2). Five plain
+ * strings, each editable in the review step, because the creator has to be
+ * able to fix the model's reading of their sentence before anything is spent
+ * (D4).
+ */
+export const sketchRefinedBrief = z.object({
+  subject: z.string().default(""),
+  composition: z.string().default(""),
+  lighting: z.string().default(""),
+  style_words: z.string().default(""),
+  negative: z.string().default("")
+});
+export type SketchRefinedBrief = z.infer<typeof sketchRefinedBrief>;
+
+/** The image flow's state, carried on the document it produces (D19). */
+export const sketchSetup = z
+  .object({
+    stage: sketchSetupStage.default("done"),
+    brief: z.string().default(""),
+    use_case: z.string().optional(),
+    refined: sketchRefinedBrief.optional(),
+    variations: z.number().int().optional()
+  })
+  .passthrough();
+export type SketchSetup = z.infer<typeof sketchSetup>;
 
 export const sketchDocumentLike = z.object({
   version: z.number(),
@@ -134,7 +419,13 @@ export const sketchDocumentLike = z.object({
       createdAt: z.string(),
       updatedAt: z.string()
     })
-    .optional()
+    .optional(),
+  /**
+   * Guided-setup state. Absent on every document made before the image flow,
+   * and on every document that never went through it — such a document parses
+   * unchanged and opens as the editor.
+   */
+  setup: sketchSetup.optional()
 });
 
 // ── Image document data (persisted JSON) ───────────────────────────────────

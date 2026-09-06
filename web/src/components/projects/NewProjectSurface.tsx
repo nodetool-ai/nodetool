@@ -86,6 +86,17 @@ import { openPageTab } from "../workspace/openPageTab";
 import { OptionCardGrid } from "../setup/OptionCardGrid";
 import { ENTRY_CARDS } from "../setup/entryCards";
 import StoryboardSetupHost from "../setup/storyboard/StoryboardSetupHost";
+import VideoSetupHost from "../setup/video/VideoSetupHost";
+import ScriptSetupHost from "../setup/script/ScriptSetupHost";
+import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
+import { newVideoSetupDocument } from "../setup/video/useVideoSetupFlow";
+import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
+import { startImageFlow } from "../setup/image/startImageFlow";
+import { useCreateTimeline } from "../../hooks/useTimelineSequence";
+import { useCreateScript } from "../../hooks/script/useScripts";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { trpcClient } from "../../trpc/client";
+import { writeWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { clearProjectFirstTurn, stageProjectFirstTurn } from "./projectAgent";
 import { PROJECT_COLOR } from "./projectIdentity";
@@ -125,12 +136,28 @@ interface SubmenuAnchor {
   element: HTMLElement;
 }
 
-/** The board the Storyboard card created, which this tab then hosts. */
+/**
+ * The document an entry card created, which this tab then hosts.
+ *
+ * Discriminated because each flow lands somewhere different: a storyboard tab,
+ * a timeline, a script, a workflow canvas. Image is absent on purpose — its
+ * flow renders as an overlay on the sketch editor, so its card opens the
+ * editor straight away rather than hosting a step here.
+ */
 interface SetupTarget {
-  boardId: string;
+  kind: "storyboard" | "video" | "script" | "workflow";
+  id: string;
   projectId: string;
   name: string;
 }
+
+/** Which tab a finished flow opens. */
+const SETUP_TAB_TYPE = {
+  storyboard: "storyboard",
+  video: "timeline",
+  script: "script",
+  workflow: "workflow"
+} as const;
 
 
 const NewProjectSurface = () => {
@@ -164,6 +191,9 @@ const NewProjectSurface = () => {
   const summaries = useProjectSummaries();
   const createProject = useCreateProject();
   const createStoryboard = useCreateStoryboard();
+  const createTimeline = useCreateTimeline();
+  const createScript = useCreateScript();
+  const createWorkflow = useWorkflowManager((state) => state.create);
   const openProject = useOpenProject();
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
@@ -404,6 +434,20 @@ const NewProjectSurface = () => {
     starting
   ]);
 
+  /** One message for every card, so a failed create never dead-ends silently. */
+  const reportEntryFailure = useCallback(
+    (flow: string, error: unknown) => {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: `Could not start the ${flow}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      });
+    },
+    [addNotification]
+  );
+
   // The Storyboard entry card (PRD § 6.1, D2). Explicit: nothing typed in the
   // prompt box reaches the flow unless this card is clicked — a plain prompt
   // and a `/skill` prompt both keep going to the project agent through
@@ -428,27 +472,178 @@ const NewProjectSurface = () => {
         projectId: project.id,
         document: newStoryboardSetupDocument(text)
       });
-      setSetupTarget({ boardId: board.id, projectId: project.id, name });
-    } catch (error) {
-      addNotification({
-        type: "error",
-        alert: true,
-        content: `Could not start the storyboard: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+      setSetupTarget({
+        kind: "storyboard",
+        id: board.id,
+        projectId: project.id,
+        name
       });
+    } catch (error) {
+      reportEntryFailure("storyboard", error);
     } finally {
       setStarting(false);
     }
-  }, [addNotification, createProject, createStoryboard, prompt, starting]);
+  }, [createProject, createStoryboard, prompt, reportEntryFailure, starting]);
+
+
+  // The Video card. `timeline.create` takes no document, so the setup goes in
+  // as one PATCH straight after — the flow reads it off the loaded sequence.
+  const startVideoFlow = useCallback(async () => {
+    if (starting) {
+      return;
+    }
+    const text = prompt.trim();
+    const name =
+      text.length > 0 ? projectNameFromPrompt(text, null) : "New video";
+    setStarting(true);
+    try {
+      const project = await createProject.mutateAsync({
+        name,
+        kind: "timeline"
+      });
+      const sequence = await createTimeline.mutateAsync({
+        name,
+        projectId: project.id
+      });
+      await trpcClient.timeline.update.mutate({
+        id: sequence.id,
+        document: newVideoSetupDocument(text)
+      });
+      setSetupTarget({
+        kind: "video",
+        id: sequence.id,
+        projectId: project.id,
+        name
+      });
+    } catch (error) {
+      reportEntryFailure("video", error);
+    } finally {
+      setStarting(false);
+    }
+  }, [createProject, createTimeline, prompt, reportEntryFailure, starting]);
+
+  const startScriptFlow = useCallback(async () => {
+    if (starting) {
+      return;
+    }
+    const text = prompt.trim();
+    const name =
+      text.length > 0 ? projectNameFromPrompt(text, null) : "New script";
+    setStarting(true);
+    try {
+      const project = await createProject.mutateAsync({ name, kind: "script" });
+      const script = await createScript.mutateAsync({
+        name,
+        projectId: project.id,
+        document: newScriptSetupDocument(text)
+      });
+      setSetupTarget({
+        kind: "script",
+        id: script.id,
+        projectId: project.id,
+        name
+      });
+    } catch (error) {
+      reportEntryFailure("script", error);
+    } finally {
+      setStarting(false);
+    }
+  }, [createProject, createScript, prompt, reportEntryFailure, starting]);
+
+  // Image has no step host: its flow is an overlay the sketch editor renders,
+  // so the card opens the editor and the overlay resumes from the document's
+  // stage (PRD § 10.4).
+  const startImageProject = useCallback(async () => {
+    if (starting) {
+      return;
+    }
+    const text = prompt.trim();
+    const name =
+      text.length > 0 ? projectNameFromPrompt(text, null) : "New image";
+    setStarting(true);
+    try {
+      const project = await createProject.mutateAsync({ name, kind: "image" });
+      const started = await startImageFlow({
+        name,
+        projectId: project.id,
+        brief: text
+      });
+      openTab({
+        type: "sketch",
+        ref: started.documentId,
+        mode: "edit",
+        title: name,
+        projectId: project.id
+      });
+      closeTab(tabId("project-new", PROJECT_NEW_REF));
+    } catch (error) {
+      reportEntryFailure("image", error);
+    } finally {
+      setStarting(false);
+    }
+  }, [
+    closeTab,
+    createProject,
+    openTab,
+    prompt,
+    reportEntryFailure,
+    starting
+  ]);
+
+  const startWorkflowFlow = useCallback(async () => {
+    if (starting) {
+      return;
+    }
+    const text = prompt.trim();
+    const name =
+      text.length > 0 ? projectNameFromPrompt(text, null) : "New workflow";
+    setStarting(true);
+    try {
+      const project = await createProject.mutateAsync({
+        name,
+        kind: "workflow"
+      });
+      const created = await createWorkflow({
+        name,
+        description: "",
+        tags: [],
+        access: "private",
+        settings: writeWorkflowSetup({}, { stage: "idea", brief: text })
+      });
+      setSetupTarget({
+        kind: "workflow",
+        id: created.id,
+        projectId: project.id,
+        name
+      });
+    } catch (error) {
+      reportEntryFailure("workflow", error);
+    } finally {
+      setStarting(false);
+    }
+  }, [createProject, createWorkflow, prompt, reportEntryFailure, starting]);
 
   const handleEntryCard = useCallback(
     (id: string) => {
       if (id === "storyboard") {
         void startStoryboardFlow();
+      } else if (id === "video") {
+        void startVideoFlow();
+      } else if (id === "script") {
+        void startScriptFlow();
+      } else if (id === "image") {
+        void startImageProject();
+      } else if (id === "workflow") {
+        void startWorkflowFlow();
       }
     },
-    [startStoryboardFlow]
+    [
+      startImageProject,
+      startScriptFlow,
+      startStoryboardFlow,
+      startVideoFlow,
+      startWorkflowFlow
+    ]
   );
 
   // The flow's last step wrote stage `done`: hand the finished board its own
@@ -458,8 +653,8 @@ const NewProjectSurface = () => {
       return;
     }
     openTab({
-      type: "storyboard",
-      ref: setupTarget.boardId,
+      type: SETUP_TAB_TYPE[setupTarget.kind],
+      ref: setupTarget.id,
       mode: "edit",
       title: setupTarget.name,
       projectId: setupTarget.projectId
@@ -515,9 +710,34 @@ const NewProjectSurface = () => {
 
   // An entry card was clicked: this tab is the flow now (PRD § 6.1).
   if (setupTarget) {
+    if (setupTarget.kind === "video") {
+      return (
+        <VideoSetupHost
+          sequenceId={setupTarget.id}
+          onFinish={handleSetupFinished}
+        />
+      );
+    }
+    if (setupTarget.kind === "script") {
+      return (
+        <ScriptSetupHost
+          scriptId={setupTarget.id}
+          onFinish={handleSetupFinished}
+        />
+      );
+    }
+    if (setupTarget.kind === "workflow") {
+      return (
+        <WorkflowSetupHost
+          workflowId={setupTarget.id}
+          onOpenExamples={() => openPageTab("examples")}
+          onFinish={handleSetupFinished}
+        />
+      );
+    }
     return (
       <StoryboardSetupHost
-        boardId={setupTarget.boardId}
+        boardId={setupTarget.id}
         onFinish={handleSetupFinished}
       />
     );

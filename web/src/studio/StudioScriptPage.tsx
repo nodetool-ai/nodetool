@@ -31,6 +31,11 @@ import { useScriptServerSync } from "../hooks/script/useScriptServerSync";
 import { useDocumentUndoShortcuts } from "../hooks/useDocumentUndoShortcuts";
 import { useScriptAgentBridge } from "../hooks/script/useScriptAgentBridge";
 import { useAssembleScriptTimeline } from "../hooks/script/useAssembleScriptTimeline";
+import { SetupFlow } from "../components/setup/SetupFlow";
+import {
+  useScriptSetupFlow,
+  useScriptSetupStage
+} from "../components/setup/script/useScriptSetupFlow";
 import StudioShell from "./StudioShell";
 
 type DockTab = "cast" | "assistant";
@@ -62,6 +67,12 @@ const StudioScriptPage = () => {
 
   const { assemble, assembling, error: assembleError } =
     useAssembleScriptTimeline();
+
+  // A script still in setup renders the flow inside the Studio chrome, at the
+  // stage the document carries (PRD § 6.4). A script with no stage reads
+  // `done` and opens as the editor (D3).
+  const setupStage = useScriptSetupStage(scriptId);
+  const setupConfig = useScriptSetupFlow({ scriptId });
 
   const dockTabs = useMemo(
     () => [
@@ -99,6 +110,14 @@ const StudioScriptPage = () => {
       </span>
     </Tooltip>
   );
+
+  if (setupStage !== "done") {
+    return (
+      <StudioShell title={title || "Untitled script"}>
+        <SetupFlow config={setupConfig} />
+      </StudioShell>
+    );
+  }
 
   return (
     <StudioShell title={title || "Untitled script"} actions={createVideo}>

@@ -19,6 +19,10 @@ import type { TimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { makeClipVersion } from "@nodetool-ai/timeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import { deriveIdleClipStatus } from "./useGenerateClip";
+import {
+  durationBucketKey,
+  useDirectGenPendingStore
+} from "./directGenPending";
 
 interface DirectGenRpcResponse extends WebSocketMessage {
   type: "rpc_response";
@@ -49,6 +53,133 @@ const clearInFlight = (clipId: string): void => {
 
 function fail(timeline: TimelineStoreApi, clipId: string): void {
   timeline.getState().patchClip(clipId, { status: "failed" });
+}
+
+/**
+ * Subscribe to one request's reply and write the result onto the clip.
+ *
+ * Extracted from `start` because reattachment on open needs exactly this and
+ * nothing else: a reload has the request id from the persisted list but no
+ * closure to resume, and a second copy of the settle logic would be a second
+ * place for "locked clips keep their asset" to be got wrong.
+ */
+export function subscribeDirectGen(
+  timeline: TimelineStoreApi,
+  clipId: string,
+  requestId: string
+): () => void {
+  clearInFlight(clipId);
+  let unsubscribe: (() => void) | undefined;
+  const cleanup = () => {
+    if (unsubscribe) {
+      unsubscribe();
+      unsubscribe = undefined;
+    }
+    inFlight.delete(clipId);
+  };
+
+  const settle = (msg: DirectGenRpcResponse) => {
+    cleanup();
+    const sequenceId = timeline.getState().sequenceId;
+    const store = timeline.getState();
+    if (msg.error) {
+      if (sequenceId) {
+        useDirectGenPendingStore.getState().settle(sequenceId, clipId);
+      }
+      store.patchClip(clipId, { status: "failed" });
+      return;
+    }
+    const assetIds = Array.isArray(msg.result?.asset_ids)
+      ? (msg.result!.asset_ids as unknown[]).filter(
+          (v): v is string => typeof v === "string"
+        )
+      : [];
+    const first = assetIds[0];
+    if (!first) {
+      if (sequenceId) {
+        useDirectGenPendingStore.getState().settle(sequenceId, clipId);
+      }
+      store.patchClip(clipId, { status: "failed" });
+      return;
+    }
+
+    const current = store.clips.find((c) => c.id === clipId);
+    if (!current) return;
+    if (sequenceId) {
+      // Only a request that produced an asset files a duration: a refusal
+      // measures the provider's error path, not its render time (D14).
+      useDirectGenPendingStore
+        .getState()
+        .settle(sequenceId, clipId, Date.now());
+    }
+    // Locked clips don't get their currentAssetId replaced — but the version
+    // is still recorded so the user can restore it later.
+    const patch: Partial<TimelineClip> = {
+      status: "generated",
+      versions: [
+        ...(current.versions ?? []),
+        makeClipVersion({
+          jobId: requestId,
+          assetId: first,
+          workflowUpdatedAt: new Date().toISOString(),
+          dependencyHash: "",
+          paramOverridesSnapshot: {
+            prompt: current.prompt,
+            provider: current.provider,
+            model: current.model,
+            strength: current.strength,
+            numInferenceSteps: current.numInferenceSteps,
+            width: current.width,
+            height: current.height,
+            voice: current.voice,
+            aspectRatio: current.aspectRatio,
+            resolution: current.resolution,
+            negativePrompt: current.negativePrompt
+          }
+        })
+      ]
+    };
+    if (!current.locked) {
+      patch.currentAssetId = first;
+      // Reset trim window — a fresh roll is a fresh source.
+      patch.inPointMs = undefined;
+      patch.outPointMs = undefined;
+    }
+    store.patchClip(clipId, patch);
+  };
+
+  unsubscribe = globalWebSocketManager.subscribe(requestId, (msg) => {
+    if (msg.type !== "rpc_response") return;
+    settle(msg as DirectGenRpcResponse);
+  });
+  inFlight.set(clipId, cleanup);
+  return cleanup;
+}
+
+/**
+ * Re-subscribe to the requests this sequence had in flight when it was closed
+ * (criterion 6). Clips the sequence no longer has, and entries too old to be
+ * answered, are dropped rather than re-subscribed.
+ */
+export async function reattachSequenceJobs(
+  timeline: TimelineStoreApi,
+  sequenceId: string
+): Promise<void> {
+  const restored = useDirectGenPendingStore.getState().restore(sequenceId);
+  if (restored.length === 0) {
+    return;
+  }
+  await globalWebSocketManager.ensureConnection();
+  const clips = timeline.getState().clips;
+  for (const job of restored) {
+    const clip = clips.find((candidate) => candidate.id === job.clipId);
+    if (!clip) {
+      useDirectGenPendingStore.getState().settle(sequenceId, job.clipId);
+      continue;
+    }
+    timeline.getState().patchClip(job.clipId, { status: "generating" });
+    subscribeDirectGen(timeline, job.clipId, job.requestId);
+  }
 }
 
 /**
@@ -110,82 +241,20 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         sourceAssetId = sourceClip.currentAssetId;
       }
 
-      // Tear down any stale subscription from a prior run on the same clip.
-      clearInFlight(clipId);
-
       const requestId = crypto.randomUUID();
       timeline.getState().patchClip(clipId, { status: "generating" });
-
-      let unsubscribe: (() => void) | undefined;
-      const cleanup = () => {
-        if (unsubscribe) {
-          unsubscribe();
-          unsubscribe = undefined;
-        }
-        inFlight.delete(clipId);
-      };
-
-      const settle = (msg: DirectGenRpcResponse) => {
-        cleanup();
-        const store = timeline.getState();
-        if (msg.error) {
-          store.patchClip(clipId, { status: "failed" });
-          return;
-        }
-        const assetIds = Array.isArray(msg.result?.asset_ids)
-          ? (msg.result!.asset_ids as unknown[]).filter(
-              (v): v is string => typeof v === "string"
-            )
-          : [];
-        const first = assetIds[0];
-        if (!first) {
-          store.patchClip(clipId, { status: "failed" });
-          return;
-        }
-
-        const current = store.clips.find((c) => c.id === clipId);
-        if (!current) return;
-        // Locked clips don't get their currentAssetId replaced — but the
-        // version is still recorded so the user can restore it later.
-        const patch: Partial<TimelineClip> = {
-          status: "generated",
-          versions: [
-            ...(current.versions ?? []),
-            makeClipVersion({
-              jobId: requestId,
-              assetId: first,
-              workflowUpdatedAt: new Date().toISOString(),
-              dependencyHash: "",
-              paramOverridesSnapshot: {
-                prompt: current.prompt,
-                provider: current.provider,
-                model: current.model,
-                strength: current.strength,
-                numInferenceSteps: current.numInferenceSteps,
-                width: current.width,
-                height: current.height,
-                voice: current.voice,
-                aspectRatio: current.aspectRatio,
-                resolution: current.resolution,
-                negativePrompt: current.negativePrompt
-              }
-            })
-          ]
-        };
-        if (!current.locked) {
-          patch.currentAssetId = first;
-          // Reset trim window — a fresh roll is a fresh source.
-          patch.inPointMs = undefined;
-          patch.outPointMs = undefined;
-        }
-        store.patchClip(clipId, patch);
-      };
-
-      unsubscribe = globalWebSocketManager.subscribe(requestId, (msg) => {
-        if (msg.type !== "rpc_response") return;
-        settle(msg as DirectGenRpcResponse);
-      });
-      inFlight.set(clipId, cleanup);
+      const cleanup = subscribeDirectGen(timeline, clipId, requestId);
+      const sequenceId = timeline.getState().sequenceId;
+      if (sequenceId) {
+        // Recorded before the send, so a reply that arrives after the tab is
+        // closed still has an entry to be reattached through.
+        useDirectGenPendingStore.getState().remember(sequenceId, {
+          clipId,
+          requestId,
+          startedAt: Date.now(),
+          bucket: durationBucketKey(kind, clip.model)
+        });
+      }
 
       // Image and video models take aspect ratio / resolution natively; pass
       // them through when set. Video additionally derives its requested duration
@@ -229,6 +298,10 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         });
       } catch {
         cleanup();
+        const openSequence = timeline.getState().sequenceId;
+        if (openSequence) {
+          useDirectGenPendingStore.getState().settle(openSequence, clipId);
+        }
         fail(timeline, clipId);
         return null;
       }
@@ -241,6 +314,10 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
   const cancel = useCallback(
     (clipId: string) => {
       clearInFlight(clipId);
+      const sequenceId = timeline.getState().sequenceId;
+      if (sequenceId) {
+        useDirectGenPendingStore.getState().settle(sequenceId, clipId);
+      }
       // Settle back to whatever idle status the clip's fields warrant — a
       // generated/stale clip should not regress to "Draft" just because the
       // user cancelled a re-roll. `deriveIdleClipStatus` produces draft only

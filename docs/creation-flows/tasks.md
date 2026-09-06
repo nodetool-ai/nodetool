@@ -306,33 +306,33 @@ of each other. Inside a phase, tasks are listed in dependency order.
 
 ## P7 — Script flow
 
-- [ ] **Protocol.** Optional `setup` on `scriptDocument` in
+- [x] **Protocol.** Optional `setup` on `scriptDocument` in
       `packages/protocol/src/api-schemas/scripts.ts` per PRD § 9.5.
-- [ ] **Format cards.** Five formats with cast shape and section layout, plus
+- [x] **Format cards.** Five formats with cast shape and section layout, plus
       the length row.
-- [ ] **Writer.** `writeScript` in `web/src/hooks/script/useWriteScript.ts`:
+- [x] **Writer.** `writeScript` in `web/src/hooks/script/useWriteScript.ts`:
       `generate_text` with a structured script schema, imported text kept
       verbatim and only split and attributed, applied through the existing
       store, stage `review`. `Rewrite` keeps retained line ids. Tests:
       criteria 3 and 4.
-- [ ] **`parseSrt`.** Pure, SRT and VTT to lines with target durations and a
+- [x] **`parseSrt`.** Pure, SRT and VTT to lines with target durations and a
       `Narrator` speaker, in `web/src/lib/script/parseSrt.ts`. Fixture test.
-- [ ] **Step 1 alternatives.** Paste or upload through the P5 route and
+- [x] **Step 1 alternatives.** Paste or upload through the P5 route and
       `parseFdx`, subtitles through `parseSrt`, blank sets `done`.
-- [ ] **Review.** `PlanReview` over speaker, line, direction; edits through
+- [x] **Review.** `PlanReview` over speaker, line, direction; edits through
       `ui_script_set_line_text` and `ui_script_set_speaker`; word count and
       spoken-length estimate at the flow's pace.
-- [ ] **Voices step.** One `PresetTileGrid` row per speaker, a tile plays the
+- [x] **Voices step.** One `PresetTileGrid` row per speaker, a tile plays the
       speaker's first line in that voice (one TTS call per tile on demand,
       cached per session), language and pace selects, cost from
       `useVoiceCostEstimate`. `Voice your script` binds voices, runs
       `ui_script_voice_all`, stage `done`, opens the editor. Test: one voice
       per speaker, every line voiced once (criterion 5).
-- [ ] **Tools.** `ui_script_set_setup`, `ui_script_write` in
+- [x] **Tools.** `ui_script_set_setup`, `ui_script_write` in
       `web/src/lib/tools/builtin/script.ts`, headless mirrors in
       `packages/agents/src/capabilities/scripts.ts`, capability table rows,
       eval case in `packages/agents/src/evals/surfaces/script.ts`.
-- [ ] **Entry.** Enable the Script card on both hosts; resume by stage in the
+- [x] **Entry.** Enable the Script card on both hosts; resume by stage in the
       script surfaces; next-steps strip `Create storyboard`, `Send to
       timeline`.
 
