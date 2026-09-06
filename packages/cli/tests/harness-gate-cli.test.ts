@@ -13,6 +13,29 @@ import {
 } from "../src/harness/changed-files.js";
 
 describe("parsePorcelainLine", () => {
+  it("unquotes a path git wrapped for its space", () => {
+    // Every shipped example workflow has a space in its name, so porcelain
+    // quotes it and an unquoted parse maps it to no surface at all.
+    expect(
+      parsePorcelainLine(
+        '?? "packages/base-nodes/nodetool/examples/nodetool-base/Three Ratios.json"'
+      )
+    ).toBe(
+      "packages/base-nodes/nodetool/examples/nodetool-base/Three Ratios.json"
+    );
+  });
+
+  it("unescapes an embedded quote and backslash", () => {
+    expect(parsePorcelainLine('?? "a b/c\\"d\\".ts"')).toBe('a b/c"d".ts');
+  });
+
+  it("leaves an unquoted path alone", () => {
+    expect(parsePorcelainLine(" M packages/cli/src/a.ts")).toBe(
+      "packages/cli/src/a.ts"
+    );
+  });
+
+
   it("parses an ordinary modified line", () => {
     expect(parsePorcelainLine(" M packages/cli/src/commands/harness.ts")).toBe(
       "packages/cli/src/commands/harness.ts"

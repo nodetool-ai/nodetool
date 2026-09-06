@@ -8,7 +8,13 @@
  * or the harness proves nothing about the server.
  */
 
-import { Asset, Storyboard, entityFromAsset } from "@nodetool-ai/models";
+import {
+  Asset,
+  Script,
+  Storyboard,
+  TimelineSequence,
+  entityFromAsset
+} from "@nodetool-ai/models";
 import {
   ENTITY_METADATA_KEY,
   isRecord,
@@ -228,8 +234,101 @@ export function gameTemplateModelInterfaces(): Pick<
 }
 
 /** All three groups, for a host installing the whole document surface. */
+/**
+ * Scripts and timeline sequences, owner-scoped with CAS updates.
+ *
+ * These live here rather than beside the server session because the CLI
+ * installs this module: without them `nodetool debug` cannot run a single
+ * `nodetool.script.*` or `nodetool.timeline.*` node, which is most of what the
+ * graph-resource fixtures do.
+ */
+export function scriptModelInterfaces(): Pick<
+  ProcessingContextModelInterfaces,
+  | "getTimelineSequence"
+  | "createTimelineSequence"
+  | "updateTimelineSequence"
+  | "getScript"
+  | "createScript"
+  | "updateScript"
+> {
+  return {
+    getTimelineSequence: async ({ userId, id }) => {
+      const seq = await TimelineSequence.findById(id);
+      if (!seq || seq.user_id !== userId) return null;
+      return seq.toTimelineSequence();
+    },
+    createTimelineSequence: async ({ userId, sequence }) => {
+      const seq = TimelineSequence.fromTimelineSequence(
+        userId,
+        sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
+      );
+      await seq.save();
+      return seq.toTimelineSequence();
+    },
+    updateTimelineSequence: async ({ userId, id, sequence }) => {
+      const existing = await TimelineSequence.findById(id);
+      if (!existing || existing.user_id !== userId) return null;
+      const next = TimelineSequence.fromTimelineSequence(
+        userId,
+        sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
+      );
+      const updated = await TimelineSequence.updateFieldsIfUnchanged(
+        id,
+        next.updated_at,
+        {
+          name: next.name,
+          fps: next.fps,
+          width: next.width,
+          height: next.height,
+          duration_ms: next.duration_ms,
+          document: next.document
+        }
+      );
+      return updated ? updated.toTimelineSequence() : null;
+    },
+    getScript: async ({ userId, id }) => {
+      const script = await Script.findById(id);
+      if (!script || script.user_id !== userId) return null;
+      return script.toResponse();
+    },
+    createScript: async ({ userId, name, projectId, document }) => {
+      const script = new Script({
+        user_id: userId,
+        name: name ?? "Untitled script",
+        project_id: projectId ?? "default",
+        document: JSON.stringify(document)
+      });
+      await script.save();
+      return script.toResponse();
+    },
+    updateScript: async ({
+      userId,
+      id,
+      document,
+      timelineId,
+      baseUpdatedAt
+    }) => {
+      const existing = await Script.findById(id);
+      if (!existing || existing.user_id !== userId) return null;
+      const fields: Partial<{
+        document: string;
+        timeline_id: string | null;
+      }> = {};
+      if (document !== undefined) fields.document = JSON.stringify(document);
+      if (timelineId !== undefined) fields.timeline_id = timelineId;
+      const updated = await Script.updateFieldsIfUnchanged(
+        id,
+        baseUpdatedAt ?? existing.updated_at,
+        fields
+      );
+      return updated ? updated.toResponse() : null;
+    }
+  };
+}
+
 export function documentModelInterfaces(): ProcessingContextModelInterfaces {
   return {
+    ...scriptModelInterfaces(),
     ...storyboardModelInterfaces(),
     ...entityModelInterfaces(),
     ...gameTemplateModelInterfaces()
