@@ -3,7 +3,11 @@ import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
   getHfToken,
   hfPipelineJson,
+  jsonArray,
+  jsonObject,
+  jsonString,
   refToBase64,
+  type HfJsonValue,
   type MediaRef
 } from "../huggingface-base.js";
 
@@ -32,7 +36,7 @@ function asrBody(inputs: string, returnTimestamps: boolean): AsrBody {
 /** Output handles AutomaticSpeechRecognitionNode.process() emits. */
 type AutomaticSpeechRecognitionNodeOutputs = {
   output: string;
-  chunks: { text?: string; timestamp?: number[] }[];
+  chunks: HfJsonValue[];
 };
 
 export class AutomaticSpeechRecognitionNode extends BaseNode {
@@ -85,18 +89,17 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     const base64 = await refToBase64(audio, context);
     const returnTimestamps = Boolean(this.return_timestamps ?? false);
 
-    const result = await hfPipelineJson<{
-      text?: string;
-      chunks?: Array<{ text?: string; timestamp?: number[] }>;
-    }>(
-      token,
-      String(this.model ?? "openai/whisper-large-v3"),
-      asrBody(base64, returnTimestamps)
+    const result = jsonObject(
+      await hfPipelineJson(
+        token,
+        String(this.model ?? "openai/whisper-large-v3"),
+        asrBody(base64, returnTimestamps)
+      )
     );
 
     return {
-      output: String(result?.text ?? ""),
-      chunks: result?.chunks ?? []
+      output: jsonString(result["text"]),
+      chunks: jsonArray(result["chunks"])
     };
   }
 }
@@ -104,7 +107,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
 /** Output handles AudioClassificationNode.process() emits. */
 type AudioClassificationNodeOutputs = {
   output: string;
-  scores: { label?: string; score?: number }[];
+  scores: HfJsonValue[];
 };
 
 export class AudioClassificationNode extends BaseNode {
@@ -157,15 +160,17 @@ export class AudioClassificationNode extends BaseNode {
     }
 
     const base64 = await refToBase64(audio, context);
-    const result = await hfPipelineJson<
-      Array<{ label?: string; score?: number }>
-    >(token, String(this.model ?? "superb/hubert-base-superb-er"), {
-      inputs: base64,
-      parameters: { top_k: Number(this.top_k ?? 5) }
-    });
+    const result = await hfPipelineJson(
+      token,
+      String(this.model ?? "superb/hubert-base-superb-er"),
+      {
+        inputs: base64,
+        parameters: { top_k: Number(this.top_k ?? 5) }
+      }
+    );
 
-    const scores = Array.isArray(result) ? result : [];
-    return { output: String(scores[0]?.label ?? ""), scores };
+    const scores = jsonArray(result);
+    return { output: jsonString(jsonObject(scores[0])["label"]), scores };
   }
 }
 
