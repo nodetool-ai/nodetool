@@ -1933,6 +1933,16 @@ const deriveStoryboardFromScript: CapabilityExport = {
  * and every line's words come from the split — so an agent handed a user's own
  * script cannot quietly improve it (PRD § 9.7 criterion 4).
  */
+/**
+ * Ids for one written script. `Date.now()` alone is not enough: two writes
+ * inside the same millisecond mint the same prefix, so a rewrite's new line can
+ * be handed the id of a line that rewrite dropped — and with it that line's
+ * takes, which are paid-for audio of different words.
+ */
+let writeSequence = 0;
+const nextIdPrefix = (): string =>
+  `w${Date.now().toString(36)}${(writeSequence++).toString(36)}`;
+
 const writeScript: CapabilityExport = {
   spec: writeScriptSpec,
   impl: async (run, params) => {
@@ -1983,7 +1993,7 @@ const writeScript: CapabilityExport = {
 
     const format = setup?.format ?? "";
     const sectionTitle = scriptFormatById(format)?.sections[0] ?? "Script";
-    const idPrefix = `w${Date.now().toString(36)}`;
+    const idPrefix = nextIdPrefix();
     const heldLineIds = doc.sections.flatMap((section) =>
       section.lines.map((line) => line.id)
     );

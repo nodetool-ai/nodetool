@@ -189,6 +189,42 @@ describe("writeScript", () => {
     expect(scriptNow().cast.map((speaker) => speaker.name)).toEqual(["Narrator"]);
   });
 
+  // CI caught this and an isolated run did not: the id prefix came from
+  // `Date.now()` alone, so two writes inside one millisecond minted the same
+  // ids and a rewrite's new line inherited the takes of the line it replaced —
+  // audio of words nobody wrote. Freezing the clock makes the fast runner's
+  // accident deterministic.
+  it("gives a rewrite its own line ids even within one millisecond", async () => {
+    const frozen = jest
+      .spyOn(Date, "now")
+      .mockReturnValue(new Date("2026-01-01T00:00:00.000Z").getTime());
+    try {
+      const { result } = renderHook(() => useWriteScript());
+
+      rpcRequest.mockResolvedValue(writerAnswer);
+      await act(async () => {
+        expect(await result.current.write(SCRIPT)).toBe(true);
+      });
+      const first = linesNow().map((line) => line.id);
+      expect(first).toHaveLength(2);
+
+      await act(async () => {
+        expect(await result.current.write(SCRIPT, { rewrite: true })).toBe(
+          true
+        );
+      });
+      const second = linesNow().map((line) => line.id);
+
+      // The rewrite returns lines with no ids, so every one is new. None may
+      // reuse an id from the pass before it.
+      for (const id of second) {
+        expect(first).not.toContain(id);
+      }
+    } finally {
+      frozen.mockRestore();
+    }
+  });
+
   it("keeps the takes of a line a rewrite retained", async () => {
     rpcRequest.mockResolvedValue(writerAnswer);
     const { result } = renderHook(() => useWriteScript());

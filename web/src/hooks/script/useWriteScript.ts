@@ -128,6 +128,17 @@ export interface UseWriteScriptResult {
   error: string | null;
 }
 
+/**
+ * Ids for one write. `Date.now()` alone is not enough: two writes inside the
+ * same millisecond mint the same prefix, so a rewrite's new line can be handed
+ * the id of a line that rewrite dropped — and with the id, that line's takes,
+ * which are paid-for audio of different words. The counter is what makes each
+ * write's ids its own, the way `ScriptStore`'s own id helper does it.
+ */
+let writeSequence = 0;
+const nextIdPrefix = (): string =>
+  `w${Date.now().toString(36)}${(writeSequence++).toString(36)}`;
+
 export const useWriteScript = (): UseWriteScriptResult => {
   const [writing, setWriting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -163,7 +174,7 @@ export const useWriteScript = (): UseWriteScriptResult => {
       const pace = (setup?.pace ?? "normal") as ScriptPaceId;
       const lengthSeconds = setup?.length_seconds ?? DEFAULT_SCRIPT_SECONDS;
       const sectionTitle = scriptFormatById(format)?.sections[0] ?? "Script";
-      const idPrefix = `w${Date.now().toString(36)}`;
+      const idPrefix = nextIdPrefix();
       const heldLineIds = lineIdsOf(script);
 
       setError(null);
