@@ -441,4 +441,106 @@ describe("nodetool.game.SeamlessImage", () => {
   });
 });
 
+describe("a connected game_slot input", () => {
+  const player = slot("player");
+  const ground = slot("tiles.ground");
+  const bg = slot("bg.far");
+
+  it("beats stale hand-typed values on SpriteSheet", async () => {
+    const image = await makeImage(256, 64, noise);
+    const result = await runNode(".SpriteSheet", {
+      image,
+      slot: player,
+      // Everything below is left over from a different slot and must lose.
+      cell_width: 16,
+      cell_height: 16,
+      animations: { walk: 6, die: 4 },
+      fps: 24,
+      slot_id: "enemy.walker"
+    });
+    const fill = result.fill as SpritesheetFill;
+    expect(fill.slot_id).toBe("player");
+    expect(fill.cell).toEqual([32, 32]);
+    expect(fill.columns).toBe(8);
+    expect(fill.rows).toBe(2);
+    expect(Object.keys(fill.animations)).toEqual(["idle", "run", "jump", "hurt"]);
+    expect(fill.animations.idle.fps).toBe(8);
+    expect(checkSlotFill(player, fill)).toEqual([]);
+  });
+
+  it("beats stale hand-typed values on Tileset", async () => {
+    const image = await makeImage(64, 48, noise);
+    const result = await runNode(".Tileset", {
+      image,
+      slot: ground,
+      cell_width: 32,
+      cell_height: 32,
+      count: 4,
+      slot_id: "player"
+    });
+    const fill = result.fill as TilesetFill;
+    expect(fill.slot_id).toBe("tiles.ground");
+    expect(fill.cell).toEqual([16, 16]);
+    expect(fill.count).toBe(12);
+    expect(checkSlotFill(ground, fill)).toEqual([]);
+  });
+
+  it("beats stale hand-typed values on SeamlessImage", async () => {
+    // Seamless on x: column 0 and the last column match.
+    const image = await makeImage(64, 32, (x, y) =>
+      x === 63 ? [0, y, 0] : [0, y, 0]
+    );
+    const result = await runNode(".SeamlessImage", {
+      image,
+      slot: bg,
+      check_x: false,
+      check_y: true,
+      slot_id: "title"
+    });
+    const fill = result.fill as ImageFill;
+    expect(fill.slot_id).toBe("bg.far");
+    expect(fill.seamless_x).toBe(true);
+    // check_y was true by hand and false on the slot, so it never ran.
+    expect(fill.seamless_y).toBe(false);
+  });
+
+  it("leaves the hand-typed values alone when nothing is wired", async () => {
+    const image = await makeImage(64, 48, noise);
+    for (const slotValue of [undefined, null, {}, ""]) {
+      const result = await runNode(".Tileset", {
+        image,
+        slot: slotValue,
+        cell_width: 16,
+        cell_height: 16,
+        count: 12,
+        slot_id: "tiles.ground"
+      });
+      expect((result.fill as TilesetFill).slot_id, String(slotValue)).toBe(
+        "tiles.ground"
+      );
+    }
+  });
+
+  it("refuses a slot of the wrong kind rather than ignoring it", async () => {
+    const image = await makeImage(64, 48, noise);
+    await expect(
+      runNode(".Tileset", { image, slot: player })
+    ).rejects.toThrow(/player is a spritesheet slot, not a tileset slot/);
+  });
+
+  it("refuses a malformed slot rather than falling back", async () => {
+    const image = await makeImage(64, 48, noise);
+    await expect(
+      runNode(".Tileset", {
+        image,
+        slot: { id: "tiles.ground", kind: "tileset", cell: [16, 16] },
+        cell_width: 16,
+        cell_height: 16,
+        count: 12,
+        slot_id: "tiles.ground"
+      })
+    ).rejects.toThrow(/not a game slot spec/);
+  });
+});
+
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);

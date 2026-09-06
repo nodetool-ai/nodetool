@@ -62,6 +62,7 @@
     "packages/audio-nodes",
     "packages/video-nodes",
     "packages/blender-nodes",
+    "packages/game-nodes",
     "packages/integration-nodes",
     "packages/code-nodes",
     "packages/automation-nodes",

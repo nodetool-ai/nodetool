@@ -34,6 +34,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/deploy` | Cloud deployment utilities |
 | `@nodetool-ai/dsl` | Workflow DSL for programmatic workflow creation |
 | `@nodetool-ai/storyboard` | Storyboard derivations — `recastStoryboard`, `planShotRenders`, and the one render path under `io/` |
+| `@nodetool-ai/game-nodes` | Godot template nodes — read a template's asset slots, prompt one, export the filled project |
 | `@nodetool-ai/app-runtime` | Mini-app document, bindings, instance state, and the streaming fold — dependency-free, shared by web, mobile, and `app debug` ([README](app-runtime/README.md)) |
 
 ## Package Overlays
@@ -49,6 +50,7 @@ first, then the overlay for the package you are touching.
 - [`blender-nodes`](blender-nodes/AGENTS.md) — headless Blender render and mesh preparation
 - [`data-nodes`](data-nodes/AGENTS.md) — dataframes, filtering, feeds & charts
 - [`fal-codegen`](fal-codegen/AGENTS.md) — FAL manifest generator
+- [`game-nodes`](game-nodes/AGENTS.md) — Godot templates, slot prompts, project export
 - [`fal-nodes`](fal-nodes/AGENTS.md) — FAL node factory
 - [`image-nodes`](image-nodes/AGENTS.md) — image processing & shaders
 - [`kie-codegen`](kie-codegen/AGENTS.md) — KIE config & manifest generator

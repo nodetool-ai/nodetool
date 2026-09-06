@@ -345,6 +345,12 @@ export {
   GAME_NODES as GAME_AUDIO_NODES
 } from "@nodetool-ai/audio-nodes/nodes/game";
 export {
+  LoadGameTemplateNode,
+  SlotPromptNode,
+  ExportGodotProjectNode,
+  GAME_TEMPLATE_NODES
+} from "@nodetool-ai/game-nodes";
+export {
   DocumentLibNode,
   SVGToImageLibNode,
   LIB_SVG_NODES
@@ -472,6 +478,7 @@ import { LIB_YTDLP_NODES } from "@nodetool-ai/video-nodes/nodes/lib-video-downlo
 import { LIB_GRID_NODES } from "@nodetool-ai/image-nodes/nodes/lib-grid";
 import { GAME_NODES as GAME_IMAGE_NODES } from "@nodetool-ai/image-nodes/nodes/game";
 import { GAME_NODES as GAME_AUDIO_NODES } from "@nodetool-ai/audio-nodes/nodes/game";
+import { GAME_TEMPLATE_NODES } from "@nodetool-ai/game-nodes";
 import { LIB_SVG_NODES } from "@nodetool-ai/text-nodes/nodes/lib-svg";
 import { LIB_IMAGE_ENHANCE_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-enhance";
 import { LIB_IMAGE_FILTER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-filter";
@@ -537,6 +544,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_GRID_NODES,
   ...GAME_IMAGE_NODES,
   ...GAME_AUDIO_NODES,
+  ...GAME_TEMPLATE_NODES,
   ...LIB_SVG_NODES,
   ...LIB_IMAGE_ENHANCE_NODES,
   ...LIB_IMAGE_FILTER_NODES,
