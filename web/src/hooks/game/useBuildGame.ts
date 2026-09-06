@@ -30,6 +30,10 @@ import type { GameDesign } from "@nodetool-ai/protocol/api-schemas/workflows.js"
 import { FrontendToolRegistry } from "../../lib/tools/frontendTools";
 import { getFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
 import useMetadataStore from "../../stores/MetadataStore";
+import {
+  GAME_BUILD_KEY,
+  gameBuildRecord
+} from "../../components/setup/game/gameExtras";
 import { useGameSetupWriter } from "./useGameSetup";
 
 /** What the landing checklist reads (game-prd § 4.4). */
@@ -161,6 +165,11 @@ export const useBuildGame = (workflowId: string): UseBuildGameResult => {
           validationErrors,
           run
         };
+        // The landing checklist outlives this hook: the flow's surface is gone
+        // the moment the canvas opens, and a creator who reloads still has to
+        // see what the build came out as. `settings.game` is a passthrough bag,
+        // so the record travels with the workflow.
+        await setGame({ [GAME_BUILD_KEY]: gameBuildRecord(built) });
         setResult(built);
         return built;
       } finally {

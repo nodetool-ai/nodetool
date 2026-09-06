@@ -28,6 +28,7 @@ import type {
   GameSetupStage
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
+import useCanvasChatDockStore from "../../../stores/CanvasChatDockStore";
 import { useEntities } from "../../../serverState/useEntities";
 import {
   useGameSetupDocument,
@@ -191,6 +192,16 @@ export const useGameSetupFlow = ({
     templateId !== undefined &&
     setup?.design_source === designSourceOf(templateId, brief.trim());
 
+  /**
+   * The landing is the node editor's agent panel with the checklist at the top
+   * of it (game-prd § 4.4), and that panel starts collapsed. Opening it is the
+   * counterpart of the host opening the canvas tab: a creator who just spent
+   * money should land on what it produced, not on a closed dock.
+   */
+  const openLandingPanel = useCallback(() => {
+    useCanvasChatDockStore.getState().setConversationCollapsed(false);
+  }, []);
+
   const onStageChange = useCallback(
     (next: GameSetupStage) => {
       void setGame({ stage: next });
@@ -277,12 +288,13 @@ export const useGameSetupFlow = ({
             verify: true
           }
         });
+        openLandingPanel();
         onFinish?.(built);
       } finally {
         setExportingBlank(false);
       }
     },
-    [buildGame, onFinish, projectName, setGame, templates]
+    [buildGame, onFinish, openLandingPanel, projectName, setGame, templates]
   );
 
   const missingDesignField = useMemo(
@@ -518,6 +530,7 @@ export const useGameSetupFlow = ({
             design,
             choices: buildChoices(projectName)
           });
+          openLandingPanel();
           onFinish?.(built);
         }
       }
@@ -542,6 +555,7 @@ export const useGameSetupFlow = ({
       musicChoices,
       onFinish,
       onOpenTutorial,
+      openLandingPanel,
       pinned,
       presets,
       projectName,

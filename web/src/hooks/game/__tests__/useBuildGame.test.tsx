@@ -57,6 +57,7 @@ jest.mock("../../../stores/MetadataStore", () => ({
 }));
 
 import { readGameSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import { readGameBuild } from "../../../components/setup/game/gameExtras";
 import { useBuildGame, type BuildGameResult } from "../useBuildGame";
 
 const REGISTRY: Record<string, unknown> = {
@@ -195,6 +196,20 @@ describe("buildGame", () => {
   it("writes the terminal stage once the nodes are placed", async () => {
     await build();
     expect(readGameSetup(settings)?.stage).toBe("done");
+  });
+
+  // The landing checklist outlives the flow's own surface, so what the build
+  // came out as is stored on the document rather than held in memory.
+  it("persists the build record on settings.game", async () => {
+    graphValidation = { errors: ["Node export: no template"] };
+    await build();
+    expect(readGameBuild(readGameSetup(settings))).toEqual({
+      node_count: 6,
+      issues: [],
+      validation_errors: ["Node export: no template"],
+      run_started: false,
+      run_error: null
+    });
   });
 
   it("does not run a graph that failed validation, and reports the errors", async () => {

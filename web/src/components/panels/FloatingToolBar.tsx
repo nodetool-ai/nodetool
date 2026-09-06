@@ -48,6 +48,7 @@ import useCanvasChatDockStore, {
 } from "../../stores/CanvasChatDockStore";
 import CanvasMediaComposer from "./CanvasMediaComposer";
 import ConversationOverlay from "./ConversationOverlay";
+import GameLandingPanel from "../setup/game/GameLandingPanel";
 import TriggerActivationButton from "./TriggerActivationButton";
 
 const MOBILE_DOCK_POSITION: DockPosition = { x: 0, y: 0 };
@@ -659,6 +660,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           className="floating-toolbar canvas-chat-dock"
           style={{ width: dockWidthCss }}
         >
+          {/* The Game flow's landing sits at the top of this panel
+              (game-prd § 4.4). It renders nothing unless this workflow is one
+              the flow built, so every other canvas is unchanged. */}
+          {conversationOpen && workflowId !== null && (
+            <GameLandingPanel workflowId={workflowId} />
+          )}
           {conversationOpen && (
             <ConversationOverlay
               onCollapse={() => setConversationCollapsed(true)}

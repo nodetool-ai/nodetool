@@ -126,6 +126,7 @@ import {
   readGameSetup,
   writeGameSetup
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import useCanvasChatDockStore from "../../../../stores/CanvasChatDockStore";
 import { SetupFlow } from "../../SetupFlow";
 import { useGameSetupFlow, firstMissingDesignField } from "../useGameSetupFlow";
 import type { GameRowAvailability } from "../useGameSetupFlow";
@@ -190,6 +191,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   settings = {};
   designGame.mockResolvedValue(null);
+  useCanvasChatDockStore.setState({ conversationCollapsed: true });
 });
 
 describe("useGameSetupFlow", () => {
@@ -385,6 +387,11 @@ describe("useGameSetupFlow", () => {
       }
     });
     await waitFor(() => expect(onFinish).toHaveBeenCalled());
+    // The landing is the agent panel with the checklist at the top of it, and
+    // that panel starts collapsed — the build opens it.
+    expect(
+      useCanvasChatDockStore.getState().conversationCollapsed
+    ).toBe(false);
   });
 });
 
