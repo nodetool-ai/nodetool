@@ -60,7 +60,9 @@ import {
   scaleVelocity,
   sortNotes,
   transposeNotes,
-  DEFAULT_MIDI_INSTRUMENT
+  DEFAULT_MIDI_INSTRUMENT,
+  clearGeneratedMatte as clearMatteOnClip,
+  selectGeneratedMatteVersion as selectMatteVersionOnClip
 } from "@nodetool-ai/timeline";
 import type {
   AnimatedProperty,
@@ -75,6 +77,7 @@ import type {
   TrackEffect,
   ClipBindingKind,
   ClipAnimation,
+  ClipGeneratedMatte,
   MidiInstrument,
   MidiNote,
   TimelineTempo,
@@ -86,6 +89,18 @@ import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
 import { useLastModelStore, modelKindForBinding } from "../lastModelStore";
 import { trpcClient } from "../../trpc/client";
+import { buildTimelineDocumentPayload } from "../../hooks/timeline/timelineDocumentPayload";
+import {
+  bakeAudioAnimation as postAudioAnimationBake,
+  type BakeAudioAnimationBody,
+  type BakeAudioAnimationResult
+} from "../../utils/timelineAudioBake";
+import {
+  isolateSubject as postIsolateSubject,
+  type IsolateSubjectBody,
+  type IsolateSubjectResult
+} from "../../utils/timelineIsolateSubject";
+import { useNotificationStore } from "../NotificationStore";
 import { cloneClipsToTrack } from "./clipboardOps";
 import {
   migrateTranscriptToClips,
@@ -96,6 +111,27 @@ import {
 // ── Snap threshold ─────────────────────────────────────────────────────────
 
 const SNAP_THRESHOLD_PX = 8;
+
+// ── Generated matte ────────────────────────────────────────────────────────
+
+/** How long between polls of a running isolate-subject generation. */
+const MATTE_POLL_INTERVAL_MS = 3_000;
+/** How long to wait for one before leaving the clip as the server has it. */
+const MATTE_POLL_TIMEOUT_MS = 10 * 60_000;
+
+/**
+ * What {@link TimelineStoreState.isolateSubject} runs with: the endpoint's own
+ * knobs, plus the two timings the poll uses (named so a test does not have to
+ * wait out a real interval).
+ */
+export interface IsolateSubjectOptions
+  extends Omit<IsolateSubjectBody, "clip_id"> {
+  pollIntervalMs?: number;
+  timeoutMs?: number;
+}
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 // ── State interface ────────────────────────────────────────────────────────
 
@@ -520,6 +556,46 @@ export interface TimelineStoreState {
   /** Replace a clip's motion-design animations. One patch per call so undo
    *  granularity stays per-edit. */
   setClipAnimations: (clipId: string, animations: ClipAnimation[]) => void;
+
+  /**
+   * Drive a clip's motion from an audio clip. The measuring and the write both
+   * happen on the server, which reads the STORED document — so this saves the
+   * open document first, posts the bake, and takes back the document the
+   * server wrote in one `applyAgentEdit`, i.e. one undo entry.
+   */
+  bakeAudioAnimation: (
+    body: BakeAudioAnimationBody
+  ) => Promise<BakeAudioAnimationResult>;
+
+  /**
+   * The look knobs on a clip's generated matte (D2): how hard it cuts, which
+   * side it keeps, how soft the edge is. One history entry per call, and a
+   * no-op on a clip with no generated matte.
+   */
+  setGeneratedMatteKnobs: (
+    clipId: string,
+    knobs: { invert?: boolean; strength?: number; featherPx?: number }
+  ) => void;
+  /**
+   * Make a stored matte version current, the displaced one taking its place in
+   * the list. An asset no version carries is a no-op.
+   */
+  selectGeneratedMatteVersion: (clipId: string, assetId: string) => void;
+  /** Drop a clip's generated matte, versions and all. */
+  clearGeneratedMatte: (clipId: string) => void;
+  /**
+   * Cut a matte from the clip's own source on the server.
+   *
+   * The segmentation reads the STORED document and writes the result onto the
+   * clip, so this saves the open document first, marks the clip generating for
+   * the editor to show, waits for the run to settle, and takes back the
+   * document the server wrote. Resolves null when the run failed — the error
+   * reaches the user as a notification rather than an unhandled rejection.
+   */
+  isolateSubject: (
+    clipId: string,
+    options?: IsolateSubjectOptions
+  ) => Promise<IsolateSubjectResult | null>;
 
   /** Restore a clip to a previously generated version (purely local; autosave persists on next save cycle). */
   restoreVersion: (clipId: string, versionId: string) => void;
@@ -2239,6 +2315,235 @@ export const createTimelineStore = (
         // just a typed, discoverable entry point for animation edits.
         setClipAnimations: (clipId, animations) =>
           get().patchClip(clipId, { animations }),
+
+        bakeAudioAnimation: async (body) => {
+          const sequenceId = get().sequenceId;
+          if (!sequenceId) {
+            throw new Error("No timeline is open.");
+          }
+
+          // The bake measures and writes against the STORED document, so the
+          // open one is persisted first — unconditionally, because a save that
+          // is only "probably" unnecessary is not worth the chance that the
+          // reload below hands the user back a document without their last
+          // edit. Autosave's own debounce may have the same bytes in flight;
+          // it is single-flight against the same token, so the loser reports a
+          // conflict rather than writing twice.
+          const beforeSave = get();
+          const saved = await trpcClient.timeline.update.mutate({
+            id: sequenceId,
+            baseUpdatedAt: beforeSave.baseUpdatedAt ?? undefined,
+            document: buildTimelineDocumentPayload(beforeSave)
+          });
+          const savedAt = (saved as { updatedAt?: unknown } | undefined)
+            ?.updatedAt;
+          if (
+            typeof savedAt === "string" &&
+            get().sequenceId === sequenceId
+          ) {
+            get().setBaseUpdatedAt(savedAt);
+          }
+
+          const result = await postAudioAnimationBake(sequenceId, body);
+          const sequence = await trpcClient.timeline.get.query({
+            id: sequenceId
+          });
+
+          // The editor may have moved to another sequence while the bake ran;
+          // loading this one over it is the clobber every reload path avoids.
+          if (get().sequenceId !== sequenceId) return result;
+
+          get().applyAgentEdit({
+            tracks: (sequence.tracks ?? []) as TimelineTrack[],
+            clips: (sequence.clips ?? []) as TimelineClip[],
+            markers: (sequence.markers ?? []) as TimelineMarker[]
+          });
+          get().setBaseUpdatedAt(sequence.updatedAt);
+          return result;
+        },
+
+        setGeneratedMatteKnobs: (clipId, knobs) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            const matte = clip?.generatedMatte;
+            if (!clip || !matte) return state;
+            const next: ClipGeneratedMatte = { ...matte };
+            if (knobs.invert !== undefined) next.invert = knobs.invert;
+            if (knobs.strength !== undefined) {
+              next.strength = Math.min(1, Math.max(0, knobs.strength));
+            }
+            if (knobs.featherPx !== undefined) {
+              next.featherPx = Math.max(0, knobs.featherPx);
+            }
+            // A knob set to the value it already holds is not an edit, so it
+            // gets no undo entry and no re-render.
+            if (
+              next.invert === matte.invert &&
+              next.strength === matte.strength &&
+              next.featherPx === matte.featherPx
+            ) {
+              return state;
+            }
+            return {
+              clips: state.clips.map((c) =>
+                c.id === clipId ? { ...c, generatedMatte: next } : c
+              )
+            };
+          }),
+
+        selectGeneratedMatteVersion: (clipId, assetId) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip) return state;
+            const next = selectMatteVersionOnClip(clip, assetId);
+            if (next === clip) return state;
+            return {
+              clips: state.clips.map((c) => (c.id === clipId ? next : c))
+            };
+          }),
+
+        clearGeneratedMatte: (clipId) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip) return state;
+            const next = clearMatteOnClip(clip);
+            if (next === clip) return state;
+            return {
+              clips: state.clips.map((c) => (c.id === clipId ? next : c))
+            };
+          }),
+
+        isolateSubject: async (clipId, options = {}) => {
+          const sequenceId = get().sequenceId;
+          if (!sequenceId) {
+            throw new Error("No timeline is open.");
+          }
+          const clip = get().clips.find((c) => c.id === clipId);
+          if (!clip) {
+            throw new Error(`Clip ${clipId} not found`);
+          }
+          const previous = clip.generatedMatte;
+
+          const {
+            pollIntervalMs = MATTE_POLL_INTERVAL_MS,
+            timeoutMs = MATTE_POLL_TIMEOUT_MS,
+            ...body
+          } = options;
+
+          /** Write one status onto the clip's matte without touching the rest. */
+          const mark = (status: ClipGeneratedMatte["status"]): void => {
+            set((state) => ({
+              clips: state.clips.map((c) =>
+                c.id === clipId
+                  ? {
+                      ...c,
+                      generatedMatte: {
+                        // Nothing has been cut yet on a first run, so the
+                        // placeholder carries no asset — the scene model draws
+                        // a matte only when it is `ready`, so it never reaches
+                        // the picture.
+                        assetId: "",
+                        sourceAssetId: c.currentAssetId ?? "",
+                        sourceRange: { fromMs: 0, toMs: 0 },
+                        settings: {},
+                        ...(previous ?? {}),
+                        status
+                      }
+                    }
+                  : c
+              )
+            }));
+          };
+
+          /** Take back the document the server wrote, in one undo entry. */
+          const adopt = async (): Promise<TimelineClip | undefined> => {
+            const sequence = await trpcClient.timeline.get.query({
+              id: sequenceId
+            });
+            const clips = (sequence.clips ?? []) as TimelineClip[];
+            // The editor may have moved to another sequence while the matte
+            // ran; loading this one over it is the clobber every reload path
+            // avoids.
+            if (get().sequenceId !== sequenceId) return undefined;
+            get().applyAgentEdit({
+              tracks: (sequence.tracks ?? []) as TimelineTrack[],
+              clips,
+              markers: (sequence.markers ?? []) as TimelineMarker[]
+            });
+            get().setBaseUpdatedAt(sequence.updatedAt);
+            return clips.find((c) => c.id === clipId);
+          };
+
+          try {
+            // The segmentation reads the STORED document, so the open one is
+            // persisted first — unconditionally, for the reason the audio bake
+            // gives above.
+            const beforeSave = get();
+            const saved = await trpcClient.timeline.update.mutate({
+              id: sequenceId,
+              baseUpdatedAt: beforeSave.baseUpdatedAt ?? undefined,
+              document: buildTimelineDocumentPayload(beforeSave)
+            });
+            const savedAt = (saved as { updatedAt?: unknown } | undefined)
+              ?.updatedAt;
+            if (typeof savedAt === "string" && get().sequenceId === sequenceId) {
+              get().setBaseUpdatedAt(savedAt);
+            }
+
+            mark("generating");
+            const result = await postIsolateSubject(sequenceId, {
+              ...body,
+              clip_id: clipId
+            });
+
+            if (result.status !== "generating") {
+              await adopt();
+              return result;
+            }
+
+            // The generation outlives this call's socket and settles in the
+            // document, so waiting for it is reading the row until it stops
+            // saying "generating".
+            const deadline = Date.now() + timeoutMs;
+            for (;;) {
+              await sleep(pollIntervalMs);
+              if (get().sequenceId !== sequenceId) return result;
+              const settled = await adopt();
+              if (
+                settled === undefined ||
+                (settled.generatedMatte?.status ?? "ready") !== "generating"
+              ) {
+                return result;
+              }
+              if (Date.now() >= deadline) return result;
+            }
+          } catch (error) {
+            // A run that never landed costs the clip nothing: the result it had
+            // goes back exactly as it was, and only a clip that had no matte at
+            // all keeps a `failed` marker — the same rule the server-side
+            // capability follows.
+            if (get().clips.some((c) => c.id === clipId)) {
+              if (previous) {
+                set((state) => ({
+                  clips: state.clips.map((c) =>
+                    c.id === clipId ? { ...c, generatedMatte: previous } : c
+                  )
+                }));
+              } else {
+                mark("failed");
+              }
+            }
+            useNotificationStore.getState().addNotification({
+              type: "error",
+              alert: true,
+              content:
+                error instanceof Error
+                  ? `Isolate subject failed: ${error.message}`
+                  : "Isolate subject failed."
+            });
+            return null;
+          }
+        },
 
         restoreVersion: (clipId, versionId) =>
           set((state) => {

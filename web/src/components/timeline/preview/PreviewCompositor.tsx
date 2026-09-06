@@ -60,6 +60,12 @@ import {
   buildCompositePrecomposites,
   type ResolvedCompositeSource
 } from "./compositeLayers";
+import { matteOnlyLayers } from "./matteOverlay";
+import {
+  bindVideoSlots,
+  videoSlotKey,
+  type VideoSlotBinding
+} from "./videoSlotPool";
 import { Model3DLayerSource } from "./Model3DLayerSource";
 import {
   alphaBakesToProbe,
@@ -220,6 +226,9 @@ export const PreviewCompositor: React.FC = memo(() => {
   const selectedClipId = useTimelineUIStore((s) =>
     s.selectedClipIds.size === 1 ? [...s.selectedClipIds][0] : null
   );
+  // "Show matte": draw the selected clip's generated matte instead of the
+  // frame it cuts, so the mask can be judged on its own.
+  const matteViewEnabled = useTimelineUIStore((s) => s.matteViewEnabled);
 
   // Collapses a whole gizmo drag (60-240 Hz `onChange`) into a single undo
   // entry instead of one per pointermove — see `onDragStart`/`onDragEnd` below.
@@ -291,10 +300,11 @@ export const PreviewCompositor: React.FC = memo(() => {
   // Hidden HTMLVideoElement pool — still browser-decoded, but never rendered.
   // Their pixels are uploaded each frame to GPU textures by the compositor.
   const videoRefs = useRef<HTMLVideoElement[]>([]);
-  /** Stable clipId → hot-slot index binding. Survives neighbor-clip churn
-   *  during transition overlaps so an active clip keeps its HTMLVideoElement
-   *  (no reload + seek glitch when the previous clip ends). */
-  const clipSlotMap = useRef<Map<string, number>>(new Map());
+  /** Stable `clipId:assetUrl` → hot-slot binding (`videoSlotPool`). Survives
+   *  neighbor-clip churn during transition overlaps so an active clip keeps
+   *  its HTMLVideoElement (no reload + seek glitch when the previous clip
+   *  ends), and gives a matted clip's picture and its mask a slot each. */
+  const clipSlotMap = useRef<Map<string, VideoSlotBinding>>(new Map());
   const [poolReady, setPoolReady] = useState(false);
   const poolContainerRef = useRef<HTMLDivElement>(null);
 
@@ -582,17 +592,16 @@ export const PreviewCompositor: React.FC = memo(() => {
       // consume, kept whole: what a layer draws with — its group's matrix and
       // precomposite, its cut, its shape mask, its track matte — is resolved
       // here once and read by `buildLayers` below.
-      const { layers, precomposites: groups } = computeActiveLayersWithHorizon(
-        tracks,
-        clips,
-        currentTimeMs,
-        {
+      const { layers: composite, precomposites: groups } =
+        computeActiveLayersWithHorizon(tracks, clips, currentTimeMs, {
           maxVideoLayers: HOT_POOL_SIZE,
           canvas: sceneCanvas,
           animationCache: animCacheRef.current,
           model3dBakeHash
-        }
-      );
+        });
+      const layers = matteViewEnabled
+        ? matteOnlyLayers(composite, selectedClipId)
+        : composite;
 
       const videoSlots: ActiveVideoSlot[] = [];
       const placeholders: PlaceholderLayer[] = [];
@@ -657,7 +666,9 @@ export const PreviewCompositor: React.FC = memo(() => {
       urlCacheVersion,
       sceneCanvas,
       model3dSource,
-      model3dVersion
+      model3dVersion,
+      matteViewEnabled,
+      selectedClipId
     ]);
 
   // Hold a render session only while its clip is on screen: each one is a
@@ -678,14 +689,22 @@ export const PreviewCompositor: React.FC = memo(() => {
 
     let w = 0;
     let h = 0;
-    const vSlot = activeVideoSlots.find((s) => s.clipId === selectedClipId);
+    // The gizmo traces the picture, so it reads the picture layer's slot — a
+    // matted clip also owns the slot holding its mask, and that one is the
+    // same size only by coincidence.
+    const videoLayer = sceneLayers.find(
+      (l) => l.clipId === selectedClipId && l.kind === "video"
+    );
+    const videoUrl = videoLayer ? resolveUrl(videoLayer.assetId) : undefined;
     const imageLayer = sceneLayers.find(
       (l) => l.clipId === selectedClipId && l.kind === "image"
     );
     const imageUrl = imageLayer ? resolveUrl(imageLayer.assetId) : undefined;
-    if (vSlot) {
-      const idx = clipSlotMap.current.get(selectedClipId);
-      const el = idx !== undefined ? videoRefs.current[idx] : undefined;
+    if (videoUrl) {
+      const binding = clipSlotMap.current.get(
+        videoSlotKey(selectedClipId, videoUrl)
+      );
+      const el = binding ? videoRefs.current[binding.index] : undefined;
       w = el?.videoWidth ?? 0;
       h = el?.videoHeight ?? 0;
     } else if (imageUrl) {
@@ -702,14 +721,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       sourceWidth: w,
       sourceHeight: h
     };
-  }, [
-    selectedClipId,
-    clipById,
-    activeVideoSlots,
-    sceneLayers,
-    resolveUrl,
-    urlCacheVersion
-  ]);
+  }, [selectedClipId, clipById, sceneLayers, resolveUrl, urlCacheVersion]);
 
   // The pool effect below is keyed on `currentTimeMs` (React state), which
   // only advances on scene bumps — so during one long clip, an upcoming
@@ -732,29 +744,21 @@ export const PreviewCompositor: React.FC = memo(() => {
     if (!poolReady) return;
     const pool = videoRefs.current;
 
-    // Stable clipId→hot-slot binding. Reuse existing assignments first,
-    // then fill empty slots for newly-active clips. Slots whose clip is no
+    // Stable (clip, asset)→hot-slot binding. Reuse existing assignments first,
+    // then fill empty slots for newly-active pairs. Slots whose pair is no
     // longer active become free for reuse.
-    const activeIds = new Set(activeVideoSlots.map((s) => s.clipId));
-    for (const [id] of clipSlotMap.current) {
-      if (!activeIds.has(id)) clipSlotMap.current.delete(id);
-    }
-    const usedSlots = new Set(clipSlotMap.current.values());
-    for (const slot of activeVideoSlots) {
-      if (clipSlotMap.current.has(slot.clipId)) continue;
-      for (let i = 0; i < HOT_POOL_SIZE; i++) {
-        if (!usedSlots.has(i)) {
-          clipSlotMap.current.set(slot.clipId, i);
-          usedSlots.add(i);
-          break;
-        }
-      }
-    }
+    const usedSlots = bindVideoSlots(
+      activeVideoSlots,
+      clipSlotMap.current,
+      HOT_POOL_SIZE
+    );
 
     activeVideoSlots.forEach((slot) => {
-      const slotIndex = clipSlotMap.current.get(slot.clipId);
-      if (slotIndex === undefined || slotIndex >= pool.length) return;
-      const el = pool[slotIndex];
+      const binding = clipSlotMap.current.get(
+        videoSlotKey(slot.clipId, slot.assetUrl)
+      );
+      if (binding === undefined || binding.index >= pool.length) return;
+      const el = pool[binding.index];
 
       if (el.getAttribute("data-asset") !== slot.assetUrl) {
         el.src = slot.assetUrl;
@@ -930,14 +934,20 @@ export const PreviewCompositor: React.FC = memo(() => {
       // active clip set stands still, and its record is resolved by the scene
       // model rather than sampled here — so while one is running the scene is
       // re-derived at the drawn time instead of reused from the last boundary.
-      const layers = sceneLayers.some((layer) => layer.transition)
+      const recomputed = sceneLayers.some((layer) => layer.transition)
         ? computeActiveLayers(tracks, clips, atMs, {
             maxVideoLayers: HOT_POOL_SIZE,
             canvas: sceneCanvas,
             animationCache: cache,
             model3dBakeHash
           })
-        : sceneLayers;
+        : null;
+      const layers =
+        recomputed === null
+          ? sceneLayers
+          : matteViewEnabled
+            ? matteOnlyLayers(recomputed, selectedClipId)
+            : recomputed;
 
       const resolveSource = (
         layer: ActiveLayer,
@@ -1012,9 +1022,11 @@ export const PreviewCompositor: React.FC = memo(() => {
           const img = ensureImageElement(url);
           return img ? { source: img } : null;
         }
-        const slotIndex = clipSlotMap.current.get(layer.clipId);
-        if (slotIndex === undefined) return null;
-        const el = pool[slotIndex];
+        const binding = clipSlotMap.current.get(
+          videoSlotKey(layer.clipId, url)
+        );
+        if (binding === undefined) return null;
+        const el = pool[binding.index];
         // Keep the layer in the list even if the video momentarily drops below
         // HAVE_CURRENT_DATA (e.g. during a scrub seek). The compositor reuses
         // the previously uploaded texture so we don't flash to black.
@@ -1039,7 +1051,9 @@ export const PreviewCompositor: React.FC = memo(() => {
       orbitPose,
       sceneCanvas,
       sequenceWidth,
-      sequenceHeight
+      sequenceHeight,
+      matteViewEnabled,
+      selectedClipId
     ]
   );
 
@@ -1181,10 +1195,10 @@ export const PreviewCompositor: React.FC = memo(() => {
       // every tick, and treat that as new pixels: `el.paused` is true, so the
       // decoding-video check below would call the scene static.
       let remapSeeked = false;
-      for (const [clipId, slotIndex] of clipSlotMap.current) {
-        const clip = clipByIdRef.current.get(clipId);
+      for (const binding of clipSlotMap.current.values()) {
+        const clip = clipByIdRef.current.get(binding.clipId);
         if (!clip || !hasTimeRemap(clip)) continue;
-        const el = videoRefs.current[slotIndex];
+        const el = videoRefs.current[binding.index];
         if (!el || el.readyState < 1) continue;
         const targetSec = clipSourceTimeSec(clip, liveMs);
         if (Math.abs(el.currentTime - targetSec) > 0.01) {
@@ -1202,8 +1216,8 @@ export const PreviewCompositor: React.FC = memo(() => {
       forceRender = false;
       if (!dirty) {
         const pool = videoRefs.current;
-        for (const idx of clipSlotMap.current.values()) {
-          const el = pool[idx];
+        for (const binding of clipSlotMap.current.values()) {
+          const el = pool[binding.index];
           if (el && !el.paused && !el.ended && el.videoWidth > 0) {
             dirty = true;
             break;

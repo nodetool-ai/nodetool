@@ -1,28 +1,42 @@
 /**
- * Mask and matte sections (D6).
+ * Mask, matte and subject-matte sections (D6, D2).
  *
  * A mask is a shape in the layer's own normalized 0..1 space, so it rotates
  * and scales with the clip. A matte names another clip whose pixels drive this
  * layer's alpha; that source stops drawing itself, which is why the picker
  * lists every other clip in the sequence rather than only the ones on
- * neighbouring tracks.
+ * neighbouring tracks. A *subject* matte is neither: it is cut from this
+ * clip's own source, so it carries no source picker and no alignment to keep —
+ * only the model that cuts it, the look knobs, and which run is current.
  *
- * Both fields are absent-or-present rather than enabled/disabled, so the
+ * Mask and matte are absent-or-present rather than enabled/disabled, so the
  * section header's activation checkbox adds the field with defaults and
  * removes it again.
  */
 
-import React, { memo, useCallback, useMemo, useRef } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import CropFreeOutlinedIcon from "@mui/icons-material/CropFreeOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import FilterOutlinedIcon from "@mui/icons-material/FilterOutlined";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
+import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
+import { isGeneratedMatteStale } from "@nodetool-ai/timeline";
 import type { ClipMask, ClipMatte, TimelineClip } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
+  ISOLATE_SUBJECT_MODELS,
+  type IsolateSubjectModel
+} from "../../../utils/timelineIsolateSubject";
+import {
   Caption,
   CollapsibleSection,
+  EditorButton,
   FlexColumn,
+  FlexRow,
+  LoadingSpinner,
   SPACING
 } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
@@ -32,6 +46,7 @@ import {
   InspectorRow,
   InspectorSectionTitle,
   InspectorSelect,
+  InspectorSliderRow,
   InspectorToggleRow
 } from "./InspectorPrimitives";
 import { TextCommitField } from "./InspectorMotionFields";
@@ -60,6 +75,12 @@ const DEFAULT_MASK: ClipMask = {
 const NO_MATTE = "none";
 const SCRUB_UNIT = { step: 0.01, min: 0, max: 1 };
 const SCRUB_PX = { step: 1, min: 0 };
+
+const SUBJECT_MODEL_OPTIONS = ISOLATE_SUBJECT_MODELS.map((model) => ({
+  value: model,
+  label: model
+}));
+const DEFAULT_SUBJECT_MODEL = ISOLATE_SUBJECT_MODELS[0];
 
 interface ClipMaskMatteProps {
   clip: TimelineClip;
@@ -350,10 +371,265 @@ export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(
             </CollapsibleSection>
           </>
         )}
+
+        {/* Only a moving picture has a subject to isolate — and the matte is
+            cut from the clip's own source, which a text or shape clip has
+            none of. */}
+        {!hideMatte && clip.mediaType === "video" && (
+          <SubjectMatteSection clip={clip} />
+        )}
       </>
     );
   }
 );
+
+// ── Subject matte ──────────────────────────────────────────────────────────
+
+/** Readable stamp for one stored run; the raw value if it is not a date. */
+function versionLabel(createdAt: string): string {
+  const at = Date.parse(createdAt);
+  return Number.isNaN(at) ? createdAt : new Date(at).toLocaleString();
+}
+
+/**
+ * "Isolate subject": cut a matte from this clip's own source and dial in how
+ * it reads. Four states — none, generating, ready and failed — because that is
+ * what the clip's `generatedMatte.status` says, and each one offers only what
+ * can be done in it.
+ */
+const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
+  ({ clip }) => {
+    const [open, setOpen] = usePersistedFold("subjectMatte");
+    const isolateSubject = useTimelineStore((s) => s.isolateSubject);
+    const setKnobs = useTimelineStore((s) => s.setGeneratedMatteKnobs);
+    const selectVersion = useTimelineStore(
+      (s) => s.selectGeneratedMatteVersion
+    );
+    const clearMatte = useTimelineStore((s) => s.clearGeneratedMatte);
+
+    const [model, setModel] = useState<IsolateSubjectModel>(
+      DEFAULT_SUBJECT_MODEL
+    );
+    // Held between the click and the store's own `generating` mark, which only
+    // lands after the document has been saved.
+    const [pending, setPending] = useState(false);
+
+    const clipRef = useRef(clip);
+    clipRef.current = clip;
+
+    const matte = clip.generatedMatte;
+    const status = matte?.status ?? (matte ? "ready" : undefined);
+    const generating = pending || status === "generating";
+    // A failed first run leaves a marker carrying no mask, so there is a matte
+    // record with nothing to dial in. Everything after this reads "is there a
+    // result", not "is there a record".
+    const result = matte && matte.assetId !== "" ? matte : undefined;
+    const stale = isGeneratedMatteStale(clip);
+
+    const run = useCallback(
+      async (regenerate: boolean) => {
+        setPending(true);
+        try {
+          await isolateSubject(clipRef.current.id, { model, regenerate });
+        } catch {
+          // The store reports every failure it can as a notification; there is
+          // nothing left for this button to say.
+        } finally {
+          setPending(false);
+        }
+      },
+      [isolateSubject, model]
+    );
+
+    const handleModelChange = useCallback((value: string) => {
+      const picked = ISOLATE_SUBJECT_MODELS.find((name) => name === value);
+      if (picked) setModel(picked);
+    }, []);
+    const handleIsolate = useCallback(() => void run(false), [run]);
+    const handleRegenerate = useCallback(() => void run(true), [run]);
+    const handleRemove = useCallback(
+      () => clearMatte(clipRef.current.id),
+      [clearMatte]
+    );
+    const handleInvert = useCallback(
+      (invert: boolean) => setKnobs(clipRef.current.id, { invert }),
+      [setKnobs]
+    );
+    const handleStrength = useCallback(
+      (strength: number) => setKnobs(clipRef.current.id, { strength }),
+      [setKnobs]
+    );
+    const handleFeather = useCallback(
+      (raw: string) => {
+        const featherPx = Number(raw);
+        if (!Number.isFinite(featherPx) || featherPx < 0) return;
+        setKnobs(clipRef.current.id, { featherPx });
+      },
+      [setKnobs]
+    );
+    const handleVersion = useCallback(
+      (assetId: string) => selectVersion(clipRef.current.id, assetId),
+      [selectVersion]
+    );
+
+    const versionOptions = useMemo(() => {
+      if (!result) return [];
+      const stored = [...(result.versions ?? [])].sort((a, b) =>
+        b.createdAt.localeCompare(a.createdAt)
+      );
+      return [
+        { value: result.assetId, label: "Current" },
+        ...stored.map((version) => ({
+          value: version.assetId,
+          label: versionLabel(version.createdAt)
+        }))
+      ];
+    }, [result]);
+
+    return (
+      <>
+        <InspectorDivider />
+        <CollapsibleSection
+          title={
+            <InspectorSectionTitle
+              title="Subject matte"
+              icon={<PersonOutlineOutlinedIcon />}
+            />
+          }
+          open={open}
+          onToggle={setOpen}
+          unmountOnExit
+        >
+          <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
+            <InspectorRow label="Model">
+              <InspectorSelect
+                label="Subject matte model"
+                value={model}
+                options={SUBJECT_MODEL_OPTIONS}
+                onChange={handleModelChange}
+                disabled={generating}
+                grow
+              />
+            </InspectorRow>
+
+            {generating && (
+              <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.xs }}>
+                <LoadingSpinner size="small" />
+                <Caption color="muted">Cutting the subject out…</Caption>
+              </FlexRow>
+            )}
+
+            {!result && !generating && (
+              <>
+                {status === "failed" && (
+                  <Caption color="error">
+                    The last run failed. Nothing was cut — try again.
+                  </Caption>
+                )}
+                <EditorButton
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AutoAwesomeOutlinedIcon />}
+                  onClick={handleIsolate}
+                  data-testid="isolate-subject"
+                >
+                  Isolate subject
+                </EditorButton>
+                <Caption color="muted">
+                  Cuts a mask from this clip&apos;s own source, so it stays
+                  aligned through every trim and split.
+                </Caption>
+              </>
+            )}
+
+            {result && (
+              <>
+                <InspectorToggleRow
+                  label="Invert"
+                  checked={result.invert === true}
+                  onChange={handleInvert}
+                  disabled={generating}
+                />
+                <InspectorSliderRow
+                  label="Strength"
+                  value={result.strength ?? 1}
+                  display={(result.strength ?? 1).toFixed(2)}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  disabled={generating}
+                  onChange={handleStrength}
+                />
+                <InspectorRow label="Feather">
+                  <InspectorPillInput
+                    value={String(result.featherPx ?? 0)}
+                    unit="px"
+                    scrub={SCRUB_PX}
+                    disabled={generating}
+                    onCommit={handleFeather}
+                    ariaLabel="Subject matte feather"
+                  />
+                </InspectorRow>
+                <InspectorRow label="Version">
+                  <InspectorSelect
+                    label="Subject matte version"
+                    value={result.assetId}
+                    options={versionOptions}
+                    onChange={handleVersion}
+                    disabled={generating}
+                    grow
+                  />
+                </InspectorRow>
+
+                {status === "failed" && (
+                  <Caption color="error">
+                    The last run failed. The result before it is still in use.
+                  </Caption>
+                )}
+                {stale && status !== "failed" && (
+                  <Caption color="warning">
+                    The clip has moved past what this matte covers. Regenerate
+                    to cut it again.
+                  </Caption>
+                )}
+
+                <FlexRow gap={SPACING.xs} sx={{ px: SPACING.xs }}>
+                  <EditorButton
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<RestartAltOutlinedIcon />}
+                    disabled={generating}
+                    onClick={handleRegenerate}
+                    data-testid="regenerate-subject-matte"
+                  >
+                    Regenerate
+                  </EditorButton>
+                  <EditorButton
+                    fullWidth
+                    variant="outlined"
+                    color="error"
+                    startIcon={<DeleteOutlineOutlinedIcon />}
+                    disabled={generating}
+                    onClick={handleRemove}
+                    data-testid="remove-subject-matte"
+                  >
+                    Remove
+                  </EditorButton>
+                </FlexRow>
+                <Caption color="muted">
+                  Regenerate runs the model again and keeps this result as a
+                  version.
+                </Caption>
+              </>
+            )}
+          </FlexColumn>
+        </CollapsibleSection>
+      </>
+    );
+  }
+);
+SubjectMatteSection.displayName = "SubjectMatteSection";
 
 /** Commit a 0..1 field, ignoring anything that is not a number in range. */
 function commitUnit(raw: string, apply: (value: number) => void): void {

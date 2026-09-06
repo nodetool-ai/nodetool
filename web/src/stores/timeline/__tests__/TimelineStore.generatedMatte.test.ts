@@ -1,0 +1,307 @@
+/**
+ * The store's side of a generated matte (D2): the three local edits — knobs,
+ * version, remove — and `isolateSubject`, which runs on the server.
+ *
+ * The local three go through the package's pure helpers, so what is asserted
+ * here is what the store owns: one undo entry per edit, and a no-op returning
+ * the same state. `isolateSubject` has four jobs — persist the open document,
+ * post, wait for the run to settle, take back what the server wrote — and each
+ * is asserted, including the failure path, which must not reject.
+ */
+
+import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { makeClip, makeTrack } from "@nodetool-ai/timeline";
+import type {
+  ClipGeneratedMatte,
+  TimelineClip,
+  TimelineTrack
+} from "@nodetool-ai/timeline";
+
+import { createTimelineStore, timelineTemporalOf } from "../TimelineStore";
+import { mockTimelineGet, trpcClient } from "../../../__mocks__/trpcClientMock";
+import { isolateSubject } from "../../../utils/timelineIsolateSubject";
+import { useNotificationStore } from "../../NotificationStore";
+
+jest.mock("../../../utils/timelineIsolateSubject", () => ({
+  ...(jest.requireActual(
+    "../../../utils/timelineIsolateSubject"
+  ) as Record<string, unknown>),
+  isolateSubject: jest.fn()
+}));
+
+const postIsolate = isolateSubject as jest.MockedFunction<
+  typeof isolateSubject
+>;
+const updateMutate = trpcClient.timeline.update.mutate as unknown as jest.Mock<
+  (input: unknown) => Promise<{ updatedAt: string }>
+>;
+
+const SEQUENCE_ID = "tl-1";
+const CLIP_ID = "shot-1";
+
+const MATTE: ClipGeneratedMatte = {
+  assetId: "mask-2",
+  sourceAssetId: "asset-1",
+  sourceRange: { fromMs: 0, toMs: 4000 },
+  settings: { model: "General Use (Light)" },
+  status: "ready",
+  versions: [
+    {
+      assetId: "mask-1",
+      sourceAssetId: "asset-1",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      settings: { model: "Portrait" }
+    }
+  ]
+};
+
+function seedStore(matte?: ClipGeneratedMatte) {
+  const store = createTimelineStore();
+  const track: TimelineTrack = makeTrack({ type: "video", name: "V1" });
+  const clip: TimelineClip = makeClip({
+    id: CLIP_ID,
+    trackId: track.id,
+    name: "Shot 1",
+    mediaType: "video",
+    startMs: 0,
+    durationMs: 4000,
+    inPointMs: 0,
+    currentAssetId: "asset-1",
+    generatedMatte: matte
+  });
+  store.setState({
+    sequenceId: SEQUENCE_ID,
+    baseUpdatedAt: "2026-01-01T00:00:00.000Z",
+    tracks: [track],
+    clips: [clip]
+  });
+  timelineTemporalOf(store).clear();
+  return { store, track, clip };
+}
+
+/** What the server answers `timeline.get` with, with the clip's matte at `status`. */
+function serverSequence(
+  track: TimelineTrack,
+  clip: TimelineClip,
+  matte: ClipGeneratedMatte
+) {
+  return {
+    id: SEQUENCE_ID,
+    updatedAt: "2026-01-01T00:05:00.000Z",
+    tracks: [track],
+    clips: [{ ...clip, generatedMatte: matte }],
+    markers: []
+  };
+}
+
+beforeEach(() => {
+  postIsolate.mockReset();
+  updateMutate.mockReset();
+  mockTimelineGet.mockReset();
+  updateMutate.mockResolvedValue({ updatedAt: "2026-01-01T00:01:00.000Z" });
+  useNotificationStore.getState().clearNotifications();
+});
+
+describe("setGeneratedMatteKnobs", () => {
+  it("writes invert, strength and feather, one undo entry each", () => {
+    const { store } = seedStore(MATTE);
+    const before = timelineTemporalOf(store).pastStates.length;
+
+    store.getState().setGeneratedMatteKnobs(CLIP_ID, { invert: true });
+    store.getState().setGeneratedMatteKnobs(CLIP_ID, { strength: 0.4 });
+    store.getState().setGeneratedMatteKnobs(CLIP_ID, { featherPx: 3 });
+
+    expect(store.getState().clips[0].generatedMatte).toMatchObject({
+      assetId: "mask-2",
+      invert: true,
+      strength: 0.4,
+      featherPx: 3
+    });
+    expect(timelineTemporalOf(store).pastStates.length).toBe(before + 3);
+  });
+
+  it("clamps strength to 0..1 and feather to non-negative", () => {
+    const { store } = seedStore(MATTE);
+    store.getState().setGeneratedMatteKnobs(CLIP_ID, { strength: 2 });
+    store.getState().setGeneratedMatteKnobs(CLIP_ID, { featherPx: -5 });
+    expect(store.getState().clips[0].generatedMatte?.strength).toBe(1);
+    expect(store.getState().clips[0].generatedMatte?.featherPx).toBe(0);
+  });
+
+  it("is a no-op on an unchanged value and on a clip with no matte", () => {
+    const { store } = seedStore(MATTE);
+    store.getState().setGeneratedMatteKnobs(CLIP_ID, { invert: true });
+    const after = timelineTemporalOf(store).pastStates.length;
+    const clips = store.getState().clips;
+
+    store.getState().setGeneratedMatteKnobs(CLIP_ID, { invert: true });
+    expect(store.getState().clips).toBe(clips);
+    expect(timelineTemporalOf(store).pastStates.length).toBe(after);
+
+    const bare = seedStore();
+    bare.store.getState().setGeneratedMatteKnobs(CLIP_ID, { invert: true });
+    expect(bare.store.getState().clips[0].generatedMatte).toBeUndefined();
+  });
+});
+
+describe("selectGeneratedMatteVersion", () => {
+  it("makes a stored version current and puts the displaced one in the list", () => {
+    const { store } = seedStore(MATTE);
+    const before = timelineTemporalOf(store).pastStates.length;
+
+    store.getState().selectGeneratedMatteVersion(CLIP_ID, "mask-1");
+
+    const matte = store.getState().clips[0].generatedMatte;
+    expect(matte?.assetId).toBe("mask-1");
+    expect(matte?.versions?.map((v) => v.assetId)).toEqual(["mask-2"]);
+    expect(timelineTemporalOf(store).pastStates.length).toBe(before + 1);
+  });
+
+  it("is a no-op for an asset no version carries", () => {
+    const { store } = seedStore(MATTE);
+    const clips = store.getState().clips;
+    store.getState().selectGeneratedMatteVersion(CLIP_ID, "mask-99");
+    expect(store.getState().clips).toBe(clips);
+  });
+});
+
+describe("clearGeneratedMatte", () => {
+  it("drops the matte in one undo entry, and undo brings it back", () => {
+    const { store } = seedStore(MATTE);
+    const before = timelineTemporalOf(store).pastStates.length;
+
+    store.getState().clearGeneratedMatte(CLIP_ID);
+    expect(store.getState().clips[0].generatedMatte).toBeUndefined();
+    expect(timelineTemporalOf(store).pastStates.length).toBe(before + 1);
+
+    timelineTemporalOf(store).undo();
+    expect(store.getState().clips[0].generatedMatte).toMatchObject({
+      assetId: "mask-2"
+    });
+  });
+
+  it("is a no-op on a clip with no matte", () => {
+    const { store } = seedStore();
+    const clips = store.getState().clips;
+    store.getState().clearGeneratedMatte(CLIP_ID);
+    expect(store.getState().clips).toBe(clips);
+  });
+});
+
+describe("isolateSubject", () => {
+  it("saves the document, posts, and reloads a run that came back ready", async () => {
+    const { store, track, clip } = seedStore();
+    postIsolate.mockResolvedValue({
+      status: "ready",
+      assetId: "mask-2",
+      sourceRange: { fromMs: 0, toMs: 4000 },
+      reused: false
+    });
+    mockTimelineGet.mockResolvedValue(serverSequence(track, clip, MATTE));
+
+    const result = await store
+      .getState()
+      .isolateSubject(CLIP_ID, { model: "Portrait" });
+
+    expect(updateMutate.mock.calls[0][0]).toMatchObject({
+      id: SEQUENCE_ID,
+      baseUpdatedAt: "2026-01-01T00:00:00.000Z"
+    });
+    expect(postIsolate).toHaveBeenCalledWith(SEQUENCE_ID, {
+      clip_id: CLIP_ID,
+      model: "Portrait",
+      regenerate: undefined
+    });
+    expect(result?.status).toBe("ready");
+    expect(store.getState().clips[0].generatedMatte).toMatchObject({
+      assetId: "mask-2",
+      status: "ready"
+    });
+    expect(store.getState().baseUpdatedAt).toBe("2026-01-01T00:05:00.000Z");
+  });
+
+  it("marks the clip generating, then polls until the document settles", async () => {
+    const { store, track, clip } = seedStore();
+    postIsolate.mockImplementation(async () => {
+      // The mark lands before the request is answered — that is what the
+      // inspector's spinner reads.
+      expect(store.getState().clips[0].generatedMatte?.status).toBe(
+        "generating"
+      );
+      return {
+        status: "generating" as const,
+        generationId: "gen-1",
+        sourceRange: { fromMs: 0, toMs: 4000 },
+        reused: false
+      };
+    });
+    mockTimelineGet
+      .mockResolvedValueOnce(
+        serverSequence(track, clip, { ...MATTE, status: "generating" })
+      )
+      .mockResolvedValueOnce(serverSequence(track, clip, MATTE));
+
+    await store
+      .getState()
+      .isolateSubject(CLIP_ID, { pollIntervalMs: 0, timeoutMs: 1000 });
+
+    expect(mockTimelineGet).toHaveBeenCalledTimes(2);
+    expect(store.getState().clips[0].generatedMatte?.status).toBe("ready");
+  });
+
+  it("reports a refusal as a notification and puts the previous result back", async () => {
+    const { store } = seedStore(MATTE);
+    postIsolate.mockRejectedValue(new Error("Clip carries a time remap"));
+
+    const result = await store.getState().isolateSubject(CLIP_ID);
+
+    expect(result).toBeNull();
+    // A run that never landed costs the clip nothing.
+    expect(store.getState().clips[0].generatedMatte).toEqual(MATTE);
+    expect(
+      useNotificationStore
+        .getState()
+        .notifications.some(
+          (n) => n.type === "error" && n.content.includes("time remap")
+        )
+    ).toBe(true);
+  });
+
+  it("leaves a failed marker only on a clip that had no matte at all", async () => {
+    const { store } = seedStore();
+    postIsolate.mockRejectedValue(new Error("Provider is down"));
+
+    await store.getState().isolateSubject(CLIP_ID);
+
+    expect(store.getState().clips[0].generatedMatte).toMatchObject({
+      assetId: "",
+      status: "failed"
+    });
+  });
+
+  it("refuses when no timeline is open", async () => {
+    const { store } = seedStore();
+    store.setState({ sequenceId: null });
+    await expect(store.getState().isolateSubject(CLIP_ID)).rejects.toThrow(
+      "No timeline is open."
+    );
+    expect(postIsolate).not.toHaveBeenCalled();
+  });
+
+  it("leaves the document alone when the editor moved to another sequence", async () => {
+    const { store, track, clip } = seedStore();
+    postIsolate.mockResolvedValue({
+      status: "ready",
+      sourceRange: { fromMs: 0, toMs: 4000 },
+      reused: false
+    });
+    mockTimelineGet.mockImplementation(async () => {
+      store.setState({ sequenceId: "tl-2" });
+      return serverSequence(track, clip, MATTE);
+    });
+
+    await store.getState().isolateSubject(CLIP_ID);
+
+    expect(store.getState().clips[0].generatedMatte?.assetId).toBe("");
+  });
+});
