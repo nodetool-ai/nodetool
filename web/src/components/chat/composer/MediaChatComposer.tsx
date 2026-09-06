@@ -177,7 +177,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   // Language-model selection from chat store (used in chat mode & forwarded
   // as provider/model for media calls when a media model is not picked).
-  const languageModel = useGlobalChatStore((s) => s.selectedModel);
+  const languageModel = useGlobalChatStore((s) =>
+    s.getSelectedModel(threadId ?? s.currentThreadId)
+  );
   // A new account has an unsendable placeholder here. Fill it once from the
   // recommended models rather than let the menu's first row decide.
   useFirstRunLanguageModel();

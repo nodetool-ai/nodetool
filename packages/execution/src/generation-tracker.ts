@@ -153,6 +153,7 @@ async function openRow(
       surface: origin?.surface ?? null,
       thread_id: origin?.thread_id ?? null,
       tool_call_id: origin?.tool_call_id ?? null,
+      request_id: origin?.request_id ?? null,
       job_id: origin?.job_id ?? null,
       status: "running",
       cost: null,

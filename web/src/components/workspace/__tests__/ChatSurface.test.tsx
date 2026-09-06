@@ -24,11 +24,17 @@ const chatState = {
   threads: {} as Record<string, { id: string; title: string }>,
   messageCache: {} as Record<string, unknown[]>,
   threadWorkflowId: {} as Record<string, string | null>,
+  threadModel: {} as Record<string, unknown>,
+  forcedModel: null,
+  pinThreadModel: jest.fn(),
   selectedModel: {
     type: "language_model",
     provider: "openai",
     id: "gpt-5"
   },
+  getSelectedModel: (threadId: string | null) =>
+    (threadId ? chatState.threadModel[threadId] : undefined) ??
+    chatState.selectedModel,
   connect,
   fetchThread,
   ensureLocalThread,

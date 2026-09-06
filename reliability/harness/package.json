@@ -2,7 +2,7 @@
   "name": "@nodetool-ai/reliability-harness",
   "type": "module",
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=22.0.0"
   },
   "version": "0.7.0-rc.40",
   "description": "Reliability harness core: journey manifests, RunRecord, normalization, and per-channel stream diff (docs/RELIABILITY_ARCHITECTURE.md \u00a712)",

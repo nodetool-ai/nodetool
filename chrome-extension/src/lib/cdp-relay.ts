@@ -164,6 +164,9 @@ export class CdpRelay {
   /**
    * Attach the debugger to the currently active tab. Driven by an explicit
    * user gesture in the popup. Resolves to the attached tab id.
+   *
+   * The user picked this tab, so an undebuggable one is an error with the
+   * reason spelled out — not a silent jump to some other tab.
    */
   async attachActiveTab(): Promise<number> {
     const [tab] = await chrome.tabs.query({
@@ -172,6 +175,12 @@ export class CdpRelay {
     });
     if (!tab?.id) {
       throw new Error("No active tab to attach to.");
+    }
+    const reason = attachBlockReason(tab.url);
+    if (reason) {
+      throw new Error(
+        `Cannot attach to the active tab: ${reason} Switch to a normal web page, then attach again.`,
+      );
     }
     await this.attachTab(tab.id);
     return tab.id;
@@ -326,11 +335,15 @@ export class CdpRelay {
   }
 
   /**
-   * Host-initiated attach. The host cannot pick the tab; it relies on the user
-   * having attached via the popup. If nothing is attached yet, attach the
-   * active tab (still requires the user to have opened the popup gesture flow
-   * — here we honor the host request as a convenience, but the spec's primary
-   * path is the popup button).
+   * Host-initiated attach. The host cannot pick the tab, so the relay picks
+   * one: the active tab when Chrome allows debugging it, otherwise the most
+   * recently used tab that it does allow.
+   *
+   * The active tab is often not attachable — another extension's page, the
+   * Web Store, a `chrome://` page — and `chrome.debugger.attach` then fails
+   * with a bare Chrome string ("Cannot access a chrome-extension:// URL of
+   * different extension") that reaches the agent as an unexplained tool
+   * error. Falling back to a real web page is what the host asked for anyway.
    */
   private async handleAttachRequest(): Promise<void> {
     if (this.attachedTabId !== null) {
@@ -341,8 +354,14 @@ export class CdpRelay {
       return;
     }
     try {
-      const tabId = await this.attachActiveTab();
-      this.send<AttachedFrame>({ kind: "attached", tabId });
+      const tab = await findAttachableTab();
+      if (!tab) {
+        throw new Error(
+          "No debuggable tab is open. Chrome blocks debugging of its own pages, other extensions' pages and the Web Store — open a normal web page and try again.",
+        );
+      }
+      await this.attachTab(tab.id);
+      this.send<AttachedFrame>({ kind: "attached", tabId: tab.id });
     } catch (err) {
       this.sendFatal(errorMessage(err));
     }
@@ -415,6 +434,75 @@ export class CdpRelay {
       periodInMinutes: KEEPALIVE_PERIOD_MINUTES,
     });
   }
+}
+
+/**
+ * Why Chrome refuses to let this extension debug `url`, or null when it does.
+ *
+ * `chrome.debugger.attach` enforces these itself, but only after the fact and
+ * with a message that says nothing about what to do. Checking first turns the
+ * failure into an instruction and lets the host-initiated path pick another
+ * tab. Own-extension pages stay allowed: Chrome only blocks *other*
+ * extensions.
+ */
+export function attachBlockReason(url: string | undefined): string | null {
+  if (!url) {
+    return "Chrome reported no URL for it, which means the page is still loading or is a restricted page.";
+  }
+  const ownPrefix = `chrome-extension://${chrome.runtime?.id ?? ""}/`;
+  if (url.startsWith("chrome-extension://") && !url.startsWith(ownPrefix)) {
+    return "it belongs to another Chrome extension, and Chrome blocks debugging those.";
+  }
+  const scheme = url.slice(0, url.indexOf(":") + 1).toLowerCase();
+  if (BLOCKED_SCHEMES.has(scheme)) {
+    return `Chrome blocks debugging of ${scheme}// pages.`;
+  }
+  if (WEB_STORE_HOSTS.some((host) => url.includes(host))) {
+    return "Chrome blocks debugging of the Chrome Web Store.";
+  }
+  return null;
+}
+
+/** Schemes `chrome.debugger` always refuses. */
+const BLOCKED_SCHEMES = new Set([
+  "chrome:",
+  "chrome-untrusted:",
+  "devtools:",
+  "edge:",
+  "about:",
+]);
+
+/** The Web Store is special-cased by Chrome, both old and new host. */
+const WEB_STORE_HOSTS = [
+  "chrome.google.com/webstore",
+  "chromewebstore.google.com",
+];
+
+/**
+ * The tab a host-initiated attach should use: the active one when it is
+ * debuggable, else the most recently used tab that is.
+ */
+export async function findAttachableTab(): Promise<{ id: number } | null> {
+  const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (active?.id !== undefined && !attachBlockReason(active.url)) {
+    return { id: active.id };
+  }
+  const all = await chrome.tabs.query({});
+  const candidates = all.filter(
+    (tab) => tab.id !== undefined && !attachBlockReason(tab.url),
+  );
+  if (candidates.length === 0) {
+    return null;
+  }
+  // `lastAccessed` is only on newer Chrome; without it the active tab of the
+  // most recent window is the best guess, and tabs.query returns tabs in
+  // window order with the active one flagged.
+  const best = candidates.reduce((a, b) =>
+    (b.lastAccessed ?? (b.active ? 1 : 0)) > (a.lastAccessed ?? (a.active ? 1 : 0))
+      ? b
+      : a,
+  );
+  return { id: best.id as number };
 }
 
 /** The keepalive alarm name, exported for the service worker's alarm router. */

@@ -267,9 +267,27 @@ export interface GlobalChatState {
    */
   subAgentMessages: SubAgentMessages;
 
-  // Selections
+  // Selections. `selectedModel` is the last model the user picked and the
+  // default for a conversation that has none of its own. `threadModel` pins a
+  // conversation to its model, so a pick in another chat tab or assistant
+  // panel does not move it.
   selectedModel: LanguageModel;
-  setSelectedModel: (model: LanguageModel) => void;
+  threadModel: Record<string, LanguageModel>;
+  /**
+   * A model a shell pins on every conversation while it is mounted (the
+   * Studio shell). Overrides both the per-thread pin and the global default,
+   * and is never persisted — the user's own selections stay untouched.
+   */
+  forcedModel: LanguageModel | null;
+  setForcedModel: (model: LanguageModel | null) => void;
+  getSelectedModel: (threadId: string | null) => LanguageModel;
+  setSelectedModel: (model: LanguageModel, threadId?: string | null) => void;
+  /**
+   * Pin `threadId` to the model it resolves to right now, so a pick in another
+   * chat tab stops moving it. No-op when the thread is already pinned, when a
+   * shell forces a model, or when nothing real is picked yet.
+   */
+  pinThreadModel: (threadId: string) => void;
 
   // Per-thread permission mode (governs how gated tool calls are handled).
   // A thread with no entry uses lastPermissionMode, then Default.
@@ -440,6 +458,7 @@ interface PersistedChatState {
   threads: Record<string, Thread>;
   lastUsedThreadId: string | null;
   selectedModel: LanguageModel | null;
+  threadModel?: Record<string, LanguageModel>;
   permissionMode: Record<string, PermissionMode>;
   lastPermissionMode?: PermissionMode;
   workflowThreadId?: Record<string, string>;
@@ -554,8 +573,36 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       // Selections
       selectedModel: buildDefaultLanguageModel(),
-      setSelectedModel: (model: LanguageModel) => {
-        set({ selectedModel: model });
+      threadModel: {},
+      forcedModel: null,
+      setForcedModel: (model: LanguageModel | null) => {
+        set({ forcedModel: model });
+      },
+      getSelectedModel: (threadId: string | null) =>
+        get().forcedModel ??
+        (threadId ? get().threadModel[threadId] : undefined) ??
+        get().selectedModel,
+      setSelectedModel: (model: LanguageModel, threadId?: string | null) => {
+        set((state) => ({
+          selectedModel: model,
+          threadModel: threadId
+            ? { ...state.threadModel, [threadId]: model }
+            : state.threadModel
+        }));
+      },
+      pinThreadModel: (threadId: string) => {
+        const { forcedModel, threadModel, selectedModel } = get();
+        if (forcedModel || threadModel[threadId]) {
+          return;
+        }
+        // The shipped default is an unsendable placeholder; pinning it would
+        // strand the conversation on it after the first real pick lands.
+        if (!isModelSelected(selectedModel)) {
+          return;
+        }
+        set({
+          threadModel: { ...threadModel, [threadId]: selectedModel }
+        });
       },
 
       // Per-thread permission mode. lastPermissionMode is what the user last
@@ -939,7 +986,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
         message: Message | ChatOutgoingMessage,
         targetThreadId?: string
       ): Promise<ChatSendOutcome> => {
-        const { currentThreadId, workflowId, selectedModel } = get();
+        const { currentThreadId, workflowId } = get();
+        // The turn runs on the target conversation's own model, not on
+        // whatever another tab last picked.
+        const selectedModel = get().getSelectedModel(
+          targetThreadId ?? currentThreadId
+        );
 
         // Agent mode is no longer a UI toggle — every chat session runs the
         // unified LLM-with-tools loop, and the agent decides for itself
@@ -1012,6 +1064,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threadId = await get().createNewThread();
         }
         const tid = threadId;
+
+        // Pin the conversation to the model this turn runs on. Without this a
+        // thread the user never explicitly picked for would follow the global
+        // default when another tab changes it.
+        if (!isMediaGeneration) {
+          get().pinThreadModel(tid);
+        }
 
         // Clear the target thread's existing safety timeout
         const existingTimeoutId = getThreadRuntime(
@@ -1358,6 +1417,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
             } = state.chatReplayCursors;
             const { [threadId]: deletedRuntime, ...remainingRuntime } =
               state.threadRuntime;
+            const { [threadId]: _deletedModel, ...remainingThreadModel } =
+              state.threadModel;
             if (deletedRuntime?.sendMessageTimeoutId != null) {
               clearTimeout(deletedRuntime.sendMessageTimeoutId);
             }
@@ -1370,7 +1431,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
               todosByThread: remainingTodos,
               subAgentMessages: remainingSubAgents,
               threadRuntime: remainingRuntime,
-              chatReplayCursors: remainingReplayCursors
+              chatReplayCursors: remainingReplayCursors,
+              threadModel: remainingThreadModel
             };
 
             // If deleting current thread, switch to another or create new
@@ -1754,6 +1816,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threads: state.threads || {},
           lastUsedThreadId: state.lastUsedThreadId,
           selectedModel: state.selectedModel,
+          threadModel: state.threadModel,
           permissionMode: state.permissionMode,
           lastPermissionMode: state.lastPermissionMode,
           // Per-workflow thread binding so the editor side panel restores the
@@ -1781,6 +1844,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
             ...(persisted.permissionMode ?? {}),
             ...currentState.permissionMode
           },
+          threadModel: {
+            ...(persisted.threadModel ?? {}),
+            ...currentState.threadModel
+          },
           workflowThreadId: {
             ...(persisted.workflowThreadId ?? {}),
             ...currentState.workflowThreadId
@@ -1800,6 +1867,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threads: {},
           lastUsedThreadId: null as string | null,
           selectedModel: null as LanguageModel | null,
+          threadModel: {} as Record<string, LanguageModel>,
           permissionMode: {},
           lastPermissionMode: DEFAULT_PERMISSION_MODE as PermissionMode
         };
@@ -1822,6 +1890,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
             state.selectedModel && typeof state.selectedModel === "object"
               ? (state.selectedModel as LanguageModel)
               : fallback.selectedModel,
+          threadModel:
+            state.threadModel &&
+            isObjectLike(state.threadModel) &&
+            !Array.isArray(state.threadModel)
+              ? (state.threadModel as Record<string, LanguageModel>)
+              : fallback.threadModel,
           permissionMode:
             state.permissionMode &&
             isObjectLike(state.permissionMode) &&

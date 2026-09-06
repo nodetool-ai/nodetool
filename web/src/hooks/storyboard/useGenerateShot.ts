@@ -46,6 +46,7 @@ import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
 import { useEntities } from "../../serverState/useEntities";
 import { useImageModelsByProvider } from "../useModelsByProvider";
 import {
+  PENDING_JOB_TTL_MS,
   subscribeDirectShotJob,
   unsubscribeShotJob,
   useStoryboardGenerationStore,
@@ -172,11 +173,16 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           kind,
           board ? { shot, board } : undefined
         );
-        await subscribeDirectShotJob(requestId, {
-          shotId: shot.id,
-          boardId,
-          kind
-        });
+        // Watched from the send, not only from a reattach. A socket that
+        // drops and reconnects without a reload — a network blip — leaves the
+        // reply addressed to a server session that is gone, exactly as a
+        // reload does, and nothing re-runs reattachment in that case. The row
+        // is the authority; the subscription just gets there faster.
+        await subscribeDirectShotJob(
+          requestId,
+          { shotId: shot.id, boardId, kind },
+          Date.now() + PENDING_JOB_TTL_MS
+        );
         try {
           await globalWebSocketManager.send({
             command: "generate_media",

@@ -4,7 +4,7 @@
   "description": "Uniform storage interface for NodeTool over local files, memory, Amazon S3, and Supabase Storage",
   "type": "module",
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=22.0.0"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

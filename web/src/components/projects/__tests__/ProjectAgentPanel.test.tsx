@@ -42,7 +42,13 @@ const chatState = {
   messageCache: {} as Record<string, unknown[]>,
   status: "connected",
   selectedModel: { provider: "anthropic", id: "claude-sonnet-5" },
-  setSelectedModel: jest.fn()
+  setSelectedModel: jest.fn(),
+  threadModel: {} as Record<string, unknown>,
+  forcedModel: null,
+  pinThreadModel: jest.fn(),
+  getSelectedModel: (threadId: string | null) =>
+    (threadId ? chatState.threadModel[threadId] : undefined) ??
+    chatState.selectedModel
 };
 jest.mock("../../../stores/GlobalChatStore", () => ({
   __esModule: true,

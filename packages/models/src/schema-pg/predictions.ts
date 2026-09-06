@@ -44,6 +44,15 @@ export const predictions = pgTable(
     thread_id: text("thread_id"),
     /** The capability call that asked, when one did. */
     tool_call_id: text("tool_call_id"),
+    /**
+     * The RPC request the client correlates on, for the `rpc` surface.
+     *
+     * A `generate_media` reply goes to the socket that asked and is dropped
+     * if that socket has gone, so a client that reloads cannot receive it.
+     * This is what lets it ask instead: the id it persisted before sending,
+     * indexed, beside the status and the assets the call produced.
+     */
+    request_id: text("request_id"),
     /** The run that asked, when one did. */
     job_id: text("job_id"),
     /** Assets the generation produced — the outcome next to the charge. */
@@ -69,6 +78,8 @@ export const predictions = pgTable(
     index("idx_prediction_user_project").on(table.user_id, table.project_id),
     index("idx_prediction_user_status").on(table.user_id, table.status),
     index("idx_prediction_user_thread").on(table.user_id, table.thread_id),
-    index("idx_prediction_job").on(table.job_id)
+    index("idx_prediction_job").on(table.job_id),
+    // Scoped by user: a lookup answers only for the caller's own rows.
+    index("idx_prediction_user_request").on(table.user_id, table.request_id)
   ]
 );

@@ -3295,12 +3295,43 @@ export const migrations: MigrationDef[] = [
     }
   },
 
+  // ── The rpc surface's request id on a generation row ─────────────────
+  // A `generate_media` reply is an `rpc_response` with no job_id and no
+  // thread_id, so it goes to the socket that asked and is dropped if that
+  // socket has gone. Recording the client's own request id here is what lets a
+  // client that reloaded ask what became of the render it can no longer
+  // receive (docs/media-generation-tracking-design.md § 5.3).
+  {
+    version: "20260906_000000",
+    name: "add_prediction_request_id",
+    createsTables: [],
+    modifiesTables: ["nodetool_predictions"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_predictions"))) return;
+      if (!(await db.columnExists("nodetool_predictions", "request_id"))) {
+        await db.execute(
+          "ALTER TABLE nodetool_predictions ADD COLUMN request_id TEXT"
+        );
+      }
+      // Scoped by user, because the lookup is: a caller reads only its own
+      // rows, so the index matches the query rather than the column alone.
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_prediction_user_request
+        ON nodetool_predictions(user_id, request_id)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_prediction_user_request");
+      // The column stays: dropping it is unsafe across dialects and versions.
+    }
+  },
+
   // ── Project membership on assets ────────────────────────────────────
   // An entity is an image asset carrying the entity marker, so its project
   // membership goes on the asset row — the same one column every document
   // table already carries. Existing rows land in the loose bucket.
   {
-    version: "20260906_000000",
+    version: "20260906_000001",
     name: "add_asset_project",
     createsTables: [],
     modifiesTables: ["nodetool_assets"],

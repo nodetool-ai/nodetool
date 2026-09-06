@@ -23,6 +23,14 @@ import { createTimelineInstance } from "../../../stores/timeline/TimelineInstanc
 import type { TimelineInstance } from "../../../stores/timeline/TimelineInstance";
 import { TimelineProvider } from "../../../stores/timeline/TimelineInstance";
 import type { TimelineStoreApi } from "../../../stores/timeline/TimelineStore";
+const lookupMock = jest.fn(async (_ids: readonly string[]) => new Map());
+jest.mock("../../../lib/websocket/lookupGenerations", () => ({
+  __esModule: true,
+  isSettled: (status: string) => status !== "running",
+  lookupGenerations: (ids: readonly string[]) => lookupMock(ids)
+}));
+
+import { __resetGenerationWatchesForTests } from "../../../lib/websocket/generationWatch";
 import { useTimelineDirectGenJob } from "../useTimelineDirectGenJob";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 
@@ -88,6 +96,9 @@ const sentData = (): Record<string, unknown> => {
 beforeEach(() => {
   sendMock.mockReset();
   sendMock.mockResolvedValue(undefined);
+  lookupMock.mockReset();
+  lookupMock.mockResolvedValue(new Map());
+  __resetGenerationWatchesForTests();
   instance = createTimelineInstance();
   doc = instance.doc;
 });
@@ -185,5 +196,55 @@ describe("useTimelineDirectGenJob request payloads", () => {
     expect(requestId).not.toBeNull();
     const frame = sendMock.mock.calls[0][0] as { request_id?: string };
     expect(frame.request_id).toBe(requestId);
+  });
+});
+
+/**
+ * A socket that drops and reconnects without a page reload — a network blip.
+ *
+ * The server session the request went to is gone, so its `rpc_response` is
+ * written to a socket that no longer exists, exactly as after a reload. But
+ * nothing re-runs reattachment here: the sequence never closed. So the send
+ * itself watches the row, and that is what settles the clip.
+ */
+describe("a live send whose reply is lost to a reconnect", () => {
+  it("settles the clip from the row, with nothing arriving on the socket", async () => {
+    jest.useFakeTimers();
+    try {
+      addClip({ id: "c-blip", bindingKind: "text-to-video", prompt: "a fox" });
+      // No sequence is loaded here, and none is needed: what is under test is
+      // that the clip settles from the row when nothing reaches the socket.
+      // The pending-store side of that is covered in
+      // `reattachSequenceJobs.test.ts`.
+      const requestId = await startClip("c-blip");
+      expect(requestId).not.toBeNull();
+      expect(doc.getState().clips.find((c) => c.id === "c-blip")?.status).toBe(
+        "generating"
+      );
+
+      lookupMock.mockResolvedValue(
+        new Map([
+          [
+            requestId as string,
+            {
+              requestId: requestId as string,
+              generationId: "gen-1",
+              status: "completed",
+              assetIds: ["asset-blip"],
+              error: null
+            }
+          ]
+        ])
+      );
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_000);
+      });
+
+      const clip = doc.getState().clips.find((c) => c.id === "c-blip");
+      expect(clip?.currentAssetId).toBe("asset-blip");
+      expect(clip?.status).toBe("generated");
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

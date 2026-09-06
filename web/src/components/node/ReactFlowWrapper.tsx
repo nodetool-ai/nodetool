@@ -328,6 +328,9 @@ const ReactFlowWrapper = ({
   const sortedKeysCache = useRef(new WeakMap<object, string>());
   const perNodeSigCache = useRef(new WeakMap<NodeData, string>());
   const prevFingerprintRef = useRef("");
+  // Node count behind `prevFingerprintRef`, so the check below never has to
+  // split that string back apart on a 60fps drag.
+  const prevFingerprintCountRef = useRef(1);
 
   // Structural fingerprint: only changes when layout-relevant fields change
   // (height, collapsed, exposed inputs, dynamic props). Position-only drag
@@ -346,7 +349,7 @@ const ReactFlowWrapper = ({
       return result;
     };
 
-    let changed = nodes.length !== prevFingerprintRef.current.split("|").length;
+    let changed = nodes.length !== prevFingerprintCountRef.current;
     const parts: string[] = [];
     for (const n of nodes) {
       let sig = sigCache.get(n.data);
@@ -372,6 +375,7 @@ const ReactFlowWrapper = ({
     if (!changed) return prevFingerprintRef.current;
     const result = parts.join("|");
     prevFingerprintRef.current = result;
+    prevFingerprintCountRef.current = parts.length;
     return result;
   }, [nodes]);
 

@@ -1,5 +1,8 @@
 import { createLogger } from "@nodetool-ai/config";
-import { invocationBelongsToApplication } from "@nodetool-ai/models";
+import {
+  invocationBelongsToApplication,
+  Prediction
+} from "@nodetool-ai/models";
 import type { RpcErrorPayload, WebSocketMode } from "@nodetool-ai/protocol";
 import { isSdkV1RetryableError } from "@nodetool-ai/protocol/api-schemas/sdk-v1.js";
 
@@ -672,6 +675,49 @@ export class CommandRouter {
       );
     },
 
+    /**
+     * What became of a set of `generate_media` requests (PRD § 7.4).
+     *
+     * A `generate_media` reply is an `rpc_response` with no `job_id` and no
+     * `thread_id`, so it is written to the socket that asked and dropped if
+     * that socket has gone. A client that reloads mid-render therefore cannot
+     * receive it by re-subscribing — the frame was already delivered to a dead
+     * socket. The generation row outlives the socket, so it asks here instead,
+     * naming the request ids it persisted before sending.
+     *
+     * Answers only for the caller's own rows, and only for the ids it named:
+     * an id with no row comes back absent, which the client reads as "still
+     * unknown" rather than as a failure.
+     */
+    lookup_generations: async ({ command, data, requestId }) => {
+      const userId = this.deps.session.requireUserId();
+      const ids = Array.isArray(data.request_ids)
+        ? data.request_ids.filter(isString)
+        : [];
+      return this.runRpc(command, requestId, async () => {
+        const rows = await Prediction.byRequestIds(userId, ids);
+        // Newest first out of the query, so the first row for an id wins and
+        // a retry's later row does not lose to the attempt it replaced.
+        const seen = new Set<string>();
+        const generations = [];
+        for (const row of rows) {
+          const id = row.request_id;
+          if (!id || seen.has(id)) {
+            continue;
+          }
+          seen.add(id);
+          generations.push({
+            request_id: id,
+            generation_id: row.id,
+            status: row.status,
+            asset_ids: row.asset_ids ?? [],
+            error: row.error ?? null
+          });
+        }
+        return { generations };
+      });
+    },
+
     generate_text: async ({ command, data, requestId }) => {
       const { defaults, inference } = this.deps;
       const provider = String(data.provider ?? defaults.provider);
@@ -800,7 +846,8 @@ export class CommandRouter {
           variations,
           voice,
           speed,
-          audioFormat
+          audioFormat,
+          requestId
         })
       );
     },

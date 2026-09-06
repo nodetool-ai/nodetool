@@ -27,6 +27,10 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       ...actual.Asset,
       find: vi.fn(),
       paginate: vi.fn()
+    },
+    Prediction: {
+      ...actual.Prediction,
+      byRequestIds: vi.fn()
     }
   };
 });
@@ -39,7 +43,7 @@ vi.mock("@nodetool-ai/config", async (orig) => {
   };
 });
 
-import { Workflow, Asset } from "@nodetool-ai/models";
+import { Workflow, Asset, Prediction } from "@nodetool-ai/models";
 import {
   NodeRegistry,
   type NodeMetadata
@@ -378,5 +382,113 @@ describe("RPC read-only commands", () => {
       expect(last.type).toBe("rpc_response");
       expect(last.request_id).toBe("r-9");
     });
+  });
+});
+
+/**
+ * The lookup a client uses to recover a render its socket could not receive.
+ *
+ * A `generate_media` reply is an `rpc_response` with no `job_id` and no
+ * `thread_id`, so it is written to the socket that asked and dropped if that
+ * socket has gone. The generation row outlives the socket, and this is how a
+ * reconnecting client reaches it: by the request ids it persisted before
+ * sending.
+ */
+describe("lookup_generations", () => {
+  let ws: MockWebSocket;
+  let runner: WebSocketClientSession;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ws = new MockWebSocket();
+    runner = makeRunner(ws);
+  });
+
+  afterEach(async () => {
+    await runner.disconnect();
+  });
+
+  const rowFor = (overrides: Record<string, unknown>) => ({
+    id: "gen-1",
+    request_id: "req-1",
+    status: "completed",
+    asset_ids: ["asset-1"],
+    error: null,
+    ...overrides
+  });
+
+  it("answers each request id with its status, assets and error", async () => {
+    (Prediction.byRequestIds as ReturnType<typeof vi.fn>).mockResolvedValue([
+      rowFor({}),
+      rowFor({
+        id: "gen-2",
+        request_id: "req-2",
+        status: "failed",
+        asset_ids: null,
+        error: "provider refused"
+      })
+    ]);
+
+    const out = await runOne(ws, runner, {
+      command: "lookup_generations",
+      request_id: "r-lookup",
+      data: { request_ids: ["req-1", "req-2"] }
+    });
+
+    expect(out.type).toBe("rpc_response");
+    expect(out.request_id).toBe("r-lookup");
+    const result = out.result as {
+      generations: Array<Record<string, unknown>>;
+    };
+    expect(result.generations).toEqual([
+      {
+        request_id: "req-1",
+        generation_id: "gen-1",
+        status: "completed",
+        asset_ids: ["asset-1"],
+        error: null
+      },
+      {
+        request_id: "req-2",
+        generation_id: "gen-2",
+        status: "failed",
+        asset_ids: [],
+        error: "provider refused"
+      }
+    ]);
+  });
+
+  // The query returns newest first, so a retry's row must win over the attempt
+  // it replaced — otherwise a re-render lands the failure it was retrying.
+  it("keeps only the newest row for a repeated request id", async () => {
+    (Prediction.byRequestIds as ReturnType<typeof vi.fn>).mockResolvedValue([
+      rowFor({ id: "gen-new", status: "completed" }),
+      rowFor({ id: "gen-old", status: "failed", asset_ids: null })
+    ]);
+
+    const out = await runOne(ws, runner, {
+      command: "lookup_generations",
+      request_id: "r-dup",
+      data: { request_ids: ["req-1"] }
+    });
+
+    const result = out.result as {
+      generations: Array<Record<string, unknown>>;
+    };
+    expect(result.generations).toHaveLength(1);
+    expect(result.generations[0]?.generation_id).toBe("gen-new");
+  });
+
+  it("asks for nothing and answers empty when given no ids", async () => {
+    (Prediction.byRequestIds as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    const out = await runOne(ws, runner, {
+      command: "lookup_generations",
+      request_id: "r-none",
+      data: {}
+    });
+
+    expect((out.result as { generations: unknown[] }).generations).toEqual([]);
+    expect(Prediction.byRequestIds).toHaveBeenCalledWith(expect.any(String), []);
   });
 });

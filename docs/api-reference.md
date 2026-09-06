@@ -69,6 +69,8 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Apps      | `/api/applications/examples/{slug}` | `GET`           | none                                           | no                          | One example's full `ApplicationBundle`; `404` when the slug names nothing shipped |
 | Apps      | `/api/applications/examples/{slug}/install` | `POST`  | Depends on `AUTH_PROVIDER`                     | no                          | Install an example into the caller's library, creating the workflows it binds |
 | Storyboards | `/api/storyboards/{id}/export-zip` | `GET`           | Depends on `AUTH_PROVIDER`                     | no                          | One board as a zip of Markdown plus its stills and clips; `404` when the caller does not own it |
+| Timelines | `/api/timelines/{id}/export-zip`   | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | One sequence and the bytes of every asset its clips name, as a zip; `404` when the caller does not own it |
+| Timelines | `/api/timelines/import-zip`       | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Multipart upload of such a zip; stores the assets and creates a new timeline pointing at them |
 | Providers | `/api/fal/credits`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The server's fal.ai account balance; `204` when no `FAL_API_KEY` is configured |
 | Providers | `/api/fal/pricing`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Unit price per fal.ai endpoint, one or more `?endpoint_id=`; cached an hour |
 | Providers | `/api/fal/pricing/estimate`       | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | What a fal.ai endpoint costs for a given quantity; `204` when no `FAL_API_KEY` is configured |
@@ -760,6 +762,93 @@ A bundle that cannot be unpacked, or a graph the workflow API rejects, is a
 `400` (`{"detail": "Invalid bundle: …"}`). The import is not transactional, so a
 bundle that fails partway can leave the workflows created before the failure
 behind.
+
+### Moving Timelines Between Servers
+
+A timeline zip is the same idea for a cut: `manifest.json`, `timeline.json`, and
+the bytes of every asset the clips point at under `assets/`, so a sequence
+arrives with its media instead of dangling asset ids.
+
+`GET /api/timelines/{id}/export-zip` packs one sequence:
+
+```bash
+curl "http://localhost:7777/api/timelines/<timeline_id>/export-zip" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -o my-cut.zip
+```
+
+The response is `application/zip` with
+`content-disposition: attachment; filename="<timeline name>.zip"` — the name
+with everything outside `A-Za-z0-9._-` replaced by `_`. A timeline the caller
+does not own is a `404` with `{"detail": "Timeline not found"}`, the same answer
+as an id that does not exist.
+
+`timeline.json` is the sequence wire shape without its id, project, owner, and
+timestamps. `manifest.json` maps each asset id in that document to the file
+holding its bytes, and records what the archive could not carry:
+
+```json
+{
+  "format": "nodetool-timeline-bundle",
+  "version": 1,
+  "created_at": "2026-09-06T09:12:03.114Z",
+  "timeline": { "file": "timeline.json", "name": "My Cut" },
+  "assets": [
+    {
+      "file": "assets/9f2c….mp4",
+      "asset_id": "3c1a…",
+      "name": "shot.mp4",
+      "content_type": "video/mp4",
+      "bytes": 4813222,
+      "sha256": "9f2c…"
+    }
+  ],
+  "missing_assets": [],
+  "fonts": ["Inter"],
+  "foreign_refs": {
+    "workflow_ids": [],
+    "storyboard_ids": [],
+    "script_ids": [],
+    "job_ids": []
+  }
+}
+```
+
+Asset files are content-addressed, so two clips sharing bytes pack one file.
+`fonts` names the families the document's titles and captions ask for — fonts
+ship with the app, so none are packed. `foreign_refs` names ids that mean
+something only on the exporting install (workflows, storyboards, scripts, jobs);
+import carries them through untouched rather than trying to resolve them.
+
+`POST /api/timelines/import-zip` reads the zip back as a multipart form. `file`
+is required; `project_id` defaults to `"default"` (no project) and `name`
+overrides the name in the bundle:
+
+```bash
+curl -X POST "http://localhost:7777/api/timelines/import-zip" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@my-cut.zip" \
+  -F "project_id=<project_id>"
+```
+
+```json
+{
+  "timeline": { "id": "8f1c…", "projectId": "default", "name": "My Cut", "clips": [] },
+  "imported": 1,
+  "missing": [],
+  "checksum_mismatches": []
+}
+```
+
+Import always creates a new timeline under the caller — it never overwrites an
+existing one. Every asset is stored fresh and the clip fields that named the old
+ids (`currentAssetId`, `thumbnailAssetId`, `waveformAssetId`, and each
+`versions[].assetId`) are rewritten to the new ones. `imported` counts the
+assets stored, `missing` names ids the archive carried no bytes for — those keep
+their original value and stay dangling — and `checksum_mismatches` names files
+that did not hash to what the manifest recorded. Neither list is fatal. An
+archive that cannot be unpacked, or a document the timeline schema rejects, is a
+`400` (`{"detail": "Invalid bundle: …"}`).
 
 ### Fetching a Shipped Example's Graph
 

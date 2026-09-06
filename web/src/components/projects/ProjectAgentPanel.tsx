@@ -27,6 +27,7 @@ import ChatView from "../chat/containers/ChatView";
 import useGlobalChatStore, {
   useThreadRuntime
 } from "../../stores/GlobalChatStore";
+import useThreadModel from "../../hooks/chat/useThreadModel";
 import type { Message, MessageContent } from "../../stores/ApiTypes";
 import { trpc } from "../../trpc/client";
 import {
@@ -103,10 +104,10 @@ const ProjectAgentPanel = ({
   // Subscribed narrowly so a reconnect re-runs the first-turn effect below: a
   // turn refused with `not_connected` stays staged and has no other trigger.
   const connectionStatus = useGlobalChatStore((state) => state.status);
-  const selectedModel = useGlobalChatStore((state) => state.selectedModel);
-  const setSelectedModel = useGlobalChatStore(
-    (state) => state.setSelectedModel
-  );
+  // The project's conversation keeps its own model, independent of the chat
+  // tabs and the other assistant panels.
+  const { model: selectedModel, setModel: setSelectedModel } =
+    useThreadModel(threadId);
 
   // The shared chat socket is a singleton; other mounted surfaces depend on
   // it, so this never disconnects on unmount.
