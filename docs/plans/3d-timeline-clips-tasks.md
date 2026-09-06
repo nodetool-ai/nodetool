@@ -27,7 +27,7 @@ M1: T1 (schema) ──► T2 (scene model + channels)   T3 (render session) is i
     T2 + T3 ──► T5 (agent frames on the server)
     T1 + T2 ──► T6 (ops, tools, capabilities)
 M2: T4 ──► T7 (add clip, drag-and-drop)   T4 + T6 ──► T8 (inspector)   T4 ──► T9 (lane thumbnails, clip frames)   T8 ──► T10 (preview orbit)
-M3: T6 + T8 ──► T11 (bake)   every task ──► T12 (docs, harness registry)
+M3: T6 + T8 ──► T11 (opaque bake)   T11 ──► T13 (alpha bake)   every task ──► T12 (docs, harness registry)
 ```
 
 ---
@@ -92,7 +92,8 @@ camera channels, and offers an `orbit` preset.
    `sourceTimeSec` (from `clipSourceTimeSec` times `animation.speed`).
 2. In `computeActiveLayersWithHorizon`, a `model3d` clip with a fresh bake
    (hash matches, T1's function) emits a `video` layer with
-   `assetId = bake.assetId`; otherwise a `model3d` layer with
+   `assetId = bake.assetId` and `bakeSourceTimeSec = (timeMs - clip.startMs) / 1000`
+   (design §D6, time origin); otherwise a `model3d` layer with
    `assetId = effectiveAssetId(clip)`. Count live `model3d` layers against
    `MAX_MODEL3D_LAYERS = 2`; over it, push a dropped layer with the new
    reason `model3d_layer_cap`.
@@ -110,8 +111,10 @@ camera channels, and offers an `orbit` preset.
 
 - `packages/timeline/tests/sceneModel*.test.ts`: a `model3d` clip yields a
   `model3d` layer with the right `sourceTimeSec` after a trim and a 2x speed;
-  a fresh bake yields a `video` layer; a stale bake yields `model3d`; a third
-  active 3D clip is dropped with `model3d_layer_cap`.
+  a fresh bake yields a `video` layer whose `bakeSourceTimeSec` is 0 at the
+  clip's first frame for a clip with a 5 s in point and a 2x speed; a stale
+  bake yields `model3d`; a third active 3D clip is dropped with
+  `model3d_layer_cap`.
 - Animation tests: `orbit` over a 4 s clip samples `cameraAzimuth` 180 at 2 s;
   a keyframed `cameraZoom` folds multiplicatively with the style's zoom in
   `resolveModel3DCamera`.
@@ -131,11 +134,14 @@ and `orbitOffset`).
 **Steps:**
 
 1. Split `renderGlbToPng` into `createModel3DRenderSession(glb, options)`
-   (load, meshopt, bounding sphere, lights, background, renderer, mixer) and
-   `session.render(frame)` (camera from `ClipModel3DCamera` through the
+   (load, meshopt, bounding sphere, lights, background, renderer, mixer with
+   the actions `options.animation` selects: the named clip, or every clip)
+   and `session.render(frame)` (camera from `ClipModel3DCamera` through the
    existing `computeFraming` and `orbitOffset`, `scene` mode picks the named
-   glTF camera, `mixer.setTime(frame.timeSec)`, render, return the canvas).
-   `session.animations` and `session.cameras` list the glTF's names.
+   glTF camera, `mixer.setTime(t)` with `t` wrapped at the selected actions'
+   longest duration when `loop` is on and clamped to it when off, render,
+   return the canvas). `session.animations` and `session.cameras` list the
+   glTF's names; an unknown `clipName` throws naming the available ones.
    `renderGlbToPng` becomes create, render once, `convertToBlob`, dispose.
 2. `render3d-page.ts`: `__nodetoolRenderGlbFrames(glbBase64, options, frames[])`
    returns one PNG per frame from one session.
@@ -148,9 +154,14 @@ and `orbitOffset`).
 
 - Existing `RenderToImage` tests pass unchanged.
 - New unit test on the pure part: `scene` mode with an unknown camera name
-  throws a message naming the available cameras; `frames` with two times on
-  an animated fixture yield two different PNGs (the existing headless test
-  harness, skipped without Chrome the way the current one is).
+  throws a message naming the available cameras; the loop and clamp time
+  mapping is a pure function (`mixerTimeFor(t, duration, loop)`) tested at
+  `t` past the end for both modes.
+- Headless tests on a fixture with two named animations (the existing
+  harness, skipped without Chrome the way the current one is): selecting
+  each name yields a different PNG at the same time; loop off at 1.5x the
+  duration equals the last frame; rendering `t = 0.2` after `t = 5` equals
+  rendering `t = 0.2` first.
 
 ### T4 — Browser layer source, preview, export
 
@@ -169,10 +180,12 @@ resolver it builds, `OffscreenVideoPool` usage), `render/TimelineRenderer.ts`
    (`copyExternalImageToTexture` and `drawImage` both take one). Add the
    test in `preview/gpu/__tests__/` that a canvas source composites.
 2. `preview/Model3DLayerSource.ts`: a pool keyed by clip id, cap 2, of
-   `{ session, assetId }`. `acquire(layer)` fetches the GLB by asset URL,
-   caches parsed bytes per asset id (least recently used, small cap), creates
-   the session with the style's lighting and background, and returns null
-   while loading. `frame(layer, anim)` calls `resolveModel3DCamera` and
+   `{ session, assetId, options: Model3DSessionOptions }`. `acquire(layer)`
+   fetches the GLB by asset URL, caches parsed bytes per asset id (least
+   recently used, small cap), creates the session from the style's lighting,
+   intensity, background and animation, and returns null while loading. A
+   layer whose asset id or session options differ from the pooled entry's
+   disposes it and creates a new one. `frame(layer, anim)` calls `resolveModel3DCamera` and
    `session.render` and returns the canvas. `release(clipId)` disposes.
    No WebGL is a `Model3DUnavailable` state the preview draws as an
    outlined placeholder with the clip name.
@@ -185,7 +198,8 @@ resolver it builds, `OffscreenVideoPool` usage), `render/TimelineRenderer.ts`
 
 - A Jest test for `Model3DLayerSource` with a mocked session: the pool
   evicts at cap, returns null while loading, reuses a session across frames,
-  and reports unavailable without WebGL.
+  re-creates the session when the clip's background or lighting changes and
+  not when only the camera changes, and reports unavailable without WebGL.
 - Manual: drop a GLB on an overlay track over a video clip, scrub, play,
   export, and the exported MP4 shows the model at the same pose as the
   preview at 1 s and 3 s (compare with `compare_timeline_frames` against
@@ -205,10 +219,10 @@ Chromium and reports them.
 **Steps:**
 
 1. Before compositing, walk the requested timecodes, collect every
-   `model3d` layer, group by asset id, and call `renderGlbFramesHeadless`
-   once per asset with the folded camera and `sourceTimeSec` per frame. Cache
-   the decoded images by `(assetId, style hash, camera, timeSec)` for the
-   call.
+   `model3d` layer, group by asset id plus `Model3DSessionOptions` (lighting,
+   intensity, background, animation), and call `renderGlbFramesHeadless` once
+   per group with the folded camera and `sourceTimeSec` per frame. Cache the
+   decoded images by `(group key, camera, timeSec)` for the call.
 2. The resolver's `model3d` branch returns the decoded image; `layerText`
    style reporting gains `camera` and `animation_time_sec` on the layer
    report.
@@ -219,8 +233,9 @@ Chromium and reports them.
 
 - `packages/agents/tests/timeline-model3d-frames.test.ts` with the headless
   call mocked: two timecodes and one asset make one call with two frames;
-  the report lists the layer with its camera; a rejected launch yields the
-  degradation and a frame without the layer.
+  two clips on the same asset with different backgrounds make two calls with
+  their own options; the report lists the layer with its camera; a rejected
+  launch yields the degradation and a frame without the layer.
 - The real headless path runs under the same Chrome-gated skip as the
   `RenderToImage` test.
 
@@ -319,27 +334,79 @@ documented degrees-per-pixel and produces one store patch.
 
 ## Milestone 3 — Bake and documentation
 
-### T11 — Bake with Blender
+### T11 — Opaque bake with Blender
 
-**Read first:** design §D6. `packages/blender-nodes/src/nodes/render-animation.ts`,
-`job.ts` (camera vocabulary, `orbit_degrees`), `packages/timeline/src/dependencyHash.ts`,
+**Read first:** design §D6 in full. `packages/blender-nodes/src/nodes/render-animation.ts`,
+`job.ts` (`RenderAnimationParams`, `orbit_degrees`),
+`packages/blender-nodes/blender_ops/ops/render_animation.py` (`run`, the
+`not animated and mode == "orbit"` branch), `packages/timeline/src/dependencyHash.ts`,
+`web/src/components/timeline/render/TimelineRenderer.ts` and
+`preview/PreviewCompositor.tsx` (the video seek),
 `web/src/stores/timeline/TimelineGenerationStore.ts` (how a generated clip
 registers a job and stores a version).
 
 **Steps:**
 
-1. `computeModel3DBakeHash(clip)` in `packages/timeline`: style, asset id,
-   and the camera curves.
-2. `bake_model3d_clip` op: refuses with a message when the clip has custom
-   camera keyframes; otherwise builds the `RenderAnimation` params (orbit
-   terms, `orbit_degrees` from the `orbit` preset or 0, fps, frame range,
-   transparent) and runs it as a generation job; on completion stores
-   `model3dStyle.bake` and a clip version.
-3. Inspector Bake row: run, progress, stale badge from `bake_stale`.
+1. Blender prerequisite: `render_animation.py` keyframes the orbit camera
+   whenever `camera_mode == "orbit"`, animated model or not, and the model's
+   animation plays underneath; `orbit_degrees: 0` is a held orbit camera.
+   Update the op's docstring and `job.ts` comment, which say the sweep runs
+   only without glTF animation.
+2. `computeModel3DBakeHash(clip, sequence)` in `packages/timeline`, covering
+   exactly the inputs design §D6 lists and nothing from `bake` itself.
+   Replace T1's placeholder.
+3. Both video resolvers seek by `layer.bakeSourceTimeSec` when present, and
+   by `clipSourceTimeSec` otherwise.
+4. `bake_model3d_clip` op: refuses a transparent style (until T13) and a
+   clip with custom camera keyframes, each with a message naming the reason;
+   otherwise builds the `RenderAnimation` params (camera mode and orbit terms
+   from the style, `orbit_degrees` from the `orbit` preset or 0, fps, width
+   and height from the sequence, frame range from the clip's evaluated
+   duration) and runs it as a generation job; on completion stores
+   `model3dStyle.bake` with the hash and a clip version.
+5. Inspector Bake row: run, progress, stale badge from `bake_stale`.
 
-**Acceptance:** a test that a style edit after a bake makes the scene model
-emit the live layer again; a test that the op refuses keyframed cameras with
-the reason; the capability suite bakes a fixture with the runner mocked.
+**Acceptance:**
+
+- Scene model: after a bake, changing the in point, the speed, the time
+  remap, the duration or the sequence fps makes the layer live again;
+  changing the clip's start or opacity does not.
+- Resolver test (mocked video pool): a baked clip with a 5 s in point seeks
+  the bake to 0 at the clip's first frame and to 1 s one second later.
+- The op refuses a transparent style and a keyframed camera, each with the
+  reason.
+- Blender op test (skipped without `BLENDER_BIN`, the way the existing ones
+  are): an animated fixture with `orbit_degrees: 180` renders frames whose
+  camera location differs between the first, middle and last frame, and the
+  stats name the orbit camera.
+- The capability suite bakes an opaque fixture with the runner mocked.
+
+### T13 — Transparent bake
+
+**Read first:** design §D6 output format. `render_animation.py`,
+`packages/video-nodes/src/nodes/timeline/outputFormats.ts` (the `webm`
+VP9 `yuva420p` entry), `packages/video-nodes/src/nodes/ffmpeg-helpers.ts`,
+`packages/blender-nodes/blender_ops/ops/render_passes.py` (RGBA PNG output).
+
+**Steps:**
+
+1. `render_animation` gains an `output: "mp4" | "png_sequence"` param; the
+   sequence path writes RGBA PNGs with `film_transparent` into the job's
+   output directory.
+2. The bake op, for a transparent style, runs the sequence render and then
+   ffmpeg to WebM VP9 `yuva420p` through the existing helper, and stores that
+   asset.
+3. The browser video resolvers treat a decode error or a bake whose first
+   frame reports no alpha as `bake_undecodable`: the live layer draws and the
+   degradation is reported.
+
+**Acceptance:**
+
+- A test that composites a baked transparent fixture over a solid color
+  through the export path and asserts the background color is visible in a
+  pixel the model does not cover.
+- The op no longer refuses a transparent style.
+- A mocked decode failure yields `bake_undecodable` and the live layer.
 
 ### T12 — Documentation and harness registry
 

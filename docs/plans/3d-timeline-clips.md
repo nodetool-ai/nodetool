@@ -154,17 +154,36 @@ export interface Model3DRenderSession {
   dispose(): void;
 }
 
+/** Everything a session fixes at creation. Two layers share a session only
+ * when these are equal, so the key of every pool and every headless group is
+ * `assetId` plus this object, never `assetId` alone. */
+export interface Model3DSessionOptions {
+  lighting: ClipModel3DStyle["lighting"];
+  lightIntensity: number;
+  background: ClipModel3DStyle["background"];
+  animation: ClipModel3DAnimation;
+}
+
 export function createModel3DRenderSession(
   glb: Uint8Array,
-  options: { lighting; lightIntensity; background }
+  options: Model3DSessionOptions
 ): Promise<Model3DRenderSession>;
 ```
+
+`animation` selects the mixer's actions: `clipName` plays that one glTF
+animation, absent plays all of them. `render` sets absolute time, so a scrub
+backwards after the end is a plain `setTime`. With `loop` on, the time wraps at
+the longest selected animation's duration; off, it clamps to the last frame.
+A style edit to any session option disposes the session and creates a new
+one, in the browser pool and in the headless group alike, because a mixer
+whose actions were rebuilt mid-session is the same picture as a fresh one and
+harder to prove.
 
 `renderGlbToPng` becomes a one-frame call on a session, so `RenderToImage`
 keeps its behavior and its tests. The hosts:
 
-1. **Live preview and browser export.** `web/src/components/timeline/preview/Model3DLayerSource.ts` holds a session per active `model3d` layer, keyed by clip id, in a pool capped like the video pool (a WebGL context per session, browsers allow about sixteen). It loads the GLB through the asset URL, caches parsed scenes per asset id, and its resolver returns the session's canvas as the layer's `CompositeSource`. `CompositeSource` grows an `OffscreenCanvas` member; the WebGPU compositor's `copyExternalImageToTexture` and the Canvas2D fallback both take one directly, so there is no per-frame bitmap transfer. Export steps the same resolver at exact frame times, so it is deterministic.
-2. **Agent frames.** `frames.ts` gathers the `model3d` layers across every requested timecode, groups them by asset, and renders each group in one headless Chromium page through a new `renderGlbFramesHeadless` (one launch, N frames, PNG each). The PNGs decode with `@napi-rs/canvas` `loadImage` and join the layer list like a rasterized shape. No Chrome on the host is a `PreviewDegradation` with reason `model3d_unavailable`; the layer is left out and the report says so, so an agent never mistakes a missing renderer for an empty clip.
+1. **Live preview and browser export.** `web/src/components/timeline/preview/Model3DLayerSource.ts` holds a session per active `model3d` layer, keyed by clip id and re-created when the clip's asset or session options change, in a pool capped like the video pool (a WebGL context per session, browsers allow about sixteen). It loads the GLB through the asset URL, caches parsed scenes per asset id, and its resolver returns the session's canvas as the layer's `CompositeSource`. `CompositeSource` grows an `OffscreenCanvas` member; the WebGPU compositor's `copyExternalImageToTexture` and the Canvas2D fallback both take one directly, so there is no per-frame bitmap transfer. Export steps the same resolver at exact frame times, so it is deterministic.
+2. **Agent frames.** `frames.ts` gathers the `model3d` layers across every requested timecode, groups them by asset id plus `Model3DSessionOptions`, and renders each group in one headless Chromium page through a new `renderGlbFramesHeadless` (one launch, N frames, PNG each). The PNGs decode with `@napi-rs/canvas` `loadImage` and join the layer list like a rasterized shape. No Chrome on the host is a `PreviewDegradation` with reason `model3d_unavailable`; the layer is left out and the report says so, so an agent never mistakes a missing renderer for an empty clip.
 3. **Clip frames for the agent in the browser** (`ui_timeline_get_clip_frames`, `rasterClipFrames.ts`) and **lane thumbnails** use host 1's source.
 4. **Bake** (D6) is Blender, not the session, and is the only host that draws with a different renderer.
 
@@ -174,19 +193,51 @@ lighting match to the pixel, the way text does today.
 ### D6. Bake with Blender for final quality
 
 A "Bake" action in the inspector and a `bake_model3d_clip` op run
-`nodetool.blender.RenderAnimation` with `camera_mode` and the orbit terms
-derived from `model3dStyle`, `fps` and frame range from the sequence and the
-clip, and `transparent` from the style. The result is stored in
-`model3dStyle.bake` with the `dependencyHash` of the style, the asset and the
-camera curves. The scene model emits a `video` layer from `bake.assetId` while
-the hash matches and the live `model3d` layer otherwise, so a stale bake is
-never played silently. The clip's existing version history holds the bakes.
+`nodetool.blender.RenderAnimation` and store the result in
+`model3dStyle.bake`. The scene model emits a `video` layer from `bake.assetId`
+while `bake.dependencyHash` matches the live document and the live `model3d`
+layer otherwise, so a stale bake is never played silently. The clip's existing
+version history holds the bakes.
 
-Blender's orbit sweep is constant speed, so a bake reproduces the `orbit`
-preset and a static camera exactly and approximates arbitrary camera keyframes
-by sampling them into a camera path. That sampling is a second Blender job
-option and its own task; until it ships, the bake action refuses a clip with
-custom camera keyframes and says why.
+**Time origin.** A bake is the clip's evaluated picture, clip-local: frame `i`
+of the video is what the live layer draws at timeline time
+`clip.startMs + i / fps`, with in point, speed, time remap, `animation.speed`
+and the camera curves already applied. The scene model therefore emits the
+baked `video` layer with `bakeSourceTimeSec = (timeMs - clip.startMs) / 1000`
+and both video resolvers seek by that field when it is present instead of
+`clipSourceTimeSec(clip, timeMs)`. A trimmed clip whose source starts at 5 s
+bakes into a video that starts at 0 s and plays from 0 s.
+
+**Dependency hash.** `computeModel3DBakeHash(clip, sequence)` covers every
+input the picture depends on: `model3dStyle` without `bake`, the asset id, the
+clip's animations (the camera curves and the `orbit` preset among them),
+`inPointMs`, `outPointMs`, `durationMs`, `speed`, the time remap, and the
+sequence's fps, width and height. A change to any of them makes the bake
+stale; a change to the clip's start, track, transform, opacity, effects, mask
+or matte does not, because those apply to the baked layer the way they apply
+to any video.
+
+**Output format.** The Blender op writes MP4/H.264 in `yuv420p`, which has no
+alpha. An opaque bake (`background.transparent === false`) uses it unchanged.
+A transparent bake needs a second path: Blender renders an RGBA PNG sequence
+with `film_transparent`, and ffmpeg (the bounded runner the timeline node
+already uses) encodes it to WebM VP9 `yuva420p`, the same alpha format
+`packages/video-nodes/src/nodes/timeline/outputFormats.ts` already declares.
+Until that path ships, `bake_model3d_clip` refuses a transparent style and
+says so. A browser that cannot decode the alpha bake (the video element errors
+or reports no alpha) falls back to the live layer with a
+`bake_undecodable` degradation rather than drawing an opaque box over footage.
+
+**Camera.** Blender's orbit is keyframed only when the model has no animation
+of its own (`render_animation.py`, the `not animated and mode == "orbit"`
+branch), so an animated model with the `orbit` preset would bake without its
+camera move. The bake task adds a Blender-side prerequisite: `orbit_degrees`
+drives the orbit camera whether or not the model is animated, with the model's
+animation playing underneath. A static camera bakes through `camera_mode:
+orbit` with `orbit_degrees: 0`, the `orbit` preset through its degrees, and a
+`scene` camera through `camera_mode: scene`. Custom camera keyframes need a
+sampled camera path the job does not accept yet; the op refuses them and
+names the reason.
 
 ### D7. Editing surface
 
@@ -209,6 +260,7 @@ custom camera keyframes and says why.
 - **R3. Server preview latency.** One Chromium launch per `preview_timeline_frame` call with 3D layers, about a second, then per-frame render under SwiftShader. Acceptable for a tool that returns a handful of frames; the report carries the render time.
 - **R4. Large models.** A GLB is fetched and parsed once per asset per session pool and evicted least recently used. The inspector shows a loading state until the session resolves.
 - **R5. Bake fidelity.** Blender's lighting presets and three's are not the same picture. The bake is the intended look, the live layer is the proxy, and the inspector says so.
+- **R6. Alpha bakes in the browser.** VP9 with alpha decodes in Chromium and Firefox and not in Safari. The `bake_undecodable` fallback keeps the live layer on screen there, and the export still runs in Chromium.
 
 ## Rollout
 
@@ -216,7 +268,8 @@ custom camera keyframes and says why.
 2. Scene model kind, camera channels, orbit preset, browser layer source: a dropped GLB previews and exports.
 3. Agent frames on the server, ops and tools, capability suites.
 4. Inspector, add menu, drag-and-drop, lane thumbnails, preview orbit gesture.
-5. Bake with Blender.
+5. Opaque bakes with Blender, with the orbit-on-animated-model prerequisite.
+6. Transparent bakes through the PNG sequence and ffmpeg.
 
 Steps 1 and 2 are a shippable slice: a glTF asset on an overlay track,
 rendered over footage with a transparent background, its animation scrubbed
