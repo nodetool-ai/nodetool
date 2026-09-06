@@ -1,7 +1,7 @@
 # 3D Clips on the Timeline — Technical Design
 
 Status: implemented. The editing surface is documented in
-[web/src/components/timeline/README.md](../../web/src/components/timeline/README.md)
+[web/src/components/timeline/README.md](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/timeline/README.md)
 § 3D clips, the agent surface in
 [docs/harnesses.md](../harnesses.md#3d-clips-in-preview_timeline_frame)
 § 3D clips in preview_timeline_frame.
