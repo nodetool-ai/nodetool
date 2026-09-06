@@ -75,13 +75,18 @@ export function DocumentListPanel<T extends DocumentListPanelDocument>({
     const filtered = needle
       ? all.filter((item) => item.name.toLowerCase().includes(needle))
       : all;
-    const sorted = [...filtered].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
+    // Parsed once per row instead of twice per comparison — this whole pass
+    // re-runs on every keystroke in the filter box.
+    const sorted = filtered
+      .map((item) => ({ item, updatedAt: Date.parse(item.updatedAt) }))
+      .sort((a, b) => b.updatedAt - a.updatedAt);
 
+    // One `now` for the whole pass; `groupByDate` otherwise builds a fresh
+    // Date per row.
+    const now = new Date();
     let currentGroup = "";
-    return sorted.map((item) => {
-      const group = groupByDate(item.updatedAt);
+    return sorted.map(({ item }) => {
+      const group = groupByDate(item.updatedAt, now);
       const showHeader = group !== currentGroup;
       currentGroup = group;
       return { item, group, showHeader };
