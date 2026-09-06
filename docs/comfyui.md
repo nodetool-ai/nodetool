@@ -418,6 +418,13 @@ the authoritative field reference is `docs/comfy-proxy.md` in `nodetool-core`.
 - **On the bridge path the worker node does not stream outputs.** It returns
   everything on completion. The v2 path yields each file as it lands, like the
   direct and Cloud nodes.
+- **Cancelling a NodeTool run does not stop a worker run on the bridge path.**
+  The direct node posts `/interrupt`, and the Cloud node and both v2 paths call
+  the job's cancel. The bridge path calls `comfy.execute` without a request id
+  and wires no abort listener, so `cancelComfyExecute` is never sent: the prompt
+  runs to completion on the worker while NodeTool stops listening. Since every
+  shipped worker image takes the bridge path, treat a worker run as
+  uncancellable and use the `timeout` property to bound it.
 - **`include_temp` is not exposed on either node.** The bridge supports it
   (`ComfyExecuteOptions.includeTemp`), so preview-node outputs can be fetched
   from code, but no node property surfaces it.
