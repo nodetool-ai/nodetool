@@ -331,6 +331,23 @@ describe("harness gate", () => {
     expect(plan.unmappedFiles).toEqual([]);
   });
 
+  it("maps a 3D-render change onto the render session and preview-frame suites", () => {
+    const plan = planGate([
+      "packages/video-nodes/src/nodes/model3d/render3d-core.ts"
+    ]);
+    expect(plan.surfaces.map((s) => s.id)).toContain("timeline-model3d");
+    const check = plan.checks.find((c) => c.harnessId === "timeline-model3d");
+    expect(check).toBeDefined();
+    expect(check!.command).toContain("packages/video-nodes -- model3d-render");
+    expect(check!.command).toContain("packages/agents -- timeline-model3d-frames");
+  });
+
+  it("leaves the 3D suites out of a diff that does not touch them", () => {
+    const plan = planGate(["packages/video-nodes/src/nodes/timeline/outputFormats.ts"]);
+    expect(plan.surfaces.map((s) => s.id)).not.toContain("timeline-model3d");
+    expect(plan.checks.map((c) => c.harnessId)).not.toContain("timeline-model3d");
+  });
+
   it("claims every packages/timeline file for the timeline surface", () => {
     const plan = planGate([
       "packages/timeline/src/script-link.ts",
