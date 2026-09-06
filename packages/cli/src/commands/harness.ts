@@ -25,7 +25,8 @@ import {
 } from "../harness/registry.js";
 import {
   auditCapabilityCoverage,
-  planCapabilityMappingGate
+  planCapabilityMappingGate,
+  resolveGateBaseRef
 } from "../harness/capability-coverage.js";
 import { CAPABILITY_COVERAGE } from "../harness/capability-table.js";
 import { declaredCapabilities } from "../harness/declared-capabilities.js";
@@ -472,13 +473,16 @@ async function capabilityMappingViolations(
   const { readFileSync } = await import("node:fs");
   const { join } = await import("node:path");
 
+  const git = (command: string): string =>
+    execSync(command, {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    });
+
   const atRef = (ref: string): string | null => {
     try {
-      return execSync(`git show ${ref}:${CAPABILITY_TABLE_PATH}`, {
-        cwd: repoRoot,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"]
-      });
+      return git(`git show ${ref}:${CAPABILITY_TABLE_PATH}`);
     } catch {
       // The table does not exist at that ref — every entry is new.
       return null;
@@ -493,7 +497,7 @@ async function capabilityMappingViolations(
     return [];
   }
   return planCapabilityMappingGate(
-    atRef(baseRef),
+    atRef(resolveGateBaseRef(baseRef, git)),
     working,
     changedFiles
   ).violations.map((v) => v.detail);

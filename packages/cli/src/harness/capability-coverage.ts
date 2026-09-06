@@ -313,6 +313,27 @@ export interface CapabilityMappingGateResult {
 }
 
 /**
+ * Which commit to read the base table from: the merge base of `ref` and HEAD,
+ * not `ref`'s tip. A branch that is merely behind otherwise inherits every
+ * contract that moved on the base branch since it forked — a refactor that
+ * touched no capability at all failed on `list_entities`, `create_entity` and
+ * `update_entity`, which had gained a `project_id` field on `main` meanwhile.
+ * The changed-file half of the gate already asks `base...HEAD`; this asks the
+ * same question of one file. Falls back to `ref` when there is no merge base
+ * (a shallow clone, an unrelated ref).
+ */
+export function resolveGateBaseRef(
+  ref: string,
+  runGit: (command: string) => string
+): string {
+  try {
+    return runGit(`git merge-base ${ref} HEAD`).trim() || ref;
+  } catch {
+    return ref;
+  }
+}
+
+/**
  * Compare the table at two refs. A capability that is new, or whose coverage
  * fields changed, satisfies the rule by construction; a contract that moved
  * while the mapping stood still does not.
