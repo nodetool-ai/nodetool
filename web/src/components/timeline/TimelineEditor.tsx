@@ -48,6 +48,8 @@ import {
   MOTION
 } from "../ui_primitives";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { exportTimelineZip } from "../../utils/timelineBundle";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
@@ -562,6 +564,26 @@ const TimelineEditorBody: React.FC<
     [exportVideo, sequence?.name]
   );
 
+  // Whole-project archive: the server packs the saved document plus every
+  // asset it references, so unsaved local edits are not in the zip.
+  const [isExportingBundle, setIsExportingBundle] = useState(false);
+  const handleExportBundle = useCallback(() => {
+    if (!sequenceId) return;
+    setIsExportingBundle(true);
+    exportTimelineZip(sequenceId, sequence?.name || "timeline")
+      .catch((error: unknown) => {
+        useNotificationStore.getState().addNotification({
+          type: "error",
+          alert: true,
+          dismissable: true,
+          content: `Project download failed. ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        });
+      })
+      .finally(() => setIsExportingBundle(false));
+  }, [sequenceId, sequence?.name]);
+
   // "Save as Asset" — anchor the folder chooser to the TopBar button, then
   // render the timeline into a new asset in the chosen folder.
   const [saveAssetAnchor, setSaveAssetAnchor] = useState<HTMLElement | null>(
@@ -779,6 +801,8 @@ const TimelineEditorBody: React.FC<
       <TopBar
         onExportVideo={sequenceUnavailable ? undefined : handleExportVideo}
         isExporting={isExporting}
+        onExportBundle={sequenceUnavailable ? undefined : handleExportBundle}
+        isExportingBundle={isExportingBundle}
         onSave={sequenceUnavailable ? undefined : handleSave}
         isSaving={isSaving}
         onSaveToAssets={sequenceUnavailable ? undefined : handleSaveToAssets}

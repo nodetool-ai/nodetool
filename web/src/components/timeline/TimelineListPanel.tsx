@@ -1,7 +1,8 @@
 import AddIcon from "@mui/icons-material/Add";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
-import { memo, useCallback, useState } from "react";
-import type { DragEvent } from "react";
+import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
+import { memo, useCallback, useRef, useState } from "react";
+import type { ChangeEvent, DragEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useCreateTimeline, useTimelines } from "../../hooks/useTimelineSequence";
@@ -18,8 +19,11 @@ import {
 } from "../../hooks/useSidebarDocumentMenu";
 import { trpc } from "../../trpc/client";
 import { notifyMutationError } from "../../utils/notifyMutationError";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { importTimelineZip } from "../../utils/timelineBundle";
 import {
   DocumentListPanel,
+  FlexRow,
   ListPanelItem,
   ToolbarIconButton,
   Tooltip,
@@ -192,16 +196,91 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
     }
   }, [createTimeline, location.pathname, navigate, openTab, setVisibility]);
 
+  const utils = trpc.useUtils();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleImportClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleImportFile = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (!file) return;
+      setIsImporting(true);
+      try {
+        const result = await importTimelineZip(file, {
+          projectId: creationProjectId()
+        });
+        const timeline = result.timeline;
+        utils.timeline.list.invalidate();
+        utils.timeline.get.setData({ id: timeline.id }, timeline);
+        if (location.pathname.startsWith("/workspace")) {
+          openTab({
+            type: "timeline",
+            ref: timeline.id,
+            mode: "edit",
+            title: timeline.name || "Untitled video",
+            projectId: timeline.projectId
+          });
+        } else {
+          navigate(`/timeline/${timeline.id}`);
+        }
+        setVisibility(false);
+        const addNotification =
+          useNotificationStore.getState().addNotification;
+        addNotification({
+          type: "success",
+          alert: true,
+          content: `Imported ${timeline.name || "Untitled video"}`
+        });
+        if (result.missing.length > 0) {
+          addNotification({
+            type: "warning",
+            alert: true,
+            content: `${result.missing.length} asset(s) were not in the archive`
+          });
+        }
+      } catch (error) {
+        notifyMutationError("import the timeline", error);
+      } finally {
+        setIsImporting(false);
+      }
+    },
+    [location.pathname, navigate, openTab, setVisibility, utils]
+  );
+
   return (
-    <Tooltip title="New timeline" placement="right-start">
-      <ToolbarIconButton
-        ariaLabel="New timeline"
-        onClick={() => void handleCreate()}
-        disabled={createTimeline.isPending}
-        tabIndex={-1}
-        icon={<AddIcon />}
+    <FlexRow align="center" gap={SPACING.xs}>
+      <Tooltip title="New timeline" placement="right-start">
+        <ToolbarIconButton
+          ariaLabel="New timeline"
+          onClick={() => void handleCreate()}
+          disabled={createTimeline.isPending}
+          tabIndex={-1}
+          icon={<AddIcon />}
+        />
+      </Tooltip>
+      <Tooltip title="Import timeline (.zip)" placement="right-start">
+        <ToolbarIconButton
+          ariaLabel="Import timeline (.zip)"
+          onClick={handleImportClick}
+          disabled={isImporting}
+          tabIndex={-1}
+          icon={<UploadFileOutlinedIcon />}
+        />
+      </Tooltip>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".zip,application/zip"
+        aria-label="Import timeline archive"
+        style={{ display: "none" }}
+        onChange={(event) => void handleImportFile(event)}
       />
-    </Tooltip>
+    </FlexRow>
   );
 });
 
