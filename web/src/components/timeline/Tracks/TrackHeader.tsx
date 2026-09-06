@@ -24,10 +24,16 @@ import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined
 import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import VerticalAlignTopIcon from "@mui/icons-material/VerticalAlignTop";
 import VerticalAlignBottomIcon from "@mui/icons-material/VerticalAlignBottom";
 
+import {
+  MIDI_INSTRUMENT_PRESETS,
+  findInstrumentPreset,
+  presetIdForInstrument
+} from "@nodetool-ai/timeline";
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import {
   useTimelineStore,
@@ -45,6 +51,7 @@ import {
 import {
   ContextMenu,
   MenuItemPrimitive,
+  SelectField,
   Tooltip,
   MOTION,
   BORDER_RADIUS,
@@ -55,6 +62,7 @@ import {
   getSpacingPx,
   Z_INDEX
 } from "../../ui_primitives";
+import type { SelectOption } from "../../ui_primitives";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import { DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX } from "./trackHeight";
@@ -220,7 +228,7 @@ const indexChipStyles = (theme: Theme) =>
     backgroundColor: "transparent"
   });
 
-const controlsRowStyles = (compact: boolean) =>
+const controlsRowStyles = (compact: boolean, scrollable: boolean) =>
   css({
     display: "flex",
     flexDirection: "row",
@@ -229,10 +237,12 @@ const controlsRowStyles = (compact: boolean) =>
     // align icon edges flush with the type glyph
     marginLeft: compact ? 0 : `-${getSpacingPx(SPACING.xs)}`,
     // An audio track carries six controls (visible, lock, mute, solo, fx,
-    // delete), which is more than a 132px header fits. Scroll the row rather
-    // than clip it — the header's `overflow: hidden` would otherwise drop
-    // delete and the effects chain with no way to reach them on a phone.
-    ...(compact
+    // delete), which is more than a 132px header fits, and a midi track adds
+    // an instrument select and its Edit toggle, which is more than the 192px
+    // desktop header fits. Scroll the row rather than clip it — the header's
+    // `overflow: hidden` would otherwise drop delete and the effects chain
+    // with no way to reach them.
+    ...(scrollable
       ? {
           overflowX: "auto" as const,
           scrollbarWidth: "none" as const,
@@ -286,6 +296,31 @@ const resizeHandleStyles = (theme: Theme) =>
       opacity: 0.3
     }
   });
+
+/**
+ * The preset select next to the midi controls. It is the width of two icon
+ * buttons: the header is 192px (132px on a phone) and the name row above it
+ * carries the track's identity, so the voice is named in as little room as a
+ * name can be read in.
+ */
+const presetSelectStyles = css({
+  minWidth: 96,
+  flexShrink: 0,
+  "& .MuiInputBase-root": {
+    height: 22
+  }
+});
+
+/** Shown when the track's voice matches no shipped preset. */
+const CUSTOM_PRESET = "custom";
+
+const PRESET_OPTIONS: readonly SelectOption[] = [
+  ...MIDI_INSTRUMENT_PRESETS.map((preset) => ({
+    value: preset.id,
+    label: preset.name
+  })),
+  { value: CUSTOM_PRESET, label: "Custom" }
+];
 
 interface TrackHeaderProps {
   track: TimelineTrack;
@@ -492,6 +527,32 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
   const hasActiveEffects =
     track.effects?.some((e) => e.enabled) ?? false;
 
+  const isMidi = track.type === "midi";
+  const setTrackInstrument = useTimelineStore((s) => s.setTrackInstrument);
+  const presetId =
+    isMidi && track.instrument
+      ? (presetIdForInstrument(track.instrument) ?? CUSTOM_PRESET)
+      : CUSTOM_PRESET;
+  const handlePresetChange = useCallback(
+    (value: string) => {
+      const preset = findInstrumentPreset(value);
+      if (preset) {
+        setTrackInstrument(track.id, preset.instrument);
+      }
+    },
+    [setTrackInstrument, track.id]
+  );
+
+  const instrumentExpanded = useTimelineUIStore(
+    (s) => s.expandedInstrumentTrackId === track.id
+  );
+  const toggleExpandedInstrument = useTimelineUIStore(
+    (s) => s.toggleExpandedInstrument
+  );
+  const handleInstrumentToggle = useCallback(() => {
+    toggleExpandedInstrument(track.id);
+  }, [toggleExpandedInstrument, track.id]);
+
   const fxExpanded = useTimelineUIStore(
     (s) => s.expandedFxTrackId === track.id
   );
@@ -600,7 +661,10 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
   );
   const nameInputCss = useMemo(() => nameInputStyles(theme), [theme]);
   const indexChipCss = useMemo(() => indexChipStyles(theme), [theme]);
-  const controlsRowCss = useMemo(() => controlsRowStyles(compact), [compact]);
+  const controlsRowCss = useMemo(
+    () => controlsRowStyles(compact, compact || isMidi),
+    [compact, isMidi]
+  );
   const iconButtonOnCss = useMemo(() => iconButtonStyles(theme, true), [theme]);
   const iconButtonOffCss = useMemo(
     () => iconButtonStyles(theme, false),
@@ -747,6 +811,35 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
                 >
                   S
                 </span>
+              </button>
+            </Tooltip>
+          </>
+        )}
+
+        {isMidi && (
+          <>
+            <SelectField
+              label={`Instrument for ${track.name}`}
+              hideLabel
+              size="small"
+              variant="outlined"
+              value={presetId}
+              options={PRESET_OPTIONS}
+              onChange={handlePresetChange}
+              css={presetSelectStyles}
+            />
+            <Tooltip title="Edit instrument">
+              <button
+                type="button"
+                css={instrumentExpanded ? iconButtonOnCss : iconButtonOffCss}
+                onClick={handleInstrumentToggle}
+                aria-label={
+                  instrumentExpanded ? "Hide instrument" : "Edit instrument"
+                }
+                aria-pressed={instrumentExpanded}
+                data-testid={`track-instrument-${track.id}`}
+              >
+                <TuneOutlinedIcon />
               </button>
             </Tooltip>
           </>

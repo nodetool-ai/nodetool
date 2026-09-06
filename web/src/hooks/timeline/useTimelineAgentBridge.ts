@@ -15,6 +15,7 @@ import { useEffect, useMemo } from "react";
 import {
   makeClip,
   moveTrackOrder,
+  presetIdForInstrument,
   resolveTempo,
   shapeStyleWithDefaults,
   textStyleWithDefaults,
@@ -26,6 +27,7 @@ import type {
   ClipAnimation,
   ClipMatte,
   MidiInstrument,
+  QuantizeOptions,
   TimelineClip,
   TimelineMarker,
   TimelineTempo,
@@ -236,7 +238,11 @@ function toTrackNode(
     muted: !!track.muted,
     solo: !!track.solo,
     clipCount,
-    instrument: track.type === "midi" ? track.instrument : undefined
+    instrument: track.type === "midi" ? track.instrument : undefined,
+    presetId:
+      track.type === "midi" && track.instrument
+        ? presetIdForInstrument(track.instrument)
+        : undefined
   };
 }
 
@@ -332,6 +338,17 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         );
       }
       return notes;
+    };
+
+    /** The clip `target` names, refusing anything that carries no notes. */
+    const requireMidiClip = (target: string): TimelineClip => {
+      const clip = requireClip(target);
+      if (clip.mediaType !== "midi") {
+        throw new Error(
+          `"${clip.name}" is a ${clip.mediaType} clip; only a midi clip carries notes.`
+        );
+      }
+      return clip;
     };
 
     /** End of the last clip on a track, or 0 when the track is empty. */
@@ -1096,12 +1113,7 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       },
 
       setNotes(target, notes) {
-        const clip = requireClip(target);
-        if (clip.mediaType !== "midi") {
-          throw new Error(
-            `"${clip.name}" is a ${clip.mediaType} clip; only a midi clip carries notes.`
-          );
-        }
+        const clip = requireMidiClip(target);
         doc.getState().setClipNotes(clip.id, requireValidNotes(notes));
         return clipNode(reReadClip(clip.id));
       },
@@ -1111,6 +1123,24 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         // The clips that moved are the point of the call, so the caller gets
         // the whole document back rather than having to re-read it.
         return handlerImpl.getSnapshot();
+      },
+
+      transposeClip(target, semitones: number) {
+        const clip = requireMidiClip(target);
+        doc.getState().transposeClip(clip.id, semitones);
+        return clipNode(reReadClip(clip.id));
+      },
+
+      quantizeClip(target, options: QuantizeOptions) {
+        const clip = requireMidiClip(target);
+        doc.getState().quantizeClip(clip.id, options);
+        return clipNode(reReadClip(clip.id));
+      },
+
+      scaleClipVelocity(target, factor: number) {
+        const clip = requireMidiClip(target);
+        doc.getState().scaleClipVelocity(clip.id, factor);
+        return clipNode(reReadClip(clip.id));
       },
 
       setTrackInstrument(target, instrument: MidiInstrument) {

@@ -1,8 +1,10 @@
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import {
   collectSnapCandidates,
+  type SnapGridSpec,
   snapClipWindow,
   snapEdge,
+  snapGridSpecFrom,
   SNAP_THRESHOLD_PX
 } from "../clipSnap";
 
@@ -25,6 +27,27 @@ const clip = (
   linkId
 });
 
+const track = (id: string, type: TimelineTrack["type"]): TimelineTrack => ({
+  id,
+  name: id,
+  type,
+  index: 0,
+  visible: true,
+  locked: false
+});
+
+/** Snapping on, one midi track, the beat grid over the first four seconds. */
+const grid = (overrides: Partial<SnapGridSpec> = {}): SnapGridSpec => ({
+  tempo: { bpm: 120, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } },
+  division: "beat",
+  fromMs: 0,
+  toMs: 2000,
+  snapEnabled: true,
+  hasMidiTrack: true,
+  rulerMode: "timecode",
+  ...overrides
+});
+
 const MS_PER_PX = 10;
 const THRESHOLD_MS = SNAP_THRESHOLD_PX * MS_PER_PX;
 
@@ -39,6 +62,59 @@ describe("collectSnapCandidates", () => {
     expect(out).toEqual([0, 1000, 1234, 2000, 3000, 4000, 6200, 7000]);
   });
 
+  it("adds the tempo grid when the document has a midi track", () => {
+    const out = collectSnapCandidates([], 0, 0, new Set(), grid());
+    // 120 BPM: a beat every 500 ms. 0, 1000 and 2000 are already second ticks.
+    expect(out).toContain(500);
+    expect(out).toContain(1500);
+  });
+
+  it("adds it for a picture-only sequence read in bars", () => {
+    const out = collectSnapCandidates(
+      [],
+      0,
+      0,
+      new Set(),
+      grid({ hasMidiTrack: false, rulerMode: "bars" })
+    );
+    expect(out).toContain(500);
+  });
+
+  it("leaves a picture-only sequence in timecode with the candidates it had", () => {
+    const base = collectSnapCandidates([], 0, 0, new Set());
+    const out = collectSnapCandidates(
+      [],
+      0,
+      0,
+      new Set(),
+      grid({ hasMidiTrack: false })
+    );
+    expect(out).toEqual(base);
+  });
+
+  it("offers no grid while the magnet is off", () => {
+    const out = collectSnapCandidates(
+      [],
+      0,
+      0,
+      new Set(),
+      grid({ snapEnabled: false })
+    );
+    expect(out).not.toContain(500);
+  });
+
+  it("stops the grid at the end of the visible range", () => {
+    const out = collectSnapCandidates(
+      [],
+      0,
+      0,
+      new Set(),
+      grid({ fromMs: 0, toMs: 1000 })
+    );
+    expect(out).toContain(500);
+    expect(out).not.toContain(1500);
+  });
+
   it("drops the linked siblings of an excluded clip", () => {
     const out = collectSnapCandidates(
       [clip("v", 2500, 1000, "L"), clip("a", 2500, 1000, "L"), clip("x", 6200, 100)],
@@ -49,6 +125,38 @@ describe("collectSnapCandidates", () => {
     expect(out).not.toContain(2500);
     expect(out).not.toContain(3500);
     expect(out).toContain(6200);
+  });
+});
+
+describe("snapGridSpecFrom", () => {
+  const ui = {
+    snapEnabled: true,
+    rulerMode: "timecode" as const,
+    gridDivision: "beat" as const,
+    msPerPx: 10,
+    scrollLeftPx: 100,
+    lanesViewportWidthPx: 800
+  };
+
+  it("covers the visible range and nothing beyond it", () => {
+    const spec = snapGridSpecFrom({ tracks: [track("t1", "midi")] }, ui);
+    expect(spec.fromMs).toBe(1000);
+    expect(spec.toMs).toBe(9000);
+    expect(spec.hasMidiTrack).toBe(true);
+  });
+
+  it("reads the default tempo on a document that stores none", () => {
+    const spec = snapGridSpecFrom({ tracks: [] }, ui);
+    expect(spec.tempo.bpm).toBe(120);
+    expect(spec.hasMidiTrack).toBe(false);
+  });
+
+  it("falls back to a viewport width before the lanes are measured", () => {
+    const spec = snapGridSpecFrom(
+      { tracks: [] },
+      { ...ui, scrollLeftPx: 0, lanesViewportWidthPx: 0 }
+    );
+    expect(spec.toMs).toBeGreaterThan(0);
   });
 });
 

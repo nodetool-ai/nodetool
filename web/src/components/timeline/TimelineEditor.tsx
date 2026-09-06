@@ -55,6 +55,7 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
+import { PlayheadReadout } from "./PlayheadReadout";
 import { useTimelineCostEstimate } from "../../hooks/timeline/useTimelineCostEstimate";
 import { ProjectSettingsDialog } from "./ProjectSettingsDialog";
 import { ExportVideoDialog } from "./ExportVideoDialog";
@@ -463,6 +464,7 @@ const TimelineStatusBar: React.FC<{ actionSlot?: React.ReactNode }> = memo(
       failedCount={failedCount}
       costEstimate={costEstimate}
       actionSlot={actionSlot}
+      readoutSlot={<PlayheadReadout />}
     />
   );
   }

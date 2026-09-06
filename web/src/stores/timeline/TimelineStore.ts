@@ -53,12 +53,19 @@ import {
   makeTrackEffect,
   createTimeOrderedUuid,
   createMidiNote,
+  quantizeNotes,
   rescaleClipsForTempo,
   resolveTempo,
+  scaleVelocity,
   sortNotes,
+  transposeNotes,
   DEFAULT_MIDI_INSTRUMENT
 } from "@nodetool-ai/timeline";
-import type { AnimatedProperty, DropMode } from "@nodetool-ai/timeline";
+import type {
+  AnimatedProperty,
+  DropMode,
+  QuantizeOptions
+} from "@nodetool-ai/timeline";
 import type {
   TimelineSequence,
   TimelineTrack,
@@ -273,6 +280,23 @@ export interface TimelineStoreState {
       Pick<MidiNote, "pitch" | "startTick" | "durationTick"> & Partial<MidiNote>
     >
   ) => void;
+  /**
+   * Move every note in a midi clip by whole semitones, clamped to the 0..127
+   * MIDI range. Ids survive, so the selection still points at the same notes.
+   * One undo entry; a non-midi clip and a zero shift are both no-ops.
+   */
+  transposeClip: (clipId: string, semitones: number) => void;
+  /**
+   * Snap a midi clip's onsets — and, with `target: "start_and_length"`, its
+   * held lengths — to a note grid. Ticks are the grid, so the result does not
+   * depend on the document tempo. One undo entry.
+   */
+  quantizeClip: (clipId: string, options: QuantizeOptions) => void;
+  /**
+   * Scale how hard every note in a midi clip is struck, clamped to 1..127.
+   * One undo entry.
+   */
+  scaleClipVelocity: (clipId: string, factor: number) => void;
 
   // ── Clip mutations ───────────────────────────────────────────────────────
 
@@ -758,6 +782,50 @@ function patchById<T extends { id: string }>(
     return items;
   }
   return items.map((it) => (it.id === id ? { ...it, ...patch } : it));
+}
+
+/**
+ * Rewrite one midi clip's note list through `edit`, as one undo entry.
+ *
+ * The clip's other fields do not move: a note edit changes what is played
+ * inside the window, never where the window sits. A clip that is not midi, or
+ * an edit that returns the notes unchanged, writes nothing.
+ */
+function editMidiNotes(
+  set: (
+    updater: (state: TimelineStoreState) => Partial<TimelineStoreState>
+  ) => void,
+  clipId: string,
+  edit: (notes: readonly MidiNote[]) => MidiNote[]
+): void {
+  set((state) => {
+    const clip = state.clips.find((c) => c.id === clipId);
+    if (!clip || clip.mediaType !== "midi") {
+      return state;
+    }
+    const notes = sortNotes(edit(clip.notes ?? []));
+    if (sameNotes(clip.notes ?? [], notes)) {
+      return state;
+    }
+    return {
+      clips: state.clips.map((c) => (c.id === clipId ? { ...c, notes } : c))
+    };
+  });
+}
+
+/** Whether two note lists carry the same notes, field for field. */
+function sameNotes(a: readonly MidiNote[], b: readonly MidiNote[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((note, index) => {
+    const other = b[index];
+    return (
+      note.id === other.id &&
+      note.pitch === other.pitch &&
+      note.velocity === other.velocity &&
+      note.startTick === other.startTick &&
+      note.durationTick === other.durationTick
+    );
+  });
 }
 
 /** Ids of the tracks a ripple must leave alone. */
@@ -1969,6 +2037,17 @@ export const createTimelineStore = (
           get().patchClip(clipId, {
             notes: sortNotes(notes.map(createMidiNote))
           }),
+
+        transposeClip: (clipId, semitones) =>
+          editMidiNotes(set, clipId, (notes) =>
+            transposeNotes(notes, Math.trunc(semitones))
+          ),
+
+        quantizeClip: (clipId, options) =>
+          editMidiNotes(set, clipId, (notes) => quantizeNotes(notes, options)),
+
+        scaleClipVelocity: (clipId, factor) =>
+          editMidiNotes(set, clipId, (notes) => scaleVelocity(notes, factor)),
 
         addClip: (clip) =>
           set((state) => ({

@@ -10,12 +10,19 @@
  * and cleared together on gesture end.
  */
 
-import { buildSnapPoints, resolveSnap } from "@nodetool-ai/timeline";
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import { buildSnapPoints, resolveSnap, resolveTempo } from "@nodetool-ai/timeline";
+import type {
+  TempoGridDivision,
+  TimelineClip,
+  TimelineTempo,
+  TimelineTrack
+} from "@nodetool-ai/timeline";
 import type {
   GestureReadout,
+  RulerMode,
   TimelineUIState
 } from "../../../stores/timeline/TimelineUIStore";
+import { visibleTempoGrid } from "./tempoGrid";
 
 /** Pointer distance (px) within which an edge locks onto a candidate. */
 export const SNAP_THRESHOLD_PX = 8;
@@ -24,17 +31,75 @@ export const SNAP_THRESHOLD_PX = 8;
 const TICK_INTERVAL_MS = 1000;
 
 /**
+ * What the tempo grid contributes to a gesture's candidates: the document
+ * tempo, the division to draw it at, and the visible range to draw it over.
+ *
+ * The grid is offered only when the magnet is on and the document is one a
+ * musician is editing — it has a midi track, or the ruler is counting bars.
+ * A picture-only sequence gets the same candidates it always had.
+ */
+export interface SnapGridSpec {
+  tempo: TimelineTempo;
+  division: TempoGridDivision;
+  /** Visible range, so the grid never spans more of the document than is on screen. */
+  fromMs: number;
+  toMs: number;
+  snapEnabled: boolean;
+  hasMidiTrack: boolean;
+  rulerMode: RulerMode;
+}
+
+/**
+ * The width the visible range is computed over before the lanes have been
+ * measured — a gesture can start on the first frame after mount.
+ */
+const FALLBACK_VIEWPORT_PX = 1200;
+
+/** The grid spec for the sequence and view the gesture started in. */
+export function snapGridSpecFrom(
+  doc: { tracks: readonly TimelineTrack[]; tempo?: TimelineTempo },
+  ui: Pick<
+    TimelineUIState,
+    | "snapEnabled"
+    | "rulerMode"
+    | "gridDivision"
+    | "msPerPx"
+    | "scrollLeftPx"
+    | "lanesViewportWidthPx"
+  >
+): SnapGridSpec {
+  const widthPx = ui.lanesViewportWidthPx || FALLBACK_VIEWPORT_PX;
+  const fromMs = ui.scrollLeftPx * ui.msPerPx;
+  return {
+    tempo: resolveTempo(doc),
+    division: ui.gridDivision,
+    fromMs,
+    toMs: fromMs + widthPx * ui.msPerPx,
+    snapEnabled: ui.snapEnabled,
+    hasMidiTrack: doc.tracks.some((track) => track.type === "midi"),
+    rulerMode: ui.rulerMode
+  };
+}
+
+/** Whether `grid` asks for tempo lines at all. */
+export function gridSnapApplies(grid: SnapGridSpec): boolean {
+  return grid.snapEnabled && (grid.hasMidiTrack || grid.rulerMode === "bars");
+}
+
+/**
  * The candidate set for one gesture, snapshotted at pointerdown: the
- * playhead, every second gridline across the document, and every clip edge
- * except those of `excludeClipIds`. Linked siblings of the excluded clips are
- * excluded too — they move with the gesture and share its edges, so keeping
- * them would glue the clip to where it started.
+ * playhead, every second gridline across the document, every clip edge
+ * except those of `excludeClipIds`, and — on a document with a tempo grid in
+ * play — that grid across the visible range. Linked siblings of the excluded
+ * clips are excluded too — they move with the gesture and share its edges, so
+ * keeping them would glue the clip to where it started.
  */
 export function collectSnapCandidates(
   clips: readonly TimelineClip[],
   durationMs: number,
   playheadMs: number,
-  excludeClipIds: ReadonlySet<string>
+  excludeClipIds: ReadonlySet<string>,
+  grid?: SnapGridSpec
 ): number[] {
   const linkIds = new Set<string>();
   for (const c of clips) {
@@ -50,13 +115,22 @@ export function collectSnapCandidates(
       }
     }
   }
-  return buildSnapPoints({
+  const points = buildSnapPoints({
     clips,
     excludeClipIds: exclude,
     playheadMs,
     tickIntervalMs: TICK_INTERVAL_MS,
     maxTimeMs: durationMs + TICK_INTERVAL_MS
   });
+  if (!grid || !gridSnapApplies(grid)) return points;
+  const lines = visibleTempoGrid({
+    tempo: grid.tempo,
+    division: grid.division,
+    fromMs: grid.fromMs,
+    toMs: grid.toMs
+  });
+  if (lines.length === 0) return points;
+  return [...new Set([...points, ...lines])].sort((a, b) => a - b);
 }
 
 export interface EdgeSnap {

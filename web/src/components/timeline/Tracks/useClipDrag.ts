@@ -33,7 +33,8 @@ import {
   collectSnapCandidates,
   publishGestureFeedback,
   readoutFor,
-  snapClipWindow
+  snapClipWindow,
+  snapGridSpecFrom
 } from "./clipSnap";
 
 /** Clip-side wrapper over the shared rule: the authored kinds ("overlay",
@@ -180,7 +181,8 @@ export function useClipDrag({
         dragStartState.clips,
         dragStartState.durationMs,
         dragStartPlayheadMs,
-        excludeIds
+        excludeIds,
+        snapGridSpecFrom(dragStartState, useTimelineUIStore.getState())
       );
 
       // Cross-track hit-test is sampled at most once per animation frame.

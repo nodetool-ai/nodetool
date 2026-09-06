@@ -20,6 +20,7 @@ import type {
   ClipTextStyle,
   MidiInstrument,
   MidiNote,
+  QuantizeOptions,
   StaggerUnit,
   TimelineTempo
 } from "@nodetool-ai/timeline";
@@ -58,6 +59,12 @@ export interface TimelineTrackNode {
   clipCount: number;
   /** The synth a midi track plays. Absent on every other track type. */
   instrument?: MidiInstrument;
+  /**
+   * The shipped preset this instrument sounds like, when one matches. A track
+   * stores the instrument rather than the id it was picked from, so this is a
+   * lookup by sound — absent means the voice was edited by hand.
+   */
+  presetId?: string;
 }
 
 /** Serializable view of a single timeline clip (editor-friendly units). */
@@ -493,6 +500,18 @@ export interface TimelineAgentHandler {
     target: string,
     instrument: MidiInstrument
   ) => TimelineTrackNode;
+  /**
+   * Move every note in a midi clip by whole semitones. Notes keep their ids;
+   * one pushed past the 0..127 range is held at the end rather than dropped.
+   */
+  transposeClip: (target: string, semitones: number) => TimelineClipNode;
+  /** Snap a midi clip's onsets (and optionally lengths) to a note grid. */
+  quantizeClip: (
+    target: string,
+    options: QuantizeOptions
+  ) => TimelineClipNode;
+  /** Scale every velocity in a midi clip, clamped to 1..127. */
+  scaleClipVelocity: (target: string, factor: number) => TimelineClipNode;
 }
 
 const handlers = new Map<string, TimelineAgentHandler>();

@@ -131,10 +131,40 @@ mute/solo, the DSP chain, the offline export — because the notes become an
 - **Not supported on a midi clip**: `speedMultiplier` and `timeRemap`. The
   validator rejects them; the editor ignores them.
 
-Four agent tools drive it — `ui_timeline_add_midi_clip`,
+### Editing a part
+
+- **Tempo** lives in Project settings (the TopBar's Settings): BPM, time
+  signature and where beat one sits. It is document state the autosave already
+  carries, so applying it calls the store's `setTempo` rather than the
+  `width`/`height`/`fps` PATCH the same dialog does — and the dialog says what
+  the change will do to the parts already in the document.
+- **Bars ruler and grid**: the toolbar's Bars toggle switches `TimeRuler` from
+  timecode to bar lines with beat ticks (`rulerMode` on `TimelineUIStore`; the
+  tick list is `computeBarRulerTicks` in `Tracks/tempoGrid.ts`, so the labels
+  are testable without a canvas). The division select next to it sets
+  `gridDivision` — bar, beat, or a note value — which is what `collectSnapCandidates`
+  offers as extra snap targets, over the visible range only, whenever the
+  magnet is on and the document either has a midi track or is read in bars.
+  The status bar's readout follows the ruler: bar.beat.tick in bars mode,
+  timecode otherwise.
+- **Instrument**: a midi track header carries a preset select
+  (`MIDI_INSTRUMENT_PRESETS`, reading "Custom" when the voice matches none) and
+  an Edit toggle that expands `TrackInstrumentPanel` under the row, the way the
+  DSP chain editor does. Waveform, ADSR, cutoff (log 20 Hz–20 kHz), resonance
+  and gain each write the track and audition a middle C, debounced so a slider
+  drag plays one note rather than sixty.
+- **Note edits**: selecting a midi clip shows `Inspector/ClipMidiSection` —
+  note and audible-note counts, transpose (±1, ±12), quantize (division,
+  strength, onsets or onsets+lengths) and velocity scaling. Each Apply is one
+  store action (`transposeClip`, `quantizeClip`, `scaleClipVelocity`) and one
+  undo entry.
+
+Seven agent tools drive it — `ui_timeline_add_midi_clip`,
 `ui_timeline_set_notes` (the whole list, not a merge), `ui_timeline_set_tempo`,
-and `ui_timeline_set_track_instrument`. `ui_timeline_get_state` reports the
-resolved tempo, each track's instrument, and each midi clip's note count.
+`ui_timeline_set_track_instrument`, `ui_timeline_transpose_clip`,
+`ui_timeline_quantize_notes` and `ui_timeline_scale_velocity`.
+`ui_timeline_get_state` reports the resolved tempo, each track's instrument and
+the preset it matches, and each midi clip's note count.
 
 ## Persistence
 
@@ -231,7 +261,10 @@ frontend tools.
 | `ui_timeline_add_midi_clip` | Place a midi phrase on a midi track, notes in ticks. |
 | `ui_timeline_set_notes` | Replace a midi clip's whole note list. |
 | `ui_timeline_set_tempo` | Set the document tempo; rescales the midi clips. |
-| `ui_timeline_set_track_instrument` | Set the synth a midi track plays. |
+| `ui_timeline_set_track_instrument` | Set the synth a midi track plays, spelled out or as `{"preset": "soft-pad"}`. |
+| `ui_timeline_transpose_clip` | Move every note in a midi clip by whole semitones. |
+| `ui_timeline_quantize_notes` | Snap a midi clip's onsets (and optionally lengths) to a note grid. |
+| `ui_timeline_scale_velocity` | Scale how hard every note in a midi clip is struck. |
 
 Clips and tracks are addressed by id, by case-insensitive name, or — for the
 selected clip — the literal `"selected"`. Times are milliseconds on the

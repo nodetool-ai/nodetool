@@ -1,5 +1,7 @@
 import { z } from "zod";
 import {
+  findInstrumentPreset,
+  MIDI_INSTRUMENT_PRESETS,
   ANIMATED_PROPERTIES,
   ANIMATION_PRESETS,
   CUSTOM_ANIMATION_CONTRACT,
@@ -9,6 +11,8 @@ import {
   buildBeatGrid,
   snapClipsToGrid,
   type ClipSnapResult,
+  type MidiInstrument,
+  type QuantizeOptions,
   type SnapBoundaryMode,
   type SnapAction
 } from "@nodetool-ai/timeline";
@@ -125,6 +129,28 @@ const toNoteInput = (note: MidiNoteParams): MidiNoteInput => {
     input.velocity = note.velocity;
   }
   return input;
+};
+
+/**
+ * A voice, either spelled out or named. A preset is resolved to the full
+ * instrument here rather than stored as a reference, so the track keeps the
+ * sound it was given after the preset table changes.
+ */
+const resolveInstrumentArg = (
+  instrument: MidiInstrument | { preset: string }
+): { instrument: MidiInstrument } | { error: string } => {
+  if (!("preset" in instrument)) {
+    return { instrument };
+  }
+  const preset = findInstrumentPreset(instrument.preset);
+  if (!preset) {
+    return {
+      error: `No instrument preset named "${instrument.preset}". Valid ids: ${MIDI_INSTRUMENT_PRESETS.map(
+        (p) => p.id
+      ).join(", ")}.`
+    };
+  }
+  return { instrument: preset.instrument };
 };
 
 FrontendToolRegistry.register({
@@ -671,11 +697,67 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   ...shared("ui_timeline_set_track_instrument"),
   async execute({ timeline_id, track, instrument }) {
+    const resolved = resolveInstrumentArg(instrument);
+    if ("error" in resolved) {
+      return { ok: false, error: resolved.error };
+    }
     const updated = getTimelineAgentHandler(timeline_id).setTrackInstrument(
       track,
-      instrument
+      resolved.instrument
     );
     return { ok: true, track: updated, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_transpose_clip"),
+  async execute({ timeline_id, clip: target, semitones }) {
+    const clip = getTimelineAgentHandler(timeline_id).transposeClip(
+      target,
+      semitones
+    );
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_quantize_notes"),
+  async execute({ timeline_id, clip: target, division, strength, target: to }) {
+    const options: QuantizeOptions = { division };
+    if (strength !== undefined) {
+      options.strength = strength;
+    }
+    if (to !== undefined) {
+      options.target = to;
+    }
+    const clip = getTimelineAgentHandler(timeline_id).quantizeClip(
+      target,
+      options
+    );
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_scale_velocity"),
+  async execute({ timeline_id, clip: target, factor }) {
+    const clip = getTimelineAgentHandler(timeline_id).scaleClipVelocity(
+      target,
+      factor
+    );
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
   }
 });
 

@@ -383,6 +383,65 @@ describe("useTimelineAgentBridge midi", () => {
     ).toBe("square");
   });
 
+  it("names the preset a track's voice matches, and drops it once edited", () => {
+    seedMidi();
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    // A new midi track gets DEFAULT_MIDI_INSTRUMENT, which is the saw lead.
+    expect(handler.getSnapshot().tracks[0].presetId).toBe("saw-lead");
+
+    handler.setTrackInstrument("Bass", {
+      type: "subtractive",
+      waveform: "saw",
+      attackMs: 5,
+      decayMs: 120,
+      sustain: 0.7,
+      releaseMs: 150,
+      cutoffHz: 1234,
+      resonance: 0.7,
+      gainDb: -6
+    });
+    expect(handler.getSnapshot().tracks[0].presetId).toBeUndefined();
+  });
+
+  it("transposes, quantizes and scales a clip's notes", () => {
+    const clipId = seedMidi();
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    const notes = () =>
+      mockDoc.getState().clips.find((c) => c.id === clipId)!.notes!;
+
+    handler.transposeClip("Riff", -12);
+    expect(notes().map((n) => n.pitch)).toEqual([48, 52]);
+
+    handler.setNotes("Riff", [
+      { pitch: 48, startTick: 20, durationTick: 200 }
+    ]);
+    handler.quantizeClip("Riff", { division: "1/8" });
+    expect(notes()[0].startTick).toBe(0);
+
+    handler.scaleClipVelocity("Riff", 0.5);
+    expect(notes()[0].velocity).toBe(50);
+  });
+
+  it("refuses a note edit on a clip that carries no notes", () => {
+    seedMidi();
+    mockDoc.getState().addTrack("video", "V1");
+    const videoTrackId = mockDoc.getState().tracks[1].id;
+    mockDoc.getState().addClip(
+      makeClip({
+        id: "shot-1",
+        trackId: videoTrackId,
+        name: "Shot",
+        mediaType: "video",
+        sourceType: "imported",
+        startMs: 0,
+        durationMs: 1000
+      })
+    );
+    expect(() =>
+      getTimelineAgentHandler(SEQ_ID).transposeClip("shot-1", 1)
+    ).toThrow(/only a midi clip/i);
+  });
+
   it("refuses an instrument on a track that is not midi", () => {
     mockDoc.getState().addTrack("audio", "VO");
     renderHook(() => useTimelineAgentBridge(SEQ_ID));

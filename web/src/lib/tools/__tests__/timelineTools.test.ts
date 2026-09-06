@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 import { SHARED_TIMELINE_TOOL_NAMES } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
+import { findInstrumentPreset } from "@nodetool-ai/timeline";
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import {
@@ -98,7 +99,10 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   addMidiClip: jest.fn(),
   setNotes: jest.fn(),
   setTempo: jest.fn(),
-  setTrackInstrument: jest.fn()
+  setTrackInstrument: jest.fn(),
+  transposeClip: jest.fn(),
+  quantizeClip: jest.fn(),
+  scaleClipVelocity: jest.fn()
 });
 
 // The timeline tools never touch the workflow state, so a bare stub satisfies ctx.
@@ -989,5 +993,142 @@ describe("ui_timeline_set_time_remap", () => {
     );
 
     expect(handler.setTrackInstrument).toHaveBeenCalledWith("Bass", instrument);
+  });
+
+  it("resolves a named preset to the instrument it stands for", async () => {
+    const handler = createMockHandler();
+    handler.setTrackInstrument.mockReturnValue(
+      trackNode({ type: "midi", name: "Bass" })
+    );
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_track_instrument",
+      { timeline_id: SEQ_ID, track: "Bass", instrument: { preset: "soft-pad" } },
+      "tc-midi-5",
+      ctx
+    );
+
+    expect(handler.setTrackInstrument).toHaveBeenCalledWith(
+      "Bass",
+      findInstrumentPreset("soft-pad")?.instrument
+    );
+  });
+
+  it("names the valid ids when the preset does not exist", async () => {
+    const handler = createMockHandler();
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_set_track_instrument",
+      { timeline_id: SEQ_ID, track: "Bass", instrument: { preset: "tuba" } },
+      "tc-midi-6",
+      ctx
+    )) as { ok: boolean; error?: string };
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("saw-lead");
+    expect(result.error).toContain("bell");
+    expect(handler.setTrackInstrument).not.toHaveBeenCalled();
+  });
+
+  it("transposes a clip by whole semitones", async () => {
+    const handler = createMockHandler();
+    handler.transposeClip.mockReturnValue(
+      clipNode({ mediaType: "midi", noteCount: 2 })
+    );
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_transpose_clip",
+      { timeline_id: SEQ_ID, clip: "Riff", semitones: -12 },
+      "tc-midi-7",
+      ctx
+    );
+
+    expect(handler.transposeClip).toHaveBeenCalledWith("Riff", -12);
+  });
+
+  it("refuses a transpose that is not a whole number of semitones", async () => {
+    const handler = createMockHandler();
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    await expect(
+      FrontendToolRegistry.call(
+        "ui_timeline_transpose_clip",
+        { timeline_id: SEQ_ID, clip: "Riff", semitones: 1.5 },
+        "tc-midi-8",
+        ctx
+      )
+    ).rejects.toThrow();
+    expect(handler.transposeClip).not.toHaveBeenCalled();
+  });
+
+  it("passes only the quantize options the caller named", async () => {
+    const handler = createMockHandler();
+    handler.quantizeClip.mockReturnValue(
+      clipNode({ mediaType: "midi", noteCount: 2 })
+    );
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_quantize_notes",
+      { timeline_id: SEQ_ID, clip: "Riff", division: "1/16" },
+      "tc-midi-9",
+      ctx
+    );
+    expect(handler.quantizeClip).toHaveBeenCalledWith("Riff", {
+      division: "1/16"
+    });
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_quantize_notes",
+      {
+        timeline_id: SEQ_ID,
+        clip: "Riff",
+        division: "1/8T",
+        strength: 0.5,
+        target: "start_and_length"
+      },
+      "tc-midi-10",
+      ctx
+    );
+    expect(handler.quantizeClip).toHaveBeenLastCalledWith("Riff", {
+      division: "1/8T",
+      strength: 0.5,
+      target: "start_and_length"
+    });
+  });
+
+  it("scales a clip's velocities", async () => {
+    const handler = createMockHandler();
+    handler.scaleClipVelocity.mockReturnValue(
+      clipNode({ mediaType: "midi", noteCount: 2 })
+    );
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_scale_velocity",
+      { timeline_id: SEQ_ID, clip: "Riff", factor: 1.2 },
+      "tc-midi-11",
+      ctx
+    );
+
+    expect(handler.scaleClipVelocity).toHaveBeenCalledWith("Riff", 1.2);
+  });
+
+  it("refuses a velocity factor outside 0.1..4", async () => {
+    const handler = createMockHandler();
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    await expect(
+      FrontendToolRegistry.call(
+        "ui_timeline_scale_velocity",
+        { timeline_id: SEQ_ID, clip: "Riff", factor: 10 },
+        "tc-midi-12",
+        ctx
+      )
+    ).rejects.toThrow();
+    expect(handler.scaleClipVelocity).not.toHaveBeenCalled();
   });
 });

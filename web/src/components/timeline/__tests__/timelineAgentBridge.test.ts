@@ -39,7 +39,10 @@ const makeMockHandler = (): TimelineAgentHandler => ({
   addMidiClip: jest.fn(),
   setNotes: jest.fn(),
   setTempo: jest.fn(),
-  setTrackInstrument: jest.fn()
+  setTrackInstrument: jest.fn(),
+  transposeClip: jest.fn(),
+  quantizeClip: jest.fn(),
+  scaleClipVelocity: jest.fn()
 });
 
 describe("timelineAgentBridge", () => {
