@@ -697,13 +697,18 @@ export class WriteScriptNode extends BaseNode {
       sections: written.sections.map((section) => ({
         id: section.id,
         title: section.title,
-        lines: section.lines.map((line) => ({
-          id: line.id,
-          speakerId: line.speakerId,
-          text: line.text,
-          ...(line.direction === undefined ? {} : { direction: line.direction }),
-          takes: []
-        }))
+        lines: section.lines.map((line) => {
+          const saved: ScriptLineLike = {
+            id: line.id,
+            speakerId: line.speakerId,
+            text: line.text,
+            takes: []
+          };
+          if (line.direction !== undefined) {
+            saved.direction = line.direction;
+          }
+          return saved;
+        })
       }))
     };
 
