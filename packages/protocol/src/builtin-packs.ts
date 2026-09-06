@@ -122,7 +122,7 @@ export const BUILTIN_NODE_PACKS: readonly BuiltinNodePack[] = [
   {
     id: "muapi",
     name: "MuAPI",
-    description: "Image and video generation through MuAPI.",
+    description: "Text to video and image to video generation through MuAPI.",
     namespaces: ["muapi"]
   },
   {

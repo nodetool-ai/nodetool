@@ -97,6 +97,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | Together asset resolution | `packages/together-nodes/src/together-base.ts` | workflow |
 | AtlasCloud media pass-through | `packages/atlascloud-nodes/src/atlascloud-factory.ts` | workflow |
 | AtlasCloud prediction downloads | `packages/runtime/src/providers/atlascloud-transport.ts` | provider response |
+| MuAPI job output downloads | `packages/runtime/src/providers/muapi-transport.ts` | provider response |
 | KIE result downloads | `packages/kie-nodes/src/kie-base.ts` | provider response |
 | Topaz result downloads | `packages/topaz-nodes/src/topaz-base.ts` | provider response |
 | MiniMax audio / file downloads | `packages/minimax-nodes/src/minimax-base.ts` | provider response |

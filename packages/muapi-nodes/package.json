@@ -5,7 +5,7 @@
     "node": ">=22.0.0 <23.0.0"
   },
   "version": "0.7.0-rc.40",
-  "description": "MuAPI image and video generation nodes for NodeTool",
+  "description": "MuAPI video generation nodes for NodeTool",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

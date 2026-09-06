@@ -3,12 +3,16 @@ import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import {
-  generateMuapiMedia,
   getMuapiApiKey,
+  muapiUploadImage,
   normalizeMuapiVideoDuration,
   resolveInputImageBytes,
-  uploadMuapiImage,
+  runMuapiMedia,
+  videoRefFromBytes,
   MUAPI_VIDEO_ASPECT_RATIOS,
+  MUAPI_IMAGE_TO_VIDEO_ENDPOINT,
+  MUAPI_MAX_DURATION,
+  MUAPI_MIN_DURATION,
   MUAPI_VIDEO_RESOLUTIONS
 } from "../muapi-base.js";
 
@@ -59,7 +63,7 @@ export class MuapiImageToVideoNode extends BaseNode {
     default: "16:9",
     title: "Aspect Ratio",
     description: "Aspect ratio of the generated video.",
-    values: [...MUAPI_VIDEO_ASPECT_RATIOS]
+    values: MUAPI_VIDEO_ASPECT_RATIOS
   })
   declare aspect_ratio: string;
 
@@ -68,7 +72,7 @@ export class MuapiImageToVideoNode extends BaseNode {
     default: "720p",
     title: "Resolution",
     description: "Output video resolution.",
-    values: [...MUAPI_VIDEO_RESOLUTIONS]
+    values: MUAPI_VIDEO_RESOLUTIONS
   })
   declare resolution: string;
 
@@ -77,8 +81,8 @@ export class MuapiImageToVideoNode extends BaseNode {
     default: 5,
     title: "Duration",
     description: "Video duration in seconds.",
-    min: 4,
-    max: 10
+    min: MUAPI_MIN_DURATION,
+    max: MUAPI_MAX_DURATION
   })
   declare duration: number;
 
@@ -96,24 +100,23 @@ export class MuapiImageToVideoNode extends BaseNode {
 
     const apiKey = getMuapiApiKey(this._secrets);
     const imageBytes = await resolveInputImageBytes(this.image, context);
-    const imageUrl = await uploadMuapiImage(apiKey, imageBytes, context?.signal);
+    const imageUrl = await muapiUploadImage(apiKey, imageBytes, context?.signal);
 
-    return {
-      output: await generateMuapiMedia({
-        apiKey,
-        endpoint: "flux-3-image-to-video",
-        payload: {
-          prompt,
-          images_list: [imageUrl],
-          aspect_ratio: String(this.aspect_ratio ?? "16:9"),
-          resolution: String(this.resolution ?? "720p"),
-          duration: normalizeMuapiVideoDuration(this.duration),
-          generate_audio: Boolean(this.generate_audio ?? true)
-        },
-        kind: "video",
-        signal: context?.signal
-      })
-    };
+    const bytes = await runMuapiMedia({
+      apiKey,
+      endpoint: MUAPI_IMAGE_TO_VIDEO_ENDPOINT,
+      payload: {
+        prompt,
+        images_list: [imageUrl],
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        resolution: String(this.resolution ?? "720p"),
+        duration: normalizeMuapiVideoDuration(this.duration),
+        generate_audio: Boolean(this.generate_audio ?? true)
+      },
+      kind: "video",
+      signal: context?.signal
+    });
+    return { output: videoRefFromBytes(bytes) };
   }
 }
 

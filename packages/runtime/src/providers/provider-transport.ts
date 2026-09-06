@@ -8,3 +8,4 @@
 export * from "./http-transport.js";
 export * from "./image-ref.js";
 export * from "./atlascloud-transport.js";
+export * from "./muapi-transport.js";

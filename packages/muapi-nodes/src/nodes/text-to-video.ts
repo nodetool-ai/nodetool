@@ -3,11 +3,15 @@ import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import {
-  generateMuapiMedia,
   getMuapiApiKey,
   normalizeMuapiVideoDuration,
+  runMuapiMedia,
+  videoRefFromBytes,
   MUAPI_VIDEO_ASPECT_RATIOS,
-  MUAPI_VIDEO_RESOLUTIONS
+  MUAPI_MAX_DURATION,
+  MUAPI_MIN_DURATION,
+  MUAPI_VIDEO_RESOLUTIONS,
+  MUAPI_TEXT_TO_VIDEO_ENDPOINT
 } from "../muapi-base.js";
 
 type MuapiTextToVideoOutputs = { output: VideoRef };
@@ -42,7 +46,7 @@ export class MuapiTextToVideoNode extends BaseNode {
     default: "16:9",
     title: "Aspect Ratio",
     description: "Aspect ratio of the generated video.",
-    values: [...MUAPI_VIDEO_ASPECT_RATIOS]
+    values: MUAPI_VIDEO_ASPECT_RATIOS
   })
   declare aspect_ratio: string;
 
@@ -51,7 +55,7 @@ export class MuapiTextToVideoNode extends BaseNode {
     default: "720p",
     title: "Resolution",
     description: "Output video resolution.",
-    values: [...MUAPI_VIDEO_RESOLUTIONS]
+    values: MUAPI_VIDEO_RESOLUTIONS
   })
   declare resolution: string;
 
@@ -60,8 +64,8 @@ export class MuapiTextToVideoNode extends BaseNode {
     default: 5,
     title: "Duration",
     description: "Video duration in seconds.",
-    min: 4,
-    max: 10
+    min: MUAPI_MIN_DURATION,
+    max: MUAPI_MAX_DURATION
   })
   declare duration: number;
 
@@ -77,21 +81,20 @@ export class MuapiTextToVideoNode extends BaseNode {
     const prompt = String(this.prompt ?? "").trim();
     if (!prompt) throw new Error("Prompt is required");
 
-    return {
-      output: await generateMuapiMedia({
-        apiKey: getMuapiApiKey(this._secrets),
-        endpoint: "flux-3-text-to-video",
-        payload: {
-          prompt,
-          aspect_ratio: String(this.aspect_ratio ?? "16:9"),
-          resolution: String(this.resolution ?? "720p"),
-          duration: normalizeMuapiVideoDuration(this.duration),
-          generate_audio: Boolean(this.generate_audio ?? true)
-        },
-        kind: "video",
-        signal: context?.signal
-      })
-    };
+    const bytes = await runMuapiMedia({
+      apiKey: getMuapiApiKey(this._secrets),
+      endpoint: MUAPI_TEXT_TO_VIDEO_ENDPOINT,
+      payload: {
+        prompt,
+        aspect_ratio: String(this.aspect_ratio ?? "16:9"),
+        resolution: String(this.resolution ?? "720p"),
+        duration: normalizeMuapiVideoDuration(this.duration),
+        generate_audio: Boolean(this.generate_audio ?? true)
+      },
+      kind: "video",
+      signal: context?.signal
+    });
+    return { output: videoRefFromBytes(bytes) };
   }
 }
 

@@ -499,7 +499,7 @@ sec(
 sec(
   "MUAPI_API_KEY",
   "MuAPI",
-  "MuAPI API key for image and video generation. Get yours at https://muapi.ai/access-keys"
+  "MuAPI API key for text-to-video and image-to-video generation. Get yours at https://muapi.ai/access-keys"
 );
 sec("MESHY_API_KEY", "Meshy", "Meshy AI API key for 3D model generation. Get yours at https://app.meshy.ai/settings/api-keys");
 sec("RODIN_API_KEY", "Rodin", "Rodin AI API key for 3D model generation. Get yours at https://hyperhuman.deemos.com/");
