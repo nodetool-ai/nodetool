@@ -69,20 +69,30 @@ rather than replacing them, so a hold and a drag can share one element.
 
 ### From AssetExplorer → TrackLane (supported)
 
-Drag any image, video, or audio asset from the `AssetExplorer` panel and drop
-it onto a compatible track lane:
+Drag any image, video, audio or 3D-model asset from the `AssetExplorer` panel
+and drop it onto a compatible track lane:
 
 | Asset type | Valid track types |
 |-----------|-------------------|
 | `image/*` | `video`, `overlay` |
 | `video/*` | `video`, `overlay` |
 | `audio/*` | `audio` |
+| `model/*` | `video`, `overlay` |
 
 A clip is created at the drop position with:
 - `sourceType = "imported"` and `status = "generated"` (the asset *is* its output).
 - `durationMs` derived from `asset.duration` (× 1 000 to convert seconds → ms),
   falling back to 4 000 ms for assets without duration metadata.
 - `currentAssetId` pointing to the dragged asset.
+
+A model lands as a `model3d` clip carrying `DEFAULT_MODEL3D_STYLE` — 3D is
+picture, so it goes where a title goes and never onto an audio lane. A glTF
+has no duration of its own, so the clip is 4 000 ms long whatever the asset
+says. A `.glb` or `.gltf` name also reads as a model wherever the whole asset
+is known (`assetToClip`), which covers an upload typed
+`application/octet-stream`; a lane drop matches on the content type alone.
+The same clip is one click away without a drag: the lane's add-clip menu has
+a "3D model" entry listing the library's models.
 
 Dropping onto an incompatible track (e.g. audio onto a video lane) shows a
 brief warning banner and does **not** create a clip.

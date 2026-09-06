@@ -16,6 +16,20 @@ export type OutputPreviewValue = {
 };
 
 /**
+ * Whether an asset holds a 3D model: a `model/*` content type, or a glTF name
+ * when the upload was typed generically. One rule, read by the output preview
+ * and by the timeline's drop adapter, so the same file is a model in both.
+ */
+export const isModel3DAsset = (
+  contentType: string | undefined | null,
+  name?: string | null
+): boolean => {
+  if ((contentType ?? "").toLowerCase().startsWith("model/")) return true;
+  const lower = (name ?? "").toLowerCase();
+  return lower.endsWith(".glb") || lower.endsWith(".gltf");
+};
+
+/**
  * Convert a saved asset into the value shape the preview components expect
  * (mirrors the `{ type, uri }` records carried over `output_update`).
  */
@@ -42,7 +56,7 @@ export const assetToOutputValue = (asset: Asset): OutputPreviewValue => {
     }
     return { type: "json", uri };
   }
-  if (ct.includes("model") || asset.name?.toLowerCase().endsWith(".glb")) {
+  if (isModel3DAsset(ct, asset.name)) {
     return { type: "model_3d", uri, name: asset.name ?? undefined };
   }
   return { uri, type: "asset", name: asset.name ?? undefined };

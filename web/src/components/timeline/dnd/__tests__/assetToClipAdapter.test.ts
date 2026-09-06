@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
+import { DEFAULT_MODEL3D_STYLE } from "@nodetool-ai/timeline";
 import {
   assetMediaType,
   isCompatibleWithTrack,
@@ -188,5 +189,84 @@ describe("assetToClip", () => {
     const clip2 = assetToClip(asset, "track-1", 0);
 
     expect(clip1.id).not.toBe(clip2.id);
+  });
+});
+
+// ── 3D models ──────────────────────────────────────────────────────────────
+
+describe("3D model assets", () => {
+  it("returns 'model3d' for a model/* content type", () => {
+    expect(assetMediaType("model/gltf-binary")).toBe("model3d");
+    expect(assetMediaType("model/gltf+json")).toBe("model3d");
+  });
+
+  it("returns 'model3d' for a .glb or .gltf name under a generic type", () => {
+    expect(assetMediaType("application/octet-stream", "robot.glb")).toBe(
+      "model3d"
+    );
+    expect(assetMediaType("application/octet-stream", "Robot.GLTF")).toBe(
+      "model3d"
+    );
+  });
+
+  it("returns null for a generic type with a name that is not a model", () => {
+    expect(assetMediaType("application/octet-stream", "notes.txt")).toBeNull();
+  });
+
+  it("accepts a 3D model onto a video track", () => {
+    expect(isCompatibleWithTrack("model3d", "video")).toBe(true);
+  });
+
+  it("accepts a 3D model onto an overlay track", () => {
+    expect(isCompatibleWithTrack("model3d", "overlay")).toBe(true);
+  });
+
+  it("rejects a 3D model onto an audio track", () => {
+    expect(isCompatibleWithTrack("model3d", "audio")).toBe(false);
+  });
+
+  it("builds a model3d clip from a model/* asset", () => {
+    const asset = makeAsset({
+      name: "robot.glb",
+      content_type: "model/gltf-binary"
+    });
+    const clip = assetToClip(asset, "track-1", 250);
+
+    expect(clip.mediaType).toBe("model3d");
+    expect(clip.currentAssetId).toBe("asset-1");
+    expect(clip.startMs).toBe(250);
+    // A glTF has no duration of its own, so the 3D default applies.
+    expect(clip.durationMs).toBe(4000);
+  });
+
+  it("builds a model3d clip from a .gltf name under a generic type", () => {
+    const asset = makeAsset({
+      name: "robot.gltf",
+      content_type: "application/octet-stream"
+    });
+
+    expect(assetToClip(asset, "track-1", 0).mediaType).toBe("model3d");
+  });
+
+  it("gives a 3D clip its own copy of the default style", () => {
+    const asset = makeAsset({
+      name: "robot.glb",
+      content_type: "model/gltf-binary"
+    });
+    const clip = assetToClip(asset, "track-1", 0);
+
+    // The menu and a lane drop both build the clip here, so this is the style
+    // a 3D clip starts with either way.
+    expect(clip.model3dStyle).toEqual(DEFAULT_MODEL3D_STYLE);
+    // A copy, not the shared constant: editing one clip's camera must not
+    // move where every later clip starts.
+    expect(clip.model3dStyle).not.toBe(DEFAULT_MODEL3D_STYLE);
+    expect(clip.model3dStyle?.camera).not.toBe(DEFAULT_MODEL3D_STYLE.camera);
+  });
+
+  it("leaves model3dStyle off a clip that is not 3D", () => {
+    const clip = assetToClip(makeAsset({ content_type: "image/png" }), "t", 0);
+
+    expect(clip.model3dStyle).toBeUndefined();
   });
 });
