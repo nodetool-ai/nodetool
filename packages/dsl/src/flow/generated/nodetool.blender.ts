@@ -103,6 +103,26 @@ export function renderAnimation(inputs: RenderAnimationInputs): Promise<RenderAn
   return callNode<RenderAnimationOutputs>("nodetool.blender.RenderAnimation", inputs);
 }
 
+// Bake 3D Timeline Clip — nodetool.blender.BakeTimelineClip
+export type BakeTimelineClipInputs = {
+  model?: unknown;
+  frame_times?: unknown[];
+  cameras?: unknown[];
+  animation_name?: string;
+  width?: number;
+  height?: number;
+  fps?: number;
+  timeout?: number;
+};
+
+export interface BakeTimelineClipOutputs {
+  video: VideoRef;
+}
+
+export function bakeTimelineClip(inputs: BakeTimelineClipInputs): Promise<BakeTimelineClipOutputs> {
+  return callNode<BakeTimelineClipOutputs>("nodetool.blender.BakeTimelineClip", inputs);
+}
+
 // Prepare 3D Model For Engine — nodetool.blender.PrepareForEngine
 export type PrepareForEngineInputs = {
   model?: unknown;

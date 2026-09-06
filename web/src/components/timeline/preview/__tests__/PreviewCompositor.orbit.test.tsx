@@ -29,7 +29,7 @@ const track: TimelineTrack = makeTrack({
 });
 
 function modelClip(id: string, mediaType: "model3d" | "video"): TimelineClip {
-  return makeClip({
+  const clip = makeClip({
     id,
     trackId: track.id,
     name: id,
@@ -38,11 +38,12 @@ function modelClip(id: string, mediaType: "model3d" | "video"): TimelineClip {
     status: "generated",
     startMs: 0,
     durationMs: 4000,
-    currentAssetId: "asset-glb",
-    ...(mediaType === "model3d"
-      ? { model3dStyle: { ...DEFAULT_MODEL3D_STYLE } }
-      : {})
+    currentAssetId: "asset-glb"
   });
+  if (mediaType === "model3d") {
+    clip.model3dStyle = { ...DEFAULT_MODEL3D_STYLE };
+  }
+  return clip;
 }
 
 let mockClips: TimelineClip[] = [];
