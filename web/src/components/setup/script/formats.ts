@@ -10,22 +10,15 @@
  */
 
 import { SCRIPT_FORMATS, SCRIPT_LENGTH_CHOICES } from "@nodetool-ai/protocol";
-import type { ScriptFormat } from "@nodetool-ai/protocol";
-
 import type { OptionCardItem } from "../OptionCardGrid";
-
-/** How each format's cast reads on its card. */
-const CAST_LINE: Readonly<Record<ScriptFormat["castShape"], string>> = {
-  narrator: "One voice",
-  characters: "Two or more named speakers",
-  "host-and-guest": "A host and a guest"
-};
+import { SETUP_STILL_GROUPS, setupStill } from "../stills";
 
 export const FORMAT_CARDS: readonly OptionCardItem[] = SCRIPT_FORMATS.map(
   (format) => ({
     id: format.id,
     title: format.label,
-    description: `${format.description} ${CAST_LINE[format.castShape]}.`
+    description: format.description,
+    image: setupStill(SETUP_STILL_GROUPS.scriptFormats, format.id)
   })
 );
 
@@ -36,13 +29,12 @@ export interface LengthChoice {
 }
 
 /** The lengths offered under the cards. `custom` is the flow's own entry. */
-export const LENGTH_CHOICES: readonly LengthChoice[] = SCRIPT_LENGTH_CHOICES.map(
-  (seconds) => ({
+export const LENGTH_CHOICES: readonly LengthChoice[] =
+  SCRIPT_LENGTH_CHOICES.map((seconds) => ({
     id: `${seconds}`,
     label: seconds < 60 ? `${seconds}s` : `${seconds / 60} min`,
     seconds
-  })
-);
+  }));
 
 /** The length the format step starts on when nothing was chosen yet. */
 export const DEFAULT_LENGTH_SECONDS = 60;

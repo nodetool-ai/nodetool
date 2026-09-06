@@ -12,12 +12,14 @@
  * brief refined here and one refined by the headless `refine_image_brief` are
  * the same request.
  *
- * No model picker: the request names no provider, so the session's default
- * language model answers it — the flow asks the creator what they want a
- * picture of, not which model should read the sentence.
+ * No model picker: the flow asks the creator what they want a picture of, not
+ * which model should read the sentence. The hook names the session's chat
+ * model so the step can price the call before it is made (PRD § 6.2); a caller
+ * that names none — the `ui_sketch_refine_brief` tool — leaves the choice to
+ * the server as before.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   REFINE_BRIEF_SCHEMA,
   REFINE_BRIEF_SYSTEM_PROMPT,
@@ -30,6 +32,32 @@ import {
 
 import { rpcRequest } from "../../lib/websocket/rpcRequest";
 import { useSketchStore } from "../../components/sketch/state/useSketchStore";
+import {
+  MAX_IMAGE_REFERENCES,
+  imageReferences,
+  readReferences
+} from "../../components/setup/image/setupContext";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
+
+/** The language model a refinement runs against, when one is known. */
+export interface RefineBriefModel {
+  id: string;
+  provider: string;
+  name?: string;
+}
+
+/** The answer's ceiling, and what the step's estimate is measured against. */
+export const REFINE_BRIEF_MAX_TOKENS = 2048;
+
+/**
+ * What the answer was expanded from. The use-case step compares it with what
+ * the document holds now, so returning to that step and pressing its button
+ * again continues to the brief already written instead of paying for the same
+ * expansion twice (F15).
+ */
+export const briefInputSignature = (
+  setup: { brief?: string; use_case?: string } | undefined
+): string => `${setup?.brief?.trim() ?? ""}␟${setup?.use_case ?? ""}`;
 
 /**
  * One expansion, with no React around it. The hook and the
@@ -40,22 +68,58 @@ import { useSketchStore } from "../../components/sketch/state/useSketchStore";
  * usable — the caller decides whether that is a message on a button or a
  * rejected tool call.
  */
-export async function requestRefinedBrief(setup: {
-  brief?: string;
-  use_case?: string;
-}): Promise<SketchRefinedBrief> {
+export async function requestRefinedBrief(
+  setup: {
+    brief?: string;
+    use_case?: string;
+    /** Image URIs the creator attached to the prompt (F4). */
+    references?: readonly string[];
+  },
+  model?: RefineBriefModel
+): Promise<SketchRefinedBrief> {
   const brief = setup.brief?.trim() ?? "";
   if (brief.length === 0) {
     throw new Error("Describe the image before refining the brief.");
   }
-  const answer = await rpcRequest("generate_text", {
-    system: REFINE_BRIEF_SYSTEM_PROMPT,
-    prompt: buildRefineBriefPrompt(brief, setup.use_case),
-    max_tokens: 2048,
+  const prompt = buildRefineBriefPrompt(brief, setup.use_case);
+  const references = (setup.references ?? []).slice(0, MAX_IMAGE_REFERENCES);
+  const request: Record<string, unknown> = {
+    // A reference travels as content blocks, the shape `generate_text` reads a
+    // picture from — the same one the storyboard's custom style uses. With no
+    // reference the request is the plain system/prompt pair it always was.
+    ...(references.length > 0
+      ? {
+          messages: [
+            { role: "system", content: REFINE_BRIEF_SYSTEM_PROMPT },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `${prompt}\n\nThe creator attached the images below. Read them for subject, composition, lighting and style words, and let them settle anything the sentence leaves open.`
+                },
+                ...references.map((uri) => ({
+                  type: "image_url",
+                  image: { type: "image", uri }
+                }))
+              ]
+            }
+          ]
+        }
+      : { system: REFINE_BRIEF_SYSTEM_PROMPT, prompt }),
+    max_tokens: REFINE_BRIEF_MAX_TOKENS,
     schema: REFINE_BRIEF_SCHEMA,
     schema_name: REFINE_BRIEF_TOOL_NAME,
     schema_description: REFINE_BRIEF_TOOL_DESCRIPTION
-  });
+  };
+  // Named only when the caller has one. The `ui_sketch_refine_brief` tool
+  // names none, and the keys stay off the request rather than being sent as
+  // `undefined`, so the server picks the session's model as it always has.
+  if (model) {
+    request.provider = model.provider;
+    request.model = model.id;
+  }
+  const answer = await rpcRequest("generate_text", request);
   const refined = parseRefinedBrief(answer.data);
   if (!refined) {
     throw new Error("The model did not return a brief. Try again.");
@@ -72,32 +136,79 @@ export interface RefineBriefResult {
   expandBrief: () => Promise<boolean>;
   refining: boolean;
   error: string | null;
+  /** The model the next expansion runs against, or null when none is set. */
+  model: RefineBriefModel | null;
 }
 
 export function useRefineBrief(): RefineBriefResult {
   const [refining, setRefining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const selectedModel = useGlobalChatStore((state) => state.selectedModel);
+  const model = useMemo<RefineBriefModel | null>(
+    () =>
+      selectedModel?.id
+        ? {
+            id: selectedModel.id,
+            provider: selectedModel.provider,
+            name: selectedModel.name
+          }
+        : null,
+    [selectedModel?.id, selectedModel?.name, selectedModel?.provider]
+  );
+  // Which request the hook is still waiting for. A model call outlives the
+  // stage that asked for it, so an older answer must neither replace the brief
+  // a newer one wrote nor clear the wait a newer one owns.
+  const requestRef = useRef(0);
 
   const expandBrief = useCallback(async (): Promise<boolean> => {
+    const token = (requestRef.current += 1);
+    const setup = useSketchStore.getState().document.setup;
+    const originStage = setup?.stage;
+    const chosen = useGlobalChatStore.getState().selectedModel;
     setError(null);
     setRefining(true);
     try {
-      const setup = useSketchStore.getState().document.setup;
-      const refined = await requestRefinedBrief({
-        brief: setup?.brief,
-        use_case: setup?.use_case
+      const refined = await requestRefinedBrief(
+        {
+          brief: setup?.brief,
+          use_case: setup?.use_case,
+          references: imageReferences(readReferences(setup)).map(
+            (reference) => reference.uri
+          )
+        },
+        chosen?.id
+          ? { id: chosen.id, provider: chosen.provider, name: chosen.name }
+          : undefined
+      );
+      // The creator left the stage this expansion was asked from, so the
+      // brief they are reading now stays: a late answer neither replaces it
+      // nor pulls them back to the review.
+      if (
+        token !== requestRef.current ||
+        useSketchStore.getState().document.setup?.stage !== originStage
+      ) {
+        return false;
+      }
+      useSketchStore.getState().setSetup({
+        refined,
+        stage: "review",
+        refined_from: briefInputSignature(setup)
       });
-      useSketchStore.getState().setSetup({ refined, stage: "review" });
       return true;
     } catch (cause) {
+      if (token !== requestRef.current) {
+        return false;
+      }
       setError(cause instanceof Error ? cause.message : String(cause));
       return false;
     } finally {
-      setRefining(false);
+      if (token === requestRef.current) {
+        setRefining(false);
+      }
     }
   }, []);
 
-  return { expandBrief, refining, error };
+  return { expandBrief, refining, error, model };
 }
 
 export default useRefineBrief;

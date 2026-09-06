@@ -16,6 +16,37 @@ import {
 import { useScriptStore } from "../../../../stores/script/ScriptStore";
 import { ReviewStep } from "../ReviewStep";
 
+// The picker's dialog, reduced to one selectable model.
+jest.mock("../../../model_menu/LanguageModelMenuDialog", () => ({
+  __esModule: true,
+  default: ({
+    open,
+    onModelChange
+  }: {
+    open: boolean;
+    onModelChange?: (model: unknown) => void;
+  }) =>
+    open ? (
+      <button
+        type="button"
+        onClick={() =>
+          onModelChange?.({
+            id: "gemini-3.6-flash",
+            provider: "gemini",
+            name: "Gemini 3.6 Flash"
+          })
+        }
+      >
+        pick gemini
+      </button>
+    ) : null
+}));
+
+jest.mock("../../../../hooks/useModelsByProvider", () => ({
+  __esModule: true,
+  useLanguageModelsByProvider: () => ({ models: [], isLoading: false })
+}));
+
 const SCRIPT_ID = "s-review";
 const setLineText = jest.fn();
 const setLineSpeaker = jest.fn();
@@ -52,12 +83,18 @@ const seed = (): void => {
   });
 };
 
-const renderStep = (onRewrite = jest.fn()) =>
+const renderStep = (onRewrite = jest.fn(), onOpenEditor = jest.fn()) => {
   render(
     <ThemeProvider theme={mockTheme}>
-      <ReviewStep scriptId={SCRIPT_ID} onRewrite={onRewrite} />
+      <ReviewStep
+        scriptId={SCRIPT_ID}
+        onRewrite={onRewrite}
+        onOpenEditor={onOpenEditor}
+      />
     </ThemeProvider>
   );
+  return { onRewrite, onOpenEditor };
+};
 
 beforeEach(() => {
   setLineText.mockClear();
@@ -113,6 +150,56 @@ describe("script ReviewStep", () => {
     await user.click(screen.getByRole("option", { name: "Guest" }));
 
     expect(setLineSpeaker).toHaveBeenCalledWith("line_1", "spk_guest");
+  });
+
+  it("writes the picked model onto the document, for this rewrite and the next", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    // Untouched, the picker names the chat model — the one the writer has
+    // always used — rather than showing an empty control.
+    await user.click(screen.getByRole("button", { name: "gpt-oss:20b" }));
+    await user.click(screen.getByRole("button", { name: "pick gemini" }));
+
+    expect(useScriptStore.getState().scripts[SCRIPT_ID].setup?.writer_model).toEqual({
+      provider: "gemini",
+      id: "gemini-3.6-flash"
+    });
+  });
+
+  it("says what a rewrite will cost before it is pressed (F23)", () => {
+    renderStep();
+    expect(
+      screen.getByRole("region", { name: "Before you generate" })
+    ).toHaveTextContent("Rewrite 6 words");
+  });
+
+  it("adds a line, and clears the empty ones it left behind (F20)", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(screen.getByRole("button", { name: "Add a line" }));
+    const linesOf = () =>
+      useScriptStore
+        .getState()
+        .scripts[SCRIPT_ID].sections.flatMap((section) => section.lines);
+    expect(linesOf()).toHaveLength(3);
+
+    await user.click(
+      screen.getByRole("button", { name: "Remove 1 empty line" })
+    );
+    expect(linesOf()).toHaveLength(2);
+  });
+
+  it("offers the text-only finish (F16)", async () => {
+    const user = userEvent.setup();
+    const { onOpenEditor } = renderStep();
+
+    await user.click(
+      screen.getByRole("button", { name: "Open the editor without voicing" })
+    );
+
+    expect(onOpenEditor).toHaveBeenCalledTimes(1);
   });
 
   it("offers a rewrite and spends nothing on its own", async () => {

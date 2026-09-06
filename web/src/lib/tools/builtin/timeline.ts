@@ -727,6 +727,14 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  ...shared("ui_timeline_remove_beat"),
+  async execute({ timeline_id, beat }) {
+    const removed = getTimelineAgentHandler(timeline_id).removeBeat(beat);
+    return { ok: true, removed, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
   ...shared("ui_timeline_generate_from_beats"),
   async execute({ timeline_id, ...opts }) {
     const result =

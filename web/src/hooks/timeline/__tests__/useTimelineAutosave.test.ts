@@ -107,6 +107,40 @@ describe("useTimelineAutosave", () => {
     expect(arg.document.tracks).toHaveLength(3);
   });
 
+  // The guided flow's controls write nothing but `setup`. The subscriber used
+  // to compare every other slice and return early, so removing a beat or
+  // switching voiceover off never reached the debounce and came back on reload.
+  it("PATCHes a setup-only edit", async () => {
+    seedSequence();
+    act(() => {
+      useTimelineStore.getState().setSetup({
+        stage: "review",
+        brief: "A lamp spot",
+        voiceover: true,
+        beats: [
+          { id: "b1", prompt: "Open on the lamp", duration_ms: 2000 },
+          { id: "b2", prompt: "Cut to the desk", duration_ms: 2000 }
+        ]
+      });
+    });
+    renderHook(() => useTimelineAutosave({ debounceMs: 50 }));
+
+    act(() => {
+      useTimelineStore.getState().removeBeat("b2");
+      useTimelineStore.getState().setSetup({ voiceover: false });
+    });
+    act(() => {
+      jest.advanceTimersByTime(60);
+    });
+
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+    const arg = updateMutate.mock.calls[0][0] as {
+      document: { setup?: { voiceover?: boolean; beats?: { id: string }[] } };
+    };
+    expect(arg.document.setup?.voiceover).toBe(false);
+    expect(arg.document.setup?.beats?.map((beat) => beat.id)).toEqual(["b1"]);
+  });
+
   it("does not save when sequenceId is null", () => {
     renderHook(() => useTimelineAutosave({ debounceMs: 50 }));
     act(() => {

@@ -10,8 +10,14 @@
  * The cache is module-level rather than component state because the flow's
  * steps mount and unmount as the creator moves between them, and a sample paid
  * for on the way in must still be there on the way back. Entries are keyed by
- * the exact call — provider, model, voice, and the words — so changing the line
- * makes a new sample and re-picking the same tile does not.
+ * the exact call — provider, model, voice, speed, and the words as they are
+ * sent — so changing the line makes a new sample and re-picking the same tile
+ * does not.
+ *
+ * The words are normalized once, by `sampleText`, and both the write and the
+ * read go through it. They did not: the call keyed the trimmed, truncated text
+ * while the lookup keyed the raw line, so a line longer than the cap or padded
+ * with whitespace paid for a sample it could never find again (F13).
  */
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
@@ -54,12 +60,26 @@ const subscribe = (listener: () => void): (() => void) => {
   };
 };
 
-/** One entry per distinct call, so the same tile and line never bills twice. */
-export const sampleKey = (voice: SampleVoice, text: string): string =>
-  `${voice.provider}|${voice.model}|${voice.voice}|${text}`;
-
 /** How many characters of the line a sample speaks. */
-const SAMPLE_CHARS = 220;
+export const SAMPLE_CHARS = 220;
+
+/**
+ * The words a sample actually says — the one form both the cache and the call
+ * use. Trimmed again after the cut, so the function is idempotent: slicing a
+ * long line lands mid-space as often as not, and normalizing an already
+ * normalized line has to give the same string back or the write and the read
+ * key different entries (F13).
+ */
+export const sampleText = (text: string): string =>
+  text.trim().slice(0, SAMPLE_CHARS).trim();
+
+/** One entry per distinct call, so the same tile and line never bills twice. */
+export const sampleKey = (
+  voice: SampleVoice,
+  text: string,
+  speed?: number
+): string =>
+  `${voice.provider}|${voice.model}|${voice.voice}|${speed ?? 1}|${sampleText(text)}`;
 
 const firstAssetId = (result: Record<string, unknown>): string | undefined => {
   const ids = Array.isArray(result["asset_ids"]) ? result["asset_ids"] : [];
@@ -74,9 +94,11 @@ export interface VoiceSamplesResult {
    * reused, so a creator clicking twice pays once.
    */
   play: (voice: SampleVoice, text: string) => void;
+  /** The words the samples say, for what the step tells the creator they cost. */
+  spokenText: (text: string) => string;
 }
 
-export function useVoiceSamples(): VoiceSamplesResult {
+export function useVoiceSamples(speed?: number): VoiceSamplesResult {
   const version = useSyncExternalStore(
     subscribe,
     () => revision,
@@ -88,48 +110,52 @@ export function useVoiceSamples(): VoiceSamplesResult {
   const sampleFor = useMemo(
     () =>
       (voice: SampleVoice, text: string): VoiceSample =>
-        samples.get(sampleKey(voice, text)) ?? NOT_REQUESTED,
-    [version]
+        samples.get(sampleKey(voice, text, speed)) ?? NOT_REQUESTED,
+    [speed, version]
   );
 
-  const play = useCallback((voice: SampleVoice, text: string): void => {
-    const spoken = text.trim().slice(0, SAMPLE_CHARS);
-    if (spoken === "" || voice.model === "" || voice.voice === "") {
-      return;
-    }
-    const key = sampleKey(voice, spoken);
-    const held = samples.get(key);
-    if (held && (held.pending || held.assetId !== undefined)) {
-      return;
-    }
-    samples.set(key, { pending: true });
-    announce();
-    void rpcRequest("generate_media", {
-      mode: "audio",
-      provider: voice.provider,
-      model: voice.model,
-      voice: voice.voice,
-      prompt: spoken
-    })
-      .then((result) => {
-        const assetId = firstAssetId(result);
-        samples.set(
-          key,
-          assetId === undefined
-            ? { pending: false, error: "That voice returned no audio." }
-            : { pending: false, assetId }
-        );
+  const play = useCallback(
+    (voice: SampleVoice, text: string): void => {
+      const spoken = sampleText(text);
+      if (spoken === "" || voice.model === "" || voice.voice === "") {
+        return;
+      }
+      const key = sampleKey(voice, text, speed);
+      const held = samples.get(key);
+      if (held && (held.pending || held.assetId !== undefined)) {
+        return;
+      }
+      samples.set(key, { pending: true });
+      announce();
+      void rpcRequest("generate_media", {
+        mode: "audio",
+        provider: voice.provider,
+        model: voice.model,
+        voice: voice.voice,
+        speed,
+        prompt: spoken
       })
-      .catch((cause: unknown) => {
-        samples.set(key, {
-          pending: false,
-          error: cause instanceof Error ? cause.message : String(cause)
-        });
-      })
-      .finally(announce);
-  }, []);
+        .then((result) => {
+          const assetId = firstAssetId(result);
+          samples.set(
+            key,
+            assetId === undefined
+              ? { pending: false, error: "That voice returned no audio." }
+              : { pending: false, assetId }
+          );
+        })
+        .catch((cause: unknown) => {
+          samples.set(key, {
+            pending: false,
+            error: cause instanceof Error ? cause.message : String(cause)
+          });
+        })
+        .finally(announce);
+    },
+    [speed]
+  );
 
-  return { sampleFor, play };
+  return { sampleFor, play, spokenText: sampleText };
 }
 
 /** Drop every cached sample. Test-only; the cache lives as long as the tab. */

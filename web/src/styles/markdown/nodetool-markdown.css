@@ -39,6 +39,6 @@
 }
 
 /* list */
-ol > li {
-  list-style-type: auto !important;
+.markdown-body ol > li {
+  list-style-type: auto;
 }

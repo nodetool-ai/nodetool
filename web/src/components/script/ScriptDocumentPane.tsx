@@ -2,6 +2,7 @@
 import { memo, useCallback, useMemo, useState } from "react";
 import type { DragEvent } from "react";
 import { useTheme } from "@mui/material/styles";
+import { useShallow } from "zustand/react/shallow";
 import { useMediaQuery } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -38,6 +39,7 @@ import { useInStudio } from "../../studio/StudioContext";
 import {
   useScript,
   useScriptCast,
+  useScriptSetup,
   useScriptStore,
   useScriptStoryboardLink,
   useScriptCanUndo,
@@ -46,7 +48,13 @@ import {
   type ScriptSection,
   type ScriptSpeaker
 } from "../../stores/script/ScriptStore";
-import { voiceAll } from "../../stores/script/scriptVoicing";
+import {
+  dismissVoicingRun,
+  readVoicingRun,
+  retryVoicing,
+  voiceAll,
+  type VoicingRun
+} from "../../stores/script/scriptVoicing";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 import {
   useVoiceCostEstimate,
@@ -505,6 +513,160 @@ const VoiceAllButton = ({
   );
 };
 
+/** The first words of a line, for naming it in the failure list. */
+const lineLabel = (text: string): string => {
+  const trimmed = text.trim();
+  if (trimmed === "") {
+    return "an empty line";
+  }
+  return trimmed.length > 60 ? `${trimmed.slice(0, 60)}…` : `“${trimmed}”`;
+};
+
+/**
+ * What the last *Voice all* did (F8).
+ *
+ * The guided flow writes stage `done` and opens this editor before the takes
+ * arrive (PRD § 9.3), so the creator lands here with speech still being made
+ * and, until now, learned nothing when a line produced no audio: the batch
+ * caught each failure and logged it to a console nobody has open. The run is on
+ * the document, so this strip says which state it is in — queued, running with
+ * a count, or completed — names every line that failed with the reason it gave,
+ * and retries them through the same path that voiced the rest.
+ *
+ * A script nobody has voiced carries no record, and this renders nothing.
+ */
+const VoicingStrip = ({
+  scriptId,
+  readOnly
+}: {
+  scriptId: string;
+  readOnly?: boolean;
+}) => {
+  const setup = useScriptSetup(scriptId);
+  const lineText = useScriptStore(
+    useShallow((state) => {
+      const map: Record<string, string> = {};
+      for (const section of state.scripts[scriptId]?.sections ?? []) {
+        for (const line of section.lines) {
+          map[line.id] = line.text;
+        }
+      }
+      return map;
+    })
+  );
+  const [retrying, setRetrying] = useState<readonly string[]>([]);
+
+  const run: VoicingRun | null = readVoicingRun(setup);
+
+  const retry = useCallback(
+    (lineIds: readonly string[]) => {
+      setRetrying(lineIds);
+      void retryVoicing(scriptId, lineIds).finally(() => setRetrying([]));
+    },
+    [scriptId]
+  );
+
+  if (!run || (run.total === 0 && run.failed.length === 0)) {
+    return null;
+  }
+
+  if (run.status === "queued") {
+    return (
+      <AlertBanner severity="info" compact sx={{ marginX: SPACING.md }}>
+        {`Voicing queued for ${run.total} ${run.total === 1 ? "line" : "lines"}.`}
+      </AlertBanner>
+    );
+  }
+
+  if (run.status === "running") {
+    return (
+      <AlertBanner severity="info" compact sx={{ marginX: SPACING.md }}>
+        <FlexRow align="center" gap={SPACING.xs}>
+          <LoadingSpinner size={16} />
+          <Text size="smaller">
+            {`Voicing ${run.voiced + run.failed.length} of ${run.total} ${
+              run.total === 1 ? "line" : "lines"
+            }${run.failed.length > 0 ? ` · ${run.failed.length} failed so far` : ""}`}
+          </Text>
+        </FlexRow>
+      </AlertBanner>
+    );
+  }
+
+  const busy = retrying.length > 0;
+
+  if (run.failed.length === 0) {
+    return (
+      <AlertBanner
+        severity="success"
+        compact
+        onClose={readOnly ? undefined : () => dismissVoicingRun(scriptId)}
+        sx={{ marginX: SPACING.md }}
+      >
+        {`Voiced ${run.voiced} ${run.voiced === 1 ? "line" : "lines"}.`}
+      </AlertBanner>
+    );
+  }
+
+  return (
+    <AlertBanner
+      severity="warning"
+      compact
+      onClose={readOnly ? undefined : () => dismissVoicingRun(scriptId)}
+      sx={{ marginX: SPACING.md }}
+    >
+      <FlexColumn gap={SPACING.xs}>
+        <Text size="smaller">
+          {`Voiced ${run.voiced} of ${run.total} lines. ${run.failed.length} ${
+            run.failed.length === 1 ? "line" : "lines"
+          } could not be voiced.`}
+        </Text>
+        <FlexColumn
+          gap={SPACING.xs}
+          component="ul"
+          sx={{ margin: 0, paddingLeft: 0, listStyle: "none" }}
+        >
+          {run.failed.map((failure) => (
+            <FlexRow
+              key={failure.lineId}
+              component="li"
+              gap={SPACING.sm}
+              align="center"
+              wrap
+            >
+              <Caption>
+                {`${lineLabel(lineText[failure.lineId] ?? "")} — ${failure.error}`}
+              </Caption>
+              {readOnly ? null : (
+                <EditorButton
+                  size="small"
+                  variant="text"
+                  disabled={busy}
+                  onClick={() => retry([failure.lineId])}
+                >
+                  Retry
+                </EditorButton>
+              )}
+            </FlexRow>
+          ))}
+        </FlexColumn>
+        {readOnly || run.failed.length < 2 ? null : (
+          <FlexRow>
+            <EditorButton
+              size="small"
+              variant="outlined"
+              disabled={busy}
+              onClick={() => retry(run.failed.map((failure) => failure.lineId))}
+            >
+              {busy ? "Retrying…" : `Retry all ${run.failed.length}`}
+            </EditorButton>
+          </FlexRow>
+        )}
+      </FlexColumn>
+    </AlertBanner>
+  );
+};
+
 const ScriptDocumentPane = ({
   scriptId,
   readOnly
@@ -841,6 +1003,8 @@ const ScriptDocumentPane = ({
           </>
         )}
       </FlexRow>
+
+      <VoicingStrip scriptId={scriptId} readOnly={readOnly} />
 
       {!readOnly && assembleError && (
         <AlertBanner

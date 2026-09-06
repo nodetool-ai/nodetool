@@ -1420,5 +1420,6 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_set_setup",
   "ui_timeline_plan_beats",
   "ui_timeline_update_beat",
+  "ui_timeline_remove_beat",
   "ui_timeline_generate_from_beats"
 ] as const;

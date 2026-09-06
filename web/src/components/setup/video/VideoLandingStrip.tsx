@@ -2,9 +2,13 @@
  * What the timeline shows after the flow hands it back (PRD § 8.4).
  *
  * Three things, and only while they are true: how much of the batch is still
- * rendering (with a remaining time **only when one was measured** — D14), a
+ * rendering (with a duration **only when one was measured** — D14), a
  * `Retry N failed` action while any clip failed, and the two next steps once
  * the cut is whole.
+ *
+ * The duration is what this model and kind took last time, not a countdown:
+ * nothing here subtracts the elapsed time of the running job, so it is named
+ * for what it is rather than sold as time left (F23).
  *
  * It renders nothing on a sequence that never went through the flow, so the
  * editor is untouched for everyone else.
@@ -35,7 +39,7 @@ export interface VideoLandingStripProps {
 }
 
 /**
- * What is left to wait for, or null when nothing measured it.
+ * How long this batch's models usually take, or null when nothing measured it.
  *
  * D14: no record, no text. A first batch on a model nobody has run says how
  * many clips are rendering and stops there, rather than inventing a number the
@@ -103,7 +107,9 @@ const VideoLandingStripInternal: React.FC<VideoLandingStripProps> = ({
       {rendering.length > 0 ? (
         <Text size="small" color="secondary" role="status">
           {`Rendering ${rendering.length} clip${rendering.length === 1 ? "" : "s"}`}
-          {remaining === null ? "" : ` · about ${formatSeconds(remaining)} left`}
+          {remaining === null
+            ? ""
+            : ` · typical duration ${formatSeconds(remaining)}`}
         </Text>
       ) : null}
       {failedClipIds.length > 0 ? (

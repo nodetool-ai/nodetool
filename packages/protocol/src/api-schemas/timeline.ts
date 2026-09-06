@@ -1079,6 +1079,14 @@ export const timelineSetup = z
     brief: z.string(),
     /** The format card's id, e.g. "social-9x16". */
     format: z.string().optional(),
+    /**
+     * Whether the cut gets a voiceover. Absent means the creator has not said,
+     * so the beats' own lines decide. `false` is a deliberate "no voiceover",
+     * which the lines cannot express: reading it off them would make silence
+     * indistinguishable from an unwritten line, and writing it by clearing
+     * them would throw the creator's words away (PRD § 8.3).
+     */
+    voiceover: z.boolean().optional(),
     beats: z.array(timelineBeat).optional()
   })
   .passthrough();

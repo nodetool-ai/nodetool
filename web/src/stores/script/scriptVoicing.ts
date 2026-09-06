@@ -11,7 +11,10 @@
  * RPCs — no inline graphs, no bespoke engine.
  */
 
+import type { ScriptSetup } from "@nodetool-ai/protocol/api-schemas/scripts.js";
+
 import { randomRequestId, rpcRequest } from "../../lib/websocket/rpcRequest";
+import { paceSpeed } from "../../hooks/script/scriptPace";
 import { useAssetStore } from "../AssetStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import {
@@ -124,6 +127,8 @@ export async function voiceLine(
       provider: voice.provider,
       model: voice.model,
       voice: voice.voice,
+      // The pace the flow was set to, which until now reached nothing (F12).
+      speed: paceSpeed(script.setup?.pace),
       prompt: text
     });
     const assetIds = Array.isArray(ttsResult.asset_ids)
@@ -198,39 +203,205 @@ export function voiceTargets(script: ScriptDraft): VoiceTarget[] {
   return targets;
 }
 
+// ── The run record ──────────────────────────────────────────────────────────
+
+/** Where a *Voice all* got to. Written on the document, under `setup.voicing`. */
+export type VoicingStatus = "queued" | "running" | "completed";
+
+export interface VoicingRun {
+  status: VoicingStatus;
+  /** Lines the run set out to voice. */
+  total: number;
+  /** Lines it voiced. */
+  voiced: number;
+  /** The lines it could not, and why. */
+  failed: Array<{ lineId: string; error: string }>;
+  /** When the record last moved, ISO. */
+  updatedAt: string;
+}
+
+/** The `setup` key the run is written under. */
+const VOICING_FIELD = "voicing";
+
+/**
+ * The setup patch that records where voicing got to (F8).
+ *
+ * The setup flow writes stage `done` and opens the editor before the takes
+ * arrive, which PRD § 9.3 asks for — a tab closed mid-voicing must reopen on
+ * the editor, not back in setup. What it must not do is lose the outcome:
+ * `voiceAll` caught each line's failure, logged it to the console and returned
+ * a count that said nothing about the lines that produced no audio. The record
+ * says which lines those were, and survives the reload.
+ */
+export function voicingPatch(run: VoicingRun): Partial<ScriptSetup> {
+  return { [VOICING_FIELD]: run };
+}
+
+/** The run recorded on a script's setup, or null. Read defensively. */
+export function readVoicingRun(setup: unknown): VoicingRun | null {
+  if (typeof setup !== "object" || setup === null) return null;
+  const raw = (setup as Record<string, unknown>)[VOICING_FIELD];
+  if (typeof raw !== "object" || raw === null) return null;
+  const record = raw as Record<string, unknown>;
+  const status = record.status;
+  if (status !== "queued" && status !== "running" && status !== "completed") {
+    return null;
+  }
+  const failed = Array.isArray(record.failed)
+    ? record.failed.flatMap((entry) =>
+        isObjectLike(entry) && isString(entry.lineId)
+          ? [
+              {
+                lineId: entry.lineId,
+                error: isString(entry.error) ? entry.error : "Voicing failed"
+              }
+            ]
+          : []
+      )
+    : [];
+  return {
+    status,
+    total: isNumber(record.total) ? record.total : 0,
+    voiced: isNumber(record.voiced) ? record.voiced : 0,
+    failed,
+    updatedAt: isString(record.updatedAt) ? record.updatedAt : ""
+  };
+}
+
+const recordRun = (scriptId: string, run: VoicingRun): void => {
+  const script = useScriptStore.getState().scripts[scriptId];
+  // A script with no setup was never in the flow, and gains no field for it.
+  if (!script?.setup) return;
+  useScriptStore.getState().setSetup(scriptId, voicingPatch(run));
+};
+
+/** Drop the record — the creator has read it. */
+export function dismissVoicingRun(scriptId: string): void {
+  const script = useScriptStore.getState().scripts[scriptId];
+  if (!script?.setup) return;
+  useScriptStore.getState().setSetup(scriptId, { [VOICING_FIELD]: undefined });
+}
+
+/**
+ * A provider's error message, with anything credential-shaped taken out before
+ * it is written to the document. The reason a line failed is what the creator
+ * needs, and a bearer token pasted into a 401 body is not part of it — the repo
+ * rule is that secrets never appear in messages, and this one is stored, synced
+ * and rendered.
+ *
+ * Redacting on the way in rather than on the way out means a token cannot reach
+ * the document at all, so no later reader has to remember to strip it.
+ */
+export function redactSecrets(message: string): string {
+  return message
+    .replace(/\b(Bearer|Basic|Token)\s+[A-Za-z0-9._\-+/=]+/gi, "$1 [redacted]")
+    .replace(/\b(?:sk|pk|rk|hf|xai|gsk|fal)[-_][A-Za-z0-9._-]{8,}/g, "[redacted]")
+    .replace(
+      /\b(api[-_]?key|access[-_]?token|authorization|secret|password)(["']?\s*[:=]\s*["']?)[^\s"',&}]+/gi,
+      "$1$2[redacted]"
+    )
+    // The catch-all: a token with no prefix and no label is still a long run of
+    // token characters, and no message needs one to say what went wrong.
+    .replace(/\b[A-Za-z0-9_-]{32,}\b/g, "[redacted]")
+    .trim();
+}
+
+/**
+ * Voice the given lines, recording the run on the document as it goes (F8).
+ *
+ * The record is what the editor reads: the flow writes stage `done` and opens
+ * the editor before the takes arrive (PRD § 9.3), so the outcome has to outlive
+ * the flow. It moves to `running` before the first call, again after every line
+ * so a reload mid-run shows real progress, and to `completed` at the end with
+ * every line that failed and why.
+ */
+async function voiceLines(
+  scriptId: string,
+  lineIds: readonly string[],
+  asr: AsrConfig,
+  concurrency: number,
+  /**
+   * The run this one continues. A retry is part of the run that failed, not a
+   * run of its own: without this, retrying one of two failures would report
+   * "voiced 1 line" and drop the failure nobody retried.
+   */
+  base?: VoicingRun
+): Promise<VoicingRun> {
+  const retried = new Set(lineIds);
+  const carried = (base?.failed ?? []).filter(
+    (failure) => !retried.has(failure.lineId)
+  );
+  const failed: VoicingRun["failed"] = [];
+  let voiced = 0;
+  let cursor = 0;
+
+  const snapshot = (status: VoicingStatus): VoicingRun => ({
+    status,
+    total: base?.total ?? lineIds.length,
+    voiced: (base?.voiced ?? 0) + voiced,
+    failed: [...carried, ...failed],
+    updatedAt: new Date().toISOString()
+  });
+
+  recordRun(scriptId, snapshot("running"));
+  const worker = async (): Promise<void> => {
+    while (cursor < lineIds.length) {
+      const lineId = lineIds[cursor++];
+      try {
+        await voiceLine(scriptId, lineId, asr);
+        voiced += 1;
+      } catch (error) {
+        failed.push({
+          lineId,
+          error: redactSecrets(
+            error instanceof Error ? error.message : String(error)
+          )
+        });
+      }
+      recordRun(scriptId, snapshot("running"));
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, lineIds.length) }, () =>
+      worker()
+    )
+  );
+  const run = snapshot("completed");
+  recordRun(scriptId, run);
+  return run;
+}
+
 /**
  * Voice every draft/stale line in the script, bounded concurrency, respecting
  * each line's effective voice. Lines already voiced (current take matches) and
- * lines with no text or no voice are skipped. Returns the count voiced.
+ * lines with no text or no voice are skipped. Returns the count voiced, and
+ * leaves the whole run — including the lines that failed — on the document.
  */
 export async function voiceAll(
   scriptId: string,
   asr: AsrConfig = DEFAULT_ASR_CONFIG,
   concurrency = 3
 ): Promise<number> {
-  const store = useScriptStore;
-  const script = store.getState().scripts[scriptId];
+  const script = useScriptStore.getState().scripts[scriptId];
   if (!script) return 0;
-
   const targets = voiceTargets(script).map((target) => target.line.id);
+  const run = await voiceLines(scriptId, targets, asr, concurrency);
+  return run.voiced;
+}
 
-  let voiced = 0;
-  let cursor = 0;
-  const worker = async (): Promise<void> => {
-    while (cursor < targets.length) {
-      const lineId = targets[cursor++];
-      try {
-        await voiceLine(scriptId, lineId, asr);
-        voiced += 1;
-      } catch (error) {
-        console.error("voiceAll: failed to voice line", lineId, error);
-      }
-    }
-  };
-  await Promise.all(
-    Array.from({ length: Math.min(concurrency, targets.length) }, () =>
-      worker()
-    )
+/**
+ * Voice the lines a run could not, through the same path that voiced the rest.
+ * The record is rewritten for this attempt, so a line that succeeds leaves the
+ * failure list and one that fails again says why it did this time.
+ */
+export async function retryVoicing(
+  scriptId: string,
+  lineIds: readonly string[],
+  asr: AsrConfig = DEFAULT_ASR_CONFIG,
+  concurrency = 3
+): Promise<VoicingRun> {
+  const base = readVoicingRun(
+    useScriptStore.getState().scripts[scriptId]?.setup
   );
-  return voiced;
+  return voiceLines(scriptId, lineIds, asr, concurrency, base ?? undefined);
 }

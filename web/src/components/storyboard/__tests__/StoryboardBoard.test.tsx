@@ -707,8 +707,8 @@ describe("StoryboardBoard genre chip", () => {
     renderBoard(jest.fn());
 
     await user.click(screen.getByRole("button", { name: "Set genre" }));
-    const grid = await screen.findByRole("group", { name: "Genre" });
-    await user.click(within(grid).getByRole("button", { name: /Thriller/ }));
+    const grid = await screen.findByRole("radiogroup", { name: "Genre" });
+    await user.click(within(grid).getByRole("radio", { name: /Thriller/ }));
 
     expect(mockSetSetup).toHaveBeenCalledWith("board-1", { genre: "Thriller" });
   });
@@ -750,8 +750,8 @@ describe("StoryboardBoard Change Style", () => {
     renderBoard(jest.fn());
 
     await user.click(screen.getByRole("button", { name: "Change Style" }));
-    const grid = await screen.findByRole("group", { name: "Art style" });
-    await user.click(within(grid).getByRole("button", { name: /Noir/ }));
+    const grid = await screen.findByRole("radiogroup", { name: "Art style" });
+    await user.click(within(grid).getByRole("radio", { name: /Noir/ }));
 
     expect(mockSetStylePreset).toHaveBeenCalledWith(
       "board-1",

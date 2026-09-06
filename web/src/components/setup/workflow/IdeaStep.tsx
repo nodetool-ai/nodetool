@@ -9,6 +9,11 @@
  * The alternatives all land in the same place: stage `done` and the canvas. An
  * example is copied, an import is parsed, a blank workflow is already there —
  * none of them has a plan to review, so none of them enters the flow.
+ *
+ * The examples browser opens **in this step** (PRD § 11.1), replacing the body
+ * until the creator picks one or goes back. It is the step's own escape route;
+ * `Change flow` in the footer is the other one, and leaves for a different kind
+ * of document entirely.
  */
 
 import React, { memo, useCallback, useMemo, useRef } from "react";
@@ -16,24 +21,33 @@ import React, { memo, useCallback, useMemo, useRef } from "react";
 import {
   AlertBanner,
   Box,
-  Caption,
-  Chip,
   FlexColumn,
   GAP,
   Text,
   TextInput
 } from "../../ui_primitives";
 import { WORKFLOW_INSPIRATION_CHIPS } from "@nodetool-ai/protocol";
+import { ExampleBriefs } from "../ExampleBriefs";
 import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
 import { useWorkflowSetupDocument } from "../../../hooks/workflow/useWorkflowSetup";
+import type { Workflow } from "../../../stores/ApiTypes";
+import { WorkflowExamplePicker } from "./ExamplePicker";
 
 export interface WorkflowIdeaStepProps {
   workflowId: string;
   /** Writes the brief as it is typed. */
   onBriefChange: (brief: string) => void;
-  /** Opens the examples browser; a copied example lands on the canvas. */
-  onStartFromExample: () => void;
+  /** True while the inline examples browser is open, in place of the body. */
+  browsingExamples: boolean;
+  /** Opens and closes that browser. */
+  onBrowseExamples: (browsing: boolean) => void;
+  /** Copies the picked example. A copy that lands leaves the flow. */
+  onStartFromExample: (example: Workflow) => void;
+  /** The example being copied right now. */
+  pickingExampleId?: string | null;
+  /** Why the last copy was refused. */
+  exampleError?: string | null;
   /** Opens the file picker for a workflow JSON or a DSL `.ts`. */
   onImport: (file: File) => void | Promise<void>;
   /** Leaves the flow for an empty canvas. */
@@ -49,7 +63,11 @@ export const WORKFLOW_IMPORT_ACCEPT = ".json,.ts";
 const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
   workflowId,
   onBriefChange,
+  browsingExamples,
+  onBrowseExamples,
   onStartFromExample,
+  pickingExampleId = null,
+  exampleError = null,
   onImport,
   onStartBlank,
   importError = null,
@@ -84,8 +102,8 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
       {
         id: "example",
         title: "Start from an example",
-        description: "Copy a shipped workflow and edit it",
-        onSelect: onStartFromExample
+        description: "Browse the shipped workflows and copy one",
+        onSelect: () => onBrowseExamples(true)
       },
       {
         id: "import",
@@ -100,8 +118,19 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
         onSelect: onStartBlank
       }
     ],
-    [onStartBlank, onStartFromExample]
+    [onBrowseExamples, onStartBlank]
   );
+
+  if (browsingExamples) {
+    return (
+      <WorkflowExamplePicker
+        onPick={onStartFromExample}
+        pickingId={pickingExampleId}
+        error={exampleError}
+        onCancel={() => onBrowseExamples(false)}
+      />
+    );
+  }
 
   return (
     <Box
@@ -134,6 +163,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
           label="The task"
           hideLabel
           placeholder="Summarize a PDF and email it"
+          helperText="Only describe the task here. Add files, connect services and set destinations during setup or in the built workflow before running it."
           onChange={handleChange}
         />
 
@@ -143,24 +173,11 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
           </AlertBanner>
         ) : null}
 
-        <FlexColumn gap={GAP.normal}>
-          <Caption color="secondary" component="p">
-            Or start from one of these:
-          </Caption>
-          <Box
-            role="group"
-            aria-label="Inspiration"
-            sx={{ display: "flex", flexWrap: "wrap", gap: GAP.normal }}
-          >
-            {WORKFLOW_INSPIRATION_CHIPS.map((chip) => (
-              <Chip
-                key={chip.id}
-                label={chip.brief}
-                onClick={() => onBriefChange(chip.brief)}
-              />
-            ))}
-          </Box>
-        </FlexColumn>
+        <ExampleBriefs
+          examples={WORKFLOW_INSPIRATION_CHIPS.map((chip) => chip.brief)}
+          brief={brief}
+          onSelect={onBriefChange}
+        />
       </FlexColumn>
 
       <AlternativesColumn

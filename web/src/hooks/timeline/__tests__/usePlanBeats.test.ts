@@ -1,7 +1,45 @@
 import { describe, it, expect, jest } from "@jest/globals";
-import { createTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { applyBeatPlan, planBeats } from "../usePlanBeats";
-import { VIDEO_FORMATS, videoFormatById } from "../../../components/setup/video/formats";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { makeClip } from "@nodetool-ai/timeline";
+import {
+  createTimelineStore,
+  type TimelineStoreApi
+} from "../../../stores/timeline/TimelineStore";
+import {
+  applyBeatPlan,
+  planBeats,
+  planContextOf,
+  usePlanBeats
+} from "../usePlanBeats";
+import {
+  VIDEO_FORMATS,
+  videoFormatById
+} from "../../../components/setup/video/formats";
+
+/** The store the hook under test reads. Set per test, before it renders. */
+let mockStore: TimelineStoreApi;
+
+jest.mock("../../../stores/timeline/TimelineStore", () => ({
+  ...(jest.requireActual("../../../stores/timeline/TimelineStore") as Record<
+    string,
+    unknown
+  >),
+  useTimelineStoreApi: () => mockStore
+}));
+
+/** The RPC the hook reaches for by default; each test resolves it by hand. */
+const mockRequest =
+  jest.fn<
+    (
+      command: string,
+      data: Record<string, unknown>
+    ) => Promise<Record<string, unknown>>
+  >();
+
+jest.mock("../../../lib/websocket/rpcRequest", () => ({
+  rpcRequest: (command: string, data: Record<string, unknown>) =>
+    mockRequest(command, data)
+}));
 
 /**
  * PRD § 8.7 criterion 3: `Plan the beats` writes `setup.beats` and creates no
@@ -139,10 +177,7 @@ describe("planBeats (criterion 3)", () => {
 
   it("sends the edited plan back as context on a re-plan", async () => {
     const sentPrompts: string[] = [];
-    const request = async (
-      _command: string,
-      data: Record<string, unknown>
-    ) => {
+    const request = async (_command: string, data: Record<string, unknown>) => {
       sentPrompts.push(String(data["prompt"]));
       return { data: screenplay };
     };
@@ -157,10 +192,226 @@ describe("planBeats (criterion 3)", () => {
     expect(sentPrompts[0]).toContain("the kerb, but at night");
   });
 
+  // PRD § 8.1 and F10: media the creator dropped is what the plan describes.
+  // F4: the composer's references and entities reach the planner too.
+  it("tells the Director about the placed clips, in order", async () => {
+    const sentPrompts: string[] = [];
+    await planBeats({
+      brief: "a paper boat's last voyage",
+      format: AD_15,
+      context: { clips: ["kerb.mp4", "drain.mp4"] },
+      request: async (_command, data) => {
+        sentPrompts.push(String(data["prompt"]));
+        return { data: screenplay };
+      }
+    });
+
+    expect(sentPrompts[0]).toContain("1. kerb.mp4");
+    expect(sentPrompts[0]).toContain("2. drain.mp4");
+  });
+
+  it("names the attached references and entities without resolving them", async () => {
+    const sentPrompts: string[] = [];
+    await planBeats({
+      brief: "a paper boat's last voyage",
+      format: AD_15,
+      context: {
+        references: [{ uri: "asset://abc.png", name: "kerb.png" }],
+        entityIds: ["entity-boat"]
+      },
+      request: async (_command, data) => {
+        sentPrompts.push(String(data["prompt"]));
+        return { data: screenplay };
+      }
+    });
+
+    expect(sentPrompts[0]).toContain("kerb.png");
+    expect(sentPrompts[0]).toContain("entity-boat");
+    // The locator stays a locator: nothing fetches it and no bytes are inlined.
+    expect(sentPrompts[0]).not.toContain("data:");
+  });
+
+  it("plans one beat per placed clip, not the format's count", async () => {
+    // The format asks for more beats than the creator placed clips, and the
+    // Director answers with two shots. The clip on the timeline wins.
+    const beats = await planBeats({
+      brief: "a paper boat's last voyage",
+      format: AD_15,
+      context: { clips: ["kerb.mp4"] },
+      request: async () => ({ data: screenplay })
+    });
+
+    expect(beats).toHaveLength(1);
+  });
+
+  it("sends no context block when the creator brought nothing", async () => {
+    const sentPrompts: string[] = [];
+    await planBeats({
+      brief: "a paper boat's last voyage",
+      format: AD_15,
+      context: {},
+      request: async (_command, data) => {
+        sentPrompts.push(String(data["prompt"]));
+        return { data: screenplay };
+      }
+    });
+
+    expect(sentPrompts[0]).not.toContain("already placed this media");
+    expect(sentPrompts[0]).not.toContain("Keep these entities");
+  });
+
   it("asks for every format's beat count", () => {
     for (const format of VIDEO_FORMATS) {
       expect(format.beatCount).toBeGreaterThan(0);
       expect(format.beatCount).toBeLessThanOrEqual(20);
     }
+  });
+});
+
+/**
+ * F2: a Director call outlives the stage that asked for it. The creator who
+ * moved on keeps the plan they moved on with, and is not pulled back to the
+ * review by an answer they no longer wanted.
+ */
+describe("usePlanBeats staleness", () => {
+  const setup = (stage: "format" | "review" | "look") => {
+    mockStore = createTimelineStore();
+    mockStore.getState().setSetup({
+      stage,
+      brief: "a paper boat's last voyage",
+      format: "ad-15"
+    });
+  };
+
+  it("writes the plan and the review stage when the creator stayed", async () => {
+    setup("format");
+    mockRequest.mockResolvedValue({ data: screenplay });
+    const { result } = renderHook(() => usePlanBeats());
+
+    await act(async () => {
+      await result.current.plan();
+    });
+
+    expect(mockStore.getState().setup?.stage).toBe("review");
+    expect(mockStore.getState().setup?.beats).toHaveLength(2);
+  });
+
+  it("keeps the draft and the stage when the creator has moved on", async () => {
+    setup("review");
+    let answer: (value: Record<string, unknown>) => void = () => undefined;
+    mockRequest.mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      })
+    );
+    const { result } = renderHook(() => usePlanBeats());
+
+    let planned: Promise<void> = Promise.resolve();
+    act(() => {
+      planned = result.current.plan({ replan: true });
+    });
+    // The creator continued to the look while the Director was still writing.
+    act(() => {
+      mockStore.getState().setSetup({ stage: "look" });
+    });
+    await act(async () => {
+      answer({ data: screenplay });
+      await planned;
+    });
+
+    expect(mockStore.getState().setup?.stage).toBe("look");
+    expect(mockStore.getState().setup?.beats ?? []).toHaveLength(0);
+    await waitFor(() => expect(result.current.planning).toBe(false));
+  });
+});
+
+/**
+ * A dropped video places two imported clips: the picture, and the audio track
+ * `importVideoWithAudio` extracts beside it. Only the picture is a shot, so
+ * only the picture is a beat (PRD § 8.1).
+ */
+describe("planContextOf", () => {
+  const withClips = (clips: Parameters<typeof makeClip>[0][]) => {
+    const store = createTimelineStore();
+    store.setState({ clips: clips.map((clip) => makeClip(clip)) });
+    return store;
+  };
+
+  it("counts one dropped video once, not twice with its audio", () => {
+    const store = withClips([
+      {
+        id: "c1",
+        name: "kerb.mp4",
+        startMs: 0,
+        durationMs: 3200,
+        mediaType: "video",
+        sourceType: "imported",
+        linkId: "l1"
+      },
+      {
+        id: "c2",
+        name: "kerb.mp4 (audio)",
+        startMs: 0,
+        durationMs: 3200,
+        mediaType: "audio",
+        sourceType: "imported",
+        linkId: "l1"
+      }
+    ]);
+
+    expect(planContextOf(store).clips).toEqual(["kerb.mp4"]);
+  });
+
+  it("plans one beat for one dropped video with an audio track", async () => {
+    const store = withClips([
+      {
+        id: "c1",
+        name: "kerb.mp4",
+        startMs: 0,
+        durationMs: 3200,
+        mediaType: "video",
+        sourceType: "imported"
+      },
+      {
+        id: "c2",
+        name: "kerb.mp4 (audio)",
+        startMs: 0,
+        durationMs: 3200,
+        mediaType: "audio",
+        sourceType: "imported"
+      }
+    ]);
+
+    const beats = await planBeats({
+      brief: "a paper boat's last voyage",
+      format: AD_15,
+      context: planContextOf(store),
+      request: async () => ({ data: screenplay })
+    });
+
+    expect(beats).toHaveLength(1);
+  });
+
+  it("keeps a dropped still, and leaves generated clips out", () => {
+    const store = withClips([
+      {
+        id: "c1",
+        name: "kerb.png",
+        startMs: 0,
+        durationMs: 2000,
+        mediaType: "image",
+        sourceType: "imported"
+      },
+      {
+        id: "c2",
+        name: "Beat 1",
+        startMs: 2000,
+        durationMs: 3000,
+        mediaType: "video",
+        sourceType: "generated"
+      }
+    ]);
+
+    expect(planContextOf(store).clips).toEqual(["kerb.png"]);
   });
 });

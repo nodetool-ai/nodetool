@@ -1,8 +1,9 @@
 /**
  * Step 1 of the script flow (PRD § 9.1): the brief writes straight to the
  * document, and each of the three other ways in lands the creator's own words
- * in the import registry — which is what makes the writer split and attribute
- * them instead of rewriting them (criterion 4).
+ * on the document as its source — which is what makes the writer split and
+ * attribute them instead of rewriting them (criterion 4), and what makes the
+ * contract over them survive a reload (F3).
  */
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -14,7 +15,12 @@ jest.mock("../../../../lib/rest-fetch", () => ({
   restFetch: (...args: unknown[]) => restFetch(...(args as []))
 }));
 
-import { getScriptImport, clearScriptImport } from "../../../../lib/script/importedScript";
+import {
+  readScriptSource,
+  scriptSourcePatch,
+  importedFromText
+} from "../../../../lib/script/importedScript";
+import { scriptSetupContextPatch } from "../scriptSetupContext";
 import { useScriptStore } from "../../../../stores/script/ScriptStore";
 import { IdeaStep } from "../IdeaStep";
 
@@ -31,6 +37,8 @@ const renderStep = (onStartBlank = jest.fn()) => {
 
 const setupNow = () => useScriptStore.getState().scripts[SCRIPT_ID].setup;
 
+const sourceNow = () => readScriptSource(setupNow() ?? null);
+
 /** jsdom's File has no `text()`, and the import paths read the bytes. */
 const upload = (name: string, type: string, content: string): File => {
   const file = new File([content], name, { type });
@@ -42,18 +50,88 @@ const upload = (name: string, type: string, content: string): File => {
 
 beforeEach(() => {
   restFetch.mockReset();
-  clearScriptImport(SCRIPT_ID);
   useScriptStore.setState({ scripts: {}, history: {} } as never);
   useScriptStore.getState().ensureScript(SCRIPT_ID);
   useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "idea" });
 });
 
 describe("script IdeaStep", () => {
+  it("keeps the source apart from the brief, and lets neither edit the other", async () => {
+    const user = userEvent.setup();
+    useScriptStore
+      .getState()
+      .setSetup(
+        SCRIPT_ID,
+        scriptSourcePatch(importedFromText("Keep these words."))
+      );
+    renderStep();
+    expect(screen.getByText(/kept word for word/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Your imported words are kept as written/)
+    ).toBeInTheDocument();
+
+    // Typing a note for the writer is not an edit to the source.
+    const input = screen.getByRole("textbox", { name: "Notes for the writer" });
+    await user.type(input, "Two speakers.");
+    expect(setupNow()?.brief).toBe("Two speakers.");
+    expect(sourceNow()?.text).toBe("Keep these words.");
+
+    // Nor is an example brief, which used to drop the source silently.
+    await user.click(
+      screen.getByRole("button", { name: /60-second explainer/ })
+    );
+    expect(sourceNow()?.text).toBe("Keep these words.");
+
+    // Removing it is its own act, and the field goes back to being a brief.
+    await user.click(screen.getByRole("button", { name: "Remove them" }));
+    expect(sourceNow()).toBeNull();
+    expect(
+      screen.getByText(/writing brief and may be rewritten/)
+    ).toBeInTheDocument();
+  });
+
+  it("keeps a screenplay's speakers and a subtitle's timings across a reload", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.upload(
+      screen.getByLabelText("Import subtitles") as HTMLInputElement,
+      upload(
+        "clip.srt",
+        "text/plain",
+        "1\n00:00:00,500 --> 00:00:03,250\nA tide clock has one hand.\n"
+      )
+    );
+    await waitFor(() => expect(sourceNow()).not.toBeNull());
+
+    // The document is all the flow keeps, so a reload is the document reloaded
+    // into a store that has never seen this script.
+    const document = useScriptStore.getState().scripts[SCRIPT_ID];
+    useScriptStore.setState({ scripts: {}, history: {} } as never);
+    useScriptStore.getState().ensureScript(SCRIPT_ID);
+    useScriptStore.getState().setSetup(SCRIPT_ID, document.setup ?? {});
+
+    const reloaded = sourceNow();
+    expect(reloaded?.kind).toBe("subtitles");
+    expect(reloaded?.attributed).toBe(true);
+    expect(reloaded?.preserve).toBe("verbatim");
+    expect(reloaded?.lines).toEqual([
+      {
+        text: "A tide clock has one hand.",
+        speakerName: "Narrator",
+        targetDurationMs: 2750
+      }
+    ]);
+  });
+
   it("writes what is typed to the document as it is typed", async () => {
     const user = userEvent.setup();
     renderStep();
 
-    await user.type(screen.getByRole("textbox", { name: "Your script" }), "tide clocks");
+    await user.type(
+      screen.getByRole("textbox", { name: "Your script" }),
+      "tide clocks"
+    );
 
     expect(setupNow()?.brief).toBe("tide clocks");
   });
@@ -82,12 +160,13 @@ describe("script IdeaStep", () => {
     );
     await user.click(screen.getByRole("button", { name: "Use this text" }));
 
-    expect(getScriptImport(SCRIPT_ID)?.lines.map((line) => line.text)).toEqual([
+    expect(sourceNow()?.lines.map((line) => line.text)).toEqual([
       "First line.",
       "Second line."
     ]);
-    expect(getScriptImport(SCRIPT_ID)?.attributed).toBe(false);
-    expect(setupNow()?.brief).toBe("First line.\nSecond line.");
+    expect(sourceNow()?.attributed).toBe(false);
+    // The words are the source, not the brief: the brief stays what it was.
+    expect(setupNow()?.brief).toBe("");
   });
 
   it("turns an uploaded subtitle file into timed lines under one Narrator", async () => {
@@ -104,7 +183,7 @@ describe("script IdeaStep", () => {
     );
 
     await waitFor(() =>
-      expect(getScriptImport(SCRIPT_ID)?.lines).toEqual([
+      expect(sourceNow()?.lines).toEqual([
         {
           text: "A tide clock has one hand.",
           speakerName: "Narrator",
@@ -112,7 +191,7 @@ describe("script IdeaStep", () => {
         }
       ])
     );
-    expect(getScriptImport(SCRIPT_ID)?.attributed).toBe(true);
+    expect(sourceNow()?.attributed).toBe(true);
     expect(restFetch).not.toHaveBeenCalled();
   });
 
@@ -135,7 +214,7 @@ describe("script IdeaStep", () => {
         expect.objectContaining({ method: "POST" })
       )
     );
-    expect(getScriptImport(SCRIPT_ID)?.lines.map((line) => line.text)).toEqual([
+    expect(sourceNow()?.lines.map((line) => line.text)).toEqual([
       "One sentence.",
       "Another sentence."
     ]);
@@ -154,9 +233,28 @@ describe("script IdeaStep", () => {
       new File(["%PDF-1.7"], "scan.pdf", { type: "application/pdf" })
     );
 
-    expect(await screen.findByText("This PDF holds no selectable text.")).toBeInTheDocument();
-    expect(getScriptImport(SCRIPT_ID)).toBeUndefined();
+    expect(
+      await screen.findByText("This PDF holds no selectable text.")
+    ).toBeInTheDocument();
+    expect(sourceNow()).toBeNull();
     expect(setupNow()?.brief).toBe("");
+  });
+
+  it("shows what the project composer sent along (F4)", () => {
+    useScriptStore.getState().setSetup(
+      SCRIPT_ID,
+      scriptSetupContextPatch({
+        attachments: [{ uri: "asset://ref-1", name: "kitchen.png" }],
+        entityIds: ["ent-1", "ent-2"]
+      })
+    );
+    renderStep();
+
+    const panel = screen.getByRole("region", {
+      name: "Brought from your project"
+    });
+    expect(panel).toHaveTextContent("1 reference · 2 entities");
+    expect(panel).toHaveTextContent("kitchen.png");
   });
 
   it("offers the blank escape hatch", async () => {

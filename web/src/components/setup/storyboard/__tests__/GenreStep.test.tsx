@@ -15,23 +15,89 @@ jest.mock("../../../../lib/websocket/rpcRequest", () => ({
   randomRequestId: () => "req-test"
 }));
 
+const catalog: {
+  models: Array<{ id: string; provider: string; name: string }>;
+  isLoading: boolean;
+} = {
+  models: [{ id: "catalog-model", provider: "openai", name: "Catalog" }],
+  isLoading: false
+};
+jest.mock("../../../../hooks/useModelsByProvider", () => ({
+  __esModule: true,
+  useLanguageModelsByProvider: () => catalog
+}));
+
+jest.mock("../../../properties/LanguageModelSelect", () => ({
+  __esModule: true,
+  default: ({
+    value,
+    onChange
+  }: {
+    value: string;
+    onChange: (v: {
+      type: "language_model";
+      id: string;
+      provider: string;
+      name: string;
+    }) => void;
+  }) => (
+    <button
+      type="button"
+      onClick={() =>
+        onChange({
+          type: "language_model",
+          id: "picked-model",
+          provider: "openai",
+          name: "Picked"
+        })
+      }
+    >
+      {`model:${value}`}
+    </button>
+  )
+}));
+
 import mockTheme from "../../../../__mocks__/themeMock";
+import { StudioProvider } from "../../../../studio/StudioContext";
 import { GenreStep } from "../GenreStep";
 import { STORYBOARD_GENRES } from "../genres";
 import { useStoryboardStore } from "../../../../stores/storyboard/StoryboardStore";
 
 const BOARD = "board-genre";
 
-const renderStep = () =>
+const onShotCountChange = jest.fn();
+
+const renderStep = (
+  props: Partial<React.ComponentProps<typeof GenreStep>> = {}
+) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <GenreStep boardId={BOARD} />
+      <GenreStep
+        boardId={BOARD}
+        shotCount={6}
+        onShotCountChange={onShotCountChange}
+        {...props}
+      />
+    </ThemeProvider>
+  );
+
+const renderInStudio = () =>
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <StudioProvider>
+        <GenreStep
+          boardId={BOARD}
+          shotCount={6}
+          onShotCountChange={onShotCountChange}
+        />
+      </StudioProvider>
     </ThemeProvider>
   );
 
 const board = () => useStoryboardStore.getState().getBoard(BOARD);
 
 beforeEach(() => {
+  onShotCountChange.mockReset();
   rpcRequest.mockReset();
   useStoryboardStore.setState({ boards: {} } as never);
   useStoryboardStore.getState().ensureBoard(BOARD);
@@ -42,25 +108,55 @@ describe("GenreStep", () => {
   it("renders the fourteen genre cards", () => {
     renderStep();
 
-    const grid = screen.getByRole("group", { name: "Genre" });
-    expect(within(grid).getAllByRole("button")).toHaveLength(
+    const grid = screen.getByRole("radiogroup", { name: "Genre" });
+    expect(within(grid).getAllByRole("radio")).toHaveLength(
       STORYBOARD_GENRES.length
     );
     expect(STORYBOARD_GENRES).toHaveLength(14);
     expect(
-      within(grid).getByRole("button", { name: /Science Fiction/ })
+      within(grid).getByRole("radio", { name: /Science Fiction/ })
     ).toBeInTheDocument();
+  });
+
+  // F26: a genre is one choice among fourteen, not fourteen independent
+  // on/off controls. The grid is a radio group with exactly one checked
+  // member, and nothing here announces `aria-pressed`.
+  it("announces the genre cards as one exclusive choice", () => {
+    useStoryboardStore.getState().setSetup(BOARD, { genre: "Horror" });
+    renderStep();
+
+    const grid = screen.getByRole("radiogroup", { name: "Genre" });
+    const cards = within(grid).getAllByRole("radio");
+    expect(cards).toHaveLength(STORYBOARD_GENRES.length);
+    expect(
+      cards.filter((card) => card.getAttribute("aria-checked") === "true")
+    ).toHaveLength(1);
+    expect(screen.getByRole("radio", { name: /Horror/ })).toHaveAttribute(
+      "aria-checked",
+      "true"
+    );
+    expect(grid.querySelector("[aria-pressed]")).toBeNull();
+  });
+
+  // F32: the line under the title is what separates fourteen one-word genres,
+  // so every card carries it before anything is picked.
+  it("describes every genre before one is chosen", () => {
+    renderStep();
+
+    for (const item of STORYBOARD_GENRES) {
+      expect(screen.getByText(item.description)).toBeInTheDocument();
+    }
   });
 
   it("writes the picked genre onto the board and marks the card", async () => {
     const user = userEvent.setup();
     renderStep();
 
-    await user.click(screen.getByRole("button", { name: /Horror/ }));
+    await user.click(screen.getByRole("radio", { name: /Horror/ }));
 
     expect(board()?.genre).toBe("Horror");
-    expect(screen.getByRole("button", { name: /Horror/ })).toHaveAttribute(
-      "aria-pressed",
+    expect(screen.getByRole("radio", { name: /Horror/ })).toHaveAttribute(
+      "aria-checked",
       "true"
     );
   });
@@ -69,8 +165,8 @@ describe("GenreStep", () => {
     useStoryboardStore.getState().setSetup(BOARD, { genre: "Documentary" });
     renderStep();
 
-    expect(screen.getByRole("button", { name: /Documentary/ })).toHaveAttribute(
-      "aria-pressed",
+    expect(screen.getByRole("radio", { name: /Documentary/ })).toHaveAttribute(
+      "aria-checked",
       "true"
     );
   });
@@ -80,11 +176,72 @@ describe("GenreStep", () => {
     const user = userEvent.setup();
     renderStep();
 
-    await user.click(screen.getByRole("button", { name: /Thriller/ }));
+    await user.click(screen.getByRole("radio", { name: /Thriller/ }));
 
     expect(rpcRequest).not.toHaveBeenCalled();
     expect(board()?.shots).toHaveLength(0);
     expect(board()?.screenplay).toBeNull();
     expect(board()?.setupStage).toBe("genre");
+  });
+
+  it("pre-fills the picker from the catalog when the board has no model", () => {
+    renderStep();
+
+    expect(board()?.directorModel?.id).toBe("catalog-model");
+  });
+
+  it("shows the board's screenplay model and writes a new pick", async () => {
+    const user = userEvent.setup();
+    useStoryboardStore.getState().setDirectorModel(BOARD, {
+      type: "language_model",
+      id: "current-model",
+      provider: "anthropic",
+      name: "Current"
+    });
+    renderStep();
+
+    expect(screen.getByText("Screenplay model")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "model:current-model" })
+    );
+
+    expect(board()?.directorModel?.id).toBe("picked-model");
+  });
+
+  // The shell says what is running; the step says how long to expect, and
+  // does not announce it a second time.
+  it("says how long the Director takes while it runs", () => {
+    renderStep({ directing: true });
+
+    expect(
+      screen.getByText("This usually takes about half a minute.")
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  // F15: the step says why its button continues instead of writing again.
+  it("says the screenplay already follows these choices", () => {
+    renderStep({ upToDate: true });
+
+    expect(
+      screen.getByText(/Your screenplay already follows these choices/)
+    ).toBeInTheDocument();
+  });
+
+  it("shows the shot count and reports a change", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(screen.getByRole("combobox", { name: "Shots" }));
+    await user.click(screen.getByRole("option", { name: "10 shots" }));
+
+    expect(onShotCountChange).toHaveBeenCalledWith(10);
+  });
+
+  // Studio pins its own director; the beginner shell shows no LLM picker.
+  it("hides the screenplay model picker in Studio", () => {
+    renderInStudio();
+
+    expect(screen.queryByText("Screenplay model")).not.toBeInTheDocument();
   });
 });

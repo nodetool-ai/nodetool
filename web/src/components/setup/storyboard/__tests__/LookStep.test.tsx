@@ -14,7 +14,8 @@ import {
   render,
   renderHook,
   screen,
-  waitFor
+  waitFor,
+  within
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -38,10 +39,7 @@ jest.mock("../../../../hooks/storyboard/useGenerateShot", () => ({
 }));
 
 jest.mock("../../../../hooks/storyboard/useRenderBatchCostEstimate", () => ({
-  useRenderBatchCostEstimate: (
-    _boardId: string,
-    shots: Shot[]
-  ) => ({
+  useRenderBatchCostEstimate: (_boardId: string, shots: Shot[]) => ({
     shotCount: shots.length,
     cost: shots.length * 0.02,
     pricedCount: shots.length,
@@ -108,8 +106,50 @@ jest.mock("../../../../serverState/useStylePresets", () => ({
   useStylePresets: () => ({ data: presets })
 }));
 
+// The still-model picker reads the image-model catalog through TanStack
+// Query; this suite stands up no client. What the picker itself does is
+// pinned by `StillModelField` tests below, through the store.
+jest.mock("../../../../hooks/useModelsByProvider", () => ({
+  __esModule: true,
+  useImageModelsByProvider: () => ({ models: [], isLoading: false })
+}));
+jest.mock("../../../properties/ImageModelSelect", () => ({
+  __esModule: true,
+  default: ({
+    value,
+    onChange
+  }: {
+    value: string;
+    onChange: (v: {
+      type: "image_model";
+      id: string;
+      provider: string;
+      name: string;
+      path: string;
+    }) => void;
+  }) => (
+    <button
+      type="button"
+      onClick={() =>
+        onChange({
+          type: "image_model",
+          id: "picked-still",
+          provider: "fal_ai",
+          name: "Picked",
+          path: ""
+        })
+      }
+    >
+      {`still:${value}`}
+    </button>
+  )
+}));
+
 import mockTheme from "../../../../__mocks__/themeMock";
+import { StudioProvider } from "../../../../studio/StudioContext";
 import { LookStep, useLookStep } from "../LookStep";
+import { useCustomStyle } from "../useCustomStyle";
+import { clearSetupReports, setShotlistImport } from "../setupChoices";
 import { ASPECT_OPTIONS } from "../../../storyboard/aspectOptions";
 import {
   useStoryboardStore,
@@ -194,6 +234,7 @@ beforeEach(() => {
   presets = [NOIR, COMIC];
   library = [asEntity(NOIR), asEntity(COMIC)];
   useStoryboardStore.setState({ boards: {}, history: {} } as never);
+  clearSetupReports(BOARD);
   seed();
 });
 
@@ -215,11 +256,46 @@ describe("LookStep — aspect ratio", () => {
 });
 
 describe("LookStep — style presets", () => {
+  it.each([
+    [
+      "cinematic",
+      "Anamorphic 40mm at T2, amber key.",
+      "Warm light, cool shadows, softly blurred backgrounds and fine film grain."
+    ],
+    [
+      "animation-3d",
+      "Stylised 3D render with rounded, slightly oversized forms.",
+      "Rounded, oversized forms with matte surfaces and soft daylight."
+    ],
+    [
+      "flat-vector",
+      "Flat vector shapes with no outlines, a five-colour palette.",
+      "Simple geometric shapes without outlines, flat colours and open space."
+    ],
+    [
+      "custom",
+      "Rounded, painted forms. Warm shadows.",
+      "Rounded, painted forms. Warm shadows."
+    ]
+  ])(
+    "shows complete display copy for %s without changing the descriptor",
+    async (presetId, descriptor, description) => {
+      const user = userEvent.setup();
+      presets = [{ ...NOIR, presetId, descriptor }];
+      library = presets.map(asEntity);
+      renderStep();
+      expect(screen.getByText(description)).toBeInTheDocument();
+      await user.click(screen.getByRole("radio", { name: /Noir/ }));
+      expect(board().style).toBe(descriptor);
+      expect(generateKeyframe).not.toHaveBeenCalled();
+    }
+  );
+
   it("renders one tile per shipped preset plus Add your own style", () => {
     renderStep();
 
-    expect(screen.getByRole("button", { name: /Noir/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Comic/ })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Noir/ })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Comic/ })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Add your own style/ })
     ).toBeInTheDocument();
@@ -229,7 +305,7 @@ describe("LookStep — style presets", () => {
     const user = userEvent.setup();
     renderStep();
 
-    await user.click(screen.getByRole("button", { name: /Noir/ }));
+    await user.click(screen.getByRole("radio", { name: /Noir/ }));
 
     expect(board().entityIds).toEqual([NOIR.entityId]);
     expect(board().style).toBe(NOIR.descriptor);
@@ -239,8 +315,8 @@ describe("LookStep — style presets", () => {
     const user = userEvent.setup();
     renderStep();
 
-    await user.click(screen.getByRole("button", { name: /Noir/ }));
-    await user.click(screen.getByRole("button", { name: /Comic/ }));
+    await user.click(screen.getByRole("radio", { name: /Noir/ }));
+    await user.click(screen.getByRole("radio", { name: /Comic/ }));
 
     expect(board().entityIds).toEqual([COMIC.entityId]);
     expect(board().style).toBe(COMIC.descriptor);
@@ -250,12 +326,39 @@ describe("LookStep — style presets", () => {
     const user = userEvent.setup();
     renderStep();
 
-    await user.click(screen.getByRole("button", { name: /Comic/ }));
+    await user.click(screen.getByRole("radio", { name: /Comic/ }));
 
-    expect(screen.getByRole("button", { name: /Comic/ })).toHaveAttribute(
-      "aria-pressed",
+    expect(screen.getByRole("radio", { name: /Comic/ })).toHaveAttribute(
+      "aria-checked",
       "true"
     );
+  });
+
+  // F26: a style is one choice among the shipped presets. The trailing
+  // `Add your own style` opens a dialog, so it stays a plain button and is
+  // deliberately not a member of the group.
+  it("announces the style tiles as one exclusive choice", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    const grid = screen.getByRole("radiogroup", { name: "Art style" });
+    const tiles = within(grid).getAllByRole("radio");
+    expect(tiles.map((tile) => tile.textContent)).toEqual([
+      expect.stringContaining("Noir"),
+      expect.stringContaining("Comic")
+    ]);
+    expect(grid.querySelector("[aria-pressed]")).toBeNull();
+
+    await user.click(screen.getByRole("radio", { name: /Noir/ }));
+
+    expect(
+      within(grid)
+        .getAllByRole("radio")
+        .filter((tile) => tile.getAttribute("aria-checked") === "true")
+    ).toHaveLength(1);
+    expect(
+      screen.getByRole("button", { name: /Add your own style/ })
+    ).not.toHaveAttribute("aria-checked");
   });
 
   // D12: a style change marks versions stale; it never starts a render.
@@ -263,26 +366,58 @@ describe("LookStep — style presets", () => {
     const user = userEvent.setup();
     renderStep();
 
-    await user.click(screen.getByRole("button", { name: /Noir/ }));
-    await user.click(screen.getByRole("button", { name: /Comic/ }));
+    await user.click(screen.getByRole("radio", { name: /Noir/ }));
+    await user.click(screen.getByRole("radio", { name: /Comic/ }));
 
     expect(generateKeyframe).not.toHaveBeenCalled();
     expect(board().setupStage).toBe("look");
   });
 
   it("falls back to a typographic tile when the thumbnail does not resolve", () => {
+    presets = [NOIR];
+    library = presets.map(asEntity);
     renderStep();
 
-    const tile = screen.getByRole("button", { name: /Noir/ });
-    const image = tile.querySelector("img");
+    // The picture sits beside the radio in the tile, not inside it, so the
+    // grid is what holds the sample.
+    const grid = screen.getByRole("radiogroup", { name: "Art style" });
+    const image = grid.querySelector("img");
     expect(image).not.toBeNull();
 
     act(() => {
       image?.dispatchEvent(new Event("error", { bubbles: false }));
     });
 
-    expect(tile.querySelector("img")).toBeNull();
-    expect(tile).toHaveTextContent("Noir");
+    expect(grid.querySelector("img")).toBeNull();
+    expect(screen.getByRole("radio", { name: /Noir/ })).toHaveTextContent(
+      "Noir"
+    );
+  });
+
+  // F19: a style the creator just made is not one of the shipped twelve, and
+  // the grid used to show nothing selected the moment it was applied.
+  it("shows a custom style as a selected tile with its own name", () => {
+    const mine: Entity = {
+      type: "entity",
+      id: "e-mine",
+      kind: "style",
+      name: "Sun-bleached Super 8",
+      descriptor: "Grainy 16mm, warm halation."
+    };
+    library = [asEntity(NOIR), asEntity(COMIC), mine];
+    useStoryboardStore.getState().loadBoard(BOARD, {
+      ...board(),
+      entityIds: [mine.id],
+      style: mine.descriptor
+    } as never);
+    renderStep();
+
+    expect(
+      screen.getByRole("radio", { name: /Sun-bleached Super 8/ })
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByText(/Applied: Sun-bleached Super 8/)
+    ).toBeInTheDocument();
   });
 });
 
@@ -338,6 +473,110 @@ describe("useLookStep — Generate your storyboard", () => {
 
     expect(result.current.canAdvance).toBe(false);
   });
+
+  // The one spending click names the model it spends on. Without one the
+  // request would fall back to a server default nothing on screen mentions.
+  it("stays disabled until a still model is picked, and says so", () => {
+    const { result, rerender } = renderHook(() => useLookStep(BOARD));
+
+    expect(result.current.canAdvance).toBe(false);
+    expect(result.current.blockedReason).toBe("Pick a still model");
+
+    act(() => {
+      useStoryboardStore.getState().setImageModel(BOARD, {
+        type: "image_model",
+        id: "picked-still",
+        provider: "fal_ai",
+        name: "Picked",
+        path: ""
+      });
+    });
+    rerender();
+
+    expect(result.current.canAdvance).toBe(true);
+    expect(result.current.blockedReason).toBeUndefined();
+  });
+
+  it("names the missing art style before the missing model", () => {
+    useStoryboardStore.getState().setStyle(BOARD, "");
+    const { result } = renderHook(() => useLookStep(BOARD));
+
+    expect(result.current.blockedReason).toBe("Pick an art style");
+  });
+});
+
+describe("LookStep — style tiles", () => {
+  // The art is not shipped, so a tile is a text card. A bare name says
+  // nothing about the look it stands for. The line is written for a reader,
+  // not cut out of the prompt descriptor, so it is a whole sentence.
+  it("says what each style looks like, in plain words", () => {
+    renderStep();
+
+    expect(
+      screen.getByText(
+        "Black and white, hard light, deep shadows and heavy film grain."
+      )
+    ).toBeInTheDocument();
+  });
+});
+
+describe("LookStep — still model", () => {
+  // Studio's curated dropdown prints the model's own blurb underneath, so the
+  // field's own helper line would stack a second, quieter line under the same
+  // control.
+  it("drops its helper line in Studio, where the control carries one", () => {
+    const { unmount } = renderStep();
+    expect(
+      screen.getByText(
+        "Draws every keyframe. The estimate beside the button follows it."
+      )
+    ).toBeInTheDocument();
+    unmount();
+
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StudioProvider>
+          <LookStep boardId={BOARD} />
+        </StudioProvider>
+      </ThemeProvider>
+    );
+
+    expect(
+      screen.queryByText(
+        "Draws every keyframe. The estimate beside the button follows it."
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it("writes the picked still model onto the board", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(screen.getByRole("button", { name: "still:" }));
+
+    expect(board().imageModel?.id).toBe("picked-still");
+  });
+
+  // No tile matches the Director's free text, so the grid reads as "nothing
+  // chosen" while the board carries a look.
+  it("shows the look the Director wrote when no preset is selected", () => {
+    renderStep();
+
+    expect(
+      screen.getByText(/Your Director wrote the look: grainy 16mm, salt haze/)
+    ).toBeInTheDocument();
+  });
+
+  it("drops that line once a preset is picked", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(screen.getByRole("radio", { name: /Noir/ }));
+
+    expect(
+      screen.queryByText(/Your Director wrote the look/)
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe("LookStep — Add your own style", () => {
@@ -354,7 +593,9 @@ describe("LookStep — Add your own style", () => {
 
   const addOwnStyle = async (): Promise<void> => {
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Add your own style/ }));
+    await user.click(
+      screen.getByRole("button", { name: /Add your own style/ })
+    );
     await user.upload(
       screen.getByLabelText("Reference images"),
       new File(["ref"], "ref.png", { type: "image/png" })
@@ -413,5 +654,76 @@ describe("LookStep — Add your own style", () => {
     expect(board().entityIds).toEqual([NOIR.entityId]);
     expect(board().style).toBe(NOIR.descriptor);
     expect(saveEntity).not.toHaveBeenCalled();
+  });
+});
+
+describe("LookStep — a shotlist import", () => {
+  // F29: the rows are already on the board, so the report is a line on the
+  // step rather than a dialog in the way.
+  it("summarises the import inline and expands what it discarded", async () => {
+    const user = userEvent.setup();
+    setShotlistImport(BOARD, {
+      shotCount: 3,
+      entries: [
+        {
+          row: 2,
+          column: "size",
+          value: "mega-wide",
+          reason: "not one of the shot sizes"
+        }
+      ]
+    });
+    renderStep();
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("3 shots are on your board.")).toBeInTheDocument();
+    expect(screen.getByText(/mega-wide/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Dismiss" }));
+    expect(
+      screen.queryByText("3 shots are on your board.")
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("LookStep — the step heading", () => {
+  // F32: the step names itself before it asks for anything.
+  it("opens with its heading and subline", () => {
+    renderStep();
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Choose your aspect ratio and art style"
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Set the look with a preset or your own references/)
+    ).toBeInTheDocument();
+  });
+});
+
+describe("useCustomStyle — one call per confirmation", () => {
+  // F18: `saving` reaches the dialog a render after the click, so the guard
+  // that stops a second call is a ref, not the state.
+  it("refuses a second submission while the first is in flight", async () => {
+    useStoryboardStore.getState().loadBoard(BOARD, {
+      ...board(),
+      directorModel: { type: "language_model", provider: "openai", id: "gpt-5" }
+    } as never);
+    const file = new File(["ref"], "ref.png", { type: "image/png" });
+    const { result } = renderHook(() => useCustomStyle(BOARD));
+
+    // Two presses in one tick — the window the ref closes and the `saving`
+    // state, which lands a render later, cannot.
+    let second = true;
+    await act(async () => {
+      const first = result.current.addStyle([file]);
+      second = await result.current.addStyle([file]);
+      await first;
+    });
+
+    expect(second).toBe(false);
+    expect(rpcRequest).toHaveBeenCalledTimes(1);
+    expect(saveEntity).toHaveBeenCalledTimes(1);
   });
 });

@@ -49,6 +49,7 @@ const makeMockHandler = (): TimelineAgentHandler => ({
   setSetup: jest.fn(),
   planBeats: jest.fn(),
   updateBeat: jest.fn(),
+  removeBeat: jest.fn(),
   generateFromBeats: jest.fn()
 });
 

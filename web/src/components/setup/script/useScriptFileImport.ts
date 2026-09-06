@@ -3,26 +3,26 @@
  *
  * `Paste or upload text` takes TXT, PDF, DOCX and FDX. PDF and DOCX go to
  * `POST /api/documents/extract-text` — pdfium and mammoth are Node-only and
- * the browser never bundles them — while FDX and TXT are read here, since XML
- * and plain text need no server. `Import subtitles` takes SRT and VTT through
- * `parseSrt`.
+ * the browser never bundles them — while FDX, TXT and the subtitle formats are
+ * read in the browser, since XML and plain text need no server. Every one of
+ * them becomes a source through `importedFromFile`, so a file picked here and a
+ * file the project composer carries in are read by the same rule.
  *
- * Whatever the path, the words land in the brief and in the import registry,
- * and the writer step then splits and attributes them rather than rewriting
- * them (§ 9.2, criterion 4). A refused file writes nothing.
+ * Whatever the path, the words land on the document as `setup.source`, and the
+ * writer step then splits and attributes them rather than rewriting them
+ * (§ 9.2, criterion 4). They are not the brief: the brief says what to write,
+ * the source is what must survive writing, and an import replaces only the
+ * source (F3). A refused file writes nothing.
  */
 
 import { useCallback, useState } from "react";
 
 import { restFetch } from "../../../lib/rest-fetch";
 import { useScriptStore } from "../../../stores/script/ScriptStore";
-import { parseFdx } from "../../../lib/storyboard/parseFdx";
-import { parseSrt } from "../../../lib/script/parseSrt";
 import {
-  importedFromFdx,
-  importedFromSubtitles,
+  importedFromFile,
   importedFromText,
-  setScriptImport,
+  scriptSourcePatch,
   type ImportedScript
 } from "../../../lib/script/importedScript";
 
@@ -76,8 +76,7 @@ export function useScriptFileImport(scriptId: string): ScriptFileImportResult {
 
   const apply = useCallback(
     (imported: ImportedScript) => {
-      setScriptImport(scriptId, imported);
-      useScriptStore.getState().setSetup(scriptId, { brief: imported.text });
+      useScriptStore.getState().setSetup(scriptId, scriptSourcePatch(imported));
     },
     [scriptId]
   );
@@ -98,12 +97,8 @@ export function useScriptFileImport(scriptId: string): ScriptFileImportResult {
       if (tooLarge(file)) return;
       setImporting(true);
       try {
-        if (endsWith(file, ".fdx")) {
-          apply(importedFromFdx(parseFdx(await file.text())));
-          return;
-        }
-        if (endsWith(file, ".txt")) {
-          apply(importedFromText(await file.text()));
+        if (endsWith(file, ".fdx", ".txt")) {
+          apply(importedFromFile(file.name, await file.text()));
           return;
         }
         const form = new FormData();
@@ -143,7 +138,7 @@ export function useScriptFileImport(scriptId: string): ScriptFileImportResult {
       if (tooLarge(file)) return;
       setImporting(true);
       try {
-        apply(importedFromSubtitles(parseSrt(await file.text())));
+        apply(importedFromFile(file.name, await file.text()));
       } catch (cause) {
         setError(
           cause instanceof Error

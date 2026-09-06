@@ -7,6 +7,11 @@
  * board: step 2 then directs camera work only and `verifyImportedText`
  * restores anything the answer changed (D10).
  *
+ * The import record on the document says which of the two happened and whether
+ * the words are the creator's. It carries no copy of them: the screenplay and
+ * the brief this writes are the imported text, so an edit to either is what
+ * the next run preserves.
+ *
  * A refused file writes nothing. The notices are the route's own words, so a
  * scanned PDF reads the same wherever it is refused.
  */
@@ -86,7 +91,15 @@ export function useScriptImport(boardId: string): ScriptImportResult {
           };
           store.setSetup(boardId, { brief: parsed.text });
           store.setScreenplay(boardId, screenplay);
-          setImportSource(boardId, { kind: "fdx", parsed });
+          // The words and the scene order are the creator's from here on: the
+          // run uses `parsed` verbatim, so step 1 shows the file it came from
+          // and holds the text until the creator says otherwise (F3).
+          setImportSource(boardId, {
+            kind: "fdx",
+            fileName: file.name,
+            importedAt: new Date().toISOString(),
+            preserveWords: true
+          });
           return;
         }
 
@@ -114,7 +127,12 @@ export function useScriptImport(boardId: string): ScriptImportResult {
         store.setSetup(boardId, { brief: text });
         // Plain text has no structure to keep, so the post-check only flags
         // the source lines the Director's shots left out (PRD § 7.2).
-        setImportSource(boardId, { kind: "text", text });
+        setImportSource(boardId, {
+          kind: "text",
+          fileName: file.name,
+          importedAt: new Date().toISOString(),
+          preserveWords: false
+        });
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : UNSUPPORTED);
       } finally {

@@ -10,6 +10,7 @@
 import type { WorkflowSetupRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 import type { OptionCardItem } from "../OptionCardGrid";
+import { SETUP_STILL_GROUPS, setupStill } from "../stills";
 
 export interface WorkflowCategory extends OptionCardItem {
   /**
@@ -21,7 +22,8 @@ export interface WorkflowCategory extends OptionCardItem {
   defaultRunMode: WorkflowSetupRunMode;
 }
 
-export const WORKFLOW_CATEGORIES: readonly WorkflowCategory[] = [
+/** The table without its art, which every entry names the same way. */
+const CATEGORIES: readonly Omit<WorkflowCategory, "image">[] = [
   {
     id: "content-pipeline",
     title: "Content pipeline",
@@ -65,6 +67,13 @@ export const WORKFLOW_CATEGORIES: readonly WorkflowCategory[] = [
     defaultRunMode: "app"
   }
 ];
+
+export const WORKFLOW_CATEGORIES: readonly WorkflowCategory[] = CATEGORIES.map(
+  (category) => ({
+    ...category,
+    image: setupStill(SETUP_STILL_GROUPS.workflowCategories, category.id)
+  })
+);
 
 export const workflowCategory = (
   id: string | undefined

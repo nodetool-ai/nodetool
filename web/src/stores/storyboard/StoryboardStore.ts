@@ -40,7 +40,10 @@ import type {
   LanguageModelValue,
   VideoModelValue
 } from "../ApiTypes";
-import type { StoryboardSetupStage } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
+import type {
+  StoryboardImportSource,
+  StoryboardSetupStage
+} from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import {
   sceneOrder,
   scenesAreContiguous
@@ -84,6 +87,17 @@ export interface StoryboardBoard {
   activeShotId: string | null;
   /** Persisted timeline sequence this board was assembled into, if any. */
   timelineId: string | null;
+  /**
+   * The file this board's words were imported from (PRD § 7.6, § 7.7). It is
+   * a contract, not a browser detail: `preserveWords` says the Director may
+   * only add camera work, and every surface — the setup step, the Director
+   * run, a headless caller — reads the same rule off the document.
+   */
+  importSource?: StoryboardImportSource | null;
+  /** How many shots the Director is asked for. Missing reads as the default. */
+  setupShotCount?: number;
+  /** The inputs the current screenplay was directed from (PRD § 7.2). */
+  setupDirectedFrom?: string | null;
   /** Epoch ms of the last mutation; drives the sidebar's recency sort. */
   updatedAt: number;
 }
@@ -93,6 +107,12 @@ export interface StoryboardSetupPatch {
   brief?: string;
   genre?: string;
   stage?: StoryboardSetupStage;
+  /** The Director's length, in shots. */
+  shotCount?: number;
+  /** What the current screenplay was directed from, or null to forget it. */
+  directedFrom?: string | null;
+  /** The file the words came from, or null when there is no import left. */
+  importSource?: StoryboardImportSource | null;
 }
 
 /** The scene fields the surface edits; a scene carries no order of its own. */
@@ -726,6 +746,13 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         brief:
           screenplay.brief ??
           (board.brief.trim() ? board.brief : (screenplay.logline ?? "")),
+        // Whatever wrote this screenplay, the record of what the last one was
+        // directed from no longer describes the board. A Director run writes
+        // its own fingerprint straight after this; every other writer — an
+        // import, a restore, `ui_storyboard_set_screenplay` — leaves it clear,
+        // so the genre step offers an explicit re-direct rather than claiming
+        // the screenplay already answers the current inputs.
+        setupDirectedFrom: null,
         updatedAt: Date.now()
       };
       const patch: Partial<StoryboardStoreState> = {
@@ -775,9 +802,21 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
           if (patch.brief !== undefined) next.brief = patch.brief;
           if (patch.genre !== undefined) next.genre = patch.genre;
           if (patch.stage !== undefined) next.setupStage = patch.stage;
+          if (patch.shotCount !== undefined) {
+            next.setupShotCount = patch.shotCount;
+          }
+          if (patch.directedFrom !== undefined) {
+            next.setupDirectedFrom = patch.directedFrom;
+          }
+          if (patch.importSource !== undefined) {
+            next.importSource = patch.importSource;
+          }
           return next.brief === b.brief &&
             next.genre === b.genre &&
-            next.setupStage === b.setupStage
+            next.setupStage === b.setupStage &&
+            next.setupShotCount === b.setupShotCount &&
+            next.setupDirectedFrom === b.setupDirectedFrom &&
+            next.importSource === b.importSource
             ? null
             : next;
         },

@@ -38,6 +38,17 @@ import {
 /** Sentinel exit code for a selfcheck the gate had to kill on timeout. */
 const TIMEOUT_EXIT_CODE = 124;
 
+/**
+ * How much a selfcheck may print before the gate stops buffering it.
+ *
+ * `--json` captures each selfcheck's output, and `spawnSync`'s default cap is
+ * 1 MB: past that Node kills the child and leaves a signal behind, which the
+ * gate read as a timeout. A jest leg covering a whole component tree prints
+ * more than that in warnings alone, so a passing suite was reported as
+ * "exceeded 900s" after three minutes.
+ */
+const SELFCHECK_MAX_BUFFER = 256 * 1024 * 1024;
+
 /** Where the coverage table lives, as git sees it. */
 const CAPABILITY_TABLE_PATH =
   "packages/cli/src/harness/capability-table.ts";
@@ -330,6 +341,8 @@ export function registerHarnessCommands(program: Command): void {
           ok: boolean;
           exitCode: number;
           timedOut: boolean;
+          /** Killed by a signal or a spawn error that is not the timeout. */
+          killed: boolean;
         }> = [];
         for (const check of toRun) {
           if (!opts.json) {
@@ -348,6 +361,7 @@ export function registerHarnessCommands(program: Command): void {
             stdio: opts.json ? "pipe" : "inherit",
             encoding: "utf8",
             timeout: timeoutMs,
+            maxBuffer: SELFCHECK_MAX_BUFFER,
             killSignal: "SIGKILL",
             env: {
               ...process.env,
@@ -358,24 +372,31 @@ export function registerHarnessCommands(program: Command): void {
           });
           // spawnSync fails closed on a kill: a timeout or any other signal
           // leaves `status` null, which must count as a failure, never as
-          // the "no exit code, assume ok" case.
-          const timedOut =
-            (r.error as NodeJS.ErrnoException | undefined)?.code ===
-              "ETIMEDOUT" || r.signal != null;
-          const exitCode = timedOut
-            ? TIMEOUT_EXIT_CODE
-            : (r.status ?? 1);
+          // the "no exit code, assume ok" case. Only ETIMEDOUT is reported as
+          // a timeout, though — every other signal used to be too, and a check
+          // killed for some other reason then claimed to have run for the full
+          // `--timeout` when it had run for three minutes.
+          const errorCode = (r.error as NodeJS.ErrnoException | undefined)
+            ?.code;
+          const timedOut = errorCode === "ETIMEDOUT";
+          const killed = r.signal != null || r.error !== undefined;
+          const exitCode = timedOut ? TIMEOUT_EXIT_CODE : (r.status ?? 1);
           if (!opts.json && timedOut) {
             console.log(
               `\nTIMEOUT ${check.harnessId} exceeded ${timeoutSeconds}s: ${check.command}`
+            );
+          } else if (!opts.json && killed) {
+            console.log(
+              `\nKILLED ${check.harnessId} (${r.signal ?? errorCode}): ${check.command}`
             );
           }
           results.push({
             harnessId: check.harnessId,
             command: check.command,
-            ok: !timedOut && exitCode === 0,
+            ok: !timedOut && !killed && exitCode === 0,
             exitCode,
-            timedOut
+            timedOut,
+            killed
           });
         }
 
@@ -393,7 +414,11 @@ export function registerHarnessCommands(program: Command): void {
             `\nGate: ${results.length - failed.length}/${results.length} selfchecks passed`
           );
           for (const r of failed) {
-            const label = r.timedOut ? "TIMEOUT" : "FAIL";
+            const label = r.timedOut
+              ? "TIMEOUT"
+              : r.killed
+                ? "KILLED"
+                : "FAIL";
             console.log(
               `  ${label} ${r.harnessId} (exit ${r.exitCode}): ${r.command}`
             );

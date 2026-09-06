@@ -114,6 +114,66 @@ describe("the agent bridge a setup host registers", () => {
     expect(board().setupStage).toBe("look");
   });
 
+  // PRD § 6.5: the setup values the flow writes are document fields, so a
+  // headless caller has to be able to write them the same way.
+  it("writes the shot count and the import contract", async () => {
+    renderHook(() => useStoryboardAgentBridge(BOARD));
+
+    await act(async () => {
+      await call("ui_storyboard_set_setup", {
+        shotCount: 10,
+        importSource: {
+          kind: "fdx",
+          fileName: "script.fdx",
+          importedAt: "2026-01-01T00:00:00.000Z",
+          preserveWords: true
+        }
+      });
+    });
+
+    expect(board().setupShotCount).toBe(10);
+    expect(board().importSource?.fileName).toBe("script.fdx");
+    expect(board().importSource?.preserveWords).toBe(true);
+  });
+
+  it("reports both back in the snapshot it returns", async () => {
+    renderHook(() => useStoryboardAgentBridge(BOARD));
+
+    let result: { setupShotCount: number; importSource: unknown } | undefined;
+    await act(async () => {
+      result = (await call("ui_storyboard_set_setup", { shotCount: 8 })) as {
+        setupShotCount: number;
+        importSource: unknown;
+      };
+    });
+
+    expect(result?.setupShotCount).toBe(8);
+    expect(result?.importSource).toBeNull();
+  });
+
+  // Replacing the screenplay makes the record of what the last one answered
+  // untrue, so it goes with it.
+  it("forgets what the screenplay was directed from when one is loaded", async () => {
+    renderHook(() => useStoryboardAgentBridge(BOARD));
+
+    await act(async () => {
+      await call("ui_storyboard_set_setup", { directedFrom: "keeper|Drama|6" });
+    });
+    expect(board().setupDirectedFrom).toBe("keeper|Drama|6");
+
+    await act(async () => {
+      await call("ui_storyboard_set_screenplay", {
+        screenplay: {
+          type: "screenplay",
+          title: "Dark Water",
+          shots: [{ action: "The keeper climbs the stair" }]
+        }
+      });
+    });
+
+    expect(board().setupDirectedFrom).toBeNull();
+  });
+
   it("clears the registration when the flow unmounts", () => {
     const { unmount } = renderHook(() => useStoryboardAgentBridge(BOARD));
     expect(hasStoryboardAgentHandler(BOARD)).toBe(true);

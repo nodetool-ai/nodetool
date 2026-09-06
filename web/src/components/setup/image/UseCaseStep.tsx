@@ -24,13 +24,15 @@ const UseCaseStepInternal: React.FC = () => {
   const handleSelect = useCallback(
     (id: string) => {
       const useCase = findUseCase(id);
-      if (!useCase) {
+      if (!useCase || id === useCaseId) {
+        // Re-picking the card already chosen is not a change, so the count and
+        // the canvas the creator has since adjusted stay as they are (F15).
         return;
       }
       setSetup({ use_case: id, variations: useCase.defaultVariations });
       resizeCanvas(useCase.defaultSize.width, useCase.defaultSize.height);
     },
-    [resizeCanvas, setSetup]
+    [resizeCanvas, setSetup, useCaseId]
   );
 
   return (

@@ -1,9 +1,11 @@
 /**
  * What a shotlist import kept and what it refused (PRD § 7.7.8).
  *
- * Shown once, after the import has already written the board: the file is in,
- * and this says which values did not come with it and where they were, so the
- * creator can fix the row rather than hunt for what changed.
+ * Shown once, and only when the file discarded something: the rows are already
+ * on the board, so a clean import has nothing to confirm and does not stop the
+ * creator on a dialog at all (F29). What is left is the values that did not
+ * come with the file and where they were, so the creator can fix the row
+ * rather than hunt for what changed. Step 3 keeps the same list inline.
  */
 
 import React from "react";
@@ -35,26 +37,21 @@ export const ShotlistReport: React.FC<ShotlistReportProps> = ({
   <Dialog open={open} onClose={onClose} title="Shotlist imported">
     <FlexColumn gap={GAP.normal}>
       <Text size="normal">
-        {shotCount} shot{shotCount === 1 ? "" : "s"} imported.
+        {shotCount} shot{shotCount === 1 ? "" : "s"} imported. These values did
+        not come with them.
       </Text>
-      {entries.length === 0 ? (
-        <Caption color="secondary" component="p">
-          Every value in the file was accepted.
-        </Caption>
-      ) : (
-        <FlexColumn gap={GAP.tight} component="ul">
-          {entries.map((entry) => (
-            <Caption
-              key={`${entry.row}:${entry.column}:${entry.value}`}
-              component="li"
-              color="secondary"
-            >
-              Row {entry.row}, {entry.column}
-              {entry.value === "" ? "" : ` — “${entry.value}”`}: {entry.reason}
-            </Caption>
-          ))}
-        </FlexColumn>
-      )}
+      <FlexColumn gap={GAP.tight} component="ul">
+        {entries.map((entry) => (
+          <Caption
+            key={`${entry.row}:${entry.column}:${entry.value}`}
+            component="li"
+            color="secondary"
+          >
+            Row {entry.row}, {entry.column}
+            {entry.value === "" ? "" : ` — “${entry.value}”`}: {entry.reason}
+          </Caption>
+        ))}
+      </FlexColumn>
       {/* One way out: the import already wrote the board, so there is nothing
           here to confirm or cancel. */}
       <FlexRow justify="flex-end">

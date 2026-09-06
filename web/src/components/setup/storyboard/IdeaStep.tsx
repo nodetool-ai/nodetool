@@ -12,6 +12,13 @@
  * The two import paths land here as well: an uploaded script fills the same
  * textarea (§ 7.6), and a shotlist skips the story entirely and goes to
  * step 3 (§ 7.7.8).
+ *
+ * An FDX is different from everything else that reaches the textarea. Its
+ * words and its scene order are used verbatim (D10), so the run reads the
+ * parsed file, not the box — text edited freely there would be an edit the run
+ * ignores. The box is therefore held while the file is the source, and the two
+ * ways out are named: replace the file, or edit the script as text and let the
+ * Director structure it (F3).
  */
 
 import React, { memo, useCallback, useMemo, useRef } from "react";
@@ -20,16 +27,23 @@ import {
   AlertBanner,
   Box,
   Caption,
-  Chip,
+  EditorButton,
   FlexColumn,
+  FlexRow,
   GAP,
   Text,
   TextInput
 } from "../../ui_primitives";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
+import { useImportSource } from "../../../hooks/storyboard/useImportSource";
+import {
+  clearImport,
+  releaseImportedStructure
+} from "../../../lib/storyboard/importSource";
 import { useExampleStoryboards } from "../../../hooks/storyboard/useStoryboards";
 import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
+import { ExampleBriefs } from "../ExampleBriefs";
 import { ShotlistReport } from "./ShotlistReport";
 import { SCRIPT_ACCEPT, useScriptImport } from "./useScriptImport";
 import {
@@ -54,13 +68,24 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   onStartBlank,
   onOpenTutorial
 }) => {
-  const brief = useStoryboardStore((state) => state.boards[boardId]?.brief ?? "");
+  const brief = useStoryboardStore(
+    (state) => state.boards[boardId]?.brief ?? ""
+  );
   const setSetup = useStoryboardStore((state) => state.setSetup);
   const { data: examples } = useExampleStoryboards();
   const script = useScriptImport(boardId);
   const shotlist = useShotlistImport(boardId);
   const scriptInput = useRef<HTMLInputElement>(null);
   const shotlistInput = useRef<HTMLInputElement>(null);
+  const source = useImportSource(boardId);
+  const locked = source?.preserveWords === true;
+
+  const replaceSource = useCallback(() => scriptInput.current?.click(), []);
+  const editAsText = useCallback(
+    () => releaseImportedStructure(boardId),
+    [boardId]
+  );
+  const removeSource = useCallback(() => clearImport(boardId), [boardId]);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -89,9 +114,9 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
     () =>
       (examples ?? [])
         .map((example) => example.logline.trim())
-        .filter((logline) => logline.length > 0)
+        .filter((logline) => logline.length > 0 && logline !== brief.trim())
         .slice(0, INSPIRATION_COUNT),
-    [examples]
+    [brief, examples]
   );
 
   const alternatives: AlternativeEntry[] = useMemo(
@@ -107,7 +132,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       {
         id: "shotlist",
         title: "Import your shotlist",
-        description: "CSV — download the template to get started",
+        description: "CSV, one row per shot",
         onSelect: () => shotlistInput.current?.click(),
         disabled: shotlist.importing,
         disabledReason: shotlist.importing ? "Reading your file…" : undefined
@@ -150,15 +175,62 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           </Text>
         </FlexColumn>
 
+        {source ? (
+          <AlertBanner
+            severity="info"
+            title={`Imported from ${source.fileName}`}
+          >
+            <FlexColumn gap={GAP.tight}>
+              <Caption component="span">
+                {locked
+                  ? "Your scenes and dialogue are used as written. The Director only adds camera, motion and timing."
+                  : "The Director structures this text into scenes and shots."}
+              </Caption>
+              <FlexRow gap={GAP.normal} wrap>
+                <EditorButton
+                  variant="outlined"
+                  size="small"
+                  onClick={replaceSource}
+                >
+                  Replace file
+                </EditorButton>
+                {locked ? (
+                  <EditorButton
+                    variant="text"
+                    size="small"
+                    onClick={editAsText}
+                  >
+                    Edit as text
+                  </EditorButton>
+                ) : (
+                  <EditorButton
+                    variant="text"
+                    size="small"
+                    onClick={removeSource}
+                  >
+                    Remove the file
+                  </EditorButton>
+                )}
+              </FlexRow>
+            </FlexColumn>
+          </AlertBanner>
+        ) : null}
+
         <TextInput
           value={brief}
-          autoFocus
+          autoFocus={!locked}
           multiline
           rows={5}
           label="Your story"
           hideLabel
           placeholder="One sentence is enough, or paste a full script."
           onChange={handleChange}
+          slotProps={{ input: { readOnly: locked } }}
+          helperText={
+            locked
+              ? "Held while your file is the script. Edit as text to change the words here."
+              : undefined
+          }
         />
 
         {script.error ? (
@@ -172,28 +244,16 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           </AlertBanner>
         ) : null}
 
-        {inspirations.length > 0 ? (
-          <FlexColumn gap={GAP.normal}>
-            <Caption color="secondary" component="p">
-              Or start from one of these:
-            </Caption>
-            <Box
-              role="group"
-              aria-label="Inspiration"
-              sx={{ display: "flex", flexWrap: "wrap", gap: GAP.normal }}
-            >
-              {inspirations.map((logline) => (
-                <Chip
-                  key={logline}
-                  label={logline}
-                  onClick={() => setSetup(boardId, { brief: logline })}
-                />
-              ))}
-            </Box>
-          </FlexColumn>
-        ) : null}
+        <ExampleBriefs
+          examples={inspirations}
+          brief={brief}
+          onSelect={(value) => setSetup(boardId, { brief: value })}
+        />
       </FlexColumn>
 
+      {/* The other four flows put their entry paths in a column beside the
+          box, and this one is read alongside them. The shotlist template sits
+          under the rail, next to the card that needs it. */}
       <FlexColumn gap={GAP.normal}>
         <AlternativesColumn
           label="Other ways to start"
@@ -201,9 +261,8 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         />
         <Caption color="secondary" component="p">
           <a href={SHOTLIST_TEMPLATE_URL} download>
-            Download template
-          </a>{" "}
-          for the shotlist CSV.
+            Download the CSV template
+          </a>
         </Caption>
       </FlexColumn>
 

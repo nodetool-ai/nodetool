@@ -35,7 +35,9 @@ jest.mock("../../storyboard/StoryboardQueueOverlay", () => ({
 }));
 jest.mock("../../chat/assistant/ResizableSideDock", () => ({
   __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  )
 }));
 
 jest.mock("../../../hooks/storyboard/useStoryboardServerSync", () => ({
@@ -77,6 +79,16 @@ jest.mock("../../../hooks/storyboard/useStoryboards", () => ({
   useExampleStoryboards: () => ({ data: [], isLoading: false })
 }));
 jest.mock("../../../hooks/useResolvedMediaUri");
+// The genre step carries a model picker; this suite asserts which step mounts,
+// not what the picker offers, and stands up no query client.
+jest.mock("../../../hooks/useModelsByProvider", () => ({
+  __esModule: true,
+  useLanguageModelsByProvider: () => ({ models: [], isLoading: false })
+}));
+jest.mock("../../properties/LanguageModelSelect", () => ({
+  __esModule: true,
+  default: () => null
+}));
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   useWorkspaceTabsStore: <T,>(selector: (s: { setTitle: jest.Mock }) => T) =>
     selector({ setTitle: jest.fn() })
@@ -125,8 +137,8 @@ beforeEach(() => {
 describe("StoryboardSurface setup stages", () => {
   it.each([
     ["idea", "Continue"],
-    ["genre", "Review your screenplay"],
-    ["review", "Continue to storyboard"],
+    ["genre", "Generate screenplay"],
+    ["review", "Choose the look"],
     ["look", "Generate your storyboard"]
   ] as const)("mounts the %s step, not the board", (stage, primary) => {
     seedBoard(stage);
@@ -156,7 +168,9 @@ describe("StoryboardSurface setup stages", () => {
     renderSurface();
 
     expect(screen.getByTestId("board")).toBeInTheDocument();
-    expect(screen.queryByRole("navigation", { name: "Setup steps" })).toBeNull();
+    expect(
+      screen.queryByRole("navigation", { name: "Setup steps" })
+    ).toBeNull();
   });
 
   it("mounts the board for a document with no stage field", () => {
@@ -164,6 +178,8 @@ describe("StoryboardSurface setup stages", () => {
     renderSurface();
 
     expect(screen.getByTestId("board")).toBeInTheDocument();
-    expect(screen.queryByRole("navigation", { name: "Setup steps" })).toBeNull();
+    expect(
+      screen.queryByRole("navigation", { name: "Setup steps" })
+    ).toBeNull();
   });
 });

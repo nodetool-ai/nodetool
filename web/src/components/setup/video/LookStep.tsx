@@ -19,12 +19,19 @@
 import React, { memo, useCallback, useMemo } from "react";
 
 import {
+  AlertBanner,
+  Box,
+  Caption,
+  EditorButton,
   FlexColumn,
+  FlexRow,
   GAP,
   LabeledSwitch,
+  LoadingSpinner,
   SelectField,
   Text
 } from "../../ui_primitives";
+import { SETUP_FIELD_WIDTH } from "../layout";
 import { ASPECT_OPTIONS, aspectOf } from "../../storyboard/aspectOptions";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -39,6 +46,12 @@ import { useTimelineProjectSettings } from "../../../hooks/timeline/useTimelineP
 import { useBeatPlanCostEstimate } from "../../../hooks/timeline/useBeatPlanCostEstimate";
 import { videoFormatById } from "./formats";
 import { useModelSamples } from "../modelSamples";
+import {
+  isAvailable,
+  useClipModelAvailability,
+  useVoiceAvailability,
+  type CuratedAvailability
+} from "./modelAvailability";
 
 /** What the button says when no catalog figure covers the plan (PRD § 8.3). */
 export const COST_UNKNOWN_TEXT = "cost unknown until the first clip returns";
@@ -85,8 +98,10 @@ export interface LookStepChoices {
 }
 
 export interface LookStepControls {
-  /** False until there is a plan and a model to render it with. */
+  /** False until there is a plan and available models to render it with. */
   canAdvance: boolean;
+  /** Why `canAdvance` is false, for the shell to show beside the button. */
+  blockedReason: string | undefined;
   /** The price, or the "unknown" line. Never absent — clips cost dollars. */
   primaryDetail: string;
   /** Create the clips, enqueue the jobs, hand the timeline back. */
@@ -108,10 +123,16 @@ const useLanes = () => {
   const formatId = useTimelineStore((state) => state.setup?.format);
   const format = videoFormatById(formatId);
   return {
-    voiceLane: format?.tracks.some((track) => track.name === "Voiceover") ?? true,
+    voiceLane:
+      format?.tracks.some((track) => track.name === "Voiceover") ?? true,
     musicLane: format?.tracks.some((track) => track.name === "Music") ?? true
   };
 };
+
+/** The first reason that holds, or nothing when the step is ready to run. */
+const firstBlocker = (
+  checks: readonly (readonly [boolean, string])[]
+): string | undefined => checks.find(([blocked]) => blocked)?.[1];
 
 export function useLookStep({
   voiceOn,
@@ -126,7 +147,15 @@ export function useLookStep({
   const byKind = useLastModelStore((state) => state.byKind);
   const video = byKind.video;
   const audio = byKind.audio;
-  const voiced = voiceLane && voiceOn && !!audio?.voice;
+  const clipModels = useClipModelAvailability();
+  const voices = useVoiceAvailability();
+  // A switched-on Voiceover with no usable voice used to be silently turned
+  // off at generate time, so the cut came out mute while the switch still read
+  // on. The switch is the creator's word now: it holds the step until they
+  // pick a voice or switch it off themselves (F11).
+  const voiceWanted = voiceLane && voiceOn;
+  const voiced =
+    voiceWanted && !!audio?.voice && isAvailable(voices, audio.voice);
 
   const estimate = useBeatPlanCostEstimate(beats ?? [], {
     aspectRatio: aspectOf(width, height),
@@ -153,13 +182,96 @@ export function useLookStep({
     ? `${clipCount} clip${clipCount === 1 ? "" : "s"} · about ${estimate.label}`
     : COST_UNKNOWN_TEXT;
 
+  const blockedReason = firstBlocker([
+    [
+      clipCount === 0,
+      "Plan the beats first — there is nothing to render yet"
+    ],
+    [
+      clipModels.noProvider,
+      "No provider is set up to render video. Connect one in Settings."
+    ],
+    [!video?.model, "Pick a video model"],
+    [
+      !!video?.model && !isAvailable(clipModels, video.model),
+      "Your providers do not offer that video model. Pick another."
+    ],
+    [voiceWanted && !audio?.voice, "Pick a voice, or switch Voiceover off"],
+    [
+      voiceWanted && !!audio?.voice && !isAvailable(voices, audio.voice),
+      "Your providers do not offer that voice. Pick another, or switch Voiceover off."
+    ]
+  ]);
+
   return {
-    canAdvance: clipCount > 0 && !!video?.model,
+    canAdvance: blockedReason === undefined,
+    blockedReason,
     primaryDetail,
     generate,
     musicAvailable: MUSIC_AVAILABLE
   };
 }
+
+
+/**
+ * The state of a curated grid's provider lookup, above the grid: waiting,
+ * failed with a way to ask again, or nothing configured to run it (F14).
+ * Silent once the list is known — a working grid needs no note.
+ */
+const ModelAvailabilityNote: React.FC<{
+  availability: CuratedAvailability;
+  kind: "video" | "voice";
+  /** True when the providers answered and none of the curated tiles survived. */
+  noCompatible: boolean;
+}> = ({ availability, kind, noCompatible }) => {
+  if (availability.loading) {
+    return (
+      <FlexRow gap={GAP.tight} align="center" role="status">
+        <LoadingSpinner size="small" inline />
+        <Caption color="secondary">
+          {kind === "video"
+            ? "Checking which video models your providers offer…"
+            : "Checking which voices your providers offer…"}
+        </Caption>
+      </FlexRow>
+    );
+  }
+  if (availability.error) {
+    return (
+      <AlertBanner severity="error">
+        <FlexRow gap={GAP.normal} align="center" wrap>
+          <Text size="normal" component="span">
+            {kind === "video"
+              ? "Could not read the video models your providers offer."
+              : "Could not read the voices your providers offer."}
+          </Text>
+          <EditorButton variant="outlined" onClick={availability.refetch}>
+            Try again
+          </EditorButton>
+        </FlexRow>
+      </AlertBanner>
+    );
+  }
+  if (availability.noProvider) {
+    return (
+      <AlertBanner severity="warning">
+        {kind === "video"
+          ? "No provider is set up to render video. Connect one in Settings, then come back."
+          : "No provider is set up to read lines aloud. Connect one in Settings, or switch Voiceover off."}
+      </AlertBanner>
+    );
+  }
+  if (noCompatible) {
+    return (
+      <AlertBanner severity="warning">
+        {kind === "video"
+          ? "Your providers offer no video model. Connect one that does, then come back."
+          : "Your providers offer no voice. Connect one that does, or switch Voiceover off."}
+      </AlertBanner>
+    );
+  }
+  return null;
+};
 
 export interface LookStepProps extends LookStepChoices {
   onVoiceChange: (on: boolean) => void;
@@ -183,6 +295,8 @@ const LookStepInternal: React.FC<LookStepProps> = ({
   const remember = useLastModelStore((state) => state.remember);
   const byKind = useLastModelStore((state) => state.byKind);
   const { voiceLane, musicLane } = useLanes();
+  const clipModels = useClipModelAvailability();
+  const voices = useVoiceAvailability();
 
   const sampleIds = useMemo(() => CLIP_MODELS.map((option) => option.id), []);
   const samples = useModelSamples(sampleIds, "video");
@@ -192,15 +306,38 @@ const LookStepInternal: React.FC<LookStepProps> = ({
       CLIP_MODELS.map((option) => ({
         id: option.id,
         title: option.label,
-        video: samples[option.id]
+        video: samples[option.id],
+        disabled: !isAvailable(clipModels, option.id),
+        disabledReason: "Your providers do not offer this model."
       })),
-    [samples]
+    [clipModels, samples]
   );
 
   const voiceTiles = useMemo<PresetTile[]>(
-    () => STUDIO_VOICES.map((voice) => ({ id: voice.id, title: voice.label })),
-    []
+    () =>
+      STUDIO_VOICES.map((voice) => ({
+        id: voice.id,
+        title: voice.label,
+        disabled: !isAvailable(voices, voice.id),
+        disabledReason: "Your providers do not offer this voice."
+      })),
+    [voices]
   );
+
+  // Every curated tile refused by the providers is the fourth state: they
+  // answered, and none of what this flow offers survived.
+  const noCompatibleModel = modelTiles.every((tile) => tile.disabled);
+  const noCompatibleVoice = voiceTiles.every((tile) => tile.disabled);
+
+  const pickedVoice = byKind.audio?.voice;
+  // The reason the final button is dead belongs beside the control that fixes
+  // it as well as beside the button (F11).
+  const voiceNote =
+    voiceOn && !pickedVoice
+      ? "Pick a voice, or switch Voiceover off — nothing is read otherwise."
+      : voiceOn && pickedVoice && !isAvailable(voices, pickedVoice)
+        ? "Your providers do not offer the voice you picked. Pick another, or switch Voiceover off."
+        : null;
 
   const handleAspect = useCallback(
     (value: string) => void saveProjectSettings(dimensionsForAspect(value)),
@@ -237,17 +374,36 @@ const LookStepInternal: React.FC<LookStepProps> = ({
 
   return (
     <FlexColumn gap={GAP.spacious}>
-      <SelectField
-        label="Aspect ratio"
-        value={aspectOf(width, height)}
-        onChange={handleAspect}
-        options={ASPECT_OPTIONS}
-      />
+      <FlexColumn gap={GAP.tight}>
+        <Text size="big" component="h2">
+          Choose your look
+        </Text>
+        <Text size="normal" color="secondary">
+          The frame, the model that renders every beat, and whether the cut is
+          spoken over. You can change all of it in the editor.
+        </Text>
+      </FlexColumn>
+
+      <Box sx={{ maxWidth: SETUP_FIELD_WIDTH }}>
+        <SelectField
+          label="Aspect ratio"
+          value={aspectOf(width, height)}
+          onChange={handleAspect}
+          options={ASPECT_OPTIONS}
+        />
+      </Box>
 
       <FlexColumn gap={GAP.normal}>
         <Text size="small" component="h3">
           Video model
         </Text>
+        <ModelAvailabilityNote
+          availability={clipModels}
+          kind="video"
+          noCompatible={noCompatibleModel}
+        />
+        {/* The samples are fetched, not shipped, so the preview area is held
+            open from the first paint rather than appearing under the reader. */}
         <PresetTileGrid
           label="Video model"
           presets={modelTiles}
@@ -257,6 +413,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
           addOwnLabel="More models in the editor"
           addOwnDisabled
           addOwnDisabledReason="The timeline's inspector offers every configured provider."
+          reservePreview
         />
       </FlexColumn>
 
@@ -268,6 +425,20 @@ const LookStepInternal: React.FC<LookStepProps> = ({
             checked={voiceOn}
             onChange={onVoiceChange}
           />
+          {voiceOn ? (
+            <>
+              <ModelAvailabilityNote
+                availability={voices}
+                kind="voice"
+                noCompatible={noCompatibleVoice}
+              />
+              {voiceNote ? (
+                <Caption color="secondary" role="status">
+                  {voiceNote}
+                </Caption>
+              ) : null}
+            </>
+          ) : null}
           {voiceOn ? (
             <PresetTileGrid
               label="Voice"
@@ -289,7 +460,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
           label="Music"
           description={
             musicAvailable === false
-              ? "Not available yet — no music model is curated"
+              ? "Music generation is unavailable. Add an audio track in the editor."
               : "One bed under the whole cut"
           }
           checked={musicOn && musicAvailable !== false}

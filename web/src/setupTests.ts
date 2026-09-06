@@ -4,6 +4,10 @@
 // learn more: https://github.com/testing-library/jest-dom
 import "@testing-library/jest-dom";
 import { installGlobal } from "./test-utils/doubles";
+import {
+  noModelSamples,
+  setModelSampleProbe
+} from "./components/setup/modelSamples";
 
 // Mock import.meta for Vite environment variables
 Object.defineProperty(globalThis, "import", {
@@ -64,3 +68,9 @@ if (
   };
 }
 
+// Model samples are fetched, not shipped: the real probe assigns a cross-origin
+// URL to a media element, and jsdom resolves that hostname for real. A suite
+// naming a model id therefore made an outbound DNS call and never settled
+// either way. Answer "no sample" here, deterministically; a suite that needs a
+// sample installs its own probe with `setModelSampleProbe`.
+setModelSampleProbe(noModelSamples);

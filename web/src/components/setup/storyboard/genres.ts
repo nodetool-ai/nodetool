@@ -7,10 +7,10 @@
  * Fiction") and shows on the board as a chip, so a display string is the value
  * the whole path wants.
  *
- * Each genre names the `package://` still its card is meant to show.
+ * Each genre names the `package://` still its card shows.
  * {@link SHIPPED_GENRE_STILLS} is what decides whether that path is used: a
  * `package://` URI with no file behind it resolves to a URL that 404s, and the
- * card would render a broken-image icon. Until the art exists the card falls
+ * card would render a broken-image icon. A genre whose art is missing falls
  * back to type.
  */
 
@@ -102,14 +102,16 @@ export const STORYBOARD_GENRES: readonly StoryboardGenre[] = [
 ];
 
 /**
- * The genres whose still is actually checked in. Empty until the artwork is
- * drawn: registering a path with no file behind it renders a broken image on
- * every card. Add an id here in the same change that adds
+ * The genres whose still is actually checked in. Registering a path with no
+ * file behind it renders a broken image on the card, so an id belongs here
+ * only in the same change that adds
  * `packages/base-nodes/nodetool/assets/nodetool-base/storyboards/genres/<id>.jpg`,
  * which is copied wholesale into the bundle — these stills need no entry in
  * `PACKAGE_RUNTIME_ASSETS`, which registers dist-adjacent files only.
  */
-export const SHIPPED_GENRE_STILLS: ReadonlySet<string> = new Set<string>();
+export const SHIPPED_GENRE_STILLS: ReadonlySet<string> = new Set<string>(
+  STORYBOARD_GENRES.map((item) => item.id)
+);
 
 /** The card's still, or undefined while the artwork is missing. */
 export const genreStill = (item: StoryboardGenre): string | undefined =>

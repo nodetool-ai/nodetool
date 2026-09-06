@@ -9,6 +9,7 @@
  */
 
 import type { ReactNode } from "react";
+import type { GenerationSummaryProps } from "./GenerationSummary";
 
 /** Flow heading and subline, shown above the stepper. */
 export interface SetupFlowLabels {
@@ -37,6 +38,13 @@ export interface SetupStep<Stage extends string> {
   /** False disables the primary button — nothing chosen yet. */
   canAdvance?: boolean;
   /**
+   * Why the primary button is off, in the creator's words: "Pick a video
+   * model". A dead button with no reason beside it is the worst state a step
+   * can be in, so a step that can block owes one. Read only while
+   * `canAdvance` is false.
+   */
+  blockedReason?: string;
+  /**
    * The step's action: the flow's plan generator on the shape step, its
    * generate action on the last one. The stage moves only after this resolves,
    * so a rejected Director call leaves the creator where they were with the
@@ -50,10 +58,17 @@ export interface SetupStep<Stage extends string> {
    */
   pending?: boolean;
   /**
+   * What the wait is, in the creator's words: "Writing 6 shots". Shown beside
+   * the animated mark while the step is pending, in place of the cost detail —
+   * during a wait, what is happening beats what it will cost.
+   */
+  pendingLabel?: string;
+  /**
    * Rendered beside the primary button — the cost estimate on a generate step.
    * PRD § 6.2: nothing shows when nothing was measured, so pass `undefined`.
    */
   primaryDetail?: ReactNode;
+  generation?: GenerationSummaryProps;
 }
 
 export interface SetupFlowConfig<Stage extends string> {

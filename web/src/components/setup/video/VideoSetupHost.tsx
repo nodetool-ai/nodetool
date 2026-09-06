@@ -10,6 +10,8 @@
  * flow is up (PRD § 6.5).
  */
 
+import { useCallback } from "react";
+
 import { trpc } from "../../../trpc/client";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { TimelineProvider } from "../../../stores/timeline/TimelineInstance";
@@ -26,12 +28,22 @@ export interface VideoSetupHostProps {
   onFinish: () => void;
   /** Hands the brief to the script flow (E3). */
   onStartFromScript?: (brief: string) => void;
+  /**
+   * Takes the creator back to the entry surface to pick a different card. The
+   * shell shows it on step 1 only, and only when a host supplies it; what
+   * happens to the draft sequence is the host's to decide (F31).
+   *
+   * The brief handed over is the one in the store: autosave is debounced, so
+   * the server copy can be a keystroke or a failed save behind.
+   */
+  onChangeFlow?: (brief: string) => void | Promise<void>;
 }
 
 const VideoSetupBody = ({
   sequenceId,
   onFinish,
-  onStartFromScript
+  onStartFromScript,
+  onChangeFlow
 }: VideoSetupHostProps) => {
   const query = trpc.timeline.get.useQuery({ id: sequenceId });
   useLoadTimelineIntoStore(query.data);
@@ -41,6 +53,12 @@ const VideoSetupBody = ({
   // The store starts empty and an empty store's stage reads `done`, so the flow
   // is only rendered once the server copy has landed in it.
   const loaded = useTimelineStore((state) => state.sequenceId === sequenceId);
+  const brief = useTimelineStore((state) => state.setup?.brief ?? "");
+
+  const handleChangeFlow = useCallback(
+    () => onChangeFlow?.(brief),
+    [brief, onChangeFlow]
+  );
 
   if (query.isError) {
     return <DocumentLoadStatus state="error" label="video" />;
@@ -48,7 +66,12 @@ const VideoSetupBody = ({
   if (!loaded) {
     return <DocumentLoadStatus state="loading" label="video" />;
   }
-  return <SetupFlow config={config} />;
+  return (
+    <SetupFlow
+      config={config}
+      onChangeFlow={onChangeFlow ? handleChangeFlow : undefined}
+    />
+  );
 };
 
 const VideoSetupHost = (props: VideoSetupHostProps) => (
