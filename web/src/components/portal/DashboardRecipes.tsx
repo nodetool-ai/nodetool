@@ -19,6 +19,7 @@ import { useSectionWrap, SectionHeader } from "./dashboardChrome";
 
 type Recipe = recipeSchemas.ExampleRecipeSummary;
 type RecipeStep = recipeSchemas.ExampleRecipeStep;
+type RecipeApp = recipeSchemas.ExampleRecipeApp;
 
 const thumbSrc = (url: string | null): string | null => {
   if (!url) return null;
@@ -115,6 +116,34 @@ const styles = (theme: Theme) =>
         background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.22)`
       },
       "&:disabled": { cursor: "wait", opacity: 0.6 }
+    },
+    // The header button sits in a row; the one under the open chain sits in a
+    // column, where a stretched button would read as a banner.
+    ".rcp-add.inline": { alignSelf: "flex-start" },
+    ".rcp-app": {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: getSpacingPx(SPACING.md),
+      padding: getSpacingPx(SPACING.sm),
+      border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.35)`,
+      borderRadius: BORDER_RADIUS.sm,
+      background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.06)`
+    },
+    ".rcp-app-name": {
+      display: "block",
+      fontSize: "var(--fontSizeSmall)",
+      color: theme.vars.palette.text.primary
+    },
+    ".rcp-app-role": {
+      display: "block",
+      fontSize: "var(--fontSizeSmaller)",
+      lineHeight: 1.6,
+      color: theme.vars.palette.text.secondary
+    },
+    ".rcp-steps-lede": {
+      margin: 0,
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.disabled
     },
     ".rcp-body": {
       borderTop: `1px solid ${theme.vars.palette.divider}`,
@@ -244,6 +273,45 @@ const RecipeStepRow = memo(function RecipeStepRow({
   );
 });
 
+interface RecipeAppRowProps {
+  app: RecipeApp;
+  installingApp: string | null;
+  onInstall: (appSlug: string) => void;
+}
+
+const RecipeAppRow = memo(function RecipeAppRow({
+  app,
+  installingApp,
+  onInstall
+}: RecipeAppRowProps) {
+  const installing = installingApp === app.slug;
+  return (
+    <div className="rcp-app">
+      <span className="rcp-text">
+        <span className="rcp-app-name">
+          {app.name} — {app.operationCount} steps on one page
+        </span>
+        <span className="rcp-app-role">{app.role}</span>
+        <span className="rcp-models">
+          {app.workflows.map((workflow) => (
+            <span key={workflow} className="rcp-model">
+              {workflow}
+            </span>
+          ))}
+        </span>
+      </span>
+      <button
+        type="button"
+        className="rcp-add"
+        disabled={installing}
+        onClick={() => onInstall(app.slug)}
+      >
+        {installing ? "Installing…" : "Install app"}
+      </button>
+    </div>
+  );
+});
+
 interface RecipeCardProps {
   recipe: Recipe;
   expanded: boolean;
@@ -255,9 +323,14 @@ const RecipeCard = memo(function RecipeCard({
   expanded,
   onToggle
 }: RecipeCardProps) {
-  const { copyingStep, addingSlug, openStep, addRecipe } = useRecipeActions();
+  const { copyingStep, addingSlug, installingApp, openStep, installApp, addRecipe } =
+    useRecipeActions();
   const thumb = thumbSrc(recipe.thumbnailUrl);
   const adding = addingSlug === recipe.slug;
+  // The first app is the one built for this chain; the primary action installs
+  // it, and the rest of the chain is one expand away.
+  const primaryApp = recipe.apps[0];
+  const installingPrimary = installingApp === primaryApp?.slug;
 
   return (
     <div className="rcp">
@@ -276,17 +349,20 @@ const RecipeCard = memo(function RecipeCard({
             <span className="rcp-outcome">{recipe.outcome}</span>
           </span>
           <span className="rcp-meta">
+            {recipe.apps.length} {recipe.apps.length === 1 ? "app" : "apps"} ·{" "}
             {recipe.steps.length} workflows · {recipe.nodeCount} nodes
           </span>
         </button>
-        <button
-          type="button"
-          className="rcp-add"
-          disabled={adding}
-          onClick={() => void addRecipe(recipe)}
-        >
-          {adding ? "Adding…" : `Add all ${recipe.steps.length}`}
-        </button>
+        {primaryApp && (
+          <button
+            type="button"
+            className="rcp-add"
+            disabled={installingPrimary}
+            onClick={() => void installApp(primaryApp.slug)}
+          >
+            {installingPrimary ? "Installing…" : `Install ${primaryApp.name}`}
+          </button>
+        )}
       </div>
 
       {expanded && (
@@ -296,6 +372,18 @@ const RecipeCard = memo(function RecipeCard({
               {paragraph}
             </p>
           ))}
+          {recipe.apps.map((app) => (
+            <RecipeAppRow
+              key={app.slug}
+              app={app}
+              installingApp={installingApp}
+              onInstall={installApp}
+            />
+          ))}
+          <p className="rcp-steps-lede">
+            The workflows behind those apps. Open one to change how a step
+            works, or add the whole chain as graphs.
+          </p>
           {recipe.steps.map((step, index) => (
             <RecipeStepRow
               key={step.example}
@@ -306,6 +394,16 @@ const RecipeCard = memo(function RecipeCard({
               onOpen={openStep}
             />
           ))}
+          <button
+            type="button"
+            className="rcp-add inline"
+            disabled={adding}
+            onClick={() => void addRecipe(recipe)}
+          >
+            {adding
+              ? "Adding…"
+              : `Add all ${recipe.steps.length} as workflows`}
+          </button>
           {recipe.caveats.map((caveat) => (
             <p key={caveat} className="rcp-caveat">
               {caveat}
@@ -318,9 +416,10 @@ const RecipeCard = memo(function RecipeCard({
 });
 
 /**
- * The shipped recipes: chains of example workflows that reach one outcome,
- * ordered. A card opens to the chain; a step opens that example as a workflow,
- * and "Add all" copies the whole chain into the library at once.
+ * The shipped recipes: one outcome, the app that reaches it, and the ordered
+ * example workflows that app is made of. The card's primary action installs
+ * the app; expanding it lists the other apps that cover part of the chain and
+ * the workflows behind them, each openable as a graph.
  */
 const DashboardRecipes: React.FC = () => {
   const theme = useTheme();
@@ -341,8 +440,8 @@ const DashboardRecipes: React.FC = () => {
       <div css={sectionWrap}>
         <SectionHeader title="Recipes" count={`${recipes.length}`} />
         <p className="rcp-lede">
-          Chains of the examples below, ordered: run them top to bottom and each
-          step takes what the one before it produced.
+          Each one installs as an app that runs the whole chain, with the
+          example workflows behind it in your library to edit.
         </p>
         {isLoading ? (
           <div className="rcp-loading">

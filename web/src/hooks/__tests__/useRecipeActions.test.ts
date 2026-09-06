@@ -3,12 +3,22 @@ import * as ReactRouterDom from "react-router-dom";
 import { useRecipeActions } from "../useRecipeActions";
 
 const mockCreateWorkflow = jest.fn();
+const mockInstallExampleApp = jest.fn();
+const mockOpenApplication = jest.fn();
 
 jest.mock("../../contexts/WorkflowManagerContext", () => ({
   useWorkflowManager: jest.fn(
     (selector: (state: { create: jest.Mock }) => unknown) =>
       selector({ create: mockCreateWorkflow })
   )
+}));
+
+jest.mock("../../utils/applicationBundle", () => ({
+  installExampleApp: (...args: unknown[]) => mockInstallExampleApp(...args)
+}));
+
+jest.mock("../useOpenApplication", () => ({
+  useOpenApplication: () => mockOpenApplication
 }));
 
 jest.mock("react-router-dom", () => ({
@@ -32,6 +42,16 @@ const recipe = {
   thumbnailUrl: null,
   providers: [],
   nodeCount: 0,
+  apps: [
+    {
+      slug: "viral-ad-engine",
+      name: "Viral Ad Engine",
+      description: "",
+      role: "",
+      workflows: ["Ad Copy in Three Registers"],
+      operationCount: 1
+    }
+  ],
   steps: [
     { ...step("Ad Copy in Three Registers"), exampleId: "a.json", role: "", handoff: "", thumbnailUrl: null, nodeCount: 2, models: [], alternative: null },
     { ...step("Ad Loop from a Product Photo"), exampleId: "b.json", role: "", handoff: "", thumbnailUrl: null, nodeCount: 3, models: [], alternative: null }
@@ -48,6 +68,31 @@ describe("useRecipeActions", () => {
       id: `wf-${++created}`
     }));
     jest.mocked(ReactRouterDom.useNavigate).mockReturnValue(mockNavigate);
+    mockInstallExampleApp.mockResolvedValue({
+      id: "app-1",
+      name: "Viral Ad Engine"
+    });
+  });
+
+  it("installs a recipe's app and opens it", async () => {
+    const { result } = renderHook(() => useRecipeActions());
+
+    await act(() => result.current.installApp("viral-ad-engine"));
+
+    expect(mockInstallExampleApp).toHaveBeenCalledWith("viral-ad-engine");
+    expect(mockOpenApplication).toHaveBeenCalledWith("app-1", "Viral Ad Engine");
+    expect(result.current.installingApp).toBeNull();
+  });
+
+  it("stays put when the install fails", async () => {
+    mockInstallExampleApp.mockRejectedValueOnce(new Error("no server"));
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    const { result } = renderHook(() => useRecipeActions());
+
+    await act(() => result.current.installApp("viral-ad-engine"));
+
+    expect(mockOpenApplication).not.toHaveBeenCalled();
+    expect(result.current.installingApp).toBeNull();
   });
 
   it("copies one step from its example and opens it", async () => {

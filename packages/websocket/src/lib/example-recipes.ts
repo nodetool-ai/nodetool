@@ -1,14 +1,15 @@
 /**
- * The shipped recipes: a named outcome plus the ordered example workflows that
- * reach it.
+ * The shipped recipes: a named outcome, the example app that reaches it, and
+ * the ordered example workflows that app is made of.
  *
  * A recipe is a file on disk next to the examples it composes
  * (`packages/base-nodes/nodetool/examples/recipes/<slug>.recipe.json`), the
- * same layout the example apps and storyboards use. It stores no graphs of its
- * own — every step names a shipped example, and this module resolves those
- * names against the examples directory the server is already serving, so a
- * recipe cannot drift into claiming a workflow, a model, or a thumbnail the
- * install does not have.
+ * same layout the example apps and storyboards use. It stores no graphs and no
+ * app documents of its own — every step names a shipped example and every app
+ * a shipped bundle, and this module resolves those names against the
+ * directories the server is already serving, so a recipe cannot drift into
+ * claiming a workflow, an app, a model, or a thumbnail the install does not
+ * have.
  *
  * The site's downloadable `.nodetool` bundles are packed from the same
  * manifests (`marketing/scripts/generate-recipes.mjs`), so the chain a page
@@ -19,12 +20,14 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import nodePath from "node:path";
 import {
   parseRecipeBundle,
+  type ExampleRecipeApp,
   type ExampleRecipeStep,
   type ExampleRecipeSummary,
   type RecipeBundle,
   type RecipeModelRef
 } from "@nodetool-ai/protocol/api-schemas/recipes.js";
 import { deriveExampleAssetsDir, resolveExampleJsonPath } from "../example-workflows.js";
+import { getExampleAppSummary } from "./example-apps.js";
 import { withCacheBuster } from "./example-thumbnail.js";
 import { isString } from "./wire-values.js";
 
@@ -36,6 +39,7 @@ export interface ExampleRecipeOptions {
   examplesDir?: string;
   examplesAssetsFallbackDir?: string;
   exampleRecipesDir?: string;
+  exampleAppsDir?: string;
 }
 
 /**
@@ -150,16 +154,24 @@ function resolveExample(
 }
 
 /**
- * Resolve one manifest against the examples on disk, or null when a step names
- * an example this install does not ship — half a chain is worse than none, and
- * `tests/example-recipes.test.ts` fails when a shipped recipe stops resolving.
+ * Resolve one manifest against what is on disk, or null when a step names an
+ * example or an app this install does not ship — half a chain is worse than
+ * none, and `tests/example-recipes.test.ts` fails when a shipped recipe stops
+ * resolving.
  */
 function buildRecipe(
   bundle: RecipeBundle,
+  options: ExampleRecipeOptions,
   examplesDir: string,
   assetsDir: string,
   packageName: string
 ): ExampleRecipeSummary | null {
+  const apps: ExampleRecipeApp[] = [];
+  for (const entry of bundle.apps) {
+    const app = getExampleAppSummary(options, entry.app);
+    if (!app) return null;
+    apps.push({ ...app, role: entry.role });
+  }
   const steps: ExampleRecipeStep[] = [];
   for (const step of bundle.steps) {
     const example = resolveExample(examplesDir, assetsDir, step.example);
@@ -203,6 +215,7 @@ function buildRecipe(
       ...new Set(steps.flatMap((s) => s.models.map((m) => m.provider)))
     ],
     nodeCount: steps.reduce((total, step) => total + step.nodeCount, 0),
+    apps,
     steps
   };
 }
@@ -233,7 +246,13 @@ export function listExampleRecipes(
   for (const file of files) {
     const bundle = readBundle(dir, file);
     if (!bundle) continue;
-    const recipe = buildRecipe(bundle, examplesDir, assetsDir, packageName);
+    const recipe = buildRecipe(
+      bundle,
+      options,
+      examplesDir,
+      assetsDir,
+      packageName
+    );
     if (recipe) recipes.push(recipe);
   }
   return recipes;

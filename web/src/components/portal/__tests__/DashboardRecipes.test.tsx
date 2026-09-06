@@ -7,6 +7,7 @@ import DashboardRecipes from "../DashboardRecipes";
 const useQuery = jest.fn();
 const openStep = jest.fn();
 const addRecipe = jest.fn();
+const installApp = jest.fn();
 
 jest.mock("../../../trpc/client", () => ({
   __esModule: true,
@@ -18,7 +19,9 @@ jest.mock("../../../hooks/useRecipeActions", () => ({
   useRecipeActions: () => ({
     copyingStep: null,
     addingSlug: null,
+    installingApp: null,
     openStep: (...args: unknown[]) => openStep(...args),
+    installApp: (...args: unknown[]) => installApp(...args),
     addRecipe: (...args: unknown[]) => addRecipe(...args)
   })
 }));
@@ -36,6 +39,15 @@ const step = (example: string, role: string, models: string[] = []) => ({
   alternative: null
 });
 
+const app = (slug: string, name: string, workflows: string[]) => ({
+  slug,
+  name,
+  description: `${name} description`,
+  role: `${name} role`,
+  workflows,
+  operationCount: workflows.length
+});
+
 const RECIPE = {
   slug: "viral-video-ad-engine",
   name: "Viral Video Ad Engine",
@@ -46,6 +58,13 @@ const RECIPE = {
   thumbnailUrl: "/api/thumb/hook.jpg?v=1",
   providers: ["fal_ai"],
   nodeCount: 8,
+  apps: [
+    app("viral-ad-engine", "Viral Ad Engine", [
+      "Ad Copy in Three Registers",
+      "Ad Loop from a Product Photo"
+    ]),
+    app("brand-and-social", "Brand & Social", ["Hook & Thumbnail Factory"])
+  ],
   steps: [
     step("Ad Copy in Three Registers", "Settle the register"),
     step("Ad Loop from a Product Photo", "Put the product in motion", [
@@ -76,7 +95,9 @@ describe("DashboardRecipes", () => {
     renderRecipes();
     expect(screen.getByText("Viral Video Ad Engine")).toBeInTheDocument();
     expect(screen.getByText("A vertical product ad.")).toBeInTheDocument();
-    expect(screen.getByText("2 workflows · 8 nodes")).toBeInTheDocument();
+    expect(
+      screen.getByText("2 apps · 2 workflows · 8 nodes")
+    ).toBeInTheDocument();
     // The chain stays collapsed until asked for.
     expect(screen.queryByText(/Settle the register/)).not.toBeInTheDocument();
   });
@@ -115,10 +136,35 @@ describe("DashboardRecipes", () => {
     ).toBeInTheDocument();
   });
 
-  it("adds the whole chain from the header button", async () => {
+  it("installs the app built for the chain from the header button", async () => {
     const user = userEvent.setup();
     renderRecipes();
-    await user.click(screen.getByRole("button", { name: "Add all 2" }));
+    await user.click(
+      screen.getByRole("button", { name: "Install Viral Ad Engine" })
+    );
+    expect(installApp).toHaveBeenCalledWith("viral-ad-engine");
+  });
+
+  it("offers every app the recipe names once the chain is open", async () => {
+    const user = userEvent.setup();
+    renderRecipes();
+    await user.click(
+      screen.getByRole("button", { name: /Viral Video Ad Engine/ })
+    );
+    expect(screen.getByText("Brand & Social role")).toBeInTheDocument();
+    await user.click(screen.getAllByRole("button", { name: "Install app" })[1]);
+    expect(installApp).toHaveBeenCalledWith("brand-and-social");
+  });
+
+  it("adds the whole chain as workflows from the open chain", async () => {
+    const user = userEvent.setup();
+    renderRecipes();
+    await user.click(
+      screen.getByRole("button", { name: /Viral Video Ad Engine/ })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Add all 2 as workflows" })
+    );
     expect(addRecipe).toHaveBeenCalledWith(
       expect.objectContaining({ slug: "viral-video-ad-engine" })
     );

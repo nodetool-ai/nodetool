@@ -1,7 +1,9 @@
 /**
  * Client helpers for the application bundle endpoints:
- *   GET  /api/applications/:id/export-bundle  → download an app + its workflows
- *   POST /api/applications/import-bundle      → create the app and its workflows
+ *   GET  /api/applications/:id/export-bundle       → download an app + its workflows
+ *   POST /api/applications/import-bundle           → create the app and its workflows
+ *   POST /api/applications/examples/:slug/install  → the same import, from a
+ *        bundle the server already ships, so the browser never uploads one
  *
  * The workflow equivalents live in `workflowBundle.ts`; an application bundle
  * is plain JSON rather than a zip, because it carries graphs, not asset bytes.
@@ -67,6 +69,37 @@ export async function importApplicationBundle(
   }
   if (!isImportedApplication(data)) {
     throw new Error("Unexpected response format from import endpoint");
+  }
+  return data;
+}
+
+/**
+ * Install a shipped example app. The server holds the bundle, so this posts a
+ * slug rather than a document; workflows the app binds are created alongside
+ * it, and one already created from the same template is reused.
+ */
+export async function installExampleApp(
+  slug: string,
+  projectId = "default"
+): Promise<ImportedApplication> {
+  const res = await restFetch(
+    `/api/applications/examples/${encodeURIComponent(slug)}/install`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ projectId })
+    }
+  );
+  const data: unknown = await res.json().catch(() => null);
+  if (!res.ok) {
+    const detail =
+      data && isObjectLike(data) && "detail" in data
+        ? String(data.detail)
+        : `Install failed (${res.status})`;
+    throw new Error(detail);
+  }
+  if (!isImportedApplication(data)) {
+    throw new Error("Unexpected response format from install endpoint");
   }
   return data;
 }

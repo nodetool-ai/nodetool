@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import type { recipes } from "@nodetool-ai/protocol/api-schemas";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import useOnboardingStore from "../stores/OnboardingStore";
+import { installExampleApp } from "../utils/applicationBundle";
+import { useOpenApplication } from "./useOpenApplication";
 
 type Recipe = recipes.ExampleRecipeSummary;
 
@@ -18,8 +20,12 @@ interface RecipeActions {
   copyingStep: string | null;
   /** Slug of the recipe whose whole chain is being added, else null. */
   addingSlug: string | null;
+  /** Slug of the app being installed, else null. */
+  installingApp: string | null;
   /** Copy one step into the library and open it. */
   openStep: (slug: string, step: CopyableStep) => Promise<void>;
+  /** Install one of the recipe's apps and open it. */
+  installApp: (appSlug: string) => Promise<void>;
   /** Copy every step of a recipe, in order, then open the first. */
   addRecipe: (recipe: Recipe) => Promise<void>;
 }
@@ -35,16 +41,20 @@ const requestFor = (step: CopyableStep) => ({
 });
 
 /**
- * Copying a recipe is copying the examples it names, one per step — the same
- * path a single template takes, so a recipe needs no import format of its own.
+ * A recipe installs through the paths its parts already have: its app is the
+ * example-app install, and each step is the copy a single template takes. The
+ * recipe itself needs no import format of its own.
  */
 export const useRecipeActions = (): RecipeActions => {
   const navigate = useNavigate();
   const createWorkflow = useWorkflowManager((state) => state.create);
+  const openApplication = useOpenApplication();
   const [copyingStep, setCopyingStep] = useState<string | null>(null);
   const [addingSlug, setAddingSlug] = useState<string | null>(null);
+  const [installingApp, setInstallingApp] = useState<string | null>(null);
 
-  const busy = copyingStep !== null || addingSlug !== null;
+  const busy =
+    copyingStep !== null || addingSlug !== null || installingApp !== null;
 
   const openStep = useCallback(
     async (slug: string, step: CopyableStep) => {
@@ -65,6 +75,25 @@ export const useRecipeActions = (): RecipeActions => {
       }
     },
     [busy, createWorkflow, navigate]
+  );
+
+  const installApp = useCallback(
+    async (appSlug: string) => {
+      if (busy) return;
+      useOnboardingStore.getState().markStep("open-template");
+      setInstallingApp(appSlug);
+      try {
+        // The install creates the app and every workflow it binds, so the
+        // chain lands in the library alongside the surface that drives it.
+        const installed = await installExampleApp(appSlug);
+        openApplication(installed.id, installed.name);
+      } catch (error) {
+        console.error("Error installing recipe app:", error);
+      } finally {
+        setInstallingApp(null);
+      }
+    },
+    [busy, openApplication]
   );
 
   const addRecipe = useCallback(
@@ -94,5 +123,5 @@ export const useRecipeActions = (): RecipeActions => {
     [busy, createWorkflow, navigate]
   );
 
-  return { copyingStep, addingSlug, openStep, addRecipe };
+  return { copyingStep, addingSlug, installingApp, openStep, installApp, addRecipe };
 };

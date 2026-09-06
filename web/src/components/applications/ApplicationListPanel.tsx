@@ -4,7 +4,6 @@ import AddIcon from "@mui/icons-material/Add";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import { memo, useCallback, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   isConcurrencyConflict,
@@ -14,13 +13,16 @@ import {
   useUpdateApplication
 } from "../../hooks/useApplications";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { usePanelStore } from "../../stores/PanelStore";
 import {
   useWorkspaceTabsStore,
   creationProjectId
 } from "../../stores/WorkspaceTabsStore";
 import type { SidebarDocumentItem } from "../../stores/SidebarDocumentActionsStore";
 import { useSidebarDocumentMenu } from "../../hooks/useSidebarDocumentMenu";
+import {
+  UNTITLED_APP as UNTITLED,
+  useOpenApplication
+} from "../../hooks/useOpenApplication";
 import { trpc } from "../../trpc/client";
 import {
   Dialog,
@@ -36,8 +38,6 @@ import {
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
-
-const UNTITLED = "Untitled app";
 
 const pickerStyles = () =>
   css({
@@ -59,31 +59,6 @@ const pickerStyles = () =>
       overflowY: "auto"
     }
   });
-
-/** Focus the workspace and open the app's tab. */
-const useOpenApplication = () => {
-  const openTab = useWorkspaceTabsStore((state) => state.openTab);
-  const setVisibility = usePanelStore((state) => state.setVisibility);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  return useCallback(
-    (id: string, name: string, projectId?: string) => {
-      openTab({
-        type: "application",
-        ref: id,
-        mode: "edit",
-        title: name || UNTITLED,
-        projectId
-      });
-      if (!location.pathname.startsWith("/workspace")) {
-        navigate("/workspace");
-      }
-      setVisibility(false);
-    },
-    [location.pathname, navigate, openTab, setVisibility]
-  );
-};
 
 export const CreateApplicationButton = memo(function CreateApplicationButton() {
   const createApplication = useCreateApplication();

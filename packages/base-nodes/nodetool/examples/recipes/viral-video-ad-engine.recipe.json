@@ -13,6 +13,16 @@
     "Nothing here measures performance. The recipe produces variants to test; the testing happens in your ad platform."
   ],
   "hero": "Hook & Thumbnail Factory",
+  "apps": [
+    {
+      "app": "viral-ad-engine",
+      "role": "One offer drives both the three copy registers and the hook-and-thumbnail set, so what you test comes from the brief you wrote."
+    },
+    {
+      "app": "brand-and-social",
+      "role": "The thumbnail factory with brand values behind it, when the ad is one post in a set rather than a one-off."
+    }
+  ],
   "steps": [
     {
       "example": "Ad Copy in Three Registers",

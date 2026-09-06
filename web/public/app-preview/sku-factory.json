@@ -1,0 +1,806 @@
+{
+  "slug": "sku-factory",
+  "name": "SKU Factory",
+  "emoji": "🏷️",
+  "description": "The E-commerce SKU Visual Factory chain behind one surface. Drop a product photo once and the cutout, the studio scene, the seasonal relight and the listing copy all read the same image; motion and print resolution stay on their own buttons because they cost more.",
+  "tagline": "One packshot in, the whole channel set out.",
+  "note": "🔑 Needs a FAL key for the image steps and an OpenAI key for the listing. The turntable is a video model and is metered per second.",
+  "featured": false,
+  "image": "/app-preview/img/sku-factory.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🏷️ SKU Factory",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One packshot in, the whole channel set out."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs a FAL key for the image steps and an OpenAI key for the listing. The turntable is a video model and is metered per second."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-still-set",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-still-set",
+                  "title": "The still set",
+                  "content": [
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-packshot",
+                        "binding": "var:packshot",
+                        "label": "Your packshot",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "text-backdrop-comp-prompt",
+                        "binding": "op:backdrop/prop:comp#prompt",
+                        "label": "The set it stands on",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "select-backdrop-comp-aspect-ratio",
+                        "binding": "op:backdrop/prop:comp#aspect_ratio",
+                        "label": "Frame",
+                        "options": [
+                          {
+                            "value": "1:1"
+                          },
+                          {
+                            "value": "4:5"
+                          },
+                          {
+                            "value": "3:2"
+                          },
+                          {
+                            "value": "16:9"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "text-relight-rl-prompt",
+                        "binding": "op:relight/prop:rl#prompt",
+                        "label": "The light to put on it",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-cutout-backdrop-relight-listing",
+                        "label": "Make the still set",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "cutout",
+                            "key": "",
+                            "value": ""
+                          },
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "backdrop",
+                            "key": "",
+                            "value": ""
+                          },
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "relight",
+                            "key": "",
+                            "value": ""
+                          },
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "listing",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-still-set-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-backdrop",
+                        "binding": "op:backdrop/exec#progress",
+                        "label": "Placing the product…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-cutout-cutout",
+                        "text": "Cutout",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-cutout-cutout",
+                        "binding": "op:cutout/out:out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-backdrop-styled",
+                        "text": "Studio scene",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-backdrop-styled",
+                        "binding": "op:backdrop/out:out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-relight-seasonal",
+                        "text": "Seasonal",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-relight-seasonal",
+                        "binding": "op:relight/out:out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-listing-listing",
+                        "text": "Listing copy",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-listing-listing",
+                        "binding": "op:listing/out:out",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-motion-and-print",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-motion-and-print",
+                  "title": "Motion and print",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "💸 The turntable is metered per second of video."
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "text-turntable-v-prompt",
+                        "binding": "op:turntable/prop:v#prompt",
+                        "label": "Camera move",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-turntable-v-duration",
+                        "binding": "op:turntable/prop:v#duration",
+                        "label": "Seconds",
+                        "min": 4,
+                        "max": 8,
+                        "step": 2,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-turntable",
+                        "label": "Spin it",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "turntable",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-print-up-scale",
+                        "binding": "op:print/prop:up#scale",
+                        "label": "Upscale",
+                        "min": 2,
+                        "max": 4,
+                        "step": 2,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-print",
+                        "label": "Take it to print",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "print",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-motion-and-print-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-turntable",
+                        "binding": "op:turntable/exec#progress",
+                        "label": "Spinning the packshot…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-turntable-turntable",
+                        "text": "Turntable clip",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-turntable-turntable",
+                        "binding": "op:turntable/out:out",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-print",
+                        "binding": "op:print/exec#progress",
+                        "label": "Upscaling…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-print-print-ready",
+                        "text": "Print master",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-print-print-ready",
+                        "binding": "op:print/out:out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "cutout",
+        "name": "Cutout",
+        "workflowId": "cutout",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "packshot"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "backdrop",
+        "name": "Studio scene",
+        "workflowId": "backdrop",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "packshot"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "relight",
+        "name": "Seasonal relight",
+        "workflowId": "relight",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "packshot"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "listing",
+        "name": "Listing",
+        "workflowId": "listing",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "packshot"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "turntable",
+        "name": "Turntable",
+        "workflowId": "turntable",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "packshot"
+          }
+        },
+        "outputs": {},
+        "policy": "queue",
+        "timeoutMs": 900000
+      },
+      {
+        "id": "print",
+        "name": "Print master",
+        "workflowId": "print",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "packshot"
+          }
+        },
+        "outputs": {},
+        "policy": "queue"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "packshot",
+        "name": "The packshot",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "cutout",
+      "name": "Cut a Product Out of Its Background",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "photo",
+              "value": null,
+              "description": "The photo to work on"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Photo"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "cutout"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "backdrop",
+      "name": "Put a Product on a Studio Backdrop",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "photo",
+              "value": null,
+              "description": "The product photo"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Photo"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "styled"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 990,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "4  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "relight",
+      "name": "Relight a Product for a Seasonal Campaign",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "photo",
+              "value": null,
+              "description": "The photo to work on"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Photo"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "seasonal"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "turntable",
+      "name": "Spin a Packshot into a Turntable Clip",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "photo",
+              "value": null,
+              "description": "The packshot"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Packshot"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "turntable"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "print",
+      "name": "Take a Product Shot to Print Resolution",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "photo",
+              "value": null,
+              "description": "The photo to work on"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Photo"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "print_ready"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "listing",
+      "name": "Write a Listing from the Product Photo",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "photo",
+              "value": null,
+              "description": "The product photo"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Photo"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "listing"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Listing"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:backdrop/prop:comp#aspect_ratio": "1:1",
+    "op:cutout/out:out": {
+      "$demo": "image"
+    },
+    "op:backdrop/out:out": {
+      "$demo": "image"
+    },
+    "op:relight/out:out": {
+      "$demo": "image"
+    },
+    "op:listing/out:out": "**Aurora Trail Runner — Recycled Knit, 240g**\n\nA trail shoe built around wet rock. The knit upper drains instead of holding water, and the outsole lugs bite at an angle rather than flat.",
+    "op:turntable/prop:v#duration": 4,
+    "op:print/prop:up#scale": 4,
+    "op:turntable/out:out": {
+      "$demo": "video"
+    }
+  }
+}
