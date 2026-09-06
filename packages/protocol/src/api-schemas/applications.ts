@@ -131,6 +131,23 @@ export const applicationListItem = z.object({
 });
 export type ApplicationListItem = z.infer<typeof applicationListItem>;
 
+/**
+ * One shipped example app as the list endpoint describes it: no graphs, no
+ * document. `thumbnailUrl` is the gallery JPG of the first workflow the app
+ * binds, cache-busted the way example workflow thumbnails are, or null when
+ * that workflow ships no art.
+ */
+export const exampleAppSummary = z.object({
+  slug: z.string(),
+  name: z.string(),
+  description: z.string(),
+  /** Names of the workflows installing this app creates. */
+  workflows: z.array(z.string()),
+  operationCount: z.number(),
+  thumbnailUrl: z.string().nullable()
+});
+export type ExampleAppSummary = z.infer<typeof exampleAppSummary>;
+
 /** Derived at publish time from the release's bindings — never hand-written. */
 export const applicationCapabilities = z.object({
   workflows: z.array(

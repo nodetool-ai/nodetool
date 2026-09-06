@@ -65,7 +65,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Apps      | `/api/applications/{id}/export-bundle` | `GET`        | Depends on `AUTH_PROVIDER`                     | no                          | One app and the full graph of every workflow it binds, as a downloadable `ApplicationBundle` |
 | Apps      | `/api/applications/build`         | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Build a mini app from a prompt or a pinned spec; returns the `BuildReport`. `poll: true` returns a session id instead |
 | Apps      | `/api/applications/debug`         | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Simulate a saved app by `application_id`, or a draft posted inline as `document`; returns the compacted debug report |
-| Apps      | `/api/applications/examples`      | `GET`             | none                                           | no                          | The shipped example apps — slug, name, description, workflow names, operation count |
+| Apps      | `/api/applications/examples`      | `GET`             | none                                           | no                          | The shipped example apps — slug, name, description, workflow names, operation count, thumbnail URL |
 | Apps      | `/api/applications/examples/{slug}` | `GET`           | none                                           | no                          | One example's full `ApplicationBundle`; `404` when the slug names nothing shipped |
 | Apps      | `/api/applications/examples/{slug}/install` | `POST`  | Depends on `AUTH_PROVIDER`                     | no                          | Install an example into the caller's library, creating the workflows it binds |
 | Storyboards | `/api/storyboards/{id}/export-zip` | `GET`           | Depends on `AUTH_PROVIDER`                     | no                          | One board as a zip of Markdown plus its stills and clips; `404` when the caller does not own it |
@@ -1274,12 +1274,15 @@ curl "http://localhost:7777/api/applications/examples"
     "name": "Dataset Builder",
     "description": "The smallest app in the set, and the reference for the Table widget: a dataframe reads better as rows than as a Preview node.",
     "workflows": ["Data Generator"],
-    "operationCount": 1
+    "operationCount": 1,
+    "thumbnailUrl": "/api/workflows/examples/thumbnails/Data%20Generator.jpg?v=3f2a9c1e"
   }
 ]
 ```
 
-`workflows` names the workflows installing the app would create. To read the
+`workflows` names the workflows installing the app would create, and
+`thumbnailUrl` is the gallery art of the first of them, or `null` when it ships
+none. To read the
 whole thing first — the app document plus the full graph of every workflow it
 binds — fetch the bundle:
 
