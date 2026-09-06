@@ -35,6 +35,7 @@ import {
   type RunModelCatalogs
 } from "../preflight.js";
 import { collectExecutionSummary } from "../debug/collector.js";
+import { createJobProgressRecorder } from "./job-progress.js";
 import type { ExecutionSummary } from "../debug/types.js";
 import {
   buildRunVerdict,
@@ -643,6 +644,15 @@ export async function runWorkflow(
         // No detach: the listener lives on this context and dies with it.
         // No `projectId`/`documentId` either — a run request names a workflow
         // and a user, and nothing on this path carries project attribution.
+        // Progress on the row, so `get_job` during a long background render
+        // answers with a frame count instead of only "running".
+        executionContext.addMessageListener(
+          createJobProgressRecorder({
+            write: async (progress) => {
+              await Job.recordProgressIfActive(job.id, { ...progress });
+            }
+          })
+        );
         attachRunCostLedger(executionContext, {
           userId,
           workflowId,

@@ -145,10 +145,44 @@ describe("staggerUnitDelayMs", () => {
   });
 
   it("orders from center, rippling outward", () => {
-    const s = { ...stagger, from: "center" as const, maxDelayMs: 150 };
+    const s = { ...stagger, from: "center" as const, maxDelayMs: 100 };
     expect([0, 1, 2, 3].map((i) => staggerUnitDelayMs(s, i))).toEqual([
-      150, 50, 50, 150
+      100, 0, 0, 100
     ]);
+  });
+
+  it("starts the middle unit at zero on an odd count too", () => {
+    const s = {
+      ...stagger,
+      count: 5,
+      from: "center" as const,
+      maxDelayMs: 200
+    };
+    expect([0, 1, 2, 3, 4].map((i) => staggerUnitDelayMs(s, i))).toEqual([
+      200, 100, 0, 100, 200
+    ]);
+  });
+
+  it("compiles a center stagger whose first unit starts at the window", () => {
+    // An even unit count used to delay every unit by half an offset, so the
+    // line started `offsetMs / 2` late and the compiled span was that much
+    // longer than the motion it covered.
+    const compiled = compileClipAnimations(
+      [anim({ stagger: { unit: "word", offsetMs: 100, from: "center" } })],
+      5000,
+      CANVAS,
+      { staggerCount: 4 }
+    );
+    const s = compiled[0].stagger;
+    expect(s).toBeDefined();
+    const delays = [0, 1, 2, 3].map((i) => staggerUnitDelayMs(s!, i));
+    expect(Math.min(...delays)).toBe(0);
+    // `maxDelayMs` is the largest of them, so the span the window covers is
+    // exactly the motion: no unit animates past `windowEndMs`.
+    expect(s!.maxDelayMs).toBe(Math.max(...delays));
+    expect(compiled[0].windowEndMs - compiled[0].windowStartMs).toBe(
+      s!.unitDurationMs + s!.maxDelayMs
+    );
   });
 });
 

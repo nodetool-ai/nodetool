@@ -64,7 +64,15 @@ describe("resolveTimelineOutput — encoder arguments", () => {
       "-c:v",
       "libvpx-vp9",
       "-pix_fmt",
-      "yuva420p"
+      "yuva420p",
+      "-vf",
+      "scale=out_color_matrix=bt709:out_range=tv",
+      "-colorspace",
+      "bt709",
+      "-color_primaries",
+      "bt709",
+      "-color_trc",
+      "bt709"
     ]);
     expect(out.requiredEncoder).toBe("libvpx-vp9");
     // AAC is not a legal WebM track; the mux pass has to be told Opus.
@@ -86,7 +94,15 @@ describe("resolveTimelineOutput — encoder arguments", () => {
       "-profile:v",
       "4444",
       "-pix_fmt",
-      "yuva444p10le"
+      "yuva444p10le",
+      "-vf",
+      "scale=out_color_matrix=bt709:out_range=tv",
+      "-colorspace",
+      "bt709",
+      "-color_primaries",
+      "bt709",
+      "-color_trc",
+      "bt709"
     ]);
     expect(out.requiredEncoder).toBe("prores_ks");
   });
@@ -99,7 +115,15 @@ describe("resolveTimelineOutput — encoder arguments", () => {
       "-profile:v",
       "3",
       "-pix_fmt",
-      "yuv422p10le"
+      "yuv422p10le",
+      "-vf",
+      "scale=out_color_matrix=bt709:out_range=tv",
+      "-colorspace",
+      "bt709",
+      "-color_primaries",
+      "bt709",
+      "-color_trc",
+      "bt709"
     ]);
   });
 
@@ -144,7 +168,20 @@ describe("resolveTimelineOutput — encoder arguments", () => {
   it("takes a codec override on mp4 and never on the alpha containers", () => {
     expect(
       resolveTimelineOutput({ format: "mp4", videoCodec: "libx265" }).encoderArgs
-    ).toEqual(["-c:v", "libx265", "-pix_fmt", "yuv420p"]);
+    ).toEqual([
+      "-c:v",
+      "libx265",
+      "-pix_fmt",
+      "yuv420p",
+      "-vf",
+      "scale=out_color_matrix=bt709:out_range=tv",
+      "-colorspace",
+      "bt709",
+      "-color_primaries",
+      "bt709",
+      "-color_trc",
+      "bt709"
+    ]);
     // VP9 is the only WebM codec with an alpha plane, so the override cannot
     // reach it — silently losing alpha to a codec choice is the bug.
     expect(

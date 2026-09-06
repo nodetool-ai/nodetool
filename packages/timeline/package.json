@@ -26,6 +26,12 @@
     "vitest": "^4.1.2"
   },
   "exports": {
+    "./ops": {
+      "nodetool-dev": "./src/ops/index.ts",
+      "types": "./dist/ops/index.d.ts",
+      "import": "./dist/ops/index.js",
+      "default": "./dist/ops/index.js"
+    },
     ".": {
       "nodetool-dev": "./src/index.ts",
       "types": "./dist/index.d.ts",

@@ -330,11 +330,26 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       throw new Error("Compositor failed to allocate accumulation textures");
     }
 
-    const { stack, drawn } = this.composePrecomposites(ordered, precomposites);
-
+    // One encoder for the whole frame. Every layer's effects, every mask and
+    // matte, and every precomposite record into it, so a frame with M graded
+    // layers, P groups and K mattes is one queue submission instead of one per
+    // call. Commands inside an encoder execute in the order they were
+    // recorded, which is the same ordering the separate submissions gave.
     const encoder = this.device.createCommandEncoder({
       label: `${this.label}-frame`
     });
+
+    // Every group and matte in this frame records into `encoder` before one
+    // submit, so the precomposite core's uniform ring is reset here, once, and
+    // each pass below takes its own slot. Resetting it per group would hand
+    // the second group the first group's buffers while those commands are
+    // still pending.
+    this.precompCore?.beginFrame();
+    const { stack, drawn } = this.composePrecomposites(
+      ordered,
+      precomposites,
+      encoder
+    );
 
     const seed = encoder.beginRenderPass({
       colorAttachments: [
@@ -398,10 +413,13 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
    * is matted — replace all of that with the matted composite (D6). Null when
    * the layer has no drawable source.
    */
-  private resolveLayer(layer: FrameLayer<TSource>): ResolvedLayer | null {
-    const item = this.resolvePlacedLayer(layer);
+  private resolveLayer(
+    layer: FrameLayer<TSource>,
+    encoder: GPUCommandEncoder
+  ): ResolvedLayer | null {
+    const item = this.resolvePlacedLayer(layer, encoder);
     if (!item || !layer.matte) return item;
-    return this.applyMatte(layer, item, layer.matte);
+    return this.applyMatte(layer, item, layer.matte, encoder);
   }
 
   /**
@@ -417,28 +435,40 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   private applyMatte(
     layer: FrameLayer<TSource>,
     item: ResolvedLayer,
-    matte: FrameMatte<TSource>
+    matte: FrameMatte<TSource>,
+    encoder: GPUCommandEncoder
   ): ResolvedLayer | null {
-    const source = this.resolvePlacedLayer(matte.layer);
+    const source = this.resolvePlacedLayer(matte.layer, encoder);
     // No matte source pixels means an empty keyhole. Drawing the layer unmatted
     // would show everything the matte was there to hide, so it draws nothing.
     if (!source) return null;
 
-    const composed = this.composeToTexture(`matte:${layer.id}`, [
-      // The layer's own opacity and blend mode meet the frame once, when this
-      // texture blends; on its own surface it is an opaque source-over draw.
-      { ...item, opacity: 1, blendMode: "normal", zIndex: 0 }
-    ]);
-    const keyhole = this.composeToTexture(`mattesrc:${layer.id}`, [
-      { ...source, blendMode: "normal", zIndex: 0 }
-    ]);
+    const composed = this.composeToTexture(
+      `matte:${layer.id}`,
+      [
+        // The layer's own opacity and blend mode meet the frame once, when
+        // this texture blends; on its own surface it is an opaque source-over
+        // draw.
+        { ...item, opacity: 1, blendMode: "normal", zIndex: 0 }
+      ],
+      [],
+      encoder
+    );
+    const keyhole = this.composeToTexture(
+      `mattesrc:${layer.id}`,
+      [{ ...source, blendMode: "normal", zIndex: 0 }],
+      [],
+      encoder
+    );
     const coverage = this.effects.deriveMask(
       `matte-mask:${layer.id}`,
       keyhole,
       this.width,
       this.height,
       matte.mode,
-      matte.invert
+      matte.invert,
+      "straight",
+      encoder
     );
     return {
       texture: this.effects.applyMask(
@@ -448,7 +478,9 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         this.height,
         coverage,
         this.width,
-        this.height
+        this.height,
+        "straight",
+        encoder
       ),
       opacity: layer.opacity,
       blendMode: layer.blendMode,
@@ -464,7 +496,10 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
    * Upload a layer's pixels, run its own effect chain and shape mask, and work
    * out where it sits. Null when the layer has no drawable source.
    */
-  private resolvePlacedLayer(layer: FrameLayer<TSource>): ResolvedLayer | null {
+  private resolvePlacedLayer(
+    layer: FrameLayer<TSource>,
+    encoder: GPUCommandEncoder
+  ): ResolvedLayer | null {
     const src = this.upload(layer.id, layer.source);
     if (!src) return null;
 
@@ -478,7 +513,9 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
             src.width,
             src.height,
             clipEffects,
-            trackEffects
+            trackEffects,
+            "straight",
+            encoder
           )
         : src.texture;
 
@@ -497,7 +534,9 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
           src.height,
           coverage.texture,
           coverage.width,
-          coverage.height
+          coverage.height,
+          "straight",
+          encoder
         )
       : graded;
 
@@ -622,13 +661,14 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
    */
   private composePrecomposites(
     layers: readonly FrameLayer<TSource>[],
-    precomposites: readonly FramePrecomposite[]
+    precomposites: readonly FramePrecomposite[],
+    encoder: GPUCommandEncoder
   ): { stack: ResolvedLayer[]; drawn: number } {
     let drawn = 0;
     if (precomposites.length === 0) {
       const stack: ResolvedLayer[] = [];
       for (const layer of layers) {
-        const item = this.resolveLayer(layer);
+        const item = this.resolveLayer(layer, encoder);
         if (!item) continue;
         drawn += 1;
         const solid = this.dipSolidFor(layer);
@@ -651,7 +691,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     };
 
     for (const layer of layers) {
-      const item = this.resolveLayer(layer);
+      const item = this.resolveLayer(layer, encoder);
       if (!item) continue;
       drawn += 1;
       // The solid shares the layer's z and is pushed first, so the stable sort
@@ -664,7 +704,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     for (const group of precomposites) {
       const children = byGroup.get(group.id) ?? [];
       if (children.length === 0) continue;
-      const texture = this.renderPrecomposite(group, children);
+      const texture = this.renderPrecomposite(group, children, encoder);
       assign(group.precomposeGroupId, {
         texture,
         opacity: group.opacity,
@@ -686,9 +726,15 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
    */
   private renderPrecomposite(
     group: FramePrecomposite,
-    children: readonly ResolvedLayer[]
+    children: readonly ResolvedLayer[],
+    encoder: GPUCommandEncoder
   ): GPUTexture {
-    return this.composeToTexture(group.id, children, group.effects ?? []);
+    return this.composeToTexture(
+      group.id,
+      children,
+      group.effects ?? [],
+      encoder
+    );
   }
 
   /**
@@ -699,7 +745,8 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   private composeToTexture(
     key: string,
     children: readonly ResolvedLayer[],
-    effects: ClipEffect[] = []
+    effects: ClipEffect[] = [],
+    frameEncoder?: GPUCommandEncoder
   ): GPUTexture {
     const core = this.precompositeCore();
     const read = core.textureA;
@@ -708,9 +755,11 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       throw new Error("Compositor failed to allocate precomposite textures");
     }
 
-    const composeEncoder = this.device.createCommandEncoder({
-      label: `${this.label}-precomp-${key}`
-    });
+    const composeEncoder =
+      frameEncoder ??
+      this.device.createCommandEncoder({
+        label: `${this.label}-precomp-${key}`
+      });
     // Transparent, not black: the group's own pixels have to blend over what is
     // already on the frame, and a black seed would knock it out.
     const seed = composeEncoder.beginRenderPass({
@@ -724,7 +773,10 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       ]
     });
     seed.end();
-    core.beginFrame();
+    // With a frame encoder the ring was reset once at the top of the frame
+    // (see `composite`); resetting here would alias this pass's uniforms
+    // with the previous group's.
+    if (!frameEncoder) core.beginFrame();
     const composed = this.blendStack(
       composeEncoder,
       core,
@@ -732,10 +784,11 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       read,
       write
     );
-    // Submitted here rather than folded into the frame encoder: the effects
-    // pass below and a group above both read this texture through their own
-    // submissions, and only submit order puts the write first.
-    this.device.queue.submit([composeEncoder.finish()]);
+    // Without a frame encoder this has to be submitted here, because the
+    // effects pass below and a group above read this texture through their own
+    // submissions and only submit order puts the write first. With one, record
+    // order does the same job and the frame submits once.
+    if (!frameEncoder) this.device.queue.submit([composeEncoder.finish()]);
 
     // The accumulation is premultiplied. Saying so lets the effects chain run
     // on it directly, and one resolve at the end is then the only alpha
@@ -747,13 +800,16 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       this.height,
       effects,
       [],
-      "premultiplied"
+      "premultiplied",
+      frameEncoder
     );
 
     const target = this.precompositeTarget(key);
-    const resolveEncoder = this.device.createCommandEncoder({
-      label: `${this.label}-precomp-resolve-${key}`
-    });
+    const resolveEncoder =
+      frameEncoder ??
+      this.device.createCommandEncoder({
+        label: `${this.label}-precomp-resolve-${key}`
+      });
     const pass = resolveEncoder.beginRenderPass({
       colorAttachments: [
         {
@@ -775,7 +831,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     );
     pass.draw(4);
     pass.end();
-    this.device.queue.submit([resolveEncoder.finish()]);
+    if (!frameEncoder) this.device.queue.submit([resolveEncoder.finish()]);
     return target;
   }
 
@@ -951,7 +1007,19 @@ export class HeadlessFrameCompositor {
   private readonly width: number;
   private readonly height: number;
   private readonly bytesPerRow: number;
-  private readonly readback: GPUBuffer;
+  /**
+   * Two readback buffers, used in turn.
+   *
+   * With one buffer a frame's copy cannot be recorded until the previous
+   * frame's map has resolved and the buffer is unmapped, so the copy of frame
+   * k+1 is serialized behind the CPU-side mapping of frame k. Alternating
+   * means the buffer a frame copies into is never the one still mapped, so the
+   * copy and the composite behind it can be submitted while the previous
+   * frame's map is still in flight. The pixels are unchanged: each frame still
+   * reads back the buffer it wrote.
+   */
+  private readonly readbacks: readonly [GPUBuffer, GPUBuffer];
+  private readbackIndex = 0;
   private readonly sources = new Map<string, SourceTexture>();
   /**
    * The motion-blur half, built on the first frame that asks for more than one
@@ -985,11 +1053,13 @@ export class HeadlessFrameCompositor {
     );
     this.bytesPerRow =
       Math.ceil((this.width * 4) / ROW_ALIGNMENT) * ROW_ALIGNMENT;
-    this.readback = device.createBuffer({
-      label: "timeline-headless-readback",
-      size: this.bytesPerRow * this.height,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-    });
+    const makeReadback = (index: number): GPUBuffer =>
+      device.createBuffer({
+        label: `timeline-headless-readback-${index}`,
+        size: this.bytesPerRow * this.height,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+      });
+    this.readbacks = [makeReadback(0), makeReadback(1)];
   }
 
   /**
@@ -1013,13 +1083,14 @@ export class HeadlessFrameCompositor {
       a: alpha ? 0 : 1
     });
 
+    const readback = this.nextReadback();
     const encoder = this.device.createCommandEncoder({
       label: "timeline-headless-readback"
     });
     encoder.copyTextureToBuffer(
       { texture },
       {
-        buffer: this.readback,
+        buffer: readback,
         bytesPerRow: this.bytesPerRow,
         rowsPerImage: this.height
       },
@@ -1032,7 +1103,7 @@ export class HeadlessFrameCompositor {
     // dropping the 256-byte row padding is all that is left to do. Over a
     // transparent seed they do not coincide: the colour has to be divided back
     // out, or every partly-transparent pixel exports darkened.
-    const rgba = await this.readMapped();
+    const rgba = await this.readMapped(readback);
     if (alpha) unpremultiplyInPlace(rgba);
     return rgba;
   }
@@ -1089,13 +1160,14 @@ export class HeadlessFrameCompositor {
     }
 
     const resolved = this.resolveBlurAccumulation(accumulation);
+    const readback = this.nextReadback();
     const encoder = this.device.createCommandEncoder({
       label: "timeline-headless-blur-readback"
     });
     encoder.copyTextureToBuffer(
       { texture: resolved },
       {
-        buffer: this.readback,
+        buffer: readback,
         bytesPerRow: this.bytesPerRow,
         rowsPerImage: this.height
       },
@@ -1104,7 +1176,7 @@ export class HeadlessFrameCompositor {
     this.device.queue.submit([encoder.finish()]);
     // The resolve pass already divided the colour back out, so unlike
     // `renderFrame` there is no CPU un-premultiply left to do.
-    return this.readMapped();
+    return this.readMapped(readback);
   }
 
   /** Add one composited sample into the accumulation at `weight`. */
@@ -1261,9 +1333,16 @@ export class HeadlessFrameCompositor {
   }
 
   /** Map the readback buffer and drop its 256-byte row padding. */
-  private async readMapped(): Promise<Uint8Array> {
-    await this.readback.mapAsync(GPUMapMode.READ);
-    const mapped = new Uint8Array(this.readback.getMappedRange());
+  /** The buffer this frame reads back through — the one the last frame did not. */
+  private nextReadback(): GPUBuffer {
+    const buffer = this.readbacks[this.readbackIndex];
+    this.readbackIndex = this.readbackIndex === 0 ? 1 : 0;
+    return buffer;
+  }
+
+  private async readMapped(readback: GPUBuffer): Promise<Uint8Array> {
+    await readback.mapAsync(GPUMapMode.READ);
+    const mapped = new Uint8Array(readback.getMappedRange());
     const rgba = new Uint8Array(this.width * this.height * 4);
     const rowBytes = this.width * 4;
     for (let row = 0; row < this.height; row++) {
@@ -1272,7 +1351,7 @@ export class HeadlessFrameCompositor {
         row * rowBytes
       );
     }
-    this.readback.unmap();
+    readback.unmap();
     return rgba;
   }
 
@@ -1333,7 +1412,7 @@ export class HeadlessFrameCompositor {
     this.blurResolveTarget?.destroy();
     this.blurResolveTarget = null;
     this.compositor.dispose();
-    this.readback.destroy();
+    for (const readback of this.readbacks) readback.destroy();
   }
 }
 

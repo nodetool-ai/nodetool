@@ -190,12 +190,15 @@ describe("RenderTimelineNode", () => {
     node.assign({ timeline: { type: "timeline", id: "seq-1" } });
 
     const result = (await node.process(context as never)) as {
-      output: { type: string; format: string; data: string };
+      output: { type: string; format: string; data: string | null; asset_id: string | null };
     };
 
     expect(result.output.type).toBe("video");
     expect(result.output.format).toBe("mp4");
-    expect(result.output.data.length).toBeGreaterThan(0);
+    // The render is stored as an asset and named by id: base64 of a real
+    // render is past what a string can hold (B10).
+    expect(result.output.asset_id).toBe("created-asset");
+    expect(result.output.data).toBeNull();
 
     const args = ffmpegArgString();
     // Both clips normalized to the sequence frame and fps.
@@ -241,6 +244,25 @@ describe("RenderTimelineNode", () => {
     expect(args).not.toContain("[a0_1]");
     // The un-remapped chain is not used for this clip.
     expect(args).not.toContain("[a0]");
+  });
+
+  it("retimes a sped-up clip's audio instead of playing it at 1x", async () => {
+    // A 2x clip consumes two source seconds per timeline second: the window is
+    // twice the clip's length and atempo carries it back.
+    const seq = baseSequence();
+    const audio = seq.clips[2] as Record<string, unknown>;
+    audio.startMs = 0;
+    audio.durationMs = 1000;
+    audio.speedMultiplier = 2;
+    delete audio.outPointMs;
+    const context = stubContext(seq);
+    const node = new RenderTimelineNode();
+    node.assign({ timeline: { type: "timeline", id: "seq-1" } });
+    await node.process(context as never);
+
+    const args = ffmpegArgString();
+    expect(args).toContain("atrim=start=0:end=2,asetpts=PTS-STARTPTS,atempo=2");
+    expect(args).toContain("adelay=0|0");
   });
 
   it("suppresses a linked video clip's embedded audio so only the extracted audio clip plays", async () => {

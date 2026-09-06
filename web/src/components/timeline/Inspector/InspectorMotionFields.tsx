@@ -11,8 +11,8 @@
  * shape clip's are the same union, so they get one editor.
  */
 
-import React, { memo, useCallback, useEffect, useState } from "react";
-import type { ShapeFill } from "@nodetool-ai/timeline";
+import React, { memo, useCallback, useState } from "react";
+import { parseEasing, type ShapeFill } from "@nodetool-ai/timeline";
 
 import { Caption, FlexColumn, SPACING, TextInput } from "../../ui_primitives";
 import {
@@ -42,9 +42,14 @@ export const TextCommitField: React.FC<TextCommitFieldProps> = memo(
   ({ value, ariaLabel, placeholder, onCommit }) => {
     const [draft, setDraft] = useState(value);
     const [focused, setFocused] = useState(false);
-    useEffect(() => {
-      if (!focused) setDraft(value);
-    }, [value, focused]);
+    // The draft follows the store while the field is not being typed in,
+    // compared during render rather than in an effect — an effect would paint
+    // one frame of the stale draft after every undo and every agent edit.
+    const [syncedValue, setSyncedValue] = useState(value);
+    if (!focused && value !== syncedValue) {
+      setSyncedValue(value);
+      setDraft(value);
+    }
     return (
       <TextInput
         value={draft}
@@ -67,6 +72,14 @@ export const TextCommitField: React.FC<TextCommitFieldProps> = memo(
   }
 );
 TextCommitField.displayName = "TextCommitField";
+
+/**
+ * Shown under an easing field whose value `parseEasing` cannot compile. The
+ * document keeps the string — a newer build may read it (I2) — and this build
+ * eases linearly, so the caption says that rather than refusing the edit.
+ */
+export const UNPARSEABLE_EASING_HINT =
+  "Not an easing this build reads; plays linear";
 
 export const EASING_HINT =
   "linear, easeIn, easeOut, easeInOut, easeOutBack, easeOutElastic, easeOutBounce, cubic-bezier(x1,y1,x2,y2) or spring(stiffness,damping,mass)";
@@ -98,6 +111,10 @@ export const EasingField: React.FC<EasingFieldProps> = memo(
       },
       [onChange]
     );
+    // Computed during render, so a value typed here and one an agent wrote
+    // into the document are reported the same way.
+    const unparseable =
+      value !== undefined && value !== "" && parseEasing(value) === null;
     return (
       <>
         <InspectorRow label={label}>
@@ -109,6 +126,9 @@ export const EasingField: React.FC<EasingFieldProps> = memo(
             ariaLabel={ariaLabel}
           />
         </InspectorRow>
+        {unparseable && (
+          <Caption color="muted">{UNPARSEABLE_EASING_HINT}</Caption>
+        )}
         {hint && <Caption color="muted">{EASING_HINT}</Caption>}
       </>
     );

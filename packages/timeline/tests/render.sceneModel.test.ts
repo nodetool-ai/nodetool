@@ -235,6 +235,48 @@ describe("computeActiveLayers", () => {
     expect(droppedLayers.map((d) => d.clipId)).toEqual(["c-t8"]);
   });
 
+  it("does not spend a video slot on a matte source (F10)", () => {
+    // Nine video clips on nine tracks. The bottom one is only a matte source —
+    // it is diverted before it draws — so the eight that draw all fit under
+    // the default cap and nothing is turned away.
+    const tracks = Array.from({ length: 9 }, (_, i) =>
+      track({ id: `t${i}`, index: i })
+    );
+    const clips = tracks.map((t, i) =>
+      clip({
+        id: `c-${t.id}`,
+        trackId: t.id,
+        startMs: 0,
+        durationMs: 1000,
+        ...(i === 0 ? { matte: { sourceClipId: "c-t8", mode: "luma" } } : {})
+      })
+    );
+    const result = computeActiveLayersWithHorizon(tracks, clips, 100);
+    expect(result.droppedLayers).toEqual([]);
+    expect(result.layers.map((l) => l.clipId)).not.toContain("c-t8");
+    expect(result.layers).toHaveLength(8);
+  });
+
+  it("clamps a layer's resolved opacity into 0..1 (I3)", () => {
+    // Canvas 2D clamps and the GPU shader does not, so an out-of-range
+    // opacity used to draw differently on each host. The scene model settles
+    // it once, before any animation multiplies through it.
+    const tracks = [track({ id: "v", index: 0 })];
+    const over = computeActiveLayers(
+      tracks,
+      [clip({ id: "hot", trackId: "v", startMs: 0, opacity: 4 })],
+      100
+    );
+    expect(over[0].opacity).toBe(1);
+
+    const under = computeActiveLayers(
+      tracks,
+      [clip({ id: "cold", trackId: "v", startMs: 0, opacity: -2 })],
+      100
+    );
+    expect(under[0].opacity).toBe(0);
+  });
+
   it("does not cap image layers", () => {
     const tracks = Array.from({ length: 12 }, (_, i) =>
       track({ id: `t${i}`, index: i })

@@ -219,7 +219,20 @@ describe("RenderTimeline — format pass-through", () => {
     expect(opts.output).toMatchObject({
       format: "webm",
       alpha: true,
-      encoderArgs: ["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p"]
+      encoderArgs: [
+        "-c:v",
+        "libvpx-vp9",
+        "-pix_fmt",
+        "yuva420p",
+        "-vf",
+        "scale=out_color_matrix=bt709:out_range=tv",
+        "-colorspace",
+        "bt709",
+        "-color_primaries",
+        "bt709",
+        "-color_trc",
+        "bt709"
+      ]
     });
     expect(String(opts.outPath)).toMatch(/\.webm$/);
   });
@@ -235,6 +248,14 @@ describe("RenderTimeline — format pass-through", () => {
       "libx265",
       "-pix_fmt",
       "yuv420p",
+      "-vf",
+      "scale=out_color_matrix=bt709:out_range=tv",
+      "-colorspace",
+      "bt709",
+      "-color_primaries",
+      "bt709",
+      "-color_trc",
+      "bt709",
       "-b:v",
       "6000000"
     ]);
