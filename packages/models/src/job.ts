@@ -199,6 +199,60 @@ export class Job extends DBModel {
     }
   }
 
+  /**
+   * The latest `node_progress` this run reported, or null.
+   *
+   * Lives under `metadata_json.progress` rather than a column: it is written
+   * while the run is in flight, read by `get_job`, and thrown away once the
+   * run settles, which is what `metadata_json` is for.
+   */
+  progressRecord(): Record<string, unknown> | null {
+    const progress = this.metadata_json?.["progress"];
+    return progress !== null &&
+      typeof progress === "object" &&
+      !Array.isArray(progress)
+      ? (progress as Record<string, unknown>)
+      : null;
+  }
+
+  /**
+   * Record in-flight progress without touching anything else on the row.
+   *
+   * The same reasoning as {@link markCancelledIfActive}: `save()` would upsert
+   * a full row built from a snapshot, so a progress write landing beside a
+   * finishing run would resurrect it. This reads the row's own metadata and
+   * writes the merge back only while the run is still active, so a late
+   * message after the terminal write changes nothing.
+   */
+  static async recordProgressIfActive(
+    jobId: string,
+    progress: Record<string, unknown>
+  ): Promise<boolean> {
+    const db = getDb();
+    const rows = await db
+      .select({ metadata_json: jobs.metadata_json })
+      .from(jobs)
+      .where(eq(jobs.id, jobId))
+      .limit(1);
+    const current = rows[0]?.metadata_json;
+    const merged: Record<string, unknown> =
+      current !== null && typeof current === "object" && !Array.isArray(current)
+        ? { ...(current as Record<string, unknown>) }
+        : {};
+    merged["progress"] = progress;
+    const updated = await db
+      .update(jobs)
+      .set({ metadata_json: merged, updated_at: new Date().toISOString() })
+      .where(
+        and(
+          eq(jobs.id, jobId),
+          notInArray(jobs.status, ["completed", "failed", "cancelled"])
+        )
+      )
+      .returning({ id: jobs.id });
+    return updated.length > 0;
+  }
+
   // ── Static queries ───────────────────────────────────────────────
 
   /**

@@ -382,9 +382,6 @@ export function createScriptToolBridge(
         const heldIds = lines.map((line) => line.id);
         const texts =
           imported === "" ? null : splitImportedText(imported);
-        // Annotated so the conditional's two arms share one type: left to
-        // inference, the union's member order decides what `flatMap` infers
-        // below, and that order shifts with the files checked before this one.
         const written: WrittenScript =
           texts === null
             ? fallbackScript(
