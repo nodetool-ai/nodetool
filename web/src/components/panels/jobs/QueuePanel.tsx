@@ -90,14 +90,13 @@ const QueuePanel = memo(function QueuePanel() {
     const cancelled: Job[] = [];
     const completed: Job[] = [];
 
-    for (let i = 0; i < all.length; i++) {
-      const job = all[i];
-      const s = job.status ?? "";
-      if (RUNNING.has(s)) {
+    for (const job of all) {
+      const status = job.status ?? "";
+      if (RUNNING.has(status)) {
         running.push(job);
-      } else if (QUEUED.has(s)) {
+      } else if (QUEUED.has(status)) {
         queued.push(job);
-      } else if (CANCELLED.has(s)) {
+      } else if (CANCELLED.has(status)) {
         cancelled.push(job);
       } else {
         completed.push(job);
