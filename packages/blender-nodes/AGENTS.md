@@ -49,4 +49,11 @@ contract, local and worker runner implementations, `runBlenderJob`, and the
   a `render_write` handler. The staged Z pass carries 1e10 (not +inf)
   off-geometry on both engines, and the Normal pass is world-space —
   the op rewrites the EXR background to +inf, gates, and rotates in
-  Python.
+  Python. `Camera.angle` reads and writes the focal length against whichever
+  axis `sensor_fit` names, so the orbit camera's fov goes through
+  `framing.apply_camera_lens` (`sensor_fit = VERTICAL`, then `angle_y`, which
+  always means `sensor_height`) — nowhere else. Writing `angle` before the fit
+  turned a 35 degree request into a 23.7 degree camera, and the two ops that
+  did it in opposite orders rendered the same model at two sizes.
+  `tests/camera-lens.test.ts` keeps the second call site from growing back and
+  checks the rule without Blender.

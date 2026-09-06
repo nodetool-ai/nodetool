@@ -26,6 +26,7 @@ import bpy
 from mathutils import Vector
 
 from errors import BadJob, NoCamera, RenderFailed
+from framing import apply_camera_lens
 from ops.common import (
     aim_camera,
     apply_engine,
@@ -279,11 +280,16 @@ def _target_of(center, camera_params):
 
 
 def _place_orbit_camera(camera_obj, center, radius, camera_params, aspect):
+    """Move the orbit camera onto this entry's camera.
+
+    Same lens rule as `make_orbit_camera`, through the same function: this one
+    runs on a camera that already carries a `sensor_fit`, and a lens written
+    against the wrong sensor axis renders the model at a different size than
+    the still `render_image` draws from the same camera params.
+    """
     location, framing = orbit_location(center, radius, camera_params, aspect)
     camera_obj.location = location
-    camera_obj.data.angle = math.radians(camera_params["fov"])
-    camera_obj.data.clip_start = framing["near"]
-    camera_obj.data.clip_end = framing["far"]
+    apply_camera_lens(camera_obj.data, camera_params["fov"], framing)
     aim_camera(camera_obj, _target_of(center, camera_params))
 
 
