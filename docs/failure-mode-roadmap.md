@@ -180,10 +180,11 @@ add one 600 x 600 px test per migrated primitive.
 ## Completed work
 
 - **An eval case or a suite for each agent capability:** shipped 2026-08-22.
-  `packages/cli/src/harness/capability-table.ts` names all 201 exported
-  capabilities — 193 covered, 8 carrying a written gap note — with the
+  `packages/cli/src/harness/capability-table.ts` names every exported
+  capability — covered, or carrying a written gap note — with the
   implementation file, the suites the `capability-suites` selfcheck runs, and
-  the eval cases whose `expect.requiredTools` demand them.
+  the eval cases whose `expect.requiredTools` demand them. The live tally is
+  `nodetool harness capabilities`.
   `scripts/sync-capability-coverage.mjs` (`npm run capabilities:sync` /
   `:check`) derives everything but the gap notes from the live registry, the
   agent suites, and the eval case files, so a new capability with no check
