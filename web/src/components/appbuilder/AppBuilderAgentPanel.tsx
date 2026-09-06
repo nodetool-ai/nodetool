@@ -8,6 +8,7 @@ import ChatView from "../chat/containers/ChatView";
 import ChatPanelHeader from "../chat/containers/ChatPanelHeader";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useChatViewThread } from "../../hooks/chat/useChatViewThread";
+import useThreadModel from "../../hooks/chat/useThreadModel";
 import { Box, Caption, FlexColumn, Text } from "../ui_primitives";
 
 type ChatViewStatus = React.ComponentProps<typeof ChatView>["status"];
@@ -87,21 +88,17 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
   applicationId,
   workflowId
 }) => {
-  const selectedModel = useGlobalChatStore((state) => state.selectedModel);
-
   const {
     connect,
     openWorkflowThread,
     newWorkflowThread,
-    createNewThread,
-    setSelectedModel
+    createNewThread
   } = useGlobalChatStore(
     useShallow((state) => ({
       connect: state.connect,
       openWorkflowThread: state.openWorkflowThread,
       newWorkflowThread: state.newWorkflowThread,
-      createNewThread: state.createNewThread,
-      setSelectedModel: state.setSelectedModel
+      createNewThread: state.createNewThread
     }))
   );
   const {
@@ -112,6 +109,9 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
     sendMessage,
     stopGeneration
   } = useChatViewThread();
+
+  // The builder's conversation keeps its own model.
+  const { model, setModel } = useThreadModel(threadId);
 
   // Connect and bind a thread to this workflow so the agent's runs and graph
   // edits target it. Without a workflow the panel opens one plain thread —
@@ -210,8 +210,8 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
           total={runtime.progress.total}
           progressMessage={runtime.statusMessage}
           runningToolCallId={runtime.runningToolCallId}
-          model={selectedModel}
-          onModelChange={setSelectedModel}
+          model={model}
+          onModelChange={setModel}
           onStop={stopGeneration}
           onNewChat={handleNewChat}
           currentPlanningUpdate={runtime.planningUpdate}
