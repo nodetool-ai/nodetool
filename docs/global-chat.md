@@ -32,6 +32,7 @@ Persistent WebSocket connection — reconnects after reloads.
 
 - **From the App**: Click the **Chats** icon in the left rail, then pick a thread or start a new one
 - **Standalone Window**: Click the NodeTool system tray icon and select **Chat** for a dedicated, focused window
+- **Chrome Side Panel**: Install the [Chrome extension](chrome-extension.md#chat-in-the-side-panel) and click **Open chat** in its popup. The panel is chat only, but it reads and writes the same threads, and the agent can act on the tab you have open
 
 ### Choosing a Model
 
