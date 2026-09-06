@@ -28,6 +28,7 @@ vi.mock("../src/lib/storage.js", () => ({
 const invoke = vi.fn<(name: string, args: Record<string, unknown>) => unknown>();
 
 /** The registry the route passed to the run, so the wiring is asserted. */
+let seenSecrets: unknown;
 let seenRegistry: unknown;
 
 // A whole-module stub, not a partial one: `importOriginal` would load the real
@@ -37,8 +38,13 @@ let seenRegistry: unknown;
 vi.mock("@nodetool-ai/agents", () => ({
   Tool: class {},
   UNGATED: {},
-  createCapabilityRun: (options: { nodeRegistry?: unknown }) => {
+  contextSecretAvailability: () => async () => new Set<string>(),
+  createCapabilityRun: (options: {
+    nodeRegistry?: unknown;
+    availableSecrets?: unknown;
+  }) => {
     seenRegistry = options.nodeRegistry;
+    seenSecrets = options.availableSecrets;
     return {
       invoke: (name: string, args: Record<string, unknown>) =>
         Promise.resolve(invoke(name, args))
@@ -108,6 +114,7 @@ describe("POST /api/timelines/:id/isolate-subject", () => {
     initTestDb();
     invoke.mockReset();
     seenRegistry = undefined;
+    seenSecrets = undefined;
     server = await buildServer();
   });
 
@@ -135,6 +142,9 @@ describe("POST /api/timelines/:id/isolate-subject", () => {
     await post(server, VALID_BODY);
 
     expect(seenRegistry).toBe(REGISTRY);
+    // The FAL key is read through the run, so the route must say which
+    // secrets this install holds rather than leaving the run blind.
+    expect(typeof seenSecrets).toBe("function");
   });
 
   it("takes a body naming only the clip and lets the capability default the rest", async () => {

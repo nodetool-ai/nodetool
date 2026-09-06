@@ -18,7 +18,11 @@
 
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { createCapabilityRun, UNGATED } from "@nodetool-ai/agents";
+import {
+  contextSecretAvailability,
+  createCapabilityRun,
+  UNGATED
+} from "@nodetool-ai/agents";
 import { getSecret } from "@nodetool-ai/models";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { StorageAdapter } from "@nodetool-ai/storage";
@@ -141,7 +145,8 @@ const timelineIsolateSubjectRoutes: FastifyPluginAsync<RouteOptions> = async (
       const result = await createCapabilityRun({
         context,
         gate: UNGATED,
-        nodeRegistry
+        nodeRegistry,
+        availableSecrets: contextSecretAvailability(context)
       }).invoke("isolate_subject", { ...parsed.data, timeline_id: id });
 
       const refusal = capabilityRefusal(result);
