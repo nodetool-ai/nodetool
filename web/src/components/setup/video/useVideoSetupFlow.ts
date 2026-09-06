@@ -138,7 +138,8 @@ export const useVideoSetupFlow = ({
             voiceOn,
             musicOn,
             onVoiceChange: setVoiceOn,
-            onMusicChange: setMusicOn
+            onMusicChange: setMusicOn,
+            musicAvailable: look.musicAvailable
           }),
         // `generate` writes the terminal stage itself, before it enqueues
         // anything (D3); the host opens the timeline once the jobs are away.

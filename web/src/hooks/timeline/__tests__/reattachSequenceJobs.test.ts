@@ -220,3 +220,71 @@ describe("reattachSequenceJobs (criterion 6)", () => {
     expect(subscribeMock).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * The limit of criterion 6. A `generate_media` reply is an `rpc_response` with
+ * no `job_id` and no `thread_id`, so the server writes it to the socket that
+ * asked and drops it if that socket is gone. Reattachment recovers a request
+ * whose socket outlived the sequence; it cannot recover one whose reply landed
+ * while the browser was shut. Such a clip used to sit at `generating` forever
+ * with nothing behind it — this is what stops that.
+ */
+describe("a reattached request whose reply can never arrive", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("fails the clip when its window runs out, so it offers Retry", async () => {
+    const store = seedSequence();
+    const startedAt = Date.now() - 25 * 60 * 1000;
+    useDirectGenPendingStore.getState().remember("seq-1", {
+      clipId: "c1",
+      requestId: "req-lost",
+      startedAt,
+      bucket: "text-to-video:nodetool/kling-turbo"
+    });
+
+    await reattachSequenceJobs(store, "seq-1");
+    expect(store.getState().clips.find((c) => c.id === "c1")?.status).toBe(
+      "generating"
+    );
+
+    // The reply never comes: its socket went with the browser.
+    jest.advanceTimersByTime(5 * 60 * 1000 + 1);
+
+    expect(store.getState().clips.find((c) => c.id === "c1")?.status).toBe(
+      "failed"
+    );
+    // And the entry is gone, so reopening cannot restore the same dead request.
+    expect(
+      useDirectGenPendingStore.getState().pending["seq-1"] ?? []
+    ).toHaveLength(0);
+  });
+
+  it("leaves a clip alone when its reply does arrive in the window", async () => {
+    const store = seedSequence();
+    useDirectGenPendingStore.getState().remember("seq-1", {
+      clipId: "c1",
+      requestId: "req-1",
+      startedAt: Date.now() - 1000,
+      bucket: "text-to-video:nodetool/kling-turbo"
+    });
+
+    await reattachSequenceJobs(store, "seq-1");
+    handlers.get("req-1")?.({
+      type: "rpc_response",
+      request_id: "req-1",
+      result: { asset_ids: ["asset-9"] }
+    });
+
+    jest.advanceTimersByTime(60 * 60 * 1000);
+
+    const clip = store.getState().clips.find((c) => c.id === "c1");
+    expect(clip?.status).not.toBe("failed");
+    expect(clip?.currentAssetId).toBe("asset-9");
+  });
+});

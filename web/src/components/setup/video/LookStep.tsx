@@ -25,7 +25,7 @@ import {
   SelectField,
   Text
 } from "../../ui_primitives";
-import { ASPECT_OPTIONS } from "../../storyboard/aspectOptions";
+import { ASPECT_OPTIONS, aspectOf } from "../../storyboard/aspectOptions";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useLastModelStore } from "../../../stores/lastModelStore";
@@ -58,23 +58,24 @@ export function dimensionsForAspect(aspect: string): {
     : { width: Math.round((long * w) / h), height: long };
 }
 
-/** The ratio a sequence's frame is closest to, for the select's value. */
-const aspectOf = (width: number, height: number): string => {
-  const ratio = width / height;
-  let best = ASPECT_OPTIONS[0].value as string;
-  let bestGap = Number.POSITIVE_INFINITY;
-  for (const option of ASPECT_OPTIONS) {
-    const [w, h] = option.value.split(":").map(Number);
-    const gap = Math.abs(ratio - w / h);
-    if (gap < bestGap) {
-      best = option.value;
-      bestGap = gap;
-    }
-  }
-  return best;
-};
-
 const CLIP_MODELS = forTasks(STUDIO_CLIP_MODELS, "text_to_video");
+
+/**
+ * Whether the flow can generate a music bed.
+ *
+ * False, because nothing here can pick a music model: the curated catalog
+ * (`NODETOOL_MODELS`) has `language`, `image`, `video` and `tts` kinds and no
+ * music one, and the last-model store's "audio" bucket holds the TTS voice.
+ * The toggle used to be offered anyway, which created a bed with no model that
+ * `generateFromBeats` then left out of the queue — the flow finished on a
+ * silent placeholder nothing would ever fill. Offered disabled, so the absence
+ * is visible rather than a clip that never arrives.
+ *
+ * `generateFromBeats` still takes `musicProvider`/`musicModel`, and the agent
+ * bridge's `generate_from_beats` can supply them; this flips to a real model
+ * lookup once a music model is curated.
+ */
+const MUSIC_AVAILABLE = false;
 
 export interface LookStepChoices {
   /** Read each beat's line over its clip. Off means no voiceover clip. */
@@ -90,6 +91,13 @@ export interface LookStepControls {
   primaryDetail: string;
   /** Create the clips, enqueue the jobs, hand the timeline back. */
   generate: () => Promise<void>;
+  /**
+   * Whether a bed can be rendered at all. The toggle is offered disabled
+   * rather than hidden, so the absence reads as a gap in what NodeTool
+   * curates rather than as a format that has no bed — and an enabled toggle
+   * always produces one.
+   */
+  musicAvailable: boolean;
 }
 
 /**
@@ -131,11 +139,12 @@ export function useLookStep({
 
   const generate = useCallback(async () => {
     // The two toggles are the only look choices that are not already on the
-    // document, so they are passed rather than re-derived.
+    // document, so they are passed rather than re-derived. Music is not passed
+    // at all: see MUSIC_AVAILABLE.
     await generateFromBeats({
       voiceover: voiced,
       voice: audio?.voice,
-      music: musicOn
+      music: MUSIC_AVAILABLE && musicOn
     });
   }, [audio?.voice, generateFromBeats, musicOn, voiced]);
 
@@ -147,20 +156,24 @@ export function useLookStep({
   return {
     canAdvance: clipCount > 0 && !!video?.model,
     primaryDetail,
-    generate
+    generate,
+    musicAvailable: MUSIC_AVAILABLE
   };
 }
 
 export interface LookStepProps extends LookStepChoices {
   onVoiceChange: (on: boolean) => void;
   onMusicChange: (on: boolean) => void;
+  /** From {@link LookStepControls}: false when no bed can be rendered. */
+  musicAvailable?: boolean;
 }
 
 const LookStepInternal: React.FC<LookStepProps> = ({
   voiceOn,
   musicOn,
   onVoiceChange,
-  onMusicChange
+  onMusicChange,
+  musicAvailable
 }) => {
   const width = useTimelineStore((state) => state.width);
   const height = useTimelineStore((state) => state.height);
@@ -274,8 +287,13 @@ const LookStepInternal: React.FC<LookStepProps> = ({
       {musicLane ? (
         <LabeledSwitch
           label="Music"
-          description="One bed under the whole cut"
-          checked={musicOn}
+          description={
+            musicAvailable === false
+              ? "Not available yet — no music model is curated"
+              : "One bed under the whole cut"
+          }
+          checked={musicOn && musicAvailable !== false}
+          disabled={musicAvailable === false}
           onChange={onMusicChange}
         />
       ) : null}

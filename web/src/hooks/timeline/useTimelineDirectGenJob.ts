@@ -21,6 +21,7 @@ import type { TimelineClip } from "@nodetool-ai/timeline";
 import { deriveIdleClipStatus } from "./useGenerateClip";
 import {
   durationBucketKey,
+  PENDING_TTL_MS,
   useDirectGenPendingStore
 } from "./directGenPending";
 
@@ -76,14 +77,32 @@ export function subscribeDirectGen(
    * subscribe to a request that has already answered — a clip stuck rendering
    * over a render that was paid for and thrown away.
    */
-  sequenceId: string | null
+  sequenceId: string | null,
+  /**
+   * Give up after this long and fail the clip. Only reattachment passes it.
+   *
+   * A `generate_media` reply is an `rpc_response` with no `job_id` and no
+   * `thread_id`, so the server writes it straight to the socket that asked
+   * (`WebSocketClientSession.sendMessage`) and drops it if that socket is
+   * gone. Re-subscribing therefore recovers a request whose socket outlived
+   * the sequence — closing the tab inside the app — but never one whose reply
+   * landed while the browser was shut. Without a deadline such a clip sat at
+   * `generating` forever with nothing behind it; with one it fails and offers
+   * Retry, which is the affordance § 8.4 already gives a failed clip.
+   */
+  timeoutMs?: number
 ): () => void {
   clearInFlight(clipId);
   let unsubscribe: (() => void) | undefined;
+  let expiry: ReturnType<typeof setTimeout> | undefined;
   const cleanup = () => {
     if (unsubscribe) {
       unsubscribe();
       unsubscribe = undefined;
+    }
+    if (expiry !== undefined) {
+      clearTimeout(expiry);
+      expiry = undefined;
     }
     inFlight.delete(clipId);
   };
@@ -167,6 +186,16 @@ export function subscribeDirectGen(
     if (msg.type !== "rpc_response") return;
     settle(msg as DirectGenRpcResponse);
   });
+  if (timeoutMs !== undefined) {
+    expiry = setTimeout(() => {
+      cleanup();
+      if (sequenceId) {
+        // No duration is filed: nothing was measured, the reply never came.
+        useDirectGenPendingStore.getState().settle(sequenceId, clipId);
+      }
+      fail(timeline, clipId);
+    }, timeoutMs);
+  }
   inFlight.set(clipId, cleanup);
   return cleanup;
 }
@@ -193,7 +222,17 @@ export async function reattachSequenceJobs(
       continue;
     }
     timeline.getState().patchClip(job.clipId, { status: "generating" });
-    subscribeDirectGen(timeline, job.clipId, job.requestId, sequenceId);
+    // What is left of this entry's own window. A reply that has not arrived by
+    // then never will, so the clip fails and offers Retry instead of sitting
+    // at `generating` over a socket that is gone.
+    const remaining = Math.max(0, PENDING_TTL_MS - (Date.now() - job.startedAt));
+    subscribeDirectGen(
+      timeline,
+      job.clipId,
+      job.requestId,
+      sequenceId,
+      remaining
+    );
   }
 }
 

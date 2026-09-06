@@ -15,3 +15,26 @@ export const ASPECT_OPTIONS = [
 
 /** What a board is shot at unless the creator says otherwise. */
 export const DEFAULT_ASPECT_RATIO = "16:9";
+
+/**
+ * The ratio a frame of `width` × `height` is closest to.
+ *
+ * A sequence stores dimensions, not a ratio, so every surface that needs the
+ * ratio derives it: the look step's picker and its cost estimate, and
+ * `generateFromBeats` when it stamps the clips it is about to pay to render.
+ * Those three disagreeing is what let a portrait timeline send 16:9 requests.
+ */
+export const aspectOf = (width: number, height: number): string => {
+  const ratio = width / height;
+  let best: string = ASPECT_OPTIONS[0].value;
+  let bestGap = Number.POSITIVE_INFINITY;
+  for (const option of ASPECT_OPTIONS) {
+    const [w, h] = option.value.split(":").map(Number);
+    const gap = Math.abs(ratio - w / h);
+    if (gap < bestGap) {
+      best = option.value;
+      bestGap = gap;
+    }
+  }
+  return best;
+};

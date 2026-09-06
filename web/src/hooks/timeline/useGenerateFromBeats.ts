@@ -32,7 +32,7 @@ import {
   type TimelineStoreApi
 } from "../../stores/timeline/TimelineStore";
 import { getRememberedModel } from "../../stores/lastModelStore";
-import { videoFormatById } from "../../components/setup/video/formats";
+import { aspectOf } from "../../components/storyboard/aspectOptions";
 import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
 
 /** How long a beat runs when its plan row has no usable length. */
@@ -116,7 +116,6 @@ export async function generateFromBeats(
   if (beats.length === 0) {
     throw new Error("Plan the beats before generating the video.");
   }
-  const format = videoFormatById(setup?.format);
   const rememberedVideo = getRememberedModel("video");
   const rememberedAudio = getRememberedModel("audio");
   const provider = options.provider ?? rememberedVideo?.provider;
@@ -136,6 +135,16 @@ export async function generateFromBeats(
       : null;
   const musicTrack = wantsMusic ? trackByName(store, MUSIC_TRACK, "audio") : null;
 
+  // The ratio the sequence is actually cut at, not the one the format started
+  // from: the look step's picker writes the sequence dimensions, so a creator
+  // who chose a 16:9 format and then switched to 9:16 has a portrait timeline.
+  // The cost estimate already reads it this way; stamping the format here sent
+  // every paid request at the ratio the creator had moved off.
+  const aspectRatio = aspectOf(
+    store.getState().width,
+    store.getState().height
+  );
+
   const videoClipIds: string[] = [];
   const voiceoverClipIds: string[] = [];
   const beatClipIds = new Map<string, string>();
@@ -152,7 +161,7 @@ export async function generateFromBeats(
       prompt: beat.prompt,
       provider,
       model,
-      aspectRatio: format?.aspectRatio,
+      aspectRatio,
       name: `Beat ${index + 1}`
     });
     const transition =
@@ -193,8 +202,12 @@ export async function generateFromBeats(
 
   // One bed under the whole cut, never one per beat: several overlapping music
   // clips would play at once.
+  //
+  // And only when there is a model to render it with. A bed created without
+  // one was excluded from the queue below, so the cut finished carrying a
+  // silent placeholder nothing would ever fill. No model, no clip.
   let musicClipId: string | null = null;
-  if (musicTrack) {
+  if (musicTrack && options.musicModel) {
     musicClipId = store.getState().addDirectGenClip({
       trackId: musicTrack,
       startMs: 0,
@@ -222,7 +235,7 @@ export async function generateFromBeats(
   const startedClipIds: string[] = [];
   if (startJob) {
     const queued = [...videoClipIds, ...voiceoverClipIds];
-    if (musicClipId && options.musicModel) {
+    if (musicClipId) {
       queued.push(musicClipId);
     }
     // A clip that cannot start records the reason on itself, so one refusal

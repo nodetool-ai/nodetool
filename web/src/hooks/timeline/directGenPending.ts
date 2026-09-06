@@ -3,11 +3,19 @@
  * plus how long finished ones took (PRD § 8.4 criterion 6, D14, R4).
  *
  * A direct `generate_media` reply arrives on one open socket and the
- * subscription dies with the tab, so a clip generated while the timeline was
- * closed would sit as a placeholder forever. The entries here name the request
- * ids, so opening the sequence re-subscribes and a reply that lands afterwards
- * still becomes the clip's asset. This mirrors the storyboard's pending-job
- * list rather than inventing a second scheme.
+ * subscription dies with the sequence, so a clip generated while the timeline
+ * was closed would sit as a placeholder forever. The entries here name the
+ * request ids, so opening the sequence re-subscribes and a reply that lands
+ * afterwards still becomes the clip's asset. This mirrors the storyboard's
+ * pending-job list rather than inventing a second scheme.
+ *
+ * The boundary is the socket, not the tab. An `rpc_response` carries no
+ * `job_id` and no `thread_id`, so the server writes it to the socket that
+ * asked and drops it if that socket has gone — a reply that landed while the
+ * browser was shut is lost, and re-subscribing to its id cannot bring it back.
+ * Recovering those needs `generate_media` to become a resumable server job,
+ * which is also what the storyboard's list would need; until then a reattached
+ * entry that outlives its window fails its clip rather than spinning.
  *
  * D14 — remaining time is shown only where it was measured. Finished requests
  * are filed per model and kind and read back as a median; a bucket with no
@@ -17,8 +25,14 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-/** How long a persisted request is worth re-subscribing to. */
-const PENDING_TTL_MS = 30 * 60 * 1000;
+/**
+ * How long a persisted request is worth re-subscribing to.
+ *
+ * Also the deadline a reattached subscription waits out before failing its
+ * clip: a reply whose socket is gone can never arrive, so an entry that has
+ * not answered by the end of its own window never will.
+ */
+export const PENDING_TTL_MS = 30 * 60 * 1000;
 
 /** One entry per clip, and a sequence keeps at most this many. */
 const MAX_PENDING_PER_SEQUENCE = 64;

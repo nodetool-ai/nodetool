@@ -44,7 +44,13 @@ const options = {
   model: "nodetool/kling-turbo",
   voice: "alloy",
   voiceProvider: "nodetool",
-  voiceModel: "nodetool/tts"
+  voiceModel: "nodetool/tts",
+  // Named, because a bed is only cut when there is a model to render it with:
+  // one created without a model was left out of the queue and finished as a
+  // silent placeholder. Criterion 5 is about the shape of the cut, so the
+  // fixture states the precondition rather than relying on it.
+  musicProvider: "nodetool",
+  musicModel: "nodetool/stable-audio"
 };
 
 describe("generateFromBeats (criterion 5)", () => {
@@ -143,16 +149,20 @@ describe("generateFromBeats (criterion 5)", () => {
         return clipId;
       }
     });
-    expect(stagesWhenStarted).toHaveLength(6);
+    // Four video, two voiceover, one bed.
+    expect(stagesWhenStarted).toHaveLength(7);
     expect(new Set(stagesWhenStarted)).toEqual(new Set(["done"]));
   });
 
-  it("enqueues every video and voiceover clip, and reports which started", async () => {
+  it("enqueues every clip it cut, bed included, and reports which started", async () => {
     const store = seeded();
     const startJob = jest.fn(async (clipId: string) => clipId);
     const result = await generateFromBeats(store, { ...options, startJob });
-    expect(startJob).toHaveBeenCalledTimes(6);
-    expect(result.startedClipIds).toHaveLength(6);
+    // Four video, two voiceover, one bed. The bed was the one this used to
+    // leave out: it was created and then filtered from the queue, so the cut
+    // finished on a placeholder nothing would fill.
+    expect(startJob).toHaveBeenCalledTimes(7);
+    expect(result.startedClipIds).toHaveLength(7);
   });
 
   it("does not let one refusal stop the rest of the batch", async () => {
@@ -168,7 +178,7 @@ describe("generateFromBeats (criterion 5)", () => {
         return clipId;
       }
     });
-    expect(result.startedClipIds).toHaveLength(5);
+    expect(result.startedClipIds).toHaveLength(6);
   });
 
   it("refuses to generate before there is a plan", async () => {
@@ -176,5 +186,67 @@ describe("generateFromBeats (criterion 5)", () => {
     await expect(generateFromBeats(store, options)).rejects.toThrow(
       /Plan the beats/i
     );
+  });
+});
+
+/**
+ * The look step writes the sequence's dimensions when the creator changes the
+ * aspect, and its cost estimate reads them back. The generated clips have to
+ * read the same thing: a portrait timeline that sends 16:9 requests pays for
+ * clips it then letterboxes, and the estimate quoted a different frame than
+ * the one billed.
+ */
+describe("generateFromBeats stamps the sequence's aspect", () => {
+  it("uses the ratio the sequence is cut at, not the format's original", async () => {
+    const store = seeded();
+    // "ad-15" is a 16:9 format; the creator switched the timeline to portrait.
+    store.getState().setProjectSettings({ width: 1080, height: 1920 });
+
+    await generateFromBeats(store, options);
+
+    const video = store
+      .getState()
+      .clips.filter((clip) => clip.mediaType === "video");
+    expect(video).toHaveLength(4);
+    for (const clip of video) {
+      expect(clip.aspectRatio).toBe("9:16");
+    }
+  });
+
+  it("still stamps the format's ratio when the creator left it alone", async () => {
+    const store = seeded();
+    await generateFromBeats(store, options);
+
+    const video = store
+      .getState()
+      .clips.filter((clip) => clip.mediaType === "video");
+    expect(video.every((clip) => clip.aspectRatio === "16:9")).toBe(true);
+  });
+});
+
+/**
+ * With Music on, the bed is created and then has to be queued like any other
+ * clip. It was created with no model and excluded from the queue, so the flow
+ * finished on a silent placeholder that nothing would ever fill.
+ */
+describe("generateFromBeats queues the music bed", () => {
+  it("starts the bed when a music model is supplied", async () => {
+    const store = seeded();
+    const startJob = jest.fn(async (clipId: string) => `req-${clipId}`);
+
+    const result = await generateFromBeats(store, {
+      ...options,
+      music: true,
+      startJob
+    });
+
+    expect(result.musicClipId).not.toBeNull();
+    expect(result.startedClipIds).toContain(result.musicClipId);
+
+    const bed = store
+      .getState()
+      .clips.find((clip) => clip.id === result.musicClipId);
+    expect(bed?.model).toBe("nodetool/stable-audio");
+    expect(bed?.provider).toBe("nodetool");
   });
 });
