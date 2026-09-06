@@ -45,6 +45,64 @@ test.describe("Editor", () => {
     await expect(editor.nodes()).toHaveCount(before + 1);
   });
 
+  /**
+   * The output menu is a floating list: its rows sit anywhere from tens to
+   * hundreds of pixels from the handle, and flip side near a viewport edge.
+   * Placing the new node against the clicked row put it wherever the menu
+   * happened to be — a Preview landed 225px right of the handle and 110px
+   * above it, a Reroute somewhere else again. The node belongs against the
+   * handle, with its input handle level with it.
+   */
+  test("places a node from the output menu level with the handle it came from", async ({
+    page
+  }) => {
+    const editor = new EditorPage(page);
+    await editor.open(FIXTURES.editorGraph);
+
+    // The fixture's Output node sits directly right of the handle; move it
+    // away so this test measures alignment, not the clearance rule below.
+    await editor.dragNode("result_output", 0, 600);
+
+    const handle = await editor.outputHandleCenter("prompt_input");
+    const created = await editor.createFromOutputHandle(
+      "prompt_input",
+      "create-preview-node"
+    );
+    const geometry = await editor.nodeGeometry(created);
+
+    expect(geometry.inputHandle).not.toBeNull();
+    // Level with the source handle: the edge between them comes out flat.
+    expect(Math.abs(geometry.inputHandle!.y - handle.y)).toBeLessThan(8);
+    // Just to the right of it, not off in the direction the menu opened.
+    expect(geometry.box.x - handle.x).toBeGreaterThan(0);
+    expect(geometry.box.x - handle.x).toBeLessThan(120);
+  });
+
+  test("keeps a second node from the same handle clear of the first", async ({
+    page
+  }) => {
+    const editor = new EditorPage(page);
+    await editor.open(FIXTURES.editorGraph);
+
+    const first = await editor.createFromOutputHandle(
+      "prompt_input",
+      "create-preview-node"
+    );
+    const second = await editor.createFromOutputHandle(
+      "prompt_input",
+      "create-preview-node"
+    );
+
+    const a = (await editor.nodeGeometry(first)).box;
+    const b = (await editor.nodeGeometry(second)).box;
+    const overlaps =
+      a.x < b.x + b.width &&
+      a.x + a.width > b.x &&
+      a.y < b.y + b.height &&
+      a.y + a.height > b.y;
+    expect(overlaps).toBe(false);
+  });
+
   test("runs the graph and shows the result on the canvas", async ({
     page
   }) => {
