@@ -235,6 +235,17 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     return;
   }
 
+  // An entity is an image asset carrying the entity marker, so an entity the
+  // agent writes arrives here as an asset change and nothing else. The library
+  // query is keyed `["entities"]`, which `["assets"]` does not prefix-match,
+  // and a project's overview lists the entities filed under it — neither
+  // refetches unless this says so. The frame carries no marker and no project,
+  // so both are invalidated for any asset write rather than guessed at.
+  if (resource_type === "asset") {
+    queryClient.invalidateQueries({ queryKey: ["entities"] });
+    invalidateProjectViews();
+  }
+
   const queryKeys = RESOURCE_TYPE_TO_QUERY_KEYS[resource_type];
 
   if (queryKeys === undefined) {

@@ -68,6 +68,7 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
     duration: asset.duration ?? null,
     node_id: asset.node_id ?? null,
     job_id: asset.job_id ?? null,
-    timeline_id: asset.timeline_id ?? null
+    timeline_id: asset.timeline_id ?? null,
+    project_id: asset.project_id
   };
 }

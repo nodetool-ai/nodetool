@@ -26,7 +26,8 @@ import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 const USER = "user-entities";
 
 const context = { userId: USER } as unknown as ProcessingContext;
-const run = () => createCapabilityRun({ context, gate: UNGATED });
+const run = (projectId?: string) =>
+  createCapabilityRun({ context, gate: UNGATED, projectId });
 
 async function makeEntity(
   name: string,
@@ -536,5 +537,107 @@ describe("create_entity and update_entity", () => {
       (reread?.metadata?.["nodetool_entity"] as { descriptor: string })
         .descriptor
     ).toBe("high-contrast mono");
+  });
+});
+
+describe("entities and projects", () => {
+  const imageAsset = async (name: string): Promise<Asset> =>
+    (await Asset.create({
+      user_id: USER,
+      name,
+      content_type: "image/png"
+    })) as Asset;
+
+  it("files a new entity into the project the run is bound to", async () => {
+    const asset = await imageAsset("mara.png");
+    const created = (await run("p1").invoke("create_entity", {
+      asset_id: asset.id,
+      kind: "character",
+      name: "Mara",
+      descriptor: "a tall woman with red hair"
+    })) as { entity: { project_id: string } };
+
+    expect(created.entity.project_id).toBe("p1");
+    expect((await Asset.find(USER, asset.id))?.project_id).toBe("p1");
+  });
+
+  it("lets the call name a project, overriding the run's", async () => {
+    const asset = await imageAsset("hall.png");
+    await run("p1").invoke("create_entity", {
+      asset_id: asset.id,
+      kind: "location",
+      name: "The Hall",
+      descriptor: "a long stone hall",
+      project_id: "p2"
+    });
+    expect((await Asset.find(USER, asset.id))?.project_id).toBe("p2");
+  });
+
+  it("leaves a run outside any project in the loose bucket", async () => {
+    const asset = await imageAsset("prop.png");
+    await run().invoke("create_entity", {
+      asset_id: asset.id,
+      kind: "prop",
+      name: "Lantern",
+      descriptor: "a dented brass lantern"
+    });
+    expect((await Asset.find(USER, asset.id))?.project_id).toBe("default");
+  });
+
+  it("moves an entity only when update_entity names a project", async () => {
+    const asset = await imageAsset("mara.png");
+    await run("p1").invoke("create_entity", {
+      asset_id: asset.id,
+      kind: "character",
+      name: "Mara",
+      descriptor: "a tall woman with red hair"
+    });
+
+    // A field edit inside another project does not drag the entity into it.
+    await run("p9").invoke("update_entity", {
+      entity_id: asset.id,
+      descriptor: "a tall woman with cropped red hair"
+    });
+    expect((await Asset.find(USER, asset.id))?.project_id).toBe("p1");
+
+    // Naming one moves it, and that alone is a valid update.
+    expect(
+      await run().invoke("update_entity", {
+        entity_id: asset.id,
+        project_id: "p2"
+      })
+    ).toMatchObject({ entity: { project_id: "p2" } });
+    expect((await Asset.find(USER, asset.id))?.project_id).toBe("p2");
+  });
+
+  it("lists one project's entities when asked, the library otherwise", async () => {
+    const inProject = await imageAsset("mara.png");
+    await run("p1").invoke("create_entity", {
+      asset_id: inProject.id,
+      kind: "character",
+      name: "Mara",
+      descriptor: "a tall woman with red hair"
+    });
+    const loose = await imageAsset("lantern.png");
+    await run().invoke("create_entity", {
+      asset_id: loose.id,
+      kind: "prop",
+      name: "Lantern",
+      descriptor: "a dented brass lantern"
+    });
+
+    const scoped = (await run().invoke("list_entities", {
+      project_id: "p1"
+    })) as { entities: Array<{ id: string }> };
+    expect(scoped.entities.map((e) => e.id)).toEqual([inProject.id]);
+
+    // The library is shared across projects, so an unscoped list from inside
+    // one still finds everything — that is what seasoning a prompt needs.
+    const all = (await run("p1").invoke("list_entities", {})) as {
+      entities: Array<{ id: string }>;
+    };
+    expect(all.entities.map((e) => e.id)).toEqual(
+      expect.arrayContaining([inProject.id, loose.id])
+    );
   });
 });

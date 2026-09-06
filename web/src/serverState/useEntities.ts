@@ -17,6 +17,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  type QueryClient,
   type UseMutationResult,
   type UseQueryResult
 } from "@tanstack/react-query";
@@ -41,6 +42,20 @@ interface EntityMarker {
 }
 
 const ENTITY_METADATA_KEY = "nodetool_entity";
+
+/**
+ * A project's overview lists the entities filed under it, so tagging or
+ * untagging one changes what it shows. Matches `invalidateProjectViews` in
+ * `resourceChangeHandler` — the tRPC key head is `[router, procedure]`.
+ */
+const invalidateProjectQueries = (client: QueryClient): void => {
+  void client.invalidateQueries({
+    predicate: (query) => {
+      const head = query.queryKey[0];
+      return Array.isArray(head) && head[0] === "projects";
+    }
+  });
+};
 const ENTITIES_QUERY_KEY = ["entities"] as const;
 const VALID_KINDS: ReadonlySet<string> = new Set([
   "character",
@@ -93,6 +108,7 @@ export function assetToEntity(asset: Asset): Entity | null {
   return {
     type: "entity",
     id: asset.id,
+    project_id: asset.project_id ?? "default",
     kind: marker.kind,
     name: marker.name,
     descriptor: marker.descriptor,
@@ -133,6 +149,12 @@ export function useEntities(): UseQueryResult<Entity[], Error> {
 interface SaveEntityInput {
   /** The existing image asset to tag as an entity's reference. */
   assetId: string;
+  /**
+   * File the entity under this project. Omitted leaves its membership alone,
+   * so editing an entity never moves it. `"default"` takes it out of every
+   * project — the loose bucket's id, as everywhere else.
+   */
+  projectId?: string;
   kind: EntityKind;
   name: string;
   descriptor: string;
@@ -179,10 +201,25 @@ export function useSaveEntity(): UseMutationResult<
           [ENTITY_METADATA_KEY]: marker
         }
       });
+      // Membership is the projects router's write, not the asset's: it is the
+      // one path that checks the project is the caller's before filing
+      // anything into it.
+      if (input.projectId && input.projectId !== updated.project_id) {
+        await trpcClient.projects.assignDocument.mutate({
+          projectId: input.projectId,
+          type: "entity",
+          ref: input.assetId
+        });
+        return assetToEntity({
+          ...updated,
+          project_id: input.projectId
+        } as Asset);
+      }
       return assetToEntity(updated as Asset);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ENTITIES_QUERY_KEY });
+      invalidateProjectQueries(queryClient);
     }
   });
 }
@@ -204,6 +241,7 @@ export function useDeleteEntity(): UseMutationResult<void, Error, string> {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ENTITIES_QUERY_KEY });
+      invalidateProjectQueries(queryClient);
     }
   });
 }

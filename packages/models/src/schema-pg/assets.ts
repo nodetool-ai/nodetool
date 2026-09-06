@@ -22,10 +22,13 @@ export const assets = pgTable(
     // Source timeline a video was rendered from. Lets "edit" on a video open
     // its underlying timeline sequence for re-editing.
     timeline_id: text("timeline_id"),
+    // The project this asset belongs to — see schema/assets.ts.
+    project_id: text("project_id").notNull().default("default"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },
   (table) => [
-    index("idx_assets_user_parent").on(table.user_id, table.parent_id)
+    index("idx_assets_user_parent").on(table.user_id, table.parent_id),
+    index("idx_assets_user_project").on(table.user_id, table.project_id)
   ]
 );
