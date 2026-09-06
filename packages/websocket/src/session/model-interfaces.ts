@@ -16,6 +16,7 @@ import {
   createAssetModelInterface,
   updateAssetBytesModelInterface
 } from "../lib/asset-model-interface.js";
+import { documentModelInterfaces } from "../lib/document-model-interfaces.js";
 import { getAssetAdapter, getTempAdapter } from "../lib/storage.js";
 import { createTempUrlResolver } from "../lib/temp-url-resolver.js";
 import { getAssetStoragePath } from "./asset-autosave.js";
@@ -197,7 +198,10 @@ export function serverModelInterfaces(): ProcessingContextModelInterfaces {
         fields
       );
       return updated ? updated.toResponse() : null;
-    }
+    },
+    // Storyboards, the entity library and the game templates: shared with the
+    // CLI's local runs so a harness run writes the rows the server writes.
+    ...documentModelInterfaces()
   };
 }
 

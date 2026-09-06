@@ -12,8 +12,10 @@ import {
   Message,
   ModelObserver,
   Script,
+  Storyboard,
   TimelineSequence
 } from "@nodetool-ai/models";
+import { ENTITY_METADATA_KEY, readEntityMarker } from "@nodetool-ai/protocol";
 import type { ProcessingContextModelInterfaces } from "@nodetool-ai/runtime";
 import {
   createRuntimeContext,
@@ -371,6 +373,235 @@ describe("scripts", () => {
     expect(
       await ifaces.updateScript!({ userId: OTHER, id, document: doc })
     ).toBeNull();
+  });
+});
+
+describe("storyboards", () => {
+  const doc = { shots: [], brief: "a courier at dawn" };
+
+  it("creates with defaults for name and project", async () => {
+    const bare = fields(
+      await ifaces.createStoryboard!({ userId: USER, document: doc })
+    );
+    expect(bare.name).toBe("Untitled storyboard");
+    expect(bare.projectId).toBe("default");
+
+    const named = fields(
+      await ifaces.createStoryboard!({
+        userId: USER,
+        name: "Launch board",
+        projectId: "p2",
+        document: doc
+      })
+    );
+    expect(named.name).toBe("Launch board");
+    expect(named.projectId).toBe("p2");
+  });
+
+  it("reads only the owner's storyboard", async () => {
+    const created = await ifaces.createStoryboard!({ userId: USER, document: doc });
+    const id = created.id;
+    expect(fields(await ifaces.getStoryboard!({ userId: USER, id })).id).toBe(id);
+    expect(await ifaces.getStoryboard!({ userId: OTHER, id })).toBeNull();
+    expect(await ifaces.getStoryboard!({ userId: USER, id: "missing" })).toBeNull();
+  });
+
+  it("patches document and timeline link independently", async () => {
+    const created = await ifaces.createStoryboard!({ userId: USER, document: doc });
+    const id = created.id;
+
+    const withDoc = fields(
+      await ifaces.updateStoryboard!({
+        userId: USER,
+        id,
+        document: { ...doc, shots: [{ id: "s1" }] }
+      })
+    );
+    expect((withDoc.document as { shots: unknown[] }).shots).toEqual([{ id: "s1" }]);
+
+    const withTimeline = fields(
+      await ifaces.updateStoryboard!({ userId: USER, id, timelineId: "tl-1" })
+    );
+    expect(withTimeline.timelineId).toBe("tl-1");
+    expect((withTimeline.document as { shots: unknown[] }).shots).toEqual([
+      { id: "s1" }
+    ]);
+    expect((await Storyboard.findById(id))?.timeline_id).toBe("tl-1");
+  });
+
+  it("refuses a stale baseUpdatedAt, a missing id, and another user's board", async () => {
+    const created = await ifaces.createStoryboard!({ userId: USER, document: doc });
+    const id = created.id;
+
+    expect(
+      await ifaces.updateStoryboard!({
+        userId: USER,
+        id,
+        document: doc,
+        baseUpdatedAt: "2000-01-01T00:00:00.000Z"
+      })
+    ).toBeNull();
+    expect(
+      await ifaces.updateStoryboard!({ userId: USER, id: "missing", document: doc })
+    ).toBeNull();
+    expect(
+      await ifaces.updateStoryboard!({ userId: OTHER, id, document: doc })
+    ).toBeNull();
+    // The refused writes left the board as it was.
+    expect((await Storyboard.findById(id))?.user_id).toBe(USER);
+  });
+});
+
+describe("entities", () => {
+  const image = async (id: string, overrides: Record<string, unknown> = {}) =>
+    Asset.create({
+      id,
+      user_id: USER,
+      name: `${id}.png`,
+      content_type: "image/png",
+      ...overrides
+    });
+
+  const upsert = (over: Record<string, unknown> = {}) =>
+    ifaces.upsertEntity!({
+      userId: USER,
+      kind: "character",
+      name: "Nova",
+      descriptor: "a tall courier in a red jacket",
+      imageAssetId: "img-1",
+      ...over
+    } as Parameters<NonNullable<typeof ifaces.upsertEntity>>[0]);
+
+  it("finds its own entity by source.key, even after a rename", async () => {
+    await image("img-1");
+    await image("img-2");
+    const first = await upsert({ source: { key: "sku-42" } });
+    expect(first.id).toBe("img-1");
+    expect(first.kind).toBe("character");
+    expect(first.descriptor).toBe("a tall courier in a red jacket");
+
+    // A second run of the same graph: new picture, new name, same key. It must
+    // land on the row the first run made — a fresh image asset would otherwise
+    // make the match trivially true.
+    const second = await upsert({
+      imageAssetId: "img-2",
+      name: "Nova Prime",
+      descriptor: "a tall courier in a black jacket",
+      source: { key: "sku-42" }
+    });
+    expect(second.id).toBe(first.id);
+    expect(second.name).toBe("Nova Prime");
+    expect((await ifaces.listEntities!({ userId: USER })).map((e) => e.id)).toEqual([
+      "img-1"
+    ]);
+
+    // The picture moved, the marker did not: boards store the entity id.
+    expect(
+      readEntityMarker((await Asset.find(USER, "img-1"))?.metadata)?.reference_asset_id
+    ).toBe("img-2");
+    expect(readEntityMarker((await Asset.find(USER, "img-2"))?.metadata)).toBeNull();
+  });
+
+  it("matches on (project, kind, name) when no source key is given", async () => {
+    await image("img-1");
+    await image("img-2");
+    const first = await upsert();
+    const second = await upsert({
+      imageAssetId: "img-2",
+      descriptor: "a tall courier, rain-soaked"
+    });
+    expect(second.id).toBe(first.id);
+    expect(second.descriptor).toBe("a tall courier, rain-soaked");
+    expect((await ifaces.listEntities!({ userId: USER })).length).toBe(1);
+  });
+
+  it("refuses another user's asset and a non-image one", async () => {
+    await Asset.create({
+      id: "theirs",
+      user_id: OTHER,
+      name: "theirs.png",
+      content_type: "image/png"
+    });
+    await Asset.create({
+      id: "clip",
+      user_id: USER,
+      name: "clip.mp4",
+      content_type: "video/mp4"
+    });
+    await expect(upsert({ imageAssetId: "theirs" })).rejects.toThrow(
+      /was not found/
+    );
+    await expect(upsert({ imageAssetId: "clip" })).rejects.toThrow(
+      /entities are image assets/
+    );
+  });
+
+  it("reads one entity, owner-scoped, and skips untagged assets", async () => {
+    await image("img-1");
+    await image("plain");
+    const created = await upsert();
+    expect((await ifaces.getEntity!({ userId: USER, id: created.id }))?.name).toBe(
+      "Nova"
+    );
+    expect(await ifaces.getEntity!({ userId: OTHER, id: created.id })).toBeNull();
+    expect(await ifaces.getEntity!({ userId: USER, id: "plain" })).toBeNull();
+    expect(await ifaces.getEntity!({ userId: USER, id: "missing" })).toBeNull();
+  });
+
+  it("filters the library by kind, name and tags, and never leaves the user", async () => {
+    await image("img-1");
+    await image("img-2", { project_id: "p2" });
+    await upsert({ tags: ["hero"] });
+    await upsert({
+      imageAssetId: "img-2",
+      projectId: "p2",
+      kind: "prop",
+      name: "Kettle",
+      descriptor: "a dented copper kettle",
+      tags: ["hero", "kitchen"]
+    });
+
+    expect(
+      (await ifaces.listEntities!({ userId: USER, kind: "prop" })).map((e) => e.id)
+    ).toEqual(["img-2"]);
+    expect(
+      (await ifaces.listEntities!({ userId: USER, nameContains: "nov" })).map(
+        (e) => e.id
+      )
+    ).toEqual(["img-1"]);
+    expect(
+      (await ifaces.listEntities!({ userId: USER, tags: ["kitchen"] })).map(
+        (e) => e.id
+      )
+    ).toEqual(["img-2"]);
+    expect(
+      (await ifaces.listEntities!({ userId: USER, projectId: "p2" })).map((e) => e.id)
+    ).toEqual(["img-2"]);
+    expect((await ifaces.listEntities!({ userId: USER, limit: 1 })).length).toBe(1);
+    expect(await ifaces.listEntities!({ userId: OTHER })).toEqual([]);
+  });
+
+  it("leaves optional fields alone when a re-run does not pass them", async () => {
+    await image("img-1");
+    await upsert({ description: "the lead", tags: ["hero"], voiceId: "v1" });
+    const again = await upsert({ descriptor: "a tall courier, rain-soaked" });
+    expect(again.description).toBe("the lead");
+    expect(again.tags).toEqual(["hero"]);
+    expect(again.voice_id).toBe("v1");
+    expect(
+      (await Asset.find(USER, "img-1"))?.metadata?.[ENTITY_METADATA_KEY]
+    ).toMatchObject({ description: "the lead" });
+  });
+});
+
+describe("game templates", () => {
+  it("lists the shipped templates with their slot manifests", async () => {
+    const templates = await ifaces.listGameTemplates!();
+    expect(templates.length).toBeGreaterThan(0);
+    for (const template of templates) {
+      expect(typeof template.id).toBe("string");
+      expect(Array.isArray(template.manifest.slots)).toBe(true);
+    }
   });
 });
 
