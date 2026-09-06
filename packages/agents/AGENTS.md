@@ -812,6 +812,40 @@ none — a Code node, a JS script — got a belt that could `critique_image` and
 toolbelt` after the run had paid for the prompt that produced its argument.
 Pinned by `tests/sandbox-belt-reach.test.ts`.
 
+## External MCP servers (`src/tools/external-mcp-tools.ts`)
+
+A user's own MCP servers — Blender, Hugging Face, a local script — join the
+belt as ordinary `Tool`s named `mcp_<server>_<tool>`. That one shape is why
+every loop reaches them the same way: the base provider loop and the OpenAI
+Responses loop (Codex included) dispatch through the harness `executeTool`,
+the Claude Agent SDK wraps the belt in its in-process MCP server, and a
+CodeAct guest imports them from `@nodetool-ai/sandbox-nodetool/mcp`
+(`graftedModuleFor` in `codeact/capability-modules.ts`). No provider knows
+they are remote.
+
+`McpClientPool` keeps one client per server config: `sync(configs)` opens,
+replaces or closes connections as the list changes, `discover()` caches each
+server's `listTools`, and a server that refuses is skipped for the turn and
+retried on the next sync. Stdio servers spawn with the parent's environment
+plus the config's `env`; HTTP servers try Streamable HTTP and fall back to
+SSE. `${SECRET_NAME}` in an env var or header resolves inline through the
+pool's `getSecret`; the server's persistence moves every literal value into
+an encrypted secret named `MCP_<SERVER>_<KEY as hex>` and stores the reference, and
+resolves references from the user's own secrets only, never the process
+environment. Under the cloud profile HTTP servers fetch through `safeFetch`,
+so a private or loopback URL is refused on save and on every redirect. A tool
+result's text and structured content come back as the tool's answer, and its
+image blocks ride `image_contents` like any other belt tool's pixels.
+
+The config shape (`McpServerConfig`, `@nodetool-ai/protocol`) is shared with
+the server's persistence (`packages/websocket/src/external-mcp.ts`, one
+`Setting` row per user, the `externalMcp` tRPC router) and the settings UI
+(`web/src/components/menus/ExternalMcpServersSection.tsx`). The cloud
+profile refuses stdio servers, since a command runs on the machine the server
+owns. A remote tool has no capability entry, so `gateTools` classifies it
+`external`. Tests: `tests/external-mcp-tools.test.ts` (a real MCP server over
+an in-memory transport), `packages/websocket/tests/external-mcp.test.ts`.
+
 ## Script Voicing Tools (`src/capabilities/scripts.ts`)
 
 The headless path from a written script to voiced takes and an assembled

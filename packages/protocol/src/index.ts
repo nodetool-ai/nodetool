@@ -60,3 +60,4 @@ export {
 export * from "./nodetool-models.js";
 export * from "./predicates.js";
 export * from "./workflow-plan.js";
+export * from "./mcp-server-config.js";

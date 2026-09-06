@@ -951,3 +951,17 @@ export type {
   RunJobOptions,
   RunJobSuiteOptions
 } from "./jtbd/index.js";
+export {
+  ExternalMcpTool,
+  McpClientPool,
+  getCachedExternalMcpTools,
+  getExternalMcpTools,
+  normalizeCallResult
+} from "./tools/external-mcp-tools.js";
+export type {
+  McpCallResult,
+  McpClientPoolOptions,
+  McpConnectError,
+  McpRemoteTool,
+  McpSecretResolver
+} from "./tools/external-mcp-tools.js";

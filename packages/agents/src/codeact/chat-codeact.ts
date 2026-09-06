@@ -34,8 +34,8 @@ import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 
 import { capabilityModuleOf } from "../capabilities/registry.js";
 import {
+  graftedModuleFor,
   mountCapabilityModules,
-  SESSION_CAPABILITY_MODULE,
   type MountCapabilityModulesOptions
 } from "./capability-modules.js";
 import { stripImagePayload } from "../tools/image-injection.js";
@@ -299,7 +299,7 @@ export function createChatCodeActSession(
   for (const tool of belt) {
     const module =
       capabilityModuleOf(tool.name) ??
-      (tool.name.startsWith("ui_") ? "ui" : SESSION_CAPABILITY_MODULE);
+      graftedModuleFor(tool.name);
     graftedSpecifiers.set(tool.name, sandboxCapabilitySpecifier(module));
     graftedModules[tool.name] = module;
     const names = graftExports.get(module);
@@ -425,7 +425,7 @@ export function createChatCodeActSession(
           toolSearchHit(
             byName.get(entry.name) as ToolSignatureSource,
             capabilityModuleOf(entry.name) ??
-              (entry.name.startsWith("ui_") ? "ui" : SESSION_CAPABILITY_MODULE)
+              graftedModuleFor(entry.name)
           )
       );
       return { ok: true, result: hits };

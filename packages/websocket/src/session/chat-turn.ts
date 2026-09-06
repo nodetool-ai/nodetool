@@ -122,6 +122,7 @@ import {
   type SecretPromptStatus
 } from "@nodetool-ai/agents";
 import { mcpToolHostDeps } from "../mcp-tool-deps.js";
+import { externalMcpToolsFor } from "../external-mcp.js";
 import {
   formatSkillCatalogForPrompt,
   mergeSystemSkills,
@@ -1437,6 +1438,17 @@ export class ChatTurnHandler {
         availableSecrets: contextSecretAvailability(context),
         budget: turnBudget
       });
+    // The user's external MCP servers (Blender, Hugging Face, …). Their tools
+    // are plain belt tools named `mcp_<server>_<tool>`, so every loop reaches
+    // them the same way; a server that does not answer is skipped, not fatal.
+    let externalMcpTools: Tool[] = [];
+    try {
+      externalMcpTools = await externalMcpToolsFor(userId);
+    } catch (err) {
+      log.warn("External MCP tools unavailable for this turn", {
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
     const rawToolbelt: Tool[] = [
       ...getBuiltinTools(),
       ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
@@ -1444,6 +1456,7 @@ export class ChatTurnHandler {
       // a chat discovers them (`nodetool.searchTools("apify")`) at all.
       ...getApifyTools(gatedRun),
       ...getSerpApiTools(gatedRun),
+      ...externalMcpTools,
       ...getAllMcpTools({
         registry: this.session.nodeRegistry,
         providers: chatProviders,
