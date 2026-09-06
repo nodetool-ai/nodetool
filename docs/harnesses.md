@@ -1038,6 +1038,43 @@ through `GODOT_BIN` or `godot`/`godot4`/`Godot` on `PATH`; the suites that
 need it skip with a named reason when it is absent. Implementations:
 `packages/agents/src/capabilities/godot.ts`.
 
+### Game flow (guided build: design, graph, export)
+
+The Game entry card turns one sentence into a graph that fills every slot the
+pipeline above declares and ends in `nodetool.game.ExportGodotProject`. Three
+pure pieces carry it, each with its own suite: `packages/protocol/src/game-design.ts`
+holds the designer contract that writes the cast, the level and one prompt per
+slot; `game-slot-prompt.ts` turns a slot spec and a reviewed prompt into a
+sized image prompt; and `game-graph.ts`'s `gameGraphPlacement` is a pure
+function of manifest, design and choices, so nothing a model decides changes
+the chain a slot gets. The flow's state is `settings.game` on the workflow, so
+a half-built game resumes at the step it stopped on.
+
+`game-flow` is the harness over that path. Its selfcheck runs the `game`
+suites in `packages/protocol`; the `game-graph-chips` suite in
+`packages/base-nodes`, which builds each shipped inspiration chip's pinned
+design against the real node registry and passes the result through
+`validateGraph`, so a slot chain naming a node type nobody registered fails
+here instead of on a creator's canvas; the `packages/game-nodes` suite over the
+export node; and the web suites under `web/src/components/setup/game`,
+`web/src/hooks/game` and
+`web/src/lib/tools/builtin/__tests__/gameSetupTools.test.ts`. `harness gate`
+fires it on any diff touching those paths.
+
+It simulates everything up to the art. A design is parsed and the slots the
+model skipped are filled from the manifest and reported, prompts are sized from
+the slot spec, the placement is built and validated against the registry, the
+export node writes the project directory and the zip from the filled fixture in
+`packages/protocol/fixtures/game-assets/`, and the `ui_game_*` tools drive
+every step with no browser open.
+
+It does not generate art, call a provider, or assume Godot. No image, sound or
+music model runs, so whether a sheet still reads at the slot's exact cell size
+is not answered here (game-prd R8) — `nodetool debug` on the built graph is
+where that shows up. Godot runs only where `GODOT_BIN` or a binary on `PATH` is
+found; without one the export node reports `verified: false` with a reason, and
+the suite asserts the reason rather than skipping the case.
+
 ### Entity library tools (no browser)
 
 The reusable production entities — characters, locations, styles, props — are

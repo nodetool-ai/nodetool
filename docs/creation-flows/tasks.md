@@ -486,10 +486,10 @@ of each other. Inside a phase, tasks are listed in dependency order.
 
 ### G3 — Assets and docs
 
-- [ ] **Tiles.** `scripts/make-game-style-tiles.mjs` and its nine PNGs under
+- [x] **Tiles.** `scripts/make-game-style-tiles.mjs` and its nine PNGs under
       `packages/base-nodes/nodetool/assets/nodetool-base/` per § 6.2 and
       § 6.3, each under the asset budget.
-- [ ] **Docs.** `docs/harnesses.md` game-flow entry, `docs/creation-flows/prd.md`
+- [x] **Docs.** `docs/harnesses.md` game-flow entry, `docs/creation-flows/prd.md`
       link, `.claude/skills/godot-game/SKILL.md` gains a line pointing the
       agent at the flow's graph for a first build.
 
