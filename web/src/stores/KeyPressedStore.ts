@@ -59,9 +59,10 @@ interface ComboOptions {
    */
   allowInInputs?: boolean;
   /**
-   * The element this combo acts on. When given, the combo is skipped unless
-   * `canTakeFocus(target)` holds — an instance living in an inert/hidden
-   * workspace tab never fires. Pass a getter so a ref can be read lazily.
+   * The element this combo acts on. When given, the registration is skipped
+   * unless `canTakeFocus(target)` holds — an instance living in an inert/hidden
+   * workspace tab never fires, and the next binding down the stack handles the
+   * combo instead. Pass a getter so a ref can be read lazily.
    */
   target?: () => HTMLElement | null | undefined;
 }
@@ -203,8 +204,16 @@ const unregisterComboCallback = (combo: string) => {
 };
 
 // Resolve which binding handles a combo: the topmost (most recently registered)
-// registration that is active and has a callback. Returns undefined when no
-// binding should fire, letting default browser behavior proceed.
+// registration that is active, has a callback, and whose `target` can take
+// focus. Returns undefined when no binding should fire, letting default browser
+// behavior proceed.
+//
+// The target check belongs here, not at execution time: skipping an unreachable
+// binding lets the next one down the stack win. Space is bound by the node
+// editor (open node menu) and by the timeline (play/pause), and every open
+// workspace tab stays mounted with inactive ones `inert` — swallowing the key
+// on the topmost binding instead meant a background tab ate Space for the
+// visible editor.
 const resolveComboRegistration = (
   combo: string
 ): ComboRegistration | undefined => {
@@ -214,9 +223,13 @@ const resolveComboRegistration = (
   }
   for (let i = stack.length - 1; i >= 0; i--) {
     const registration = stack[i];
-    if (registration.callback && registration.active !== false) {
-      return registration;
+    if (!registration.callback || registration.active === false) {
+      continue;
     }
+    if (registration.target && !canTakeFocus(registration.target())) {
+      continue;
+    }
+    return registration;
   }
   return undefined;
 };
@@ -287,13 +300,6 @@ const executeComboCallbacks = (
       (event?.target instanceof Element &&
         isWorkflowEditorElement(event.target)));
 
-  // --- Shared focus gate ---
-  // One predicate for every combo, so no registration has to remember it.
-  // A combo that moves or acts on a specific element only fires when that
-  // element can actually take focus (not inside an inert/hidden tab layer).
-  if (options.target && !canTakeFocus(options.target())) {
-    return;
-  }
   // Typing wins over shortcuts. `isInputFocused` is `isTextInputActive()`
   // widened to the event target, and the block below is the shared rule:
   // a registration leaves it only by opting in (`allowInInputs`/`scope:
