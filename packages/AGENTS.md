@@ -45,7 +45,7 @@ first, then the overlay for the package you are touching.
 - [`agents`](agents/AGENTS.md) — planning, execution, capabilities, evals
 - [`atlascloud-nodes`](atlascloud-nodes/AGENTS.md) — AtlasCloud API wrapper
 - [`audio-nodes`](audio-nodes/AGENTS.md) — audio editing & DSP
-- [`automation-nodes`](automation-nodes/AGENTS.md) — triggers, Apple/OS automation, browser, SQLite path
+- [`automation-nodes`](automation-nodes/AGENTS.md) — triggers, OS automation, browser, SQLite path
 - [`base-nodes`](base-nodes/AGENTS.md) — core workflow nodes
 - [`blender-nodes`](blender-nodes/AGENTS.md) — headless Blender render and mesh preparation
 - [`data-nodes`](data-nodes/AGENTS.md) — dataframes, filtering, feeds & charts

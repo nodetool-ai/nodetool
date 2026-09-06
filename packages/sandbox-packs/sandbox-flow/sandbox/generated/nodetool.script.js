@@ -12,9 +12,17 @@ function scriptToTimeline(inputs) {
 function scriptToSubtitles(inputs) {
   return callNode("nodetool.script.ScriptToSubtitles", inputs);
 }
+function writeScript(inputs) {
+  return callNode("nodetool.script.WriteScript", inputs);
+}
+function fillScript(inputs) {
+  return callNode("nodetool.script.FillScript", inputs);
+}
 export {
+  fillScript,
   loadScript,
   scriptToSubtitles,
   scriptToTimeline,
-  voiceScript
+  voiceScript,
+  writeScript
 };

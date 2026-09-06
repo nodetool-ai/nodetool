@@ -473,7 +473,6 @@ import { DIRECTOR_NODES } from "@nodetool-ai/llm-nodes/nodes/director";
 import { SHOTS_NODES } from "@nodetool-ai/llm-nodes/nodes/shots";
 import { MODEL3D_NODES } from "@nodetool-ai/video-nodes/nodes/model3d";
 import { BLENDER_NODES } from "@nodetool-ai/blender-nodes";
-import { LIB_APPLE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-apple";
 import { LIB_YTDLP_NODES } from "@nodetool-ai/video-nodes/nodes/lib-video-download";
 import { LIB_GRID_NODES } from "@nodetool-ai/image-nodes/nodes/lib-grid";
 import { GAME_NODES as GAME_IMAGE_NODES } from "@nodetool-ai/image-nodes/nodes/game";
@@ -539,7 +538,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...SHOTS_NODES,
   ...MODEL3D_NODES,
   ...BLENDER_NODES,
-  ...(process.platform === "darwin" ? LIB_APPLE_NODES : []),
   ...LIB_YTDLP_NODES,
   ...LIB_GRID_NODES,
   ...GAME_IMAGE_NODES,

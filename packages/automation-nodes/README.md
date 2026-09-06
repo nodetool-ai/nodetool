@@ -3,7 +3,7 @@
 Browser, OS, filesystem, and automation nodes for [NodeTool](https://nodetool.ai).
 
 Automate the local system from visual AI workflows: screenshot web pages, read
-and write files, schedule triggers, and drive macOS apps via AppleScript.
+and write files, and schedule triggers.
 
 ## Install
 
@@ -19,11 +19,6 @@ npm install @nodetool-ai/automation-nodes
 
 **Triggers** (`nodetool.triggers.*`) — `Wait`, `ManualTrigger`,
 `IntervalTrigger`, `WebhookTrigger`, `FileWatchTrigger`.
-
-**Apple** (`lib.apple.*`) — macOS automation via AppleScript: Calendar, Notes,
-Reminders, Messages, Mail, Contacts, Safari control, clipboard, and
-notifications (`CreateCalendarEvent`, `CreateNote`, `SendMessage`,
-`SearchContacts`, `OpenSafariURL`, `SetClipboardText`, `SayText`, …).
 
 ## What moved to the sandbox
 

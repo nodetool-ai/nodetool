@@ -4,7 +4,6 @@ import * as geminiImage from "./gemini.image.js";
 import * as geminiText from "./gemini.text.js";
 import * as geminiVideo from "./gemini.video.js";
 import * as kieDynamic_schema from "./kie.dynamic_schema.js";
-import * as libApple from "./lib.apple.js";
 import * as libAudio from "./lib.audio.js";
 import * as libBrowser from "./lib.browser.js";
 import * as libCharts from "./lib.charts.js";
@@ -93,7 +92,6 @@ export {
   image,
   input,
   kieDynamic_schema,
-  libApple,
   libAudio,
   libBrowser,
   libCharts,

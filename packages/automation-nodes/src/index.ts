@@ -1,4 +1,3 @@
-export * from "./nodes/lib-apple.js";
 export * from "./nodes/lib-browser.js";
 export * from "./nodes/triggers.js";
 export * from "./nodes/lib-sqlite.js";

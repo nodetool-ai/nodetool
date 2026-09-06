@@ -95,9 +95,7 @@ describe("codegen output", () => {
 describe("flow codegen output", () => {
   test("every flow module names a graph namespace", () => {
     // Both trees come from one metadata pass, so the flow tree can only hold
-    // namespaces the graph tree holds. It is not the same set on every
-    // machine: an optional pack absent here (lib.apple, macOS-only) leaves its
-    // graph file checked in with nothing to regenerate it from.
+    // namespaces the graph tree holds.
     const graph = new Set(
       fs
         .readdirSync(generatedDir)

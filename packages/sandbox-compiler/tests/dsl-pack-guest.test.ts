@@ -224,16 +224,10 @@ describe("every node type the DSL offers", () => {
     // main for a day.
     expect(wrappers.length).toBeGreaterThan(0);
     expect(wrappers.length).toBe(shippedWrapperCount());
-    // The pack ships one artifact for every platform, but base-nodes
-    // registers `lib.apple.*` only on darwin (base-nodes/src/index.ts) —
-    // off a Mac those wrappers are expected to miss, and nothing else is.
-    const platformGated = (type: string) =>
-      process.platform !== "darwin" && type.startsWith("lib.apple.");
+    // Every wrapper must resolve. No node the pack ships is registered per
+    // platform any more, so there is no exemption here.
     const unknown = wrappers
-      .filter(
-        (wrapper) =>
-          !registry.has(wrapper.nodeType) && !platformGated(wrapper.nodeType)
-      )
+      .filter((wrapper) => !registry.has(wrapper.nodeType))
       .map((wrapper) => `${wrapper.file}: ${wrapper.nodeType}`);
     expect(unknown).toEqual([]);
   });
