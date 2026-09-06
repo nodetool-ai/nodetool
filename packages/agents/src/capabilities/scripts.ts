@@ -63,12 +63,11 @@ import {
   editScriptSpec,
   writeScriptSpec,
   deriveStoryboardFromScriptSpec,
-  DEFAULT_CONCURRENCY,
-  MAX_CONCURRENCY,
   DEFAULT_ASR_PROVIDER,
   DEFAULT_ASR_MODEL,
   deleteScriptSpec
 } from "./scripts.specs.js";
+import { clampConcurrency, mapWithConcurrency } from "./concurrency.js";
 
 import { resolveProjectId } from "./project-scope.js";
 /** Lines one call may voice, so a whole-script call cannot run away. */
@@ -132,34 +131,6 @@ function findLine(lines: ScriptLine[], target: string): ScriptLine | undefined {
   }
   const text = target.trim().toLowerCase();
   return lines.find((l) => l.text.trim().toLowerCase() === text);
-}
-
-function clampConcurrency(value: unknown): number {
-  const n = Math.floor(Number(value));
-  if (!Number.isFinite(n) || n < 1) return DEFAULT_CONCURRENCY;
-  return Math.min(n, MAX_CONCURRENCY);
-}
-
-/** Run `task` over `items`, at most `limit` in flight. */
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  task: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let next = 0;
-  const workers = Array.from(
-    { length: Math.min(limit, items.length) },
-    async () => {
-      for (;;) {
-        const index = next++;
-        if (index >= items.length) return;
-        results[index] = await task(items[index]);
-      }
-    }
-  );
-  await Promise.all(workers);
-  return results;
 }
 
 /**
