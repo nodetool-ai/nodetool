@@ -20,9 +20,12 @@ import type { Theme } from "@mui/material/styles";
 import { Property } from "../../stores/ApiTypes";
 import type { Edge } from "@xyflow/react";
 import HandleOnlyField from "./HandleOnlyField";
+import { NODE_HEADER_MIN_HEIGHT } from "./NodeHeader";
 import { Z_INDEX } from "../ui_primitives";
 
 const HANDLE_ROW_HEIGHT = 18;
+/** Offset that centers the first handle row on the header row. */
+const HEADER_ALIGNED_TOP = (NODE_HEADER_MIN_HEIGHT - HANDLE_ROW_HEIGHT) / 2;
 
 const styles = (theme: Theme) =>
   css({
@@ -48,6 +51,14 @@ const styles = (theme: Theme) =>
       top: "auto",
       zIndex: "auto",
       marginBottom: theme.spacing(1)
+    },
+    // Header-aligned variant: used when the column's positioned ancestor
+    // contains the node header (OutputNode), where the floating variant's
+    // `spacing(4)` offset is measured from above the header and leaves the
+    // dot stranded in blank body below it. Centers the first row on the
+    // header instead, matching where every other node puts its first input.
+    "&.handle-column.handle-column--header": {
+      top: HEADER_ALIGNED_TOP
     },
     ".handle-only": {
       position: "relative",
@@ -81,9 +92,10 @@ interface HandleColumnProps {
    * when the column overlays a preview area (content card, bespoke bodies).
    * `"stacked"` takes flow space instead, so the input handles reserve a band
    * above sibling inline-field rows in the generic body and don't crowd their
-   * handles.
+   * handles. `"header"` pins the column so its first handle centers on the
+   * node header row — for bodies that render the header themselves.
    */
-  layout?: "floating" | "stacked";
+  layout?: "floating" | "stacked" | "header";
 }
 
 const HandleColumnImpl: React.FC<HandleColumnProps> = ({
@@ -109,7 +121,7 @@ const HandleColumnImpl: React.FC<HandleColumnProps> = ({
     <div
       css={cssStyles}
       className={`handle-column${
-        layout === "stacked" ? " handle-column--stacked" : ""
+        layout === "floating" ? "" : ` handle-column--${layout}`
       } ${className ?? ""}`}
     >
       {properties.map((property) => (

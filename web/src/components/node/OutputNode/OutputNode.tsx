@@ -39,7 +39,12 @@ const styles = (theme: Theme) =>
         display: "flex",
         flexDirection: "column",
         overflow: "visible",
-        "--node-body-padding": "8px",
+        // `.react-flow__node .node-body` (nodes.base.css) sets `padding: 0` and
+        // outranks this emotion class, so the body renders flush. The var must
+        // say the same: left handles offset themselves by
+        // `-6px - var(--node-body-padding)`, and claiming a padding the body
+        // does not have pushed the input dot 8px off the node's edge.
+        "--node-body-padding": "0px",
         padding: "var(--node-body-padding)",
         width: "100%",
         height: "100%",
@@ -405,7 +410,11 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
 
           {nodeMetadata && (
               <>
-                <HandleColumn id={props.id} properties={inputFieldProps} />
+                <HandleColumn
+                  id={props.id}
+                  properties={inputFieldProps}
+                  layout="header"
+                />
                 <NodeInputs
                   id={props.id}
                   nodeMetadata={nodeMetadata}
