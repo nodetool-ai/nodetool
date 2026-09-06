@@ -1056,8 +1056,11 @@ suites in `packages/protocol`; the `game-graph-chips` suite in
 design against the real node registry and passes the result through
 `validateGraph`, so a slot chain naming a node type nobody registered fails
 here instead of on a creator's canvas; the `packages/game-nodes` suite over the
-export node; and the web suites under `web/src/components/setup/game`,
-`web/src/hooks/game` and
+export node; the `capabilities-game-setup` and `capabilities-godot` suites in
+`packages/agents`, which drive the four `ui_game_*` mirrors and the export join
+both the node and the capability call; the `trpc-games` suite in
+`packages/websocket` over the templates query and the preset seed; and the web
+suites under `web/src/components/setup/game`, `web/src/hooks/game` and
 `web/src/lib/tools/builtin/__tests__/gameSetupTools.test.ts`. `harness gate`
 fires it on any diff touching those paths.
 

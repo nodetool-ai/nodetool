@@ -2,35 +2,16 @@
  * The `godot` capability module — a game template plus filled asset slots in,
  * a Godot project in the workspace out.
  *
- * The pieces are all elsewhere and this module only joins them: the templates
- * and the headless runner are `@nodetool-ai/godot-templates`, the resource
- * writer and reference checker are `@nodetool-ai/godot`, the slot contract is
- * `@nodetool-ai/protocol`. What is decided here is the join: the template's
- * own `project.godot` wins over the writer's (it carries the input map and
- * window settings), a filled audio slot whose extension differs from the
- * placeholder's has the scene references rewritten, a directory that already
- * holds a project keeps its scripts and scenes and only takes new assets, and
- * verification runs only where a real directory and a Godot binary exist,
- * saying so otherwise.
+ * What this module owns is the argument surface: slot args in, each asset read
+ * back from the store, its stamped fill checked, and the whole manifest checked
+ * against the template before anything is written. The join that follows —
+ * layout, asset copies, reference check, headless verification — is
+ * `joinGodotProject` in `@nodetool-ai/game-nodes`, which
+ * `nodetool.game.ExportGodotProject` calls too, so a project exported by a graph
+ * and one exported by this capability are written by the same code.
  */
 
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative, sep } from "node:path";
-import {
-  checkGodotProject,
-  writeGodotProject,
-  slotFileStem,
-  type GodotProject
-} from "@nodetool-ai/godot";
-import {
-  checkScripts,
-  findGodot,
-  getTemplate,
-  importProject,
-  listTemplates,
-  smokeProject,
-  type GodotRunResult
-} from "@nodetool-ai/godot-templates";
+import { getTemplate, listTemplates } from "@nodetool-ai/godot-templates";
 import {
   checkFilledManifest,
   filledManifest,
@@ -39,8 +20,14 @@ import {
   type FilledManifest,
   type FilledSlot
 } from "@nodetool-ai/protocol";
-import { loadMediaRefBytes } from "@nodetool-ai/runtime";
-import type { Workspace } from "@nodetool-ai/runtime";
+import {
+  danglingReferences,
+  extensionOf,
+  isJoinError,
+  joinGodotProject,
+  under,
+  verifyWithGodot
+} from "@nodetool-ai/game-nodes";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -67,32 +54,6 @@ const isError = (value: unknown): value is ToolError =>
 
 const NO_WORKSPACE_ERROR =
   "No workspace is configured for this context, and a Godot project is a directory of files.";
-
-/** Text files whose `res://` references may name a slot's asset. */
-const REFERENCING_EXTENSIONS = new Set(["tscn", "tres", "gd", "godot"]);
-
-const extensionOf = (path: string): string => {
-  const match = /\.([a-z0-9]+)$/i.exec(path);
-  return match ? match[1].toLowerCase() : "";
-};
-
-/** Every file under `dir`, project-relative with `/` separators. */
-function walkTemplate(dir: string): string[] {
-  const out: string[] = [];
-  const walk = (current: string) => {
-    for (const entry of readdirSync(current, { withFileTypes: true })) {
-      if (entry.name.startsWith(".")) continue;
-      const full = join(current, entry.name);
-      if (entry.isDirectory()) {
-        walk(full);
-      } else {
-        out.push(relative(dir, full).split(sep).join("/"));
-      }
-    }
-  };
-  walk(dir);
-  return out.sort();
-}
 
 // ---------------------------------------------------------------------------
 // list_game_templates
@@ -202,215 +163,6 @@ async function loadFilledManifest(
   return result.data;
 }
 
-/** `dir/relative`, with the workspace doing the normalizing. */
-const under = (dir: string, path: string): string => `${dir}/${path}`;
-
-type LayoutMode = "create" | "refresh";
-
-/**
- * Copy the template into the workspace, then lay the writer's output over it.
- *
- * Audio placeholders are `.wav`; a filled slot may be `.ogg`. When the
- * extensions differ the placeholder is dropped and every scene that named it
- * is rewritten to the real path, so the reference check below sees one file.
- *
- * In `refresh` mode a template file the directory already holds is left as it
- * is, so the hook scripts and scenes an agent edited after the first export
- * survive an art change. Audio references inside those kept files are still
- * rewritten, since the file they name may have moved extension this time.
- * The writer's resources and the asset copies are replaced in both modes.
- */
-async function layOutProject(
-  workspace: Workspace,
-  dir: string,
-  templateDir: string,
-  name: string,
-  project: GodotProject,
-  filled: FilledManifest,
-  mode: LayoutMode
-): Promise<{ written: string[]; rewritten: string[]; preserved: string[] }> {
-  const written: string[] = [];
-  const rewritten: string[] = [];
-  const preserved: string[] = [];
-
-  const templateFiles = walkTemplate(templateDir);
-
-  // The real audio path per placeholder stem, for slots whose extension moved.
-  const audioRenames = new Map<string, string>();
-  for (const slot of filled.slots) {
-    if (slot.fill.kind !== "sfx" && slot.fill.kind !== "music") continue;
-    const stem = `assets/audio/${slotFileStem(slot.slot_id)}`;
-    const copy = project.copies.find((c) => c.asset_id === slot.asset.asset_id);
-    const placeholder = templateFiles.find(
-      (f) => f.replace(/\.[a-z0-9]+$/i, "") === stem
-    );
-    if (copy && placeholder && placeholder !== copy.path) {
-      audioRenames.set(stem, copy.path);
-    }
-  }
-  const placeholderFor = (path: string): string | null => {
-    if (!path.startsWith("assets/audio/")) return null;
-    const stem = path.replace(/\.[a-z0-9]+$/i, "");
-    const target = audioRenames.get(stem);
-    return target && target !== path ? target : null;
-  };
-  const rewriteRefs = (text: string): { text: string; changed: boolean } => {
-    let changed = false;
-    let out = text;
-    for (const [stem, target] of audioRenames) {
-      const pattern = new RegExp(`res://${stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\.[a-z0-9]+`, "gi");
-      out = out.replace(pattern, () => {
-        changed = true;
-        return `res://${target}`;
-      });
-    }
-    return { text: out, changed };
-  };
-
-  const writerPaths = new Set(project.files.map((f) => f.path));
-  for (const rel of templateFiles) {
-    if (writerPaths.has(rel) && rel !== "project.godot") continue;
-    if (placeholderFor(rel)) continue;
-    const full = join(templateDir, rel);
-    const ext = extensionOf(rel);
-    if (mode === "refresh" && (await workspace.exists(under(dir, rel)))) {
-      preserved.push(rel);
-      if (REFERENCING_EXTENSIONS.has(ext)) {
-        const current = await workspace.readText(under(dir, rel));
-        const { text, changed } = rewriteRefs(current ?? "");
-        if (changed) {
-          rewritten.push(rel);
-          await workspace.write(under(dir, rel), text, "text/plain");
-        }
-      }
-      continue;
-    }
-    if (rel === "project.godot") {
-      const text = readFileSync(full, "utf8").replace(
-        /^config\/name=".*"$/m,
-        `config/name=${JSON.stringify(name)}`
-      );
-      await workspace.write(under(dir, rel), rewriteRefs(text).text, "text/plain");
-    } else if (REFERENCING_EXTENSIONS.has(ext)) {
-      const { text, changed } = rewriteRefs(readFileSync(full, "utf8"));
-      if (changed) rewritten.push(rel);
-      await workspace.write(under(dir, rel), text, "text/plain");
-    } else {
-      await workspace.write(under(dir, rel), new Uint8Array(readFileSync(full)));
-    }
-    written.push(rel);
-  }
-  for (const file of project.files) {
-    if (file.path === "project.godot") continue;
-    await workspace.write(under(dir, file.path), file.content, "text/plain");
-    written.push(file.path);
-  }
-  return { written, rewritten, preserved };
-}
-
-async function copyAssets(
-  run: CapabilityRun,
-  workspace: Workspace,
-  dir: string,
-  project: GodotProject
-): Promise<string[] | ToolError> {
-  const copied: string[] = [];
-  for (const copy of project.copies) {
-    let bytes: Uint8Array | null;
-    try {
-      bytes = await loadMediaRefBytes(
-        { uri: `asset://${copy.asset_id}`, asset_id: copy.asset_id },
-        run.context
-      );
-    } catch (error) {
-      return {
-        error: `Could not read asset ${copy.asset_id}: ${error instanceof Error ? error.message : String(error)}`
-      };
-    }
-    if (!bytes) return { error: `Asset ${copy.asset_id} has no bytes.` };
-    await workspace.write(under(dir, copy.path), bytes);
-    copied.push(copy.path);
-  }
-  return copied;
-}
-
-/**
- * Every `res://` path named by a text file under `dir` that no file answers.
- * The reader in `@nodetool-ai/godot` checks resource ids inside the writer's
- * own files; this checks the template's scenes against what actually landed.
- */
-async function danglingReferences(
-  workspace: Workspace,
-  dir: string
-): Promise<string[]> {
-  const entries = await workspace.list(dir, { recursive: true });
-  const present = new Set<string>();
-  const texts: string[] = [];
-  for (const entry of entries) {
-    if (entry.isDirectory) continue;
-    const rel = entry.path.startsWith(`${dir}/`) ? entry.path.slice(dir.length + 1) : entry.path;
-    present.add(rel);
-    if (REFERENCING_EXTENSIONS.has(extensionOf(rel))) texts.push(rel);
-  }
-  const dangling = new Set<string>();
-  for (const rel of texts) {
-    const text = await workspace.readText(under(dir, rel));
-    if (!text) continue;
-    for (const match of text.matchAll(/res:\/\/([^"'\s)]+)/g)) {
-      if (!present.has(match[1])) dangling.add(`${rel} -> res://${match[1]}`);
-    }
-  }
-  return [...dangling].sort();
-}
-
-interface GodotVerification {
-  ran: boolean;
-  reason?: string;
-  import?: GodotRunResult;
-  scripts?: Array<{ script: string; code: number | null; stderr: string }>;
-  smoke?: GodotRunResult;
-  ok?: boolean;
-}
-
-const trimOutput = (r: GodotRunResult): GodotRunResult => ({
-  code: r.code,
-  stdout: r.stdout.slice(-4000),
-  stderr: r.stderr.slice(-4000)
-});
-
-async function verifyWithGodot(
-  workspace: Workspace,
-  dir: string
-): Promise<GodotVerification> {
-  if (!workspace.localDir) {
-    return {
-      ran: false,
-      reason: "This run has a virtual workspace; Godot needs a real directory."
-    };
-  }
-  if (!findGodot()) {
-    return {
-      ran: false,
-      reason: "No Godot binary found: set GODOT_BIN or put godot on PATH."
-    };
-  }
-  const projectDir = join(workspace.localDir, workspace.key(dir));
-  const imported = trimOutput(await importProject(projectDir));
-  const scripts = await checkScripts(projectDir);
-  const smoke = trimOutput(await smokeProject(projectDir));
-  return {
-    ran: true,
-    import: imported,
-    scripts: scripts.results.map((r) => ({
-      script: r.script,
-      code: r.code,
-      stderr: r.stderr.slice(-2000)
-    })),
-    smoke,
-    ok: imported.code === 0 && scripts.ok && smoke.code === 0
-  };
-}
-
 const exportGodotProject: CapabilityExport = {
   spec: exportGodotProjectSpec,
   impl: async (run, params) => {
@@ -450,50 +202,32 @@ const exportGodotProject: CapabilityExport = {
       };
     }
 
-    const project = writeGodotProject({
-      name,
+    const outcome = await joinGodotProject({
+      manifest: template.manifest,
+      templateDir: template.dir,
       godot: template.manifest.godot,
-      filled,
-      manifest: template.manifest
-    });
-    const resourceProblems = checkGodotProject(project);
-    if (resourceProblems.length > 0) {
-      return { error: "The writer produced dangling resources.", problems: resourceProblems };
-    }
-
-    const mode: LayoutMode =
-      !overwrite && (await workspace.exists(under(dir, "project.godot")))
-        ? "refresh"
-        : "create";
-    const { written, rewritten, preserved } = await layOutProject(
-      workspace,
-      dir,
-      template.dir,
       name,
-      project,
+      dir,
       filled,
-      mode
-    );
-    const copied = await copyAssets(run, workspace, dir, project);
-    if (isError(copied)) return copied;
-
-    const dangling = await danglingReferences(workspace, dir);
-    const verification: GodotVerification = verify
-      ? await verifyWithGodot(workspace, dir)
-      : { ran: false, reason: "verify was false." };
+      workspace,
+      context: run.context,
+      verify,
+      overwrite
+    });
+    if (isJoinError(outcome)) return outcome;
 
     return {
       dir,
       template: template.id,
-      mode,
+      mode: outcome.mode,
       hooks: template.manifest.hooks,
-      files_written: written.length + copied.length,
-      files_preserved: preserved,
-      assets_copied: copied,
-      references_rewritten: rewritten,
-      dangling_references: dangling,
-      verification,
-      ok: dangling.length === 0 && (verification.ran ? verification.ok === true : true)
+      files_written: outcome.written.length + outcome.copied.length,
+      files_preserved: outcome.preserved,
+      assets_copied: outcome.copied,
+      references_rewritten: outcome.rewritten,
+      dangling_references: outcome.dangling,
+      verification: outcome.verification,
+      ok: outcome.ok
     };
   }
 };

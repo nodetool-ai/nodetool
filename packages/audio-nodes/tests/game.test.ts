@@ -67,6 +67,18 @@ function seamDiscontinuity(s: Float32Array, span = 4): number {
   return total / (2 * span);
 }
 
+/**
+ * The `fill` output without the locator the export node reads: the checker's
+ * handle carries `asset_id` and `uri` beside the protocol fill, while the fill
+ * stamped on the ref's own metadata stays the bare one the Godot writer reads.
+ */
+function bareFill(fill: Record<string, unknown>): Record<string, unknown> {
+  const { asset_id, uri, ...rest } = fill;
+  void asset_id;
+  void uri;
+  return rest;
+}
+
 describe("SoundEffect", () => {
   it("fills sfx.jump from an overlong clip and passes checkSlotFill", async () => {
     const spec = slot("sfx.jump");
@@ -77,7 +89,7 @@ describe("SoundEffect", () => {
     }).process();
     expect(checkSlotFill(spec, fill)).toEqual([]);
     expect(fill.seconds).toBeCloseTo(0.4, 3);
-    expect(output.metadata?.[SLOT_METADATA_KEY]).toEqual(fill);
+    expect(output.metadata?.[SLOT_METADATA_KEY]).toEqual(bareFill(fill));
     const s = outSamples(output);
     expect(s.length).toBe(Math.round(0.4 * SAMPLE_RATE));
     expect(Math.abs(s[s.length - 1])).toBeLessThan(1e-3);
@@ -113,7 +125,7 @@ describe("MusicLoop", () => {
     expect(fill.loop).toBe(true);
     expect(fill.seconds).toBeCloseTo(60, 2);
     expect(checkSlotFill(spec, fill)).toEqual([]);
-    expect(output.metadata?.[SLOT_METADATA_KEY]).toEqual(fill);
+    expect(output.metadata?.[SLOT_METADATA_KEY]).toEqual(bareFill(fill));
   });
 
   it("crossfade closes the seam the raw input fails", async () => {
@@ -156,7 +168,12 @@ describe("MusicLoop", () => {
     expect(content).toBeInstanceOf(Uint8Array);
     // The stored bytes are the trimmed clip, not the two-second input.
     expect(content.length).toBeLessThan(sineRef(1).data!.length);
-    expect((calls[0].metadata as Record<string, unknown>)[SLOT_METADATA_KEY]).toEqual(fill);
+    expect((calls[0].metadata as Record<string, unknown>)[SLOT_METADATA_KEY]).toEqual(
+      bareFill(fill)
+    );
+    // The handle the export node reads names the asset the checker just stored.
+    expect(fill.asset_id).toBe("asset-sfx");
+    expect(fill.uri).toBe("asset://asset-sfx.wav");
   });
 
   it("returns the ref inline when the context cannot create assets", async () => {

@@ -27,6 +27,9 @@
       "path": "../dsl"
     },
     {
+      "path": "../godot-templates"
+    },
+    {
       "path": "../document-nodes"
     },
     {

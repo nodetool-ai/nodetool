@@ -22,6 +22,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/agents` | Planning agent system — TaskPlanner, TaskExecutor, CodeActExecutor, Tool registry |
 | `@nodetool-ai/chat` | Chat message processing and token counting |
 | `@nodetool-ai/base-nodes` | Compatibility shell re-exporting the domain node packages (`core-nodes`, `text-nodes`, `llm-nodes`, `data-nodes`, `document-nodes`, `image-nodes`, `audio-nodes`, `video-nodes`, `integration-nodes`, `code-nodes`, `automation-nodes`) as `ALL_BASE_NODES` |
+| `@nodetool-ai/game-nodes` | `nodetool.game.ExportGodotProject` and the export join it shares with the `export_godot_project` capability |
 | `@nodetool-ai/fal-nodes` | FAL AI integration nodes |
 | `@nodetool-ai/fal-codegen` | Code generator for FAL AI node definitions |
 | `@nodetool-ai/replicate-nodes` | Replicate integration nodes |

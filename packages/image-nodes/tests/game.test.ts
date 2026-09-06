@@ -90,6 +90,18 @@ function stamped(result: Record<string, unknown>): unknown {
   return output.metadata[SLOT_METADATA_KEY];
 }
 
+/**
+ * The `fill` output without the locator the export node reads: the checker's
+ * handle carries `asset_id` and `uri` beside the protocol fill, while the fill
+ * stamped on the ref's own metadata stays the bare one the Godot writer reads.
+ */
+function bareFill(result: Record<string, unknown>): Record<string, unknown> {
+  const { asset_id, uri, ...rest } = result.fill as Record<string, unknown>;
+  void asset_id;
+  void uri;
+  return rest;
+}
+
 describe("nodetool.game.SpriteSheet", () => {
   const player = slot("player");
   if (player.kind !== "spritesheet") throw new Error("player is a spritesheet");
@@ -114,7 +126,9 @@ describe("nodetool.game.SpriteSheet", () => {
       jump: { from: 12, to: 13, fps: 8, loop: false },
       hurt: { from: 14, to: 15, fps: 8, loop: false }
     });
-    expect(stamped(result)).toEqual(fill);
+    expect(stamped(result)).toEqual(bareFill(result));
+    // The export node copies the stored bytes, so the handle names them.
+    expect(fill).toMatchObject({ asset_id: null, uri: "" });
   });
 
   it("accepts the animations as a JSON string and honours loop overrides", async () => {
@@ -217,7 +231,7 @@ describe("nodetool.game.Tileset", () => {
     const fill = result.fill as TilesetFill;
     expect(checkSlotFill(ground, fill)).toEqual([]);
     expect(fill).toMatchObject({ columns: 4, rows: 3, count: 12 });
-    expect(stamped(result)).toEqual(fill);
+    expect(stamped(result)).toEqual(bareFill(result));
   });
 
   it("throws when the count exceeds the grid or the sheet is off-cell", async () => {
@@ -268,7 +282,7 @@ describe("nodetool.game.SeamlessImage", () => {
       threshold: 12
     });
     const fill = result.fill as ImageFill;
-    expect(fill).toEqual({
+    expect(bareFill(result)).toEqual({
       kind: "image",
       slot_id: "bg.far",
       size: [w, h],
@@ -276,7 +290,7 @@ describe("nodetool.game.SeamlessImage", () => {
       seamless_y: false
     });
     expect(checkSlotFill(bgFar, fill)).toEqual([]);
-    expect(stamped(result)).toEqual(fill);
+    expect(stamped(result)).toEqual(bareFill(result));
   });
 
   it("reports seamless_x false for a hard-edged image and fails the slot", async () => {
@@ -365,7 +379,14 @@ describe("nodetool.game.SeamlessImage", () => {
     expect(calls[0].name).toBe("player.png");
     expect(calls[0].contentType).toBe("image/png");
     expect(calls[0].content).toBeInstanceOf(Uint8Array);
-    expect((calls[0].metadata as Record<string, unknown>)[SLOT_METADATA_KEY]).toEqual(result.fill);
+    expect((calls[0].metadata as Record<string, unknown>)[SLOT_METADATA_KEY]).toEqual(
+      bareFill(result)
+    );
+    // The handle the export node reads names the asset the checker just stored.
+    expect(result.fill).toMatchObject({
+      asset_id: "asset-player",
+      uri: "asset://asset-player.png"
+    });
   });
 
   it("reads a stored asset through the asset resolver, not the temporary store", async () => {

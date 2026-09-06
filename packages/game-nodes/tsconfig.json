@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../godot" },
+    { "path": "../godot-templates" },
+    { "path": "../node-sdk" },
+    { "path": "../nodes-utils" },
+    { "path": "../protocol" },
+    { "path": "../runtime" }
+  ]
+}

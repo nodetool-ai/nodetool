@@ -17,6 +17,9 @@
       "path": "../config"
     },
     {
+      "path": "../game-nodes"
+    },
+    {
       "path": "../godot"
     },
     {

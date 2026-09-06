@@ -443,20 +443,20 @@ of each other. Inside a phase, tasks are listed in dependency order.
 
 ### G1b — Node, seeds, harness (backend)
 
-- [ ] **`packages/game-nodes`.** `nodetool.game.ExportGodotProject` per
+- [x] **`packages/game-nodes`.** `nodetool.game.ExportGodotProject` per
       § 5.5 with `supportsDynamicInputs`, the export join extracted from
       `packages/agents/src/capabilities/godot.ts` into one module both call,
       the zip beside the directory. Registered in `@nodetool-ai/base-nodes`,
       the root workspaces, the backend bundle. Tests: the filled fixture
       exports and reports `verified: false` with a reason without Godot; no
       inputs exports the placeholders; a fill for another slot is an error.
-- [ ] **Templates query and seeds.** `games.templates` trpc query;
+- [x] **Templates query and seeds.** `games.templates` trpc query;
       `seedStylePresets` takes a preset list; `games.stylePresets` seeds the
       six game presets idempotently.
-- [ ] **Headless setup capabilities.** `ui_game_*`'s server mirrors in
+- [x] **Headless setup capabilities.** `ui_game_*`'s server mirrors in
       `packages/agents/src/capabilities/workflows.ts`, capability table rows,
       `npm run capabilities:check` green.
-- [ ] **Harness.** `game-flow` entry in `packages/cli/src/harness/registry.ts`
+- [x] **Harness.** `game-flow` entry in `packages/cli/src/harness/registry.ts`
       whose selfcheck runs the protocol suites, a `packages/base-nodes` suite
       that builds every chip's placement against the real registry and
       passes it through the validator (criterion 5), the game-nodes suite,
