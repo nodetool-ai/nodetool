@@ -26,21 +26,6 @@ import {
   MOVEMENT_OPTIONS
 } from "../../components/storyboard/cameraOptions";
 
-/** Header names, in the order the template writes them. Order is free. */
-export const SHOTLIST_COLUMNS = [
-  "scene",
-  "shot",
-  "description",
-  "dialogue",
-  "duration_seconds",
-  "size",
-  "perspective",
-  "movement",
-  "equipment",
-  "focal_length",
-  "notes"
-] as const;
-
 /** Without these two a row describes nothing (PRD § 7.7.8). */
 export const REQUIRED_COLUMNS = ["scene", "description"] as const;
 

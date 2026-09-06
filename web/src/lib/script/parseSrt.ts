@@ -34,9 +34,6 @@ export interface SubtitleImport {
   text: string;
 }
 
-/** The file picker's accept list for the subtitle path. */
-export const SUBTITLE_ACCEPT = ".srt,.vtt,text/vtt";
-
 /** The single speaker every subtitle import is cast under. */
 const NARRATOR = "Narrator";
 

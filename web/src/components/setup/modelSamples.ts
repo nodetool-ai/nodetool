@@ -27,15 +27,6 @@ export const MODEL_SAMPLE_BASE_URL = "https://cdn.nodetool.ai/model-samples";
 /** What a sample is: a clip for a video model, a still for an image model. */
 export type ModelSampleKind = "video" | "image";
 
-/**
- * Every sample of a kind is the same prompt, so the tiles compare models, not
- * prompts.
- */
-export const MODEL_SAMPLE_PROMPTS: Record<ModelSampleKind, string> = {
-  video: "A paper boat crossing a puddle at dusk, slow push in",
-  image: "A paper boat crossing a puddle at dusk"
-};
-
 const SAMPLE_EXTENSION: Record<ModelSampleKind, string> = {
   video: "mp4",
   image: "jpg"

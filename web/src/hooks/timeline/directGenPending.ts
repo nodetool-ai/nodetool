@@ -169,7 +169,3 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
     }
   )
 );
-
-/** What a bucket's next request is expected to take, or null if unmeasured. */
-export const expectedDurationMs = (bucket: string): number | null =>
-  measuredDurationMs(useDirectGenPendingStore.getState().durationSamples[bucket]);
