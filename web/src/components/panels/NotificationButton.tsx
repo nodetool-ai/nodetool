@@ -6,7 +6,7 @@ import { Popover } from "../ui_primitives";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
-import { CopyButton, Text, Caption, NotificationBadge, ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { CopyButton, Text, Caption, NotificationBadge, ToolbarIconButton, Box, MOTION, BORDER_RADIUS, SHADOW } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 import ReportBugButton from "../support/ReportBugButton";
 
@@ -92,7 +92,7 @@ const NotificationButton: React.FC = React.memo(() => {
         paperSx={{
           backdropFilter: "blur(8px)",
           backgroundColor: `${theme.vars.palette.grey[900]}E6`,
-          boxShadow: "0 16px 64px rgba(0, 0, 0, 0.4)",
+          boxShadow: SHADOW(theme).xl,
           border: `1px solid ${theme.vars.palette.grey[800]}`
         }}
       >

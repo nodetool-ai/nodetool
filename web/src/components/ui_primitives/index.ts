@@ -500,3 +500,29 @@ export type {
   MuiAutocompleteProps,
   MuiDialogProps
 } from "./muiReexports";
+
+// ConfirmDialog (relocated from components/dialogs)
+export { ConfirmDialog } from "./ConfirmDialog";
+export type { ConfirmDialogProps } from "./ConfirmDialog";
+
+// AutoGrid
+export { AutoGrid } from "./AutoGrid";
+export type { AutoGridProps } from "./AutoGrid";
+
+// Elevation token
+export { SHADOW } from "./tokens";
+
+// InlineEditableText
+export { InlineEditableText } from "./InlineEditableText";
+export type { InlineEditableTextProps } from "./InlineEditableText";
+
+// Resize primitives
+export { ResizeHandle } from "./ResizeHandle";
+export type { ResizeHandleProps } from "./ResizeHandle";
+export { ResizableDock } from "./ResizableDock";
+export type { ResizableDockProps } from "./ResizableDock";
+
+// VirtualList
+export { VirtualList } from "./VirtualList";
+export type { VirtualListProps } from "./VirtualList";
+export type { VirtualListHandle } from "./VirtualList";

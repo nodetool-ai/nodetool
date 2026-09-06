@@ -11,6 +11,7 @@ import type { Entity } from "@nodetool-ai/protocol";
 
 import { useDeleteEntity, useEntities } from "../../serverState/useEntities";
 import {
+  AutoGrid,
   EmptyState,
   FlexRow,
   LoadingSpinner,
@@ -23,14 +24,6 @@ import {
 import EntityAssetPickerDialog from "./EntityAssetPickerDialog";
 import EntityCard from "./EntityCard";
 import EntityEditorDialog from "./EntityEditorDialog";
-
-const gridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-  gap: getSpacingPx(SPACING.md),
-  padding: getSpacingPx(SPACING.md),
-  width: "100%"
-};
 
 /** Picks an image asset, then opens the editor to describe it. */
 export const CreateEntityButton = memo(function CreateEntityButton() {
@@ -102,7 +95,11 @@ const EntityListPanelInternal: React.FC = () => {
   return (
     <>
       <ScrollArea fullHeight>
-        <div style={gridStyle}>
+        <AutoGrid
+          minItemWidth={140}
+          gap={SPACING.md}
+          sx={{ padding: getSpacingPx(SPACING.md), width: "100%" }}
+        >
           {entities.map((entity) => (
             <EntityCard
               key={entity.id}
@@ -111,7 +108,7 @@ const EntityListPanelInternal: React.FC = () => {
               onRemove={handleRemove}
             />
           ))}
-        </div>
+        </AutoGrid>
       </ScrollArea>
       {editing && (
         <EntityEditorDialog

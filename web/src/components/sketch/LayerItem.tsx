@@ -7,7 +7,7 @@
  * Group layers show an expand/collapse toggle and a folder icon.
  */
 
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
@@ -38,6 +38,7 @@ import {
   SPACING,
   getSpacingPx,
   IconButton,
+  InlineEditableText,
   MagicGenerationFill,
   ResponsiveImage
 } from "../ui_primitives";
@@ -75,7 +76,11 @@ interface LayerItemProps {
   dropPosition: DropPosition;
   /** True only for the row being renamed — keeps other rows' memo stable while typing. */
   isEditing: boolean;
-  /** Live rename input value; empty string for rows not being edited. */
+  /**
+   * Live rename input value; empty string for rows not being edited. The
+   * draft now lives in `InlineEditableText`, which mirrors it back through
+   * `onEditNameChange` — the prop remains part of the panel's contract.
+   */
   editName: string;
   onLayerRowPointerDown: (e: React.PointerEvent, layerId: string) => void;
   onLayerRowClick: (e: React.MouseEvent, layerId: string) => void;
@@ -127,7 +132,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
   isIsolated,
   dropPosition,
   isEditing,
-  editName,
+  editName: _editName,
   onLayerRowPointerDown,
   onLayerRowClick,
   onVisibilityButtonMouseDown,
@@ -149,6 +154,21 @@ const LayerItem: React.FC<LayerItemProps> = ({
   onToggleGroupCollapsed,
   bindingStatus
 }) => {
+  // The panel still owns the draft name, so mirror each keystroke up before
+  // the commit reads it.
+  const handleFinishRename = useCallback(() => {
+    onFinishRename(layer.id);
+  }, [onFinishRename, layer.id]);
+
+  const handleEditingChange = useCallback(
+    (next: boolean) => {
+      if (!next) {
+        onCancelRename();
+      }
+    },
+    [onCancelRename]
+  );
+
   const isGroup = layer.type === "group";
   // Whether the layer has a thumbnail at all; `ResponsiveImage` resolves the
   // locator itself, since a raw `asset://` is not a path any <img> can load.
@@ -333,29 +353,15 @@ const LayerItem: React.FC<LayerItemProps> = ({
         )}
 
         {isEditing ? (
-          <input
-            aria-label="Layer name"
-            value={editName}
-            onChange={(e) => onEditNameChange(e.target.value)}
-            onBlur={() => onFinishRename(layer.id)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                onFinishRename(layer.id);
-              }
-              if (e.key === "Escape") {
-                onCancelRename();
-              }
-            }}
-            autoFocus
-            style={{
-              flex: 1,
-              background: "transparent",
-              border: "none",
-              color: "inherit",
-              fontSize: "inherit",
-              outline: "none",
-              padding: `0 ${getSpacingPx(SPACING.micro)}`
-            }}
+          <InlineEditableText
+            ariaLabel="Layer name"
+            value={layer.name}
+            editing
+            onDraftChange={onEditNameChange}
+            onEditingChange={handleEditingChange}
+            onCommit={handleFinishRename}
+            onCancel={onCancelRename}
+            sx={{ flex: 1, fontSize: "inherit" }}
           />
         ) : (
           <FlexColumn sx={{ flex: 1, minWidth: 0, gap: 0 }}>

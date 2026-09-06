@@ -58,6 +58,7 @@ import {
   FONT_SIZE_SANS,
   FONT_SIZE_MONO,
   FONT_WEIGHT,
+  InlineEditableText,
   SPACING,
   getSpacingPx,
   Z_INDEX
@@ -355,48 +356,24 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
   const TypeIcon = meta.Icon;
 
   const [editingName, setEditingName] = useState(false);
-  const [localName, setLocalName] = useState(track.name);
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState<{
     x: number;
     y: number;
   } | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
+  // `InlineEditableText` owns the draft, the deferred focus (the input is
+  // read-only until the edit render lands, and the focus has to outrun the
+  // closing menu), and the guard against a stale blur committing after Escape.
   const startRename = useCallback(() => {
     setEditingName(true);
-    setLocalName(track.name);
-    // The input is read-only until the re-render above lands; the deferred
-    // focus also outruns the closing menu's own focus handling.
-    setTimeout(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }, 0);
-  }, [track.name]);
+  }, []);
 
-  const commitName = useCallback(() => {
-    // Blur fires even when the input is read-only (not in edit mode) — don't
-    // commit the stale localName from a previous edit session in that case.
-    if (!editingName) {
-      return;
-    }
-    setEditingName(false);
-    if (localName.trim()) {
-      setTrackName(track.id, localName.trim());
-    }
-  }, [editingName, localName, setTrackName, track.id]);
-
-  const handleNameKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") {
-        commitName();
-      }
-      if (e.key === "Escape") {
-        setEditingName(false);
-        setLocalName(track.name);
-      }
+  const commitName = useCallback(
+    (next: string) => {
+      setTrackName(track.id, next);
     },
-    [commitName, track.name]
+    [setTrackName, track.id]
   );
 
   const dragStartYRef = useRef(0);
@@ -722,17 +699,16 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
           </>
         )}
         <div css={nameWrapStyles}>
-          <input
-            ref={inputRef}
+          <InlineEditableText
             css={nameInputCss}
-            value={editingName ? localName : track.name}
-            readOnly={!editingName}
-            onChange={(e) => setLocalName(e.target.value)}
-            onDoubleClick={startRename}
-            onBlur={commitName}
-            onKeyDown={handleNameKeyDown}
-            aria-label={`Track name: ${track.name}`}
-            title={editingName ? undefined : "Double-click to rename"}
+            unstyled
+            displayAsInput
+            value={track.name}
+            editing={editingName}
+            onEditingChange={setEditingName}
+            onCommit={commitName}
+            ariaLabel={`Track name: ${track.name}`}
+            title="Double-click to rename"
           />
           <span
             css={indexChipCss}

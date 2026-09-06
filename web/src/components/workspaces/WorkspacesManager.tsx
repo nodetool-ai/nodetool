@@ -19,7 +19,7 @@ import {
   WORKSPACES_QUERY_KEY
 } from "../../hooks/useWorkspaces";
 import { useFolderPicker } from "./useFolderPicker";
-import ConfirmDialog from "../dialogs/ConfirmDialog";
+import { ConfirmDialog } from "../ui_primitives";
 import {
   Box,
   Chip,

@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { shallow } from "zustand/shallow";
 
 import { css } from "@emotion/react";
@@ -24,7 +23,8 @@ import {
   getSpacingPx,
   MenuItem,
   TextField,
-  InputAdornment
+  InputAdornment,
+  VirtualList
 } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
@@ -230,15 +230,6 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   );
 
   const totalCount = filteredNodes.length;
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const virtualizer = useVirtualizer({
-    count: totalCount,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => NODE_ROW_HEIGHT,
-    overscan: theme.virtualScroll.overscan.normal,
-    getItemKey: (index) => filteredNodes[index]?.node_type ?? index
-  });
 
   const { createNode, addNode, addEdge, generateEdgeId } = useNodes(
     (state) => ({
@@ -349,6 +340,24 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     []
   );
 
+  const itemProps = useCallback(
+    () => ({ className: "node-item-container" }),
+    []
+  );
+
+  const renderNode = useCallback(
+    (nodeMetadata: NodeMetadata) =>
+      nodeMetadata ? (
+        <NodeItem
+          node={nodeMetadata}
+          onDragStart={handleDragStart}
+          onClick={handleNodeClick}
+          showFavoriteButton={false}
+        />
+      ) : null,
+    [handleDragStart, handleNodeClick]
+  );
+
   // Skipped on touch, where the virtual keyboard would cover the menu.
   useEffect(() => {
     if (!isVisible || !autoFocusEnabled) {
@@ -427,57 +436,31 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
         </MenuItem>
       </Box>
 
-      <div
-        ref={scrollRef}
-        css={scrollableContentStyles}
-        className="connectable-nodes-content"
-        style={{ overflowY: "auto", overflowX: "hidden" }}
-      >
-        {totalCount === 0 ? (
+      {totalCount === 0 ? (
+        <div
+          css={scrollableContentStyles}
+          className="connectable-nodes-content"
+          style={{ overflowY: "auto", overflowX: "hidden" }}
+        >
           <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
             <Text size="small">
               No nodes match &quot;{searchTerm}&quot;.
             </Text>
           </Box>
-        ) : (
-          <div
-            style={{
-              height: virtualizer.getTotalSize(),
-              position: "relative",
-              width: "100%"
-            }}
-          >
-            {virtualizer.getVirtualItems().map((virtualItem) => {
-              const nodeMetadata = filteredNodes[virtualItem.index];
-              if (!nodeMetadata) {
-                return null;
-              }
-
-              return (
-                <div
-                  className="node-item-container"
-                  key={virtualItem.key}
-                  style={{
-                    height: virtualItem.size,
-                    left: 0,
-                    position: "absolute",
-                    top: 0,
-                    transform: `translateY(${virtualItem.start}px)`,
-                    width: "100%"
-                  }}
-                >
-                  <NodeItem
-                    node={nodeMetadata}
-                    onDragStart={handleDragStart}
-                    onClick={handleNodeClick}
-                    showFavoriteButton={false}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <VirtualList
+          css={scrollableContentStyles}
+          className="connectable-nodes-content"
+          items={filteredNodes}
+          estimateSize={NODE_ROW_HEIGHT}
+          overscan={theme.virtualScroll.overscan.normal}
+          getItemKey={(node, index) => node?.node_type ?? index}
+          getItemProps={itemProps}
+          ariaLabel="Connectable nodes"
+          renderItem={renderNode}
+        />
+      )}
     </ContextMenu>
   );
 });

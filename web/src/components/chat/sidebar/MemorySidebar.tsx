@@ -22,7 +22,7 @@ import {
 } from "../../ui_primitives";
 import { trpc, type RouterOutputs } from "../../../trpc/client";
 import { useNotificationStore } from "../../../stores/NotificationStore";
-import ConfirmDialog from "../../dialogs/ConfirmDialog";
+import { ConfirmDialog } from "../../ui_primitives";
 import { isString } from "../../../utils/typePredicates";
 
 const MEMORY_SIDEBAR_WIDTH = 300;

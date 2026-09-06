@@ -245,7 +245,7 @@ MyPrimitive.displayName = "MyPrimitive";
 **4. Styling rules**
 - All styles via `useTheme()` — no hardcoded values
 - `sx` prop for overrides (forward it to the root element)
-- Spacing from `SPACING.*`, radii from `BORDER_RADIUS.*`, motion from `MOTION.*`
+- Spacing from `SPACING.*`, radii from `BORDER_RADIUS.*`, motion from `MOTION.*`, elevation from `SHADOW(theme).*`
 - Pair every `transition` with `reducedMotion({ transition: MOTION.none })` (WCAG 2.3.3)
 - Dark/light parity: verify in both color schemes before merging
 
@@ -446,6 +446,27 @@ borderRadius: BORDER_RADIUS.circle // "var(--rounded-circle)"
 ```
 
 Use `BORDER_RADIUS` instead of raw `"var(--rounded-*)"` strings or magic numbers like `999`, `10`, `4`.
+
+### SHADOW — elevation
+
+A helper, not a const map: the shadow color comes from the palette
+(`common.blackChannel`), never an `rgba(0, 0, 0, …)` literal.
+
+```ts
+import { SHADOW } from "../ui_primitives";
+
+boxShadow: SHADOW(theme).ambient    // no offset — slider thumbs, small round controls
+boxShadow: SHADOW(theme).sm         // resting lift — chips, badges, small buttons
+boxShadow: SHADOW(theme).md         // hover lift, small popovers
+boxShadow: SHADOW(theme).lg         // dropdowns, menus, floating panels, dialogs
+boxShadow: SHADOW(theme).xl         // modals and full-screen overlays
+boxShadow: SHADOW(theme).panelLeft  // left panel's right edge
+boxShadow: SHADOW(theme).panelRight // right panel's left edge
+```
+
+Use `SHADOW` instead of a literal such as `boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"`.
+Focus and selection rings and `inset` shadows are borders, not elevation, and stay
+outside this scale.
 
 ### scrollbarStyles — standard themed scrollbar
 

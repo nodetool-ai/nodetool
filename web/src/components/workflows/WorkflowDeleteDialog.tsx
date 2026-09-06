@@ -1,6 +1,6 @@
 import { FC, useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
-import ConfirmDialog from "../dialogs/ConfirmDialog";
+import { ConfirmDialog } from "../ui_primitives";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";

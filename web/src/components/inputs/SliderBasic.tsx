@@ -4,6 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { SliderProps } from "../ui_primitives";
 import {
   Tooltip,
+  SHADOW,
   SPACING,
   getSpacingPx,
   Slider
@@ -29,19 +30,19 @@ const sliderBasicStyles = (theme: Theme) =>
     },
     ".MuiSlider-thumb": {
       backgroundColor: theme.vars.palette.grey[200],
-      boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)",
+      boxShadow: SHADOW(theme).ambient,
       borderRadius: "0",
       width: "8px",
       height: "8px",
       "&:hover, &:focus, &:active": {
-        boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)",
+        boxShadow: SHADOW(theme).ambient,
         backgroundColor: "var(--palette-primary-main)"
       },
       "&.Mui-focusVisible": {
-        boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)"
+        boxShadow: SHADOW(theme).ambient
       },
       "&.Mui-active": {
-        boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)"
+        boxShadow: SHADOW(theme).ambient
       },
       "&::before, &::after": {
         width: "12px",

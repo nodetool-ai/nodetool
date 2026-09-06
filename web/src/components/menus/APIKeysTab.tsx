@@ -40,7 +40,7 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import { ToolbarIconButton } from "../ui_primitives";
-import ConfirmDialog from "../dialogs/ConfirmDialog";
+import { ConfirmDialog } from "../ui_primitives";
 import GoogleWorkspaceCard from "./GoogleWorkspaceCard";
 import { CustomProvidersSection } from "./CustomProvidersSection";
 

@@ -21,7 +21,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ClearIcon from "@mui/icons-material/Clear";
-import { CloseButton } from "../ui_primitives";
+import { CloseButton, SHADOW } from "../ui_primitives";
 import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
 
 const styles = (theme: Theme) =>
@@ -37,7 +37,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       backgroundColor: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.xl,
-      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+      boxShadow: SHADOW(theme).lg,
       border: `1px solid ${theme.vars.palette.divider}`,
       animation: `fadeIn ${MOTION.fast} forwards`,
       overflow: "hidden"
