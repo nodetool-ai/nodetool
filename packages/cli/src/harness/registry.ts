@@ -128,6 +128,23 @@ const CAPABILITY_SUITES =
   "sandbox-package-docs sandbox-package-listing browser-tools " +
   "timelines-op-input timeline-video-flow";
 
+/**
+ * The pure derivations behind the graph-resource nodes plus the node suites
+ * that drive them, in dependency order (design §7). One constant because the
+ * entry's `command` and its `selfcheck` must not drift: a selfcheck that runs
+ * less than the command it stands for reports green on code it never executed.
+ *
+ * The arguments are vitest path filters, so a suite whose filename matches
+ * none of them is not run however well it is written.
+ */
+const GRAPH_RESOURCES_SUITES =
+  "npm run test --workspace=packages/storyboard && " +
+  "npm run test --workspace=packages/timeline -- derive && " +
+  "npm run test --workspace=packages/protocol -- script-fill game-slot-prompt && " +
+  "npm run test --workspace=packages/game-nodes && " +
+  "npm run test --workspace=packages/core-nodes -- entity-nodes && " +
+  "npm run test --workspace=packages/video-nodes -- storyboard-nodes script-nodes";
+
 export const HARNESSES: HarnessEntry[] = [
   {
     id: "validate",
@@ -510,6 +527,29 @@ CAPABILITY_SUITES,
       command:
         "npm run capabilities:check && " +
 CAPABILITY_SUITES,
+      cost: "cheap"
+    }
+  },
+  {
+    id: "graph-resources",
+    title:
+      "Graph resources (recast, fill, retarget, slot prompts — pure suites plus fake-mode runs of the shipped examples)",
+    // Two halves, and the second is what the first cannot claim. The suites
+    // pin every derivation on fixtures; `fixtures:graph-resources` seeds a
+    // scratch install with a template board, its approved cut and an entity
+    // library, then runs the example graphs through `nodetool debug` on the
+    // fake provider — no key, no network — and reads the result back out of
+    // the database: E1's overlay has to come out filled on the exported
+    // sequence, E4's retargets have to leave every clip's start and duration
+    // where the approved cut put them, E3's export has to write every slot the
+    // platformer manifest declares.
+    command:
+      `${GRAPH_RESOURCES_SUITES} && npm run fixtures:graph-resources`,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § graph-resource fixtures",
+    selfcheck: {
+      command: `${GRAPH_RESOURCES_SUITES} && npm run fixtures:graph-resources`,
       cost: "cheap"
     }
   },
@@ -1012,6 +1052,33 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/components/entities/",
       "web/src/serverState/useEntities.ts",
       "web/src/lib/tools/builtin/entities.ts"
+    ]
+  },
+  {
+    id: "graph-resources",
+    title:
+      "Graph resources (storyboard/entity/script/timeline/game-template nodes and the derivations under them)",
+    // The documents a director approves, as graph values. The derivations are
+    // pure and live in their own packages; the nodes are the only callers that
+    // can get the write contract or the spend gates wrong, and the shipped
+    // examples are the only place all of it is wired together.
+    harnesses: ["graph-resources", "validate"],
+    paths: [
+      "packages/storyboard/",
+      "packages/game-nodes/",
+      "packages/timeline/src/retarget.ts",
+      "packages/timeline/src/fill-text.ts",
+      "packages/timeline/src/clone.ts",
+      "packages/protocol/src/script-fill.ts",
+      "packages/protocol/src/game-slot-prompt.ts",
+      "packages/core-nodes/src/nodes/entity.ts",
+      "packages/video-nodes/src/nodes/storyboard.ts",
+      "packages/base-nodes/nodetool/examples/nodetool-base/Per-SKU Ad Factory.json",
+      "packages/base-nodes/nodetool/examples/nodetool-base/Localized Explainer.json",
+      "packages/base-nodes/nodetool/examples/nodetool-base/Platformer Asset Pack.json",
+      "packages/base-nodes/nodetool/examples/nodetool-base/Three Ratios.json",
+      "packages/cli/fixtures/graph-resources/",
+      "scripts/graph-resources-fixtures.mjs"
     ]
   },
   {

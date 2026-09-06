@@ -1,0 +1,896 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-09-06T12:00:00.000Z",
+  "updated_at": "2026-09-06T12:00:00.000Z",
+  "name": "Platformer Asset Pack (fake mode)",
+  "tool_name": null,
+  "description": "E3 with the image generator faked and the two audio slots filled with generated silence, so every slot the platformer manifest declares is checked and the project is exported with no key and no Godot binary. The export is the last node on purpose: wiring anything downstream of it makes the run never complete (see docs/harnesses.md, graph-resources).",
+  "tags": [
+    "fixture",
+    "graph-resources"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "template",
+        "type": "nodetool.game.LoadGameTemplate",
+        "data": {
+          "template": "platformer"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "1  Template slots"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "style",
+        "type": "nodetool.constant.Entity",
+        "data": {
+          "value": {
+            "type": "entity",
+            "id": "gr-e3-style",
+            "kind": "style",
+            "name": "Cave Pixel",
+            "descriptor": "16-bit cave pixel art, limited palette, hard edges"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "2  Style entity"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "hero",
+        "type": "nodetool.constant.Entity",
+        "data": {
+          "value": {
+            "type": "entity",
+            "id": "gr-e3-hero",
+            "kind": "character",
+            "name": "Pip",
+            "descriptor": "a small round explorer in a yellow hood"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 160
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "3  Cast entity"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sheet_slots",
+        "type": "nodetool.control.FilterCode",
+        "data": {
+          "predicate": "item.kind == 'spritesheet'"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 300,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "4  Sprite sheets"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sheet_prompt",
+        "type": "nodetool.game.SlotPrompt",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 560,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "5  Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sheet_image",
+        "type": "nodetool.fake.GenerateImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 820,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "6  Generate (faked)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sheet_store",
+        "type": "nodetool.image.SaveImage",
+        "data": {
+          "name": "gr-e3-sheet.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true,
+          "title": "7  Store the sheet"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sheet_check",
+        "type": "nodetool.game.SpriteSheet",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "8  Check the sheet"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tile_slots",
+        "type": "nodetool.control.FilterCode",
+        "data": {
+          "predicate": "item.kind == 'tileset'"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 300,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "9  Tilesets"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tile_prompt",
+        "type": "nodetool.game.SlotPrompt",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 560,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "10  Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tile_image",
+        "type": "nodetool.fake.GenerateImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 820,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "11  Generate (faked)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tile_store",
+        "type": "nodetool.image.SaveImage",
+        "data": {
+          "name": "gr-e3-tiles.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true,
+          "title": "12  Store the image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tile_check",
+        "type": "nodetool.game.Tileset",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "13  Check the tileset"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "image_slots",
+        "type": "nodetool.control.FilterCode",
+        "data": {
+          "predicate": "item.kind == 'image'"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 300,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "14  Flat images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "image_prompt",
+        "type": "nodetool.game.SlotPrompt",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 560,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "15  Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "image_image",
+        "type": "nodetool.fake.GenerateImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 820,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "16  Generate (faked)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "image_store",
+        "type": "nodetool.image.SaveImage",
+        "data": {
+          "name": "gr-e3-image.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true,
+          "title": "17  Store the image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "image_check",
+        "type": "nodetool.game.SeamlessImage",
+        "data": {
+          "threshold": 255
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "18  Check the image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sfx_slots",
+        "type": "nodetool.control.FilterCode",
+        "data": {
+          "predicate": "item.kind == 'sfx'"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 300,
+            "y": 600
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "19  Sound effects"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sfx_prompt",
+        "type": "nodetool.game.SlotPrompt",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 560,
+            "y": 600
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "20  Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sfx_audio",
+        "type": "nodetool.audio.CreateSilence",
+        "data": {
+          "sample_rate": 44100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 820,
+            "y": 600
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "21  Generate (faked)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sfx_check",
+        "type": "nodetool.game.SoundEffect",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 600
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "22  Check the clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "music_slots",
+        "type": "nodetool.control.FilterCode",
+        "data": {
+          "predicate": "item.kind == 'music'"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 300,
+            "y": 800
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "23  Music"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "music_prompt",
+        "type": "nodetool.game.SlotPrompt",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 560,
+            "y": 800
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "24  Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "music_audio",
+        "type": "nodetool.audio.CreateSilence",
+        "data": {
+          "sample_rate": 44100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 820,
+            "y": 800
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "25  Generate (faked)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "music_check",
+        "type": "nodetool.game.MusicLoop",
+        "data": {
+          "crossfade_ms": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 800
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "26  Check the loop"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "each_fill",
+        "type": "nodetool.control.ForEach",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1620,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "27  Every checked fill"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fills",
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1880,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "28  One list of fills"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "export",
+        "type": "nodetool.game.ExportGodotProject",
+        "data": {
+          "template": "platformer",
+          "name": "Cave Pip",
+          "directory": "godot/cave-pip",
+          "verify": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2140,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "29  Export the project"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "s1",
+        "source": "template",
+        "sourceHandle": "slot",
+        "target": "sheet_slots",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "s2",
+        "source": "sheet_slots",
+        "sourceHandle": "output",
+        "target": "sheet_prompt",
+        "targetHandle": "slot"
+      },
+      {
+        "id": "s3",
+        "source": "style",
+        "sourceHandle": "output",
+        "target": "sheet_prompt",
+        "targetHandle": "style"
+      },
+      {
+        "id": "s4",
+        "source": "hero",
+        "sourceHandle": "output",
+        "target": "sheet_prompt",
+        "targetHandle": "cast"
+      },
+      {
+        "id": "s5",
+        "source": "sheet_prompt",
+        "sourceHandle": "prompt",
+        "target": "sheet_image",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "s6",
+        "source": "sheet_prompt",
+        "sourceHandle": "width",
+        "target": "sheet_image",
+        "targetHandle": "width"
+      },
+      {
+        "id": "s7",
+        "source": "sheet_prompt",
+        "sourceHandle": "height",
+        "target": "sheet_image",
+        "targetHandle": "height"
+      },
+      {
+        "id": "s8",
+        "source": "sheet_image",
+        "sourceHandle": "output",
+        "target": "sheet_store",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s11",
+        "source": "sheet_store",
+        "sourceHandle": "output",
+        "target": "sheet_check",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s12",
+        "source": "sheet_slots",
+        "sourceHandle": "output",
+        "target": "sheet_check",
+        "targetHandle": "slot"
+      },
+      {
+        "id": "t1",
+        "source": "template",
+        "sourceHandle": "slot",
+        "target": "tile_slots",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "t2",
+        "source": "tile_slots",
+        "sourceHandle": "output",
+        "target": "tile_prompt",
+        "targetHandle": "slot"
+      },
+      {
+        "id": "t3",
+        "source": "style",
+        "sourceHandle": "output",
+        "target": "tile_prompt",
+        "targetHandle": "style"
+      },
+      {
+        "id": "t5",
+        "source": "tile_prompt",
+        "sourceHandle": "prompt",
+        "target": "tile_image",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "t6",
+        "source": "tile_prompt",
+        "sourceHandle": "width",
+        "target": "tile_image",
+        "targetHandle": "width"
+      },
+      {
+        "id": "t7",
+        "source": "tile_prompt",
+        "sourceHandle": "height",
+        "target": "tile_image",
+        "targetHandle": "height"
+      },
+      {
+        "id": "t8",
+        "source": "tile_image",
+        "sourceHandle": "output",
+        "target": "tile_store",
+        "targetHandle": "image"
+      },
+      {
+        "id": "t11",
+        "source": "tile_store",
+        "sourceHandle": "output",
+        "target": "tile_check",
+        "targetHandle": "image"
+      },
+      {
+        "id": "t12",
+        "source": "tile_slots",
+        "sourceHandle": "output",
+        "target": "tile_check",
+        "targetHandle": "slot"
+      },
+      {
+        "id": "i1",
+        "source": "template",
+        "sourceHandle": "slot",
+        "target": "image_slots",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "i2",
+        "source": "image_slots",
+        "sourceHandle": "output",
+        "target": "image_prompt",
+        "targetHandle": "slot"
+      },
+      {
+        "id": "i3",
+        "source": "style",
+        "sourceHandle": "output",
+        "target": "image_prompt",
+        "targetHandle": "style"
+      },
+      {
+        "id": "i5",
+        "source": "image_prompt",
+        "sourceHandle": "prompt",
+        "target": "image_image",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "i6",
+        "source": "image_prompt",
+        "sourceHandle": "width",
+        "target": "image_image",
+        "targetHandle": "width"
+      },
+      {
+        "id": "i7",
+        "source": "image_prompt",
+        "sourceHandle": "height",
+        "target": "image_image",
+        "targetHandle": "height"
+      },
+      {
+        "id": "i8",
+        "source": "image_image",
+        "sourceHandle": "output",
+        "target": "image_store",
+        "targetHandle": "image"
+      },
+      {
+        "id": "i11",
+        "source": "image_store",
+        "sourceHandle": "output",
+        "target": "image_check",
+        "targetHandle": "image"
+      },
+      {
+        "id": "i12",
+        "source": "image_slots",
+        "sourceHandle": "output",
+        "target": "image_check",
+        "targetHandle": "slot"
+      },
+      {
+        "id": "f1",
+        "source": "template",
+        "sourceHandle": "slot",
+        "target": "sfx_slots",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "f2",
+        "source": "sfx_slots",
+        "sourceHandle": "output",
+        "target": "sfx_prompt",
+        "targetHandle": "slot"
+      },
+      {
+        "id": "f3",
+        "source": "style",
+        "sourceHandle": "output",
+        "target": "sfx_prompt",
+        "targetHandle": "style"
+      },
+      {
+        "id": "f4",
+        "source": "sfx_prompt",
+        "sourceHandle": "seconds",
+        "target": "sfx_audio",
+        "targetHandle": "duration"
+      },
+      {
+        "id": "f5",
+        "source": "sfx_audio",
+        "sourceHandle": "output",
+        "target": "sfx_check",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "f6",
+        "source": "sfx_slots",
+        "sourceHandle": "output",
+        "target": "sfx_check",
+        "targetHandle": "slot"
+      },
+      {
+        "id": "m1",
+        "source": "template",
+        "sourceHandle": "slot",
+        "target": "music_slots",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "m2",
+        "source": "music_slots",
+        "sourceHandle": "output",
+        "target": "music_prompt",
+        "targetHandle": "slot"
+      },
+      {
+        "id": "m3",
+        "source": "style",
+        "sourceHandle": "output",
+        "target": "music_prompt",
+        "targetHandle": "style"
+      },
+      {
+        "id": "m4",
+        "source": "music_prompt",
+        "sourceHandle": "seconds",
+        "target": "music_audio",
+        "targetHandle": "duration"
+      },
+      {
+        "id": "m5",
+        "source": "music_audio",
+        "sourceHandle": "output",
+        "target": "music_check",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "m6",
+        "source": "music_slots",
+        "sourceHandle": "output",
+        "target": "music_check",
+        "targetHandle": "slot"
+      },
+      {
+        "id": "x1",
+        "source": "sheet_check",
+        "sourceHandle": "output",
+        "target": "each_fill",
+        "targetHandle": "input_list"
+      },
+      {
+        "id": "x2",
+        "source": "tile_check",
+        "sourceHandle": "output",
+        "target": "each_fill",
+        "targetHandle": "input_list"
+      },
+      {
+        "id": "x3",
+        "source": "image_check",
+        "sourceHandle": "output",
+        "target": "each_fill",
+        "targetHandle": "input_list"
+      },
+      {
+        "id": "x4",
+        "source": "sfx_check",
+        "sourceHandle": "output",
+        "target": "each_fill",
+        "targetHandle": "input_list"
+      },
+      {
+        "id": "x5",
+        "source": "music_check",
+        "sourceHandle": "output",
+        "target": "each_fill",
+        "targetHandle": "input_list"
+      },
+      {
+        "id": "x6",
+        "source": "each_fill",
+        "sourceHandle": "output",
+        "target": "fills",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "x7",
+        "source": "fills",
+        "sourceHandle": "output",
+        "target": "export",
+        "targetHandle": "fills"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

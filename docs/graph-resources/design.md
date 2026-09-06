@@ -1,6 +1,6 @@
 # Graph Resources — Technical Design
 
-> Status: proposed. Companion: [tasks.md](tasks.md).
+> Status: shipped, phases 1–5. Companion: [tasks.md](tasks.md).
 > Precedent: [script-storyboard-link/design.md](../script-storyboard-link/design.md)
 > for the "pure functions in a shared package, consumed by editor, agent tools
 > and nodes alike" pattern this design continues.
