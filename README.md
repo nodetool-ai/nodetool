@@ -7,14 +7,16 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 [![Powered by Atlas Cloud](https://www.atlascloud.ai/oss-program/powered-by-atlas-cloud.svg)](https://www.atlascloud.ai/?ref=PW9AD2)
 
-**Open-source Agent-First Creative Workspace**
+**Open-source creative AI workspace**
 
-Create and edit AI media in NodeTool, an open-source
-creative studio. Describe what you want and the agent builds it. What comes
-back is an editable project: open it and re-roll, re-voice or re-cut.
+Create and edit images, video, audio, and text with agents that work alongside
+you. Describe what you want, let the agent build it, then take over whenever you
+like. Refine a shot, try a different voice, or rework the cut, yourself or with
+the agent.
 
-The closed AI studios will generate your media too, priced in their credits, 
-saved in their cloud, locked away. NodeTool hands the project back, on your keys.
+You get an editable project, not just a finished file. Your workflows, assets,
+and edits stay together, so you can inspect how something was made and change
+individual parts without starting over.
 
 **[Download NodeTool Studio](https://github.com/nodetool-ai/nodetool/releases/latest)** ·
 **[Quick start](#first-run-in-studio)** ·
@@ -25,9 +27,10 @@ saved in their cloud, locked away. NodeTool hands the project back, on your keys
 
 ## Every model you need, on your own keys
 
-You connect the provider and NodeTool calls it with your key, so you pay that
-provider directly at their price. There is no NodeTool billing unit in between. 
-When a better model ships, add it the day it ships.
+Run local models or connect cloud providers with your own API keys. Choose your
+models and pay providers directly: NodeTool calls the provider with your key at
+their price, with no NodeTool billing unit in between. When a better model
+ships, add it the day it ships.
 
 [Models and Providers](docs/models-and-providers.md) lists what runs where.
 

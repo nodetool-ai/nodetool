@@ -29,7 +29,7 @@ const BASE_URL = "https://nodetool.ai";
 // --- Preamble prose (hand-written; edit here) --------------------------------
 const PREAMBLE = `# NodeTool
 
-> NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Let them build and revise workflows, then inspect and edit the results yourself. Your project keeps the brief, assets, and edits together. Studio is the free desktop edition; Cloud is the hosted browser edition, in alpha. Use supported local models in Studio or connect cloud providers with your own keys. Licensed AGPL-3.0.
+> NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Studio is the free desktop edition; Cloud is the hosted browser edition, in alpha. Use supported local models in Studio or connect cloud providers with your own keys. Licensed AGPL-3.0.
 
 ## What NodeTool is
 
@@ -98,7 +98,7 @@ const MARKDOWN_PAGES = {
   "index.md": {
     title: "NodeTool",
     description: "Open-source creative AI workspace.",
-    body: `NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Let them build and revise workflows, then inspect and edit the results yourself. Your project keeps the brief, assets, and edits together. Every editor is exposed to [agents](${BASE_URL}/agents.md) as tools: an agent can build the workflow, run it, and repair what fails. The canvas connects image, video, audio, language, agent, and data models on a node-based graph.
+    body: `NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Every editor is exposed to [agents](${BASE_URL}/agents.md) as tools: an agent can build the workflow, run it, and repair what fails. The canvas connects image, video, audio, language, agent, and data models on a node-based graph.
 
 ## Editions
 
