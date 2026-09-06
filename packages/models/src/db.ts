@@ -14,6 +14,12 @@ import {
 } from "drizzle-orm/better-sqlite3";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { Sql } from "postgres";
+import { is } from "drizzle-orm";
+import {
+  SQLiteTable,
+  getTableConfig,
+  type SQLiteColumn
+} from "drizzle-orm/sqlite-core";
 import * as schema from "./schema/index.js";
 import * as pgSchema from "./schema-pg/index.js";
 import {
@@ -271,426 +277,50 @@ export async function closeDb(): Promise<void> {
 }
 
 /**
- * Expected columns per table, used for additive migration on existing SQLite DBs.
+ * The DDL fragment `ALTER TABLE … ADD COLUMN "x" <fragment>` needs for one
+ * Drizzle column.
+ *
+ * SQLite rejects `ADD COLUMN … NOT NULL` without a constant default, so a
+ * NOT NULL column that declares no default is added nullable — the same
+ * concession the hand-written map this replaces made.
  */
-const TABLE_COLUMNS = {
-  nodetool_workflows: {
-    id: "text",
-    user_id: "text",
-    name: "text",
-    tool_name: "text",
-    description: "text",
-    tags: "text",
-    thumbnail: "text",
-    thumbnail_url: "text",
-    graph: "text",
-    settings: "text",
-    package_name: "text",
-    path: "text",
-    run_mode: "text",
-    workspace_id: "text",
-    html_app: "text",
-    app_doc: "text",
-    receive_clipboard: "integer",
-    access: "text",
-    created_at: "text",
-    updated_at: "text"
-  },
-  nodetool_jobs: {
-    id: "text",
-    user_id: "text",
-    job_type: "text",
-    workflow_id: "text",
-    status: "text",
-    name: "text",
-    graph: "text",
-    params: "text",
-    worker_id: "text",
-    heartbeat_at: "text",
-    started_at: "text",
-    finished_at: "text",
-    completed_at: "text",
-    failed_at: "text",
-    error: "text",
-    error_message: "text",
-    cost: "real",
-    logs: "text",
-    retry_count: "integer",
-    max_retries: "integer",
-    version: "integer",
-    execution_strategy: "text",
-    execution_id: "text",
-    runner_instance: "text",
-    metadata_json: "text",
-    created_at: "text",
-    updated_at: "text"
-  },
-  nodetool_messages: {
-    id: "text",
-    user_id: "text",
-    thread_id: "text",
-    role: "text",
-    name: "text",
-    content: "text",
-    tool_calls: "text",
-    tool_call_id: "text",
-    input_files: "text",
-    output_files: "text",
-    provider: "text",
-    model: "text",
-    cost: "real",
-    workflow_id: "text",
-    graph: "text",
-    tools: "text",
-    collections: "text",
-    agent_mode: "integer",
-    help_mode: "integer",
-    agent_execution_id: "text",
-    execution_event_type: "text",
-    workflow_target: "text",
-    media_generation: "text",
-    provider_session: "text",
-    created_at: "text"
-  },
-  nodetool_threads: {
-    id: "text",
-    user_id: "text",
-    workflow_id: "text",
-    title: "text",
-    created_at: "text",
-    updated_at: "text"
-  },
-  external_identities: {
-    id: "text",
-    provider: "text",
-    external_id: "text",
-    user_id: "text",
-    linked_at: "text"
-  },
-  access_tokens: {
-    id: "text",
-    user_id: "text",
-    name: "text",
-    secret_hash: "text",
-    created_at: "text",
-    expires_at: "text",
-    last_used_at: "text"
-  },
-  mcp_oauth_clients: {
-    id: "text",
-    client_name: "text",
-    redirect_uris: "text",
-    created_at: "text",
-    last_used_at: "text"
-  },
-  mcp_oauth_grants: {
-    id: "text",
-    user_id: "text",
-    client_id: "text",
-    client_name: "text",
-    scope: "text",
-    resource: "text",
-    created_at: "text",
-    revoked_at: "text"
-  },
-  mcp_oauth_tokens: {
-    id: "text",
-    grant_id: "text",
-    kind: "text",
-    secret_hash: "text",
-    expires_at: "text",
-    rotated_from: "text",
-    last_used_at: "text"
-  },
-  nodetool_memories: {
-    id: "text",
-    user_id: "text",
-    thread_id: "text",
-    kind: "text",
-    title: "text",
-    content: "text",
-    resources: "text",
-    metadata: "text",
-    created_at: "text",
-    updated_at: "text"
-  },
-  nodetool_assets: {
-    id: "text",
-    user_id: "text",
-    parent_id: "text",
-    file_id: "text",
-    name: "text",
-    content_type: "text",
-    size: "real",
-    duration: "real",
-    metadata: "text",
-    sketch_document_id: "text",
-    workflow_id: "text",
-    node_id: "text",
-    job_id: "text",
-    timeline_id: "text",
-    created_at: "text",
-    updated_at: "text"
-  },
-  nodetool_secrets: {
-    id: "text",
-    user_id: "text",
-    key: "text",
-    encrypted_value: "text",
-    description: "text",
-    created_at: "text",
-    updated_at: "text"
-  },
-  nodetool_workspaces: {
-    id: "text",
-    user_id: "text",
-    name: "text",
-    path: "text",
-    is_default: "integer",
-    created_at: "text",
-    updated_at: "text"
-  },
-  nodetool_workflow_versions: {
-    id: "text",
-    workflow_id: "text",
-    user_id: "text",
-    name: "text",
-    description: "text",
-    graph: "text",
-    version: "integer",
-    save_type: "text",
-    autosave_metadata: "text",
-    created_at: "text"
-  },
-  nodetool_oauth_credentials: {
-    id: "text",
-    user_id: "text",
-    provider: "text",
-    account_id: "text",
-    encrypted_access_token: "text",
-    encrypted_refresh_token: "text",
-    username: "text",
-    token_type: "text",
-    scope: "text",
-    received_at: "text",
-    expires_at: "text",
-    created_at: "text",
-    updated_at: "text"
-  },
-  nodetool_predictions: {
-    id: "text",
-    user_id: "text",
-    node_id: "text",
-    node_type: "text",
-    provider: "text",
-    model: "text",
-    workflow_id: "text",
-    error: "text",
-    logs: "text",
-    status: "text",
-    cost: "real",
-    input_tokens: "integer",
-    output_tokens: "integer",
-    total_tokens: "integer",
-    cached_tokens: "integer",
-    reasoning_tokens: "integer",
-    billing_unit: "text",
-    quantity: "real",
-    unit_price: "real",
-    currency: "text",
-    provider_request_id: "text",
-    capability: "text",
-    surface: "text",
-    thread_id: "text",
-    tool_call_id: "text",
-    job_id: "text",
-    asset_ids: "text",
-    reconciled_at: "text",
-    reconcile_attempts: "integer",
-    created_at: "text",
-    started_at: "text",
-    completed_at: "text",
-    duration: "real",
-    hardware: "text",
-    input_size: "integer",
-    output_size: "integer",
-    parameters: "text",
-    metadata: "text"
-  },
-  run_events: {
-    id: "text",
-    run_id: "text",
-    seq: "integer",
-    event_type: "text",
-    event_time: "text",
-    node_id: "text",
-    payload: "text"
-  },
-  nodetool_team_tasks: {
-    id: "text",
-    team_id: "text",
-    title: "text",
-    description: "text",
-    status: "text",
-    created_by: "text",
-    claimed_by: "text",
-    depends_on: "text",
-    required_skills: "text",
-    priority: "integer",
-    artifacts: "text",
-    parent_task_id: "text",
-    result: "text",
-    failure_reason: "text",
-    created_at: "text",
-    updated_at: "text"
-  },
-  nodetool_settings: {
-    id: "text",
-    user_id: "text",
-    key: "text",
-    value: "text",
-    description: "text",
-    created_at: "text",
-    updated_at: "text"
-  },
-  timeline_sequences: {
-    id: "text",
-    user_id: "text",
-    project_id: "text",
-    workflow_id: "text",
-    name: "text",
-    fps: "integer",
-    width: "integer",
-    height: "integer",
-    duration_ms: "integer",
-    document: "text",
-    revision: "integer NOT NULL DEFAULT 0",
-    created_at: "text",
-    updated_at: "text"
-  },
-  timeline_sequence_versions: {
-    id: "text",
-    timeline_id: "text",
-    user_id: "text",
-    name: "text",
-    version: "integer NOT NULL DEFAULT 1",
-    save_type: "text NOT NULL DEFAULT 'manual'",
-    fps: "integer NOT NULL DEFAULT 30",
-    width: "integer NOT NULL DEFAULT 1920",
-    height: "integer NOT NULL DEFAULT 1080",
-    duration_ms: "integer NOT NULL DEFAULT 0",
-    document: "text",
-    created_at: "text"
-  },
-  storyboards: {
-    id: "text",
-    user_id: "text",
-    project_id: "text",
-    name: "text",
-    document: "text",
-    timeline_id: "text",
-    revision: "integer NOT NULL DEFAULT 0",
-    created_at: "text",
-    updated_at: "text"
-  },
-  image_documents: {
-    id: "text",
-    user_id: "text",
-    project_id: "text",
-    workflow_id: "text",
-    name: "text",
-    width: "integer",
-    height: "integer",
-    background_color: "text",
-    document: "text",
-    thumbnail_asset_id: "text",
-    revision: "integer NOT NULL DEFAULT 0",
-    created_at: "text",
-    updated_at: "text"
-  },
-  image_document_versions: {
-    id: "text",
-    image_document_id: "text",
-    user_id: "text",
-    name: "text",
-    version: "integer NOT NULL DEFAULT 1",
-    save_type: "text NOT NULL DEFAULT 'manual'",
-    width: "integer NOT NULL DEFAULT 1024",
-    height: "integer NOT NULL DEFAULT 1024",
-    background_color: "text NOT NULL DEFAULT '#ffffff'",
-    document: "text",
-    created_at: "text"
-  },
-  nodetool_workflow_collaborators: {
-    id: "text",
-    workflow_id: "text",
-    user_id: "text",
-    role: "text",
-    invited_by: "text",
-    created_at: "text"
-  },
-  nodetool_workflow_shares: {
-    id: "text",
-    workflow_id: "text",
-    token: "text",
-    role: "text",
-    created_by: "text",
-    created_at: "text",
-    revoked_at: "text"
-  },
-  application_versions: {
-    id: "text",
-    application_id: "text",
-    user_id: "text",
-    version: "integer",
-    document: "text",
-    capabilities: "text",
-    workflow_graphs: "text",
-    released: "integer",
-    created_at: "text"
-  },
-  application_deployments: {
-    id: "text",
-    application_id: "text",
-    user_id: "text",
-    token: "text",
-    created_at: "text",
-    revoked_at: "text"
-  },
-  application_invocations: {
-    id: "text",
-    application_id: "text",
-    user_id: "text",
-    version: "integer",
-    invocation_id: "text",
-    operation_id: "text",
-    estimated_usd: "real",
-    actual_usd: "real",
-    status: "text",
-    created_at: "text",
-    settled_at: "text"
-  },
-  skills: {
-    id: "text",
-    user_id: "text",
-    name: "text",
-    description: "text",
-    content: "text",
-    created_at: "text",
-    updated_at: "text"
-  },
-  // Privacy-scoped audit log. No ip_address, no user_agent and no free-text
-  // column, on purpose — see schema/user-events.ts.
-  nodetool_user_events: {
-    id: "text",
-    user_id: "text",
-    event_type: "text",
-    subject_type: "text",
-    subject_id: "text",
-    metadata: "text",
-    created_at: "text"
+function addColumnDdl(column: SQLiteColumn): string {
+  const type = column.getSQLType().toLowerCase();
+  if (!column.notNull || !column.hasDefault) return type;
+  const value = column.default;
+  if (typeof value === "string") {
+    return `${type} NOT NULL DEFAULT '${value.replace(/'/g, "''")}'`;
   }
-} satisfies Record<string, Record<string, string>>;
+  if (typeof value === "number") return `${type} NOT NULL DEFAULT ${value}`;
+  if (typeof value === "boolean") {
+    return `${type} NOT NULL DEFAULT ${value ? 1 : 0}`;
+  }
+  // A default the generator cannot render as a SQL literal (a `$defaultFn`,
+  // an SQL expression). Adding the column nullable still repairs the install;
+  // asserting a literal we cannot produce would break it.
+  return type;
+}
+
+/**
+ * Expected columns per table, used for additive migration on existing SQLite
+ * DBs. Derived from the Drizzle tables rather than restated, so a new column
+ * or table reaches `addMissingColumns` the moment it reaches `src/schema/`.
+ * `tests/schema-parity.test.ts` pins the derivation against the bootstrap DDL.
+ */
+export const TABLE_COLUMNS: Record<string, Record<string, string>> =
+  Object.fromEntries(
+    Object.values(schema)
+      .filter((table) => is(table, SQLiteTable))
+      .map((table) => {
+        const config = getTableConfig(table as SQLiteTable);
+        return [
+          config.name,
+          Object.fromEntries(
+            config.columns.map((column) => [column.name, addColumnDdl(column)])
+          )
+        ];
+      })
+  );
 
 function addMissingColumns(sqlite: Database.Database): void {
   for (const [tableName, expectedCols] of Object.entries(TABLE_COLUMNS)) {
@@ -777,7 +407,7 @@ function repairApplicationConstraintDuplicates(sqlite: Database.Database): void 
   repair();
 }
 
-function getCreateSchemaSql(): string {
+export function getCreateSchemaSql(): string {
   return `
     CREATE TABLE IF NOT EXISTS "nodetool_workflows" (
       "id" text PRIMARY KEY NOT NULL,

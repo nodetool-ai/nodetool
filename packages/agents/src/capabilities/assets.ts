@@ -14,11 +14,9 @@
  *
  * `list_images` and `view_image` are the two capabilities whose identity is a
  * Zod schema rather than a hand-written JSON one. Their `inputSchema` is
- * derived with `zodToJsonSchema`, and the validation `Tool.execute` used to run
- * before `process()` moves inside the implementation, returning the same
- * `invalid_tool_arguments` envelope. Their deprecated classes keep the Zod
- * schema on `schema`, so the class path validates exactly once, where it
- * always did.
+ * derived with `zodToJsonSchema` from the `zodSchema` their spec carries, and
+ * the argument check runs once per entrance in `validateCapabilityArgs`
+ * (`./args.ts`) — never here.
  */
 
 import { Buffer } from "node:buffer";
@@ -61,12 +59,7 @@ import {
   updateAssetSpec,
   DEFAULT_LIMIT,
   MAX_LIMIT,
-  LIST_ASSETS_SCHEMA,
-  SAVE_ASSET_SCHEMA,
-  ASSET_SEARCH_SCHEMA,
-  ASSET_LIST_SCHEMA,
   LIST_IMAGES_SCHEMA,
-  REGION_SCHEMA,
   VIEW_IMAGE_SCHEMA
 } from "./assets.specs.js";
 import {
@@ -75,18 +68,6 @@ import {
   isRecord,
   isString
 } from "../utils/type-guards.js";
-
-export {
-  DEFAULT_LIMIT,
-  MAX_LIMIT,
-  LIST_ASSETS_SCHEMA,
-  SAVE_ASSET_SCHEMA,
-  ASSET_SEARCH_SCHEMA,
-  ASSET_LIST_SCHEMA,
-  LIST_IMAGES_SCHEMA,
-  REGION_SCHEMA,
-  VIEW_IMAGE_SCHEMA
-} from "./assets.specs.js";
 
 // ---------------------------------------------------------------------------
 // Shared projections
@@ -143,46 +124,6 @@ function resolveLimit(raw: unknown): number {
   return Number.isFinite(n) && n > 0
     ? Math.min(Math.floor(n), MAX_LIMIT)
     : DEFAULT_LIMIT;
-}
-
-/**
- * The argument check `Tool.execute` runs for a Zod-schema'd tool, moved to
- * where the implementation is. Same coercion, same failure envelope — a
- * capability reached through `invoke` must answer a bad call the way the tool
- * answered it.
- */
-function withZodValidation(
-  name: string,
-  schema: ZodType,
-  core: CapabilityImpl
-): CapabilityImpl {
-  return async (run, args) => {
-    let parsed: unknown;
-    try {
-      parsed = parseWithTypeCoercion(schema, args);
-    } catch (error) {
-      const issues =
-        error instanceof z.ZodError
-          ? error.issues.map((issue) => {
-              const path = issue.path.join(".");
-              return path ? `${path}: ${issue.message}` : issue.message;
-            })
-          : [String(error)];
-      return {
-        error: "invalid_tool_arguments",
-        message: `Invalid arguments for ${name}: ${issues.join("; ")}`,
-        issues
-      };
-    }
-    if (!isRecord(parsed)) {
-      return {
-        error: "invalid_tool_arguments",
-        message: `Invalid arguments for ${name}: expected an object`,
-        issues: ["expected an object"]
-      };
-    }
-    return core(run, parsed as Record<string, unknown>);
-  };
 }
 
 /** The paging/filter bag `Asset.paginate` and `searchAssetsGlobal` take. */
@@ -676,8 +617,7 @@ const assetList: CapabilityExport = {
 
 const DEFAULT_LIST_LIMIT = 25;
 
-/** `list_images` without the argument check — what the deprecated class runs. */
-export const listImagesCore: CapabilityImpl = async (run, params) => {
+const listImagesImpl: CapabilityImpl = async (run, params) => {
   const userId = run.context.userId;
   if (!userId) {
     return { error: "No user context; cannot list assets." };
@@ -734,7 +674,7 @@ export const listImagesCore: CapabilityImpl = async (run, params) => {
 
 const listImages: CapabilityExport = {
   spec: listImagesSpec,
-  impl: withZodValidation("list_images", LIST_IMAGES_SCHEMA, listImagesCore)
+  impl: listImagesImpl
 };
 
 // ---------------------------------------------------------------------------
@@ -816,8 +756,7 @@ async function storeViewedImage(
   }
 }
 
-/** `view_image` without the argument check — what the deprecated class runs. */
-export const viewImageCore: CapabilityImpl = async (run, params) => {
+const viewImageImpl: CapabilityImpl = async (run, params) => {
   const context = run.context;
   const imageId = String(params["image_id"] ?? "").trim();
   if (!imageId) {
@@ -1021,7 +960,7 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
 
 const viewImage: CapabilityExport = {
   spec: viewImageSpec,
-  impl: withZodValidation("view_image", VIEW_IMAGE_SCHEMA, viewImageCore)
+  impl: viewImageImpl
 };
 
 /** Every asset capability, in the order `getAllMcpTools` offered them. */

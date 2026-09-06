@@ -21,7 +21,7 @@
 
 import { useCallback, useImperativeHandle } from "react";
 import type { RefObject } from "react";
-import type { LayerType, SketchDocument, SketchTool } from "../types";
+import type { SketchDocument, SketchTool } from "../types";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { SketchEditorHandle } from "../SketchEditor";
 import { useEditorKeyboardShortcuts } from "../useEditorKeyboardShortcuts";
@@ -65,12 +65,8 @@ interface EditorCommandsResult {
   handleClearSegmentPrompts: () => void;
   handleFillSelectionWithForeground: () => void;
   handleStrokeSelectionWithForeground: () => void;
-  handleNewLayerFromContextMenu: (
-    type?: Extract<LayerType, "raster" | "mask">
-  ) => void;
   handleLayerViaCopy: () => Promise<void>;
   handleLayerViaCut: () => Promise<void>;
-  handleFreeTransform: () => void;
 }
 
 export function useEditorCommands({
@@ -148,12 +144,6 @@ export function useEditorCommands({
       useSketchStore.getState().setSelection(sel);
     }
   }, [canvasActions]);
-
-  const handleNewLayerFromContextMenu = useCallback((
-    type: Extract<LayerType, "raster" | "mask"> = "raster"
-  ) => {
-    layerActions.handleAddLayer({ type });
-  }, [layerActions]);
 
   /**
    * Materialize a layer canvas in the rendering runtime so the very next
@@ -317,9 +307,7 @@ export function useEditorCommands({
     handleClearSegmentPrompts,
     handleFillSelectionWithForeground,
     handleStrokeSelectionWithForeground,
-    handleNewLayerFromContextMenu,
     handleLayerViaCopy,
-    handleLayerViaCut,
-    handleFreeTransform
+    handleLayerViaCut
   };
 }

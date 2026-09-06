@@ -25,7 +25,7 @@
  * {@link bitmapToPngDataUrl} or an async blob encode.
  */
 import { RAW_RGBA_MIME, isBitmapImage } from "@nodetool-ai/protocol";
-import { isNumber, isString } from "../../utils/typePredicates";
+import { isNumber, isRecord, isString } from "../../utils/typePredicates";
 
 /**
  * Encode a raw-RGBA image ref (straight-alpha RGBA8 pixels, no container) to a
@@ -73,16 +73,15 @@ export function bitmapToPngDataUrl(bitmap: ImageBitmap): string {
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" &&
-  value !== null &&
-  !Array.isArray(value) &&
-  // Typed arrays (e.g. native Float32Array audio-chunk payloads) must pass
-  // through untouched — Object.entries would explode them per-sample.
-  !ArrayBuffer.isView(value);
+// Typed arrays (e.g. native Float32Array audio-chunk payloads) must pass
+// through untouched — Object.entries would explode them per-sample.
+const isMappableRecord = (
+  value: unknown
+): value is Record<string, unknown> =>
+  isRecord(value) && !ArrayBuffer.isView(value);
 
 const isImageRef = (value: unknown): value is Record<string, unknown> =>
-  isRecord(value) &&
+  isMappableRecord(value) &&
   value.type === "image" &&
   ("data" in value || "uri" in value);
 
@@ -161,7 +160,7 @@ export function materializeBrowserOutputs(value: unknown): unknown {
   if (value === null || value === undefined) return value;
   if (Array.isArray(value)) return value.map(materializeBrowserOutputs);
   if (isImageRef(value)) return materializeImageRef(value);
-  if (isRecord(value)) {
+  if (isMappableRecord(value)) {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) {
       out[k] = materializeBrowserOutputs(v);

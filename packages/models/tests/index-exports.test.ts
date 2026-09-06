@@ -24,40 +24,12 @@ describe("models index exports", () => {
     expect(models.runEvents).toBeDefined();
   });
 
-  it("exports ConditionBuilder utilities (legacy compat)", () => {
-    expect(models.Operator).toBeDefined();
-    expect(models.LogicalOperator).toBeDefined();
-    expect(models.Variable).toBeDefined();
-    expect(models.Condition).toBeDefined();
-    expect(models.ConditionGroup).toBeDefined();
-    expect(models.Field).toBeDefined();
-    expect(models.ConditionBuilder).toBeDefined();
-    expect(models.field).toBeDefined();
-  });
-
-  it("exports adapter utilities (legacy compat)", () => {
-    expect(models.MemoryAdapter).toBeDefined();
-    expect(models.MemoryAdapterFactory).toBeDefined();
-    expect(models.SQLiteAdapter).toBeDefined();
-    expect(models.SQLiteAdapterFactory).toBeDefined();
-  });
-
   it("exports base model utilities", () => {
     expect(models.DBModel).toBeDefined();
     expect(models.ModelObserver).toBeDefined();
     expect(models.ModelChangeEvent).toBeDefined();
     expect(models.createTimeOrderedUuid).toBeDefined();
     expect(models.computeEtag).toBeDefined();
-    expect(models.setGlobalAdapterResolver).toBeDefined();
-    expect(models.getGlobalAdapterResolver).toBeDefined();
-  });
-
-  it("round-trips the legacy adapter resolver shim", () => {
-    const resolver: models.AdapterResolver = () => {
-      throw new Error("the legacy resolver shim is never invoked");
-    };
-    models.setGlobalAdapterResolver(resolver);
-    expect(models.getGlobalAdapterResolver()).toBe(resolver);
   });
 
   it("exports domain models", () => {

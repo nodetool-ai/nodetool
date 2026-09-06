@@ -45,7 +45,7 @@ export class ComfyCloudWorkflowNode extends BaseNode {
       "ComfyUI workflow in API (prompt) format, as a JSON string: a map of node id to { class_type, inputs }.",
     required: true
   })
-  declare workflow: any;
+  declare workflow: string | ComfyPrompt;
 
   @prop({
     type: "int",
@@ -54,7 +54,7 @@ export class ComfyCloudWorkflowNode extends BaseNode {
     description: "Maximum seconds to wait for the job to finish.",
     min: 1
   })
-  declare timeout: any;
+  declare timeout: number;
 
   @prop({
     type: "bool",
@@ -62,7 +62,7 @@ export class ComfyCloudWorkflowNode extends BaseNode {
     title: "Previews",
     description: "Log ComfyUI preview frames while the job runs."
   })
-  declare previews: any;
+  declare previews: boolean;
 
   /**
    * Build the transport. Split out so tests can inject a fake without a real
@@ -137,7 +137,7 @@ export class ComfyCloudWorkflowNode extends BaseNode {
       );
     }
 
-    const timeoutSeconds = Math.max(1, Number(this.timeout ?? 600));
+    const timeoutSeconds = Math.max(1, this.timeout);
     const timeoutSignal = AbortSignal.timeout(timeoutSeconds * 1000);
     const signal = context?.signal
       ? AbortSignal.any([context.signal, timeoutSignal])
@@ -154,7 +154,7 @@ export class ComfyCloudWorkflowNode extends BaseNode {
           apiKey,
           nodeId: this.__node_id,
           nodeName: this.__node_name ?? "Run ComfyUI Workflow (Comfy Cloud)",
-          previews: Boolean(this.previews)
+          previews: this.previews
         }
       );
     } catch (err) {

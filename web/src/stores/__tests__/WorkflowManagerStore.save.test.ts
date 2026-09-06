@@ -44,8 +44,7 @@ jest.mock("../NodeStore", () => ({
 
 jest.mock("../workflowUpdates", () => ({
   subscribeToWorkflowUpdates: jest.fn(),
-  unsubscribeFromWorkflowUpdates: jest.fn(),
-  setGetNodeStore: jest.fn()
+  unsubscribeFromWorkflowUpdates: jest.fn()
 }));
 
 jest.mock("../WorkflowRunner", () => ({

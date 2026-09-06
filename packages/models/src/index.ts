@@ -5,8 +5,6 @@
  * consumers need to define, query and persist data models.
  */
 
-import type { AdapterResolver } from "./legacy-compat.js";
-
 // ── Database Connection ─────────────────────────────────────────────
 export {
   initDb,
@@ -89,7 +87,6 @@ export type {
 // ── Personal data: Art. 17 erasure and Art. 20 portability ───────────
 export {
   PERSONAL_DATA_REGISTRY,
-  PERSONAL_DATA_BY_TABLE,
   WITHHELD_VALUE,
   isActionable
 } from "./personal-data-registry.js";
@@ -102,7 +99,6 @@ export {
   ERASURE_HANDLED_TABLES,
   ERASURE_STEPS,
   EXPORT_HANDLERS,
-  actionableEntries,
   erasePersonalData,
   exportPersonalData
 } from "./personal-data.js";
@@ -424,50 +420,12 @@ export {
 export type {
   MigrationDBAdapter,
   SqlParams,
-  Row as MigrationRow,
   MigrationDef,
   Migration,
   AppliedMigration,
   MigrationStatus
 } from "./migrations/index.js";
 
-// ── Legacy Compatibility (deprecated — will be removed) ─────────────
-// These re-exports allow existing consumer code to keep compiling during
-// the transition. They are no-ops or thin wrappers.
-export { MemoryAdapterFactory, MemoryAdapter } from "./memory-adapter.js";
-export { SQLiteAdapter, SQLiteAdapterFactory } from "./sqlite-adapter.js";
-export type {
-  DatabaseAdapter,
-  TableSchema,
-  FieldDef,
-  IndexDef,
-  Row
-} from "./database-adapter.js";
-export {
-  Operator,
-  LogicalOperator,
-  Variable,
-  Condition,
-  ConditionGroup,
-  Field,
-  ConditionBuilder,
-  field
-} from "./condition-builder.js";
-export type { ConditionValue } from "./condition-builder.js";
-
-// Legacy adapter resolver — now a no-op since models use getDb() directly.
-// Kept for API compatibility during transition.
-let _legacyResolver: AdapterResolver | null = null;
-export function setGlobalAdapterResolver(resolver: AdapterResolver): void {
-  _legacyResolver = resolver;
-}
-export function getGlobalAdapterResolver(): AdapterResolver | null {
-  return _legacyResolver;
-}
-
-// Legacy types kept for API compat
-export type { IndexSpec } from "./legacy-compat.js";
-export type { ModelClass, AdapterResolver } from "./legacy-compat.js";
 export {
   CREDIT_PLANS,
   DEFAULT_PLAN_ID,

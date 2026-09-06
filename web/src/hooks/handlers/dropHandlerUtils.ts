@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { isObjectLike } from "../../utils/typePredicates";
 import { XYPosition } from "@xyflow/react";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import {
@@ -28,14 +29,10 @@ export type FileHandlerResult = {
   error?: string;
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === "object" && value !== null;
-};
-
 export const isNodetoolWorkflowJson = (
   json: unknown
 ): json is { name?: string; graph: Graph } => {
-  if (!isRecord(json) || !isRecord(json.graph)) {
+  if (!isObjectLike(json) || !isObjectLike(json.graph)) {
     return false;
   }
 

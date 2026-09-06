@@ -57,7 +57,7 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
     } = useQuery({
       queryKey: ["workflows-list-for-node"],
       queryFn: async () => {
-        const response = await load("", 200, "id,name");
+        const response = await load("", 200);
         const workflowList = response;
         return (workflowList.workflows ?? []).map((workflow) => ({
           id: workflow.id,

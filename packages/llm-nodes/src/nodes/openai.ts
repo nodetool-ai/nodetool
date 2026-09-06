@@ -3,10 +3,15 @@ import type {
   StreamingInputs,
   StreamingOutputs
 } from "@nodetool-ai/node-sdk";
+import type { ImageRef, AudioRef } from "@nodetool-ai/node-sdk";
+import type { Chunk } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { fetchExternalMedia } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
-import { isCallable, isString } from "./type-predicates.js";
+import {
+  isCallable,
+  isString
+} from "@nodetool-ai/node-sdk";
 
 const OPENAI_API_BASE = "https://api.openai.com/v1";
 
@@ -39,7 +44,7 @@ export class EmbeddingNode extends BaseNode {
   static readonly requiredSettings = ["OPENAI_API_KEY"];
 
   @prop({ type: "str", default: "", title: "Input" })
-  declare input: any;
+  declare input: string;
 
   @prop({
     type: "enum",
@@ -47,16 +52,16 @@ export class EmbeddingNode extends BaseNode {
     title: "Model",
     values: ["text-embedding-3-large", "text-embedding-3-small"]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({ type: "int", default: 4096, title: "Chunk Size" })
-  declare chunk_size: any;
+  declare chunk_size: number;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    const text = String(this.input ?? "");
-    const model = String(this.model ?? "text-embedding-3-small");
-    const chunkSize = Number(this.chunk_size ?? 4096);
+    const text = this.input;
+    const model = this.model;
+    const chunkSize = this.chunk_size;
 
     const chunks: string[] = [];
     for (let i = 0; i < text.length; i += chunkSize) {
@@ -116,11 +121,11 @@ export class WebSearchNode extends BaseNode {
     title: "Query",
     description: "The search query to execute."
   })
-  declare query: any;
+  declare query: string;
 
   async process(): Promise<WebSearchNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const query = String(this.query ?? "");
+    const query = this.query;
     if (!query) throw new Error("Search query cannot be empty");
 
     const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
@@ -174,7 +179,7 @@ export class ModerationNode extends BaseNode {
     title: "Input",
     description: "The text content to check for policy violations."
   })
-  declare input: any;
+  declare input: string;
 
   @prop({
     type: "enum",
@@ -188,12 +193,12 @@ export class ModerationNode extends BaseNode {
       "text-moderation-stable"
     ]
   })
-  declare model: any;
+  declare model: string;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
-    const text = String(this.input ?? "");
-    const model = String(this.model ?? "omni-moderation-latest");
+    const text = this.input;
+    const model = this.model;
     if (!text) throw new Error("Input text cannot be empty");
 
     const res = await fetch(`${OPENAI_API_BASE}/moderations`, {
@@ -249,7 +254,7 @@ export class CreateImageNode extends BaseNode {
     title: "Prompt",
     description: "The prompt to use."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "enum",
@@ -258,7 +263,7 @@ export class CreateImageNode extends BaseNode {
     description: "The model to use for image generation.",
     values: ["gpt-image-1"]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "enum",
@@ -267,7 +272,7 @@ export class CreateImageNode extends BaseNode {
     description: "The size of the image to generate.",
     values: ["1024x1024", "1536x1024", "1024x1536"]
   })
-  declare size: any;
+  declare size: string;
 
   @prop({
     type: "enum",
@@ -276,7 +281,7 @@ export class CreateImageNode extends BaseNode {
     description: "The background of the image to generate.",
     values: ["transparent", "opaque", "auto"]
   })
-  declare background: any;
+  declare background: string;
 
   @prop({
     type: "enum",
@@ -285,17 +290,17 @@ export class CreateImageNode extends BaseNode {
     description: "The quality of the image to generate.",
     values: ["high", "medium", "low"]
   })
-  declare quality: any;
+  declare quality: string;
 
   async process(): Promise<CreateImageNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const prompt = String(this.prompt ?? "");
+    const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = String(this.model ?? "gpt-image-1");
-    const size = String(this.size ?? "1024x1024");
-    const quality = String(this.quality ?? "high");
-    const background = String(this.background ?? "auto");
+    const model = this.model;
+    const size = this.size;
+    const quality = this.quality;
+    const background = this.background;
 
     const res = await fetch(`${OPENAI_API_BASE}/images/generations`, {
       method: "POST",
@@ -362,7 +367,7 @@ export class EditImageNode extends BaseNode {
     title: "Image",
     description: "The image to edit."
   })
-  declare image: any;
+  declare image: ImageRef;
 
   @prop({
     type: "image",
@@ -377,7 +382,7 @@ export class EditImageNode extends BaseNode {
     description:
       "Optional mask image. White areas will be edited, black areas preserved."
   })
-  declare mask: any;
+  declare mask: ImageRef;
 
   @prop({
     type: "str",
@@ -385,7 +390,7 @@ export class EditImageNode extends BaseNode {
     title: "Prompt",
     description: "The prompt describing the desired edit."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "enum",
@@ -394,7 +399,7 @@ export class EditImageNode extends BaseNode {
     description: "The model to use for image editing.",
     values: ["gpt-image-1"]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "enum",
@@ -403,7 +408,7 @@ export class EditImageNode extends BaseNode {
     description: "The size of the output image.",
     values: ["1024x1024", "1536x1024", "1024x1536"]
   })
-  declare size: any;
+  declare size: string;
 
   @prop({
     type: "enum",
@@ -412,21 +417,21 @@ export class EditImageNode extends BaseNode {
     description: "The quality of the generated image.",
     values: ["high", "medium", "low"]
   })
-  declare quality: any;
+  declare quality: string;
 
   async process(): Promise<EditImageNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const prompt = String(this.prompt ?? "");
+    const prompt = this.prompt;
     if (!prompt) throw new Error("Edit prompt cannot be empty");
 
-    const image = this.image as Record<string, unknown> | undefined;
+    const image = this.image;
     if (!image || (!image.data && !image.uri)) {
       throw new Error("Input image is required");
     }
 
-    const model = String(this.model ?? "gpt-image-1");
-    const size = String(this.size ?? "1024x1024");
-    const quality = String(this.quality ?? "high");
+    const model = this.model;
+    const size = this.size;
+    const quality = this.quality;
 
     // gpt-image-1 always returns base64 and rejects `response_format`, so it
     // must not be sent (unlike the legacy dall-e-2 edits endpoint).
@@ -441,7 +446,7 @@ export class EditImageNode extends BaseNode {
     formData.append("image", imageBlob, "image.png");
 
     // Optional mask
-    const mask = this.mask as Record<string, unknown> | undefined;
+    const mask = this.mask;
     if (mask && (mask.data || mask.uri)) {
       const maskBlob = await refToBlob(mask);
       formData.append("mask", maskBlob, "mask.png");
@@ -505,7 +510,7 @@ export class ImageVariationNode extends BaseNode {
     title: "Image",
     description: "The source image to generate variations from (square PNG)."
   })
-  declare image: any;
+  declare image: ImageRef;
 
   @prop({
     type: "enum",
@@ -514,15 +519,15 @@ export class ImageVariationNode extends BaseNode {
     description: "The size of the generated image.",
     values: ["256x256", "512x512", "1024x1024"]
   })
-  declare size: any;
+  declare size: string;
 
   async process(): Promise<ImageVariationNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const image = this.image as Record<string, unknown> | undefined;
+    const image = this.image;
     if (!image || (!image.data && !image.uri)) {
       throw new Error("Input image is required");
     }
-    const size = String(this.size ?? "1024x1024");
+    const size = this.size;
 
     // The variations endpoint only supports dall-e-2, which requires the
     // `response_format` to request base64 output.
@@ -574,7 +579,9 @@ function audioRefFromB64(b64: string, contentType: string) {
 }
 
 /** Convert an image/audio ref object to a Blob for multipart upload. */
-async function refToBlob(ref: Record<string, unknown>): Promise<Blob> {
+type MediaRefLike = { uri?: string; data?: unknown };
+
+async function refToBlob(ref: MediaRefLike): Promise<Blob> {
   if (ref.data && isString(ref.data)) {
     const dataStr = ref.data;
     // Handle data: URI
@@ -624,7 +631,7 @@ export class TextToSpeechNode extends BaseNode {
     title: "Model",
     values: ["tts-1", "tts-1-hd", "gpt-4o-mini-tts"]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "enum",
@@ -644,13 +651,13 @@ export class TextToSpeechNode extends BaseNode {
       "verse"
     ]
   })
-  declare voice: any;
+  declare voice: string;
 
   @prop({ type: "str", default: "", title: "Input" })
-  declare input: any;
+  declare input: string;
 
   @prop({ type: "float", default: 1, title: "Speed", min: 0.25, max: 4 })
-  declare speed: any;
+  declare speed: number;
 
   @prop({
     type: "str",
@@ -659,16 +666,16 @@ export class TextToSpeechNode extends BaseNode {
     description:
       "Steer the voice's tone, emotion, and delivery (gpt-4o-mini-tts only)."
   })
-  declare instructions: any;
+  declare instructions: string;
 
   async process(): Promise<TextToSpeechNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const text = String(this.input ?? "");
+    const text = this.input;
     if (!text) throw new Error("Input text cannot be empty");
-    const model = String(this.model ?? "tts-1");
-    const voice = String(this.voice ?? "alloy");
-    const speed = Number(this.speed ?? 1.0);
-    const instructions = String(this.instructions ?? "");
+    const model = this.model;
+    const voice = this.voice;
+    const speed = this.speed;
+    const instructions = this.instructions;
 
     const isMiniTts = model === "gpt-4o-mini-tts";
     const body: Record<string, unknown> = {
@@ -735,7 +742,7 @@ export class TranslateNode extends BaseNode {
     title: "Audio",
     description: "The audio file to translate."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "float",
@@ -743,15 +750,15 @@ export class TranslateNode extends BaseNode {
     title: "Temperature",
     description: "The temperature to use for the translation."
   })
-  declare temperature: any;
+  declare temperature: number;
 
   async process(): Promise<TranslateNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const audio = this.audio as Record<string, unknown> | undefined;
+    const audio = this.audio;
     if (!audio || (!audio.data && !audio.uri)) {
       throw new Error("Audio input is required");
     }
-    const temperature = Number(this.temperature ?? 0.0);
+    const temperature = this.temperature;
 
     const audioBlob = await refToBlob(audio);
     const formData = new FormData();
@@ -805,7 +812,7 @@ export class TranscribeNode extends BaseNode {
     description: "The model to use for transcription.",
     values: ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "audio",
@@ -819,7 +826,7 @@ export class TranscribeNode extends BaseNode {
     title: "Audio",
     description: "The audio file to transcribe (max 25 MB)."
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "enum",
@@ -891,7 +898,7 @@ export class TranscribeNode extends BaseNode {
       "cy"
     ]
   })
-  declare language: any;
+  declare language: string;
 
   @prop({
     type: "bool",
@@ -899,7 +906,7 @@ export class TranscribeNode extends BaseNode {
     title: "Timestamps",
     description: "Whether to return timestamps for the generated text."
   })
-  declare timestamps: any;
+  declare timestamps: boolean;
 
   @prop({
     type: "str",
@@ -908,7 +915,7 @@ export class TranscribeNode extends BaseNode {
     description:
       "Optional text to guide the model's style or continue a previous audio segment."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "float",
@@ -919,20 +926,20 @@ export class TranscribeNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare temperature: any;
+  declare temperature: number;
 
   async process(): Promise<TranscribeNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
-    const audio = this.audio as Record<string, unknown> | undefined;
+    const audio = this.audio;
     if (!audio || (!audio.data && !audio.uri)) {
       throw new Error("Audio input is required");
     }
 
-    const model = String(this.model ?? "whisper-1");
-    const language = String(this.language ?? "auto_detect");
-    const timestamps = Boolean(this.timestamps ?? false);
-    const promptText = String(this.prompt ?? "");
-    const temperature = Number(this.temperature ?? 0);
+    const model = this.model;
+    const language = this.language;
+    const timestamps = this.timestamps;
+    const promptText = this.prompt;
+    const temperature = this.temperature;
 
     const isNewModel =
       model === "gpt-4o-transcribe" || model === "gpt-4o-mini-transcribe";
@@ -1032,7 +1039,7 @@ export class RealtimeAgentNode extends BaseNode {
     title: "Model",
     values: ["gpt-4o-realtime-preview", "gpt-4o-mini-realtime-preview"]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -1043,7 +1050,7 @@ export class RealtimeAgentNode extends BaseNode {
     title: "System",
     description: "System instructions for the realtime session"
   })
-  declare system: any;
+  declare system: string;
 
   @prop({
     type: "chunk",
@@ -1061,7 +1068,7 @@ export class RealtimeAgentNode extends BaseNode {
     title: "Chunk",
     description: "The audio chunk to use as input."
   })
-  declare chunk: any;
+  declare chunk: Chunk;
 
   @prop({
     type: "enum",
@@ -1083,7 +1090,7 @@ export class RealtimeAgentNode extends BaseNode {
       "verse"
     ]
   })
-  declare voice: any;
+  declare voice: string;
 
   @prop({
     type: "float",
@@ -1093,7 +1100,7 @@ export class RealtimeAgentNode extends BaseNode {
     min: 0.25,
     max: 1.5
   })
-  declare speed: any;
+  declare speed: number;
 
   @prop({
     type: "float",
@@ -1103,7 +1110,7 @@ export class RealtimeAgentNode extends BaseNode {
     min: 0.6,
     max: 1.2
   })
-  declare temperature: any;
+  declare temperature: number;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -1121,11 +1128,11 @@ export class RealtimeAgentNode extends BaseNode {
     if (!apiKey) apiKey = process.env.OPENAI_API_KEY ?? "";
     if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
 
-    const model = String(this.model ?? "gpt-4o-mini-realtime-preview");
-    const voice = String(this.voice ?? "alloy");
-    const system = String(this.system ?? "");
-    const temperature = Number(this.temperature ?? 0.8);
-    const speed = Number(this.speed ?? 1);
+    const model = this.model;
+    const voice = this.voice;
+    const system = this.system;
+    const temperature = this.temperature;
+    const speed = this.speed;
     const wantAudio = voice !== "none";
 
     const { WebSocket } = await import("ws");
@@ -1351,7 +1358,7 @@ export class RealtimeTranscriptionNode extends BaseNode {
     description: "The realtime model to use.",
     values: ["gpt-4o-realtime-preview", "gpt-4o-mini-realtime-preview"]
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "chunk",
@@ -1369,7 +1376,7 @@ export class RealtimeTranscriptionNode extends BaseNode {
     title: "Chunk",
     description: "Audio chunk input stream (base64-encoded PCM16 audio)."
   })
-  declare chunk: any;
+  declare chunk: Chunk;
 
   @prop({
     type: "str",
@@ -1377,7 +1384,7 @@ export class RealtimeTranscriptionNode extends BaseNode {
     title: "System",
     description: "System instructions (optional)"
   })
-  declare system: any;
+  declare system: string;
 
   @prop({
     type: "float",
@@ -1385,7 +1392,7 @@ export class RealtimeTranscriptionNode extends BaseNode {
     title: "Temperature",
     description: "Decoding temperature"
   })
-  declare temperature: any;
+  declare temperature: number;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -1403,8 +1410,8 @@ export class RealtimeTranscriptionNode extends BaseNode {
     if (!apiKey) apiKey = process.env.OPENAI_API_KEY ?? "";
     if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
 
-    const model = String(this.model ?? "gpt-4o-mini-realtime-preview");
-    const temperature = Number(this.temperature ?? 0.8);
+    const model = this.model;
+    const temperature = this.temperature;
 
     const { WebSocket } = await import("ws");
     const wsUrl = `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(model)}`;
@@ -1426,7 +1433,7 @@ export class RealtimeTranscriptionNode extends BaseNode {
         type: "session.update",
         session: {
           modalities: ["text"],
-          instructions: this.system ? String(this.system) : undefined,
+          instructions: this.system || undefined,
           input_audio_format: "pcm16",
           input_audio_transcription: { model: "gpt-4o-mini-transcribe" },
           turn_detection: {

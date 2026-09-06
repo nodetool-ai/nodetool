@@ -17,24 +17,8 @@
  */
 
 import type { BlendMode } from "@nodetool-ai/gpu";
+import type { SketchTool } from "./types";
 
-/** The tools an agent can pick for a layer / canvas op. */
-export type SketchToolName =
-  | "move"
-  | "transform"
-  | "select"
-  | "brush"
-  | "pencil"
-  | "eraser"
-  | "eyedropper"
-  | "fill"
-  | "shape"
-  | "blur"
-  | "gradient"
-  | "crop"
-  | "clone_stamp"
-  | "adjust"
-  | "segment";
 
 /** Direct-generation kinds the agent can spawn on a new layer. */
 export type SketchGenerateKind = "text-to-image" | "image-to-image";
@@ -76,7 +60,7 @@ export interface SketchSnapshot {
   foregroundColor: string;
   backgroundColor: string;
   /** Currently-selected tool. */
-  activeTool: SketchToolName;
+  activeTool: SketchTool;
   /** True when a pixel selection is active (mask present). */
   hasSelection: boolean;
   /** Layers from bottom to top. */
@@ -390,7 +374,7 @@ export interface SketchAgentHandler {
   placeImage: (opts: SketchPlaceImageOptions) => Promise<SketchPlaceImageResult>;
   setForegroundColor: (color: string) => string;
   setBackgroundColor: (color: string) => string;
-  setActiveTool: (tool: SketchToolName) => SketchToolName;
+  setActiveTool: (tool: SketchTool) => SketchTool;
   /**
    * Paint strokes onto raster layers with the real brush/pencil/eraser engine.
    * The whole batch commits as one undo step, so an agent can lay down a full

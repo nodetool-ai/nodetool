@@ -1,7 +1,11 @@
 import { resolveMediaUri } from "../../../utils/resolveMediaUri";
 import type { SegmentationMask, SegmentationSourceMetadata } from "../types";
 import type { SegmentationResponse } from "./SamService";
-import { isNumber, isObjectLike } from "../../../utils/typePredicates";
+import {
+  isNonEmptyString,
+  isNumber,
+  isObjectLike
+} from "../../../utils/typePredicates";
 
 interface SamMaskImageRef {
   uri?: string;
@@ -41,10 +45,6 @@ function isSamMaskImageRef(value: unknown): value is SamMaskImageRef {
     // every run reporting zero masks.
     isNonEmptyString(candidate.data)
   );
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0;
 }
 
 /** The array of mask images inside whatever handle the node emitted. */

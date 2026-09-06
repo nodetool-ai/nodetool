@@ -64,8 +64,6 @@ import {
 import { isNonEmptyString } from "../utils/type-guards.js";
 
 export {
-  sandboxPackageDocsSpec,
-  sandboxPackageListSpec,
   SANDBOX_PACKAGE_DOCS_TOOL_NAME,
   SANDBOX_PACKAGE_LIST_TOOL_NAME
 } from "./packs.specs.js";

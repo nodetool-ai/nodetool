@@ -142,7 +142,7 @@ export class ComfyWorkflowNode extends BaseNode {
       "ComfyUI server address, e.g. 127.0.0.1:8188 or http://host:8188.",
     required: true
   })
-  declare endpoint: any;
+  declare endpoint: string;
 
   @prop({
     type: "enum",
@@ -152,7 +152,7 @@ export class ComfyWorkflowNode extends BaseNode {
       "Which API to speak. `native` speaks ComfyUI's own /prompt and WebSocket protocol; `v2` speaks Comfy API v2 for a server behind comfy-api-proxy (port 8189) or a ComfyUI that serves /api/v2.",
     values: ["native", "v2"]
   })
-  declare api: any;
+  declare api: "native" | "v2";
 
   @prop({
     type: "str",
@@ -162,7 +162,7 @@ export class ComfyWorkflowNode extends BaseNode {
       "ComfyUI workflow in API (prompt) format, as a JSON string: a map of node id to { class_type, inputs }.",
     required: true
   })
-  declare workflow: any;
+  declare workflow: string | ComfyPrompt;
 
   @prop({
     type: "int",
@@ -171,7 +171,7 @@ export class ComfyWorkflowNode extends BaseNode {
     description: "Maximum seconds to wait for the workflow to finish.",
     min: 1
   })
-  declare timeout: any;
+  declare timeout: number;
 
   /**
    * Build the Comfy API v2 transport for the `v2` API. Split out so tests can
@@ -280,7 +280,7 @@ export class ComfyWorkflowNode extends BaseNode {
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
-    const endpoint = String(this.endpoint ?? "").trim();
+    const endpoint = this.endpoint.trim();
     if (!endpoint) {
       throw new Error("ComfyUI endpoint is required");
     }
@@ -292,13 +292,13 @@ export class ComfyWorkflowNode extends BaseNode {
       );
     }
 
-    if (String(this.api ?? "native") === "v2") {
+    if (this.api === "v2") {
       yield* streamComfyV2(
         this.createTransport(httpBaseUrl(endpoint)),
         source,
         this.dynamicProps,
         {
-          timeoutSeconds: Math.max(1, Number(this.timeout ?? 600)),
+          timeoutSeconds: Math.max(1, this.timeout),
           nodeId: this.__node_id,
           nodeName: this.__node_name ?? "Run ComfyUI Workflow",
           context
@@ -316,7 +316,7 @@ export class ComfyWorkflowNode extends BaseNode {
       await this.injectInput(prompt, endpoint, handle, value, context);
     }
 
-    const timeoutMs = Math.max(1, Number(this.timeout ?? 600)) * 1000;
+    const timeoutMs = Math.max(1, this.timeout) * 1000;
 
     const nodeCount = Object.keys(prompt).length;
     const nodeId = this.__node_id;
@@ -573,7 +573,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
       "WebSocket URL of the NodeTool worker fronting ComfyUI, e.g. ws://host:7777/ws.",
     required: true
   })
-  declare worker_url: any;
+  declare worker_url: string;
 
   @prop({
     type: "str",
@@ -581,7 +581,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
     title: "Worker Token",
     description: "Bearer token for the worker, if it requires authentication."
   })
-  declare worker_token: any;
+  declare worker_token: string;
 
   @prop({
     type: "str",
@@ -591,7 +591,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
       "ComfyUI workflow in API (prompt) format, as a JSON string: a map of node id to { class_type, inputs }.",
     required: true
   })
-  declare workflow: any;
+  declare workflow: string | ComfyPrompt;
 
   @prop({
     type: "int",
@@ -600,7 +600,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
     description: "Maximum seconds to wait for the workflow to finish.",
     min: 1
   })
-  declare timeout: any;
+  declare timeout: number;
 
   @prop({
     type: "bool",
@@ -608,15 +608,15 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
     title: "Previews",
     description: "Stream ComfyUI preview images while the workflow runs."
   })
-  declare previews: any;
+  declare previews: boolean;
 
   /**
    * Connect a bridge to the worker. Split out so tests can inject a fake
    * bridge without standing up a real WebSocket worker.
    */
   protected async connectBridge(): Promise<PythonBridge> {
-    const url = String(this.worker_url ?? "").trim();
-    const token = String(this.worker_token ?? "").trim();
+    const url = this.worker_url.trim();
+    const token = this.worker_token.trim();
     const bridge = new WebsocketPythonBridge({
       wsUrl: url,
       workerToken: token || undefined,
@@ -680,7 +680,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
-    const url = String(this.worker_url ?? "").trim();
+    const url = this.worker_url.trim();
     if (!url) {
       throw new Error("Worker URL is required");
     }
@@ -697,17 +697,17 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
     // serving API v2 is then driven over HTTP, so the bridge is closed again.
     if (bridge.getComfyStatus()?.api_v2 === true) {
       bridge.close();
-      const token = String(this.worker_token ?? "").trim();
+      const token = this.worker_token.trim();
       yield* streamComfyV2(
         this.createTransport(workerHttpOrigin(url), token || undefined),
         source,
         this.dynamicProps,
         {
-          timeoutSeconds: Math.max(1, Number(this.timeout ?? 600)),
+          timeoutSeconds: Math.max(1, this.timeout),
           nodeId: this.__node_id,
           nodeName: this.__node_name ?? "Run ComfyUI Workflow (Worker)",
           context,
-          previews: Boolean(this.previews)
+          previews: this.previews
         }
       );
       return;
@@ -819,8 +819,8 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
         prompt,
         {
           blobs: Object.keys(blobs).length > 0 ? blobs : undefined,
-          previews: Boolean(this.previews),
-          timeout: Math.max(1, Number(this.timeout ?? 600))
+          previews: this.previews,
+          timeout: Math.max(1, this.timeout)
         },
         onEvent
       );

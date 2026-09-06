@@ -6,6 +6,7 @@ import { Asset } from "../../stores/ApiTypes";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { formatFileSize } from "../../utils/formatUtils";
+import { assetTypeLabel } from "./assetTypeLabels";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { IconForType } from "../../config/IconForType";
 import { getAssetCategory } from "./assetGridUtils";
@@ -41,18 +42,6 @@ const ROW_ICON_STYLE = {
 type VirtualListItemData =
   | { type: 'header'; key: string; data: { type: string; count: number; isExpanded: boolean } }
   | { type: 'asset'; key: string; data: { asset: Asset } };
-
-// Define typeMap outside the component to avoid recreation
-const TYPE_MAP: Record<string, string> = {
-  folder: "Folder",
-  image: "Images",
-  video: "Videos",
-  audio: "Audio",
-  model_3d: "3D Models",
-  text: "Text",
-  application: "Files",
-  other: "Other"
-};
 
 const styles = (theme: Theme) =>
   css({
@@ -341,10 +330,6 @@ const AssetListView: React.FC<AssetListViewProps> = ({
     return date.toLocaleDateString();
   }, []);
 
-  const getTypeDisplayName = useCallback((type: string) => {
-    return TYPE_MAP[type] || type.charAt(0).toUpperCase() + type.slice(1);
-  }, []);
-
   // Determine which columns to show based on container width and layout
   // In horizontal layout, be more aggressive about hiding columns
   const sizeThreshold = isHorizontal ? 500 : 600;
@@ -408,7 +393,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
             containerStyle={HEADER_ICON_STYLE}
           />
           <Text className="asset-content-type-title">
-            {getTypeDisplayName(type)} ({count})
+            {assetTypeLabel(type)} ({count})
           </Text>
           <ExpandCollapseButton
             expanded={isExpanded}
@@ -526,7 +511,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
         )}
       </div>
     );
-  }, [virtualListItems, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate, emptyCallback, formatDate, getTypeDisplayName]);
+  }, [virtualListItems, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate, emptyCallback, formatDate]);
 
   if (assets.length === 0) {
     return (

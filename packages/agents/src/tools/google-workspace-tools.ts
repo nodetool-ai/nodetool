@@ -15,7 +15,6 @@
 import type { Tool } from "./base-tool.js";
 import { googleSpecs } from "../capabilities/google.specs.js";
 import { toolFromLazyCapability } from "../capabilities/lazy-tool.js";
-import { registerTool } from "./tool-registry.js";
 
 /**
  * Every Google Workspace tool name. Kept apart from `BUILTIN_TOOL_NAMES`
@@ -29,21 +28,4 @@ export const GOOGLE_WORKSPACE_TOOL_NAMES: readonly string[] = googleSpecs.map(
 /** One fresh instance per Google Workspace tool. */
 export function getGoogleWorkspaceTools(): Tool[] {
   return googleSpecs.map((spec) => toolFromLazyCapability(spec));
-}
-
-let registeredNames: string[] | null = null;
-
-/**
- * Register the Google Workspace tools so `resolveTool(name)` finds them.
- * Idempotent. Callers gate this on `isGoogleWorkspaceEnabled()`.
- */
-export function registerGoogleWorkspaceTools(): string[] {
-  if (registeredNames) return registeredNames;
-  const names: string[] = [];
-  for (const tool of getGoogleWorkspaceTools()) {
-    registerTool(tool);
-    names.push(tool.name);
-  }
-  registeredNames = names;
-  return names;
 }

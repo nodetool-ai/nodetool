@@ -60,14 +60,6 @@ export const __resetStartingShotsForTests = (): void => {
   startingShots.clear();
 };
 
-/** A request id for a direct-generation RPC (no server job exists). */
-const randomRequestId = (): string => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-};
-
 /** The stored asset id behind a media ref, when it has one. */
 const assetIdFromRef = (ref: unknown): string | undefined => {
   if (!ref || typeof ref !== "object") return undefined;
@@ -179,7 +171,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         return;
       }
       startingShots.add(shot.id);
-      const requestId = randomRequestId();
+      const requestId = crypto.randomUUID();
       try {
         registerJob(shot.id, boardId, requestId, kind);
         await subscribeDirectShotJob(requestId, {

@@ -635,13 +635,15 @@ const appBuildSuite: EvalSuite = {
       { runOnServer },
       { getDefaultAssetsPath },
       { resolveLocalSecret },
-      { ProcessingContext, FileStorageAdapter }
+      { ProcessingContext },
+    { FileStorageAdapter }
     ] = await Promise.all([
       import("@nodetool-ai/agents"),
-      import("../debug/server-runner.js"),
+        import("../debug/server-runner.js"),
       import("@nodetool-ai/config"),
       import("../local-secrets.js"),
-      import("@nodetool-ai/runtime")
+      import("@nodetool-ai/runtime"),
+      import("@nodetool-ai/storage")
     ]);
 
     const cases = selectCases(APP_BUILD_EVAL_CASES, deps.caseIds);

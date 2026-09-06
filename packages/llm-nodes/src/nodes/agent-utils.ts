@@ -36,7 +36,7 @@ import {
   isObjectLike,
   isRecord,
   isString
-} from "./type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 
 // The structured-output call and its JSON fallback live in
 // `@nodetool-ai/runtime` — one implementation for the nodes, the agents, and
@@ -418,6 +418,27 @@ export function buildUserMessage(
     }
   }
   return { role: "user", content };
+}
+
+/**
+ * A user message that keeps `content` a plain string unless a media ref is
+ * actually attached. The Summarizer/Extractor/Classifier nodes declare `image`
+ * and `audio` props; wiring them through {@link buildUserMessage} unconditionally
+ * would also turn every text-only request into a parts array and run the prompt
+ * through `expandAssetReferences`, changing what existing graphs send. This
+ * keeps the old string shape whenever no ref resolves.
+ */
+export function userMessageWithMedia(
+  text: string,
+  images: unknown,
+  audios: unknown
+): Message {
+  const message = buildUserMessage(text, images, audios);
+  const parts = Array.isArray(message.content) ? message.content : [];
+  const hasMedia = parts.some(
+    (part) => part.type === "image_url" || part.type === "audio"
+  );
+  return hasMedia ? message : { role: "user", content: text };
 }
 
 /**

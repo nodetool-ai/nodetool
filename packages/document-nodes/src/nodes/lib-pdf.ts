@@ -78,7 +78,7 @@ export class PdfExtractTextNode extends BaseNode {
     title: "Start Page",
     description: "First page (0-based)"
   })
-  declare start_page: any;
+  declare start_page: number;
 
   @prop({
     type: "int",
@@ -86,13 +86,13 @@ export class PdfExtractTextNode extends BaseNode {
     title: "End Page",
     description: "Last page (-1 for all)"
   })
-  declare end_page: any;
+  declare end_page: number;
 
   async process(context?: ProcessingContext): Promise<PdfExtractTextNodeOutputs> {
     const result = await parsePdf(this.pdf ?? {}, context);
     const [start, end] = resolvePageRange(
-      Number(this.start_page ?? 0),
-      Number(this.end_page ?? -1),
+      this.start_page,
+      this.end_page,
       result.pages.length
     );
 
@@ -128,7 +128,7 @@ export class PdfExtractMarkdownNode extends BaseNode {
     title: "Start Page",
     description: "First page (0-based)"
   })
-  declare start_page: any;
+  declare start_page: number;
 
   @prop({
     type: "int",
@@ -136,13 +136,13 @@ export class PdfExtractMarkdownNode extends BaseNode {
     title: "End Page",
     description: "Last page (-1 for all)"
   })
-  declare end_page: any;
+  declare end_page: number;
 
   async process(context?: ProcessingContext): Promise<PdfExtractMarkdownNodeOutputs> {
     const result = await parsePdf(this.pdf ?? {}, context);
     const [start, end] = resolvePageRange(
-      Number(this.start_page ?? 0),
-      Number(this.end_page ?? -1),
+      this.start_page,
+      this.end_page,
       result.pages.length
     );
 
@@ -345,7 +345,7 @@ export class PdfExtractTablesNode extends BaseNode {
     title: "Start Page",
     description: "First page (0-based)"
   })
-  declare start_page: any;
+  declare start_page: number;
 
   @prop({
     type: "int",
@@ -353,7 +353,7 @@ export class PdfExtractTablesNode extends BaseNode {
     title: "End Page",
     description: "Last page (-1 for all)"
   })
-  declare end_page: any;
+  declare end_page: number;
 
   @prop({
     type: "int",
@@ -363,18 +363,18 @@ export class PdfExtractTablesNode extends BaseNode {
     min: 1,
     max: 20
   })
-  declare y_tolerance: any;
+  declare y_tolerance: number;
 
   async process(
     context?: ProcessingContext
   ): Promise<PdfExtractTablesNodeOutputs> {
     const result = await parsePdf(this.pdf ?? {}, context);
     const [start, end] = resolvePageRange(
-      Number(this.start_page ?? 0),
-      Number(this.end_page ?? -1),
+      this.start_page,
+      this.end_page,
       result.pages.length
     );
-    const yTolerance = Number(this.y_tolerance ?? 3);
+    const yTolerance = this.y_tolerance;
     const tables: ExtractedTable[] = [];
 
     for (let pageIdx = start; pageIdx <= end; pageIdx++) {
@@ -520,7 +520,7 @@ export class PdfExtractStyledTextNode extends BaseNode {
     title: "Start Page",
     description: "First page (0-based)"
   })
-  declare start_page: any;
+  declare start_page: number;
 
   @prop({
     type: "int",
@@ -528,15 +528,15 @@ export class PdfExtractStyledTextNode extends BaseNode {
     title: "End Page",
     description: "Last page (-1 for all)"
   })
-  declare end_page: any;
+  declare end_page: number;
 
   async process(
     context?: ProcessingContext
   ): Promise<PdfExtractStyledTextNodeOutputs> {
     const result = await parsePdf(this.pdf ?? {}, context);
     const [start, end] = resolvePageRange(
-      Number(this.start_page ?? 0),
-      Number(this.end_page ?? -1),
+      this.start_page,
+      this.end_page,
       result.pages.length
     );
     const spans: StyledTextSpan[] = [];
@@ -590,7 +590,7 @@ export class PdfScreenshotNode extends BaseNode {
     title: "Start Page",
     description: "First page to render (0-based)"
   })
-  declare start_page: any;
+  declare start_page: number;
 
   @prop({
     type: "int",
@@ -598,7 +598,7 @@ export class PdfScreenshotNode extends BaseNode {
     title: "End Page",
     description: "Last page to render (-1 for all)"
   })
-  declare end_page: any;
+  declare end_page: number;
 
   @prop({
     type: "int",
@@ -608,7 +608,7 @@ export class PdfScreenshotNode extends BaseNode {
     min: 72,
     max: 600
   })
-  declare dpi: any;
+  declare dpi: number;
 
   async process(context?: ProcessingContext): Promise<PdfScreenshotNodeOutputs> {
     // Bypass liteparse's parser.screenshot(): it loads the same buffer into
@@ -621,7 +621,7 @@ export class PdfScreenshotNode extends BaseNode {
     ]);
     const sharp = sharpModule.default;
     const pdfBuffer = await resolvePdfBuffer(this.pdf ?? {}, context);
-    const dpi = Number(this.dpi ?? 150);
+    const dpi = this.dpi;
     const scale = dpi / 72;
 
     const lib = await PDFiumLibrary.init();
@@ -631,8 +631,8 @@ export class PdfScreenshotNode extends BaseNode {
       doc = await lib.loadDocument(Buffer.from(pdfBuffer));
       const totalPages = doc.getPageCount();
       const [start, end] = resolvePageRange(
-        Number(this.start_page ?? 0),
-        Number(this.end_page ?? -1),
+        this.start_page,
+        this.end_page,
         totalPages
       );
       for (let i = start; i <= end; i++) {
@@ -688,7 +688,7 @@ export class PdfToppmNode extends BaseNode {
     title: "Start Page",
     description: "First page to render (0-based)"
   })
-  declare start_page: any;
+  declare start_page: number;
 
   @prop({
     type: "int",
@@ -696,7 +696,7 @@ export class PdfToppmNode extends BaseNode {
     title: "End Page",
     description: "Last page to render (-1 for all)"
   })
-  declare end_page: any;
+  declare end_page: number;
 
   @prop({
     type: "int",
@@ -706,7 +706,7 @@ export class PdfToppmNode extends BaseNode {
     min: 36,
     max: 600
   })
-  declare dpi: any;
+  declare dpi: number;
 
   @prop({
     type: "enum",
@@ -715,7 +715,7 @@ export class PdfToppmNode extends BaseNode {
     title: "Format",
     description: "Output image format"
   })
-  declare format: any;
+  declare format: "png" | "jpeg" | "tiff";
 
   @prop({
     type: "int",
@@ -726,7 +726,7 @@ export class PdfToppmNode extends BaseNode {
     min: 0,
     max: 8192
   })
-  declare scale_to: any;
+  declare scale_to: number;
 
   async process(context?: ProcessingContext): Promise<PdfToppmNodeOutputs> {
     const { execFile } = await import("node:child_process");
@@ -737,9 +737,9 @@ export class PdfToppmNode extends BaseNode {
     const execFileAsync = promisify(execFile);
 
     const pdfBuffer = await resolvePdfBuffer(this.pdf ?? {}, context);
-    const dpi = Number(this.dpi ?? 150);
-    const scaleTo = Number(this.scale_to ?? 0);
-    const format = String(this.format ?? "png").toLowerCase();
+    const dpi = this.dpi;
+    const scaleTo = this.scale_to;
+    const format = this.format.toLowerCase();
     const formatFlag =
       format === "jpeg" ? "-jpeg" : format === "tiff" ? "-tiff" : "-png";
     const ext = format === "jpeg" ? "jpg" : format;
@@ -753,8 +753,8 @@ export class PdfToppmNode extends BaseNode {
       // pdftoppm uses 1-based page numbers.
       const totalPages = await countPdfPages(pdfBuffer);
       const [start, end] = resolvePageRange(
-        Number(this.start_page ?? 0),
-        Number(this.end_page ?? -1),
+        this.start_page,
+        this.end_page,
         totalPages
       );
 
@@ -828,7 +828,7 @@ export class PdfExtractOcrNode extends BaseNode {
     title: "Start Page",
     description: "First page (0-based)"
   })
-  declare start_page: any;
+  declare start_page: number;
 
   @prop({
     type: "int",
@@ -836,7 +836,7 @@ export class PdfExtractOcrNode extends BaseNode {
     title: "End Page",
     description: "Last page (-1 for all)"
   })
-  declare end_page: any;
+  declare end_page: number;
 
   @prop({
     type: "str",
@@ -844,7 +844,7 @@ export class PdfExtractOcrNode extends BaseNode {
     title: "OCR Language",
     description: "ISO 639-1 language code for OCR (e.g. en, fr, de, es)"
   })
-  declare ocr_language: any;
+  declare ocr_language: string;
 
   @prop({
     type: "int",
@@ -854,19 +854,19 @@ export class PdfExtractOcrNode extends BaseNode {
     min: 72,
     max: 600
   })
-  declare dpi: any;
+  declare dpi: number;
 
   async process(context?: ProcessingContext): Promise<PdfExtractOcrNodeOutputs> {
     const { LiteParse } = await import("@llamaindex/liteparse");
     const pdfBuffer = await resolvePdfBuffer(this.pdf ?? {}, context);
-    const ocrLanguage = String(this.ocr_language ?? "en");
-    const dpi = Number(this.dpi ?? 150);
+    const ocrLanguage = this.ocr_language;
+    const dpi = this.dpi;
     const parser = new LiteParse({ ocrEnabled: true, ocrLanguage, dpi });
     const result = await parser.parse(pdfBuffer, true);
 
     const [start, end] = resolvePageRange(
-      Number(this.start_page ?? 0),
-      Number(this.end_page ?? -1),
+      this.start_page,
+      this.end_page,
       result.pages.length
     );
     const parts: string[] = [];

@@ -127,7 +127,7 @@ export class GainNode_ extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -138,11 +138,11 @@ export class GainNode_ extends BaseNode {
     min: -60,
     max: 24
   })
-  declare gain_db: any;
+  declare gain_db: number;
 
   async process(context?: ProcessingContext): Promise<GainNode_Outputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const gainDb = Number(this.gain_db ?? 0);
+    const audio = this.audio;
+    const gainDb = this.gain_db;
 
     const bytes = await requireAudioBytes(audio, context);
 
@@ -190,7 +190,7 @@ export class DelayNode_ extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -200,7 +200,7 @@ export class DelayNode_ extends BaseNode {
     min: 0.01,
     max: 5
   })
-  declare delay_seconds: any;
+  declare delay_seconds: number;
 
   @prop({
     type: "float",
@@ -210,7 +210,7 @@ export class DelayNode_ extends BaseNode {
     min: 0,
     max: 0.99
   })
-  declare feedback: any;
+  declare feedback: number;
 
   @prop({
     type: "float",
@@ -220,13 +220,13 @@ export class DelayNode_ extends BaseNode {
     min: 0,
     max: 1
   })
-  declare mix: any;
+  declare mix: number;
 
   async process(context?: ProcessingContext): Promise<DelayNode_Outputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const delaySec = Number(this.delay_seconds ?? 0.5);
-    const feedback = Number(this.feedback ?? 0.3);
-    const mix = Number(this.mix ?? 0.5);
+    const audio = this.audio;
+    const delaySec = this.delay_seconds;
+    const feedback = this.feedback;
+    const mix = this.mix;
 
     const bytes = await requireAudioBytes(audio, context);
 
@@ -296,7 +296,7 @@ export class HighPassFilterNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -306,11 +306,11 @@ export class HighPassFilterNode extends BaseNode {
     min: 20,
     max: 5000
   })
-  declare cutoff_frequency_hz: any;
+  declare cutoff_frequency_hz: number;
 
   async process(context?: ProcessingContext): Promise<HighPassFilterNodeOutputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const cutoff = Number(this.cutoff_frequency_hz ?? 80);
+    const audio = this.audio;
+    const cutoff = this.cutoff_frequency_hz;
 
     const bytes = await requireAudioBytes(audio, context);
 
@@ -351,7 +351,7 @@ export class LowPassFilterNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -361,11 +361,11 @@ export class LowPassFilterNode extends BaseNode {
     min: 500,
     max: 20000
   })
-  declare cutoff_frequency_hz: any;
+  declare cutoff_frequency_hz: number;
 
   async process(context?: ProcessingContext): Promise<LowPassFilterNodeOutputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const cutoff = Number(this.cutoff_frequency_hz ?? 5000);
+    const audio = this.audio;
+    const cutoff = this.cutoff_frequency_hz;
 
     const bytes = await requireAudioBytes(audio, context);
 
@@ -406,7 +406,7 @@ export class HighShelfFilterNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -416,7 +416,7 @@ export class HighShelfFilterNode extends BaseNode {
     min: 1000,
     max: 20000
   })
-  declare cutoff_frequency_hz: any;
+  declare cutoff_frequency_hz: number;
 
   @prop({
     type: "float",
@@ -427,12 +427,12 @@ export class HighShelfFilterNode extends BaseNode {
     min: -24,
     max: 24
   })
-  declare gain_db: any;
+  declare gain_db: number;
 
   async process(context?: ProcessingContext): Promise<HighShelfFilterNodeOutputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const cutoff = Number(this.cutoff_frequency_hz ?? 5000);
-    const gainDb = Number(this.gain_db ?? 0);
+    const audio = this.audio;
+    const cutoff = this.cutoff_frequency_hz;
+    const gainDb = this.gain_db;
 
     const bytes = await requireAudioBytes(audio, context);
 
@@ -474,7 +474,7 @@ export class LowShelfFilterNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -484,7 +484,7 @@ export class LowShelfFilterNode extends BaseNode {
     min: 20,
     max: 1000
   })
-  declare cutoff_frequency_hz: any;
+  declare cutoff_frequency_hz: number;
 
   @prop({
     type: "float",
@@ -495,12 +495,12 @@ export class LowShelfFilterNode extends BaseNode {
     min: -24,
     max: 24
   })
-  declare gain_db: any;
+  declare gain_db: number;
 
   async process(context?: ProcessingContext): Promise<LowShelfFilterNodeOutputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const cutoff = Number(this.cutoff_frequency_hz ?? 200);
-    const gainDb = Number(this.gain_db ?? 0);
+    const audio = this.audio;
+    const cutoff = this.cutoff_frequency_hz;
+    const gainDb = this.gain_db;
 
     const bytes = await requireAudioBytes(audio, context);
 
@@ -542,7 +542,7 @@ export class PeakFilterNode extends BaseNode {
     title: "Audio",
     description: "The audio file to process."
   })
-  declare audio: any;
+  declare audio: Record<string, unknown>;
 
   @prop({
     type: "float",
@@ -552,7 +552,7 @@ export class PeakFilterNode extends BaseNode {
     min: 20,
     max: 20000
   })
-  declare cutoff_frequency_hz: any;
+  declare cutoff_frequency_hz: number;
 
   @prop({
     type: "float",
@@ -563,7 +563,7 @@ export class PeakFilterNode extends BaseNode {
     min: 0.1,
     max: 10
   })
-  declare q_factor: any;
+  declare q_factor: number;
 
   @prop({
     type: "float",
@@ -574,13 +574,13 @@ export class PeakFilterNode extends BaseNode {
     min: -24,
     max: 24
   })
-  declare gain_db: any;
+  declare gain_db: number;
 
   async process(context?: ProcessingContext): Promise<PeakFilterNodeOutputs> {
-    const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const cutoff = Number(this.cutoff_frequency_hz ?? 1000);
-    const q = Number(this.q_factor ?? 1.0);
-    const gainDb = Number(this.gain_db ?? 0);
+    const audio = this.audio;
+    const cutoff = this.cutoff_frequency_hz;
+    const q = this.q_factor;
+    const gainDb = this.gain_db;
 
     const bytes = await requireAudioBytes(audio, context);
 

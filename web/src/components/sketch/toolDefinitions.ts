@@ -101,4 +101,3 @@ export function getToolShortcutActionId(
 export const CONTEXT_MENU_TOOL_GROUPS: readonly ToolDefinition[][] =
   TOOLBAR_TOOL_GROUPS.map((group) => group.filter((d) => d.tool !== "adjust"));
 
-export const CONTEXT_MENU_TOOLS: ToolDefinition[] = CONTEXT_MENU_TOOL_GROUPS.flat();

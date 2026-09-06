@@ -47,7 +47,7 @@ import {
   isNumber,
   isObjectLike,
   isString
-} from "../type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 
 // Cache the executor / recipe runner / registry at module scope so the
 // sampler WeakMap inside the executor (and the recipe runner's internal

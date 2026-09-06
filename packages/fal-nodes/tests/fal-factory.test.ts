@@ -545,3 +545,93 @@ describe("FAL factory argument building", () => {
     );
   });
 });
+
+describe("FAL factory scalar coercion", () => {
+  beforeEach(() => {
+    falSubmit.mockClear();
+  });
+
+  const scalarNode = (
+    field: Record<string, unknown>
+  ): ReturnType<typeof createFalNodeClass> =>
+    createFalNodeClass({
+      endpointId: "fal-ai/test",
+      className: "ScalarModel",
+      moduleName: "text_to_image",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "str",
+      outputFields: [],
+      enums: [],
+      inputFields: [
+        {
+          tsType: "string",
+          default: null,
+          description: "",
+          fieldType: "input",
+          required: false,
+          ...field
+        } as never
+      ]
+    });
+
+  it("sends an integer-typed enum as a number", async () => {
+    // The manifest keeps the JSON type FAL's schema declared, so
+    // `texture_size: [1024, 2048, 4096]` is an integer enum. Sent as "2048" the
+    // model rejects it against its integer schema.
+    const NodeClass = scalarNode({
+      name: "texture_size",
+      propType: "enum",
+      enumValues: [1024, 2048, 4096]
+    });
+    const instance = new NodeClass({});
+    (instance as unknown as Record<string, unknown>).texture_size = 2048;
+
+    await instance.process();
+
+    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
+      texture_size: 2048
+    });
+  });
+
+  it("leaves a string-typed enum a string even when every option looks numeric", async () => {
+    // FAL declares `safety_tolerance` as a string enum. Coercing it to a number
+    // because the options parse as numbers would break 200+ shipped nodes.
+    const NodeClass = scalarNode({
+      name: "safety_tolerance",
+      propType: "enum",
+      enumValues: ["1", "2", "3", "4", "5", "6"]
+    });
+    const instance = new NodeClass({});
+    (instance as unknown as Record<string, unknown>).safety_tolerance = "3";
+
+    await instance.process();
+
+    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
+      safety_tolerance: "3"
+    });
+  });
+
+  it("drops a non-numeric value in an int field instead of sending NaN", async () => {
+    const NodeClass = scalarNode({ name: "seed", propType: "int" });
+    const instance = new NodeClass({});
+    (instance as unknown as Record<string, unknown>).seed = "abc";
+
+    await instance.process();
+
+    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {});
+  });
+
+  it("truncates a fractional value in an int field", async () => {
+    const NodeClass = scalarNode({ name: "steps", propType: "int" });
+    const instance = new NodeClass({});
+    (instance as unknown as Record<string, unknown>).steps = 28.7;
+
+    await instance.process();
+
+    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
+      steps: 28
+    });
+  });
+});

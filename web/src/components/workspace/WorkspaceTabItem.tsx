@@ -16,8 +16,15 @@ import {
   CloseButton,
   ContextMenu,
   LoadingSpinner,
-  MenuItemPrimitive
+  MenuItemPrimitive,
+  Tooltip
 } from "../ui_primitives";
+
+// Tabs are scanned, not studied — the title has to land while the pointer is
+// still moving. Well under the 700ms chrome default, and the native `title`
+// attribute this replaced was slower still (~1s, browser-controlled).
+const TAB_TITLE_TOOLTIP_DELAY = 150;
+const TAB_TITLE_TOOLTIP_NEXT_DELAY = 0;
 
 interface WorkspaceTabItemProps {
   tab: WorkspaceTab;
@@ -200,12 +207,14 @@ const WorkspaceTabItem = ({
                 color="primary"
               />
             )}
-            <span
-              className="tab-name"
+            <Tooltip
               title={tab.title}
+              placement="bottom"
+              delay={TAB_TITLE_TOOLTIP_DELAY}
+              nextDelay={TAB_TITLE_TOOLTIP_NEXT_DELAY}
             >
-              {tab.title}
-            </span>
+              <span className="tab-name">{tab.title}</span>
+            </Tooltip>
             {isWorkflowDirty && (
               <span
                 className="dirty-dot"

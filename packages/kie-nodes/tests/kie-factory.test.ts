@@ -75,7 +75,9 @@ describe("createKieNodeClass omni chaining", () => {
       "test-key",
       "/api/v1/omni/audio/create",
       { audio_id: "achernar", name: "Test Voice" },
-      "audioId"
+      "audioId",
+      // The run's cancellation signal, threaded through to the poll loop.
+      undefined
     );
   });
 
@@ -129,6 +131,7 @@ describe("createKieNodeClass omni chaining", () => {
       450,
       undefined,
       undefined,
+      undefined,
       undefined
     );
   });
@@ -161,6 +164,7 @@ describe("createKieNodeClass omni chaining", () => {
       450,
       undefined,
       undefined,
+      undefined,
       undefined
     );
   });
@@ -187,6 +191,7 @@ describe("createKieNodeClass omni chaining", () => {
       expect.objectContaining({ audio_ids: ["audio_abc"] }),
       8000,
       450,
+      undefined,
       undefined,
       undefined,
       undefined

@@ -47,13 +47,25 @@ describe("refToBytes / refToBase64", () => {
     expect(await refToBase64({ uri })).toBe(Buffer.from("png").toString("base64"));
   });
 
-  it("retrieves bytes from storage by URI", async () => {
+  it("retrieves bytes from storage when the asset resolver has none", async () => {
     const storage = {
       retrieve: vi.fn().mockResolvedValue(Uint8Array.from([7, 8, 9]))
     };
-    const bytes = await refToBytes({ uri: "asset://x" }, { storage });
+    const ctx = {
+      storage,
+      resolveAssetBytes: vi.fn().mockResolvedValue({ bytes: null })
+    };
+    const bytes = await refToBytes({ uri: "asset://x" }, ctx as never);
     expect([...bytes]).toEqual([7, 8, 9]);
     expect(storage.retrieve).toHaveBeenCalledWith("asset://x");
+  });
+
+  it("falls through a zero-length data buffer to the uri", async () => {
+    // `if (r.data)` was truthy for an empty Uint8Array, so a ref carrying an
+    // empty buffer alongside a good uri resolved to zero bytes.
+    const uri = `data:image/png;base64,${Buffer.from("png").toString("base64")}`;
+    const bytes = await refToBytes({ data: new Uint8Array(0), uri });
+    expect(Buffer.from(bytes).toString()).toBe("png");
   });
 
   it("resolves an asset:// ref via context.resolveAssetBytes when storage returns null", async () => {

@@ -68,26 +68,13 @@ describe("SecretsStore", () => {
 
       let secrets;
       await act(async () => {
-        secrets = await result.current.fetchSecrets(100);
+        secrets = await result.current.fetchSecrets();
       });
 
       expect(secrets).toEqual(mockSecrets);
       expect(result.current.secrets).toEqual(mockSecrets);
       expect(result.current.isLoading).toBe(false);
       expect(result.current.error).toBeNull();
-      expect(listQuery).toHaveBeenCalled();
-    });
-
-    it("should handle fetch with custom limit (limit ignored by tRPC)", async () => {
-      listQuery.mockResolvedValueOnce({ secrets: [], next_key: null });
-
-      const { result } = renderHook(() => useSecretsStore());
-
-      await act(async () => {
-        await result.current.fetchSecrets(50);
-      });
-
-      // The tRPC procedure does not accept a limit — we just verify it was called.
       expect(listQuery).toHaveBeenCalled();
     });
 

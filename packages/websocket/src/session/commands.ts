@@ -461,7 +461,7 @@ export class CommandRouter {
       // still running for this thread — including one detached from a dead
       // connection.
       const turn = chatTurnRegistry.open(
-        session.userId ?? "1",
+        session.requireUserId(),
         threadId,
         controller,
         host.chatTurnHooks()
@@ -500,7 +500,7 @@ export class CommandRouter {
     list_chat_turns: async () => {
       const { session, host } = this.deps;
       const sessions = chatTurnRegistry.listRunningForUser(
-        session.userId ?? "1"
+        session.requireUserId()
       );
       for (const s of sessions) {
         await host.sendToSocket({
@@ -520,7 +520,7 @@ export class CommandRouter {
         return { error: "thread_id is required for resume_chat command" };
       }
       const lastSeq = isFiniteNumber(data.last_seq) ? data.last_seq : 0;
-      const turn = chatTurnRegistry.get(session.userId ?? "1", threadId);
+      const turn = chatTurnRegistry.get(session.requireUserId(), threadId);
       if (!turn) {
         // Nothing to replay: no turn ran here, or retention elapsed. The
         // persisted thread history over REST is the client's fallback.
@@ -604,7 +604,7 @@ export class CommandRouter {
       // runner (detached or adopted after a reconnect) — abort it there.
       if (threadId) {
         const registered = chatTurnRegistry.get(
-          session.userId ?? "1",
+          session.requireUserId(),
           threadId
         );
         if (registered && registered.status === "running") {

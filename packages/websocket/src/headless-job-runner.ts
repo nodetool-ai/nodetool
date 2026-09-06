@@ -30,12 +30,8 @@ import {
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
 import type { SupervisorRunOptions } from "@nodetool-ai/protocol";
-import {
-  FileStorageAdapter,
-  PERMISSION_GATE_CONTEXT_KEY,
-  ProcessingContext,
-  headlessGate
-} from "@nodetool-ai/runtime";
+import { PERMISSION_GATE_CONTEXT_KEY, ProcessingContext, headlessGate } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { createRunSupervisor } from "./run-supervisor.js";
 import { resolveWorkflowWorkspace } from "./lib/workflow-workspace.js";
 import { getAssetAdapter } from "./lib/storage.js";

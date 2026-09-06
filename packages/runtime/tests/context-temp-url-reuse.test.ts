@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { InMemoryStorageAdapter, ProcessingContext } from "../src/context.js";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
+import { ProcessingContext } from "../src/context.js";
 
 describe("ProcessingContext temp URL reuse", () => {
   it("reuses an existing storage URL without fetching or copying it", async () => {

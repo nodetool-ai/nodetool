@@ -44,19 +44,20 @@ import {
   isObjectLike,
   isRecord,
   isString
-} from "./type-predicates.js";
+} from "@nodetool-ai/protocol";
 import {
   expandAssetReferences,
   expandEntityRefs,
   inlineTextAssetRefs
 } from "./prompt-asset-refs.js";
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
+import type { StorageAdapter } from "@nodetool-ai/storage";
 import type { Workspace } from "./workspace.js";
 
 // `node:fs/promises`, `node:path`, `node:url`, `node:crypto` are loaded
-// lazily so this module loads in browser / Edge runtimes. The
-// `FileStorageAdapter`, `resolveWorkspacePath`, and `randomUUID`
-// fallback all degrade gracefully when these are unavailable.
+// lazily so this module loads in browser / Edge runtimes. `resolveWorkspacePath`
+// and the `randomUUID` fallback both degrade gracefully when these are
+// unavailable.
 /**
  * Secret values shorter than this are not recorded for masking: redacting a
  * two-character value would blank unrelated text wherever it happens to occur.
@@ -130,8 +131,6 @@ function notOnNode(api: string): never {
     `${api} is unavailable in this runtime — configure a StorageAdapter instead`
   );
 }
-const access = (...a: Parameters<typeof import("node:fs/promises").access>) =>
-  nodeFsP ? nodeFsP.access(...a) : notOnNode("node:fs/promises.access");
 const mkdir = (...a: Parameters<typeof import("node:fs/promises").mkdir>) =>
   nodeFsP ? nodeFsP.mkdir(...a) : notOnNode("node:fs/promises.mkdir");
 const readFile = (
@@ -158,8 +157,6 @@ const relative = (from: string, to: string): string =>
 const resolve = (...parts: string[]): string =>
   nodePath ? nodePath.resolve(...parts) : notOnNode("node:path.resolve");
 
-const fileURLToPath = (u: string | URL): string =>
-  nodeUrl ? nodeUrl.fileURLToPath(u) : notOnNode("node:url.fileURLToPath");
 const pathToFileURL = (p: string): URL =>
   nodeUrl ? nodeUrl.pathToFileURL(p) : notOnNode("node:url.pathToFileURL");
 import type { BaseProvider } from "./providers/base-provider.js";
@@ -245,58 +242,17 @@ export class MemoryCache implements CacheAdapter {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Storage adapter interface
-// ---------------------------------------------------------------------------
-
-export interface StorageAdapter {
-  /** Store an asset and return a URI. */
-  store(key: string, data: Uint8Array, contentType?: string): Promise<string>;
-
-  /** Retrieve an asset by URI. */
-  retrieve(uri: string): Promise<Uint8Array | null>;
-
-  /** Check if an asset exists. */
-  exists(uri: string): Promise<boolean>;
-
-  /** Return the URI that store() would produce for this key, without I/O. */
-  uriForKey(key: string): string;
-
-  /**
-   * List entries under a key prefix. With `delimiter: "/"` the listing is
-   * hierarchical (FS-readdir style); without it the listing is flat.
-   */
-  list(
-    prefix: string,
-    opts?: { delimiter?: string }
-  ): Promise<StorageListResult>;
-
-  /** Delete an entry. Returns true if an entry was deleted. */
-  delete(uri: string): Promise<boolean>;
-
-  /** Stat an entry. Returns null if it doesn't exist. */
-  stat(uri: string): Promise<StorageStat | null>;
-}
-
-export interface StorageEntry {
-  key: string;
-  uri: string;
-  size: number;
-  modifiedAt: number;
-  contentType?: string;
-}
-
-export interface StorageListResult {
-  entries: StorageEntry[];
-  commonPrefixes: string[];
-}
-
-export interface StorageStat {
-  key: string;
-  size: number;
-  modifiedAt: number;
-  contentType?: string;
-}
+/**
+ * The storage contract lives in `@nodetool-ai/storage`; it is re-exported here
+ * so `@nodetool-ai/runtime/context` — the browser/Edge entry point — keeps
+ * naming it without pulling that package's Node-only implementations in.
+ */
+export type {
+  StorageAdapter,
+  StorageEntry,
+  StorageListResult,
+  StorageStat
+} from "@nodetool-ai/storage";
 
 /**
  * Controls how asset-like values (ImageRef / AudioRef / VideoRef) are
@@ -652,6 +608,16 @@ export interface ProcessingContextModelInterfaces {
   }) => Promise<PersistedRecordLike | null>;
 }
 
+/**
+ * The arguments one model interface takes, minus the `userId` every
+ * {@link ProcessingContext} forwarder binds from the run. Derived so the shape
+ * is declared once, on the interface.
+ */
+type ModelInterfaceArgs<K extends keyof ProcessingContextModelInterfaces> = Omit<
+  Parameters<NonNullable<ProcessingContextModelInterfaces[K]>>[0],
+  "userId"
+>;
+
 let defaultModelInterfaces: ProcessingContextModelInterfaces | null = null;
 
 /**
@@ -791,472 +757,6 @@ export function normalizeStorageKey(key: string): string {
   return cleaned;
 }
 
-function joinStorageKey(prefix: string | undefined, key: string): string {
-  const normalizedKey = normalizeStorageKey(key);
-  if (!prefix) return normalizedKey;
-  const normalizedPrefix = normalizeStorageKey(prefix);
-  return `${normalizedPrefix}/${normalizedKey}`;
-}
-
-/**
- * In-memory storage adapter useful for tests and single-process ephemeral runs.
- */
-export class InMemoryStorageAdapter implements StorageAdapter {
-  private _store = new Map<
-    string,
-    { data: Uint8Array; contentType?: string; modifiedAt: number }
-  >();
-
-  async store(
-    key: string,
-    data: Uint8Array,
-    contentType?: string
-  ): Promise<string> {
-    const normalized = normalizeStorageKey(key);
-    this._store.set(normalized, {
-      data: new Uint8Array(data),
-      contentType,
-      modifiedAt: Date.now()
-    });
-    return `memory://${normalized}`;
-  }
-
-  async retrieve(uri: string): Promise<Uint8Array | null> {
-    if (!uri.startsWith("memory://")) return null;
-    const key = uri.slice("memory://".length);
-    const value = this._store.get(key);
-    return value ? new Uint8Array(value.data) : null;
-  }
-
-  async exists(uri: string): Promise<boolean> {
-    if (!uri.startsWith("memory://")) return false;
-    const key = uri.slice("memory://".length);
-    return this._store.has(key);
-  }
-
-  uriForKey(key: string): string {
-    return `memory://${normalizeStorageKey(key)}`;
-  }
-
-  async list(
-    prefix: string,
-    opts: { delimiter?: string } = {}
-  ): Promise<StorageListResult> {
-    const delimiter = opts.delimiter ?? null;
-    let normalizedPrefix = "";
-    if (prefix && prefix !== "" && prefix !== "/") {
-      try {
-        normalizedPrefix = normalizeStorageKey(prefix);
-      } catch {
-        return { entries: [], commonPrefixes: [] };
-      }
-    }
-    const matchPrefix = normalizedPrefix ? `${normalizedPrefix}/` : "";
-    const entries: StorageEntry[] = [];
-    const commonPrefixes = new Set<string>();
-    for (const [key, entry] of this._store.entries()) {
-      if (
-        matchPrefix &&
-        !key.startsWith(matchPrefix) &&
-        key !== normalizedPrefix
-      )
-        continue;
-      if (matchPrefix === "" || key.startsWith(matchPrefix)) {
-        const rest = matchPrefix ? key.slice(matchPrefix.length) : key;
-        if (delimiter === "/") {
-          const idx = rest.indexOf("/");
-          if (idx >= 0) {
-            commonPrefixes.add(`${matchPrefix}${rest.slice(0, idx + 1)}`);
-            continue;
-          }
-        }
-        const listed: StorageEntry = {
-          key,
-          uri: `memory://${key}`,
-          size: entry.data.byteLength,
-          modifiedAt: entry.modifiedAt
-        };
-        if (entry.contentType) {
-          listed.contentType = entry.contentType;
-        }
-        entries.push(listed);
-      }
-    }
-    return {
-      entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
-      commonPrefixes: [...commonPrefixes].sort()
-    };
-  }
-
-  async delete(uri: string): Promise<boolean> {
-    if (!uri.startsWith("memory://")) return false;
-    return this._store.delete(uri.slice("memory://".length));
-  }
-
-  async stat(uri: string): Promise<StorageStat | null> {
-    if (!uri.startsWith("memory://")) return null;
-    const key = uri.slice("memory://".length);
-    const entry = this._store.get(key);
-    if (!entry) return null;
-    const stat: StorageStat = {
-      key,
-      size: entry.data.byteLength,
-      modifiedAt: entry.modifiedAt
-    };
-    if (entry.contentType) {
-      stat.contentType = entry.contentType;
-    }
-    return stat;
-  }
-}
-
-/**
- * File-system storage adapter rooted to a single base directory.
- */
-export class FileStorageAdapter implements StorageAdapter {
-  readonly rootDir: string;
-
-  constructor(rootDir: string) {
-    this.rootDir = resolve(rootDir);
-  }
-
-  private resolvePathFromKey(key: string): string {
-    const normalized = normalizeStorageKey(key);
-    const absolute = resolve(join(this.rootDir, normalized));
-    if (!isWithinRoot(this.rootDir, absolute)) {
-      throw new Error(`Storage key escapes root: ${key}`);
-    }
-    return absolute;
-  }
-
-  private resolvePathFromUri(uri: string): string | null {
-    let absolute: string | null = null;
-
-    if (uri.startsWith("file://")) {
-      try {
-        absolute = resolve(fileURLToPath(uri));
-      } catch {
-        // Invalid file:// URI — treat as unresolvable.
-        return null;
-      }
-    } else if (
-      uri.startsWith("/api/storage/") ||
-      uri.startsWith("api/storage/")
-    ) {
-      const key = uri.replace(/^\/?api\/storage\//, "");
-      try {
-        absolute = this.resolvePathFromKey(key);
-      } catch {
-        // resolvePathFromKey -> normalizeStorageKey throws on an invalid key
-        // (contains "..", leading ".", escapes root). retrieve/exists/delete/
-        // stat document a null/false result for unresolvable URIs, so treat a
-        // bad key as unresolvable instead of letting the throw escape (the
-        // sibling file:// and https:// branches already do this).
-        return null;
-      }
-    } else if (/^https?:\/\//.test(uri)) {
-      try {
-        const parsed = new URL(uri);
-        if (parsed.pathname.startsWith("/api/storage/")) {
-          const key = parsed.pathname.replace(/^\/api\/storage\//, "");
-          absolute = this.resolvePathFromKey(key);
-        }
-      } catch {
-        // Malformed URL — treat as unresolvable.
-        return null;
-      }
-    } else {
-      return null;
-    }
-
-    if (absolute === null || !isWithinRoot(this.rootDir, absolute)) {
-      return null;
-    }
-    return absolute;
-  }
-
-  async store(
-    key: string,
-    data: Uint8Array,
-    _contentType?: string
-  ): Promise<string> {
-    const absolutePath = this.resolvePathFromKey(key);
-    await mkdir(dirname(absolutePath), { recursive: true });
-    await writeFile(absolutePath, data);
-    return pathToFileURL(absolutePath).toString();
-  }
-
-  async retrieve(uri: string): Promise<Uint8Array | null> {
-    const absolutePath = this.resolvePathFromUri(uri);
-    if (!absolutePath) return null;
-    try {
-      return (await readFile(absolutePath)) as Uint8Array;
-    } catch {
-      // File not found or unreadable — caller handles null.
-      return null;
-    }
-  }
-
-  async exists(uri: string): Promise<boolean> {
-    const absolutePath = this.resolvePathFromUri(uri);
-    if (!absolutePath) return false;
-    try {
-      await access(absolutePath);
-      return true;
-    } catch {
-      // File does not exist or is inaccessible.
-      return false;
-    }
-  }
-
-  uriForKey(key: string): string {
-    return pathToFileURL(this.resolvePathFromKey(key)).toString();
-  }
-
-  /**
-   * Minimal listing for the runtime's own FileStorageAdapter — used by tests
-   * and DSL contexts. The websocket server wires the storage package's
-   * fully-featured FileStorageAdapter (with delimiter / fs-safe), which is
-   * the production path.
-   */
-  async list(
-    prefix: string,
-    opts: { delimiter?: string } = {}
-  ): Promise<StorageListResult> {
-    if (!nodeFsP) throw new Error("LocalStorage.list requires Node");
-    const { readdir: rd, stat: st } = nodeFsP;
-    const delimiter = opts.delimiter ?? null;
-    // Root prefixes ("", ".", "/") map to rootDir directly. normalizeStorageKey
-    // rejects "." and "/", so resolving them as keys throws and yields an empty
-    // listing — without this guard the workspace root could never be listed.
-    const isRoot = prefix === "" || prefix === "." || prefix === "/";
-    const baseAbs = (() => {
-      if (isRoot) return this.rootDir;
-      try {
-        return this.resolvePathFromKey(prefix);
-      } catch {
-        return null;
-      }
-    })();
-    if (!baseAbs) return { entries: [], commonPrefixes: [] };
-
-    const entries: StorageEntry[] = [];
-    const commonPrefixes = new Set<string>();
-
-    if (delimiter === "/") {
-      let children: Array<{
-        name: string;
-        isDirectory: () => boolean;
-        isFile: () => boolean;
-      }>;
-      try {
-        children = await rd(baseAbs, { withFileTypes: true });
-      } catch {
-        return { entries: [], commonPrefixes: [] };
-      }
-      const normalizedPrefix = isRoot ? "" : normalizeStorageKey(prefix);
-      for (const child of children) {
-        const childKey = normalizedPrefix
-          ? `${normalizedPrefix}/${child.name}`
-          : child.name;
-        if (child.isDirectory()) {
-          commonPrefixes.add(`${childKey}/`);
-          continue;
-        }
-        if (!child.isFile()) continue;
-        try {
-          const childAbs = join(baseAbs, child.name);
-          const s = await st(childAbs);
-          entries.push({
-            key: childKey,
-            uri: pathToFileURL(childAbs).toString(),
-            size: s.size,
-            modifiedAt: s.mtimeMs
-          });
-        } catch {
-          // skip
-        }
-      }
-      return {
-        entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
-        commonPrefixes: [...commonPrefixes].sort()
-      };
-    }
-
-    // No delimiter: flat listing of everything under the prefix, the shape S3
-    // returns. `resolveAssetBytes` relies on it for the extension-tolerant
-    // lookup that turns `asset://<id>` into `<id>.pdf` on disk.
-    const walk = async (dirAbs: string, keyPrefix: string): Promise<void> => {
-      let children: Array<{
-        name: string;
-        isDirectory: () => boolean;
-        isFile: () => boolean;
-      }>;
-      try {
-        children = await rd(dirAbs, { withFileTypes: true });
-      } catch {
-        return;
-      }
-      for (const child of children) {
-        const childAbs = join(dirAbs, child.name);
-        const childKey = keyPrefix ? `${keyPrefix}/${child.name}` : child.name;
-        if (child.isDirectory()) {
-          await walk(childAbs, childKey);
-          continue;
-        }
-        if (!child.isFile()) continue;
-        try {
-          const s = await st(childAbs);
-          entries.push({
-            key: childKey,
-            uri: pathToFileURL(childAbs).toString(),
-            size: s.size,
-            modifiedAt: s.mtimeMs
-          });
-        } catch {
-          // skip
-        }
-      }
-    };
-    await walk(baseAbs, isRoot ? "" : normalizeStorageKey(prefix));
-    return {
-      entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
-      commonPrefixes: []
-    };
-  }
-
-  async delete(uri: string): Promise<boolean> {
-    const absolutePath = this.resolvePathFromUri(uri);
-    if (!absolutePath) return false;
-    if (!nodeFsP) return false;
-    const { unlink } = nodeFsP;
-    try {
-      await unlink(absolutePath);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async stat(uri: string): Promise<StorageStat | null> {
-    const absolutePath = this.resolvePathFromUri(uri);
-    if (!absolutePath) return null;
-    if (!nodeFsP) return null;
-    const { stat: st } = nodeFsP;
-    try {
-      const s = await st(absolutePath);
-      if (!s.isFile()) return null;
-      const rel = absolutePath
-        .slice(this.rootDir.length)
-        .replace(/^[\\/]+/, "");
-      return { key: rel, size: s.size, modifiedAt: s.mtimeMs };
-    } catch {
-      return null;
-    }
-  }
-}
-
-export interface S3Client {
-  putObject(input: {
-    bucket: string;
-    key: string;
-    body: Uint8Array;
-    contentType?: string;
-  }): Promise<void>;
-  getObject(input: { bucket: string; key: string }): Promise<Uint8Array | null>;
-  headObject(input: { bucket: string; key: string }): Promise<boolean>;
-}
-
-/**
- * S3-backed storage adapter with injected client operations.
- *
- * This avoids hard-coupling runtime to any specific SDK while providing
- * predictable URI behavior (`s3://bucket/key`).
- */
-export class S3StorageAdapter implements StorageAdapter {
-  readonly bucket: string;
-  readonly prefix: string | null;
-  readonly client: S3Client;
-
-  constructor(opts: { bucket: string; client: S3Client; prefix?: string }) {
-    if (!opts.bucket) {
-      throw new Error("S3 bucket is required");
-    }
-    this.bucket = opts.bucket;
-    this.client = opts.client;
-    this.prefix = opts.prefix ? normalizeStorageKey(opts.prefix) : null;
-  }
-
-  private keyForStore(key: string): string {
-    return joinStorageKey(this.prefix ?? undefined, key);
-  }
-
-  private parseUri(uri: string): { bucket: string; key: string } | null {
-    if (!uri.startsWith("s3://")) return null;
-    const withoutScheme = uri.slice("s3://".length);
-    const slashIndex = withoutScheme.indexOf("/");
-    if (slashIndex <= 0 || slashIndex === withoutScheme.length - 1) {
-      return null;
-    }
-    const bucket = withoutScheme.slice(0, slashIndex);
-    const key = withoutScheme.slice(slashIndex + 1);
-    return { bucket, key };
-  }
-
-  async store(
-    key: string,
-    data: Uint8Array,
-    contentType?: string
-  ): Promise<string> {
-    const objectKey = this.keyForStore(key);
-    await this.client.putObject({
-      bucket: this.bucket,
-      key: objectKey,
-      body: data,
-      contentType
-    });
-    return `s3://${this.bucket}/${objectKey}`;
-  }
-
-  async retrieve(uri: string): Promise<Uint8Array | null> {
-    const parsed = this.parseUri(uri);
-    if (!parsed) return null;
-    if (parsed.bucket !== this.bucket) return null;
-    return this.client.getObject(parsed);
-  }
-
-  async exists(uri: string): Promise<boolean> {
-    const parsed = this.parseUri(uri);
-    if (!parsed) return false;
-    if (parsed.bucket !== this.bucket) return false;
-    return this.client.headObject(parsed);
-  }
-
-  uriForKey(key: string): string {
-    return `s3://${this.bucket}/${this.keyForStore(key)}`;
-  }
-
-  /**
-   * The runtime's minimal S3Client interface doesn't expose ListObjectsV2 /
-   * DeleteObject / HeadObject-with-metadata, so list/delete/stat are stubs
-   * here. Production paths use `@nodetool-ai/storage`'s S3StorageAdapter
-   * which calls the full SDK.
-   */
-  async list(
-    _prefix: string,
-    _opts?: { delimiter?: string }
-  ): Promise<StorageListResult> {
-    return { entries: [], commonPrefixes: [] };
-  }
-
-  async delete(_uri: string): Promise<boolean> {
-    return false;
-  }
-
-  async stat(_uri: string): Promise<StorageStat | null> {
-    return null;
-  }
-}
 
 /**
  * Resolve paths relative to a configured workspace root.
@@ -1867,10 +1367,6 @@ export class ProcessingContext {
     }
   }
 
-  async get_provider(providerId: string): Promise<BaseProvider> {
-    return this.getProvider(providerId);
-  }
-
   /**
    * Check whether a registered provider has all required credentials
    * resolvable through this context (DB/keychain/env).
@@ -1959,14 +1455,6 @@ export class ProcessingContext {
       throw new Error(`Missing required secret: ${key}`);
     }
     return value;
-  }
-
-  async get_secret(key: string): Promise<string | null> {
-    return this.getSecret(key);
-  }
-
-  async get_secret_required(key: string): Promise<string> {
-    return this.getSecretRequired(key);
   }
 
   get<T = unknown>(key: string, defaultValue?: T): T {
@@ -2139,10 +1627,6 @@ export class ProcessingContext {
     this.emit(msg);
   }
 
-  post_message(msg: ProcessingMessage): void {
-    this.emit(msg);
-  }
-
   /** Record actual provider charge for the current node run (attached to completed NodeUpdate). */
   setProviderCost(
     provider: string,
@@ -2203,10 +1687,6 @@ export class ProcessingContext {
     return this._messages.shift() as ProcessingMessage;
   }
 
-  async pop_message_async(): Promise<ProcessingMessage> {
-    return this.popMessageAsync();
-  }
-
   getNodeStatuses(): Readonly<Record<string, ProcessingMessage>> {
     return Object.fromEntries(this._nodeStatuses);
   }
@@ -2217,10 +1697,6 @@ export class ProcessingContext {
 
   clearMessages(): void {
     this._messages = [];
-  }
-
-  clear_messages(): void {
-    this.clearMessages();
   }
 
   trackOperationCost(
@@ -2288,7 +1764,11 @@ export class ProcessingContext {
   // HTTP helpers
   // -----------------------------------------------------------------------
 
-  private async httpRequestWithRetries(
+  /**
+   * Issue an HTTP request with the retry/backoff policy every node shares.
+   * `httpGet` is the GET shorthand; other verbs go through this directly.
+   */
+  async httpRequestWithRetries(
     method: string,
     url: string,
     opts: HttpRequestOptions = {}
@@ -2362,38 +1842,6 @@ export class ProcessingContext {
     return this.httpRequestWithRetries("GET", url, opts);
   }
 
-  async httpPost(
-    url: string,
-    opts: HttpRequestOptions = {}
-  ): Promise<Response> {
-    return this.httpRequestWithRetries("POST", url, opts);
-  }
-
-  async httpPatch(
-    url: string,
-    opts: HttpRequestOptions = {}
-  ): Promise<Response> {
-    return this.httpRequestWithRetries("PATCH", url, opts);
-  }
-
-  async httpPut(url: string, opts: HttpRequestOptions = {}): Promise<Response> {
-    return this.httpRequestWithRetries("PUT", url, opts);
-  }
-
-  async httpDelete(
-    url: string,
-    opts: HttpRequestOptions = {}
-  ): Promise<Response> {
-    return this.httpRequestWithRetries("DELETE", url, opts);
-  }
-
-  async httpHead(
-    url: string,
-    opts: HttpRequestOptions = {}
-  ): Promise<Response> {
-    return this.httpRequestWithRetries("HEAD", url, opts);
-  }
-
   async downloadFile(
     url: string,
     opts: HttpRequestOptions = {}
@@ -2401,56 +1849,6 @@ export class ProcessingContext {
     const response = await this.httpGet(url, opts);
     const arr = await response.arrayBuffer();
     return new Uint8Array(arr);
-  }
-
-  async downloadText(
-    url: string,
-    opts: HttpRequestOptions = {}
-  ): Promise<string> {
-    const response = await this.httpGet(url, opts);
-    return response.text();
-  }
-
-  async http_get(
-    url: string,
-    opts: HttpRequestOptions = {}
-  ): Promise<Response> {
-    return this.httpGet(url, opts);
-  }
-
-  async http_post(
-    url: string,
-    opts: HttpRequestOptions = {}
-  ): Promise<Response> {
-    return this.httpPost(url, opts);
-  }
-
-  async http_patch(
-    url: string,
-    opts: HttpRequestOptions = {}
-  ): Promise<Response> {
-    return this.httpPatch(url, opts);
-  }
-
-  async http_put(
-    url: string,
-    opts: HttpRequestOptions = {}
-  ): Promise<Response> {
-    return this.httpPut(url, opts);
-  }
-
-  async http_delete(
-    url: string,
-    opts: HttpRequestOptions = {}
-  ): Promise<Response> {
-    return this.httpDelete(url, opts);
-  }
-
-  async http_head(
-    url: string,
-    opts: HttpRequestOptions = {}
-  ): Promise<Response> {
-    return this.httpHead(url, opts);
   }
 
   private requireModelInterface<
@@ -2470,24 +1868,21 @@ export class ProcessingContext {
     return fn({ userId: this.userId, jobId });
   }
 
-  async get_job(jobId: string): Promise<PersistedRecordLike | null> {
-    return this.getJob(jobId);
-  }
-
   /**
    * HOLDOUT (anti-slop/no-unknown-returns): see the `createAsset` port above —
    * narrowing the result breaks the `as Record<string, unknown>` assertions in
    * `image-nodes` and `audio-nodes`.
    */
-  async createAsset(args: {
-    name: string;
-    contentType: string;
-    content?: Uint8Array | null;
-    parentId?: string | null;
-    instructions?: Uint8Array | null;
-    nodeId?: string | null;
-    metadata?: Record<string, unknown> | null;
-  }): Promise<unknown> {
+  async createAsset(
+    args: Omit<
+      ModelInterfaceArgs<"createAsset">,
+      "workflowId" | "jobId" | "content"
+    > & {
+      content?: Uint8Array | null;
+      /** Legacy name for `content`; used when `content` is absent. */
+      instructions?: Uint8Array | null;
+    }
+  ): Promise<unknown> {
     const fn = this.requireModelInterface("createAsset");
     const content = args.content ?? args.instructions;
     if (!content) {
@@ -2507,28 +1902,13 @@ export class ProcessingContext {
     });
   }
 
-  /** HOLDOUT (anti-slop/no-unknown-returns): alias of `createAsset` above. */
-  async create_asset(args: {
-    name: string;
-    contentType: string;
-    content?: Uint8Array | null;
-    parentId?: string | null;
-    instructions?: Uint8Array | null;
-    nodeId?: string | null;
-  }): Promise<unknown> {
-    return this.createAsset(args);
-  }
-
   /**
    * Replace an owned asset's bytes, keeping its id. Null when the asset is
    * missing or belongs to someone else.
    */
-  async updateAssetBytes(args: {
-    assetId: string;
-    content: Uint8Array;
-    contentType?: string;
-    name?: string;
-  }): Promise<AssetInfoEntry | null> {
+  async updateAssetBytes(
+    args: ModelInterfaceArgs<"updateAssetBytes">
+  ): Promise<AssetInfoEntry | null> {
     const fn = this.requireModelInterface("updateAssetBytes");
     return fn({ userId: this.userId, ...args });
   }
@@ -2540,13 +1920,9 @@ export class ProcessingContext {
   }
 
   /** Create a persisted sketch (image document) owned by the current user. */
-  async createImageDocument(args: {
-    name: string;
-    projectId?: string;
-    width: number;
-    height: number;
-    document: unknown;
-  }): Promise<PersistedRecordLike> {
+  async createImageDocument(
+    args: ModelInterfaceArgs<"createImageDocument">
+  ): Promise<PersistedRecordLike> {
     const fn = this.requireModelInterface("createImageDocument");
     return fn({ userId: this.userId, ...args });
   }
@@ -2581,11 +1957,9 @@ export class ProcessingContext {
   }
 
   /** Create a persisted script owned by the current user. */
-  async createScript(args: {
-    name?: string;
-    projectId?: string;
-    document: unknown;
-  }): Promise<PersistedRecordLike> {
+  async createScript(
+    args: ModelInterfaceArgs<"createScript">
+  ): Promise<PersistedRecordLike> {
     const fn = this.requireModelInterface("createScript");
     return fn({ userId: this.userId, ...args });
   }
@@ -2593,11 +1967,7 @@ export class ProcessingContext {
   /** Replace a persisted script's document (and optional timeline link). */
   async updateScript(
     id: string,
-    args: {
-      document?: unknown;
-      timelineId?: string | null;
-      baseUpdatedAt?: string;
-    }
+    args: Omit<ModelInterfaceArgs<"updateScript">, "id">
   ): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("updateScript");
     return fn({ userId: this.userId, id, ...args });
@@ -2613,11 +1983,7 @@ export class ProcessingContext {
     if (!fn) {
       return null;
     }
-    try {
-      return await fn({ userId: this.userId, folderId });
-    } catch {
-      return null;
-    }
+    return fn({ userId: this.userId, folderId });
   }
 
   /**
@@ -2630,11 +1996,7 @@ export class ProcessingContext {
     if (!fn) {
       return null;
     }
-    try {
-      return await fn({ userId: this.userId, assetId });
-    } catch {
-      return null;
-    }
+    return fn({ userId: this.userId, assetId });
   }
 
   private resolveSandboxFilePath(path: string): string {
@@ -3015,10 +2377,6 @@ export class ProcessingContext {
     return outputPath;
   }
 
-  async asset_to_sandbox(asset_id: string, path: string): Promise<string> {
-    return this.assetToSandbox(asset_id, path);
-  }
-
   async sandboxToAsset(path: string): Promise<AssetRef> {
     const filePath = this.resolveSandboxFilePath(path);
     const bytes = (await readFile(filePath)) as Uint8Array;
@@ -3047,10 +2405,6 @@ export class ProcessingContext {
     };
   }
 
-  async sandbox_to_asset(path: string): Promise<AssetRef> {
-    return this.sandboxToAsset(path);
-  }
-
   async createMessage(
     req: MessageCreateRequestLike
   ): Promise<PersistedRecordLike> {
@@ -3059,12 +2413,6 @@ export class ProcessingContext {
     }
     const fn = this.requireModelInterface("createMessage");
     return fn({ userId: this.userId, req });
-  }
-
-  async create_message(
-    req: MessageCreateRequestLike
-  ): Promise<PersistedRecordLike> {
-    return this.createMessage(req);
   }
 
   async getThreadMessages(
@@ -3081,15 +2429,6 @@ export class ProcessingContext {
       startKey,
       reverse
     });
-  }
-
-  async get_messages(
-    thread_id: string,
-    limit = 10,
-    start_key: string | null = null,
-    reverse = false
-  ): Promise<ThreadMessagesResultLike> {
-    return this.getThreadMessages(thread_id, limit, start_key, reverse);
   }
 
   // The four wrappers below and `normalizeOutputValue` are HOLDOUTs
@@ -4284,6 +3623,10 @@ export class ProcessingContext {
       if (!this.workspaceDir) {
         throw new Error("workspace_dir is required for workspace asset output");
       }
+      // Imported here rather than at module scope: this module also loads in
+      // browser / Edge runtimes, and `@nodetool-ai/storage` reaches `node:fs`.
+      // Only this branch, which already requires a workspace directory, needs it.
+      const { FileStorageAdapter } = await import("@nodetool-ai/storage");
       const workspaceAssets = new FileStorageAdapter(
         resolveWorkspacePath(this.workspaceDir, "assets")
       );

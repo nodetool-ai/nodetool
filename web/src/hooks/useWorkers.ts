@@ -110,6 +110,27 @@ export const useWorkerHealth = (
     retry: false
   });
 
+const instancesQueryOptions = {
+  queryKey: workerQueryKeys.instances,
+  queryFn: () =>
+    trpcClient.worker.instances.list.query() as Promise<WorkerInstance[]>,
+  refetchInterval: INSTANCES_REFETCH_INTERVAL_MS
+};
+
+const findAttached = (instances: WorkerInstance[]): WorkerInstance | null =>
+  instances.find((instance) => instance.status === "attached") ?? null;
+
+/**
+ * The instance this NodeTool is attached to, or null. Mounts only the instance
+ * registry query — callers that just need the active worker should use this
+ * rather than `useWorkers`, which also mounts the profile and API-key queries
+ * and builds the eleven lifecycle mutations.
+ */
+export const useActiveWorker = (): WorkerInstance | null => {
+  const { data } = useQuery<WorkerInstance[], Error>(instancesQueryOptions);
+  return findAttached(data ?? EMPTY_INSTANCES);
+};
+
 interface UseWorkersResult {
   profiles: WorkerProfile[];
   instances: WorkerInstance[];
@@ -143,12 +164,9 @@ export const useWorkers = (): UseWorkersResult => {
       trpcClient.worker.profiles.list.query() as Promise<WorkerProfile[]>
   });
 
-  const instancesQuery = useQuery<WorkerInstance[], Error>({
-    queryKey: workerQueryKeys.instances,
-    queryFn: () =>
-      trpcClient.worker.instances.list.query() as Promise<WorkerInstance[]>,
-    refetchInterval: INSTANCES_REFETCH_INTERVAL_MS
-  });
+  const instancesQuery = useQuery<WorkerInstance[], Error>(
+    instancesQueryOptions
+  );
 
   const apiKeyStatusQuery = useQuery<Record<WorkerTarget, boolean>, Error>({
     queryKey: workerQueryKeys.apiKeyStatus,
@@ -252,8 +270,7 @@ export const useWorkers = (): UseWorkersResult => {
   }, [invalidateInstances]);
 
   const instances = instancesQuery.data ?? EMPTY_INSTANCES;
-  const activeWorker =
-    instances.find((instance) => instance.status === "attached") ?? null;
+  const activeWorker = findAttached(instances);
 
   return {
     profiles: profilesQuery.data ?? EMPTY_PROFILES,

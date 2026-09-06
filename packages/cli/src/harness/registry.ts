@@ -479,6 +479,25 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "recipes",
+    title: "Recipe chains (shipped manifests, the app listing, the site pages)",
+    // A recipe names shipped example workflows and stores no graph, so what
+    // rots is a step whose example was renamed: the app drops the recipe from
+    // its Examples listing and the site's page loses a workflow. Both readers
+    // are checked — the resolver the app calls, and the generator the site
+    // builds its pages and bundles with.
+    command: "npx tsx marketing/scripts/generate-recipes.mjs --check",
+    kind: "static",
+    capabilities: ["no-db", "gated:pr"],
+    docs: "docs/harnesses.md § Shipped recipes",
+    selfcheck: {
+      command:
+        "npm run test --workspace=packages/websocket -- example-recipes && " +
+        "npx tsx marketing/scripts/generate-recipes.mjs --check",
+      cost: "cheap"
+    }
+  },
+  {
     id: "repo-scripts",
     title: "Repo tooling scripts (test selection, validators, generators)",
     // The scripts a contributor and CI run from the repo root. Their pure
@@ -1094,6 +1113,39 @@ export const SURFACES: SurfaceEntry[] = [
     paths: ["scripts/"]
   },
   {
+    id: "recipes",
+    title: "Recipes (ordered chains of shipped examples)",
+    harnesses: ["recipes"],
+    // The manifests, the resolver behind the app's Examples listing, and the
+    // site pages built from the same files. Overlaps the surfaces that claim
+    // the packages and the site; a diff here runs both.
+    paths: [
+      "packages/base-nodes/nodetool/examples/recipes/",
+      "packages/protocol/src/api-schemas/recipes.ts",
+      "packages/websocket/src/lib/example-recipes.ts",
+      "web/src/components/portal/DashboardRecipes.tsx",
+      "web/src/hooks/useRecipeActions.ts",
+      "marketing/scripts/generate-recipes.mjs",
+      "marketing/scripts/recipes.mjs",
+      "marketing/src/app/recipes/",
+      "marketing/src/data/recipes.ts"
+    ]
+  },
+  {
+    id: "marketing-site",
+    title: "Marketing site (nodetool.ai)",
+    harnesses: [],
+    paths: ["marketing/"],
+    gap:
+      "A separate npm project with its own lockfile, so the root gate cannot " +
+      "install it: marketing-ci.yml runs its typecheck, lint, Next build, " +
+      "generated-data --check steps, a Playwright smoke suite and a route " +
+      "loader against its own tree. The one part the root gate does reach is " +
+      "the recipe pages, whose data comes from the shipped manifests — that " +
+      "is the `recipes` harness above. A fuller harness would drive the built " +
+      "site the way the debug harness drives the graph canvas.",
+  },
+  {
     id: "harness-registry",
     title: "Harness registry (this file, its tests, capability sync)",
     harnesses: ["harness-audit"],
@@ -1139,6 +1191,16 @@ export const UNCLAIMED_PATHS: Record<string, string> = {
     "backend by scripts/bundle-backend.mjs; verify-backend-bundle.mjs " +
     "checks every directory ships, not the skill content."
 };
+
+/**
+ * Whether a repo-relative file sits under a directory {@link UNCLAIMED_PATHS}
+ * already documents as having no harness. `nodetool harness gate` uses this so
+ * a diff touching such a directory is not reported as an unmapped code file —
+ * the judgement, and its reason, are already recorded above.
+ */
+export function isUnclaimedPath(file: string): boolean {
+  return Object.keys(UNCLAIMED_PATHS).some((prefix) => file.startsWith(prefix));
+}
 
 interface HarnessAuditResult {
   surfaces: Array<{

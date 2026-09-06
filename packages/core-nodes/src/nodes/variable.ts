@@ -39,7 +39,7 @@ export class SetVariableNode extends BaseNode {
     title: "Name",
     description: "Name of the variable channel to publish the value on."
   })
-  declare name: any;
+  declare name: string;
 
   @prop({
     type: "any",
@@ -47,16 +47,16 @@ export class SetVariableNode extends BaseNode {
     title: "Value",
     description: "Value to publish. Passed through unchanged to the output."
   })
-  declare value: any;
+  declare value: unknown;
 
   async process(
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const name = String(this.name ?? "").trim();
+    const name = this.name.trim();
     if (!name) {
       throw new Error("Set Variable requires a non-empty variable name");
     }
-    const value = this.value ?? null;
+    const value = this.value;
     context?.getChannel(name).send(value);
     return { output: value };
   }
@@ -89,7 +89,7 @@ export class GetVariableNode extends BaseNode {
     title: "Name",
     description: "Name of the variable channel to read."
   })
-  declare name: any;
+  declare name: string;
 
   @prop({
     type: "any",
@@ -99,7 +99,7 @@ export class GetVariableNode extends BaseNode {
       "Optional input. Connect a node to gate when this node starts reading; " +
       "the value itself is ignored."
   })
-  declare trigger: any;
+  declare trigger: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -108,7 +108,7 @@ export class GetVariableNode extends BaseNode {
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
-    const name = String(this.name ?? "").trim();
+    const name = this.name.trim();
     if (!name) {
       throw new Error("Get Variable requires a non-empty variable name");
     }

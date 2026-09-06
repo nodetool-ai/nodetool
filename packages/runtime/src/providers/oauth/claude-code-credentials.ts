@@ -25,7 +25,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { createLogger, type Logger } from "@nodetool-ai/config";
 import type { ClaudeCodeTokens } from "./claude-code-oauth-client.js";
-import { isObjectLike, isString } from "../../type-predicates.js";
+import { isObjectLike, isString } from "@nodetool-ai/protocol";
 
 /** The `claudeAiOauth` entry, field-for-field as the CLI writes it. */
 export interface ClaudeAiOAuthCredentials {

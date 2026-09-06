@@ -259,7 +259,8 @@ async function runAppBuild(
     { resolveLocalSecret },
     { initMasterKey },
     { getDefaultAssetsPath, getDefaultDbPath },
-    { ProcessingContext, FileStorageAdapter }
+    { ProcessingContext },
+    { FileStorageAdapter }
   ] = await Promise.all([
     import("@nodetool-ai/agents"),
     import("../providers.js"),
@@ -270,7 +271,8 @@ async function runAppBuild(
     import("../local-secrets.js"),
     import("@nodetool-ai/security"),
     import("@nodetool-ai/config"),
-    import("@nodetool-ai/runtime")
+    import("@nodetool-ai/runtime"),
+    import("@nodetool-ai/storage")
   ]);
 
   initDb(getDefaultDbPath());

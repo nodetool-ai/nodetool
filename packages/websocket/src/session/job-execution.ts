@@ -162,9 +162,9 @@ export function resolveRunJobExecutionOptions(
 
 export function resolveRunJobUserId(
   requestUserId: string | undefined,
-  connectionUserId: string | null
+  connectionUserId: string
 ): string {
-  return requestUserId?.trim() || connectionUserId?.trim() || "1";
+  return requestUserId?.trim() || connectionUserId;
 }
 
 export interface ActiveJob {
@@ -476,7 +476,12 @@ export class JobExecutionManager {
     const active = this.activeJobs.get(jobId);
     if (active?.runSession) return active.runSession;
     if (!this.adoptedJobIds.has(jobId)) return null;
-    return jobRunRegistry.get(this.session.userId ?? "1", jobId);
+    // No user means no connect(), so this session can own no registered run.
+    // "Nothing running" is the honest answer; main looked the job up under a
+    // hardcoded "1", which could return another user's run.
+    const userId = this.session.userId;
+    if (userId === null) return null;
+    return jobRunRegistry.get(userId, jobId);
   }
 
   /**
@@ -503,7 +508,9 @@ export class JobExecutionManager {
         }
       };
     }
-    const registered = jobRunRegistry.get(this.session.userId ?? "1", jobId);
+    const lookupUserId = this.session.userId;
+    if (lookupUserId === null) return null;
+    const registered = jobRunRegistry.get(lookupUserId, jobId);
     if (registered && registered.status === "running") {
       return { hooks: registered.hooks, workflowId: registered.workflowId };
     }
@@ -579,8 +586,8 @@ export class JobExecutionManager {
     if (req.graph) {
       return this.normalizeGraph(req.graph);
     }
-    if (req.workflow_id && this.session.userId) {
-      const userId = this.session.userId;
+    if (req.workflow_id) {
+      const userId = this.session.requireUserId();
       const workflowId = req.workflow_id;
       return (async () => {
         const workflow = await Workflow.find(userId, workflowId);
@@ -649,9 +656,13 @@ export class JobExecutionManager {
     for (const job of this.activeJobs.values()) {
       if (!job.runSession) sessionless += 1;
     }
+    // A session with no user has no registered runs to count; the local
+    // counters are still the honest answer. Same reasoning as the registry
+    // lookups above.
+    const countUserId = this.session.userId;
     return (
       this.startingJobs +
-      jobRunRegistry.countRunning(this.session.userId ?? "1") +
+      (countUserId === null ? 0 : jobRunRegistry.countRunning(countUserId)) +
       sessionless
     );
   }
@@ -667,10 +678,11 @@ export class JobExecutionManager {
     if (!workflowId) {
       return 0;
     }
-    let count = jobRunRegistry.countRunningForWorkflow(
-      this.session.userId ?? "1",
-      workflowId
-    );
+    const workflowUserId = this.session.userId;
+    let count =
+      workflowUserId === null
+        ? 0
+        : jobRunRegistry.countRunningForWorkflow(workflowUserId, workflowId);
     for (const job of this.activeJobs.values()) {
       if (!job.runSession && job.workflowId === workflowId && !job.finished) {
         count++;
@@ -869,7 +881,7 @@ export class JobExecutionManager {
     // The connection's authenticated user, not `req.user_id`: the request body
     // is the thing being authorized, so it cannot supply the identity that
     // authorizes it.
-    const userId = this.session.userId ?? "1";
+    const userId = this.session.requireUserId();
     // Authorization sits outside the try below, which swallows a ledger outage
     // on purpose. Metering fails open; ownership fails closed — a lookup this
     // never completed is not permission to bill the app it names.
@@ -1029,7 +1041,11 @@ export class JobExecutionManager {
     // Pin the job id now so the reservation taken here can be released at the
     // run's terminal state (and on cancel-while-queued) under the same key.
     req.job_id ??= randomUUID();
-    const decision = await admitSpend(this.session.userId, estimatedUsd, models);
+    const decision = await admitSpend(
+      this.session.requireUserId(),
+      estimatedUsd,
+      models
+    );
     if (!decision.allowed) {
       return this.refuseRun(
         req,
@@ -1040,7 +1056,7 @@ export class JobExecutionManager {
         decision.reason
       );
     }
-    reserveSpend(this.session.userId ?? "1", req.job_id, estimatedUsd);
+    reserveSpend(this.session.requireUserId(), req.job_id, estimatedUsd);
     return true;
   }
 
@@ -1096,7 +1112,7 @@ export class JobExecutionManager {
 
     const release = await releasedApplicationRelease(
       scope.applicationId,
-      this.session.userId ?? ""
+      this.session.requireUserId()
     );
     if (!release) {
       return deny(ApiErrorCode.NOT_FOUND, "This app is not available");
@@ -1171,7 +1187,7 @@ export class JobExecutionManager {
           await Job.create({
             id: jobId,
             workflow_id: req.workflow_id ?? "",
-            user_id: resolveRunJobUserId(req.user_id, this.session.userId),
+            user_id: resolveRunJobUserId(req.user_id, this.session.requireUserId()),
             status: "queued",
             name: req.job_name ?? "",
             params: req.params ?? {},
@@ -1292,7 +1308,10 @@ export class JobExecutionManager {
     req: RunJobRequest,
     releaseSlot: () => void
   ): Promise<void> {
-    const userId = resolveRunJobUserId(req.user_id, this.session.userId);
+    const userId = resolveRunJobUserId(
+      req.user_id,
+      this.session.requireUserId()
+    );
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
     const executionOptions = resolveRunJobExecutionOptions(
@@ -1522,11 +1541,11 @@ export class JobExecutionManager {
     //
     // Keyed on the connection's identity, not `userId`: every lookup
     // (`reconnect_job`, `cancel_job`, the slot counts) reads
-    // `this.session.userId ?? "1"`, and a run opened under an explicit differing
+    // `this.session.requireUserId()`, and a run opened under an explicit differing
     // `req.user_id` would be unreachable — no replay, and a cancel that
     // reports the job as not found.
     const runSession = jobRunRegistry.open(
-      this.session.userId ?? "1",
+      this.session.requireUserId(),
       jobId,
       workflowId,
       {
@@ -1640,7 +1659,7 @@ export class JobExecutionManager {
       }
       await this.persistTerminalJobStatus(active);
       await this.settleApplicationInvocation(active);
-      releaseSpend(this.session.userId ?? "1", active.jobId);
+      releaseSpend(this.session.requireUserId(), active.jobId);
     } finally {
       // Terminal: the session stops buffering and starts its retention
       // window, so a client reconnecting shortly after still gets the tail
@@ -1893,7 +1912,7 @@ export class JobExecutionManager {
               meta?.auto_save_asset &&
               outbound.outputs != null
             ) {
-              const userId = this.session.userId ?? "1";
+              const userId = this.session.requireUserId();
               const slotKey = `${nodeId} ${arrivalIndex}`;
               // Warm the cross-run replay set once per node (on its first
               // generation_complete), then reconcile every later variant
@@ -2099,7 +2118,7 @@ export class JobExecutionManager {
 
     await this.persistTerminalJobStatus(active);
     await this.settleApplicationInvocation(active);
-    releaseSpend(this.session.userId ?? "1", active.jobId);
+    releaseSpend(this.session.requireUserId(), active.jobId);
     // Slot release + queue drain happen in the streamJobMessages wrapper's
     // finally, so they run even if the drain loop above throws.
   }
@@ -2114,7 +2133,7 @@ export class JobExecutionManager {
     // while this client was away — either way the seq-stamped buffer holds
     // exactly what was missed. Adopt it so this connection's `cancel_job` /
     // `stream_input` / `stop` reach the runner that owns the ExecutionSession.
-    const registered = jobRunRegistry.get(this.session.userId ?? "1", jobId);
+    const registered = jobRunRegistry.get(this.session.requireUserId(), jobId);
     if (registered) {
       const { replay, incomplete } = registered.attach(
         this.jobDeliveryTarget,
@@ -2159,7 +2178,7 @@ export class JobExecutionManager {
       // nor settled below.
       const row = (await Job.get(jobId)) as Job | null;
       const job =
-        row && row.user_id === (this.session.userId ?? "1") ? row : null;
+        row && row.user_id === (this.session.requireUserId()) ? row : null;
       const settled =
         job != null &&
         (job.status === "completed" ||
@@ -2246,7 +2265,7 @@ export class JobExecutionManager {
     // and tell the client it's cancelled before it ever starts.
     const queued = this.jobQueue.remove(jobId);
     if (queued) {
-      releaseSpend(this.session.userId ?? "1", jobId);
+      releaseSpend(this.session.requireUserId(), jobId);
       const cancelledWorkflowId = queued.workflow_id ?? workflowId ?? null;
       // Mark the persisted queued row cancelled so it leaves the queue in
       // jobs.list too (not just the in-memory queue).
@@ -2287,7 +2306,7 @@ export class JobExecutionManager {
       // session's hooks and persist the row here — the owning runner's own
       // terminal bookkeeping still runs, and its `job_update` reaches this
       // client over the session it just adopted.
-      const registered = jobRunRegistry.get(this.session.userId ?? "1", jobId);
+      const registered = jobRunRegistry.get(this.session.requireUserId(), jobId);
       if (registered && registered.status === "running") {
         registered.cancel();
         try {
@@ -2309,7 +2328,7 @@ export class JobExecutionManager {
       // executing on another machine: write the cancellation to its row, which
       // the owning instance's poller picks up.
       const remote = await requestRemoteJobCancel(
-        this.session.userId ?? "1",
+        this.session.requireUserId(),
         jobId
       );
       if (remote.cancelled) {
@@ -2385,12 +2404,12 @@ export class JobExecutionManager {
       active.status = "cancelled";
       return;
     }
-    const registered = jobRunRegistry.get(this.session.userId ?? "1", jobId);
+    const registered = jobRunRegistry.get(this.session.requireUserId(), jobId);
     if (registered && registered.status === "running") {
       registered.cancel();
       return;
     }
-    await requestRemoteJobCancel(this.session.userId ?? "1", jobId);
+    await requestRemoteJobCancel(this.session.requireUserId(), jobId);
   }
 
   getStatus(jobId?: string) {
@@ -2476,7 +2495,12 @@ export class JobExecutionManager {
     const model = isString(outbound.model) ? outbound.model : "";
     if (!provider || !model) return;
     const priced = priceGeneration({
-      userId: this.session.userId ?? "1",
+      // Pricing is a pure function of provider, model, quantity and params —
+      // `priceGeneration` never reads `userId`, so this must not demand one.
+      // `requireUserId()` here turned cost accounting into a throw on any
+      // session that has not connected. The guard stays on the paths that do
+      // key on identity: registry lookups and spend reservation.
+      userId: this.session.userId ?? "",
       provider,
       model,
       capability,
@@ -2532,7 +2556,7 @@ export class JobExecutionManager {
     }
     for (const adoptedId of this.adoptedJobIds) {
       jobRunRegistry
-        .get(this.session.userId ?? "1", adoptedId)
+        .get(this.session.requireUserId(), adoptedId)
         ?.detach(this.jobDeliveryTarget);
     }
     this.adoptedJobIds.clear();

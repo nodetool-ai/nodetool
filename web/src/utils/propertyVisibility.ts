@@ -1,4 +1,5 @@
 import type { Property } from "../stores/ApiTypes";
+import { isRecord } from "./typePredicates";
 
 export interface PropertyVisibilityRule {
   /** Property whose current value controls this property's visibility. */
@@ -8,10 +9,6 @@ export interface PropertyVisibilityRule {
   equals?: unknown;
   includes?: unknown;
   includes_any?: unknown[];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function readPath(value: unknown, path?: string): unknown {

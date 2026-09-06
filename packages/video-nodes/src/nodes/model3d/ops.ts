@@ -26,7 +26,7 @@ export class DecimateNode extends BaseNode {
     title: "Model",
     description: "The 3D model to decimate"
   })
-  declare model: any;
+  declare model: Model3DRefLike;
 
   @prop({
     type: "float",
@@ -36,7 +36,7 @@ export class DecimateNode extends BaseNode {
     min: 0.01,
     max: 1
   })
-  declare target_ratio: any;
+  declare target_ratio: number;
 
   @prop({
     type: "int",
@@ -45,20 +45,20 @@ export class DecimateNode extends BaseNode {
     description: "Approximate target vertex count. Overrides target_ratio when > 0.",
     min: 0
   })
-  declare target_vertices: any;
+  declare target_vertices: number;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const model = (this.model ?? {}) as Model3DRefLike;
+    const model = this.model;
     const bytes = await modelRefToBytes(model, context);
     requireGlbBytes(model, bytes, "decimation");
-    const targetVertices = Number(this.target_vertices ?? 0);
+    const targetVertices = this.target_vertices;
     let ratio: number;
     if (targetVertices > 0) {
       const meta = analyzeGlbMetadata(model, bytes);
       const currentVertices = meta.vertex_count;
       ratio = currentVertices > 0 ? targetVertices / currentVertices : 0.5;
     } else {
-      ratio = Number(this.target_ratio ?? 0.5);
+      ratio = this.target_ratio;
     }
     const decimatedBytes = await decimateGlb(bytes, ratio);
     return glbOutput(decimatedBytes, model.uri ?? "");
@@ -82,7 +82,7 @@ export class Boolean3DNode extends BaseNode {
     title: "Model A",
     description: "First 3D model (base)"
   })
-  declare model_a: any;
+  declare model_a: Model3DRefLike;
 
   @prop({
     type: "model_3d",
@@ -90,7 +90,7 @@ export class Boolean3DNode extends BaseNode {
     title: "Model B",
     description: "Second 3D model (tool)"
   })
-  declare model_b: any;
+  declare model_b: Model3DRefLike;
 
   @prop({
     type: "enum",
@@ -99,14 +99,14 @@ export class Boolean3DNode extends BaseNode {
     description: "Boolean operation to perform",
     values: ["union", "difference", "intersection"]
   })
-  declare operation: any;
+  declare operation: "union" | "difference" | "intersection";
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const modelA = (this.model_a ?? {}) as Model3DRefLike;
-    const modelB = (this.model_b ?? {}) as Model3DRefLike;
+    const modelA = this.model_a;
+    const modelB = this.model_b;
     const a = requireGlbBytes(modelA, await modelRefToBytes(modelA, context), "boolean");
     const b = requireGlbBytes(modelB, await modelRefToBytes(modelB, context), "boolean");
-    const operation = String(this.operation ?? "union").toLowerCase();
+    const operation = this.operation.toLowerCase();
     const out = await booleanGlb(a, b, operation);
     return glbOutput(out);
   }
@@ -129,14 +129,13 @@ export class MergeMeshesNode extends BaseNode {
     title: "Models",
     description: "List of 3D models to merge"
   })
-  declare models: any;
+  declare models: Model3DRefLike[];
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const values = Array.isArray(this.models) ? (this.models as unknown[]) : [];
-    if (values.length === 0) {
+    const models = this.models;
+    if (models.length === 0) {
       return glbOutput(new Uint8Array(0));
     }
-    const models = values.map((v) => v as Model3DRefLike);
     const bytesList = await Promise.all(models.map((m) => modelRefToBytes(m, context)));
     for (let i = 0; i < models.length; i++) {
       requireGlbBytes(models[i], bytesList[i], "merge");

@@ -15,7 +15,7 @@ import {
   isNonEmptyString,
   isRecord,
   isString
-} from "../../type-predicates.js";
+} from "@nodetool-ai/protocol";
 
 /** OIDC namespace under which OpenAI nests its custom auth claims. */
 const OPENAI_AUTH_CLAIM = "https://api.openai.com/auth";

@@ -13,7 +13,7 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
-import { isFiniteNumber, isRecord, isString } from "../type-predicates.js";
+import { isFiniteNumber, isRecord, isString } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.providers.replicate");
 

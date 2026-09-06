@@ -29,11 +29,18 @@ describe("widget catalog", () => {
     }
   });
 
-  it("gives resource widgets the trigger their editor entry emits", () => {
-    // The gallery reports a selection change; the scene list writes straight to
-    // the resource provider, so it has no event of its own.
-    expect(WIDGET_CATALOG.ResourceGallery.trigger).toBe("change");
-    expect(WIDGET_CATALOG.StoryboardSceneList.trigger).toBeUndefined();
+  it("gives the resource widgets no event of their own", () => {
+    // All three write straight to the resource provider: none renders an
+    // `events` field in the editor and none calls `emit`, so a declared trigger
+    // would offer an agent an action that can never fire.
+    for (const type of [
+      "ResourcePicker",
+      "ResourceGallery",
+      "StoryboardSceneList"
+    ]) {
+      expect(WIDGET_CATALOG[type].trigger).toBeUndefined();
+      expect(widgetFields(type)).not.toHaveProperty("events");
+    }
   });
 
   it("declares the chat and AI widgets with the bindings they carry", () => {
@@ -189,12 +196,18 @@ describe("widget catalog", () => {
       expect(WIDGET_CATALOG[type].trigger).toBe("change");
       expect(widgetFields(type)).toHaveProperty("events", "array");
     }
-    // The typed fields settle on blur; the pickers write a whole value at once.
-    expect(WIDGET_CATALOG.FilePathInput.commits).toBe(true);
-    expect(WIDGET_CATALOG.FolderPathInput.commits).toBe(true);
-    expect(WIDGET_CATALOG.DataFrameInput.commits).toBe(true);
-    expect(WIDGET_CATALOG.Model3DInput.commits).toBe(false);
-    expect(WIDGET_CATALOG.MediaListInput.commits).toBe(false);
+    // Every fixed-kind input renders through FixedKindInputWidget, which only
+    // emits the "change" phase, so none of them commits and the editor offers
+    // no "release" pacing on any of them.
+    for (const type of [
+      "DataFrameInput",
+      "FilePathInput",
+      "FolderPathInput",
+      "Model3DInput",
+      "MediaListInput"
+    ]) {
+      expect(WIDGET_CATALOG[type].commits).toBe(false);
+    }
   });
 
   it("puts the list kind on one widget rather than four palette entries", () => {

@@ -27,7 +27,11 @@ import {
   loadOfflineAudioContext,
   type OfflineAudioContextCtor
 } from "./audio-context.js";
-import { isNonEmptyString, isObjectLike, isString } from "../type-predicates.js";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "@nodetool-ai/node-sdk";
 
 export interface WavData {
   samples: Float32Array;

@@ -2,14 +2,17 @@
  * Recipe page-data contract, consumed by the `/recipes/*` routes.
  *
  * A recipe is a named outcome plus the ordered shipped example workflows that
- * reach it, downloadable as one `.nodetool` bundle. Where a template page
- * answers "what does this graph do", a recipe answers "what do I run, in what
- * order, and what does it cost me".
+ * reach it. Studio ships the same chains on its Examples page, and the site
+ * also packs each as one `.nodetool` bundle. Where a template page answers
+ * "what does this graph do", a recipe answers "what do I run, in what order,
+ * and what does it cost me".
  *
  * `recipeEntries.generated.ts` is written by
- * `marketing/scripts/generate-recipes.mjs` from the editorial specs in
- * `marketing/scripts/recipes.mjs` plus the shipped examples themselves. Do not
- * edit the generated file by hand — run `npm run gen:recipes`.
+ * `marketing/scripts/generate-recipes.mjs` from the recipe manifests the app
+ * ships (`packages/base-nodes/nodetool/examples/recipes/`), the site-only
+ * presentation in `marketing/scripts/recipes.mjs`, and the shipped examples
+ * themselves. Do not edit the generated file by hand — run
+ * `npm run gen:recipes`.
  */
 import type { PageEntry } from "./types";
 import { templateEntries } from "./templates";

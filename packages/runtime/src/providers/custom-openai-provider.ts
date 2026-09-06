@@ -13,8 +13,7 @@ import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
-import { normalizeBaseUrl } from "@nodetool-ai/protocol";
-import { isString } from "../type-predicates.js";
+import { isString, normalizeBaseUrl } from "@nodetool-ai/protocol";
 import type { LanguageModel } from "./types.js";
 
 /** Cap on the model-list probe so an unreachable proxy cannot stall the model menu. */
@@ -53,8 +52,6 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
     return [];
   }
 
-  private readonly _customFetch: typeof fetch;
-  private readonly _customBaseURL: string;
   private readonly _customModels: string[];
   private readonly _baseUrlKey: string;
   private readonly _apiKeyKey: string;
@@ -80,12 +77,9 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
       throw new Error(`${baseUrlKey} is required`);
     }
     const apiKey = readString(config, apiKeyKey) || NO_KEY;
-    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
-    super({ providerId, apiKey, baseURL }, { ...options, fetchFn });
+    super({ providerId, apiKey, baseURL }, options);
 
-    this._customFetch = fetchFn;
-    this._customBaseURL = baseURL;
     this._customModels = readModels(config);
     this._baseUrlKey = baseUrlKey;
     this._apiKeyKey = apiKeyKey;
@@ -93,7 +87,7 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
 
   override getContainerEnv(): Record<string, string> {
     const env: Record<string, string> = {
-      [this._baseUrlKey]: this._customBaseURL
+      [this._baseUrlKey]: this.compatBaseURL
     };
     if (this.apiKey && this.apiKey !== NO_KEY) {
       env[this._apiKeyKey] = this.apiKey;
@@ -120,26 +114,11 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
       }));
     }
     try {
-      const response = await this._customFetch(`${this._customBaseURL}/models`, {
-        headers: { Authorization: `Bearer ${this.apiKey}` },
+      return await this.listCompatModels(undefined, {
         signal: AbortSignal.timeout(MODEL_LIST_TIMEOUT_MS)
       });
-      if (!response.ok) return [];
-
-      const payload = (await response.json()) as {
-        data?: Array<{ id?: string; name?: string }>;
-      };
-      return (payload.data ?? [])
-        .filter(
-          (row): row is { id: string; name?: string } =>
-            isString(row.id) && row.id.length > 0
-        )
-        .map((row) => ({
-          id: row.id,
-          name: row.name ?? row.id,
-          provider: this.provider
-        }));
     } catch {
+      // An unreachable or slow proxy must not break the model menu.
       return [];
     }
   }

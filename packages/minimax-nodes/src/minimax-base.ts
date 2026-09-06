@@ -10,7 +10,11 @@
  * Docs: https://platform.minimax.io/docs/api-reference/api-overview
  */
 
-import { safeFetch } from "@nodetool-ai/runtime";
+import { detectImageMime, safeFetch } from "@nodetool-ai/runtime";
+import {
+  fetchWithRetry,
+  pollUntilTerminal
+} from "@nodetool-ai/runtime/provider-transport";
 
 export const MINIMAX_BASE_URL = "https://api.minimax.io";
 
@@ -104,22 +108,12 @@ export function audioRefFromBytes(
   };
 }
 
-/** Guess an image MIME type from magic bytes; defaults to PNG. */
-export function inferImageMime(bytes: Uint8Array): string {
-  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
-  if (
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47
-  ) {
-    return "image/png";
-  }
-  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[8] === 0x57) {
-    return "image/webp";
-  }
-  return "image/png";
-}
+/**
+ * Guess an image MIME type from magic bytes; defaults to PNG. The local copy
+ * this replaced read `bytes[8]` with no length guard and matched WebP on two
+ * bytes of "RIFF".
+ */
+export const inferImageMime = detectImageMime;
 
 export function imageRefFromBytes(
   bytes: Uint8Array
@@ -344,35 +338,42 @@ async function pollVideoTask(
   const url = `${MINIMAX_BASE_URL}/v1/query/video_generation?task_id=${encodeURIComponent(
     taskId
   )}`;
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(url, { headers: minimaxHeaders(apiKey) });
-    if (!res.ok) {
-      throw new Error(
-        `MiniMax video status failed: ${res.status} ${await res.text()}`
-      );
-    }
-    const data = (await res.json()) as Record<string, unknown>;
-    // Surface API-level failures (expired task, auth, rate limit) instead of
-    // polling an empty status until the timeout.
-    assertBaseResp(data, "video status");
-    const status = String(data.status ?? "").toLowerCase();
-    if (status === "success") {
-      const fileId = data.file_id as string | undefined;
-      if (!fileId) {
-        throw new Error("MiniMax video task succeeded but returned no file_id");
+  const data = await pollUntilTerminal<Record<string, unknown>>(
+    async () => {
+      // The job is already submitted and billed: a 429 or a gateway 5xx on the
+      // status GET must back off, not throw the job away.
+      const res = await fetchWithRetry(url, {
+        headers: minimaxHeaders(apiKey)
+      });
+      if (!res.ok) {
+        throw new Error(
+          `MiniMax video status failed: ${res.status} ${await res.text()}`
+        );
       }
-      return fileId;
+      const body = (await res.json()) as Record<string, unknown>;
+      // Surface API-level failures (expired task, auth, rate limit) instead of
+      // polling an empty status until the timeout.
+      assertBaseResp(body, "video status");
+      return body;
+    },
+    {
+      intervalMs: pollIntervalMs,
+      maxAttempts,
+      onFailure: (body) =>
+        new Error(
+          `MiniMax video task failed: ${JSON.stringify(body.base_resp ?? body)}`
+        ),
+      onTimeout: () =>
+        new Error(
+          `MiniMax video task timed out after ${maxAttempts * pollIntervalMs}ms`
+        )
     }
-    if (status === "fail" || status === "failed") {
-      throw new Error(
-        `MiniMax video task failed: ${JSON.stringify(data.base_resp ?? data)}`
-      );
-    }
-    await new Promise((r) => setTimeout(r, pollIntervalMs));
-  }
-  throw new Error(
-    `MiniMax video task timed out after ${maxAttempts * pollIntervalMs}ms`
   );
+  const fileId = data.file_id as string | undefined;
+  if (!fileId) {
+    throw new Error("MiniMax video task succeeded but returned no file_id");
+  }
+  return fileId;
 }
 
 async function downloadFile(
@@ -382,7 +383,7 @@ async function downloadFile(
   const url = `${MINIMAX_BASE_URL}/v1/files/retrieve?file_id=${encodeURIComponent(
     fileId
   )}`;
-  const res = await fetch(url, { headers: minimaxHeaders(apiKey) });
+  const res = await fetchWithRetry(url, { headers: minimaxHeaders(apiKey) });
   if (!res.ok) {
     throw new Error(
       `MiniMax files/retrieve failed: ${res.status} ${await res.text()}`

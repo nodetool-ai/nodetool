@@ -2,7 +2,7 @@ import { usePanelStore } from '../PanelStore';
 
 describe('PanelStore', () => {
   const initialState = usePanelStore.getState();
-  const { minWidth, maxWidth } = initialState.panel;
+  const { minSize, maxSize } = initialState.panel;
   // Store MIN_PANEL_SIZE — the usable minimum restored when reopening.
   const minPanelSize = 160;
 
@@ -12,10 +12,10 @@ describe('PanelStore', () => {
 
   test('setSize clamps values', () => {
     usePanelStore.getState().setSize(0);
-    expect(usePanelStore.getState().panel.panelSize).toBe(minWidth);
+    expect(usePanelStore.getState().panel.panelSize).toBe(minSize);
 
     usePanelStore.getState().setSize(2000);
-    expect(usePanelStore.getState().panel.panelSize).toBe(maxWidth);
+    expect(usePanelStore.getState().panel.panelSize).toBe(maxSize);
   });
 
   test('handleViewChange toggles visibility for same view', () => {
@@ -32,7 +32,7 @@ describe('PanelStore', () => {
       ...usePanelStore.getState(),
       panel: {
         ...usePanelStore.getState().panel,
-        panelSize: minWidth,
+        panelSize: minSize,
         isVisible: false,
         activeView: 'workflows'
       }

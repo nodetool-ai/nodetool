@@ -249,7 +249,7 @@ export class JobRunRegistry {
   private drainWaiters = new Set<() => void>();
 
   private key(userId: string, jobId: string): string {
-    return `${userId} ${jobId}`;
+    return `${userId}\u0000${jobId}`;
   }
 
   /**

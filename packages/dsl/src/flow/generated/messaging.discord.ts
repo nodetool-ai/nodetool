@@ -6,7 +6,6 @@ import { callNode, streamNode } from "../guest-core.js";
 
 // Discord Bot Trigger — messaging.discord.DiscordBotTrigger
 export type DiscordBotTriggerInputs = {
-  max_events?: number;
   token?: string;
   channel_id?: string;
   allow_bot_messages?: boolean;

@@ -2,8 +2,7 @@
  * Tests for src/commands/deploy.ts and src/commands/deploy-helpers.ts
  *
  * Strategy:
- *   - Mock @nodetool-ai/deploy, @nodetool-ai/vectorstore, @nodetool-ai/runtime,
- *     @nodetool-ai/models, and @nodetool-ai/config via vi.mock().
+ *   - Mock @nodetool-ai/deploy, @nodetool-ai/models and js-yaml via vi.mock().
  *   - Use Commander's parseAsync on a freshly built Command for each case.
  *   - Capture stdout/stderr by spying on process.{stdout,stderr,exit}.
  */
@@ -47,9 +46,6 @@ const listWorkflows = vi.fn(async () => ({
 }));
 const deleteWorkflow = vi.fn(async (_id: string) => ({}));
 const runWorkflow = vi.fn(async (_id: string, _p: unknown) => ({ id: "job1" }));
-const dbGet = vi.fn(async (_t: string, _k: string) => ({ id: "1", name: "x" }));
-const dbSave = vi.fn(async (_t: string, _d: unknown) => ({ saved: true }));
-const dbDelete = vi.fn(async (_t: string, _k: string) => {});
 
 const listUsers = vi.fn(async () => [
   {
@@ -104,11 +100,6 @@ vi.mock("@nodetool-ai/deploy", () => ({
     listWorkflows = listWorkflows;
     deleteWorkflow = deleteWorkflow;
     runWorkflow = runWorkflow;
-    dbGet = dbGet;
-    dbSave = dbSave;
-    dbDelete = dbDelete;
-    createCollection = vi.fn(async () => ({}));
-    addToCollection = vi.fn(async () => ({}));
     constructor(_opts?: unknown) {}
   },
   APIUserManager: class {
@@ -151,37 +142,8 @@ vi.mock("@nodetool-ai/deploy", () => ({
   saveDeploymentConfig
 }));
 
-class CollectionNotFoundError extends Error {
-  constructor(name: string) {
-    super(name);
-    this.name = "CollectionNotFoundError";
-  }
-}
-vi.mock("@nodetool-ai/vectorstore", () => ({
-  CollectionNotFoundError,
-  getDefaultVectorProvider: vi.fn(() => ({
-    getCollection: vi.fn(async ({ name }: { name: string }) => {
-      throw new CollectionNotFoundError(name);
-    })
-  }))
-}));
-
 vi.mock("@nodetool-ai/models", () => ({
-  Workflow: { find: vi.fn(async () => null) },
-  Asset: { find: vi.fn(async () => null) }
-}));
-
-vi.mock("@nodetool-ai/runtime", () => ({
-  FileStorageAdapter: class {
-    constructor(_root?: string) {}
-    async retrieve(_uri?: string) {
-      return null;
-    }
-  }
-}));
-
-vi.mock("@nodetool-ai/config", () => ({
-  getDefaultAssetsPath: () => "/tmp/nodetool-assets-test"
+  Workflow: { find: vi.fn(async () => null) }
 }));
 
 vi.mock("js-yaml", () => ({
@@ -265,9 +227,6 @@ beforeEach(() => {
     listWorkflows,
     deleteWorkflow,
     runWorkflow,
-    dbGet,
-    dbSave,
-    dbDelete,
     listUsers,
     addUser,
     resetToken,
@@ -493,61 +452,6 @@ describe("deploy workflows run", () => {
       name: "Alice",
       count: 3
     });
-  });
-});
-
-describe("deploy database get", () => {
-  it("calls dbGet with table and key", async () => {
-    process.env["NODETOOL_ADMIN_TOKEN"] = "test-token";
-    await run(["deploy", "database", "get", "dev", "users", "abc"]);
-    expect(dbGet).toHaveBeenCalledWith("users", "abc");
-  });
-});
-
-describe("deploy database save", () => {
-  it("parses the JSON positional arg", async () => {
-    process.env["NODETOOL_ADMIN_TOKEN"] = "test-token";
-    await run([
-      "deploy",
-      "database",
-      "save",
-      "dev",
-      "users",
-      '{"id":"1","name":"alice"}'
-    ]);
-    expect(dbSave).toHaveBeenCalledWith("users", { id: "1", name: "alice" });
-  });
-
-  it("rejects invalid JSON", async () => {
-    process.env["NODETOOL_ADMIN_TOKEN"] = "test-token";
-    await expect(
-      run(["deploy", "database", "save", "dev", "users", "not-json"])
-    ).rejects.toThrow("__exit_1");
-  });
-});
-
-describe("deploy database delete", () => {
-  it("deletes with --force", async () => {
-    process.env["NODETOOL_ADMIN_TOKEN"] = "test-token";
-    await run([
-      "deploy",
-      "database",
-      "delete",
-      "dev",
-      "users",
-      "abc",
-      "--force"
-    ]);
-    expect(dbDelete).toHaveBeenCalledWith("users", "abc");
-  });
-});
-
-describe("deploy collections sync", () => {
-  it("errors when local collection is missing", async () => {
-    process.env["NODETOOL_ADMIN_TOKEN"] = "test-token";
-    await expect(
-      run(["deploy", "collections", "sync", "dev", "my-collection"])
-    ).rejects.toThrow("__exit_1");
   });
 });
 

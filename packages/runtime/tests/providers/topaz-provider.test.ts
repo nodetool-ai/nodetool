@@ -171,26 +171,59 @@ describe("TopazProvider — upscaleImage", () => {
     );
   });
 
-  it("retries retryable HTTP statuses", async () => {
+  it("attempts the job-creating POST exactly once on 503 (no double billing)", async () => {
     let submitAttempts = 0;
     global.fetch = vi.fn(async (url: string | URL) => {
       const u = String(url);
       if (u === "https://api.topazlabs.com/image/v1/enhance/async") {
         submitAttempts++;
-        if (submitAttempts < 2) {
-          return {
-            ok: false,
-            status: 503,
-            headers: new Headers({ "Retry-After": "0" }),
-            text: async () => "transient"
-          } as unknown as Response;
+        return {
+          ok: false,
+          status: 503,
+          headers: new Headers({ "Retry-After": "0" }),
+          text: async () => "transient",
+          arrayBuffer: async () => new ArrayBuffer(0)
+        } as unknown as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    const p = new TopazProvider({ TOPAZ_API_KEY: "k" });
+    await expect(
+      p.upscaleImage(imageBytes(), {
+        model: {
+          id: "topaz/image/enhance/Standard V2",
+          name: "x",
+          provider: "topaz"
         }
+      })
+    ).rejects.toThrow("Topaz submit failed: 503");
+    // A 503 may mean the job was created and billed before the error. Retrying
+    // submits a second billable job.
+    expect(submitAttempts).toBe(1);
+  });
+
+  it("retries the idempotent status poll on a retryable status", async () => {
+    let statusAttempts = 0;
+    global.fetch = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u === "https://api.topazlabs.com/image/v1/enhance/async") {
         return {
           ok: true,
           json: async () => ({ process_id: "pid-r" })
         } as Response;
       }
       if (u.includes("/status/pid-r")) {
+        statusAttempts++;
+        if (statusAttempts < 2) {
+          return {
+            ok: false,
+            status: 503,
+            headers: new Headers({ "Retry-After": "0" }),
+            text: async () => "transient",
+            arrayBuffer: async () => new ArrayBuffer(0)
+          } as unknown as Response;
+        }
         return {
           ok: true,
           json: async () => ({ status: "Completed" })
@@ -220,7 +253,34 @@ describe("TopazProvider — upscaleImage", () => {
       }
     });
     expect([...out]).toEqual([5]);
-    expect(submitAttempts).toBe(2);
+    expect(statusAttempts).toBe(2);
+  });
+
+  it("treats \"complete\" and \"canceled\" as terminal states", async () => {
+    let statusCalls = 0;
+    global.fetch = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u === "https://api.topazlabs.com/image/v1/enhance/async") {
+        return { ok: true, json: async () => ({ process_id: "pid-c" }) } as Response;
+      }
+      if (u.includes("/status/pid-c")) {
+        statusCalls++;
+        return { ok: true, json: async () => ({ status: "Canceled" }) } as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    const p = new TopazProvider({ TOPAZ_API_KEY: "k" });
+    await expect(
+      p.upscaleImage(imageBytes(), {
+        model: {
+          id: "topaz/image/enhance/Standard V2",
+          name: "x",
+          provider: "topaz"
+        }
+      })
+    ).rejects.toThrow("Topaz job failed");
+    expect(statusCalls).toBe(1);
   });
 
   it("refuses a provider-supplied download URL pointing at an internal host (#18)", async () => {

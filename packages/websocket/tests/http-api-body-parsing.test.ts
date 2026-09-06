@@ -154,47 +154,6 @@ describe("POST /api/workflows/:id/run — body leniency", () => {
   });
 });
 
-describe("POST /api/workflows/:id/autosave — body leniency", () => {
-  it("400s when graph is missing, with the route's own message", async () => {
-    const wf = await makeWorkflow();
-    const res = await handleWorkflowAutosave(
-      jsonRequest(JSON.stringify({ name: "x" })),
-      wf.id,
-      {}
-    );
-    expect(res.status).toBe(400);
-    expect((await res.json()).detail).toBe("Invalid body: graph is required");
-  });
-
-  it("400s the same way for a body that is not an object", async () => {
-    const wf = await makeWorkflow();
-    const res = await handleWorkflowAutosave(jsonRequest("[1,2]"), wf.id, {});
-    expect(res.status).toBe(400);
-    expect((await res.json()).detail).toBe("Invalid body: graph is required");
-  });
-
-  it("falls back to 10 versions when max_versions is wrong-typed", async () => {
-    const wf = await makeWorkflow();
-    const res = await handleWorkflowAutosave(
-      jsonRequest(
-        JSON.stringify({
-          graph: GRAPH,
-          max_versions: "many",
-          extra_key: true,
-          access: 7
-        })
-      ),
-      wf.id,
-      {}
-    );
-    expect(res.status).toBe(200);
-    expect((await res.json()).skipped).toBe(false);
-    // A wrong-typed `access` reads as absent, so the stored value is untouched.
-    const saved = (await Workflow.get(wf.id)) as Workflow;
-    expect(saved.access).toBe("private");
-  });
-});
-
 describe("POST /api/workflows — body leniency", () => {
   it("400s with 'Invalid workflow' when name is missing", async () => {
     const res = await handleWorkflowsRoot(
@@ -281,25 +240,6 @@ describe("PUT /api/workflows/:id — body leniency", () => {
     );
     expect(res.status).toBe(400);
     expect((await res.json()).detail).toBe("Invalid workflow");
-  });
-});
-
-describe("POST /api/workflows/:id/versions — body leniency", () => {
-  it("stores nulls when name and description are missing", async () => {
-    const wf = await makeWorkflow();
-    const res = await handleWorkflowVersions(jsonRequest("{}"), wf.id, {});
-    expect(res.status).toBe(200);
-    const version = (await res.json()) as Record<string, unknown>;
-    expect(version.name).toBeNull();
-    expect(version.description).toBeNull();
-    expect(await WorkflowVersion.nextVersion(wf.id)).toBe(2);
-  });
-
-  it("accepts a body that is not an object", async () => {
-    const wf = await makeWorkflow();
-    const res = await handleWorkflowVersions(jsonRequest('"nope"'), wf.id, {});
-    expect(res.status).toBe(200);
-    expect((await res.json()).name).toBeNull();
   });
 });
 

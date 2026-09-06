@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "slug": "ecommerce-sku-visual-factory",
+  "name": "E-commerce SKU Visual Factory",
+  "outcome": "One packshot per SKU becomes the whole channel set: cutout, studio scene, seasonal relight, turntable clip, print master, and the listing copy.",
+  "audience": "Catalogue and marketplace teams with more SKUs than shoot days.",
+  "summary": [
+    "Every step after the first one starts from the cutout, so the product itself is never regenerated. That is the constraint that matters in a catalogue: the customer is buying the object in the photograph, and a model that redraws it has sold them something else.",
+    "Run the chain once per SKU. The upscale sits at the end on purpose — one call for the asset you actually print, rather than paying print resolution on every draft."
+  ],
+  "caveats": [
+    "Background removal is a model, not a matte artist. Hair, mesh, glassware, and anything transparent need a look before they go live.",
+    "Relighting changes light, not colour management. A brand colour that has to match a printed swatch still needs a proofing step.",
+    "The listing copy is written from one photograph. It does not know your stock, sizing, or compliance wording."
+  ],
+  "hero": "Put a Product on a Studio Backdrop",
+  "steps": [
+    {
+      "example": "Cut a Product Out of Its Background",
+      "role": "Isolate the product once",
+      "handoff": "In: the packshot. Out: the product on a real alpha channel rather than a white matte, so the edge survives compositing onto anything later."
+    },
+    {
+      "example": "Put a Product on a Studio Backdrop",
+      "role": "Place it in a described setting",
+      "handoff": "In: the cutout and a scene description. Out: the product in that scene. An edit model told to change only the surroundings, rather than a strength setting on image-to-image, is what keeps the product unchanged."
+    },
+    {
+      "example": "Relight a Product for a Seasonal Campaign",
+      "role": "Change the season without a reshoot",
+      "handoff": "In: the placed shot. Out: the same geometry and materials under different light. Relighting moves where the light comes from and nothing else."
+    },
+    {
+      "example": "Spin a Packshot into a Turntable Clip",
+      "role": "Give the product page motion",
+      "handoff": "In: the still. Out: a short clip with a camera move. Image-to-video keeps the product identical, which a text-to-video model would not."
+    },
+    {
+      "example": "Take a Product Shot to Print Resolution",
+      "role": "Upscale only the keeper",
+      "handoff": "In: the approved web asset. Out: a print-resolution master. One call at the end of the pipeline instead of print resolution on every draft."
+    },
+    {
+      "example": "Write a Listing from the Product Photo",
+      "role": "Write the copy from the photograph",
+      "handoff": "In: the image itself, not a description of it. Out: marketplace copy that catches finish, proportion, and what the thing sits next to — details a spec sheet leaves out."
+    }
+  ]
+}

@@ -16,9 +16,8 @@ import {
 import type { OpenAIProvider } from "./openai-provider.js";
 import { createLogger } from "@nodetool-ai/config";
 import { safeFetch } from "./safe-url.js";
+import { fetchWithRetry, pollUntilTerminal } from "./http-transport.js";
 import type {
-  ASRModel,
-  EmbeddingModel,
   EncodedAudioResult,
   ImageModel,
   ImageToImageParams,
@@ -147,29 +146,6 @@ interface MinimaxBaseResp {
 }
 
 /** Resolve the abort reason as an Error (mirrors the gemini provider). */
-function abortError(signal?: AbortSignal): Error {
-  return signal?.reason instanceof Error ? signal.reason : new Error("Aborted");
-}
-
-/** Sleep that rejects promptly when `signal` aborts instead of running full. */
-function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(abortError(signal));
-      return;
-    }
-    const onAbort = (): void => {
-      clearTimeout(timer);
-      reject(abortError(signal));
-    };
-    const timer = setTimeout(() => {
-      signal?.removeEventListener("abort", onAbort);
-      resolve();
-    }, ms);
-    signal?.addEventListener("abort", onAbort, { once: true });
-  });
-}
-
 /** MiniMax embeds a `base_resp` on most responses; surface failures as errors. */
 function assertBaseResp(data: Record<string, unknown>, context: string): void {
   const baseResp = data.base_resp as MinimaxBaseResp | undefined;
@@ -411,16 +387,6 @@ export class MinimaxProvider extends OpenAICompatProvider {
       data: hexToUint8(audioHex),
       mimeType: fmt === "wav" ? "audio/wav" : "audio/mpeg"
     };
-  }
-
-  /** MiniMax does not expose a public ASR endpoint we support here. */
-  override async getAvailableASRModels(): Promise<ASRModel[]> {
-    return [];
-  }
-
-  /** Embeddings require a MiniMax GroupId we don't manage; leave disabled. */
-  override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
-    return [];
   }
 
   override async automaticSpeechRecognition(
@@ -717,38 +683,52 @@ export class MinimaxProvider extends OpenAICompatProvider {
     const url = `${MINIMAX_BASE_URL}/v1/query/video_generation?task_id=${encodeURIComponent(
       taskId
     )}`;
-    for (let i = 0; i < maxAttempts; i++) {
-      const res = await this._minimaxFetch(url, {
-        headers: this.headers(),
-        signal
-      });
-      if (!res.ok) {
-        throw new Error(
-          `MiniMax video status failed: ${res.status} ${await res.text()}`
-        );
-      }
-      const data = (await res.json()) as Record<string, unknown>;
-      // Surface API-level failures (expired task, auth, rate limit) instead of
-      // polling an empty status until the timeout.
-      assertBaseResp(data, "video status");
-      const status = String(data.status ?? "").toLowerCase();
-      if (status === "success") {
-        const fileId = data.file_id as string | undefined;
-        if (!fileId) {
-          throw new Error("MiniMax video task succeeded but returned no file_id");
-        }
-        return fileId;
-      }
-      if (status === "fail" || status === "failed") {
-        throw new Error(
-          `MiniMax video task failed: ${JSON.stringify(data.base_resp ?? data)}`
-        );
-      }
-      await abortableSleep(pollIntervalMs, signal);
+    const pollOptions: Parameters<
+      typeof pollUntilTerminal<Record<string, unknown>>
+    >[1] = {
+      intervalMs: pollIntervalMs,
+      maxAttempts,
+      onFailure: (body) =>
+        new Error(
+          `MiniMax video task failed: ${JSON.stringify(body.base_resp ?? body)}`
+        ),
+      onTimeout: () =>
+        new Error(
+          `MiniMax video task timed out after ${maxAttempts * pollIntervalMs}ms`
+        )
+    };
+    if (signal) {
+      pollOptions.signal = signal;
     }
-    throw new Error(
-      `MiniMax video task timed out after ${maxAttempts * pollIntervalMs}ms`
+    const data = await pollUntilTerminal<Record<string, unknown>>(
+      async () => {
+        // The job is already submitted and billed: a 429 or a gateway 5xx on
+        // the status GET must back off, not throw the job away.
+        const statusRequest: RequestInit = { headers: this.headers() };
+        if (signal) {
+          statusRequest.signal = signal;
+        }
+        const res = await fetchWithRetry(url, statusRequest, {
+          fetchImpl: this._minimaxFetch
+        });
+        if (!res.ok) {
+          throw new Error(
+            `MiniMax video status failed: ${res.status} ${await res.text()}`
+          );
+        }
+        const body = (await res.json()) as Record<string, unknown>;
+        // Surface API-level failures (expired task, auth, rate limit) instead
+        // of polling an empty status until the timeout.
+        assertBaseResp(body, "video status");
+        return body;
+      },
+      pollOptions
     );
+    const fileId = data.file_id as string | undefined;
+    if (!fileId) {
+      throw new Error("MiniMax video task succeeded but returned no file_id");
+    }
+    return fileId;
   }
 
   private async _downloadFile(
