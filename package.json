@@ -48,6 +48,7 @@
     "packages/topaz-nodes",
     "packages/reve-nodes",
     "packages/atlascloud-nodes",
+    "packages/muapi-nodes",
     "packages/together-nodes",
     "packages/sandbox-compiler",
     "packages/workflow-runner",

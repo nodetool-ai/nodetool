@@ -26,6 +26,7 @@ const namespaceToSecretKey: Record<string, string> = {
   elevenlabs: "ELEVENLABS_API_KEY",
   search: "SERPAPI_API_KEY",
   atlascloud: "ATLASCLOUD_API_KEY",
+  muapi: "MUAPI_API_KEY",
   xai: "XAI_API_KEY",
   together: "TOGETHER_API_KEY",
   minimax: "MINIMAX_API_KEY"
@@ -61,6 +62,7 @@ const secretKeyToDisplayName: Record<string, string> = {
   ELEVENLABS_API_KEY: "ElevenLabs API Key",
   SERPAPI_API_KEY: "SerpAPI Key",
   ATLASCLOUD_API_KEY: "AtlasCloud API Key",
+  MUAPI_API_KEY: "MuAPI API Key",
   XAI_API_KEY: "xAI API Key",
   TOGETHER_API_KEY: "Together API Key",
   MINIMAX_API_KEY: "MiniMax API Key"

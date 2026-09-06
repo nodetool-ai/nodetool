@@ -120,6 +120,12 @@ export const BUILTIN_NODE_PACKS: readonly BuiltinNodePack[] = [
     namespaces: ["atlascloud"]
   },
   {
+    id: "muapi",
+    name: "MuAPI",
+    description: "Image and video generation through MuAPI.",
+    namespaces: ["muapi"]
+  },
+  {
     id: "together",
     name: "Together AI",
     description:

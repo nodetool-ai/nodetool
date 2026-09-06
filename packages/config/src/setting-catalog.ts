@@ -496,6 +496,11 @@ sec(
   "AtlasCloud",
   "AtlasCloud.ai API key for chat models (DeepSeek, Qwen, GPT, Claude, Gemini) plus hosted image (GPT Image, Nano Banana, Seedream) and video (Seedance, Veo, Kling, Wan) generation. Get yours at https://www.atlascloud.ai/"
 );
+sec(
+  "MUAPI_API_KEY",
+  "MuAPI",
+  "MuAPI API key for image and video generation. Get yours at https://muapi.ai/access-keys"
+);
 sec("MESHY_API_KEY", "Meshy", "Meshy AI API key for 3D model generation. Get yours at https://app.meshy.ai/settings/api-keys");
 sec("RODIN_API_KEY", "Rodin", "Rodin AI API key for 3D model generation. Get yours at https://hyperhuman.deemos.com/");
 sec(
