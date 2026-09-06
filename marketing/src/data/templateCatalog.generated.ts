@@ -308,6 +308,17 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "platformer-asset-pack",
+        "name": "Platformer Asset Pack",
+        "description": "A Godot template's asset slots, filled and checked in one run. LoadGameTemplate streams every slot the platformer needs; SlotPrompt turns each into a prompt, a canvas and the prop bag its checker wants, all seasoned with one style entity — swap that entity and the whole pack re-skins. Every generated asset goes through the nodetool.game checker for its kind before ExportGodotProject lays out a project you can open.",
+        "tags": [
+          "game",
+          "godot",
+          "image",
+          "audio"
+        ]
+      },
+      {
         "slug": "poster-on-kie",
         "name": "Poster on Kie",
         "description": "Generate a poster-style image through Kie's Seedream 4.5. Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
@@ -595,6 +606,16 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "localized-explainer",
+        "name": "Localized Explainer",
+        "description": "One brief, one narrator and one approved b-roll board become an explainer in every language you list. WriteScript writes the words with the narrator as its cast, VoiceScript pays only for the lines whose text moved, and the board is read and never written — its stills become the picture under the voiceover.",
+        "tags": [
+          "video",
+          "script",
+          "localization"
+        ]
+      },
+      {
         "slug": "movie-trailer-generator",
         "name": "Movie Trailer Generator",
         "description": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
@@ -627,6 +648,16 @@ export const templateCatalog: CatalogCategory[] = [
           "audio",
           "video",
           "utility"
+        ]
+      },
+      {
+        "slug": "per-sku-ad-factory",
+        "name": "Per-SKU Ad Factory",
+        "description": "One approved board becomes one ad per product. CreateEntity upserts the SKU's entity on its stock code, RecastStoryboard copies the board onto it and keeps every frame whose prompt did not change, the render nodes pay only for the stale ones, and the assembled cut inherits the template's titles and music before the overlay is filled with this product's name and price. Run it once per SKU — from a CSV loop, a webhook, or by hand.",
+        "tags": [
+          "video",
+          "storyboard",
+          "batch"
         ]
       },
       {
@@ -776,6 +807,15 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": [
           "video",
           "utility"
+        ]
+      },
+      {
+        "slug": "three-ratios",
+        "name": "Three Ratios",
+        "description": "One approved cut, three deliverables. RetargetTimeline derives a new sequence per aspect ratio and never writes the source, so the trims and placements a person signed off carry over unchanged — only the frame moves. `cropped` names the clips the 9:16 crop cuts into, which is where a shot may need a board of its own.",
+        "tags": [
+          "video",
+          "timeline"
         ]
       },
       {
