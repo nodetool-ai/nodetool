@@ -187,3 +187,67 @@ describe("MusicLoop", () => {
     expect(output.asset_id).toBeUndefined();
   });
 });
+
+describe("a connected game_slot input", () => {
+  it("beats stale hand-typed values on SoundEffect", async () => {
+    const spec = slot("sfx.jump");
+    const { fill } = await new SoundEffectNode({
+      audio: sineRef(2),
+      slot: spec,
+      // Left over from a different slot; both must lose to the wired slot.
+      slot_id: "music.level",
+      seconds: 60
+    }).process();
+    expect(fill.slot_id).toBe("sfx.jump");
+    expect(fill.seconds).toBeCloseTo(0.4, 3);
+    expect(checkSlotFill(spec, fill)).toEqual([]);
+  });
+
+  it("beats stale hand-typed values on MusicLoop", async () => {
+    const spec = slot("music.level");
+    const { fill } = await new MusicLoopNode({
+      audio: sineRef(80),
+      slot: spec,
+      slot_id: "sfx.jump",
+      seconds: 0.4,
+      crossfade_ms: 100
+    }).process();
+    expect(fill.slot_id).toBe("music.level");
+    expect(fill.seconds).toBeCloseTo(60, 1);
+    expect(checkSlotFill(spec, fill)).toEqual([]);
+  });
+
+  it("leaves the hand-typed values alone when nothing is wired", async () => {
+    const spec = slot("sfx.hurt");
+    for (const slotValue of [undefined, null, {}, ""]) {
+      const { fill } = await new SoundEffectNode({
+        audio: sineRef(2),
+        slot: slotValue,
+        slot_id: spec.id,
+        seconds: spec.seconds
+      }).process();
+      expect(fill.slot_id, String(slotValue)).toBe("sfx.hurt");
+      expect(fill.seconds, String(slotValue)).toBeCloseTo(0.5, 3);
+    }
+  });
+
+  it("refuses a slot of the wrong kind rather than ignoring it", async () => {
+    await expect(
+      new SoundEffectNode({
+        audio: sineRef(2),
+        slot: slot("music.level")
+      }).process()
+    ).rejects.toThrow(/music.level is a music slot, not a sfx slot/);
+  });
+
+  it("refuses a malformed slot rather than falling back", async () => {
+    await expect(
+      new MusicLoopNode({
+        audio: sineRef(2),
+        slot: { id: "music.level", kind: "music" },
+        slot_id: "music.level",
+        seconds: 1
+      }).process()
+    ).rejects.toThrow(/not a game slot spec/);
+  });
+});

@@ -1,0 +1,296 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-09-06T12:00:00.000Z",
+  "updated_at": "2026-09-06T12:00:00.000Z",
+  "name": "Three Ratios",
+  "tool_name": null,
+  "description": "One approved cut, three deliverables. RetargetTimeline derives a new sequence per aspect ratio and never writes the source, so the trims and placements a person signed off carry over unchanged — only the frame moves. `cropped` names the clips the 9:16 crop cuts into, which is where a shot may need a board of its own.",
+  "tags": [
+    "video",
+    "timeline",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "cut",
+        "type": "nodetool.constant.Timeline",
+        "data": {
+          "value": {
+            "type": "timeline",
+            "id": null,
+            "data": null
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 260
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "1  The approved 16:9 cut"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "vertical",
+        "type": "nodetool.timeline.RetargetTimeline",
+        "data": {
+          "aspect_ratio": "9:16",
+          "fit": "cover",
+          "name": "9:16"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 300,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true,
+          "title": "2  Retarget 9:16"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "square",
+        "type": "nodetool.timeline.RetargetTimeline",
+        "data": {
+          "aspect_ratio": "1:1",
+          "fit": "cover",
+          "name": "1:1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 300,
+            "y": 260
+          },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true,
+          "title": "3  Retarget 1:1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "r_vertical",
+        "type": "nodetool.timeline.RenderTimeline",
+        "data": {
+          "format": "mp4",
+          "include_audio": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 620,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "4  Render 9:16"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "r_square",
+        "type": "nodetool.timeline.RenderTimeline",
+        "data": {
+          "format": "mp4",
+          "include_audio": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 620,
+            "y": 260
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "5  Render 1:1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "r_source",
+        "type": "nodetool.timeline.RenderTimeline",
+        "data": {
+          "format": "mp4",
+          "include_audio": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 620,
+            "y": 480
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "6  Render 16:9"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out_vertical",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "vertical",
+          "description": "The 9:16 cut."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 900,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true,
+          "title": "7  9:16"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out_square",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "square",
+          "description": "The 1:1 cut."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 900,
+            "y": 260
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true,
+          "title": "8  1:1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out_source",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "landscape",
+          "description": "The 16:9 cut, untouched."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 900,
+            "y": 480
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true,
+          "title": "9  16:9"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out_cropped",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "cropped",
+          "description": "Clips the 9:16 crop cuts into — the shots that may need a board of their own."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 300,
+            "y": 660
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "10  What the crop loses"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "cut",
+        "sourceHandle": "output",
+        "target": "vertical",
+        "targetHandle": "timeline"
+      },
+      {
+        "id": "e2",
+        "source": "cut",
+        "sourceHandle": "output",
+        "target": "square",
+        "targetHandle": "timeline"
+      },
+      {
+        "id": "e3",
+        "source": "vertical",
+        "sourceHandle": "timeline",
+        "target": "r_vertical",
+        "targetHandle": "timeline"
+      },
+      {
+        "id": "e4",
+        "source": "square",
+        "sourceHandle": "timeline",
+        "target": "r_square",
+        "targetHandle": "timeline"
+      },
+      {
+        "id": "e5",
+        "source": "cut",
+        "sourceHandle": "output",
+        "target": "r_source",
+        "targetHandle": "timeline"
+      },
+      {
+        "id": "e6",
+        "source": "r_vertical",
+        "sourceHandle": "output",
+        "target": "out_vertical",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e7",
+        "source": "r_square",
+        "sourceHandle": "output",
+        "target": "out_square",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e8",
+        "source": "r_source",
+        "sourceHandle": "output",
+        "target": "out_source",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e9",
+        "source": "vertical",
+        "sourceHandle": "cropped",
+        "target": "out_cropped",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

@@ -978,6 +978,63 @@ manifest, the resolver, the Examples listing, or the recipe pages.
 resolves, and `scripts/verify-backend-bundle.mjs` checks the manifests and the
 examples they name were staged into the packaged bundle.
 
+### graph-resource fixtures
+
+The nodes that put an approved storyboard, script, timeline or entity into a
+graph (`nodetool.storyboard.*`, `nodetool.entity.*`, `nodetool.script.*`,
+`nodetool.timeline.*`, `nodetool.game.*`) are only interesting when they are
+wired together, and every graph that wires them reads documents a person
+approved and spends money on renders. This harness runs them anyway.
+
+```bash
+npm run fixtures:graph-resources        # all of them
+node scripts/graph-resources-fixtures.mjs e1 --keep   # one, keeping the scratch install
+```
+
+`scripts/graph-resources-fixtures.mjs` builds a scratch install — its own
+`DB_PATH` and `ASSET_FOLDER` under a temp directory, `NODETOOL_ENABLE_FAKE_PROVIDER=1`
+— and seeds it with the world the graphs read: a template board with a
+`Product` prop entity and a style entity, the approved cut behind it carrying a
+`{{name}} — {{price}}` overlay on its own track, a b-roll board whose stills are
+stored assets, and a 16:9 launch cut. Then it runs each graph in
+`packages/cli/fixtures/graph-resources/` through `nodetool debug` and reads the
+result back out of the database. The fixtures are the shipped examples with the
+generators swapped for `nodetool.fake.*` and the board's models set to the
+`fake` provider, so a run costs nothing and needs no key.
+
+Three claims a green run alone would not make:
+
+| Fixture | What it asserts |
+|---|---|
+| `per-sku-ad-factory.fake.json` | The exported sequence carries the overlay with both placeholders replaced — so the template's cut survived recast, render and assembly, and `FillTimelineText` reached the clip that inherited it. |
+| `platformer-asset-pack.fake.json` | Every slot the platformer manifest declares reaches the exported file list, and nothing in the project points at a resource that is not there. |
+| `three-ratios.fake.json` | Both retargets are new rows naming the source as their template, and every clip keeps the name, start and duration the approved cut gave it. |
+
+The verdict comes from the debug bundle, not the exit code: a graph carrying a
+sandboxed `nodetool.code.Code` node has been seen to exit 0 and write no bundle
+after a node failed, so a missing bundle is a failure here.
+
+Two shapes the fixtures deliberately do not have, both because of defects
+outside this harness:
+
+- **No `Localized Explainer` fixture.** `nodetool.script.*` needs the
+  `getScript` / `createScript` / `updateScript` model interfaces, and those are
+  wired only in `packages/websocket/src/session/model-interfaces.ts` — not in
+  `documentModelInterfaces()`, which is what the CLI installs. Every script node
+  fails under `nodetool debug` with "ProcessingContext model interface
+  'getScript' is not configured".
+- **`ExportGodotProject` is the last node in the E3 fixture.** Wiring anything
+  downstream of it — an `Output` on `directory` or on `files` — makes the run
+  never complete: the node emits, the downstream node runs, and then the
+  runner's promise never settles and the process exits 0 with no bundle.
+
+The pure half of the harness is the derivation suites — `packages/storyboard`,
+`packages/timeline`'s `derive`, protocol's `script-fill` and
+`game-slot-prompt`, `packages/game-nodes`, and the node suites in
+`core-nodes` and `video-nodes`. `nodetool harness gate` runs both halves on any
+diff touching `packages/storyboard/`, `packages/game-nodes/`, the derivation
+sources, the node files, the four shipped examples or the fixtures themselves.
+
 ### 3D scene tools (no editor, no browser)
 
 An agent builds and fixes a 3D model without an editor open:

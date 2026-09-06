@@ -104,6 +104,12 @@ jest.mock("../../../trpc/client", () => ({
   trpc: {
     scripts: {
       get: { useQuery: () => ({ data: undefined }) }
+    },
+    // The lineage chip reads the board and its template; with no data it
+    // renders nothing, which is what an unrecast board shows
+    // (BoardLineageChip.test.tsx covers the recast case).
+    storyboards: {
+      get: { useQuery: () => ({ data: undefined }) }
     }
   },
   trpcClient: {}

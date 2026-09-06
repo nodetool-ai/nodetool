@@ -6,6 +6,10 @@ export type {
   TextRef,
   DataframeRef,
   FolderRef,
+  StoryboardRef,
+  Entity,
+  GameSlotSpec,
+  SlotFill,
   ChartConfig,
   ChartData,
   ChartSeries

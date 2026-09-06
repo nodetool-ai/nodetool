@@ -4,202 +4,222 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { gameAssetManifest, type GameSlotSpec } from "../src/game-assets.js";
-import {
-  GAME_IMAGE_ASPECT_RATIOS,
-  closestGameAspectRatio,
-  gameSlotPrompt
-} from "../src/game-slot-prompt.js";
+import { nearSquareGrid, slotCast, slotPrompt } from "../src/game-slot-prompt.js";
+import type { Entity } from "../src/creative.js";
 
-const repoFile = (relative: string): string =>
-  fileURLToPath(new URL(`../../../${relative}`, import.meta.url));
-
-const manifestOf = (template: string) =>
-  gameAssetManifest.parse(
-    JSON.parse(
-      readFileSync(
-        repoFile(`packages/godot-templates/templates/${template}/manifest.json`),
-        "utf8"
-      )
+const manifest = gameAssetManifest.parse(
+  JSON.parse(
+    readFileSync(
+      fileURLToPath(
+        new URL("../fixtures/game-assets/platformer.manifest.json", import.meta.url)
+      ),
+      "utf8"
     )
-  );
+  )
+);
 
-const TEMPLATES = ["platformer", "topdown", "shmup"] as const;
-
-const STYLE = {
-  descriptor:
-    "16-bit console pixel art on a 32px cell, four-shade ramps, transparent background for sprites, flat lighting, no text, no watermark"
+const slot = (id: string): GameSlotSpec => {
+  const found = manifest.slots.find((s) => s.id === id);
+  if (!found) throw new Error(`fixture has no slot ${id}`);
+  return found;
 };
 
-const CAST = [
-  { slot_id: "player", name: "Ember", descriptor: "A slim rust-orange fox" },
-  {
-    slot_id: "enemy.walker",
-    name: "Husk beetle",
-    descriptor: "A squat dark brown beetle"
-  }
-];
+const entity = (over: Partial<Entity> & Pick<Entity, "id" | "kind" | "name">): Entity => ({
+  type: "entity",
+  descriptor: `${over.name} descriptor`,
+  ...over
+});
 
-/** Every slot of every shipped manifest, pinned. */
-const EXPECTED: Record<
-  string,
-  Record<string, { width?: number; height?: number; aspectRatio?: string }>
-> = {
-  platformer: {
-    player: { width: 256, height: 128, aspectRatio: "16:9" },
-    "enemy.walker": { width: 192, height: 64, aspectRatio: "21:9" },
-    "tiles.ground": { width: 64, height: 48, aspectRatio: "4:3" },
-    "bg.far": { width: 960, height: 540, aspectRatio: "16:9" },
-    "sfx.jump": {},
-    "sfx.hurt": {},
-    "music.level": {},
-    title: { width: 1920, height: 1080, aspectRatio: "16:9" }
-  },
-  topdown: {
-    player: { width: 192, height: 96, aspectRatio: "16:9" },
-    "enemy.chaser": { width: 192, height: 64, aspectRatio: "21:9" },
-    "tiles.floor": { width: 64, height: 48, aspectRatio: "4:3" },
-    "sfx.hit": {},
-    "sfx.step": {},
-    "music.level": {},
-    title: { width: 1920, height: 1080, aspectRatio: "16:9" }
-  },
-  shmup: {
-    player: { width: 64, height: 96, aspectRatio: "2:3" },
-    "enemy.drone": { width: 128, height: 64, aspectRatio: "16:9" },
-    "bg.space": { width: 960, height: 540, aspectRatio: "16:9" },
-    "sfx.shoot": {},
-    "sfx.explode": {},
-    "music.level": {},
-    title: { width: 1920, height: 1080, aspectRatio: "16:9" }
-  }
-};
+const CAVE_PIXEL = entity({
+  id: "style-1",
+  kind: "style",
+  name: "Cave Pixel",
+  descriptor: "8-bit cave palette, four-colour ramps, hard pixel edges"
+});
+const PIP = entity({
+  id: "char-1",
+  kind: "character",
+  name: "Pip",
+  descriptor: "a small round explorer in a yellow helmet"
+});
 
-describe("gameSlotPrompt", () => {
-  for (const template of TEMPLATES) {
-    const manifest = manifestOf(template);
+describe("slotPrompt canvas", () => {
+  it("sizes a spritesheet as longest animation by animation count", () => {
+    // player: cell 32x32, animations idle 4, run 8, jump 2, hurt 2.
+    const { width, height } = slotPrompt(slot("player"), null, []);
+    expect(width).toBe(8 * 32);
+    expect(height).toBe(4 * 32);
+  });
 
-    it(`covers every ${template} slot with the expectation table`, () => {
-      expect(manifest.slots.map((slot) => slot.id).sort()).toEqual(
-        Object.keys(EXPECTED[template]).sort()
-      );
-    });
+  it("sizes a tileset as the near-square grid of count cells", () => {
+    // tiles.ground: cell 16x16, count 12 -> 4x3.
+    const { width, height } = slotPrompt(slot("tiles.ground"), null, []);
+    expect(nearSquareGrid(12)).toEqual({ columns: 4, rows: 3 });
+    expect(width).toBe(4 * 16);
+    expect(height).toBe(3 * 16);
+  });
 
-    for (const slot of manifest.slots) {
-      const expected = EXPECTED[template][slot.id];
+  it("takes an image slot's declared size", () => {
+    const { width, height } = slotPrompt(slot("bg.far"), null, []);
+    expect([width, height]).toEqual([960, 540]);
+  });
 
-      it(`${template} / ${slot.id} (${slot.kind}) gets the size the checker will demand`, () => {
-        const built = gameSlotPrompt(slot, "the subject", STYLE, CAST);
-        expect(built.width).toBe(expected.width);
-        expect(built.height).toBe(expected.height);
-        expect(built.aspectRatio).toBe(expected.aspectRatio);
-        expect(built.prompt.startsWith("the subject.")).toBe(true);
-      });
-
-      it(`${template} / ${slot.id} carries the style descriptor only where a picture is generated`, () => {
-        const built = gameSlotPrompt(slot, "the subject", STYLE, CAST);
-        const visual = slot.kind !== "sfx" && slot.kind !== "music";
-        expect(built.prompt.includes(STYLE.descriptor)).toBe(visual);
-      });
-
-      it(`${template} / ${slot.id} carries a cast descriptor only when the cast names it`, () => {
-        const built = gameSlotPrompt(slot, "the subject", STYLE, CAST);
-        const member = CAST.find((entry) => entry.slot_id === slot.id);
-        for (const entry of CAST) {
-          expect(built.prompt.includes(entry.descriptor)).toBe(
-            entry === member
-          );
-        }
-      });
+  it("gives an audio slot no canvas", () => {
+    for (const id of ["sfx.jump", "music.level"]) {
+      const { width, height } = slotPrompt(slot(id), null, []);
+      expect([width, height], id).toEqual([0, 0]);
     }
-  }
-
-  it("names every animation row and its frame count on a sprite sheet", () => {
-    const manifest = manifestOf("platformer");
-    const player = manifest.slots.find((slot) => slot.id === "player")!;
-    const built = gameSlotPrompt(player, "Ember from the side", STYLE, CAST);
-    expect(built.prompt).toContain('row 1 "idle", 4 frames');
-    expect(built.prompt).toContain('row 2 "run", 8 frames');
-    expect(built.prompt).toContain('row 3 "jump", 2 frames');
-    expect(built.prompt).toContain('row 4 "hurt", 2 frames');
-    expect(built.prompt).toContain("Transparent background");
   });
 
-  it("asks a tileset for a near-square grid of the manifest's tile count", () => {
-    const manifest = manifestOf("platformer");
-    const tiles = manifest.slots.find((slot) => slot.id === "tiles.ground")!;
-    const built = gameSlotPrompt(tiles, "autumn ground", STYLE, []);
-    expect(built.columns).toBe(4);
-    expect(built.rows).toBe(3);
-    expect(built.prompt).toContain("4 by 3 tile sheet holding 12 distinct");
-  });
-
-  it("names the axis an image slot must tile on, and only that axis", () => {
-    const platformer = manifestOf("platformer");
-    const bgFar = platformer.slots.find((slot) => slot.id === "bg.far")!;
-    const built = gameSlotPrompt(bgFar, "a far ridge", STYLE, []);
-    expect(built.prompt).toContain("tileable on the horizontal axis");
-    expect(built.prompt).not.toContain("tileable on the vertical axis");
-
-    const shmup = manifestOf("shmup");
-    const bgSpace = shmup.slots.find((slot) => slot.id === "bg.space")!;
-    const space = gameSlotPrompt(bgSpace, "a city from above", STYLE, []);
-    expect(space.prompt).toContain("tileable on the vertical axis");
-    expect(space.prompt).not.toContain("tileable on the horizontal axis");
-  });
-
-  it("puts the requested length in an audio prompt and no size on the result", () => {
-    const manifest = manifestOf("platformer");
-    const jump = manifest.slots.find((slot) => slot.id === "sfx.jump")!;
-    const music = manifest.slots.find((slot) => slot.id === "music.level")!;
-    expect(gameSlotPrompt(jump, "a soft hop", STYLE, []).prompt).toContain(
-      "about 0.4 seconds long"
-    );
-    expect(gameSlotPrompt(music, "a woodland theme", STYLE, []).prompt).toContain(
-      "about 60 seconds long"
-    );
-    expect(gameSlotPrompt(jump, "a soft hop", STYLE, []).width).toBeUndefined();
-    expect(gameSlotPrompt(music, "a theme", STYLE, []).aspectRatio).toBeUndefined();
-  });
-
-  it("falls back to the manifest's own subject when the design says nothing", () => {
-    const slot: GameSlotSpec = {
-      id: "player",
-      kind: "spritesheet",
-      cell: [32, 32],
-      fps: 8,
-      animations: { idle: 1 }
-    };
-    expect(gameSlotPrompt(slot, "", null, []).prompt.startsWith("A 1 by 1")).toBe(
-      true
-    );
+  it("keeps a near-square grid square-ish and large enough for any count", () => {
+    for (let count = 1; count <= 64; count++) {
+      const { columns, rows } = nearSquareGrid(count);
+      expect(columns * rows, `count ${count}`).toBeGreaterThanOrEqual(count);
+      expect(Math.abs(columns - rows), `count ${count}`).toBeLessThanOrEqual(1);
+    }
   });
 });
 
-describe("closestGameAspectRatio", () => {
-  it("returns the exact entry when the slot is one of them", () => {
-    expect(closestGameAspectRatio(1920, 1080)).toBe("16:9");
-    expect(closestGameAspectRatio(512, 512)).toBe("1:1");
-    expect(closestGameAspectRatio(1080, 1920)).toBe("9:16");
+describe("slotPrompt checker bag", () => {
+  it("gives a spritesheet the cell, animations and fps", () => {
+    expect(slotPrompt(slot("player"), null, []).checker).toEqual({
+      slot_id: "player",
+      cell_width: 32,
+      cell_height: 32,
+      animations: { idle: 4, run: 8, jump: 2, hurt: 2 },
+      fps: 8
+    });
   });
 
-  it("is symmetric: flipping the slot flips the ratio", () => {
-    expect(closestGameAspectRatio(192, 64)).toBe("21:9");
-    expect(closestGameAspectRatio(64, 192)).toBe("9:16");
+  it("gives a tileset the cell and count", () => {
+    expect(slotPrompt(slot("tiles.ground"), null, []).checker).toEqual({
+      slot_id: "tiles.ground",
+      cell_width: 16,
+      cell_height: 16,
+      count: 12
+    });
   });
 
-  it("matches the aspect-ratio list nodetool.image.TextToImage actually offers", () => {
-    // The generator's list lives in image-nodes, which sits above protocol in
-    // the package graph and cannot be imported here. Read it instead, so this
-    // fails the day the node's table changes rather than the day a creator
-    // gets a rejected aspect ratio.
-    const source = readFileSync(
-      repoFile("packages/image-nodes/src/nodes/image.ts"),
-      "utf8"
+  it("turns an image slot's seamless axes into the checker's checks", () => {
+    expect(slotPrompt(slot("bg.far"), null, []).checker).toEqual({
+      slot_id: "bg.far",
+      check_x: true,
+      check_y: false
+    });
+    expect(slotPrompt(slot("title"), null, []).checker).toEqual({
+      slot_id: "title",
+      check_x: false,
+      check_y: false
+    });
+  });
+
+  it("gives an audio slot its target length", () => {
+    expect(slotPrompt(slot("sfx.jump"), null, []).checker).toEqual({
+      slot_id: "sfx.jump",
+      seconds: 0.4
+    });
+    expect(slotPrompt(slot("music.level"), null, []).checker).toEqual({
+      slot_id: "music.level",
+      seconds: 60
+    });
+  });
+
+  it("copies the animations rather than aliasing the slot", () => {
+    const spec = slot("player");
+    const bag = slotPrompt(spec, null, []).checker as {
+      animations: Record<string, number>;
+    };
+    bag.animations.idle = 99;
+    expect((spec as { animations: Record<string, number> }).animations.idle).toBe(4);
+  });
+});
+
+describe("slotPrompt text", () => {
+  it("names the grid and every animation's frame range", () => {
+    const { prompt } = slotPrompt(slot("player"), null, []);
+    expect(prompt).toContain("the player character, side view, facing right");
+    expect(prompt).toContain("256x128 pixels");
+    expect(prompt).toContain("8x4 grid of 32x32 frames");
+    expect(prompt).toContain("frames 0-3 are idle");
+    expect(prompt).toContain("frames 4-11 are run");
+    expect(prompt).toContain("frames 12-13 are jump");
+    expect(prompt).toContain("frames 14-15 are hurt");
+  });
+
+  it("names the tile grid and the tile count", () => {
+    const { prompt } = slotPrompt(slot("tiles.ground"), null, []);
+    expect(prompt).toContain("64x48 pixels");
+    expect(prompt).toContain("4x3 grid of 16x16 tiles");
+    expect(prompt).toContain("12 distinct tiles");
+  });
+
+  it("asks for the seamless axis the slot declares, and only that one", () => {
+    expect(slotPrompt(slot("bg.far"), null, []).prompt).toContain(
+      "left and right edges match"
     );
-    const block = /const IMAGE_ASPECT_RATIOS[^{]*\{([^}]*)\}/.exec(source);
-    expect(block).not.toBeNull();
-    const names = [...block![1].matchAll(/"([^"]+)":/g)].map((m) => m[1]);
-    expect(names.length).toBeGreaterThan(0);
-    expect(names).toEqual(Object.keys(GAME_IMAGE_ASPECT_RATIOS));
+    expect(slotPrompt(slot("bg.far"), null, []).prompt).not.toContain(
+      "top and bottom edges match"
+    );
+    expect(slotPrompt(slot("title"), null, []).prompt).not.toContain(
+      "Tiles seamlessly"
+    );
+  });
+
+  it("asks audio for the slot's length and a seamless loop only for music", () => {
+    expect(slotPrompt(slot("sfx.jump"), null, []).prompt).toContain(
+      "0.4 seconds"
+    );
+    expect(slotPrompt(slot("sfx.jump"), null, []).prompt).not.toContain("looping");
+    expect(slotPrompt(slot("music.level"), null, []).prompt).toContain(
+      "60 seconds, looping with no audible seam"
+    );
+  });
+
+  it("falls back to the slot id when the template wrote no prompt", () => {
+    const bare: GameSlotSpec = { ...slot("bg.far"), prompt: undefined };
+    expect(slotPrompt(bare, null, []).prompt).toContain("the bg.far asset");
+  });
+});
+
+describe("slotPrompt entity seasoning", () => {
+  it("applies the style to every slot, audio included", () => {
+    for (const spec of manifest.slots) {
+      expect(slotPrompt(spec, CAVE_PIXEL, []).prompt, spec.id).toContain(
+        "Cave Pixel: 8-bit cave palette"
+      );
+    }
+  });
+
+  it("applies a cast member the template's own prompt never names", () => {
+    // The platformer's player slot reads "the player character": name matching
+    // would drop Pip from the very sheet Pip is for.
+    const named = slotPrompt(slot("player"), CAVE_PIXEL, [PIP]).prompt;
+    expect(named).toContain("Pip: a small round explorer");
+    expect(named).toContain("Cave Pixel: 8-bit cave palette");
+  });
+
+  it("keeps the style ahead of the cast in the injected block", () => {
+    const prompt = slotPrompt(slot("player"), CAVE_PIXEL, [PIP]).prompt;
+    expect(prompt.indexOf("Cave Pixel:")).toBeLessThan(prompt.indexOf("Pip:"));
+  });
+
+  it("does not apply the same entity twice when it is both style and cast", () => {
+    const prompt = slotPrompt(slot("player"), CAVE_PIXEL, [CAVE_PIXEL, PIP]).prompt;
+    const hits = prompt.split("Cave Pixel: 8-bit cave palette").length - 1;
+    expect(hits).toBe(1);
+  });
+
+  it("leaves the prompt unseasoned when nothing applies", () => {
+    const plain = slotPrompt(slot("music.level"), null, []).prompt;
+    expect(plain).not.toContain("Consistency references");
+  });
+
+  it("puts the style first and drops a repeat of it from the cast", () => {
+    expect(slotCast(CAVE_PIXEL, [PIP, CAVE_PIXEL]).map((e) => e.id)).toEqual([
+      "style-1",
+      "char-1"
+    ]);
+    expect(slotCast(null, [PIP]).map((e) => e.id)).toEqual(["char-1"]);
+    expect(slotCast(null, []).map((e) => e.id)).toEqual([]);
   });
 });

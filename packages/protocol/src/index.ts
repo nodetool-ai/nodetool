@@ -31,6 +31,7 @@ export * from "./style-presets.js";
 export * from "./screenplay-authoring.js";
 export * from "./script-authoring.js";
 export * from "./script-link.js";
+export * from "./script-fill.js";
 export * from "./sha256.js";
 export * from "./builtin-packs.js";
 export * from "./triggers.js";
@@ -45,6 +46,7 @@ export * from "./skill-document.js";
 export * from "./wasm-binary.js";
 export * from "./resource-id.js";
 export * from "./game-assets.js";
+export * from "./game-slot-prompt.js";
 export * from "./asset-generation.js";
 export {
   type Platform,
@@ -62,5 +64,5 @@ export * from "./token-providers.js";
 export * from "./predicates.js";
 export * from "./workflow-plan.js";
 export * from "./game-design.js";
-export * from "./game-slot-prompt.js";
+export * from "./game-flow-prompt.js";
 export * from "./game-graph.js";

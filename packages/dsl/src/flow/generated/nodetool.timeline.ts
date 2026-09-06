@@ -56,3 +56,37 @@ export interface AddClipsOutputs {
 export function addClips(inputs: AddClipsInputs): Promise<AddClipsOutputs> {
   return callNode<AddClipsOutputs>("nodetool.timeline.AddClips", inputs);
 }
+
+// Fill Timeline Text — nodetool.timeline.FillTimelineText
+export type FillTimelineTextInputs = {
+  timeline?: unknown;
+  values?: Record<string, unknown>;
+  name?: string;
+};
+
+export interface FillTimelineTextOutputs {
+  timeline: unknown;
+  filled: string[];
+  unresolved: string[];
+}
+
+export function fillTimelineText(inputs: FillTimelineTextInputs): Promise<FillTimelineTextOutputs> {
+  return callNode<FillTimelineTextOutputs>("nodetool.timeline.FillTimelineText", inputs);
+}
+
+// Retarget Timeline — nodetool.timeline.RetargetTimeline
+export type RetargetTimelineInputs = {
+  timeline?: unknown;
+  aspect_ratio?: string;
+  fit?: "cover" | "contain";
+  name?: string;
+};
+
+export interface RetargetTimelineOutputs {
+  timeline: unknown;
+  cropped: string[];
+}
+
+export function retargetTimeline(inputs: RetargetTimelineInputs): Promise<RetargetTimelineOutputs> {
+  return callNode<RetargetTimelineOutputs>("nodetool.timeline.RetargetTimeline", inputs);
+}

@@ -30,8 +30,11 @@ import type { DocumentRef, TimelineRef, VideoRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
+  createTimeOrderedUuid,
   DEFAULT_MIDI_INSTRUMENT,
   encodeWavPcm16,
+  fillTimelineText,
+  retargetSequence,
   hasTimeRemap,
   sourceRate,
   makeClip,
@@ -45,7 +48,7 @@ import {
   type TimelineSequence,
   type TimelineTrack
 } from "@nodetool-ai/timeline";
-import { tagAsNode } from "@nodetool-ai/nodes-utils";
+import { tagAsNode, tagAsServer } from "@nodetool-ai/nodes-utils";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -69,6 +72,7 @@ import {
   type ResolvedTimelineOutput
 } from "./timeline/outputFormats.js";
 import { ffmpegHasEncoder } from "./timeline/rawFrames.js";
+import { stringValues } from "./placeholder-values.js";
 import {
   DEFAULT_SHUTTER_ANGLE,
   MAX_MOTION_BLUR_SAMPLES
@@ -1493,8 +1497,176 @@ export class AddClipsToTimelineNode extends BaseNode {
   }
 }
 
+// ── Template derivations (design docs/graph-resources/design.md § 4.4) ──
+
+const timelineRefDefault = {
+  type: "timeline",
+  id: null,
+  data: null
+} as const;
+
+/** Output handles FillTimelineTextNode.process() emits. */
+type FillTimelineTextNodeOutputs = {
+  timeline: { type: string; id: string };
+  filled: string[];
+  unresolved: string[];
+};
+
+export class FillTimelineTextNode extends BaseNode {
+  static readonly nodeType = "nodetool.timeline.FillTimelineText";
+  static readonly title = "Fill Timeline Text";
+  static readonly description =
+    "Fill a template cut's {{key}} placeholders — in text clips and in captions — from a value bag, and save the result as a new timeline. The template is never written. A key with no value stays in the frame and is reported.\n    timeline, template, text, fill, batch\n\n    Use cases:\n    - Stamp a per-SKU name and price onto an approved cut\n    - Localize an overlay without re-editing the timeline\n    - Produce one variant per row of a feed";
+  static readonly metadataOutputTypes = {
+    timeline: "timeline",
+    filled: "list[str]",
+    unresolved: "list[str]"
+  };
+  static readonly inlineFields = ["timeline"];
+  static readonly inputFields = ["timeline", "values"];
+
+  @prop({
+    type: "timeline",
+    default: timelineRefDefault,
+    title: "Timeline",
+    description: "The template cut to fill."
+  })
+  declare timeline: TimelineRef;
+
+  @prop({
+    type: "dict",
+    default: {},
+    title: "Values",
+    description: "Value per placeholder key, e.g. {name: \"Aero 9\"}."
+  })
+  declare values: Record<string, unknown>;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Name",
+    description: "Name for the new timeline. Defaults to the template's name."
+  })
+  declare name: string;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<FillTimelineTextNodeOutputs> {
+    if (!context) {
+      throw new Error("FillTimelineText requires a processing context");
+    }
+    const source = await loadTimelineSequence(this.timeline, context);
+    const result = fillTimelineText(source, stringValues(this.values));
+
+    // `fillTimelineText` is a text edit, so it leaves identity alone — an
+    // editor may run it on the sequence it has open. This node derives a row
+    // instead, so it mints the id and the lineage here.
+    const now = new Date().toISOString();
+    const saved = (await context.createTimelineSequence({
+      ...result.sequence,
+      id: createTimeOrderedUuid(),
+      templateId: source.id,
+      name: this.name?.trim() || source.name,
+      createdAt: now,
+      updatedAt: now
+    })) as { id: string } | null;
+    if (!saved) {
+      throw new Error("FillTimelineText: failed to create the timeline");
+    }
+    return {
+      timeline: { type: "timeline", id: saved.id },
+      filled: result.filled,
+      unresolved: result.unresolved
+    };
+  }
+}
+
+/** Output handles RetargetTimelineNode.process() emits. */
+type RetargetTimelineNodeOutputs = {
+  timeline: { type: string; id: string };
+  cropped: string[];
+};
+
+export class RetargetTimelineNode extends BaseNode {
+  static readonly nodeType = "nodetool.timeline.RetargetTimeline";
+  static readonly title = "Retarget Timeline";
+  static readonly description =
+    "Derive a new timeline from an approved cut on another aspect ratio, keeping every trim, placement and edit. Cover scales each shot to fill the new frame and reports the clips it crops; contain letterboxes instead. Text sizes follow the short edge. The source cut is never written.\n    timeline, aspect ratio, resize, reframe, variant\n\n    Use cases:\n    - Turn a 16:9 film into 9:16 and 1:1 cuts\n    - Produce every placement's ratio from one approved edit\n    - See which shots lose their sides before rendering";
+  static readonly metadataOutputTypes = {
+    timeline: "timeline",
+    cropped: "list[str]"
+  };
+  static readonly inlineFields = ["aspect_ratio", "fit", "name"];
+  static readonly inputFields = ["timeline"];
+
+  @prop({
+    type: "timeline",
+    default: timelineRefDefault,
+    title: "Timeline",
+    description: "The approved cut to retarget."
+  })
+  declare timeline: TimelineRef;
+
+  @prop({
+    type: "str",
+    default: "9:16",
+    title: "Aspect Ratio",
+    description: "Target ratio, e.g. 9:16, 1:1, 4:5. The short edge is 1080px."
+  })
+  declare aspect_ratio: string;
+
+  @prop({
+    type: "enum",
+    default: "cover",
+    title: "Fit",
+    description:
+      "cover fills the new frame and crops; contain fits it and letterboxes.",
+    values: ["cover", "contain"]
+  })
+  declare fit: "cover" | "contain";
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Name",
+    description:
+      "Name for the new timeline. Defaults to the source's name plus the ratio."
+  })
+  declare name: string;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<RetargetTimelineNodeOutputs> {
+    if (!context) {
+      throw new Error("RetargetTimeline requires a processing context");
+    }
+    const source = await loadTimelineSequence(this.timeline, context);
+    const ratio = this.aspect_ratio?.trim() || "9:16";
+    const { sequence, croppedClipIds } = retargetSequence(
+      source,
+      ratio,
+      this.fit === "contain" ? "contain" : "cover"
+    );
+
+    const saved = (await context.createTimelineSequence({
+      ...sequence,
+      name: this.name?.trim() || `${source.name} ${ratio}`
+    })) as { id: string } | null;
+    if (!saved) {
+      throw new Error("RetargetTimeline: failed to create the timeline");
+    }
+    return {
+      timeline: { type: "timeline", id: saved.id },
+      cropped: croppedClipIds
+    };
+  }
+}
+
 export const TIMELINE_NODES = tagAsNode([
   RenderTimelineNode,
   TimelineTranscriptNode,
-  AddClipsToTimelineNode
+  AddClipsToTimelineNode,
+  // Tagged first, so `tagAsNode` leaves them alone: neither derivation shells
+  // out to ffmpeg or writes a temp file, and both need the model interfaces.
+  ...tagAsServer([FillTimelineTextNode, RetargetTimelineNode])
 ]);

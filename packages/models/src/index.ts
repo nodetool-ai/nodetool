@@ -128,6 +128,7 @@ export {
 export { WorkflowShare } from "./workflow-share.js";
 
 export { Asset } from "./asset.js";
+export { entityFromAsset } from "./entity.js";
 
 export {
   Message,

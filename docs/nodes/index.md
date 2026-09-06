@@ -3,7 +3,7 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 463 NodeTool nodes across 70 namespaces.
+Complete reference documentation for all 446 NodeTool nodes across 69 namespaces.
 
 ## Namespaces
 
@@ -32,7 +32,6 @@ Complete reference documentation for all 463 NodeTool nodes across 70 namespaces
 
 ### lib
 
-- **[lib.apple](lib/apple/)** - 17 node(s)
 - **[lib.audio](lib/audio/)** - 16 node(s)
 - **[lib.browser](lib/browser/)** - 1 node(s)
 - **[lib.charts](lib/charts/)** - 1 node(s)

@@ -96,6 +96,12 @@
       "types": "./dist/lib/asset-model-interface.d.ts",
       "import": "./dist/lib/asset-model-interface.js",
       "default": "./dist/lib/asset-model-interface.js"
+    },
+    "./documents": {
+      "nodetool-dev": "./src/lib/document-model-interfaces.ts",
+      "types": "./dist/lib/document-model-interfaces.d.ts",
+      "import": "./dist/lib/document-model-interfaces.js",
+      "default": "./dist/lib/document-model-interfaces.js"
     }
   },
   "license": "MIT",

@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/game-nodes",
   "version": "0.7.0-rc.40",
-  "description": "NodeTool game nodes — export a Godot 4 project from a template plus the slot fills a graph produced",
+  "description": "NodeTool game template nodes: read a Godot template's asset slots, turn one into a generation job, and export the filled project",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
@@ -20,10 +20,12 @@
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/runtime": "*",
-    "fflate": "^0.8.2"
+    "@nodetool-ai/runtime": "*"
   },
   "devDependencies": {
+    "@nodetool-ai/audio-nodes": "*",
+    "@nodetool-ai/image-nodes": "*",
+    "@nodetool-ai/storage": "*",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
@@ -38,11 +40,6 @@
       "types": "./dist/nodes/*.d.ts",
       "import": "./dist/nodes/*.js",
       "default": "./dist/nodes/*.js"
-    },
-    "./export-join": {
-      "types": "./dist/export-join.d.ts",
-      "import": "./dist/export-join.js",
-      "default": "./dist/export-join.js"
     }
   },
   "license": "MIT",
@@ -64,12 +61,9 @@
   },
   "keywords": [
     "nodetool",
-    "ai",
-    "workflow",
-    "workflow-automation",
-    "typescript",
-    "game",
     "godot",
-    "gamedev"
+    "game",
+    "workflow",
+    "typescript"
   ]
 }

@@ -4,7 +4,6 @@ import * as geminiImage from "./gemini.image.js";
 import * as geminiText from "./gemini.text.js";
 import * as geminiVideo from "./gemini.video.js";
 import * as kieDynamic_schema from "./kie.dynamic_schema.js";
-import * as libApple from "./lib.apple.js";
 import * as libAudio from "./lib.audio.js";
 import * as libBrowser from "./lib.browser.js";
 import * as libCharts from "./lib.charts.js";
@@ -42,6 +41,7 @@ import * as control from "./nodetool.control.js";
 import * as creative from "./nodetool.creative.js";
 import * as data from "./nodetool.data.js";
 import * as document from "./nodetool.document.js";
+import * as entity from "./nodetool.entity.js";
 import * as fake from "./nodetool.fake.js";
 import * as game from "./nodetool.game.js";
 import * as generators from "./nodetool.generators.js";
@@ -51,6 +51,7 @@ import * as model3d from "./nodetool.model3d.js";
 import * as output from "./nodetool.output.js";
 import * as script from "./nodetool.script.js";
 import * as sketch from "./nodetool.sketch.js";
+import * as storyboard from "./nodetool.storyboard.js";
 import * as text from "./nodetool.text.js";
 import * as timeline from "./nodetool.timeline.js";
 import * as triggers from "./nodetool.triggers.js";
@@ -80,6 +81,7 @@ export {
   creative,
   data,
   document,
+  entity,
   fake,
   game,
   geminiAudio,
@@ -90,7 +92,6 @@ export {
   image,
   input,
   kieDynamic_schema,
-  libApple,
   libAudio,
   libBrowser,
   libCharts,
@@ -124,6 +125,7 @@ export {
   output,
   script,
   sketch,
+  storyboard,
   text,
   timeline,
   triggers,

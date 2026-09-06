@@ -33,6 +33,8 @@ import SelectProperty from "../properties/SelectProperty";
 import SketchProperty from "../properties/SketchProperty";
 import TimelineProperty from "../properties/TimelineProperty";
 import ScriptProperty from "../properties/ScriptProperty";
+import StoryboardProperty from "../properties/StoryboardProperty";
+import EntityProperty from "../properties/EntityProperty";
 import ImageSizeProperty from "../properties/ImageSizeProperty";
 import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
@@ -205,6 +207,10 @@ function componentForType(type: string): ComponentType<PropertyProps> {
       return TimelineProperty;
     case "script":
       return ScriptProperty;
+    case "storyboard":
+      return StoryboardProperty;
+    case "entity":
+      return EntityProperty;
     case "workflow":
       return WorkflowProperty;
     case "dataframe":
@@ -265,6 +271,8 @@ function handleListType(
         return AudioListProperty;
       case "text":
         return TextListProperty;
+      case "entity":
+        return EntityProperty;
     }
   }
   return ListProperty;

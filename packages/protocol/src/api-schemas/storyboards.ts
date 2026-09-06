@@ -325,6 +325,10 @@ export const storyboardDocument = z.object({
   directorModel: modelSelection.nullable(),
   imageModel: modelSelection.nullable(),
   videoModel: modelSelection.nullable(),
+  /** Board this one was recast from. Absent on a board authored directly. */
+  templateId: z.string().nullable().optional(),
+  /** Canonical substitution mapping, so a re-run finds the copy it made. */
+  recastKey: z.string().nullable().optional(),
   /**
    * The file this board's words were imported from, if any. Optional and
    * additive: a board without it was typed, and opens exactly as it always

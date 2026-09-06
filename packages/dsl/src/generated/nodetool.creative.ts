@@ -1,7 +1,7 @@
 // Auto-generated — do not edit manually
 
 import { createNode, Connectable, DslNode } from "../core.js";
-import type { ImageRef, VideoRef } from "../types.js";
+import type { ImageRef, VideoRef, Entity } from "../types.js";
 
 // Director — nodetool.creative.Director
 export type DirectorInputs = {
@@ -43,7 +43,7 @@ export function screenplayShots(inputs: ScreenplayShotsInputs): DslNode<Screenpl
 // Apply Entities — nodetool.creative.ApplyEntities
 export type ApplyEntitiesInputs = {
   text?: Connectable<string>;
-  entities?: Connectable<Record<string, unknown>[]>;
+  entities?: Connectable<Entity[]>;
 };
 
 export interface ApplyEntitiesOutputs {

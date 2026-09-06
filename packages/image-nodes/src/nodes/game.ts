@@ -9,8 +9,12 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   SLOT_METADATA_KEY,
   imageFill,
+  readSlotProp,
+  slotCheckerProps,
   spritesheetFill,
   tilesetFill,
+  type GameSlotKind,
+  type GameSlotSpec,
   type ImageFill,
   type SlotFill,
   type SpritesheetFill,
@@ -95,6 +99,34 @@ function slotIdOf(nodeName: string, value: unknown): string {
     throw new Error(`${nodeName}: slot_id is required.`);
   }
   return value;
+}
+
+/** The `game_slot` prop description every checker repeats. */
+const SLOT_PROP_DESCRIPTION =
+  "The manifest slot to fill, straight from LoadGameTemplate or SlotPrompt. " +
+  "When connected it supplies slot_id and the numbers below, so the fields " +
+  "beside it are ignored.";
+
+/**
+ * The checker props a connected `game_slot` dictates, or an empty bag.
+ *
+ * A connected slot wins over every hand-typed field it covers: a graph rewired
+ * from one slot to another would otherwise stamp a fill from the numbers left
+ * behind by the first, and `checkSlotFill` would accept it because the fill and
+ * the slot it names agree with each other and with nothing else.
+ */
+function slotOverrides(
+  nodeName: string,
+  value: unknown,
+  kind: GameSlotKind
+): Record<string, unknown> {
+  let spec: GameSlotSpec | null;
+  try {
+    spec = readSlotProp(value, kind);
+  } catch (error) {
+    throw new Error(`${nodeName}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  return spec ? slotCheckerProps(spec) : {};
 }
 
 /** A dict prop that may arrive as a JSON object string. */
@@ -193,7 +225,7 @@ export class SpriteSheetNode extends BaseNode {
     fill: "dict"
   };
   static readonly inlineFields = ["cell_width", "cell_height", "fps"];
-  static readonly inputFields = ["image"];
+  static readonly inputFields = ["image", "slot"];
 
   @prop({
     type: "image",
@@ -202,6 +234,14 @@ export class SpriteSheetNode extends BaseNode {
     description: "The generated sprite sheet."
   })
   declare image: ImageRefLike;
+
+  @prop({
+    type: "game_slot",
+    default: null,
+    title: "Slot",
+    description: SLOT_PROP_DESCRIPTION
+  })
+  declare slot: unknown;
 
   @prop({
     type: "int",
@@ -258,14 +298,19 @@ export class SpriteSheetNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const name = SpriteSheetNode.title;
+    const fromSlot = slotOverrides(name, this.slot, "spritesheet");
     const img = await measureImage(name, this.image, context);
-    const cellWidth = positiveInt(name, "cell_width", this.cell_width);
-    const cellHeight = positiveInt(name, "cell_height", this.cell_height);
-    const fps = positiveInt(name, "fps", this.fps);
-    const slotId = slotIdOf(name, this.slot_id);
+    const cellWidth = positiveInt(name, "cell_width", fromSlot.cell_width ?? this.cell_width);
+    const cellHeight = positiveInt(name, "cell_height", fromSlot.cell_height ?? this.cell_height);
+    const fps = positiveInt(name, "fps", fromSlot.fps ?? this.fps);
+    const slotId = slotIdOf(name, fromSlot.slot_id ?? this.slot_id);
     const { columns, rows } = deriveGrid(name, img, cellWidth, cellHeight);
 
-    const requested = parseDict(name, "animations", this.animations);
+    const requested = parseDict(
+      name,
+      "animations",
+      fromSlot.animations ?? this.animations
+    );
     const entries = Object.entries(requested);
     if (entries.length === 0) {
       throw new Error(`${name}: animations must name at least one animation.`);
@@ -331,7 +376,7 @@ export class TilesetNode extends BaseNode {
     fill: "dict"
   };
   static readonly inlineFields = ["cell_width", "cell_height", "count"];
-  static readonly inputFields = ["image"];
+  static readonly inputFields = ["image", "slot"];
 
   @prop({
     type: "image",
@@ -340,6 +385,14 @@ export class TilesetNode extends BaseNode {
     description: "The generated tileset sheet."
   })
   declare image: ImageRefLike;
+
+  @prop({
+    type: "game_slot",
+    default: null,
+    title: "Slot",
+    description: SLOT_PROP_DESCRIPTION
+  })
+  declare slot: unknown;
 
   @prop({
     type: "int",
@@ -378,11 +431,12 @@ export class TilesetNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const name = TilesetNode.title;
+    const fromSlot = slotOverrides(name, this.slot, "tileset");
     const img = await measureImage(name, this.image, context);
-    const cellWidth = positiveInt(name, "cell_width", this.cell_width);
-    const cellHeight = positiveInt(name, "cell_height", this.cell_height);
-    const count = positiveInt(name, "count", this.count);
-    const slotId = slotIdOf(name, this.slot_id);
+    const cellWidth = positiveInt(name, "cell_width", fromSlot.cell_width ?? this.cell_width);
+    const cellHeight = positiveInt(name, "cell_height", fromSlot.cell_height ?? this.cell_height);
+    const count = positiveInt(name, "count", fromSlot.count ?? this.count);
+    const slotId = slotIdOf(name, fromSlot.slot_id ?? this.slot_id);
     const { columns, rows } = deriveGrid(name, img, cellWidth, cellHeight);
     if (count > columns * rows) {
       throw new Error(
@@ -441,7 +495,7 @@ export class SeamlessImageNode extends BaseNode {
     fill: "dict"
   };
   static readonly inlineFields = ["check_x", "check_y", "threshold"];
-  static readonly inputFields = ["image"];
+  static readonly inputFields = ["image", "slot"];
 
   @prop({
     type: "image",
@@ -450,6 +504,14 @@ export class SeamlessImageNode extends BaseNode {
     description: "The generated image."
   })
   declare image: ImageRefLike;
+
+  @prop({
+    type: "game_slot",
+    default: null,
+    title: "Slot",
+    description: SLOT_PROP_DESCRIPTION
+  })
+  declare slot: unknown;
 
   @prop({
     type: "str",
@@ -490,14 +552,15 @@ export class SeamlessImageNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const name = SeamlessImageNode.title;
+    const fromSlot = slotOverrides(name, this.slot, "image");
     const img = await measureImage(name, this.image, context);
-    const slotId = slotIdOf(name, this.slot_id);
+    const slotId = slotIdOf(name, fromSlot.slot_id ?? this.slot_id);
     const threshold = Number(this.threshold ?? 12);
     if (!Number.isFinite(threshold) || threshold < 0) {
       throw new Error(`${name}: threshold must be a non-negative number.`);
     }
-    const checkX = Boolean(this.check_x);
-    const checkY = Boolean(this.check_y);
+    const checkX = Boolean(fromSlot.check_x ?? this.check_x);
+    const checkY = Boolean(fromSlot.check_y ?? this.check_y);
 
     let seamlessX = false;
     let seamlessY = false;

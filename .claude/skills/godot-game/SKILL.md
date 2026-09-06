@@ -72,6 +72,19 @@ table of `slot_id → asset_id` as you go and `memory_save` it after each slot.
 
 Report a contact sheet: every slot, its asset id, and the check result. Stop.
 
+**The graph path.** When the user wants the pack re-runnable — a second style, a
+second character, a new template — build a workflow instead of the loop above.
+`nodetool.game.LoadGameTemplate` streams one `slot` per manifest entry;
+`nodetool.game.SlotPrompt {slot, style, cast}` turns each into `prompt`, `width`,
+`height`, `kind`, `checker` and `seconds`, so the generator and the checker take
+their numbers from the manifest rather than from you; a `nodetool.control.FilterCode`
+per `slot.kind` routes to the generator and the `nodetool.game.*` checker for that
+kind; and `nodetool.game.ExportGodotProject {template, name, fills, directory,
+verify}` writes the project. Wire the checkers' **`output`** handle into `fills` —
+the `fill` handle carries no asset and the export refuses it. Re-skinning is then
+swapping the entity on `SlotPrompt` and running again. The shipped example is
+**Platformer Asset Pack** (`get_example_workflow`).
+
 ### P3 — Export and write the hooks
 
 1. `export_godot_project {template, name, slots: [{slot_id, asset_id}, …]}`.

@@ -54,3 +54,37 @@ export interface AddClipsOutputs {
 export function addClips(inputs: AddClipsInputs): DslNode<AddClipsOutputs, "output"> {
   return createNode("nodetool.timeline.AddClips", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
+
+// Fill Timeline Text — nodetool.timeline.FillTimelineText
+export type FillTimelineTextInputs = {
+  timeline?: Connectable<unknown>;
+  values?: Connectable<Record<string, unknown>>;
+  name?: Connectable<string>;
+};
+
+export interface FillTimelineTextOutputs {
+  timeline: unknown;
+  filled: string[];
+  unresolved: string[];
+}
+
+export function fillTimelineText(inputs: FillTimelineTextInputs): DslNode<FillTimelineTextOutputs> {
+  return createNode("nodetool.timeline.FillTimelineText", inputs, { outputNames: ["timeline", "filled", "unresolved"] });
+}
+
+// Retarget Timeline — nodetool.timeline.RetargetTimeline
+export type RetargetTimelineInputs = {
+  timeline?: Connectable<unknown>;
+  aspect_ratio?: Connectable<string>;
+  fit?: Connectable<"cover" | "contain">;
+  name?: Connectable<string>;
+};
+
+export interface RetargetTimelineOutputs {
+  timeline: unknown;
+  cropped: string[];
+}
+
+export function retargetTimeline(inputs: RetargetTimelineInputs): DslNode<RetargetTimelineOutputs> {
+  return createNode("nodetool.timeline.RetargetTimeline", inputs, { outputNames: ["timeline", "cropped"] });
+}

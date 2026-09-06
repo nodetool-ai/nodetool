@@ -107,6 +107,20 @@ export const scriptRefDefault = {
   data: null
 };
 
+export const storyboardRefDefault = {
+  type: "storyboard",
+  id: null,
+  data: null
+};
+
+export const entityDefault = {
+  type: "entity",
+  id: "",
+  kind: "prop",
+  name: "",
+  descriptor: ""
+};
+
 export const hfModelDefault = {
   type: "hf.model",
   repo_id: "",

@@ -6,8 +6,20 @@
  * package's rules. The fill is validated with the protocol Zod schema before it
  * is returned, so a bad slot id fails here, not in the writer.
  */
-import type { AudioRef, MusicFill, SfxFill } from "@nodetool-ai/protocol";
-import { SLOT_METADATA_KEY, musicFill, sfxFill } from "@nodetool-ai/protocol";
+import type {
+  AudioRef,
+  GameSlotKind,
+  GameSlotSpec,
+  MusicFill,
+  SfxFill
+} from "@nodetool-ai/protocol";
+import {
+  SLOT_METADATA_KEY,
+  musicFill,
+  readSlotProp,
+  sfxFill,
+  slotCheckerProps
+} from "@nodetool-ai/protocol";
 import { BaseNode, isString, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
@@ -29,6 +41,45 @@ const AUDIO_PROP_DEFAULT = {
 
 /** Fade-out length that hides the cut without being audible as a fade. */
 const SFX_FADE_OUT_MS = 10;
+
+/** The `game_slot` prop description both audio checkers repeat. */
+const SLOT_PROP_DESCRIPTION =
+  "The manifest slot to fill, straight from LoadGameTemplate or SlotPrompt. " +
+  "When connected it supplies slot_id and seconds, so the fields beside it " +
+  "are ignored.";
+
+/**
+ * The checker props a connected `game_slot` dictates, or an empty bag.
+ *
+ * A connected slot wins over the hand-typed `slot_id` and `seconds`: a graph
+ * rewired from one slot to another would otherwise trim to the old length and
+ * stamp the old id, and `checkSlotFill` would accept it because the fill agrees
+ * with the slot it names and with nothing else.
+ */
+function slotOverrides(
+  nodeName: string,
+  value: unknown,
+  kind: GameSlotKind
+): Record<string, unknown> {
+  let spec: GameSlotSpec | null;
+  try {
+    spec = readSlotProp(value, kind);
+  } catch (error) {
+    throw new Error(
+      `${nodeName}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+  return spec ? slotCheckerProps(spec) : {};
+}
+
+/** A `seconds` override from a slot, as a positive number. */
+function secondsOf(nodeName: string, value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(`${nodeName}: seconds must be a positive number, got ${String(value)}.`);
+  }
+  return n;
+}
 
 function frameCount(wav: WavData): number {
   return Math.floor(wav.samples.length / wav.numChannels);
@@ -158,7 +209,7 @@ export class SoundEffectNode extends BaseNode {
     fill: "dict"
   };
   static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["audio"];
+  static readonly inputFields: string[] = ["audio", "slot"];
 
   @prop({
     type: "audio",
@@ -167,6 +218,14 @@ export class SoundEffectNode extends BaseNode {
     description: "The generated sound effect."
   })
   declare audio: AudioRef;
+
+  @prop({
+    type: "game_slot",
+    default: null,
+    title: "Slot",
+    description: SLOT_PROP_DESCRIPTION
+  })
+  declare slot: unknown;
 
   @prop({
     type: "str",
@@ -194,7 +253,10 @@ export class SoundEffectNode extends BaseNode {
   declare trim: boolean;
 
   async process(context?: ProcessingContext): Promise<SoundEffectNodeOutputs> {
-    const target = this.seconds;
+    const name = SoundEffectNode.title;
+    const fromSlot = slotOverrides(name, this.slot, "sfx");
+    const target = secondsOf(name, fromSlot.seconds ?? this.seconds);
+    const slotId = fromSlot.slot_id ?? this.slot_id;
     const bytes = await requireAudioBytes(this.audio, context);
     let wav = await decodeAudioToWav(bytes);
     if (this.trim !== false) {
@@ -206,7 +268,7 @@ export class SoundEffectNode extends BaseNode {
     const seconds = frameCount(wav) / wav.sampleRate;
     const fill = sfxFill.parse({
       kind: "sfx",
-      slot_id: this.slot_id,
+      slot_id: slotId,
       seconds
     });
     const wavBytes = encodeWav(wav.samples, wav.sampleRate, wav.numChannels);
@@ -239,7 +301,7 @@ export class MusicLoopNode extends BaseNode {
     fill: "dict"
   };
   static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["audio"];
+  static readonly inputFields: string[] = ["audio", "slot"];
 
   @prop({
     type: "audio",
@@ -248,6 +310,14 @@ export class MusicLoopNode extends BaseNode {
     description: "The generated music track."
   })
   declare audio: AudioRef;
+
+  @prop({
+    type: "game_slot",
+    default: null,
+    title: "Slot",
+    description: SLOT_PROP_DESCRIPTION
+  })
+  declare slot: unknown;
 
   @prop({
     type: "str",
@@ -285,7 +355,10 @@ export class MusicLoopNode extends BaseNode {
   declare trim: boolean;
 
   async process(context?: ProcessingContext): Promise<MusicLoopNodeOutputs> {
-    const target = this.seconds;
+    const name = MusicLoopNode.title;
+    const fromSlot = slotOverrides(name, this.slot, "music");
+    const target = secondsOf(name, fromSlot.seconds ?? this.seconds);
+    const slotId = fromSlot.slot_id ?? this.slot_id;
     const crossfadeMs = Math.max(0, this.crossfade_ms);
     const bytes = await requireAudioBytes(this.audio, context);
     let wav = await decodeAudioToWav(bytes);
@@ -300,7 +373,7 @@ export class MusicLoopNode extends BaseNode {
     const seconds = frameCount(wav) / wav.sampleRate;
     const fill = musicFill.parse({
       kind: "music",
-      slot_id: this.slot_id,
+      slot_id: slotId,
       seconds,
       loop: true
     });

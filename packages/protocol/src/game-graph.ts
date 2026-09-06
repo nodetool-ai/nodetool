@@ -19,7 +19,7 @@
 
 import type { GameDesign } from "./api-schemas/workflows.js";
 import type { GameAssetManifest, GameSlotSpec } from "./game-assets.js";
-import { gameSlotPrompt, type GameStyleChoice } from "./game-slot-prompt.js";
+import { gameSlotPrompt, type GameStyleChoice } from "./game-flow-prompt.js";
 import {
   PLAN_OUTPUT_NODE_TYPE,
   type PlacementEdge,

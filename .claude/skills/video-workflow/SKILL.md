@@ -34,6 +34,33 @@ or a handle name. Verified types:
 | `nodetool.image.TextToImage` | prompt → image. |
 | `nodetool.video.ImageToVideo` / `nodetool.video.TextToVideo` | still → clip, or prompt → clip. |
 
+## Re-run an approved document instead of re-directing
+
+When the user already has a board, a script or a cut they signed off, do not put
+`Director` in the graph. Start from the approved row and derive:
+
+| Node | Does |
+|---|---|
+| `nodetool.constant.Storyboard` / `.Entity` | a picked board or library entity as a graph value. Outputs `output`. |
+| `nodetool.entity.CreateEntity` | `image`, `kind`, `name`, `descriptor`, `key` → `entity`, `created`. Upserts on `key` (a SKU), so a second run reuses the row instead of growing the library. |
+| `nodetool.entity.LoadEntity` / `ListEntities` | read one entity, or stream a filtered set. |
+| `nodetool.storyboard.RecastStoryboard` | `storyboard`, `cast`, `replaces`, `reuse_existing` → the copy, `invalidated`, `kept`. Keeps every frame whose prompt did not move. |
+| `nodetool.storyboard.RenderStills` / `RenderClips` | render the stale shots of a derived board. `only_stale`, `max_shots`, `require_keyframe` are the spend gates. |
+| `nodetool.storyboard.AssembleTimeline` | the derived board → `timeline`. A copy inherits the template's cut, titles and music. |
+| `nodetool.storyboard.LoadStoryboard` / `StoryboardShots` | read a board's shots, entities and settings, or stream one message per shot with its still and clip. |
+| `nodetool.script.WriteScript` / `FillScript` | write a script from a brief and a cast, or fill `{{key}}` placeholders in an approved one. Both make a new row. |
+| `nodetool.timeline.FillTimelineText` | `timeline`, `values` → a new sequence with the overlay filled. |
+| `nodetool.timeline.RetargetTimeline` | `timeline`, `aspect_ratio`, `fit` → a new sequence, plus `cropped` naming the clips the crop cuts into. |
+
+**The write contract.** A `storyboard` ref is read-only unless the run derived it.
+`RenderStills`, `RenderClips` and `AssembleTimeline` refuse a picked board and name
+`allow_writes`, which is the override for a graph whose whole purpose is to render the
+board a person chose. Wire `RecastStoryboard` first and pass its output along; that ref
+carries the permission.
+
+Shipped examples to read before wiring one yourself: **Per-SKU Ad Factory**,
+**Localized Explainer**, **Three Ratios** (`get_example_workflow`).
+
 ## Two shapes, and they are not interchangeable
 
 **Per-shot fan-out** — `Director` → `ScreenplayShots` → `TextToImage` → `ImageToVideo`.

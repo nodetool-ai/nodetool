@@ -6,11 +6,11 @@
   },
   "include": ["src"],
   "references": [
-    { "path": "../godot" },
-    { "path": "../godot-templates" },
+    { "path": "../protocol" },
+    { "path": "../runtime" },
     { "path": "../node-sdk" },
     { "path": "../nodes-utils" },
-    { "path": "../protocol" },
-    { "path": "../runtime" }
+    { "path": "../godot" },
+    { "path": "../godot-templates" }
   ]
 }

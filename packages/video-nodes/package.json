@@ -25,6 +25,7 @@
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/storyboard": "*",
     "@nodetool-ai/timeline": "*",
     "chrome-launcher": "^1.2.0",
     "chrome-remote-interface": "^0.34.0",
