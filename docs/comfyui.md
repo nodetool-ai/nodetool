@@ -36,6 +36,55 @@ nodes either way.
 
 ---
 
+## Quickstart
+
+From a workflow you already have to a run inside NodeTool.
+
+1. **Export in API format.** In ComfyUI use **Save (API Format)**. The regular
+   save writes the UI format, which every node here rejects with a message
+   saying exactly that.
+2. **Get an endpoint.** A ComfyUI already listening on `127.0.0.1:8188` needs
+   nothing further. With no local install and no GPU, use the Cloud node and a
+   `COMFY_API_KEY` instead. Both paths, and the rented-GPU one between them, are
+   in [ComfyUI Setup](comfyui-setup.md).
+3. **Add the node.** Search the node menu for *Run ComfyUI Workflow*. Searching
+   finds it even though `lib.comfy` is collapsed out of the browsable tree.
+4. **Load the workflow.** Use the **Load Workflow** button in the node header:
+   paste the JSON, drop the `.json`, or drop a `.png` that ComfyUI wrote. The
+   workflow's `Load*` nodes become typed input handles and its `Save*` nodes
+   become typed output handles.
+5. **Run it.** Outputs arrive one file at a time as each save node finishes.
+
+If the submit fails, the cause is usually a model or custom node the server
+doesn't have rather than anything in NodeTool. [Troubleshooting](#troubleshooting)
+lists the messages.
+
+---
+
+## When to reach for a ComfyUI node
+
+NodeTool generates images and video with its own nodes.
+`nodetool.image.TextToImage` and its siblings take a `model` property and route
+to whichever provider owns that model, so switching models is a dropdown change
+and there is no graph to maintain. That is the shorter path for most generation.
+
+A ComfyUI node earns its place when the graph itself is the point:
+
+- **The workflow already exists.** A tuned ControlNet chain, a multi-pass
+  upscale, a regional-prompting setup runs as it is, with no porting.
+- **The technique lives in custom nodes.** Anything a ComfyUI extension does
+  that no NodeTool node covers stays available, because the workflow executes on
+  ComfyUI.
+- **The weights are yours.** Checkpoints and LoRAs on your own disk never leave
+  the machine that runs them.
+
+The two compose rather than compete: a ComfyUI node is one node in a NodeTool
+graph, so an agent can write its prompt, a dataframe can drive a batch of runs,
+and its stills can feed a video assembly. Those patterns are in
+[ComfyUI Recipes](comfyui-recipes.md).
+
+---
+
 ## Run ComfyUI Workflow
 
 Point the node at a ComfyUI server you can reach. It submits the prompt over
@@ -422,6 +471,9 @@ repository (engineering specs are not part of the published site).
 
 ## Related
 
+- [ComfyUI Setup](comfyui-setup.md) — getting an endpoint these nodes can reach, and what has to be installed on it
+- [ComfyUI Recipes](comfyui-recipes.md) — composing a ComfyUI node with the rest of a graph, and running one headless
 - [Worker Deployment](worker-deployment.md) — renting a GPU and picking the ComfyUI worker image
+- [Provider Reference](providers.md) — the Comfy Cloud provider and its key
 - [Python Bridge Protocol](python-bridge-protocol.md) — the `comfy.*` message family on the wire
 - [Comparisons](comparisons.md) — how NodeTool and ComfyUI differ as tools

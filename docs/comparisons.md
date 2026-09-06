@@ -73,6 +73,10 @@ Read our full guides on how NodeTool compares to other tools:
 
 **ComfyUI** — Choose this if you are a power user who wants total, complex control over how images are generated locally.
 
+The last one is not exclusive. NodeTool runs an exported ComfyUI workflow as a
+node, so a graph you already tuned keeps working while text, audio, and video
+steps happen around it. See [ComfyUI](comfyui.md).
+
 ---
 
 ## Next steps
