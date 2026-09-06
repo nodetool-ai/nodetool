@@ -9,8 +9,7 @@
  *     client is rebuilt and the socket reopened whenever it changes;
  *   - the model selection is persisted in `chrome.storage.local`, so the panel
  *     reopens on the model the user last chose;
- *   - chat is the only mode. There is no media composer, no workflow binding
- *     and no approval surface, so turns are sent with `permissionMode: "auto"`;
+ *   - chat is the only mode. There is no media composer or workflow binding;
  *   - a turn ends on `chunk.done`, not on the first assistant `message` frame.
  *     The example ends it on the message, which is wrong against the agent
  *     loop: it persists an assistant message carrying only `tool_calls` before
@@ -28,24 +27,41 @@ import type {
   ChatSocket,
   ChatToolCallEvent,
   ConnectionState,
+  PermissionMode,
+  PlanApprovalRequestEvent,
+  SecretRequestEvent,
+  ToolApprovalDecision,
+  ToolApprovalRequestEvent
 } from "../lib/chat-socket.js";
 import {
   NodetoolClient,
   type LanguageModelOption,
-  type StoredMessage,
+  type StoredMessage
 } from "../lib/nodetool-client.js";
 import {
   ensureHostAccess,
   loadChatSettings,
   saveApiBaseUrl,
   saveAuthToken,
-  saveSelectedModel,
+  savePermissionMode,
+  saveSelectedModel
 } from "../lib/settings.js";
 import { Composer } from "./components/Composer.js";
+import {
+  PlanApprovalCard,
+  SecretRequestCard,
+  ToolApprovalCard
+} from "./components/ApprovalCards.js";
 import { ConnectionDot } from "./components/ConnectionDot.js";
-import { CloseIcon, MenuIcon, PlusIcon, SettingsIcon } from "./components/Icons.js";
+import {
+  CloseIcon,
+  MenuIcon,
+  PlusIcon,
+  SettingsIcon
+} from "./components/Icons.js";
 import { MessageList, type ChatRow } from "./components/MessageList.js";
 import { ModelPicker } from "./components/ModelPicker.js";
+import { PermissionModePicker } from "./components/PermissionModePicker.js";
 import { SettingsDrawer } from "./components/SettingsDrawer.js";
 import { ThreadDrawer } from "./components/ThreadDrawer.js";
 
@@ -55,6 +71,15 @@ interface ServerSettings {
 }
 
 type Drawer = "threads" | "settings" | null;
+
+export function selectThreadAfterLoad(
+  activeThreadId: string | null,
+  threads: readonly { id: string }[],
+  newChatRequested: boolean
+): string | null {
+  if (activeThreadId || newChatRequested) return activeThreadId;
+  return threads[0]?.id ?? null;
+}
 
 /** What the assistant is streaming right now, keyed to the thread it belongs to. */
 interface StreamingTurn {
@@ -72,6 +97,8 @@ interface StreamingTurn {
 /** How long to wait for a `done` chunk before releasing the composer. */
 const TURN_TIMEOUT_MS = 5 * 60 * 1000;
 
+const CHROME_PAGE_SYSTEM_PROMPT = `This chat is open in the NodeTool Chrome extension beside the user's active tab. When the user refers to the current page or asks you to interact with it, call browser_status first. If its transport is not "extension", call browser_restart with transport "extension", then use browser_view and the other browser_* tools. Do not substitute the generic browser fetch tool because it cannot access the user's signed-in Chrome session.`;
+
 export function App() {
   const queryClient = useQueryClient();
 
@@ -82,6 +109,8 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
 
   const [model, setModel] = useState<LanguageModelOption | null>(null);
+  const [permissionMode, setPermissionMode] =
+    useState<PermissionMode>("default");
   // Only after settings load do we know whether a model was already chosen;
   // until then the picker must not overwrite it with a default.
   const modelRestoredRef = useRef(false);
@@ -90,9 +119,10 @@ export function App() {
     void loadChatSettings().then((stored) => {
       setSettings({
         apiBaseUrl: stored.apiBaseUrl,
-        authToken: stored.authToken,
+        authToken: stored.authToken
       });
       setModel(stored.selectedModel);
+      setPermissionMode(stored.permissionMode);
       modelRestoredRef.current = true;
     });
   }, []);
@@ -102,10 +132,10 @@ export function App() {
       settings
         ? new NodetoolClient({
             baseUrl: settings.apiBaseUrl,
-            authToken: settings.authToken,
+            authToken: settings.authToken
           })
         : null,
-    [settings],
+    [settings]
   );
 
   const saveSettings = useCallback(
@@ -114,7 +144,7 @@ export function App() {
         const granted = await ensureHostAccess(next.apiBaseUrl);
         if (!granted) {
           setError(
-            `Chrome did not grant access to ${next.apiBaseUrl}. Without it every request to that server is blocked.`,
+            `Chrome did not grant access to ${next.apiBaseUrl}. Without it every request to that server is blocked.`
           );
           return;
         }
@@ -126,7 +156,7 @@ export function App() {
         await queryClient.invalidateQueries();
       })();
     },
-    [queryClient],
+    [queryClient]
   );
 
   const selectModel = useCallback((next: LanguageModelOption) => {
@@ -139,23 +169,36 @@ export function App() {
   const threadsQuery = useQuery({
     enabled: !!client,
     queryKey: ["threads", settings?.apiBaseUrl],
-    queryFn: () => client!.listThreads(),
+    queryFn: () => client!.listThreads()
   });
   const threads = threadsQuery.data?.threads ?? [];
 
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [newChatRequested, setNewChatRequested] = useState(false);
   const [localRowsByThread, setLocalRowsByThread] = useState<
     Record<string, ChatRow[]>
   >({});
   const streamingRef = useRef<StreamingTurn | null>(null);
   const [streaming, setStreaming] = useState(false);
+  const [toolApprovals, setToolApprovals] = useState<
+    Record<string, ToolApprovalRequestEvent>
+  >({});
+  const [planApprovals, setPlanApprovals] = useState<
+    Record<string, PlanApprovalRequestEvent>
+  >({});
+  const [secretRequests, setSecretRequests] = useState<
+    Record<string, SecretRequestEvent>
+  >({});
 
   // Open on the most recent conversation, as the web app does.
   useEffect(() => {
-    if (!activeThreadId && threads.length > 0) {
-      setActiveThreadId(threads[0]!.id);
-    }
-  }, [activeThreadId, threads]);
+    const nextThreadId = selectThreadAfterLoad(
+      activeThreadId,
+      threads,
+      newChatRequested
+    );
+    if (nextThreadId !== activeThreadId) setActiveThreadId(nextThreadId);
+  }, [activeThreadId, newChatRequested, threads]);
 
   const deleteThread = useMutation({
     mutationFn: (id: string) =>
@@ -172,7 +215,7 @@ export function App() {
       }
       if (activeThreadId === id) setActiveThreadId(null);
     },
-    onError: (err: unknown) => setError(errorText(err)),
+    onError: (err: unknown) => setError(errorText(err))
   });
 
   /* ─── Messages ───────────────────────────────────────────────── */
@@ -180,7 +223,7 @@ export function App() {
   const messagesQuery = useQuery({
     enabled: !!client && !!activeThreadId,
     queryKey: ["messages", activeThreadId, settings?.apiBaseUrl],
-    queryFn: () => client!.listMessages(activeThreadId!),
+    queryFn: () => client!.listMessages(activeThreadId!)
   });
 
   const rows: ChatRow[] = useMemo(() => {
@@ -188,7 +231,7 @@ export function App() {
     const local = activeThreadId
       ? (localRowsByThread[activeThreadId] ?? [])
       : [];
-    return [...persisted, ...local];
+    return mergeToolRows(persisted, local);
   }, [activeThreadId, messagesQuery.data, localRowsByThread]);
 
   /* ─── Chat socket ────────────────────────────────────────────── */
@@ -212,12 +255,31 @@ export function App() {
       }
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: ["messages", threadId] }),
-        queryClient.invalidateQueries({ queryKey: ["threads"] }),
+        queryClient.invalidateQueries({ queryKey: ["threads"] })
       ]).then(() => {
         setLocalRowsByThread((prev) => withoutThread(prev, threadId));
       });
+      setToolApprovals((previous) =>
+        withoutRequestsForThread(previous, threadId)
+      );
+      setPlanApprovals((previous) =>
+        withoutRequestsForThread(previous, threadId)
+      );
+      setSecretRequests((previous) =>
+        withoutRequestsForThread(previous, threadId)
+      );
     },
-    [queryClient],
+    [queryClient]
+  );
+
+  const armTurnTimeout = useCallback(
+    (threadId: string) => {
+      if (turnTimeoutRef.current) clearTimeout(turnTimeoutRef.current);
+      turnTimeoutRef.current = setTimeout(() => {
+        if (streamingRef.current?.threadId === threadId) finishTurn(threadId);
+      }, TURN_TIMEOUT_MS);
+    },
+    [finishTurn]
   );
 
   useEffect(() => {
@@ -252,7 +314,7 @@ export function App() {
           id: rowId,
           role: "assistant",
           text: turn.text,
-          thinking: turn.thinking || undefined,
+          thinking: turn.thinking || undefined
         };
         // Only the streaming thread's rows move, so chunks cannot bleed into
         // another conversation after the user navigates away.
@@ -262,7 +324,7 @@ export function App() {
             ...prev,
             [turn.threadId]: isNewRow
               ? [...rows, row]
-              : rows.map((r) => (r.id === rowId ? row : r)),
+              : rows.map((r) => (r.id === rowId ? row : r))
           };
         });
       }
@@ -274,11 +336,7 @@ export function App() {
       if (calls.length === 0) return;
       setLocalRowsByThread((prev) => {
         const rows = prev[threadId] ?? [];
-        const seen = new Set(rows.map((row) => row.id));
-        const fresh = calls.filter((row) => !seen.has(row.id));
-        return fresh.length === 0
-          ? prev
-          : { ...prev, [threadId]: [...rows, ...fresh] };
+        return { ...prev, [threadId]: mergeToolRows(rows, calls) };
       });
     };
 
@@ -292,15 +350,35 @@ export function App() {
           kind: "tool_call",
           id: event.tool_call_id ?? `local-tool-${Date.now()}`,
           name: event.name,
-        },
+          ...(event.args !== undefined ? { args: event.args } : {}),
+          ...(event.message ? { message: event.message } : {})
+        }
       ]);
     };
     const offToolCall = socket.on("tool_call", onToolCall);
     const offToolCallUpdate = socket.on("tool_call_update", onToolCall);
+    const offToolResult = socket.on("raw", (event) => {
+      const turn = streamingRef.current;
+      if (event.type !== "tool_result_update" || !turn) return;
+      if (event.thread_id && event.thread_id !== turn.threadId) return;
+      const id = stringProp(event, "tool_call_id");
+      if (!id || !isRecord(event)) return;
+      appendToolCalls(turn.threadId, [{
+        kind: "tool_call",
+        id,
+        name: stringProp(event, "name") ?? "tool",
+        result: parseToolValue(event["result"]),
+        isError: event["is_error"] === true || resultIsError(event["result"])
+      }]);
+    });
 
     const offMessage = socket.on("message", (message: ChatMessageEvent) => {
       const turn = streamingRef.current;
       if (!turn || message.thread_id !== turn.threadId) return;
+      if (message.role === "tool") {
+        appendToolCalls(turn.threadId, [toolResultRow(message, message.id ?? "tool-result")]);
+        return;
+      }
       // An assistant message carrying tool calls is the model's decision to
       // act, not the end of its turn. Show the calls; keep streaming. Its
       // text, if any, has already arrived as chunks, and the end-of-turn
@@ -323,28 +401,54 @@ export function App() {
       setError(event.message || "The server reported an error.");
     });
 
+    const offToolApproval = socket.on("tool_approval_request", (event) => {
+      clearTurnTimeout(turnTimeoutRef);
+      setToolApprovals((previous) => ({
+        ...previous,
+        [event.approval_id]: event
+      }));
+    });
+    const offPlanApproval = socket.on("plan_approval_request", (event) => {
+      clearTurnTimeout(turnTimeoutRef);
+      setPlanApprovals((previous) => ({
+        ...previous,
+        [event.approval_id]: event
+      }));
+    });
+    const offSecretRequest = socket.on("secret_request", (event) => {
+      clearTurnTimeout(turnTimeoutRef);
+      setSecretRequests((previous) => ({
+        ...previous,
+        [event.approval_id]: event
+      }));
+    });
+
     socket.connect();
     return () => {
       offState();
       offChunk();
       offToolCall();
       offToolCallUpdate();
+      offToolResult();
       offMessage();
       offStopped();
       offError();
+      offToolApproval();
+      offPlanApproval();
+      offSecretRequest();
       socket.disconnect();
       socketRef.current = null;
       streamingRef.current = null;
       setStreaming(false);
     };
-  }, [client, finishTurn]);
+  }, [armTurnTimeout, client, finishTurn]);
 
   /* ─── Models ─────────────────────────────────────────────────── */
 
   const modelsQuery = useQuery({
     enabled: !!client,
     queryKey: ["models", settings?.apiBaseUrl],
-    queryFn: () => client!.listLanguageModels(),
+    queryFn: () => client!.listLanguageModels()
   });
 
   // Fall back to the first available model only when nothing was restored and
@@ -367,14 +471,17 @@ export function App() {
     // There is no create endpoint — the server writes the thread row from this
     // id on the first message, and the end-of-turn refetch picks it up.
     const threadId = activeThreadId ?? crypto.randomUUID();
-    if (!activeThreadId) setActiveThreadId(threadId);
+    if (!activeThreadId) {
+      setActiveThreadId(threadId);
+      setNewChatRequested(false);
+    }
 
     setLocalRowsByThread((prev) => ({
       ...prev,
       [threadId]: [
         ...(prev[threadId] ?? []),
-        { kind: "message", id: `local-user-${Date.now()}`, role: "user", text },
-      ],
+        { kind: "message", id: `local-user-${Date.now()}`, role: "user", text }
+      ]
     }));
     // The assistant's row opens on its first chunk — a turn that starts with a
     // tool call should show the call, not an empty bubble.
@@ -388,17 +495,13 @@ export function App() {
         text,
         model: model.id,
         provider: model.provider,
-        // The panel renders no approval cards, so a gated tool call would
-        // stall the turn with nothing to answer it.
-        permissionMode: "auto",
+        agentMode: true,
+        systemPrompt: CHROME_PAGE_SYSTEM_PROMPT,
+        permissionMode
       });
       // A turn that never sends a `done` chunk would leave the composer locked
       // forever, so release it the way the web client does.
-      turnTimeoutRef.current = setTimeout(() => {
-        if (streamingRef.current?.threadId === threadId) {
-          finishTurn(threadId);
-        }
-      }, TURN_TIMEOUT_MS);
+      armTurnTimeout(threadId);
     } catch (err) {
       streamingRef.current = null;
       setStreaming(false);
@@ -411,9 +514,102 @@ export function App() {
     const threadId = streamingRef.current?.threadId;
     if (!threadId) return;
     socketRef.current?.stop(threadId);
+    setPlanApprovals((previous) =>
+      Object.fromEntries(
+        Object.entries(previous).filter(
+          ([, request]) => request.thread_id !== null
+        )
+      )
+    );
+  }
+
+  function selectPermissionMode(nextMode: PermissionMode) {
+    setPermissionMode(nextMode);
+    void savePermissionMode(nextMode);
+    if (!activeThreadId) return;
+    try {
+      const socket = socketRef.current;
+      if (!socket) throw new Error("The chat connection is not ready.");
+      socket.setPermissionMode(activeThreadId, nextMode);
+      if (nextMode === "auto") {
+        setToolApprovals((previous) =>
+          withoutRequestsForThread(previous, activeThreadId)
+        );
+        armTurnTimeout(activeThreadId);
+      }
+    } catch (err) {
+      setError(errorText(err));
+    }
+  }
+
+  function resolveToolApproval(
+    approvalId: string,
+    decision: ToolApprovalDecision
+  ): boolean {
+    try {
+      const socket = socketRef.current;
+      if (!socket) throw new Error("The chat connection is not ready.");
+      socket.respondToToolApproval(approvalId, decision);
+      setToolApprovals((previous) => withoutKey(previous, approvalId));
+      const threadId = streamingRef.current?.threadId;
+      if (threadId) armTurnTimeout(threadId);
+      return true;
+    } catch (err) {
+      setError(errorText(err));
+      return false;
+    }
+  }
+
+  function resolvePlanApproval(
+    approvalId: string,
+    decision: "approve" | "reject",
+    feedback?: string
+  ): boolean {
+    try {
+      const socket = socketRef.current;
+      if (!socket) throw new Error("The chat connection is not ready.");
+      socket.respondToPlanApproval(approvalId, decision, feedback);
+      setPlanApprovals((previous) => withoutKey(previous, approvalId));
+      const threadId = streamingRef.current?.threadId;
+      if (threadId) armTurnTimeout(threadId);
+      return true;
+    } catch (err) {
+      setError(errorText(err));
+      return false;
+    }
+  }
+
+  function declineSecretRequest(approvalId: string) {
+    try {
+      const socket = socketRef.current;
+      if (!socket) throw new Error("The chat connection is not ready.");
+      socket.respondToSecretRequest(approvalId, "declined");
+      setSecretRequests((previous) => withoutKey(previous, approvalId));
+      const threadId = streamingRef.current?.threadId;
+      if (threadId) armTurnTimeout(threadId);
+    } catch (err) {
+      setError(errorText(err));
+    }
+  }
+
+  async function saveRequestedSecret(
+    approvalId: string,
+    request: SecretRequestEvent,
+    value: string
+  ) {
+    if (!client) throw new Error("Not connected to a server yet.");
+    await client.upsertSecret(request.key, value);
+    const socket = socketRef.current;
+    if (!socket)
+      throw new Error("The key was saved, but the chat disconnected.");
+    socket.respondToSecretRequest(approvalId, "saved");
+    setSecretRequests((previous) => withoutKey(previous, approvalId));
+    const threadId = streamingRef.current?.threadId;
+    if (threadId) armTurnTimeout(threadId);
   }
 
   function startNewChat() {
+    setNewChatRequested(true);
     setActiveThreadId(null);
     setDrawer(null);
   }
@@ -422,6 +618,20 @@ export function App() {
   const queryError =
     threadsQuery.error ?? messagesQuery.error ?? modelsQuery.error;
   const banner = error ?? (queryError ? errorText(queryError) : null);
+  const visibleToolApprovals = Object.entries(toolApprovals).filter(
+    ([, request]) => request.thread_id === activeThreadId
+  );
+  const visiblePlanApprovals = Object.entries(planApprovals).filter(
+    ([, request]) =>
+      request.thread_id === activeThreadId || request.thread_id === null
+  );
+  const visibleSecretRequests = Object.entries(secretRequests).filter(
+    ([, request]) => request.thread_id === activeThreadId
+  );
+  const hasPendingRequests =
+    visibleToolApprovals.length > 0 ||
+    visiblePlanApprovals.length > 0 ||
+    visibleSecretRequests.length > 0;
 
   return (
     <div className="chat-shell">
@@ -445,6 +655,10 @@ export function App() {
             value={model}
             onChange={selectModel}
             loading={modelsQuery.isLoading}
+          />
+          <PermissionModePicker
+            value={permissionMode}
+            onChange={selectPermissionMode}
           />
           <button
             type="button"
@@ -481,7 +695,49 @@ export function App() {
         </div>
       )}
 
-      <MessageList rows={rows} streaming={streaming} />
+      <MessageList
+        rows={rows}
+        streaming={streaming}
+        pendingContent={
+          hasPendingRequests ? (
+            <div
+              className="pending-requests"
+              role="region"
+              aria-live="polite"
+              aria-label="Agent needs your input"
+            >
+              {visibleToolApprovals.map(([approvalId, request]) => (
+                <ToolApprovalCard
+                  key={approvalId}
+                  request={request}
+                  onResolve={(decision) =>
+                    resolveToolApproval(approvalId, decision)
+                  }
+                />
+              ))}
+              {visiblePlanApprovals.map(([approvalId, request]) => (
+                <PlanApprovalCard
+                  key={approvalId}
+                  request={request}
+                  onResolve={(decision, feedback) =>
+                    resolvePlanApproval(approvalId, decision, feedback)
+                  }
+                />
+              ))}
+              {visibleSecretRequests.map(([approvalId, request]) => (
+                <SecretRequestCard
+                  key={approvalId}
+                  request={request}
+                  onSave={(value) =>
+                    saveRequestedSecret(approvalId, request, value)
+                  }
+                  onDecline={() => declineSecretRequest(approvalId)}
+                />
+              ))}
+            </div>
+          ) : null
+        }
+      />
 
       <Composer
         onSend={handleSend}
@@ -495,6 +751,7 @@ export function App() {
           threads={threads}
           activeThreadId={activeThreadId}
           onSelect={(id) => {
+            setNewChatRequested(false);
             setActiveThreadId(id);
             setDrawer(null);
           }}
@@ -516,31 +773,14 @@ export function App() {
   );
 }
 
-/**
- * Turn the persisted message list into rows. Tool activity from earlier turns
- * is noise in a narrow panel, so only the current turn's tool calls render —
- * the same rule `examples/chat_app` applies.
- */
-function toRows(messages: StoredMessage[]): ChatRow[] {
-  const lastUserIndex = messages.map((m) => m.role).lastIndexOf("user");
-  return messages.flatMap((message, index) => {
-    const afterLastUser = index > lastUserIndex;
-
+export function toRows(messages: StoredMessage[]): ChatRow[] {
+  const rows = messages.flatMap((message, index) => {
     if (message.role === "tool") {
-      if (!afterLastUser) return [];
-      return [
-        {
-          kind: "tool_call" as const,
-          id: message.id ?? `tool-${index}`,
-          name: stringProp(message, "name") ?? "tool",
-        },
-      ];
+      return [toolResultRow(message, `tool-${index}`)];
     }
 
     const rowId = message.id ?? `server-${index}`;
-    const toolRows = afterLastUser
-      ? toolCallRows(message.tool_calls, rowId)
-      : [];
+    const toolRows = toolCallRows(message.tool_calls, rowId);
     const text = messageText(message.content);
     const isRendered = message.role === "user" || message.role === "assistant";
     const messageRows: ChatRow[] =
@@ -550,13 +790,14 @@ function toRows(messages: StoredMessage[]): ChatRow[] {
               kind: "message" as const,
               id: rowId,
               role: message.role as "user" | "assistant",
-              text,
-            },
+              text
+            }
           ]
         : [];
 
     return [...messageRows, ...toolRows];
   });
+  return mergeToolRows([], rows);
 }
 
 /** Message content is a string, an array of content parts, or nothing. */
@@ -565,32 +806,116 @@ function messageText(content: unknown): string {
   if (!Array.isArray(content)) return "";
   return content
     .map((part) =>
-      isRecord(part) && part["type"] === "text" && typeof part["text"] === "string"
+      isRecord(part) &&
+      part["type"] === "text" &&
+      typeof part["text"] === "string"
         ? part["text"]
-        : "",
+        : ""
     )
     .join("");
 }
 
-function toolCallRows(toolCalls: unknown, idPrefix: string): ChatRow[] {
+export function toolCallRows(toolCalls: unknown, idPrefix: string): ChatRow[] {
   if (!Array.isArray(toolCalls)) return [];
-  return toolCalls.map((call, index) => ({
+  return toolCalls.filter(isRecord).map((call, index) => ({
     kind: "tool_call" as const,
     id: stringProp(call, "id") ?? `${idPrefix}-tool-${index}`,
     name:
       stringProp(call, "name") ??
       stringProp(isRecord(call) ? call["function"] : null, "name") ??
       "tool",
+    args: parseToolValue(call["args"] ?? (isRecord(call["function"]) ? call["function"]["arguments"] : undefined)),
+    ...(call["result"] != null ? {
+      result: parseToolValue(call["result"]),
+      isError: call["is_error"] === true || resultIsError(call["result"])
+    } : {}),
+    ...(typeof call["message"] === "string" ? { message: call["message"] } : {})
   }));
+}
+
+function resultIsError(result: unknown): boolean {
+  result = parseToolValue(result);
+  return isRecord(result) && (result["is_error"] === true || result["error"] != null);
+}
+
+function parseToolValue(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    // Tool output may be plain text rather than serialized JSON.
+    return value;
+  }
+}
+
+function toolResultRow(message: StoredMessage, fallbackId: string): ChatRow {
+  return {
+    kind: "tool_call",
+    id: message.tool_call_id ?? message.id ?? fallbackId,
+    name: message.name ?? "tool",
+    result: parseToolValue(message.content),
+    isError: message.is_error === true || resultIsError(message.content)
+  };
+}
+
+export function mergeToolRows(rows: ChatRow[], incoming: ChatRow[]): ChatRow[] {
+  const merged = [...rows];
+  const indices = new Map(merged.map((row, index) => [row.id, index]));
+  for (const row of incoming) {
+    const index = indices.get(row.id);
+    const previous = index === undefined ? undefined : merged[index];
+    if (index !== undefined && previous?.kind === "tool_call" && row.kind === "tool_call") {
+      merged[index] = {
+        ...previous,
+        ...row,
+        name: row.name === "tool" ? previous.name : row.name,
+        args: row.args ?? previous.args,
+        result: row.result === undefined ? previous.result : row.result,
+        isError: row.isError ?? previous.isError
+      };
+    } else if (index === undefined) {
+      indices.set(row.id, merged.length);
+      merged.push(row);
+    }
+  }
+  return merged;
 }
 
 function withoutThread(
   rowsByThread: Record<string, ChatRow[]>,
-  threadId: string,
+  threadId: string
 ): Record<string, ChatRow[]> {
   const next = { ...rowsByThread };
   delete next[threadId];
   return next;
+}
+
+function withoutKey<T>(
+  record: Record<string, T>,
+  key: string
+): Record<string, T> {
+  const next = { ...record };
+  delete next[key];
+  return next;
+}
+
+function withoutRequestsForThread<T extends { thread_id: string | null }>(
+  requests: Record<string, T>,
+  threadId: string
+): Record<string, T> {
+  return Object.fromEntries(
+    Object.entries(requests).filter(
+      ([, request]) => request.thread_id !== threadId
+    )
+  );
+}
+
+function clearTurnTimeout(timeoutRef: {
+  current: ReturnType<typeof setTimeout> | null;
+}): void {
+  if (!timeoutRef.current) return;
+  clearTimeout(timeoutRef.current);
+  timeoutRef.current = null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

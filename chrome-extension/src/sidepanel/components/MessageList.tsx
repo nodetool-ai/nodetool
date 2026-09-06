@@ -7,7 +7,7 @@
  * chip (see `web/src/components/chat/thread/ChatThreadView.styles.ts`).
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -26,6 +26,10 @@ export type ChatRow =
       kind: "tool_call";
       id: string;
       name: string;
+      args?: unknown;
+      result?: unknown;
+      isError?: boolean;
+      message?: string;
     };
 
 /** How close to the bottom still counts as "following along" (px). */
@@ -34,9 +38,14 @@ const STICK_THRESHOLD_PX = 80;
 interface MessageListProps {
   rows: ChatRow[];
   streaming: boolean;
+  pendingContent?: ReactNode;
 }
 
-export function MessageList({ rows, streaming }: MessageListProps) {
+export function MessageList({
+  rows,
+  streaming,
+  pendingContent
+}: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
@@ -51,11 +60,17 @@ export function MessageList({ rows, streaming }: MessageListProps) {
   // Keep streaming output in view only while the user is already near the
   // bottom, so scrolling back through a long answer is not yanked forward.
   const lastRow = rows[rows.length - 1];
+  const showThinkingIndicator =
+    streaming &&
+    !pendingContent &&
+    (lastRow?.kind !== "message" ||
+      lastRow.role !== "assistant" ||
+      !lastRow.text);
   useEffect(() => {
     if (!stickToBottomRef.current) return;
     bottomRef.current?.scrollIntoView({
       behavior: streaming ? "auto" : "smooth",
-      block: "end",
+      block: "end"
     });
   }, [rows.length, lastRow, streaming]);
 
@@ -74,6 +89,17 @@ export function MessageList({ rows, streaming }: MessageListProps) {
             streaming={streaming}
           />
         ))}
+        {showThinkingIndicator && (
+          <div className="thinking-indicator" role="status" aria-live="polite">
+            <span>Thinking</span>
+            <span className="thinking-indicator__dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          </div>
+        )}
+        {pendingContent}
         <div ref={bottomRef} />
       </div>
     </div>
@@ -83,7 +109,7 @@ export function MessageList({ rows, streaming }: MessageListProps) {
 function MessageRow({
   row,
   isLast,
-  streaming,
+  streaming
 }: {
   row: ChatRow;
   isLast: boolean;
@@ -91,10 +117,22 @@ function MessageRow({
 }) {
   if (row.kind === "tool_call") {
     return (
-      <div className="tool-call-chip">
-        <WrenchIcon size={12} />
-        Calling <span className="tool-call-chip__name">{row.name}</span>
-      </div>
+      <details className="tool-call" data-error={row.isError || undefined}>
+        <summary className="tool-call-chip">
+          <span className="tool-call__arrow" aria-hidden="true">▸</span>
+          <WrenchIcon size={12} />
+          <span className="tool-call-chip__name">{row.name}</span>
+          <span>{row.isError ? "Failed" : row.result !== undefined ? "Finished" : "Called"}</span>
+        </summary>
+        <div className="tool-call__body">
+          {row.message && <p>{row.message}</p>}
+          <ToolDetail label="Arguments" value={row.args} />
+          <ToolDetail label={row.isError ? "Error" : "Result"} value={row.result} />
+          {row.args === undefined && row.result === undefined && (
+            <p>No details received for this call.</p>
+          )}
+        </div>
+      </details>
     );
   }
 
@@ -109,7 +147,7 @@ function MessageRow({
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                a: (props) => <a {...props} target="_blank" rel="noreferrer" />,
+                a: (props) => <a {...props} target="_blank" rel="noreferrer" />
               }}
             >
               {row.text}
@@ -119,6 +157,16 @@ function MessageRow({
         {showCaret && <span className="caret" aria-label="Generating" />}
       </div>
     </div>
+  );
+}
+
+function ToolDetail({ label, value }: { label: string; value: unknown }) {
+  if (value === undefined) return null;
+  return (
+    <section className="tool-call__section" aria-label={label}>
+      <h3>{label}</h3>
+      <pre tabIndex={0}>{typeof value === "string" ? value : JSON.stringify(value, null, 2)}</pre>
+    </section>
   );
 }
 

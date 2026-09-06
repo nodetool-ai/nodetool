@@ -9,6 +9,7 @@
  */
 
 import { DEFAULT_SERVER_URL, STORAGE_KEY_SERVER_URL } from "./cdp-relay.js";
+import type { PermissionMode } from "./chat-socket.js";
 
 /** Base URL of the NodeTool server the chat panel talks to. */
 export const STORAGE_KEY_API_BASE_URL = "nodetool_api_base_url";
@@ -18,6 +19,9 @@ export const STORAGE_KEY_AUTH_TOKEN = "nodetool_auth_token";
 
 /** The model the picker last settled on, restored on the next open. */
 export const STORAGE_KEY_SELECTED_MODEL = "nodetool_selected_model";
+
+/** The tool permission mode reused for the next conversation. */
+export const STORAGE_KEY_PERMISSION_MODE = "nodetool_permission_mode";
 
 export const DEFAULT_API_BASE_URL = "http://localhost:7777";
 
@@ -31,6 +35,7 @@ export interface ChatSettings {
   apiBaseUrl: string;
   authToken: string;
   selectedModel: SelectedModel | null;
+  permissionMode: PermissionMode;
 }
 
 export async function loadChatSettings(): Promise<ChatSettings> {
@@ -38,7 +43,8 @@ export async function loadChatSettings(): Promise<ChatSettings> {
     STORAGE_KEY_API_BASE_URL,
     STORAGE_KEY_AUTH_TOKEN,
     STORAGE_KEY_SELECTED_MODEL,
-    STORAGE_KEY_SERVER_URL,
+    STORAGE_KEY_PERMISSION_MODE,
+    STORAGE_KEY_SERVER_URL
   ]);
   return {
     apiBaseUrl:
@@ -47,6 +53,7 @@ export async function loadChatSettings(): Promise<ChatSettings> {
       DEFAULT_API_BASE_URL,
     authToken: readString(stored[STORAGE_KEY_AUTH_TOKEN]) ?? "",
     selectedModel: readSelectedModel(stored[STORAGE_KEY_SELECTED_MODEL]),
+    permissionMode: readPermissionMode(stored[STORAGE_KEY_PERMISSION_MODE])
   };
 }
 
@@ -61,9 +68,13 @@ export async function saveAuthToken(token: string): Promise<void> {
 }
 
 export async function saveSelectedModel(
-  model: SelectedModel | null,
+  model: SelectedModel | null
 ): Promise<void> {
   await chrome.storage.local.set({ [STORAGE_KEY_SELECTED_MODEL]: model });
+}
+
+export async function savePermissionMode(mode: PermissionMode): Promise<void> {
+  await chrome.storage.local.set({ [STORAGE_KEY_PERMISSION_MODE]: mode });
 }
 
 /**
@@ -122,4 +133,10 @@ function readSelectedModel(value: unknown): SelectedModel | null {
   const { id, name, provider } = record;
   if (typeof id !== "string" || typeof provider !== "string") return null;
   return { id, name: typeof name === "string" ? name : id, provider };
+}
+
+function readPermissionMode(value: unknown): PermissionMode {
+  return value === "plan" || value === "auto" || value === "default"
+    ? value
+    : "default";
 }

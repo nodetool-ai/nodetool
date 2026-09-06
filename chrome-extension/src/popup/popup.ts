@@ -113,6 +113,14 @@ function applyResponse(response: PopupResponse): void {
 dom.openChat.addEventListener("click", () => {
   void (async () => {
     try {
+      const attachResponse = await sendRequest({ type: "attach" });
+      if (!attachResponse.ok) {
+        showError(attachResponse.error ?? "Could not attach to this tab.");
+        return;
+      }
+      if (attachResponse.status) {
+        render(attachResponse.status);
+      }
       const window_ = await chrome.windows.getCurrent();
       if (window_.id === undefined) {
         throw new Error("No current window to open the panel in.");

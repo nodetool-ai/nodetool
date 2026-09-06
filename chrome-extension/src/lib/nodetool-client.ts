@@ -32,6 +32,8 @@ export interface StoredMessage {
   content?: unknown;
   name?: string | null;
   tool_calls?: unknown[] | null;
+  tool_call_id?: string | null;
+  is_error?: boolean;
   created_at?: string | null;
 }
 
@@ -69,7 +71,7 @@ export class NodetoolApiError extends Error {
   constructor(
     message: string,
     readonly procedure: string,
-    readonly status: number,
+    readonly status: number
   ) {
     super(message);
     this.name = "NodetoolApiError";
@@ -82,15 +84,19 @@ export class NodetoolClient {
 
   constructor(options: NodetoolClientOptions) {
     this.baseUrl = trimTrailingSlash(options.baseUrl);
-    this.authToken = options.authToken?.trim() ? options.authToken.trim() : null;
+    this.authToken = options.authToken?.trim()
+      ? options.authToken.trim()
+      : null;
   }
 
   /** Open a chat WebSocket against this server's unified `/ws` endpoint. */
   chat(overrides?: Partial<ChatSocketOptions>): ChatSocket {
     return new ChatSocket({
-      url: this.baseUrl.replace(/^http(s?):\/\//, (_, s: string) => `ws${s}://`) + "/ws",
+      url:
+        this.baseUrl.replace(/^http(s?):\/\//, (_, s: string) => `ws${s}://`) +
+        "/ws",
       authToken: this.authToken,
-      ...overrides,
+      ...overrides
     });
   }
 
@@ -104,12 +110,16 @@ export class NodetoolClient {
 
   listMessages(
     threadId: string,
-    limit = 100,
+    limit = 100
   ): Promise<{ messages: StoredMessage[] }> {
     return this.query<{ messages: StoredMessage[] }>("messages.list", {
       thread_id: threadId,
-      limit,
+      limit
     });
+  }
+
+  upsertSecret(key: string, value: string): Promise<unknown> {
+    return this.mutate("settings.secrets.upsert", { key, value });
   }
 
   /**
@@ -121,46 +131,45 @@ export class NodetoolClient {
   async listLanguageModels(): Promise<LanguageModelOption[]> {
     const providers = await this.query<ProviderInfo[]>("models.providers", {});
     const llmProviders = providers.filter((p) =>
-      p.capabilities.includes("generate_message"),
+      p.capabilities.includes("generate_message")
     );
     const groups = await Promise.all(
       llmProviders.map(async (p) => {
         try {
-          const models = await this.query<Array<{ id?: string; name?: string }>>(
-            "models.llmByProvider",
-            { provider: p.provider },
-          );
+          const models = await this.query<
+            Array<{ id?: string; name?: string }>
+          >("models.llmByProvider", { provider: p.provider });
           return models.map((m) => ({
             id: m.id ?? m.name ?? "",
             name: m.name ?? m.id ?? "",
-            provider: p.provider,
+            provider: p.provider
           }));
         } catch {
           return [];
         }
-      }),
+      })
     );
     return groups.flat().filter((m) => m.id.length > 0);
   }
 
   private async query<T>(
     procedure: string,
-    input: Record<string, unknown>,
+    input: Record<string, unknown>
   ): Promise<T> {
     const search = new URLSearchParams({ input: JSON.stringify(input) });
     return this.call<T>(procedure, `${this.trpcUrl(procedure)}?${search}`, {
-      method: "GET",
+      method: "GET"
     });
   }
 
   private async mutate<T>(
     procedure: string,
-    input: Record<string, unknown>,
+    input: Record<string, unknown>
   ): Promise<T> {
     return this.call<T>(procedure, this.trpcUrl(procedure), {
       method: "POST",
       body: JSON.stringify(input),
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json" }
     });
   }
 
@@ -171,7 +180,7 @@ export class NodetoolClient {
   private async call<T>(
     procedure: string,
     url: string,
-    init: RequestInit,
+    init: RequestInit
   ): Promise<T> {
     const headers = new Headers(init.headers);
     if (this.authToken) {
@@ -185,18 +194,18 @@ export class NodetoolClient {
       throw new NodetoolApiError(
         `Cannot reach ${this.baseUrl}: ${err instanceof Error ? err.message : String(err)}`,
         procedure,
-        0,
+        0
       );
     }
 
-    const envelope = (await response.json().catch(() => null)) as
-      | TrpcEnvelope
-      | null;
+    const envelope = (await response
+      .json()
+      .catch(() => null)) as TrpcEnvelope | null;
     if (!response.ok || envelope?.error) {
       throw new NodetoolApiError(
         envelope?.error?.message ?? `HTTP ${response.status}`,
         procedure,
-        response.status,
+        response.status
       );
     }
     return (envelope?.result?.data ?? null) as T;

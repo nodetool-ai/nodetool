@@ -6,13 +6,15 @@
  * kept in step by hand — the same arrangement as `src/lib/protocol.ts` and
  * `packages/browser/src/extension/protocol.ts`. Change one, change the other.
  *
- * Two deliberate divergences from the SDK original:
+ * Three deliberate divergences from the SDK original:
  *   - The `@nodetool-ai/protocol` types the SDK imports are inlined below,
  *     narrowed to the fields this UI reads.
  *   - `tool_call_update` is a known frame tag. That is the tag the server
  *     actually stamps on a mid-turn tool call (see
  *     `packages/websocket/src/session/chat-turn.ts`); the SDK only lists
  *     `tool_call`, so both are accepted here.
+ *   - A Chrome-side-panel system prompt can be attached to a turn so references
+ *     to the current page are routed through the extension CDP transport.
  *
  * Wire format: msgpack frames by default (length-tagged, binary), with a JSON
  * text fallback if msgpack encoding fails. Inbound frames are decoded and
@@ -96,6 +98,7 @@ export interface ChatToolCallEvent {
   thread_id?: string | null;
   tool_call_id?: string | null;
   name: string;
+  args?: Record<string, unknown>;
   message?: string | null;
 }
 
@@ -121,6 +124,54 @@ export interface ChatThreadUpdateEvent {
   title?: string;
 }
 
+export type PermissionMode = "plan" | "default" | "auto";
+export type ToolApprovalDecision = "allow" | "allow_for_chat" | "deny";
+
+export interface ToolApprovalRequestEvent {
+  type: "tool_approval_request";
+  thread_id: string;
+  approval_id: string;
+  tool_name: string;
+  category: "write" | "execute" | "external";
+  message: string;
+  description?: string;
+  args: Record<string, unknown>;
+}
+
+export interface ProposedPlanStep {
+  id: string;
+  instructions: string;
+}
+
+export interface ProposedPlanTask {
+  id: string;
+  title: string;
+  depends_on: string[];
+  steps: ProposedPlanStep[];
+}
+
+export interface ProposedPlan {
+  title: string;
+  tasks: ProposedPlanTask[];
+}
+
+export interface PlanApprovalRequestEvent {
+  type: "plan_approval_request";
+  thread_id: string | null;
+  approval_id: string;
+  plan: ProposedPlan;
+}
+
+export interface SecretRequestEvent {
+  type: "secret_request";
+  thread_id: string;
+  approval_id: string;
+  key: string;
+  description: string | null;
+  reason: string | null;
+  help_url: string | null;
+}
+
 /** Anything else — surfaced raw so callers can opt in to it. */
 export interface ChatRawEvent extends ChatFrameFields {
   type: string;
@@ -133,6 +184,9 @@ export type ChatEvent =
   | ChatErrorEvent
   | ChatGenerationStoppedEvent
   | ChatThreadUpdateEvent
+  | ToolApprovalRequestEvent
+  | PlanApprovalRequestEvent
+  | SecretRequestEvent
   | ChatRawEvent;
 
 /** Outbound `chat_message` command: one user turn, in the shape the server persists. */
@@ -154,19 +208,51 @@ interface StopCommand {
   data: { thread_id: string };
 }
 
-type ChatCommand = ChatMessageCommand | StopCommand;
+interface ToolApprovalResponse {
+  type: "tool_approval_response";
+  approval_id: string;
+  decision: ToolApprovalDecision;
+}
+
+interface PlanApprovalResponse {
+  type: "plan_approval_response";
+  approval_id: string;
+  decision: "approve" | "reject";
+  feedback?: string;
+}
+
+interface SecretRequestResponse {
+  type: "secret_request_response";
+  approval_id: string;
+  status: "saved" | "declined";
+}
+
+interface SetPermissionModeCommand {
+  command: "set_permission_mode";
+  data: { thread_id: string; permission_mode: PermissionMode };
+}
+
+type ChatCommand =
+  | ChatMessageCommand
+  | StopCommand
+  | ToolApprovalResponse
+  | PlanApprovalResponse
+  | SecretRequestResponse
+  | SetPermissionModeCommand;
 
 export interface SendChatMessageOptions {
   threadId: string;
   text: string;
   model?: string | null;
   provider?: string | null;
+  agentMode?: boolean;
+  systemPrompt?: string | null;
   /**
    * Whether the turn's tool calls run, ask, or are blocked — `"auto"` runs
    * everything, `"default"` parks actions on an approval request, `"plan"`
    * blocks them. The side panel has no approval surface, so it sends `"auto"`.
    */
-  permissionMode?: "plan" | "default" | "auto" | null;
+  permissionMode?: PermissionMode | null;
 }
 
 export interface ChatSocketOptions {
@@ -187,6 +273,9 @@ type EventMap = {
   message: ChatMessageEvent;
   tool_call: ChatToolCallEvent;
   tool_call_update: ChatToolCallEvent;
+  tool_approval_request: ToolApprovalRequestEvent;
+  plan_approval_request: PlanApprovalRequestEvent;
+  secret_request: SecretRequestEvent;
   error: ChatErrorEvent;
   generation_stopped: ChatGenerationStoppedEvent;
   thread_update: ChatThreadUpdateEvent;
@@ -220,11 +309,14 @@ export class ChatSocket {
     message: new Set(),
     tool_call: new Set(),
     tool_call_update: new Set(),
+    tool_approval_request: new Set(),
+    plan_approval_request: new Set(),
+    secret_request: new Set(),
     error: new Set(),
     generation_stopped: new Set(),
     thread_update: new Set(),
     raw: new Set(),
-    state: new Set(),
+    state: new Set()
   };
 
   constructor(options: ChatSocketOptions) {
@@ -235,7 +327,7 @@ export class ChatSocket {
     const Ctor = options.WebSocket ?? globalCtor();
     if (!Ctor) {
       throw new Error(
-        "No `WebSocket` constructor available. Run in a browser context.",
+        "No `WebSocket` constructor available. Run in a browser context."
       );
     }
     this.Ctor = Ctor;
@@ -321,15 +413,59 @@ export class ChatSocket {
         thread_id: opts.threadId,
         model: opts.model ?? null,
         provider: opts.provider ?? null,
-        agent_mode: false,
-        permission_mode: opts.permissionMode ?? null,
-      },
+        agent_mode: opts.agentMode ?? false,
+        system_prompt: opts.systemPrompt ?? null,
+        permission_mode: opts.permissionMode ?? null
+      }
     });
   }
 
   /** Send a `stop` command for the given thread. */
   stop(threadId: string): void {
     this.sendCommand({ command: "stop", data: { thread_id: threadId } });
+  }
+
+  respondToToolApproval(
+    approvalId: string,
+    decision: ToolApprovalDecision
+  ): void {
+    this.sendCommand({
+      type: "tool_approval_response",
+      approval_id: approvalId,
+      decision
+    });
+  }
+
+  respondToPlanApproval(
+    approvalId: string,
+    decision: "approve" | "reject",
+    feedback?: string
+  ): void {
+    const response: PlanApprovalResponse = {
+      type: "plan_approval_response",
+      approval_id: approvalId,
+      decision
+    };
+    if (feedback) response.feedback = feedback;
+    this.sendCommand(response);
+  }
+
+  respondToSecretRequest(
+    approvalId: string,
+    status: "saved" | "declined"
+  ): void {
+    this.sendCommand({
+      type: "secret_request_response",
+      approval_id: approvalId,
+      status
+    });
+  }
+
+  setPermissionMode(threadId: string, permissionMode: PermissionMode): void {
+    this.sendCommand({
+      command: "set_permission_mode",
+      data: { thread_id: threadId, permission_mode: permissionMode }
+    });
   }
 
   private setState(state: ConnectionState): void {
@@ -359,7 +495,7 @@ export class ChatSocket {
     } catch (err) {
       console.warn(
         "[ChatSocket] msgpack encode failed, falling back to JSON:",
-        err,
+        err
       );
       frame = JSON.stringify(payload);
     }
@@ -395,7 +531,7 @@ export class ChatSocket {
     this.reconnectAttempts++;
     const delay = Math.min(
       this.reconnectDelayMs * this.reconnectAttempts,
-      MAX_RECONNECT_MS,
+      MAX_RECONNECT_MS
     );
     this.reconnectTimer = setTimeout(() => this.connect(), delay);
   }
@@ -409,9 +545,12 @@ const KNOWN_TYPES: ReadonlySet<string> = new Set<KnownType>([
   "message",
   "tool_call",
   "tool_call_update",
+  "tool_approval_request",
+  "plan_approval_request",
+  "secret_request",
   "error",
   "generation_stopped",
-  "thread_update",
+  "thread_update"
 ]);
 
 function isKnownEventType(type: string): type is KnownType {
@@ -454,7 +593,7 @@ function parseTextFrame(text: string): ChatEvent | null {
 }
 
 function decodeBinaryFrame(
-  inbound: ArrayBuffer | ArrayBufferView,
+  inbound: ArrayBuffer | ArrayBufferView
 ): ChatEvent | null {
   try {
     return toChatEvent(unpack(frameBytes(inbound)) as ChatFrameValue);

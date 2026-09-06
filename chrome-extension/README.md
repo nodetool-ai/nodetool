@@ -38,8 +38,10 @@ npm run clean      # remove dist/
 
 ## The chat side panel
 
-Open it from the toolbar popup's **Open chat** button. The panel picks a
-language model from every provider the server has configured, streams the
+Open it from the toolbar popup's **Open chat** button. That action attaches CDP
+to the active tab before opening the panel, so the chat agent can inspect and
+interact with the page through the server's `browser_*` tools. The panel picks
+a language model from every provider the server has configured, streams the
 assistant's reply, shows the tool calls the agent makes along the way, and
 keeps the conversation list the web app writes to — they are the same threads.
 
