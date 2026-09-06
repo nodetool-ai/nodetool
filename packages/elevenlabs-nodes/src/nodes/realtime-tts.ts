@@ -1,4 +1,10 @@
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import {
+  BaseNode,
+  isNonEmptyString,
+  isRecord,
+  isString,
+  prop
+} from "@nodetool-ai/node-sdk";
 import type {
   NodeClass,
   StreamingInputs,
@@ -186,7 +192,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
   declare enable_ssml_parsing: any;
 
   // Required by BaseNode but unused for streaming - run() handles everything
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, never>> {
     return {};
   }
 
@@ -196,12 +202,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     context?: ProcessingContext
   ): Promise<void> {
     // Inject secrets manually since run() bypasses _injectSecrets
-    const secretsCtx = context as Record<string, unknown> | undefined;
-    let apiKey = "";
-    if (secretsCtx && typeof (secretsCtx as any).getSecret === "function") {
-      apiKey =
-        (await (secretsCtx as any).getSecret("ELEVENLABS_API_KEY")) || "";
-    }
+    let apiKey = (await context?.getSecret("ELEVENLABS_API_KEY")) || "";
     if (!apiKey) apiKey = process.env.ELEVENLABS_API_KEY || "";
     if (!apiKey) throw new Error("ELEVENLABS_API_KEY is not configured");
 
@@ -260,7 +261,8 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     const consumerPromise = new Promise<void>((resolve, reject) => {
       ws.on("message", async (data: Buffer | string) => {
         try {
-          const msg = JSON.parse(data.toString()) as Record<string, unknown>;
+          const msg: unknown = JSON.parse(data.toString());
+          if (!isRecord(msg)) return;
 
           if (msg.isFinal) {
             await outputs.emit("chunk", {
@@ -275,7 +277,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
             return;
           }
 
-          if (msg.audio && typeof msg.audio === "string") {
+          if (isNonEmptyString(msg.audio)) {
             await outputs.emit("chunk", {
               type: "chunk",
               content: msg.audio,
@@ -304,15 +306,16 @@ export class RealtimeTextToSpeechNode extends BaseNode {
       for await (const [handle, item] of inputs.any()) {
         if (handle === "__control__") continue;
 
-        const chunk = item as Record<string, unknown> | string;
         let content: string;
         let done = false;
 
-        if (typeof chunk === "string") {
-          content = chunk;
+        if (isString(item)) {
+          content = item;
+        } else if (isRecord(item)) {
+          content = String(item.content ?? "");
+          done = Boolean(item.done ?? false);
         } else {
-          content = String(chunk.content ?? "");
-          done = Boolean(chunk.done ?? false);
+          continue;
         }
 
         if (content && !done) {

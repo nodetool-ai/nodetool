@@ -1,9 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION, Z_INDEX, SPACING, getSpacingPx } from "../ui_primitives";
+import { Text, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION, Z_INDEX, SPACING, getSpacingPx, VirtualList } from "../ui_primitives";
+import type { VirtualListHandle } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DataObjectIcon from "@mui/icons-material/DataObject";
@@ -202,8 +202,6 @@ type RowItemProps = {
   isExpanded: boolean;
   showTimestampColumn: boolean;
   columns: string;
-  size: number;
-  start: number;
   onToggle: (key: string) => void;
 };
 
@@ -217,26 +215,12 @@ const RowItem = memo(({
   isExpanded,
   showTimestampColumn,
   columns,
-  size,
-  start,
   onToggle
 }: RowItemProps) => {
   const theme = useTheme();
   const colors = SEVERITY_COLORS(theme)[row.severity];
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const timeTooltip = showTimestampColumn ? "" : formatTimeOfDay(row.timestamp);
-
-  const wrapperStyle = useMemo<React.CSSProperties>(
-    () => ({
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: size,
-      transform: `translateY(${start}px)`,
-    }),
-    [size, start]
-  );
 
   const rowStyle = useMemo<React.CSSProperties>(
     () => ({
@@ -282,8 +266,7 @@ const RowItem = memo(({
   const open = Boolean(anchorEl);
 
   return (
-    <div role="listitem" style={wrapperStyle}>
-      <div
+    <div
         className={`row row-${row.severity}${isExpanded ? " expanded" : ""}`}
         role="button"
         tabIndex={0}
@@ -355,7 +338,6 @@ const RowItem = memo(({
             </>
           )}
         </div>
-      </div>
     </div>
   );
 });
@@ -373,7 +355,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => tableStyles(theme), [theme]);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<VirtualListHandle>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const prevRowCountRef = useRef(rows.length);
@@ -407,7 +389,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
 
   const [listWidth, setListWidth] = useState(0);
   useEffect(() => {
-    const el = scrollRef.current;
+    const el = listRef.current?.getScrollElement();
     if (!el) return;
     const update = () => setListWidth(el.clientWidth);
     update();
@@ -434,53 +416,73 @@ export const LogsTable: React.FC<LogsTableProps> = ({
     [rowHeight]
   );
 
-  const virtualizer = useVirtualizer({
-    count: filteredRows.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: (index) => {
+  const estimateSize = useCallback(
+    (index: number) => {
       const row = filteredRows[index];
       return row
         ? estimateRowHeight(row, listWidth, expandedKeys.has(rowKeyAt(row, index)))
         : rowHeight;
     },
-    overscan: theme.virtualScroll.overscan.small,
-    getItemKey: (index) => {
-      const row = filteredRows[index];
-      return row ? rowKeyAt(row, index) : index;
-    },
-  });
+    [filteredRows, listWidth, expandedKeys, estimateRowHeight, rowHeight]
+  );
+
+  const getItemKey = useCallback(
+    (row: LogRow, index: number) => (row ? rowKeyAt(row, index) : index),
+    []
+  );
 
   // estimateSize closes over expandedKeys/listWidth, but the virtualizer
   // caches per-index sizes. Force re-measurement when those inputs change.
   useEffect(() => {
-    virtualizer.measure();
-  }, [expandedKeys, listWidth, filteredRows, virtualizer]);
+    listRef.current?.measure();
+  }, [expandedKeys, listWidth, filteredRows]);
 
   // Auto-scroll to bottom when new logs arrive (if at bottom)
   useEffect(() => {
     if (autoScroll && isAtBottom && filteredRows.length > prevRowCountRef.current) {
       requestAnimationFrame(() => {
-        virtualizer.scrollToIndex(filteredRows.length - 1, { align: "end" });
+        listRef.current?.scrollToIndex(filteredRows.length - 1, { align: "end" });
       });
     }
     prevRowCountRef.current = filteredRows.length;
-  }, [filteredRows.length, isAtBottom, autoScroll, virtualizer]);
+  }, [filteredRows.length, isAtBottom, autoScroll]);
 
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const threshold = rowHeight * 2;
-    const atBottom =
-      el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
-    setIsAtBottom(atBottom);
-    setShowScrollButton(!atBottom && filteredRows.length > 10);
-  }, [filteredRows.length, rowHeight]);
+  const handleScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      const el = event.currentTarget;
+      const threshold = rowHeight * 2;
+      const atBottom =
+        el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
+      setIsAtBottom(atBottom);
+      setShowScrollButton(!atBottom && filteredRows.length > 10);
+    },
+    [filteredRows.length, rowHeight]
+  );
 
   const scrollToBottom = useCallback(() => {
-    virtualizer.scrollToIndex(filteredRows.length - 1, { align: "end" });
+    listRef.current?.scrollToIndex(filteredRows.length - 1, { align: "end" });
     setIsAtBottom(true);
     setShowScrollButton(false);
-  }, [filteredRows.length, virtualizer]);
+  }, [filteredRows.length]);
+
+  const getItemProps = useCallback(() => ({ role: "listitem" }), []);
+
+  const renderRow = useCallback(
+    (row: LogRow, index: number) => {
+      const rowKey = rowKeyAt(row, index);
+      return (
+        <RowItem
+          row={row}
+          rowKey={rowKey}
+          isExpanded={expandedKeys.has(rowKey)}
+          showTimestampColumn={showTimestampColumn}
+          columns={columns}
+          onToggle={toggleExpand}
+        />
+      );
+    },
+    [expandedKeys, showTimestampColumn, columns, toggleExpand]
+  );
 
   return (
     <FlexColumn css={styles} style={height ? { height } : undefined} fullWidth>
@@ -497,42 +499,19 @@ export const LogsTable: React.FC<LogsTableProps> = ({
                 <Text size="small">{emptyText}</Text>
               </FlexColumn>
             ) : (
-              <div
-                ref={scrollRef}
+              <VirtualList
+                ref={listRef}
                 onScroll={handleScroll}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  overflow: "auto",
-                }}
-              >
-                <div
-                  role="list"
-                  style={{
-                    height: virtualizer.getTotalSize(),
-                    width: "100%",
-                    position: "relative",
-                  }}
-                >
-                  {virtualizer.getVirtualItems().map((vi) => {
-                    const row = filteredRows[vi.index];
-                    const rowKey = rowKeyAt(row, vi.index);
-                    return (
-                      <RowItem
-                        key={vi.key}
-                        row={row}
-                        rowKey={rowKey}
-                        isExpanded={expandedKeys.has(rowKey)}
-                        showTimestampColumn={showTimestampColumn}
-                        columns={columns}
-                        size={vi.size}
-                        start={vi.start}
-                        onToggle={toggleExpand}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
+                direction="both"
+                style={{ width: "100%", height: "100%" }}
+                items={filteredRows}
+                estimateSize={estimateSize}
+                overscan={theme.virtualScroll.overscan.small}
+                getItemKey={getItemKey}
+                getItemProps={getItemProps}
+                ariaLabel="Log messages"
+                renderItem={renderRow}
+              />
             )}
           </FlexColumn>
         </FlexColumn>

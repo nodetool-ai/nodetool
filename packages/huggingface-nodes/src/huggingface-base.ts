@@ -38,14 +38,64 @@ export function getHfToken(
   return key;
 }
 
+/** A JSON value — exactly what `JSON.parse` can produce. */
+export type HfJsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | HfJsonValue[]
+  | HfJsonObject;
+
+/** A JSON object: string keys, JSON values. */
+export interface HfJsonObject {
+  [key: string]: HfJsonValue;
+}
+
+function isJsonObject(value: HfJsonValue | undefined): value is HfJsonObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isJsonString(value: HfJsonValue | undefined): value is string {
+  return typeof value === "string";
+}
+
+/** The object at `value`, or an empty object when the payload is not one. */
+export function jsonObject(value: HfJsonValue | undefined): HfJsonObject {
+  return isJsonObject(value) ? value : {};
+}
+
+/** The array at `value`, or an empty array when the payload is not one. */
+export function jsonArray(value: HfJsonValue | undefined): HfJsonValue[] {
+  return Array.isArray(value) ? value : [];
+}
+
+/** `value` rendered as a string; a missing or null value becomes `""`. */
+export function jsonString(value: HfJsonValue | undefined): string {
+  return value === null || value === undefined ? "" : String(value);
+}
+
+/** `value` read as a number; a missing or null value becomes `0`. */
+export function jsonNumber(value: HfJsonValue | undefined): number {
+  return value === null || value === undefined ? 0 : Number(value);
+}
+
+/**
+ * The first element of an array payload, or the payload itself.
+ *
+ * Pipeline tasks return either the result or a one-element list holding it.
+ */
+export function jsonFirst(value: HfJsonValue | undefined): HfJsonValue {
+  return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
+}
+
 /** A media reference (image/audio/video) as it arrives on a node property. */
 export interface MediaRef {
   type?: string;
   uri?: string;
-  data?: unknown;
+  data?: string | Uint8Array | null;
   asset_id?: string | null;
-  metadata?: Record<string, unknown> | null;
-  [key: string]: unknown;
+  metadata?: HfJsonObject | null;
 }
 
 /** True when a media ref actually carries bytes or a URI to fetch. */
@@ -77,7 +127,7 @@ export async function refToBytes(
   if (data instanceof Uint8Array) {
     return data;
   }
-  if (typeof data === "string" && data.length > 0) {
+  if (data != null && data.length > 0) {
     const base64 = data.startsWith("data:")
       ? data.slice(data.indexOf(",") + 1)
       : data;
@@ -120,6 +170,21 @@ export async function refToBase64(
   return Buffer.from(bytes).toString("base64");
 }
 
+/** An image ref as a node emits it: raw base64 bytes plus their mime type. */
+export interface ImageRefOutput {
+  type: "image";
+  data: string;
+  content_type: string;
+}
+
+/** A video ref as a node emits it: raw base64 bytes, mime type and container. */
+export interface VideoRefOutput {
+  type: "video";
+  data: string;
+  content_type: string;
+  format: string;
+}
+
 /**
  * Wrap generated image bytes into an ImageRef-shaped output.
  *
@@ -131,7 +196,7 @@ export async function refToBase64(
 export function imageRefFromBytes(
   bytes: Uint8Array,
   mimeType = "image/png"
-) {
+): ImageRefOutput {
   return {
     type: "image",
     data: Buffer.from(bytes).toString("base64"),
@@ -143,7 +208,7 @@ export function imageRefFromBytes(
 export function videoRefFromBytes(
   bytes: Uint8Array,
   mimeType = "video/mp4"
-) {
+): VideoRefOutput {
   return {
     type: "video",
     data: Buffer.from(bytes).toString("base64"),
@@ -156,7 +221,7 @@ export function videoRefFromBytes(
 export function imageRefFromBase64(
   base64: string,
   mimeType = "image/png"
-) {
+): ImageRefOutput {
   const clean = base64.startsWith("data:")
     ? base64.slice(base64.indexOf(",") + 1)
     : base64;
@@ -180,12 +245,37 @@ async function hfError(res: Response, model: string): Promise<Error> {
   );
 }
 
-/** POST a pipeline task that returns JSON (classification, NLP, embeddings…). */
-export async function hfPipelineJson<T = unknown>(
+/** Read a response body as JSON. */
+async function readJson(res: Response): Promise<HfJsonValue> {
+  // SAFETY: `Response.json()` resolves to the value `JSON.parse` produced, and
+  // that value domain is exactly HfJsonValue — string, number, boolean, null,
+  // array, or object of those. No shape beyond that is claimed here.
+  return (await res.json()) as HfJsonValue;
+}
+
+/** Provider parameters for a pipeline task. Entries with no value are dropped. */
+export interface HfParameters {
+  [key: string]: HfJsonValue | undefined;
+}
+
+/** Body of a pipeline request: the task `inputs` plus provider parameters. */
+export interface HfPipelineRequest {
+  inputs: HfJsonValue;
+  parameters?: HfParameters;
+  options?: HfParameters;
+}
+
+/**
+ * POST a pipeline task that returns JSON (classification, NLP, embeddings…).
+ *
+ * The payload is returned as the JSON value it is — read it with `jsonObject`,
+ * `jsonArray`, `jsonString` and `jsonNumber` rather than claiming a shape.
+ */
+export async function hfPipelineJson(
   token: string,
   model: string,
-  body: Record<string, unknown>
-): Promise<T> {
+  body: HfPipelineRequest
+): Promise<HfJsonValue> {
   const res = await fetch(`${HF_ROUTER}/hf-inference/models/${model}`, {
     method: "POST",
     headers: { ...authHeaders(token), "Content-Type": "application/json" },
@@ -194,7 +284,7 @@ export async function hfPipelineJson<T = unknown>(
   if (!res.ok) {
     throw await hfError(res, model);
   }
-  return (await res.json()) as T;
+  return readJson(res);
 }
 
 /** Result of a binary pipeline task (image/video generation). */
@@ -207,7 +297,7 @@ export interface HfBinaryResult {
 export async function hfPipelineBinary(
   token: string,
   model: string,
-  body: Record<string, unknown>
+  body: HfPipelineRequest
 ): Promise<HfBinaryResult> {
   const res = await fetch(`${HF_ROUTER}/hf-inference/models/${model}`, {
     method: "POST",
@@ -225,7 +315,7 @@ export async function hfPipelineBinary(
   // Some providers return a JSON envelope with a base64 payload instead of raw
   // bytes. Handle both so the caller always gets decoded media.
   if (contentType.includes("application/json")) {
-    const json = (await res.json()) as unknown;
+    const json = await readJson(res);
     const base64 = extractBase64(json);
     if (!base64) {
       throw new Error(
@@ -243,11 +333,12 @@ export async function hfPipelineBinary(
   };
 }
 
-function extractBase64(json: unknown): string | null {
-  if (typeof json === "string") return json;
-  if (Array.isArray(json) && json.length > 0) return extractBase64(json[0]);
-  if (json && typeof json === "object") {
-    const obj = json as Record<string, unknown>;
+function extractBase64(json: HfJsonValue): string | null {
+  if (isJsonString(json)) return json;
+  if (Array.isArray(json) && json.length > 0) {
+    return extractBase64(json[0] ?? null);
+  }
+  if (isJsonObject(json)) {
     for (const key of [
       "image",
       "video",
@@ -256,18 +347,17 @@ function extractBase64(json: unknown): string | null {
       "b64_json",
       "generated_image"
     ]) {
-      const value = obj[key];
-      if (typeof value === "string") return value.replace(/^data:[^,]+,/, "");
+      const value = json[key];
+      if (isJsonString(value)) return value.replace(/^data:[^,]+,/, "");
     }
   }
   return null;
 }
 
-function guessMimeFromJson(json: unknown): string | null {
-  if (json && typeof json === "object") {
-    const obj = json as Record<string, unknown>;
-    if (typeof obj["video"] === "string") return "video/mp4";
-    if (typeof obj["audio"] === "string") return "audio/flac";
+function guessMimeFromJson(json: HfJsonValue): string | null {
+  if (isJsonObject(json)) {
+    if (isJsonString(json["video"])) return "video/mp4";
+    if (isJsonString(json["audio"])) return "audio/flac";
   }
   return null;
 }
@@ -278,18 +368,33 @@ export interface HfChatMessage {
   content: string;
 }
 
+/** Body of a chat-completion request. */
+export interface HfChatRequest {
+  model: string;
+  messages: HfChatMessage[];
+  max_tokens?: number;
+  temperature?: number;
+  top_p?: number;
+}
+
+function optionalNumber(value: HfJsonValue | undefined): number | undefined {
+  return value === null || value === undefined ? undefined : Number(value);
+}
+
+export interface HfChatUsage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+}
+
 export interface HfChatResult {
   content: string;
-  usage?: {
-    prompt_tokens?: number;
-    completion_tokens?: number;
-    total_tokens?: number;
-  };
+  usage?: HfChatUsage;
 }
 
 export async function hfChatCompletion(
   token: string,
-  body: Record<string, unknown>
+  body: HfChatRequest
 ): Promise<HfChatResult> {
   const res = await fetch(`${HF_ROUTER}/v1/chat/completions`, {
     method: "POST",
@@ -297,25 +402,27 @@ export async function hfChatCompletion(
     body: JSON.stringify(body)
   });
   if (!res.ok) {
-    throw await hfError(res, String(body.model ?? "chat"));
+    throw await hfError(res, body.model || "chat");
   }
-  const json = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string | null } }>;
-    usage?: HfChatResult["usage"];
+  const json = jsonObject(await readJson(res));
+  const choice = jsonObject(jsonArray(json["choices"])[0]);
+  const result: HfChatResult = {
+    content: jsonString(jsonObject(choice["message"])["content"])
   };
-  const content = json.choices?.[0]?.message?.content ?? "";
-  const result: HfChatResult = { content };
-  if (json.usage) {
-    result.usage = json.usage;
+  const usage = json["usage"];
+  if (isJsonObject(usage)) {
+    result.usage = {
+      prompt_tokens: optionalNumber(usage["prompt_tokens"]),
+      completion_tokens: optionalNumber(usage["completion_tokens"]),
+      total_tokens: optionalNumber(usage["total_tokens"])
+    };
   }
   return result;
 }
 
-/** Build a `parameters` object, dropping null/undefined entries. */
-export function cleanParams(
-  params: Record<string, unknown>
-) {
-  const out: Record<string, unknown> = {};
+/** Build a `parameters` object, dropping null/undefined/empty entries. */
+export function cleanParams(params: HfParameters): HfParameters {
+  const out: HfParameters = {};
   for (const [key, value] of Object.entries(params)) {
     if (value !== null && value !== undefined && value !== "") {
       out[key] = value;

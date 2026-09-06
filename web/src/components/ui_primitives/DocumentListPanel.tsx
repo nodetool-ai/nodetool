@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { groupByDate } from "../../utils/groupByDate";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
-import ConfirmDialog from "../dialogs/ConfirmDialog";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { EmptyState } from "./EmptyState";
 import { FlexColumn } from "./FlexColumn";
 import { listPanelStyles } from "./listPanelStyles";

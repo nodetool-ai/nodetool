@@ -257,5 +257,6 @@ Many of these models are available through [kie.ai](https://kie.ai/), an AI prov
 - **[HuggingFace Integration](huggingface.md)** – Access 500,000+ models
 
 ### Advanced
+- **[ComfyUI](comfyui.md)** – Run an exported ComfyUI workflow as a node, locally, on a GPU worker, or on Comfy Cloud
 - **[Self-Hosted Deployment](self-hosted-deployment.md)** – Secure deployments
 - **[Deployment Guide](deployment.md)** – Cloud infrastructure

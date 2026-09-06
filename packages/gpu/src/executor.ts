@@ -214,7 +214,7 @@ export function createExecutor(): Executor {
     args: EncodeArgs<AnyWgslStruct>
   ) {
     const { ctx, module, encoder, inputs } = args;
-    const converted: Record<string, LabeledTexture> = { ...inputs };
+    const converted = { ...inputs };
     const scratchToRelease: LabeledTexture[] = [];
     for (const [name, contract] of Object.entries(module.io.inputs)) {
       const bound = converted[name];
@@ -378,6 +378,9 @@ export function createExecutor(): Executor {
     const cacheKey = `${moduleKey(module.id, module.version)}${variantTag}:fragment:${targetFormat}`;
     const cached = ctx.pipelineCache.get(cacheKey);
     if (cached) {
+      // SAFETY: the key carries the `:fragment:` segment, and the only write
+      // under a `:fragment:` key is the `createRenderPipeline` result below,
+      // so a hit here is a GPURenderPipeline.
       return cached as GPURenderPipeline;
     }
     const shaderModule = ctx.device.createShaderModule({
@@ -410,6 +413,9 @@ export function createExecutor(): Executor {
     const cacheKey = `${moduleKey(module.id, module.version)}${variantTag}:compute`;
     const cached = ctx.pipelineCache.get(cacheKey);
     if (cached) {
+      // SAFETY: the key ends in `:compute`, and the only write under a
+      // `:compute` key is the `createComputePipeline` result below, so a hit
+      // here is a GPUComputePipeline.
       return cached as GPUComputePipeline;
     }
     const shaderModule = ctx.device.createShaderModule({

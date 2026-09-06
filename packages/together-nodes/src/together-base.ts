@@ -17,6 +17,13 @@
  */
 
 import { fetchExternalMedia } from "@nodetool-ai/runtime";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isRecord,
+  isString
+} from "@nodetool-ai/node-sdk";
+import type { NodeValue } from "@nodetool-ai/node-sdk";
 
 const TOGETHER_BASE = "https://api.together.xyz";
 
@@ -142,15 +149,10 @@ function isPrivateOrLocalHost(hostname: string): boolean {
 
 export type AssetKind = "image" | "audio" | "video";
 
-type AssetRef = {
-  uri?: string;
-  data?: string | Uint8Array;
-  mime_type?: string;
-  metadata?: { mime_type?: string };
-};
-
 interface AssetStorageLike {
   retrieve: (uri: string) => Promise<Uint8Array | null> | Uint8Array | null;
+  /** Present on the server's storage adapters; absent on read-only stubs. */
+  store?: (key: string, bytes: Uint8Array, mime?: string) => Promise<string>;
 }
 
 export interface AssetResolveContext {
@@ -173,38 +175,30 @@ function decodeBase64(data: string): Uint8Array {
   return Uint8Array.from(Buffer.from(raw, "base64"));
 }
 
-function looksLikePublicUrl(s: unknown): s is string {
-  return typeof s === "string" && isSafeHttpUrl(s);
-}
-
 /**
  * Resolve a NodeTool asset ref (ImageRef / AudioRef / VideoRef) to raw bytes.
  * Order: inline data → storage.retrieve(uri) → SSRF-guarded fetch(uri).
  * Returns null when the ref carries no usable source.
  */
 export async function resolveAssetBytes(
-  ref: unknown,
+  ref: NodeValue,
   context: AssetResolveContext | undefined,
   kind: AssetKind
 ): Promise<Uint8Array | null> {
   if (ref === null || ref === undefined) return null;
 
-  if (typeof ref === "string") {
+  if (isString(ref)) {
     if (ref === "") return null;
-    if (looksLikePublicUrl(ref)) return fetchBytes(ref);
-    return null;
+    return isSafeHttpUrl(ref) ? fetchBytes(ref) : null;
   }
-  if (typeof ref !== "object") return null;
-  const r = ref as AssetRef;
+  // Anything that is not a keyed ref (a number, a list) carries no source.
+  if (!isRecord(ref)) return null;
 
-  if (typeof r.data === "string" && r.data.length > 0) {
-    return decodeBase64(r.data);
-  }
-  if (r.data instanceof Uint8Array && r.data.byteLength > 0) {
-    return r.data;
-  }
+  const data = ref.data;
+  if (isNonEmptyString(data)) return decodeBase64(data);
+  if (data instanceof Uint8Array && data.byteLength > 0) return data;
 
-  const uri = typeof r.uri === "string" ? r.uri : "";
+  const uri = isString(ref.uri) ? ref.uri : "";
   // Empty placeholder ref (no uri, no data) → treat as "no asset provided" so
   // the caller can surface a clear "<field> is required" error instead.
   if (uri.length === 0) return null;
@@ -265,6 +259,21 @@ interface ImageParams {
   imageUrl?: string | null;
 }
 
+/** POST /v1/images/generations — the fields these nodes send. */
+interface ImageRequestBody {
+  model: string;
+  prompt: string;
+  n: number;
+  response_format: "b64_json";
+  image_url?: string;
+  width?: number;
+  height?: number;
+  steps?: number;
+  guidance_scale?: number;
+  seed?: number;
+  negative_prompt?: string;
+}
+
 export async function togetherGenerateImage(
   apiKey: string,
   modelId: string,
@@ -272,7 +281,7 @@ export async function togetherGenerateImage(
 ): Promise<Uint8Array> {
   if (!params.prompt) throw new Error("The input prompt cannot be empty.");
 
-  const body: Record<string, unknown> = {
+  const body: ImageRequestBody = {
     model: modelId,
     prompt: params.prompt,
     n: 1,
@@ -295,13 +304,17 @@ export async function togetherGenerateImage(
     throw new Error(`Together image generation failed: ${await response.text()}`);
   }
 
-  const payload = (await response.json()) as {
-    data?: Array<{ b64_json?: string; url?: string }>;
-  };
-  const item = payload.data?.[0];
-  if (!item) throw new Error("Together image generation returned no data.");
-  if (item.b64_json) return Uint8Array.from(Buffer.from(item.b64_json, "base64"));
-  if (item.url) return fetchBytes(item.url);
+  const payload = await response.json();
+  const items: readonly unknown[] =
+    isObjectLike(payload) && Array.isArray(payload.data) ? payload.data : [];
+  const item = items[0];
+  if (!isObjectLike(item)) {
+    throw new Error("Together image generation returned no data.");
+  }
+  if (isNonEmptyString(item.b64_json)) {
+    return Uint8Array.from(Buffer.from(item.b64_json, "base64"));
+  }
+  if (isNonEmptyString(item.url)) return fetchBytes(item.url);
   throw new Error("Together image generation returned no image data.");
 }
 
@@ -318,10 +331,25 @@ interface SpeechParams {
   format?: string; // "mp3" | "wav"
 }
 
-const SPEECH_FORMAT_MIME: Record<string, string> = {
+const SPEECH_FORMAT_MIME = {
   mp3: "audio/mpeg",
   wav: "audio/wav"
-};
+} as const;
+
+type SpeechFormat = keyof typeof SPEECH_FORMAT_MIME;
+
+function isSpeechFormat(format: string): format is SpeechFormat {
+  return Object.hasOwn(SPEECH_FORMAT_MIME, format);
+}
+
+/** POST /v1/audio/speech — the fields these nodes send. */
+interface SpeechRequestBody {
+  model: string;
+  input: string;
+  voice: string;
+  response_format: string;
+  speed?: number;
+}
 
 export async function togetherTextToSpeech(
   apiKey: string,
@@ -331,9 +359,9 @@ export async function togetherTextToSpeech(
   if (!params.text) throw new Error("text must not be empty");
 
   const fmt = (params.format ?? "mp3").toLowerCase();
-  const mime = SPEECH_FORMAT_MIME[fmt] ?? "audio/mpeg";
+  const mime = isSpeechFormat(fmt) ? SPEECH_FORMAT_MIME[fmt] : "audio/mpeg";
 
-  const body: Record<string, unknown> = {
+  const body: SpeechRequestBody = {
     model: modelId,
     input: params.text,
     voice: params.voice ?? "tara",
@@ -389,8 +417,8 @@ export async function togetherTranscribe(
   if (!response.ok) {
     throw new Error(`Together transcription failed: ${await response.text()}`);
   }
-  const payload = (await response.json()) as { text?: string };
-  return String(payload.text ?? "");
+  const payload = await response.json();
+  return isObjectLike(payload) ? String(payload.text ?? "") : "";
 }
 
 // Video — POST /v2/videos then poll GET /v2/videos/{id} (asynchronous)
@@ -412,37 +440,53 @@ interface VideoPollOptions {
   timeoutMs?: number;
 }
 
+/** Pixel dimensions for a generated video. */
+export interface VideoDimensions {
+  width: number;
+  height: number;
+}
+
+/** Keyed `<aspect-ratio>|<resolution>`, the two hints a node exposes. */
+const VIDEO_DIMENSION_PRESETS = new Map<string, VideoDimensions>([
+  ["16:9|480p", { width: 854, height: 480 }],
+  ["16:9|720p", { width: 1280, height: 720 }],
+  ["16:9|1080p", { width: 1920, height: 1080 }],
+  ["9:16|480p", { width: 480, height: 854 }],
+  ["9:16|720p", { width: 720, height: 1280 }],
+  ["9:16|1080p", { width: 1080, height: 1920 }],
+  ["1:1|480p", { width: 480, height: 480 }],
+  ["1:1|720p", { width: 720, height: 720 }],
+  ["1:1|1080p", { width: 1080, height: 1080 }],
+  ["4:3|480p", { width: 640, height: 480 }],
+  ["4:3|720p", { width: 960, height: 720 }],
+  ["4:3|1080p", { width: 1440, height: 1080 }]
+]);
+
 /** Map aspect-ratio + resolution hints to concrete pixel dimensions. */
 export function resolveVideoDimensions(
   aspectRatio?: string | null,
   resolution?: string | null
-) {
+): VideoDimensions {
   const ar = (aspectRatio ?? "16:9").replace(/\s/g, "");
   const res = (resolution ?? "720p").toLowerCase();
-
-  const presets: Record<string, Record<string, [number, number]>> = {
-    "16:9": { "480p": [854, 480], "720p": [1280, 720], "1080p": [1920, 1080] },
-    "9:16": { "480p": [480, 854], "720p": [720, 1280], "1080p": [1080, 1920] },
-    "1:1": { "480p": [480, 480], "720p": [720, 720], "1080p": [1080, 1080] },
-    "4:3": { "480p": [640, 480], "720p": [960, 720], "1080p": [1440, 1080] }
-  };
-
-  const dims = presets[ar]?.[res];
-  if (dims) return { width: dims[0], height: dims[1] };
-  return { width: 1366, height: 768 }; // Together's MiniMax default
+  // Together's MiniMax default for a combination with no preset.
+  return (
+    VIDEO_DIMENSION_PRESETS.get(`${ar}|${res}`) ?? { width: 1366, height: 768 }
+  );
 }
 
-interface VideoJobStatus {
+/** The terminal state of a /v2/videos job, decoded from its poll response. */
+interface VideoJobResult {
   status: string;
-  outputs?: { video_url?: string };
-  error?: { message?: string };
+  videoUrl: string | null;
+  errorMessage: string | null;
 }
 
 async function pollVideoJob(
   apiKey: string,
   jobId: string,
   opts: VideoPollOptions
-): Promise<VideoJobStatus> {
+): Promise<VideoJobResult> {
   const timeoutMs = opts.timeoutMs ?? 10 * 60 * 1000;
   const intervalMs = opts.pollIntervalMs ?? 5_000;
   const start = nowMs();
@@ -461,15 +505,42 @@ async function pollVideoJob(
     if (!res.ok) {
       throw new Error(`Together video status check failed: ${await res.text()}`);
     }
-    const status = (await res.json()) as VideoJobStatus;
+    const payload = await res.json();
+    if (!isObjectLike(payload)) continue;
+    const status = isString(payload.status) ? payload.status : "";
     if (
-      status.status === "completed" ||
-      status.status === "failed" ||
-      status.status === "cancelled"
+      status !== "completed" &&
+      status !== "failed" &&
+      status !== "cancelled"
     ) {
-      return status;
+      continue;
     }
+    const outputs = payload.outputs;
+    const error = payload.error;
+    return {
+      status,
+      videoUrl:
+        isObjectLike(outputs) && isString(outputs.video_url)
+          ? outputs.video_url
+          : null,
+      errorMessage:
+        isObjectLike(error) && isString(error.message) ? error.message : null
+    };
   }
+}
+
+/** POST /v2/videos — the fields these nodes send. */
+interface VideoRequestBody {
+  model: string;
+  prompt: string;
+  width: number;
+  height: number;
+  seconds?: string;
+  steps?: number;
+  guidance_scale?: number;
+  seed?: number;
+  negative_prompt?: string;
+  frame_images?: Array<{ input_image: string; frame: "first" }>;
 }
 
 export async function togetherGenerateVideo(
@@ -483,7 +554,7 @@ export async function togetherGenerateVideo(
     params.resolution
   );
 
-  const body: Record<string, unknown> = {
+  const body: VideoRequestBody = {
     model: modelId,
     prompt: params.prompt ?? "",
     width,
@@ -508,20 +579,23 @@ export async function togetherGenerateVideo(
     throw new Error(`Together video creation failed: ${await createResponse.text()}`);
   }
 
-  const job = (await createResponse.json()) as { id: string; status: string };
-  const finalStatus = await pollVideoJob(apiKey, job.id, opts);
+  const created = await createResponse.json();
+  const jobId = isObjectLike(created) && isString(created.id) ? created.id : "";
+  if (!jobId) {
+    throw new Error("Together video creation returned no job id.");
+  }
+
+  const finalStatus = await pollVideoJob(apiKey, jobId, opts);
   if (finalStatus.status !== "completed") {
     const reason =
-      finalStatus.error?.message ??
+      finalStatus.errorMessage ??
       `job ended with status '${finalStatus.status}'`;
     throw new Error(`Together video generation failed: ${reason}`);
   }
-
-  const videoUrl = finalStatus.outputs?.video_url;
-  if (!videoUrl) {
+  if (!finalStatus.videoUrl) {
     throw new Error("Together video generation returned no video URL.");
   }
-  return fetchBytes(videoUrl);
+  return fetchBytes(finalStatus.videoUrl);
 }
 
 function nowMs(): number {

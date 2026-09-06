@@ -184,9 +184,9 @@ export default function StudioPage() {
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
                   Create and edit images, video, audio, and text with agents that
-                  work alongside you. Let them build and revise workflows, then
-                  inspect and edit the results yourself. Your project keeps the
-                  brief, assets, and edits together. Run supported local models
+                  work alongside you. Describe what you want, let the agent build
+                  it, then take over whenever you like. You get an editable
+                  project, not just a finished file. Run supported local models
                   through Ollama or MLX, or connect cloud providers with your own API
                   keys.
                 </p>

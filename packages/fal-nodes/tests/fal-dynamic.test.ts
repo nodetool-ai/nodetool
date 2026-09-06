@@ -364,7 +364,11 @@ describe("FalDynamicNode.process — direct OpenAPI URL", () => {
         "https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/flux/dev",
       prompt: "hello"
     });
-    expect(result).toBeDefined();
+    // The schema behind the URL is what maps the response, so a mapped output
+    // is the evidence the URL resolved to a schema at all.
+    expect(result).toEqual({
+      images: [{ type: "image", uri: "https://fal.media/x.png" }]
+    });
     // Should only fetch OpenAPI once (no llms.txt detour)
     expect(mockFetch).toHaveBeenCalledOnce();
   });

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
-import React, { useCallback, useEffect, useMemo, useRef, memo } from "react";
+import React, { useCallback, useMemo, memo } from "react";
 
 import {
   FlexRow,
@@ -16,7 +16,8 @@ import {
   getSpacingPx,
   ListItemButton,
   ListItemText,
-  ListItemIcon
+  ListItemIcon,
+  VirtualList
 } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import FavoriteStar from "./FavoriteStar";
@@ -26,7 +27,6 @@ import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import { ModelSelectorModel } from "../../stores/ModelMenuStore";
 import type { UnifiedModel } from "../../stores/ApiTypes";
 
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { useModelAvailability } from "../../hooks/useModelAvailability";
 import { openSettingsTab } from "../workspace/openPageTab";
 import { executionForDisplay } from "../../utils/modelNormalization";
@@ -36,6 +36,7 @@ import type { Theme } from "@mui/material/styles";
 const ROW_HEIGHT = 50;
 const DOWNLOAD_ROW_HEIGHT = 56;
 const SECTION_HEADER_HEIGHT = 36;
+const FULL_HEIGHT_STYLE: React.CSSProperties = { height: "100%" };
 
 export type DownloadableModel = UnifiedModel & {
   downloaded: boolean;
@@ -186,7 +187,6 @@ function ModelList<TModel extends ModelSelectorModel>({
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const getAvailability = useModelAvailability();
   const theme = useTheme();
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleOpenSettings = useCallback(() => {
     openSettingsTab("providers");
@@ -239,32 +239,33 @@ function ModelList<TModel extends ModelSelectorModel>({
     return rows;
   }, [models, downloadModels]);
 
-  const virtualizer = useVirtualizer({
-    count: flatRows.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: (index) => {
+  const estimateSize = useCallback(
+    (index: number) => {
       const row = flatRows[index];
       if (row.kind === "downloadHeader") return SECTION_HEADER_HEIGHT;
       if (row.kind === "download") return DOWNLOAD_ROW_HEIGHT;
       return ROW_HEIGHT;
     },
-    overscan: theme.virtualScroll.overscan.large,
-    getItemKey: (index) => {
-      const row = flatRows[index];
-      if (row.kind === "downloadHeader") return "download-header";
-      if (row.kind === "download") {
-        return `download:${row.model.provider ?? ""}:${row.model.id}:${row.model.path ?? ""}`;
-      }
-      return `${row.model.provider}:${row.model.id}`;
+    [flatRows]
+  );
+
+  const getItemKey = useCallback((row: ListRow<TModel>) => {
+    if (row.kind === "downloadHeader") return "download-header";
+    if (row.kind === "download") {
+      return `download:${row.model.provider ?? ""}:${row.model.id}:${row.model.path ?? ""}`;
     }
-  });
+    return `${row.model.provider}:${row.model.id}`;
+  }, []);
+
+  const getItemProps = useCallback(
+    (row: ListRow<TModel>) =>
+      row.kind === "model" ? { role: "listitem" } : {},
+    []
+  );
 
   // Keep the keyboard-highlighted row scrolled into view.
-  useEffect(() => {
-    if (activeIndex >= 0 && activeIndex < models.length) {
-      virtualizer.scrollToIndex(activeIndex, { align: "auto" });
-    }
-  }, [activeIndex, models.length, virtualizer]);
+  const scrollToIndex =
+    activeIndex >= 0 && activeIndex < models.length ? activeIndex : null;
 
   // Stable handler for model selection using data attributes
   const handleModelClick = useCallback(
@@ -280,15 +281,7 @@ function ModelList<TModel extends ModelSelectorModel>({
   );
 
   const renderRow = useCallback(
-    ({
-      m,
-      index,
-      style
-    }: {
-      m: TModel;
-      index: number;
-      style: React.CSSProperties;
-    }) => {
+    ({ m, index }: { m: TModel; index: number }) => {
       const fav = isFavorite(m.provider || "", m.id || "");
       const { available, providerEnabled, hasKey } = getAvailability(m);
       const execution = executionForDisplay(m);
@@ -304,8 +297,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                 ? "Add API key in Settings to use this model"
                 : "";
       return (
-        <div role="listitem" style={style}>
-          <Tooltip disableInteractive title={tooltipTitle}>
+        <Tooltip disableInteractive title={tooltipTitle}>
             <ListItemButton
               className={`model-menu__model-item ${
                 available ? "" : "is-unavailable"
@@ -382,8 +374,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                 secondaryTypographyProps={SECONDARY_TYPOGRAPHY_PROPS}
               />
             </ListItemButton>
-          </Tooltip>
-        </div>
+        </Tooltip>
       );
     },
     [
@@ -400,15 +391,13 @@ function ModelList<TModel extends ModelSelectorModel>({
   );
 
   const renderFlatRow = useCallback(
-    (rowIndex: number, style: React.CSSProperties) => {
-      const row = flatRows[rowIndex];
+    (row: ListRow<TModel>) => {
       if (row.kind === "model") {
-        return renderRow({ m: row.model, index: row.modelIndex, style });
+        return renderRow({ m: row.model, index: row.modelIndex });
       }
       if (row.kind === "downloadHeader") {
         return (
-          <div style={style}>
-            <FlexRow
+          <FlexRow
               align="flex-end"
               justify="space-between"
               sx={{
@@ -444,8 +433,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                   </Caption>
                 </Tooltip>
               )}
-            </FlexRow>
-          </div>
+          </FlexRow>
         );
       }
       return (
@@ -456,11 +444,11 @@ function ModelList<TModel extends ModelSelectorModel>({
           onSelect={() => onDownloadSelect?.(row.model)}
           onDownload={() => onDownloadStart?.(row.model)}
           targetLabel={downloadTargetLabel}
-          style={style}
+          style={FULL_HEIGHT_STYLE}
         />
       );
     },
-    [flatRows, renderRow, onDownloadSelect, onDownloadStart, downloadTargetLabel]
+    [renderRow, onDownloadSelect, onDownloadStart, downloadTargetLabel]
   );
 
   return (
@@ -538,39 +526,24 @@ function ModelList<TModel extends ModelSelectorModel>({
           />
         )
       ) : (
-        <div
-          ref={scrollRef}
+        <VirtualList
           css={listStyles(theme)}
           className="model-menu__models-list"
-          style={{
+          direction="both"
+          sx={{
             height: "100%",
             width: "100%",
-            minHeight: 320,
-            overflow: "auto"
+            minHeight: 320
           }}
-        >
-          <div
-            role="list"
-            style={{
-              height: virtualizer.getTotalSize(),
-              width: "100%",
-              position: "relative"
-            }}
-          >
-            {virtualizer.getVirtualItems().map((vi) => (
-              <React.Fragment key={vi.key}>
-                {renderFlatRow(vi.index, {
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: vi.size,
-                  transform: `translateY(${vi.start}px)`
-                })}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
+          items={flatRows}
+          estimateSize={estimateSize}
+          overscan={theme.virtualScroll.overscan.large}
+          getItemKey={getItemKey}
+          getItemProps={getItemProps}
+          scrollToIndex={scrollToIndex}
+          ariaLabel="Models"
+          renderItem={renderFlatRow}
+        />
       )}
     </Box>
   );

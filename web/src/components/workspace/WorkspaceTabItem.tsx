@@ -2,7 +2,6 @@
 import React, {
   memo,
   useCallback,
-  useRef,
   useState,
   type DragEvent,
   type MouseEvent
@@ -15,6 +14,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import {
   CloseButton,
   ContextMenu,
+  InlineEditableText,
   LoadingSpinner,
   MenuItemPrimitive,
   Tooltip
@@ -84,7 +84,6 @@ const WorkspaceTabItem = ({
     x: number;
     y: number;
   } | null>(null);
-  const cancelRenameRef = useRef(false);
 
   const dropClass =
     dropPosition === "left"
@@ -92,6 +91,24 @@ const WorkspaceTabItem = ({
       : dropPosition === "right"
         ? " drop-target-right"
         : "";
+
+  const handleCommitRename = useCallback(
+    (newName: string) => {
+      void onCommitRename(tab, newName);
+    },
+    [onCommitRename, tab]
+  );
+
+  // The primitive leaves edit mode on commit; the parent owns `isEditing`, and
+  // its rename state is cleared through the same cancel path.
+  const handleEditingChange = useCallback(
+    (next: boolean) => {
+      if (!next) {
+        onCancelRename();
+      }
+    },
+    [onCancelRename]
+  );
 
   const closeContextMenu = useCallback(() => {
     setContextMenuPosition(null);
@@ -169,32 +186,14 @@ const WorkspaceTabItem = ({
           {typeGlyph}
         </span>
         {isEditing ? (
-          <input
-            type="text"
+          <InlineEditableText
             className="tab-input"
-            aria-label="Tab name"
-            defaultValue={tab.title}
-            autoFocus
-            onClick={(event) => event.stopPropagation()}
-            onFocus={(event) => event.currentTarget.select()}
-            onBlur={(event) => {
-              if (!cancelRenameRef.current) {
-                void onCommitRename(tab, event.currentTarget.value);
-              }
-              cancelRenameRef.current = false;
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                event.stopPropagation();
-                event.currentTarget.blur();
-              } else if (event.key === "Escape") {
-                event.preventDefault();
-                event.stopPropagation();
-                cancelRenameRef.current = true;
-                onCancelRename();
-              }
-            }}
+            ariaLabel="Tab name"
+            value={tab.title}
+            editing
+            onEditingChange={handleEditingChange}
+            onCommit={handleCommitRename}
+            onCancel={onCancelRename}
           />
         ) : (
           <>

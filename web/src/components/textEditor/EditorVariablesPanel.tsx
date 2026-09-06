@@ -3,10 +3,15 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type React from "react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import DataObjectIcon from "@mui/icons-material/DataObject";
-import { Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  Tooltip,
+  InlineEditableText,
+  MOTION,
+  BORDER_RADIUS
+} from "../ui_primitives";
 import type { TemplateVariable, VariableSyntax } from "./templateVariables";
 
 interface EditorVariablesPanelProps {
@@ -178,10 +183,7 @@ const EditorVariablesPanel = ({
   const theme = useTheme();
   const panelStyles = useMemo(() => styles(theme), [theme]);
   const [editingName, setEditingName] = useState<string | null>(null);
-  const [draftValue, setDraftValue] = useState("");
   const [addOpen, setAddOpen] = useState(false);
-  const [addName, setAddName] = useState("");
-  const addInputRef = useRef<HTMLInputElement>(null);
 
   const unboundCount = useMemo(
     () => variables.filter((v) => !(values[v.name] ?? "").trim()).length,
@@ -195,26 +197,15 @@ const EditorVariablesPanel = ({
     }
   }, [addSignal, readOnly]);
 
-  useEffect(() => {
-    if (addOpen) {
-      addInputRef.current?.focus();
-    }
-  }, [addOpen]);
+  const beginEdit = useCallback((name: string) => {
+    setEditingName(name);
+  }, []);
 
-  const beginEdit = useCallback(
-    (name: string) => {
-      setEditingName(name);
-      setDraftValue(values[name] ?? "");
-    },
-    [values]
-  );
-
-  const commitEdit = useCallback(() => {
-    if (editingName !== null) {
-      onSetValue(editingName, draftValue);
+  const stopEditing = useCallback((editing: boolean) => {
+    if (!editing) {
       setEditingName(null);
     }
-  }, [editingName, draftValue, onSetValue]);
+  }, []);
 
   const handleChipClick = useCallback(
     (e: React.MouseEvent, name: string, syntax: VariableSyntax) => {
@@ -229,14 +220,23 @@ const EditorVariablesPanel = ({
     [onInsert, beginEdit, readOnly]
   );
 
-  const commitAdd = useCallback(() => {
-    const name = addName.trim();
-    if (name) {
+  const commitAdd = useCallback(
+    (name: string) => {
       onInsert(name, "double");
+    },
+    [onInsert]
+  );
+
+  const closeAdd = useCallback((editing: boolean) => {
+    if (!editing) {
+      setAddOpen(false);
     }
-    setAddName("");
-    setAddOpen(false);
-  }, [addName, onInsert]);
+  }, []);
+
+  const sanitizeVariableName = useCallback(
+    (raw: string) => raw.replace(/[^\w]/g, ""),
+    []
+  );
 
   return (
     <div className="editor-variables-panel" css={panelStyles}>
@@ -271,27 +271,20 @@ const EditorVariablesPanel = ({
               >
                 <span className="chip-dot" />
                 <span className="chip-name">{variable.name}</span>
-                {isEditing ? (
-                  <input
-                    className="chip-input"
-                    autoFocus
-                    value={draftValue}
-                    placeholder="value"
-                    aria-label={`Value for ${variable.name}`}
-                    onChange={(e) => setDraftValue(e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
-                    onBlur={commitEdit}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        commitEdit();
-                      } else if (e.key === "Escape") {
-                        setEditingName(null);
-                      }
-                    }}
-                  />
-                ) : (
+                <InlineEditableText
+                  className="chip-input"
+                  value={value}
+                  editing={isEditing}
+                  allowEmpty
+                  unstyled
+                  selectOnFocus={false}
+                  placeholder="value"
+                  ariaLabel={`Value for ${variable.name}`}
+                  onEditingChange={stopEditing}
+                  onCommit={(next) => onSetValue(variable.name, next)}
+                >
                   <span className="chip-value">{isUnset ? "unset" : value}</span>
-                )}
+                </InlineEditableText>
               </div>
             </Tooltip>
           );
@@ -299,24 +292,17 @@ const EditorVariablesPanel = ({
         {!readOnly &&
           (addOpen ? (
             <div className="variable-add">
-              <input
-                ref={addInputRef}
+              <InlineEditableText
                 className="add-input"
-                value={addName}
+                value=""
+                editing
+                unstyled
                 placeholder="variable name"
-                aria-label="New variable name"
-                onChange={(e) =>
-                  setAddName(e.target.value.replace(/[^\w]/g, ""))
-                }
-                onBlur={commitAdd}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    commitAdd();
-                  } else if (e.key === "Escape") {
-                    setAddName("");
-                    setAddOpen(false);
-                  }
-                }}
+                ariaLabel="New variable name"
+                sanitize={sanitizeVariableName}
+                onEditingChange={closeAdd}
+                onCommit={commitAdd}
+                onCancel={() => setAddOpen(false)}
               />
             </div>
           ) : (

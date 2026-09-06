@@ -1,3 +1,4 @@
+import type { Theme } from "@mui/material/styles";
 import {
   FONT_WEIGHT,
   FONT_SIZE_SANS,
@@ -7,7 +8,8 @@ import {
   reducedMotion,
   Z_INDEX,
   BORDER_RADIUS,
-  CONTROL
+  CONTROL,
+  SHADOW
 } from "../tokens";
 
 describe("design token constants", () => {
@@ -219,6 +221,53 @@ describe("design token constants", () => {
 
     it("contains exactly eight entries", () => {
       expect(Object.keys(BORDER_RADIUS)).toHaveLength(8);
+    });
+  });
+
+  describe("SHADOW", () => {
+    const theme = {
+      vars: { palette: { common: { blackChannel: "0 0 0" } } }
+    } as unknown as Theme;
+
+    it("exposes the elevation levels and the two panel edges", () => {
+      expect(Object.keys(SHADOW(theme))).toEqual([
+        "ambient",
+        "sm",
+        "md",
+        "lg",
+        "xl",
+        "panelLeft",
+        "panelRight"
+      ]);
+    });
+
+    it("takes its color from the palette, never an rgba(0, 0, 0) literal", () => {
+      for (const shadow of Object.values(SHADOW(theme))) {
+        expect(shadow).toContain("rgba(0 0 0 / ");
+        expect(shadow).not.toMatch(/rgba\(\s*0\s*,/);
+      }
+    });
+
+    it("falls back to black when the palette has no channel", () => {
+      const bare = { vars: { palette: { common: {} } } } as unknown as Theme;
+      expect(SHADOW(bare).lg).toContain("rgba(0 0 0 / ");
+    });
+
+    it("gets heavier from sm through xl", () => {
+      const { sm, md, lg, xl } = SHADOW(theme);
+      const blur = (s: string) => Number(s.split(" ")[2].replace("px", ""));
+      expect(blur(sm)).toBeLessThan(blur(md));
+      expect(blur(md)).toBeLessThan(blur(lg));
+      expect(blur(lg)).toBeLessThan(blur(xl));
+    });
+
+    it("ambient has no directional offset", () => {
+      expect(SHADOW(theme).ambient.startsWith("0 0 ")).toBe(true);
+    });
+
+    it("panel edges point away from their panel", () => {
+      expect(SHADOW(theme).panelLeft.startsWith("4px 0 ")).toBe(true);
+      expect(SHADOW(theme).panelRight.startsWith("-4px 0 ")).toBe(true);
     });
   });
 });

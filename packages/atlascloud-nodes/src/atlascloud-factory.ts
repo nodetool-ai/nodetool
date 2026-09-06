@@ -25,8 +25,6 @@ import {
   mapPromptAssetsToInputs
 } from "@nodetool-ai/runtime";
 import type {
-  AssetMediaKind,
-  MediaRefValue,
   PromptAssetInputField,
   PromptAssetTextField
 } from "@nodetool-ai/runtime";
@@ -93,8 +91,21 @@ export interface AtlasManifestEntry {
   fields: AtlasFieldDef[];
 }
 
-const ASSET_TYPES = new Set<AtlasFieldType>(["image", "video", "audio"]);
-const LIST_ASSET_RE = /^list\[(image|video|audio)\]$/;
+/** The three media kinds an AtlasCloud field can carry. */
+export type AtlasAssetKind = "image" | "video" | "audio";
+
+/** True for a single-asset field type. */
+function isAssetFieldType(type: AtlasFieldType): type is AtlasAssetKind {
+  return type === "image" || type === "video" || type === "audio";
+}
+
+/** The asset kind a `list[...]` field wraps, or null for any other field. */
+function listAssetKind(type: AtlasFieldType): AtlasAssetKind | null {
+  if (type === "list[image]") return "image";
+  if (type === "list[video]") return "video";
+  if (type === "list[audio]") return "audio";
+  return null;
+}
 
 /**
  * In-flight raw-RGBA images (protocol `RAW_RGBA_MIME`) carry straight-alpha
@@ -121,6 +132,11 @@ type AssetRef = {
 
 type StorageLike = {
   retrieve: (uri: string) => Promise<Uint8Array | null> | Uint8Array | null;
+  store?: (
+    key: string,
+    bytes: Uint8Array,
+    mime?: string
+  ) => Promise<string>;
 };
 
 type ProcessContext = Parameters<BaseNode["process"]>[0] & {
@@ -133,9 +149,46 @@ type ProcessContext = Parameters<BaseNode["process"]>[0] & {
   ) => Promise<{ bytes: Uint8Array | null }>;
 };
 
-function looksLikePublicUrl(s: unknown): s is string {
-  if (typeof s !== "string") return false;
-  return isSafeHttpUrl(s);
+/** The JSON body posted to AtlasCloud's submit endpoint. */
+type AtlasRequestInput = Record<string, NodeValue>;
+
+/** The single `output` slot every AtlasCloud node emits. */
+type AtlasNodeOutput = {
+  output: { type: "image" | "video"; uri: string; data?: string };
+};
+
+/** Narrow a node property value to a string. */
+function isStringValue(value: NodeValue): value is string {
+  return typeof value === "string";
+}
+
+/** Narrow a node property value to a number. */
+function isNumberValue(value: NodeValue): value is number {
+  return typeof value === "number";
+}
+
+/** Narrow a node property value to a boolean. */
+function isBooleanValue(value: NodeValue): value is boolean {
+  return typeof value === "boolean";
+}
+
+/** Narrow a node property value to a media ref object (not a list or bytes). */
+function isAssetRef(value: NodeValue): value is AssetRef {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    !(value instanceof Uint8Array)
+  );
+}
+
+/** True when a ref's `data` slot holds a non-empty inline payload string. */
+function isInlineText(data: string | Uint8Array | undefined): data is string {
+  return typeof data === "string" && data.length > 0;
+}
+
+function looksLikePublicUrl(s: string | undefined): boolean {
+  return s !== undefined && isSafeHttpUrl(s);
 }
 
 /**
@@ -311,14 +364,14 @@ function isRawRgba(ref: AssetRef): boolean {
  * absent optional input — not something to fail the node over.
  */
 function isEmptyAssetRef(ref: AssetRef): boolean {
-  if (typeof ref.uri === "string" && ref.uri.trim() !== "") return false;
-  if (typeof ref.data === "string" && ref.data.length > 0) return false;
+  if ((ref.uri ?? "").trim() !== "") return false;
+  if (isInlineText(ref.data)) return false;
   if (ref.data instanceof Uint8Array && ref.data.byteLength > 0) return false;
   return ref.asset_id == null || ref.asset_id === "";
 }
 
-function isHttpUri(uri: unknown): boolean {
-  return typeof uri === "string" && /^https?:\/\//i.test(uri);
+function isHttpUri(uri: string | undefined): boolean {
+  return uri !== undefined && /^https?:\/\//i.test(uri);
 }
 
 /**
@@ -327,35 +380,35 @@ function isHttpUri(uri: unknown): boolean {
  * URI. Returns null when the ref is empty/undefined.
  */
 export async function resolveAssetForAtlas(
-  ref: unknown,
+  ref: NodeValue,
   context: ProcessContext | undefined,
-  fieldType: "image" | "video" | "audio"
+  fieldType: AtlasAssetKind
 ): Promise<string | null> {
   if (!ref) return null;
 
   // Bare string the user pasted in: a public URL, or a data: URI which is
   // already the exact shape the API wants.
-  if (typeof ref === "string") {
+  if (isStringValue(ref)) {
     if (ref.startsWith("data:")) return ref;
     return looksLikePublicUrl(ref) ? ref : null;
   }
 
-  if (typeof ref !== "object") return null;
-  const r = ref as AssetRef;
+  if (!isAssetRef(ref)) return null;
+  const r = ref;
 
   // An asset input left empty is an absent optional input, not a broken one.
   if (isEmptyAssetRef(r)) return null;
 
-  if (looksLikePublicUrl(r.uri)) return r.uri as string;
-  // Read uri fresh from ref: the looksLikePublicUrl predicate above narrowed
-  // r.uri away, so a typeof check re-establishes the string type here.
-  const rawUri = (ref as AssetRef).uri;
-  if (typeof rawUri === "string" && rawUri.startsWith("data:")) return rawUri;
+  const rawUri = r.uri;
+  if (rawUri !== undefined) {
+    if (looksLikePublicUrl(rawUri)) return rawUri;
+    if (rawUri.startsWith("data:")) return rawUri;
+  }
 
   // Inline bytes, except raw-RGBA pixels — those are not an encoded image and
   // must go through the canonical resolver's PNG encoder below.
   if (!isRawRgba(r)) {
-    if (typeof r.data === "string" && r.data.length > 0) {
+    if (isInlineText(r.data)) {
       return r.data.startsWith("data:")
         ? r.data
         : `data:${resolvedMime(r, fieldType)};base64,${r.data}`;
@@ -379,10 +432,8 @@ export async function resolveAssetForAtlas(
   // path below and are never routed through it.
   //
   const uri = rawUri;
-  const assetId =
-    typeof r.asset_id === "string" && r.asset_id.trim() !== ""
-      ? r.asset_id.trim()
-      : null;
+  const trimmedAssetId = r.asset_id?.trim() ?? "";
+  const assetId = trimmedAssetId !== "" ? trimmedAssetId : null;
   // Map an internal-ref URI to the argument resolveAssetBytes expects, or null
   // when it isn't one. asset:// / package:// / memory:// are passed verbatim
   // (resolveAssetBytes recognizes each scheme); the `/api/storage/<key>` HTTP
@@ -405,7 +456,7 @@ export async function resolveAssetForAtlas(
   };
   if (context?.resolveAssetBytes) {
     const candidate =
-      (typeof uri === "string" ? internalRefCandidate(uri) : null) ??
+      (uri !== undefined ? internalRefCandidate(uri) : null) ??
       (assetId ? `asset://${assetId}` : null);
     if (candidate) {
       const { bytes } = await context.resolveAssetBytes(candidate);
@@ -442,10 +493,7 @@ export async function resolveAssetForAtlas(
   // loadMediaRefBytes downloads http(s) unguarded. Routing those through it
   // would hand back the SSRF hole isSafeHttpUrl exists to close.
   if (!isHttpUri(r.uri)) {
-    const bytes = await loadMediaRefBytes(
-      ref as MediaRefValue,
-      context
-    );
+    const bytes = await loadMediaRefBytes(r, context);
     if (bytes && bytes.byteLength > 0) {
       return bytesToDataUri(bytes, resolvedMime(r, fieldType));
     }
@@ -480,18 +528,18 @@ export async function resolveAssetForAtlas(
 function coerceScalar(v: NodeValue, type: AtlasFieldType): NodeValue {
   switch (type) {
     case "int": {
-      if (typeof v === "number") return Math.trunc(v);
+      if (isNumberValue(v)) return Math.trunc(v);
       const n = parseInt(String(v), 10);
       return Number.isNaN(n) ? null : n;
     }
     case "float": {
-      if (typeof v === "number") return v;
+      if (isNumberValue(v)) return v;
       const f = parseFloat(String(v));
       return Number.isNaN(f) ? null : f;
     }
     case "bool": {
-      if (typeof v === "boolean") return v;
-      if (typeof v === "string") return v.toLowerCase() === "true";
+      if (isBooleanValue(v)) return v;
+      if (isStringValue(v)) return v.toLowerCase() === "true";
       return Boolean(v);
     }
     default:
@@ -504,11 +552,11 @@ function computeFieldClassification(fields: AtlasFieldDef[]) {
 }
 
 /** Whether an asset ref already points at a source (so a mention shouldn't fill it). */
-function refHasSource(value: unknown): boolean {
-  if (!value || typeof value !== "object") return false;
-  const r = value as AssetRef & { asset_id?: unknown };
-  if (typeof r.uri === "string" && r.uri.trim() !== "") return true;
-  if (typeof r.data === "string" && r.data.length > 0) return true;
+function refHasSource(value: NodeValue): boolean {
+  if (!isAssetRef(value)) return false;
+  const r = value;
+  if ((r.uri ?? "").trim() !== "") return true;
+  if (isInlineText(r.data)) return true;
   if (r.data instanceof Uint8Array && r.data.byteLength > 0) return true;
   return r.asset_id != null && r.asset_id !== "";
 }
@@ -520,29 +568,29 @@ function refHasSource(value: unknown): boolean {
  * lets a Seedance reference-to-video node pull its reference image, audio track
  * and video clip straight from the prompt's @-mentions.
  */
-function promptAssetOverrides(
+async function promptAssetOverrides(
   instance: BaseNode,
   spec: AtlasManifestEntry,
   context: ProcessContext | undefined
-): Promise<Record<string, unknown>> {
+): Promise<Record<string, NodeValue>> {
   const textFields: PromptAssetTextField[] = [];
   const assetFields: PromptAssetInputField[] = [];
   for (const field of spec.fields) {
     const value = propertyOf(instance, field.name);
-    if (ASSET_TYPES.has(field.type)) {
+    if (isAssetFieldType(field.type)) {
       assetFields.push({
         name: field.name,
-        kind: field.type as AssetMediaKind,
+        kind: field.type,
         list: false,
         hasSource: refHasSource(value)
       });
       continue;
     }
-    const listMatch = LIST_ASSET_RE.exec(field.type);
-    if (listMatch) {
+    const listKind = listAssetKind(field.type);
+    if (listKind) {
       assetFields.push({
         name: field.name,
-        kind: listMatch[1] as AssetMediaKind,
+        kind: listKind,
         list: true,
         hasSource: Array.isArray(value) && value.some(refHasSource)
       });
@@ -552,7 +600,15 @@ function promptAssetOverrides(
       textFields.push({ name: field.name, value: String(value ?? "") });
     }
   }
-  return mapPromptAssetsToInputs(textFields, assetFields, context);
+  const overrides = await mapPromptAssetsToInputs(
+    textFields,
+    assetFields,
+    context
+  );
+  // SAFETY: mapPromptAssetsToInputs only writes back what it read off this
+  // node's own inputs — rewritten prompt strings and media refs — so every
+  // value is a node property value, the shapes `NodeValue` names.
+  return overrides as Record<string, NodeValue>;
 }
 
 /**
@@ -562,10 +618,10 @@ function promptAssetOverrides(
  * audio.
  */
 function appendWrapped(
-  input: Record<string, unknown>,
+  input: AtlasRequestInput,
   key: string,
   urls: string[],
-  kind: "image" | "video" | "audio"
+  kind: AtlasAssetKind
 ): void {
   const existing = input[key];
   const bucket = Array.isArray(existing) ? existing : [];
@@ -581,25 +637,19 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
   const specRef = spec;
 
   const AtlasNodeClass = class extends BaseNode {
-    async process(
-      context?: ProcessContext
-    ): Promise<Record<string, unknown>> {
+    async process(context?: ProcessContext): Promise<AtlasNodeOutput> {
       const apiKey = getApiKey(this._secrets);
-      const input: Record<string, unknown> = {};
+      const input: AtlasRequestInput = {};
 
       const overrides = await promptAssetOverrides(this, specRef, context);
-      // SAFETY: both sources hold node property values, and NodeTool restricts
-      // those to its own property types — the shapes `NodeValue` names.
       const readValue = (name: string): NodeValue =>
-        (name in overrides
-          ? overrides[name]
-          : propertyOf(this, name)) as NodeValue;
+        name in overrides ? overrides[name] : propertyOf(this, name);
 
       for (const f of specRef.fields) {
         const v = readValue(f.name);
 
-        if (ASSET_TYPES.has(f.type)) {
-          const inner = f.type as "image" | "video" | "audio";
+        if (isAssetFieldType(f.type)) {
+          const inner = f.type;
           const resolved =
             v == null ? null : await resolveAssetForAtlas(v, context, inner);
           if (resolved !== null) {
@@ -618,9 +668,9 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
 
         if (v === undefined || v === null) continue;
 
-        const listMatch = LIST_ASSET_RE.exec(f.type);
-        if (listMatch) {
-          const inner = listMatch[1] as "image" | "video" | "audio";
+        const listKind = listAssetKind(f.type);
+        if (listKind) {
+          const inner = listKind;
           if (!Array.isArray(v)) continue;
           const resolved: string[] = [];
           for (const item of v) {
@@ -637,7 +687,7 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
           continue;
         }
 
-        if (typeof v === "string" && v === "") continue;
+        if (v === "") continue;
         input[f.name] = coerceScalar(v, f.type);
       }
 
@@ -666,10 +716,7 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
       const mime = isVideo ? "video/mp4" : "image/png";
       const filename = `atlascloud-${specRef.outputType}-${Date.now()}.${ext}`;
 
-      const storage = context?.storage as
-        | { store?: (k: string, b: Uint8Array, m?: string) => Promise<string> }
-        | null
-        | undefined;
+      const storage = context?.storage;
       if (storage?.store) {
         try {
           const storageUri = await storage.store(filename, bytes, mime);

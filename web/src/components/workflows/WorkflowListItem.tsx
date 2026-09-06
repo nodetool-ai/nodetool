@@ -10,7 +10,7 @@ import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
-import { FavoriteButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { FavoriteButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box, BORDER_RADIUS, FONT_WEIGHT, InlineEditableText, SPACING, getSpacingPx } from "../ui_primitives";
 import { WorkflowTriggerIndicator } from "./WorkflowTriggerIndicator";
 
 // Single-click on the row opens the workflow. Double-clicking the name renames
@@ -55,7 +55,6 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   const { toggleFavorite } = useFavoriteWorkflowActions();
 
   const [isEditing, setIsEditing] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cancelPendingOpen = useCallback(() => {
@@ -111,32 +110,11 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     [cancelPendingOpen]
   );
 
-  const handleNameChange = useCallback(
+  const handleRename = useCallback(
     (newName: string) => {
-      if (newName.trim() && newName !== workflow.name) {
-        onRename(workflow, newName.trim());
-      }
-      setIsEditing(false);
+      onRename(workflow, newName);
     },
     [onRename, workflow]
-  );
-
-  const handleNameKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
-        handleNameChange(e.currentTarget.value);
-      } else if (e.key === "Escape") {
-        setIsEditing(false);
-      }
-    },
-    [handleNameChange]
-  );
-
-  const handleNameBlur = useCallback(
-    (e: React.FocusEvent<HTMLInputElement>) => {
-      handleNameChange(e.target.value);
-    },
-    [handleNameChange]
   );
 
   const handleCheckboxClick = useCallback(
@@ -148,26 +126,13 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     [onSelect, workflow]
   );
 
-  const handleInputFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.select();
-  }, []);
-
-  const handleInputClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-  }, []);
-
-  const inputStyle = useMemo(
+  const inputSx = useMemo(
     () => ({
-      background: "transparent",
       border: "1px solid var(--palette-primary-main)",
-      borderRadius: BORDER_RADIUS.sm,
-      color: "inherit",
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
-      fontSize: "inherit",
-      fontWeight: 500,
+      fontWeight: FONT_WEIGHT.medium,
       lineHeight: "2em",
-      width: "calc(100% - 140px)",
-      outline: "none"
+      width: "calc(100% - 140px)"
     }),
     []
   );
@@ -289,20 +254,14 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             label={workflow.name}
           />
         )}
-        {isEditing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            defaultValue={workflow.name}
-            aria-label="Workflow name"
-            autoFocus
-            onFocus={handleInputFocus}
-            onBlur={handleNameBlur}
-            onKeyDown={handleNameKeyDown}
-            onClick={handleInputClick}
-            style={inputStyle}
-          />
-        ) : (
+        <InlineEditableText
+          value={workflow.name}
+          editing={isEditing}
+          onEditingChange={setIsEditing}
+          onCommit={handleRename}
+          ariaLabel="Workflow name"
+          sx={inputSx}
+        >
           <Text
             className="name"
             size="small"
@@ -313,7 +272,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           >
             {workflow.name}
           </Text>
-        )}
+        </InlineEditableText>
         <Box className="actions">
           <FavoriteButton
             isFavorite={isFavorite}

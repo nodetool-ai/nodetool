@@ -10,10 +10,7 @@
 
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
-
-export const DEFAULT_CONCURRENCY = 3;
-
-export const MAX_CONCURRENCY = 8;
+import { DEFAULT_CONCURRENCY, MAX_CONCURRENCY } from "./concurrency.js";
 
 export const SHOT_TARGETS_SCHEMA = {
   type: "array" as const,

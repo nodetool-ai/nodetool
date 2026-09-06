@@ -8,27 +8,18 @@ import React, { memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import {
+  AutoGrid,
   BORDER_RADIUS,
   Caption,
   Dialog,
   EmptyState,
   FlexRow,
   LoadingSpinner,
-  SPACING,
-  getSpacingPx
+  SPACING
 } from "../ui_primitives";
 import type { Asset } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
 import ImageRefPreview from "../node/ImageRefPreview";
-
-const gridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-  gap: getSpacingPx(SPACING.md),
-  width: "100%",
-  maxHeight: "60vh",
-  overflow: "auto"
-};
 
 interface EntityAssetPickerDialogProps {
   open: boolean;
@@ -89,7 +80,11 @@ const EntityAssetPickerDialogInternal: React.FC<
           size="small"
         />
       ) : (
-        <div style={gridStyle}>
+        <AutoGrid
+          minItemWidth={180}
+          gap={SPACING.md}
+          sx={{ width: "100%", maxHeight: "60vh", overflow: "auto" }}
+        >
           {assets.map((asset) => (
             <button
               key={asset.id}
@@ -125,7 +120,7 @@ const EntityAssetPickerDialogInternal: React.FC<
               </Caption>
             </button>
           ))}
-        </div>
+        </AutoGrid>
       )}
     </Dialog>
   );

@@ -573,7 +573,7 @@ In TSX, `design-tokens/motion-tokens` flags any object-literal `transition` / `a
 
 ---
 
-## 6. Z-Index
+## 6. Depth — Z-Index and Elevation
 
 Two separate scales serve two different concerns:
 - **`Z_INDEX`** — in-content stacking layers (dropdowns, overlays, modals, tooltips, toasts within the NodeTool UI)
@@ -624,6 +624,37 @@ Arbitrary integers (`9999` in new component code, `1000`, `2`, `5`) outside of `
 ### Enforcement (z-index is fully linted at `error`)
 
 Zero violations — locked in at **`error`**. `design-tokens/zindex-tokens` flags any object-literal `zIndex` whose value is a positive number (or numeric string); `0` (normal flow) and negative values are allowed, as are values built from `Z_INDEX.*` / `theme.zIndex.*`. A few surfaces sit above the shared scale and have no matching tier (e.g. a full-screen compositor modal, the node-info panel); these use a documented module-level constant that preserves the exact stacking value — the rule accepts the named reference, and the constant name records intent. The `.css` surface is not linted (z-index rarely appears in the plain `.css` files); the check is TSX-only.
+
+### SHADOW — elevation
+
+`SHADOW(theme)` is the elevation scale. It is a helper rather than a const map
+because the shadow color comes from the palette (`common.blackChannel`), not an
+`rgba(0, 0, 0, …)` literal.
+
+```ts
+import { SHADOW } from "../ui_primitives";
+
+boxShadow: SHADOW(theme).lg
+```
+
+| Token | Value | Use |
+|---|---|---|
+| `SHADOW(theme).ambient` | `0 0 5px 1px` @ 25% | Halo with no offset — slider thumbs, small round controls |
+| `SHADOW(theme).sm` | `0 1px 3px` @ 30% | Resting lift — chips, badges, small buttons |
+| `SHADOW(theme).md` | `0 4px 12px` @ 35% | Hover lift, small popovers |
+| `SHADOW(theme).lg` | `0 8px 32px` @ 40% | Dropdowns, menus, floating panels, dialogs |
+| `SHADOW(theme).xl` | `0 16px 64px` @ 45% | Modals and full-screen overlays |
+| `SHADOW(theme).panelLeft` | `4px 0 8px` @ 5% | Left panel's right edge |
+| `SHADOW(theme).panelRight` | `-4px 0 8px` @ 5% | Right panel's left edge |
+
+### Forbidden
+
+Literal drop shadows — `boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"` — which
+hardcode both a depth and a color. Focus and selection rings (`0 0 0 2px
+${theme.vars.palette.primary.main}`) and `inset` shadows are borders, not
+elevation, and stay outside this scale.
+
+---
 
 ---
 
@@ -721,6 +752,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 | `margin: "5px"` etc. | Same snapping rules as padding/gap |
 | `zIndex: 9999` in a component | `Z_INDEX.toast` or `theme.zIndex.commandMenu` |
 | `zIndex: 1000` | `Z_INDEX.overlay` or `theme.zIndex.mobileStepper` |
+| `boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"` | `SHADOW(theme).lg` |
 | Raw `#hex` / `rgb()` color in sx | `theme.vars.palette.*` token |
 | `<Typography>` | `<Text>`, `<Label>`, or `<Caption>` |
 | `display: "flex"` in sx | `<FlexRow>` or `<FlexColumn>` |
@@ -737,6 +769,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 4. **Border radius**: Add a new `BORDER_RADIUS.*` entry in `tokens.ts` and a corresponding `--rounded-*` CSS var in `ThemeNodetool.tsx` `MuiCssBaseline`.
 5. **Motion**: If a new timing is needed, add to `MOTION` in `tokens.ts` as a named constant — never use the value inline. Transitions use the `fast`/`normal`/`slow` tiers or a property shorthand; infinite `@keyframes` loops use `MOTION.spin` (1s linear) / `MOTION.pulse` (2s ease-in-out) rather than a sub-second tier. New animated components must also include a `reducedMotion()` override.
 6. **Z-index**: Add to `Z_INDEX` in `tokens.ts` or to `theme.zIndex` in `ThemeNodetool.tsx`. Never use a raw integer.
+7. **Elevation**: Reuse a `SHADOW` level. Add one only when a surface needs a depth the scale cannot express, and give it a role name, not a number.
 
 ---
 
@@ -772,6 +805,6 @@ Some systems separate `duration.fast = 120ms` from `easing.standard = ease` to a
 - **[UI Primitives EXAMPLES](../web/src/components/ui_primitives/EXAMPLES.md)** — Practical code examples for every primitive
 - **[Development Standards §5](DEVELOPMENT_STANDARDS.md#5-mui-v7--emotion--ui-primitives)** — Enforceable MUI/primitives/token rules
 - **[ThemeNodetool.tsx](../web/src/components/themes/ThemeNodetool.tsx)** — MUI theme, CSS variable definitions, component overrides
-- **[tokens.ts](../web/src/components/ui_primitives/tokens.ts)** — TYPOGRAPHY, MOTION, Z_INDEX, BORDER_RADIUS, reducedMotion, scrollbarStyles
+- **[tokens.ts](../web/src/components/ui_primitives/tokens.ts)** — TYPOGRAPHY, MOTION, Z_INDEX, BORDER_RADIUS, SHADOW, reducedMotion, scrollbarStyles
 - **[spacing.ts](../web/src/components/ui_primitives/spacing.ts)** — SPACING, GAP, PADDING, MARGIN, snapSpacing
 - **[DTCG Specification](https://www.designtokens.org/tr/2025.10/format/)** — W3C Design Tokens Format v2025.10 (stable). Reference if cross-tool token export is ever needed.

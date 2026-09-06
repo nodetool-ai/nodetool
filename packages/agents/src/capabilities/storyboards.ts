@@ -63,10 +63,9 @@ import {
   editStoryboardSpec,
   directStoryboardSpec,
   extractScriptFromStoryboardSpec,
-  DEFAULT_CONCURRENCY,
-  MAX_CONCURRENCY,
   deleteStoryboardSpec
 } from "./storyboards.specs.js";
+import { clampConcurrency, mapWithConcurrency } from "./concurrency.js";
 import {
   isNonBlankString,
   isNumber,
@@ -264,12 +263,6 @@ function selectShots(
     if (!selected.includes(shot)) selected.push(shot);
   }
   return selected;
-}
-
-function clampConcurrency(value: unknown): number {
-  const n = Math.floor(Number(value));
-  if (!Number.isFinite(n) || n < 1) return DEFAULT_CONCURRENCY;
-  return Math.min(n, MAX_CONCURRENCY);
 }
 
 /**

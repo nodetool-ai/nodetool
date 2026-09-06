@@ -9,6 +9,18 @@ import {
   MINIMAX_IMAGE_ASPECTS,
   minimaxHeaders
 } from "../minimax-base.js";
+import type { MinimaxResponse } from "../minimax-base.js";
+
+/**
+ * `/v1/image_generation` reply. Which of the two carriers is populated depends
+ * on `response_format`, so both stay optional.
+ */
+interface MinimaxImageResponse extends MinimaxResponse {
+  data?: {
+    image_base64?: string[];
+    image_urls?: string[];
+  };
+}
 
 /** Output handles MinimaxTextToImageNode.process() emits. */
 type MinimaxTextToImageNodeOutputs = {
@@ -92,7 +104,7 @@ export class MinimaxTextToImageNode extends BaseNode {
       n: 1,
       response_format: "base64",
       prompt_optimizer: Boolean(this.prompt_optimizer ?? true)
-    } satisfies Record<string, unknown>;
+    };
 
     const res = await fetch(`${MINIMAX_BASE_URL}/v1/image_generation`, {
       method: "POST",
@@ -104,17 +116,17 @@ export class MinimaxTextToImageNode extends BaseNode {
         `MiniMax image_generation failed: ${res.status} ${await res.text()}`
       );
     }
-    const data = (await res.json()) as Record<string, unknown>;
+    const data: MinimaxImageResponse = await res.json();
     assertBaseResp(data, "image_generation");
 
-    const payload = data.data as Record<string, unknown> | undefined;
-    const b64List = payload?.image_base64 as string[] | undefined;
+    const payload = data.data;
+    const b64List = payload?.image_base64;
     if (b64List && b64List.length > 0) {
       const bytes = new Uint8Array(Buffer.from(b64List[0], "base64"));
       return { output: imageRefFromBytes(bytes) };
     }
 
-    const urls = payload?.image_urls as string[] | undefined;
+    const urls = payload?.image_urls;
     if (urls && urls.length > 0) {
       // Provider-returned download URL — screened like every other one.
       const dl = await safeFetch(urls[0]);

@@ -42,9 +42,21 @@ export default function NodeToolHero() {
 
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-slate-300">
             Create and edit images, video, audio, and text with agents that work
-            alongside you. Let them build and revise workflows, then inspect and edit
-            the results yourself. Your project keeps the brief, assets, and edits
-            together.
+            alongside you. Describe what you want, let the agent build it, then
+            take over whenever you like. Refine a shot, try a different voice, or
+            rework the cut, yourself or with the agent.
+          </p>
+
+          <p className="mt-4 max-w-lg leading-relaxed text-slate-400">
+            You get an editable project, not just a finished file. Your
+            workflows, assets, and edits stay together, so you can inspect how
+            something was made and change individual parts without starting
+            over.
+          </p>
+
+          <p className="mt-4 max-w-lg leading-relaxed text-slate-400">
+            Run local models or connect cloud providers with your own API keys.
+            Choose your models and pay providers directly.
           </p>
 
           <div className="mt-7 flex">

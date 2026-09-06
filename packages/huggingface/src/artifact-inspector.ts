@@ -11,6 +11,14 @@
 
 import * as fs from "fs";
 import { detectModel } from "./safetensors-inspector.js";
+import {
+  jsonArray,
+  jsonString,
+  parseJsonObject,
+  type JsonObject,
+  type JsonValue
+} from "./json.js";
+import { tableLookup } from "./lookup.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -236,9 +244,7 @@ function skipGgufValue(fd: number, valueType: number): void {
  * Maps known diffusers pipeline class names to { family, component } pairs.
  * Exact string matching avoids the fragility of substring checks.
  */
-const _PIPELINE_CLASS_DETECTION: Readonly<
-  Record<string, { family: string; component: string }>
-> = {
+const _PIPELINE_CLASS_DETECTION = {
   StableDiffusionPipeline: { family: "stable-diffusion", component: "unet" },
   StableDiffusionImg2ImgPipeline: {
     family: "stable-diffusion",
@@ -273,7 +279,7 @@ const _PIPELINE_CLASS_DETECTION: Readonly<
   QwenImageEditPlusPipeline: { family: "qwen-image", component: "transformer" },
   PixArtAlphaPipeline: { family: "pixart-alpha", component: "transformer" },
   PixArtSigmaPipeline: { family: "pixart-sigma", component: "transformer" }
-};
+} satisfies Readonly<Record<string, { family: string; component: string }>>;
 
 /**
  * Infer family/component from config.json or model_index.json files.
@@ -291,21 +297,22 @@ export function detectFromJson(
 
     // Handle _class_name as a string (real diffusers model_index.json format).
     // Use an exact lookup table to avoid fragile substring ordering.
-    if (typeof mi._class_name === "string") {
-      const detection = _PIPELINE_CLASS_DETECTION[mi._class_name];
+    const className = jsonString(mi._class_name);
+    if (className !== null) {
+      const detection = tableLookup(_PIPELINE_CLASS_DETECTION, className);
       if (detection) {
         return {
           family: detection.family,
           component: detection.component,
           confidence: 0.75,
-          evidence: [`model_index.json _class_name: ${mi._class_name}`]
+          evidence: [`model_index.json _class_name: ${className}`]
         };
       }
     }
 
-    const pipelines = mi.pipelines || mi._class_name;
-    if (Array.isArray(pipelines)) {
-      const pipelineStrs = pipelines.map((p: unknown) =>
+    const pipelines = jsonArray(mi.pipelines) ?? jsonArray(mi._class_name);
+    if (pipelines) {
+      const pipelineStrs = pipelines.map((p: JsonValue) =>
         String(p).toLowerCase()
       );
       if (
@@ -320,9 +327,9 @@ export function detectFromJson(
       }
     }
     if (mi.transformers) {
-      const tfms = mi.transformers;
-      if (Array.isArray(tfms)) {
-        const names = tfms.map((t: unknown) => String(t).toLowerCase());
+      const tfms = jsonArray(mi.transformers);
+      if (tfms) {
+        const names = tfms.map((t: JsonValue) => String(t).toLowerCase());
         if (names.some((n: string) => n.includes("cliptextmodel"))) {
           return {
             family: "clip-text-encoder",
@@ -338,9 +345,8 @@ export function detectFromJson(
   // Inspect configs (HuggingFace transformer configs)
   for (const cfg of configs) {
     if (!cfg) continue;
-    const modelType = String(cfg.model_type || "").toLowerCase();
-    const rawArchs = cfg.architectures;
-    const archs = (Array.isArray(rawArchs) ? rawArchs : []).map((a: unknown) =>
+    const modelType = String(cfg.model_type ?? "").toLowerCase();
+    const archs = (jsonArray(cfg.architectures) ?? []).map((a: JsonValue) =>
       String(a).toLowerCase()
     );
     if (modelType || archs.length > 0) {
@@ -496,10 +502,9 @@ export function familyFromModelType(
 // Helpers
 // ---------------------------------------------------------------------------
 
-function safeLoadJson(filePath: string): Record<string, unknown> | null {
+function safeLoadJson(filePath: string): JsonObject | null {
   try {
-    const content = fs.readFileSync(filePath, "utf-8");
-    return JSON.parse(content);
+    return parseJsonObject(fs.readFileSync(filePath, "utf-8"));
   } catch {
     return null;
   }

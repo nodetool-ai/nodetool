@@ -15,8 +15,8 @@ import {
   FlexRow,
   FlexColumn,
   EditorButton,
-  SPACING,
-  getSpacingPx
+  AutoGrid,
+  SPACING
 } from "../ui_primitives";
 import {
   useEntities,
@@ -25,13 +25,6 @@ import {
 import EntityAssetPickerDialog from "./EntityAssetPickerDialog";
 import EntityCard from "./EntityCard";
 import EntityEditorDialog from "./EntityEditorDialog";
-
-const gridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-  gap: getSpacingPx(SPACING.md),
-  width: "100%"
-};
 
 const EntityLibraryInternal: React.FC = () => {
   const { data: entities, isLoading } = useEntities();
@@ -86,7 +79,7 @@ const EntityLibraryInternal: React.FC = () => {
       );
     }
     return (
-      <div style={gridStyle}>
+      <AutoGrid minItemWidth={180} gap={SPACING.md} sx={{ width: "100%" }}>
         {entities.map((entity) => (
           <EntityCard
             key={entity.id}
@@ -95,7 +88,7 @@ const EntityLibraryInternal: React.FC = () => {
             onRemove={handleRemove}
           />
         ))}
-      </div>
+      </AutoGrid>
     );
   }, [isLoading, entities, handleAdd, handleEdit, handleRemove]);
 

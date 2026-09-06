@@ -151,7 +151,10 @@ Only `gap` is written by hand; the sync derives the rest and preserves the
 notes. Each entry also carries a fingerprint of what the capability declares —
 name, description, input schema, category, `needsToolCallId` — which is what
 lets `harness gate --base <ref>` demand a mapping change from a contract change
-and nothing from a refactor. Details:
+and nothing from a refactor. The comparison is against the merge base of
+`<ref>` and HEAD, not `<ref>`'s tip, so a branch that is merely behind is not
+asked to answer for a contract that moved on the base branch meanwhile.
+Details:
 [packages/agents/AGENTS.md § Capability coverage](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md).
 
 ## The gate

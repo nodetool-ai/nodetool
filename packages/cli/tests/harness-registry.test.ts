@@ -6,7 +6,17 @@
  * build, not just a CLI run someone has to remember to make.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { execFileSync, execSync } from "node:child_process";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -21,6 +31,7 @@ import {
   auditCapabilityCoverage,
   extractCoverageBlocks,
   planCapabilityMappingGate,
+  resolveGateBaseRef,
   type CapabilityCoverageEntry,
   type DeclaredCapability
 } from "../src/harness/capability-coverage.js";
@@ -463,6 +474,9 @@ describe("capability coverage audit", () => {
 });
 
 describe("capability mapping gate", () => {
+  /** Where `harness gate` reads the table from, as git spells it. */
+  const TABLE_PATH = "packages/cli/src/harness/capability-table.ts";
+
   const table = (entries: string[]): string =>
     `export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [\n${entries.join(
       "\n"
@@ -601,6 +615,71 @@ describe("capability mapping gate", () => {
     expect(plan.surfaces.map((s) => s.id)).toContain("agent-capabilities");
     expect(plan.checks.map((c) => c.harnessId)).toContain("capability-suites");
     expect(plan.unmappedFiles).toEqual([]);
+  });
+
+  /**
+   * The shape that failed a PR touching no capability at all: the branch forks,
+   * `main` moves a contract, and reading the table at `main`'s tip charges that
+   * move to the branch. Both halves are asserted — the tip flags it, the merge
+   * base does not — so the fix cannot pass by comparing nothing.
+   */
+  it("reads the base table at the merge base, not the base branch tip", () => {
+    const repo = mkdtempSync(join(tmpdir(), "gate-base-"));
+    const git = (...args: string[]): string =>
+      execFileSync("git", ["-C", repo, ...args], { encoding: "utf8" });
+    const writeTable = (contract: string): void => {
+      mkdirSync(join(repo, "packages", "cli", "src", "harness"), {
+        recursive: true
+      });
+      writeFileSync(join(repo, TABLE_PATH), table([block("a", contract)]));
+    };
+    const commit = (message: string): void => {
+      git("add", "-A");
+      git("commit", "-m", message);
+    };
+
+    try {
+      git("init", "-b", "main");
+      git("config", "user.email", "gate@test.invalid");
+      git("config", "user.name", "gate");
+      git("config", "commit.gpgsign", "false");
+      // Windows: keep the blob and the working copy byte-identical, or the
+      // gate would see a line-ending change as a coverage change.
+      git("config", "core.autocrlf", "false");
+      writeTable("1111");
+      commit("base");
+      git("checkout", "-b", "feature");
+      writeFileSync(join(repo, "unrelated.ts"), "export const x = 1;\n");
+      commit("refactor that touches no capability");
+      git("checkout", "main");
+      writeTable("2222");
+      commit("contract change on main");
+      git("checkout", "feature");
+
+      const head = readFileSync(join(repo, TABLE_PATH), "utf8");
+      const at = (ref: string): string => git("show", `${ref}:${TABLE_PATH}`);
+      const runGit = (command: string): string =>
+        execSync(command, { cwd: repo, encoding: "utf8" });
+
+      expect(
+        planCapabilityMappingGate(at("main"), head).violations
+      ).toHaveLength(1);
+
+      const base = resolveGateBaseRef("main", runGit);
+      expect(base).toBe(git("rev-parse", "main~1").trim());
+      expect(planCapabilityMappingGate(at(base), head).violations).toEqual([]);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to the ref when there is no merge base", () => {
+    expect(
+      resolveGateBaseRef("origin/main", () => {
+        throw new Error("fatal: no merge base");
+      })
+    ).toBe("origin/main");
+    expect(resolveGateBaseRef("origin/main", () => "\n")).toBe("origin/main");
   });
 
   it("reports an unregistered capability-adjacent file", () => {

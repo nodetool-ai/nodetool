@@ -25,6 +25,16 @@ import type {
 } from "./types.js";
 import { validateWgslLinearity } from "./validate/wgslLinearity.js";
 
+/**
+ * One value `tgpu.resolve` can inline into WGSL — a schema, a layout, a
+ * buffer usage, a TypeGPU function. Read off the resolver's own signature so
+ * the two never drift.
+ */
+export type ResolveExternal = Parameters<typeof tgpu.resolve>[0][number];
+
+/** Named resolve externals, as `tgpu.resolve` takes them. */
+export type ResolveExternals = Record<string, ResolveExternal>;
+
 /** Host-capability constraints a variant requires (Phase 3 scaffolding). */
 export interface VariantRequirements {
   /** Requires `texture_external` binding (browser camera/video fast path). */
@@ -134,7 +144,7 @@ export interface ShaderModuleSpec<Schema extends AnyWgslStruct> {
    */
   wgsl: string;
   /** Extra resolve externals (shared snippets). The layout is auto-included. */
-  externals?: Record<string, object>;
+  externals?: ResolveExternals;
 
   /** Fragment entry point. Defaults to `"fs_main"` (fragment) / `"main"`. */
   entryPoint?: string;
@@ -155,7 +165,7 @@ export interface ShaderModuleSpec<Schema extends AnyWgslStruct> {
     requires?: VariantRequirements;
     layout: TgpuBindGroupLayout;
     wgsl: string;
-    externals?: Record<string, object>;
+    externals?: ResolveExternals;
     entryPoint?: string;
     samplers?: Record<string, GPUSamplerDescriptor>;
     workgroupSize?: readonly [number, number, number];

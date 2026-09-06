@@ -26,7 +26,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
-import { useReactFlow } from "@xyflow/react";
+import { useReactFlow, type XYPosition } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { labelForType } from "../../config/data_types";
@@ -38,7 +38,8 @@ import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import NodeItem from "../node_menu/NodeItem";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { useCodeGenFromHandle } from "../../hooks/useCodeGenFromHandle";
-import { isNumber, isString } from "../../utils/typePredicates";
+import { useHandleNodePlacement } from "../../hooks/useHandleNodePlacement";
+import { isNumber } from "../../utils/typePredicates";
 
 const NODE_ROW_HEIGHT = 28;
 
@@ -75,6 +76,8 @@ const OutputContextMenu: React.FC = () => {
       shallow
     );
   const reactFlowInstance = useReactFlow();
+  const { handleAnchor, initialPosition, alignNodeToAnchor } =
+    useHandleNodePlacement();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const allMetadata = useMetadataStore((state) => state.metadata);
 
@@ -154,10 +157,35 @@ const OutputContextMenu: React.FC = () => {
     []
   );
 
+  /**
+   * Where the new node belongs, in flow space.
+   *
+   * The output handle itself — not the menu row that was clicked, which sits
+   * an arbitrary distance away and flips side near a viewport edge. When the
+   * menu was opened by dropping a connection on the pane, the drop point is
+   * the anchor: the user pointed at a spot.
+   */
+  const anchorPosition = useCallback((): XYPosition | null => {
+    const dropPosition = (
+      payload as { dropPosition?: { x: number; y: number } } | null
+    )?.dropPosition;
+    if (dropPosition) {
+      return reactFlowInstance.screenToFlowPosition(dropPosition);
+    }
+    const fromHandle = nodeId
+      ? handleAnchor(nodeId, sourceHandle, "source")
+      : null;
+    if (fromHandle) {
+      return fromHandle;
+    }
+    return menuPosition
+      ? reactFlowInstance.screenToFlowPosition(menuPosition)
+      : null;
+  }, [handleAnchor, menuPosition, nodeId, payload, reactFlowInstance, sourceHandle]);
+
   const createNodeWithEdge = useCallback(
     (
       metadata: unknown,
-      anchor: { x: number; y: number },
       nodeType: string,
       targetHandle: string | null = null
     ) => {
@@ -165,30 +193,15 @@ const OutputContextMenu: React.FC = () => {
         console.info("Metadata is undefined, cannot create node.");
         return;
       }
+      const anchor = anchorPosition();
+      if (!anchor) {
+        return;
+      }
 
-      // Place the new node a short gap to the right of the output handle and
-      // vertically centered on it. Compute in flow space so the gap stays
-      // consistent regardless of zoom.
-      const extMeta = metadata as NodeMetadata & {
-        style?: { width?: number | string; height?: number | string };
-      };
-      const parseDim = (
-        value: number | string | undefined,
-        fallback: number
-      ): number => {
-        if (isNumber(value)) return value;
-        if (isString(value)) return parseInt(value, 10) || fallback;
-        return fallback;
-      };
-      const nodeHeight = parseDim(extMeta.style?.height, 200);
-      const flowAnchor = reactFlowInstance.screenToFlowPosition(anchor);
-      const GAP_X_FLOW = 40;
-      const flowPosition = {
-        x: flowAnchor.x + GAP_X_FLOW,
-        y: flowAnchor.y - nodeHeight / 2
-      };
-
-      const newNode = createNode(metadata as NodeMetadata, flowPosition);
+      const newNode = createNode(
+        metadata as NodeMetadata,
+        initialPosition(anchor)
+      );
 
       if (targetHandle) {
         newNode.data.dynamic_properties[targetHandle] = true;
@@ -228,10 +241,13 @@ const OutputContextMenu: React.FC = () => {
         type: "default",
         className: Slugify(sourceType?.type || "")
       });
+      alignNodeToAnchor(newNode.id, anchor, targetHandle);
     },
     [
+      alignNodeToAnchor,
+      anchorPosition,
       createNode,
-      reactFlowInstance,
+      initialPosition,
       addNode,
       getTargetHandle,
       addEdge,
@@ -242,123 +258,84 @@ const OutputContextMenu: React.FC = () => {
     ]
   );
 
-  const createPreviewNode = useCallback(
-    (event: React.MouseEvent) => {
-      const metadata = getMetadata(PREVIEW_NODE_TYPE);
-      if (!metadata) {
-        return;
-      }
-      createNodeWithEdge(
-        {
-          ...metadata,
-          style: {
-            width: "400px",
-            height: "300px"
-          }
-        },
-        { x: event.clientX, y: event.clientY },
-        "preview"
-      );
-    },
-    [getMetadata, createNodeWithEdge]
-  );
+  const createPreviewNode = useCallback(() => {
+    const metadata = getMetadata(PREVIEW_NODE_TYPE);
+    if (!metadata) {
+      return;
+    }
+    createNodeWithEdge(
+      { ...metadata, style: { width: "400px", height: "300px" } },
+      "preview"
+    );
+  }, [getMetadata, createNodeWithEdge]);
 
-  const createRerouteNode = useCallback(
-    (event: React.MouseEvent) => {
-      const metadata = getMetadata(REROUTE_NODE_TYPE);
-      if (!metadata) {
-        return;
-      }
-      createNodeWithEdge(
-        metadata,
-        { x: event.clientX, y: event.clientY },
-        "reroute",
-        "input_value"
-      );
-    },
-    [getMetadata, createNodeWithEdge]
-  );
+  const createRerouteNode = useCallback(() => {
+    const metadata = getMetadata(REROUTE_NODE_TYPE);
+    if (!metadata) {
+      return;
+    }
+    createNodeWithEdge(metadata, "reroute", "input_value");
+  }, [getMetadata, createNodeWithEdge]);
 
-  const createOutputNode = useCallback(
-    (event: React.MouseEvent) => {
-      if (!outputNodeMetadata) {
-        return;
-      }
-      createNodeWithEdge(
-        outputNodeMetadata,
-        { x: event.clientX, y: event.clientY },
-        "output"
-      );
-    },
-    [outputNodeMetadata, createNodeWithEdge]
-  );
+  const createOutputNode = useCallback(() => {
+    if (!outputNodeMetadata) {
+      return;
+    }
+    createNodeWithEdge(outputNodeMetadata, "output");
+  }, [outputNodeMetadata, createNodeWithEdge]);
 
-  const createSaveNode = useCallback(
-    (event: React.MouseEvent) => {
-      if (!saveNodeMetadata) {
-        return;
-      }
-      createNodeWithEdge(
-        saveNodeMetadata,
-        { x: event.clientX, y: event.clientY },
-        "save"
-      );
-    },
-    [saveNodeMetadata, createNodeWithEdge]
-  );
+  const createSaveNode = useCallback(() => {
+    if (!saveNodeMetadata) {
+      return;
+    }
+    createNodeWithEdge(saveNodeMetadata, "save");
+  }, [saveNodeMetadata, createNodeWithEdge]);
 
   const handleCreatePreviewNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      createPreviewNode(event);
-    }
+    event?.preventDefault();
+    event?.stopPropagation();
+    createPreviewNode();
     closeContextMenu();
   }, [createPreviewNode, closeContextMenu]);
 
   const handleCreateRerouteNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      createRerouteNode(event as React.MouseEvent);
-    }
+    event?.preventDefault();
+    event?.stopPropagation();
+    createRerouteNode();
     closeContextMenu();
   }, [createRerouteNode, closeContextMenu]);
 
   const handleCreateOutputNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      createOutputNode(event);
-    }
+    event?.preventDefault();
+    event?.stopPropagation();
+    createOutputNode();
     closeContextMenu();
   }, [createOutputNode, closeContextMenu]);
 
   const { transformOutput } = useCodeGenFromHandle();
-  // Placement mirrors createNodeWithEdge: a fixed gap right of the handle,
-  // vertically centered on it, computed in flow space so zoom doesn't matter.
+  // Same anchor as createNodeWithEdge. transformOutput owns the node it
+  // creates and never hands back its id, so this one keeps the pre-mount
+  // estimate instead of being aligned once it renders.
   const handleTransformWithAI = useCallback(
     (event?: React.MouseEvent<HTMLElement>) => {
       event?.preventDefault();
       event?.stopPropagation();
-      if (nodeId && sourceHandle && sourceType && event) {
-        const flowAnchor = reactFlowInstance.screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY
-        });
+      const anchor = anchorPosition();
+      if (nodeId && sourceHandle && sourceType && anchor) {
         transformOutput({
           sourceNodeId: nodeId,
           sourceHandle,
           sourceType,
-          position: { x: flowAnchor.x + 40, y: flowAnchor.y - 100 }
+          position: initialPosition(anchor)
         });
       }
       closeContextMenu();
     },
     [
+      anchorPosition,
       closeContextMenu,
+      initialPosition,
       nodeId,
-      reactFlowInstance,
       sourceHandle,
       sourceType,
       transformOutput
@@ -366,11 +343,9 @@ const OutputContextMenu: React.FC = () => {
   );
 
   const handleCreateSaveNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      createSaveNode(event);
-    }
+    event?.preventDefault();
+    event?.stopPropagation();
+    createSaveNode();
     closeContextMenu();
   }, [createSaveNode, closeContextMenu]);
 
@@ -445,26 +420,14 @@ const OutputContextMenu: React.FC = () => {
 
   const handleConnectableNodeClick = useCallback(
     (metadata: NodeMetadata) => {
-      if (!menuPosition) {
-        return;
-      }
-      const anchorPosition =
-        (payload as { dropPosition?: { x: number; y: number } } | null)
-          ?.dropPosition ?? menuPosition;
       const property = getPreferredConnectableInput(metadata);
       if (!property) {
         return;
       }
-      createNodeWithEdge(metadata, anchorPosition, "connectable", property.name);
+      createNodeWithEdge(metadata, "connectable", property.name);
       closeContextMenu();
     },
-    [
-      closeContextMenu,
-      createNodeWithEdge,
-      getPreferredConnectableInput,
-      menuPosition,
-      payload
-    ]
+    [closeContextMenu, createNodeWithEdge, getPreferredConnectableInput]
   );
 
   // Skipped on touch, where the virtual keyboard would cover the menu.

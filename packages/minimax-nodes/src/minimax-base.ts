@@ -25,24 +25,36 @@ export function getMinimaxApiKey(secrets: Record<string, string>): string {
   return key;
 }
 
-export function minimaxHeaders(apiKey: string) {
+/** Written as a type alias, not an interface, so it stays `HeadersInit`-assignable. */
+type MinimaxHeaders = {
+  Authorization: string;
+  "Content-Type": string;
+};
+
+export function minimaxHeaders(apiKey: string): MinimaxHeaders {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json"
   };
 }
 
-interface MinimaxBaseResp {
+export interface MinimaxBaseResp {
   status_code?: number;
   status_msg?: string;
 }
 
+/**
+ * Every MiniMax REST response carries `base_resp`. Endpoint-specific responses
+ * extend this; the fields they add stay optional because the API omits them on
+ * an error reply.
+ */
+export interface MinimaxResponse {
+  base_resp?: MinimaxBaseResp;
+}
+
 /** MiniMax embeds a `base_resp` on most responses; surface failures as errors. */
-export function assertBaseResp(
-  data: Record<string, unknown>,
-  context: string
-): void {
-  const baseResp = data.base_resp as MinimaxBaseResp | undefined;
+export function assertBaseResp(data: MinimaxResponse, context: string): void {
+  const baseResp = data.base_resp;
   if (baseResp && baseResp.status_code && baseResp.status_code !== 0) {
     throw new Error(
       `MiniMax ${context} failed: ${baseResp.status_msg ?? "unknown error"} (code ${baseResp.status_code})`
@@ -82,12 +94,32 @@ export async function resolveAudioPayload(audio: string): Promise<Uint8Array> {
   return hexToBytes(audio);
 }
 
-export const AUDIO_FORMAT_MIME: Record<string, string> = {
+export const AUDIO_FORMAT_MIME = {
   mp3: "audio/mpeg",
   wav: "audio/wav",
   flac: "audio/flac",
   pcm: "audio/pcm"
-};
+} satisfies Record<string, string>;
+
+type MinimaxAudioFormat = keyof typeof AUDIO_FORMAT_MIME;
+
+/** Inline media refs the nodes emit. `data` is raw base64, never a data URL. */
+export interface MinimaxAudioRef {
+  type: string;
+  data: string;
+  content_type: string;
+}
+
+export interface MinimaxImageRef {
+  type: string;
+  data: string;
+  mimeType: string;
+}
+
+export interface MinimaxVideoRef {
+  type: string;
+  data: string;
+}
 
 /**
  * Build an inline AudioRef from raw bytes for the given format.
@@ -100,11 +132,17 @@ export const AUDIO_FORMAT_MIME: Record<string, string> = {
 export function audioRefFromBytes(
   bytes: Uint8Array,
   format: string
-) {
+): MinimaxAudioRef {
+  // SAFETY: the `in` check just established that `format` is one of the four
+  // own keys of AUDIO_FORMAT_MIME, so the indexed read hits a declared entry.
+  const contentType =
+    format in AUDIO_FORMAT_MIME
+      ? AUDIO_FORMAT_MIME[format as MinimaxAudioFormat]
+      : "audio/mpeg";
   return {
     type: "audio",
     data: bytesToBase64(bytes),
-    content_type: AUDIO_FORMAT_MIME[format] ?? "audio/mpeg"
+    content_type: contentType
   };
 }
 
@@ -115,9 +153,7 @@ export function audioRefFromBytes(
  */
 export const inferImageMime = detectImageMime;
 
-export function imageRefFromBytes(
-  bytes: Uint8Array
-) {
+export function imageRefFromBytes(bytes: Uint8Array): MinimaxImageRef {
   return {
     type: "image",
     data: bytesToBase64(bytes),
@@ -125,9 +161,7 @@ export function imageRefFromBytes(
   };
 }
 
-export function videoRefFromBytes(
-  bytes: Uint8Array
-) {
+export function videoRefFromBytes(bytes: Uint8Array): MinimaxVideoRef {
   return { type: "video", data: bytesToBase64(bytes) };
 }
 
@@ -272,11 +306,16 @@ export const MINIMAX_VIDEO_DURATIONS: number[] = [6, 10];
  * combinations fall back to 768P (the API default) so MiniMax doesn't reject
  * the request.
  */
+export interface MinimaxVideoRenderSettings {
+  duration?: number;
+  resolution?: string;
+}
+
 export function videoRenderSettings(
   model: string,
   duration: number,
   resolution: string
-) {
+): MinimaxVideoRenderSettings {
   if (!model.startsWith("MiniMax-Hailuo")) return {};
   const d = duration >= 9 ? 10 : 6;
   let r = resolution;
@@ -295,13 +334,41 @@ interface VideoTaskOptions {
 }
 
 /**
+ * Request body for `/v1/video_generation`. `first_frame_image` and
+ * `subject_reference` are mutually exclusive: the 01-series S2V model animates
+ * a character reference, every other model takes a first frame.
+ */
+export interface MinimaxVideoRequest extends MinimaxVideoRenderSettings {
+  model: string;
+  prompt?: string;
+  first_frame_image?: string;
+  subject_reference?: Array<{ type: string; image: string[] }>;
+}
+
+interface VideoSubmitResponse extends MinimaxResponse {
+  task_id?: string;
+}
+
+interface VideoStatusResponse extends MinimaxResponse {
+  status?: string;
+  file_id?: string;
+}
+
+interface FileRetrieveResponse extends MinimaxResponse {
+  file?: {
+    download_url?: string;
+    downloadURL?: string;
+  };
+}
+
+/**
  * Submit a video generation task, poll until it succeeds, and download the
  * resulting file. Mirrors the runtime provider's flow so the node behaves
  * identically while exposing MiniMax-specific request fields.
  */
 export async function generateVideo(
   apiKey: string,
-  body: Record<string, unknown>,
+  body: MinimaxVideoRequest,
   options: VideoTaskOptions = {}
 ): Promise<Uint8Array> {
   const submit = await fetch(`${MINIMAX_BASE_URL}/v1/video_generation`, {
@@ -314,10 +381,10 @@ export async function generateVideo(
       `MiniMax video_generation submit failed: ${submit.status} ${await submit.text()}`
     );
   }
-  const submitData = (await submit.json()) as Record<string, unknown>;
+  const submitData: VideoSubmitResponse = await submit.json();
   assertBaseResp(submitData, "video_generation submit");
 
-  const taskId = submitData.task_id as string | undefined;
+  const taskId = submitData.task_id;
   if (!taskId) {
     throw new Error(
       `MiniMax video_generation returned no task_id: ${JSON.stringify(submitData)}`
@@ -338,7 +405,7 @@ async function pollVideoTask(
   const url = `${MINIMAX_BASE_URL}/v1/query/video_generation?task_id=${encodeURIComponent(
     taskId
   )}`;
-  const data = await pollUntilTerminal<Record<string, unknown>>(
+  const data = await pollUntilTerminal<VideoStatusResponse>(
     async () => {
       // The job is already submitted and billed: a 429 or a gateway 5xx on the
       // status GET must back off, not throw the job away.
@@ -350,7 +417,7 @@ async function pollVideoTask(
           `MiniMax video status failed: ${res.status} ${await res.text()}`
         );
       }
-      const body = (await res.json()) as Record<string, unknown>;
+      const body: VideoStatusResponse = await res.json();
       // Surface API-level failures (expired task, auth, rate limit) instead of
       // polling an empty status until the timeout.
       assertBaseResp(body, "video status");
@@ -369,7 +436,7 @@ async function pollVideoTask(
         )
     }
   );
-  const fileId = data.file_id as string | undefined;
+  const fileId = data.file_id;
   if (!fileId) {
     throw new Error("MiniMax video task succeeded but returned no file_id");
   }
@@ -389,12 +456,10 @@ async function downloadFile(
       `MiniMax files/retrieve failed: ${res.status} ${await res.text()}`
     );
   }
-  const data = (await res.json()) as Record<string, unknown>;
+  const data: FileRetrieveResponse = await res.json();
   assertBaseResp(data, "files/retrieve");
-  const file = data.file as Record<string, unknown> | undefined;
-  const downloadUrl = (file?.download_url ?? file?.downloadURL) as
-    | string
-    | undefined;
+  const file = data.file;
+  const downloadUrl = file?.download_url ?? file?.downloadURL;
   if (!downloadUrl) {
     throw new Error(
       `MiniMax files/retrieve returned no download_url: ${JSON.stringify(data)}`
