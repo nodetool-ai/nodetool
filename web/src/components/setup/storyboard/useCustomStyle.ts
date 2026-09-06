@@ -12,7 +12,7 @@
  * and is never written to.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Entity } from "@nodetool-ai/protocol";
 
 import { rpcRequest } from "../../../lib/websocket/rpcRequest";
@@ -64,12 +64,19 @@ export interface CustomStyleResult {
 
 export function useCustomStyle(boardId: string): CustomStyleResult {
   const [saving, setSaving] = useState(false);
+  // `saving` reaches the dialog a render later than the click, so a second
+  // press inside that window used to start a second model call, a second
+  // upload and a second entity. The ref closes the window (F18).
+  const inFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const { data: entities } = useEntities();
   const saveEntity = useSaveEntity();
 
   const addStyle = useCallback(
     async (files: readonly File[]): Promise<boolean> => {
+      if (inFlight.current) {
+        return false;
+      }
       setError(null);
       const references = files.slice(0, MAX_STYLE_REFERENCES);
       if (references.length === 0) {
@@ -83,6 +90,7 @@ export function useCustomStyle(boardId: string): CustomStyleResult {
         return false;
       }
 
+      inFlight.current = true;
       setSaving(true);
       try {
         const uris = await Promise.all(references.map(readDataUri));
@@ -139,6 +147,7 @@ export function useCustomStyle(boardId: string): CustomStyleResult {
         );
         return false;
       } finally {
+        inFlight.current = false;
         setSaving(false);
       }
     },

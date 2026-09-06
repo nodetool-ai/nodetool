@@ -84,6 +84,40 @@ describe("useVoiceSamples", () => {
     expect(rpcRequest).toHaveBeenCalledTimes(1);
   });
 
+  it("finds the sample of a long or padded line, which is what it paid for", async () => {
+    const long = `  ${"word ".repeat(80)}  `;
+    const { result, rerender } = renderHook(() => useVoiceSamples());
+
+    await act(async () => {
+      result.current.play(RACHEL, long);
+    });
+    rerender();
+
+    // The call spoke the trimmed, capped words; the lookup must key the same
+    // ones, or the tile asks for a sample it has already been billed for (F13).
+    expect(result.current.sampleFor(RACHEL, long).assetId).toBe("asset-1");
+    await act(async () => {
+      result.current.play(RACHEL, long);
+    });
+    expect(rpcRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("makes its own sample per pace, and sends the rate", async () => {
+    const { result } = renderHook(() => useVoiceSamples(1.15));
+    await act(async () => {
+      result.current.play(RACHEL, LINE);
+    });
+    expect(rpcRequest.mock.calls[0][1]).toMatchObject({ speed: 1.15 });
+    expect(result.current.sampleFor(RACHEL, LINE).assetId).toBe("asset-1");
+
+    // The same line at another pace is another call, because it is other audio.
+    const other = renderHook(() => useVoiceSamples(0.85));
+    await act(async () => {
+      other.result.current.play(RACHEL, LINE);
+    });
+    expect(rpcRequest).toHaveBeenCalledTimes(2);
+  });
+
   it("makes a new sample when the line changes", async () => {
     const { result } = renderHook(() => useVoiceSamples());
     await act(async () => {

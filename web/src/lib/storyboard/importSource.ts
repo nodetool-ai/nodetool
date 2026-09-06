@@ -1,30 +1,36 @@
 /**
  * What a board was imported from, and what the post-check found.
  *
- * The Director run in step 2 has to know whether the words it is about to
- * structure came from a file, because an FDX import is directed differently
- * (camera only, D10) and a plain-text import is checked line by line
- * afterwards. That fact belongs to the run, not to the document: nothing is
- * rendered from it and nothing on the board means anything different because
- * of it, so it lives here for as long as the tab is open rather than being
- * written into a document every other surface then has to ignore.
+ * The source itself is a field on the document (`board.importSource`, PRD
+ * § 7.7). It is a contract about the board's content, not a browser detail:
+ * `preserveWords` says the Director may only add camera work and may not
+ * rewrite the dialogue or the scene order (D10), the idea step holds the brief
+ * while it is true, and a `ui_storyboard_*` caller driving the same board has
+ * to read the same rule. These helpers are the one place that reads and writes
+ * it, so every surface asks the same question of the same field.
  *
- * Keyed by board id, because several boards can be open at once.
+ * The words are never duplicated into the record. The screenplay and the brief
+ * *are* the imported text, so a creator's edit to either is what the next run
+ * preserves — which is the whole of F3.
+ *
+ * The notice is different. It is what the last post-check found, re-derived by
+ * every run and read once by the review step, so it lives here for as long as
+ * the tab is open rather than being written into a document every other
+ * surface then has to ignore.
  */
 
-import type { FdxImport } from "./parseFdx";
+import type { StoryboardImportSource } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
+
+import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 
 /** Where a board's words came from, when they came from a file. */
-export type ImportSource =
-  | { kind: "fdx"; parsed: FdxImport }
-  | { kind: "text"; text: string };
+export type ImportSource = StoryboardImportSource;
 
 /** What `verifyImportedText` found, for the review step's notice. */
 export type ImportNotice =
   | { kind: "fdx"; correctedShotIds: string[] }
   | { kind: "text"; missingLines: string[] };
 
-const sources = new Map<string, ImportSource>();
 const notices = new Map<string, ImportNotice>();
 const listeners = new Set<() => void>();
 
@@ -35,14 +41,32 @@ const announce = (): void => {
 };
 
 export function setImportSource(boardId: string, source: ImportSource): void {
-  sources.set(boardId, source);
   // A new import supersedes whatever the last run reported.
   notices.delete(boardId);
+  useStoryboardStore.getState().setSetup(boardId, { importSource: source });
   announce();
 }
 
 export function getImportSource(boardId: string): ImportSource | undefined {
-  return sources.get(boardId);
+  return (
+    useStoryboardStore.getState().getBoard(boardId)?.importSource ?? undefined
+  );
+}
+
+/**
+ * Keep the words, drop the structure — the creator chose to edit an imported
+ * script as text (F3). The run that follows structures the brief the way it
+ * does any pasted script, and the post-check flags the source lines no shot
+ * picked up rather than restoring them.
+ */
+export function releaseImportedStructure(boardId: string): void {
+  const current = getImportSource(boardId);
+  if (current === undefined || current === null || !current.preserveWords) {
+    return;
+  }
+  useStoryboardStore.getState().setSetup(boardId, {
+    importSource: { ...current, kind: "text", preserveWords: false }
+  });
 }
 
 export function setImportNotice(
@@ -61,14 +85,14 @@ export function getImportNotice(boardId: string): ImportNotice | undefined {
   return notices.get(boardId);
 }
 
-/** Forget a board — its tab closed, or its import was replaced by hand. */
+/** Forget a board's import — it was replaced, or the creator removed it. */
 export function clearImport(boardId: string): void {
-  sources.delete(boardId);
   notices.delete(boardId);
+  useStoryboardStore.getState().setSetup(boardId, { importSource: null });
   announce();
 }
 
-/** Subscribe to import changes. Returns the unsubscribe. */
+/** Subscribe to notice changes. Returns the unsubscribe. */
 export function subscribeToImports(listener: () => void): () => void {
   listeners.add(listener);
   return () => {

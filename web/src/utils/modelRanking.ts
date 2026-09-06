@@ -141,6 +141,11 @@ export function rankModels<T extends ModelSelectorModel>(
     fields: MODEL_FIELDS as ReadonlyArray<RankField<T>>,
     keyFn: modelKey,
     prefilter,
+    // A model carries two names: the one a person reads ("Minimax H3Max Turbo
+    // Image To Video") and the one a machine routes on
+    // ("minimax/h3-max-turbo/image-to-video"). Someone typing from memory hits
+    // neither exactly, and an empty list reads as "we do not have that model".
+    fuzzyFallback: true,
     recentKeys,
     boostedKeys: favoriteKeys,
     tieBreak:

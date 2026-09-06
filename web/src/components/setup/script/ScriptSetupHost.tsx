@@ -23,9 +23,18 @@ export interface ScriptSetupHostProps {
   scriptId: string;
   /** Runs when the flow's last step finishes — the host opens the script. */
   onFinish: () => void;
+  /**
+   * Offered on step 1 only, for someone who picked the wrong entry card. The
+   * host owns what happens to the script it started (F31).
+   */
+  onChangeFlow?: () => void | Promise<void>;
 }
 
-const ScriptSetupHost = ({ scriptId, onFinish }: ScriptSetupHostProps) => {
+const ScriptSetupHost = ({
+  scriptId,
+  onFinish,
+  onChangeFlow
+}: ScriptSetupHostProps) => {
   const ensureScript = useScriptStore((state) => state.ensureScript);
   useEffect(() => {
     ensureScript(scriptId);
@@ -41,7 +50,7 @@ const ScriptSetupHost = ({ scriptId, onFinish }: ScriptSetupHostProps) => {
     return <DocumentLoadStatus state={loadState} label="script" />;
   }
 
-  return <SetupFlow config={config} />;
+  return <SetupFlow config={config} onChangeFlow={onChangeFlow} />;
 };
 
 export default ScriptSetupHost;

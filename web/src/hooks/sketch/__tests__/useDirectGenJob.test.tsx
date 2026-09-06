@@ -21,7 +21,7 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
   }
 }));
 
-import { useDirectGenJob } from "../useDirectGenJob";
+import { directGenFailure, useDirectGenJob } from "../useDirectGenJob";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import type { LayerWorkflowBinding } from "../../../stores/sketch/SketchSessionStore";
 
@@ -149,5 +149,107 @@ describe("useDirectGenJob request payloads", () => {
     expect(frame.request_id).not.toBeNull();
     // The reply subscription is keyed by the same id the request carries.
     expect(subscribeMock.mock.calls[0][0]).toBe(frame.request_id);
+  });
+});
+
+/**
+ * F7 — every path that ends in `status: "failed"` records why. A creator who
+ * cannot tell a missing key from a refused prompt from a timeout has nothing
+ * to act on, and the targeted retry just fails the same way.
+ */
+describe("failure reasons", () => {
+  /** Hand the reply the RPC subscription is waiting for. */
+  const reply = async (message: Record<string, unknown>): Promise<void> => {
+    const handler = subscribeMock.mock.calls[0][1] as (msg: unknown) => void;
+    await act(async () => {
+      handler(message);
+    });
+  };
+
+  const replyWithError = async (error: {
+    code?: string;
+    message?: string;
+  }): Promise<void> => {
+    const frame = sendMock.mock.calls[0][0] as { request_id?: string };
+    await reply({
+      type: "rpc_response",
+      request_id: frame.request_id,
+      command: "generate_media",
+      error
+    });
+  };
+
+  const statusOf = (): string | undefined =>
+    useSketchSessionStore.getState().bindings["layer-1"]?.status;
+
+  const ready = (): void => {
+    seedBinding({
+      kind: "text-to-image",
+      provider: "prov",
+      model: "model-1",
+      prompt: "a watercolor heron",
+      status: "draft"
+    } as never);
+  };
+
+  it("names a missing model without calling the provider", async () => {
+    seedBinding({
+      kind: "text-to-image",
+      prompt: "a watercolor heron",
+      status: "draft"
+    } as never);
+    await start();
+    expect(sendMock).not.toHaveBeenCalled();
+    expect(statusOf()).toBe("failed");
+    expect(directGenFailure("layer-1")).toMatchObject({ kind: "no-model" });
+  });
+
+  it("keeps a quota refusal apart from a content refusal", async () => {
+    ready();
+    await start();
+    await replyWithError({
+      code: "rate_limit_exceeded",
+      message: "You exceeded your current quota"
+    });
+    expect(statusOf()).toBe("failed");
+    expect(directGenFailure("layer-1")).toMatchObject({
+      kind: "quota",
+      detail: "You exceeded your current quota"
+    });
+
+    sendMock.mockClear();
+    subscribeMock.mockClear();
+    await start();
+    await replyWithError({ message: "Blocked by the content policy" });
+    expect(directGenFailure("layer-1")).toMatchObject({
+      kind: "refused",
+      detail: "Blocked by the content policy"
+    });
+  });
+
+  it("strips a credential out of a provider message", async () => {
+    ready();
+    await start();
+    await replyWithError({
+      code: "invalid_api_key",
+      message: "Incorrect API key provided: sk-abcdefghijklmnop1234567890"
+    });
+    const failure = directGenFailure("layer-1");
+    expect(failure?.kind).toBe("auth");
+    expect(failure?.detail).not.toContain("sk-abcdefghijklmnop1234567890");
+  });
+
+  it("clears the last reason when the layer is tried again", async () => {
+    ready();
+    await start();
+    await replyWithError({ message: "Blocked by the content policy" });
+    expect(directGenFailure("layer-1")).not.toBeNull();
+
+    sendMock.mockClear();
+    subscribeMock.mockClear();
+    seedBinding({ status: "draft" } as never);
+    await start();
+    expect(directGenFailure("layer-1")).toBeNull();
+    expect(statusOf()).toBe("generating");
   });
 });

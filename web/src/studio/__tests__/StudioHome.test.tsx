@@ -56,6 +56,7 @@ const createTimeline = jest.fn(async () => ({ id: "t-new" }));
 jest.mock("../../hooks/useTimelineSequence", () => ({
   __esModule: true,
   useCreateTimeline: () => ({ mutateAsync: createTimeline }),
+  useSeedTimelineDetail: () => jest.fn(),
   useTimelines: () => ({
     data: [
       {

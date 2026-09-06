@@ -81,8 +81,10 @@ describe("WorkflowReviewStep", () => {
         }
       ]
     });
-    expect(screen.getByRole("heading", { name: "1. Compose" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "2. Join" })).toBeInTheDocument();
+    // The title is the field that edits it — a heading above it said the same
+    // words twice.
+    expect(screen.getByLabelText("Step 1 title")).toHaveValue("Compose");
+    expect(screen.getByLabelText("Step 2 title")).toHaveValue("Join");
     expect(screen.getByText("nodetool.text.Template")).toBeInTheDocument();
   });
 
@@ -112,6 +114,26 @@ describe("WorkflowReviewStep", () => {
       ...PLAN,
       steps: [{ ...PLAN.steps[0], node_type: null }]
     });
+    const search = screen.getByRole("combobox", {
+      name: "Node type for step 1"
+    });
+    await userEvent.click(search);
+    await userEvent.click(await screen.findByText("nodetool.text.Concat"));
+    expect(onPlanChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        steps: [expect.objectContaining({ node_type: "nodetool.text.Concat" })]
+      })
+    );
+  });
+
+  // A step the planner left unnamed is matched against the registry before it
+  // gets here, so a green chip is not always the node the step meant.
+  it("lets a named step's node type be changed", async () => {
+    const { onPlanChange } = renderStep(PLAN);
+    expect(
+      screen.queryByRole("combobox", { name: "Node type for step 1" })
+    ).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Change" }));
     const search = screen.getByRole("combobox", {
       name: "Node type for step 1"
     });
@@ -180,6 +202,65 @@ describe("WorkflowReviewStep", () => {
     await userEvent.click(screen.getByRole("button", { name: "Add a step" }));
     const added = onPlanChange.mock.calls[0][0].steps[1];
     expect(added.node_type).toBeNull();
+  });
+
+  it("says how many steps hold the gate", () => {
+    // The primary button lives in the shell, and a marker can sit a screen of
+    // scroll above it — the count is what tells the creator why it is off.
+    renderStep({
+      ...PLAN,
+      steps: [
+        ...PLAN.steps,
+        { id: "s2", title: "Send", summary: "", node_type: null },
+        { id: "s3", title: "Log", summary: "", node_type: "nope.Missing" }
+      ]
+    });
+    expect(
+      screen.getByText(
+        "2 steps name no node this install has. Pick one for each below to continue."
+      )
+    ).toBeInTheDocument();
+  });
+
+  // F30: an unknown node type is fixed here, a missing provider by connecting
+  // one. The summary cannot call both "missing nodes".
+  it("counts a missing provider apart from a missing node", () => {
+    renderStep(
+      {
+        ...PLAN,
+        steps: [{ ...PLAN.steps[0], model_role: "language" }]
+      },
+      () => false
+    );
+    expect(
+      screen.getByText(
+        "No connected provider offers a language model. Connect one below to continue."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/name no node/)).toBeNull();
+  });
+
+  it("says nothing about the gate when every step maps to a node", () => {
+    renderStep(PLAN);
+    expect(screen.queryByText(/name no node/)).toBeNull();
+    expect(screen.queryByText(/No connected provider/)).toBeNull();
+  });
+
+  // F32: inputs before steps, and the sample values are edited on the setup
+  // step (PRD § 11.3), so the review shows them read-only.
+  it("shows the inputs above the steps, with their samples read-only", () => {
+    renderStep(PLAN);
+    const inputs = screen.getByRole("heading", { name: "Inputs" });
+    const outputs = screen.getByRole("heading", { name: "Outputs" });
+    expect(
+      inputs.compareDocumentPosition(screen.getByLabelText("Step 1 title")) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      outputs.compareDocumentPosition(screen.getByLabelText("Step 1 title")) &
+        Node.DOCUMENT_POSITION_PRECEDING
+    ).toBeTruthy();
+    expect(screen.getByLabelText("text (string)")).toHaveAttribute("readonly");
   });
 
   it("runs the planner again from Re-plan", async () => {

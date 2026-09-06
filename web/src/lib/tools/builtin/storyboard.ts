@@ -196,7 +196,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_set_screenplay",
   description:
-    "Load a full screenplay onto the specified storyboard. Use ui_storyboard_update_shot for edits to existing shot prompts. When revising a screenplay, retain existing shot ids from ui_storyboard_get_state: their rendered media and status are preserved. Removing a shot with rendered media is refused. `screenplay` is a Screenplay object ({ type:'screenplay', title, shots: Shot[], ... }) — typically the output of the Director node. Missing ids, indexes and statuses are filled in for new shots; every shot needs an `action`. A top-level `entityIds` casts those entities on the board (use ui_storyboard_set_entities to change only the cast); a shot's own `entityIds` overrides the board cast for that shot.",
+    "Load a full screenplay onto the specified storyboard. Use ui_storyboard_update_shot for edits to existing shot prompts. When revising a screenplay, retain existing shot ids from ui_storyboard_get_state: their rendered media and status are preserved. Removing a shot with rendered media is refused. `screenplay` is a Screenplay object ({ type:'screenplay', title, shots: Shot[], ... }) — typically the output of the Director node. Missing ids, indexes and statuses are filled in for new shots; every shot needs an `action`. A top-level `entityIds` casts those entities on the board (use ui_storyboard_set_entities to change only the cast); a shot's own `entityIds` overrides the board cast for that shot. Loading a screenplay clears the board's `directedFrom` record, so the guided flow offers an explicit re-direct rather than claiming the Director already answered the current inputs.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     screenplay: screenplayParam
@@ -563,7 +563,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_set_setup",
   description:
-    "Write the guided-setup answers on the specified storyboard: the `brief` (what the piece is), the `genre` the Director works in, and the `stage` the flow sits at. Omit a field to leave it unchanged. The stages run idea → genre → review → look → done; a board that has finished setup, or was built before the flow existed, reads 'done'. Setting the stage is what moves the open flow to that step.",
+    "Write the guided-setup answers on the specified storyboard: the `brief` (what the piece is), the `genre` the Director works in, the `stage` the flow sits at, how many shots a run asks for (`shotCount`), and the file the words came from (`importSource`). Omit a field to leave it unchanged. The stages run idea → genre → review → look → done; a board that has finished setup, or was built before the flow existed, reads 'done'. Setting the stage is what moves the open flow to that step. An `importSource` with `preserveWords: true` is a contract: the Director is then asked for camera work only and may not rewrite the dialogue or the scene order.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     brief: z
@@ -578,13 +578,45 @@ FrontendToolRegistry.register({
       .optional()
       .describe(
         "Where the guided flow should resume: idea, genre, review, look, or done."
+      ),
+    shotCount: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe(
+        "How many shots a Director run on this board asks for. Defaults to 6. ui_storyboard_direct uses it when it is given no count of its own."
+      ),
+    importSource: storyboards.storyboardImportSource
+      .nullable()
+      .optional()
+      .describe(
+        "The file the board's words came from: kind ('fdx' or 'text'), fileName, importedAt, and preserveWords. With preserveWords true the words and the scene order are the writer's and a Director run only adds camera work. Null removes the record, making the text ordinary prose the Director may restructure."
+      ),
+    directedFrom: z
+      .string()
+      .nullable()
+      .optional()
+      .describe(
+        "What the board's current screenplay was directed from. A Director run writes this itself and replacing the screenplay clears it; pass null to forget a stale one. A cleared value only makes the flow offer an explicit re-direct."
       )
   }),
-  async execute({ storyboard_id, brief, genre, stage }) {
+  async execute({
+    storyboard_id,
+    brief,
+    genre,
+    stage,
+    shotCount,
+    importSource,
+    directedFrom
+  }) {
     const snapshot = getStoryboardAgentHandler(storyboard_id).setSetup({
       brief,
       genre,
-      stage
+      stage,
+      shotCount,
+      importSource,
+      directedFrom
     });
     const persisted = await persistBoard(storyboard_id, "The setup");
     return {
@@ -612,7 +644,9 @@ FrontendToolRegistry.register({
       .int()
       .positive()
       .optional()
-      .describe("How many shots to ask for. Defaults to 6.")
+      .describe(
+        "How many shots to ask for. Defaults to the board's own shot count, and to 6 when it has none."
+      )
   }),
   async execute({ storyboard_id, redirect, shotCount }) {
     const snapshot = await getStoryboardAgentHandler(storyboard_id).direct({

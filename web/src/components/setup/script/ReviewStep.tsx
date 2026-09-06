@@ -8,7 +8,13 @@
  * path can drift from the other (§ 9.6, criterion 6).
  *
  * Nothing here spends anything: no take is recorded and no provider is called
- * until step 3's button.
+ * until step 3's button — except `Rewrite`, which is a writer call, and so
+ * carries the same result/model/cost/wait summary the write itself does (F23).
+ *
+ * A script can also end here. `Open the editor without voicing` writes stage
+ * `done` and hands the text over, because a script is a finished thing whether
+ * or not anyone reads it out; the only way to leave with text used to be to go
+ * back to step 1 and start blank (F16).
  */
 
 import React, { memo, useCallback, useMemo } from "react";
@@ -18,12 +24,26 @@ import {
   type ScriptPaceId
 } from "@nodetool-ai/protocol";
 
-import { Caption, FlexColumn, GAP, Text } from "../../ui_primitives";
+import {
+  Box,
+  Caption,
+  EditorButton,
+  FlexColumn,
+  FlexRow,
+  GAP,
+  Label,
+  Text
+} from "../../ui_primitives";
+import GenerationSummary from "../GenerationSummary";
+import LanguageModelSelect from "../../properties/LanguageModelSelect";
+import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import type { LanguageModelValue } from "../../../stores/ApiTypes";
 import { getScriptAgentHandler } from "../../../components/script/scriptAgentBridge";
 import {
   useScriptStore,
   useScriptSetup
 } from "../../../stores/script/ScriptStore";
+import { readScriptSource } from "../../../lib/script/importedScript";
 import { PlanReview } from "../PlanReview";
 import type { PlanReviewSection } from "../PlanReview";
 
@@ -36,21 +56,59 @@ const spokenLength = (seconds: number): string => {
   return `${Math.floor(rounded / 60)}m ${String(rounded % 60).padStart(2, "0")}s`;
 };
 
+/** The picker holds one model name; left free it outweighs the script. */
+const MODEL_PICKER_WIDTH = 260;
+
+/** What a rewrite is allowed to write, matching step 2's own budget. */
+const REWRITE_MAX_TOKENS = 8192;
+
 export interface ReviewStepProps {
   scriptId: string;
   /** Reruns the writer with the edited script as context. */
   onRewrite: () => void;
   rewriting?: boolean;
+  /** Finishes setup on the text alone: stage `done`, no voices, no audio. */
+  onOpenEditor: () => void;
 }
 
 const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   scriptId,
   onRewrite,
-  rewriting = false
+  rewriting = false,
+  onOpenEditor
 }) => {
   const script = useScriptStore((state) => state.scripts[scriptId]);
   const setup = useScriptSetup(scriptId);
+  const setSetup = useScriptStore((state) => state.setSetup);
   const pace = (setup?.pace ?? "normal") as ScriptPaceId;
+  const source = readScriptSource(setup);
+  // Until the picker is touched the writer runs on the chat model, so that is
+  // what the picker shows — a blank control would claim no model is set while
+  // the rewrite would happily use one.
+  const chatModel = useGlobalChatStore((state) => state.selectedModel);
+  const writerModel = setup?.writer_model ?? chatModel ?? null;
+
+  const setWriterModel = useCallback(
+    (value: LanguageModelValue) => {
+      setSetup(scriptId, {
+        writer_model: { provider: value.provider, id: value.id }
+      });
+    },
+    [scriptId, setSetup]
+  );
+
+  const addLine = useCallback(() => {
+    // The store the `ui_script_add_line` handler writes to, so a line added
+    // here and a line added headlessly are the same line.
+    useScriptStore.getState().addLine(scriptId);
+  }, [scriptId]);
+
+  const removeLine = useCallback(
+    (lineId: string) => {
+      useScriptStore.getState().removeLine(scriptId, lineId);
+    },
+    [scriptId]
+  );
 
   const setLineText = useCallback(
     (lineId: string, text: string) => {
@@ -86,6 +144,8 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           {
             id: `${line.id}-speaker`,
             label: "Speaker",
+            hideLabel: true,
+            compact: true,
             value: line.speakerId ?? "",
             options: speakerOptions,
             onChange: (value: string) => setLineSpeaker(line.id, value)
@@ -93,6 +153,8 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           {
             id: line.id,
             label: "Line",
+            hideLabel: true,
+            placeholder: "Line",
             value: line.text,
             multiline: true,
             onChange: (value: string) => setLineText(line.id, value)
@@ -127,6 +189,16 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
     [script?.sections, setLineSpeaker, setLineText, speakerOptions]
   );
 
+  const emptyLineIds = useMemo(
+    () =>
+      (script?.sections ?? []).flatMap((section) =>
+        section.lines
+          .filter((line) => line.text.trim() === "")
+          .map((line) => line.id)
+      ),
+    [script?.sections]
+  );
+
   const words = useMemo(
     () =>
       (script?.sections ?? []).reduce(
@@ -152,12 +224,70 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         </Caption>
       </FlexColumn>
 
-      <PlanReview
-        sections={sections}
-        replanLabel="Rewrite"
-        onReplan={onRewrite}
-        replanPending={rewriting}
+      {/* The model and the rewrite belong together: picking a different
+          writer is only useful next to the button that runs it. */}
+      <FlexRow gap={GAP.normal} align="center" wrap>
+        <Label>Write with</Label>
+        <Box sx={{ width: MODEL_PICKER_WIDTH }}>
+          <LanguageModelSelect
+            value={writerModel?.id ?? ""}
+            provider={writerModel?.provider}
+            placeholder="Select writer model"
+            onChange={setWriterModel}
+          />
+        </Box>
+        <EditorButton
+          variant="outlined"
+          size="small"
+          disabled={rewriting}
+          onClick={onRewrite}
+        >
+          {rewriting ? "Rewriting…" : "Rewrite"}
+        </EditorButton>
+      </FlexRow>
+
+      {/* A rewrite is a model call like any other, so it says what it will
+          cost before it is pressed rather than after (F23). */}
+      <GenerationSummary
+        result={`Rewrite ${words} words, keeping the lines it keeps`}
+        next={
+          source
+            ? "This replaces your imported words with the model's. Your own text is dropped."
+            : "Edits you have made are given to the writer as context."
+        }
+        model={writerModel}
+        brief={setup?.brief ?? ""}
+        maxOutputTokens={REWRITE_MAX_TOKENS}
       />
+
+      {/* The step asks for at least one line with words in it, so it carries
+          the control that produces one. It used to say "add a line" with
+          nothing on the screen that could (F20). */}
+      <FlexRow gap={GAP.normal} align="center" wrap>
+        <EditorButton variant="outlined" size="small" onClick={addLine}>
+          Add a line
+        </EditorButton>
+        {emptyLineIds.length > 0 ? (
+          <EditorButton
+            variant="text"
+            size="small"
+            onClick={() => emptyLineIds.forEach(removeLine)}
+          >
+            {`Remove ${emptyLineIds.length} empty ${emptyLineIds.length === 1 ? "line" : "lines"}`}
+          </EditorButton>
+        ) : null}
+      </FlexRow>
+
+      <PlanReview sections={sections} />
+
+      <FlexRow gap={GAP.normal} align="center" wrap>
+        <EditorButton variant="text" size="small" onClick={onOpenEditor}>
+          Open the editor without voicing
+        </EditorButton>
+        <Caption color="secondary">
+          Finish here with the text. You can voice it in the editor later.
+        </Caption>
+      </FlexRow>
     </FlexColumn>
   );
 };

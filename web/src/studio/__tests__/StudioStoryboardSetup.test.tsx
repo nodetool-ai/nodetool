@@ -12,10 +12,20 @@ jest.mock("react-router-dom", () => ({
   useParams: () => ({ boardId: "b1" })
 }));
 
-jest.mock("../StudioShell", () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
-}));
+// The real shell marks its subtree as Studio, which is what hides the LLM
+// pickers inside the reused editors. The stand-in keeps that and drops the
+// chrome.
+jest.mock("../StudioShell", () => {
+  const { StudioProvider } = jest.requireActual(
+    "../StudioContext"
+  ) as typeof import("../StudioContext");
+  return {
+    __esModule: true,
+    default: ({ children }: { children: React.ReactNode }) => (
+      <StudioProvider>{children}</StudioProvider>
+    )
+  };
+});
 jest.mock("../../components/storyboard/StoryboardBoard", () => ({
   __esModule: true,
   default: () => <div data-testid="board" />
@@ -103,8 +113,8 @@ beforeEach(() => {
 describe("StudioStoryboardPage setup stages", () => {
   it.each([
     ["idea", "Continue"],
-    ["genre", "Review your screenplay"],
-    ["review", "Continue to storyboard"],
+    ["genre", "Generate screenplay"],
+    ["review", "Choose the look"],
     ["look", "Generate your storyboard"]
   ] as const)("mounts the %s step, not the board", (stage, primary) => {
     useStoryboardStore.getState().ensureBoard(BOARD_ID);

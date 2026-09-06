@@ -8,9 +8,13 @@
  * options, a row with no description — is shown as a report rather than
  * failing the file.
  *
- * The stage moves when the report is dismissed, not when the rows land: step 1
- * unmounts the moment the stage changes, and it is step 1 that is showing the
- * report.
+ * A file whose every value was accepted has nothing to resolve, so it does not
+ * stop on a dialog: the rows are already on the board, the stage moves at
+ * once, and step 3 carries the import summary inline (F29). A file that
+ * discarded something shows the report first, because those rows are the
+ * creator's to fix and step 1 is where the file was picked. Either way the
+ * summary is kept for step 3, so closing the dialog is not the only chance to
+ * read it.
  */
 
 import { useCallback, useState } from "react";
@@ -18,6 +22,7 @@ import type { Screenplay } from "@nodetool-ai/protocol";
 
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { clearImport } from "../../../lib/storyboard/importSource";
+import { setShotlistImport } from "./setupChoices";
 import {
   parseShotlistCsv,
   type ShotlistReportEntry
@@ -75,6 +80,16 @@ export function useShotlistImport(boardId: string): ShotlistImportResult {
         // structure and no post-check to run on this board.
         clearImport(boardId);
         setShotCount(parsed.result.shots.length);
+        // Step 3 reads it back, so the summary outlives the dialog and the
+        // remount that moving the stage causes.
+        setShotlistImport(boardId, {
+          shotCount: parsed.result.shots.length,
+          entries: parsed.result.report
+        });
+        if (parsed.result.report.length === 0) {
+          store.setSetup(boardId, { stage: "look" });
+          return;
+        }
         setReport(parsed.result.report);
       } catch (cause) {
         setError(

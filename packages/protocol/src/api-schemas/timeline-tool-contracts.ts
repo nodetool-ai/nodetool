@@ -618,7 +618,7 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
 
     ui_timeline_set_setup: {
       description:
-        "Write the guided video flow's state onto a sequence: the brief it is being built from, the format card it follows, and the step it sits on. Stages are idea, format, review, look, done — a surface showing the flow resumes at whichever one is stored, and `done` hands the sequence back to the editor. Nothing here generates or places anything.",
+        "Write the guided video flow's state onto a sequence: the brief it is being built from, the format card it follows, whether the cut is voiced, and the step it sits on. Stages are idea, format, review, look, done — a surface showing the flow resumes at whichever one is stored, and `done` hands the sequence back to the editor. Nothing here generates or places anything.",
       shape: {
         stage: z
           .enum(["idea", "format", "review", "look", "done"])
@@ -633,6 +633,12 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
           .optional()
           .describe(
             'Format card id: "ad-15", "spot-30", "explainer-60", "social-9x16", "trailer", "music-video", "slideshow".'
+          ),
+        voiceover: z
+          .boolean()
+          .optional()
+          .describe(
+            "Whether the cut is voiced. Omit and each beat's own line decides; false is a deliberate silence that leaves the lines on the beats, so nothing the creator wrote is thrown away."
           )
       }
     },
@@ -676,6 +682,18 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         transition: z.string().nullable().optional(),
         voiceover: z.string().optional(),
         music: z.boolean().optional()
+      }
+    },
+
+    ui_timeline_remove_beat: {
+      description:
+        "Drop one beat from the plan, by its id or its 1-based position. The beats around it keep their order and their ids, and their positions close up. This edits text only: a clip already generated from the beat stays on the timeline, so delete that separately if you no longer want it.",
+      shape: {
+        beat: z
+          .string()
+          .trim()
+          .min(1)
+          .describe('A beat id, or its 1-based position as a string ("3").')
       }
     },
 

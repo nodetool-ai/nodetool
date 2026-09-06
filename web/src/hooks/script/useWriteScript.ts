@@ -10,15 +10,20 @@
  *
  * - Imported words are the creator's, so `Write the script` never sends them
  *   back to be rewritten. A Final Draft or subtitle import already says who
- *   speaks and is applied with no model call at all; pasted or extracted text
- *   goes to an attribution call whose schema has no field for text, and every
+ *   speaks and is applied with no model call at all, and with no model
+ *   required — which is what step 2 has been promising (F16). Pasted or
+ *   extracted text goes to an attribution call whose schema has no field for
+ *   text, and every
  *   line's words come from the split rather than from the answer (criterion 4).
  * - `Rewrite` is the one thing that gives those words up, which is why it
- *   drops the import: it is an explicit ask for a different script, and
- *   re-applying the import would throw away the edits made in the review.
+ *   drops the source: it is an explicit ask for a different script, and
+ *   re-applying the source would throw away the edits made in the review.
  * - Everything else goes to the writer. A rewrite is handed the script as it
  *   stands and the ids it must send back, so a line it keeps keeps its takes
  *   and its shot link.
+ *
+ * The source itself lives on the document (`setup.source`), not in a
+ * module-level Map, so a reload still knows the words are the creator's (F3).
  *
  * The prompt, the schema and the parse live in `@nodetool-ai/protocol`, so a
  * script written here and one written by the headless `write_script` capability
@@ -52,10 +57,14 @@ import {
   type ScriptDraft
 } from "../../stores/script/ScriptStore";
 import {
-  clearScriptImport,
-  getScriptImport,
+  readScriptSource,
+  scriptSourcePatch,
   type ImportedScript
 } from "../../lib/script/importedScript";
+import {
+  writerSignature,
+  writerSignaturePatch
+} from "./scriptWriteSignature";
 
 /** The length a script is written to when no step wrote one. */
 export const DEFAULT_SCRIPT_SECONDS = 60;
@@ -152,20 +161,35 @@ export const useWriteScript = (): UseWriteScriptResult => {
         return false;
       }
       const setup = script.setup ?? null;
-      // A rewrite gives the import up, so this and every later run write from
-      // the script the creator actually has in front of them.
-      if (options.rewrite === true) {
-        clearScriptImport(scriptId);
+      // A rewrite gives the source up, so this and every later run write from
+      // the script the creator actually has in front of them. It is the one
+      // place a source is dropped, and the review says so beside the button.
+      if (options.rewrite === true && readScriptSource(setup) !== null) {
+        store.setSetup(scriptId, scriptSourcePatch(null));
       }
-      const imported = getScriptImport(scriptId);
+      const imported = readScriptSource(
+        store.getScript(scriptId)?.setup ?? null
+      );
       const brief = setup?.brief.trim() ?? "";
       if (brief === "" && !imported && lineIdsOf(script).length === 0) {
         setError("Write a brief before writing the script.");
         return false;
       }
 
-      const model = useGlobalChatStore.getState().selectedModel;
-      if (!model?.id) {
+      // An attributed import — a screenplay or a subtitle file — already says
+      // who reads every line, so it is applied with no model in the loop. The
+      // step advertises that, and demanding a model first contradicted it (F16).
+      const needsModel = !(imported?.attributed === true);
+
+      // The review step's picker writes `writer_model` onto the document, so
+      // a reload writes with the model the creator chose. Before it is
+      // touched the chat model stands in — that is what the writer used
+      // before the picker existed.
+      const chosen = setup?.writer_model;
+      const model = chosen?.id
+        ? chosen
+        : useGlobalChatStore.getState().selectedModel;
+      if (needsModel && !model?.id) {
         setError("Pick a model before writing the script.");
         return false;
       }
@@ -191,8 +215,8 @@ export const useWriteScript = (): UseWriteScriptResult => {
         } else if (imported) {
           const texts = imported.lines.map((line) => line.text);
           const answer = await rpcRequest("generate_text", {
-            provider: model.provider,
-            model: model.id,
+            provider: model?.provider,
+            model: model?.id,
             system: ATTRIBUTION_SYSTEM_PROMPT,
             prompt: buildAttributionPrompt(texts, { brief, format }),
             max_tokens: MAX_WRITER_TOKENS,
@@ -216,8 +240,8 @@ export const useWriteScript = (): UseWriteScriptResult => {
             existing: options.rewrite ? asWritten(script) : undefined
           };
           const answer = await rpcRequest("generate_text", {
-            provider: model.provider,
-            model: model.id,
+            provider: model?.provider,
+            model: model?.id,
             system: SCRIPT_WRITER_SYSTEM_PROMPT,
             prompt: buildScriptWriterPrompt(input),
             max_tokens: MAX_WRITER_TOKENS,
@@ -242,6 +266,18 @@ export const useWriteScript = (): UseWriteScriptResult => {
         }
 
         store.applyWrittenScript(scriptId, written);
+        // What this script was written from, so pressing step 2's button again
+        // on unchanged inputs continues to it instead of paying for it twice
+        // (F15).
+        store.setSetup(
+          scriptId,
+          writerSignaturePatch(
+            writerSignature(
+              useScriptStore.getState().getScript(scriptId)?.setup ?? null,
+              imported
+            )
+          )
+        );
         // Only a run that was waiting for its script moves the stage on: the
         // review's `Rewrite` fires the same call and must not throw the
         // creator back a step.

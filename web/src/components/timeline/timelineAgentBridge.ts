@@ -527,6 +527,11 @@ export interface TimelineAgentHandler {
   planBeats: (opts: TimelinePlanBeatsOptions) => Promise<TimelineBeat[]>;
   /** Change one beat, by id or 1-based position. */
   updateBeat: (target: string, patch: TimelineBeatPatch) => TimelineBeat;
+  /**
+   * Drop one beat, by id or 1-based position. Answers the beat that was
+   * removed. A clip already generated from it is left where it is.
+   */
+  removeBeat: (target: string) => TimelineBeat;
   /** Turn the plan into clips and enqueue them. */
   generateFromBeats: (
     opts: TimelineGenerateFromBeatsOptions
@@ -538,6 +543,11 @@ export interface TimelineSetupPatch {
   stage?: TimelineSetupStage;
   brief?: string;
   format?: string;
+  /**
+   * Whether the cut is voiced. Absent leaves the choice unsaid, so the beats'
+   * own lines decide; `false` is a deliberate silence the lines cannot state.
+   */
+  voiceover?: boolean;
 }
 
 export interface TimelinePlanBeatsOptions {

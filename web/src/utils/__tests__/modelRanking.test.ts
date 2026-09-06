@@ -156,4 +156,55 @@ describe("rankModels", () => {
     const withoutPrior = rankModels(models, "claude");
     expect(withPrior.map(keyOf)).toEqual(withoutPrior.map(keyOf));
   });
+
+  /**
+   * A model is named twice over: once for a reader ("Minimax H3Max Turbo
+   * Image To Video") and once for a router
+   * ("minimax/h3-max-turbo/image-to-video"). Someone typing from memory hits
+   * neither, and before the fallback the picker answered "No models found".
+   */
+  describe("fuzzy fallback", () => {
+    const catalog = [
+      {
+        id: "minimax/h3-max-turbo/image-to-video",
+        name: "Minimax H3Max Turbo Image To Video",
+        provider: "fal_ai"
+      },
+      {
+        id: "minimax/h3-max/image-to-video",
+        name: "Minimax H3Max Image To Video",
+        provider: "fal_ai"
+      },
+      { id: "gpt-5.6", name: "gpt-5.6", provider: "codex" }
+    ] as unknown as Parameters<typeof rankModels>[0];
+
+    it("finds a model typed without its separators", () => {
+      expect(rankModels(catalog, "h3maxturbo").map((m) => m.id)).toEqual([
+        "minimax/h3-max-turbo/image-to-video"
+      ]);
+    });
+
+    it("finds a model from an abbreviation of its name", () => {
+      expect(rankModels(catalog, "mnmxh3max").map((m) => m.id)).toContain(
+        "minimax/h3-max/image-to-video"
+      );
+    });
+
+    // The fallback must never re-order a query that already works: it runs
+    // only when the literal pass returned nothing.
+    it("leaves a query that matches literally untouched", () => {
+      expect(rankModels(catalog, "h3-max-turbo").map((m) => m.id)).toEqual([
+        "minimax/h3-max-turbo/image-to-video"
+      ]);
+      expect(rankModels(catalog, "gpt-5.6").map((m) => m.id)).toEqual([
+        "gpt-5.6"
+      ]);
+    });
+
+    // Two characters match half a catalog. An empty result is the honest
+    // answer for a query that says nothing.
+    it("still reports nothing for a query that resembles nothing", () => {
+      expect(rankModels(catalog, "zzq").map((m) => m.id)).toEqual([]);
+    });
+  });
 });

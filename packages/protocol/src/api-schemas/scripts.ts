@@ -100,6 +100,16 @@ export type ScriptPace = z.infer<typeof scriptPace>;
  * field but the stage is optional and the object passes unknown keys through —
  * a newer client's field survives a round trip through an older one.
  */
+/**
+ * The model that writes the script. Kept on the document, not in the flow's
+ * own state, so a reload writes with the model the creator picked — and so the
+ * headless `write_script` capability reads the same choice.
+ */
+export const scriptWriterModel = z
+  .object({ provider: z.string(), id: z.string() })
+  .passthrough();
+export type ScriptWriterModel = z.infer<typeof scriptWriterModel>;
+
 export const scriptSetup = z
   .object({
     stage: scriptSetupStage,
@@ -108,7 +118,8 @@ export const scriptSetup = z
     format: z.string().optional(),
     length_seconds: z.number().optional(),
     pace: scriptPace.optional(),
-    language: z.string().optional()
+    language: z.string().optional(),
+    writer_model: scriptWriterModel.optional()
   })
   .passthrough();
 export type ScriptSetup = z.infer<typeof scriptSetup>;

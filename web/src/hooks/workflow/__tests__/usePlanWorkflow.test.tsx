@@ -3,8 +3,9 @@
  *
  * What is asserted here is what the plan step is allowed to do: write text.
  * It calls one model, stores what came back, and places nothing — no
- * `ui_add_node`, no run. A step the model could not name comes back `null` and
- * survives to the review step, where D23's red marker is waiting for it.
+ * `ui_add_node`, no run. A step the model could not name is matched against the
+ * live registry before the plan is stored, and only a step the registry ranks
+ * nothing for reaches the review step as `null`, where D23's red marker waits.
  */
 import { act, renderHook } from "@testing-library/react";
 
@@ -37,6 +38,14 @@ const metadata = {
     namespace: "nodetool.text",
     properties: [],
     outputs: []
+  },
+  "nodetool.mail.SendEmail": {
+    node_type: "nodetool.mail.SendEmail",
+    title: "Send Email",
+    description: "Send an email message",
+    namespace: "nodetool.mail",
+    properties: [],
+    outputs: []
   }
 };
 jest.mock("../../../stores/MetadataStore", () => ({
@@ -47,9 +56,17 @@ jest.mock("../../../stores/MetadataStore", () => ({
   )
 }));
 
-import { readWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import {
+  readWorkflowSetup,
+  writeWorkflowSetup
+} from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { WORKFLOW_INSPIRATION_CHIPS } from "@nodetool-ai/protocol";
-import { usePlanWorkflow, pinnedChipPlan } from "../usePlanWorkflow";
+import {
+  usePlanWorkflow,
+  pinnedChipPlan,
+  planCandidates,
+  resolvePlanNodeTypes
+} from "../usePlanWorkflow";
 
 const MODEL = { provider: "openai", id: "gpt-x" };
 
@@ -80,7 +97,7 @@ describe("planWorkflow", () => {
     await act(async () => {
       expect(
         await result.current.planWorkflow({ brief: "do a thing", model: MODEL })
-      ).toBe(true);
+      ).toBeNull();
     });
     const setup = readWorkflowSetup(settings);
     expect(setup?.stage).toBe("review");
@@ -104,7 +121,7 @@ describe("planWorkflow", () => {
   });
 
   // Criterion 3, second half: a step names a registry type or nothing.
-  it("keeps a step the model could not name as null rather than guessing", async () => {
+  it("matches a step the model could not name against the registry", async () => {
     rpcRequest.mockResolvedValueOnce(ANSWER);
     const { result } = renderHook(() => usePlanWorkflow("w1"));
     await act(async () => {
@@ -113,10 +130,31 @@ describe("planWorkflow", () => {
     const steps = readWorkflowSetup(settings)?.plan?.steps ?? [];
     expect(steps.map((step) => step.node_type)).toEqual([
       "nodetool.text.Template",
-      null
+      "nodetool.mail.SendEmail"
     ]);
     // Every step still carries an id, so the review step can address it.
     expect(steps.every((step) => step.id.length > 0)).toBe(true);
+  });
+
+  it("leaves a step the registry ranks nothing for as null", async () => {
+    rpcRequest.mockResolvedValueOnce({
+      data: {
+        inputs: [],
+        steps: [
+          {
+            title: "Zzzqqx",
+            summary: "Zzzqqx wqxjv",
+            node_type: "nodetool.zzzqqx.Wqxjv"
+          }
+        ],
+        outputs: [{ name: "out", type: "string" }]
+      }
+    });
+    const { result } = renderHook(() => usePlanWorkflow("w1"));
+    await act(async () => {
+      await result.current.planWorkflow({ brief: "do a thing", model: MODEL });
+    });
+    expect(readWorkflowSetup(settings)?.plan?.steps[0].node_type).toBeNull();
   });
 
   it("offers the planner only node types the registry has", async () => {
@@ -139,9 +177,9 @@ describe("planWorkflow", () => {
   it("refuses an empty brief without calling a model", async () => {
     const { result } = renderHook(() => usePlanWorkflow("w1"));
     await act(async () => {
-      expect(await result.current.planWorkflow({ brief: "  ", model: MODEL })).toBe(
-        false
-      );
+      expect(
+        await result.current.planWorkflow({ brief: "  ", model: MODEL })
+      ).toContain("Describe the task");
     });
     expect(rpcRequest).not.toHaveBeenCalled();
     expect(result.current.error).toContain("Describe the task");
@@ -151,9 +189,11 @@ describe("planWorkflow", () => {
     rpcRequest.mockRejectedValueOnce(new Error("provider is down"));
     const { result } = renderHook(() => usePlanWorkflow("w1"));
     await act(async () => {
+      // The provider's own words come back from the call, so the flow shell
+      // can report them in the same tick — `error` is a render behind.
       expect(
         await result.current.planWorkflow({ brief: "do a thing", model: MODEL })
-      ).toBe(false);
+      ).toBe("provider is down");
     });
     expect(result.current.error).toBe("provider is down");
     expect(readWorkflowSetup(settings)?.plan).toBeUndefined();
@@ -165,7 +205,7 @@ describe("planWorkflow", () => {
     await act(async () => {
       expect(
         await result.current.planWorkflow({ brief: chip.brief, model: null })
-      ).toBe(true);
+      ).toBeNull();
     });
     expect(rpcRequest).not.toHaveBeenCalled();
     expect(readWorkflowSetup(settings)?.plan?.steps).toHaveLength(
@@ -173,12 +213,57 @@ describe("planWorkflow", () => {
     );
   });
 
+  // F9: a planner call outlives the stage that asked for it. The creator who
+  // went back to the idea step keeps that step, and their brief keeps whatever
+  // they are typing into it.
+  it("drops an answer that arrives after the creator left the stage", async () => {
+    settings = writeWorkflowSetup({}, { stage: "category", brief: "b" });
+    let release: (value: unknown) => void = () => undefined;
+    rpcRequest.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      })
+    );
+    const { result } = renderHook(() => usePlanWorkflow("w1"));
+    let pending: Promise<string | null> = Promise.resolve(null);
+    await act(async () => {
+      pending = result.current.planWorkflow({ brief: "b", model: MODEL });
+    });
+
+    // The creator steps back while the planner is still out.
+    settings = writeWorkflowSetup(settings, { stage: "idea" });
+
+    await act(async () => {
+      release(ANSWER);
+      expect(await pending).toBeNull();
+    });
+    const setup = readWorkflowSetup(settings);
+    expect(setup?.stage).toBe("idea");
+    expect(setup?.plan).toBeUndefined();
+  });
+
+  it("records what the stored plan answers, so an unchanged brief is not re-planned", async () => {
+    rpcRequest.mockResolvedValueOnce(ANSWER);
+    const { result } = renderHook(() => usePlanWorkflow("w1"));
+    await act(async () => {
+      await result.current.planWorkflow({
+        brief: " do a thing ",
+        category: "content-pipeline",
+        model: MODEL
+      });
+    });
+    expect(readWorkflowSetup(settings)?.["plan_source"]).toEqual({
+      brief: "do a thing",
+      category: "content-pipeline"
+    });
+  });
+
   it("says what is missing when there is neither a model nor a pinned plan", async () => {
     const { result } = renderHook(() => usePlanWorkflow("w1"));
     await act(async () => {
       expect(
         await result.current.planWorkflow({ brief: "something new", model: null })
-      ).toBe(false);
+      ).toContain("Connect a provider");
     });
     expect(result.current.error).toContain("Connect a provider");
   });
@@ -192,5 +277,88 @@ describe("pinnedChipPlan", () => {
 
   it("returns null for a brief no chip ships", () => {
     expect(pinnedChipPlan("write me a haiku")).toBeNull();
+  });
+});
+
+describe("planCandidates", () => {
+  // A catalog where one job of the brief can flood the whole prompt.
+  const crowded: Record<string, unknown> = {
+    "nodetool.mail.SendEmail": metadata["nodetool.mail.SendEmail"]
+  };
+  for (let index = 0; index < 60; index += 1) {
+    const nodeType = `nodetool.text.Format${index}`;
+    crowded[nodeType] = {
+      node_type: nodeType,
+      title: `Format Text ${index}`,
+      description: "Format a text string",
+      namespace: "nodetool.text",
+      properties: [],
+      outputs: []
+    };
+  }
+
+  const typesOf = (lines: string[]) =>
+    lines.map((line) => line.slice(2).split(":")[0]);
+
+  // One blended query spent every slot on the first job, so the second step had
+  // no candidate to name and came back null.
+  it("offers each clause of the brief its own candidates", () => {
+    const types = typesOf(
+      planCandidates(
+        "format the text and email it",
+        undefined,
+        crowded as never
+      )
+    );
+    expect(types).toContain("nodetool.mail.SendEmail");
+    expect(types.some((type) => type.startsWith("nodetool.text.Format"))).toBe(
+      true
+    );
+  });
+
+  it("names only types the registry has", () => {
+    const lines = planCandidates("format text", "content-pipeline", metadata as never);
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      expect(Object.keys(metadata)).toContain(line.slice(2).split(":")[0]);
+    }
+  });
+});
+
+describe("resolvePlanNodeTypes", () => {
+  it("leaves a step the registry already has alone", () => {
+    const plan = {
+      inputs: [],
+      steps: [
+        {
+          id: "s1",
+          title: "Compose",
+          summary: "lay it out",
+          node_type: "nodetool.text.Template"
+        }
+      ],
+      outputs: []
+    };
+    expect(resolvePlanNodeTypes(plan, metadata as never).steps[0].node_type).toBe(
+      "nodetool.text.Template"
+    );
+  });
+
+  it("resolves a type this install does not have to one it does", () => {
+    const plan = {
+      inputs: [],
+      steps: [
+        {
+          id: "s1",
+          title: "Send Email",
+          summary: "mail the summary out",
+          node_type: "nodetool.gmail.SendEmail"
+        }
+      ],
+      outputs: []
+    };
+    expect(resolvePlanNodeTypes(plan, metadata as never).steps[0].node_type).toBe(
+      "nodetool.mail.SendEmail"
+    );
   });
 });

@@ -7,13 +7,20 @@
  * that adds a layer adds it to the document the creator is about to open, and
  * `Pick` is nothing more than this overlay getting out of the way.
  *
+ * Mounted is not the same as reachable. While the flow covers the editor, the
+ * editor's own controls are `inert`, so the tab key stays inside setup instead
+ * of walking through a toolbar nobody can see, and focus moves into the flow
+ * on the way in and back to where it was on the way out (F6). It is still not
+ * a modal dialog: the flow is the document's surface, not something on top of
+ * it.
+ *
  * Which surface shows is a function of two things and no wizard state: the
  * document's stage (D3), and whether a batch was enqueued in this session. A
  * reload after a batch lands on the editor with every variation present, which
  * is the same outcome `Pick` produces minus the visibility change.
  */
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 
 import { Box, PADDING, ScrollArea, Z_INDEX } from "../../ui_primitives";
@@ -34,7 +41,11 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
 }) => {
   const theme = useTheme();
   const [batch, setBatch] = useState<readonly string[]>([]);
+  const [makingMore, setMakingMore] = useState(false);
+  const [makeMoreError, setMakeMoreError] = useState<string | null>(null);
   const saveEntity = useSaveEntity();
+  const setSetup = useSketchStore((state) => state.setSetup);
+  const surfaceRef = useRef<HTMLDivElement | null>(null);
 
   const handleGenerated = useCallback((layerIds: readonly string[]) => {
     setBatch(layerIds);
@@ -51,17 +62,37 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
   });
 
   const makeMore = useCallback(() => {
-    void look.generate().then((layerIds) => {
-      setBatch((current) => [...current, ...layerIds]);
-    });
+    setMakeMoreError(null);
+    setMakingMore(true);
+    void look
+      .generate()
+      .then((layerIds) => {
+        setBatch((current) => [...current, ...layerIds]);
+      })
+      .catch((cause: unknown) => {
+        setMakeMoreError(
+          cause instanceof Error
+            ? cause.message
+            : "Another batch could not be started."
+        );
+      })
+      .finally(() => setMakingMore(false));
   }, [look]);
 
-  const useInStoryboard = useCallback(
-    (layerId: string) => {
+  // Back to the look step with every variation kept: they are layers on the
+  // document, and the next batch is added beside them (F7).
+  const backToSettings = useCallback(() => {
+    setBatch([]);
+    setMakeMoreError(null);
+    setSetup({ stage: "look" });
+  }, [setSetup]);
+
+  const saveToLibrary = useCallback(
+    async (layerId: string) => {
       const assetId =
         useSketchSessionStore.getState().bindings[layerId]?.currentAssetId;
       if (!assetId) {
-        return;
+        throw new Error("That variation has not rendered yet.");
       }
       const setup = useSketchStore.getState().document.setup;
       const name = (setup?.refined?.subject || setup?.brief || "Image").slice(
@@ -70,7 +101,7 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
       );
       // A generated picture is a thing a board can cast, so it lands as a
       // `prop`: the kind whose descriptor seasons the shots it appears in.
-      void saveEntity.mutateAsync({
+      await saveEntity.mutateAsync({
         assetId,
         kind: "prop",
         name,
@@ -82,18 +113,50 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
 
   // Nothing to show once the flow is finished and its batch has been picked
   // from: the editor underneath is the whole surface.
-  if (batch.length === 0 && config.stage === "done") {
+  const covering = batch.length > 0 || config.stage !== "done";
+
+  useEffect(() => {
+    const surface = surfaceRef.current;
+    const parent = surface?.parentElement;
+    if (!covering || !surface || !parent) {
+      return;
+    }
+    const covered = Array.from(parent.children).filter(
+      (child): child is HTMLElement =>
+        child instanceof HTMLElement && child !== surface
+    );
+    const returnTo =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    for (const element of covered) {
+      element.setAttribute("inert", "");
+    }
+    surface.focus({ preventScroll: true });
+    return () => {
+      for (const element of covered) {
+        element.removeAttribute("inert");
+      }
+      returnTo?.focus({ preventScroll: true });
+    };
+  }, [covering]);
+
+  if (!covering) {
     return null;
   }
 
   return (
     <Box
+      ref={surfaceRef}
+      tabIndex={-1}
+      data-image-setup
       sx={{
         position: "absolute",
         inset: 0,
         zIndex: Z_INDEX.sticky,
         backgroundColor: theme.vars.palette.background.default,
-        overflow: "hidden"
+        overflow: "hidden",
+        outline: "none"
       }}
     >
       <ScrollArea fullHeight>
@@ -103,7 +166,11 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
               layerIds={batch}
               onPick={finish}
               onMakeMore={makeMore}
-              onUseInStoryboard={useInStoryboard}
+              makeMorePending={makingMore}
+              makeMoreError={makeMoreError}
+              onBackToSettings={backToSettings}
+              onOpenEditor={finish}
+              onSaveToLibrary={saveToLibrary}
             />
           </Box>
         ) : (

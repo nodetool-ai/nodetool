@@ -26,12 +26,19 @@ export interface VideoSetupHostProps {
   onFinish: () => void;
   /** Hands the brief to the script flow (E3). */
   onStartFromScript?: (brief: string) => void;
+  /**
+   * Takes the creator back to the entry surface to pick a different card. The
+   * shell shows it on step 1 only, and only when a host supplies it; what
+   * happens to the draft sequence is the host's to decide (F31).
+   */
+  onChangeFlow?: () => void | Promise<void>;
 }
 
 const VideoSetupBody = ({
   sequenceId,
   onFinish,
-  onStartFromScript
+  onStartFromScript,
+  onChangeFlow
 }: VideoSetupHostProps) => {
   const query = trpc.timeline.get.useQuery({ id: sequenceId });
   useLoadTimelineIntoStore(query.data);
@@ -48,7 +55,7 @@ const VideoSetupBody = ({
   if (!loaded) {
     return <DocumentLoadStatus state="loading" label="video" />;
   }
-  return <SetupFlow config={config} />;
+  return <SetupFlow config={config} onChangeFlow={onChangeFlow} />;
 };
 
 const VideoSetupHost = (props: VideoSetupHostProps) => (

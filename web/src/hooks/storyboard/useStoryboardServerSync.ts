@@ -70,7 +70,10 @@ const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument =>
     genre: board.genre,
     directorModel: board.directorModel,
     imageModel: board.imageModel,
-    videoModel: board.videoModel
+    videoModel: board.videoModel,
+    importSource: board.importSource ?? null,
+    setupShotCount: board.setupShotCount,
+    setupDirectedFrom: board.setupDirectedFrom ?? null
   }) as StoryboardWireDocument;
 
 const responseToBoard = (
@@ -95,6 +98,9 @@ const responseToBoard = (
       doc.directorModel as StoryboardBoard["directorModel"],
     imageModel: doc.imageModel as StoryboardBoard["imageModel"],
     videoModel: doc.videoModel as StoryboardBoard["videoModel"],
+    importSource: doc.importSource ?? null,
+    setupShotCount: doc.setupShotCount,
+    setupDirectedFrom: doc.setupDirectedFrom ?? null,
     activeShotId: null,
     timelineId: res.timelineId ?? null
   };

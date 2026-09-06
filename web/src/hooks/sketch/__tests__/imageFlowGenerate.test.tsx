@@ -102,6 +102,56 @@ describe("expandBrief (criterion 3)", () => {
     expect(setup?.refined?.subject).toBe("a ceramic pour-over dripper");
   });
 
+  // F9: a model call outlives the stage that asked for it. An answer that
+  // arrives after the creator has moved on must not replace what they are
+  // reading, nor pull them back to the review.
+  it("drops an answer that arrives after the creator left the stage", async () => {
+    act(() => {
+      useSketchStore.getState().setSetup({
+        stage: "useCase",
+        brief: "a pour-over dripper",
+        use_case: "product"
+      });
+    });
+
+    let answer: (value: Record<string, unknown>) => void = () => {};
+    rpcRequest.mockImplementationOnce(
+      () =>
+        new Promise<Record<string, unknown>>((resolve) => {
+          answer = resolve;
+        })
+    );
+
+    const { result } = renderHook(() => useRefineBrief());
+    let expansion: Promise<boolean> = Promise.resolve(false);
+    act(() => {
+      expansion = result.current.expandBrief();
+    });
+
+    // The creator goes back to the idea step while the model is still reading.
+    act(() => {
+      useSketchStore.getState().setSetup({ stage: "idea" });
+    });
+
+    await act(async () => {
+      answer({
+        data: {
+          subject: "a ceramic pour-over dripper",
+          composition: "centred",
+          lighting: "soft",
+          style_words: "85mm",
+          negative: "hands"
+        }
+      });
+      expect(await expansion).toBe(false);
+    });
+
+    const setup = useSketchStore.getState().document.setup;
+    expect(setup?.stage).toBe("idea");
+    expect(setup?.refined).toBeUndefined();
+    expect(result.current.error).toBeNull();
+  });
+
   it("refuses an empty brief without calling the model", async () => {
     const { result } = renderHook(() => useRefineBrief());
     await act(async () => {

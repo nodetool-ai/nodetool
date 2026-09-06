@@ -6,6 +6,11 @@
  * layers. Status flips ("generating" → "generated" / "failed") are written
  * back via `patchBinding`. On success the layer's `imageReference` is
  * pointed at the new asset so the canvas displays it.
+ *
+ * `start` never rejects — callers run whole batches through it and depend on
+ * one refusal not stopping the rest — so a failure is reported rather than
+ * thrown: the reason lands in `directGenFailure(layerId)` beside the status,
+ * classified and with the provider's own words kept (F7).
  */
 import { useCallback } from "react";
 import {
@@ -22,6 +27,7 @@ import {
 } from "../../components/sketch/serialization";
 import { maskInpaintResult } from "../../lib/sketch/maskInpaintResult";
 import { computeLayerDependencyHash } from "../../lib/sketch/dependencyHash";
+import { redactSecretsInText } from "../../utils/bugReportBundle";
 import type {
   LayerVersion,
   LayerWorkflowBinding
@@ -91,6 +97,119 @@ interface UseDirectGenJobApi {
   cancel: (layerId: string) => void;
 }
 
+/**
+ * What went wrong, in the terms that decide what the creator does next. A
+ * refused prompt, a missing key and a provider timeout all end as
+ * `status: "failed"` on the binding, and each needs a different remedy — so
+ * the difference is kept rather than flattened (F7).
+ */
+export type DirectGenFailureKind =
+  | "no-model"
+  | "no-prompt"
+  | "no-source"
+  | "auth"
+  | "quota"
+  | "refused"
+  | "timeout"
+  | "network"
+  | "provider"
+  | "unknown";
+
+export interface DirectGenFailure {
+  kind: DirectGenFailureKind;
+  /** One line naming the remedy. Always set. */
+  message: string;
+  /** The provider's own words, redacted and capped. Empty when there were none. */
+  detail: string;
+}
+
+/** A provider message is a sentence, not a stack trace. */
+const MAX_FAILURE_DETAIL = 300;
+
+/**
+ * The reasons, keyed by layer. Module-level for the same reason `inFlight` is:
+ * the writer is an RPC handler and the reader is whatever surface renders the
+ * layer next, and they are never the same render. A reason lives as long as
+ * the tab, which is as long as the failed take it explains.
+ */
+const failures = new Map<string, DirectGenFailure>();
+
+/** Why this layer's last take failed, or null when it did not. */
+export const directGenFailure = (layerId: string): DirectGenFailure | null =>
+  failures.get(layerId) ?? null;
+
+/** One line a surface can render: the remedy, then the provider's words. */
+export const describeDirectGenFailure = (failure: DirectGenFailure): string =>
+  failure.detail ? `${failure.message} (${failure.detail})` : failure.message;
+
+/**
+ * Read a provider's refusal. The code and the message are the provider's, so
+ * the classification is a match on both — and the text is carried through
+ * rather than replaced, because "content policy" and "rate limit" are not the
+ * same problem to the person reading it.
+ */
+const classifyProviderError = (error: {
+  code?: string;
+  message?: string;
+}): DirectGenFailure => {
+  const raw = `${error.code ?? ""} ${error.message ?? ""}`.trim();
+  const detail = redactSecretsInText(error.message ?? error.code ?? "").slice(
+    0,
+    MAX_FAILURE_DETAIL
+  );
+  const match = (pattern: RegExp): boolean => pattern.test(raw);
+  if (match(/unauthor|invalid[_\s-]?api|api[_\s-]?key|401|403|forbidden/i)) {
+    return {
+      kind: "auth",
+      message:
+        "The provider rejected the request as unauthorized. Check its API key in Settings.",
+      detail
+    };
+  }
+  if (match(/quota|rate[_\s-]?limit|429|billing|insufficient|credit/i)) {
+    return {
+      kind: "quota",
+      message:
+        "The provider turned the request away for now. Wait a moment, or use another model.",
+      detail
+    };
+  }
+  if (match(/safety|content[_\s-]?polic|moderat|refus|blocked|nsfw/i)) {
+    return {
+      kind: "refused",
+      message: "The provider refused this prompt. Reword it and try again.",
+      detail
+    };
+  }
+  if (match(/timeout|timed[_\s-]?out|deadline|504/i)) {
+    return {
+      kind: "timeout",
+      message: "The provider took too long to answer. Try again.",
+      detail
+    };
+  }
+  if (match(/network|socket|econn|fetch failed|disconnect|offline/i)) {
+    return {
+      kind: "network",
+      message: "The connection dropped before the image came back. Try again.",
+      detail
+    };
+  }
+  return {
+    kind: detail ? "provider" : "unknown",
+    message: detail
+      ? "The provider refused the request."
+      : "The provider refused the request and gave no reason.",
+    detail
+  };
+};
+
+/** The reason a caught exception gives, redacted and capped. */
+const causeDetail = (cause: unknown): string =>
+  cause instanceof Error
+    ? redactSecretsInText(cause.message).slice(0, MAX_FAILURE_DETAIL)
+    : "";
+
 // Module-level so cancel() can tear down an in-flight subscription started by
 // start() in a different render. Without this the RPC handler keeps running
 // after cancel and overwrites the user-set "draft" status with "generated".
@@ -102,6 +221,16 @@ const clearInFlight = (layerId: string): void => {
     teardown();
     inFlight.delete(layerId);
   }
+};
+
+/**
+ * Record why, then mark the layer failed. The reason is written first, so the
+ * render triggered by the status flip already has it — a tile never shows
+ * "failed" with nothing beside it.
+ */
+const failLayer = (layerId: string, failure: DirectGenFailure): void => {
+  failures.set(layerId, failure);
+  useSketchSessionStore.getState().patchBinding(layerId, { status: "failed" });
 };
 
 export function useDirectGenJob(): UseDirectGenJobApi {
@@ -120,11 +249,20 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       return;
     }
     if (!binding.provider || !binding.model) {
-      bindings.patchBinding(layerId, { status: "failed" });
+      failLayer(layerId, {
+        kind: "no-model",
+        message:
+          "No image model is set on this layer. Pick one, then try again.",
+        detail: ""
+      });
       return;
     }
     if (!binding.prompt || !binding.prompt.trim()) {
-      bindings.patchBinding(layerId, { status: "failed" });
+      failLayer(layerId, {
+        kind: "no-prompt",
+        message: "This layer has no prompt to render.",
+        detail: ""
+      });
       return;
     }
 
@@ -134,7 +272,12 @@ export function useDirectGenJob(): UseDirectGenJobApi {
 
     if (binding.kind === "inpaint") {
       if (!binding.sourceAssetId || !binding.maskAssetId) {
-        bindings.patchBinding(layerId, { status: "failed" });
+        failLayer(layerId, {
+          kind: "no-source",
+          message:
+            "The selection this was going to repaint is gone. Make a new one and try again.",
+          detail: ""
+        });
         return;
       }
       sourceAssetId = binding.sourceAssetId;
@@ -145,14 +288,22 @@ export function useDirectGenJob(): UseDirectGenJobApi {
         // uploaded as a throwaway asset on the binding.
         sourceAssetId = binding.sourceAssetId;
       } else if (!binding.sourceLayerId) {
-        bindings.patchBinding(layerId, { status: "failed" });
+        failLayer(layerId, {
+          kind: "no-source",
+          message: "This layer has no source image to work from.",
+          detail: ""
+        });
         return;
       } else {
         const sourceLayer = sketch.document.layers.find(
           (l) => l.id === binding.sourceLayerId
         );
         if (!sourceLayer) {
-          bindings.patchBinding(layerId, { status: "failed" });
+          failLayer(layerId, {
+            kind: "no-source",
+            message: "The source layer this was built from is gone.",
+            detail: ""
+          });
           return;
         }
         const fromUri = assetIdFromUri(sourceLayer.imageReference?.uri);
@@ -162,7 +313,11 @@ export function useDirectGenJob(): UseDirectGenJobApi {
           try {
             const canvas = await exportLayer(sketch.document, sourceLayer.id);
             if (!canvas) {
-              bindings.patchBinding(layerId, { status: "failed" });
+              failLayer(layerId, {
+                kind: "no-source",
+                message: "The source layer is empty, so there is nothing to work from.",
+                detail: ""
+              });
               return;
             }
             const blob = await canvasToBlob(canvas);
@@ -175,8 +330,12 @@ export function useDirectGenJob(): UseDirectGenJobApi {
               .getState()
               .createAsset(file, undefined, undefined, undefined, "file");
             sourceAssetId = uploaded.id;
-          } catch {
-            bindings.patchBinding(layerId, { status: "failed" });
+          } catch (cause) {
+            failLayer(layerId, {
+              kind: "provider",
+              message: "The source image could not be prepared.",
+              detail: causeDetail(cause)
+            });
             return;
           }
         }
@@ -189,6 +348,8 @@ export function useDirectGenJob(): UseDirectGenJobApi {
     clearInFlight(layerId);
 
     const requestId = crypto.randomUUID();
+    // A new take answers the last failure, whatever it said.
+    failures.delete(layerId);
     bindings.patchBinding(layerId, { status: "generating" });
 
     let unsubscribe: (() => void) | undefined;
@@ -232,7 +393,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       if (msg.error) {
         // rpc_response means the backend has finished reading the inputs.
         deleteTempUploads();
-        store.patchBinding(layerId, { status: "failed" });
+        failLayer(layerId, classifyProviderError(msg.error));
         return;
       }
       const assetIds = Array.isArray(msg.result?.asset_ids)
@@ -243,7 +404,11 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       const first = assetIds[0];
       if (!first) {
         deleteTempUploads();
-        store.patchBinding(layerId, { status: "failed" });
+        failLayer(layerId, {
+          kind: "provider",
+          message: "The request finished without an image.",
+          detail: ""
+        });
         return;
       }
 
@@ -319,8 +484,12 @@ export function useDirectGenJob(): UseDirectGenJobApi {
               : l
           )
         });
-      } catch {
-        store.patchBinding(layerId, { status: "failed" });
+      } catch (cause) {
+        failLayer(layerId, {
+          kind: "provider",
+          message: "The image came back but could not be placed on the canvas.",
+          detail: causeDetail(cause)
+        });
         return;
       }
 
@@ -372,13 +541,16 @@ export function useDirectGenJob(): UseDirectGenJobApi {
           variations: 1
         }
       });
-    } catch {
+    } catch (cause) {
       cleanup();
       // Send never reached the backend, so the uploads are orphaned.
       deleteTempUploads();
-      useSketchSessionStore
-        .getState()
-        .patchBinding(layerId, { status: "failed" });
+      failLayer(layerId, {
+        kind: "network",
+        message:
+          "The request never reached NodeTool. Check your connection and try again.",
+        detail: causeDetail(cause)
+      });
     }
   }, []);
 

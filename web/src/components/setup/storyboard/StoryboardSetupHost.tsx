@@ -22,11 +22,18 @@ export interface StoryboardSetupHostProps {
   boardId: string;
   /** Runs when the flow's last step finishes — the host opens the board. */
   onFinish: () => void;
+  /**
+   * Runs when the creator leaves the flow on step 1 — the wrong entry card
+   * was picked (F31). The shell shows the control only when a handler is
+   * given, and the caller owns what happens to the board it made.
+   */
+  onChangeFlow?: () => void | Promise<void>;
 }
 
 const StoryboardSetupHost = ({
   boardId,
-  onFinish
+  onFinish,
+  onChangeFlow
 }: StoryboardSetupHostProps) => {
   const ensureBoard = useStoryboardStore((state) => state.ensureBoard);
   useEffect(() => {
@@ -43,7 +50,7 @@ const StoryboardSetupHost = ({
     return <DocumentLoadStatus state={loadState} label="storyboard" />;
   }
 
-  return <SetupFlow config={config} />;
+  return <SetupFlow config={config} onChangeFlow={onChangeFlow} />;
 };
 
 export default StoryboardSetupHost;

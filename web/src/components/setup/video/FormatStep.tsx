@@ -16,6 +16,7 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineProjectSettings } from "../../../hooks/timeline/useTimelineProjectSettings";
 import { OptionCardGrid } from "../OptionCardGrid";
 import type { OptionCardItem } from "../OptionCardGrid";
+import { SETUP_STILL_GROUPS, setupStill } from "../stills";
 import { VIDEO_FORMATS, videoFormatById, tracksForFormat } from "./formats";
 
 /** "15s · 16:9 · 30fps" — the numbers the card decides, said out loud. */
@@ -25,11 +26,9 @@ const formatSpec = (durationMs: number, aspect: string, fps: number): string =>
 const OPTIONS: readonly OptionCardItem[] = VIDEO_FORMATS.map((format) => ({
   id: format.id,
   title: format.title,
-  description: `${format.description} ${formatSpec(
-    format.durationMs,
-    format.aspectRatio,
-    format.fps
-  )}`
+  description: format.description,
+  meta: formatSpec(format.durationMs, format.aspectRatio, format.fps),
+  image: setupStill(SETUP_STILL_GROUPS.videoFormats, format.id)
 }));
 
 const FormatStepInternal: React.FC = () => {
@@ -73,17 +72,22 @@ const FormatStepInternal: React.FC = () => {
     <FlexColumn gap={GAP.comfortable}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Choose your format
+          Choose a video template
         </Text>
         <Text size="normal" color="secondary">
-          Length, shape and tracks follow your choice. You can change them later.
+          Each template combines a target length, frame shape and editing style.
+          These are starting settings, not generated footage.
         </Text>
       </FlexColumn>
+      {/* One template, not seven independent switches: the cards are radios
+          with a single tab stop. Stated rather than inferred from the fact
+          that a selection is tracked (F26). */}
       <OptionCardGrid
         label="Format"
         options={options}
         selectedId={selectedId}
         onSelect={handleSelect}
+        mode="single-select"
       />
     </FlexColumn>
   );

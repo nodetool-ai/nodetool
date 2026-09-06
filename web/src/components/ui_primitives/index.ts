@@ -92,6 +92,9 @@ export { default as MagicGenerationFill } from "./MagicGenerationFill";
 export { ShimmerText } from "./ShimmerText";
 export type { ShimmerTextProps } from "./ShimmerText";
 
+export { ThinkingIndicator } from "./ThinkingIndicator";
+export type { ThinkingIndicatorProps } from "./ThinkingIndicator";
+
 export { ProgressBar } from "./ProgressBar";
 export type { ProgressBarProps } from "./ProgressBar";
 

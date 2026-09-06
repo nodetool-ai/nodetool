@@ -1260,6 +1260,14 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         return updated;
       },
 
+      removeBeat(target) {
+        // Resolved before it is dropped, so the answer names what went and an
+        // unresolvable target says so rather than reporting a silent success.
+        const beat = requireBeat(target);
+        doc.getState().removeBeat(beat.id);
+        return beat;
+      },
+
       generateFromBeats(opts) {
         return generateFromBeats(doc, { ...opts, startJob: startDirectGen });
       }

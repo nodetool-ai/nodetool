@@ -41,19 +41,20 @@ export const modelSampleUrl = (
 /** `kind:id` → whether its sample loaded. Module-level: one probe per session. */
 const probed = new Map<string, Promise<boolean>>();
 
+/** Answers whether this model's sample can be rendered. */
+export type ModelSampleProbe = (
+  modelId: string,
+  kind: ModelSampleKind
+) => Promise<boolean>;
+
 /**
  * Ask the browser to load the sample. A media element is used rather than
  * `fetch` on purpose: media loading is not subject to the CORS preflight a
  * cross-origin `fetch` would need, and the element is the same one that will
  * render the sample, so a successful probe means the tile will render.
  */
-const probe = (modelId: string, kind: ModelSampleKind): Promise<boolean> => {
-  const key = `${kind}:${modelId}`;
-  const existing = probed.get(key);
-  if (existing) {
-    return existing;
-  }
-  const pending = new Promise<boolean>((resolve) => {
+const loadSample: ModelSampleProbe = (modelId, kind) =>
+  new Promise<boolean>((resolve) => {
     if (typeof document === "undefined") {
       resolve(false);
       return;
@@ -80,6 +81,39 @@ const probe = (modelId: string, kind: ModelSampleKind): Promise<boolean> => {
     element.addEventListener("error", () => settle(false), { once: true });
     element.src = modelSampleUrl(modelId, kind);
   });
+
+/**
+ * A probe that answers "no sample" without asking anyone. It is what runs
+ * where there is no network to ask: a media element in jsdom resolves the
+ * hostname for real, so a suite that named a model id made an outbound DNS
+ * call and then never settled either way — slow, flaky on a bad link, and dead
+ * on an offline or sandboxed CI runner.
+ *
+ * It resolves rather than hangs on purpose. A tile decides between its picture
+ * and its typographic fallback on this answer, so a probe that never settles
+ * is a card that never settles.
+ */
+export const noModelSamples: ModelSampleProbe = () => Promise.resolve(false);
+
+let probeSample: ModelSampleProbe = loadSample;
+
+/**
+ * Replaces the probe, and drops what the old one answered. The web test setup
+ * installs {@link noModelSamples}; pass `null` to restore the real one.
+ */
+export const setModelSampleProbe = (probe: ModelSampleProbe | null): void => {
+  probeSample = probe ?? loadSample;
+  probed.clear();
+};
+
+/** The probe, memoized: one answer per model and kind for the session. */
+const probe = (modelId: string, kind: ModelSampleKind): Promise<boolean> => {
+  const key = `${kind}:${modelId}`;
+  const existing = probed.get(key);
+  if (existing) {
+    return existing;
+  }
+  const pending = probeSample(modelId, kind);
   probed.set(key, pending);
   return pending;
 };

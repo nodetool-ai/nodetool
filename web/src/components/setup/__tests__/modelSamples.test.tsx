@@ -12,6 +12,8 @@ import { renderHook, waitFor } from "@testing-library/react";
 
 import {
   modelSampleUrl,
+  noModelSamples,
+  setModelSampleProbe,
   useModelSamples,
   MODEL_SAMPLE_BASE_URL
 } from "../modelSamples";
@@ -23,11 +25,19 @@ const realCreateElement = document.createElement.bind(document);
 
 beforeEach(() => {
   created = [];
+  // The suite that covers the real probe is the one that installs it. Every
+  // other suite keeps the no-network probe the web test setup installs.
+  setModelSampleProbe(null);
   jest
     .spyOn(document, "createElement")
     .mockImplementation((tag: string, options?: ElementCreationOptions) => {
       const el = realCreateElement(tag, options);
       if (tag === "img" || tag === "video") {
+        // jsdom runs with `resources: "usable"`, so the prototype's `src`
+        // setter resolves the CDN hostname for real. Shadow it with a plain
+        // property: the probe under test only writes the URL, and the events
+        // it listens for are dispatched by hand below.
+        Object.defineProperty(el, "src", { writable: true, value: "" });
         created.push({ tag, el });
       }
       return el;
@@ -36,6 +46,7 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.restoreAllMocks();
+  setModelSampleProbe(noModelSamples);
 });
 
 /** Fire the event that the probe treats as "this sample will render". */
@@ -83,6 +94,22 @@ describe("useModelSamples", () => {
         `${MODEL_SAMPLE_BASE_URL}/vid-a.mp4`
       )
     );
+  });
+
+  // A media element in jsdom resolves the CDN hostname for real. A suite that
+  // named a model id made an outbound DNS call and then never settled either
+  // way: slow, flaky on a bad link, dead on an offline runner.
+  it("answers without a request under the test environment's probe", async () => {
+    setModelSampleProbe(noModelSamples);
+
+    // A tile decides between its picture and its fallback on this answer, so
+    // the probe has to settle, not hang.
+    await expect(noModelSamples("img-c", "image")).resolves.toBe(false);
+
+    const { result } = renderHook(() => useModelSamples(["img-c"], "image"));
+
+    await waitFor(() => expect(result.current).toEqual({}));
+    expect(created).toHaveLength(0);
   });
 
   it("leaves a model whose sample fails to load on its fallback", async () => {

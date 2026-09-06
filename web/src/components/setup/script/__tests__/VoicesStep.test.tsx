@@ -36,7 +36,10 @@ jest.mock("../useSetupVoices", () => ({
         voice: "adam"
       }
     ],
-    loading: false
+    loading: false,
+    error: null,
+    retry: jest.fn(),
+    noProvider: false
   })
 }));
 
@@ -101,20 +104,22 @@ afterEach(() => {
 });
 
 describe("VoicesStep", () => {
+  // The voices are a mutually exclusive choice, so each row is a radio group
+  // with one tab stop, not a bag of buttons (F26).
   it("gives every speaker in the cast its own row of voices", () => {
     renderStep();
-    expect(screen.getByRole("group", { name: "Voices for Host" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Voices for Guest" })).toBeInTheDocument();
+    expect(screen.getByRole("radiogroup", { name: "Voices for Host" })).toBeInTheDocument();
+    expect(screen.getByRole("radiogroup", { name: "Voices for Guest" })).toBeInTheDocument();
   });
 
   it("plays the speaker's own first line in the tile's voice, once", async () => {
     const user = userEvent.setup();
     renderStep();
 
-    const hostRow = screen.getByRole("group", { name: "Voices for Host" });
+    const hostRow = screen.getByRole("radiogroup", { name: "Voices for Host" });
     const [rachel] = Array.from(
       hostRow.querySelectorAll("button")
-    ).filter((button) => button.textContent === "Hear this voice");
+    ).filter((button) => button.textContent === "Hear Rachel");
     await user.click(rachel);
 
     expect(rpcRequest).toHaveBeenCalledTimes(1);
@@ -138,10 +143,10 @@ describe("VoicesStep", () => {
     const user = userEvent.setup();
     renderStep();
 
-    const guestRow = screen.getByRole("group", { name: "Voices for Guest" });
+    const guestRow = screen.getByRole("radiogroup", { name: "Voices for Guest" });
     const [firstTile] = Array.from(
       guestRow.querySelectorAll("button")
-    ).filter((button) => button.textContent === "Hear this voice");
+    ).filter((button) => button.textContent === "Hear Rachel");
     await user.click(firstTile);
 
     expect(rpcRequest.mock.calls[0][1]).toMatchObject({ prompt: GUEST_LINE });
@@ -151,8 +156,8 @@ describe("VoicesStep", () => {
     const user = userEvent.setup();
     renderStep();
 
-    const guestRow = screen.getByRole("group", { name: "Voices for Guest" });
-    await user.click(screen.getAllByRole("button", { name: "Adam" })[1]);
+    const guestRow = screen.getByRole("radiogroup", { name: "Voices for Guest" });
+    await user.click(screen.getAllByRole("radio", { name: "Adam" })[1]);
 
     expect(setSpeakerVoice).toHaveBeenCalledTimes(1);
     expect(setSpeakerVoice).toHaveBeenCalledWith("spk_guest", {
@@ -163,7 +168,7 @@ describe("VoicesStep", () => {
     expect(guestRow).toBeInTheDocument();
   });
 
-  it("writes the pace every speaker is read at", async () => {
+  it("writes the pace every speaker is read at, and sends it (F12)", async () => {
     const user = userEvent.setup();
     renderStep();
 
@@ -171,5 +176,52 @@ describe("VoicesStep", () => {
     await user.click(screen.getByRole("option", { name: "Fast" }));
 
     expect(useScriptStore.getState().scripts[SCRIPT_ID].setup?.pace).toBe("fast");
+
+    const hostRow = screen.getByRole("radiogroup", { name: "Voices for Host" });
+    const [rachel] = Array.from(hostRow.querySelectorAll("button")).filter(
+      (button) => button.textContent === "Hear Rachel"
+    );
+    await user.click(rachel);
+
+    expect(rpcRequest.mock.calls[0][1]).toMatchObject({ speed: 1.15 });
+  });
+
+  it("finds the sample of a line longer than the sample cap (F13)", async () => {
+    const user = userEvent.setup();
+    const long = `  ${"word ".repeat(80)}  `;
+    useScriptStore.getState().patchLine(SCRIPT_ID, "line_1", { text: long });
+    renderStep();
+
+    const hostRow = screen.getByRole("radiogroup", { name: "Voices for Host" });
+    const [rachel] = Array.from(hostRow.querySelectorAll("button")).filter(
+      (button) => button.textContent === "Hear Rachel"
+    );
+    await user.click(rachel);
+
+    // The lookup keys the same normalized words the call sent, so the tile
+    // becomes a player instead of asking for the sample again.
+    expect(await screen.findByLabelText("Rachel sample")).toBeInTheDocument();
+    expect(rpcRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("says an audition is a speech call before one is pressed (F23)", () => {
+    renderStep();
+    expect(
+      screen.getAllByText(/Each sample is one speech call/).length
+    ).toBeGreaterThan(0);
+  });
+
+  it("offers no audition for a speaker with no lines (F13)", () => {
+    useScriptStore
+      .getState()
+      .addSpeaker(SCRIPT_ID, { id: "spk_extra", name: "Extra", voice: null });
+    renderStep();
+
+    const row = screen.getByRole("radiogroup", { name: "Voices for Extra" });
+    expect(
+      Array.from(row.querySelectorAll("button")).filter((button) =>
+        button.textContent?.startsWith("Hear ")
+      )
+    ).toHaveLength(0);
   });
 });

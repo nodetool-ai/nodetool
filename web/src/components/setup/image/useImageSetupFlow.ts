@@ -9,11 +9,19 @@
  */
 
 import { createElement, useCallback, useMemo, useRef } from "react";
-import type { SketchSetupStage } from "@nodetool-ai/protocol/api-schemas/sketch.js";
+import {
+  composeImagePrompt,
+  type SketchSetupStage
+} from "@nodetool-ai/protocol/api-schemas/sketch.js";
 
 import { useSketchStore } from "../../sketch/state/useSketchStore";
-import { useRefineBrief } from "../../../hooks/sketch/useRefineBrief";
+import {
+  REFINE_BRIEF_MAX_TOKENS,
+  briefInputSignature,
+  useRefineBrief
+} from "../../../hooks/sketch/useRefineBrief";
 import { useUploadFirstLayer } from "../../../hooks/sketch/useUploadFirstLayer";
+import type { GenerationSummaryProps } from "../GenerationSummary";
 import type { SetupFlowConfig, SetupStep } from "../types";
 import { IdeaStep } from "./IdeaStep";
 import { LookStep, useLookStep, type LookStepControls } from "./LookStep";
@@ -51,7 +59,18 @@ export const useImageSetupFlow = ({
   const setSetup = useSketchStore((state) => state.setSetup);
   const brief = useSketchStore((state) => state.document.setup?.brief ?? "");
   const useCase = useSketchStore((state) => state.document.setup?.use_case);
-  const { expandBrief, refining, error: refineError } = useRefineBrief();
+  const refined = useSketchStore((state) => state.document.setup?.refined);
+  const refinedFrom = useSketchStore((state) =>
+    typeof state.document.setup?.refined_from === "string"
+      ? state.document.setup.refined_from
+      : null
+  );
+  const {
+    expandBrief,
+    refining,
+    error: refineError,
+    model: refineModel
+  } = useRefineBrief();
   const upload = useUploadFirstLayer(onFinish);
   const look = useLookStep();
 
@@ -72,8 +91,8 @@ export const useImageSetupFlow = ({
   }, [onFinish, setSetup]);
 
   const refine = useCallback(async () => {
-    const refined = await expandBrief();
-    if (!refined) {
+    const refinedOk = await expandBrief();
+    if (!refinedOk) {
       throw new Error(
         refineErrorRef.current ?? "The model did not return a brief."
       );
@@ -84,6 +103,36 @@ export const useImageSetupFlow = ({
     void expandBrief();
   }, [expandBrief]);
 
+  // Coming back to the use case and pressing its button again must not pay for
+  // the same expansion twice: the brief on the document already answers the
+  // brief and use case it was written from (F15). Changing either makes the
+  // button a refinement again, and the review's `Re-refine` is the explicit
+  // way to ask for another one regardless.
+  const briefIsCurrent =
+    refined !== undefined &&
+    refinedFrom === briefInputSignature({ brief, use_case: useCase });
+
+  // What the expansion will cost, before it is asked for (PRD § 6.2, F23).
+  // Nothing shows when no model is named, because nothing was measured.
+  const refineSummary = useMemo<GenerationSummaryProps | undefined>(
+    () =>
+      refineModel
+        ? {
+            result: "Expand your sentence into a five-field brief you can edit",
+            next: "You read and fix the brief next. No layer is added and no image is rendered here.",
+            model: refineModel,
+            brief,
+            maxOutputTokens: REFINE_BRIEF_MAX_TOKENS
+          }
+        : undefined,
+    [brief, refineModel]
+  );
+
+  // PRD § 10.3 renders `composeImagePrompt`, so an empty one is an empty
+  // request. The review is where that is still fixable (F20).
+  const promptIsWritable =
+    composeImagePrompt({ brief, refined }).trim().length > 0;
+
   const steps = useMemo<SetupStep<SketchSetupStage>[]>(
     () => [
       {
@@ -91,6 +140,7 @@ export const useImageSetupFlow = ({
         label: "Idea",
         primaryLabel: "Continue",
         canAdvance: brief.trim().length > 0,
+        blockedReason: "Describe the image, or upload one to edit",
         render: () =>
           createElement(IdeaStep, { onStartBlank: startBlank, upload })
       },
@@ -99,26 +149,46 @@ export const useImageSetupFlow = ({
         // stepper entry (PRD § 6.2).
         stage: "useCase",
         label: "Brief",
-        primaryLabel: "Refine the brief",
+        primaryLabel: briefIsCurrent
+          ? "Continue to the brief"
+          : "Refine the brief",
         canAdvance: (useCase ?? "").length > 0,
+        blockedReason: "Pick an image use case",
         pending: refining,
+        pendingLabel: "Refining the brief",
+        generation: briefIsCurrent ? undefined : refineSummary,
         render: () => createElement(UseCaseStep),
         // D4: this is the only thing the step does. No layer is added and no
         // job is started — the answer is text the creator reviews next.
-        onAdvance: refine
+        onAdvance: briefIsCurrent ? undefined : refine
       },
       {
         stage: "review",
         label: "Brief",
         primaryLabel: "Continue to look",
+        canAdvance: promptIsWritable,
+        blockedReason: "Write what the image shows before choosing the look",
+        // The review's own `Re-refine` is a second call on the same brief.
+        // The shell reads it too, so nothing moves the creator on while the
+        // brief they are reading is being replaced (F2).
+        pending: refining,
+        pendingLabel: "Refining the brief",
         render: () =>
-          createElement(ReviewStep, { onReRefine: reRefine, refining })
+          createElement(ReviewStep, {
+            onReRefine: reRefine,
+            refining,
+            // The failure belongs beside the control that asked for it, with
+            // the edited brief still in the boxes (F9).
+            error: refineError,
+            generation: refineSummary
+          })
       },
       {
         stage: "look",
         label: "Look",
         primaryLabel: "Generate your image",
         canAdvance: look.canAdvance,
+        blockedReason: look.blockedReason,
         primaryDetail: look.primaryDetail,
         render: () => createElement(LookStep, { look }),
         // `generate` writes the terminal stage itself, before it enqueues
@@ -128,7 +198,21 @@ export const useImageSetupFlow = ({
         }
       }
     ],
-    [brief, look, onGenerated, reRefine, refine, refining, startBlank, upload, useCase]
+    [
+      brief,
+      briefIsCurrent,
+      look,
+      onGenerated,
+      promptIsWritable,
+      reRefine,
+      refine,
+      refineError,
+      refineSummary,
+      refining,
+      startBlank,
+      upload,
+      useCase
+    ]
   );
 
   return {

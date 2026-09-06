@@ -40,12 +40,20 @@ import {
   ResponsiveImage,
   ScrollArea,
   SPACING,
+  SPACING_PX,
   Text,
   TextInput,
   Tooltip,
   TYPOGRAPHY
 } from "../ui_primitives";
-import type { Asset, MessageContent } from "../../stores/ApiTypes";
+import type { Asset, MessageContent, Workflow } from "../../stores/ApiTypes";
+import type { DroppedFile } from "../chat/types/chat.types";
+import { useAssetStore } from "../../stores/AssetStore";
+import {
+  examplePackageName,
+  exampleSeedRef
+} from "../../utils/exampleWorkflow";
+import type { BuildFromPlanResult } from "../../hooks/workflow/useBuildFromPlan";
 import { useFileHandling } from "../chat/hooks/useFileHandling";
 import { useTextareaAssetMention } from "../chat/composer/useTextareaAssetMention";
 import { useTextareaSkillMention } from "../chat/composer/useTextareaSkillMention";
@@ -83,8 +91,8 @@ import useOnboardingStore, {
 import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import { openPageTab } from "../workspace/openPageTab";
-import { OptionCardGrid } from "../setup/OptionCardGrid";
-import { ENTRY_CARDS } from "../setup/entryCards";
+import { OptionCardGrid, type OptionCardItem } from "../setup/OptionCardGrid";
+import { ENTRY_CARDS, type EntryFlowId } from "../setup/entryCards";
 import StoryboardSetupHost from "../setup/storyboard/StoryboardSetupHost";
 import VideoSetupHost from "../setup/video/VideoSetupHost";
 import ScriptSetupHost from "../setup/script/ScriptSetupHost";
@@ -92,11 +100,17 @@ import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
 import { newVideoSetupDocument } from "../setup/video/useVideoSetupFlow";
 import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
 import { startImageFlow } from "../setup/image/startImageFlow";
-import { useCreateTimeline } from "../../hooks/useTimelineSequence";
+import {
+  useCreateTimeline,
+  useSeedTimelineDetail
+} from "../../hooks/useTimelineSequence";
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { trpcClient } from "../../trpc/client";
-import { writeWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import {
+  readWorkflowSetup,
+  writeWorkflowSetup
+} from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { clearProjectFirstTurn, stageProjectFirstTurn } from "./projectAgent";
 import { PROJECT_COLOR } from "./projectIdentity";
@@ -159,6 +173,114 @@ const SETUP_TAB_TYPE = {
   workflow: "workflow"
 } as const;
 
+/**
+ * One composer attachment, as a setup document may hold it.
+ *
+ * A durable locator only. Every setup document is PATCHed on each keystroke of
+ * the brief, so a `data:` URI would push the file's bytes through autosave and
+ * version history — the bytes go to the asset store first and the document
+ * carries the `asset://` reference the store handed back.
+ */
+interface ComposerReference {
+  uri: string;
+  name: string;
+  type: string;
+}
+
+/**
+ * The composer's attachments as durable locators, uploading the ones that are
+ * only bytes. A drag from the asset library already has its `asset://`
+ * reference and is passed through untouched.
+ */
+const uploadComposerReferences = async (
+  files: readonly DroppedFile[]
+): Promise<ComposerReference[]> => {
+  const createAsset = useAssetStore.getState().createAsset;
+  const references: ComposerReference[] = [];
+  for (const file of files) {
+    if (file.assetUri) {
+      references.push({ uri: file.assetUri, name: file.name, type: file.type });
+      continue;
+    }
+    const blob = await (await fetch(file.dataUri)).blob();
+    const asset = await createAsset(
+      new File([blob], file.name, { type: file.type || blob.type })
+    );
+    references.push({
+      uri: assetToUri(asset),
+      name: file.name,
+      type: file.type || blob.type
+    });
+  }
+  return references;
+};
+
+/**
+ * The brief a draft carries, wherever its flow keeps it.
+ *
+ * Each of the four documents holds it somewhere else, and "Change flow" has to
+ * hand back what the creator typed in step 1, not the older text the composer
+ * still shows.
+ */
+const readSetupBrief = async (target: SetupTarget): Promise<string> => {
+  if (target.kind === "storyboard") {
+    const board = await trpcClient.storyboards.get.query({ id: target.id });
+    return board.document.brief ?? "";
+  }
+  if (target.kind === "script") {
+    const script = await trpcClient.scripts.get.query({ id: target.id });
+    return script.document.setup?.brief ?? "";
+  }
+  if (target.kind === "video") {
+    const sequence = await trpcClient.timeline.get.query({ id: target.id });
+    return sequence.setup?.brief ?? "";
+  }
+  const workflow = await trpcClient.workflows.get.query({ id: target.id });
+  return readWorkflowSetup(workflow.settings)?.brief ?? "";
+};
+
+/** Drop the draft document an entry card made. */
+const deleteSetupDocument = async (target: SetupTarget): Promise<void> => {
+  if (target.kind === "storyboard") {
+    await trpcClient.storyboards.delete.mutate({ id: target.id });
+    return;
+  }
+  if (target.kind === "script") {
+    await trpcClient.scripts.delete.mutate({ id: target.id });
+    return;
+  }
+  if (target.kind === "video") {
+    await trpcClient.timeline.delete.mutate({ id: target.id });
+    return;
+  }
+  await trpcClient.workflows.delete.mutate({ id: target.id });
+};
+
+/**
+ * What a workflow build got wrong, one line each. Empty on a clean build.
+ *
+ * The flow's own surface is gone the moment this tab opens the canvas, so a
+ * placement gap, a validation error or a refused test run has to be said here
+ * or it is never said at all.
+ */
+const buildFailures = (result: BuildFromPlanResult): string[] => {
+  const lines: string[] = [];
+  if (result.issues.length > 0) {
+    lines.push(
+      `${result.issues.length} connection${
+        result.issues.length === 1 ? "" : "s"
+      } could not be wired.`
+    );
+  }
+  if (result.validationErrors.length > 0) {
+    lines.push(`The graph did not validate: ${result.validationErrors.join("; ")}`);
+  }
+  if (result.testRun.error) {
+    lines.push(`The test run was refused: ${result.testRun.error}`);
+  }
+  return lines;
+};
+
 
 const NewProjectSurface = () => {
   const [prompt, setPrompt] = useState("");
@@ -168,6 +290,10 @@ const NewProjectSurface = () => {
   const [entityAnchor, setEntityAnchor] = useState<HTMLElement | null>(null);
   const [submenu, setSubmenu] = useState<SubmenuAnchor | null>(null);
   const [starting, setStarting] = useState(false);
+  // The card that was clicked, while its documents are being made. Set, and
+  // that card says so while the other four are off (PRD § 6.1: one click
+  // creates the row and the document, so a second one has nothing to add).
+  const [pendingFlow, setPendingFlow] = useState<EntryFlowId | null>(null);
   // The board an entry card created. Set, and this surface is the flow.
   const [setupTarget, setSetupTarget] = useState<SetupTarget | null>(null);
   // The model the project agent will run on, picked here — the prompt box has
@@ -175,6 +301,10 @@ const NewProjectSurface = () => {
   const [modelAnchor, setModelAnchor] = useState<HTMLElement | null>(null);
   // A start requested before a provider was configured, resumed once one is.
   const [pendingStart, setPendingStart] = useState(false);
+  // The flow can swap its own target and finish in the same tick — the example
+  // route replaces the placeholder workflow with the copy, then finishes — so
+  // the handlers read this rather than the render's copy of the state.
+  const setupTargetRef = useRef<SetupTarget | null>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
@@ -192,6 +322,7 @@ const NewProjectSurface = () => {
   const createProject = useCreateProject();
   const createStoryboard = useCreateStoryboard();
   const createTimeline = useCreateTimeline();
+  const seedTimelineDetail = useSeedTimelineDetail();
   const createScript = useCreateScript();
   const createWorkflow = useWorkflowManager((state) => state.create);
   const openProject = useOpenProject();
@@ -434,6 +565,13 @@ const NewProjectSurface = () => {
     starting
   ]);
 
+  // The one way the target changes: the ref is what the handlers read, the
+  // state is what decides the render.
+  const applySetupTarget = useCallback((target: SetupTarget | null) => {
+    setupTargetRef.current = target;
+    setSetupTarget(target);
+  }, []);
+
   /** One message for every card, so a failed create never dead-ends silently. */
   const reportEntryFailure = useCallback(
     (flow: string, error: unknown) => {
@@ -446,6 +584,48 @@ const NewProjectSurface = () => {
       });
     },
     [addNotification]
+  );
+
+  /**
+   * Say what the composer holds that the chosen flow has no field for.
+   *
+   * PRD § 6.1 carries the typed prompt into step 1 and promises nothing else.
+   * The five documents hold different amounts of the rest, so the caller says
+   * what its flow took. Naming what stays behind beats dropping it without a
+   * word.
+   */
+  const noteUncarriedContext = useCallback(
+    (
+      flow: string,
+      carries: { entities: boolean; references: boolean }
+    ) => {
+      const left: string[] = [];
+      if (!carries.references && droppedFiles.length > 0) {
+        left.push(
+          `${droppedFiles.length} reference ${
+            droppedFiles.length === 1 ? "image" : "images"
+          }`
+        );
+      }
+      if (!carries.entities && selectedEntities.length > 0) {
+        left.push(
+          selectedEntities.length === 1
+            ? `the entity ${selectedEntities[0].name}`
+            : `${selectedEntities.length} entities`
+        );
+      }
+      if (left.length === 0) {
+        return;
+      }
+      addNotification({
+        type: "info",
+        alert: true,
+        content: `The ${flow} flow starts from your prompt, so ${left.join(
+          " and "
+        )} stay on this screen. Add them from the flow's own step.`
+      });
+    },
+    [addNotification, droppedFiles, selectedEntities]
   );
 
   // The Storyboard entry card (PRD § 6.1, D2). Explicit: nothing typed in the
@@ -470,9 +650,18 @@ const NewProjectSurface = () => {
       const board = await createStoryboard.mutateAsync({
         name,
         projectId: project.id,
-        document: newStoryboardSetupDocument(text)
+        document: {
+          ...newStoryboardSetupDocument(text),
+          // The one setup document with a cast field, so the entities picked
+          // in the composer come along.
+          entityIds
+        }
       });
-      setSetupTarget({
+      noteUncarriedContext("storyboard", {
+        entities: true,
+        references: false
+      });
+      applySetupTarget({
         kind: "storyboard",
         id: board.id,
         projectId: project.id,
@@ -483,7 +672,16 @@ const NewProjectSurface = () => {
     } finally {
       setStarting(false);
     }
-  }, [createProject, createStoryboard, prompt, reportEntryFailure, starting]);
+  }, [
+    applySetupTarget,
+    createProject,
+    createStoryboard,
+    entityIds,
+    noteUncarriedContext,
+    prompt,
+    reportEntryFailure,
+    starting
+  ]);
 
 
   // The Video card. `timeline.create` takes no document, so the setup goes in
@@ -497,6 +695,8 @@ const NewProjectSurface = () => {
       text.length > 0 ? projectNameFromPrompt(text, null) : "New video";
     setStarting(true);
     try {
+      // Before the project row, so a failed upload costs nothing to clean up.
+      const references = await uploadComposerReferences(droppedFiles);
       const project = await createProject.mutateAsync({
         name,
         kind: "timeline"
@@ -505,11 +705,22 @@ const NewProjectSurface = () => {
         name,
         projectId: project.id
       });
-      await trpcClient.timeline.update.mutate({
+      const withSetup = await trpcClient.timeline.update.mutate({
         id: sequence.id,
-        document: newVideoSetupDocument(text)
+        document: newVideoSetupDocument(text, {
+          references: references.map(({ uri, name: fileName }) => ({
+            uri,
+            name: fileName
+          })),
+          entityIds
+        })
       });
-      setSetupTarget({
+      // The create seeded the detail cache with a sequence that has no setup;
+      // the flow's first render must not read that copy (see
+      // `useSeedTimelineDetail`).
+      seedTimelineDetail(withSetup);
+      noteUncarriedContext("video", { entities: true, references: true });
+      applySetupTarget({
         kind: "video",
         id: sequence.id,
         projectId: project.id,
@@ -520,7 +731,18 @@ const NewProjectSurface = () => {
     } finally {
       setStarting(false);
     }
-  }, [createProject, createTimeline, prompt, reportEntryFailure, starting]);
+  }, [
+    applySetupTarget,
+    createProject,
+    createTimeline,
+    droppedFiles,
+    entityIds,
+    noteUncarriedContext,
+    prompt,
+    reportEntryFailure,
+    seedTimelineDetail,
+    starting
+  ]);
 
   const startScriptFlow = useCallback(async () => {
     if (starting) {
@@ -531,13 +753,22 @@ const NewProjectSurface = () => {
       text.length > 0 ? projectNameFromPrompt(text, null) : "New script";
     setStarting(true);
     try {
+      const references = await uploadComposerReferences(droppedFiles);
       const project = await createProject.mutateAsync({ name, kind: "script" });
       const script = await createScript.mutateAsync({
         name,
         projectId: project.id,
-        document: newScriptSetupDocument(text)
+        document: newScriptSetupDocument(text, {
+          attachments: references.map(({ uri, name: fileName, type }) => ({
+            uri,
+            name: fileName,
+            contentType: type
+          })),
+          entityIds
+        })
       });
-      setSetupTarget({
+      noteUncarriedContext("script", { entities: true, references: true });
+      applySetupTarget({
         kind: "script",
         id: script.id,
         projectId: project.id,
@@ -548,7 +779,17 @@ const NewProjectSurface = () => {
     } finally {
       setStarting(false);
     }
-  }, [createProject, createScript, prompt, reportEntryFailure, starting]);
+  }, [
+    applySetupTarget,
+    createProject,
+    createScript,
+    droppedFiles,
+    entityIds,
+    noteUncarriedContext,
+    prompt,
+    reportEntryFailure,
+    starting
+  ]);
 
   // Image has no step host: its flow is an overlay the sketch editor renders,
   // so the card opens the editor and the overlay resumes from the document's
@@ -562,12 +803,16 @@ const NewProjectSurface = () => {
       text.length > 0 ? projectNameFromPrompt(text, null) : "New image";
     setStarting(true);
     try {
+      const references = await uploadComposerReferences(droppedFiles);
       const project = await createProject.mutateAsync({ name, kind: "image" });
       const started = await startImageFlow({
         name,
         projectId: project.id,
-        brief: text
+        brief: text,
+        references,
+        entityIds
       });
+      noteUncarriedContext("image", { entities: true, references: true });
       openTab({
         type: "sketch",
         ref: started.documentId,
@@ -584,6 +829,9 @@ const NewProjectSurface = () => {
   }, [
     closeTab,
     createProject,
+    droppedFiles,
+    entityIds,
+    noteUncarriedContext,
     openTab,
     prompt,
     reportEntryFailure,
@@ -610,7 +858,11 @@ const NewProjectSurface = () => {
         access: "private",
         settings: writeWorkflowSetup({}, { stage: "idea", brief: text })
       });
-      setSetupTarget({
+      noteUncarriedContext("workflow", {
+        entities: false,
+        references: false
+      });
+      applySetupTarget({
         kind: "workflow",
         id: created.id,
         projectId: project.id,
@@ -621,46 +873,216 @@ const NewProjectSurface = () => {
     } finally {
       setStarting(false);
     }
-  }, [createProject, createWorkflow, prompt, reportEntryFailure, starting]);
+  }, [
+    applySetupTarget,
+    createProject,
+    createWorkflow,
+    noteUncarriedContext,
+    prompt,
+    reportEntryFailure,
+    starting
+  ]);
 
   const handleEntryCard = useCallback(
     (id: string) => {
-      if (id === "storyboard") {
-        void startStoryboardFlow();
-      } else if (id === "video") {
-        void startVideoFlow();
-      } else if (id === "script") {
-        void startScriptFlow();
-      } else if (id === "image") {
-        void startImageProject();
-      } else if (id === "workflow") {
-        void startWorkflowFlow();
+      if (pendingFlow !== null || starting) {
+        return;
       }
+      // Through the card list, so the id that reaches the starters is one of
+      // the five and no cast is needed to say so.
+      const card = ENTRY_CARDS.find((entry) => entry.id === id);
+      if (!card) {
+        return;
+      }
+      const starters: Record<EntryFlowId, () => Promise<void>> = {
+        storyboard: startStoryboardFlow,
+        video: startVideoFlow,
+        script: startScriptFlow,
+        image: startImageProject,
+        workflow: startWorkflowFlow
+      };
+      // Marked before the first await, so the card reads as busy on the click
+      // rather than on the create's first render.
+      setPendingFlow(card.id);
+      void starters[card.id]().finally(() => setPendingFlow(null));
     },
     [
+      pendingFlow,
       startImageProject,
       startScriptFlow,
       startStoryboardFlow,
       startVideoFlow,
-      startWorkflowFlow
+      startWorkflowFlow,
+      starting
     ]
   );
 
-  // The flow's last step wrote stage `done`: hand the finished board its own
-  // tab and let this one go.
-  const handleSetupFinished = useCallback(() => {
-    if (!setupTarget) {
+  // The chosen card says what it is doing; the other four are off, because a
+  // second flow started over the first would leave an orphan project row.
+  const entryOptions = useMemo<readonly OptionCardItem[]>(() => {
+    if (pendingFlow === null) {
+      return ENTRY_CARDS;
+    }
+    return ENTRY_CARDS.map((card) =>
+      card.id === pendingFlow
+        ? {
+            ...card,
+            meta: "Creating…",
+            disabled: true,
+            disabledReason: "Creating your project…"
+          }
+        : {
+            ...card,
+            disabled: true,
+            disabledReason: "One flow is already starting."
+          }
+    );
+  }, [pendingFlow]);
+
+  /**
+   * The flow's last step wrote stage `done`: hand the finished board its own
+   * tab and let this one go.
+   *
+   * The workflow flow is the one that returns a result — it builds, validates
+   * and may test-run on its final action — and those failures are reported
+   * here, because this tab is the last place that holds them.
+   */
+  const handleSetupFinished = useCallback(
+    (result?: BuildFromPlanResult | null) => {
+      const target = setupTargetRef.current;
+      if (!target) {
+        return;
+      }
+      const failures = result ? buildFailures(result) : [];
+      if (failures.length > 0) {
+        addNotification({
+          type: "warning",
+          alert: true,
+          content: `Opened your workflow, but ${failures.join(" ")}`
+        });
+      }
+      openTab({
+        type: SETUP_TAB_TYPE[target.kind],
+        ref: target.id,
+        mode: "edit",
+        title: target.name,
+        projectId: target.projectId
+      });
+      closeTab(tabId("project-new", PROJECT_NEW_REF));
+    },
+    [addNotification, closeTab, openTab]
+  );
+
+  /**
+   * "Change flow" on step 1 — the shell asks first, this runs on confirm.
+   *
+   * Step 1 is cheap text (PRD § 6.2: nothing renders before step 3), so the
+   * draft is worth nothing and both it and the project row the card made are
+   * deleted rather than left as an empty project. The brief the creator typed
+   * in step 1 comes back to the composer, which still holds every reference
+   * and entity it had — this surface never unmounted, it only rendered the
+   * flow instead.
+   *
+   * Errors are left to reject: the shell shows them on its own error line, and
+   * the flow stays up rather than dropping the creator on a half-deleted draft.
+   */
+  const handleChangeFlow = useCallback(async () => {
+    const target = setupTargetRef.current;
+    if (!target) {
       return;
     }
-    openTab({
-      type: SETUP_TAB_TYPE[setupTarget.kind],
-      ref: setupTarget.id,
-      mode: "edit",
-      title: setupTarget.name,
-      projectId: setupTarget.projectId
-    });
-    closeTab(tabId("project-new", PROJECT_NEW_REF));
-  }, [closeTab, openTab, setupTarget]);
+    const brief = await readSetupBrief(target);
+    await deleteSetupDocument(target);
+    await trpcClient.projects.delete.mutate({ id: target.projectId });
+    if (brief.trim().length > 0) {
+      setPrompt(brief);
+    }
+    applySetupTarget(null);
+  }, [applySetupTarget]);
+
+  /**
+   * "Start from an example" in the workflow flow (PRD § 11.1) — the browser is
+   * inline in step 1, and this copies what was picked.
+   *
+   * The listed example carries an empty graph; the real one is materialized
+   * server-side by `workflows.create` from its package and name, into a new
+   * row. So the empty workflow the entry card made cannot be copied into and
+   * is discarded here — nothing has been generated at step 1 (PRD § 6.2).
+   *
+   * The project row stays and takes the copy. The creator clicked an entry
+   * card, which is a request for a project; the copy is what that project now
+   * holds. A workflow's only project association is the tab group it opens in
+   * (`projectDocumentType` has no `workflow` member, so there is no server-side
+   * assignment to make), which is the same association the entry card gave the
+   * placeholder.
+   *
+   * Returns the copy's id, which differs from the flow's own workflow: the
+   * flow then writes no stage of its own and only finishes.
+   */
+  const startWorkflowFromExample = useCallback(
+    async (example: Workflow): Promise<string | null> => {
+      const placeholder = setupTargetRef.current;
+      if (!placeholder || placeholder.kind !== "workflow") {
+        return null;
+      }
+      const tags = example.tags ?? [];
+      const copy = await createWorkflow(
+        {
+          name: example.name,
+          description: example.description,
+          package_name: example.package_name,
+          tags: tags.includes("example") ? tags : [...tags, "example"],
+          access: "private"
+        },
+        examplePackageName(example),
+        exampleSeedRef(example)
+      );
+      // Pointed at the copy before the discard, so the finish that follows in
+      // the same tick opens the example rather than the row about to go.
+      applySetupTarget({
+        kind: "workflow",
+        id: copy.id,
+        projectId: placeholder.projectId,
+        name: copy.name || example.name
+      });
+      await deleteSetupDocument(placeholder);
+      return copy.id;
+    },
+    [applySetupTarget, createWorkflow]
+  );
+
+  /**
+   * E2 § 8.1 "Start from a script": the brief goes to E3 and this tab becomes
+   * the script flow, in the project the video card already made. The sequence
+   * stays where it is — the script's `Send to timeline` is the way back.
+   */
+  const startScriptFromVideo = useCallback(
+    async (brief: string) => {
+      const target = setupTargetRef.current;
+      if (!target) {
+        return;
+      }
+      const text = brief.trim();
+      const name =
+        text.length > 0 ? projectNameFromPrompt(text, null) : target.name;
+      try {
+        const script = await createScript.mutateAsync({
+          name,
+          projectId: target.projectId,
+          document: newScriptSetupDocument(text)
+        });
+        applySetupTarget({
+          kind: "script",
+          id: script.id,
+          projectId: target.projectId,
+          name
+        });
+      } catch (error) {
+        reportEntryFailure("script", error);
+      }
+    },
+    [applySetupTarget, createScript, reportEntryFailure]
+  );
 
   // A start that was parked on provider onboarding resumes on its own once a
   // provider is connected, so the user finishes the thing they asked for.
@@ -715,6 +1137,8 @@ const NewProjectSurface = () => {
         <VideoSetupHost
           sequenceId={setupTarget.id}
           onFinish={handleSetupFinished}
+          onStartFromScript={(brief) => void startScriptFromVideo(brief)}
+          onChangeFlow={handleChangeFlow}
         />
       );
     }
@@ -723,6 +1147,7 @@ const NewProjectSurface = () => {
         <ScriptSetupHost
           scriptId={setupTarget.id}
           onFinish={handleSetupFinished}
+          onChangeFlow={handleChangeFlow}
         />
       );
     }
@@ -730,8 +1155,9 @@ const NewProjectSurface = () => {
       return (
         <WorkflowSetupHost
           workflowId={setupTarget.id}
-          onOpenExamples={() => openPageTab("examples")}
+          onStartFromExample={startWorkflowFromExample}
           onFinish={handleSetupFinished}
+          onChangeFlow={handleChangeFlow}
         />
       );
     }
@@ -739,6 +1165,7 @@ const NewProjectSurface = () => {
       <StoryboardSetupHost
         boardId={setupTarget.id}
         onFinish={handleSetupFinished}
+        onChangeFlow={handleChangeFlow}
       />
     );
   }
@@ -803,7 +1230,11 @@ const NewProjectSurface = () => {
                       tooltip={`Remove ${file.name}`}
                       buttonSize="small"
                       iconVariant="clear"
-                      sx={{ position: "absolute", top: -6, right: -6 }}
+                      sx={{
+                        position: "absolute",
+                        top: -SPACING_PX.xs,
+                        right: -SPACING_PX.xs
+                      }}
                     />
                   </Box>
                 ))}
@@ -870,9 +1301,12 @@ const NewProjectSurface = () => {
             <Caption color="muted">Or start from a guided flow</Caption>
             <OptionCardGrid
               label="Guided creation flows"
-              options={ENTRY_CARDS}
+              options={entryOptions}
               onSelect={handleEntryCard}
               minColumnWidth={160}
+              // These cards route to a flow, they do not pick one of a set:
+              // no pressed state, and each is its own tab stop.
+              mode="navigation"
             />
           </FlexColumn>
 
@@ -1055,9 +1489,9 @@ const NewProjectSurface = () => {
         maxWidth={320}
         maxHeight="50vh"
       >
-        <FlexColumn sx={{ width: 300, py: 0.5 }}>
+        <FlexColumn sx={{ width: 300, py: SPACING.micro }}>
           {(entities ?? []).length === 0 ? (
-            <Caption color="secondary" sx={{ px: 2, py: 1.5 }}>
+            <Caption color="secondary" sx={{ px: SPACING.md, py: SPACING.sm }}>
               The entity library is empty.
             </Caption>
           ) : (
@@ -1094,7 +1528,7 @@ const NewProjectSurface = () => {
         maxWidth={340}
         maxHeight="50vh"
       >
-        <FlexColumn sx={{ width: 320, py: 0.5 }}>
+        <FlexColumn sx={{ width: 320, py: SPACING.micro }}>
           {submenu?.kind === "texts" &&
             TEXT_FILE_TEMPLATES.map((template) => (
               <MenuItemPrimitive

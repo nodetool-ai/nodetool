@@ -9,6 +9,11 @@
  * The plan written afterwards then describes the clips that are already there
  * rather than inventing shots on top of them, which is the whole point of the
  * alternative: the creator has the footage, they want a cut.
+ *
+ * The step forward is conditional. Step 2 ends in the Director, which refuses
+ * an empty brief, so footage dropped with nothing said about it leaves the flow
+ * on step 1 with the clips already placed and the brief field asking for the
+ * one line the planner needs.
  */
 
 import { useCallback, useState } from "react";
@@ -40,13 +45,22 @@ const videoTrackId = (store: TimelineStoreApi): string => {
 };
 
 export interface SetupMediaImportResult {
+  /** Assets that became clips, in the order they were dropped. */
+  placed: Asset[];
   /** Assets whose content type is not image, video or audio. */
   skipped: Asset[];
+  /**
+   * Whether the flow moved on to the format step. It only does so once the
+   * sequence carries a brief: the planner is what step 2 leads to and it
+   * refuses an empty one, so footage with no instruction stops here rather
+   * than at a button that cannot run (PRD § 8.1, § 8.2).
+   */
+  advanced: boolean;
 }
 
 /**
  * Place `assets` on the sequence in the order they were dropped, then move the
- * flow on to the format step. Sequential on purpose: each clip starts where the
+ * flow on to the format step when the sequence carries a brief. Sequential on purpose: each clip starts where the
  * one before it ends, so the cut reads in drop order rather than in whatever
  * order the extract-audio calls happened to answer.
  */
@@ -55,6 +69,7 @@ export async function importSetupMedia(
   assets: readonly Asset[]
 ): Promise<SetupMediaImportResult> {
   const skipped: Asset[] = [];
+  const placed: Asset[] = [];
   for (const asset of assets) {
     const mediaType = assetMediaType(asset.content_type);
     if (!mediaType) {
@@ -66,19 +81,27 @@ export async function importSetupMedia(
       store
         .getState()
         .addClips([assetToClip(asset, trackId, trackEndMs(store, trackId))]);
+      placed.push(asset);
       continue;
     }
     const trackId = videoTrackId(store);
     const startMs = trackEndMs(store, trackId);
     if (mediaType === "video") {
       await importVideoWithAudio(store, asset, trackId, startMs);
+      placed.push(asset);
       continue;
     }
     store.getState().addClips([assetToClip(asset, trackId, startMs)]);
+    placed.push(asset);
   }
-  // The clips are on the sequence; the flow continues at the format step.
-  store.getState().setSetup({ stage: "format" });
-  return { skipped };
+  // The clips are on the sequence. The flow continues at the format step when
+  // there is something to plan against; without a brief it stays on step 1 and
+  // asks for one, with the footage already placed.
+  const advanced = (store.getState().setup?.brief ?? "").trim().length > 0;
+  if (advanced) {
+    store.getState().setSetup({ stage: "format" });
+  }
+  return { placed, skipped, advanced };
 }
 
 /**

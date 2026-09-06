@@ -14,6 +14,7 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 
 import type { OptionCardItem } from "../OptionCardGrid";
+import { SETUP_STILL_GROUPS, setupStill } from "../stills";
 
 export type { ImageUseCase };
 export { IMAGE_USE_CASES, findImageUseCase as findUseCase };
@@ -22,6 +23,7 @@ export const USE_CASE_CARDS: readonly OptionCardItem[] = IMAGE_USE_CASES.map(
   (useCase) => ({
     id: useCase.id,
     title: useCase.title,
-    description: useCase.description
+    description: useCase.description,
+    image: setupStill(SETUP_STILL_GROUPS.imageUseCases, useCase.id)
   })
 );

@@ -1,7 +1,7 @@
 /**
  * PRD § 8.7 criterion 6 and D14: the landing strip offers `Retry N failed`
- * while clips failed, the next steps once the cut is whole, and a remaining
- * time **only** where one was measured.
+ * while clips failed, the next steps once the cut is whole, and a typical
+ * duration **only** where one was measured.
  */
 
 import { render, screen } from "@testing-library/react";
@@ -77,16 +77,16 @@ describe("VideoLandingStrip", () => {
     expect(screen.getByText(/Rendering 1 clip/)).toBeInTheDocument();
   });
 
-  it("says nothing about remaining time when nothing was measured (D14)", () => {
+  it("says nothing about duration when nothing was measured (D14)", () => {
     useTimelineStore.getState().setSetup({ stage: "done" });
     useTimelineStore
       .getState()
       .addClips([clip({ id: "c1", status: "generating" })]);
     renderStrip();
-    expect(screen.queryByText(/left/)).toBeNull();
+    expect(screen.queryByText(/typical duration/)).toBeNull();
   });
 
-  it("shows a remaining time once the bucket has a sample", () => {
+  it("names a measured duration as typical rather than as time left (F23)", () => {
     useTimelineStore.getState().setSetup({ stage: "done" });
     useTimelineStore
       .getState()
@@ -96,7 +96,8 @@ describe("VideoLandingStrip", () => {
       durationSamples: { "text-to-video:nodetool/kling-turbo": [30_000] }
     });
     renderStrip();
-    expect(screen.getByText(/about 30s left/)).toBeInTheDocument();
+    expect(screen.getByText(/typical duration 30s/)).toBeInTheDocument();
+    expect(screen.queryByText(/left/)).toBeNull();
   });
 
   it("offers the next steps once the cut is whole", async () => {

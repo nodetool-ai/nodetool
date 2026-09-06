@@ -40,6 +40,8 @@ const snapshot = (): StoryboardSnapshot => ({
   aspectRatio: "16:9",
   setupStage: "done",
   genre: "",
+  setupShotCount: 6,
+  importSource: null,
   scenes: [],
   entityIds: [],
   hasScreenplay: true,

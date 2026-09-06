@@ -6,7 +6,13 @@
 import React from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -97,7 +103,17 @@ const BOARD = "board-idea";
 
 const fixture = (name: string): string =>
   readFileSync(
-    join(__dirname, "..", "..", "..", "..", "lib", "storyboard", "__fixtures__", name),
+    join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "..",
+      "lib",
+      "storyboard",
+      "__fixtures__",
+      name
+    ),
     "utf8"
   );
 
@@ -176,9 +192,55 @@ describe("IdeaStep", () => {
       screen.getByText("Fifteen seconds for a running-shoe launch.")
     );
 
-    expect(board()?.brief).toBe(
-      "Fifteen seconds for a running-shoe launch."
-    );
+    expect(board()?.brief).toBe("Fifteen seconds for a running-shoe launch.");
+  });
+
+  // Every flow puts its entry paths in a column beside the box, and this step
+  // is read alongside the other four.
+  it("keeps the entry paths in the side column, not behind a disclosure", () => {
+    renderStep();
+
+    // The column is a list of routes: one item per entry path, and the label
+    // sits on the list so it is read even when it is not drawn.
+    const rail = screen.getByRole("list", { name: "Other ways to start" });
+    const entries = [
+      "Upload your file",
+      "Import your shotlist",
+      "Start with a blank storyboard",
+      "Take the tutorial"
+    ];
+    expect(within(rail).getAllByRole("listitem")).toHaveLength(entries.length);
+    entries.forEach((title) => {
+      expect(within(rail).getByText(title)).toBeVisible();
+    });
+  });
+
+  it("drops an example that is already the brief", async () => {
+    const user = userEvent.setup();
+    useStoryboardStore.getState().setBrief(BOARD, examples[0].logline);
+    renderStep();
+
+    const inspiration = screen.getByRole("group", { name: "Inspiration" });
+    expect(
+      within(inspiration).queryByText(examples[0].logline)
+    ).not.toBeInTheDocument();
+
+    await user.click(within(inspiration).getByText(examples[1].logline));
+    expect(
+      within(inspiration).queryByText(examples[1].logline)
+    ).not.toBeInTheDocument();
+  });
+
+  // A logline is a sentence; a chip clipped the half that says what it is.
+  it("shows each example logline in full", () => {
+    renderStep();
+
+    const examples = screen.getByRole("group", { name: "Inspiration" });
+    expect(
+      within(examples).getByText(
+        "Open a short film about the last keeper of a coastal light."
+      )
+    ).toBeInTheDocument();
   });
 
   // `/` starts a skill on the New Project surface. Inside the flow the text is
@@ -213,7 +275,7 @@ describe("IdeaStep", () => {
     renderStep();
 
     expect(
-      screen.getByRole("link", { name: "Download template" })
+      screen.getByRole("link", { name: "Download the CSV template" })
     ).toHaveAttribute("href", "/storyboard-shotlist-template.csv");
   });
 });
@@ -232,14 +294,43 @@ describe("IdeaStep — upload your file", () => {
     expect(board()?.shots[1].dialogue).toBe(
       "SOPHIA\n(under her breath)\nNot today. Not again."
     );
-    expect(board()?.screenplay?.scenes?.map((scene) => scene.slugline)).toEqual([
-      "INT. SOPHIA'S FLAT - HALLWAY - EARLY MORNING",
-      "EXT. CANAL PATH - MINUTES LATER"
-    ]);
+    expect(board()?.screenplay?.scenes?.map((scene) => scene.slugline)).toEqual(
+      [
+        "INT. SOPHIA'S FLAT - HALLWAY - EARLY MORNING",
+        "EXT. CANAL PATH - MINUTES LATER"
+      ]
+    );
     // The Director is asked for camera only, so the parse is kept for the
     // post-check the review step reads (D10).
     expect(getImportSource(BOARD)?.kind).toBe("fdx");
     expect(restFetch).not.toHaveBeenCalled();
+  });
+
+  // F3: the run reads the parsed file, so free edits to the box would be
+  // edits it ignores. The box is held, and both ways out are named.
+  it("holds the imported script and names the file it came from", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.upload(
+      screen.getByLabelText("Upload your file"),
+      upload("script.fdx", "text/xml", fixture("two-scenes.fdx"))
+    );
+
+    await waitFor(() => expect(board()?.shots).toHaveLength(4));
+    expect(
+      screen.getByText("Imported from script.fdx")
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Your story")).toHaveAttribute("readonly");
+
+    await user.click(screen.getByRole("button", { name: "Edit as text" }));
+
+    expect(getImportSource(BOARD)?.preserveWords).toBe(false);
+    await waitFor(() =>
+      expect(screen.getByLabelText("Your story")).not.toHaveAttribute(
+        "readonly"
+      )
+    );
   });
 
   it("sends a PDF to the extraction route and lands its text", async () => {
@@ -254,9 +345,7 @@ describe("IdeaStep — upload your file", () => {
       upload("script.pdf", "application/pdf", "%PDF-1.7")
     );
 
-    await waitFor(() =>
-      expect(board()?.brief).toBe("FADE IN. A door opens.")
-    );
+    await waitFor(() => expect(board()?.brief).toBe("FADE IN. A door opens."));
     expect(restFetch.mock.calls[0][0]).toBe("/api/documents/extract-text");
     expect(getImportSource(BOARD)?.kind).toBe("text");
   });
@@ -289,9 +378,7 @@ describe("IdeaStep — upload your file", () => {
       upload("notes.fdx", "text/xml", "just some notes")
     );
 
-    expect(
-      await screen.findByText(/could not be read/)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/could not be read/)).toBeInTheDocument();
     expect(board()?.shots).toEqual([]);
     expect(board()?.brief).toBe("");
   });
@@ -332,6 +419,26 @@ describe("IdeaStep — import your shotlist", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
     expect(board()?.setupStage).toBe("look");
+  });
+
+  // F29: nothing was discarded, so there is nothing to resolve — the rows are
+  // on the board and the flow moves on without a dialog. Step 3 carries the
+  // summary.
+  it("advances with no dialog when every value was accepted", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.upload(
+      screen.getByLabelText("Import your shotlist"),
+      upload(
+        "clean.csv",
+        "text/csv",
+        "scene,description\nINT. HALL,A door opens\n"
+      )
+    );
+
+    await waitFor(() => expect(board()?.setupStage).toBe("look"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("refuses a CSV missing a required header, naming it", async () => {

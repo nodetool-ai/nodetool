@@ -1962,11 +1962,14 @@ export function createTimelineToolBridge(
 
     sharedTool(
       "ui_timeline_set_setup",
-      async ({ stage, brief, format }) => {
+      async ({ stage, brief, format, voiceover }) => {
         setup = {
           stage: (stage as TimelineSetupStage | undefined) ?? setup?.stage ?? "idea",
           brief: (brief as string | undefined) ?? setup?.brief ?? "",
           format: (format as string | undefined) ?? setup?.format,
+          // Absent leaves the choice unsaid; `false` is a deliberate silence,
+          // so it is written rather than read as "nothing passed".
+          voiceover: (voiceover as boolean | undefined) ?? setup?.voiceover,
           beats: setup?.beats
         };
         return { ok: true, setup: structuredClone(setup) };
@@ -2005,6 +2008,7 @@ export function createTimelineToolBridge(
           stage: "review",
           brief: setup?.brief ?? "",
           format: setup?.format,
+          voiceover: setup?.voiceover,
           beats: planned
         };
         // Named in the answer because it is the contract: the plan is text,
@@ -2036,6 +2040,7 @@ export function createTimelineToolBridge(
           stage: setup?.stage ?? "review",
           brief: setup?.brief ?? "",
           format: setup?.format,
+          voiceover: setup?.voiceover,
           beats: (setup?.beats ?? []).map((candidate) =>
             candidate.id === found.id ? next : candidate
           )
@@ -2043,6 +2048,22 @@ export function createTimelineToolBridge(
         return { ok: true, beat: { ...next } };
       }
     ),
+
+    sharedTool("ui_timeline_remove_beat", async ({ beat }) => {
+      // Resolved before it is dropped, so the answer names what went and an
+      // unresolvable target says so rather than reporting a silent success.
+      const found = resolveBeat(beat as string);
+      setup = {
+        stage: setup?.stage ?? "review",
+        brief: setup?.brief ?? "",
+        format: setup?.format,
+        voiceover: setup?.voiceover,
+        beats: (setup?.beats ?? []).filter(
+          (candidate) => candidate.id !== found.id
+        )
+      };
+      return { ok: true, removed: { ...found } };
+    }),
 
     sharedTool(
       "ui_timeline_generate_from_beats",
@@ -2140,6 +2161,7 @@ export function createTimelineToolBridge(
           stage: "done",
           brief: setup?.brief ?? "",
           format: setup?.format,
+          voiceover: setup?.voiceover,
           beats: planned
         };
         return {

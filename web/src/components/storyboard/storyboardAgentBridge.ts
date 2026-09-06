@@ -20,7 +20,10 @@ import type {
   ShotDurationSource,
   ShotStatus
 } from "@nodetool-ai/protocol";
-import type { StoryboardSetupStage } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
+import type {
+  StoryboardImportSource,
+  StoryboardSetupStage
+} from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 
 /** Serializable view of a single shot the agent reads and edits. */
 export interface StoryboardShotNode {
@@ -75,6 +78,10 @@ export interface StoryboardSnapshot {
   setupStage: StoryboardSetupStage;
   /** The genre picked in setup, seasoning the Director run. */
   genre: string;
+  /** How many shots a Director run asks for on this board. */
+  setupShotCount: number;
+  /** The file the board's words came from, when they came from one. */
+  importSource: StoryboardImportSource | null;
   /** The board's scenes in order. Empty on a board directed before scenes. */
   scenes: StoryboardSceneNode[];
   /**
@@ -132,6 +139,25 @@ export interface StoryboardSetupInput {
   brief?: string;
   genre?: string;
   stage?: StoryboardSetupStage;
+  /**
+   * How many shots the Director is asked for. It decides what a run writes
+   * and what it costs, so it is a document value the headless path sets the
+   * same way the flow's picker does (PRD § 7.7, § 6.5).
+   */
+  shotCount?: number;
+  /**
+   * The file the board's words came from. `preserveWords: true` is the
+   * contract that the Director may only add camera work and may not rewrite
+   * the dialogue or the scene order (D10). Null removes the record, which
+   * makes the words ordinary text the Director may restructure.
+   */
+  importSource?: StoryboardImportSource | null;
+  /**
+   * What the board's current screenplay was directed from. A Director run
+   * writes it; a caller sets it only to say "this screenplay answers these
+   * inputs", or null to forget. Replacing the screenplay clears it.
+   */
+  directedFrom?: string | null;
 }
 
 /** Which media list a version operation addresses. */
@@ -182,7 +208,7 @@ export interface StoryboardUpdateShotPatch {
 export interface StoryboardAgentHandler {
   getSnapshot: () => StoryboardSnapshot;
   setScreenplay: (screenplay: Screenplay) => StoryboardSnapshot;
-  /** Write brief, genre and setup stage in one edit. */
+  /** Write the guided-setup fields in one edit. */
   setSetup: (input: StoryboardSetupInput) => StoryboardSnapshot;
   /**
    * Run the Director over the board's brief and write the result. `redirect`
