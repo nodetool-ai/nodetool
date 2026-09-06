@@ -1,4 +1,4 @@
-import type { GodotBlock, TscnDocument } from "./types.js";
+import type { GodotBlock, ReferencedIds, TscnDocument } from "./types.js";
 
 const PROPERTY = /^([A-Za-z0-9_./:-]+) = (.*)$/;
 
@@ -112,7 +112,7 @@ const EXT_REF = /ExtResource\("((?:[^"\\]|\\.)*)"\)/g;
 const SUB_REF = /SubResource\("((?:[^"\\]|\\.)*)"\)/g;
 
 /** Every `ExtResource("id")` / `SubResource("id")` a block's properties mention. */
-export function referencedIds(block: GodotBlock): { ext: string[]; sub: string[] } {
+export function referencedIds(block: GodotBlock): ReferencedIds {
   const ext: string[] = [];
   const sub: string[] = [];
   for (const value of Object.values(block.properties)) {

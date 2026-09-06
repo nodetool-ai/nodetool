@@ -10,11 +10,18 @@ import {
 
 import { extResourceId, resourceUid, subResourceId } from "./ids.js";
 import type {
+  FrameRegion,
   GodotCopy,
   GodotFile,
   GodotProject,
   GodotProjectInput
 } from "./types.js";
+
+/** The resource file one filled slot writes, and the asset bytes it needs. */
+interface SlotResource {
+  file: GodotFile;
+  copy: GodotCopy;
+}
 
 /** `enemy.walker` → `enemy_walker`: a slot id as a file stem. */
 export function slotFileStem(slotId: string): string {
@@ -25,7 +32,7 @@ export function slotFileStem(slotId: string): string {
 export function frameRegion(
   fill: Pick<SpritesheetFill, "cell" | "columns">,
   index: number
-): { x: number; y: number; w: number; h: number } {
+): FrameRegion {
   const [w, h] = fill.cell;
   return {
     x: (index % fill.columns) * w,
@@ -60,10 +67,7 @@ function textureExtResource(
   return `[ext_resource type="Texture2D" uid=${quote(uid)} path=${quote(path)} id=${quote(id)}]`;
 }
 
-function spriteFrames(slot: FilledSlot, fill: SpritesheetFill): {
-  file: GodotFile;
-  copy: GodotCopy;
-} {
+function spriteFrames(slot: FilledSlot, fill: SpritesheetFill): SlotResource {
   const stem = slotFileStem(slot.slot_id);
   const assetId = slot.asset.asset_id;
   const pngPath = `assets/sprites/${stem}.png`;
@@ -120,10 +124,7 @@ function tileSet(
   slot: FilledSlot,
   fill: TilesetFill,
   spec: TilesetSlotSpec
-): {
-  file: GodotFile;
-  copy: GodotCopy;
-} {
+): SlotResource {
   const stem = slotFileStem(slot.slot_id);
   const assetId = slot.asset.asset_id;
   const pngPath = `assets/tiles/${stem}.png`;
@@ -175,19 +176,20 @@ const AUDIO_IMPORTERS = {
 
 type AudioExtension = keyof typeof AUDIO_IMPORTERS;
 
+function isAudioExtension(ext: string): ext is AudioExtension {
+  return ext in AUDIO_IMPORTERS;
+}
+
 function audioExtension(uri: string): AudioExtension {
   const match = /\.([a-z0-9]+)$/i.exec(uri);
   const ext = match ? match[1].toLowerCase() : "ogg";
-  if (!(ext in AUDIO_IMPORTERS)) {
+  if (!isAudioExtension(ext)) {
     throw new Error(`no Godot importer for audio ${uri}`);
   }
-  return ext as AudioExtension;
+  return ext;
 }
 
-function audio(slot: FilledSlot, fill: SfxFill | MusicFill): {
-  file: GodotFile;
-  copy: GodotCopy;
-} {
+function audio(slot: FilledSlot, fill: SfxFill | MusicFill): SlotResource {
   const stem = slotFileStem(slot.slot_id);
   const assetId = slot.asset.asset_id;
   const ext = audioExtension(slot.asset.uri);

@@ -27,6 +27,14 @@ export interface GodotProject {
   copies: GodotCopy[];
 }
 
+/** A `Rect2` in sheet pixels: top-left corner, then width and height. */
+export interface FrameRegion {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 /** One `[header key="value" ...]` block and the `key = value` lines under it. */
 export interface GodotBlock {
   /** `gd_scene`, `gd_resource`, `ext_resource`, `sub_resource`, `node`, `resource`, `connection`, ... */
@@ -41,4 +49,12 @@ export interface GodotBlock {
 export interface TscnDocument {
   header: GodotBlock;
   blocks: GodotBlock[];
+}
+
+/** The ids a block references, split by which block kind declares them. */
+export interface ReferencedIds {
+  /** From `ExtResource("id")`, declared by an `[ext_resource]` block. */
+  ext: string[];
+  /** From `SubResource("id")`, declared by a `[sub_resource]` block. */
+  sub: string[];
 }
