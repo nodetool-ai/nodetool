@@ -185,6 +185,30 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "Person"
   },
   {
+    value: "game_slot",
+    label: "Game Slot",
+    description:
+      "One asset slot a game template declares — a sprite sheet, a tileset, a background, a sound effect or a music loop — carrying the sizes and counts it needs.",
+    color: colour("spatial"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Extension"
+  },
+  {
+    value: "slot_fill",
+    label: "Slot Fill",
+    description:
+      "A generated asset accepted for a game slot: the grid, frame ranges and loop flags the Godot writer reads.",
+    color: colour("spatial"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "GridOn"
+  },
+  {
     value: "bool",
     label: "Boolean",
     description:

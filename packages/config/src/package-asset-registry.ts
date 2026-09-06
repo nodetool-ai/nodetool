@@ -78,6 +78,25 @@ export interface PackageAssetDirRef {
  */
 export const PACKAGE_RUNTIME_ASSET_DIRS: readonly PackageAssetDirRef[] = [
   {
+    // The shipped Godot templates. `base-nodes` imports `game-nodes`, whose
+    // template dropdown reads this directory at decoration time, so an
+    // unstaged copy takes the whole node registry down in the packaged app.
+    // The file list is one manifest per template, not all 87 files: a template
+    // that lost its manifest is the failure that reaches a user, and the rest
+    // of the tree comes along with the directory copy.
+    pkg: "@nodetool-ai/godot-templates",
+    path: "templates",
+    bundleDir: "godot-templates",
+    files: [
+      "platformer/manifest.json",
+      "platformer/project.godot",
+      "shmup/manifest.json",
+      "shmup/project.godot",
+      "topdown/manifest.json",
+      "topdown/project.godot"
+    ]
+  },
+  {
     pkg: "@nodetool-ai/timeline",
     path: "fonts",
     bundleDir: "fonts",

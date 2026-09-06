@@ -8,6 +8,8 @@ export type {
   FolderRef,
   StoryboardRef,
   Entity,
+  GameSlotSpec,
+  SlotFill,
   ChartConfig,
   ChartData,
   ChartSeries

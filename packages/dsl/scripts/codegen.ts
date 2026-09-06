@@ -135,7 +135,9 @@ const MEDIA_TYPES: Record<string, string> = {
   folder: "FolderRef",
   folderref: "FolderRef",
   storyboard: "StoryboardRef",
-  entity: "Entity"
+  entity: "Entity",
+  game_slot: "GameSlotSpec",
+  slot_fill: "SlotFill"
 };
 
 const ALL_MEDIA_IMPORTS = [
@@ -146,7 +148,9 @@ const ALL_MEDIA_IMPORTS = [
   "DataframeRef",
   "FolderRef",
   "StoryboardRef",
-  "Entity"
+  "Entity",
+  "GameSlotSpec",
+  "SlotFill"
 ];
 
 function mapType(tm: TypeMetadata): string {
