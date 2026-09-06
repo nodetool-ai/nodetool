@@ -139,8 +139,11 @@ describe("SampleFifo", () => {
 
 describe("RealtimePacer", () => {
   it("paces variable-length chunks by cumulative duration", async () => {
-    const pacer = new RealtimePacer();
+    // The pacer's origin is its construction time, so the clock this test
+    // measures against is read first: on a loaded runner the gap between the
+    // two reached 30 ms and shortened the wait below the assertion.
     const start = Date.now();
+    const pacer = new RealtimePacer();
     // Chunk 0 (80 ms) is released immediately; its duration sets the next slot.
     await pacer.waitNext(80);
     expect(Date.now() - start).toBeLessThan(40);
