@@ -524,10 +524,12 @@ export function getCreateSchemaSql(): string {
       "node_id" text,
       "job_id" text,
       "timeline_id" text,
+      "project_id" text NOT NULL DEFAULT 'default',
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
     CREATE INDEX IF NOT EXISTS "idx_assets_user_parent" ON "nodetool_assets" ("user_id", "parent_id");
+    CREATE INDEX IF NOT EXISTS "idx_assets_user_project" ON "nodetool_assets" ("user_id", "project_id");
 
     CREATE TABLE IF NOT EXISTS "nodetool_secrets" (
       "id" text PRIMARY KEY NOT NULL,

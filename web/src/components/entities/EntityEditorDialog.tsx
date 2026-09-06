@@ -25,6 +25,12 @@ interface EntityEditorDialogProps {
   assetId: string;
   /** When editing, prefill from this entity. */
   entity?: Entity;
+  /**
+   * File the entity under this project on save. Omitted leaves its membership
+   * alone, which is what the library page and the left panel want — only a
+   * project surface files what it creates.
+   */
+  projectId?: string;
   onSaved?: (entity: Entity | null) => void;
 }
 
@@ -35,6 +41,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
   onClose,
   assetId,
   entity,
+  projectId,
   onSaved
 }) => {
   const saveEntity = useSaveEntity();
@@ -67,6 +74,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
   const handleConfirm = useCallback(async () => {
     const saved = await saveEntity.mutateAsync({
       assetId,
+      projectId,
       kind,
       name: name.trim(),
       descriptor: descriptor.trim(),
@@ -81,6 +89,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
   }, [
     saveEntity,
     assetId,
+    projectId,
     kind,
     name,
     descriptor,

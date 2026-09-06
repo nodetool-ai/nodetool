@@ -12,6 +12,7 @@ import { initTestDb } from "../src/db.js";
 import { Project } from "../src/project.js";
 import {
   listProjectDocuments,
+  listProjectEntities,
   scriptPreview,
   scriptStatus,
   spendCategory,
@@ -28,6 +29,7 @@ import {
   reassignProjectDocuments
 } from "../src/project-membership.js";
 import { Application } from "../src/application.js";
+import { Asset } from "../src/asset.js";
 import { ImageDocument } from "../src/image-document.js";
 import { JsScript } from "../src/js-script.js";
 import { LOOSE_PROJECT_ID } from "../src/project.js";
@@ -648,6 +650,114 @@ describe("moveDocumentToProject", () => {
     );
     expect(await moveDocumentToProject("u1", "script", "no-such-id", "p1")).toBe(
       false
+    );
+  });
+});
+
+describe("project entities", () => {
+  beforeEach(() => initTestDb());
+
+  /** An entity is an image asset carrying the marker under this key. */
+  const entityAsset = (
+    userId: string,
+    name: string,
+    over: Record<string, unknown> = {}
+  ) =>
+    Asset.create<Asset>({
+      user_id: userId,
+      name,
+      content_type: "image/png",
+      metadata: {
+        nodetool_entity: {
+          kind: "character",
+          name,
+          descriptor: `${name}, in full`,
+          tags: ["cast"]
+        }
+      },
+      ...over
+    });
+
+  it("lists a project's entities and nobody else's", async () => {
+    const mine = await entityAsset("u1", "Ada", { project_id: "p1" });
+    await entityAsset("u1", "Loose");
+    await entityAsset("u1", "Elsewhere", { project_id: "p2" });
+    await entityAsset("u2", "Theirs", { project_id: "p1" });
+    // An untagged image in the project is not an entity.
+    await Asset.create<Asset>({
+      user_id: "u1",
+      name: "Just a picture",
+      content_type: "image/png",
+      project_id: "p1"
+    });
+
+    const entities = await listProjectEntities("u1", "p1");
+    expect(entities.map((entity) => entity.id)).toEqual([mine.id]);
+    // The whole marker rides along, so the card and its editor need no second
+    // fetch.
+    expect(entities[0]).toMatchObject({
+      kind: "character",
+      name: "Ada",
+      descriptor: "Ada, in full",
+      tags: ["cast"]
+    });
+  });
+
+  it("carries the entities into the project summary", async () => {
+    await entityAsset("u1", "Ada", { project_id: "p1" });
+    const summary = await summarizeProject("u1", "p1");
+    expect(summary.entities.map((entity) => entity.name)).toEqual(["Ada"]);
+  });
+
+  it("moves an entity in and back out of a project", async () => {
+    const entity = await entityAsset("u1", "Ada");
+    expect(entity.project_id).toBe(LOOSE_PROJECT_ID);
+
+    expect(await moveDocumentToProject("u1", "entity", entity.id, "p1")).toBe(
+      true
+    );
+    expect((await Asset.find("u1", entity.id))?.project_id).toBe("p1");
+
+    expect(
+      await moveDocumentToProject("u1", "entity", entity.id, LOOSE_PROJECT_ID)
+    ).toBe(true);
+    expect((await Asset.find("u1", entity.id))?.project_id).toBe(
+      LOOSE_PROJECT_ID
+    );
+  });
+
+  it("refuses an asset that is not an entity, and another user's", async () => {
+    const plain = await Asset.create<Asset>({
+      user_id: "u1",
+      name: "Just a picture",
+      content_type: "image/png"
+    });
+    expect(await moveDocumentToProject("u1", "entity", plain.id, "p1")).toBe(
+      false
+    );
+    expect((await Asset.find("u1", plain.id))?.project_id).toBe(
+      LOOSE_PROJECT_ID
+    );
+
+    const theirs = await entityAsset("u2", "Theirs");
+    expect(await moveDocumentToProject("u1", "entity", theirs.id, "p1")).toBe(
+      false
+    );
+    expect((await Asset.find("u2", theirs.id))?.project_id).toBe(
+      LOOSE_PROJECT_ID
+    );
+  });
+
+  it("releases a deleted project's entities into the loose bucket", async () => {
+    const project = await Project.create<Project>({
+      user_id: "u1",
+      name: "Aurora"
+    });
+    const entity = await entityAsset("u1", "Ada", { project_id: project.id });
+
+    expect(await Project.deleteOwned("u1", project.id)).toBe(true);
+    expect((await Asset.find("u1", entity.id))?.project_id).toBe(
+      LOOSE_PROJECT_ID
     );
   });
 });

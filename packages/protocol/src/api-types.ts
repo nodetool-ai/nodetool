@@ -381,6 +381,8 @@ export interface Asset {
   job_id?: string | null;
   /** Source timeline a video was rendered from, if any. */
   timeline_id?: string | null;
+  /** The project the asset belongs to; `"default"` for none. */
+  project_id?: string;
   created_at: string;
   /** URL to download/access the asset (computed by API) */
   get_url: string | null;

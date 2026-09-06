@@ -448,6 +448,34 @@ describe("handleResourceChange", () => {
     expect(matchesProjects).toBe(true);
   });
 
+  it("refetches the entity library and the project views on an asset write", () => {
+    // An entity is an image asset carrying the marker, so an entity the agent
+    // tags reaches the browser as an asset change and nothing else. `["assets"]`
+    // does not prefix-match `["entities"]`, and a project's overview lists the
+    // entities filed under it.
+    handleResourceChange({
+      type: "resource_change",
+      event: "updated",
+      resource_type: "asset",
+      resource: { id: "a1" }
+    } as ResourceChangeUpdate);
+
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["entities"]
+    });
+
+    const predicates = (queryClient.invalidateQueries as jest.Mock).mock.calls
+      .map((call) => call[0]?.predicate)
+      .filter(isFunction) as Array<
+      (q: { queryKey: readonly unknown[] }) => boolean
+    >;
+    expect(
+      predicates.some((predicate) =>
+        predicate({ queryKey: [["projects", "get"], { input: { id: "p1" } }] })
+      )
+    ).toBe(true);
+  });
+
   it("refetches the project views when a project row changes", () => {
     handleResourceChange({
       type: "resource_change",

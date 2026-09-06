@@ -186,22 +186,64 @@ export const projectSpend = z.object({
 });
 export type ProjectSpend = z.infer<typeof projectSpend>;
 
+/**
+ * An entity in a project. Entities are tagged image assets, not document rows,
+ * so a card edits one in place rather than opening a tab — which is why this
+ * carries no tab `type` and sits beside `documents` instead of inside it.
+ */
+export const projectEntitySummary = z.object({
+  /** The entity's id, which is its asset id — also its reference image. */
+  id: z.string(),
+  kind: z.enum(["character", "location", "style", "prop"]),
+  name: z.string(),
+  descriptor: z.string(),
+  description: z.string().optional(),
+  voice_id: z.string().nullable().optional(),
+  tags: z.array(z.string()).optional(),
+  lora: z
+    .object({
+      url: z.string().optional(),
+      asset_id: z.string().nullable().optional(),
+      scale: z.number().optional()
+    })
+    .nullable()
+    .optional(),
+  palette: z
+    .array(z.object({ name: z.string().optional(), hex: z.string() }))
+    .nullable()
+    .optional(),
+  updatedAt: z.string()
+});
+export type ProjectEntitySummary = z.infer<typeof projectEntitySummary>;
+
 export const projectDetail = z.object({
   project: projectResponse,
   documents: z.array(projectDocumentSummary),
   /** True when a document table hit its per-type cap, so documents are missing. */
   documentsPartial: z.boolean().optional(),
+  /** The project's entities, newest first. */
+  entities: z.array(projectEntitySummary).default([]),
   spend: projectSpend
 });
 export type ProjectDetail = z.infer<typeof projectDetail>;
 
 /**
- * Move one document into a project, or — with {@link LOOSE_PROJECT_ID} — back
- * out of every project.
+ * What a project holds. `entity` is not a {@link projectDocumentType}: nothing
+ * opens an entity as a tab, so it has no tab type to be spelled as.
+ */
+export const projectMemberType = z.union([
+  projectDocumentType,
+  z.literal("entity")
+]);
+export type ProjectMemberType = z.infer<typeof projectMemberType>;
+
+/**
+ * Move one document or entity into a project, or — with
+ * {@link LOOSE_PROJECT_ID} — back out of every project.
  */
 export const assignDocumentInput = z.object({
   projectId: z.string(),
-  type: projectDocumentType,
+  type: projectMemberType,
   ref: z.string()
 });
 export type AssignDocumentInput = z.infer<typeof assignDocumentInput>;

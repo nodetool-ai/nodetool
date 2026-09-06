@@ -20,7 +20,9 @@ export const assetResponse = z.object({
   duration: z.number().nullable(),
   node_id: z.string().nullable(),
   job_id: z.string().nullable(),
-  timeline_id: z.string().nullable().optional()
+  timeline_id: z.string().nullable().optional(),
+  /** The project the asset belongs to; `"default"` for none. */
+  project_id: z.string().optional()
 });
 export type AssetResponse = z.infer<typeof assetResponse>;
 

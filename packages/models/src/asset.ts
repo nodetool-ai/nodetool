@@ -28,6 +28,12 @@ export class Asset extends DBModel {
   declare node_id: string | null;
   declare job_id: string | null;
   declare timeline_id: string | null;
+  /**
+   * The project this asset belongs to, `"default"` for none — the same loose
+   * bucket every document table spells that way. Read per project only for
+   * entities, the assets carrying the entity marker.
+   */
+  declare project_id: string;
   declare created_at: string;
   declare updated_at: string;
 
@@ -47,6 +53,7 @@ export class Asset extends DBModel {
     this.node_id ??= null;
     this.job_id ??= null;
     this.timeline_id ??= null;
+    this.project_id ??= "default";
     this.created_at ??= now;
     this.updated_at ??= now;
   }
@@ -185,6 +192,7 @@ export class Asset extends DBModel {
       nodeId?: string;
       jobId?: string;
       timelineId?: string;
+      projectId?: string;
       limit?: number;
       startKey?: string;
     } = {}
@@ -196,6 +204,7 @@ export class Asset extends DBModel {
       nodeId,
       jobId,
       timelineId,
+      projectId,
       limit = 50,
       startKey
     } = opts;
@@ -233,6 +242,9 @@ export class Asset extends DBModel {
     }
     if (jobId) {
       conditions.push(eq(assets.job_id, jobId));
+    }
+    if (projectId) {
+      conditions.push(eq(assets.project_id, projectId));
     }
     if (startKey) {
       const cursor = await Asset.get<Asset>(startKey);
