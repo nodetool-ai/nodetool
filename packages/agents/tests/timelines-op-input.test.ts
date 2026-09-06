@@ -12,7 +12,7 @@ import {
   initTestDb
 } from "@nodetool-ai/models";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
-import { ANIMATED_PROPERTIES } from "@nodetool-ai/timeline";
+import { ANIMATED_PROPERTIES, findInstrumentPreset } from "@nodetool-ai/timeline";
 import {
   createTimelineToolBridge,
   type TimelineAnimationBakeRequest,
@@ -1142,6 +1142,33 @@ describe("midi ops", () => {
         instrument
       })
     ).rejects.toThrow(/audio track/);
+  });
+
+  it("stores a named voice's whole patch, FableSynth kits included", async () => {
+    const { bridge, byName } = await midiBridge();
+
+    // A preset is resolved and stored, not kept as a reference: the track
+    // keeps its sound when the shipped table changes.
+    for (const id of ["wt1-bloom-pad", "bl1-acid", "dr1-tr-void"]) {
+      await byName["ui_timeline_set_track_instrument"].execute({
+        track: "Lead",
+        instrument: { preset: id }
+      });
+      expect(bridge.finalState().documentTracks[0].instrument).toEqual(
+        findInstrumentPreset(id)!.instrument
+      );
+    }
+
+    // The kit is the one voice whose notes are a drum map rather than pitches,
+    // so its pads have to survive the round trip.
+    const kit = bridge.finalState().documentTracks[0].instrument as {
+      type: string;
+      baseNote: number;
+      pads: unknown[];
+    };
+    expect(kit.type).toBe("drum");
+    expect(kit.baseNote).toBe(36);
+    expect(kit.pads).toHaveLength(16);
   });
 });
 
