@@ -188,7 +188,11 @@ export function refillShotClips(
       else appended.set(shotId, [clip]);
     }
   }
-  let cursorMs = [...kept, ...added].reduce(
+  // The boundary a new shot lands after is the end of the whole cut, foreign
+  // clips included: an approved cut can carry an end card on the shots track
+  // after the last shot, and appending against only the owned clips would lay
+  // the new shot straight over it.
+  let cursorMs = [...kept, ...added, ...foreignClips].reduce(
     (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
     0
   );

@@ -196,6 +196,44 @@ describe("refillShotClips", () => {
     });
   });
 
+  it("appends an added shot after a foreign clip sharing its track", () => {
+    // An approved cut can carry an end card on the shots track, after the last
+    // shot. Appending against only the owned clips would lay the new shot
+    // straight over it.
+    const endCard: TimelineClip = {
+      ...shotClip("shot-1", { startMs: 1000, durationMs: 5000 }),
+      id: "end-card",
+      storyboardBoardId: "hand-placed",
+      storyboardShotId: undefined
+    };
+    const previous = {
+      tracks: [shots],
+      clips: [shotClip("shot-1", { startMs: 0, durationMs: 1000 }), endCard]
+    };
+    const assembled = {
+      tracks: [track("Shots", 0)],
+      clips: [
+        shotClip("shot-1", { durationMs: 1000, currentAssetId: "a" }),
+        shotClip("shot-2", {
+          startMs: 1000,
+          durationMs: 2000,
+          currentAssetId: "b"
+        })
+      ]
+    };
+
+    const merged = refillShotClips(previous, assembled, {
+      owns,
+      liveShotIds: new Set(["shot-1", "shot-2"])
+    });
+
+    const added = merged.clips.find((c) => c.currentAssetId === "b");
+    // The end card runs 1000-6000 on this track, so the new shot starts at its
+    // end, not on top of it.
+    expect(added).toMatchObject({ startMs: 6000, trackId: shots.id });
+    expect(merged.clips).toContainEqual(endCard);
+  });
+
   it("holds the place of a shot the assembly could not resolve", () => {
     const previous = {
       tracks: [shots],
