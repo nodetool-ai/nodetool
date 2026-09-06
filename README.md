@@ -23,18 +23,6 @@ saved in their cloud, locked away. NodeTool hands the project back, on your keys
 
 ![NodeTool: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film](marketing/public/hero-project-poster.webp)
 
-## The node editor
-
-![NodeTool workflow canvas](marketing/public/screen_workflow.webp)
-
-Every project is a graph you can open. Drag nodes in, connect typed ports, and
-read the live output at each step. Double-click the canvas to search and add a
-node, or drag a connection into empty space to see compatible next steps. The
-editor refuses a mismatch, so an image cannot land in a text field.
-
-The storyboard, script, timeline, sketch, and 3D editors all sit on this
-canvas, and an agent wires it through the same actions you have.
-
 ## Every model you need, on your own keys
 
 You connect the provider and NodeTool calls it with your key, so you pay that
@@ -153,6 +141,18 @@ capture a view as a depth or composition reference for an image or video model.
 The same operations run headlessly through `create_model3d`, `get_model3d`,
 `edit_model3d`, `validate_model3d`, and `render_model3d`, so a scene is
 reproducible with no editor open.
+
+## The node editor
+
+![NodeTool workflow canvas](marketing/public/screen_workflow.webp)
+
+Every project is a graph you can open. Drag nodes in, connect typed ports, and
+read the live output at each step. Double-click the canvas to search and add a
+node, or drag a connection into empty space to see compatible next steps. The
+editor refuses a mismatch, so an image cannot land in a text field.
+
+Every editor above sits on this canvas, and an agent wires it through the
+same actions you have.
 
 ## Recipes
 
