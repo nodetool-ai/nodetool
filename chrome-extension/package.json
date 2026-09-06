@@ -25,7 +25,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "4.7.0",
     "typescript": "5.9.3",
-    "vite": "6.4.3",
-    "vitest": "1.6.1"
+    "vite": "7.3.5",
+    "vitest": "3.2.6"
   }
 }
