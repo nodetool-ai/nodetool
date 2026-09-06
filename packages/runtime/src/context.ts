@@ -615,6 +615,12 @@ export interface ProcessingContextModelInterfaces {
     userId: string;
     id: string;
   }) => Promise<PersistedRecordLike | null>;
+  /** The caller's storyboards, optionally narrowed by project. */
+  listStoryboards?: (args: {
+    userId: string;
+    projectId?: string;
+    limit?: number;
+  }) => Promise<PersistedRecordLike[]>;
   /** Create a persisted storyboard from a name + document. */
   createStoryboard?: (args: {
     userId: string;
@@ -2042,6 +2048,14 @@ export class ProcessingContext {
   async getStoryboard(id: string): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("getStoryboard");
     return fn({ userId: this.userId, id });
+  }
+
+  /** The current user's storyboards, narrowed by the given filters. */
+  async listStoryboards(
+    args: ModelInterfaceArgs<"listStoryboards"> = {}
+  ): Promise<PersistedRecordLike[]> {
+    const fn = this.requireModelInterface("listStoryboards");
+    return fn({ userId: this.userId, ...args });
   }
 
   /** Create a persisted storyboard owned by the current user. */

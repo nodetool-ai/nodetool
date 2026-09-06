@@ -20,6 +20,7 @@ function nodetoolStubPlugin(): Plugin {
     "@nodetool-ai/runtime/safe-url",
     "@nodetool-ai/runtime/tracing",
     "@nodetool-ai/runtime/context",
+    "@nodetool-ai/runtime/entities",
     "@nodetool-ai/runtime/media-ref-bytes",
     "@nodetool-ai/runtime/prompt-asset-refs",
     "@nodetool-ai/security",

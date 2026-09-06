@@ -115,6 +115,12 @@ export { WorkflowNode, WORKFLOW_NODES } from "@nodetool-ai/core-nodes/nodes/work
 export { SubgraphNode, SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
 export { CompareImagesNode, COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
 export {
+  LoadEntityNode,
+  ListEntitiesNode,
+  CreateEntityNode,
+  ENTITY_NODES
+} from "@nodetool-ai/core-nodes/nodes/entity";
+export {
   LoadDocumentFileNode,
   SaveDocumentFileNode,
   ListDocumentsNode,
@@ -263,6 +269,15 @@ export {
   ScriptToTimelineNode,
   SCRIPT_NODES
 } from "@nodetool-ai/video-nodes/nodes/script";
+export {
+  LoadStoryboardNode,
+  StoryboardShotsNode,
+  RecastStoryboardNode,
+  RenderStillsNode,
+  RenderClipsNode,
+  AssembleTimelineNode,
+  STORYBOARD_NODES
+} from "@nodetool-ai/video-nodes/nodes/storyboard";
 export {
   SummarizerNode,
   EnhancePromptNode,
@@ -432,6 +447,7 @@ import { OUTPUT_NODES } from "@nodetool-ai/audio-nodes/nodes/output";
 import { WORKFLOW_NODES } from "@nodetool-ai/core-nodes/nodes/workflow";
 import { SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
 import { COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
+import { ENTITY_NODES } from "@nodetool-ai/core-nodes/nodes/entity";
 import { DOCUMENT_NODES } from "@nodetool-ai/document-nodes/nodes/document";
 import { DATA_NODES } from "@nodetool-ai/data-nodes/nodes/data";
 import { CodeNode } from "@nodetool-ai/code-nodes/nodes/code-node";
@@ -444,6 +460,7 @@ import { SKETCH_NODES } from "@nodetool-ai/image-nodes/nodes/sketch";
 import { VIDEO_NODES } from "@nodetool-ai/video-nodes/nodes/video";
 import { TIMELINE_NODES } from "@nodetool-ai/video-nodes/nodes/timeline";
 import { SCRIPT_NODES } from "@nodetool-ai/video-nodes/nodes/script";
+import { STORYBOARD_NODES } from "@nodetool-ai/video-nodes/nodes/storyboard";
 import { AGENT_NODES } from "@nodetool-ai/llm-nodes/nodes/agents";
 import { GENERATOR_NODES } from "@nodetool-ai/llm-nodes/nodes/generators";
 import { DIRECTOR_NODES } from "@nodetool-ai/llm-nodes/nodes/director";
@@ -495,6 +512,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...WORKFLOW_NODES,
   ...SUBGRAPH_NODES,
   ...COMPARE_NODES,
+  ...ENTITY_NODES,
   ...DOCUMENT_NODES,
   ...DATA_NODES,
   CodeNode,
@@ -507,6 +525,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...VIDEO_NODES,
   ...TIMELINE_NODES,
   ...SCRIPT_NODES,
+  ...STORYBOARD_NODES,
   ...AGENT_NODES,
   ...GENERATOR_NODES,
   ...DIRECTOR_NODES,

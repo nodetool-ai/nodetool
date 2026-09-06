@@ -8,3 +8,4 @@ export * from "./nodes/subgraph.js";
 export * from "./nodes/workflow.js";
 export * from "./nodes/vector.js";
 export * from "./nodes/extended-placeholders.js";
+export * from "./nodes/entity.js";

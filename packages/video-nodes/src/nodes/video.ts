@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {
+  Entity,
   InputMode,
   OutputCorrelation,
   FolderRef
@@ -13,7 +14,11 @@ import type {
   StreamingOutputs
 } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { loadMediaRefBytes, mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
+import {
+  loadMediaRefBytes,
+  mapPromptAssetsToInputs,
+  resolveEntities
+} from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -409,6 +414,15 @@ export class TextToVideoNode extends BaseNode {
   declare negative_prompt: string;
 
   @prop({
+    type: "list[entity]",
+    default: [],
+    title: "Entities",
+    description:
+      "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt"
+  })
+  declare entities: Entity[];
+
+  @prop({
     type: "str",
     default: "16:9",
     title: "Aspect Ratio",
@@ -462,6 +476,7 @@ export class TextToVideoNode extends BaseNode {
       params: {
         prompt: text,
         negative_prompt: this.negative_prompt,
+        entities: await resolveEntities(this.entities, context),
         duration_seconds: Number(this.duration ?? 0) || undefined,
         aspect_ratio: this.aspect_ratio,
         resolution: this.resolution,
@@ -534,13 +549,13 @@ export class ImageToVideoNode extends BaseNode {
   declare negative_prompt: string;
 
   @prop({
-    type: "list[dict]",
+    type: "list[entity]",
     default: [],
     title: "Entities",
     description:
       "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt"
   })
-  declare entities: unknown[];
+  declare entities: Entity[];
 
   @prop({
     type: "str",
@@ -622,7 +637,7 @@ export class ImageToVideoNode extends BaseNode {
         images: bytesList,
         prompt,
         negative_prompt: this.negative_prompt,
-        entities: this.entities,
+        entities: await resolveEntities(this.entities, context),
         duration_seconds: Number(this.duration ?? 0) || undefined,
         aspect_ratio: this.aspect_ratio,
         resolution: this.resolution,

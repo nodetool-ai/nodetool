@@ -86,6 +86,12 @@
       "import": "./dist/providers/safe-url.js",
       "default": "./dist/providers/safe-url.js"
     },
+    "./entities": {
+      "nodetool-dev": "./src/entities.ts",
+      "types": "./dist/entities.d.ts",
+      "import": "./dist/entities.js",
+      "default": "./dist/entities.js"
+    },
     "./media-ref-bytes": {
       "nodetool-dev": "./src/media-ref-bytes.ts",
       "types": "./dist/media-ref-bytes.d.ts",

@@ -106,13 +106,19 @@ async function writeEntityMarker(
 /** Storyboards, mirroring the script trio: owner-scoped reads, CAS updates. */
 export function storyboardModelInterfaces(): Pick<
   ProcessingContextModelInterfaces,
-  "getStoryboard" | "createStoryboard" | "updateStoryboard"
+  "getStoryboard" | "listStoryboards" | "createStoryboard" | "updateStoryboard"
 > {
   return {
     getStoryboard: async ({ userId, id }) => {
       const board = await Storyboard.findById(id);
       if (!board || board.user_id !== userId) return null;
       return board.toResponse();
+    },
+    listStoryboards: async ({ userId, projectId, limit }) => {
+      const boards = projectId
+        ? await Storyboard.listByProject(projectId, userId, limit)
+        : await Storyboard.listByUser(userId, limit);
+      return boards.map((board) => board.toResponse());
     },
     createStoryboard: async ({ userId, name, projectId, document }) => {
       const board = new Storyboard({

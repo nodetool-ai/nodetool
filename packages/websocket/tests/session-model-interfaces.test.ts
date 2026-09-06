@@ -398,6 +398,31 @@ describe("storyboards", () => {
     expect(named.projectId).toBe("p2");
   });
 
+  it("lists only the owner's boards, and narrows to a project", async () => {
+    await ifaces.createStoryboard!({
+      userId: USER,
+      name: "In project",
+      projectId: "p9",
+      document: doc
+    });
+    await ifaces.createStoryboard!({ userId: USER, name: "Loose", document: doc });
+    await ifaces.createStoryboard!({
+      userId: OTHER,
+      name: "Theirs",
+      projectId: "p9",
+      document: doc
+    });
+
+    const mine = await ifaces.listStoryboards!({ userId: USER });
+    const names = mine.map((board) => fields(board).name);
+    expect(names).toContain("In project");
+    expect(names).toContain("Loose");
+    expect(names).not.toContain("Theirs");
+
+    const scoped = await ifaces.listStoryboards!({ userId: USER, projectId: "p9" });
+    expect(scoped.map((board) => fields(board).name)).toEqual(["In project"]);
+  });
+
   it("reads only the owner's storyboard", async () => {
     const created = await ifaces.createStoryboard!({ userId: USER, document: doc });
     const id = created.id;
