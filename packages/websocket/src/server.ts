@@ -179,6 +179,7 @@ import accountRoutes from "./routes/account.js";
 import jsScriptsRoutes from "./routes/js-scripts.js";
 import timelineAnimationRoutes from "./routes/timeline-animations.js";
 import storyboardsRoutes from "./routes/storyboards.js";
+import timelinesRoutes from "./routes/timelines.js";
 import sandboxModulesRoutes from "./routes/sandbox-modules.js";
 import falCreditsRoute from "./routes/fal-credits.js";
 import falPricingRoute from "./routes/fal-pricing.js";
@@ -1598,6 +1599,7 @@ await app.register(publicAppRoutes, { appSessionSigningKey });
 await app.register(jsScriptsRoutes, routeOpts);
 await app.register(timelineAnimationRoutes, routeOpts);
 await app.register(storyboardsRoutes, routeOpts);
+await app.register(timelinesRoutes, routeOpts);
 // Art. 20 export and Art. 17 erasure. The subject is always the caller:
 // no admin path, no subject id anywhere in the URL or body.
 await app.register(accountRoutes, routeOpts);
