@@ -1,0 +1,450 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-09-06T12:00:00.000Z",
+  "updated_at": "2026-09-06T12:00:00.000Z",
+  "name": "Per-SKU Ad Factory (fake mode)",
+  "tool_name": null,
+  "description": "E1 with the product photo faked, the board rendered on the fake provider and no final encode. Run by scripts/graph-resources-fixtures.mjs, which seeds the template board gr-e1-board and its cut, then checks the filled overlay on the exported sequence.",
+  "tags": [
+    "fixture",
+    "graph-resources"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "sku",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "sku",
+          "value": "AERO-9",
+          "description": "Upsert identity for this product's entity."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "1  SKU"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "name",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "name",
+          "value": "Aero 9",
+          "description": "Product name, for the entity and the overlay."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "2  Name"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "price",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "price",
+          "value": "$129",
+          "description": "Price, for the overlay."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 240
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "3  Price"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "descriptor",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "descriptor",
+          "value": "a low-top running shoe in bone white",
+          "description": "How the product should be described in every prompt."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 360
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "4  Descriptor"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "photo",
+        "type": "nodetool.fake.GenerateImage",
+        "data": {
+          "width": 512,
+          "height": 512
+        },
+        "ui_properties": {
+          "position": {
+            "x": 280,
+            "y": 440
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "5  Product photo (faked)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "save_photo",
+        "type": "nodetool.image.SaveImage",
+        "data": {
+          "name": "gr-e1-product-photo.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 420,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true,
+          "title": "6  Store the photo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "values",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "await output(\"values\", { name: String(inputs.name ?? \"\"), price: String(inputs.price ?? \"\") });"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 280,
+            "y": 160
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "7  Overlay values"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "values": {
+            "type": "dict",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "product",
+        "type": "nodetool.entity.CreateEntity",
+        "data": {
+          "kind": "prop"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 560,
+            "y": 380
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "8  Upsert the SKU entity"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "template",
+        "type": "nodetool.constant.Storyboard",
+        "data": {
+          "value": {
+            "type": "storyboard",
+            "id": "gr-e1-board",
+            "data": null
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 560,
+            "y": 600
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "9  Hero 9:16 template"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "recast",
+        "type": "nodetool.storyboard.RecastStoryboard",
+        "data": {
+          "replaces": [
+            "Product"
+          ],
+          "reuse_existing": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 840,
+            "y": 480
+          },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true,
+          "title": "10  Recast onto the SKU"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "stills",
+        "type": "nodetool.storyboard.RenderStills",
+        "data": {
+          "max_shots": 4,
+          "concurrency": 1,
+          "only_stale": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1140,
+            "y": 480
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "11  Stills"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "clips",
+        "type": "nodetool.storyboard.RenderClips",
+        "data": {
+          "max_shots": 4,
+          "concurrency": 1,
+          "only_stale": true,
+          "require_keyframe": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1400,
+            "y": 480
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "12  Clips"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "cut",
+        "type": "nodetool.storyboard.AssembleTimeline",
+        "data": {
+          "fps": 30
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1660,
+            "y": 480
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "13  Inherit the approved cut"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fill",
+        "type": "nodetool.timeline.FillTimelineText",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1920,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "14  Fill name and price"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ad",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "cut",
+          "description": "The filled sequence for this SKU."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2180,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true,
+          "title": "15  Cut"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "descriptor",
+        "sourceHandle": "output",
+        "target": "photo",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e2a",
+        "source": "photo",
+        "sourceHandle": "output",
+        "target": "save_photo",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e2",
+        "source": "save_photo",
+        "sourceHandle": "output",
+        "target": "product",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e3",
+        "source": "name",
+        "sourceHandle": "output",
+        "target": "product",
+        "targetHandle": "name"
+      },
+      {
+        "id": "e4",
+        "source": "descriptor",
+        "sourceHandle": "output",
+        "target": "product",
+        "targetHandle": "descriptor"
+      },
+      {
+        "id": "e5",
+        "source": "sku",
+        "sourceHandle": "output",
+        "target": "product",
+        "targetHandle": "key"
+      },
+      {
+        "id": "e6",
+        "source": "name",
+        "sourceHandle": "output",
+        "target": "values",
+        "targetHandle": "name"
+      },
+      {
+        "id": "e7",
+        "source": "price",
+        "sourceHandle": "output",
+        "target": "values",
+        "targetHandle": "price"
+      },
+      {
+        "id": "e8",
+        "source": "template",
+        "sourceHandle": "output",
+        "target": "recast",
+        "targetHandle": "storyboard"
+      },
+      {
+        "id": "e9",
+        "source": "product",
+        "sourceHandle": "entity",
+        "target": "recast",
+        "targetHandle": "cast"
+      },
+      {
+        "id": "e10",
+        "source": "recast",
+        "sourceHandle": "storyboard",
+        "target": "stills",
+        "targetHandle": "storyboard"
+      },
+      {
+        "id": "e11",
+        "source": "stills",
+        "sourceHandle": "storyboard",
+        "target": "clips",
+        "targetHandle": "storyboard"
+      },
+      {
+        "id": "e12",
+        "source": "clips",
+        "sourceHandle": "storyboard",
+        "target": "cut",
+        "targetHandle": "storyboard"
+      },
+      {
+        "id": "e13",
+        "source": "cut",
+        "sourceHandle": "timeline",
+        "target": "fill",
+        "targetHandle": "timeline"
+      },
+      {
+        "id": "e14",
+        "source": "values",
+        "sourceHandle": "values",
+        "target": "fill",
+        "targetHandle": "values"
+      },
+      {
+        "id": "e15",
+        "source": "fill",
+        "sourceHandle": "timeline",
+        "target": "ad",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

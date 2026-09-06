@@ -1,4 +1,4 @@
-# automation-nodes — Triggers, Apple/OS automation, browser, SQLite path
+# automation-nodes — Triggers, OS automation, browser, SQLite path
 
 **Navigation**: [packages/AGENTS.md](../AGENTS.md) → **automation-nodes**
 

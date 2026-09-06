@@ -150,6 +150,39 @@ interaction:
 For continuity across cuts, `nodetool.creative.ShotChain` generates clips
 sequentially, extracting each clip's last frame to seed the next shot.
 
+### The approved document as a graph value
+
+Those templates direct from a brief. The nodes below start from a document a
+person already approved and re-run it — a board per SKU, a script per language,
+a cut per aspect ratio — without re-directing anything. A ref is read-only
+unless the run derived it, so a batch cannot draw over the template.
+
+| Node | Takes | Gives |
+|---|---|---|
+| `nodetool.constant.Storyboard` / `.Entity` | a picked board or entity | `storyboard` / `entity` |
+| `nodetool.entity.LoadEntity` | `entity`, or a name and kind | `entity`, `descriptor`, `name`, `kind`, `reference_image`, `voice_id` |
+| `nodetool.entity.ListEntities` | `kind`, `tags`, `name_contains`, `project` | `entities`; streams one `entity` per row |
+| `nodetool.entity.CreateEntity` | `image`, `kind`, `name`, `descriptor`, `key` | `entity`, `created` — upserts on `key`, so a re-run reuses the row |
+| `nodetool.storyboard.LoadStoryboard` | `storyboard` | `shots`, `entities`, `style`, `aspect_ratio`, `name`, both models, `shot_count` |
+| `nodetool.storyboard.StoryboardShots` | `storyboard` | streams `shot`, `index`, `slug`, `keyframe`, `clip` |
+| `nodetool.storyboard.RecastStoryboard` | `storyboard`, `cast`, `replaces`, `reuse_existing` | the copy, `invalidated`, `kept` — keeps every frame whose prompt did not move |
+| `nodetool.storyboard.RenderStills` | the derived `storyboard`, `targets`, `max_shots`, `only_stale` | `keyframes`, `rendered`, `skipped`, `failed` |
+| `nodetool.storyboard.RenderClips` | the same, plus `require_keyframe` | `clips`, `rendered`, `skipped`, `failed` |
+| `nodetool.storyboard.AssembleTimeline` | the derived `storyboard` | `timeline`, `skipped_shots`, `retimed` — a copy inherits the template's cut, titles and music |
+| `nodetool.script.WriteScript` | `model`, `brief`, `format`, `cast`, `language` | a new `script`, `line_count` |
+| `nodetool.script.FillScript` | `script`, `values` | a new `script`, `filled`, `unresolved` |
+| `nodetool.timeline.FillTimelineText` | `timeline`, `values` | a new `timeline`, `filled`, `unresolved` |
+| `nodetool.timeline.RetargetTimeline` | `timeline`, `aspect_ratio`, `fit` | a new `timeline`, `cropped` |
+| `nodetool.game.LoadGameTemplate` | `template` | `manifest`, `slots`; streams one `slot` |
+| `nodetool.game.SlotPrompt` | `slot`, `style`, `cast` | `prompt`, `width`, `height`, `kind`, `checker`, `seconds` |
+| `nodetool.game.ExportGodotProject` | `template`, `name`, `fills`, `directory` | `directory`, `files`, `verified`, `errors` |
+
+`RenderStills`, `RenderClips` and `AssembleTimeline` refuse a board this run
+did not derive; `allow_writes` is the per-node override for a graph whose whole
+purpose is to render the board a person picked. Four shipped examples wire
+them: **Per-SKU Ad Factory**, **Localized Explainer**, **Platformer Asset
+Pack**, **Three Ratios**.
+
 ## Driving it from outside
 
 `nodetool mcp serve` exposes the workflow and creative tools over MCP

@@ -15,9 +15,21 @@ function soundEffect(inputs) {
 function musicLoop(inputs) {
   return createNode("nodetool.game.MusicLoop", inputs, { outputNames: ["output", "fill"] });
 }
+function loadGameTemplate(inputs) {
+  return createNode("nodetool.game.LoadGameTemplate", inputs, { outputNames: ["manifest", "slots", "slot"], streaming: true });
+}
+function slotPrompt(inputs) {
+  return createNode("nodetool.game.SlotPrompt", inputs, { outputNames: ["prompt", "width", "height", "kind", "checker", "seconds"] });
+}
+function exportGodotProject(inputs) {
+  return createNode("nodetool.game.ExportGodotProject", inputs, { outputNames: ["directory", "files", "verified", "errors"] });
+}
 export {
+  exportGodotProject,
+  loadGameTemplate,
   musicLoop,
   seamlessImage,
+  slotPrompt,
   soundEffect,
   spriteSheet,
   tileset

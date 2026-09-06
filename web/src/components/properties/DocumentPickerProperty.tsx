@@ -21,7 +21,7 @@ interface DocumentQueryResult {
 
 interface DocumentPickerPropertyProps extends PropertyProps {
   /** Document kind, used for the ref value, the workspace tab and the dom id. */
-  documentType: "timeline" | "script" | "sketch";
+  documentType: "timeline" | "script" | "sketch" | "storyboard";
   /** Lists the documents to choose from. Called as a hook — pass a stable one. */
   useDocuments: () => DocumentQueryResult;
   /** Shown for a document with no name of its own. */
@@ -35,6 +35,12 @@ interface DocumentPickerPropertyProps extends PropertyProps {
    * workspace instead.
    */
   standaloneRoute?: (id: string) => string;
+  /**
+   * Extra fields written onto the ref next to `{type, id}`. `storyboard`
+   * carries `data: null` so a picked ref matches its node-side default. Pass a
+   * module-level constant — it is a `useCallback` dependency.
+   */
+  extraRefFields?: Record<string, unknown>;
 }
 
 /**
@@ -48,6 +54,7 @@ const DocumentPickerProperty = ({
   openEditorLabel,
   icon,
   standaloneRoute,
+  extraRefFields,
   ...props
 }: DocumentPickerPropertyProps) => {
   const { property, value, onChange } = props;
@@ -62,9 +69,13 @@ const DocumentPickerProperty = ({
 
   const handleChange = useCallback(
     (e: SelectChangeEvent<unknown>) => {
-      onChange({ type: documentType, id: String(e.target.value) });
+      onChange({
+        ...extraRefFields,
+        type: documentType,
+        id: String(e.target.value)
+      });
     },
-    [documentType, onChange]
+    [documentType, extraRefFields, onChange]
   );
 
   const handleOpenEditor = useCallback(() => {

@@ -161,6 +161,54 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "Description"
   },
   {
+    value: "storyboard",
+    label: "Storyboard",
+    description:
+      "Reference to a storyboard. Can be opened and edited in the storyboard editor and passed between nodes.",
+    color: colour("video"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "ViewCarousel"
+  },
+  {
+    value: "entity",
+    label: "Entity",
+    description:
+      "A character, location, style or prop from the entity library, injected into prompts to hold a look consistent across shots.",
+    color: colour("texture"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Person"
+  },
+  {
+    value: "game_slot",
+    label: "Game Slot",
+    description:
+      "One asset slot a game template declares — a sprite sheet, a tileset, a background, a sound effect or a music loop — carrying the sizes and counts it needs.",
+    color: colour("spatial"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Extension"
+  },
+  {
+    value: "slot_fill",
+    label: "Slot Fill",
+    description:
+      "A generated asset accepted for a game slot: the grid, frame ranges and loop flags the Godot writer reads.",
+    color: colour("spatial"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "GridOn"
+  },
+  {
     value: "bool",
     label: "Boolean",
     description:

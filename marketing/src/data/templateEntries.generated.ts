@@ -9979,6 +9979,303 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/localized-explainer",
+    "title": "Localized Explainer — NodeTool AI Workflow Template",
+    "description": "One brief, one narrator and one approved b-roll board become an explainer in every language you list. WriteScript writes the words with the narrator as its cast, VoiceScript pays only for the lines whose text moved, and the board is read and never written — its stills become the picture under the voiceover.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "localized-explainer",
+    "name": "Localized Explainer",
+    "summary": "One brief, one narrator and one approved b-roll board become an explainer in every language you list. WriteScript writes the words with the narrator as its cast, VoiceScript pays only for the lines whose text moved, and the board is read and never written — its stills become the picture under the voiceover.",
+    "tags": [
+      "video",
+      "script",
+      "localization",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.timeline.AddClips",
+        "label": "Add Clips",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.Entity",
+        "label": "Entity",
+        "count": 1
+      },
+      {
+        "type": "nodetool.timeline.RenderTimeline",
+        "label": "Render Timeline",
+        "count": 1
+      },
+      {
+        "type": "nodetool.script.ScriptToSubtitles",
+        "label": "Script To Subtitles",
+        "count": 1
+      },
+      {
+        "type": "nodetool.script.ScriptToTimeline",
+        "label": "Script To Timeline",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.Storyboard",
+        "label": "Storyboard",
+        "count": 1
+      },
+      {
+        "type": "nodetool.storyboard.StoryboardShots",
+        "label": "Storyboard Shots",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.script.VoiceScript",
+        "label": "Voice Script",
+        "count": 1
+      },
+      {
+        "type": "nodetool.script.WriteScript",
+        "label": "Write Script",
+        "count": 1
+      }
+    ],
+    "nodeCount": 14,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "languages",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 0,
+          "y": 0,
+          "width": 220
+        },
+        {
+          "id": "brief",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 160,
+          "width": 220
+        },
+        {
+          "id": "narrator",
+          "type": "nodetool.constant.Entity",
+          "title": "Entity",
+          "x": 0,
+          "y": 300,
+          "width": 240
+        },
+        {
+          "id": "board",
+          "type": "nodetool.constant.Storyboard",
+          "title": "Storyboard",
+          "x": 0,
+          "y": 460,
+          "width": 240
+        },
+        {
+          "id": "script",
+          "type": "nodetool.script.WriteScript",
+          "title": "Write Script",
+          "x": 320,
+          "y": 120,
+          "width": 260,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "voice",
+          "type": "nodetool.script.VoiceScript",
+          "title": "Voice Script",
+          "x": 640,
+          "y": 120,
+          "width": 240
+        },
+        {
+          "id": "timeline",
+          "type": "nodetool.script.ScriptToTimeline",
+          "title": "Script To Timeline",
+          "x": 920,
+          "y": 120,
+          "width": 240
+        },
+        {
+          "id": "shots",
+          "type": "nodetool.storyboard.StoryboardShots",
+          "title": "Storyboard Shots",
+          "x": 320,
+          "y": 460,
+          "width": 240
+        },
+        {
+          "id": "stills",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 620,
+          "y": 460,
+          "width": 220
+        },
+        {
+          "id": "broll",
+          "type": "nodetool.timeline.AddClips",
+          "title": "Add Clips",
+          "x": 1200,
+          "y": 300,
+          "width": 240
+        },
+        {
+          "id": "subtitles",
+          "type": "nodetool.script.ScriptToSubtitles",
+          "title": "Script To Subtitles",
+          "x": 1200,
+          "y": 60,
+          "width": 240
+        },
+        {
+          "id": "render",
+          "type": "nodetool.timeline.RenderTimeline",
+          "title": "Render Timeline",
+          "x": 1480,
+          "y": 300,
+          "width": 240
+        },
+        {
+          "id": "out_video",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1740,
+          "y": 300,
+          "width": 200
+        },
+        {
+          "id": "out_srt",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1480,
+          "y": 60,
+          "width": 200
+        }
+      ],
+      "edges": [
+        {
+          "source": "brief",
+          "sourceHandle": "output",
+          "target": "script",
+          "targetHandle": "brief",
+          "color": "any"
+        },
+        {
+          "source": "languages",
+          "sourceHandle": "output",
+          "target": "script",
+          "targetHandle": "language",
+          "color": "any"
+        },
+        {
+          "source": "narrator",
+          "sourceHandle": "output",
+          "target": "script",
+          "targetHandle": "cast",
+          "color": "any"
+        },
+        {
+          "source": "script",
+          "sourceHandle": "script",
+          "target": "voice",
+          "targetHandle": "script",
+          "color": "any"
+        },
+        {
+          "source": "voice",
+          "sourceHandle": "output",
+          "target": "timeline",
+          "targetHandle": "script",
+          "color": "any"
+        },
+        {
+          "source": "voice",
+          "sourceHandle": "output",
+          "target": "subtitles",
+          "targetHandle": "script",
+          "color": "any"
+        },
+        {
+          "source": "board",
+          "sourceHandle": "output",
+          "target": "shots",
+          "targetHandle": "storyboard",
+          "color": "any"
+        },
+        {
+          "source": "shots",
+          "sourceHandle": "keyframe",
+          "target": "stills",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "timeline",
+          "sourceHandle": "output",
+          "target": "broll",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "stills",
+          "sourceHandle": "output",
+          "target": "broll",
+          "targetHandle": "clips",
+          "color": "any"
+        },
+        {
+          "source": "broll",
+          "sourceHandle": "output",
+          "target": "render",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "render",
+          "sourceHandle": "output",
+          "target": "out_video",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "subtitles",
+          "sourceHandle": "subtitles",
+          "target": "out_srt",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/master-a-voice-track",
     "title": "Master a Voice Track — NodeTool AI Workflow Template",
     "description": "The three-stage chain a voice gets before it ships: compress to even out the peaks, lift the level, then limit so nothing clips. Order matters — limiting first would leave nothing for the compressor.",
@@ -12147,6 +12444,334 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/per-sku-ad-factory",
+    "title": "Per-SKU Ad Factory — NodeTool AI Workflow Template",
+    "description": "One approved board becomes one ad per product. CreateEntity upserts the SKU's entity on its stock code, RecastStoryboard copies the board onto it and keeps every frame whose prompt did not change, the render nodes pay only for the stale ones, and the assembled cut inherits the template's titles and music before the overlay is filled with this product's name and price. Run it once per SKU — from a CSV loop, a webhook, or by hand.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "per-sku-ad-factory",
+    "name": "Per-SKU Ad Factory",
+    "summary": "One approved board becomes one ad per product. CreateEntity upserts the SKU's entity on its stock code, RecastStoryboard copies the board onto it and keeps every frame whose prompt did not change, the render nodes pay only for the stale ones, and the assembled cut inherits the template's titles and music before the overlay is filled with this product's name and price. Run it once per SKU — from a CSV loop, a webhook, or by hand.",
+    "tags": [
+      "video",
+      "storyboard",
+      "batch",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 4
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.storyboard.AssembleTimeline",
+        "label": "Assemble Timeline",
+        "count": 1
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
+        "type": "nodetool.entity.CreateEntity",
+        "label": "Create Entity",
+        "count": 1
+      },
+      {
+        "type": "nodetool.timeline.FillTimelineText",
+        "label": "Fill Timeline Text",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.storyboard.RecastStoryboard",
+        "label": "Recast Storyboard",
+        "count": 1
+      },
+      {
+        "type": "nodetool.storyboard.RenderClips",
+        "label": "Render Clips",
+        "count": 1
+      },
+      {
+        "type": "nodetool.storyboard.RenderStills",
+        "label": "Render Stills",
+        "count": 1
+      },
+      {
+        "type": "nodetool.timeline.RenderTimeline",
+        "label": "Render Timeline",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.Storyboard",
+        "label": "Storyboard",
+        "count": 1
+      }
+    ],
+    "nodeCount": 16,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "sku",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 220
+        },
+        {
+          "id": "name",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 220
+        },
+        {
+          "id": "price",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 240,
+          "width": 220
+        },
+        {
+          "id": "descriptor",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 360,
+          "width": 220
+        },
+        {
+          "id": "photo",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 480,
+          "width": 220
+        },
+        {
+          "id": "values",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 300,
+          "y": 160,
+          "width": 240
+        },
+        {
+          "id": "product",
+          "type": "nodetool.entity.CreateEntity",
+          "title": "Create Entity",
+          "x": 580,
+          "y": 380,
+          "width": 240
+        },
+        {
+          "id": "template",
+          "type": "nodetool.constant.Storyboard",
+          "title": "Storyboard",
+          "x": 580,
+          "y": 620,
+          "width": 240
+        },
+        {
+          "id": "recast",
+          "type": "nodetool.storyboard.RecastStoryboard",
+          "title": "Recast Storyboard",
+          "x": 880,
+          "y": 500,
+          "width": 260
+        },
+        {
+          "id": "stills",
+          "type": "nodetool.storyboard.RenderStills",
+          "title": "Render Stills",
+          "x": 1180,
+          "y": 500,
+          "width": 240
+        },
+        {
+          "id": "clips",
+          "type": "nodetool.storyboard.RenderClips",
+          "title": "Render Clips",
+          "x": 1440,
+          "y": 500,
+          "width": 240
+        },
+        {
+          "id": "cut",
+          "type": "nodetool.storyboard.AssembleTimeline",
+          "title": "Assemble Timeline",
+          "x": 1700,
+          "y": 500,
+          "width": 240
+        },
+        {
+          "id": "fill",
+          "type": "nodetool.timeline.FillTimelineText",
+          "title": "Fill Timeline Text",
+          "x": 1960,
+          "y": 300,
+          "width": 240
+        },
+        {
+          "id": "render",
+          "type": "nodetool.timeline.RenderTimeline",
+          "title": "Render Timeline",
+          "x": 2220,
+          "y": 300,
+          "width": 240
+        },
+        {
+          "id": "out_video",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2480,
+          "y": 300,
+          "width": 200
+        },
+        {
+          "id": "out_invalidated",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1180,
+          "y": 700,
+          "width": 220
+        }
+      ],
+      "edges": [
+        {
+          "source": "photo",
+          "sourceHandle": "output",
+          "target": "product",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "name",
+          "sourceHandle": "output",
+          "target": "product",
+          "targetHandle": "name",
+          "color": "any"
+        },
+        {
+          "source": "descriptor",
+          "sourceHandle": "output",
+          "target": "product",
+          "targetHandle": "descriptor",
+          "color": "any"
+        },
+        {
+          "source": "sku",
+          "sourceHandle": "output",
+          "target": "product",
+          "targetHandle": "key",
+          "color": "any"
+        },
+        {
+          "source": "name",
+          "sourceHandle": "output",
+          "target": "values",
+          "targetHandle": "name",
+          "color": "any"
+        },
+        {
+          "source": "price",
+          "sourceHandle": "output",
+          "target": "values",
+          "targetHandle": "price",
+          "color": "any"
+        },
+        {
+          "source": "template",
+          "sourceHandle": "output",
+          "target": "recast",
+          "targetHandle": "storyboard",
+          "color": "any"
+        },
+        {
+          "source": "product",
+          "sourceHandle": "entity",
+          "target": "recast",
+          "targetHandle": "cast",
+          "color": "any"
+        },
+        {
+          "source": "recast",
+          "sourceHandle": "storyboard",
+          "target": "stills",
+          "targetHandle": "storyboard",
+          "color": "any"
+        },
+        {
+          "source": "stills",
+          "sourceHandle": "storyboard",
+          "target": "clips",
+          "targetHandle": "storyboard",
+          "color": "any"
+        },
+        {
+          "source": "clips",
+          "sourceHandle": "storyboard",
+          "target": "cut",
+          "targetHandle": "storyboard",
+          "color": "any"
+        },
+        {
+          "source": "cut",
+          "sourceHandle": "timeline",
+          "target": "fill",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "values",
+          "sourceHandle": "values",
+          "target": "fill",
+          "targetHandle": "values",
+          "color": "any"
+        },
+        {
+          "source": "fill",
+          "sourceHandle": "timeline",
+          "target": "render",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "render",
+          "sourceHandle": "output",
+          "target": "out_video",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "recast",
+          "sourceHandle": "invalidated",
+          "target": "out_invalidated",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/photo-enhancement-suite",
     "title": "Photo Enhancement Suite — NodeTool AI Workflow Template",
     "description": "Batch-enhance a list of photos through a fixed retouch chain — auto-contrast, color, sharpening, and an AI cinematic-grade pass — with no folder path required, just drop images in.",
@@ -12654,6 +13279,676 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "out",
           "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/platformer-asset-pack",
+    "title": "Platformer Asset Pack — NodeTool AI Workflow Template",
+    "description": "A Godot template's asset slots, filled and checked in one run. LoadGameTemplate streams every slot the platformer needs; SlotPrompt turns each into a prompt, a canvas and the prop bag its checker wants, all seasoned with one style entity — swap that entity and the whole pack re-skins. Every generated asset goes through the nodetool.game checker for its kind before ExportGodotProject lays out a project you can open.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "platformer-asset-pack",
+    "name": "Platformer Asset Pack",
+    "summary": "A Godot template's asset slots, filled and checked in one run. LoadGameTemplate streams every slot the platformer needs; SlotPrompt turns each into a prompt, a canvas and the prop bag its checker wants, all seasoned with one style entity — swap that entity and the whole pack re-skins. Every generated asset goes through the nodetool.game checker for its kind before ExportGodotProject lays out a project you can open.",
+    "tags": [
+      "game",
+      "godot",
+      "image",
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.control.FilterCode",
+        "label": "Filter Code",
+        "count": 5
+      },
+      {
+        "type": "nodetool.game.SlotPrompt",
+        "label": "Slot Prompt",
+        "count": 5
+      },
+      {
+        "type": "nodetool.control.Reroute",
+        "label": "Reroute",
+        "count": 3
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 3
+      },
+      {
+        "type": "nodetool.constant.Entity",
+        "label": "Entity",
+        "count": 2
+      },
+      {
+        "type": "nodetool.audio.TextToMusic",
+        "label": "Text To Music",
+        "count": 2
+      },
+      {
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.ExportGodotProject",
+        "label": "Export Godot Project",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.ForEach",
+        "label": "For Each",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.LoadGameTemplate",
+        "label": "Load Game Template",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.MusicLoop",
+        "label": "Music Loop",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.SeamlessImage",
+        "label": "Seamless Image",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.SoundEffect",
+        "label": "Sound Effect",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.SpriteSheet",
+        "label": "Sprite Sheet",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.Tileset",
+        "label": "Tileset",
+        "count": 1
+      }
+    ],
+    "nodeCount": 29,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "template",
+          "type": "nodetool.game.LoadGameTemplate",
+          "title": "Load Game Template",
+          "x": 0,
+          "y": 400,
+          "width": 240
+        },
+        {
+          "id": "style",
+          "type": "nodetool.constant.Entity",
+          "title": "Entity",
+          "x": 0,
+          "y": 0,
+          "width": 240
+        },
+        {
+          "id": "hero",
+          "type": "nodetool.constant.Entity",
+          "title": "Entity",
+          "x": 0,
+          "y": 160,
+          "width": 240
+        },
+        {
+          "id": "sheet_slots",
+          "type": "nodetool.control.FilterCode",
+          "title": "Filter Code",
+          "x": 300,
+          "y": 0,
+          "width": 220
+        },
+        {
+          "id": "sheet_prompt",
+          "type": "nodetool.game.SlotPrompt",
+          "title": "Slot Prompt",
+          "x": 560,
+          "y": 0,
+          "width": 220
+        },
+        {
+          "id": "sheet_image",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 820,
+          "y": 0,
+          "width": 220,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "sheet_pass",
+          "type": "nodetool.control.Reroute",
+          "title": "Reroute",
+          "x": 1080,
+          "y": 0,
+          "width": 200
+        },
+        {
+          "id": "sheet_check",
+          "type": "nodetool.game.SpriteSheet",
+          "title": "Sprite Sheet",
+          "x": 1320,
+          "y": 0,
+          "width": 220
+        },
+        {
+          "id": "tile_slots",
+          "type": "nodetool.control.FilterCode",
+          "title": "Filter Code",
+          "x": 300,
+          "y": 200,
+          "width": 220
+        },
+        {
+          "id": "tile_prompt",
+          "type": "nodetool.game.SlotPrompt",
+          "title": "Slot Prompt",
+          "x": 560,
+          "y": 200,
+          "width": 220
+        },
+        {
+          "id": "tile_image",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 820,
+          "y": 200,
+          "width": 220,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "tile_pass",
+          "type": "nodetool.control.Reroute",
+          "title": "Reroute",
+          "x": 1080,
+          "y": 200,
+          "width": 200
+        },
+        {
+          "id": "tile_check",
+          "type": "nodetool.game.Tileset",
+          "title": "Tileset",
+          "x": 1320,
+          "y": 200,
+          "width": 220
+        },
+        {
+          "id": "image_slots",
+          "type": "nodetool.control.FilterCode",
+          "title": "Filter Code",
+          "x": 300,
+          "y": 400,
+          "width": 220
+        },
+        {
+          "id": "image_prompt",
+          "type": "nodetool.game.SlotPrompt",
+          "title": "Slot Prompt",
+          "x": 560,
+          "y": 400,
+          "width": 220
+        },
+        {
+          "id": "image_image",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 820,
+          "y": 400,
+          "width": 220,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "image_pass",
+          "type": "nodetool.control.Reroute",
+          "title": "Reroute",
+          "x": 1080,
+          "y": 400,
+          "width": 200
+        },
+        {
+          "id": "image_check",
+          "type": "nodetool.game.SeamlessImage",
+          "title": "Seamless Image",
+          "x": 1320,
+          "y": 400,
+          "width": 220
+        },
+        {
+          "id": "sfx_slots",
+          "type": "nodetool.control.FilterCode",
+          "title": "Filter Code",
+          "x": 300,
+          "y": 600,
+          "width": 220
+        },
+        {
+          "id": "sfx_prompt",
+          "type": "nodetool.game.SlotPrompt",
+          "title": "Slot Prompt",
+          "x": 560,
+          "y": 600,
+          "width": 220
+        },
+        {
+          "id": "sfx_audio",
+          "type": "nodetool.audio.TextToMusic",
+          "title": "Text To Music",
+          "x": 820,
+          "y": 600,
+          "width": 220,
+          "subtitle": "meta/musicgen"
+        },
+        {
+          "id": "sfx_check",
+          "type": "nodetool.game.SoundEffect",
+          "title": "Sound Effect",
+          "x": 1080,
+          "y": 600,
+          "width": 220
+        },
+        {
+          "id": "music_slots",
+          "type": "nodetool.control.FilterCode",
+          "title": "Filter Code",
+          "x": 300,
+          "y": 800,
+          "width": 220
+        },
+        {
+          "id": "music_prompt",
+          "type": "nodetool.game.SlotPrompt",
+          "title": "Slot Prompt",
+          "x": 560,
+          "y": 800,
+          "width": 220
+        },
+        {
+          "id": "music_audio",
+          "type": "nodetool.audio.TextToMusic",
+          "title": "Text To Music",
+          "x": 820,
+          "y": 800,
+          "width": 220,
+          "subtitle": "meta/musicgen"
+        },
+        {
+          "id": "music_check",
+          "type": "nodetool.game.MusicLoop",
+          "title": "Music Loop",
+          "x": 1080,
+          "y": 800,
+          "width": 220
+        },
+        {
+          "id": "each_fill",
+          "type": "nodetool.control.ForEach",
+          "title": "For Each",
+          "x": 1620,
+          "y": 300,
+          "width": 220
+        },
+        {
+          "id": "fills",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 1880,
+          "y": 300,
+          "width": 220
+        },
+        {
+          "id": "export",
+          "type": "nodetool.game.ExportGodotProject",
+          "title": "Export Godot Project",
+          "x": 2140,
+          "y": 300,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "template",
+          "sourceHandle": "slot",
+          "target": "sheet_slots",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "sheet_slots",
+          "sourceHandle": "output",
+          "target": "sheet_prompt",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "style",
+          "sourceHandle": "output",
+          "target": "sheet_prompt",
+          "targetHandle": "style",
+          "color": "any"
+        },
+        {
+          "source": "hero",
+          "sourceHandle": "output",
+          "target": "sheet_prompt",
+          "targetHandle": "cast",
+          "color": "any"
+        },
+        {
+          "source": "sheet_prompt",
+          "sourceHandle": "prompt",
+          "target": "sheet_image",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "sheet_image",
+          "sourceHandle": "output",
+          "target": "sheet_pass",
+          "targetHandle": "input_value",
+          "color": "any"
+        },
+        {
+          "source": "sheet_pass",
+          "sourceHandle": "output",
+          "target": "sheet_check",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "sheet_slots",
+          "sourceHandle": "output",
+          "target": "sheet_check",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "template",
+          "sourceHandle": "slot",
+          "target": "tile_slots",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "tile_slots",
+          "sourceHandle": "output",
+          "target": "tile_prompt",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "style",
+          "sourceHandle": "output",
+          "target": "tile_prompt",
+          "targetHandle": "style",
+          "color": "any"
+        },
+        {
+          "source": "tile_prompt",
+          "sourceHandle": "prompt",
+          "target": "tile_image",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "tile_image",
+          "sourceHandle": "output",
+          "target": "tile_pass",
+          "targetHandle": "input_value",
+          "color": "any"
+        },
+        {
+          "source": "tile_pass",
+          "sourceHandle": "output",
+          "target": "tile_check",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "tile_slots",
+          "sourceHandle": "output",
+          "target": "tile_check",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "template",
+          "sourceHandle": "slot",
+          "target": "image_slots",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "image_slots",
+          "sourceHandle": "output",
+          "target": "image_prompt",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "style",
+          "sourceHandle": "output",
+          "target": "image_prompt",
+          "targetHandle": "style",
+          "color": "any"
+        },
+        {
+          "source": "image_prompt",
+          "sourceHandle": "prompt",
+          "target": "image_image",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "image_image",
+          "sourceHandle": "output",
+          "target": "image_pass",
+          "targetHandle": "input_value",
+          "color": "any"
+        },
+        {
+          "source": "image_pass",
+          "sourceHandle": "output",
+          "target": "image_check",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "image_slots",
+          "sourceHandle": "output",
+          "target": "image_check",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "template",
+          "sourceHandle": "slot",
+          "target": "sfx_slots",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "sfx_slots",
+          "sourceHandle": "output",
+          "target": "sfx_prompt",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "style",
+          "sourceHandle": "output",
+          "target": "sfx_prompt",
+          "targetHandle": "style",
+          "color": "any"
+        },
+        {
+          "source": "sfx_prompt",
+          "sourceHandle": "seconds",
+          "target": "sfx_audio",
+          "targetHandle": "duration",
+          "color": "any"
+        },
+        {
+          "source": "sfx_audio",
+          "sourceHandle": "audio",
+          "target": "sfx_check",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "sfx_slots",
+          "sourceHandle": "output",
+          "target": "sfx_check",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "template",
+          "sourceHandle": "slot",
+          "target": "music_slots",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "music_slots",
+          "sourceHandle": "output",
+          "target": "music_prompt",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "style",
+          "sourceHandle": "output",
+          "target": "music_prompt",
+          "targetHandle": "style",
+          "color": "any"
+        },
+        {
+          "source": "music_prompt",
+          "sourceHandle": "seconds",
+          "target": "music_audio",
+          "targetHandle": "duration",
+          "color": "any"
+        },
+        {
+          "source": "music_audio",
+          "sourceHandle": "audio",
+          "target": "music_check",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "music_slots",
+          "sourceHandle": "output",
+          "target": "music_check",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "sheet_check",
+          "sourceHandle": "output",
+          "target": "each_fill",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "tile_check",
+          "sourceHandle": "output",
+          "target": "each_fill",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "image_check",
+          "sourceHandle": "output",
+          "target": "each_fill",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "sfx_check",
+          "sourceHandle": "output",
+          "target": "each_fill",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "music_check",
+          "sourceHandle": "output",
+          "target": "each_fill",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "each_fill",
+          "sourceHandle": "output",
+          "target": "fills",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "fills",
+          "sourceHandle": "output",
+          "target": "export",
+          "targetHandle": "fills",
+          "color": "any"
+        },
+        {
+          "source": "sfx_prompt",
+          "sourceHandle": "prompt",
+          "target": "sfx_audio",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "music_prompt",
+          "sourceHandle": "prompt",
+          "target": "music_audio",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "hero",
+          "sourceHandle": "output",
+          "target": "tile_prompt",
+          "targetHandle": "cast",
+          "color": "any"
+        },
+        {
+          "source": "hero",
+          "sourceHandle": "output",
+          "target": "image_prompt",
+          "targetHandle": "cast",
+          "color": "any"
+        },
+        {
+          "source": "hero",
+          "sourceHandle": "output",
+          "target": "sfx_prompt",
+          "targetHandle": "cast",
+          "color": "any"
+        },
+        {
+          "source": "hero",
+          "sourceHandle": "output",
+          "target": "music_prompt",
+          "targetHandle": "cast",
           "color": "any"
         }
       ]
@@ -19386,6 +20681,196 @@ export const templateEntries: TemplateEntry[] = [
           "source": "ag",
           "sourceHandle": "text",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/three-ratios",
+    "title": "Three Ratios — NodeTool AI Workflow Template",
+    "description": "One approved cut, three deliverables. RetargetTimeline derives a new sequence per aspect ratio and never writes the source, so the trims and placements a person signed off carry over unchanged — only the frame moves. `cropped` names the clips the 9:16 crop cuts into, which is where a shot may need a board of its own.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "three-ratios",
+    "name": "Three Ratios",
+    "summary": "One approved cut, three deliverables. RetargetTimeline derives a new sequence per aspect ratio and never writes the source, so the trims and placements a person signed off carry over unchanged — only the frame moves. `cropped` names the clips the 9:16 crop cuts into, which is where a shot may need a board of its own.",
+    "tags": [
+      "video",
+      "timeline",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 4
+      },
+      {
+        "type": "nodetool.timeline.RenderTimeline",
+        "label": "Render Timeline",
+        "count": 3
+      },
+      {
+        "type": "nodetool.timeline.RetargetTimeline",
+        "label": "Retarget Timeline",
+        "count": 2
+      },
+      {
+        "type": "nodetool.constant.Timeline",
+        "label": "Timeline",
+        "count": 1
+      }
+    ],
+    "nodeCount": 10,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "cut",
+          "type": "nodetool.constant.Timeline",
+          "title": "Timeline",
+          "x": 0,
+          "y": 260,
+          "width": 240
+        },
+        {
+          "id": "vertical",
+          "type": "nodetool.timeline.RetargetTimeline",
+          "title": "Retarget Timeline",
+          "x": 300,
+          "y": 40,
+          "width": 260
+        },
+        {
+          "id": "square",
+          "type": "nodetool.timeline.RetargetTimeline",
+          "title": "Retarget Timeline",
+          "x": 300,
+          "y": 260,
+          "width": 260
+        },
+        {
+          "id": "r_vertical",
+          "type": "nodetool.timeline.RenderTimeline",
+          "title": "Render Timeline",
+          "x": 620,
+          "y": 40,
+          "width": 240
+        },
+        {
+          "id": "r_square",
+          "type": "nodetool.timeline.RenderTimeline",
+          "title": "Render Timeline",
+          "x": 620,
+          "y": 260,
+          "width": 240
+        },
+        {
+          "id": "r_source",
+          "type": "nodetool.timeline.RenderTimeline",
+          "title": "Render Timeline",
+          "x": 620,
+          "y": 480,
+          "width": 240
+        },
+        {
+          "id": "out_vertical",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 900,
+          "y": 40,
+          "width": 200
+        },
+        {
+          "id": "out_square",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 900,
+          "y": 260,
+          "width": 200
+        },
+        {
+          "id": "out_source",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 900,
+          "y": 480,
+          "width": 200
+        },
+        {
+          "id": "out_cropped",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 300,
+          "y": 660,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "cut",
+          "sourceHandle": "output",
+          "target": "vertical",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "cut",
+          "sourceHandle": "output",
+          "target": "square",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "vertical",
+          "sourceHandle": "timeline",
+          "target": "r_vertical",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "square",
+          "sourceHandle": "timeline",
+          "target": "r_square",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "cut",
+          "sourceHandle": "output",
+          "target": "r_source",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "r_vertical",
+          "sourceHandle": "output",
+          "target": "out_vertical",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "r_square",
+          "sourceHandle": "output",
+          "target": "out_square",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "r_source",
+          "sourceHandle": "output",
+          "target": "out_source",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "vertical",
+          "sourceHandle": "cropped",
+          "target": "out_cropped",
           "targetHandle": "value",
           "color": "any"
         }

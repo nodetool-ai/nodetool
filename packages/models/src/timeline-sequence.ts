@@ -81,6 +81,8 @@ export interface TimelineDocument {
   tempo?: TimelineTempo;
   /** Guided video-flow state (PRD § 8.5). Unset outside the flow. */
   setup?: TimelineSetup;
+  /** Sequence this one was retargeted from. Unset on a sequence built directly. */
+  templateId?: string | null;
 }
 
 export class TimelineSequence extends DBModel {
@@ -157,6 +159,7 @@ export class TimelineSequence extends DBModel {
       scriptEnabled: doc.scriptEnabled,
       tempo: doc.tempo,
       setup: doc.setup,
+      templateId: doc.templateId,
       createdAt: this.created_at,
       updatedAt: this.updated_at
     };
@@ -173,7 +176,8 @@ export class TimelineSequence extends DBModel {
       transcript: seq.transcript ?? [],
       scriptEnabled: seq.scriptEnabled,
       tempo: seq.tempo,
-      setup: seq.setup
+      setup: seq.setup,
+      templateId: seq.templateId
     };
     return new TimelineSequence({
       id: seq.id,

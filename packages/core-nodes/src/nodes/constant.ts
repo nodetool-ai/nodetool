@@ -5,12 +5,14 @@ import type {
   DataframeRef,
   DocumentRef,
   EmbeddingModel,
+  Entity,
   ImageModel,
   ImageRef,
   LanguageModel,
   Model3DRef,
   ScriptRef,
   SketchRef,
+  StoryboardRef,
   TimelineRef,
   TTSModel,
   VideoModel,
@@ -21,11 +23,13 @@ import {
   audioRefDefault,
   dataframeRefDefault,
   documentRefDefault,
+  entityDefault,
   imageRefDefault,
   jsonRefDefault,
   model3DRefDefault,
   scriptRefDefault,
   sketchRefDefault,
+  storyboardRefDefault,
   timelineRefDefault,
   videoRefDefault
 } from "./ref-defaults.js";
@@ -445,6 +449,64 @@ export class ConstantScriptNode extends BaseNode {
   declare value: ScriptRef;
 
   async process(): Promise<ConstantScriptNodeOutputs> {
+    return { output: this.value ?? {} };
+  }
+}
+
+/** Output handles ConstantStoryboardNode.process() emits. */
+type ConstantStoryboardNodeOutputs = {
+  output: StoryboardRef;
+};
+
+export class ConstantStoryboardNode extends BaseNode {
+  static readonly nodeType = "nodetool.constant.Storyboard";
+  static readonly retrySafe = true;
+  static readonly title = "Storyboard";
+  static readonly description =
+    "References a storyboard in the workflow.\n    storyboard, shots, screenplay, board, director\n\n    Use cases:\n    - Pass a board between nodes for recasting or rendering\n    - Open and edit the referenced board in the storyboard editor\n    - Provide a fixed board input for downstream nodes";
+  static readonly metadataOutputTypes = {
+    output: "storyboard"
+  };
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "storyboard",
+    default: storyboardRefDefault,
+    title: "Value"
+  })
+  declare value: StoryboardRef;
+
+  async process(): Promise<ConstantStoryboardNodeOutputs> {
+    return { output: this.value ?? {} };
+  }
+}
+
+/** Output handles ConstantEntityNode.process() emits. */
+type ConstantEntityNodeOutputs = {
+  output: Entity;
+};
+
+export class ConstantEntityNode extends BaseNode {
+  static readonly nodeType = "nodetool.constant.Entity";
+  static readonly retrySafe = true;
+  static readonly title = "Entity";
+  static readonly description =
+    "References a library entity in the workflow.\n    entity, character, location, style, prop, cast\n\n    Use cases:\n    - Pass a character or product into a generator for consistency\n    - Pick an entity from the library on the canvas\n    - Provide a fixed cast member for downstream nodes";
+  static readonly metadataOutputTypes = {
+    output: "entity"
+  };
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "entity",
+    default: entityDefault,
+    title: "Value"
+  })
+  declare value: Entity;
+
+  async process(): Promise<ConstantEntityNodeOutputs> {
     return { output: this.value ?? {} };
   }
 }
@@ -1022,6 +1084,8 @@ export const CONSTANT_NODES = tagAsUniversal([
   ConstantSketchNode,
   ConstantTimelineNode,
   ConstantScriptNode,
+  ConstantStoryboardNode,
+  ConstantEntityNode,
   ConstantJSONNode,
   ConstantModel3DNode,
   ConstantDataFrameNode,

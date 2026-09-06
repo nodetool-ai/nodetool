@@ -264,6 +264,24 @@ export interface ScriptRef {
   data?: unknown;
 }
 
+/**
+ * Reference to a persisted storyboard, editable in the board editor and
+ * passable between workflow nodes. Mirrors ScriptRef / TimelineRef.
+ */
+export interface StoryboardRef {
+  type: "storyboard";
+  /** Id of the persisted storyboard. */
+  id?: string | null;
+  /** Optional inline StoryboardDocument, for tests and the debug harness. */
+  data?: unknown;
+  /**
+   * Set only by a node that created or derived the row in this run. A ref from
+   * the picker or from LoadStoryboard never carries it, so a batch cannot
+   * write the board a person approved.
+   */
+  writable?: boolean;
+}
+
 export interface WorkflowRef {
   type: "workflow_ref";
   id: string;

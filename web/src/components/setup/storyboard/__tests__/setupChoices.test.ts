@@ -17,7 +17,8 @@ const shot = (id: string, index: number, action: string): Shot => ({
   type: "shot",
   id,
   index,
-  action
+  action,
+  status: "planned"
 });
 
 const screenplay = (shots: Shot[]): Screenplay => ({

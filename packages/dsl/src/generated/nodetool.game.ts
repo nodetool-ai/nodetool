@@ -1,11 +1,12 @@
 // Auto-generated — do not edit manually
 
 import { createNode, Connectable, DslNode } from "../core.js";
-import type { ImageRef, AudioRef } from "../types.js";
+import type { ImageRef, AudioRef, Entity, GameSlotSpec, SlotFill } from "../types.js";
 
 // Sprite Sheet — nodetool.game.SpriteSheet
 export type SpriteSheetInputs = {
   image?: Connectable<ImageRef>;
+  slot?: Connectable<GameSlotSpec>;
   cell_width?: Connectable<number>;
   cell_height?: Connectable<number>;
   animations?: Connectable<Record<string, unknown>>;
@@ -26,6 +27,7 @@ export function spriteSheet(inputs: SpriteSheetInputs): DslNode<SpriteSheetOutpu
 // Tileset — nodetool.game.Tileset
 export type TilesetInputs = {
   image?: Connectable<ImageRef>;
+  slot?: Connectable<GameSlotSpec>;
   cell_width?: Connectable<number>;
   cell_height?: Connectable<number>;
   count?: Connectable<number>;
@@ -44,6 +46,7 @@ export function tileset(inputs: TilesetInputs): DslNode<TilesetOutputs> {
 // Seamless Image — nodetool.game.SeamlessImage
 export type SeamlessImageInputs = {
   image?: Connectable<ImageRef>;
+  slot?: Connectable<GameSlotSpec>;
   slot_id?: Connectable<string>;
   check_x?: Connectable<boolean>;
   check_y?: Connectable<boolean>;
@@ -62,6 +65,7 @@ export function seamlessImage(inputs: SeamlessImageInputs): DslNode<SeamlessImag
 // Game Sound Effect — nodetool.game.SoundEffect
 export type SoundEffectInputs = {
   audio?: Connectable<AudioRef>;
+  slot?: Connectable<GameSlotSpec>;
   slot_id?: Connectable<string>;
   seconds?: Connectable<number>;
   trim?: Connectable<boolean>;
@@ -79,6 +83,7 @@ export function soundEffect(inputs: SoundEffectInputs): DslNode<SoundEffectOutpu
 // Game Music Loop — nodetool.game.MusicLoop
 export type MusicLoopInputs = {
   audio?: Connectable<AudioRef>;
+  slot?: Connectable<GameSlotSpec>;
   slot_id?: Connectable<string>;
   seconds?: Connectable<number>;
   crossfade_ms?: Connectable<number>;
@@ -92,4 +97,59 @@ export interface MusicLoopOutputs {
 
 export function musicLoop(inputs: MusicLoopInputs): DslNode<MusicLoopOutputs> {
   return createNode("nodetool.game.MusicLoop", inputs, { outputNames: ["output", "fill"] });
+}
+
+// Load Game Template — nodetool.game.LoadGameTemplate
+export type LoadGameTemplateInputs = {
+  template?: Connectable<string>;
+};
+
+export interface LoadGameTemplateOutputs {
+  manifest: Record<string, unknown>;
+  slots: GameSlotSpec[];
+  slot: GameSlotSpec;
+}
+
+export function loadGameTemplate(inputs: LoadGameTemplateInputs): DslNode<LoadGameTemplateOutputs> {
+  return createNode("nodetool.game.LoadGameTemplate", inputs, { outputNames: ["manifest", "slots", "slot"], streaming: true });
+}
+
+// Slot Prompt — nodetool.game.SlotPrompt
+export type SlotPromptInputs = {
+  slot?: Connectable<GameSlotSpec>;
+  style?: Connectable<Entity>;
+  cast?: Connectable<Entity[]>;
+};
+
+export interface SlotPromptOutputs {
+  prompt: string;
+  width: number;
+  height: number;
+  kind: string;
+  checker: Record<string, unknown>;
+  seconds: number;
+}
+
+export function slotPrompt(inputs: SlotPromptInputs): DslNode<SlotPromptOutputs> {
+  return createNode("nodetool.game.SlotPrompt", inputs, { outputNames: ["prompt", "width", "height", "kind", "checker", "seconds"] });
+}
+
+// Export Godot Project — nodetool.game.ExportGodotProject
+export type ExportGodotProjectInputs = {
+  template?: Connectable<string>;
+  name?: Connectable<string>;
+  fills?: Connectable<SlotFill[]>;
+  directory?: Connectable<string>;
+  verify?: Connectable<boolean>;
+};
+
+export interface ExportGodotProjectOutputs {
+  directory: string;
+  files: string[];
+  verified: boolean;
+  errors: string[];
+}
+
+export function exportGodotProject(inputs: ExportGodotProjectInputs): DslNode<ExportGodotProjectOutputs> {
+  return createNode("nodetool.game.ExportGodotProject", inputs, { outputNames: ["directory", "files", "verified", "errors"] });
 }

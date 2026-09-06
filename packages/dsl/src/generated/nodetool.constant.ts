@@ -1,7 +1,7 @@
 // Auto-generated — do not edit manually
 
 import { createNode, Connectable, DslNode } from "../core.js";
-import type { ImageRef, AudioRef, VideoRef, DataframeRef } from "../types.js";
+import type { ImageRef, AudioRef, VideoRef, DataframeRef, StoryboardRef, Entity } from "../types.js";
 
 // Bool — nodetool.constant.Bool
 export type BoolInputs = {
@@ -190,6 +190,32 @@ export interface ScriptOutputs {
 
 export function script(inputs: ScriptInputs): DslNode<ScriptOutputs, "output"> {
   return createNode("nodetool.constant.Script", inputs, { outputNames: ["output"], defaultOutput: "output" });
+}
+
+// Storyboard — nodetool.constant.Storyboard
+export type StoryboardInputs = {
+  value?: Connectable<StoryboardRef>;
+};
+
+export interface StoryboardOutputs {
+  output: StoryboardRef;
+}
+
+export function storyboard(inputs: StoryboardInputs): DslNode<StoryboardOutputs, "output"> {
+  return createNode("nodetool.constant.Storyboard", inputs, { outputNames: ["output"], defaultOutput: "output" });
+}
+
+// Entity — nodetool.constant.Entity
+export type EntityInputs = {
+  value?: Connectable<Entity>;
+};
+
+export interface EntityOutputs {
+  output: Entity;
+}
+
+export function entity(inputs: EntityInputs): DslNode<EntityOutputs, "output"> {
+  return createNode("nodetool.constant.Entity", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // JSON — nodetool.constant.JSON

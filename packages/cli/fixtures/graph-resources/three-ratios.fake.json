@@ -1,0 +1,77 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-09-06T12:00:00.000Z",
+  "updated_at": "2026-09-06T12:00:00.000Z",
+  "name": "Three Ratios (fake mode)",
+  "tool_name": null,
+  "description": "E4 with no render: both retargets derive new rows from the seeded cut and the source is passed through untouched, so the run can assert the placements did not move.",
+  "tags": ["fixture", "graph-resources"],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "cut",
+        "type": "nodetool.constant.Timeline",
+        "data": { "value": { "type": "timeline", "id": "gr-e4-cut", "data": null } },
+        "ui_properties": { "position": { "x": 0, "y": 200 }, "zIndex": 0, "width": 260, "selectable": true, "title": "1  Approved 16:9 cut" },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "vertical",
+        "type": "nodetool.timeline.RetargetTimeline",
+        "data": { "aspect_ratio": "9:16", "fit": "cover", "name": "Three Ratios 9:16" },
+        "ui_properties": { "position": { "x": 320, "y": 40 }, "zIndex": 0, "width": 260, "selectable": true, "title": "2  Retarget 9:16" },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "square",
+        "type": "nodetool.timeline.RetargetTimeline",
+        "data": { "aspect_ratio": "1:1", "fit": "cover", "name": "Three Ratios 1:1" },
+        "ui_properties": { "position": { "x": 320, "y": 240 }, "zIndex": 0, "width": 260, "selectable": true, "title": "3  Retarget 1:1" },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out_vertical",
+        "type": "nodetool.output.Output",
+        "data": { "name": "vertical", "description": "The 9:16 sequence." },
+        "ui_properties": { "position": { "x": 640, "y": 40 }, "zIndex": 0, "width": 200, "selectable": true, "title": "4  9:16" },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out_square",
+        "type": "nodetool.output.Output",
+        "data": { "name": "square", "description": "The 1:1 sequence." },
+        "ui_properties": { "position": { "x": 640, "y": 240 }, "zIndex": 0, "width": 200, "selectable": true, "title": "5  1:1" },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out_source",
+        "type": "nodetool.output.Output",
+        "data": { "name": "source", "description": "The source cut, untouched." },
+        "ui_properties": { "position": { "x": 640, "y": 420 }, "zIndex": 0, "width": 200, "selectable": true, "title": "6  16:9" },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      { "id": "e1", "source": "cut", "sourceHandle": "output", "target": "vertical", "targetHandle": "timeline" },
+      { "id": "e2", "source": "cut", "sourceHandle": "output", "target": "square", "targetHandle": "timeline" },
+      { "id": "e3", "source": "vertical", "sourceHandle": "timeline", "target": "out_vertical", "targetHandle": "value" },
+      { "id": "e4", "source": "square", "sourceHandle": "timeline", "target": "out_square", "targetHandle": "value" },
+      { "id": "e5", "source": "cut", "sourceHandle": "output", "target": "out_source", "targetHandle": "value" }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

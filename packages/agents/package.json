@@ -37,6 +37,7 @@
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
     "@nodetool-ai/storage": "*",
+    "@nodetool-ai/storyboard": "*",
     "@nodetool-ai/timeline": "*",
     "@nodetool-ai/vectorstore": "*",
     "@sebastianwessel/quickjs": "^3.0.1",

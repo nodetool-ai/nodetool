@@ -43,6 +43,7 @@
     "@nodetool-ai/elevenlabs-nodes": "*",
     "@nodetool-ai/execution": "*",
     "@nodetool-ai/fal-nodes": "*",
+    "@nodetool-ai/godot-templates": "*",
     "@nodetool-ai/huggingface": "*",
     "@nodetool-ai/huggingface-nodes": "*",
     "@nodetool-ai/image-editor": "*",
@@ -95,6 +96,12 @@
       "types": "./dist/lib/asset-model-interface.d.ts",
       "import": "./dist/lib/asset-model-interface.js",
       "default": "./dist/lib/asset-model-interface.js"
+    },
+    "./documents": {
+      "nodetool-dev": "./src/lib/document-model-interfaces.ts",
+      "types": "./dist/lib/document-model-interfaces.d.ts",
+      "import": "./dist/lib/document-model-interfaces.js",
+      "default": "./dist/lib/document-model-interfaces.js"
     }
   },
   "license": "MIT",

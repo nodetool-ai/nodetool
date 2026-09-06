@@ -10,7 +10,9 @@ import {
   ConstantBaseNode,
   ConstantDateNode,
   ConstantDateTimeNode,
-  ConstantImageNode
+  ConstantEntityNode,
+  ConstantImageNode,
+  ConstantStoryboardNode
 } from "../src/nodes/constant.js";
 
 describe("FloatInputNode / IntegerInputNode clamping", () => {
@@ -99,6 +101,53 @@ describe("Constant registration", () => {
     expect(
       CONSTANT_NODES.some((c) => c.nodeType === "nodetool.constant.Constant")
     ).toBe(false);
+  });
+});
+
+describe("Storyboard and Entity constants", () => {
+  it("declare their own value type and emit it on `output`", async () => {
+    expect(ConstantStoryboardNode.metadataOutputTypes).toEqual({
+      output: "storyboard"
+    });
+    expect(ConstantEntityNode.metadataOutputTypes).toEqual({
+      output: "entity"
+    });
+    expect(CONSTANT_NODES).toContain(ConstantStoryboardNode);
+    expect(CONSTANT_NODES).toContain(ConstantEntityNode);
+
+    const board = new ConstantStoryboardNode();
+    board.assign({ value: { type: "storyboard", id: "sb_1", data: null } });
+    await expect(board.process()).resolves.toEqual({
+      output: { type: "storyboard", id: "sb_1", data: null }
+    });
+
+    const entity = new ConstantEntityNode();
+    entity.assign({
+      value: {
+        type: "entity",
+        id: "ent_1",
+        kind: "prop",
+        name: "Kettle",
+        descriptor: "matte black"
+      }
+    });
+    await expect(entity.process()).resolves.toEqual({
+      output: {
+        type: "entity",
+        id: "ent_1",
+        kind: "prop",
+        name: "Kettle",
+        descriptor: "matte black"
+      }
+    });
+  });
+
+  it("default to an empty ref rather than sharing one instance", () => {
+    const a = new ConstantStoryboardNode();
+    const b = new ConstantStoryboardNode();
+    expect(a.value).toEqual({ type: "storyboard", id: null, data: null });
+    a.value.id = "mutated";
+    expect(b.value.id).toBeNull();
   });
 });
 

@@ -40,8 +40,32 @@ export class GodotMissingError extends Error {
 const DEFAULT_TIMEOUT_MS = 120_000;
 const GODOT_NAMES = ["godot", "godot4", "Godot"];
 
-/** `templates/` next to `src/` in the checkout and next to `dist/` when built. */
-export const TEMPLATES_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..", "templates");
+/**
+ * Where the templates sit, which differs by deployment and is checked rather
+ * than assumed:
+ *
+ * - a checkout or an npm install resolves `packages/godot-templates/templates/`,
+ *   one level above this module whether it runs from `src/` or `dist/`;
+ * - the packaged backend is one flat `server.mjs`, so `import.meta.url` is the
+ *   bundle root and `bundle-backend.mjs` stages the directory beside it.
+ *
+ * Falls back to the checkout path when neither exists, so the error a caller
+ * sees names a real directory.
+ */
+function resolveTemplatesDir(): string {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const checkout = resolve(here, "..", "templates");
+  for (const candidate of [checkout, resolve(here, "godot-templates")]) {
+    try {
+      if (statSync(candidate).isDirectory()) return candidate;
+    } catch {
+      // Not this layout; try the next.
+    }
+  }
+  return checkout;
+}
+
+export const TEMPLATES_DIR = resolveTemplatesDir();
 
 export function listTemplates(): TemplateInfo[] {
   return readdirSync(TEMPLATES_DIR, { withFileTypes: true })

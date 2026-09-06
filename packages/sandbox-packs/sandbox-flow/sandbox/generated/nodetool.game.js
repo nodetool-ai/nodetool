@@ -1,5 +1,5 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
-import { callNode } from "../guest-core.js";
+import { callNode, streamNode } from "../guest-core.js";
 function spriteSheet(inputs) {
   return callNode("nodetool.game.SpriteSheet", inputs);
 }
@@ -15,9 +15,24 @@ function soundEffect(inputs) {
 function musicLoop(inputs) {
   return callNode("nodetool.game.MusicLoop", inputs);
 }
+function loadGameTemplate(inputs) {
+  return callNode("nodetool.game.LoadGameTemplate", inputs);
+}
+loadGameTemplate.stream = function(inputs) {
+  return streamNode("nodetool.game.LoadGameTemplate", inputs);
+};
+function slotPrompt(inputs) {
+  return callNode("nodetool.game.SlotPrompt", inputs);
+}
+function exportGodotProject(inputs) {
+  return callNode("nodetool.game.ExportGodotProject", inputs);
+}
 export {
+  exportGodotProject,
+  loadGameTemplate,
   musicLoop,
   seamlessImage,
+  slotPrompt,
   soundEffect,
   spriteSheet,
   tileset

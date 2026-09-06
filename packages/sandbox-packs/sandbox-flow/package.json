@@ -38,11 +38,6 @@
         "file": "sandbox/generated/kie.dynamic_schema.js"
       },
       {
-        "name": "lib.apple",
-        "kind": "js",
-        "file": "sandbox/generated/lib.apple.js"
-      },
-      {
         "name": "lib.audio",
         "kind": "js",
         "file": "sandbox/generated/lib.audio.js"
@@ -228,6 +223,11 @@
         "file": "sandbox/generated/nodetool.document.js"
       },
       {
+        "name": "nodetool.entity",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.entity.js"
+      },
+      {
         "name": "nodetool.fake",
         "kind": "js",
         "file": "sandbox/generated/nodetool.fake.js"
@@ -271,6 +271,11 @@
         "name": "nodetool.sketch",
         "kind": "js",
         "file": "sandbox/generated/nodetool.sketch.js"
+      },
+      {
+        "name": "nodetool.storyboard",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.storyboard.js"
       },
       {
         "name": "nodetool.text",

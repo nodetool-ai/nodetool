@@ -11,7 +11,9 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { resolveEntities } from "@nodetool-ai/runtime";
 import type {
+  Entity,
   InputMode,
   LanguageModel,
   OutputCorrelation,
@@ -390,16 +392,20 @@ export class ApplyEntitiesNode extends BaseNode {
   declare text: string;
 
   @prop({
-    type: "list[dict]",
+    type: "list[entity]",
     default: [],
     title: "Entities",
     description: "Entities whose descriptors and reference images are injected."
   })
-  declare entities: unknown[];
+  declare entities: Entity[];
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
     const text = asText(this.text ?? "");
-    const entities = Array.isArray(this.entities) ? this.entities : [];
+    // A picked entity carries only its id when the library holds the
+    // descriptor, so resolve before injecting or the block comes out empty.
+    const entities = await resolveEntities(this.entities, context);
     return injectEntities(text, entities);
   }
 }

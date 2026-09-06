@@ -1176,7 +1176,10 @@ export const timelineDocument = z.object({
    * midi clip plays at the wrong speed after one save. */
   tempo: timelineTempo.optional(),
   /** Guided-setup state. Absent on every sequence not built through the flow. */
-  setup: timelineSetup.optional()
+  setup: timelineSetup.optional(),
+  /** Sequence this one was retargeted from. Without this field Zod strips it
+   * on every PATCH and the lineage is lost on the first save. */
+  templateId: z.string().nullable().optional()
 });
 export type TimelineDocument = z.infer<typeof timelineDocument>;
 
@@ -1200,6 +1203,8 @@ export const timelineSequenceResponse = z.object({
    * it from every read, so the editor loads a tempo-less sequence. */
   tempo: timelineTempo.optional(),
   setup: timelineSetup.optional(),
+  /** Sequence this one was retargeted from, mirroring the document's. */
+  templateId: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string()
 });

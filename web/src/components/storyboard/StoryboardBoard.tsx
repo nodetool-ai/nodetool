@@ -90,6 +90,7 @@ import {
   type SceneGroup
 } from "../../lib/storyboard/sceneOrder";
 import BoardGenreChip from "./BoardGenreChip";
+import BoardLineageChip from "./BoardLineageChip";
 import BoardRetryFailed from "./BoardRetryFailed";
 import BoardStaleBanner from "./BoardStaleBanner";
 import BoardStyleDialog from "./BoardStyleDialog";
@@ -606,6 +607,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
         <FlexRow align="center" gap={SPACING.lg} wrap>
           <Text size="big">{title || "Untitled film"}</Text>
           <BoardGenreChip boardId={boardId} genre={genre} readOnly={readOnly} />
+          <BoardLineageChip boardId={boardId} />
           <Caption color="secondary">{summary}</Caption>
           <Box sx={{ flex: 1 }} />
           {!readOnly && (
