@@ -4,7 +4,7 @@
   "emoji": "🎬",
   "description": "A director model writes the shot list and a style bible, every shot is rendered as a keyframe and animated, and the clips are cut together into one video.",
   "tagline": "One logline in, a cut sequence of shots out.",
-  "note": "💸 Needs Gemini, OpenAI and Google Veo keys. Every shot is one Veo call, metered per second of video, so start with a small shot count.",
+  "note": "💸 Needs Gemini and KIE keys: Gemini writes the shots and animates them with Veo, KIE renders the keyframes with GPT Image. Every shot is one Veo call, metered per second of video, so start with a small shot count.",
   "featured": true,
   "image": "/app-preview/img/multi-shot-video.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "💸 Needs Gemini, OpenAI and Google Veo keys. Every shot is one Veo call, metered per second of video, so start with a small shot count."
+            "text": "💸 Needs Gemini and KIE keys: Gemini writes the shots and animates them with Veo, KIE renders the keyframes with GPT Image. Every shot is one Veo call, metered per second of video, so start with a small shot count."
           }
         },
         {

@@ -103,18 +103,6 @@
                       }
                     },
                     {
-                      "type": "Slider",
-                      "props": {
-                        "id": "slider-edit-ed-strength",
-                        "binding": "op:edit/prop:ed#strength",
-                        "label": "How far to go",
-                        "min": 0.2,
-                        "max": 1,
-                        "step": 0.05,
-                        "events": []
-                      }
-                    },
-                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-edit",
@@ -303,7 +291,6 @@
   "values": {
     "op:edit/in:ins": "Make it golden hour, warm low sun raking across the subject",
     "op:edit/in:dirs": "",
-    "op:edit/prop:ed#strength": 0.6,
     "op:edit/out:out": {
       "$demo": "image"
     }

@@ -98,18 +98,6 @@
                       }
                     },
                     {
-                      "type": "Slider",
-                      "props": {
-                        "id": "slider-edit-ed-strength",
-                        "binding": "op:edit/prop:ed#strength",
-                        "label": "How far to go",
-                        "min": 0.2,
-                        "max": 1,
-                        "step": 0.05,
-                        "events": []
-                      }
-                    },
-                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-edit",

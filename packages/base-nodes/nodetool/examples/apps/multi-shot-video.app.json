@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "💸 Needs Gemini, OpenAI and Google Veo keys. Every shot is one Veo call, metered per second of video, so start with a small shot count."
+            "text": "💸 Needs Gemini and KIE keys: Gemini writes the shots and animates them with Veo, KIE renders the keyframes with GPT Image. Every shot is one Veo call, metered per second of video, so start with a small shot count."
           }
         },
         {

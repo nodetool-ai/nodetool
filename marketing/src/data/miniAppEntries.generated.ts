@@ -79,7 +79,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "AI Spokesperson",
     "summary": "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localize a take, fix a fluffed line, or spin one recording into many variants.",
     "featured": false,
-    "note": "🔑 Needs a FAL key for lip-sync and an Inworld key for the voice. Both steps are billed per run.",
+    "note": "🔑 Needs a Replicate key for the voice (Inworld TTS) and a FAL key for the lip-sync. Both steps are billed per run.",
     "workflows": [
       {
         "name": "AI Spokesperson",
@@ -106,10 +106,6 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "What they should say",
         "kind": "text"
-      },
-      {
-        "label": "Speaking pace",
-        "kind": "number"
       }
     ],
     "outputs": [
@@ -118,7 +114,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "video"
       }
     ],
-    "widgetCount": 13
+    "widgetCount": 12
   },
   {
     "route": "/apps/ask-your-documents",
@@ -706,7 +702,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Multi-Shot Video",
     "summary": "A director model writes the shot list and a style bible, every shot is rendered as a keyframe and animated, and the clips are cut together into one video.",
     "featured": true,
-    "note": "💸 Needs Gemini, OpenAI and Google Veo keys. Every shot is one Veo call, metered per second of video, so start with a small shot count.",
+    "note": "💸 Needs Gemini and KIE keys: Gemini writes the shots and animates them with Veo, KIE renders the keyframes with GPT Image. Every shot is one Veo call, metered per second of video, so start with a small shot count.",
     "workflows": [
       {
         "name": "Movie Trailer Generator",
@@ -1339,10 +1335,6 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "Add directions (optional)",
         "kind": "text"
-      },
-      {
-        "label": "How far to go",
-        "kind": "number"
       }
     ],
     "outputs": [
@@ -1351,7 +1343,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       }
     ],
-    "widgetCount": 14
+    "widgetCount": 13
   },
   {
     "route": "/apps/vertical-cut",
@@ -1419,9 +1411,9 @@ export const miniAppEntries: MiniAppEntry[] = [
     "indexable": true,
     "slug": "video-restyle",
     "name": "Video Restyle",
-    "summary": "Upload footage, name the look and what must survive, and a video-to-video model applies the style. Strength is the dial: low keeps the original read, high commits to the new look.",
+    "summary": "Upload footage, name the look and what must survive, and a video-to-video model applies the style while the motion stays put.",
     "featured": false,
-    "note": "🔑 Needs a FAL key (Lucy Edit). Billed per clip.",
+    "note": "🔑 Needs a Replicate key (Lucy Edit 2). Billed per clip.",
     "workflows": [
       {
         "name": "Video Restyle Studio",
@@ -1451,10 +1443,6 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "What must survive",
         "kind": "text"
-      },
-      {
-        "label": "Strength",
-        "kind": "number"
       }
     ],
     "outputs": [
@@ -1463,6 +1451,6 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "video"
       }
     ],
-    "widgetCount": 14
+    "widgetCount": 13
   }
 ];

@@ -158,9 +158,9 @@
                         "id": "slider-motion-vid-duration",
                         "binding": "op:motion/prop:vid#duration",
                         "label": "Seconds",
-                        "min": 2,
-                        "max": 6,
-                        "step": 1,
+                        "min": 6,
+                        "max": 10,
+                        "step": 2,
                         "events": []
                       }
                     },

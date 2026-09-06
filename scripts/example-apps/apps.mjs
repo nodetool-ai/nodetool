@@ -827,15 +827,6 @@ export const EXAMPLE_APPS = [
             label: "Add directions (optional)",
             multiline: true
           },
-          {
-            slider: { node: "ed", prop: "strength" },
-            op: "edit",
-            label: "How far to go",
-            min: 0.2,
-            max: 1,
-            step: 0.05,
-            default: 0.6
-          },
           { run: ["edit"], label: "Vary the image" }
         ],
         results: [
@@ -1049,7 +1040,7 @@ export const EXAMPLE_APPS = [
     tagline: "One logline in, a cut sequence of shots out.",
     description:
       "A director model writes the shot list and a style bible, every shot is rendered as a keyframe and animated, and the clips are cut together into one video.",
-    note: "💸 Needs Gemini, OpenAI and Google Veo keys. Every shot is one Veo call, metered per second of video, so start with a small shot count.",
+    note: "💸 Needs Gemini and KIE keys: Gemini writes the shots and animates them with Veo, KIE renders the keyframes with GPT Image. Every shot is one Veo call, metered per second of video, so start with a small shot count.",
     workflows: { trailer: "Movie Trailer Generator" },
     operations: [
       { id: "trailer", name: "Direct", workflow: "trailer", policy: "replace" }
@@ -1146,9 +1137,9 @@ export const EXAMPLE_APPS = [
             slider: { node: "vid", prop: "duration" },
             op: "motion",
             label: "Seconds",
-            min: 2,
-            max: 6,
-            step: 1,
+            min: 6,
+            max: 10,
+            step: 2,
             default: 6
           },
           { run: ["motion"], label: "Animate the still" }
@@ -1169,8 +1160,8 @@ export const EXAMPLE_APPS = [
     featured: false,
     tagline: "Repaint a clip in a new style while its motion stays put.",
     description:
-      "Upload footage, name the look and what must survive, and a video-to-video model applies the style. Strength is the dial: low keeps the original read, high commits to the new look.",
-    note: "🔑 Needs a FAL key (Lucy Edit). Billed per clip.",
+      "Upload footage, name the look and what must survive, and a video-to-video model applies the style while the motion stays put.",
+    note: "🔑 Needs a Replicate key (Lucy Edit 2). Billed per clip.",
     workflows: { restyle: "Video Restyle Studio" },
     operations: [
       { id: "restyle", name: "Restyle", workflow: "restyle", policy: "replace" }
@@ -1195,15 +1186,6 @@ export const EXAMPLE_APPS = [
             ]
           },
           { text: "preserve", op: "restyle", label: "What must survive" },
-          {
-            slider: { node: "restyle", prop: "strength" },
-            op: "restyle",
-            label: "Strength",
-            min: 0.1,
-            max: 1,
-            step: 0.05,
-            default: 0.45
-          },
           { run: ["restyle"], label: "Restyle the clip" }
         ],
         results: [
@@ -1223,7 +1205,7 @@ export const EXAMPLE_APPS = [
     tagline: "Give a presenter clip a new script.",
     description:
       "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localize a take, fix a fluffed line, or spin one recording into many variants.",
-    note: "🔑 Needs a FAL key for lip-sync and an Inworld key for the voice. Both steps are billed per run.",
+    note: "🔑 Needs a Replicate key for the voice (Inworld TTS) and a FAL key for the lip-sync. Both steps are billed per run.",
     workflows: { revoice: "AI Spokesperson" },
     operations: [
       { id: "revoice", name: "Revoice", workflow: "revoice", policy: "replace" }
@@ -1235,15 +1217,6 @@ export const EXAMPLE_APPS = [
         controls: [
           { input: "presenter_clip", op: "revoice", label: "Presenter clip" },
           { text: "script", op: "revoice", label: "What they should say", multiline: true },
-          {
-            slider: { node: "speech", prop: "speed" },
-            op: "revoice",
-            label: "Speaking pace",
-            min: 0.7,
-            max: 1.3,
-            step: 0.05,
-            default: 1
-          },
           { run: ["revoice"], label: "Revoice the clip" }
         ],
         results: [

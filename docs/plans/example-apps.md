@@ -229,13 +229,13 @@ the choice is which treatment to run, not how to wire a pipeline.
 
 | App | Workflows bound | Operations | Key widgets | Needs |
 |---|---|---|---|---|
-| Vary Image | Edit a Still with Words | `edit` | ImageInput, Select (what to change), TextInput (extra directions), Slider (`ed.strength`), Image | FAL |
+| Vary Image | Edit a Still with Words | `edit` | ImageInput, Select (what to change), TextInput (extra directions), Image | FAL |
 | Product Reshoot | Put a Product on a Studio Backdrop, Relight a Product for a Seasonal Campaign, Cut a Product Out of Its Background | `backdrop`, `relight`, `cutout` | ImageInput, Select (`comp.prompt`), Select (`rl.prompt`), Image ×3 | FAL |
 | Product Shot Video | Ad Loop from a Product Photo, Spin a Packshot into a Turntable Clip | `loop`, `turntable` | ImageInput, Select, Select (`v.prompt`), Video ×2 | KIE for `loop`, FAL for `turntable` |
-| Multi-Shot Video | Movie Trailer Generator | `trailer` | TextInput, Select, Slider (shot count), Video | Gemini + OpenAI + Veo; cost note |
+| Multi-Shot Video | Movie Trailer Generator | `trailer` | TextInput, Select, Slider (shot count), Video | Gemini (director, Veo) + KIE (keyframes); cost note |
 | Scene Builder | Editorial Still from a Line, Bring a Still to Life | `look`, `motion` | TextInput, Image, Select, Slider (`vid.duration`), Video | FAL |
-| Video Restyle | Video Restyle Studio | `restyle` | WorkflowInput (video), Select, TextInput, Slider (`restyle.strength`), Video | FAL |
-| AI Spokesperson | AI Spokesperson | `revoice` | WorkflowInput (video), TextInput, Slider (`speech.speed`), Video | FAL + Inworld |
+| Video Restyle | Video Restyle Studio | `restyle` | WorkflowInput (video), Select, TextInput, Video | Replicate |
+| AI Spokesperson | AI Spokesperson | `revoice` | WorkflowInput (video), TextInput, Video | Replicate (voice) + FAL (lip-sync) |
 | Upscale Image | Upscale a Still, Take a Product Shot to Print Resolution | `faithful`, `clarity` | ImageInput, Slider (`up.scale`) ×2, Image ×2 | FAL |
 | Vertical Cut | Cut a Landscape Clip for Vertical, Pull a Still from a Clip | `vertical`, `cover` | VideoInput, Slider (`frame.time`), Video, Image | none (ffmpeg) |
 | Ad Maker | Ad Copy in Three Registers, Five Headlines for a Landing Page, Write the Prompt, Then Make the Image | `copy`, `headlines`, `visual` | TextInput, Markdown ×3, Image | OpenAI + FAL |
@@ -246,14 +246,18 @@ Per-app notes, where the table does not say it all:
   is a complete edit instruction; the first one is the graph's own default. A
   second TextInput is bound to the `directions` Input, which the template's
   `tpl` node appends to the instruction, so a typed line can qualify the chosen
-  option instead of replacing it. Leaving it empty changes nothing. Strength
-  drives `ed.strength` directly.
+  option instead of replacing it. Leaving it empty changes nothing. There is no
+  strength control: the edit model declares no such input, and a slider bound
+  to a property the provider drops would promise a dial that does nothing.
 - **Product Reshoot.** One `productPhoto` variable feeds all three operations.
   The setting and season selects drive the prompt property of the edit and
   relight nodes, so the graph's Input nodes stay as they are.
 - **Scene Builder.** `look` writes its `picture` output to the `still` variable,
   which `motion` reads as its `still` input. The still is shown from the
-  variable, so the user sees exactly the frame that will be animated.
+  variable, so the user sees exactly the frame that will be animated. The
+  duration slider offers only lengths the LTX fast endpoint accepts at the
+  template's resolution; a value outside its list is dropped and the endpoint
+  falls back to its default, billing a clip the user did not ask for.
 - **Vertical Cut.** The only keyless app in this set. One `clip` variable of type
   `video` feeds both operations, and one button runs them in parallel.
 - **Ad Maker.** The `offer` variable is user-scoped and persisted; all three

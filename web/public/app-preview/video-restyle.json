@@ -2,9 +2,9 @@
   "slug": "video-restyle",
   "name": "Video Restyle",
   "emoji": "🎨",
-  "description": "Upload footage, name the look and what must survive, and a video-to-video model applies the style. Strength is the dial: low keeps the original read, high commits to the new look.",
+  "description": "Upload footage, name the look and what must survive, and a video-to-video model applies the style while the motion stays put.",
   "tagline": "Repaint a clip in a new style while its motion stays put.",
-  "note": "🔑 Needs a FAL key (Lucy Edit). Billed per clip.",
+  "note": "🔑 Needs a Replicate key (Lucy Edit 2). Billed per clip.",
   "featured": false,
   "image": "/app-preview/img/video-restyle.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs a FAL key (Lucy Edit). Billed per clip."
+            "text": "🔑 Needs a Replicate key (Lucy Edit 2). Billed per clip."
           }
         },
         {
@@ -93,18 +93,6 @@
                         "binding": "op:restyle/in:in-keep",
                         "label": "What must survive",
                         "multiline": false,
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "Slider",
-                      "props": {
-                        "id": "slider-restyle-restyle-strength",
-                        "binding": "op:restyle/prop:restyle#strength",
-                        "label": "Strength",
-                        "min": 0.1,
-                        "max": 1,
-                        "step": 0.05,
                         "events": []
                       }
                     },
@@ -280,7 +268,6 @@
   "values": {
     "op:restyle/in:in-style": "1980s anime cel animation, hand-inked outlines, flat gouache colour, visible film grain",
     "op:restyle/in:in-keep": "faces, text, and the position of every subject in frame",
-    "op:restyle/prop:restyle#strength": 0.45,
     "op:restyle/out:output-video": {
       "$demo": "video"
     }
