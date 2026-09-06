@@ -1,0 +1,548 @@
+{
+  "slug": "product-reshoot",
+  "name": "Product Reshoot",
+  "emoji": "📦",
+  "description": "One product photo, three treatments. Put it on a described set, relight it for a season, or strip the background to a real alpha channel for compositing.",
+  "tagline": "New setting, new light, or a clean cutout — without a reshoot.",
+  "note": "🔑 Needs a FAL key. Each treatment is one or two image calls.",
+  "featured": true,
+  "image": "/app-preview/img/product-reshoot.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "📦 Product Reshoot",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "New setting, new light, or a clean cutout — without a reshoot."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs a FAL key. Each treatment is one or two image calls."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-your-product",
+            "title": "Your product",
+            "content": [
+              {
+                "type": "ImageInput",
+                "props": {
+                  "id": "in-productphoto",
+                  "binding": "var:productPhoto",
+                  "label": "Product photo",
+                  "events": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-new-setting",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-new-setting",
+                  "title": "New setting",
+                  "content": [
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "select-backdrop-comp-prompt",
+                        "binding": "op:backdrop/prop:comp#prompt",
+                        "label": "Setting",
+                        "options": [
+                          {
+                            "value": "Keep the product as it is. Change only what is around it: warm concrete plinth, soft studio key from upper left, blurred background."
+                          },
+                          {
+                            "value": "Keep the product as it is. Change only what is around it: white marble surface, bright daylight from a window, soft shadow."
+                          },
+                          {
+                            "value": "Keep the product as it is. Change only what is around it: dark slate table, single hard spotlight, deep black background."
+                          },
+                          {
+                            "value": "Keep the product as it is. Change only what is around it: pale oak shelf, morning light, out-of-focus plants behind."
+                          },
+                          {
+                            "value": "Keep the product as it is. Change only what is around it: wet black rock at the shoreline, overcast sky, sea spray."
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-backdrop",
+                        "label": "Place it on the set",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "backdrop",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-new-setting-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-backdrop",
+                        "binding": "op:backdrop/exec#progress",
+                        "label": "Cutting out and placing…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-backdrop-styled",
+                        "text": "On the set",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-backdrop-styled",
+                        "binding": "op:backdrop/out:out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-new-light",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-new-light",
+                  "title": "New light",
+                  "content": [
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "select-relight-rl-prompt",
+                        "binding": "op:relight/prop:rl#prompt",
+                        "label": "Season and light",
+                        "options": [
+                          {
+                            "value": "warm low winter sun from the left, long soft shadows"
+                          },
+                          {
+                            "value": "bright summer noon, hard overhead sun, short crisp shadows"
+                          },
+                          {
+                            "value": "soft spring window light from the right, gentle falloff"
+                          },
+                          {
+                            "value": "autumn golden hour from behind, amber rim light"
+                          },
+                          {
+                            "value": "cool blue evening light, neon reflections"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-relight",
+                        "label": "Relight it",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "relight",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-new-light-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-relight",
+                        "binding": "op:relight/exec#progress",
+                        "label": "Relighting…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-relight-seasonal",
+                        "text": "Relit",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-relight-seasonal",
+                        "binding": "op:relight/out:out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-clean-cutout",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-clean-cutout",
+                  "title": "Clean cutout",
+                  "content": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-cutout",
+                        "label": "Cut it out",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "cutout",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-clean-cutout-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-cutout",
+                        "binding": "op:cutout/exec#progress",
+                        "label": "Removing the background…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-cutout-cutout",
+                        "text": "Cutout with alpha",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-cutout-cutout",
+                        "binding": "op:cutout/out:out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "backdrop",
+        "name": "Backdrop",
+        "workflowId": "backdrop",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "productPhoto"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "relight",
+        "name": "Relight",
+        "workflowId": "relight",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "productPhoto"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "cutout",
+        "name": "Cut out",
+        "workflowId": "cutout",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "productPhoto"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "productPhoto",
+        "name": "Product photo",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "backdrop",
+      "name": "Put a Product on a Studio Backdrop",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "photo",
+              "value": null,
+              "description": "The product photo"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Photo"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "styled"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 990,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "4  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "relight",
+      "name": "Relight a Product for a Seasonal Campaign",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "photo",
+              "value": null,
+              "description": "The photo to work on"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Photo"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "seasonal"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "cutout",
+      "name": "Cut a Product Out of Its Background",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "photo",
+              "value": null,
+              "description": "The photo to work on"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Photo"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "cutout"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:backdrop/prop:comp#prompt": "Keep the product as it is. Change only what is around it: warm concrete plinth, soft studio key from upper left, blurred background.",
+    "op:backdrop/out:out": {
+      "$demo": "image"
+    },
+    "op:relight/prop:rl#prompt": "warm low winter sun from the left, long soft shadows",
+    "op:relight/out:out": {
+      "$demo": "image"
+    },
+    "op:cutout/out:out": {
+      "$demo": "image"
+    }
+  }
+}

@@ -6184,6 +6184,11 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Image & Design",
     "nodeTypes": [
       {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
         "type": "nodetool.input.ImageInput",
         "label": "Image Input",
         "count": 1
@@ -6199,12 +6204,12 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.input.StringInput",
-        "label": "String Input",
+        "type": "nodetool.text.Template",
+        "label": "Template",
         "count": 1
       }
     ],
-    "nodeCount": 4,
+    "nodeCount": 6,
     "thumbnail": "/templates/edit-a-still-with-words.jpg",
     "graph": {
       "nodes": [
@@ -6226,10 +6231,26 @@ export const templateEntries: TemplateEntry[] = [
           "subtitle": "Make it golden hour, warm low sun raking across the subject"
         },
         {
+          "id": "dirs",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 500,
+          "width": 280
+        },
+        {
+          "id": "tpl",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 400,
+          "y": 340,
+          "width": 320
+        },
+        {
           "id": "ed",
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
-          "x": 400,
+          "x": 800,
           "y": 240,
           "width": 280,
           "subtitle": "fal-ai/nano-banana/edit"
@@ -6238,7 +6259,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 760,
+          "x": 1160,
           "y": 260,
           "width": 240
         }
@@ -6253,6 +6274,20 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "source": "ins",
+          "sourceHandle": "output",
+          "target": "tpl",
+          "targetHandle": "instruction",
+          "color": "any"
+        },
+        {
+          "source": "dirs",
+          "sourceHandle": "output",
+          "target": "tpl",
+          "targetHandle": "directions",
+          "color": "any"
+        },
+        {
+          "source": "tpl",
           "sourceHandle": "output",
           "target": "ed",
           "targetHandle": "prompt",

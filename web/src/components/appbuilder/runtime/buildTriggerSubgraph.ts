@@ -16,11 +16,7 @@
  * and runs the browser-capable prefix in-browser via `runBrowserGraphJob`.
  */
 import { Node as RFNode } from "@xyflow/react";
-import {
-  parseInputStateKey,
-  stateKey,
-  type BindingRef
-} from "@nodetool-ai/app-runtime";
+import { stateKey, type BindingRef } from "@nodetool-ai/app-runtime";
 
 import { Workflow, WorkflowGraph } from "../../../stores/ApiTypes";
 import { NodeData } from "../../../stores/NodeData";
@@ -34,7 +30,7 @@ import {
 } from "../../../hooks/nodes/buildDownstreamRunGraph";
 import { browserSupportsSync } from "../../../lib/workflow/browserWorkflowRunner";
 import { WorkflowIO } from "../workflowIO";
-import { withNodeProperties } from "../nodeBinding";
+import { collectNodePropertyOverlays, withNodeProperties } from "../nodeBinding";
 import { AppRuntimeState } from "./appRuntimeStore";
 
 interface TriggerSubgraph {
@@ -85,16 +81,10 @@ export const buildTriggerSubgraph = (
         ?.value;
     if (value !== undefined) valueByNodeId.set(input.nodeId, value);
   }
-  // Node-property bindings overlay their live values the same way.
-  const overlays = new Map<string, Record<string, unknown>>();
-  for (const [key, slot] of Object.entries(state.inputs)) {
-    if (slot.value === undefined) continue;
-    const parsed = parseInputStateKey(key);
-    if (!parsed?.property) continue;
-    const existing = overlays.get(parsed.nodeId);
-    if (existing) existing[parsed.property] = slot.value;
-    else overlays.set(parsed.nodeId, { [parsed.property]: slot.value });
-  }
+  // Node-property bindings overlay their live values the same way, scoped to
+  // this operation so another operation's binding on the same node id cannot
+  // leak in.
+  const overlays = collectNodePropertyOverlays(state.inputs, operationId);
 
   const nodes = (workflow.graph?.nodes ?? []).map((node) => {
     let rf = graphNodeToReactFlowNode(workflow, node);
