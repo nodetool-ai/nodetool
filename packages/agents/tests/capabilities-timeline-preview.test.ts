@@ -525,6 +525,90 @@ describe("renderTimelineFrames", () => {
     expect(effectsNotApplied).toContain("vignette");
   });
 
+  it("adds a brightness lift the way the GPU grade does", async () => {
+    // `colorGradeV1` is `rgb + brightness`; CSS `brightness()` multiplies. On
+    // mid-grey at +0.25 that is 192 against 160 — the same document, two
+    // pictures, which is what the scratch-copy pass exists to prevent.
+    const { frames } = await renderTimelineFrames({
+      sequence: sequence(
+        [track(0)],
+        [
+          shapeClip("shot", "track-0", "#808080", {
+            effects: [
+              { id: "b", type: "color", enabled: true, brightness: 0.25 }
+            ]
+          })
+        ]
+      ),
+      timesMs: [1000],
+      width: 160,
+      loadAsset: noAssets
+    });
+
+    const [r] = await pixelAt(frames[0]!.png, 80, 45);
+    expect(r).toBeGreaterThanOrEqual(190);
+    expect(r).toBeLessThanOrEqual(194);
+    expect(frames[0]!.degraded).toEqual([]);
+  });
+
+  it("names what it drew differently from the export, and the clip", async () => {
+    // `ctx.shadow*` is one set of fields, so the second cast in the chain is
+    // not drawn. That is a picture that differs from the export with nothing
+    // in `effects_not_applied` to read about it — hence `degraded` (I7).
+    const shadow = (id: string, offset: number) => ({
+      id,
+      type: "dropShadow" as const,
+      enabled: true,
+      offsetX: offset,
+      offsetY: offset,
+      blur: 4,
+      color: "#000000"
+    });
+    const { frames } = await renderTimelineFrames({
+      sequence: sequence(
+        [track(0)],
+        [
+          shapeClip("shot", "track-0", "#ff0000", {
+            name: "Hero",
+            effects: [shadow("s1", 4), shadow("s2", 20)]
+          })
+        ]
+      ),
+      timesMs: [1000],
+      width: 160,
+      loadAsset: noAssets
+    });
+
+    expect(frames[0]!.degraded).toEqual([
+      {
+        clip_id: "shot",
+        clip_name: "Hero",
+        reason: "drop_shadow_extra_ignored"
+      }
+    ]);
+  });
+
+  it("reports nothing degraded for a feathered mask it draws in full", async () => {
+    // The preview vends every surface the compositor asks for, so a soft mask
+    // is drawn soft — an empty list is the claim that this frame is the
+    // export.
+    const { frames } = await renderTimelineFrames({
+      sequence: sequence(
+        [track(0)],
+        [
+          shapeClip("shot", "track-0", "#ff0000", {
+            mask: { kind: "rect", x: 0.25, y: 0, width: 0.5, height: 1, featherPx: 16 }
+          })
+        ]
+      ),
+      timesMs: [1000],
+      width: 160,
+      loadAsset: noAssets
+    });
+
+    expect(frames[0]!.degraded).toEqual([]);
+  });
+
   it("names every clip effect from the shader catalog it cannot draw", async () => {
     // The whole catalog on one clip (D7). Canvas 2D draws `dropShadow` through
     // `ctx.shadow*` and approximates `color`/`blur` with `ctx.filter`; the

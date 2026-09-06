@@ -442,6 +442,33 @@ export async function ffmpegHasEncoder(encoder: string): Promise<boolean> {
 }
 
 /**
+ * H.264 at `yuv420p`, converted to BT.709 and tagged as such.
+ *
+ * The same reasoning as `outputFormats.ts`: raw RGBA in, YUV out, and without
+ * the scaler and the tags ffmpeg uses BT.601 and records nothing, so the file
+ * plays back off-hue everywhere. A caller that passes its own `encoderArgs`
+ * owns its own colour handling.
+ */
+export function defaultEncoderArgs(): string[] {
+  return [
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-pix_fmt",
+    "yuv420p",
+    "-vf",
+    "scale=out_color_matrix=bt709:out_range=tv",
+    "-colorspace",
+    "bt709",
+    "-color_primaries",
+    "bt709",
+    "-color_trc",
+    "bt709"
+  ];
+}
+
+/**
  * Start encoding RGBA frames written at `fps` into `outPath`.
  *
  * `encoderArgs` decides the codec, profile and pixel format — the alpha-capable
@@ -458,14 +485,7 @@ export function openFrameEncoder(opts: {
   encoderArgs?: readonly string[];
 }): FrameEncoder {
   const { outPath, width, height, fps } = opts;
-  const encoderArgs = opts.encoderArgs ?? [
-    "-c:v",
-    "libx264",
-    "-preset",
-    "veryfast",
-    "-pix_fmt",
-    "yuv420p"
-  ];
+  const encoderArgs = opts.encoderArgs ?? defaultEncoderArgs();
   const child = spawnFfmpeg([
     "-y",
     "-v",

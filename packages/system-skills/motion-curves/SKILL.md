@@ -210,8 +210,8 @@ for (let i = 0; i < n; i++) {
 return { samples };
 ```
 
-**Seamless loop.** Any `loop` curve must return to its start, so build it from a
-whole number of cycles of a periodic function.
+**A loop with no visible join.** Any `loop` curve must return to its start, so
+build it from a whole number of cycles of a periodic function.
 
 ```js
 const n = inputs.sampleCount, amp = 0.02 * inputs.canvasHeight;

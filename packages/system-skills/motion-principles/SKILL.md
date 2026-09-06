@@ -80,7 +80,8 @@ Two limits the engine enforces rather than warns about in prose:
 ## Stagger is rhythm, and it is clamped
 
 Never reveal a group in one event. On a text clip, `stagger` splits the
-animation per word, grapheme or wrapped line.
+animation per word, grapheme or wrapped line. Which `unit` counts what, and how
+the count changes with the frame, is in `motion-graphics`.
 
 | Content | `offsetMs` |
 |---|---|

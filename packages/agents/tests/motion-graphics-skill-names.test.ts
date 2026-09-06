@@ -16,7 +16,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { ANIMATION_PRESETS } from "@nodetool-ai/timeline";
+import { ANIMATION_PRESETS, STAGGER_UNITS } from "@nodetool-ai/timeline";
 
 import { listCapabilitySpecs } from "../src/capabilities/index.js";
 import { EDIT_TIMELINE_SCHEMA } from "../src/capabilities/timelines.specs.js";
@@ -169,6 +169,38 @@ describe("shipped motion skills", () => {
         `${skill} quotes a preset the engine does not ship`
       ).toEqual([]);
     }
+  });
+
+  /**
+   * The other direction again, for ops: the skill teaches how to build the
+   * elements it then animates, and an op folded into another leaves the
+   * instructions naming a call the model cannot make.
+   */
+  it("teaches the ops that build and order what it animates", () => {
+    const markdown = readFileSync(skillPath("motion-graphics"), "utf8");
+    const ops = editTimelineOps();
+    for (const op of [
+      "add_text_clip",
+      "add_shape_clip",
+      "add_track",
+      "move_track",
+      "set_time_remap",
+      "list_animation_presets"
+    ]) {
+      expect(ops.has(op), `${op} is no longer an edit_timeline op`).toBe(true);
+      expect(markdown, `${op} is unmentioned in motion-graphics`).toContain(
+        `\`${op}\``
+      );
+    }
+  });
+
+  /** A stagger unit the skill never names is one no model will reach for. */
+  it("names every stagger unit the engine splits on", () => {
+    const markdown = readFileSync(skillPath("motion-graphics"), "utf8");
+    const missing = STAGGER_UNITS.filter(
+      (unit) => !markdown.includes(`\`${unit}\``)
+    );
+    expect(missing, "shipped but unnamed in the skill").toEqual([]);
   });
 
   it("reads calls out of the skills at all", () => {
