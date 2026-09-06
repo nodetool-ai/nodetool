@@ -9,7 +9,7 @@
  * The browser reads the library through `ui_entity_list` / `ui_entity_apply`,
  * which need an open app. These six answer the same questions with no
  * browser: list, read one, season a prompt, tag an asset as an entity,
- * retag one, and untag one. The injection rule itself is `injectEntities` in
+ * edit one (its fields, or the picture it shows), and untag one. The injection rule itself is `injectEntities` in
  * `@nodetool-ai/protocol`, shared with the browser tool and the Director node,
  * so a prompt seasoned here and one seasoned in the editor come out the same.
  */
@@ -39,6 +39,13 @@ import { isRecord, isString } from "../utils/type-guards.js";
 
 /** The metadata key an entity's marker lives under, set by the library UI. */
 export const ENTITY_METADATA_KEY = "nodetool_entity";
+
+/**
+ * The marker field naming the image an entity shows, when it is not the marker
+ * asset's own bytes. Swapping the picture writes this rather than moving the
+ * marker, so the entity id — which storyboards and scripts store — never moves.
+ */
+export const REFERENCE_ASSET_KEY = "reference_asset_id";
 
 export const ENTITY_KINDS: ReadonlySet<string> = new Set([
   "character",
@@ -71,6 +78,20 @@ export function entityFromAsset(
   if (!ENTITY_KINDS.has(kind)) return null;
 
   const ext = MIME_TO_EXT[asset.content_type] ?? "png";
+  // A swapped reference image points at another asset, whose content type is
+  // not in hand here — `asset://<id>` with no extension is what the web library
+  // writes too, and resolves through the extension-tolerant asset lookup.
+  const swapped = isString(raw[REFERENCE_ASSET_KEY])
+    ? raw[REFERENCE_ASSET_KEY].trim()
+    : "";
+  const referenceImage =
+    swapped && swapped !== asset.id
+      ? { type: "image" as const, asset_id: swapped, uri: `asset://${swapped}` }
+      : {
+          type: "image" as const,
+          asset_id: asset.id,
+          uri: `asset://${asset.id}.${ext}`
+        };
   const entity: Entity = {
     type: "entity",
     id: asset.id,
@@ -80,9 +101,7 @@ export function entityFromAsset(
     voice_id: isString(raw["voice_id"]) ? raw["voice_id"] : null,
     lora: (raw["lora"] as Entity["lora"]) ?? null,
     palette: (raw["palette"] as Entity["palette"]) ?? null,
-    reference_images: [
-      { type: "image", asset_id: asset.id, uri: `asset://${asset.id}.${ext}` }
-    ]
+    reference_images: [referenceImage]
   };
   if (isString(raw["description"])) {
     entity.description = raw["description"];
@@ -372,6 +391,27 @@ const createEntity: CapabilityExport = {
   }
 };
 
+/**
+ * The asset a swap points the entity's picture at: it must be the caller's and
+ * must be an image. Returns the error to hand back, or null when it is usable.
+ */
+const referenceAssetProblem = async (
+  run: CapabilityRun,
+  assetId: string
+): Promise<string | null> => {
+  const userId = userIdOf(run.context);
+  if (!userId) return "No user is bound to this session.";
+  const { Asset } = await import("@nodetool-ai/models");
+  const asset = await Asset.find(userId, assetId);
+  if (!asset) {
+    return `Asset ${assetId} was not found.`;
+  }
+  if (!asset.content_type.startsWith("image/")) {
+    return `${asset.name || asset.id} is a ${asset.content_type} asset; entities are image assets. Generate or upload an image first.`;
+  }
+  return null;
+};
+
 const updateEntity: CapabilityExport = {
   spec: updateEntitySpec,
   impl: async (run, params) => {
@@ -380,103 +420,23 @@ const updateEntity: CapabilityExport = {
       return { error: "entity_id is required (use list_entities to find one)." };
     }
 
+    // A swap changes which picture the entity shows, never which asset carries
+    // the marker: boards and scripts store the entity id, and moving it would
+    // leave every one of those references pointing at nothing.
     const rawAssetId = params["asset_id"];
-    const wantsRetarget =
-      rawAssetId !== undefined &&
-      isString(rawAssetId) &&
-      rawAssetId.trim() !== "" &&
-      rawAssetId.trim() !== entityId.trim();
-    if (rawAssetId !== undefined && !wantsRetarget) {
-      if (!isString(rawAssetId)) {
-        return { error: "asset_id must be a string." };
-      }
-      const trimmed = rawAssetId.trim();
-      if (trimmed !== "" && trimmed === entityId.trim()) {
-        // Same-asset — treat as no move; fall through to normal field update.
-      } else if (trimmed === "") {
-        return { error: "asset_id must be a non-empty string." };
+    let swapTo: string | null | undefined;
+    if (rawAssetId !== undefined) {
+      if (rawAssetId === null) {
+        swapTo = null;
+      } else if (!isString(rawAssetId) || rawAssetId.trim() === "") {
+        return { error: "asset_id must be a non-empty string, or null to go back to the entity's own image." };
       } else {
-        return { error: "asset_id must be a string." };
-      }
-    }
-
-    if (wantsRetarget) {
-      const targetId = (rawAssetId as string).trim();
-      const userId = userIdOf(run.context);
-      if (!userId) return { error: "No user is bound to this session." };
-      const { Asset } = await import("@nodetool-ai/models");
-      const sourceAsset = await Asset.find(userId, entityId.trim());
-      const sourceEntity = sourceAsset ? entityFromAsset(sourceAsset) : null;
-      if (!sourceEntity || !sourceAsset) {
-        return { error: `Asset ${entityId} is not an entity — use create_entity to tag it.` };
-      }
-      const readOnly = Asset.systemEntityRefusal(sourceAsset);
-      if (readOnly) {
-        return { error: readOnly };
-      }
-      const targetAsset = await Asset.find(userId, targetId);
-      if (!targetAsset) {
-        return { error: `Asset ${targetId} was not found.` };
-      }
-      if (!targetAsset.content_type.startsWith("image/")) {
-        return {
-          error: `${targetAsset.name || targetAsset.id} is a ${targetAsset.content_type} asset; entities are image assets. Generate or upload an image first.`
-        };
-      }
-      const targetExisting = entityFromAsset(targetAsset);
-      if (targetExisting) {
-        return {
-          error: "That asset is already an entity — pick another photo or update that entity instead."
-        };
-      }
-      const rawMarker = sourceAsset.metadata?.[ENTITY_METADATA_KEY];
-      const marker: Record<string, unknown> = isRecord(rawMarker)
-        ? { ...rawMarker }
-        : {};
-      const touched = { value: 1 }; // the move itself counts
-      let problem: string | null = null;
-
-      const kind = params["kind"];
-      if (kind !== undefined) {
-        if (!isString(kind) || !ENTITY_KINDS.has(kind)) {
-          problem = `kind must be one of: ${[...ENTITY_KINDS].join(", ")}.`;
-        } else {
-          marker["kind"] = kind;
-          touched.value += 1;
+        swapTo = rawAssetId.trim();
+        if (swapTo !== entityId.trim()) {
+          const problem = await referenceAssetProblem(run, swapTo);
+          if (problem) return { error: problem };
         }
       }
-      for (const field of ["name", "descriptor", "description"] as const) {
-        const value = params[field];
-        if (value === undefined) continue;
-        if (
-          !isString(value) ||
-          (field !== "description" && value.trim() === "")
-        ) {
-          problem =
-            problem ??
-            `${field} must be${field === "description" ? " a string" : " a non-empty string"}.`;
-          break;
-        }
-        marker[field] = value;
-        touched.value += 1;
-      }
-      if (problem) return { error: problem };
-      problem = applyOptionalMarkerFields(marker, params, touched);
-      if (problem) return { error: problem };
-
-      targetAsset.metadata = {
-        ...(targetAsset.metadata ?? {}),
-        [ENTITY_METADATA_KEY]: marker
-      };
-      await targetAsset.save();
-      const nextSourceMeta = { ...(sourceAsset.metadata ?? {}) } as Record<string, unknown>;
-      delete nextSourceMeta[ENTITY_METADATA_KEY];
-      sourceAsset.metadata = nextSourceMeta;
-      await sourceAsset.save();
-      const entity = entityFromAsset(targetAsset);
-      return entity
-        ? { entity, moved_from: entityId.trim(), moved_to: targetId }
-        : { error: "The entity marker was not readable after saving." };
     }
 
     return saveEntityAsset(run, entityId, (marker, existing) => {
@@ -487,6 +447,16 @@ const updateEntity: CapabilityExport = {
       }
       const touched = { value: 0 };
       let problem: string | null = null;
+
+      if (swapTo !== undefined) {
+        // Null, or the entity's own asset, means "show your own bytes again".
+        if (swapTo === null || swapTo === entityId.trim()) {
+          delete marker[REFERENCE_ASSET_KEY];
+        } else {
+          marker[REFERENCE_ASSET_KEY] = swapTo;
+        }
+        touched.value += 1;
+      }
 
       const kind = params["kind"];
       if (kind !== undefined) {

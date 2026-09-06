@@ -7,6 +7,10 @@
  * are the entity's primary reference image (`asset://<id>`); the marker holds the
  * kind/name/descriptor and other prompt-injection fields. Tagging and untagging
  * never create or delete the underlying asset — they only write the marker.
+ *
+ * Swapping an entity's picture writes `reference_asset_id` onto that marker
+ * rather than moving it to the other asset: boards and scripts store the entity
+ * id, so an entity that changed asset would leave every one of them dangling.
  */
 
 import {
@@ -32,6 +36,8 @@ interface EntityMarker {
   tags?: string[];
   lora?: Entity["lora"];
   palette?: Entity["palette"];
+  /** The image the entity shows, when it is not the marker asset's own bytes. */
+  reference_asset_id?: string;
 }
 
 const ENTITY_METADATA_KEY = "nodetool_entity";
@@ -67,11 +73,18 @@ export function readEntityMarker(
       ? obj.tags.filter((t): t is string => typeof t === "string")
       : undefined,
     lora: (obj.lora as EntityMarker["lora"]) ?? undefined,
-    palette: (obj.palette as EntityMarker["palette"]) ?? undefined
+    palette: (obj.palette as EntityMarker["palette"]) ?? undefined,
+    reference_asset_id:
+      isString(obj.reference_asset_id) && obj.reference_asset_id.trim() !== ""
+        ? obj.reference_asset_id.trim()
+        : undefined
   };
 }
 
-/** Map a marked asset to an {@link Entity}, using the asset itself as the ref image. */
+/**
+ * Map a marked asset to an {@link Entity}, using the marker's swapped reference
+ * image when it names one and the asset's own bytes otherwise.
+ */
 export function assetToEntity(asset: Asset): Entity | null {
   const marker = readEntityMarker(asset.metadata);
   if (!marker) {
@@ -88,7 +101,9 @@ export function assetToEntity(asset: Asset): Entity | null {
     tags: marker.tags,
     lora: marker.lora ?? null,
     palette: marker.palette ?? null,
-    reference_images: [mediaRefFromAsset(asset, "image")],
+    reference_images: [
+      mediaRefFromAsset({ id: marker.reference_asset_id ?? asset.id }, "image")
+    ],
     created_at: asset.created_at
   };
 }
@@ -126,6 +141,11 @@ interface SaveEntityInput {
   tags?: string[];
   lora?: Entity["lora"];
   palette?: Entity["palette"];
+  /**
+   * The image asset the entity should show. Null, undefined, or `assetId`
+   * itself means the entity's own bytes.
+   */
+  reference_asset_id?: string | null;
 }
 
 /** Tag (or re-tag) an existing image asset as an entity. */
@@ -146,7 +166,11 @@ export function useSaveEntity(): UseMutationResult<
         voice_id: input.voice_id,
         tags: input.tags,
         lora: input.lora,
-        palette: input.palette
+        palette: input.palette,
+        reference_asset_id:
+          input.reference_asset_id && input.reference_asset_id !== input.assetId
+            ? input.reference_asset_id
+            : undefined
       };
       const updated = await trpcClient.assets.update.mutate({
         id: input.assetId,
