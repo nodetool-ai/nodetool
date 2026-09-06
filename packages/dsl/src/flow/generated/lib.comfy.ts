@@ -7,6 +7,7 @@ import { callNode, streamNode } from "../guest-core.js";
 // Run ComfyUI Workflow — lib.comfy.RunWorkflow
 export type RunWorkflowInputs = {
   endpoint?: string;
+  api?: "native" | "v2";
   workflow?: string;
   timeout?: number;
 };
@@ -39,3 +40,26 @@ export interface RunWorkflowOnWorkerOutputs {
 export function runWorkflowOnWorker(inputs: RunWorkflowOnWorkerInputs): Promise<RunWorkflowOnWorkerOutputs> {
   return callNode<RunWorkflowOnWorkerOutputs>("lib.comfy.RunWorkflowOnWorker", inputs);
 }
+
+runWorkflowOnWorker.stream = function (inputs: RunWorkflowOnWorkerInputs): AsyncIterable<Partial<RunWorkflowOnWorkerOutputs>> {
+  return streamNode<Partial<RunWorkflowOnWorkerOutputs>>("lib.comfy.RunWorkflowOnWorker", inputs);
+};
+
+// Run ComfyUI Workflow (Comfy Cloud) — lib.comfy.RunWorkflowOnCloud
+export type RunWorkflowOnCloudInputs = {
+  workflow?: string;
+  timeout?: number;
+  previews?: boolean;
+};
+
+export interface RunWorkflowOnCloudOutputs {
+  output: Record<string, unknown>;
+}
+
+export function runWorkflowOnCloud(inputs: RunWorkflowOnCloudInputs): Promise<RunWorkflowOnCloudOutputs> {
+  return callNode<RunWorkflowOnCloudOutputs>("lib.comfy.RunWorkflowOnCloud", inputs);
+}
+
+runWorkflowOnCloud.stream = function (inputs: RunWorkflowOnCloudInputs): AsyncIterable<Partial<RunWorkflowOnCloudOutputs>> {
+  return streamNode<Partial<RunWorkflowOnCloudOutputs>>("lib.comfy.RunWorkflowOnCloud", inputs);
+};

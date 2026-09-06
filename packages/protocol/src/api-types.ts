@@ -1075,6 +1075,10 @@ export const PROVIDER_IDS = {
   REPLICATE: "replicate",
   FAL_AI: "fal_ai",
   KIE: "kie",
+  // ComfyUI workflows run on cloud.comfy.org. No model list of its own — the
+  // API enumerates none — so the provider exists for the key, the settings
+  // card, and a provider id on cost records; the `lib.comfy` nodes call it.
+  COMFY_CLOUD: "comfy_cloud",
   ELEVENLABS: "elevenlabs",
   TOPAZ: "topaz",
   REVE: "reve",

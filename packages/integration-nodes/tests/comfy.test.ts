@@ -1,15 +1,52 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { getNodeMetadata } from "@nodetool-ai/node-sdk";
 import {
   ComfyWorkflowNode,
   ComfyWorkerWorkflowNode,
-  COMFY_NODES
+  COMFY_NODES,
+  type ComfyJob,
+  type ComfyOutput,
+  type ComfyPrompt,
+  type ComfyRunEvent,
+  type ComfyTransport
 } from "@nodetool-ai/integration-nodes";
 import type {
   PythonBridge,
   ComfyEvent,
-  ComfyExecuteResult
+  ComfyExecuteResult,
+  ProcessingContext
 } from "@nodetool-ai/runtime";
+
+/**
+ * A stand-in for `executeComfy` whose result never settles, so a test can
+ * abort mid-run and observe the cancel handle being pulled.
+ */
+const comfyExecutor = vi.hoisted(() => ({
+  cancelCalls: 0,
+  runCalls: 0,
+  reset(): void {
+    comfyExecutor.cancelCalls = 0;
+    comfyExecutor.runCalls = 0;
+  }
+}));
+
+vi.mock("@nodetool-ai/runtime", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    executeComfy: () => {
+      comfyExecutor.runCalls += 1;
+      return {
+        result: new Promise(() => {
+          // Never settles: the only way out of this run is cancellation.
+        }),
+        cancel: () => {
+          comfyExecutor.cancelCalls += 1;
+        }
+      };
+    }
+  };
+});
 
 const samplePrompt = {
   "3": {
@@ -22,6 +59,47 @@ const samplePrompt = {
   }
 };
 
+const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+/** One finished image output, as the v2 transport reports it. */
+const v2Output: ComfyOutput = {
+  nodeId: "9",
+  name: "ComfyUI_00001_.png",
+  id: "asset-1",
+  type: "image",
+  contentType: "image/png",
+  sizeBytes: PNG.length,
+  toBytes: async () => PNG
+};
+
+const scriptedJob: ComfyJob = {
+  id: "job-7",
+  status: "succeeded",
+  outputs: [v2Output],
+  error: null,
+  async *events(): AsyncGenerator<ComfyRunEvent, void, void> {
+    yield { kind: "outputReady", output: v2Output };
+    yield { kind: "statusChange", status: "succeeded", queuePosition: null };
+  },
+  async refresh() {
+    return scriptedJob;
+  },
+  async cancel() {
+    return scriptedJob;
+  }
+};
+
+/** A transport that records what was submitted and replays {@link scriptedJob}. */
+function fakeTransport(submitted: ComfyPrompt[]): ComfyTransport {
+  return {
+    submit: async (graph) => {
+      submitted.push(graph);
+      return scriptedJob;
+    },
+    assetFromBytes: (_bytes, filename) => ({ __asset: filename })
+  };
+}
+
 function makeNode(props: Record<string, unknown> = {}): ComfyWorkflowNode {
   const node = new ComfyWorkflowNode();
   (node as unknown as { assign: (p: Record<string, unknown>) => void }).assign({
@@ -31,6 +109,17 @@ function makeNode(props: Record<string, unknown> = {}): ComfyWorkflowNode {
     ...props
   });
   return node;
+}
+
+/** Records the v2 base URL the node derived, without a v2 server. */
+class TestDirectNode extends ComfyWorkflowNode {
+  readonly baseUrls: string[] = [];
+  readonly submitted: ComfyPrompt[] = [];
+
+  protected createTransport(baseUrl: string): ComfyTransport {
+    this.baseUrls.push(baseUrl);
+    return fakeTransport(this.submitted);
+  }
 }
 
 describe("ComfyWorkflowNode", () => {
@@ -46,8 +135,11 @@ describe("ComfyWorkflowNode", () => {
     expect(metadata.is_streaming_output).toBe(true);
     const propNames = metadata.properties.map((p) => p.name);
     expect(propNames).toEqual(
-      expect.arrayContaining(["endpoint", "workflow", "timeout"])
+      expect.arrayContaining(["endpoint", "api", "workflow", "timeout"])
     );
+    const api = metadata.properties.find((p) => p.name === "api");
+    expect(api?.type.type).toBe("enum");
+    expect(api?.type.values).toEqual(["native", "v2"]);
   });
 
   it("throws when the endpoint is empty", async () => {
@@ -64,6 +156,71 @@ describe("ComfyWorkflowNode", () => {
     const node = makeNode({ workflow: "{not json" });
     await expect(drain(node)).rejects.toThrow(/not valid JSON/i);
   });
+
+  it("uses the native executor when `api` keeps its default", async () => {
+    comfyExecutor.reset();
+    const controller = new AbortController();
+    const context = {
+      signal: controller.signal,
+      postMessage: () => {}
+    } as unknown as ProcessingContext;
+    const node = new TestDirectNode();
+    (node as unknown as { assign: (p: Record<string, unknown>) => void }).assign({
+      endpoint: "127.0.0.1:8188",
+      workflow: JSON.stringify(samplePrompt)
+    });
+
+    const pending = node.genProcess(context).next();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(comfyExecutor.runCalls).toBe(1);
+    expect(node.baseUrls).toEqual([]);
+
+    // The mocked executor never settles; abort so the run ends.
+    controller.abort();
+    await expect(pending).rejects.toThrow(/canceled/i);
+  });
+
+  it("runs over the v2 transport when `api` is v2, and never calls the executor", async () => {
+    comfyExecutor.reset();
+    const node = new TestDirectNode();
+    (node as unknown as { assign: (p: Record<string, unknown>) => void }).assign({
+      endpoint: "127.0.0.1:8189",
+      workflow: JSON.stringify(samplePrompt),
+      api: "v2",
+      "3:seed": 99
+    });
+
+    const frames = await drain(node);
+
+    expect(node.baseUrls).toEqual(["http://127.0.0.1:8189"]);
+    expect(comfyExecutor.runCalls).toBe(0);
+    expect(node.submitted[0]["3"].inputs.seed).toBe(99);
+    expect(frames[0]["9:image"]).toMatchObject({
+      type: "image",
+      mimeType: "image/png"
+    });
+    expect(frames[1].output).toMatchObject({ job_id: "job-7" });
+  });
+
+  it("cancels the ComfyUI execution when the run signal aborts", async () => {
+    comfyExecutor.reset();
+    const controller = new AbortController();
+    const context = {
+      signal: controller.signal,
+      postMessage: () => {}
+    } as unknown as ProcessingContext;
+
+    const node = makeNode();
+    const gen = node.genProcess(context);
+    const pending = gen.next();
+    // Let the generator reach its drain loop before pulling the signal.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    controller.abort();
+    expect(comfyExecutor.cancelCalls).toBe(1);
+    await expect(pending).rejects.toThrow(/canceled/i);
+  });
 });
 
 /**
@@ -71,6 +228,9 @@ describe("ComfyWorkflowNode", () => {
  * can be exercised without a real WebSocket worker.
  */
 class TestWorkerNode extends ComfyWorkerWorkflowNode {
+  readonly transportArgs: Array<[string, string | undefined]> = [];
+  readonly submitted: ComfyPrompt[] = [];
+
   constructor(
     private readonly fakeBridge: PythonBridge,
     public readonly capturedEvents: ComfyEvent[] = []
@@ -79,6 +239,10 @@ class TestWorkerNode extends ComfyWorkerWorkflowNode {
   }
   protected async connectBridge(): Promise<PythonBridge> {
     return this.fakeBridge;
+  }
+  protected createTransport(baseUrl: string, token?: string): ComfyTransport {
+    this.transportArgs.push([baseUrl, token]);
+    return fakeTransport(this.submitted);
   }
 }
 
@@ -89,6 +253,7 @@ function makeFakeBridge(
     closed: false,
     lastExecuteArgs: [] as unknown[],
     supportsComfy: () => true,
+    getComfyStatus: () => ({ enabled: true }),
     comfyExecute: async (
       prompt: Record<string, unknown>,
       options?: unknown,
@@ -166,6 +331,48 @@ describe("ComfyWorkerWorkflowNode", () => {
     // Options were forwarded (timeout in seconds).
     const [, options] = bridge.lastExecuteArgs as [unknown, { timeout: number }];
     expect(options.timeout).toBe(120);
+    // No v2 transport was built: `api_v2` is absent from this worker's status.
+    expect(node.transportArgs).toEqual([]);
+  });
+
+  it("takes the v2 path when the worker reports comfy.api_v2", async () => {
+    const bridge = makeFakeBridge({
+      getComfyStatus: () => ({ enabled: true, api_v2: true })
+    });
+    const node = new TestWorkerNode(bridge);
+    (node as unknown as { assign: (p: Record<string, unknown>) => void }).assign({
+      worker_url: "wss://abc-7777.proxy.runpod.net/ws",
+      worker_token: "tok",
+      workflow: JSON.stringify(samplePrompt),
+      timeout: 120,
+      previews: true,
+      "3:seed": 42
+    });
+
+    const frames: Array<Record<string, unknown>> = [];
+    for await (const frame of node.genProcess()) {
+      frames.push(frame);
+    }
+
+    // The bridge was only how the flag was read.
+    expect(bridge.closed).toBe(true);
+    expect(bridge.lastExecuteArgs).toEqual([]);
+    // ws → http, wss → https, path dropped.
+    expect(node.transportArgs).toEqual([
+      ["https://abc-7777.proxy.runpod.net", "tok"]
+    ]);
+    expect(node.submitted[0]["3"].inputs.seed).toBe(42);
+    // Outputs arrive on `<comfyNodeId>:<kind>` slots, not on blob keys.
+    expect(frames[0]["9:image"]).toMatchObject({
+      type: "image",
+      uri: "",
+      mimeType: "image/png",
+      data: Buffer.from(PNG).toString("base64")
+    });
+    expect(frames[1].output).toMatchObject({
+      job_id: "job-7",
+      status: "succeeded"
+    });
   });
 });
 

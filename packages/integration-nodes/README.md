@@ -33,8 +33,10 @@ long-lived connection, which is what a script cannot do; sending a message is a
 against any reachable ComfyUI server, streaming each output file as its save node
 finishes. `RunWorkflowOnWorker` runs the same workflow on a NodeTool worker that
 fronts a loopback-only ComfyUI, proxied over the worker bridge's `comfy.*`
-messages. Both derive typed inputs from `Load*` nodes and typed outputs from
-`Save*` nodes, keyed `<comfyNodeId>:<field>`. See
+messages. `RunWorkflowOnCloud` runs it on Comfy Cloud through the official
+`@comfyorg/sdk` (Comfy API v2, `COMFY_API_KEY`), streaming outputs the same way
+the direct node does. All three derive typed inputs from `Load*` nodes and typed
+outputs from `Save*` nodes, keyed `<comfyNodeId>:<field>`. See
 [docs/comfyui.md](https://docs.nodetool.ai/comfyui).
 
 **Other** — `kie.dynamic_schema.KieAI`.

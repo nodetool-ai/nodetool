@@ -172,9 +172,10 @@ describe("code is node-level trimmed; text is whole-listed minus file I/O", () =
     expect(isCloudNodeType("lib.browser.WebFetch")).toBe(false);
   });
 
-  it("keeps only the two ComfyUI runners", () => {
+  it("keeps only the three ComfyUI runners", () => {
     expect(isCloudNodeType("lib.comfy.RunWorkflow")).toBe(true);
     expect(isCloudNodeType("lib.comfy.RunWorkflowOnWorker")).toBe(true);
+    expect(isCloudNodeType("lib.comfy.RunWorkflowOnCloud")).toBe(true);
     // The namespace is not whole-listed, so anything else added under
     // lib.comfy stays out until it is allowlisted by name.
     expect(isCloudNodeType("lib.comfy.Other")).toBe(false);

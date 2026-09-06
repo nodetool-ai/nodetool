@@ -3,6 +3,7 @@ import type { Node } from "@xyflow/react";
 import type { NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
 import {
+  DYNAMIC_COMFY_NODE_TYPES,
   DYNAMIC_FAL_NODE_TYPE,
   DYNAMIC_KIE_NODE_TYPE,
   SUBGRAPH_NODE_TYPE
@@ -99,6 +100,28 @@ describe("isSchemaDrivenDynamicNode", () => {
     expect(isSchemaDrivenDynamicNode(node({ type: SUBGRAPH_NODE_TYPE }))).toBe(
       true
     );
+  });
+
+  it("is true for every ComfyUI runner", () => {
+    expect([...DYNAMIC_COMFY_NODE_TYPES]).toEqual([
+      "lib.comfy.RunWorkflow",
+      "lib.comfy.RunWorkflowOnCloud"
+    ]);
+    for (const comfyType of DYNAMIC_COMFY_NODE_TYPES) {
+      expect(isSchemaDrivenDynamicNode(node({ type: comfyType }))).toBe(true);
+    }
+  });
+
+  it("is false for a lib.comfy node that is not a runner", () => {
+    expect(
+      isSchemaDrivenDynamicNode(node({ type: "lib.comfy.SomethingElse" }))
+    ).toBe(false);
+  });
+
+  it("is false for the worker runner until it adopts the output convention", () => {
+    expect(
+      isSchemaDrivenDynamicNode(node({ type: "lib.comfy.RunWorkflowOnWorker" }))
+    ).toBe(false);
   });
 
   it("is true once a model schema has resolved", () => {
