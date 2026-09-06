@@ -63,284 +63,297 @@ const SCRUB_PX = { step: 1, min: 0 };
 
 interface ClipMaskMatteProps {
   clip: TimelineClip;
+  /**
+   * Hides the Matte section. An `adjustment` clip is never a matte target —
+   * it treats the composite beneath it rather than drawing its own alpha —
+   * so its mask still limits where the treatment lands, but there is no
+   * matte to configure.
+   */
+  hideMatte?: boolean;
 }
 
-export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(({ clip }) => {
-  const patchClip = useTimelineStore((s) => s.patchClip);
-  const [maskOpen, setMaskOpen] = usePersistedFold("mask");
-  const [matteOpen, setMatteOpen] = usePersistedFold("matte");
+export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(
+  ({ clip, hideMatte = false }) => {
+    const patchClip = useTimelineStore((s) => s.patchClip);
+    const [maskOpen, setMaskOpen] = usePersistedFold("mask");
+    const [matteOpen, setMatteOpen] = usePersistedFold("matte");
 
-  // Every other clip is a candidate matte source; a clip cannot matte itself.
-  // Only the id and the name reach the option list, so a shallow-compared
-  // projection keeps a keyframe scrub on another clip from re-rendering this
-  // section.
-  const clipNames = useTimelineStore(
-    useShallow((s) =>
-      s.clips.flatMap((candidate) =>
-        candidate.id === clip.id
-          ? []
-          : [{ id: candidate.id, name: candidate.name }]
+    // Every other clip is a candidate matte source; a clip cannot matte itself.
+    // Only the id and the name reach the option list, so a shallow-compared
+    // projection keeps a keyframe scrub on another clip from re-rendering this
+    // section.
+    const clipNames = useTimelineStore(
+      useShallow((s) =>
+        s.clips.flatMap((candidate) =>
+          candidate.id === clip.id
+            ? []
+            : [{ id: candidate.id, name: candidate.name }]
+        )
       )
-    )
-  );
+    );
 
-  const clipRef = useRef(clip);
-  clipRef.current = clip;
+    const clipRef = useRef(clip);
+    clipRef.current = clip;
 
-  const patchMask = useCallback(
-    (patch: Partial<ClipMask>) => {
-      const current = clipRef.current.mask ?? DEFAULT_MASK;
-      patchClip(clipRef.current.id, { mask: { ...current, ...patch } });
-    },
-    [patchClip]
-  );
+    const patchMask = useCallback(
+      (patch: Partial<ClipMask>) => {
+        const current = clipRef.current.mask ?? DEFAULT_MASK;
+        patchClip(clipRef.current.id, { mask: { ...current, ...patch } });
+      },
+      [patchClip]
+    );
 
-  const handleMaskEnabled = useCallback(
-    (next: boolean) => {
-      patchClip(clipRef.current.id, {
-        mask: next ? (clipRef.current.mask ?? DEFAULT_MASK) : undefined
-      });
-    },
-    [patchClip]
-  );
+    const handleMaskEnabled = useCallback(
+      (next: boolean) => {
+        patchClip(clipRef.current.id, {
+          mask: next ? (clipRef.current.mask ?? DEFAULT_MASK) : undefined
+        });
+      },
+      [patchClip]
+    );
 
-  const patchMatte = useCallback(
-    (patch: Partial<ClipMatte>) => {
-      const current = clipRef.current.matte;
-      if (!current) return;
-      patchClip(clipRef.current.id, { matte: { ...current, ...patch } });
-    },
-    [patchClip]
-  );
+    const patchMatte = useCallback(
+      (patch: Partial<ClipMatte>) => {
+        const current = clipRef.current.matte;
+        if (!current) return;
+        patchClip(clipRef.current.id, { matte: { ...current, ...patch } });
+      },
+      [patchClip]
+    );
 
-  const handleMatteSourceChange = useCallback(
-    (value: string) => {
-      if (value === NO_MATTE) {
-        patchClip(clipRef.current.id, { matte: undefined });
-        return;
-      }
-      const current = clipRef.current.matte;
-      patchClip(clipRef.current.id, {
-        matte: {
-          sourceClipId: value,
-          mode: current?.mode ?? "alpha",
-          invert: current?.invert
+    const handleMatteSourceChange = useCallback(
+      (value: string) => {
+        if (value === NO_MATTE) {
+          patchClip(clipRef.current.id, { matte: undefined });
+          return;
         }
-      });
-    },
-    [patchClip]
-  );
+        const current = clipRef.current.matte;
+        patchClip(clipRef.current.id, {
+          matte: {
+            sourceClipId: value,
+            mode: current?.mode ?? "alpha",
+            invert: current?.invert
+          }
+        });
+      },
+      [patchClip]
+    );
 
-  // A stable callback per field, so an edit re-renders only the field whose
-  // value changed rather than every memoized control in the section.
-  const handleMaskKindChange = useCallback(
-    (kind: string) => patchMask({ kind: kind as ClipMask["kind"] }),
-    [patchMask]
-  );
-  const handleMaskPathCommit = useCallback(
-    (d: string) => patchMask({ d: d.trim() || undefined }),
-    [patchMask]
-  );
-  const handleMaskXCommit = useCallback(
-    (raw: string) => commitUnit(raw, (x) => patchMask({ x })),
-    [patchMask]
-  );
-  const handleMaskYCommit = useCallback(
-    (raw: string) => commitUnit(raw, (y) => patchMask({ y })),
-    [patchMask]
-  );
-  const handleMaskWidthCommit = useCallback(
-    (raw: string) => commitUnit(raw, (width) => patchMask({ width })),
-    [patchMask]
-  );
-  const handleMaskHeightCommit = useCallback(
-    (raw: string) => commitUnit(raw, (height) => patchMask({ height })),
-    [patchMask]
-  );
-  const handleMaskFeatherCommit = useCallback(
-    (raw: string) => {
-      const featherPx = Number(raw);
-      if (!Number.isFinite(featherPx) || featherPx < 0) return;
-      patchMask({ featherPx });
-    },
-    [patchMask]
-  );
-  const handleMaskInvertChange = useCallback(
-    (invert: boolean) => patchMask({ invert }),
-    [patchMask]
-  );
-  const handleMatteModeChange = useCallback(
-    (mode: string) => patchMatte({ mode: mode as ClipMatte["mode"] }),
-    [patchMatte]
-  );
-  const handleMatteInvertChange = useCallback(
-    (invert: boolean) => patchMatte({ invert }),
-    [patchMatte]
-  );
+    // A stable callback per field, so an edit re-renders only the field whose
+    // value changed rather than every memoized control in the section.
+    const handleMaskKindChange = useCallback(
+      (kind: string) => patchMask({ kind: kind as ClipMask["kind"] }),
+      [patchMask]
+    );
+    const handleMaskPathCommit = useCallback(
+      (d: string) => patchMask({ d: d.trim() || undefined }),
+      [patchMask]
+    );
+    const handleMaskXCommit = useCallback(
+      (raw: string) => commitUnit(raw, (x) => patchMask({ x })),
+      [patchMask]
+    );
+    const handleMaskYCommit = useCallback(
+      (raw: string) => commitUnit(raw, (y) => patchMask({ y })),
+      [patchMask]
+    );
+    const handleMaskWidthCommit = useCallback(
+      (raw: string) => commitUnit(raw, (width) => patchMask({ width })),
+      [patchMask]
+    );
+    const handleMaskHeightCommit = useCallback(
+      (raw: string) => commitUnit(raw, (height) => patchMask({ height })),
+      [patchMask]
+    );
+    const handleMaskFeatherCommit = useCallback(
+      (raw: string) => {
+        const featherPx = Number(raw);
+        if (!Number.isFinite(featherPx) || featherPx < 0) return;
+        patchMask({ featherPx });
+      },
+      [patchMask]
+    );
+    const handleMaskInvertChange = useCallback(
+      (invert: boolean) => patchMask({ invert }),
+      [patchMask]
+    );
+    const handleMatteModeChange = useCallback(
+      (mode: string) => patchMatte({ mode: mode as ClipMatte["mode"] }),
+      [patchMatte]
+    );
+    const handleMatteInvertChange = useCallback(
+      (invert: boolean) => patchMatte({ invert }),
+      [patchMatte]
+    );
 
-  const sourceOptions = useMemo(
-    () => [
-      { value: NO_MATTE, label: "None" },
-      ...clipNames.map((candidate) => ({
-        value: candidate.id,
-        label: candidate.name || candidate.id
-      }))
-    ],
-    [clipNames]
-  );
+    const sourceOptions = useMemo(
+      () => [
+        { value: NO_MATTE, label: "None" },
+        ...clipNames.map((candidate) => ({
+          value: candidate.id,
+          label: candidate.name || candidate.id
+        }))
+      ],
+      [clipNames]
+    );
 
-  const mask = clip.mask;
-  const matte = clip.matte;
+    const mask = clip.mask;
+    const matte = clip.matte;
 
-  return (
-    <>
-      <InspectorDivider />
-      <CollapsibleSection
-        title={
-          <InspectorSectionTitle
-            title="Mask"
-            icon={<CropFreeOutlinedIcon />}
-            checked={mask !== undefined}
-            onCheckedChange={handleMaskEnabled}
-          />
-        }
-        open={maskOpen}
-        onToggle={setMaskOpen}
-        unmountOnExit
-      >
-        <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
-          {mask === undefined ? (
-            <Caption color="muted">
-              Enable the mask to cut this clip to a rectangle, an ellipse or an
-              SVG path.
-            </Caption>
-          ) : (
-            <>
-              <InspectorRow label="Shape">
-                <InspectorSelect
-                  label="Mask shape"
-                  value={mask.kind}
-                  options={MASK_KINDS}
-                  onChange={handleMaskKindChange}
-                />
-              </InspectorRow>
-              {mask.kind === "path" ? (
-                <>
-                  <InspectorRow label="Path">
-                    <TextCommitField
-                      value={mask.d ?? ""}
-                      ariaLabel="Mask path data"
-                      placeholder="M 0 0 L 1 0 L 1 1 Z"
-                      onCommit={handleMaskPathCommit}
-                    />
-                  </InspectorRow>
-                  <Caption color="muted">
-                    SVG path data in normalized 0..1 space. M, L, C, Q and Z.
-                  </Caption>
-                </>
-              ) : (
-                <>
-                  <InspectorRow label="Position">
-                    <InspectorPillInput
-                      value={(mask.x ?? 0).toFixed(2)}
-                      minWidth={64}
-                      scrub={SCRUB_UNIT}
-                      onCommit={handleMaskXCommit}
-                      ariaLabel="Mask X"
-                    />
-                    <InspectorPillInput
-                      value={(mask.y ?? 0).toFixed(2)}
-                      minWidth={64}
-                      scrub={SCRUB_UNIT}
-                      onCommit={handleMaskYCommit}
-                      ariaLabel="Mask Y"
-                    />
-                  </InspectorRow>
-                  <InspectorRow label="Size">
-                    <InspectorPillInput
-                      value={(mask.width ?? 1).toFixed(2)}
-                      minWidth={64}
-                      scrub={SCRUB_UNIT}
-                      onCommit={handleMaskWidthCommit}
-                      ariaLabel="Mask width"
-                    />
-                    <InspectorPillInput
-                      value={(mask.height ?? 1).toFixed(2)}
-                      minWidth={64}
-                      scrub={SCRUB_UNIT}
-                      onCommit={handleMaskHeightCommit}
-                      ariaLabel="Mask height"
-                    />
-                  </InspectorRow>
-                </>
-              )}
-              <InspectorRow label="Feather">
-                <InspectorPillInput
-                  value={String(mask.featherPx ?? 0)}
-                  unit="px"
-                  scrub={SCRUB_PX}
-                  onCommit={handleMaskFeatherCommit}
-                  ariaLabel="Mask feather"
-                />
-              </InspectorRow>
-              <InspectorToggleRow
-                label="Invert"
-                checked={mask.invert === true}
-                onChange={handleMaskInvertChange}
-              />
-            </>
-          )}
-        </FlexColumn>
-      </CollapsibleSection>
-
-      <InspectorDivider />
-      <CollapsibleSection
-        title={
-          <InspectorSectionTitle
-            title="Matte"
-            icon={<FilterOutlinedIcon />}
-          />
-        }
-        open={matteOpen}
-        onToggle={setMatteOpen}
-        unmountOnExit
-      >
-        <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
-          <InspectorRow label="Source">
-            <InspectorSelect
-              label="Matte source clip"
-              value={matte?.sourceClipId ?? NO_MATTE}
-              options={sourceOptions}
-              onChange={handleMatteSourceChange}
-              grow
+    return (
+      <>
+        <InspectorDivider />
+        <CollapsibleSection
+          title={
+            <InspectorSectionTitle
+              title="Mask"
+              icon={<CropFreeOutlinedIcon />}
+              checked={mask !== undefined}
+              onCheckedChange={handleMaskEnabled}
             />
-          </InspectorRow>
-          {matte && (
-            <>
-              <InspectorRow label="Mode">
-                <InspectorSelect
-                  label="Matte mode"
-                  value={matte.mode}
-                  options={MATTE_MODES}
-                  onChange={handleMatteModeChange}
+          }
+          open={maskOpen}
+          onToggle={setMaskOpen}
+          unmountOnExit
+        >
+          <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
+            {mask === undefined ? (
+              <Caption color="muted">
+                Enable the mask to cut this clip to a rectangle, an ellipse or
+                an SVG path.
+              </Caption>
+            ) : (
+              <>
+                <InspectorRow label="Shape">
+                  <InspectorSelect
+                    label="Mask shape"
+                    value={mask.kind}
+                    options={MASK_KINDS}
+                    onChange={handleMaskKindChange}
+                  />
+                </InspectorRow>
+                {mask.kind === "path" ? (
+                  <>
+                    <InspectorRow label="Path">
+                      <TextCommitField
+                        value={mask.d ?? ""}
+                        ariaLabel="Mask path data"
+                        placeholder="M 0 0 L 1 0 L 1 1 Z"
+                        onCommit={handleMaskPathCommit}
+                      />
+                    </InspectorRow>
+                    <Caption color="muted">
+                      SVG path data in normalized 0..1 space. M, L, C, Q and Z.
+                    </Caption>
+                  </>
+                ) : (
+                  <>
+                    <InspectorRow label="Position">
+                      <InspectorPillInput
+                        value={(mask.x ?? 0).toFixed(2)}
+                        minWidth={64}
+                        scrub={SCRUB_UNIT}
+                        onCommit={handleMaskXCommit}
+                        ariaLabel="Mask X"
+                      />
+                      <InspectorPillInput
+                        value={(mask.y ?? 0).toFixed(2)}
+                        minWidth={64}
+                        scrub={SCRUB_UNIT}
+                        onCommit={handleMaskYCommit}
+                        ariaLabel="Mask Y"
+                      />
+                    </InspectorRow>
+                    <InspectorRow label="Size">
+                      <InspectorPillInput
+                        value={(mask.width ?? 1).toFixed(2)}
+                        minWidth={64}
+                        scrub={SCRUB_UNIT}
+                        onCommit={handleMaskWidthCommit}
+                        ariaLabel="Mask width"
+                      />
+                      <InspectorPillInput
+                        value={(mask.height ?? 1).toFixed(2)}
+                        minWidth={64}
+                        scrub={SCRUB_UNIT}
+                        onCommit={handleMaskHeightCommit}
+                        ariaLabel="Mask height"
+                      />
+                    </InspectorRow>
+                  </>
+                )}
+                <InspectorRow label="Feather">
+                  <InspectorPillInput
+                    value={String(mask.featherPx ?? 0)}
+                    unit="px"
+                    scrub={SCRUB_PX}
+                    onCommit={handleMaskFeatherCommit}
+                    ariaLabel="Mask feather"
+                  />
+                </InspectorRow>
+                <InspectorToggleRow
+                  label="Invert"
+                  checked={mask.invert === true}
+                  onChange={handleMaskInvertChange}
                 />
-              </InspectorRow>
-              <InspectorToggleRow
-                label="Invert"
-                checked={matte.invert === true}
-                onChange={handleMatteInvertChange}
-              />
-            </>
-          )}
-          <Caption color="muted">
-            The source clip drives this layer&apos;s alpha and stops drawing
-            itself.
-          </Caption>
-        </FlexColumn>
-      </CollapsibleSection>
-    </>
-  );
-});
+              </>
+            )}
+          </FlexColumn>
+        </CollapsibleSection>
+
+        {!hideMatte && (
+          <>
+            <InspectorDivider />
+            <CollapsibleSection
+              title={
+                <InspectorSectionTitle
+                  title="Matte"
+                  icon={<FilterOutlinedIcon />}
+                />
+              }
+              open={matteOpen}
+              onToggle={setMatteOpen}
+              unmountOnExit
+            >
+              <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
+                <InspectorRow label="Source">
+                  <InspectorSelect
+                    label="Matte source clip"
+                    value={matte?.sourceClipId ?? NO_MATTE}
+                    options={sourceOptions}
+                    onChange={handleMatteSourceChange}
+                    grow
+                  />
+                </InspectorRow>
+                {matte && (
+                  <>
+                    <InspectorRow label="Mode">
+                      <InspectorSelect
+                        label="Matte mode"
+                        value={matte.mode}
+                        options={MATTE_MODES}
+                        onChange={handleMatteModeChange}
+                      />
+                    </InspectorRow>
+                    <InspectorToggleRow
+                      label="Invert"
+                      checked={matte.invert === true}
+                      onChange={handleMatteInvertChange}
+                    />
+                  </>
+                )}
+                <Caption color="muted">
+                  The source clip drives this layer&apos;s alpha and stops
+                  drawing itself.
+                </Caption>
+              </FlexColumn>
+            </CollapsibleSection>
+          </>
+        )}
+      </>
+    );
+  }
+);
 
 /** Commit a 0..1 field, ignoring anything that is not a number in range. */
 function commitUnit(raw: string, apply: (value: number) => void): void {

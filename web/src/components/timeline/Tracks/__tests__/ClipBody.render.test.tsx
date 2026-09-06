@@ -159,6 +159,49 @@ describe("ClipBody filmstrip", () => {
   });
 });
 
+describe("ClipBody adjustment clips", () => {
+  it("labels the clip with its effect chain", () => {
+    renderBody(
+      makeClip({
+        mediaType: "adjustment",
+        name: "Adjustment",
+        effects: [
+          { id: "e1", type: "color", enabled: true },
+          { id: "e2", type: "blur", enabled: true }
+        ]
+      })
+    );
+    expect(screen.getByText("Adjustment · color, blur")).toBeTruthy();
+  });
+
+  it("falls back to the clip name when it has no effects yet", () => {
+    renderBody(makeClip({ mediaType: "adjustment", name: "Adjustment" }));
+    expect(screen.getByText("Adjustment")).toBeTruthy();
+  });
+
+  it("skips fades — it has no audible or visible signal of its own", () => {
+    renderBody(
+      makeClip({ mediaType: "adjustment", fadeInMs: 500, fadeOutMs: 500 })
+    );
+    expect(screen.queryByTestId("clip-fade-in-c1")).toBeNull();
+    expect(screen.queryByTestId("clip-fade-out-c1")).toBeNull();
+  });
+
+  it("draws no filmstrip, image fill or waveform", () => {
+    // useClipThumbnails/useAudioPeaks are mocked to a fixed value regardless
+    // of the URL passed in; what matters here is that an adjustment clip
+    // never computes a video/image/audio URL in the first place (its
+    // currentAssetId is never read), so nothing renders from it.
+    renderBody(makeClip({ mediaType: "adjustment", currentAssetId: "a" }));
+    expect(
+      screen
+        .getByTestId("clip-c1")
+        .querySelector("div[style*='background-image']")
+    ).toBeNull();
+    expect(screen.queryByTestId("clip-beyond-source-c1")).toBeNull();
+  });
+});
+
 describe("ClipBody trim handles", () => {
   it("keeps both grips on a wide clip", () => {
     renderBody(makeClip(), { widthPx: 120 });

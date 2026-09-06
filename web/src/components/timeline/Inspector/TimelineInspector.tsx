@@ -6,6 +6,7 @@ import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 
 import { DEFAULT_MODEL3D_STYLE, makeClip } from "@nodetool-ai/timeline";
 import { useShallow } from "zustand/react/shallow";
@@ -37,6 +38,7 @@ import {
   InspectorRow,
   InspectorSectionTitle,
   InspectorSelect,
+  InspectorSliderRow,
   InspectorStaticValue,
   InspectorToggleRow
 } from "./InspectorPrimitives";
@@ -49,7 +51,9 @@ import { ClipAdjustments } from "./ClipAdjustments";
 import { ClipCaptionStyle } from "./ClipCaptionStyle";
 import { ClipStoryboardLink } from "./ClipStoryboardLink";
 import { ClipAnimations } from "./ClipAnimations";
+import { ClipEffectsList } from "./ClipEffectsList";
 import { ClipGroupPanel } from "./ClipGroupPanel";
+import { ClipMaskMatte } from "./ClipMaskMatte";
 import {
   ClipCompositionInfo,
   ClipTimeRemapSection
@@ -112,6 +116,9 @@ export const TimelineInspector: React.FC = memo(() => {
   // and reloads via localStorage.
   const [mediaOpen, setMediaOpen] = usePersistedFold("media");
   const [timingOpen, setTimingOpen] = usePersistedFold("timing");
+  // Shared with ClipAdjustments's own Render section — same persisted key,
+  // so the fold state agrees whichever branch is showing it.
+  const [renderOpen, setRenderOpen] = usePersistedFold("render");
 
   const clip = useTimelineStore((s) =>
     clipId ? (findClipById(s.clips, clipId) ?? null) : null
@@ -239,6 +246,14 @@ export const TimelineInspector: React.FC = memo(() => {
     (next: boolean) => {
       if (!clipId) return;
       patchClip(clipId, { hidden: next });
+    },
+    [clipId, patchClip]
+  );
+
+  const handleAdjustmentOpacityChange = useCallback(
+    (value: number) => {
+      if (!clipId) return;
+      patchClip(clipId, { opacity: value });
     },
     [clipId, patchClip]
   );
@@ -400,6 +415,95 @@ export const TimelineInspector: React.FC = memo(() => {
           accentColor={accentColor}
         />
         <ClipGroupPanel clip={clip} onUngroup={handleUngroupChildren} />
+      </Panel>
+    );
+  }
+
+  // An adjustment draws nothing of its own: no transform, blend mode, media,
+  // generation or transition section applies. It keeps only what does — name
+  // and timing, opacity, its effect chain, the mask half of mask/matte (it is
+  // never a matte target), and its animations/keyframes.
+  if (clip.mediaType === "adjustment") {
+    return (
+      <Panel
+        background="default"
+        bordered={false}
+        css={containerStyles}
+        sx={inspectorPanelSx}
+      >
+        <ClipIdentityCard
+          name={clip.name}
+          metadata={identityMeta}
+          accentColor={accentColor}
+        />
+
+        <CollapsibleSection
+          title={
+            <InspectorSectionTitle
+              title="Timing"
+              icon={<ScheduleOutlinedIcon />}
+            />
+          }
+          open={timingOpen}
+          onToggle={setTimingOpen}
+          unmountOnExit
+        >
+          <FlexColumn css={sectionContentStyles(theme)}>
+            <InspectorRow label="Start">
+              <InspectorPillInput
+                value={formatTimecode(clip.startMs, fps)}
+                onCommit={handleStartCommit}
+                minWidth={112}
+                ariaLabel="Start timecode"
+              />
+            </InspectorRow>
+            <InspectorRow label="Duration">
+              <InspectorPillInput
+                value={(clip.durationMs / 1000).toFixed(2)}
+                unit="s"
+                scrub={SCRUB_DURATION}
+                onCommit={handleDurationCommit}
+                ariaLabel="Duration in seconds"
+              />
+            </InspectorRow>
+            <InspectorToggleRow
+              label="Hidden"
+              checked={!!clip.hidden}
+              onChange={handleHiddenChange}
+            />
+          </FlexColumn>
+        </CollapsibleSection>
+
+        <InspectorDivider />
+
+        <CollapsibleSection
+          title={
+            <InspectorSectionTitle title="Render" icon={<LayersOutlinedIcon />} />
+          }
+          open={renderOpen}
+          onToggle={setRenderOpen}
+          unmountOnExit
+        >
+          <FlexColumn css={sectionContentStyles(theme)}>
+            <InspectorSliderRow
+              label="Opacity"
+              min={0}
+              max={1}
+              step={0.01}
+              value={clip.opacity ?? 1}
+              display={`${Math.round((clip.opacity ?? 1) * 100)}%`}
+              onChange={handleAdjustmentOpacityChange}
+            />
+          </FlexColumn>
+        </CollapsibleSection>
+
+        <ClipEffectsList clip={clip} />
+
+        <ClipMaskMatte clip={clip} hideMatte />
+
+        <ClipAnimations clip={clip} />
+
+        <ClipKeyframes clip={clip} />
       </Panel>
     );
   }

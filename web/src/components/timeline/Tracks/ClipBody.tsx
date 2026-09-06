@@ -14,6 +14,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LoopOutlinedIcon from "@mui/icons-material/LoopOutlined";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import { resolveTempo } from "@nodetool-ai/timeline";
 import type { TimelineClip, ClipStatus } from "@nodetool-ai/timeline";
@@ -658,12 +659,23 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           return theme.vars.palette.secondary.main;
         case "midi":
           return theme.vars.palette.primary.main;
+        // Distinct from every other kind: it draws nothing of its own, it
+        // treats what is under it.
+        case "adjustment":
+          return theme.vars.palette.warning.main;
         case "image":
         case "video":
         default:
           return theme.vars.palette.info.main;
       }
     })();
+
+    // An adjustment clip has no name-worthy content of its own — its label is
+    // the effect chain it applies, e.g. "Adjustment · color, blur".
+    const displayName =
+      clip.mediaType === "adjustment" && clip.effects && clip.effects.length > 0
+        ? `${clip.name} · ${clip.effects.map((effect) => effect.type).join(", ")}`
+        : clip.name;
 
     const showDuration = widthPx >= COMPACT_THRESHOLD_PX;
     const durationLabel = formatClipDuration(clip.durationMs);
@@ -951,10 +963,16 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           </button>
         )}
 
-        {/* Header strip: type dot · name · duration */}
+        {/* Header strip: type dot · [icon] · name · duration */}
         <div css={clipHeaderRowStyles}>
           <span css={dotCss} aria-hidden />
-          <span css={nameCss}>{clip.name}</span>
+          {clip.mediaType === "adjustment" && (
+            <TuneOutlinedIcon
+              sx={{ fontSize: 12, flexShrink: 0, color: accent }}
+              aria-hidden
+            />
+          )}
+          <span css={nameCss}>{displayName}</span>
           {showDuration && (
             <span css={durationCss}>{durationLabel}</span>
           )}

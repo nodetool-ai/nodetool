@@ -107,12 +107,14 @@ export function ClipContextMenu({
         compact
         onClick={run(actions.toggleLock)}
       />
-      <MenuItemPrimitive
-        label="Replace clip…"
-        icon={<ImageIcon fontSize="small" />}
-        compact
-        onClick={run(actions.openReplace)}
-      />
+      {actions.canReplace && (
+        <MenuItemPrimitive
+          label="Replace clip…"
+          icon={<ImageIcon fontSize="small" />}
+          compact
+          onClick={run(actions.openReplace)}
+        />
+      )}
       {actions.canOpenInNodeEditor && (
         <MenuItemPrimitive
           label="Open in node editor"
