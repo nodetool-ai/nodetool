@@ -21,7 +21,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { BakeMode } from "../job.js";
 import { BlenderJobError } from "../runner.js";
 import { runBlenderJob } from "../run-job.js";
-import { rethrowBlenderError } from "./blender-error.js";
+import { runBlenderNodeStep } from "./blender-error.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import { blenderProgressHandler } from "./progress.js";
 
@@ -98,10 +98,7 @@ export class PrepareForEngineNode extends BaseNode {
   declare timeout: number;
 
   async process(context?: ProcessingContext): Promise<PrepareForEngineNodeOutputs> {
-    const bytes = await resolveModelBytes(
-      (this.model ?? {}) as { data?: Uint8Array | string; uri?: string },
-      context
-    );
+    const bytes = await resolveModelBytes(this.model, context);
     if (bytes.length === 0) {
       throw new Error(
         `${NODE_NAME}: model input is empty — connect a 3D model (GLB)`
@@ -111,66 +108,67 @@ export class PrepareForEngineNode extends BaseNode {
       8,
       Math.max(0, Math.round(Number(this.lod_count ?? 0)))
     );
-    const outputs: Record<string, string> = { model: "model.glb" };
+    const outputs: Record<string, string> = {};
+    outputs["model"] = "model.glb";
     for (let index = 1; index <= lodCount; index++) {
       outputs[`lod_${index}`] = `lod_${index}.glb`;
     }
 
     const timeoutMs = Math.max(1, Number(this.timeout ?? 600)) * 1000;
-    try {
-      const result = await runBlenderJob(
-        context,
-        bytes,
-        {
-          op: "prepare_for_engine",
-          params: {
-            target_faces: Math.min(
-              1000000,
-              Math.max(1, Math.round(Number(this.target_faces ?? 5000)))
-            ),
-            unwrap: this.unwrap !== false,
-            bake: String(this.bake ?? "none") as BakeMode,
-            bake_resolution: Math.min(
-              4096,
-              Math.max(16, Math.round(Number(this.bake_resolution ?? 1024)))
-            ),
-            lod_count: lodCount
+    return runBlenderNodeStep(
+      {
+        nodeName: NODE_NAME,
+        timeoutMessage: timeoutMessage(timeoutMs),
+        signal: context?.signal
+      },
+      async () => {
+        const result = await runBlenderJob(
+          context,
+          bytes,
+          {
+            op: "prepare_for_engine",
+            params: {
+              target_faces: Math.min(
+                1000000,
+                Math.max(1, Math.round(Number(this.target_faces ?? 5000)))
+              ),
+              unwrap: this.unwrap !== false,
+              bake: this.bake ?? "none",
+              bake_resolution: Math.min(
+                4096,
+                Math.max(16, Math.round(Number(this.bake_resolution ?? 1024)))
+              ),
+              lod_count: lodCount
+            }
+          },
+          outputs,
+          {
+            timeoutMs,
+            signal: context?.signal,
+            onProgress: blenderProgressHandler(context, this.__node_id)
           }
-        },
-        outputs,
-        {
-          timeoutMs,
-          signal: context?.signal,
-          onProgress: blenderProgressHandler(context, this.__node_id)
-        }
-      );
-      const model = result.outputs["model"];
-      if (!model || model.length === 0) {
-        throw new BlenderJobError(
-          "missing_output",
-          "Blender produced no model bytes."
         );
-      }
-      const lods: InlineModel3DRef[] = [];
-      for (let index = 1; index <= lodCount; index++) {
-        const raw = result.outputs[`lod_${index}`];
-        if (!raw || raw.length === 0) {
+        const model = result.outputs["model"];
+        if (!model || model.length === 0) {
           throw new BlenderJobError(
             "missing_output",
-            `Blender produced no bytes for LOD ${index}.`
+            "Blender produced no model bytes."
           );
         }
-        lods.push(modelRef(raw));
+        const lods: InlineModel3DRef[] = [];
+        for (let index = 1; index <= lodCount; index++) {
+          const raw = result.outputs[`lod_${index}`];
+          if (!raw || raw.length === 0) {
+            throw new BlenderJobError(
+              "missing_output",
+              `Blender produced no bytes for LOD ${index}.`
+            );
+          }
+          lods.push(modelRef(raw));
+        }
+        return { model: modelRef(model), lods };
       }
-      return { model: modelRef(model), lods };
-    } catch (err) {
-      rethrowBlenderError(
-        err,
-        NODE_NAME,
-        timeoutMessage(timeoutMs),
-        context?.signal
-      );
-    }
+    );
   }
 }
 

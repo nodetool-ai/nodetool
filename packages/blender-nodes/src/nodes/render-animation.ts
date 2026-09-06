@@ -20,10 +20,10 @@ import { prop } from "@nodetool-ai/node-sdk";
 import { bytesToBase64, resolveModelBytes } from "@nodetool-ai/nodes-utils";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
-import type { BlenderEngine, CameraMode, LightingPreset } from "../job.js";
+import type { CameraMode } from "../job.js";
 import { BlenderJobError } from "../runner.js";
 import { runBlenderJob } from "../run-job.js";
-import { rethrowBlenderError } from "./blender-error.js";
+import { runBlenderNodeStep } from "./blender-error.js";
 import { blenderProgressHandler } from "./progress.js";
 import { BlenderRenderBase } from "./render-base.js";
 
@@ -91,10 +91,7 @@ export class RenderAnimationNode extends BlenderRenderBase {
   declare timeout: number;
 
   async process(context?: ProcessingContext): Promise<RenderAnimationNodeOutputs> {
-    const bytes = await resolveModelBytes(
-      (this.model ?? {}) as { data?: Uint8Array | string; uri?: string },
-      context
-    );
+    const bytes = await resolveModelBytes(this.model, context);
     if (bytes.length === 0) {
       throw new Error(
         `${NODE_NAME}: model input is empty — connect a 3D model (GLB)`
@@ -107,67 +104,67 @@ export class RenderAnimationNode extends BlenderRenderBase {
     );
 
     const timeoutMs = Math.max(1, Number(this.timeout ?? 600)) * 1000;
-    try {
-      const result = await runBlenderJob(
-        context,
-        bytes,
-        {
-          op: "render_animation",
-          params: {
-            camera_mode: String(this.camera_mode ?? "auto") as CameraMode,
-            azimuth: Number(this.azimuth ?? 45),
-            elevation: Number(this.elevation ?? 25),
-            fov: Number(this.fov ?? 35),
-            zoom: Number(this.zoom ?? 1),
-            lighting: String(this.lighting ?? "studio") as LightingPreset,
-            light_intensity: Number(this.light_intensity ?? 1),
-            background_color: String(this.background_color ?? "#808080"),
-            transparent: this.transparent === true,
-            engine: String(this.engine ?? "eevee") as BlenderEngine,
-            samples: Math.max(1, Math.round(Number(this.samples ?? 16))),
-            denoise: this.denoise !== false,
-            resolution_percentage: Math.max(
-              1,
-              Math.round(Number(this.resolution_percentage ?? 100))
-            ),
-            width: Math.max(1, Math.round(Number(this.width ?? 1024))),
-            height: Math.max(1, Math.round(Number(this.height ?? 1024))),
-            frame_start: frameStart,
-            frame_end: frameEnd,
-            fps: Math.max(1, Math.round(Number(this.fps ?? 24))),
-            orbit_degrees: Number(this.orbit_degrees ?? 360)
+    return runBlenderNodeStep(
+      {
+        nodeName: NODE_NAME,
+        timeoutMessage: timeoutMessage(timeoutMs),
+        signal: context?.signal
+      },
+      async () => {
+        const result = await runBlenderJob(
+          context,
+          bytes,
+          {
+            op: "render_animation",
+            params: {
+              camera_mode: this.camera_mode ?? "auto",
+              azimuth: Number(this.azimuth ?? 45),
+              elevation: Number(this.elevation ?? 25),
+              fov: Number(this.fov ?? 35),
+              zoom: Number(this.zoom ?? 1),
+              lighting: this.lighting ?? "studio",
+              light_intensity: Number(this.light_intensity ?? 1),
+              background_color: String(this.background_color ?? "#808080"),
+              transparent: this.transparent === true,
+              engine: this.engine ?? "eevee",
+              samples: Math.max(1, Math.round(Number(this.samples ?? 16))),
+              denoise: this.denoise !== false,
+              resolution_percentage: Math.max(
+                1,
+                Math.round(Number(this.resolution_percentage ?? 100))
+              ),
+              width: Math.max(1, Math.round(Number(this.width ?? 1024))),
+              height: Math.max(1, Math.round(Number(this.height ?? 1024))),
+              frame_start: frameStart,
+              frame_end: frameEnd,
+              fps: Math.max(1, Math.round(Number(this.fps ?? 24))),
+              orbit_degrees: Number(this.orbit_degrees ?? 360)
+            }
+          },
+          { video: "anim.mp4" },
+          {
+            timeoutMs,
+            signal: context?.signal,
+            onProgress: blenderProgressHandler(context, this.__node_id)
           }
-        },
-        { video: "anim.mp4" },
-        {
-          timeoutMs,
-          signal: context?.signal,
-          onProgress: blenderProgressHandler(context, this.__node_id)
-        }
-      );
-      const mp4 = result.outputs["video"];
-      if (!mp4 || mp4.length === 0) {
-        throw new BlenderJobError(
-          "missing_output",
-          "Blender produced no video bytes."
         );
-      }
-      return {
-        video: {
-          type: "video",
-          uri: "",
-          asset_id: null,
-          data: bytesToBase64(mp4)
+        const mp4 = result.outputs["video"];
+        if (!mp4 || mp4.length === 0) {
+          throw new BlenderJobError(
+            "missing_output",
+            "Blender produced no video bytes."
+          );
         }
-      };
-    } catch (err) {
-      rethrowBlenderError(
-        err,
-        NODE_NAME,
-        timeoutMessage(timeoutMs),
-        context?.signal
-      );
-    }
+        return {
+          video: {
+            type: "video",
+            uri: "",
+            asset_id: null,
+            data: bytesToBase64(mp4)
+          }
+        };
+      }
+    );
   }
 }
 

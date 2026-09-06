@@ -18,12 +18,13 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { resolveModelBytes } from "@nodetool-ai/nodes-utils";
 import type { ModelBytesRefLike } from "@nodetool-ai/nodes-utils";
+import { isRecord, isString } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import type { ExportFormat } from "../job.js";
 import { BlenderJobError } from "../runner.js";
 import { runBlenderJob } from "../run-job.js";
-import { rethrowBlenderError } from "./blender-error.js";
+import { runBlenderNodeStep } from "./blender-error.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import { blenderProgressHandler } from "./progress.js";
 
@@ -39,11 +40,25 @@ type ExportModelNodeOutputs = {
   };
 };
 
-const FORMAT_FILES: Record<ExportFormat, { file: string; mime: string }> = {
+interface ExportTarget {
+  /** Bare file name the op writes, whose extension selects the exporter. */
+  file: string;
+  mime: string;
+}
+
+const FORMAT_FILES = {
   fbx: { file: "model.fbx", mime: "application/octet-stream" },
   obj: { file: "model.obj", mime: "text/plain" },
   usd: { file: "model.usd", mime: "application/octet-stream" }
-};
+} satisfies Record<ExportFormat, ExportTarget>;
+
+const EXPORT_FORMATS = ["fbx", "obj", "usd"] as const satisfies readonly ExportFormat[];
+
+/** The format a user typed, or null when it names no exporter. */
+function toExportFormat(value: string): ExportFormat | null {
+  const normalized = value.toLowerCase();
+  return EXPORT_FORMATS.find((format) => format === normalized) ?? null;
+}
 
 /** Blender ran past its wall clock: point at the knob that fixes it. */
 function timeoutMessage(timeoutMs: number): string {
@@ -85,23 +100,21 @@ export class ExportModelNode extends BaseNode {
   declare timeout: number;
 
   async process(context?: ProcessingContext): Promise<ExportModelNodeOutputs> {
-    const bytes = await resolveModelBytes(
-      (this.model ?? {}) as { data?: Uint8Array | string; uri?: string },
-      context
-    );
+    const bytes = await resolveModelBytes(this.model, context);
     if (bytes.length === 0) {
       throw new Error(
         `${NODE_NAME}: model input is empty — connect a 3D model (GLB)`
       );
     }
-    const format = String(this.format ?? "fbx").toLowerCase() as ExportFormat;
-    const target = FORMAT_FILES[format];
-    if (!target) {
+    const requested = this.format ?? "fbx";
+    const format = toExportFormat(requested);
+    if (format === null) {
       throw new BlenderJobError(
         "bad_job",
-        `${NODE_NAME}: unknown export format "${format}" — choose fbx, obj, or usd.`
+        `${NODE_NAME}: unknown export format "${requested}" — choose fbx, obj, or usd.`
       );
     }
+    const target = FORMAT_FILES[format];
     if (!context) {
       throw new BlenderJobError(
         "bad_job",
@@ -110,56 +123,54 @@ export class ExportModelNode extends BaseNode {
     }
 
     const timeoutMs = Math.max(1, Number(this.timeout ?? 600)) * 1000;
-    try {
-      const result = await runBlenderJob(
-        context,
-        bytes,
-        { op: "export_model", params: { format } },
-        { file: target.file },
-        {
-          timeoutMs,
-          signal: context?.signal,
-          onProgress: blenderProgressHandler(context, this.__node_id)
-        }
-      );
-      const raw = result.outputs["file"];
-      if (!raw || raw.length === 0) {
-        throw new BlenderJobError(
-          "missing_output",
-          "Blender produced no export bytes."
+    return runBlenderNodeStep(
+      {
+        nodeName: NODE_NAME,
+        timeoutMessage: timeoutMessage(timeoutMs),
+        signal: context.signal
+      },
+      async () => {
+        const result = await runBlenderJob(
+          context,
+          bytes,
+          { op: "export_model", params: { format } },
+          { file: target.file },
+          {
+            timeoutMs,
+            signal: context.signal,
+            onProgress: blenderProgressHandler(context, this.__node_id)
+          }
         );
-      }
-      const created = (await context.createAsset({
-        name: target.file,
-        contentType: target.mime,
-        content: raw
-      })) as Record<string, unknown> | null;
-      const assetId =
-        created && typeof created["id"] === "string"
-          ? (created["id"] as string)
-          : null;
-      if (!assetId) {
-        throw new BlenderJobError(
-          "bad_result",
-          "The export asset was created without an id."
-        );
-      }
-      return {
-        file: {
-          type: "asset",
-          uri: `asset://${assetId}`,
-          asset_id: assetId,
-          metadata: { format, mime: target.mime }
+        const raw = result.outputs["file"];
+        if (!raw || raw.length === 0) {
+          throw new BlenderJobError(
+            "missing_output",
+            "Blender produced no export bytes."
+          );
         }
-      };
-    } catch (err) {
-      rethrowBlenderError(
-        err,
-        NODE_NAME,
-        timeoutMessage(timeoutMs),
-        context?.signal
-      );
-    }
+        const created = await context.createAsset({
+          name: target.file,
+          contentType: target.mime,
+          content: raw
+        });
+        const assetId =
+          isRecord(created) && isString(created["id"]) ? created["id"] : null;
+        if (assetId === null) {
+          throw new BlenderJobError(
+            "bad_result",
+            "The export asset was created without an id."
+          );
+        }
+        return {
+          file: {
+            type: "asset",
+            uri: `asset://${assetId}`,
+            asset_id: assetId,
+            metadata: { format, mime: target.mime }
+          }
+        };
+      }
+    );
   }
 }
 
