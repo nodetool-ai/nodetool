@@ -21,12 +21,14 @@ import type { TimelineClip } from "@nodetool-ai/timeline";
 import { deriveIdleClipStatus } from "./useGenerateClip";
 import {
   durationBucketKey,
+  PENDING_TTL_MS,
   useDirectGenPendingStore
 } from "./directGenPending";
 import {
   isSettled,
   lookupGenerations
 } from "../../lib/websocket/lookupGenerations";
+import { watchGeneration } from "../../lib/websocket/generationWatch";
 
 interface DirectGenRpcResponse extends WebSocketMessage {
   type: "rpc_response";
@@ -163,14 +165,33 @@ export function subscribeDirectGen(
    * subscribe to a request that has already answered — a clip stuck rendering
    * over a render that was paid for and thrown away.
    */
-  sequenceId: string | null
+  sequenceId: string | null,
+  /**
+   * Poll the generation row until it settles, giving up at this timestamp.
+   * Both the live send and reattachment pass it.
+   *
+   * The subscription alone cannot recover a reconnect. `subscribe` is a
+   * client-side map with no replay, and the server writes the `rpc_response`
+   * to the socket that asked — so a reply that landed while that socket was
+   * gone reaches nobody, whether the browser reloaded or the connection just
+   * dropped and came back. Reading the row is what actually recovers those,
+   * and it also covers the window between a lookup and the subscription that
+   * follows it. The subscription only gets there faster, when the socket is
+   * the same one the request went out on.
+   */
+  watchUntil?: number
 ): () => void {
   clearInFlight(clipId);
   let unsubscribe: (() => void) | undefined;
+  let stopWatch: (() => void) | undefined;
   const cleanup = () => {
     if (unsubscribe) {
       unsubscribe();
       unsubscribe = undefined;
+    }
+    if (stopWatch) {
+      stopWatch();
+      stopWatch = undefined;
     }
     inFlight.delete(clipId);
   };
@@ -191,6 +212,26 @@ export function subscribeDirectGen(
     if (msg.type !== "rpc_response") return;
     settle(msg as DirectGenRpcResponse);
   });
+  if (watchUntil !== undefined) {
+    stopWatch = watchGeneration(requestId, watchUntil, (outcome) => {
+      stopWatch = undefined;
+      if (!outcome) {
+        // The window ran out with the row still running. Nothing more is
+        // coming that this client can see, so the clip offers Retry rather
+        // than rendering forever.
+        cleanup();
+        if (sequenceId) {
+          useDirectGenPendingStore.getState().settle(sequenceId, clipId);
+        }
+        fail(timeline, clipId);
+        return;
+      }
+      landDirectGen(timeline, clipId, requestId, sequenceId, {
+        assetIds: outcome.assetIds,
+        errored: outcome.status !== "completed"
+      });
+    });
+  }
   inFlight.set(clipId, cleanup);
   return cleanup;
 }
@@ -199,13 +240,14 @@ export function subscribeDirectGen(
  * Recover the requests this sequence had in flight when it was closed
  * (criterion 6).
  *
- * Two cases, and the order matters. A request whose socket is gone — the
- * browser was reloaded — can never be recovered by subscribing: its
- * `rpc_response` was written to that socket and dropped. So every entry is
- * looked up against its generation row first, and one that already settled
- * lands from the row. Only what the row still calls `running` is subscribed,
- * which is the case the socket outlived the sequence and the reply is
- * genuinely still coming.
+ * The generation row is authoritative here, not the socket. A reply that
+ * landed while the browser was shut was written to a socket that no longer
+ * exists, and `subscribe` has no replay — so an entry is looked up against its
+ * row, and one that already settled lands from the row. An entry the row still
+ * calls `running` is *both* subscribed and polled: the subscription wins when
+ * the socket outlived the sequence, and the poll is what gets there at all
+ * after a reload, or when the reply arrives in the window between the lookup
+ * and the subscription.
  *
  * Clips the sequence no longer has, and entries too old to be answered, are
  * dropped rather than recovered either way.
@@ -245,10 +287,18 @@ export async function reattachSequenceJobs(
       });
       continue;
     }
-    // Still running, or no row to read — the reply can still arrive, so the
-    // clip goes back to `generating` and the subscription is worth having.
+    // Still running, or no row to read yet. The clip goes back to
+    // `generating`, and the row is watched until it settles — bounded by what
+    // is left of this entry's own window, after which the clip fails and
+    // offers Retry rather than rendering forever.
     timeline.getState().patchClip(job.clipId, { status: "generating" });
-    subscribeDirectGen(timeline, job.clipId, job.requestId, sequenceId);
+    subscribeDirectGen(
+      timeline,
+      job.clipId,
+      job.requestId,
+      sequenceId,
+      job.startedAt + PENDING_TTL_MS
+    );
   }
 }
 
@@ -317,11 +367,17 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
       // open when it lands.
       const sequenceId = timeline.getState().sequenceId;
       timeline.getState().patchClip(clipId, { status: "generating" });
+      // Watched from the send, not only from a reattach. A socket that drops
+      // and reconnects without a reload — a network blip — leaves the reply
+      // addressed to a server session that is gone, exactly as a reload does,
+      // and nothing re-runs reattachment in that case. The row is the
+      // authority everywhere; the subscription just gets there faster.
       const cleanup = subscribeDirectGen(
         timeline,
         clipId,
         requestId,
-        sequenceId
+        sequenceId,
+        Date.now() + PENDING_TTL_MS
       );
       if (sequenceId) {
         // Recorded before the send, so a reply that arrives after the tab is

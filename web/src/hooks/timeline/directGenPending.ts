@@ -5,18 +5,19 @@
  * A direct `generate_media` reply arrives on one open socket and the
  * subscription dies with the sequence, so a clip generated while the timeline
  * was closed would sit as a placeholder forever. The entries here name the
- * request ids, so opening the sequence re-subscribes and a reply that lands
- * afterwards still becomes the clip's asset. This mirrors the storyboard's
- * pending-job list rather than inventing a second scheme.
+ * request ids, so opening the sequence recovers them and a render that finished
+ * while it was closed still becomes the clip's asset. This mirrors the
+ * storyboard's pending-job list rather than inventing a second scheme.
  *
- * Re-subscribing alone only recovers a request whose socket outlived the
- * sequence. An `rpc_response` carries no `job_id` and no `thread_id`, so the
- * server writes it to the socket that asked and drops it if that socket has
- * gone: a reply that landed while the browser was shut reached nobody, and no
- * later subscription can produce it. So the ids here are also what the entries
- * are looked up by — `lookupGenerations` reads the generation row, which
- * outlives the socket, and a request that settled while this client was away
- * lands from the row instead.
+ * A subscription cannot do the recovering. `subscribe` is a client-side map
+ * with no replay, and an `rpc_response` carries no `job_id` and no `thread_id`,
+ * so the server writes it to the socket that asked and drops it if that socket
+ * has gone: a reply that landed while the browser was shut reached nobody, and
+ * a handler installed afterwards has nothing to receive. So the ids here are
+ * what the generation rows are read by — `lookupGenerations` for the ones
+ * already settled, `watchGeneration` to keep asking about the rest. The row
+ * outlives the socket; the subscription only gets there faster when the socket
+ * is the same one.
  *
  * D14 — remaining time is shown only where it was measured. Finished requests
  * are filed per model and kind and read back as a median; a bucket with no
@@ -89,7 +90,7 @@ interface DirectGenPendingState {
   remember: (sequenceId: string, job: PendingClipJob) => void;
   /** Drop a clip's entry and, when it finished, file how long it took. */
   settle: (sequenceId: string, clipId: string, finishedAt?: number) => void;
-  /** The entries still worth re-subscribing to, with the stale ones dropped. */
+  /** The entries still worth recovering, with the stale ones dropped. */
   restore: (sequenceId: string) => PendingClipJob[];
 }
 

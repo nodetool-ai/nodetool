@@ -32,6 +32,7 @@ import {
   __resetStoryboardSubscriptionsForTests,
   type PendingShotJob
 } from "../StoryboardGenerationStore";
+import { __resetGenerationWatchesForTests } from "../../../lib/websocket/generationWatch";
 import { useStoryboardStore } from "../StoryboardStore";
 import { useNotificationStore } from "../../NotificationStore";
 
@@ -87,6 +88,9 @@ beforeEach(() => {
   // the case where the socket outlived the board.
   lookupMock.mockClear();
   lookupMock.mockResolvedValue(new Map());
+  // The watcher is module state: a poll left running by one case would fire
+  // into the next one's board.
+  __resetGenerationWatchesForTests();
   useNotificationStore.getState().clearNotifications();
 });
 
@@ -327,17 +331,49 @@ describe("a board reopened after a reload", () => {
     ).toBe("failed");
   });
 
-  it("still subscribes when the row says the render is running", async () => {
-    const target = reloadedWithPending("s-reload-running", "req-running");
-    lookupMock.mockResolvedValue(
-      settled("req-running", { status: "running", assetIds: [] })
-    );
+  // Never fires a handler by hand: after a reload no frame can arrive on the
+  // subscription at all, because the reply went to a socket that no longer
+  // exists. The row being read is the only thing that can settle this.
+  it("settles from the row when no reply can ever arrive on the socket", async () => {
+    jest.useFakeTimers();
+    try {
+      const target = reloadedWithPending("s-reload-running", "req-running");
+      lookupMock.mockResolvedValue(
+        settled("req-running", { status: "running", assetIds: [] })
+      );
 
-    await reattachBoardJobs(BOARD);
+      await reattachBoardJobs(BOARD);
+      expect(boardShot(target.id)?.status).toBe("keyframe_generating");
 
-    expect(
-      useStoryboardGenerationStore.getState().shotJobs[target.id]?.jobId
-    ).toBe("req-running");
-    expect(boardShot(target.id)?.status).toBe("keyframe_generating");
+      // The render finishes server-side; its reply is dropped on the dead
+      // socket, and the row is the only record of it.
+      lookupMock.mockResolvedValue(settled("req-running"));
+      await jest.advanceTimersByTimeAsync(5_000);
+
+      const shotNow = boardShot(target.id);
+      expect(shotNow?.keyframe?.asset_id).toBe("asset-recovered");
+      expect(shotNow?.status).toBe("keyframe_ready");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("fails the shot when the row never settles inside its window", async () => {
+    jest.useFakeTimers();
+    try {
+      const target = reloadedWithPending("s-reload-stuck", "req-stuck");
+      lookupMock.mockResolvedValue(
+        settled("req-stuck", { status: "running", assetIds: [] })
+      );
+
+      await reattachBoardJobs(BOARD);
+      await jest.advanceTimersByTimeAsync(31 * 60 * 1000);
+
+      expect(
+        useStoryboardGenerationStore.getState().shotJobs[target.id]?.status
+      ).toBe("failed");
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

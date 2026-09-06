@@ -35,6 +35,7 @@ import {
   isSettled,
   lookupGenerations
 } from "../../lib/websocket/lookupGenerations";
+import { watchGeneration } from "../../lib/websocket/generationWatch";
 import { useNotificationStore } from "../NotificationStore";
 import { useStoryboardStore } from "./StoryboardStore";
 import { syncShotClipToTimeline } from "./timelineSync";
@@ -240,7 +241,7 @@ const deriveMembership = (
  * localStorage. Longer than the slowest video render, short enough that a
  * stale entry does not show a card as rendering the next morning.
  */
-const PENDING_JOB_TTL_MS = 30 * 60 * 1000;
+export const PENDING_JOB_TTL_MS = 30 * 60 * 1000;
 
 /** Second bound: one entry per shot, and a board keeps at most this many. */
 const MAX_PENDING_JOBS_PER_BOARD = 64;
@@ -815,10 +816,20 @@ const handleShotJobMessage = (
 /**
  * Subscribe to a direct-generation request (`generate_media` RPC) keyed by
  * its request id. No reconnect handshake — the reply is one rpc_response.
+ *
+ * `watchUntil` additionally polls the generation row until it settles, giving
+ * up at that timestamp. Both the live send and reattachment pass it.
+ * The subscription alone cannot recover a reconnect: `subscribe` is a
+ * client-side map with no replay, and the server writes the reply to the
+ * socket that asked, so one that landed while that socket was gone reaches
+ * nobody — whether the browser reloaded or the connection just dropped and
+ * came back. Reading the row is what recovers those; the subscription only
+ * gets there faster, when the socket is the same one.
  */
 export const subscribeDirectShotJob = async (
   requestId: string,
-  context: DirectShotJobContext
+  context: DirectShotJobContext,
+  watchUntil?: number
 ): Promise<void> => {
   if (jobSubscriptions.has(requestId)) {
     jobContexts.set(requestId, context);
@@ -829,20 +840,47 @@ export const subscribeDirectShotJob = async (
   const unsubscribe = globalWebSocketManager.subscribe(requestId, (message) =>
     handleShotJobMessage(requestId, message)
   );
-  jobSubscriptions.set(requestId, unsubscribe);
+  if (watchUntil === undefined) {
+    jobSubscriptions.set(requestId, unsubscribe);
+    return;
+  }
+  const stopWatch = watchGeneration(requestId, watchUntil, (outcome) => {
+    if (!outcome) {
+      // The window ran out with the row still running. Nothing more is coming
+      // that this client can see, so the card offers Retry rather than
+      // rendering forever.
+      unsubscribeShotJob(requestId);
+      useStoryboardGenerationStore
+        .getState()
+        .updateJobStatus(requestId, "failed", {
+          errorMessage: "Generation did not report back in time."
+        });
+      return;
+    }
+    settleDirectShotJob(requestId, jobContexts.get(requestId) ?? context, {
+      assetIds: outcome.assetIds,
+      errorMessage: outcome.status === "completed" ? "" : (outcome.error ?? "")
+    });
+  });
+  // Torn down together: whichever settles first, the other must stop.
+  jobSubscriptions.set(requestId, () => {
+    stopWatch();
+    unsubscribe();
+  });
 };
 
 /**
  * Reattach a board's in-flight renders on open (PRD § 7.4, R4).
  *
  * A batch is a set of direct requests, and closing the board tore their
- * subscriptions down. Two cases, and the order matters. A request whose socket
- * is gone — the browser was reloaded — can never be recovered by subscribing:
- * its `rpc_response` was written to that socket and dropped. So every entry is
- * looked up against its generation row first, and one that already settled
- * lands from the row. Only what the row still calls `running` is subscribed,
- * which is the case the socket outlived the board and the reply is genuinely
- * still coming.
+ * subscriptions down. The generation row is authoritative here, not the
+ * socket: a reply that landed while the browser was shut was written to a
+ * socket that no longer exists, and `subscribe` has no replay. So every entry
+ * is looked up against its row, and one that already settled lands from the
+ * row. An entry the row still calls `running` is both subscribed and polled —
+ * the subscription wins when the socket outlived the board, and the poll is
+ * what gets there at all after a reload, or when the reply arrives in the
+ * window between the lookup and the subscription.
  *
  * Entries older than {@link PENDING_JOB_TTL_MS}, and entries for shots the
  * board no longer has, are dropped by `restorePendingJobs` rather than
@@ -876,7 +914,13 @@ export const reattachBoardJobs = async (boardId: string): Promise<void> => {
         });
         return Promise.resolve();
       }
-      return subscribeDirectShotJob(job.jobId, context);
+      // Watched as well as subscribed: after a reload the reply went to a
+      // socket that no longer exists, so the row is what settles this.
+      return subscribeDirectShotJob(
+        job.jobId,
+        context,
+        job.startedAt + PENDING_JOB_TTL_MS
+      );
     })
   );
 };

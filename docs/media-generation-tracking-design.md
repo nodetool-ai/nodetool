@@ -233,12 +233,29 @@ socket that no longer exists.
 The row outlives the socket. `origin.request_id` puts the client's own request
 id on it, indexed as `(user_id, request_id)`, and `lookup_generations` answers
 `{status, asset_ids, error}` for a batch of them — scoped to the caller's rows
-and capped at `MAX_REQUEST_ID_LOOKUP`. The storyboard board and the timeline
-sequence both resolve their persisted entries through it on open and subscribe
-only to what the row still calls `running`.
+and capped at `MAX_REQUEST_ID_LOOKUP`.
+
+**The row is the recovery mechanism; the subscription is only an optimization.**
+A subscription cannot recover a reconnect at all: `GlobalWebSocketManager.subscribe`
+is a client-side map with no replay buffer, so a reply written to a socket that
+no longer exists reaches nobody, and a handler installed afterwards has nothing
+to receive. Re-subscribing to a `running` request would leave the surface
+waiting forever. So every in-flight request is *watched* — `watchGeneration`
+polls `lookup_generations` for all outstanding ids together, backing off from
+2s to 15s, until each row reaches a terminal state or its 30-minute window
+runs out (after which the surface fails and offers Retry rather than rendering
+forever). The subscription runs alongside and wins when it can, which is only
+when the socket is the same one the request went out on.
+
+Watching starts at the send, not just at reattachment, because a socket that
+drops and reconnects without a page reload leaves the reply addressed to a
+server session that is gone in exactly the same way — and nothing re-runs
+reattachment in that case. It also closes the window between a lookup and the
+subscription that follows it, where a reply arriving in between would reach no
+handler.
 
 An id with no row comes back absent, which the client reads as "still unknown"
-and subscribes for: the row may not be open yet, and reading unknown as failed
+and keeps watching: the row may not be open yet, and reading unknown as failed
 would discard a render still in flight.
 
 ### 5.2 Message changes

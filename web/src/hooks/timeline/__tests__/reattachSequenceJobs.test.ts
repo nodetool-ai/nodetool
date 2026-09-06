@@ -29,6 +29,7 @@ jest.mock("../../../lib/websocket/lookupGenerations", () => ({
   lookupGenerations: (ids: readonly string[]) => lookupMock(ids)
 }));
 
+import { __resetGenerationWatchesForTests } from "../../../lib/websocket/generationWatch";
 import { createTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useDirectGenPendingStore } from "../directGenPending";
 import { reattachSequenceJobs } from "../useTimelineDirectGenJob";
@@ -85,6 +86,9 @@ beforeEach(() => {
   // falls through to a subscription.
   lookupMock.mockClear();
   lookupMock.mockResolvedValue(new Map());
+  // The watcher is module state: a poll left running by one case would fire
+  // into the next one's store.
+  __resetGenerationWatchesForTests();
   useDirectGenPendingStore.setState({ pending: {}, durationSamples: {} });
 });
 
@@ -307,18 +311,74 @@ describe("reattach recovers a render its socket never delivered", () => {
     expect(subscribeMock).not.toHaveBeenCalled();
   });
 
-  it("subscribes when the row still says running, so the reply can land", async () => {
+  // The case the old version of this test got wrong. It fired the handler by
+  // hand, which proved the subscription was installed and nothing else — after
+  // a reload no frame can arrive on it at all, because the reply went to a
+  // socket that no longer exists. So this one never touches `handlers`: the
+  // only way the clip can settle is the row being read.
+  it("settles from the row when no reply can ever arrive on the socket", async () => {
+    jest.useFakeTimers();
+    try {
+      const store = seedSequence();
+      rememberOne();
+      lookupMock.mockResolvedValue(
+        settled("req-1", { status: "running", assetIds: [] })
+      );
+
+      await reattachSequenceJobs(store, "seq-1");
+      expect(store.getState().clips.find((c) => c.id === "c1")?.status).toBe(
+        "generating"
+      );
+
+      // The render finishes server-side. Its reply is written to the dead
+      // socket and dropped; the row is the only record of it.
+      lookupMock.mockResolvedValue(settled("req-1"));
+      await jest.advanceTimersByTimeAsync(5_000);
+
+      const clip = store.getState().clips.find((c) => c.id === "c1");
+      expect(clip?.currentAssetId).toBe("asset-9");
+      expect(clip?.status).toBe("generated");
+      expect(
+        useDirectGenPendingStore.getState().pending["seq-1"] ?? []
+      ).toHaveLength(0);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("fails the clip when the row never settles inside its window", async () => {
+    jest.useFakeTimers();
+    try {
+      const store = seedSequence();
+      rememberOne();
+      lookupMock.mockResolvedValue(
+        settled("req-1", { status: "running", assetIds: [] })
+      );
+
+      await reattachSequenceJobs(store, "seq-1");
+      // Past the entry's 30-minute window with the row still running.
+      await jest.advanceTimersByTimeAsync(31 * 60 * 1000);
+
+      expect(store.getState().clips.find((c) => c.id === "c1")?.status).toBe(
+        "failed"
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("still lets a live socket's reply settle first, without waiting to poll", async () => {
     const store = seedSequence();
     rememberOne();
-    lookupMock.mockResolvedValue(settled("req-1", { status: "running", assetIds: [] }));
+    lookupMock.mockResolvedValue(
+      settled("req-1", { status: "running", assetIds: [] })
+    );
 
     await reattachSequenceJobs(store, "seq-1");
-
-    expect(store.getState().clips.find((c) => c.id === "c1")?.status).toBe(
-      "generating"
-    );
     expect(subscribeMock).toHaveBeenCalledWith("req-1", expect.any(Function));
 
+    // The board was closed and reopened in one page session: same socket, so
+    // the reply does arrive, and it must not wait on a poll interval.
     handlers.get("req-1")?.({
       type: "rpc_response",
       request_id: "req-1",
