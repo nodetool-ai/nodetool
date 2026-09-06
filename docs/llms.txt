@@ -57,7 +57,9 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Local vs Cloud]({{ site.url }}/models): When to use which.
 - [Provider Reference]({{ site.url }}/providers): Per-provider configuration.
 - [HuggingFace]({{ site.url }}/huggingface): Models from the Hub.
-- [ComfyUI]({{ site.url }}/comfyui): Run ComfyUI workflows directly or over a GPU worker.
+- [ComfyUI]({{ site.url }}/comfyui): Run ComfyUI workflows directly, over a GPU worker, or on Comfy Cloud.
+- [ComfyUI Setup]({{ site.url }}/comfyui-setup): Getting a ComfyUI endpoint NodeTool can reach, and what must be installed on it.
+- [ComfyUI Recipes]({{ site.url }}/comfyui-recipes): Composing a ComfyUI node with the rest of a graph, and running one headless.
 - [Models Manager]({{ site.url }}/models-manager): Download and manage local models.
 
 ## Examples
