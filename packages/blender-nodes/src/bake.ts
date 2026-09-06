@@ -10,10 +10,10 @@
  * run of consecutive scene frames.
  *
  * The mux is ffmpeg and not Blender's own writer, which is what
- * `render_animation`'s video mode uses. Two reasons: the sequence is the
- * shared producer for the alpha bake (T13), and Blender cannot write VP9 with
- * an alpha channel. ffmpeg is therefore a host binary this path needs and the
- * video mode does not; a machine without it fails here with the binary named.
+ * `render_animation`'s video mode uses. Two reasons: one sequence feeds both
+ * bake formats, and Blender cannot write VP9 with an alpha channel. ffmpeg is
+ * therefore a host binary this path needs and the video mode does not; a
+ * machine without it fails here with the binary named.
  */
 
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -57,9 +57,48 @@ export interface Model3DBakeOptions {
   onProgress?: (frame: number, total: number) => void;
 }
 
+/** The container, encoder and pixel format one bake is written as. */
+export interface BakeVideoFormat {
+  /** File extension of the muxed bytes, without the dot. */
+  extension: "mp4" | "webm";
+  mimeType: string;
+  /** ffmpeg output arguments: the encoder and its pixel format. */
+  encoderArgs: readonly string[];
+}
+
+/**
+ * How a bake is encoded: opaque to MP4/H.264 `yuv420p`, transparent to WebM
+ * VP9 `yuva420p` (design §D6).
+ *
+ * The alpha pair is the one `resolveTimelineOutput({ format: "webm", alpha:
+ * true })` already declares for a timeline render, copied rather than imported
+ * because `@nodetool-ai/blender-nodes` does not depend on
+ * `@nodetool-ai/video-nodes` and a bake needs four strings from it, not a
+ * package. `packages/agents/tests/timeline-bake-format.test.ts` depends on both
+ * and fails when the two drift.
+ */
+export function bakeVideoFormat(alpha: boolean): BakeVideoFormat {
+  if (alpha) {
+    return {
+      extension: "webm",
+      mimeType: "video/webm",
+      // VP9 is the only WebM video codec with an alpha plane, which is why the
+      // format pins the codec instead of taking an override.
+      encoderArgs: ["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p"]
+    };
+  }
+  return {
+    extension: "mp4",
+    mimeType: "video/mp4",
+    encoderArgs: ["-c:v", "libx264", "-pix_fmt", "yuv420p"]
+  };
+}
+
 export interface Model3DBakeResult {
-  /** MP4/H.264 `yuv420p` bytes. */
+  /** The muxed bytes, in {@link Model3DBakeResult.format}. */
   video: Uint8Array;
+  /** What those bytes are, so the caller names and stores them correctly. */
+  format: BakeVideoFormat;
   stats: BlenderResultStats;
 }
 
@@ -171,16 +210,51 @@ export async function renderModel3DBakeFrames(
 }
 
 /**
- * Mux a PNG sequence into MP4/H.264 `yuv420p` through ffmpeg's image2 demuxer.
+ * The ffmpeg call that turns the numbered PNGs into one video.
+ *
+ * Pure, because the arguments are the whole difference between the two bakes
+ * and a test should not need ffmpeg to read them.
+ */
+export function bakeMuxArgs(
+  format: BakeVideoFormat,
+  fps: number,
+  output: string
+): string[] {
+  const rate = String(Math.max(1, Math.round(fps)));
+  return [
+    "-y",
+    "-framerate",
+    rate,
+    "-start_number",
+    "1",
+    "-i",
+    "frame_%06d.png",
+    ...format.encoderArgs,
+    // Every timeline decoder seeks this video, and a seek lands on the
+    // preceding keyframe: one per second keeps a scrub inside a frame or two
+    // of where it was asked for.
+    "-g",
+    rate,
+    // MP4 keeps its index at the front so a decoder can seek before the whole
+    // file has arrived; WebM has no such flag and needs none.
+    ...(format.extension === "mp4" ? ["-movflags", "+faststart"] : []),
+    output
+  ];
+}
+
+/**
+ * Mux a PNG sequence into one video through ffmpeg's image2 demuxer.
  *
  * The frames are written under the workspace's scratch directory rather than
- * piped: image2 reads a numbered pattern, and a file per frame is also what
- * the alpha encode (T13) will hand to a different codec unchanged.
+ * piped: image2 reads a numbered pattern, and the same files reach either
+ * encoder unchanged — an alpha bake differs only in the arguments
+ * {@link bakeVideoFormat} names, because the PNGs already carry the channel.
  */
-export async function muxPngSequenceToMp4(
+export async function muxPngSequenceToVideo(
   context: ProcessingContext,
   frames: readonly Uint8Array[],
   fps: number,
+  format: BakeVideoFormat,
   options: Model3DBakeOptions
 ): Promise<Uint8Array> {
   const workspace = context.workspace;
@@ -197,28 +271,8 @@ export async function muxPngSequenceToMp4(
     for (const [index, bytes] of frames.entries()) {
       await writeFile(path.join(cwd, `${frameName(index)}.png`), bytes);
     }
-    const output = "bake.mp4";
-    const argv = [
-      "-y",
-      "-framerate",
-      String(Math.max(1, Math.round(fps))),
-      "-start_number",
-      "1",
-      "-i",
-      "frame_%06d.png",
-      "-c:v",
-      "libx264",
-      "-pix_fmt",
-      "yuv420p",
-      // Every timeline decoder seeks this video, and a seek lands on the
-      // preceding keyframe: one per second keeps a scrub inside a frame or
-      // two of where it was asked for.
-      "-g",
-      String(Math.max(1, Math.round(fps))),
-      "-movflags",
-      "+faststart",
-      output
-    ];
+    const output = `bake.${format.extension}`;
+    const argv = bakeMuxArgs(format, fps, output);
     const result = await runHostBinary("ffmpeg", argv, {
       cwd,
       timeoutMs: options.timeoutMs,
@@ -237,19 +291,32 @@ export async function muxPngSequenceToMp4(
   }
 }
 
-/** Render the sampled sequence and mux it: the whole opaque bake (§D6). */
-export async function bakeModel3DClipToMp4(
+/**
+ * Render the sampled sequence and mux it: the whole bake (§D6).
+ *
+ * Whether it carries alpha is read off the frames' own camera rather than
+ * taken as a second field: `transparent` is what Blender rendered the film
+ * under, so a separate flag could only ever disagree with the pixels.
+ */
+export async function bakeModel3DClipToVideo(
   context: ProcessingContext,
   modelBytes: Uint8Array,
   request: Model3DBakeRequest,
   options: Model3DBakeOptions
 ): Promise<Model3DBakeResult> {
+  const format = bakeVideoFormat(request.cameras[0]?.transparent === true);
   const { frames, stats } = await renderModel3DBakeFrames(
     context,
     modelBytes,
     request,
     options
   );
-  const video = await muxPngSequenceToMp4(context, frames, request.fps, options);
-  return { video, stats };
+  const video = await muxPngSequenceToVideo(
+    context,
+    frames,
+    request.fps,
+    format,
+    options
+  );
+  return { video, format, stats };
 }

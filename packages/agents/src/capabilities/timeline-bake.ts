@@ -5,15 +5,18 @@
  * The op in `@nodetool-ai/timeline` decides *whether* a bake may run and what
  * hash it is stored under; this is the half that needs bytes and a renderer.
  * It reads the clip's glTF, asks the timeline for one model time and one
- * camera per output frame, hands both to Blender, and persists the muxed MP4
+ * camera per output frame, hands both to Blender, and persists the muxed video
  * as a generation, so a bake shows up in the run's cost and asset trail
- * exactly like `render_model3d` does.
+ * exactly like `render_model3d` does. A transparent style is muxed to WebM VP9
+ * `yuva420p` and an opaque one to MP4/H.264, which is the whole difference
+ * between the two bakes on this side.
  */
 
 import { randomUUID } from "node:crypto";
 
 import {
-  bakeModel3DClipToMp4,
+  bakeModel3DClipToVideo,
+  bakeVideoFormat,
   type BakeCameraParams,
   type Model3DBakeRequest
 } from "@nodetool-ai/blender-nodes";
@@ -78,6 +81,23 @@ export async function bakeModel3DClipOnServer(
     model3dBakeCameraParams(camera, style, BAKE_RENDER)
   );
 
+  const bakeRequest: Model3DBakeRequest = {
+    frameTimes: samples.frameTimes,
+    cameras,
+    width: sequence.width,
+    height: sequence.height,
+    fps: sequence.fps
+  };
+  // Absent leaves every animation playing, which is what a clip that names
+  // none asks for.
+  if (style.animation.clipName !== undefined) {
+    bakeRequest.animationName = style.animation.clipName;
+  }
+  // The asset is named and typed before the render runs, and a transparent
+  // style is a WebM rather than an MP4 — the same choice the mux makes from
+  // the same flag (§D6).
+  const format = bakeVideoFormat(style.background.transparent);
+
   const generationId = randomUUID();
   const generation = await context.runGenerationWith(
     {
@@ -91,29 +111,18 @@ export async function bakeModel3DClipOnServer(
         frames: samples.frameTimes.length,
         fps: sequence.fps,
         width: sequence.width,
-        height: sequence.height
+        height: sequence.height,
+        alpha: style.background.transparent
       },
       origin: { surface: "capability", tool_call_id: null },
       persist: {
-        name: `${clip.name || "clip"}-bake.mp4`,
-        mime: "video/mp4"
+        name: `${clip.name || "clip"}-bake.${format.extension}`,
+        mime: format.mimeType
       }
     },
     async (_provider, signal) => {
-      const request: Model3DBakeRequest = {
-        frameTimes: samples.frameTimes,
-        cameras,
-        width: sequence.width,
-        height: sequence.height,
-        fps: sequence.fps
-      };
-      // Absent leaves every animation playing, which is what a clip that
-      // names none asks for.
-      if (style.animation.clipName !== undefined) {
-        request.animationName = style.animation.clipName;
-      }
       try {
-        const baked = await bakeModel3DClipToMp4(context, bytes, request, {
+        const baked = await bakeModel3DClipToVideo(context, bytes, bakeRequest, {
           timeoutMs: BAKE_TIMEOUT_MS,
           signal
         });

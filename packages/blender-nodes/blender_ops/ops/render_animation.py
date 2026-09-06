@@ -197,24 +197,51 @@ def _frame_outputs(outputs):
 
 
 def _select_animation(scene, name):
-    """Leave only `name` playing; with `name` None every action stays on.
+    """Leave only `name` playing; with `name` None every animation plays.
 
-    The glTF importer lands each animation on its own NLA track named after it,
-    all of them unmuted — which is the D2 default, every animation plays. A
-    named selection mutes the rest.
+    Neither half of that holds after a plain glTF import, so this op sets both
+    rather than trusting the importer's state. The importer stashes every
+    animation on its own NLA track, *muted*, and then restores the first one
+    by assigning its action as the object's active action — so out of the box
+    only the first animation plays, and muting tracks changes nothing at all,
+    because the active action is evaluated on top of the NLA stack whatever
+    the tracks below it are doing. CI measured both halves at once: at a model
+    time of 1.0 the two-animation fixture rendered byte-identically with
+    `animation_name: "MoveA"` and with no name at all.
+
+    So each object is driven the way the importer's own restore drives it —
+    one action assigned as the active action, which is the mechanism every
+    other render here already relies on. The first wanted track becomes that
+    action and is muted so it is not evaluated twice; any further wanted track
+    is unmuted and plays from the stack; every unwanted track is muted and the
+    active action is cleared when none of them was wanted.
     """
-    if name is None:
-        return
     found = False
     for obj in scene.objects:
         anim = obj.animation_data
-        if anim is None:
+        if anim is None or not anim.nla_tracks:
             continue
+        chosen = None
         for track in anim.nla_tracks:
-            match = track.name == name
-            track.mute = not match
-            found = found or match
-    if not found:
+            wanted = name is None or track.name == name
+            if wanted and name is not None:
+                found = True
+            strip = next((s for s in track.strips if s.action), None)
+            if wanted and chosen is None and strip is not None:
+                chosen = strip
+                track.mute = True
+            else:
+                track.mute = not wanted
+        anim.action = chosen.action if chosen is not None else None
+        if chosen is not None:
+            # A Blender 5 action holds one slot per animated ID, and assigning
+            # the action alone leaves the slot to be guessed. The strip names
+            # the slot this object was imported with, so it is copied across
+            # where the build has slots at all.
+            slot = getattr(chosen, "action_slot", None)
+            if slot is not None and hasattr(anim, "action_slot"):
+                anim.action_slot = slot
+    if name is not None and not found:
         raise BadJob(
             "animation_name %r names no animation in this model" % (name,)
         )
@@ -300,11 +327,14 @@ def _run_sampled(job, workdir, params, frame_times):
     apply_world(params["background_color"], params["transparent"])
     apply_engine(params)
     scene.render.image_settings.file_format = "PNG"
-    # A transparent bake needs the alpha channel PNG can carry; an opaque one
-    # is muxed to yuv420p and would only pay for a channel nothing reads.
-    scene.render.image_settings.color_mode = (
-        "RGBA" if params["transparent"] else "RGB"
-    )
+    # RGBA either way, which is Blender's own PNG default and what
+    # `render_image` and `render_passes` write. What decides whether the
+    # ground is see-through is `film_transparent` (set by `apply_world` from
+    # `transparent`), not the channel count; dropping to RGB for an opaque
+    # bake only made its frames incomparable with the still `render_image`
+    # draws from the same camera. The opaque mux takes yuv420p and ignores
+    # the channel.
+    scene.render.image_settings.color_mode = "RGBA"
 
     locations = []
     started = time.monotonic()

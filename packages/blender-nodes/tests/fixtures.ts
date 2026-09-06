@@ -533,9 +533,16 @@ export function createAnimatedGlb(): Uint8Array {
 
 /**
  * Two-animation fixture: two quads side by side, each moved by its own named
- * glTF animation — `MoveA` slides the left quad in x, `MoveB` lifts the right
- * one in y. With no `animation_name` both play (the D2 default); naming one
- * leaves the other quad still, so the three renders differ from each other.
+ * glTF animation — `MoveA` drops the left quad by one unit, `MoveB` lifts the
+ * right one by one. With no `animation_name` both play (the D2 default);
+ * naming one leaves the other quad where it started, so the three renders
+ * differ from each other by a whole quad rather than by a sliver.
+ *
+ * The moves are deliberately away from each other and stay inside the framed
+ * bounding sphere: an earlier version slid the left quad onto the right one's
+ * resting place and lifted the right one nearly out of frame, which made
+ * "every animation plays" and "only MoveA plays" almost the same picture even
+ * when the selection worked.
  */
 export function createTwoAnimationGlb(): Uint8Array {
   const quad = (ox: number, oy: number): number[] => [
@@ -548,14 +555,14 @@ export function createTwoAnimationGlb(): Uint8Array {
   // Counter-clockwise from +Z, the same winding the other fixtures use.
   const indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
   const times = new Float32Array([0, 1]);
-  const slideX = new Float32Array([0, 0, 0, 2, 0, 0]);
-  const liftY = new Float32Array([0, 0, 0, 0, 2, 0]);
+  const dropY = new Float32Array([0, 0, 0, 0, -1, 0]);
+  const liftY = new Float32Array([0, 0, 0, 0, 1, 0]);
 
   const bin = new Uint8Array(
     positions.byteLength +
       indices.byteLength * 2 +
       times.byteLength +
-      slideX.byteLength +
+      dropY.byteLength +
       liftY.byteLength
   );
   let at = 0;
@@ -572,7 +579,7 @@ export function createTwoAnimationGlb(): Uint8Array {
   const indicesAAt = put(indices);
   const indicesBAt = put(indices);
   const timesAt = put(times);
-  const slideAt = put(slideX);
+  const dropAt = put(dropY);
   const liftAt = put(liftY);
 
   const gltf: Record<string, unknown> = {
@@ -621,7 +628,7 @@ export function createTwoAnimationGlb(): Uint8Array {
       { buffer: 0, byteOffset: indicesAAt, byteLength: indices.byteLength },
       { buffer: 0, byteOffset: indicesBAt, byteLength: indices.byteLength },
       { buffer: 0, byteOffset: timesAt, byteLength: times.byteLength },
-      { buffer: 0, byteOffset: slideAt, byteLength: slideX.byteLength },
+      { buffer: 0, byteOffset: dropAt, byteLength: dropY.byteLength },
       { buffer: 0, byteOffset: liftAt, byteLength: liftY.byteLength }
     ],
     buffers: [{ byteLength: bin.byteLength }],

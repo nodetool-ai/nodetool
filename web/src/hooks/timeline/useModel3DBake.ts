@@ -22,7 +22,6 @@ import {
   computeModel3DBakeHash,
   makeClipVersion,
   model3dBakeCameraParams,
-  TRANSPARENT_BAKE_REFUSAL,
   type Model3DBakeRenderSettings,
   type TimelineClip
 } from "@nodetool-ai/timeline";
@@ -114,13 +113,6 @@ export function useModel3DBake(): UseModel3DBakeResult {
       if (!assetId) {
         throw new Error(`Clip "${clip.name}" has no glTF asset to bake.`);
       }
-      // T13 lands the alpha encode; until then an opaque box over the footage
-      // is the wrong answer, so the refusal names the reason.
-      if (style.background.transparent) {
-        throw new Error(
-          `Clip "${clip.name}" has a transparent background. ${TRANSPARENT_BAKE_REFUSAL}`
-        );
-      }
 
       const sequence = {
         fps: store.fps,
@@ -200,9 +192,18 @@ export function useModel3DBake(): UseModel3DBakeResult {
         if (!bytes) {
           throw new Error("The bake job produced no video.");
         }
-        const name = `${clip.name || "clip"}-bake.mp4`;
+        // A transparent style bakes to WebM VP9 `yuva420p` and an opaque one
+        // to MP4/H.264, which is what `bakeVideoFormat` chose inside the job
+        // from the same flag (§D6). The two strings are repeated rather than
+        // imported: naming a file is all the browser needs, and the encoder
+        // side of that table lives in a package the editor cannot load.
+        const alpha = style.background.transparent;
+        const extension = alpha ? "webm" : "mp4";
+        const name = `${clip.name || "clip"}-bake.${extension}`;
         const stored = await createAsset(
-          new File([bytes as BlobPart], name, { type: "video/mp4" })
+          new File([bytes as BlobPart], name, {
+            type: alpha ? "video/webm" : "video/mp4"
+          })
         );
 
         const current = timeline.getState().clips.find((c) => c.id === clipId);

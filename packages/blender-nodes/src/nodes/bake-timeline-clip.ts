@@ -4,7 +4,7 @@
  * Hidden from the palette: nobody adds this by hand. It exists so the browser
  * can run a bake the way it runs any other render — one inline graph on the
  * job queue, with per-frame progress and cancellation — while the server-side
- * `bake_model3d_clip` op calls {@link bakeModel3DClipToMp4} directly. Both
+ * `bake_model3d_clip` op calls {@link bakeModel3DClipToVideo} directly. Both
  * reach the same producer, so a bake started from the inspector and one
  * started by an agent are the same pixels.
  *
@@ -19,7 +19,7 @@ import { bytesToBase64 } from "@nodetool-ai/nodes-utils";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
-import { bakeModel3DClipToMp4, type Model3DBakeRequest } from "../bake.js";
+import { bakeModel3DClipToVideo, type Model3DBakeRequest } from "../bake.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import type { ModelBytesRefLike } from "@nodetool-ai/nodes-utils";
 import type { BakeCameraParams } from "../job.js";
@@ -143,7 +143,7 @@ export class BakeTimelineClipNode extends BaseNode {
     const animationName = String(this.animation_name ?? "").trim();
     if (animationName) request.animationName = animationName;
     try {
-      const baked = await bakeModel3DClipToMp4(context, bytes, request, {
+      const baked = await bakeModel3DClipToVideo(context, bytes, request, {
         timeoutMs,
         signal: context.signal,
         onProgress: blenderProgressHandler(context, this.__node_id)

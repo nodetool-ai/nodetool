@@ -310,14 +310,18 @@ describe("bake_model3d_clip", () => {
     expect(out.state.clips[0].model3dStyle?.bake).toBeUndefined();
   });
 
-  it("refuses a transparent style, naming the encode it needs", async () => {
+  it("bakes a transparent style too, now that alpha has an encode (T13)", async () => {
     const out = await applyTimelineOp(
       withClip({ background: { transparent: true } }),
       bake,
-      { ...context(), bakeModel3DClip: async () => ({ assetId: "nope" }) }
+      {
+        ...context(),
+        bakeModel3DClip: async () => ({ assetId: "asset_webm" })
+      }
     );
-    expect(out.error).toMatch(/WebM VP9/);
-    expect(out.state.clips[0].model3dStyle?.bake).toBeUndefined();
+    expect(out.error).toBeUndefined();
+    expect(out.result.bakeStarted).toBe(true);
+    expect(out.state.clips[0].model3dStyle?.bake?.assetId).toBe("asset_webm");
   });
 
   it("refuses a clip that is not 3D, and one with no model", async () => {

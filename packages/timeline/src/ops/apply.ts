@@ -47,10 +47,7 @@ import {
   mediaTypeForContentType,
   trackTypeForMediaType
 } from "../defaults.js";
-import {
-  computeModel3DBakeHash,
-  TRANSPARENT_BAKE_REFUSAL
-} from "../model3dBake.js";
+import { computeModel3DBakeHash } from "../model3dBake.js";
 import {
   model3dStyleWithPatch,
   shapeStyleWithDefaults,
@@ -788,14 +785,6 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
         throw new Error(
           `Clip "${clip.name}" has no glTF asset to bake — a 3D clip draws ` +
             "its asset the way an image clip draws its image."
-        );
-      }
-      // A transparent bake is a WebM VP9 `yuva420p` encode, which this build
-      // does not ship (T13). Refusing by name beats writing an opaque box over
-      // the footage the clip was made to sit on.
-      if (style.background.transparent) {
-        throw new Error(
-          `Clip "${clip.name}" has a transparent background. ${TRANSPARENT_BAKE_REFUSAL}`
         );
       }
       const sequence = {

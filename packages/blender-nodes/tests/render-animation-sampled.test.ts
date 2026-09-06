@@ -129,6 +129,38 @@ describe.skipIf(!blenderAvailable())("render_animation — sampled bake", () => 
     expect(meanAbsDiff(half.frames[0]!, frames[2]!)).toBeLessThanOrEqual(1);
   }, 600_000);
 
+  it("writes RGBA with a see-through ground under a transparent style", async () => {
+    // T13: the alpha bake's whole premise is that the producer's PNGs carry
+    // the channel — `film_transparent` plus `color_mode RGBA` — because the
+    // VP9 encode downstream has nothing to encode otherwise.
+    const { frames } = await renderSampled(
+      helper!,
+      createTriangleGlb(),
+      [0],
+      [camera({ transparent: true })]
+    );
+    const frame = frames[0]!;
+    expect(frame.channels).toBe(4);
+    // The corner is ground the model does not cover, so it is fully clear.
+    expect(frame.pixels[3]).toBe(0);
+    // And something in the frame is opaque, or "all transparent" would pass
+    // this on an empty render.
+    const opaque = frame.pixels.filter((_v, i) => i % 4 === 3 && _v === 255);
+    expect(opaque.length).toBeGreaterThan(0);
+  }, 600_000);
+
+  it("writes an opaque ground under an opaque style", async () => {
+    // Same four channels — the sequence is RGBA either way, so a bake frame
+    // is comparable with the still `render_image` draws — and it is
+    // `film_transparent` that decides whether any of it is see-through.
+    const { frames } = await renderSampled(helper!, createTriangleGlb(), [0]);
+    const frame = frames[0]!;
+    expect(frame.channels).toBe(4);
+    for (let i = 3; i < frame.pixels.length; i += 4) {
+      expect(frame.pixels[i]).toBe(255);
+    }
+  }, 600_000);
+
   it("places the camera of each entry", async () => {
     // A 180-degree sweep across three entries: the camera location must be a
     // different point at each, which the stats report without reading pixels.
@@ -149,6 +181,11 @@ describe.skipIf(!blenderAvailable())("render_animation — sampled bake", () => 
   }, 600_000);
 
   it("plays every animation without a name and only the named one with it", async () => {
+    // At one second the fixture is three distinct pictures: both quads moved
+    // apart, only the left one dropped, only the right one lifted. Anything
+    // that leaves an animation playing when it should not — or, as the
+    // importer's stashed NLA tracks used to, leaves the first one playing
+    // whatever was asked for — collapses two of the three into one.
     const model = createTwoAnimationGlb();
     const at = [1.0];
     const all = await renderSampled(helper!, model, at);

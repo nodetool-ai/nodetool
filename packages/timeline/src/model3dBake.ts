@@ -153,16 +153,6 @@ function digest(payload: string): string {
   );
 }
 
-/**
- * Why a transparent style cannot bake yet. Three hosts refuse it — the op, the
- * headless bridge and the inspector — and a user who reads two of them must
- * read the same sentence, so it is written once (T13 removes it).
- */
-export const TRANSPARENT_BAKE_REFUSAL =
-  "A bake with alpha needs the WebM VP9 encode this build does not have yet. " +
-  "Give the clip an opaque background to bake it, or leave the live 3D layer " +
-  "to draw it with transparency.";
-
 const MODEL3D_BAKE_HASH_VERSION_PREFIX = "model3d-bake-v1:";
 
 /**

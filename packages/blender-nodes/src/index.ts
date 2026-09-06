@@ -69,13 +69,16 @@ export type {
 } from "./runner.js";
 export {
   bakeFrameOutputs,
-  bakeModel3DClipToMp4,
+  bakeModel3DClipToVideo,
+  bakeMuxArgs,
   bakeRenderAnimationParams,
-  muxPngSequenceToMp4,
+  bakeVideoFormat,
+  muxPngSequenceToVideo,
   renderModel3DBakeFrames,
   MAX_BAKE_FRAMES
 } from "./bake.js";
 export type {
+  BakeVideoFormat,
   Model3DBakeOptions,
   Model3DBakeRequest,
   Model3DBakeResult

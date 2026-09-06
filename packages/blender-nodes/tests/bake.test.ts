@@ -22,7 +22,9 @@ import {
 
 import {
   bakeFrameOutputs,
+  bakeMuxArgs,
   bakeRenderAnimationParams,
+  bakeVideoFormat,
   renderModel3DBakeFrames,
   MAX_BAKE_FRAMES
 } from "../src/bake.js";
@@ -195,5 +197,89 @@ describe("the two-animation fixture", () => {
       { name: "MoveA", durationSec: 1 },
       { name: "MoveB", durationSec: 1 }
     ]);
+  });
+
+  /**
+   * The Blender-gated selection case reads pixels: it asserts that playing
+   * every animation, only `MoveA` and only `MoveB` are three different
+   * pictures. That claim rests on the fixture moving two different nodes to
+   * two different places, which is checkable without Blender — and was not
+   * true of an earlier fixture, whose animations landed one quad on top of
+   * the other and pushed the second nearly out of frame.
+   */
+  it("moves two different nodes in opposite directions at one second", () => {
+    const { json, bin } = parseModel3D(createTwoAnimationGlb());
+    expect(bin).not.toBeNull();
+    const endValue = (animationIndex: number): number[] => {
+      const animation = json.animations![animationIndex]!;
+      const sampler = animation.samplers[0]!;
+      const accessor = json.accessors![sampler.output]!;
+      const view = json.bufferViews![accessor.bufferView!]!;
+      const floats = new Float32Array(
+        bin!.buffer.slice(
+          bin!.byteOffset + (view.byteOffset ?? 0),
+          bin!.byteOffset + (view.byteOffset ?? 0) + view.byteLength
+        )
+      );
+      // Two keys of VEC3; the second is the value at one second.
+      return [floats[3]!, floats[4]!, floats[5]!];
+    };
+    const targets = [0, 1].map(
+      (i) => json.animations![i]!.channels[0]!.target.node
+    );
+    expect(targets[0]).not.toBe(targets[1]);
+    expect(endValue(0)).toEqual([0, -1, 0]);
+    expect(endValue(1)).toEqual([0, 1, 0]);
+  });
+});
+
+/**
+ * T13: the two containers a bake is written as (§D6 output format).
+ *
+ * A transparent style is WebM VP9 `yuva420p` and an opaque one MP4/H.264
+ * `yuv420p`; the sequence handed to either is the same RGBA PNGs, so the
+ * arguments are the whole difference. That the alpha pair is the one the
+ * timeline renderer already declares is pinned in
+ * `packages/agents/tests/timeline-bake-format.test.ts`, which can see both
+ * packages.
+ */
+describe("bakeVideoFormat", () => {
+  it("writes an alpha bake as WebM VP9 yuva420p", () => {
+    expect(bakeVideoFormat(true)).toEqual({
+      extension: "webm",
+      mimeType: "video/webm",
+      encoderArgs: ["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p"]
+    });
+  });
+
+  it("writes an opaque bake as MP4 H.264 yuv420p", () => {
+    expect(bakeVideoFormat(false)).toEqual({
+      extension: "mp4",
+      mimeType: "video/mp4",
+      encoderArgs: ["-c:v", "libx264", "-pix_fmt", "yuv420p"]
+    });
+  });
+});
+
+describe("bakeMuxArgs", () => {
+  it("reads the same numbered sequence into either encoder", () => {
+    const alpha = bakeMuxArgs(bakeVideoFormat(true), 24, "bake.webm");
+    const opaque = bakeMuxArgs(bakeVideoFormat(false), 24, "bake.mp4");
+    const input = ["-framerate", "24", "-start_number", "1", "-i", "frame_%06d.png"];
+    for (const argv of [alpha, opaque]) {
+      expect(argv.join(" ")).toContain(input.join(" "));
+      // A seek lands on the preceding keyframe, so both get one a second.
+      expect(argv.slice(argv.indexOf("-g"), argv.indexOf("-g") + 2)).toEqual([
+        "-g",
+        "24"
+      ]);
+    }
+    expect(alpha).toContain("libvpx-vp9");
+    expect(alpha).toContain("yuva420p");
+    expect(alpha.at(-1)).toBe("bake.webm");
+    // `+faststart` is an MP4 atom; passing it to a Matroska mux is an error.
+    expect(alpha).not.toContain("-movflags");
+    expect(opaque).toContain("-movflags");
+    expect(opaque.at(-1)).toBe("bake.mp4");
   });
 });

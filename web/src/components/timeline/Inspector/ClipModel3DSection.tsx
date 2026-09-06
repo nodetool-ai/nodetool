@@ -23,8 +23,7 @@ import type {
 } from "@nodetool-ai/timeline";
 import {
   computeModel3DBakeHash,
-  model3dStyleWithPatch,
-  TRANSPARENT_BAKE_REFUSAL
+  model3dStyleWithPatch
 } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -364,7 +363,6 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
                 <Button
                   size="small"
                   variant="outlined"
-                  disabled={!baking && background.transparent}
                   onClick={baking ? bake.cancel : handleBake}
                   startIcon={
                     baking ? <LoadingSpinner inline size={14} /> : undefined
@@ -388,9 +386,6 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
               clip plays that video. What you see on the canvas now is the live
               proxy, and its lighting is close, not identical.
             </Caption>
-            {background.transparent && (
-              <Caption color="muted">{TRANSPARENT_BAKE_REFUSAL}</Caption>
-            )}
             {bake.state.error && (
               <Caption color="error">{bake.state.error}</Caption>
             )}

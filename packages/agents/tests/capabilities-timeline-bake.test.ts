@@ -4,8 +4,8 @@
  * Blender and ffmpeg are both mocked: what is under test is the request the
  * capability builds — one model time and one camera per output frame, at the
  * sequence's own fps and size — and what it writes back on the clip, not what
- * a renderer draws for it. The transparent refusal is checked here too,
- * because until T13 it is the op's contract.
+ * a renderer draws for it. A transparent style is checked here too: T13 gives
+ * it the WebM VP9 encode, and the ffmpeg call is what says which one ran.
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -136,6 +136,8 @@ describe("bake_model3d_clip through edit_timeline", () => {
   beforeEach(() => {
     initTestDb();
     bench = harness();
+    // Each case reads the ffmpeg call it made, not the one before it.
+    runHostBinary.mockClear();
   });
 
   afterEach(() => {
@@ -250,22 +252,33 @@ describe("bake_model3d_clip through edit_timeline", () => {
     ).toBe("Spin");
   });
 
-  it("refuses a transparent style and names why", async () => {
+  it("bakes a transparent style to WebM VP9 with alpha (T13)", async () => {
     const jobs: BlenderJob[] = [];
     __setBlenderRunnerForTesting(fakeBlender(jobs));
     const { timelineId, clipId } = await timelineWithClip({
       background: { transparent: true }
     });
 
-    const refused = (await run().invoke("edit_timeline", {
+    const out = (await run().invoke("edit_timeline", {
       timeline_id: timelineId,
       ops: [{ op: "bake_model3d_clip", target: clipId }]
     })) as { failed: number; ops: Array<{ ok: boolean; error?: string }> };
-    expect(refused.failed).toBe(1);
-    expect(refused.ops[0]!.error).toMatch(/WebM VP9/);
-    expect(jobs).toHaveLength(0);
+    expect(out.ops[0]!.error).toBeUndefined();
+    expect(out.failed).toBe(0);
+
+    // Blender rendered with the film transparent, so the PNGs carry alpha…
+    expect(jobs).toHaveLength(1);
+    expect(
+      (jobs[0]!.job.params as Record<string, unknown>)["transparent"]
+    ).toBe(true);
+
+    // …and ffmpeg was asked for the one video format that keeps it.
+    const argv = runHostBinary.mock.calls[0]![1];
+    expect(argv).toContain("libvpx-vp9");
+    expect(argv).toContain("yuva420p");
+    expect(argv.at(-1)).toBe("bake.webm");
 
     const clip = await clipOf(timelineId);
-    expect(clip.model3dStyle?.bake).toBeUndefined();
+    expect(clip.model3dStyle?.bake?.assetId).toBeDefined();
   });
 });

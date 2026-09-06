@@ -61,6 +61,12 @@ import {
   type ResolvedCompositeSource
 } from "./compositeLayers";
 import { Model3DLayerSource } from "./Model3DLayerSource";
+import {
+  alphaBakesToProbe,
+  guardBakeHash,
+  probeAlphaBake,
+  type BakeUndecodable
+} from "./bakeDecoding";
 import { CaptionRasterizer } from "./captionRender";
 import { TextRasterizer } from "./textRender";
 import { ShapeRasterizer } from "./shapeRender";
@@ -477,7 +483,7 @@ export const PreviewCompositor: React.FC = memo(() => {
    * Without this resolver the scene model has nothing to compare against and
    * every 3D clip stays live.
    */
-  const model3dBakeHash = useCallback(
+  const liveBakeHash = useCallback(
     (clip: TimelineClip): string =>
       computeModel3DBakeHash(clip, {
         fps: sequenceFps,
@@ -485,6 +491,42 @@ export const PreviewCompositor: React.FC = memo(() => {
         height: sequenceHeight
       }),
     [sequenceFps, sequenceWidth, sequenceHeight]
+  );
+
+  /**
+   * Alpha bakes this browser turned out not to play — VP9 with alpha decodes
+   * in Chromium and Firefox and not in Safari (§R6). Each is probed once and
+   * then treated as no bake at all, so the live 3D layer draws rather than an
+   * opaque box over the footage.
+   */
+  const [undecodableBakes, setUndecodableBakes] = useState<BakeUndecodable[]>(
+    []
+  );
+  const probedBakes = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    let cancelled = false;
+    for (const bake of alphaBakesToProbe(clips, liveBakeHash)) {
+      if (probedBakes.current.has(bake.assetId)) continue;
+      const url = resolveUrl(bake.assetId);
+      if (!url) continue;
+      probedBakes.current.add(bake.assetId);
+      void probeAlphaBake(url).then((reason) => {
+        if (!reason || cancelled) return;
+        setUndecodableBakes((prev) =>
+          prev.some((b) => b.assetId === bake.assetId)
+            ? prev
+            : [...prev, { ...bake, reason }]
+        );
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [clips, liveBakeHash, resolveUrl, urlCacheVersion]);
+
+  const model3dBakeHash = useMemo(
+    () => guardBakeHash(liveBakeHash, undecodableBakes),
+    [liveBakeHash, undecodableBakes]
   );
   // Latest sequence resolution, read by the rAF loop (whose closure only
   // rebinds on [gpuReady, isPlaying]) to resolve animation offsets in px.
@@ -1207,6 +1249,23 @@ export const PreviewCompositor: React.FC = memo(() => {
     [clips, currentTimeMs]
   );
 
+  /**
+   * 3D clips on screen whose bake this browser could not play. The badge is
+   * the report: the picture is the live proxy, not the bake the document says
+   * it plays.
+   */
+  const proxiedBakeClips = useMemo(
+    () =>
+      clips.filter(
+        (c) =>
+          isClipActive(c, currentTimeMs) &&
+          undecodableBakes.some(
+            (b) => b.assetId === c.model3dStyle?.bake?.assetId
+          )
+      ),
+    [clips, currentTimeMs, undecodableBakes]
+  );
+
   const staleActiveClips = useMemo(
     () =>
       clips.filter(
@@ -1296,6 +1355,16 @@ export const PreviewCompositor: React.FC = memo(() => {
             style={{ zIndex: PREVIEW_OVERLAY_Z.badge }}
           >
             stale
+          </div>
+        ))}
+
+        {proxiedBakeClips.map((c) => (
+          <div
+            key={`bake-${c.id}`}
+            css={overlayBadgeStyles(theme, "#c08000")}
+            style={{ zIndex: PREVIEW_OVERLAY_Z.badge }}
+          >
+            bake unplayable — live 3D
           </div>
         ))}
 

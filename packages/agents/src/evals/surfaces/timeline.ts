@@ -35,7 +35,6 @@ import {
   normalizeCustomCurves,
   resolveCustomMask,
   computeModel3DBakeHash,
-  TRANSPARENT_BAKE_REFUSAL,
   makeClip,
   makeClipVersion,
   makeTrack,
@@ -1533,13 +1532,6 @@ export function createTimelineToolBridge(
         throw new Error(
           `Clip "${clip.name}" has no glTF asset to bake — a 3D clip draws ` +
             "its asset the way an image clip draws its image."
-        );
-      }
-      // T13 owns the alpha encode; until it lands a transparent style is
-      // refused by name rather than baked into an opaque box (design §D6).
-      if (style.background.transparent) {
-        throw new Error(
-          `Clip "${clip.name}" has a transparent background. ${TRANSPARENT_BAKE_REFUSAL}`
         );
       }
       const sequence = { fps, width, height };

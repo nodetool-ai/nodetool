@@ -56,6 +56,12 @@ import {
   type ResolvedCompositeSource
 } from "../preview/compositeLayers";
 import { Model3DLayerSource } from "../preview/Model3DLayerSource";
+import {
+  alphaBakesToProbe,
+  guardBakeHash,
+  probeAlphaBake,
+  type BakeUndecodable
+} from "../preview/bakeDecoding";
 import { CaptionRasterizer } from "../preview/captionRender";
 import { TextRasterizer } from "../preview/textRender";
 import { ensureBundledFontsLoaded } from "../preview/fontLoading";
@@ -131,6 +137,12 @@ export interface RenderResult {
   mimeType: string;
   /** File extension the bytes should be saved under, without the dot. */
   extension: string;
+  /**
+   * Bakes this browser could not play, drawn from their live 3D layer
+   * instead (§R6). Empty on almost every render; an entry means the file
+   * holds the proxy rather than the baked picture.
+   */
+  degradations: BakeUndecodable[];
 }
 
 /** What a `png_sequence` zip carries next to its frames. */
@@ -420,12 +432,25 @@ export async function renderTimeline(
      * still matches the live document, so the export resolves the same hash
      * the inspector and the validator do (design §D6).
      */
-    const model3dBakeHash = (clip: TimelineClip): string =>
+    const liveBakeHash = (clip: TimelineClip): string =>
       computeModel3DBakeHash(clip, {
         fps,
         width: opts.width,
         height: opts.height
       });
+
+    // An alpha bake this browser cannot decode is checked once, before the
+    // first frame: a file is written here, so a bake that turns out to be an
+    // opaque box has to be swapped for the live layer everywhere rather than
+    // part way through (§R6).
+    const degradations: BakeUndecodable[] = [];
+    for (const bake of alphaBakesToProbe(clips, liveBakeHash)) {
+      const url = await resolveCached(bake.assetId);
+      if (!url) continue;
+      const reason = await probeAlphaBake(url, signal);
+      if (reason) degradations.push({ ...bake, reason });
+    }
+    const model3dBakeHash = guardBakeHash(liveBakeHash, degradations);
 
     const frameDurationSec = 1 / fps;
     const frameMs = 1000 / fps;
@@ -623,7 +648,12 @@ export async function renderTimeline(
         count: pngFrames.length,
         pattern: "frame_%06d.png"
       });
-      return { bytes, mimeType: "application/zip", extension: "zip" };
+      return {
+        bytes,
+        mimeType: "application/zip",
+        extension: "zip",
+        degradations
+      };
     }
 
     await muxer.finalize();
@@ -635,7 +665,8 @@ export async function renderTimeline(
     return {
       bytes: new Uint8Array(buffer),
       mimeType: format === "webm" ? "video/webm" : "video/mp4",
-      extension: format
+      extension: format,
+      degradations
     };
   } finally {
     compositor.dispose();
