@@ -74,6 +74,7 @@ export const ClipMidiSection: React.FC<ClipMidiSectionProps> = memo(
     const quantizeClip = useTimelineStore((s) => s.quantizeClip);
     const scaleClipVelocity = useTimelineStore((s) => s.scaleClipVelocity);
     const gridDivision = useTimelineUIStore((s) => s.gridDivision);
+    const openPianoRoll = useTimelineUIStore((s) => s.openPianoRoll);
 
     const [division, setDivision] = useState<QuantizeDivision>(() =>
       (QUANTIZE_DIVISIONS as readonly string[]).includes(gridDivision)
@@ -96,6 +97,10 @@ export const ClipMidiSection: React.FC<ClipMidiSectionProps> = memo(
       }).length;
     }, [notes, clip.inPointMs, clip.durationMs, tempo.bpm]);
 
+    const handleEditNotes = useCallback(
+      () => openPianoRoll(clip.id),
+      [clip.id, openPianoRoll]
+    );
     const handleTranspose = useCallback(
       (semitones: number) => transposeClip(clip.id, semitones),
       [clip.id, transposeClip]
@@ -141,6 +146,16 @@ export const ClipMidiSection: React.FC<ClipMidiSectionProps> = memo(
                 value={`${formatBarsBeats(clip.startMs, tempo)} · ${tempo.bpm} BPM`}
               />
             </InspectorRow>
+
+            <FlexRow justify="flex-end">
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleEditNotes}
+              >
+                Edit notes
+              </Button>
+            </FlexRow>
 
             <InspectorRow label="Transpose">
               <FlexRow gap={SPACING.xs}>

@@ -540,6 +540,8 @@ export interface ClipBodyProps {
   statusInfo: (typeof CLIP_STATUS_MAP)[ClipStatus];
   handleDragPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleClick: (e: React.MouseEvent<HTMLDivElement>) => void;
+  /** Opens the clip editor for a midi clip; a no-op for every other type. */
+  handleDoubleClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   handleContextMenu: (e: React.MouseEvent<HTMLDivElement>) => void;
   handleTrimStartPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
@@ -572,6 +574,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     statusInfo,
     handleDragPointerDown,
     handleClick,
+    handleDoubleClick,
     handleKeyDown,
     handleContextMenu,
     handleTrimStartPointerDown,
@@ -751,6 +754,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         style={positionStyle}
         onPointerDown={handleDragPointerDown}
         onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
         data-testid={`clip-${clipId}`}

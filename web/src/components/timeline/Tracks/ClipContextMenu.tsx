@@ -1,4 +1,5 @@
 import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
+import MusicNoteOutlinedIcon from "@mui/icons-material/MusicNoteOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 import LockIcon from "@mui/icons-material/Lock";
@@ -62,6 +63,14 @@ export function ClipContextMenu({
         compact
         onClick={run(actions.splitAtPlayhead)}
       />
+      {actions.isMidi && (
+        <MenuItemPrimitive
+          label="Edit notes"
+          icon={<MusicNoteOutlinedIcon fontSize="small" />}
+          compact
+          onClick={run(actions.editNotes)}
+        />
+      )}
       <MenuItemPrimitive
         label="Duplicate"
         icon={<ContentCopyIcon fontSize="small" />}

@@ -10,6 +10,7 @@ export * from "./ticks.js";
 export * from "./tempo.js";
 export * from "./notes.js";
 export * from "./edit.js";
+export * from "./notesEdit.js";
 export * from "./presets.js";
 export * from "./grid.js";
 export * from "./instrument.js";

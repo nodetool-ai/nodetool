@@ -159,6 +159,54 @@ mute/solo, the DSP chain, the offline export — because the notes become an
   store action (`transposeClip`, `quantizeClip`, `scaleClipVelocity`) and one
   undo entry.
 
+### The piano roll
+
+`pianoRoll/PianoRollPanel` is the clip editor: a resizable strip under the
+tracks, opened by double-clicking a midi clip, by "Edit notes" in the clip
+menu, or by the Inspector's Edit notes button. `pianoRollClipId`,
+`pianoRollHeightPx`, `openPianoRoll` and `closePianoRoll` live on
+`TimelineUIStore`; the panel closes itself when the clip it edits is gone. The
+side dock is 360 px wide, so the panel stacks below the tracks instead — and on
+a phone it replaces the tracks region with a Back control.
+
+- **What it draws** (`PianoRoll` + `PianoRollGrid`, `PianoRollKeyboard`,
+  `PianoRollRuler`, `PianoRollVelocityLane`): a clickable keyboard column that
+  auditions through the track's own voice, a bars:beats ruler built from
+  `computeBarRulerTicks` over the timeline milliseconds the clip's content
+  plays at, the note grid, and one velocity bar per note. It shows the clip's
+  **content**, not its window: everything outside `inPointMs …
+  inPointMs + durationMs` is shaded, because a trim hides notes rather than
+  deleting them. The playhead is written into the DOM from the playback store's
+  transient time channel, so a playing timeline does not re-render the panel.
+- **Gestures**: click empty space to add a note one grid unit long at velocity
+  100 (auditioned); click to select, Shift+click to toggle, drag empty space to
+  marquee-select (overlap, not containment); drag a note body to move it in
+  ticks and semitones, snapped to `gridDivision` unless Alt is held, auditioning
+  each new pitch; drag the last 8 px to resize; double-click to delete; drag a
+  velocity bar to set that note's velocity.
+- **Keys** (the panel is focusable and `TracksRegion`'s window handler skips
+  `[data-timeline-piano-roll]`, so these never reach the clip keymap):
+  Delete/Backspace removes the selection, Ctrl/Cmd+A selects all, Ctrl/Cmd+D
+  duplicates one grid unit past the selection's end, ←/→ nudge by a grid unit,
+  ↑/↓ by a semitone (Shift for an octave), Escape clears the selection and then
+  closes the panel.
+- **Zoom and scroll** follow `timelineWheel.ts`: Ctrl/Cmd+wheel zooms anchored
+  at the cursor, Shift+wheel and a two-finger horizontal swipe pan, a plain
+  vertical wheel scrolls the 128 pitches. The view opens framed on the clip's
+  window and centred on its notes (C3..C5 when there are none).
+- **Undo**: every pointer gesture is one entry — the drag writes through
+  `setClipNotes` on each move (so the audio top-up pass re-renders the clip as
+  you edit) with the temporal middleware paused by `useTimelineHistoryBatch`,
+  the same way a clip drag works. Each keyboard action writes once, so it is
+  one entry by construction.
+- **Where the math lives**: the note-list edits are pure functions in
+  `@nodetool-ai/timeline` (`midi/notesEdit.ts`: `addNote`, `removeNotes`,
+  `moveNotes` — clamped as a group so a chord keeps its spacing — `resizeNotes`,
+  `setVelocity`, `duplicateNotes`, `notesInRect`, `snapTick`), and the pixel
+  mapping is `pianoRoll/pianoRollGeometry.ts` (`tickToX`, `xToTick`, `pitchToY`,
+  `yToPitch`, `noteRect`, `hitTestNote` with its 8 px end grip, `isBlackKey`,
+  `pitchName`, `initialTopPitch`). Both are unit-tested without a canvas.
+
 Seven agent tools drive it — `ui_timeline_add_midi_clip`,
 `ui_timeline_set_notes` (the whole list, not a merge), `ui_timeline_set_tempo`,
 `ui_timeline_set_track_instrument`, `ui_timeline_transpose_clip`,

@@ -240,6 +240,24 @@ export interface TimelineUIState {
   /** Toggle the inline DSP chain editor for the given track. */
   toggleExpandedFx: (trackId: string) => void;
 
+  // ── Piano roll ────────────────────────────────────────────────────────────
+
+  /**
+   * Id of the midi clip open in the clip-editor panel below the tracks, or
+   * null when the panel is closed. One clip at a time, the way a DAW's clip
+   * view works: the panel is a view onto the selected part, not a window
+   * manager.
+   */
+  pianoRollClipId: string | null;
+  /** Height of the clip-editor panel, in px. In memory, like the tracks height. */
+  pianoRollHeightPx: number;
+  /** Open the clip editor on a clip. */
+  openPianoRoll: (clipId: string) => void;
+  /** Close the clip editor. */
+  closePianoRoll: () => void;
+  /** Resize the clip-editor panel, clamped to its bounds. */
+  setPianoRollHeightPx: (px: number) => void;
+
   // ── Instrument panel ──────────────────────────────────────────────────────
 
   /**
@@ -263,6 +281,11 @@ export interface TimelineUIState {
 }
 
 export const MIN_MS_PER_PX = 0.5;
+
+export const DEFAULT_PIANO_ROLL_HEIGHT_PX = 280;
+export const MIN_PIANO_ROLL_HEIGHT_PX = 160;
+export const MAX_PIANO_ROLL_HEIGHT_PX = 720;
+
 export const MAX_MS_PER_PX = 500;
 
 export type TimelineUIStoreApi = UseBoundStore<StoreApi<TimelineUIState>>;
@@ -288,6 +311,8 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   fullscreen: false,
   expandedFxTrackId: null,
   expandedInstrumentTrackId: null,
+  pianoRollClipId: null,
+  pianoRollHeightPx: DEFAULT_PIANO_ROLL_HEIGHT_PX,
   draggingTrackId: null,
   trackDropTarget: null,
   selectClip: (id) =>
@@ -398,6 +423,18 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
       expandedFxTrackId:
         state.expandedFxTrackId === trackId ? null : trackId
     })),
+
+  openPianoRoll: (clipId) => set({ pianoRollClipId: clipId }),
+
+  closePianoRoll: () => set({ pianoRollClipId: null }),
+
+  setPianoRollHeightPx: (px) =>
+    set({
+      pianoRollHeightPx: Math.min(
+        MAX_PIANO_ROLL_HEIGHT_PX,
+        Math.max(MIN_PIANO_ROLL_HEIGHT_PX, px)
+      )
+    }),
 
   toggleExpandedInstrument: (trackId) =>
     set((state) => ({

@@ -27,9 +27,12 @@ export interface ClipMenuActions {
   isGenerated: boolean;
   locked: boolean;
   canOpenInNodeEditor: boolean;
+  /** A midi clip's notes are editable in the clip-editor panel. */
+  isMidi: boolean;
 
   splitAtPlayhead: () => void;
   duplicate: () => void;
+  editNotes: () => void;
   regenerateAsCopy: () => void;
   toggleLock: () => void;
   openReplace: () => void;
@@ -56,6 +59,7 @@ export function useClipMenuActions(
   const setClipLocked = useTimelineStore((s) => s.setClipLocked);
   const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
   const selectClip = useTimelineUIStore((s) => s.selectClip);
+  const openPianoRoll = useTimelineUIStore((s) => s.openPianoRoll);
   const playbackApi = useTimelinePlaybackStoreApi();
   const timelineApi = useTimelineStoreApi();
 
@@ -98,6 +102,11 @@ export function useClipMenuActions(
     [clip?.currentAssetId, onRequestReplace]
   );
 
+  const editNotes = useCallback(() => {
+    selectClip(clipId);
+    openPianoRoll(clipId);
+  }, [clipId, openPianoRoll, selectClip]);
+
   const openInNodeEditor = useCallback(() => {
     if (!clip?.workflowId || !sequenceId) return;
     navigate(`/editor/${clip.workflowId}?from=timeline:${sequenceId}:${clipId}`);
@@ -108,8 +117,10 @@ export function useClipMenuActions(
       isGenerated: clip?.sourceType === "generated",
       locked: Boolean(clip?.locked),
       canOpenInNodeEditor: Boolean(clip?.workflowId && sequenceId),
+      isMidi: clip?.mediaType === "midi",
       splitAtPlayhead,
       duplicate,
+      editNotes,
       regenerateAsCopy,
       toggleLock,
       openReplace,
@@ -118,10 +129,12 @@ export function useClipMenuActions(
     [
       clip?.sourceType,
       clip?.locked,
+      clip?.mediaType,
       clip?.workflowId,
       sequenceId,
       splitAtPlayhead,
       duplicate,
+      editNotes,
       regenerateAsCopy,
       toggleLock,
       openReplace,

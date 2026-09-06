@@ -796,6 +796,14 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         target instanceof HTMLTextAreaElement ||
         (target instanceof HTMLElement && target.isContentEditable);
 
+      // The piano roll binds Delete, Ctrl+A, Ctrl+D, the arrows and Escape to
+      // its own notes. It stops propagation, but this listener sits on
+      // `window` and would still see an event React let through, so the panel
+      // is excluded by marker attribute rather than by trusting one path.
+      const isPianoRollTarget = (target: EventTarget | null): boolean =>
+        target instanceof HTMLElement &&
+        target.closest("[data-timeline-piano-roll]") !== null;
+
       // Arrow-key nudge undo batching: a held key repeats ~30×/s, each nudge
       // mutating the store. Without batching that's one undo entry per
       // repeat; begin() on the first nudge of a burst, mark() per nudge, and
@@ -817,7 +825,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       };
 
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (isEditableTarget(e.target)) {
+        if (isEditableTarget(e.target) || isPianoRollTarget(e.target)) {
           return;
         }
         // Another timeline surface (e.g. the focused preview's frame-step

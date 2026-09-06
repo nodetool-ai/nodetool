@@ -54,6 +54,7 @@ const renderBody = (
         statusInfo={CLIP_STATUS_MAP.draft}
         handleDragPointerDown={jest.fn()}
         handleClick={jest.fn()}
+        handleDoubleClick={jest.fn()}
         handleKeyDown={jest.fn()}
         handleContextMenu={jest.fn()}
         handleTrimStartPointerDown={jest.fn()}
