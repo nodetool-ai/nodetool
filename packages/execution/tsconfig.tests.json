@@ -1,0 +1,21 @@
+{
+  // Type-level guards only fail through the compiler — Vitest strips types and
+  // never typechecks — so `npm run lint` runs this project as well as the base
+  // one. Files are listed one by one rather than globbed: the rest of `tests/`
+  // carries pre-existing type errors (drift against `@nodetool-ai/node-sdk`
+  // and `ProcessingContext`), and widening the glob would bury the guard's
+  // failure in noise. Add a file here once it typechecks clean.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "incremental": false,
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "include": [
+    "tests/timeline-schema-roundtrip.test.ts"
+  ]
+}

@@ -28,7 +28,8 @@ import {
   deriveShotScaffold,
   fallbackScript,
   joinLineTexts,
-  splitImportedText
+  splitImportedText,
+  type WrittenScript
 } from "@nodetool-ai/protocol";
 import {
   assembleSubtitleCues,
@@ -381,7 +382,7 @@ export function createScriptToolBridge(
         const heldIds = lines.map((line) => line.id);
         const texts =
           imported === "" ? null : splitImportedText(imported);
-        const written =
+        const written: WrittenScript =
           texts === null
             ? fallbackScript(
                 {

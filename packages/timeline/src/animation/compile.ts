@@ -95,6 +95,12 @@ export interface CompiledStagger {
  * Per-unit delay in ms for unit `index` of a compiled stagger. `from`
  * ordering: `"start"` = first unit first, `"end"` = last unit first,
  * `"center"` = middle units first, rippling outward.
+ *
+ * The centre distance is floored so the middle unit — the middle PAIR, on an
+ * even count — starts at 0. An unfloored `|index - last/2|` gives an even
+ * count no unit at delay 0 (four units at 100ms each: 150, 50, 50, 150), which
+ * starts the whole line half an offset late and overstates the span by the
+ * same amount.
  */
 export function staggerUnitDelayMs(
   stagger: CompiledStagger,
@@ -105,15 +111,20 @@ export function staggerUnitDelayMs(
     case "end":
       return (last - index) * stagger.offsetMs;
     case "center":
-      return Math.abs(index - last / 2) * stagger.offsetMs;
+      return Math.floor(Math.abs(index - last / 2)) * stagger.offsetMs;
     default:
       return index * stagger.offsetMs;
   }
 }
 
-/** Largest per-unit delay factor (delay = factor × offsetMs). */
+/**
+ * Largest per-unit delay factor (delay = factor × offsetMs). Floored for
+ * `"center"` for the same reason {@link staggerUnitDelayMs} floors: the two
+ * have to name the same largest delay or the compiled span and the units
+ * inside it disagree.
+ */
 function maxStaggerFactor(from: StaggerFrom, count: number): number {
-  return from === "center" ? (count - 1) / 2 : count - 1;
+  return from === "center" ? Math.floor((count - 1) / 2) : count - 1;
 }
 
 /**
@@ -161,6 +172,13 @@ export interface CompiledAnimation {
   loop: boolean;
   /** Cycle length in ms when `loop` is true; the window runs to clip end. */
   periodMs?: number;
+  /**
+   * Clip-local ms the cycle is counted from when `loop` is true. Equals
+   * `windowStartMs` unless the authored `delayMs` was negative, which is how
+   * a split carries the phase of a cycle already under way onto the right
+   * half: the window still opens at 0, the phase does not restart.
+   */
+  loopOriginMs?: number;
   /** Hold the `t=0` values before the window (true for `"in"`). */
   holdBefore: boolean;
   /** Hold the `t=1` values after the window (true for `"out"`). */
@@ -347,7 +365,9 @@ export function compileClipAnimations(
 
     if (animation.role === "loop") {
       // The window runs from the delay to clip end, cycling at `durationMs`.
-      const windowStartMs = Math.max(0, delayMs);
+      // A negative delay is a phase offset (see `loopOriginMs`).
+      const loopOriginMs = animation.delayMs ?? 0;
+      const windowStartMs = Math.max(0, loopOriginMs);
       if (windowStartMs >= clipDurationMs) continue;
       const compiled: CompiledAnimation = {
         id: animation.id,
@@ -356,6 +376,7 @@ export function compileClipAnimations(
         windowEndMs: clipDurationMs,
         loop: true,
         periodMs: durationMs,
+        loopOriginMs,
         holdBefore: false,
         holdAfter: false,
         curves
