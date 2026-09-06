@@ -134,6 +134,10 @@ export interface FrameMatte<TSource = FrameLayerPixels> {
   mode: MatteMode;
   invert: boolean;
   layer: FrameLayer<TSource>;
+  /** Multiplies the matte's alpha. Absent means 1. */
+  strength?: number;
+  /** Softens the matte's edge by this many pixels before it is read. */
+  featherPx?: number;
 }
 
 /**
@@ -551,7 +555,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       [],
       encoder
     );
-    const coverage = this.effects.deriveMask(
+    const derived = this.effects.deriveMask(
       `matte-mask:${layer.id}`,
       keyhole,
       this.width,
@@ -561,6 +565,31 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       "straight",
       encoder
     );
+    // A feathered matte is a blur of the keyhole, not of the picture: coverage
+    // carries its value in alpha with RGB at zero, which is already valid
+    // premultiplied, so the blur pass softens the edge and leaves the colour
+    // alone.
+    const feather = matte.featherPx ?? 0;
+    const coverage =
+      feather > 0
+        ? this.effects.process(
+            `matte-feather:${layer.id}`,
+            derived,
+            this.width,
+            this.height,
+            [
+              {
+                id: `matte-feather:${layer.id}`,
+                type: "blur",
+                enabled: true,
+                radius: feather
+              }
+            ],
+            [],
+            "premultiplied",
+            encoder
+          )
+        : derived;
     return {
       texture: this.effects.applyMask(
         `matte-apply:${layer.id}`,
@@ -573,7 +602,10 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         "straight",
         encoder
       ),
-      opacity: layer.opacity,
+      // `strength` scales the matte's alpha, and the matted composite meets the
+      // frame through this one opacity — so scaling it here is the same
+      // multiply, without a pass of its own over the coverage texture.
+      opacity: layer.opacity * (matte.strength ?? 1),
       blendMode: layer.blendMode,
       zIndex: layer.zIndex,
       // The composite is frame-sized, so it blends 1:1: the layer's placement
@@ -1096,6 +1128,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       liveTargets.add(`mattesrc:${layer.id}`);
       effectKeys.add(`matte-mask:${layer.id}`);
       effectKeys.add(`matte-apply:${layer.id}`);
+      effectKeys.add(`matte-feather:${layer.id}`);
       visit(layer.matte.layer);
     };
     for (const layer of layers) visit(layer);

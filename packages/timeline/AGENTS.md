@@ -237,3 +237,25 @@
   `trimStart`/`trimEnd` change the outline, so every host rasterizes
   `AnimatedLayerProps.shapeStyle`, not the clip's own; a host that reaches for
   `layer.shapeStyle` renders a trim animation as a held first frame.
+
+## Generated mattes (`src/generatedMatte.ts`, D2)
+
+- **A generated matte is an attribute of the clip, not a second clip.**
+  `clip.generatedMatte` names a luma mask video cut from the clip's own source
+  frame for frame, so it shares the in-point, the speed, the window and the time
+  remap by construction — every trim, split and move keeps it aligned, and
+  `splitClip`/`trimClip` need nothing beyond copying the field across. The
+  two-clip `matte` (`ClipMatte`, `matte.sourceClipId`) stays for a keyhole
+  authored from another clip's picture; a clip carrying both is resolved by the
+  generated one, because that is what the user asked the picture to be.
+- **What can go wrong is staleness, not alignment.** The clip's asset can be
+  regenerated under the matte, or its window can grow past the source the
+  generation covered. `isGeneratedMatteStale` decides both, in one place, for
+  the editor and for the validator's `generated_matte_stale`.
+- **The scene model resolves it into the same `matte` slot a track matte uses**
+  (`mode: "luma"`, plus `strength` and `featherPx`), with the keyhole carrying
+  the layer's own clip, placement and source time and none of its look — so both
+  compositors apply one keyhole through one path. `status` other than `ready`
+  draws unmatted rather than blanking the shot a generation is still cutting
+  out. `featherPx` is GPU-only; Canvas 2D draws the edge hard and reports
+  `generated_matte_feather_ignored`.

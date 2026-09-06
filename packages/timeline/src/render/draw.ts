@@ -693,11 +693,16 @@ export function drawText(
 
 /**
  * Per-frame input for a staggered text draw: the clip's compiled animations
- * (at least one carrying a `stagger`) and the clip-local time.
+ * (at least one carrying a `stagger`), the clip-local time, and the clip's
+ * source-media time (`clipSourceMsAt`) — a source-anchored curve on a
+ * staggered animation is evaluated at the latter; every other curve ignores
+ * it. Absent `sourceMs` leaves a source-anchored curve at identity, same as
+ * an unresolved `sampleAnimations` caller.
  */
 export interface TextRenderStagger {
   compiled: CompiledAnimation[];
   localMs: number;
+  sourceMs?: number;
 }
 
 /**
@@ -776,7 +781,8 @@ export function drawStaggeredText(
       stagger.compiled,
       stagger.localMs,
       Math.min(index, layout.count - 1),
-      scratch
+      scratch,
+      stagger.sourceMs
     );
     const scaleX = s.scale * s.scaleX;
     const scaleY = s.scale * s.scaleY;

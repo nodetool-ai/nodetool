@@ -27,6 +27,7 @@ export * from "./model3d.js";
 export * from "./model3dBake.js";
 export * from "./sourceRate.js";
 export * from "./timeRemap.js";
+export * from "./generatedMatte.js";
 export * from "./snap.js";
 export * from "./beats.js";
 export * from "./staleSet.js";

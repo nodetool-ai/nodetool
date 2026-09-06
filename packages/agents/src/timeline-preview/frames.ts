@@ -715,7 +715,9 @@ export async function renderTimelineFrames(
           drawn.matte = {
             mode: layer.matte.mode,
             invert: layer.matte.invert,
-            layer: matteLayer
+            layer: matteLayer,
+            strength: layer.matte.strength,
+            featherPx: layer.matte.featherPx
           };
         }
       }

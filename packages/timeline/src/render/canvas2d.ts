@@ -157,6 +157,14 @@ export interface Canvas2DMatte<TSource> {
   mode: MatteMode;
   invert: boolean;
   layer: Canvas2DLayer<TSource>;
+  /** Multiplies the matte's alpha. Absent means 1. */
+  strength?: number;
+  /**
+   * Softened edge, in pixels. This path has no separable blur to run on a
+   * keyhole surface, so it draws the edge hard and reports
+   * `generated_matte_feather_ignored`.
+   */
+  featherPx?: number;
 }
 
 /**
@@ -318,6 +326,8 @@ export type Canvas2DDegradationReason =
   | "wipe_hard_edge"
   /** A track matte skipped: the layer drew unmatted. */
   | "matte_skipped"
+  /** A generated matte's feathered edge drawn hard. */
+  | "generated_matte_feather_ignored"
   /** A precompositing group's blend mode and effects lost. */
   | "group_blend_lost"
   /** An adjustment did not run: the untreated composite stands. */
@@ -1098,6 +1108,17 @@ function drawMattedLayer<TSource>(
   );
   if (matte.mode === "luma") lumaToAlpha(keyhole.ctx, w, h);
   if (matte.invert) invertAlpha(keyhole.ctx, w, h);
+  const strength = matte.strength ?? 1;
+  if (strength < 1) scaleAlpha(keyhole.ctx, w, h, Math.max(0, strength));
+  // The GPU path blurs the keyhole before it is read; there is no separable
+  // blur here, and `ctx.filter` would soften the *picture* rather than the
+  // matte. Named rather than silently dropped (I7).
+  if (matte.featherPx !== undefined && matte.featherPx > 0) {
+    degraded.push({
+      clipId: layer.clipId,
+      reason: "generated_matte_feather_ignored"
+    });
+  }
 
   composed.ctx.globalCompositeOperation = "destination-in";
   composed.ctx.drawImage(keyhole.surface, 0, 0, w, h);
@@ -1154,6 +1175,25 @@ function lumaToAlpha<TSource>(
     data[i + 1] = 255;
     data[i + 2] = 255;
     data[i + 3] = Math.round((luma * data[i + 3]!) / 255);
+  }
+  ctx.putImageData(pixels, 0, 0);
+}
+
+/**
+ * `alpha *= scale`, which is what a matte's `strength` means: at 0.5 half of
+ * what the matte hides comes back through. Run on the keyhole rather than on
+ * the layer so the two compositors read one number the same way.
+ */
+function scaleAlpha<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  width: number,
+  height: number,
+  scale: number
+): void {
+  const pixels = ctx.getImageData(0, 0, width, height);
+  const data = pixels.data;
+  for (let i = 3; i < data.length; i += 4) {
+    data[i] = Math.round(data[i]! * scale);
   }
   ctx.putImageData(pixels, 0, 0);
 }

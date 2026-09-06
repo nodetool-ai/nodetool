@@ -36,7 +36,7 @@ import {
   parseStaggerUnit,
   sampleAnimations
 } from "../animation/index.js";
-import { clipRemapSourceMs } from "../timeRemap.js";
+import { clipSourceMsAt } from "../timeRemap.js";
 import type { ResolvedCaption, TextRenderStagger } from "./draw.js";
 import { countTextStaggerUnits, type RenderCanvas } from "./textLayout.js";
 import { buildTransformMatrix } from "./transform.js";
@@ -203,18 +203,17 @@ function resolveBlendMode(b: TimelineClip["blendMode"]): CompositorBlendMode {
  * A clip carrying a `timeRemap` reads its source position off that curve
  * instead (D13): the keyframes name absolute source milliseconds, so neither
  * the rate nor the in-point applies on top of them.
+ *
+ * Delegates to `clipSourceMsAt` (`timeRemap.ts`) — the same source time a
+ * source-anchored custom animation is sampled at — so this and the animation
+ * sampler can't drift into disagreeing about what "now" is on the clip's
+ * media clock.
  */
 export function clipSourceTimeSec(
   clip: TimelineClip,
   currentTimeMs: number
 ): number {
-  const remapped = clipRemapSourceMs(clip, currentTimeMs);
-  if (remapped !== null) return Math.max(0, remapped / 1000);
-  const rate = clip.speedBaked
-    ? 1
-    : Math.max(0.0001, clip.speedMultiplier ?? 1);
-  const intoClipTimelineSec = (currentTimeMs - clip.startMs) / 1000;
-  return Math.max(0, intoClipTimelineSec * rate + (clip.inPointMs ?? 0) / 1000);
+  return clipSourceMsAt(clip, currentTimeMs) / 1000;
 }
 
 /**
@@ -490,6 +489,17 @@ export interface ResolvedMatte {
    * of it; it never reaches the frame.
    */
   layer: ActiveLayer;
+  /**
+   * Multiplies the matte's alpha, so 0.5 lets half of what the matte hides
+   * back through. Absent means 1. Only a generated matte carries it.
+   */
+  strength?: number;
+  /**
+   * Softens the matte's edge by this many pixels before it is applied. Absent
+   * means a hard edge. GPU only: Canvas 2D draws it hard and reports
+   * `generated_matte_feather_ignored`.
+   */
+  featherPx?: number;
 }
 
 /** A visual layer active at a point in time, in bottom-to-top composite order. */
@@ -1189,6 +1199,60 @@ function resolveAdjustment(
 }
 
 /**
+ * The keyhole a clip's own generated matte drives, or undefined when it has
+ * none this build applies (D2).
+ *
+ * A generated matte is a luma mask video cut from the clip's source frame for
+ * frame, carried on the clip rather than on a second one. So the source layer
+ * is this layer again with the mask asset in place of the picture: same clip,
+ * same placement, same source time — which is what makes a trim, a split or a
+ * speed change move the matte with the footage instead of sliding it off.
+ *
+ * A status other than `ready` resolves to nothing and the layer draws unmatted:
+ * a generation in flight must not blank the shot it was asked to cut out.
+ *
+ * The keyhole carries the layer's geometry and none of its look. Its effects
+ * would grade the mask; its shape mask and its opacity are already on the
+ * picture, and applying them again would multiply twice. A cut in flight
+ * contributes its offset and scale for the same reason the geometry does —
+ * without them a pushed layer would slide out from under its own matte — and
+ * not its reveal or its dip solid, which the picture already carries.
+ */
+function resolveGeneratedMatte(layer: ActiveLayer): ResolvedMatte | undefined {
+  const generated = layer.clip.generatedMatte;
+  if (!generated) return undefined;
+  if ((generated.status ?? "ready") !== "ready") return undefined;
+  const transition = layer.transition;
+  const source: ActiveLayer = {
+    kind: "video",
+    clip: layer.clip,
+    clipId: layer.clipId,
+    trackIndex: layer.trackIndex,
+    blendMode: "normal",
+    opacity: 1,
+    assetId: generated.assetId,
+    transform: layer.transform,
+    parentMatrix: layer.parentMatrix,
+    precomposeGroupId: layer.precomposeGroupId,
+    transition: transition
+      ? { ...transition, mask: undefined, solid: undefined }
+      : undefined
+  };
+  const resolved: ResolvedMatte = {
+    mode: "luma",
+    invert: generated.invert ?? false,
+    layer: source
+  };
+  if (generated.strength !== undefined) {
+    resolved.strength = clamp01(generated.strength);
+  }
+  if (generated.featherPx !== undefined && generated.featherPx > 0) {
+    resolved.featherPx = generated.featherPx;
+  }
+  return resolved;
+}
+
+/**
  * Hand each matted layer the source layer that drives its alpha, and drop the
  * ones whose source drew nothing at this time.
  *
@@ -1210,6 +1274,16 @@ function attachMattes(
 ): ActiveLayer[] {
   const out: ActiveLayer[] = [];
   for (const layer of layers) {
+    // A generated matte is cut from this clip's own source, so it needs no
+    // source clip to be present and nothing to keep in sync — and it wins over
+    // an authored `matte` on the same clip: the cutout is what the user asked
+    // the picture to be, and a compositor applies one keyhole, not two.
+    const generated = resolveGeneratedMatte(layer);
+    if (generated) {
+      layer.matte = generated;
+      out.push(layer);
+      continue;
+    }
     const matte = layer.clip.matte;
     const mode = matte ? parseMatteMode(matte.mode) : null;
     if (!matte || mode === null) {
@@ -1467,7 +1541,12 @@ export function resolveAnimatedLayerProps(
     return staticProps(layer);
   }
 
-  const s = sampleAnimations(compiled, currentTimeMs - clip.startMs);
+  const s = sampleAnimations(
+    compiled,
+    currentTimeMs - clip.startMs,
+    undefined,
+    clipSourceMsAt(clip, currentTimeMs)
+  );
   if (isIdentitySample(s)) {
     return staticProps(layer);
   }
@@ -1600,7 +1679,11 @@ export function resolveTextStaggerContext(
   if (clip.mediaType !== "text") return null;
   const compiled = compiledFor(clip, canvas, cache);
   if (compiled.length === 0 || !hasStaggeredAnimation(compiled)) return null;
-  return { compiled, localMs: currentTimeMs - clip.startMs };
+  return {
+    compiled,
+    localMs: currentTimeMs - clip.startMs,
+    sourceMs: clipSourceMsAt(clip, currentTimeMs)
+  };
 }
 
 /**

@@ -916,6 +916,39 @@ export const clipMatte = z.object({
 });
 export type ClipMatte = z.infer<typeof clipMatte>;
 
+const generatedMatteSettings = z.record(
+  z.string(),
+  z.union([z.number(), z.string(), z.boolean()])
+);
+
+/**
+ * A matte generated from the clip's own source and carried on that clip (D2),
+ * so a trim, a split or a move keeps it aligned with no second clip to sync.
+ * The asset is a luma mask video cut from `sourceAssetId` frame for frame.
+ */
+export const clipGeneratedMatte = z.object({
+  assetId: z.string(),
+  sourceAssetId: z.string(),
+  sourceRange: z.object({ fromMs: z.number(), toMs: z.number() }),
+  settings: generatedMatteSettings,
+  invert: z.boolean().optional(),
+  strength: z.number().optional(),
+  featherPx: z.number().optional(),
+  versions: z
+    .array(
+      z.object({
+        assetId: z.string(),
+        sourceAssetId: z.string(),
+        createdAt: z.string(),
+        jobId: z.string().optional(),
+        settings: generatedMatteSettings
+      })
+    )
+    .optional(),
+  status: z.enum(["ready", "generating", "failed"]).optional()
+});
+export type ClipGeneratedMatte = z.infer<typeof clipGeneratedMatte>;
+
 /**
  * Retimes a clip's source. `t` is normalized 0..1 over the clip's window and
  * must ascend; `sourceMs` may descend, which is reverse playback.
@@ -1051,6 +1084,10 @@ export const timelineClip = z.object({
   /** Track matte. Without this field Zod strips it on every PATCH, so the
    * matted layer reverts to opaque on the next save. */
   matte: clipMatte.optional(),
+  /** Matte generated from the clip's own source. Without this field Zod strips
+   * it on every PATCH, so a cut-out subject reverts to its full frame on the
+   * next save and the generation has to be paid for again. */
+  generatedMatte: clipGeneratedMatte.optional(),
   /** Time remap. Without this field Zod strips it on every PATCH, so a
    * retimed or reversed clip plays back at its plain rate after one save. */
   timeRemap: clipTimeRemap.optional(),

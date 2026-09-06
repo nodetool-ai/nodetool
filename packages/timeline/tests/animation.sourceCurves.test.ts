@@ -12,10 +12,11 @@ import { describe, expect, it } from "vitest";
 import { compileClipAnimations } from "../src/animation/compile.js";
 import { normalizeCustomCurves } from "../src/animation/custom.js";
 import { sampleAnimations } from "../src/animation/sample.js";
+import { resolveAnimatedLayerProps } from "../src/render/sceneModel.js";
 import { splitClip } from "../src/splitClip.js";
 import { clipSourceMsAt } from "../src/timeRemap.js";
 import { trimClip } from "../src/trimClip.js";
-import type { ClipAnimation } from "../src/animation/types.js";
+import type { AnimatedProperty, ClipAnimation } from "../src/animation/types.js";
 import type { TimelineClip } from "../src/types.js";
 
 const CANVAS = { width: 1920, height: 1080 };
@@ -29,7 +30,8 @@ const SOURCE_KEYFRAMES = [
 ];
 
 function sourceAnimation(
-  keyframes: ReadonlyArray<{ sourceMs: number; value: number; easing?: string }>
+  keyframes: ReadonlyArray<{ sourceMs: number; value: number; easing?: string }>,
+  property: AnimatedProperty = "offsetY"
 ): ClipAnimation {
   return {
     id: "anim-source",
@@ -42,7 +44,7 @@ function sourceAnimation(
       bakedFrom: { kind: "audio", assetId: "asset-1", settings: { gain: 2 } },
       curves: [
         {
-          property: "offsetY",
+          property,
           keyframes: keyframes.map((kf) => ({ t: 0, ...kf }))
         }
       ]
@@ -330,3 +332,79 @@ function mergeHalves(left: TimelineClip, right: TimelineClip): TimelineClip {
     ]
   };
 }
+
+const CANVAS_1000 = { width: 1000, height: 1000 };
+
+/**
+ * `resolveAnimatedLayerProps` is what every render host actually calls — the
+ * tests above sample the curve directly with `clipSourceMsAt` already
+ * supplied, which proves the math but not that the render path wires it in.
+ * This clip plays its source twice as fast from an in-point of 1000ms, so a
+ * caller sampling on the clip's own clock (`currentTimeMs - clip.startMs`)
+ * instead of the source clock would read the wrong instant of the curve —
+ * and a caller that resolves no source time at all reads identity, since a
+ * source-anchored curve contributes nothing without it.
+ */
+describe("resolveAnimatedLayerProps — source time base", () => {
+  function opacityClip(overrides: Partial<TimelineClip> = {}): TimelineClip {
+    return {
+      id: "clip-opacity",
+      trackId: "track-1",
+      name: "shot",
+      startMs: 0,
+      durationMs: 2000,
+      inPointMs: 1000,
+      outPointMs: 5000,
+      speedMultiplier: 2,
+      mediaType: "video",
+      sourceType: "imported",
+      status: "generated",
+      locked: false,
+      versions: [],
+      animations: [
+        sourceAnimation(
+          [
+            { sourceMs: 1000, value: 1 },
+            { sourceMs: 3000, value: 0.4 },
+            { sourceMs: 5000, value: 1 }
+          ],
+          "opacity"
+        )
+      ],
+      ...overrides
+    };
+  }
+
+  it("evaluates the curve at the clip's source time, not its local time", () => {
+    const clip = opacityClip();
+    // Local time 1000ms; at 2x speed from an in-point of 1000ms that is
+    // source 3000ms, the middle keyframe, worth 0.4. Sampled on the clip's
+    // own clock (1000ms into a 4000ms-window curve normalized 0..1) this
+    // curve would read a different, wrong instant.
+    const props = resolveAnimatedLayerProps({ clip, opacity: 1 }, 1000, CANVAS_1000);
+    expect(props.opacity).toBeCloseTo(0.4, 6);
+  });
+
+  it("keeps the same opacity at the same timeline time after a head trim", () => {
+    const clip = opacityClip();
+    const timelineMs = 1000;
+    const before = resolveAnimatedLayerProps(
+      { clip, opacity: 1 },
+      timelineMs,
+      CANVAS_1000
+    ).opacity;
+
+    // Trims the first 500ms of timeline off the head; the curve re-slices
+    // onto the retained source window (`resliceSourceAnimations`), so the
+    // motion at a timeline instant the trim did not touch must survive.
+    const trimmed = trimClip(clip, "start", -500);
+    const after = resolveAnimatedLayerProps(
+      { clip: trimmed, opacity: 1 },
+      timelineMs,
+      CANVAS_1000
+    ).opacity;
+
+    expect(after).toBeCloseTo(before, 6);
+    expect(before).toBeCloseTo(0.4, 6);
+  });
+});

@@ -1129,3 +1129,86 @@ describe("renderTimelineReportMarkdown", () => {
     expect(md).not.toContain("## Interactions");
   });
 });
+
+/**
+ * A generated matte is carried on the clip it was cut from (D2), so nothing can
+ * pull it out of alignment — but the clip can be re-generated or re-windowed
+ * under it, and then the mask no longer describes the picture. That is the one
+ * thing `generated_matte_stale` reports, and the controls below pin the two
+ * ways it must stay quiet.
+ */
+describe("validateTimelineSequence — generated mattes", () => {
+  const matte = (over: Json = {}): Json => ({
+    assetId: "mask-1",
+    sourceAssetId: "asset-1",
+    sourceRange: { fromMs: 0, toMs: 10000 },
+    settings: { model: "fal-ai/birefnet/v2/video" },
+    status: "ready",
+    ...over
+  });
+
+  const matted = (over: Json = {}): Json =>
+    doc({
+      clips: [
+        clip({
+          currentAssetId: "asset-1",
+          inPointMs: 0,
+          durationMs: 2000,
+          generatedMatte: matte(),
+          ...over
+        })
+      ]
+    });
+
+  it("stays quiet while the matte still describes what the clip plays", () => {
+    const result = validateTimelineSequence(matted());
+    expect(codes(result.warnings)).not.toContain("generated_matte_stale");
+    expect(result.ok).toBe(true);
+  });
+
+  it("keeps the field across a schema round-trip", () => {
+    // A generated matte the schema stripped would be lost on the next autosave,
+    // and the clip would silently un-cut-out.
+    const result = validateTimelineSequence(matted());
+    expect(codes(result.warnings)).not.toContain("field_stripped");
+  });
+
+  it("reports generated_matte_stale when the clip's asset changed under it", () => {
+    const result = validateTimelineSequence(
+      matted({ currentAssetId: "asset-2" })
+    );
+    const issue = result.warnings.find(
+      (w) => w.code === "generated_matte_stale"
+    );
+    expect(issue?.path).toBe("generatedMatte");
+    expect(issue?.clipId).toBe("clip-1");
+    expect(issue?.trackId).toBe("track-1");
+    expect(issue?.message).toContain("asset-1");
+    expect(issue?.message).toContain("asset-2");
+    // A warning, not an error: the clip still renders, keyed by what it has.
+    expect(result.ok).toBe(true);
+  });
+
+  it("reports generated_matte_stale when the window outgrew the generation", () => {
+    const result = validateTimelineSequence(
+      matted({ inPointMs: 9000, durationMs: 3000 })
+    );
+    const issue = result.warnings.find(
+      (w) => w.code === "generated_matte_stale"
+    );
+    expect(issue?.message).toContain("9000");
+    expect(issue?.message).toContain("12000");
+  });
+
+  it("reports generated_matte_stale when speed outruns the covered range", () => {
+    const result = validateTimelineSequence(
+      matted({ durationMs: 8000, speedMultiplier: 4 })
+    );
+    expect(codes(result.warnings)).toContain("generated_matte_stale");
+  });
+
+  it("says nothing about a clip with no generated matte", () => {
+    const result = validateTimelineSequence(doc());
+    expect(codes(result.warnings)).not.toContain("generated_matte_stale");
+  });
+});

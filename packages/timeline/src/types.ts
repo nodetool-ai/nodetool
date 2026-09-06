@@ -732,6 +732,13 @@ export interface TimelineClip {
   mask?: ClipMask;
   /** Track matte: another clip's alpha or luma drives this layer's alpha. */
   matte?: ClipMatte;
+  /**
+   * A matte generated from this clip's own source — subject cutout, sky
+   * replacement — as an attribute of the clip rather than a second clip (D2).
+   * It therefore shares the in-point, speed, window and time remap by
+   * construction, so every trim, split and move keeps it aligned.
+   */
+  generatedMatte?: ClipGeneratedMatte;
   /** Retime the clip's source. Replaces `speedMultiplier` when set. */
   timeRemap?: ClipTimeRemap;
   /** Composition provenance, stamped by `insert_composition`. */
@@ -776,6 +783,39 @@ export interface ClipMatte {
   /** `"alpha" | "luma"`. */
   mode: string;
   invert?: boolean;
+}
+
+/**
+ * A matte generated from a clip's own source, carried on that clip (D2).
+ *
+ * The asset is a luma mask video cut from `sourceAssetId` frame for frame, so
+ * it is read at the clip's own source time — the in-point, the speed and a time
+ * remap all apply to it exactly as they apply to the picture. That is what
+ * makes it survive a trim or a split with no re-generation and no second clip
+ * to keep in sync.
+ */
+export interface ClipGeneratedMatte {
+  /** The mask video asset in use (luma, same frame rate and duration as the source asset it was cut from). */
+  assetId: string;
+  /** The source clip asset the matte was generated from; a mismatch with `currentAssetId` means stale. */
+  sourceAssetId: string;
+  /** Source interval the generation covered, in source ms. */
+  sourceRange: { fromMs: number; toMs: number };
+  /** Provider/model/resolution knobs the generation ran with. Provenance only. */
+  settings: Record<string, number | string | boolean>;
+  invert?: boolean;
+  /** 0..1 multiplier on the matte's alpha; default 1. */
+  strength?: number;
+  featherPx?: number;
+  /** Earlier results, newest first, so a regenerate can be undone. */
+  versions?: {
+    assetId: string;
+    sourceAssetId: string;
+    createdAt: string;
+    jobId?: string;
+    settings: Record<string, number | string | boolean>;
+  }[];
+  status?: "ready" | "generating" | "failed";
 }
 
 /**

@@ -28,6 +28,7 @@ import {
   resolveFontFamily,
   resolveCustomMask,
   computeModel3DBakeHash,
+  isGeneratedMatteStale,
   sourceRate,
   DEFAULT_TEMPO,
   resolveTempo,
@@ -773,6 +774,183 @@ function checkMattes(doc: TimelineDocument): TimelineDebugIssue[] {
 }
 
 /**
+ * A matte whose source names an adjustment clip.
+ *
+ * An adjustment clip draws no picture of its own — `attachMattes`
+ * (`render/sceneModel.ts`) treats that the same as a source clip the document
+ * does not contain: the layer draws unmatted and, unlike a genuinely missing
+ * or inactive source, nothing is logged at render time. A warning, because the
+ * document still renders — just not the cutout the author asked for.
+ */
+function checkMatteSourceAdjustment(doc: TimelineDocument): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  const byId = new Map(doc.clips.map((clip) => [clip.id, clip]));
+  for (const clip of doc.clips) {
+    const matte = clip.matte;
+    if (!matte) continue;
+    const source = byId.get(matte.sourceClipId);
+    if (!source || source.mediaType !== "adjustment") continue;
+    issues.push({
+      severity: "warning",
+      code: "matte_source_invalid",
+      message: `Clip "${clipLabel(clip)}" is matted by "${clipLabel(source)}", which is an adjustment clip — an adjustment has no pixels of its own, so the layer draws unmatted.`,
+      path: "matte.sourceClipId",
+      clipId: clip.id,
+      trackId: clip.trackId
+    });
+  }
+  return issues;
+}
+
+/**
+ * Fields an adjustment clip carries that the scene model ignores on one (D-adj):
+ * `transform`, `borderRadius`, `blendMode` and `matte` all place or shape a
+ * picture the clip does not draw, and `effects` with nothing enabled leaves
+ * the clip a no-op even though it still costs a resolve. Both are warnings —
+ * the document still renders, just not differently for the field carried.
+ */
+function checkAdjustmentEffects(doc: TimelineDocument): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  for (const clip of doc.clips) {
+    if (clip.mediaType !== "adjustment") continue;
+    const at = { clipId: clip.id, trackId: clip.trackId };
+    const label = clipLabel(clip);
+
+    if (!(clip.effects ?? []).some((effect) => effect.enabled)) {
+      issues.push({
+        severity: "warning",
+        code: "adjustment_no_effects",
+        message: `Adjustment clip "${label}" carries no enabled effect — it treats nothing beneath it and is a no-op.`,
+        ...at
+      });
+    }
+
+    const ignoredFields: string[] = [];
+    if (clip.transform !== undefined) ignoredFields.push("transform");
+    if (clip.borderRadius !== undefined) ignoredFields.push("borderRadius");
+    if (clip.blendMode !== undefined) ignoredFields.push("blendMode");
+    if (clip.matte !== undefined) ignoredFields.push("matte");
+    if (ignoredFields.length > 0) {
+      issues.push({
+        severity: "warning",
+        code: "adjustment_field_ignored",
+        message: `Adjustment clip "${label}" carries ${ignoredFields.join(", ")} — an adjustment draws no picture of its own, so ${ignoredFields.length > 1 ? "those fields go" : "that field goes"} unused.`,
+        path: ignoredFields[0],
+        ...at
+      });
+    }
+  }
+  return issues;
+}
+
+/**
+ * An adjustment clip whose window has nothing to treat (D-adj).
+ *
+ * Unparented, it treats every track with a *higher* index than its own —
+ * index 0 draws on top, so a higher index is further down the stack
+ * (`render/sceneModel.ts` § z-order) — so the check looks for any clip on
+ * such a track overlapping its window; audio and midi tracks never composite
+ * and are excluded the same way `checkDocumentLevel`'s z-order check excludes
+ * them. Parented to a group, it treats that group's own composited surface
+ * instead (`groupNeedsPrecomposite`), so the check looks at siblings sharing
+ * the same `parentId` rather than at tracks. Both are warnings: the clip still
+ * resolves, it simply never has anything under it to change.
+ */
+function checkAdjustmentTargets(doc: TimelineDocument): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  const trackById = new Map(doc.tracks.map((track) => [track.id, track]));
+  const clipById = new Map(doc.clips.map((clip) => [clip.id, clip]));
+  const siblingsByParent = new Map<string, TimelineClip[]>();
+  for (const clip of doc.clips) {
+    if (clip.parentId === undefined) continue;
+    const list = siblingsByParent.get(clip.parentId);
+    if (list) list.push(clip);
+    else siblingsByParent.set(clip.parentId, [clip]);
+  }
+
+  const overlaps = (a: TimelineClip, b: TimelineClip): boolean =>
+    b.startMs < a.startMs + a.durationMs && b.startMs + b.durationMs > a.startMs;
+
+  for (const clip of doc.clips) {
+    if (clip.mediaType !== "adjustment") continue;
+    const at = { clipId: clip.id, trackId: clip.trackId };
+    const label = clipLabel(clip);
+
+    if (clip.parentId !== undefined) {
+      const parent = clipById.get(clip.parentId);
+      if (!parent || parent.mediaType !== "group") continue; // reported by checkParents
+      const siblings = siblingsByParent.get(clip.parentId) ?? [];
+      const treatsSomething = siblings.some(
+        (sibling) => sibling.id !== clip.id && overlaps(clip, sibling)
+      );
+      if (!treatsSomething) {
+        issues.push({
+          severity: "warning",
+          code: "adjustment_group_empty",
+          message: `Adjustment clip "${label}" is parented to group "${clipLabel(parent)}", but no other clip in that group overlaps its window — it treats nothing.`,
+          ...at
+        });
+      }
+      continue;
+    }
+
+    const ownTrack = trackById.get(clip.trackId);
+    if (!ownTrack) continue; // reported by checkClip as clip_track_missing
+    const treatsSomething = doc.clips.some((other) => {
+      if (other.id === clip.id) return false;
+      const otherTrack = trackById.get(other.trackId);
+      if (!otherTrack) return false;
+      if (otherTrack.type === "audio" || otherTrack.type === "midi") return false;
+      return otherTrack.index > ownTrack.index && overlaps(clip, other);
+    });
+    if (!treatsSomething) {
+      issues.push({
+        severity: "warning",
+        code: "adjustment_treats_nothing",
+        message: `Adjustment clip "${label}" has no clip on a lower track (a higher track index) overlapping its window — it treats nothing.`,
+        ...at
+      });
+    }
+  }
+  return issues;
+}
+
+/**
+ * Generated mattes (D2). A matte cut from the clip's own source stays aligned
+ * through any edit, so the only thing that can go wrong is that it no longer
+ * describes what the clip shows: the asset was regenerated under it, or a trim
+ * or a speed change now reaches source the generation never covered.
+ *
+ * A warning rather than an error: the clip still renders, keyed by the matte it
+ * has — over the wrong picture, or with the uncovered stretch keyed by whatever
+ * the mask video's last frame holds. The fix is a regenerate, which costs a
+ * provider call, so this reports rather than blocks.
+ *
+ * `isGeneratedMatteStale` is the same predicate the editor and the compositor
+ * ask, so a document that validates clean cannot be shown as stale in the UI.
+ */
+function checkGeneratedMattes(doc: TimelineDocument): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  for (const clip of doc.clips) {
+    const matte = clip.generatedMatte;
+    if (!matte || !isGeneratedMatteStale(clip)) continue;
+    const reason =
+      matte.sourceAssetId === clip.currentAssetId
+        ? `its window now covers ${Math.round(clipSourceWindow(clip).fromMs)}–${Math.round(clipSourceWindow(clip).toMs)}ms of the source and the matte was cut from ${Math.round(matte.sourceRange.fromMs)}–${Math.round(matte.sourceRange.toMs)}ms`
+        : `it was cut from asset "${matte.sourceAssetId}" and the clip now plays "${clip.currentAssetId ?? "none"}"`;
+    issues.push({
+      severity: "warning",
+      code: "generated_matte_stale",
+      message: `Clip "${clipLabel(clip)}" has a generated matte that no longer matches what it plays — ${reason}. Regenerate it.`,
+      path: "generatedMatte",
+      clipId: clip.id,
+      trackId: clip.trackId
+    });
+  }
+  return issues;
+}
+
+/**
  * Parent links (D4). A `parentId` must name a clip the document contains, that
  * clip must be a group, and the chain must reach a root.
  *
@@ -1239,6 +1417,10 @@ export function validateTimelineSequence(
     ...checkLegibility(doc, canvas.height),
     ...checkParents(doc),
     ...checkMattes(doc),
+    ...checkGeneratedMattes(doc),
+    ...checkMatteSourceAdjustment(doc),
+    ...checkAdjustmentEffects(doc),
+    ...checkAdjustmentTargets(doc),
     ...checkOverlaps(doc),
     ...checkVideoLayerCap(doc),
     ...checkMidi(doc),
