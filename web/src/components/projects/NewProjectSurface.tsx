@@ -107,10 +107,7 @@ import {
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { trpcClient } from "../../trpc/client";
-import {
-  readWorkflowSetup,
-  writeWorkflowSetup
-} from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import { writeWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { clearProjectFirstTurn, stageProjectFirstTurn } from "./projectAgent";
 import { PROJECT_COLOR } from "./projectIdentity";
@@ -213,30 +210,6 @@ const uploadComposerReferences = async (
     });
   }
   return references;
-};
-
-/**
- * The brief a draft carries, wherever its flow keeps it.
- *
- * Each of the four documents holds it somewhere else, and "Change flow" has to
- * hand back what the creator typed in step 1, not the older text the composer
- * still shows.
- */
-const readSetupBrief = async (target: SetupTarget): Promise<string> => {
-  if (target.kind === "storyboard") {
-    const board = await trpcClient.storyboards.get.query({ id: target.id });
-    return board.document.brief ?? "";
-  }
-  if (target.kind === "script") {
-    const script = await trpcClient.scripts.get.query({ id: target.id });
-    return script.document.setup?.brief ?? "";
-  }
-  if (target.kind === "video") {
-    const sequence = await trpcClient.timeline.get.query({ id: target.id });
-    return sequence.setup?.brief ?? "";
-  }
-  const workflow = await trpcClient.workflows.get.query({ id: target.id });
-  return readWorkflowSetup(workflow.settings)?.brief ?? "";
 };
 
 /** Drop the draft document an entry card made. */
@@ -983,22 +956,28 @@ const NewProjectSurface = () => {
    * and entity it had — this surface never unmounted, it only rendered the
    * flow instead.
    *
+   * The host hands over the brief its own mounted document holds, before
+   * anything is deleted. Reading it back from the server instead would race
+   * the flows that persist on a debounce, and hand back the previous text (or
+   * nothing) right after the deletion that made it unrecoverable. It is used
+   * as given, empty included: a creator who cleared the field meant to.
+   *
    * Errors are left to reject: the shell shows them on its own error line, and
    * the flow stays up rather than dropping the creator on a half-deleted draft.
    */
-  const handleChangeFlow = useCallback(async () => {
-    const target = setupTargetRef.current;
-    if (!target) {
-      return;
-    }
-    const brief = await readSetupBrief(target);
-    await deleteSetupDocument(target);
-    await trpcClient.projects.delete.mutate({ id: target.projectId });
-    if (brief.trim().length > 0) {
+  const handleChangeFlow = useCallback(
+    async (brief: string) => {
+      const target = setupTargetRef.current;
+      if (!target) {
+        return;
+      }
+      await deleteSetupDocument(target);
+      await trpcClient.projects.delete.mutate({ id: target.projectId });
       setPrompt(brief);
-    }
-    applySetupTarget(null);
-  }, [applySetupTarget]);
+      applySetupTarget(null);
+    },
+    [applySetupTarget]
+  );
 
   /**
    * "Start from an example" in the workflow flow (PRD § 11.1) — the browser is

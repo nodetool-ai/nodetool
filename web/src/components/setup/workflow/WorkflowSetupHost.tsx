@@ -25,6 +25,7 @@ import {
 } from "../../../hooks/useRecommendedModelKeys";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useWorkflowManagerStore } from "../../../contexts/WorkflowManagerContext";
+import { useWorkflowSetupDocument } from "../../../hooks/workflow/useWorkflowSetup";
 import { readWorkflowFile } from "../../../hooks/workflow/importWorkflowFile";
 import type { BuildFromPlanResult } from "../../../hooks/workflow/useBuildFromPlan";
 import type { Workflow } from "../../../stores/ApiTypes";
@@ -74,9 +75,10 @@ export interface WorkflowSetupHostProps {
   /**
    * Leaves for a different entry card, from step 1 only. The caller owns what
    * happens to the workflow this flow already created; the flow only offers
-   * the way out (F31).
+   * the way out (F31). The brief handed over comes from the manager store, so
+   * it is what the creator typed rather than what the last save landed.
    */
-  onChangeFlow?: () => void | Promise<void>;
+  onChangeFlow?: (brief: string) => void | Promise<void>;
 }
 
 const WorkflowSetupHost: React.FC<WorkflowSetupHostProps> = ({
@@ -238,7 +240,18 @@ const WorkflowSetupHost: React.FC<WorkflowSetupHostProps> = ({
     onFinish
   });
 
-  return <SetupFlow config={config} onChangeFlow={onChangeFlow} />;
+  const brief = useWorkflowSetupDocument(workflowId)?.brief ?? "";
+  const handleChangeFlow = useCallback(
+    () => onChangeFlow?.(brief),
+    [brief, onChangeFlow]
+  );
+
+  return (
+    <SetupFlow
+      config={config}
+      onChangeFlow={onChangeFlow ? handleChangeFlow : undefined}
+    />
+  );
 };
 
 export default WorkflowSetupHost;

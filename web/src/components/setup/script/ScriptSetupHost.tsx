@@ -10,9 +10,12 @@
  * directly, so without it they would have nothing to write through.
  */
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
-import { useScriptStore } from "../../../stores/script/ScriptStore";
+import {
+  useScriptStore,
+  useScriptSetup
+} from "../../../stores/script/ScriptStore";
 import { useScriptServerSync } from "../../../hooks/script/useScriptServerSync";
 import { useScriptAgentBridge } from "../../../hooks/script/useScriptAgentBridge";
 import DocumentLoadStatus from "../../workspace/DocumentLoadStatus";
@@ -26,8 +29,12 @@ export interface ScriptSetupHostProps {
   /**
    * Offered on step 1 only, for someone who picked the wrong entry card. The
    * host owns what happens to the script it started (F31).
+   *
+   * The brief handed over comes from the store rather than the server: the
+   * field writes locally and persists on a debounce, so reading the server
+   * copy could hand back text the creator has already replaced.
    */
-  onChangeFlow?: () => void | Promise<void>;
+  onChangeFlow?: (brief: string) => void | Promise<void>;
 }
 
 const ScriptSetupHost = ({
@@ -43,6 +50,13 @@ const ScriptSetupHost = ({
   const loadState = useScriptServerSync(scriptId);
   useScriptAgentBridge(scriptId);
   const config = useScriptSetupFlow({ scriptId, onFinish });
+  const setup = useScriptSetup(scriptId);
+  const brief = setup?.brief ?? "";
+
+  const handleChangeFlow = useCallback(
+    () => onChangeFlow?.(brief),
+    [brief, onChangeFlow]
+  );
 
   // The store seeds an empty script on mount, and an empty script's stage
   // reads `done` — rendering before the server copy lands would show no flow.
@@ -50,7 +64,12 @@ const ScriptSetupHost = ({
     return <DocumentLoadStatus state={loadState} label="script" />;
   }
 
-  return <SetupFlow config={config} onChangeFlow={onChangeFlow} />;
+  return (
+    <SetupFlow
+      config={config}
+      onChangeFlow={onChangeFlow ? handleChangeFlow : undefined}
+    />
+  );
 };
 
 export default ScriptSetupHost;

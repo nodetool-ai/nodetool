@@ -30,6 +30,7 @@ import { LookStep, useLookStep } from "./LookStep";
 import { ReviewStep } from "./ReviewStep";
 import {
   DEFAULT_SETUP_SHOT_COUNT,
+  boardScreenplaySnapshot,
   directionFingerprint,
   keepPreviousScreenplay,
   setSetupShotCount,
@@ -176,7 +177,7 @@ export const useStoryboardSetupFlow = ({
   const runDirector = useCallback(
     async (requestedShots: number): Promise<boolean> => {
       const board = useStoryboardStore.getState().getBoard(boardId);
-      keepPreviousScreenplay(boardId, board?.screenplay ?? null);
+      keepPreviousScreenplay(boardId, boardScreenplaySnapshot(board));
       return direct(boardId, requestedShots);
     },
     [boardId, direct]

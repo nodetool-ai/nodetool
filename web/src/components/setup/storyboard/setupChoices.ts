@@ -19,6 +19,7 @@ import type { Screenplay } from "@nodetool-ai/protocol";
 import { DEFAULT_SETUP_SHOT_COUNT } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
+import type { StoryboardBoard } from "../../../stores/storyboard/StoryboardStore";
 import type { ShotlistReportEntry } from "../../../lib/storyboard/parseShotlistCsv";
 // The Director run records the fingerprint itself, so the comparison the genre
 // step makes and the value the run writes cannot drift apart.
@@ -96,6 +97,39 @@ export function useShotlistImportSummary(
  * session rather than saved.
  */
 const previous = new Map<string, Screenplay>();
+
+/**
+ * The board as a screenplay, so a restore puts back what the creator was
+ * reading rather than the Director's first draft. Review edits go to
+ * `board.shots`, `board.title` and the rest of the board's own fields;
+ * `board.screenplay.shots` is still the model's original output, so saving that
+ * would silently drop every edit made since (F2).
+ *
+ * Null when the board has neither a screenplay nor shots — there is nothing to
+ * put back.
+ */
+export function boardScreenplaySnapshot(
+  board: StoryboardBoard | undefined
+): Screenplay | null {
+  if (!board || (board.screenplay === null && board.shots.length === 0)) {
+    return null;
+  }
+  const base: Screenplay = board.screenplay ?? {
+    type: "screenplay",
+    id: crypto.randomUUID(),
+    title: board.title,
+    shots: []
+  };
+  return {
+    ...base,
+    title: board.title,
+    shots: [...board.shots],
+    brief: board.brief,
+    style_bible: board.style,
+    aspect_ratio: board.aspectRatio,
+    entity_ids: [...board.entityIds]
+  };
+}
 
 export function keepPreviousScreenplay(
   boardId: string,

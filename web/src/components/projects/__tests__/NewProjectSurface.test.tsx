@@ -151,11 +151,8 @@ const patchedSequence = {
   setup: { stage: "idea" as const, brief: "b7" }
 };
 const timelineUpdate = jest.fn().mockResolvedValue(patchedSequence);
-// "Change flow" reads the brief off the draft, then deletes the draft and the
-// project row the card made.
-const storyboardGet = jest
-  .fn()
-  .mockResolvedValue({ document: { brief: "A board I did not want" } });
+// "Change flow" takes the brief the host hands it, then deletes the draft and
+// the project row the card made.
 const storyboardDelete = jest.fn().mockResolvedValue({ ok: true });
 const workflowDelete = jest.fn().mockResolvedValue({ ok: true });
 const projectDelete = jest.fn().mockResolvedValue({ ok: true });
@@ -164,7 +161,6 @@ jest.mock("../../../trpc/client", () => ({
   trpcClient: {
     timeline: { update: { mutate: timelineUpdate } },
     storyboards: {
-      get: { query: (input: { id: string }) => storyboardGet(input) },
       delete: { mutate: (input: { id: string }) => storyboardDelete(input) }
     },
     workflows: {
@@ -256,11 +252,16 @@ jest.mock("../../setup/storyboard/StoryboardSetupHost", () => ({
     onChangeFlow
   }: {
     boardId: string;
-    onChangeFlow?: () => void | Promise<void>;
+    onChangeFlow?: (brief: string) => void | Promise<void>;
   }) => (
     <div data-testid="setup-flow">
       {boardId}
-      <button type="button" onClick={() => void onChangeFlow?.()}>
+      {/* The real host reads the live store; here it just hands over what the
+          creator would have typed into step 1. */}
+      <button
+        type="button"
+        onClick={() => void onChangeFlow?.("A board I did not want")}
+      >
         Change flow
       </button>
     </div>
@@ -1034,7 +1035,6 @@ describe("NewProjectSurface", () => {
     await waitFor(() =>
       expect(projectDelete).toHaveBeenCalledWith({ id: "p9" })
     );
-    expect(storyboardGet).toHaveBeenCalledWith({ id: "b7" });
     expect(storyboardDelete).toHaveBeenCalledWith({ id: "b7" });
     // The entry cards are back, with what was typed in step 1 in the box.
     expect(

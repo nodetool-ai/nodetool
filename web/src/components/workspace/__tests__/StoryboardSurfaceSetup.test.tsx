@@ -159,7 +159,7 @@ describe("StoryboardSurface setup stages", () => {
     seedBoard("genre");
     renderSurface();
     expect(
-      screen.getByRole("heading", { name: "Story settings" })
+      screen.getByRole("heading", { name: "Choose your genre" })
     ).toBeInTheDocument();
   });
 
