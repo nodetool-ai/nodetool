@@ -41,8 +41,10 @@ export const MUAPI_IMAGE_TO_VIDEO_ENDPOINT = "flux-3-image-to-video";
  * `VideoModel` entries and the node pack uses them as enum prop values, so a
  * picker on either surface cannot offer a value the route rejects.
  */
-export const MUAPI_VIDEO_DURATIONS = [4, 5, 6, 7, 8, 9, 10];
-export const MUAPI_VIDEO_RESOLUTIONS = ["480p", "720p", "1080p"];
+export const MUAPI_VIDEO_DURATIONS = [
+  5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+];
+export const MUAPI_VIDEO_RESOLUTIONS = ["720p", "1080p"];
 export const MUAPI_VIDEO_ASPECT_RATIOS = [
   "16:9",
   "9:16",
@@ -87,6 +89,12 @@ const OUTPUT_KEYS = [
 
 /** Keys a result body may report the charge under; absent leaves it unpriced. */
 const COST_KEYS = ["cost", "credits_used"] as const;
+
+/**
+ * Keys inside a structured `cost`. MuAPI reports `cost: { amount_usd }`, so a
+ * scalar-only reader leaves every receipt unpriced.
+ */
+const COST_AMOUNT_KEYS = ["amount_usd", "usd", "amount"] as const;
 
 export interface MuapiPollOptions {
   pollIntervalMs?: number;
@@ -244,20 +252,34 @@ function pickMuapiOutputUrl(
   return url;
 }
 
+/**
+ * A non-negative amount, or undefined. `Number(null)` and `Number("")` are both
+ * 0, so only a number or a non-empty numeric string counts — a missing field
+ * must stay unpriced rather than record a free job.
+ */
+function readAmount(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+    return value;
+  }
+  const text = readString(value);
+  if (text === undefined) return undefined;
+  const parsed = Number(text);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
 /** The charge MuAPI reported for a finished job, when it reported one. */
-function readMuapiCost(result: Record<string, unknown>): number | null {
+export function readMuapiCost(result: Record<string, unknown>): number | null {
   for (const key of COST_KEYS) {
     const value = result[key];
-    // `Number(null)` and `Number("")` are both 0, so only a number or a
-    // non-empty numeric string counts — a missing field must stay unpriced.
-    if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
-      return value;
+    if (isRecord(value)) {
+      for (const amountKey of COST_AMOUNT_KEYS) {
+        const nested = readAmount(value[amountKey]);
+        if (nested !== undefined) return nested;
+      }
+      continue;
     }
-    const text = readString(value);
-    if (text !== undefined) {
-      const parsed = Number(text);
-      if (Number.isFinite(parsed) && parsed >= 0) return parsed;
-    }
+    const scalar = readAmount(value);
+    if (scalar !== undefined) return scalar;
   }
   return null;
 }
@@ -325,6 +347,53 @@ async function muapiPoll(
 }
 
 /**
+ * Read a response body, giving up as soon as it crosses `limit` rather than
+ * after it is buffered. `content-length` is the sender's claim: a missing or
+ * understated one used to let an arbitrarily large body be allocated in full
+ * before the ceiling was checked. Cancels the stream on the first chunk that
+ * crosses, so nothing past the limit is read or held.
+ */
+export async function readBodyWithLimit(
+  response: Response,
+  limit: number,
+  tooLarge: string
+): Promise<Uint8Array> {
+  const body = response.body;
+  if (!body) {
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.length > limit) throw new Error(tooLarge);
+    return bytes;
+  }
+
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value || value.byteLength === 0) continue;
+      total += value.byteLength;
+      if (total > limit) {
+        await reader.cancel().catch(() => undefined);
+        throw new Error(tooLarge);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+/**
  * Download a finished job's output. The URL comes out of the result body, so
  * `safeFetch` screens it and re-checks every redirect hop; 429/5xx are retried
  * because the job is already generated and billed and a transient CDN blip
@@ -346,15 +415,18 @@ async function muapiDownload(
   }
 
   const tooLarge = `MuAPI output exceeds the ${MUAPI_MAX_OUTPUT_BYTES} byte limit`;
-  // Check the declared length before buffering, and the real length after: a
-  // missing or lying content-length must not get past the ceiling.
+  // Refuse a declared length over the ceiling without opening the body at all;
+  // a missing or understated one is caught chunk by chunk while reading.
   const declared = Number(response.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > MUAPI_MAX_OUTPUT_BYTES) {
     throw new Error(tooLarge);
   }
-  const bytes = new Uint8Array(await response.arrayBuffer());
+  const bytes = await readBodyWithLimit(
+    response,
+    MUAPI_MAX_OUTPUT_BYTES,
+    tooLarge
+  );
   if (bytes.length === 0) throw new Error("MuAPI returned an empty output file");
-  if (bytes.length > MUAPI_MAX_OUTPUT_BYTES) throw new Error(tooLarge);
 
   const sniffed = sniffMedia(bytes);
   if (sniffed?.kind !== kind) {

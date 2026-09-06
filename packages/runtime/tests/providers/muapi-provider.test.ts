@@ -14,6 +14,8 @@ import {
   MUAPI_MAX_OUTPUT_BYTES,
   MUAPI_MAX_UPLOAD_BYTES,
   muapiUploadImage,
+  readBodyWithLimit,
+  readMuapiCost,
   sanitizeMuapiText
 } from "../../src/providers/muapi-transport.js";
 import { runWithGenerationReceipt } from "../../src/generation-receipt.js";
@@ -32,6 +34,16 @@ const MP4_BYTES = Uint8Array.from([
 const PNG_BYTES = Uint8Array.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d
 ]);
+
+/** One-chunk body stream, as a real fetch would hand back. */
+function streamOf(bytes: Uint8Array): ReadableStream<Uint8Array> {
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(bytes);
+      controller.close();
+    }
+  });
+}
 
 const originalFetch = global.fetch;
 afterEach(() => {
@@ -77,7 +89,12 @@ function mockWire(opts: WireOptions = {}) {
       const status = pending.shift();
       const body = status
         ? { status }
-        : (opts.terminal ?? { status: "completed", outputs: [outputUrl], cost: 0.42 });
+        : (opts.terminal ?? {
+            status: "completed",
+            outputs: [outputUrl],
+            // The shape MuAPI documents: the charge is nested, not scalar.
+            cost: { amount_usd: 0.42 }
+          });
       return {
         ok: true,
         status: 200,
@@ -88,11 +105,18 @@ function mockWire(opts: WireOptions = {}) {
     if (u === outputUrl) {
       counts.download++;
       const status = downloadStatuses.shift() ?? 200;
+      const payload = opts.downloadBytes ?? MP4_BYTES;
       return {
         ok: status < 400,
         status,
         headers: new Headers(opts.downloadHeaders ?? {}),
-        arrayBuffer: async () => (opts.downloadBytes ?? MP4_BYTES).buffer
+        // A real download is streamed, so the mock is too — the size ceiling is
+        // enforced chunk by chunk and would go untested against a whole buffer.
+        // Rejecting here pins that: buffering the result first fails the suite.
+        body: streamOf(payload),
+        arrayBuffer: async () => {
+          throw new Error("the download must read the body as a stream");
+        }
       } as Response;
     }
     // Anything else is a submit.
@@ -131,9 +155,13 @@ describe("MuapiProvider model discovery", () => {
     expect(models[1].supportedTasks).toEqual(["image_to_video"]);
     for (const model of models) {
       expect(model.provider).toBe("muapi");
-      expect(model.resolutions).toContain("720p");
+      // The routes document 720p/1080p and 5-20s; offering anything else puts a
+      // value in the picker that comes back a 422.
+      expect(model.resolutions).toEqual(["720p", "1080p"]);
       expect(model.aspectRatios).toContain("16:9");
       expect(model.durations).toContain(5);
+      expect(model.durations).toContain(20);
+      expect(model.durations).not.toContain(4);
     }
   });
 
@@ -177,23 +205,54 @@ describe("MuapiProvider.textToVideo", () => {
     expect(Array.from(bytes)).toEqual(Array.from(MP4_BYTES));
   });
 
-  it("clamps a duration outside the 4-10s window and converts frames", async () => {
+  it("passes a duration inside the 5-20s window through, and converts frames", async () => {
     const capture: WireOptions["capture"] = {};
     mockWire({ capture });
+    // 480 frames at 24fps is 20s — the top of the window, not a clamp target.
     await provider().textToVideo({
       model: videoModel("flux-3-text-to-video"),
       prompt: "p",
       numFrames: 480
     } as never);
-    expect(capture.submitBody?.duration).toBe(10);
+    expect(capture.submitBody?.duration).toBe(20);
 
+    mockWire({ capture });
+    await provider().textToVideo({
+      model: videoModel("flux-3-text-to-video"),
+      prompt: "p",
+      durationSeconds: 15
+    } as never);
+    expect(capture.submitBody?.duration).toBe(15);
+  });
+
+  it("clamps a duration outside the 5-20s window", async () => {
+    const capture: WireOptions["capture"] = {};
     mockWire({ capture });
     await provider().textToVideo({
       model: videoModel("flux-3-text-to-video"),
       prompt: "p",
       durationSeconds: 1
     } as never);
-    expect(capture.submitBody?.duration).toBe(4);
+    expect(capture.submitBody?.duration).toBe(5);
+
+    mockWire({ capture });
+    await provider().textToVideo({
+      model: videoModel("flux-3-text-to-video"),
+      prompt: "p",
+      durationSeconds: 90
+    } as never);
+    expect(capture.submitBody?.duration).toBe(20);
+  });
+
+  it("refuses a resolution the routes do not document", async () => {
+    mockWire();
+    await expect(
+      provider().textToVideo({
+        model: videoModel("flux-3-text-to-video"),
+        prompt: "p",
+        resolution: "480p"
+      } as never)
+    ).rejects.toThrow(/does not support resolution "480p"/);
   });
 
   it("names the supported values instead of sending a 422", async () => {
@@ -228,6 +287,17 @@ describe("MuapiProvider.textToVideo", () => {
     );
     expect(receipt).toEqual({ provider_request_id: "req-1", cost: 0.42 });
   });
+
+  it("leaves the receipt unpriced when the result reports no charge", async () => {
+    mockWire({ terminal: { status: "completed", outputs: [OUTPUT_URL] } });
+    const { receipt } = await runWithGenerationReceipt(() =>
+      provider().textToVideo({
+        model: videoModel("flux-3-text-to-video"),
+        prompt: "p"
+      } as never)
+    );
+    expect(receipt).toEqual({ provider_request_id: "req-1" });
+  });
 });
 
 describe("MuapiProvider.imageToVideo", () => {
@@ -249,9 +319,10 @@ describe("MuapiProvider.imageToVideo", () => {
     expect(
       (capture.uploadInit?.headers as Record<string, string>)["x-api-key"]
     ).toBe(API_KEY);
-    expect(capture.submitBody?.images_list).toEqual([
-      "https://files.muapi.ai/in.png"
-    ]);
+    // The route names its source frame `image_url`; anything else submits a
+    // job with no image at all.
+    expect(capture.submitBody?.image_url).toBe("https://files.muapi.ai/in.png");
+    expect(capture.submitBody).not.toHaveProperty("images_list");
   });
 
   it("refuses a source image over the 10 MB limit without uploading", async () => {
@@ -432,6 +503,45 @@ describe("MuAPI transport rules", () => {
     await expect(
       provider().textToVideo({ model: videoModel("flux-3-text-to-video"), prompt: "p" } as never)
     ).rejects.toThrow(/returned image\/png where video bytes were expected/);
+  });
+
+  it("reads the charge out of MuAPI's nested cost object", () => {
+    expect(readMuapiCost({ cost: { amount_usd: 0.42, currency: "USD" } })).toBe(
+      0.42
+    );
+    expect(readMuapiCost({ cost: "0.31" })).toBe(0.31);
+    expect(readMuapiCost({ credits_used: 12 })).toBe(12);
+    expect(readMuapiCost({ cost: { currency: "USD" } })).toBeNull();
+    expect(readMuapiCost({ status: "completed" })).toBeNull();
+  });
+
+  it("stops reading a body once it crosses the limit, without buffering it", async () => {
+    let cancelled = false;
+    let emitted = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        emitted++;
+        if (emitted > 100) return controller.close();
+        controller.enqueue(new Uint8Array(8));
+      },
+      cancel() {
+        cancelled = true;
+      }
+    });
+
+    await expect(
+      readBodyWithLimit({ body: stream } as Response, 20, "too large")
+    ).rejects.toThrow("too large");
+    // 8-byte chunks against a 20-byte limit: it gives up around the third, and
+    // the point is that it never walks the remaining 800 bytes.
+    expect(emitted).toBeLessThan(6);
+    expect(cancelled).toBe(true);
+  });
+
+  it("returns a body that stays under the limit", async () => {
+    const response = { body: streamOf(MP4_BYTES) } as Response;
+    const bytes = await readBodyWithLimit(response, 1024, "too large");
+    expect(Array.from(bytes)).toEqual(Array.from(MP4_BYTES));
   });
 
   it("refuses a result body with no output URL", async () => {

@@ -7,7 +7,7 @@
  *
  *   - textToVideo  → POST /api/v1/flux-3-text-to-video
  *   - imageToVideo → POST /api/v1/flux-3-image-to-video  (one source image,
- *                    uploaded first and referenced by URL in `images_list`)
+ *                    uploaded first and referenced by URL in `image_url`)
  *
  * Image generation is deliberately absent: MuAPI's FLUX 3 image routes
  * (`flux-3-text-to-image`, `flux-3-dev`) are marked coming soon in its catalog,
@@ -141,7 +141,7 @@ function buildMuapiVideoPayload(
   if (resolution) payload.resolution = resolution;
 
   if (params.seed != null && params.seed !== -1) payload.seed = params.seed;
-  if (imageUrl) payload.images_list = [imageUrl];
+  if (imageUrl) payload.image_url = imageUrl;
   return payload;
 }
 

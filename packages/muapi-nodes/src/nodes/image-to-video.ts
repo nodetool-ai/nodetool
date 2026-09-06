@@ -107,7 +107,7 @@ export class MuapiImageToVideoNode extends BaseNode {
       endpoint: MUAPI_IMAGE_TO_VIDEO_ENDPOINT,
       payload: {
         prompt,
-        images_list: [imageUrl],
+        image_url: imageUrl,
         aspect_ratio: String(this.aspect_ratio ?? "16:9"),
         resolution: String(this.resolution ?? "720p"),
         duration: normalizeMuapiVideoDuration(this.duration),

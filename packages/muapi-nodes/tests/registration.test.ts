@@ -22,10 +22,11 @@ describe("MuAPI node pack", () => {
     expect(registered).toEqual([...MUAPI_NODES]);
   });
 
-  it("clamps a duration prop onto the accepted window", () => {
+  it("clamps a duration prop onto the accepted 5-20s window", () => {
     expect(normalizeMuapiVideoDuration(7)).toBe(7);
-    expect(normalizeMuapiVideoDuration(1)).toBe(4);
-    expect(normalizeMuapiVideoDuration(99)).toBe(10);
+    expect(normalizeMuapiVideoDuration(20)).toBe(20);
+    expect(normalizeMuapiVideoDuration(1)).toBe(5);
+    expect(normalizeMuapiVideoDuration(99)).toBe(20);
     expect(normalizeMuapiVideoDuration("not a number")).toBe(5);
   });
 
