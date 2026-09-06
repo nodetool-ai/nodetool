@@ -80,10 +80,33 @@ describe("TimelineStore — midi tracks", () => {
     expect(notes.map((n) => n.startTick)).toEqual([240, 960]);
   });
 
-  it("reads a document with no tempo at the default", () => {
+  it("reads a document with midi tracks and no tempo at the default, and stores it", () => {
+    // A document saved before tempo existed, or by a host that never set one,
+    // plays at 120 BPM. The store records that on load so the next save and
+    // the next undo both carry a value the PATCH merge can read.
     const { store } = seed();
-    expect(store.getState().tempo).toBeUndefined();
-    expect(resolveTempo(store.getState())).toEqual(DEFAULT_TEMPO);
+    const { tempo: _dropped, ...withoutTempo } = buildTimelineDocumentPayload(
+      store.getState()
+    );
+    const reloaded = createTimelineStore();
+    reloaded.getState().loadSequence({
+      id: "seq-1",
+      projectId: "proj-1",
+      name: "Test",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      durationMs: 10_000,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      ...withoutTempo
+    } as TimelineSequence);
+    expect(reloaded.getState().tempo).toEqual(DEFAULT_TEMPO);
+
+    // No midi track: nothing reads the tempo, so nothing is invented.
+    const empty = createTimelineStore();
+    expect(empty.getState().tempo).toBeUndefined();
+    expect(resolveTempo(empty.getState())).toEqual(DEFAULT_TEMPO);
   });
 
   it("halving the BPM doubles a midi clip's start and length", () => {
@@ -129,18 +152,31 @@ describe("TimelineStore — midi tracks", () => {
     expect(timelineTemporalOf(store).pastStates).toHaveLength(1);
 
     timelineTemporalOf(store).undo();
-    expect(store.getState().tempo).toBeUndefined();
+    // Back to the tempo the first midi track recorded, not to "none".
+    expect(store.getState().tempo).toEqual(tempoAt(120));
     expect(store.getState().clips[0].startMs).toBe(1000);
   });
 
-  it("stores 120 BPM explicitly on a document that had no tempo", () => {
-    // Not a no-op: nothing about playback changes, but the tempo the part was
-    // written at is now recorded, and that is what a later change rescales from.
-    const { store, clipId } = seed();
-    store.getState().setTempo(tempoAt(120));
+  it("records the default tempo when the first midi track is added", () => {
+    const store = createTimelineStore();
+    expect(store.getState().tempo).toBeUndefined();
+    store.getState().addTrack("midi", "Bass");
     expect(store.getState().tempo).toEqual(tempoAt(120));
-    expect(store.getState().clips.find((c) => c.id === clipId)!.startMs).toBe(
-      1000
+  });
+
+  it("undoing the first tempo change saves the default explicitly", () => {
+    // The PATCH merge keeps the stored tempo when the payload carries none, so
+    // an undo that restored `undefined` would leave the server at 60 BPM while
+    // the clips went back to their 120 BPM positions. The payload after the
+    // undo has to say 120.
+    const { store } = seed();
+    store.getState().setTempo(tempoAt(60));
+    expect(buildTimelineDocumentPayload(store.getState()).tempo).toEqual(
+      tempoAt(60)
+    );
+    timelineTemporalOf(store).undo();
+    expect(buildTimelineDocumentPayload(store.getState()).tempo).toEqual(
+      tempoAt(120)
     );
   });
 

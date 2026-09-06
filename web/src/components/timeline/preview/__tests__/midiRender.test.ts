@@ -9,9 +9,10 @@
  * jsdom defines no `Worker`, so these exercise the inline path — the same pure
  * renderer the worker runs.
  */
-import { DEFAULT_MIDI_INSTRUMENT } from "@nodetool-ai/timeline";
+import { DEFAULT_MIDI_INSTRUMENT, renderMidiClip } from "@nodetool-ai/timeline";
 import type { MidiNote } from "@nodetool-ai/timeline";
 import { clearMidiRenderCache, getMidiClipBuffer } from "../midiRender";
+import * as workerClientModule from "../midiRenderWorkerClient";
 
 const note = (overrides: Partial<MidiNote> = {}): MidiNote => ({
   id: "n1",
@@ -142,5 +143,46 @@ describe("getMidiClipBuffer", () => {
     ]);
     expect(second).toBe(first);
     expect(ctx.createBuffer).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("getMidiClipBuffer — worker path", () => {
+  // Jest maps `midiRenderWorkerClient` to a stand-in that answers a request
+  // the way the worker does, so this exercises the post/await/terminate path
+  // rather than the inline fallback. The import above resolves to that
+  // stand-in at runtime; the cast names its extra export.
+  const workerClient = workerClientModule as unknown as typeof import(
+    "../../../../__mocks__/midiRenderWorkerClient"
+  );
+
+  beforeEach(() => {
+    clearMidiRenderCache();
+    workerClient.spawnedMidiRenderWorkers.length = 0;
+    (globalThis as { Worker?: unknown }).Worker = class {};
+  });
+
+  afterEach(() => {
+    delete (globalThis as { Worker?: unknown }).Worker;
+  });
+
+  it("renders through the worker and lands the same samples as inline", async () => {
+    const ctx = mockContext();
+    const buffer = await getMidiClipBuffer(
+      ctx as never,
+      clip,
+      120,
+      DEFAULT_MIDI_INSTRUMENT
+    );
+
+    expect(workerClient.spawnedMidiRenderWorkers).toHaveLength(1);
+    expect(workerClient.spawnedMidiRenderWorkers[0].terminated).toBe(true);
+    const expected = renderMidiClip({
+      clip,
+      bpm: 120,
+      instrument: DEFAULT_MIDI_INSTRUMENT,
+      sampleRate: 48_000
+    });
+    expect(buffer.length).toBe(expected.length);
+    expect(Array.from(buffer.getChannelData(0))).toEqual(Array.from(expected));
   });
 });

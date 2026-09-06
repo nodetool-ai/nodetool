@@ -22,6 +22,7 @@ import type {
   MidiRenderRequest,
   MidiRenderResponse
 } from "./midiRender.worker";
+import { createMidiRenderWorker } from "./midiRenderWorkerClient";
 
 /** The slice of a clip a render reads. */
 export type MidiRenderClip = Pick<
@@ -60,17 +61,7 @@ function renderSamples(request: Omit<MidiRenderRequest, "id">): Promise<Float32A
   }
 
   return new Promise<Float32Array>((resolve, reject) => {
-    // In ts-jest (CommonJS) `import.meta` is unavailable; fall back to the
-    // origin, mirroring `utils/histogram/histogramAsync.ts`.
-    let metaUrl: string;
-    try {
-      metaUrl = new Function("return import.meta.url")() as string;
-    } catch {
-      metaUrl = typeof location !== "undefined" ? location.href : "file:///";
-    }
-    const worker = new Worker(new URL("./midiRender.worker.ts", metaUrl), {
-      type: "module"
-    });
+    const worker = createMidiRenderWorker();
     const done = () => {
       worker.removeEventListener("message", onMessage);
       worker.removeEventListener("error", onError);

@@ -55,6 +55,7 @@ import {
   createMidiNote,
   quantizeNotes,
   rescaleClipsForTempo,
+  DEFAULT_TEMPO,
   resolveTempo,
   scaleVelocity,
   sortNotes,
@@ -695,6 +696,19 @@ export interface TimelineStoreState {
   removeScene: (markerId: string) => void;
 }
 
+/**
+ * The tempo a document with midi tracks and no stored tempo plays at. Stored
+ * explicitly rather than left implicit: the PATCH merge keeps the server's
+ * tempo when the payload carries none, so an undo that restored `undefined`
+ * after the first tempo change would leave the row at the new BPM while the
+ * clips went back to their old positions.
+ */
+function impliedTempo(
+  tracks: readonly TimelineTrack[]
+): TimelineTempo | undefined {
+  return tracks.some((t) => t.type === "midi") ? DEFAULT_TEMPO : undefined;
+}
+
 // ── Partialized type for the temporal middleware (only document state is undo-able)
 
 type PartializedState = Pick<
@@ -1220,7 +1234,7 @@ export const createTimelineStore = (
               markers: seq.markers,
               transcript: [] as TranscriptLine[],
               scriptEnabled: seq.scriptEnabled ?? clips.some(isTranscriptClip),
-              tempo: seq.tempo,
+              tempo: seq.tempo ?? impliedTempo(seq.tracks),
               setup: seq.setup ?? null
             };
             set({
@@ -1242,7 +1256,7 @@ export const createTimelineStore = (
             markers: seq.markers,
             transcript: [],
             scriptEnabled: seq.scriptEnabled ?? seq.clips.some(isTranscriptClip),
-            tempo: seq.tempo,
+            tempo: seq.tempo ?? impliedTempo(seq.tracks),
             setup: seq.setup ?? null
           };
           set({
@@ -1372,9 +1386,16 @@ export const createTimelineStore = (
           if (type === "midi") {
             track.instrument = DEFAULT_MIDI_INSTRUMENT;
           }
-          set((state) => ({
-            tracks: insertTrackAt(state.tracks, track, atIndex)
-          }));
+          set((state) => {
+            const next: Partial<TimelineStoreState> = {
+              tracks: insertTrackAt(state.tracks, track, atIndex)
+            };
+            // The first midi track fixes the tempo the part is written at.
+            if (type === "midi" && state.tempo === undefined) {
+              next.tempo = DEFAULT_TEMPO;
+            }
+            return next;
+          });
           return track.id;
         },
 

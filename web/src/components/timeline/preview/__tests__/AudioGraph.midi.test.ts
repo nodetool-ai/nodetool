@@ -101,6 +101,52 @@ describe("AudioGraph — buffer-backed clips", () => {
     ]);
   });
 
+  it("plays a trimmed window from the head of its buffer, not the in-point", async () => {
+    // The right half of a clip split at its midpoint: `inPointMs` names where
+    // the window starts in the notes, and the rendered buffer already starts
+    // there. Seeking by the in-point again would start at the buffer's end.
+    const started: StartedSource[] = [];
+    const graph = new AudioGraph(mockContext(started) as never);
+    const buffer = { length: 96_000 };
+    const rightHalf = {
+      ...midiClip,
+      id: "m1-right",
+      startMs: 2000,
+      inPointMs: 2000,
+      durationMs: 2000
+    };
+
+    await graph.scheduleClips(
+      [{ clip: rightHalf, buffer }] as never,
+      [midiTrack] as never,
+      0
+    );
+
+    expect(started).toEqual([{ buffer, when: 2, offset: 0, duration: 2 }]);
+  });
+
+  it("seeks into a trimmed window by the playhead's distance into it alone", async () => {
+    const started: StartedSource[] = [];
+    const graph = new AudioGraph(mockContext(started) as never);
+    const buffer = { length: 96_000 };
+    const rightHalf = {
+      ...midiClip,
+      id: "m1-right",
+      startMs: 2000,
+      inPointMs: 2000,
+      durationMs: 2000
+    };
+
+    // Playhead one second into the clip: one second into the buffer, one left.
+    await graph.scheduleClips(
+      [{ clip: rightHalf, buffer }] as never,
+      [midiTrack] as never,
+      3000
+    );
+
+    expect(started).toEqual([{ buffer, when: 0, offset: 1, duration: 1 }]);
+  });
+
   it("silences a midi track when an audio track is soloed", async () => {
     const started: StartedSource[] = [];
     const ctx = mockContext(started);

@@ -108,6 +108,13 @@ export default {
       "<rootDir>/src/__mocks__/supabaseBuildTimeEnv.ts",
     "^.*lib/supabaseBuildTimeEnv$":
       "<rootDir>/src/__mocks__/supabaseBuildTimeEnv.ts",
+    // Spawns a Vite module worker from a static `import.meta.url`, which the
+    // CommonJS transform cannot parse; the mock answers a render request the
+    // way the worker does so midiRender's worker path runs under Jest.
+    "^\\./midiRenderWorkerClient$":
+      "<rootDir>/src/__mocks__/midiRenderWorkerClient.ts",
+    "^\\.\\./midiRenderWorkerClient$":
+      "<rootDir>/src/__mocks__/midiRenderWorkerClient.ts",
     "^@google/model-viewer$": "<rootDir>/src/__mocks__/modelViewerMock.ts",
     "^react-markdown$": "<rootDir>/src/__mocks__/reactMarkdownMock.tsx",
     "^remark-gfm$": "<rootDir>/src/__mocks__/emptyModule.ts",

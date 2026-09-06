@@ -1,4 +1,5 @@
 import { timeRemapAudioSegments } from "@nodetool-ai/timeline";
+import type { TimeRemapAudioSegment } from "@nodetool-ai/timeline";
 import type {
   TimelineClip,
   TimelineTrack,
@@ -51,6 +52,23 @@ interface TrackChainState {
 }
 
 const DB_TO_LIN = (db: number): number => Math.pow(10, db / 20);
+
+/**
+ * One stretch over a buffer that already is the clip's window: source offset
+ * zero, unit rate, the clip's own span on the timeline.
+ */
+function windowSegments(clip: TimelineClip): TimeRemapAudioSegment[] {
+  return [
+    {
+      timelineStartMs: clip.startMs,
+      timelineEndMs: clip.startMs + clip.durationMs,
+      sourceStartMs: 0,
+      sourceEndMs: clip.durationMs,
+      rate: 1,
+      reverse: false
+    }
+  ];
+}
 
 /**
  * LRU cap on decoded AudioBuffer entries. A 3-min stereo @ 48 kHz buffer is
@@ -471,20 +489,20 @@ export class AudioGraph {
     const bufferPromises = clips.map(async (scheduled) => {
       const { clip } = scheduled;
       if (this.clipSources.has(clip.id)) {
-        return { clipId: clip.id, buffer: null };
+        return { clipId: clip.id, buffer: null, windowed: false };
       }
       // A caller-supplied buffer is the clip's audio; nothing is fetched.
       if (scheduled.buffer) {
-        return { clipId: clip.id, buffer: scheduled.buffer };
+        return { clipId: clip.id, buffer: scheduled.buffer, windowed: true };
       }
       if (!clip.currentAssetId) {
-        return { clipId: clip.id, buffer: null };
+        return { clipId: clip.id, buffer: null, windowed: false };
       }
       const buffer = await this.loadBuffer(
         clip.currentAssetId,
         scheduled.assetUrl
       );
-      return { clipId: clip.id, buffer };
+      return { clipId: clip.id, buffer, windowed: false };
     });
 
     const loadedBuffers = await Promise.all(bufferPromises);
@@ -493,15 +511,16 @@ export class AudioGraph {
     if (shouldCancel?.()) {
       return;
     }
-    const bufferMap = new Map(loadedBuffers.map((b) => [b.clipId, b.buffer]));
+    const bufferMap = new Map(loadedBuffers.map((b) => [b.clipId, b]));
 
     for (const { clip } of clips) {
       if (this.clipSources.has(clip.id)) {
         continue;
       }
 
-      const buffer = bufferMap.get(clip.id);
-      if (!buffer) {
+      const loaded = bufferMap.get(clip.id);
+      const buffer = loaded?.buffer;
+      if (!loaded || !buffer) {
         continue;
       }
 
@@ -509,7 +528,14 @@ export class AudioGraph {
       // `timeRemap` that is one stretch carrying the clip's own rate (a baked
       // speed reads as 1:1, the asset already playing at the right speed) and
       // its in-point, so an ordinary clip is scheduled exactly as before.
-      const segments = timeRemapAudioSegments(clip);
+      //
+      // A caller-supplied buffer is already the clip's window: its first
+      // sample is the clip's in-point. Reading `inPointMs` again would seek
+      // that far into a buffer that no longer contains it — on a clip split
+      // at its midpoint, past the end of the right half's buffer.
+      const segments = loaded.windowed
+        ? windowSegments(clip)
+        : timeRemapAudioSegments(clip);
 
       const volumeLinear = clip.volumeDb
         ? Math.pow(10, clip.volumeDb / 20)
