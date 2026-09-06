@@ -202,8 +202,7 @@ browser session is one page per server process, shared by every caller, which
 is a single-tenant shape — and the extension transport would put one user's own
 Chrome behind an unauthenticated socket on a shared server. They are offered
 where the machine belongs to its user: the desktop app, a local server, or a
-self-hosted install (`NODETOOL_NODE_PROFILE=full`). See
-[Cloud node curation](https://github.com/nodetool-ai/nodetool/blob/main/docs/CLOUD_NODE_CURATION.md).
+self-hosted install (`NODETOOL_NODE_PROFILE=full`).
 
 Permission-wise: reading the page (`browser_status`, `browser_view`, `browser_console_view`) is classified `read`, `browser_restart` and `browser_console_exec` are `execute`, and everything that acts on the page — a click, a keystroke, an upload — is `external`, because it lands on a third-party site inside the user's own logged-in session.
 
