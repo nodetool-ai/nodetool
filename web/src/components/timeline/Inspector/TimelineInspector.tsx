@@ -7,7 +7,7 @@ import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 
-import { makeClip } from "@nodetool-ai/timeline";
+import { DEFAULT_MODEL3D_STYLE, makeClip } from "@nodetool-ai/timeline";
 import { useShallow } from "zustand/react/shallow";
 
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -56,6 +56,7 @@ import {
 } from "./ClipTimeRemap";
 import { ClipKeyframes } from "./ClipKeyframes";
 import { ClipMidiSection } from "./ClipMidiSection";
+import { ClipModel3DSection } from "./ClipModel3DSection";
 import { ClipShapeSection } from "./ClipShapeSection";
 import { ClipTextStyleSection } from "./ClipTextStyleSection";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
@@ -117,6 +118,12 @@ export const TimelineInspector: React.FC = memo(() => {
   );
   const textStyle = clip?.mediaType === "text" ? clip.textStyle : undefined;
   const shapeStyle = clip?.mediaType === "shape" ? clip.shapeStyle : undefined;
+  // A 3D clip with no stored style is still editable: the section shows the
+  // defaults, and the first edit writes the whole style through the patch.
+  const model3dStyle =
+    clip?.mediaType === "model3d"
+      ? (clip.model3dStyle ?? DEFAULT_MODEL3D_STYLE)
+      : undefined;
   const track = useTimelineStore((s) =>
     clip ? s.tracks.find((t) => t.id === clip.trackId) : null
   );
@@ -432,6 +439,10 @@ export const TimelineInspector: React.FC = memo(() => {
       {textStyle && <ClipTextStyleSection clip={clip} textStyle={textStyle} />}
 
       {shapeStyle && <ClipShapeSection clip={clip} shapeStyle={shapeStyle} />}
+
+      {model3dStyle && (
+        <ClipModel3DSection clip={clip} model3dStyle={model3dStyle} />
+      )}
 
       {clip.mediaType === "midi" && <ClipMidiSection clip={clip} />}
 
