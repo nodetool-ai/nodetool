@@ -182,12 +182,6 @@ function saveAuthConfig(config: Record<string, unknown>): void;
 
 Token verification uses `crypto.timingSafeEqual` to prevent timing attacks.
 
-> Note: `@nodetool-ai/auth` also ships a `StaticTokenProvider` that reads
-> `STATIC_AUTH_TOKEN` / `STATIC_AUTH_TOKENS`. This is a distinct mechanism from
-> the deploy-package `SERVER_AUTH_TOKEN` flow, and the `StaticTokenProvider` is
-> **not** wired into the running websocket server — the server uses only the
-> Supabase / Local selection described in [Authentication Modes](#authentication-modes).
-
 ---
 
 ## Environment Variable Override
@@ -594,8 +588,12 @@ request must present a valid token.
 > secrets, and API keys. **Anyone who can reach the published port from a listed
 > range gets that access.**
 >
-> - **`172.16.0.0/12`** — the Docker bridge range. Host and LAN clients reach the
->   app through the port mapping, but nothing off the bridge is trusted. Use this.
+> - **`172.16.0.0/12`** — the Docker bridge range on Linux. Host and LAN clients
+>   reach the app through the port mapping, but nothing off the bridge is trusted.
+> - **`192.168.65.0/24`** — Docker Desktop's VM gateway subnet. Published-port
+>   traffic on macOS/Windows arrives from `192.168.65.1`, not the bridge gateway,
+>   so the Linux range alone leaves every call 401 there. The bundled Compose
+>   file defaults to both.
 > - **`0.0.0.0/0`** — trusts *every* source, the whole internet if the port is
 >   reachable. **Never use this on a public IP.** Only on a network you fully
 >   control (private LAN / VPN), ideally with the port firewalled.
@@ -604,7 +602,7 @@ request must present a valid token.
 
 ```bash
 # Docker self-host, single user, no login (safe on a private LAN):
-NODETOOL_TRUST_LOCAL_NETWORKS=172.16.0.0/12   # the Docker bridge range
+NODETOOL_TRUST_LOCAL_NETWORKS=172.16.0.0/12,192.168.65.0/24   # bridge + Desktop VM gateway
 ```
 
 ## Security Hardening
