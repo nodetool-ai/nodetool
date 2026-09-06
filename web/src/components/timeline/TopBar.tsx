@@ -26,6 +26,7 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import FolderZipOutlinedIcon from "@mui/icons-material/FolderZipOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -52,6 +53,10 @@ interface TopBarProps {
   onExportVideo?: () => void;
   /** True while an export render is in progress. */
   isExporting?: boolean;
+  /** Called when the user downloads the whole project (document + assets) as a zip. */
+  onExportBundle?: () => void;
+  /** True while the project zip is being prepared. */
+  isExportingBundle?: boolean;
   /** Called when the user clicks Save (force-persists the current document) */
   onSave?: () => void;
   /** True while a manual save is in flight. */
@@ -72,6 +77,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
   ({
     onExportVideo,
     isExporting = false,
+    onExportBundle,
+    isExportingBundle = false,
     onSave,
     isSaving = false,
     onSaveToAssets,
@@ -119,7 +126,11 @@ export const TopBar: React.FC<TopBarProps> = memo(
 
     if (isCompact) {
       const hasActions =
-        !!onOpenSettings || !!onSave || !!onSaveToAssets || !!onExportVideo;
+        !!onOpenSettings ||
+        !!onSave ||
+        !!onSaveToAssets ||
+        !!onExportVideo ||
+        !!onExportBundle;
       return (
         <FlexRow
           ref={barRef}
@@ -178,6 +189,18 @@ export const TopBar: React.FC<TopBarProps> = memo(
                     label={isExporting ? "Exporting…" : "Export video"}
                     disabled={isExporting}
                     onClick={runFromMenu(onExportVideo)}
+                  />
+                )}
+                {onExportBundle && (
+                  <MenuItemPrimitive
+                    icon={<FolderZipOutlinedIcon fontSize="small" />}
+                    label={
+                      isExportingBundle
+                        ? "Exporting…"
+                        : "Export project (.zip)"
+                    }
+                    disabled={isExportingBundle}
+                    onClick={runFromMenu(onExportBundle)}
                   />
                 )}
               </EditorMenu>
@@ -242,6 +265,18 @@ export const TopBar: React.FC<TopBarProps> = memo(
             size="small"
           >
             {isExporting ? "Exporting…" : "Export"}
+          </EditorButton>
+        )}
+
+        {onExportBundle && (
+          <EditorButton
+            variant="outlined"
+            onClick={onExportBundle}
+            disabled={isExportingBundle}
+            startIcon={<FolderZipOutlinedIcon />}
+            size="small"
+          >
+            {isExportingBundle ? "Exporting…" : "Export project (.zip)"}
           </EditorButton>
         )}
       </FlexRow>
