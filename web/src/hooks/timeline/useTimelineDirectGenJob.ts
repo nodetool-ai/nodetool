@@ -21,9 +21,12 @@ import type { TimelineClip } from "@nodetool-ai/timeline";
 import { deriveIdleClipStatus } from "./useGenerateClip";
 import {
   durationBucketKey,
-  PENDING_TTL_MS,
   useDirectGenPendingStore
 } from "./directGenPending";
+import {
+  isSettled,
+  lookupGenerations
+} from "../../lib/websocket/lookupGenerations";
 
 interface DirectGenRpcResponse extends WebSocketMessage {
   type: "rpc_response";
@@ -56,6 +59,89 @@ function fail(timeline: TimelineStoreApi, clipId: string): void {
   timeline.getState().patchClip(clipId, { status: "failed" });
 }
 
+/** One request's outcome, however it was learned. */
+export interface DirectGenOutcome {
+  assetIds: readonly string[];
+  errored: boolean;
+}
+
+/**
+ * Write one outcome onto its clip and settle its pending entry.
+ *
+ * Two roads reach here and must land identically: the `rpc_response` on the
+ * open socket, and the generation row read back after a reload that lost that
+ * socket. A version recorded one way and not the other is a take the creator
+ * paid for and cannot see.
+ */
+export function landDirectGen(
+  timeline: TimelineStoreApi,
+  clipId: string,
+  requestId: string,
+  sequenceId: string | null,
+  outcome: DirectGenOutcome
+): void {
+  // Any subscription still open for this clip is done: it would settle a
+  // second time on the reply and append the same version twice.
+  clearInFlight(clipId);
+  const store = timeline.getState();
+  const first = outcome.errored ? undefined : outcome.assetIds[0];
+  if (!first) {
+    if (sequenceId) {
+      useDirectGenPendingStore.getState().settle(sequenceId, clipId);
+    }
+    store.patchClip(clipId, { status: "failed" });
+    return;
+  }
+
+  if (sequenceId) {
+    // Settled before the clip is looked up, because the pending entry belongs
+    // to the request, not to whether its clip is still on screen. Returning
+    // early with the entry still listed is what let a sequence resurrect a
+    // request that had already answered.
+    //
+    // Only a request that produced an asset files a duration: a refusal
+    // measures the provider's error path, not its render time (D14).
+    useDirectGenPendingStore.getState().settle(sequenceId, clipId, Date.now());
+  }
+
+  const current = store.clips.find((c) => c.id === clipId);
+  if (!current) return;
+  // Locked clips don't get their currentAssetId replaced — but the version
+  // is still recorded so the user can restore it later.
+  const patch: Partial<TimelineClip> = {
+    status: "generated",
+    versions: [
+      ...(current.versions ?? []),
+      makeClipVersion({
+        jobId: requestId,
+        assetId: first,
+        workflowUpdatedAt: new Date().toISOString(),
+        dependencyHash: "",
+        paramOverridesSnapshot: {
+          prompt: current.prompt,
+          provider: current.provider,
+          model: current.model,
+          strength: current.strength,
+          numInferenceSteps: current.numInferenceSteps,
+          width: current.width,
+          height: current.height,
+          voice: current.voice,
+          aspectRatio: current.aspectRatio,
+          resolution: current.resolution,
+          negativePrompt: current.negativePrompt
+        }
+      })
+    ]
+  };
+  if (!current.locked) {
+    patch.currentAssetId = first;
+    // Reset trim window — a fresh roll is a fresh source.
+    patch.inPointMs = undefined;
+    patch.outPointMs = undefined;
+  }
+  store.patchClip(clipId, patch);
+}
+
 /**
  * Subscribe to one request's reply and write the result onto the clip.
  *
@@ -77,133 +163,52 @@ export function subscribeDirectGen(
    * subscribe to a request that has already answered — a clip stuck rendering
    * over a render that was paid for and thrown away.
    */
-  sequenceId: string | null,
-  /**
-   * Give up after this long and fail the clip. Only reattachment passes it.
-   *
-   * A `generate_media` reply is an `rpc_response` with no `job_id` and no
-   * `thread_id`, so the server writes it straight to the socket that asked
-   * (`WebSocketClientSession.sendMessage`) and drops it if that socket is
-   * gone. Re-subscribing therefore recovers a request whose socket outlived
-   * the sequence — closing the tab inside the app — but never one whose reply
-   * landed while the browser was shut. Without a deadline such a clip sat at
-   * `generating` forever with nothing behind it; with one it fails and offers
-   * Retry, which is the affordance § 8.4 already gives a failed clip.
-   */
-  timeoutMs?: number
+  sequenceId: string | null
 ): () => void {
   clearInFlight(clipId);
   let unsubscribe: (() => void) | undefined;
-  let expiry: ReturnType<typeof setTimeout> | undefined;
   const cleanup = () => {
     if (unsubscribe) {
       unsubscribe();
       unsubscribe = undefined;
     }
-    if (expiry !== undefined) {
-      clearTimeout(expiry);
-      expiry = undefined;
-    }
     inFlight.delete(clipId);
   };
 
   const settle = (msg: DirectGenRpcResponse) => {
-    cleanup();
-    const store = timeline.getState();
-    if (msg.error) {
-      if (sequenceId) {
-        useDirectGenPendingStore.getState().settle(sequenceId, clipId);
-      }
-      store.patchClip(clipId, { status: "failed" });
-      return;
-    }
     const assetIds = Array.isArray(msg.result?.asset_ids)
       ? (msg.result!.asset_ids as unknown[]).filter(
           (v): v is string => typeof v === "string"
         )
       : [];
-    const first = assetIds[0];
-    if (!first) {
-      if (sequenceId) {
-        useDirectGenPendingStore.getState().settle(sequenceId, clipId);
-      }
-      store.patchClip(clipId, { status: "failed" });
-      return;
-    }
-
-    if (sequenceId) {
-      // Settled before the clip is looked up, because the pending entry belongs
-      // to the request, not to whether its clip is still on screen. Returning
-      // early with the entry still listed is what let a sequence resurrect a
-      // request that had already answered.
-      //
-      // Only a request that produced an asset files a duration: a refusal
-      // measures the provider's error path, not its render time (D14).
-      useDirectGenPendingStore
-        .getState()
-        .settle(sequenceId, clipId, Date.now());
-    }
-
-    const current = store.clips.find((c) => c.id === clipId);
-    if (!current) return;
-    // Locked clips don't get their currentAssetId replaced — but the version
-    // is still recorded so the user can restore it later.
-    const patch: Partial<TimelineClip> = {
-      status: "generated",
-      versions: [
-        ...(current.versions ?? []),
-        makeClipVersion({
-          jobId: requestId,
-          assetId: first,
-          workflowUpdatedAt: new Date().toISOString(),
-          dependencyHash: "",
-          paramOverridesSnapshot: {
-            prompt: current.prompt,
-            provider: current.provider,
-            model: current.model,
-            strength: current.strength,
-            numInferenceSteps: current.numInferenceSteps,
-            width: current.width,
-            height: current.height,
-            voice: current.voice,
-            aspectRatio: current.aspectRatio,
-            resolution: current.resolution,
-            negativePrompt: current.negativePrompt
-          }
-        })
-      ]
-    };
-    if (!current.locked) {
-      patch.currentAssetId = first;
-      // Reset trim window — a fresh roll is a fresh source.
-      patch.inPointMs = undefined;
-      patch.outPointMs = undefined;
-    }
-    store.patchClip(clipId, patch);
+    landDirectGen(timeline, clipId, requestId, sequenceId, {
+      assetIds,
+      errored: Boolean(msg.error)
+    });
   };
 
   unsubscribe = globalWebSocketManager.subscribe(requestId, (msg) => {
     if (msg.type !== "rpc_response") return;
     settle(msg as DirectGenRpcResponse);
   });
-  if (timeoutMs !== undefined) {
-    expiry = setTimeout(() => {
-      cleanup();
-      if (sequenceId) {
-        // No duration is filed: nothing was measured, the reply never came.
-        useDirectGenPendingStore.getState().settle(sequenceId, clipId);
-      }
-      fail(timeline, clipId);
-    }, timeoutMs);
-  }
   inFlight.set(clipId, cleanup);
   return cleanup;
 }
 
 /**
- * Re-subscribe to the requests this sequence had in flight when it was closed
- * (criterion 6). Clips the sequence no longer has, and entries too old to be
- * answered, are dropped rather than re-subscribed.
+ * Recover the requests this sequence had in flight when it was closed
+ * (criterion 6).
+ *
+ * Two cases, and the order matters. A request whose socket is gone — the
+ * browser was reloaded — can never be recovered by subscribing: its
+ * `rpc_response` was written to that socket and dropped. So every entry is
+ * looked up against its generation row first, and one that already settled
+ * lands from the row. Only what the row still calls `running` is subscribed,
+ * which is the case the socket outlived the sequence and the reply is
+ * genuinely still coming.
+ *
+ * Clips the sequence no longer has, and entries too old to be answered, are
+ * dropped rather than recovered either way.
  */
 export async function reattachSequenceJobs(
   timeline: TimelineStoreApi,
@@ -214,25 +219,36 @@ export async function reattachSequenceJobs(
     return;
   }
   await globalWebSocketManager.ensureConnection();
+
   const clips = timeline.getState().clips;
-  for (const job of restored) {
-    const clip = clips.find((candidate) => candidate.id === job.clipId);
-    if (!clip) {
-      useDirectGenPendingStore.getState().settle(sequenceId, job.clipId);
+  const live = restored.filter((job) => {
+    if (clips.some((candidate) => candidate.id === job.clipId)) {
+      return true;
+    }
+    useDirectGenPendingStore.getState().settle(sequenceId, job.clipId);
+    return false;
+  });
+  if (live.length === 0) {
+    return;
+  }
+
+  const outcomes = await lookupGenerations(live.map((job) => job.requestId));
+
+  for (const job of live) {
+    const outcome = outcomes.get(job.requestId);
+    if (outcome && isSettled(outcome.status)) {
+      // The row settled while this client was away. Land it from the row: the
+      // frame that would have carried it went to a socket that is gone.
+      landDirectGen(timeline, job.clipId, job.requestId, sequenceId, {
+        assetIds: outcome.assetIds,
+        errored: outcome.status !== "completed"
+      });
       continue;
     }
+    // Still running, or no row to read — the reply can still arrive, so the
+    // clip goes back to `generating` and the subscription is worth having.
     timeline.getState().patchClip(job.clipId, { status: "generating" });
-    // What is left of this entry's own window. A reply that has not arrived by
-    // then never will, so the clip fails and offers Retry instead of sitting
-    // at `generating` over a socket that is gone.
-    const remaining = Math.max(0, PENDING_TTL_MS - (Date.now() - job.startedAt));
-    subscribeDirectGen(
-      timeline,
-      job.clipId,
-      job.requestId,
-      sequenceId,
-      remaining
-    );
+    subscribeDirectGen(timeline, job.clipId, job.requestId, sequenceId);
   }
 }
 

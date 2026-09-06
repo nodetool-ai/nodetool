@@ -31,6 +31,10 @@ import {
   globalWebSocketManager,
   type WebSocketMessage
 } from "../../lib/websocket/GlobalWebSocketManager";
+import {
+  isSettled,
+  lookupGenerations
+} from "../../lib/websocket/lookupGenerations";
 import { useNotificationStore } from "../NotificationStore";
 import { useStoryboardStore } from "./StoryboardStore";
 import { syncShotClipToTimeline } from "./timelineSync";
@@ -227,13 +231,14 @@ const deriveMembership = (
 // ── Pending-job persistence ──────────────────────────────────────────────────
 
 /**
- * How long a persisted request is worth re-subscribing to.
+ * How long a persisted request is worth recovering.
  *
- * A direct `generate_media` reply arrives on one open socket. A reply that
- * landed while the tab was shut is gone, so its entry can never resolve — the
- * age bound is what stops those accumulating in localStorage forever. Longer
- * than the slowest video render, short enough that a stale entry does not show
- * a card as rendering the next morning.
+ * A direct `generate_media` reply arrives on one open socket, so a reply that
+ * landed while the tab was shut reached nobody. `reattachBoardJobs` recovers
+ * those from the generation row instead, which outlives the socket; this bound
+ * is what stops entries nobody will ever ask about accumulating in
+ * localStorage. Longer than the slowest video render, short enough that a
+ * stale entry does not show a card as rendering the next morning.
  */
 const PENDING_JOB_TTL_MS = 30 * 60 * 1000;
 
@@ -728,21 +733,23 @@ const settleShotAsset = (
   void syncShotClipToTimeline(context.boardId, context.shotId, assetId);
 };
 
-/** Settle a direct-generation request from its rpc_response. */
-const handleDirectResponse = (
+/**
+ * Settle a direct-generation request from its outcome.
+ *
+ * Two roads reach here and must land identically: the `rpc_response` on the
+ * open socket, and the generation row read back after a reload that lost that
+ * socket. A version recorded one way and not the other is a render the creator
+ * paid for and cannot see.
+ */
+const settleDirectShotJob = (
   requestId: string,
   context: DirectShotJobContext,
-  message: DirectGenRpcResponse
+  outcome: { assetIds: readonly string[]; errorMessage: string }
 ): void => {
   const generationStore = useStoryboardGenerationStore.getState();
-  const assetIds = Array.isArray(message.result?.asset_ids)
-    ? (message.result!.asset_ids as unknown[]).filter(
-        (v): v is string => typeof v === "string"
-      )
-    : [];
-  const assetId = assetIds[0];
+  const assetId = outcome.assetIds[0];
   const errorMessage =
-    message.error?.message?.trim() ||
+    outcome.errorMessage.trim() ||
     (assetId ? "" : "Direct generation returned no asset.");
   if (!assetId || errorMessage) {
     // Keep the row so the card can read the reason; drop only the subscription.
@@ -792,7 +799,16 @@ const handleShotJobMessage = (
   }
 
   if (message.type === "rpc_response") {
-    handleDirectResponse(requestId, context, message as DirectGenRpcResponse);
+    const response = message as DirectGenRpcResponse;
+  const assetIds = Array.isArray(response.result?.asset_ids)
+    ? (response.result!.asset_ids as unknown[]).filter(
+        (v): v is string => typeof v === "string"
+      )
+    : [];
+  settleDirectShotJob(requestId, context, {
+    assetIds,
+    errorMessage: response.error?.message ?? ""
+  });
   }
 };
 
@@ -820,24 +836,48 @@ export const subscribeDirectShotJob = async (
  * Reattach a board's in-flight renders on open (PRD § 7.4, R4).
  *
  * A batch is a set of direct requests, and closing the board tore their
- * subscriptions down. The persisted entries name the request ids, so opening
- * the board rebuilds the rows and re-subscribes; a reply that arrives
- * afterwards lands as a version through the normal path. Entries older than
- * {@link PENDING_JOB_TTL_MS}, and entries for shots the board no longer has,
- * are dropped rather than re-subscribed.
+ * subscriptions down. Two cases, and the order matters. A request whose socket
+ * is gone — the browser was reloaded — can never be recovered by subscribing:
+ * its `rpc_response` was written to that socket and dropped. So every entry is
+ * looked up against its generation row first, and one that already settled
+ * lands from the row. Only what the row still calls `running` is subscribed,
+ * which is the case the socket outlived the board and the reply is genuinely
+ * still coming.
+ *
+ * Entries older than {@link PENDING_JOB_TTL_MS}, and entries for shots the
+ * board no longer has, are dropped by `restorePendingJobs` rather than
+ * recovered either way.
  */
 export const reattachBoardJobs = async (boardId: string): Promise<void> => {
   const restored = useStoryboardGenerationStore
     .getState()
     .restorePendingJobs(boardId);
+  if (restored.length === 0) {
+    return;
+  }
+  await globalWebSocketManager.ensureConnection();
+  const outcomes = await lookupGenerations(restored.map((job) => job.jobId));
+
   await Promise.all(
-    restored.map((job) =>
-      subscribeDirectShotJob(job.jobId, {
+    restored.map((job) => {
+      const outcome = outcomes.get(job.jobId);
+      const context: DirectShotJobContext = {
         shotId: job.shotId,
         boardId,
         kind: job.kind
-      })
-    )
+      };
+      if (outcome && isSettled(outcome.status)) {
+        // The row settled while this client was away. Land it from the row:
+        // the frame that would have carried it went to a socket that is gone.
+        settleDirectShotJob(job.jobId, context, {
+          assetIds: outcome.assetIds,
+          errorMessage:
+            outcome.status === "completed" ? "" : (outcome.error ?? "")
+        });
+        return Promise.resolve();
+      }
+      return subscribeDirectShotJob(job.jobId, context);
+    })
   );
 };
 

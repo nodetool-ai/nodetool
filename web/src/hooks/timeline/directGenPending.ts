@@ -9,13 +9,14 @@
  * afterwards still becomes the clip's asset. This mirrors the storyboard's
  * pending-job list rather than inventing a second scheme.
  *
- * The boundary is the socket, not the tab. An `rpc_response` carries no
- * `job_id` and no `thread_id`, so the server writes it to the socket that
- * asked and drops it if that socket has gone — a reply that landed while the
- * browser was shut is lost, and re-subscribing to its id cannot bring it back.
- * Recovering those needs `generate_media` to become a resumable server job,
- * which is also what the storyboard's list would need; until then a reattached
- * entry that outlives its window fails its clip rather than spinning.
+ * Re-subscribing alone only recovers a request whose socket outlived the
+ * sequence. An `rpc_response` carries no `job_id` and no `thread_id`, so the
+ * server writes it to the socket that asked and drops it if that socket has
+ * gone: a reply that landed while the browser was shut reached nobody, and no
+ * later subscription can produce it. So the ids here are also what the entries
+ * are looked up by — `lookupGenerations` reads the generation row, which
+ * outlives the socket, and a request that settled while this client was away
+ * lands from the row instead.
  *
  * D14 — remaining time is shown only where it was measured. Finished requests
  * are filed per model and kind and read back as a median; a bucket with no
@@ -26,11 +27,10 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 /**
- * How long a persisted request is worth re-subscribing to.
+ * How long a persisted request is worth recovering.
  *
- * Also the deadline a reattached subscription waits out before failing its
- * clip: a reply whose socket is gone can never arrive, so an entry that has
- * not answered by the end of its own window never will.
+ * Longer than the slowest video render, short enough that a stale entry does
+ * not show a clip as rendering the next morning.
  */
 export const PENDING_TTL_MS = 30 * 60 * 1000;
 

@@ -168,3 +168,53 @@ describe("Prediction generations", () => {
     expect(back?.reconciled_at).toBeNull();
   });
 });
+
+/**
+ * The lookup a client uses to recover a render it could not receive.
+ *
+ * A `generate_media` reply goes to the socket that asked and is dropped if
+ * that socket has gone, so a browser reload loses it. The row outlives the
+ * socket; this is how the reconnecting client reaches it, by the request id it
+ * persisted before sending.
+ */
+describe("Prediction.byRequestIds", () => {
+  beforeEach(() => initTestDb());
+  afterEach(() => ModelObserver.clear());
+
+  it("returns the rows for the ids it was given", async () => {
+    const a = await row({ request_id: "req-a", asset_ids: ["asset-1"] });
+    await row({ request_id: "req-b" });
+    await row({ request_id: "req-c" });
+
+    const found = await Prediction.byRequestIds("u1", ["req-a"]);
+    expect(found).toHaveLength(1);
+    expect(found[0].id).toBe(a.id);
+    expect(found[0].asset_ids).toEqual(["asset-1"]);
+  });
+
+  it("never answers with another user's row", async () => {
+    await row({ user_id: "u2", request_id: "req-theirs" });
+    expect(await Prediction.byRequestIds("u1", ["req-theirs"])).toEqual([]);
+  });
+
+  it("returns nothing for an id no row carries", async () => {
+    await row({ request_id: "req-a" });
+    expect(await Prediction.byRequestIds("u1", ["req-missing"])).toEqual([]);
+  });
+
+  it("puts the newest first, so a retry's row wins over the one it replaced", async () => {
+    const t = (offset: number): string =>
+      new Date(Date.UTC(2026, 8, 3, 12, 0, offset)).toISOString();
+    await row({ request_id: "req-a", created_at: t(1), status: "failed" });
+    await row({ request_id: "req-a", created_at: t(2), status: "completed" });
+
+    const found = await Prediction.byRequestIds("u1", ["req-a"]);
+    expect(found.map((r) => r.status)).toEqual(["completed", "failed"]);
+  });
+
+  it("asks for nothing when given no usable ids", async () => {
+    await row({ request_id: "req-a" });
+    expect(await Prediction.byRequestIds("u1", [])).toEqual([]);
+    expect(await Prediction.byRequestIds("u1", [""])).toEqual([]);
+  });
+});

@@ -22,6 +22,13 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
   }
 }));
 
+const lookupMock = jest.fn(async (_ids: readonly string[]) => new Map());
+jest.mock("../../../lib/websocket/lookupGenerations", () => ({
+  __esModule: true,
+  isSettled: (status: string) => status !== "running",
+  lookupGenerations: (ids: readonly string[]) => lookupMock(ids)
+}));
+
 import { createTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useDirectGenPendingStore } from "../directGenPending";
 import { reattachSequenceJobs } from "../useTimelineDirectGenJob";
@@ -74,6 +81,10 @@ const seedSequence = () => {
 beforeEach(() => {
   handlers.clear();
   subscribeMock.mockClear();
+  // Default: no row to read, which is the pre-lookup behaviour — every entry
+  // falls through to a subscription.
+  lookupMock.mockClear();
+  lookupMock.mockResolvedValue(new Map());
   useDirectGenPendingStore.setState({ pending: {}, durationSamples: {} });
 });
 
@@ -222,50 +233,126 @@ describe("reattachSequenceJobs (criterion 6)", () => {
 });
 
 /**
- * The limit of criterion 6. A `generate_media` reply is an `rpc_response` with
- * no `job_id` and no `thread_id`, so the server writes it to the socket that
- * asked and drops it if that socket is gone. Reattachment recovers a request
- * whose socket outlived the sequence; it cannot recover one whose reply landed
- * while the browser was shut. Such a clip used to sit at `generating` forever
- * with nothing behind it — this is what stops that.
+ * Recovery across a browser reload, which re-subscribing alone cannot do.
+ *
+ * A `generate_media` reply is an `rpc_response` with no `job_id` and no
+ * `thread_id`, so the server writes it to the socket that asked and drops it
+ * if that socket has gone. The reply for a render that finished while the
+ * browser was shut was therefore already delivered to nobody — subscribing to
+ * its request id afterwards can never produce it. The generation row outlives
+ * the socket, so the entry is looked up against it first.
  */
-describe("a reattached request whose reply can never arrive", () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
+describe("reattach recovers a render its socket never delivered", () => {
+  const settled = (
+    requestId: string,
+    over: Partial<{ status: string; assetIds: string[]; error: string | null }> = {}
+  ) =>
+    new Map([
+      [
+        requestId,
+        {
+          requestId,
+          generationId: "gen-1",
+          status: "completed",
+          assetIds: ["asset-9"],
+          error: null,
+          ...over
+        }
+      ]
+    ]);
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it("fails the clip when its window runs out, so it offers Retry", async () => {
-    const store = seedSequence();
-    const startedAt = Date.now() - 25 * 60 * 1000;
+  const rememberOne = () => {
     useDirectGenPendingStore.getState().remember("seq-1", {
       clipId: "c1",
-      requestId: "req-lost",
-      startedAt,
+      requestId: "req-1",
+      startedAt: Date.now() - 1000,
       bucket: "text-to-video:nodetool/kling-turbo"
     });
+  };
+
+  it("lands the asset from the row, without subscribing at all", async () => {
+    const store = seedSequence();
+    rememberOne();
+    lookupMock.mockResolvedValue(settled("req-1"));
 
     await reattachSequenceJobs(store, "seq-1");
-    expect(store.getState().clips.find((c) => c.id === "c1")?.status).toBe(
-      "generating"
-    );
 
-    // The reply never comes: its socket went with the browser.
-    jest.advanceTimersByTime(5 * 60 * 1000 + 1);
-
-    expect(store.getState().clips.find((c) => c.id === "c1")?.status).toBe(
-      "failed"
-    );
-    // And the entry is gone, so reopening cannot restore the same dead request.
+    const clip = store.getState().clips.find((c) => c.id === "c1");
+    expect(clip?.currentAssetId).toBe("asset-9");
+    expect(clip?.status).toBe("generated");
+    // The reply is already gone; a subscription for it would wait forever.
+    expect(subscribeMock).not.toHaveBeenCalled();
+    // And the entry is settled, so reopening cannot restore a dead request.
     expect(
       useDirectGenPendingStore.getState().pending["seq-1"] ?? []
     ).toHaveLength(0);
   });
 
-  it("leaves a clip alone when its reply does arrive in the window", async () => {
+  it("fails the clip when the row says the render failed", async () => {
+    const store = seedSequence();
+    rememberOne();
+    lookupMock.mockResolvedValue(
+      settled("req-1", {
+        status: "failed",
+        assetIds: [],
+        error: "provider refused"
+      })
+    );
+
+    await reattachSequenceJobs(store, "seq-1");
+
+    expect(store.getState().clips.find((c) => c.id === "c1")?.status).toBe(
+      "failed"
+    );
+    expect(subscribeMock).not.toHaveBeenCalled();
+  });
+
+  it("subscribes when the row still says running, so the reply can land", async () => {
+    const store = seedSequence();
+    rememberOne();
+    lookupMock.mockResolvedValue(settled("req-1", { status: "running", assetIds: [] }));
+
+    await reattachSequenceJobs(store, "seq-1");
+
+    expect(store.getState().clips.find((c) => c.id === "c1")?.status).toBe(
+      "generating"
+    );
+    expect(subscribeMock).toHaveBeenCalledWith("req-1", expect.any(Function));
+
+    handlers.get("req-1")?.({
+      type: "rpc_response",
+      request_id: "req-1",
+      result: { asset_ids: ["asset-late"] }
+    });
+    expect(store.getState().clips.find((c) => c.id === "c1")?.currentAssetId).toBe(
+      "asset-late"
+    );
+  });
+
+  it("only asks about the entries whose clips the sequence still has", async () => {
+    const store = seedSequence();
+    rememberOne();
+    useDirectGenPendingStore.getState().remember("seq-1", {
+      clipId: "gone",
+      requestId: "req-gone",
+      startedAt: Date.now() - 1000,
+      bucket: "text-to-video:nodetool/kling-turbo"
+    });
+
+    await reattachSequenceJobs(store, "seq-1");
+
+    expect(lookupMock).toHaveBeenCalledWith(["req-1"]);
+  });
+});
+
+/**
+ * Landing from the row must also close any subscription still open for that
+ * clip. Reopening a sequence inside one page session leaves the earlier
+ * subscription live, and a second settle appends the same version twice — a
+ * duplicate take the creator did not make.
+ */
+describe("landing from the row closes the live subscription", () => {
+  it("does not append a second version when the reply arrives afterwards", async () => {
     const store = seedSequence();
     useDirectGenPendingStore.getState().remember("seq-1", {
       clipId: "c1",
@@ -274,17 +361,45 @@ describe("a reattached request whose reply can never arrive", () => {
       bucket: "text-to-video:nodetool/kling-turbo"
     });
 
+    // First open: the row says running, so a subscription is made.
     await reattachSequenceJobs(store, "seq-1");
+    expect(subscribeMock).toHaveBeenCalledTimes(1);
+
+    // Second open, and by now the row has settled.
+    useDirectGenPendingStore.getState().remember("seq-1", {
+      clipId: "c1",
+      requestId: "req-1",
+      startedAt: Date.now() - 1000,
+      bucket: "text-to-video:nodetool/kling-turbo"
+    });
+    lookupMock.mockResolvedValue(
+      new Map([
+        [
+          "req-1",
+          {
+            requestId: "req-1",
+            generationId: "gen-1",
+            status: "completed",
+            assetIds: ["asset-9"],
+            error: null
+          }
+        ]
+      ])
+    );
+    await reattachSequenceJobs(store, "seq-1");
+
+    const afterLanding = store.getState().clips.find((c) => c.id === "c1");
+    expect(afterLanding?.versions).toHaveLength(1);
+
+    // The first subscription's reply arrives late. It must land nothing.
     handlers.get("req-1")?.({
       type: "rpc_response",
       request_id: "req-1",
       result: { asset_ids: ["asset-9"] }
     });
 
-    jest.advanceTimersByTime(60 * 60 * 1000);
-
-    const clip = store.getState().clips.find((c) => c.id === "c1");
-    expect(clip?.status).not.toBe("failed");
-    expect(clip?.currentAssetId).toBe("asset-9");
+    expect(
+      store.getState().clips.find((c) => c.id === "c1")?.versions
+    ).toHaveLength(1);
   });
 });

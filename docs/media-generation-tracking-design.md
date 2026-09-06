@@ -175,6 +175,7 @@ export interface GenerationOrigin {
   surface: GenerationSurface;
   thread_id?: string | null;
   tool_call_id?: string | null;
+  request_id?: string | null;   // the rpc surface's request (§5.3)
   job_id?: string | null;
   node_id?: string | null;
 }
@@ -219,6 +220,26 @@ that names no origin gets `surface: "workflow"` with the context's job and
 workflow ids inside a run, and `surface: "chat"` with its thread id inside a
 chat turn. A capability passes `surface: "capability"` and its `tool_call_id`
 explicitly, because that is the one id the context does not hold.
+
+### 5.3 The rpc surface's request id
+
+`generate_media` answers with an `rpc_response` carrying no `job_id` and no
+`thread_id`, so `WebSocketClientSession.sendMessage` writes it to the socket
+that asked and drops it if that socket has gone. A client that reloads
+mid-render therefore cannot receive its reply, and re-subscribing to the
+request id afterwards produces nothing: the frame was already delivered to a
+socket that no longer exists.
+
+The row outlives the socket. `origin.request_id` puts the client's own request
+id on it, indexed as `(user_id, request_id)`, and `lookup_generations` answers
+`{status, asset_ids, error}` for a batch of them — scoped to the caller's rows
+and capped at `MAX_REQUEST_ID_LOOKUP`. The storyboard board and the timeline
+sequence both resolve their persisted entries through it on open and subscribe
+only to what the row still calls `running`.
+
+An id with no row comes back absent, which the client reads as "still unknown"
+and subscribes for: the row may not be open yet, and reading unknown as failed
+would discard a render still in flight.
 
 ### 5.2 Message changes
 
