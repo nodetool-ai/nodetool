@@ -14,6 +14,16 @@
     "The listing copy is written from one photograph. It does not know your stock, sizing, or compliance wording."
   ],
   "hero": "Put a Product on a Studio Backdrop",
+  "apps": [
+    {
+      "app": "sku-factory",
+      "role": "Drop the packshot once and every still in the set reads the same image; the turntable and the print master stay on their own buttons because they cost more."
+    },
+    {
+      "app": "product-reshoot",
+      "role": "Just the three still treatments, when the set is all you need and the motion and print steps are not."
+    }
+  ],
   "steps": [
     {
       "example": "Cut a Product Out of Its Background",

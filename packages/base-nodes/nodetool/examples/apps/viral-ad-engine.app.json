@@ -1,0 +1,1283 @@
+{
+  "schemaVersion": 1,
+  "name": "Viral Ad Engine",
+  "description": "The Viral Video Ad Engine chain behind one surface. The offer drives both the copy registers and the hook-and-thumbnail set, so the line you pick and the thumbnails you test come from the same brief.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "📈 Viral Ad Engine",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "Settle the line, fan it into a test set, then put the product in motion."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs an OpenAI key for the writing and a FAL key for the thumbnails. The ad loop is a video model; the vertical cut runs locally."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-line",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-line",
+                  "title": "The line",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-offer",
+                        "binding": "var:offer",
+                        "label": "What are you advertising?",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-hooks-target-audience",
+                        "binding": "op:hooks/in:input_audience",
+                        "label": "Who it is for",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-hooks-number-of-hooks",
+                        "binding": "op:hooks/in:input_count",
+                        "label": "How many hooks",
+                        "min": 2,
+                        "max": 8,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-copy-hooks",
+                        "label": "Write it and fan it out",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "copy",
+                            "key": "",
+                            "value": ""
+                          },
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "hooks",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-line-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-copy",
+                        "binding": "op:copy/exec#progress",
+                        "label": "Writing copy…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-copy-variants",
+                        "text": "Three registers",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-copy-variants",
+                        "binding": "op:copy/out:out",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-hooks",
+                        "binding": "op:hooks/exec#progress",
+                        "label": "Making the test set…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-hooks-hooks",
+                        "text": "Hook lines",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-hooks-hooks",
+                        "binding": "op:hooks/out:preview_hooks",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-hooks-thumbnail-gallery",
+                        "text": "Thumbnails",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-hooks-thumbnail-gallery",
+                        "binding": "op:hooks/out:output_gallery",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-footage",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-footage",
+                  "title": "The footage",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "💸 The ad loop is a video model. The vertical cut runs on your machine."
+                      }
+                    },
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-photo",
+                        "binding": "var:photo",
+                        "label": "Product photo",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-loop-motion",
+                        "binding": "op:loop/in:in-motion",
+                        "label": "Camera move",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-loop",
+                        "label": "Put it in motion",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "loop",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "VideoInput",
+                      "props": {
+                        "id": "in-landscape",
+                        "binding": "var:landscape",
+                        "label": "A landscape cut to reframe",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-vertical",
+                        "label": "Cut it to 9:16",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "vertical",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-footage-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-loop",
+                        "binding": "op:loop/exec#progress",
+                        "label": "Animating the still…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-loop-ad-loop",
+                        "text": "Ad loop",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-loop-ad-loop",
+                        "binding": "op:loop/out:output-loop",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-vertical",
+                        "binding": "op:vertical/exec#progress",
+                        "label": "Reframing…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-vertical-vertical",
+                        "text": "Vertical cut",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-vertical-vertical",
+                        "binding": "op:vertical/out:out",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "copy",
+        "name": "Copy",
+        "workflowId": "copy",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "offer"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "hooks",
+        "name": "Hooks",
+        "workflowId": "hooks",
+        "inputs": {
+          "input_topic": {
+            "from": "variable",
+            "variableId": "offer"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "loop",
+        "name": "Ad loop",
+        "workflowId": "loop",
+        "inputs": {
+          "in-photo": {
+            "from": "variable",
+            "variableId": "photo"
+          }
+        },
+        "outputs": {},
+        "policy": "queue",
+        "timeoutMs": 900000
+      },
+      {
+        "id": "vertical",
+        "name": "Vertical",
+        "workflowId": "vertical",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "landscape"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "offer",
+        "name": "The offer",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Aurora Trail running shoes: a third lighter than last season, grip that holds on wet rock, launching Friday",
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "photo",
+        "name": "Product photo",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "landscape",
+        "name": "Landscape cut",
+        "type": {
+          "type": "video",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "copy",
+      "name": "Ad Copy in Three Registers",
+      "description": "The same offer written plain, playful and premium. Register is usually the variable a team argues about, so produce all three and let the work settle it.",
+      "sourceId": "nodetool-base/Ad Copy in Three Registers",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "offer",
+              "value": "",
+              "description": "The offer to advertise"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Input"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "ag",
+            "type": "nodetool.agents.Agent",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "system": "You write ad copy. Produce three versions of the same offer — plain, playful, premium — each about 40 words, labelled.",
+              "prompt": "",
+              "tools": [],
+              "image": [],
+              "audio": [],
+              "history": [],
+              "thread_id": "",
+              "max_tokens": 16384,
+              "max_turns": 100
+            },
+            "ui_properties": {
+              "position": {
+                "x": 330,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "2  Agent"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "variants"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Output"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in",
+            "sourceHandle": "output",
+            "target": "ag",
+            "targetHandle": "prompt"
+          },
+          {
+            "id": "e2",
+            "source": "ag",
+            "sourceHandle": "text",
+            "target": "out",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "hooks",
+      "name": "Hook & Thumbnail Factory",
+      "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
+      "sourceId": "nodetool-base/Hook & Thumbnail Factory",
+      "graph": {
+        "edges": [
+          {
+            "id": "0373f51d-ff16-457c-8871-7b28c2a4cb15",
+            "source": "input_topic",
+            "sourceHandle": "output",
+            "target": "hook_brief",
+            "targetHandle": "topic",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e631105c-8b57-4304-bbd6-790378f7807d",
+            "source": "input_audience",
+            "sourceHandle": "output",
+            "target": "hook_brief",
+            "targetHandle": "audience",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "a1b2c3d4-count-brief",
+            "source": "input_count",
+            "sourceHandle": "output",
+            "target": "hook_brief",
+            "targetHandle": "count",
+            "ui_properties": {
+              "className": "int"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "5f7839de-32fd-43f1-b2ab-93de5cdc91c4",
+            "source": "hook_brief",
+            "sourceHandle": "output",
+            "target": "hooks",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "6d86d394-8a74-4f7a-aeed-5f7d7f55bbc5",
+            "source": "hooks",
+            "sourceHandle": "item",
+            "target": "thumb_brief",
+            "targetHandle": "hook",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "5c7c4403-f00a-46e8-b68f-9a21a9a2227e",
+            "source": "input_topic",
+            "sourceHandle": "output",
+            "target": "thumb_brief",
+            "targetHandle": "topic",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "2082cf18-f8b9-455e-9c37-ffddc4fefd7d",
+            "source": "hooks",
+            "sourceHandle": "item",
+            "target": "preview_hooks",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "b4d3e81f-2221-45da-a93b-ee2143c19f74",
+            "source": "thumb_brief",
+            "sourceHandle": "output",
+            "target": "thumbnail",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "c5d6e7f8-thumb-grade",
+            "source": "thumbnail",
+            "sourceHandle": "output",
+            "target": "punch",
+            "targetHandle": "image",
+            "ui_properties": {
+              "className": "image"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "2806e15a-b3d8-4526-9170-137ca0f9b746",
+            "source": "punch",
+            "sourceHandle": "output",
+            "target": "preview_thumb",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "image"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "d9e0f1a2-grade-collect",
+            "source": "punch",
+            "sourceHandle": "output",
+            "target": "collect_thumbs",
+            "targetHandle": "input_item",
+            "ui_properties": {
+              "className": "image"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "e3f4a5b6-collect-output",
+            "source": "collect_thumbs",
+            "sourceHandle": "output",
+            "target": "output_gallery",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "list"
+            },
+            "edge_type": "data"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "comment-intro",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 🎬 Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook lines and, for **each** hook, generates a matching thumbnail — color-graded for punch and collected into a gallery. A whole thumbnail pack from one run.\n\n**Why a graph, not a chat box:** the hook stream fans out. `List Generator` emits one hook at a time; each hook flows through its own prompt → image → color-grade branch, so N hooks become N finished thumbnails in parallel. A chat box can list hooks; it can't hand you the images.\n\n**Pipeline:** Topic + audience + count → hook brief → List Generator (streams hooks) → per-hook thumbnail prompt → Text-to-Image → color grade → collect gallery\n\n**Try this:** change the topic, audience, or number of hooks; tweak the thumbnail style in the prompt. Pick a text model on the List Generator and an image model on Text-to-Image first."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": -560,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 500,
+              "height": 320,
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "input_topic",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Video Topic",
+              "description": "What the short-form video is about.",
+              "value": "How compound interest quietly builds wealth"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 40,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Video topic",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "input_audience",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "Target Audience",
+              "description": "Who you are making it for — shapes tone and references.",
+              "value": "Gen Z just starting to invest"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 40,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "2️⃣ Target audience",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "input_count",
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "Number of Hooks",
+              "description": "How many hook lines (and thumbnails) to produce. Each thumbnail is one FLUX image, so higher counts cost and take proportionally longer.",
+              "value": 4,
+              "min": 1,
+              "max": 10
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 40,
+                "y": 540
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "3️⃣ How many hooks",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "hook_brief",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "You are a short-form video strategist. Write exactly {{ count }} scroll-stopping hook lines for a video.\n\nTOPIC: {{ topic }}\nAUDIENCE: {{ audience }}\n\nRules:\n- Each hook is a single line, spoken in the first 2 seconds.\n- Lead with curiosity, a bold claim, or a relatable pain the audience feels.\n- No clickbait the video can't pay off; no emojis; no numbering.\n- Keep each hook under 12 words so it fits on screen.\n\nOutput format: return the {{ count }} hooks as a plain list, one hook per line, nothing else."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 420,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 340,
+              "height": 460,
+              "title": "4️⃣ Build hook brief",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "topic": null,
+              "audience": null,
+              "count": null
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "hooks",
+            "type": "nodetool.generators.ListGenerator",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "max_tokens": 100000
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 800,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 360,
+              "height": 420,
+              "title": "5️⃣ Stream hooks",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "thumb_brief",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "You are an art director for viral thumbnails. Turn one hook into a single image description.\n\nVIDEO TOPIC: {{ topic }}\nHOOK ON SCREEN: {{ hook }}\n\nDescribe one bold, high-contrast 16:9 thumbnail: a clear focal subject, punchy saturated colors, dramatic lighting, and generous negative space on one side for a big text headline the creator will add later. Must read at small mobile sizes.\n\nConstraints: no words, letters, numbers, logos, or watermarks rendered in the image. No tiny details, no busy clutter.\n\nOutput format: one vivid paragraph, image description only."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1200,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 340,
+              "height": 460,
+              "title": "6️⃣ Build thumbnail prompt",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "topic": null,
+              "hook": null
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "thumbnail",
+            "type": "nodetool.image.TextToImage",
+            "data": {
+              "model": {
+                "type": "image_model",
+                "provider": "fal_ai",
+                "id": "fal-ai/flux/schnell",
+                "name": "FLUX.1 Schnell",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "blurry, low contrast, watermark, text, letters, tiny details, clutter",
+              "aspect_ratio": "16:9",
+              "resolution": "2K"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1580,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 360,
+              "title": "7️⃣ Generate thumbnail",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "punch",
+            "type": "lib.image.color.BrightnessContrast",
+            "data": {
+              "brightness": 0.03,
+              "contrast": 1.18
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1940,
+                "y": 160
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "8️⃣ Color grade for punch",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "collect_thumbs",
+            "type": "nodetool.control.Collect",
+            "data": {
+              "input_item": []
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 2260,
+                "y": 160
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "9️⃣ Collect gallery",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output_gallery",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "thumbnail_gallery"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 2580,
+                "y": 160
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "🖼️ Thumbnail gallery",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "preview_hooks",
+            "type": "nodetool.workflows.base_node.Preview",
+            "data": {
+              "name": "hooks"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 800,
+                "y": 600
+              },
+              "zIndex": 0,
+              "width": 360,
+              "height": 300,
+              "title": "🪝 Hook ideas",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "preview_thumb",
+            "type": "nodetool.workflows.base_node.Preview",
+            "data": {
+              "name": "thumbnail"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1940,
+                "y": 540
+              },
+              "zIndex": 0,
+              "width": 360,
+              "height": 320,
+              "title": "🖼️ Latest thumbnail",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "loop",
+      "name": "Ad Loop from a Product Photo",
+      "description": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, Kling 2.6 on Kie animates the still, and a speed pass slows it into a hero loop. Needs a KIE_API_KEY; the video step is billed per generation.",
+      "sourceId": "nodetool-base/Ad Loop from a Product Photo",
+      "graph": {
+        "nodes": [
+          {
+            "id": "comment-1",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "headline": "Ad Loop from a Product Photo",
+              "comment": [
+                "One product photo in, a looping hero shot out.\n\n",
+                "Kling 2.6 animates the still, then the speed pass halves playback so the loop reads as a slow, premium reveal.\n\n",
+                "The motion brief forbids redesigning the product — the model may move the camera and the light, nothing else."
+              ]
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 170
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-photo",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "product_photo",
+              "value": null,
+              "description": "A clean photo of the product"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 240
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Product photo"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-motion",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "motion",
+              "value": "Slow orbit around the product as a soft highlight travels across its surface",
+              "description": "How the shot should move"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 400
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Motion"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brief",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "Animate this product photo into a looping hero shot.\n\nMotion: {{ motion }}\n\nKeep the product's shape, colour, materials and label exactly as photographed. Move only the camera and the lighting. Keep the first and last frame close so the clip loops cleanly. No text, no logos, no hands."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 380,
+                "y": 380
+              },
+              "zIndex": 0,
+              "width": 320,
+              "selectable": true,
+              "title": "Motion brief"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "animate",
+            "type": "nodetool.video.ImageToVideo",
+            "data": {
+              "model": {
+                "type": "video_model",
+                "provider": "kie",
+                "id": "kling-2.6/image-to-video",
+                "name": "Kling 2.6 Image to Video",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "warping, melting edges, label distortion, extra objects",
+              "aspect_ratio": "16:9",
+              "resolution": "1080p",
+              "duration": 5,
+              "timeout_seconds": 0
+            },
+            "ui_properties": {
+              "position": {
+                "x": 760,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Animate (Kie)"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "slow",
+            "type": "nodetool.video.SetSpeed",
+            "data": {
+              "speed_factor": 0.5
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1100,
+                "y": 340
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4  Half speed"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-loop",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "ad_loop"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1440,
+                "y": 360
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "5  Ad loop"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in-motion",
+            "sourceHandle": "output",
+            "target": "brief",
+            "targetHandle": "motion"
+          },
+          {
+            "id": "e2",
+            "source": "in-photo",
+            "sourceHandle": "output",
+            "target": "animate",
+            "targetHandle": "image"
+          },
+          {
+            "id": "e3",
+            "source": "brief",
+            "sourceHandle": "output",
+            "target": "animate",
+            "targetHandle": "prompt"
+          },
+          {
+            "id": "e4",
+            "source": "animate",
+            "sourceHandle": "output",
+            "target": "slow",
+            "targetHandle": "video"
+          },
+          {
+            "id": "e5",
+            "source": "slow",
+            "sourceHandle": "output",
+            "target": "output-loop",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "vertical",
+      "name": "Cut a Landscape Clip for Vertical",
+      "description": "Footage arrives 16:9 and the channel wants 9:16. Resizing to the vertical frame is the unglamorous step between having a film and being able to post it.",
+      "sourceId": "nodetool-base/Cut a Landscape Clip for Vertical",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "clip",
+              "value": null,
+              "description": "The landscape clip"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "rs",
+            "type": "nodetool.video.Resize",
+            "data": {
+              "width": 1080,
+              "height": 1920
+            },
+            "ui_properties": {
+              "position": {
+                "x": 330,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "2  To 9:16"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "vertical"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Vertical"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in",
+            "sourceHandle": "output",
+            "target": "rs",
+            "targetHandle": "video"
+          },
+          {
+            "id": "e2",
+            "source": "rs",
+            "sourceHandle": "output",
+            "target": "out",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}

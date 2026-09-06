@@ -1,18 +1,25 @@
 /**
- * Recipes: a named outcome plus the ordered shipped example workflows that
- * reach it.
+ * Recipes: a named outcome, the shipped example app that reaches it, and the
+ * ordered example workflows behind that app.
  *
- * A recipe is a file on disk next to the example workflows it composes
+ * The app is what a recipe hands you — the chain's steps bound to one surface,
+ * with the handoffs carried as variables. The steps stay listed because they
+ * are what the app is made of, and opening one as a graph is how a chain gets
+ * changed.
+ *
+ * A recipe is a file on disk next to the example workflows and apps it composes
  * (`packages/base-nodes/nodetool/examples/recipes/<slug>.recipe.json`), so
- * listing one needs no user and no database, and "installing" one is the same
- * copy a single example takes, run once per step.
+ * listing one needs no user and no database, and installing one is the same
+ * example-app install and example copy a single one takes.
  *
  * Two shapes live here: {@link recipeBundle}, what a shipped file holds, and
- * {@link exampleRecipeSummary}, what the list endpoint returns after each step
- * has been resolved against the examples actually on disk.
+ * {@link exampleRecipeSummary}, what the list endpoint returns after each app
+ * and step has been resolved against what is actually on disk.
  */
 
 import { z } from "zod";
+
+import { exampleAppSummary } from "./applications.js";
 
 /** Bumped when a field the reader depends on changes shape. */
 export const RECIPE_BUNDLE_SCHEMA_VERSION = 1;
@@ -41,6 +48,19 @@ export const recipeBundleStep = z.object({
 });
 export type RecipeBundleStep = z.infer<typeof recipeBundleStep>;
 
+/**
+ * A shipped example app the recipe hands you instead of the loose chain: the
+ * same workflows bound to one surface, with the handoffs the steps describe in
+ * prose carried as variables between operations.
+ */
+export const recipeBundleApp = z.object({
+  /** Example app slug, i.e. its file name without `.app.json`. */
+  app: z.string().min(1),
+  /** What the app is for, in the recipe's terms. */
+  role: z.string()
+});
+export type RecipeBundleApp = z.infer<typeof recipeBundleApp>;
+
 export const recipeBundle = z.object({
   schemaVersion: z.number().int().positive(),
   slug: z.string().min(1),
@@ -54,6 +74,11 @@ export const recipeBundle = z.object({
   caveats: z.array(z.string()),
   /** Example whose thumbnail heads the recipe. */
   hero: z.string().min(1),
+  /**
+   * The apps that surface this chain. First is the one built for it; any that
+   * follow cover part of it and are worth having anyway.
+   */
+  apps: z.array(recipeBundleApp).min(1),
   steps: z.array(recipeBundleStep).min(1)
 });
 export type RecipeBundle = z.infer<typeof recipeBundle>;
@@ -105,6 +130,17 @@ export const exampleRecipeStep = z.object({
 });
 export type ExampleRecipeStep = z.infer<typeof exampleRecipeStep>;
 
+/**
+ * A recipe's app with its shipped bundle resolved: the same summary the example
+ * app listing returns — `slug` is what
+ * `POST /api/applications/examples/:slug/install` takes — plus what the app is
+ * for in this recipe's terms.
+ */
+export const exampleRecipeApp = exampleAppSummary.extend({
+  role: z.string()
+});
+export type ExampleRecipeApp = z.infer<typeof exampleRecipeApp>;
+
 /** What the list endpoint returns per recipe. */
 export const exampleRecipeSummary = z.object({
   slug: z.string(),
@@ -118,6 +154,8 @@ export const exampleRecipeSummary = z.object({
   /** Providers the chain calls, deduplicated across steps. */
   providers: z.array(z.string()),
   nodeCount: z.number(),
+  /** The apps that run this chain, the purpose-built one first. */
+  apps: z.array(exampleRecipeApp),
   steps: z.array(exampleRecipeStep)
 });
 export type ExampleRecipeSummary = z.infer<typeof exampleRecipeSummary>;

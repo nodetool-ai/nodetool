@@ -2,9 +2,9 @@
  * The shipped recipes, resolved against the shipped examples.
  *
  * These run against the real manifests in
- * `packages/base-nodes/nodetool/examples/recipes` and the real workflows they
- * name, so a renamed or deleted example fails here rather than dropping a
- * recipe out of the app's Examples page with no other signal.
+ * `packages/base-nodes/nodetool/examples/recipes` and the real workflows and
+ * apps they name, so a renamed or deleted example fails here rather than
+ * dropping a recipe out of the app's Examples page with no other signal.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import nodePath from "node:path";
@@ -21,6 +21,7 @@ const NODETOOL_DIR = nodePath.resolve(
 );
 const EXAMPLES_DIR = nodePath.join(NODETOOL_DIR, "examples/nodetool-base");
 const RECIPES_DIR = nodePath.join(NODETOOL_DIR, "examples/recipes");
+const APPS_DIR = nodePath.join(NODETOOL_DIR, "examples/apps");
 
 const options = { examplesDir: EXAMPLES_DIR };
 
@@ -49,6 +50,41 @@ describe("example recipes", () => {
     expect(
       parsed.some((recipe) => recipe.steps.some((step) => step.alternative))
     ).toBe(true);
+    expect(parsed.every((recipe) => recipe.apps.length > 0)).toBe(true);
+  });
+
+  it("hands every recipe an app that binds the whole chain", () => {
+    for (const recipe of listExampleRecipes(options)) {
+      // The first app is the one built for this chain, and a chain the app
+      // does not cover is a recipe that cannot be run from one surface.
+      const [primary] = recipe.apps;
+      const bound = new Set(primary.workflows);
+      const missing = recipe.steps
+        .map((step) => step.example)
+        .filter((example) => !bound.has(example));
+      expect({ slug: recipe.slug, missing }).toEqual({
+        slug: recipe.slug,
+        missing: []
+      });
+      expect(primary.operationCount).toBeGreaterThanOrEqual(
+        recipe.steps.length
+      );
+    }
+  });
+
+  it("drops a recipe whose app this install does not ship", () => {
+    // Same manifests, an apps directory that holds nothing: every recipe names
+    // an app, so every recipe must fall out. Without this the resolution is
+    // indistinguishable from one that never looks at the apps at all.
+    expect(
+      listExampleRecipes({
+        ...options,
+        exampleAppsDir: nodePath.join(NODETOOL_DIR, "examples/not-here")
+      })
+    ).toEqual([]);
+    expect(
+      listExampleRecipes({ ...options, exampleAppsDir: APPS_DIR }).length
+    ).toBe(shippedSlugs().length);
   });
 
   it("orders the steps the manifest names and keeps them openable", () => {

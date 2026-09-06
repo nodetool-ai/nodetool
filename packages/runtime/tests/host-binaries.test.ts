@@ -229,7 +229,18 @@ describe("runHostBinary abort signal", () => {
           throw err;
         }
       );
-      setTimeout(() => controller.abort(), 300);
+      // Abort once the child has written its pid, not after a fixed wait:
+      // the write happens after `process.on("SIGTERM")`, so the file is the
+      // proof that the handler is installed. A fixed 300ms raced the child's
+      // startup on a loaded runner — SIGTERM landed first, the default action
+      // killed it at once, and the promise settled in 346ms instead of 5000.
+      const pidFile = path.join(cwd, "pid.txt");
+      const readyBy = Date.now() + 15_000;
+      while (!existsSync(pidFile)) {
+        expect(Date.now()).toBeLessThan(readyBy);
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      controller.abort();
       await expect(pending).rejects.toThrow();
       // SIGKILL lands five seconds after SIGTERM: settling any earlier
       // means the promise gave up while the child still ran.
