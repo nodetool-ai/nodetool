@@ -423,6 +423,43 @@ describe("storyboards", () => {
     expect(scoped.map((board) => fields(board).name)).toEqual(["In project"]);
   });
 
+  it("finds a recast copy past the end of the listing window", async () => {
+    const copy = await ifaces.createStoryboard!({
+      userId: USER,
+      name: "Copy",
+      projectId: "p9",
+      document: { ...doc, templateId: "tpl", recastKey: "hero>rival" }
+    });
+    for (let i = 0; i < 60; i += 1) {
+      await ifaces.createStoryboard!({
+        userId: USER,
+        name: `SKU ${i}`,
+        projectId: "p9",
+        document: doc
+      });
+    }
+
+    const listed = await ifaces.listStoryboards!({ userId: USER, projectId: "p9" });
+    expect(listed.some((board) => fields(board).id === copy.id)).toBe(false);
+
+    const found = await ifaces.findRecastStoryboard!({
+      userId: USER,
+      projectId: "p9",
+      templateId: "tpl",
+      recastKey: "hero>rival"
+    });
+    expect(fields(found).id).toBe(copy.id);
+    // Another owner's ask never reaches it.
+    expect(
+      await ifaces.findRecastStoryboard!({
+        userId: OTHER,
+        projectId: "p9",
+        templateId: "tpl",
+        recastKey: "hero>rival"
+      })
+    ).toBeNull();
+  });
+
   it("reads only the owner's storyboard", async () => {
     const created = await ifaces.createStoryboard!({ userId: USER, document: doc });
     const id = created.id;

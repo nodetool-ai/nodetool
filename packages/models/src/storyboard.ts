@@ -8,7 +8,7 @@ import {
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getDb, getDbType } from "./db.js";
 import { storyboards } from "./schema/storyboards.js";
 
 /**
@@ -165,6 +165,53 @@ export class Storyboard extends DBModel {
       .orderBy(desc(storyboards.updated_at))
       .limit(limit);
     return rows.map((r: Record<string, unknown>) => new Storyboard(r));
+  }
+
+  /**
+   * The board this owner already derived from `templateId` for `recastKey`.
+   *
+   * `RecastStoryboard` reuses its previous copy rather than deriving — and
+   * re-rendering — a second one, and it used to find that copy by scanning
+   * {@link listByProject}, which answers with a window of the most recently
+   * updated rows. A catalog batch larger than the window lost sight of its own
+   * copies and paid for them again every pass, so the two identity fields are
+   * asked of the database instead.
+   *
+   * They live inside the `document` JSON rather than in columns of their own,
+   * so the predicate is written per dialect: SQLite reads them with
+   * `json_extract`, PostgreSQL with `->>` over the same text column.
+   */
+  static async findRecast(args: {
+    userId: string;
+    projectId?: string;
+    templateId: string;
+    recastKey: string;
+  }): Promise<Storyboard | null> {
+    const db = getDb();
+    const postgres = getDbType() === "postgres";
+    const templateId = postgres
+      ? sql`(${storyboards.document}::json ->> 'templateId')`
+      : sql`json_extract(${storyboards.document}, '$.templateId')`;
+    const recastKey = postgres
+      ? sql`(${storyboards.document}::json ->> 'recastKey')`
+      : sql`json_extract(${storyboards.document}, '$.recastKey')`;
+    const rows = await db
+      .select()
+      .from(storyboards)
+      .where(
+        and(
+          eq(storyboards.user_id, args.userId),
+          args.projectId
+            ? eq(storyboards.project_id, args.projectId)
+            : undefined,
+          eq(templateId, args.templateId),
+          eq(recastKey, args.recastKey)
+        )
+      )
+      .orderBy(desc(storyboards.updated_at))
+      .limit(1);
+    const row = rows[0];
+    return row ? new Storyboard(row as Record<string, unknown>) : null;
   }
 
   static async listByProject(

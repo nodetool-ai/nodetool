@@ -33,6 +33,7 @@ import {
   makeClip,
   makeSequence,
   makeTrack,
+  type TimelineClip,
   type TimelineSequence
 } from "@nodetool-ai/timeline";
 
@@ -131,10 +132,22 @@ interface Harness {
   entities: Map<string, Entity>;
   generations: Array<{ capability: string; model: string }>;
   getStoryboard: ReturnType<typeof vi.fn>;
-  /** Wire the board lookup a `reuse_existing` recast needs. */
+  /**
+   * Wire the board listing a `reuse_existing` recast falls back to, windowed
+   * the way the real adapter is: `Storyboard.listByProject` answers with the
+   * 50 most recently updated rows.
+   */
   withBoardListing(): void;
+  /** Wire the scoped lookup the server and the CLI install beside it. */
+  withRecastLookup(): void;
   cleanup(): void;
 }
+
+/** The 50 most recently updated rows, as `Storyboard.listByProject` answers. */
+const listWindow = (boards: BoardRow[]): BoardRow[] =>
+  [...boards]
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .slice(0, 50);
 
 function harness(): Harness {
   const fake = createFakeContext();
@@ -191,6 +204,15 @@ function harness(): Harness {
   };
   context.setModelInterfaces(interfaces);
 
+  const listing: Pick<ProcessingContextModelInterfaces, "listStoryboards"> = {
+    listStoryboards: async ({ projectId }) =>
+      listWindow(
+        [...boards.values()].filter(
+          (board) => !projectId || board.projectId === projectId
+        )
+      )
+  };
+
   context.runGeneration = vi.fn(async (request) => {
     generations.push({
       capability: String(request.capability),
@@ -217,12 +239,19 @@ function harness(): Harness {
     generations,
     getStoryboard,
     withBoardListing: () => {
+      context.setModelInterfaces({ ...interfaces, ...listing });
+    },
+    withRecastLookup: () => {
       context.setModelInterfaces({
         ...interfaces,
-        listStoryboards: async ({ projectId }) =>
-          [...boards.values()].filter(
-            (board) => !projectId || board.projectId === projectId
-          )
+        ...listing,
+        findRecastStoryboard: async ({ projectId, templateId, recastKey }) =>
+          [...boards.values()].find(
+            (board) =>
+              (!projectId || board.projectId === projectId) &&
+              board.document.templateId === templateId &&
+              board.document.recastKey === recastKey
+          ) ?? null
       });
     },
     cleanup: fake.cleanup
@@ -331,6 +360,28 @@ describe("RecastStoryboardNode", () => {
     expect(copy?.document.templateId).toBe("tpl");
     // The rename reached the shots, so the copy is about Kai, not Nova.
     expect(copy?.document.shots[0].action).toContain("Kai");
+  });
+
+  it("finds the copy it made even after the board listing has moved on", async () => {
+    h.withRecastLookup();
+    seedBoard(h, "tpl", boardDocument());
+    const node = new RecastStoryboardNode();
+    node.assign({ storyboard: picked("tpl"), cast: [RIVAL] });
+
+    const first = await node.process(h.context);
+    // A catalog batch: sixty boards updated after the copy, so it falls out of
+    // the 50-row window the listing answers with.
+    for (let i = 0; i < 60; i += 1) {
+      seedBoard(h, `sku-${i}`, boardDocument(), {
+        updatedAt: new Date(Date.now() + 60_000 + i).toISOString()
+      });
+    }
+    const before = h.boards.size;
+
+    const second = await node.process(h.context);
+
+    expect(second.storyboard.id).toBe(first.storyboard.id);
+    expect(h.boards.size).toBe(before);
   });
 
   it("makes a second copy when reuse is off", async () => {
@@ -697,5 +748,203 @@ describe("AssembleTimelineNode", () => {
     node.assign({ storyboard: writable("empty") });
 
     await expect(node.process(h.context)).rejects.toThrow(/nothing to assemble/);
+  });
+});
+
+// ── The approved cut survives a re-assemble ─────────────────────────────────
+
+/**
+ * A cut a director edited: shot 1 starts late, is trimmed to a second, plays
+ * from two seconds into its footage and sits half-transparent under a moved
+ * transform; shot 2 follows at 4s. The title card above them belongs to no
+ * board, as in {@link templateSequence}.
+ */
+function editedSequence(boardId: string, shotIds: string[]): TimelineSequence {
+  const shotsTrack = makeTrack({ type: "video", name: "Shots", index: 0 });
+  const titleTrack = makeTrack({ type: "video", name: "Titles", index: 1 });
+  const seq = makeSequence({
+    projectId: "proj-1",
+    name: "Courier cut",
+    tracks: [shotsTrack, titleTrack],
+    durationMs: 6000
+  });
+  const edits: Record<string, Partial<TimelineClip>> = {
+    "shot-1": {
+      startMs: 1500,
+      durationMs: 1000,
+      inPointMs: 2000,
+      outPointMs: 3000,
+      opacity: 0.5,
+      transform: {
+        position: { x: 120, y: -40 },
+        scale: { x: 1.4, y: 1.4 },
+        rotation: 3,
+        anchor: { x: 0.5, y: 0.5 }
+      }
+    },
+    "shot-2": { startMs: 4000, durationMs: 2000 }
+  };
+  seq.clips = shotIds.map((shotId, index) =>
+    makeClip({
+      trackId: shotsTrack.id,
+      name: `Shot ${index + 1}`,
+      mediaType: "video",
+      sourceType: "imported",
+      status: "generated",
+      currentAssetId: `tpl-${shotId}`,
+      storyboardBoardId: boardId,
+      storyboardShotId: shotId,
+      startMs: index * 3000,
+      durationMs: 3000,
+      ...(edits[shotId] ?? {})
+    })
+  );
+  seq.clips.push(
+    makeClip({
+      trackId: titleTrack.id,
+      name: "Title card",
+      startMs: 0,
+      durationMs: 1500,
+      mediaType: "image",
+      sourceType: "imported",
+      status: "generated",
+      currentAssetId: "title-card"
+    })
+  );
+  return seq;
+}
+
+/** Seed a template with an edited cut and a copy of it, and return the copy. */
+function seedEditedTemplate(
+  shotIds: string[],
+  copyDoc: StoryboardDocument
+): TimelineSequence {
+  const template = seedBoard(h, "tpl", boardDocument());
+  const cut = editedSequence(template.id, shotIds);
+  h.sequences.set(cut.id, cut);
+  template.timelineId = cut.id;
+  seedBoard(h, "copy", copyDoc);
+  return cut;
+}
+
+const shotClipsOf = (seq: TimelineSequence | undefined, shotId: string) =>
+  (seq?.clips ?? []).filter(
+    (clip) => clip.storyboardShotId === shotId && clip.mediaType === "video"
+  );
+
+describe("AssembleTimelineNode and the approved cut", () => {
+  it("keeps each shot clip's placement, trim and transform and swaps only the media", async () => {
+    seedEditedTemplate(
+      ["shot-1", "shot-2"],
+      renderedBoard({ templateId: "tpl" })
+    );
+
+    const node = new AssembleTimelineNode();
+    node.assign({ storyboard: writable("copy") });
+    const result = await node.process(h.context);
+
+    const assembled = h.sequences.get(result.timeline.id);
+    const [first] = shotClipsOf(assembled, "shot-1");
+    expect(first).toMatchObject({
+      startMs: 1500,
+      durationMs: 1000,
+      inPointMs: 2000,
+      outPointMs: 3000,
+      opacity: 0.5,
+      currentAssetId: "clip-1"
+    });
+    expect(first?.transform?.position).toEqual({ x: 120, y: -40 });
+    expect(shotClipsOf(assembled, "shot-2")[0]).toMatchObject({
+      startMs: 4000,
+      durationMs: 2000,
+      currentAssetId: "clip-2"
+    });
+    // The template's own footage is gone and its title card came across.
+    expect(
+      assembled?.clips.some((clip) =>
+        String(clip.currentAssetId ?? "").startsWith("tpl-")
+      )
+    ).toBe(false);
+    expect(
+      assembled?.clips.filter((clip) => clip.currentAssetId === "title-card")
+    ).toHaveLength(1);
+    // One shots track, not the template's plus a fresh one.
+    expect(
+      assembled?.tracks.filter((track) => track.name === "Shots")
+    ).toHaveLength(1);
+  });
+
+  it("keeps the edit on the copy's own cut when it is assembled again", async () => {
+    seedEditedTemplate(
+      ["shot-1", "shot-2"],
+      renderedBoard({ templateId: "tpl" })
+    );
+
+    const node = new AssembleTimelineNode();
+    node.assign({ storyboard: writable("copy") });
+    const first = await node.process(h.context);
+    const second = await node.process(h.context);
+
+    expect(second.timeline.id).toBe(first.timeline.id);
+    expect(shotClipsOf(h.sequences.get(second.timeline.id), "shot-1")[0]).toMatchObject({
+      startMs: 1500,
+      durationMs: 1000,
+      inPointMs: 2000
+    });
+  });
+
+  it("appends a shot the copy added and drops the clip of one it deleted", async () => {
+    seedEditedTemplate(
+      ["shot-1", "shot-2"],
+      boardDocument({
+        templateId: "tpl",
+        shots: [
+          shot("shot-1", 0, { status: "rendered", clip: renderedClip("clip-1") }),
+          shot("shot-3", 1, { status: "rendered", clip: renderedClip("clip-3") })
+        ]
+      })
+    );
+
+    const node = new AssembleTimelineNode();
+    node.assign({ storyboard: writable("copy") });
+    const result = await node.process(h.context);
+
+    const assembled = h.sequences.get(result.timeline.id);
+    // Kept, in place.
+    expect(shotClipsOf(assembled, "shot-1")[0]).toMatchObject({
+      startMs: 1500,
+      durationMs: 1000,
+      currentAssetId: "clip-1"
+    });
+    // Deleted from the board, so gone from the cut.
+    expect(shotClipsOf(assembled, "shot-2")).toHaveLength(0);
+    // Added to the board, so laid down after everything the cut already held.
+    const added = shotClipsOf(assembled, "shot-3")[0];
+    expect(added?.currentAssetId).toBe("clip-3");
+    expect(added?.startMs).toBe(2500);
+    expect(added?.durationMs).toBe(3000);
+  });
+
+  it("holds the place of a shot that has not been rendered yet", async () => {
+    seedEditedTemplate(
+      ["shot-1", "shot-2"],
+      boardDocument({
+        templateId: "tpl",
+        shots: [
+          shot("shot-1", 0, { status: "rendered", clip: renderedClip("clip-1") }),
+          shot("shot-2", 1)
+        ]
+      })
+    );
+
+    const node = new AssembleTimelineNode();
+    node.assign({ storyboard: writable("copy") });
+    const result = await node.process(h.context);
+
+    const assembled = h.sequences.get(result.timeline.id);
+    const held = shotClipsOf(assembled, "shot-2")[0];
+    expect(held).toMatchObject({ startMs: 4000, durationMs: 2000 });
+    expect(held?.currentAssetId).toBeUndefined();
+    expect(result.skipped_shots).toEqual(["shot-2"]);
   });
 });

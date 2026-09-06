@@ -621,6 +621,18 @@ export interface ProcessingContextModelInterfaces {
     projectId?: string;
     limit?: number;
   }) => Promise<PersistedRecordLike[]>;
+  /**
+   * The copy a previous run derived from `templateId` for that `recastKey`;
+   * null when there is none. Scoped rather than listed, because a listing is
+   * windowed and a batch bigger than the window would keep re-deriving — and
+   * re-rendering — copies it already has.
+   */
+  findRecastStoryboard?: (args: {
+    userId: string;
+    projectId?: string;
+    templateId: string;
+    recastKey: string;
+  }) => Promise<PersistedRecordLike | null>;
   /** Create a persisted storyboard from a name + document. */
   createStoryboard?: (args: {
     userId: string;
@@ -2066,6 +2078,14 @@ export class ProcessingContext {
     args: ModelInterfaceArgs<"listStoryboards"> = {}
   ): Promise<PersistedRecordLike[]> {
     const fn = this.requireModelInterface("listStoryboards");
+    return fn({ userId: this.userId, ...args });
+  }
+
+  /** The copy this user derived from a template for one recast mapping. */
+  async findRecastStoryboard(
+    args: ModelInterfaceArgs<"findRecastStoryboard">
+  ): Promise<PersistedRecordLike | null> {
+    const fn = this.requireModelInterface("findRecastStoryboard");
     return fn({ userId: this.userId, ...args });
   }
 

@@ -57,9 +57,12 @@ import {
   foreignTimelineParts,
   frameSizeForAspect,
   makeSequence,
+  refillShotClips,
   scriptLinesById,
   type AssembledTimeline,
   type RetimedShot,
+  type ShotRefillInput,
+  type TimelineParts,
   type TimelineSequence
 } from "@nodetool-ai/timeline";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
@@ -120,6 +123,12 @@ interface ScriptRowLike {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   isObjectLike(value);
 
+/** A board row, when a host's answer carries what the node reads off one. */
+const asBoardRow = (value: unknown): StoryboardRowLike | null =>
+  isRecord(value) && isString(value["id"]) && isRecord(value["document"])
+    ? (value as unknown as StoryboardRowLike)
+    : null;
+
 /** The board rows a host can list, or null when it cannot list any. */
 async function listBoards(
   context: ProcessingContext,
@@ -127,10 +136,9 @@ async function listBoards(
 ): Promise<StoryboardRowLike[] | null> {
   if (!context.hasModelInterface("listStoryboards")) return null;
   const rows = await context.listStoryboards({ projectId });
-  return rows.filter(
-    (row): row is StoryboardRowLike =>
-      isRecord(row) && isString(row["id"]) && isRecord(row["document"])
-  );
+  return rows
+    .map(asBoardRow)
+    .filter((row): row is StoryboardRowLike => row !== null);
 }
 
 // ---------------------------------------------------------------------------
@@ -704,12 +712,28 @@ export class RecastStoryboardNode extends BaseNode {
     };
   }
 
-  /** The copy this mapping made last time, when the host can look one up. */
+  /**
+   * The copy this mapping made last time, when the host can look one up.
+   *
+   * The scoped lookup asks for that one row; the listing fallback scans what a
+   * host that wires no scoped lookup can answer with, which is a window of the
+   * most recently updated boards — enough for a handful of variants, not for a
+   * catalog whose copies fall out of it.
+   */
   private async findExisting(
     context: ProcessingContext,
     row: StoryboardRowLike,
     recastKey: string
   ): Promise<StoryboardRowLike | null> {
+    if (context.hasModelInterface("findRecastStoryboard")) {
+      return asBoardRow(
+        await context.findRecastStoryboard({
+          projectId: row.projectId,
+          templateId: row.id,
+          recastKey
+        })
+      );
+    }
     const boards = await listBoards(context, row.projectId);
     if (boards === null) {
       throw new Error(
@@ -1152,15 +1176,13 @@ export class AssembleTimelineNode extends BaseNode {
     // own sequence already exists as a row; the other two are created below.
     const owned = await this.loadOwnSequence(ctx, row);
     const base = owned ?? (await this.templateCut(ctx, row));
-    const previous = base
-      ? foreignTimelineParts(base, (clip) =>
-          clip.storyboardBoardId === row.id ||
-          (!!scriptId && clip.scriptId === scriptId)
-        )
-      : { tracks: [], clips: [] };
-
-    const tracks = [...assembled.tracks, ...previous.tracks];
-    const clips = [...assembled.clips, ...previous.clips];
+    const { tracks, clips } = this.mergeCut(base, assembled, {
+      owns: (clip) =>
+        clip.storyboardBoardId === row.id ||
+        (!!scriptId && clip.scriptId === scriptId),
+      liveShotIds: new Set(doc.shots.map((shot) => shot.id)),
+      scriptLinked: scriptId !== null
+    });
     const durationMs = clips.reduce(
       (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
       0
@@ -1194,6 +1216,35 @@ export class AssembleTimelineNode extends BaseNode {
       skipped_shots: assembled.skippedShotIds,
       retimed: assembled.retimedShots
     };
+  }
+
+  /**
+   * The cut this assembly writes, over the one that was there.
+   *
+   * An unlinked board's shot clips are refilled in place
+   * ({@link refillShotClips}): a copy inherits the approved cut, and a
+   * re-render lands in the edit rather than rebuilding it in board order. A
+   * script-linked board is rebuilt, because there the words decide where each
+   * shot sits and how long it runs, and a re-assemble has to be free to re-time
+   * the cut when a line is re-voiced. Both keep every clip the board does not
+   * own (design §3.2, §4.2).
+   */
+  private mergeCut(
+    base: TimelineSequence | null,
+    assembled: TimelineParts,
+    how: ShotRefillInput & { scriptLinked: boolean }
+  ): TimelineParts {
+    if (!base) {
+      return { tracks: [...assembled.tracks], clips: [...assembled.clips] };
+    }
+    if (how.scriptLinked) {
+      const previous = foreignTimelineParts(base, how.owns);
+      return {
+        tracks: [...assembled.tracks, ...previous.tracks],
+        clips: [...assembled.clips, ...previous.clips]
+      };
+    }
+    return refillShotClips(base, assembled, how);
   }
 
   /** The sequence this board already owns, when it still exists. */

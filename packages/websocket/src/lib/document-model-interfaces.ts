@@ -119,7 +119,11 @@ async function writeEntityMarker(
 /** Storyboards, mirroring the script trio: owner-scoped reads, CAS updates. */
 export function storyboardModelInterfaces(): Pick<
   ProcessingContextModelInterfaces,
-  "getStoryboard" | "listStoryboards" | "createStoryboard" | "updateStoryboard"
+  | "getStoryboard"
+  | "listStoryboards"
+  | "findRecastStoryboard"
+  | "createStoryboard"
+  | "updateStoryboard"
 > {
   return {
     getStoryboard: async ({ userId, id }) => {
@@ -132,6 +136,23 @@ export function storyboardModelInterfaces(): Pick<
         ? await Storyboard.listByProject(projectId, userId, limit)
         : await Storyboard.listByUser(userId, limit);
       return boards.map((board) => board.toResponse());
+    },
+    // Scoped, not listed: `listStoryboards` answers with a window of the most
+    // recently updated rows, and a catalog batch bigger than that window would
+    // stop finding the copies it made and re-render them every pass.
+    findRecastStoryboard: async ({
+      userId,
+      projectId,
+      templateId,
+      recastKey
+    }) => {
+      const board = await Storyboard.findRecast({
+        userId,
+        projectId,
+        templateId,
+        recastKey
+      });
+      return board ? board.toResponse() : null;
     },
     createStoryboard: async ({ userId, name, projectId, document }) => {
       const board = new Storyboard({
