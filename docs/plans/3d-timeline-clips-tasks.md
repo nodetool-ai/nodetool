@@ -337,48 +337,66 @@ documented degrees-per-pixel and produces one store patch.
 ### T11 — Opaque bake with Blender
 
 **Read first:** design §D6 in full. `packages/blender-nodes/src/nodes/render-animation.ts`,
-`job.ts` (`RenderAnimationParams`, `orbit_degrees`),
-`packages/blender-nodes/blender_ops/ops/render_animation.py` (`run`, the
-`not animated and mode == "orbit"` branch), `packages/timeline/src/dependencyHash.ts`,
+`job.ts` (`RenderAnimationParams`), `packages/blender-nodes/blender_ops/ops/render_animation.py`
+(`run`, `_animate_orbit`, the `not animated and mode == "orbit"` branch),
+`render_image.py` (`write_still`), `packages/model3d/src/gltf.ts`
+(`GltfAnimation`, accessor reads), `packages/timeline/src/dependencyHash.ts`,
 `web/src/components/timeline/render/TimelineRenderer.ts` and
 `preview/PreviewCompositor.tsx` (the video seek),
-`web/src/stores/timeline/TimelineGenerationStore.ts` (how a generated clip
-registers a job and stores a version).
+`packages/agents/src/timeline-preview/frames.ts` (`decodeVideoFrameAt` and its
+`video` branch), `web/src/stores/timeline/TimelineGenerationStore.ts` (how a
+generated clip registers a job and stores a version).
 
 **Steps:**
 
-1. Blender prerequisite: `render_animation.py` keyframes the orbit camera
-   whenever `camera_mode == "orbit"`, animated model or not, and the model's
-   animation plays underneath; `orbit_degrees: 0` is a held orbit camera.
-   Update the op's docstring and `job.ts` comment, which say the sweep runs
-   only without glTF animation.
-2. `computeModel3DBakeHash(clip, sequence)` in `packages/timeline`, covering
+1. Blender prerequisite, the sampled producer: `RenderAnimationParams` gains
+   `frame_times?: number[]` (model time in seconds per output frame),
+   `animation_name?: string`, and `cameras?: CameraParams[]` (one per
+   frame). With `frame_times` set, `render_animation.py` selects the named
+   action (mutes every other NLA track), and for each entry calls
+   `scene.frame_set(frame, subframe)` from the model time and the scene fps,
+   places the orbit camera from that entry (`scene` mode keeps the glTF
+   camera), and renders one still to `frame_%06d.png`; the op returns the
+   sequence and the TS side muxes it with the ffmpeg helper. Without
+   `frame_times` the op behaves as today, so the node is unchanged.
+2. `packages/model3d`: `animationDurations(gltf)` from each animation's
+   sampler input accessor max. `packages/timeline`:
+   `computeModel3DBakeSamples(clip, sequence, durations)` returning
+   `{ frameTimes, cameras }` from `clipSourceTimeSec` at each output frame,
+   `animation.speed`, `loop` wrap or clamp, and `resolveModel3DCamera` at
+   each frame.
+3. `computeModel3DBakeHash(clip, sequence)` in `packages/timeline`, covering
    exactly the inputs design §D6 lists and nothing from `bake` itself.
    Replace T1's placeholder.
-3. Both video resolvers seek by `layer.bakeSourceTimeSec` when present, and
-   by `clipSourceTimeSec` otherwise.
-4. `bake_model3d_clip` op: refuses a transparent style (until T13) and a
-   clip with custom camera keyframes, each with a message naming the reason;
-   otherwise builds the `RenderAnimation` params (camera mode and orbit terms
-   from the style, `orbit_degrees` from the `orbit` preset or 0, fps, width
-   and height from the sequence, frame range from the clip's evaluated
-   duration) and runs it as a generation job; on completion stores
-   `model3dStyle.bake` with the hash and a clip version.
-5. Inspector Bake row: run, progress, stale badge from `bake_stale`.
+4. Every video decoder seeks by `layer.bakeSourceTimeSec` when present and
+   `clipSourceTimeSec` otherwise: the preview resolver, the export resolver,
+   and `decodeVideoFrameAt` in `frames.ts`, which takes the resolved seek
+   time as an argument instead of recomputing it from the clip.
+5. `bake_model3d_clip` op: refuses a transparent style (until T13) with a
+   message naming the reason; otherwise builds the sampled request from step
+   2 and the style, runs it as a generation job, muxes to MP4, and on
+   completion stores `model3dStyle.bake` with the hash and a clip version.
+6. Inspector Bake row: run, progress, stale badge from `bake_stale`.
 
 **Acceptance:**
 
+- Samples test: a clip with a 5 s in point and 2x speed yields
+  `frameTimes[i] = 5 + 2 * i / fps`; a reversed remap yields a decreasing
+  list; loop on past the animation's end wraps, loop off clamps; the camera
+  list under the `orbit` preset sweeps the degrees across the clip.
 - Scene model: after a bake, changing the in point, the speed, the time
   remap, the duration or the sequence fps makes the layer live again;
   changing the clip's start or opacity does not.
-- Resolver test (mocked video pool): a baked clip with a 5 s in point seeks
-  the bake to 0 at the clip's first frame and to 1 s one second later.
-- The op refuses a transparent style and a keyframed camera, each with the
-  reason.
+- Decoder tests: the browser resolvers (mocked video pool) and
+  `decodeVideoFrameAt` (mocked `forEachVideoFrame`) each seek a fresh
+  trimmed bake to 0 at the clip's first frame and to 1 s one second later;
+  the agent test asserts the first requested source timestamp is zero.
 - Blender op test (skipped without `BLENDER_BIN`, the way the existing ones
-  are): an animated fixture with `orbit_degrees: 180` renders frames whose
-  camera location differs between the first, middle and last frame, and the
-  stats name the orbit camera.
+  are): an animated fixture baked with `frame_times: [0, 1.0, 0.5]` renders a
+  second frame equal to `render_image` at model time 1.0 and a third equal to
+  0.5, within the existing image-compare tolerance; the same fixture with a
+  180° camera sweep has different camera locations in its stats for the
+  first, middle and last frame.
 - The capability suite bakes an opaque fixture with the runner mocked.
 
 ### T13 — Transparent bake
@@ -390,11 +408,10 @@ VP9 `yuva420p` entry), `packages/video-nodes/src/nodes/ffmpeg-helpers.ts`,
 
 **Steps:**
 
-1. `render_animation` gains an `output: "mp4" | "png_sequence"` param; the
-   sequence path writes RGBA PNGs with `film_transparent` into the job's
-   output directory.
-2. The bake op, for a transparent style, runs the sequence render and then
-   ffmpeg to WebM VP9 `yuva420p` through the existing helper, and stores that
+1. The sampled producer from T11 already writes PNGs; under a transparent
+   style they carry alpha through `film_transparent` and `color_mode RGBA`.
+2. The bake op, for a transparent style, muxes the sequence to WebM VP9
+   `yuva420p` through the existing helper instead of MP4, and stores that
    asset.
 3. The browser video resolvers treat a decode error or a bake whose first
    frame reports no alpha as `bake_undecodable`: the live layer draws and the

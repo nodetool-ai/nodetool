@@ -201,12 +201,31 @@ version history holds the bakes.
 
 **Time origin.** A bake is the clip's evaluated picture, clip-local: frame `i`
 of the video is what the live layer draws at timeline time
-`clip.startMs + i / fps`, with in point, speed, time remap, `animation.speed`
-and the camera curves already applied. The scene model therefore emits the
-baked `video` layer with `bakeSourceTimeSec = (timeMs - clip.startMs) / 1000`
-and both video resolvers seek by that field when it is present instead of
-`clipSourceTimeSec(clip, timeMs)`. A trimmed clip whose source starts at 5 s
-bakes into a video that starts at 0 s and plays from 0 s.
+`clip.startMs + 1000 * i / fps`, with in point, speed, time remap,
+`animation.speed` and the camera curves already applied. The scene model
+therefore emits the baked `video` layer with
+`bakeSourceTimeSec = (timeMs - clip.startMs) / 1000`, and every video decoder
+seeks by that field when it is present instead of `clipSourceTimeSec(clip,
+timeMs)`: the live preview, the browser export, and the agent frame path's
+`decodeVideoFrameAt`. A trimmed clip whose source starts at 5 s bakes into a
+video that starts at 0 s and plays from 0 s in all three.
+
+**Producer.** The existing job renders consecutive scene frames at the output
+fps, which cannot express a trimmed, sped-up, reversed or looped clip. The
+bake sends Blender the evaluated sample list instead: `render_animation`
+gains `frame_times: number[]`, one model time in seconds per output frame,
+plus `animation_name` and the camera per frame. The timeline side computes
+the list with the same functions the live layer uses: `clipSourceTimeSec` at
+each output frame, times `animation.speed`, wrapped or clamped by
+`animation.loop` against the selected animation's duration, which
+`packages/model3d` reads from the glTF's sampler input accessors. Blender
+then renders one still per entry, setting the scene frame from the model time
+(`frame_set` with the subframe), the orbit camera from that entry's camera,
+and the selected action as the only one playing, and the frames are muxed
+with ffmpeg. This is the same still-per-frame loop the transparent bake needs,
+so both bake formats share one op path and the H.264 branch becomes the mux
+of an opaque sequence. A reversed remap is a decreasing list; a loop past the
+end wraps in the list; neither needs anything from Blender beyond `frame_set`.
 
 **Dependency hash.** `computeModel3DBakeHash(clip, sequence)` covers every
 input the picture depends on: `model3dStyle` without `bake`, the asset id, the
@@ -217,27 +236,26 @@ stale; a change to the clip's start, track, transform, opacity, effects, mask
 or matte does not, because those apply to the baked layer the way they apply
 to any video.
 
-**Output format.** The Blender op writes MP4/H.264 in `yuv420p`, which has no
-alpha. An opaque bake (`background.transparent === false`) uses it unchanged.
-A transparent bake needs a second path: Blender renders an RGBA PNG sequence
-with `film_transparent`, and ffmpeg (the bounded runner the timeline node
-already uses) encodes it to WebM VP9 `yuva420p`, the same alpha format
-`packages/video-nodes/src/nodes/timeline/outputFormats.ts` already declares.
-Until that path ships, `bake_model3d_clip` refuses a transparent style and
-says so. A browser that cannot decode the alpha bake (the video element errors
+**Output format.** The sampled producer writes a PNG sequence, RGBA under
+`film_transparent`. An opaque bake muxes it to MP4/H.264 `yuv420p`; a
+transparent bake encodes it to WebM VP9 `yuva420p`, the alpha format
+`packages/video-nodes/src/nodes/timeline/outputFormats.ts` already declares,
+both through the bounded ffmpeg runner the timeline node uses. Until the
+transparent encode ships (T13), `bake_model3d_clip` refuses a transparent
+style and says so. A browser that cannot decode the alpha bake (the video element errors
 or reports no alpha) falls back to the live layer with a
 `bake_undecodable` degradation rather than drawing an opaque box over footage.
 
 **Camera.** Blender's orbit is keyframed only when the model has no animation
 of its own (`render_animation.py`, the `not animated and mode == "orbit"`
 branch), so an animated model with the `orbit` preset would bake without its
-camera move. The bake task adds a Blender-side prerequisite: `orbit_degrees`
-drives the orbit camera whether or not the model is animated, with the model's
-animation playing underneath. A static camera bakes through `camera_mode:
-orbit` with `orbit_degrees: 0`, the `orbit` preset through its degrees, and a
-`scene` camera through `camera_mode: scene`. Custom camera keyframes need a
-sampled camera path the job does not accept yet; the op refuses them and
-names the reason.
+camera move. The sampled producer above removes that branch: each
+`frame_times` entry carries its own resolved `ClipModel3DCamera` (the style
+folded with the sampled channels, the same `resolveModel3DCamera` the live
+layer calls), and the op places the orbit camera per still. A static camera,
+the `orbit` preset and custom camera keyframes are all just different lists;
+`scene` mode uses the glTF camera and ignores the orbit terms. Nothing is
+refused for its camera.
 
 ### D7. Editing surface
 
