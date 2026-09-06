@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import type { StorageRetentionPolicy } from "@nodetool-ai/protocol/api-schemas/settings.js";
 import { useStorageHistory } from "../../serverState/useStorageHistory";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import ConfirmDialog from "../dialogs/ConfirmDialog";
+import { ConfirmDialog } from "../ui_primitives";
 import { NumberSetting } from "../menus/NumberSetting";
 import {
   AlertBanner,

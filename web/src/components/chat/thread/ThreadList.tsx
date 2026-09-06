@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { createStyles } from "./ThreadList.styles";
 import { ThreadItem } from "./ThreadItem";
 import { EmptyThreadList } from "./EmptyThreadList";
-import ConfirmDialog from "../../dialogs/ConfirmDialog";
+import { ConfirmDialog } from "../../ui_primitives";
 import { MOTION } from "../../ui_primitives";
 import type { ThreadListProps } from "../types/thread.types";
 import { sortThreadsByDate } from "../utils/threadUtils";

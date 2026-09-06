@@ -17,6 +17,7 @@ import EntityAssetPickerDialog from "../entities/EntityAssetPickerDialog";
 import EntityCard from "../entities/EntityCard";
 import EntityEditorDialog from "../entities/EntityEditorDialog";
 import {
+  AutoGrid,
   Box,
   Caption,
   EditorButton,
@@ -102,13 +103,7 @@ const ProjectEntitiesSectionInternal = ({
           style, or prop to hold it steady across shots.
         </Caption>
       ) : (
-        <Box
-          sx={{
-            display: "grid",
-            gap: SPACING.lg,
-            gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))"
-          }}
-        >
+        <AutoGrid minItemWidth={180} gap={SPACING.lg}>
           {entities.map((row) => (
             <EntityCard
               key={row.id}
@@ -117,7 +112,7 @@ const ProjectEntitiesSectionInternal = ({
               onRemove={handleRemove}
             />
           ))}
-        </Box>
+        </AutoGrid>
       )}
 
       <EntityAssetPickerDialog

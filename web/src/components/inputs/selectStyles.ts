@@ -1,7 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  MOTION,
+  BORDER_RADIUS,
+  SHADOW,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 
 /**
  * Styles for the Select component.
@@ -35,7 +41,7 @@ export const selectStyles = (theme: Theme) =>
       backgroundColor: "var(--palette-Paper-overlay)",
       backdropFilter: "blur(10px)",
       border: `1px solid ${theme.vars.palette.divider}`,
-      boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+      boxShadow: SHADOW(theme).lg,
       borderRadius: BORDER_RADIUS.lg,
       zIndex: theme.zIndex.popover
     },
@@ -156,7 +162,7 @@ export const portalOptionsStyles = (theme: Theme) =>
       backgroundColor: "var(--palette-Paper-overlay)",
       backdropFilter: "blur(10px)",
       border: `1px solid ${theme.vars.palette.divider}`,
-      boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+      boxShadow: SHADOW(theme).lg,
       borderRadius: BORDER_RADIUS.lg,
       zIndex: theme.zIndex.popover
     },

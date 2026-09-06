@@ -24,7 +24,7 @@ import {
   TextInput,
   MOTION
 } from "../ui_primitives";
-import ConfirmDialog from "../dialogs/ConfirmDialog";
+import { ConfirmDialog } from "../ui_primitives";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient, type RouterOutputs } from "../../trpc/client";
 

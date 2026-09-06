@@ -28,6 +28,7 @@ import {
   FlexColumn,
   MOTION,
   reducedMotion,
+  SHADOW,
   Z_INDEX
 } from "../ui_primitives";
 
@@ -55,7 +56,7 @@ const styles = (theme: Theme, bottomOffset: number, isVisible: boolean) =>
       height: "100%",
       backgroundColor: theme.vars.palette.background.default,
       borderLeft: `1px solid ${theme.vars.palette.divider}`,
-      boxShadow: "-4px 0 8px rgba(0, 0, 0, 0.05)",
+      boxShadow: SHADOW(theme).panelRight,
       overflow: "hidden",
       display: "flex",
       flexDirection: "column"

@@ -23,6 +23,34 @@ jest.mock('../../ui_primitives', () => {
   FlexColumn.displayName = "FlexColumn";
   const FlexRow = ({ children, ...props }: React.ComponentProps<"div">) => <div {...props}>{children}</div>;
   FlexRow.displayName = "FlexRow";
+  // Render every row synchronously: jsdom has no layout, so the real
+  // virtualizer would measure zero and show nothing.
+  const VirtualList = ({
+    items,
+    renderItem,
+    getItemProps,
+    ariaLabel,
+    role = "list",
+    onScroll
+  }: {
+    items: unknown[];
+    renderItem: (item: never, index: number) => React.ReactNode;
+    getItemProps?: (item: never, index: number) => React.HTMLAttributes<HTMLDivElement>;
+    ariaLabel?: string;
+    role?: string;
+    onScroll?: React.UIEventHandler<HTMLDivElement>;
+  }) => (
+    <div onScroll={onScroll}>
+      <div role={role} aria-label={ariaLabel}>
+        {items.map((item, index) => (
+          <div key={index} {...(getItemProps?.(item as never, index) ?? {})}>
+            {renderItem(item as never, index)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  VirtualList.displayName = "VirtualList";
   return {
     __esModule: true,
     ...jest.requireActual('../../ui_primitives/spacing'),
@@ -35,7 +63,8 @@ jest.mock('../../ui_primitives', () => {
     Card,
     Popover,
     FlexColumn,
-    FlexRow
+    FlexRow,
+    VirtualList
   };
 });
 
