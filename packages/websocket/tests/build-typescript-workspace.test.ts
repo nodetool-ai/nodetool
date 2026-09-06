@@ -56,6 +56,26 @@ describe("prepareTypeScriptWorkspaceBuild", () => {
     expect(existsSync(join(workspaceDir, "dist", "index.js"))).toBe(true);
   });
 
+  it("drops a tsbuildinfo whose dist was removed, so tsc re-emits", async () => {
+    // `rm -rf dist` without the build info leaves tsc believing every output
+    // is current: the build reports success, emits nothing, and the package
+    // fails to resolve at import.
+    const workspaceDir = await mkdtemp(join(tmpdir(), "nodetool-build-helper-"));
+    tempDirs.push(workspaceDir);
+
+    await mkdir(join(workspaceDir, "src"), { recursive: true });
+    await writeFile(join(workspaceDir, "src", "index.ts"), "export const a = 1;");
+    await writeFile(join(workspaceDir, "tsconfig.tsbuildinfo"), "stale build state");
+
+    const runCommand = vi.fn(async () => {
+      expect(existsSync(join(workspaceDir, "tsconfig.tsbuildinfo"))).toBe(false);
+    });
+
+    await prepareTypeScriptWorkspaceBuild(workspaceDir, runCommand);
+
+    expect(runCommand).toHaveBeenCalled();
+  });
+
   it("advances the build stamp even when tsc re-emits nothing", async () => {
     // `tsc --build` decides by content, so a source whose mtime moved without
     // its bytes changing keeps its older output. Callers must compare against

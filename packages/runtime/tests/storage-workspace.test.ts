@@ -272,6 +272,40 @@ describe("Workspace over a local directory", () => {
     expect(await readFile(resolve(dir, "notes.md"), "utf8")).toBe("on disk");
   });
 
+  it("refuses to deleteAll through a symlinked-out directory", async () => {
+    // `list` reads through the symlink and returns keys that look lexically
+    // inside the root, so the adapter's own check passes and `unlink` follows
+    // the link out — deleting the user's real files.
+    const outside = await mkdtemp(join(tmpdir(), "ws-outside-"));
+    try {
+      await writeFile(join(outside, "important.txt"), "KEEP");
+      await symlink(outside, join(dir, "escape"));
+      const workspace = new StorageWorkspace(new FileStorageAdapter(dir));
+
+      await expect(workspace.deleteAll("escape")).rejects.toThrow(
+        WorkspacePathError
+      );
+      expect(existsSync(join(outside, "important.txt"))).toBe(true);
+    } finally {
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses to mkdir under a symlinked-out directory", async () => {
+    const outside = await mkdtemp(join(tmpdir(), "ws-outside-"));
+    try {
+      await symlink(outside, join(dir, "escape"));
+      const workspace = new StorageWorkspace(new FileStorageAdapter(dir));
+
+      await expect(workspace.mkdir("escape/planted")).rejects.toThrow(
+        WorkspacePathError
+      );
+      expect(existsSync(join(outside, "planted"))).toBe(false);
+    } finally {
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
   it("accepts a workspace root reached through a symlink alias", async () => {
     const actual = join(dir, "actual");
     const alias = join(dir, "alias");
