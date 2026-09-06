@@ -9,5 +9,7 @@ export * from "./types.js";
 export * from "./easing.js";
 export * from "./presets.js";
 export * from "./custom.js";
+export * from "./sourceCurves.js";
 export * from "./compile.js";
 export * from "./sample.js";
+export * from "./simplify.js";

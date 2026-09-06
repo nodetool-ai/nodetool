@@ -209,6 +209,191 @@ function capped<T>(items: readonly T[]): { items: T[]; truncated: boolean } {
     : { items: items.slice(0, MAX_EVENTS), truncated: true };
 }
 
+// ---------------------------------------------------------------------------
+// analyzeAudioFrames — the tool-independent frame-level envelope
+// ---------------------------------------------------------------------------
+
+/** One RMS reading at an absolute source-time offset. */
+export interface AudioFramePoint {
+  readonly timeMs: number;
+  readonly rms: number;
+  /** Sample peak within the same window — carried for callers (this file's
+   * own tools) that need it alongside rms; not part of the documented
+   * contract, so a caller outside this module should treat it as optional. */
+  readonly peak: number;
+}
+
+/** What was asked for versus what the decode cap actually let through. */
+export interface AudioFrameTruncation {
+  readonly requested: readonly [number, number];
+  readonly analyzed: readonly [number, number];
+}
+
+export interface AudioFrameEnvelope {
+  /** The frame hop, in milliseconds. */
+  readonly frameMs: number;
+  /** Undecimated RMS series over the requested (and analyzed) interval. */
+  readonly frames: readonly AudioFramePoint[];
+  readonly onsetsMs: readonly number[];
+  /** Tempo estimate, present only when `detectTempo` was not turned off. */
+  readonly bpm?: number;
+  readonly tempoConfidence?: number;
+  /** Non-null exactly when the decode cap cut the window short. */
+  readonly truncated: AudioFrameTruncation | null;
+}
+
+export interface AnalyzeAudioFramesOptions {
+  /** Source-ms window start (default 0). */
+  readonly fromMs?: number;
+  /** Source-ms window end (default: the end of the track). */
+  readonly toMs?: number;
+  /** Frame hop in milliseconds (default 20). */
+  readonly frameMs?: number;
+  /** Seconds of source, from time 0, the decode cap allows (default 600). */
+  readonly maxSeconds?: number;
+  /** Standard deviations above the local mean an onset must clear (default 1.5). */
+  readonly onsetSensitivity?: number;
+  /** Estimate tempo from the onset novelty curve (default true). */
+  readonly detectTempo?: boolean;
+}
+
+/** The onset detector's FFT window — fixed, matching `detect_audio_events`. */
+const ONSET_FFT_SIZE = 1024;
+
+const DEFAULT_FRAME_MS = 20;
+const DEFAULT_ONSET_SENSITIVITY = 1.5;
+
+/**
+ * Decode `input` (or reuse an already-decoded track) up to the decode cap,
+ * throwing the same messages `loadAudio` would for a track-less or
+ * empty-sample file — this function has no tool-call context to report a
+ * `{error}` object through, so a bad input is a thrown `Error`.
+ */
+async function resolveDecodedAudio(
+  input: Uint8Array | DecodedAudio,
+  toMs: number | undefined,
+  capSeconds: number
+): Promise<DecodedAudio> {
+  if (!(input instanceof Uint8Array)) return input;
+  const decodeSeconds =
+    toMs != null ? Math.min(capSeconds, Math.max(0.001, toMs / 1000)) : capSeconds;
+  const audio = await decodeAudio(input, decodeSeconds);
+  if (!audio) throw new Error("That file has no audio track.");
+  if (audio.samples.length === 0) {
+    throw new Error("That file's audio track decoded to no samples.");
+  }
+  return audio;
+}
+
+/**
+ * The frame-level audio envelope: decode, window to `[fromMs, toMs]` of
+ * *source* time, and compute an undecimated per-frame RMS series plus onsets
+ * and an optional tempo — everything `analyze_audio` and
+ * `detect_audio_events` need before they decimate and shape their own
+ * response.
+ *
+ * `input` may be raw bytes (this function decodes them, respecting the decode
+ * cap) or an already-decoded track — a caller that has already paid for a
+ * decode (both capabilities in this module have) passes that instead of
+ * paying for a second one. Decoding, windowing and the cap are all decided
+ * here, once; a caller that needs the same series with different framing asks
+ * again rather than reimplementing the slice.
+ *
+ * Windowing is against the *source*, not the decoded prefix: a clip trimmed
+ * to `[30_000, 35_000]` on a two-minute file analyzes only that five-second
+ * span, not the two minutes leading up to it (mod what the decode cap makes
+ * available — see `truncated`). The cap is applied the same way
+ * `max_seconds` always was: at most `maxSeconds` of source, measured from
+ * time 0, is ever decoded, so a window whose end falls past the cap comes
+ * back short and says so, rather than only logging it.
+ */
+export async function analyzeAudioFrames(
+  input: Uint8Array | DecodedAudio,
+  options: AnalyzeAudioFramesOptions = {}
+): Promise<AudioFrameEnvelope> {
+  const capSeconds = clamp(options.maxSeconds, DEFAULT_MAX_SECONDS, 1, 3600);
+  const audio = await resolveDecodedAudio(input, options.toMs, capSeconds);
+
+  const decodedDurationMs = audio.duration * 1000;
+  const trackDurationMs = audio.trackDuration * 1000;
+  const rawFromMs = Math.max(0, options.fromMs ?? 0);
+  const rawToMs = options.toMs ?? trackDurationMs;
+  const analyzedFromMs = Math.min(rawFromMs, decodedDurationMs);
+  const analyzedToMs = Math.max(
+    analyzedFromMs,
+    Math.min(rawToMs, decodedDurationMs)
+  );
+  // Truncation is a decode-cap fact, not "the caller asked past the end of
+  // a file that decoded in full" — the latter isn't the cap's doing, so it
+  // stays unreported here (the tools' own `truncated`/`analyzed_duration`
+  // fields already cover a request that simply overruns a short file).
+  const truncated: AudioFrameTruncation | null =
+    audio.truncated && rawToMs > decodedDurationMs
+      ? { requested: [rawFromMs, rawToMs], analyzed: [analyzedFromMs, analyzedToMs] }
+      : null;
+
+  const mono = toMono(audio.samples, audio.channels);
+  const startSample = Math.round((analyzedFromMs / 1000) * audio.sampleRate);
+  const endSample = Math.max(
+    startSample,
+    Math.min(mono.length, Math.round((analyzedToMs / 1000) * audio.sampleRate))
+  );
+  const windowMono = mono.subarray(startSample, endSample);
+
+  const frameMs = options.frameMs ?? DEFAULT_FRAME_MS;
+  const frameSamples = Math.max(
+    1,
+    Math.round((frameMs / 1000) * audio.sampleRate)
+  );
+  const frames: AudioFramePoint[] = energyFrames(
+    windowMono,
+    audio.sampleRate,
+    frameSamples,
+    frameSamples
+  ).map((frame) => ({
+    timeMs: analyzedFromMs + frame.time * 1000,
+    rms: frame.rms,
+    peak: frame.peak
+  }));
+
+  // Onsets come off spectral flux, same window and FFT size
+  // `detect_audio_events` always used, so delegating here changes nothing it
+  // returns.
+  const window = hannWindow(ONSET_FFT_SIZE);
+  const hop = ONSET_FFT_SIZE / 4;
+  const hopSeconds = hop / audio.sampleRate;
+  const flux: number[] = [];
+  const times: number[] = [];
+  let previous: Float32Array | null = null;
+  for (
+    let offset = 0;
+    offset + ONSET_FFT_SIZE <= windowMono.length;
+    offset += hop
+  ) {
+    const magnitude = magnitudeSpectrum(windowMono, offset, window);
+    if (previous) {
+      flux.push(spectralFlux(magnitude, previous));
+      times.push(offset / audio.sampleRate);
+    }
+    previous = magnitude;
+  }
+  const sensitivity = options.onsetSensitivity ?? DEFAULT_ONSET_SENSITIVITY;
+  const onsets = detectOnsets(flux, times, sensitivity);
+  const onsetsMs = onsets.map((time) => analyzedFromMs + time * 1000);
+
+  const wantTempo = options.detectTempo !== false;
+  const tempo = wantTempo ? estimateTempo(flux, hopSeconds) : null;
+
+  return {
+    frameMs,
+    frames,
+    onsetsMs,
+    bpm: tempo ? tempo.bpm : undefined,
+    tempoConfidence: tempo ? tempo.confidence : undefined,
+    truncated
+  };
+}
+
 /** Decode audio out of a file, reporting the two ways it can have none. */
 async function loadAudio(
   run: CapabilityRun,
@@ -262,16 +447,10 @@ const analyzeAudio: CapabilityExport = {
 
     const mono = toMono(audio.samples, audio.channels);
     const frameMs = clamp(params["frame_ms"], 50, 5, 1000);
-    const frameSamples = Math.max(
-      1,
-      Math.round((frameMs / 1000) * audio.sampleRate)
-    );
-    const frames = energyFrames(
-      mono,
-      audio.sampleRate,
-      frameSamples,
-      frameSamples
-    );
+    // The decode already happened in loadAudio; hand the decoded track
+    // straight to analyzeAudioFrames instead of paying for a second decode.
+    const analysis = await analyzeAudioFrames(audio, { frameMs });
+    const frames = analysis.frames;
     const summary = peakSummary(mono);
     const loudness = measureLoudness(
       toPlanar(audio.samples, audio.channels),
@@ -282,7 +461,7 @@ const analyzeAudio: CapabilityExport = {
     const envelope = decimate(frames, budget, (a, b) =>
       b.peak > a.peak ? b : a
     ).map((frame) => ({
-      time: round(frame.time),
+      time: round(frame.timeMs / 1000),
       rms_db: round(amplitudeToDb(frame.rms), 1),
       peak_db: round(amplitudeToDb(frame.peak), 1)
     }));
@@ -314,11 +493,14 @@ const analyzeAudio: CapabilityExport = {
         dc_offset: round(summary.dcOffset, 5)
       },
       loudest_moment: loudest
-        ? { time: round(loudest.time), rms_db: round(amplitudeToDb(loudest.rms), 1) }
+        ? {
+            time: round(loudest.timeMs / 1000),
+            rms_db: round(amplitudeToDb(loudest.rms), 1)
+          }
         : null,
       quietest_moment: quietest
         ? {
-            time: round(quietest.time),
+            time: round(quietest.timeMs / 1000),
             rms_db: round(amplitudeToDb(quietest.rms), 1)
           }
         : null,
@@ -482,18 +664,23 @@ const detectAudioEvents: CapabilityExport = {
     if (isError(loaded)) return loaded;
     const { audio } = loaded;
 
-    const mono = toMono(audio.samples, audio.channels);
-    const frameSamples = Math.max(
-      1,
-      Math.round(0.02 * audio.sampleRate)
-    );
-    const frames = energyFrames(
-      mono,
-      audio.sampleRate,
-      frameSamples,
-      frameSamples
-    );
-    const frameDuration = frameSamples / audio.sampleRate;
+    const sensitivity = clamp(params["onset_sensitivity"], 1.5, 0.1, 10);
+    const wantTempo = params["detect_tempo"] !== false;
+    // Decoding already happened in loadAudio; analyzeAudioFrames reuses that
+    // decode for both the silence envelope (20 ms hop, matching the frame
+    // this tool has always used) and the onset/tempo pass, so the two
+    // detectors this tool reports can't drift from analyzeAudioFrames's own.
+    const analysis = await analyzeAudioFrames(audio, {
+      frameMs: 20,
+      onsetSensitivity: sensitivity,
+      detectTempo: wantTempo
+    });
+    const frames = analysis.frames.map((frame) => ({
+      time: frame.timeMs / 1000,
+      rms: frame.rms,
+      peak: frame.peak
+    }));
+    const frameDuration = 20 / 1000;
 
     const thresholdDb = clamp(params["silence_db"], DEFAULT_SILENCE_DB, -100, 0);
     const minSilence = clamp(
@@ -510,30 +697,9 @@ const detectAudioEvents: CapabilityExport = {
     );
     const sounding = invertSegments(silence, audio.duration);
 
-    // Onsets come off a spectral-flux curve rather than the energy envelope: a
-    // new note at the same level as the one before it moves the spectrum and
-    // not the RMS, so an energy-only detector misses legato entirely.
-    const fftSize = 1024;
-    const window = hannWindow(fftSize);
-    const hop = fftSize / 4;
-    const hopSeconds = hop / audio.sampleRate;
-    const flux: number[] = [];
-    const times: number[] = [];
-    let previous: Float32Array | null = null;
-    for (let offset = 0; offset + fftSize <= mono.length; offset += hop) {
-      const magnitude = magnitudeSpectrum(mono, offset, window);
-      if (previous) {
-        flux.push(spectralFlux(magnitude, previous));
-        times.push(offset / audio.sampleRate);
-      }
-      previous = magnitude;
-    }
-
-    const sensitivity = clamp(params["onset_sensitivity"], 1.5, 0.1, 10);
-    const onsets = detectOnsets(flux, times, sensitivity);
-    const wantTempo = params["detect_tempo"] !== false;
+    const onsets = analysis.onsetsMs.map((timeMs) => timeMs / 1000);
     const tempo = wantTempo
-      ? estimateTempo(flux, hopSeconds)
+      ? { bpm: analysis.bpm ?? 0, confidence: analysis.tempoConfidence ?? 0 }
       : { bpm: 0, confidence: 0 };
     // A tempo needs repeated events to be a tempo. Autocorrelating the flux of
     // a steady tone — which is numerical noise around zero — still peaks
