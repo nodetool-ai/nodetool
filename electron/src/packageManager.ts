@@ -115,13 +115,13 @@ import {
 } from "./torchPlatformCache";
 import { detectTorchPlatform, type TorchPlatform } from "./torchruntime";
 import { fileExists } from "./utils";
+import { RUNTIME_PACKAGES } from "./runtime/packages/definitions";
 import {
   RUNTIME_PACKAGE_IDS as REGISTRY_RUNTIME_PACKAGE_IDS,
-  RUNTIME_PACKAGES,
   buildRuntimeContext,
   runLifecycleToCompletion,
   runtimeRegistry,
-} from "./runtime/packages";
+} from "./runtime/packages/registry";
 import { NpmRuntimePackage } from "./runtime/packages/NpmRuntimePackage";
 
 /**
