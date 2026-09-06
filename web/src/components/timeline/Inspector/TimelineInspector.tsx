@@ -51,6 +51,7 @@ import { ClipAdjustments } from "./ClipAdjustments";
 import { ClipCaptionStyle } from "./ClipCaptionStyle";
 import { ClipStoryboardLink } from "./ClipStoryboardLink";
 import { ClipAnimations } from "./ClipAnimations";
+import { ClipAudioDrive } from "./ClipAudioDrive";
 import { ClipEffectsList } from "./ClipEffectsList";
 import { ClipGroupPanel } from "./ClipGroupPanel";
 import { ClipMaskMatte } from "./ClipMaskMatte";
@@ -644,6 +645,8 @@ export const TimelineInspector: React.FC = memo(() => {
       <ClipAnimations clip={clip} />
 
       <ClipKeyframes clip={clip} />
+
+      <ClipAudioDrive key={clip.id} clip={clip} />
     </Panel>
   );
 });
