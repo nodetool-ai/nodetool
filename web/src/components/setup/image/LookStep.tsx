@@ -11,10 +11,10 @@
  * - D3 — the persisted stage is the only completion signal. `generate` writes
  *   `done` before it enqueues anything.
  *
- * The model tiles carry no shipped sample art (R5 forbids adding media to the
- * image, and nothing in this repo serves a per-model sample yet), so each tile
- * falls back to the model's name set in the sample box — which is what
- * `PresetTileGrid` does when a preset has no picture.
+ * Sample stills are fetched on first use, never shipped (R5) — the same probe
+ * the video flow's model tiles use, see `../modelSamples.ts`. A model whose
+ * sample has not been published falls back to its name set in the sample box,
+ * which is what `PresetTileGrid` does when a preset has no picture.
  */
 
 import React, { useCallback, useMemo, useState } from "react";
@@ -31,6 +31,7 @@ import { estimateGenerationCost } from "../../../utils/generationCostEstimate";
 import { useGenerateVariations } from "../../../hooks/sketch/useGenerateVariations";
 import { OptionCardGrid, type OptionCardItem } from "../OptionCardGrid";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
+import { useModelSamples } from "../modelSamples";
 import { SIZE_PRESETS, sizePresetFor } from "./sizes";
 
 /** How many image models the grid offers before it becomes a wall of tiles. */
@@ -189,13 +190,20 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
     [presets]
   );
 
+  const sampleIds = useMemo(
+    () => models.slice(0, MAX_MODEL_TILES).map((entry) => entry.id),
+    [models]
+  );
+  const samples = useModelSamples(sampleIds, "image");
+
   const modelTiles = useMemo<PresetTile[]>(
     () =>
       models.slice(0, MAX_MODEL_TILES).map((entry) => ({
         id: `${entry.provider}/${entry.id}`,
-        title: entry.name || entry.id
+        title: entry.name || entry.id,
+        image: samples[entry.id]
       })),
-    [models]
+    [models, samples]
   );
 
   const { setStyleEntityId, setModel } = look;

@@ -38,7 +38,7 @@ import { useGenerateFromBeats } from "../../../hooks/timeline/useGenerateFromBea
 import { useTimelineProjectSettings } from "../../../hooks/timeline/useTimelineProjectSettings";
 import { useBeatPlanCostEstimate } from "../../../hooks/timeline/useBeatPlanCostEstimate";
 import { videoFormatById } from "./formats";
-import { useModelSampleClips } from "./modelSamples";
+import { useModelSamples } from "../modelSamples";
 
 /** What the button says when no catalog figure covers the plan (PRD § 8.3). */
 export const COST_UNKNOWN_TEXT = "cost unknown until the first clip returns";
@@ -172,7 +172,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
   const { voiceLane, musicLane } = useLanes();
 
   const sampleIds = useMemo(() => CLIP_MODELS.map((option) => option.id), []);
-  const samples = useModelSampleClips(sampleIds);
+  const samples = useModelSamples(sampleIds, "video");
 
   const modelTiles = useMemo<PresetTile[]>(
     () =>

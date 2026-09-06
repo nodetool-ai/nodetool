@@ -968,10 +968,10 @@ to look` sets stage `look`.
 
 Heading "Choose the look". Size as preset tiles per aspect (square, portrait,
 landscape, story, banner) with the pixel size shown. Style as the same twelve
-`style` entities as E1, one library. Image model as `PresetTileGrid`. A tile
-shows a sample of that model on a fixed prompt where one exists; nothing
-serves per-model samples yet and R5 forbids shipping them, so the tile falls
-back to the model's name. Cost from the sketch generate estimate times the
+`style` entities as E1, one library. Image model as `PresetTileGrid`, each
+tile a sample of that model on a fixed prompt, fetched on first use rather
+than shipped (R5), as E2's clip tiles are. A model with no published sample
+falls back to its name. Cost from the sketch generate estimate times the
 variation count.
 
 `Generate your image` sets stage `done` and enqueues N generated layers
