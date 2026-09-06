@@ -45,15 +45,20 @@ describe("registerHuggingFaceNodes", () => {
   });
 
   it("requires the HF_TOKEN setting on every node", () => {
+    // An empty node list would satisfy the loop below by iterating nothing.
+    expect(HUGGINGFACE_NODES).toHaveLength(EXPECTED_NODE_TYPES.length);
     for (const node of HUGGINGFACE_NODES) {
-      expect(node.requiredSettings).toContain("HF_TOKEN");
+      expect(node.requiredSettings, node.nodeType).toContain("HF_TOKEN");
     }
   });
 
   it("declares output types on every node", () => {
+    expect(HUGGINGFACE_NODES).toHaveLength(EXPECTED_NODE_TYPES.length);
     for (const node of HUGGINGFACE_NODES) {
-      expect(node.metadataOutputTypes).toBeDefined();
-      expect(Object.keys(node.metadataOutputTypes ?? {}).length).toBeGreaterThan(0);
+      expect(
+        Object.keys(node.metadataOutputTypes ?? {}),
+        node.nodeType
+      ).not.toHaveLength(0);
     }
   });
 });
