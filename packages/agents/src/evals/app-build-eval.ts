@@ -50,6 +50,11 @@ import {
   isObjectLike,
   isString
 } from "../utils/type-guards.js";
+import {
+  runPlanToGraphCase,
+  type PlanCheck,
+  type PlanToGraphCase
+} from "./app-build-plan.js";
 
 /**
  * The medium-complexity traits from the PRD (§4). A case declares the ones it
@@ -127,6 +132,12 @@ export interface AppBuildEvalCase {
   prompt?: string;
   /** Everything a no-provider run needs. Absent on a prompt case. */
   deterministic?: DeterministicAppBuild;
+  /**
+   * A Workflow-flow plan to build, check and run instead of an app (PRD § 11.6).
+   * Graded on what the run produced, not only on whether the graph validated —
+   * that is the whole of R6, so a plan that validates and does nothing fails.
+   */
+  planToGraph?: PlanToGraphCase;
   expect: AppBuildExpectations;
   /** The planned workflows need real models, so the case needs `find_model`. */
   needsModelProviders?: boolean;
@@ -523,6 +534,55 @@ const mean = (values: number[]): number =>
     ? 0
     : values.reduce((sum, value) => sum + value, 0) / values.length;
 
+/**
+ * Run one plan-to-graph case: build the plan's graph, validate it, run it, and
+ * grade what came out. It shares this suite's runner and its report because it
+ * is the same journey — plan, build, check, run — with a graph as the artifact
+ * instead of an app.
+ */
+async function runPlanCase(
+  evalCase: AppBuildEvalCase,
+  planCase: PlanToGraphCase,
+  opts: RunAppBuildEvalOptions
+): Promise<AppBuildCaseResult> {
+  const startedAt = Date.now();
+  const base = {
+    caseId: evalCase.id,
+    description: evalCase.description,
+    traits: evalCase.traits,
+    deterministic: true
+  };
+  const planOptions: Parameters<typeof runPlanToGraphCase>[1] = {
+    registry: opts.registry,
+    runOnServer: opts.runOnServer
+  };
+  if (opts.timeoutMs !== undefined) planOptions.timeoutMs = opts.timeoutMs;
+  const result = await runPlanToGraphCase(planCase, planOptions);
+  const checks: AppBuildCheck[] = result.checks.map((entry: PlanCheck) =>
+    entry.detail === undefined
+      ? { name: entry.name, pass: entry.pass }
+      : { name: entry.name, pass: entry.pass, detail: entry.detail }
+  );
+  const green = checks.every((entry) => entry.pass);
+  return {
+    ...base,
+    green,
+    oneShot: green,
+    repairRounds: 0,
+    score: checks.filter((entry) => entry.pass).length / checks.length,
+    checks,
+    verdict: green
+      ? "the plan built a graph that ran and produced its outputs"
+      : (result.issues[0] ??
+        result.validationIssues[0] ??
+        result.error ??
+        "the built graph produced nothing"),
+    stages: ["plan@0:ok", "build@0:ok", "run@0:ok"],
+    costUsd: 0,
+    durationMs: Date.now() - startedAt
+  };
+}
+
 /** Run one case: build the app, then score it. */
 async function runCase(
   evalCase: AppBuildEvalCase,
@@ -644,7 +704,10 @@ export async function runAppBuildEval(
     }
 
     emit(`▶ ${evalCase.id}: ${evalCase.description}`);
-    const result = await runCase(evalCase, opts);
+    const planCase = evalCase.planToGraph;
+    const result = planCase
+      ? await runPlanCase(evalCase, planCase, opts)
+      : await runCase(evalCase, opts);
     results.push(result);
     emit(
       `  ${result.green ? (result.oneShot ? "green (one-shot)" : `green after ${result.repairRounds} repair(s)`) : "FAIL"}` +

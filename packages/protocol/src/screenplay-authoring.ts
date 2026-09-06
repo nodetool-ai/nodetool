@@ -11,14 +11,17 @@
  * does not depend on which surface asked for it.
  */
 
-import type { CameraDirection, Screenplay, Shot } from "./creative.js";
+import type { CameraDirection, Scene, Screenplay, Shot } from "./creative.js";
 import { isNumber, isRecord, isString } from "./predicates.js";
 
 export const DIRECTOR_SYSTEM_PROMPT = [
   "You are a film director. Turn the user's brief into a structured screenplay.",
-  "Produce a coherent visual story broken into distinct shots, each with a",
-  "concrete visual action and camera direction. Apply one consistent style",
-  "across every shot. Call the screenplay tool exactly once with the result."
+  "Break the piece into scenes. Give each a slugline in screenplay form",
+  "(INT./EXT. LOCATION — TIME) and a lighting note that holds for every shot in",
+  "it. Then write the shots, each with a concrete visual action, camera",
+  "direction, and the scene_id of exactly one scene you returned. Shots of the",
+  "same scene must be consecutive. Apply one consistent style across every",
+  "shot. Call the screenplay tool exactly once with the result."
 ].join(" ");
 
 /** The tool a structured screenplay call is forced into. */
@@ -70,10 +73,12 @@ function coerceCamera(raw: unknown): CameraDirection | undefined {
   const lens = optionalStr(raw.lens);
   const angle = optionalStr(raw.angle);
   const movement = optionalStr(raw.movement);
+  const equipment = optionalStr(raw.equipment);
   if (framing) camera.framing = framing;
   if (lens) camera.lens = lens;
   if (angle) camera.angle = angle;
   if (movement) camera.movement = movement;
+  if (equipment) camera.equipment = equipment;
   return Object.keys(camera).length > 0 ? camera : undefined;
 }
 
@@ -88,6 +93,10 @@ function coerceShot(raw: unknown, index: number): Shot {
   };
   const slug = optionalStr(obj.slug);
   if (slug) shot.slug = slug;
+  // The model's own scene id. parseScreenplay rewrites it to the assigned
+  // `scene-N`; nothing else calls coerceShot with a foreign id.
+  const sceneId = optionalStr(obj.scene_id);
+  if (sceneId) shot.scene_id = sceneId;
   const camera = coerceCamera(obj.camera);
   if (camera) shot.camera = camera;
   const motion = optionalStr(obj.motion);
@@ -99,6 +108,60 @@ function coerceShot(raw: unknown, index: number): Shot {
   const duration = optionalNumber(obj.duration_seconds);
   if (duration !== undefined) shot.duration_seconds = duration;
   return shot;
+}
+
+/**
+ * Coerce the returned scene list, assigning `scene-N` ids the way shots get
+ * `shot-N`, and report where each model-supplied id landed so the shots can be
+ * remapped onto it. Model ids never reach a stored document.
+ */
+function coerceScenes(raw: unknown): {
+  scenes: Scene[];
+  assigned: Map<string, string>;
+} {
+  const assigned = new Map<string, string>();
+  if (!Array.isArray(raw)) return { scenes: [], assigned };
+  const scenes = raw.map((entry, index) => {
+    const obj = isRecord(entry) ? entry : {};
+    const id = `scene-${index}`;
+    const modelId = optionalStr(obj.id);
+    // First writer wins, so two scenes sharing one id cannot steal each
+    // other's shots.
+    if (modelId && !assigned.has(modelId)) assigned.set(modelId, id);
+    const scene: Scene = { type: "scene", id, slugline: str(obj.slugline) };
+    const lighting = optionalStr(obj.lighting);
+    if (lighting) scene.lighting = lighting;
+    return scene;
+  });
+  return { scenes, assigned };
+}
+
+/**
+ * Rewrite each shot's model-supplied `scene_id` to the assigned `scene-N`.
+ *
+ * A shot naming a scene that was not returned inherits the scene of the shot
+ * before it (the first shot falls to the first returned scene) instead of
+ * losing its id. § 7.7.3 requires the shots of a scene to be contiguous in
+ * `index`: extending the run above keeps that, where an unscened shot in the
+ * middle would split its scene in two. With no scenes returned at all there is
+ * nothing to name, so the id is dropped and the shots read as legacy.
+ */
+function resolveSceneIds(
+  shots: Shot[],
+  scenes: Scene[],
+  assigned: Map<string, string>
+): void {
+  let previous: string | undefined = scenes[0]?.id;
+  for (const shot of shots) {
+    const mapped = shot.scene_id ? assigned.get(shot.scene_id) : undefined;
+    const resolved: string | undefined = mapped ?? previous;
+    if (resolved) {
+      shot.scene_id = resolved;
+      previous = resolved;
+    } else {
+      delete shot.scene_id;
+    }
+  }
 }
 
 /** Clamp a requested shot count to what the Director accepts (1–20). */
@@ -116,7 +179,12 @@ export function clampShotCount(value: unknown): number {
  */
 export function parseScreenplay(
   raw: unknown,
-  opts: { shotCount: number; title?: string; aspectRatio?: string }
+  opts: {
+    shotCount: number;
+    title?: string;
+    aspectRatio?: string;
+    genre?: string;
+  }
 ): Screenplay {
   const obj = coerceObject(raw);
   const shotCount = Math.max(0, Math.floor(opts.shotCount));
@@ -124,6 +192,8 @@ export function parseScreenplay(
   const shots = rawShots
     .slice(0, shotCount)
     .map((rawShot, i) => coerceShot(rawShot, i));
+  const { scenes, assigned } = coerceScenes(obj.scenes);
+  resolveSceneIds(shots, scenes, assigned);
 
   const screenplay: Screenplay = {
     type: "screenplay",
@@ -140,10 +210,17 @@ export function parseScreenplay(
   if (narration) screenplay.narration = narration;
   const musicPrompt = optionalStr(obj.music_prompt);
   if (musicPrompt) screenplay.music_prompt = musicPrompt;
+  // Genre is an input, so the caller's value stands unless the payload already
+  // carries one — which is the round-trip case (toScreenplay on a stored
+  // screenplay), not a Director answer.
+  const genre = optionalStr(obj.genre) ?? optionalStr(opts.genre);
+  if (genre) screenplay.genre = genre;
+  if (scenes.length > 0) screenplay.scenes = scenes;
   return screenplay;
 }
 
 const FALLBACK_FRAMINGS = ["establishing wide", "medium", "close-up"];
+const FALLBACK_SCENE_ID = "scene-0";
 
 /**
  * Deterministic screenplay used when the model returns no usable screenplay
@@ -167,17 +244,23 @@ export function fallbackScreenplay(opts: {
         slug: `Shot ${i + 1}`,
         action: `${brief} — beat ${i + 1} of ${shotCount}`,
         camera: { framing: FALLBACK_FRAMINGS[i % FALLBACK_FRAMINGS.length] },
-        motion: "slow push in"
+        motion: "slow push in",
+        scene_id: FALLBACK_SCENE_ID
       },
       i
     )
   );
+  const title = brief.length > 60 ? `${brief.slice(0, 60)}…` : brief;
   const screenplay: Screenplay = {
     type: "screenplay",
     id: "screenplay-1",
-    title: brief.length > 60 ? `${brief.slice(0, 60)}…` : brief,
+    title,
     aspect_ratio: opts.aspectRatio,
     shots,
+    // One scene holding every shot, so the deterministic path satisfies the
+    // same contract as a parsed answer. The brief names no location, so the
+    // slugline names the piece rather than inventing an INT./EXT. line.
+    scenes: [{ type: "scene", id: FALLBACK_SCENE_ID, slugline: title }],
     narration: brief
   };
   if (style) {
@@ -194,14 +277,25 @@ export function toScreenplay(raw: unknown): Screenplay {
   return parseScreenplay(obj, { shotCount });
 }
 
-/** The JSON schema the screenplay tool call is validated against. */
+/**
+ * The JSON schema the screenplay tool call is validated against.
+ *
+ * The shot count is contracted, so `shots` is pinned to it. No scene count is,
+ * so `scenes` only has to be non-empty — how many scenes a brief wants is the
+ * director's call.
+ *
+ * One rule this cannot carry: that every `shot.scene_id` names a returned
+ * scene. JSON Schema has no cross-reference between sibling arrays, and the
+ * `$data` extension that would come closest is not accepted by the providers'
+ * structured-output validators. {@link parseScreenplay} enforces it instead.
+ */
 export function buildScreenplaySchema(
   shotCount: number
 ): Record<string, unknown> {
   return {
     type: "object",
     additionalProperties: false,
-    required: ["title", "shots"],
+    required: ["title", "scenes", "shots"],
     properties: {
       title: { type: "string" },
       logline: { type: "string" },
@@ -209,6 +303,20 @@ export function buildScreenplaySchema(
       aspect_ratio: { type: "string" },
       narration: { type: "string" },
       music_prompt: { type: "string" },
+      scenes: {
+        type: "array",
+        minItems: 1,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["id", "slugline"],
+          properties: {
+            id: { type: "string" },
+            slugline: { type: "string" },
+            lighting: { type: "string" }
+          }
+        }
+      },
       shots: {
         type: "array",
         minItems: shotCount,
@@ -216,8 +324,9 @@ export function buildScreenplaySchema(
         items: {
           type: "object",
           additionalProperties: false,
-          required: ["action"],
+          required: ["scene_id", "action"],
           properties: {
+            scene_id: { type: "string" },
             slug: { type: "string" },
             action: { type: "string" },
             motion: { type: "string" },
@@ -231,7 +340,8 @@ export function buildScreenplaySchema(
                 framing: { type: "string" },
                 lens: { type: "string" },
                 angle: { type: "string" },
-                movement: { type: "string" }
+                movement: { type: "string" },
+                equipment: { type: "string" }
               }
             }
           }
@@ -241,19 +351,30 @@ export function buildScreenplaySchema(
   };
 }
 
-/** The user turn: the brief, the style, and what the shot list must contain. */
+/**
+ * The user turn: the brief, the genre, the style, and what the shot list must
+ * contain.
+ *
+ * `genre` is a trailing optional argument rather than an options object because
+ * both call sites — the Director node and the storyboard's direct
+ * `generate_text` request — pass positionally and are owned elsewhere.
+ */
 export function buildDirectorPrompt(
   brief: string,
   style: string,
   shotCount: number,
-  aspectRatio: string
+  aspectRatio: string,
+  genre?: string
 ): string {
   const lines = [
     `Brief:\n${brief}`,
+    genre?.trim()
+      ? `Genre:\n${genre.trim()} — let its tone, pacing and framing carry the piece.`
+      : "",
     style.trim() ? `Style:\n${style}` : "",
     `Produce exactly ${shotCount} shots for a ${aspectRatio} piece.`,
-    "Give each shot a concrete visual action and camera direction, and set a",
-    "style_bible describing the palette, light, lens, and texture applied to all shots."
+    "Group them into scenes. Give each scene an id, a slugline and a lighting note, and give every shot the scene_id of the one scene it belongs to.",
+    "Give each shot a concrete visual action and camera direction, and set a style_bible describing the palette, light, lens, and texture applied to all shots."
   ];
   return lines.filter((line) => line.length > 0).join("\n\n");
 }

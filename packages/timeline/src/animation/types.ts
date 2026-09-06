@@ -100,7 +100,9 @@ export interface ClipAnimation {
   /**
    * `"in" | "emphasis" | "loop"`: offset from clip start to window start.
    * `"out"`: offset from clip END back to window end (0 = ends exactly at clip
-   * end). Default 0.
+   * end). Default 0. For `"loop"` a negative value is a phase offset: the
+   * window opens at clip start and the cycle is counted from `delayMs`, which
+   * is how a split keeps a loop mid-cycle on its right half.
    */
   delayMs?: number;
   /**

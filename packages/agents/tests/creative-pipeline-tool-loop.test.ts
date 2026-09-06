@@ -297,8 +297,10 @@ describe("createCreativePipelineBridge", () => {
   });
 
   it("reports a cut the validator refuses rather than calling it green", async () => {
-    // The check has to be able to fail: a clip dragged past the sequence into
-    // negative time is exactly what the validator exists to catch.
+    // The check has to be able to fail: an audio fade longer than the clip
+    // that carries it is an error the trim and move ops cannot produce (both
+    // refuse non-positive durations and negative starts), so it is the one
+    // invalid state this surface still lets an agent author.
     const bridge = linkedBridge();
     await writeNarration(bridge);
     await call(bridge, "ui_script_derive_storyboard");
@@ -306,9 +308,10 @@ describe("createCreativePipelineBridge", () => {
     await call(bridge, "ui_storyboard_generate_clip", { target: "0" });
     await call(bridge, "ui_storyboard_assemble_timeline");
     const clipId = bridge.finalState().timeline.clips[0].id;
-    await call(bridge, "ui_timeline_trim_clip", {
+    const clip = bridge.finalState().timeline.clips[0];
+    await call(bridge, "ui_timeline_set_clip_params", {
       target: clipId,
-      durationMs: 0
+      fadeInMs: clip.durationMs * 2
     });
     await call(bridge, "validate_timeline");
     expect(bridge.finalState().timelineValidation?.ok).toBe(false);

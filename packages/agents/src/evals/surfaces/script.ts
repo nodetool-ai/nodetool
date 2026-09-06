@@ -24,7 +24,12 @@
 
 import { z } from "zod";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
-import { deriveShotScaffold, joinLineTexts } from "@nodetool-ai/protocol";
+import {
+  deriveShotScaffold,
+  fallbackScript,
+  joinLineTexts,
+  splitImportedText
+} from "@nodetool-ai/protocol";
 import {
   assembleSubtitleCues,
   formatSubtitles,
@@ -86,9 +91,20 @@ interface InternalLine {
   currentTake: ScriptTake | null;
 }
 
+/** The guided setup, as the bridge holds it. Mirrors `ScriptSetup`. */
+interface BridgeSetup {
+  stage: "idea" | "format" | "review" | "voices" | "done";
+  brief: string;
+  format?: string;
+  length_seconds?: number;
+  pace?: "slow" | "normal" | "fast";
+  language?: string;
+}
+
 /** Case-supplied starting point for a run. */
 export interface ScriptBridgeInitialState {
   title?: string;
+  setup?: BridgeSetup;
   cast?: Array<{ id?: string; name: string; voice?: ScriptVoiceBinding }>;
   lines?: Array<{
     id?: string;
@@ -102,6 +118,8 @@ export interface ScriptBridgeInitialState {
 /** Snapshot handed to a case's final-state predicates. */
 export interface ScriptBridgeFinalState {
   title: string;
+  /** Where the guided flow left the script, or null when it has no setup. */
+  setup: BridgeSetup | null;
   hasTimeline: boolean;
   /** The storyboard derived from this script, once one exists. */
   storyboardId: string | null;
@@ -192,6 +210,7 @@ export function createScriptToolBridge(
   initial: ScriptBridgeInitialState = {}
 ): HeadlessSurfaceBridge<ScriptBridgeFinalState> {
   const title = initial.title ?? "Untitled Script";
+  let setup: BridgeSetup | null = initial.setup ?? null;
   let hasTimeline = false;
   let timelineId: string | null = null;
   let storyboardId: string | null = null;
@@ -201,6 +220,7 @@ export function createScriptToolBridge(
   let lineSeq = 0;
   let takeSeq = 0;
   let sequenceSeq = 0;
+  let writeSeq = 0;
 
   const cast: InternalSpeaker[] = (initial.cast ?? []).map((s) => ({
     id: s.id ?? `spk_${++speakerSeq}`,
@@ -313,6 +333,120 @@ export function createScriptToolBridge(
         cast: cast.map(speakerNode),
         lines: lines.map(lineNode)
       })
+    ),
+
+    tool(
+      "ui_script_set_setup",
+      "Write the guided setup on a script: its `stage` (idea, format, review, voices, done — where the creator is standing), the `brief` the script is written from, the `format` (voiceover, dialogue, interview, ad-read, tutorial), the `length_seconds` it should run to, the reading `pace`, and the `language`. Fields you leave out keep their value. This places nothing and writes no line — use ui_script_write for that.",
+      z.object({
+        stage: z.enum(["idea", "format", "review", "voices", "done"]).optional(),
+        brief: z.string().optional(),
+        format: z
+          .enum(["voiceover", "dialogue", "interview", "ad-read", "tutorial"])
+          .optional(),
+        length_seconds: z.number().optional(),
+        pace: z.enum(["slow", "normal", "fast"]).optional(),
+        language: z.string().optional()
+      }),
+      async (patch) => {
+        setup = {
+          stage: "idea",
+          brief: "",
+          ...setup,
+          ...(patch as Partial<BridgeSetup>)
+        };
+        return { ok: true, setup: { ...setup } };
+      }
+    ),
+
+    tool(
+      "ui_script_write",
+      "Write the script from its brief, format and length (set them first with ui_script_set_setup), replacing the cast and the lines with what the writer returns. Pass `rewrite: true` to rewrite the script that is already there — the lines it keeps keep their ids, so their takes survive. Words passed as `imported_text` are never rewritten: they are only split into lines and given speakers. Records no take; voice the lines with ui_script_voice_all.",
+      z.object({
+        rewrite: z.boolean().optional(),
+        imported_text: z.string().optional()
+      }),
+      async ({ rewrite, imported_text }) => {
+        const brief = setup?.brief.trim() ?? "";
+        const imported =
+          typeof imported_text === "string" ? imported_text.trim() : "";
+        if (brief === "" && imported === "") {
+          throw new Error(
+            "The script has no brief. Write one with ui_script_set_setup first, or pass imported_text."
+          );
+        }
+        // Deterministic, like the simulated takes: the eval measures whether
+        // the model drives the surface in the right order, not what a
+        // provider would have written.
+        const heldIds = lines.map((line) => line.id);
+        const texts =
+          imported === "" ? null : splitImportedText(imported);
+        const written =
+          texts === null
+            ? fallbackScript(
+                {
+                  brief,
+                  format: setup?.format ?? "",
+                  lengthSeconds: setup?.length_seconds ?? 60
+                },
+                { idPrefix: `w${++writeSeq}` }
+              )
+            : {
+                cast: [{ id: `w${++writeSeq}_spk_1`, name: "Narrator" }],
+                sections: [
+                  {
+                    id: `w${writeSeq}_sec_1`,
+                    title: "Script",
+                    lines: texts.map((text, index) => ({
+                      id: heldIds[index] ?? `w${writeSeq}_line_${index + 1}`,
+                      speakerId: `w${writeSeq}_spk_1`,
+                      text
+                    }))
+                  }
+                ]
+              };
+        const heldTakes = new Map(
+          lines.map((line) => [line.id, line] as const)
+        );
+        const heldVoices = new Map(cast.map((s) => [s.id, s.voice] as const));
+        cast.length = 0;
+        for (const speaker of written.cast) {
+          cast.push({
+            id: speaker.id,
+            name: speaker.name,
+            voice: heldVoices.get(speaker.id) ?? null
+          });
+        }
+        lines.length = 0;
+        const writtenLines = written.sections.flatMap((s) => s.lines);
+        writtenLines.forEach((line, index) => {
+          // A rewrite keeps the id of the line in each position, so the takes
+          // recorded against it survive — the same contract the real writer
+          // gets by asking the model to send the ids back.
+          const placed =
+            rewrite === true
+              ? { ...line, id: heldIds[index] ?? line.id }
+              : line;
+          const kept = heldTakes.get(placed.id);
+          lines.push({
+            id: placed.id,
+            speakerId: placed.speakerId,
+            text: placed.text,
+            direction: placed.direction,
+            status: kept?.currentTake ? "stale" : "draft",
+            takeCount: kept?.takeCount ?? 0,
+            currentTake: kept?.currentTake ?? null
+          });
+        });
+        if (setup && setup.stage === "format") {
+          setup.stage = "review";
+        }
+        return {
+          ok: true,
+          cast: cast.map(speakerNode),
+          lines: lines.map(lineNode)
+        };
+      }
     ),
 
     tool(
@@ -577,6 +711,7 @@ export function createScriptToolBridge(
     tools,
     finalState: (): ScriptBridgeFinalState => ({
       title,
+      setup: setup === null ? null : { ...setup },
       hasTimeline,
       storyboardId,
       derivedShots,
@@ -637,6 +772,7 @@ const SCRIPT_SYSTEM_PROMPT = `You are a scriptwriting assistant operating a Scri
 The script is a sequence of lines, each optionally assigned to a cast member (speaker) who may have a bound TTS voice.
 
 - Call ui_script_get_state first to see the current title, cast, and lines.
+- Set the brief, format and length with ui_script_set_setup, then write the lines with ui_script_write. Pass imported_text to ui_script_write when the user supplied their own words — they are split and attributed, never reworded.
 - Add cast members with ui_script_add_speaker, and lines with ui_script_add_line.
 - Assign or change a line's speaker with ui_script_set_speaker; edit its text with ui_script_set_line_text.
 - Voice a single line with ui_script_voice_line, or every unvoiced/stale line at once with ui_script_voice_all — a line needs text and an effective voice (from its speaker) before it can be voiced.
@@ -712,6 +848,46 @@ export const SCRIPT_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<ScriptBridgeFinal
             name: "everyLineHasSpeaker",
             detail: "some line has no speaker assigned",
             test: (s) => s.lines.every((l) => l.speakerId !== null)
+          }
+        ]
+      }
+    },
+    {
+      id: "setup-then-write",
+      description:
+        "Set a script's brief, format and length, then write its lines from them",
+      objective:
+        "The script is empty and has no setup. Record that it is a 30-second ad read about a coffee subscription, then write its lines. Do not voice anything.",
+      systemPrompt: SCRIPT_SYSTEM_PROMPT,
+      createBridge: () => createScriptToolBridge(),
+      expect: {
+        requiredTools: ["ui_script_set_setup", "ui_script_write"],
+        ordering: [["ui_script_set_setup", "ui_script_write"]],
+        forbiddenTools: ["ui_script_voice_all", "ui_script_voice_line"],
+        noErrorResults: true,
+        minToolCalls: 2,
+        maxToolCalls: 10,
+        finalState: [
+          {
+            name: "setupRecorded",
+            detail: "the brief, format or length was not recorded",
+            test: (s) =>
+              s.setup !== null &&
+              s.setup.brief.trim() !== "" &&
+              s.setup.format === "ad-read" &&
+              s.setup.length_seconds === 30
+          },
+          {
+            name: "linesWritten",
+            detail: "the script has no lines",
+            test: (s) => s.lines.length > 0
+          },
+          {
+            // The writer plans; step 3 spends. A take here would mean the
+            // surface voiced something nobody reviewed (PRD § 9.7 criterion 3).
+            name: "nothingVoiced",
+            detail: "a line was voiced before the voices step",
+            test: (s) => s.lines.every((line) => line.takeCount === 0)
           }
         ]
       }

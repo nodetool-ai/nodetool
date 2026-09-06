@@ -1,0 +1,15 @@
+1
+00:00:00,500 --> 00:00:03,250
+A tide clock has one hand.
+
+2
+00:00:03,250 --> 00:00:07,000
+It goes round once every twelve hours
+and twenty-five minutes.
+
+3
+00:00:07,400 --> 00:00:11,900
+<i>That is one lunar day, near enough.</i>
+
+4
+00:00:12,000 --> 00:00:12,000

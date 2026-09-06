@@ -5,8 +5,9 @@ description: Build an ambient looping backdrop on a NodeTool timeline — gradie
 
 # Motion Background → the bed
 
-A background that draws attention has failed. Slow, low contrast, seamless, and
-cheap enough that the picture in front of it still composites.
+A background that draws attention has failed. Slow, low contrast, looping with
+no visible join, and cheap enough that the picture in front of it still
+composites.
 
 `motion-graphics` carries the op contract for the calls named here.
 `color-motion` chooses the palette the bed is built from, and `motion-curves`

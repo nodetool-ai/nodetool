@@ -201,6 +201,12 @@ export interface ComfyStatusInfo {
   queue_remaining?: number;
   /** `comfy.status` only: why the worker could not reach ComfyUI. */
   error?: string;
+  /**
+   * The worker serves Comfy API v2 (`/api/v2/*`) on its own port, behind its
+   * own bearer token. Nodes that see this take the v2 transport instead of the
+   * `comfy.*` bridge family.
+   */
+  api_v2?: boolean;
 }
 
 /**
@@ -689,7 +695,8 @@ export const comfyStatusInfoSchema = z
     reachable: z.boolean().optional().catch(undefined),
     system_stats: z.record(z.string(), z.unknown()).optional().catch(undefined),
     queue_remaining: z.number().optional().catch(undefined),
-    error: z.string().optional().catch(undefined)
+    error: z.string().optional().catch(undefined),
+    api_v2: z.boolean().optional().catch(undefined)
   })
   .loose();
 

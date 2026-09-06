@@ -126,7 +126,8 @@ export function graphNodeToReactFlowNode(
     model_id: ui_properties?.model_id,
     endpoint_id: ui_properties?.endpoint_id,
     selected_generation: ui_properties?.selected_generation,
-    selected_generations: ui_properties?.selected_generations
+    selected_generations: ui_properties?.selected_generations,
+    setupStepId: ui_properties?.setup_step_id
   };
   // Left `undefined` when empty so the schema-loader / sync effects that
   // compare against `data.dynamic_inputs` don't see a spurious change.

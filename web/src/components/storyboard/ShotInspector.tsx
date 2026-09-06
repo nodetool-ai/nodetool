@@ -1,27 +1,17 @@
 /**
  * ShotInspector
  *
- * The selected shot's detail, docked under the shot grid. Its top bar is the
- * selection footer — which shot is selected, where it appears in the
- * project's sibling documents, and the render actions, with the step the shot
- * has not taken yet (a still before a clip) as the one filled button. Below
- * that sits everything the grid card no longer shows: the action line, the
- * camera and cost meta, the cast chips, the takes browser, the script lines
- * the shot covers, and the reorder/delete controls.
+ * The selection footer, docked under the shot grid: which shot is selected,
+ * where it appears in the project's sibling documents, and the four actions
+ * PRD § 7.5 leaves here — `Edit`, `Iterate`, `Regenerate`, `Delete`.
+ *
+ * Every field this used to edit now lives in {@link ShotEditDialog}, which
+ * `Edit` opens. The cross-document chips stay because nothing else on the
+ * board says where a shot landed in the script and in the cut.
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
-import type {
-  ImageRef,
-  Shot,
-  ShotStatus,
-  VideoRef
-} from "@nodetool-ai/protocol";
-import { shotRenderMode } from "@nodetool-ai/protocol";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import type { Shot } from "@nodetool-ai/protocol";
 
 import {
   Box,
@@ -31,54 +21,24 @@ import {
   Dialog,
   Divider,
   EditorButton,
-  EditorMenu,
-  EditorMenuItem,
   FlexColumn,
   FlexRow,
   Panel,
-  StatusIndicator,
   Text,
-  SelectField,
   TextInput,
-  ToolbarIconButton,
-  Tooltip,
   BORDER_RADIUS,
   CONTROL,
   SPACING,
-  TYPOGRAPHY,
-  type StatusType
+  TYPOGRAPHY
 } from "../ui_primitives";
-import {
-  ANGLE_OPTIONS,
-  FRAMING_OPTIONS,
-  LENS_OPTIONS,
-  MOVEMENT_OPTIONS,
-  cameraOptions
-} from "./cameraOptions";
-import ShotTakesGallery from "./ShotTakesGallery";
-import ShotScriptPanel from "./ShotScriptPanel";
-import {
-  sameMediaRef,
-  useStoryboardStore
-} from "../../stores/storyboard/StoryboardStore";
-import { entitiesForShot } from "../../stores/storyboard/shotEntities";
+import ShotEditDialog from "./ShotEditDialog";
+import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
-import {
-  useBoardScriptLines,
-  useShotDuration
-} from "../../hooks/storyboard/useShotDuration";
-import {
-  useShotCostEstimate,
-  type ShotCostEstimate
-} from "../../hooks/storyboard/useShotCostEstimate";
-import { formatUsd } from "@nodetool-ai/model-pricing";
-import { useEntities } from "../../serverState/useEntities";
-import { getEntityChipSx, getEntityKindDotSx } from "../entities/entityKind";
+import { useBoardScriptLines } from "../../hooks/storyboard/useShotDuration";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { requestDocumentFocus } from "../../stores/DocumentFocusStore";
 import { useShotTimelineLink } from "../../hooks/storyboard/useShotTimelineLink";
 import { isShotGenerating } from "./ShotStatusPill";
-import type { SxProps, Theme } from "@mui/material/styles";
 import { colorForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
 
@@ -86,31 +46,9 @@ interface ShotInspectorProps {
   boardId: string;
   shot: Shot;
   readOnly?: boolean;
-  /** True when the shot is first on the board (disables "move up"). */
-  isFirst?: boolean;
-  /** True when the shot is last on the board (disables "move down"). */
-  isLast?: boolean;
   /** Clears the board's selection. */
   onClose?: () => void;
 }
-
-const STATUS_META: Record<
-  ShotStatus,
-  { status: StatusType; label: string; pulse?: boolean }
-> = {
-  planned: { status: "default", label: "Planned" },
-  keyframe_generating: {
-    status: "pending",
-    label: "Generating still…",
-    pulse: true
-  },
-  keyframe_ready: { status: "info", label: "Still ready" },
-  // Legacy status from the removed approval step; same meaning as a ready still.
-  approved: { status: "info", label: "Still ready" },
-  clip_generating: { status: "pending", label: "Rendering…", pulse: true },
-  rendered: { status: "success", label: "Rendered" },
-  failed: { status: "error", label: "Failed" }
-};
 
 /** Sky — the app's colour for anything script- or voice-shaped. */
 const SCRIPT_COLOR = colorForType("audio");
@@ -118,20 +56,10 @@ const SCRIPT_COLOR = colorForType("audio");
 /** Violet — the app's colour for anything picture-shaped. */
 const TIMELINE_COLOR = colorForType("video");
 
-/**
- * Secondary actions read as text rather than as a row of equal accent links;
- * only the step the shot has not taken yet keeps the accent.
- */
+/** Secondary actions read as text; only `Edit` carries the accent. */
 const quietActionSx = {
   color: "text.secondary",
   "&:hover": { color: "text.primary", bgcolor: "c_overlay_subtle" }
-} as const;
-
-/** Metadata chips carry no status color — the label is the whole signal. */
-const quietChipSx = {
-  borderRadius: BORDER_RADIUS.pill,
-  color: "text.secondary",
-  borderColor: "divider"
 } as const;
 
 /** A cross-document link chip, tinted by the document type it points at. */
@@ -146,267 +74,27 @@ const linkChipSx = (color: string) =>
 const scriptChipSx = linkChipSx(SCRIPT_COLOR);
 const timelineChipSx = linkChipSx(TIMELINE_COLOR);
 
-const cameraLine = (shot: Shot): string =>
-  [
-    shot.camera?.framing,
-    shot.camera?.lens,
-    shot.camera?.angle,
-    shot.camera?.movement
-  ]
-    .filter((p): p is string => !!p && p.trim().length > 0)
-    .join(" · ");
-
-const cameraFieldSx = { flex: "1 1 7rem", minWidth: "6.5rem" } as const;
-const movementFieldSx = { flex: "1.6 1 9rem", minWidth: "8rem" } as const;
-const durationFieldSx = { width: "6rem", flexShrink: 0 } as const;
-const shotIndexSx = {
-  ...TYPOGRAPHY.sans.title,
-  color: "text.secondary",
-  flexShrink: 0
-} as const;
-// The title reads as a title, not as a form field: the underline appears on
-// hover and focus so the row stays quiet until it is being edited.
-const shotTitleSx = {
-  minWidth: 0,
-  flex: 1,
-  "& .MuiInputBase-input": TYPOGRAPHY.sans.title,
-  "& .MuiInput-root:before": { borderBottomColor: "transparent" },
-  "&:hover .MuiInput-root:before": { borderBottomColor: "divider" }
-} as const;
-
-const EMPTY_IDS: string[] = [];
-
-/**
- * A text field that edits one shot field: it holds a draft while the user
- * types, writes on blur or Enter, and drops the draft on Escape. Committing on
- * every keystroke would put one undo step per character on the board.
- */
-const useShotTextField = (
-  stored: string,
-  commit: (next: string) => void,
-  multiline = false
-) => {
-  const [draft, setDraft] = useState<string | null>(null);
-  const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) =>
-      setDraft(event.target.value),
-    []
-  );
-  const handleBlur = useCallback(() => {
-    if (draft === null) {
-      return;
-    }
-    const next = draft.trim();
-    setDraft(null);
-    if (next !== stored) {
-      commit(next);
-    }
-  }, [draft, stored, commit]);
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === "Enter" && !(multiline && event.shiftKey)) {
-        event.preventDefault();
-        (event.target as HTMLInputElement).blur();
-      } else if (event.key === "Escape") {
-        setDraft(null);
-      }
-    },
-    [multiline]
-  );
-  return {
-    value: draft ?? stored,
-    onChange: handleChange,
-    onBlur: handleBlur,
-    onKeyDown: handleKeyDown
-  };
-};
-
-/**
- * What rendering this shot costs, one figure per step: the still and the clip
- * are priced by different models and only the clip's moves with the shot's
- * length, so a single total hides which number a change affected.
- *
- * A step nothing prices shows a dash and says why in its tooltip — the board
- * has no model picked for it, or no catalog carries the one it has. Leaving it
- * out instead is what makes a missing clip cost look broken.
- */
-const ShotCostLine: React.FC<{
-  estimate: ShotCostEstimate;
-  sx?: SxProps<Theme>;
-}> = ({ estimate, sx }) => {
-  const listPrice = (
-    <Caption color="secondary">
-      List price from the provider catalog. The render is billed by the provider
-      at its own rates.
-    </Caption>
-  );
-
-  if (estimate.source === "stored") {
-    return (
-      <Tooltip
-        placement="top"
-        title={
-          <Text size="small">
-            What the last render of this shot cost. Pick the board&apos;s still
-            and clip models to estimate the next one.
-          </Text>
-        }
-      >
-        <Caption color="muted" noWrap sx={sx}>
-          {`last render ${formatUsd(estimate.cost)}`}
-        </Caption>
-      </Tooltip>
-    );
-  }
-
-  if (estimate.steps.length === 0) {
-    return null;
-  }
-
-  const pricedCount = estimate.steps.filter(
-    (step) => step.cost !== null
-  ).length;
-
-  return (
-    <FlexRow align="center" gap={SPACING.sm} wrap sx={sx}>
-      {estimate.steps.map((step) => (
-        <Tooltip
-          key={step.label}
-          placement="top"
-          title={
-            <FlexColumn gap={SPACING.micro}>
-              <Text size="small">
-                {step.cost === null
-                  ? `${step.label}: ${step.reason}`
-                  : `${step.label}: ${step.breakdown ?? formatUsd(step.cost)}`}
-              </Text>
-              {step.cost !== null && (
-                <>
-                  {estimate.notes.map((note) => (
-                    <Caption key={note} color="secondary">
-                      {note}
-                    </Caption>
-                  ))}
-                  {listPrice}
-                </>
-              )}
-            </FlexColumn>
-          }
-        >
-          <Caption color={step.cost === null ? "muted" : "secondary"} noWrap>
-            {step.cost === null
-              ? `${step.label} —`
-              : `${step.label} ~${formatUsd(step.cost)}`}
-          </Caption>
-        </Tooltip>
-      ))}
-      {pricedCount > 1 && (
-        <Caption color="muted" noWrap>
-          {`total ~${formatUsd(estimate.cost)}`}
-        </Caption>
-      )}
-    </FlexRow>
-  );
-};
-
 const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
   boardId,
   shot,
   readOnly,
-  isFirst,
-  isLast,
   onClose
 }) => {
-  const toggleShotEntity = useStoryboardStore(
-    (state) => state.toggleShotEntity
-  );
-  const updateShot = useStoryboardStore((state) => state.updateShot);
-  const moveShot = useStoryboardStore((state) => state.moveShot);
   const removeShot = useStoryboardStore((state) => state.removeShot);
-  const removeKeyframeVersion = useStoryboardStore(
-    (state) => state.removeKeyframeVersion
-  );
-  const removeClipVersion = useStoryboardStore(
-    (state) => state.removeClipVersion
-  );
-  const boardEntityIds = useStoryboardStore(
-    (state) => state.boards[boardId]?.entityIds ?? EMPTY_IDS
-  );
   const scriptId = useStoryboardStore(
     (state) => state.boards[boardId]?.screenplay?.script_id ?? null
   );
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
-  const { data: allEntities } = useEntities();
-  const { generateKeyframe, generateClip, generateRevisedClip } =
-    useGenerateShot();
+  const { generateKeyframe, generateRevisedClip } = useGenerateShot();
 
-  const { boardEntities, appliedIds } = useMemo(() => {
-    const idSet = new Set(boardEntityIds);
-    const board = (allEntities ?? []).filter((e) => idSet.has(e.id));
-    return {
-      boardEntities: board,
-      appliedIds: entitiesForShot(shot, board).map((e) => e.id)
-    };
-  }, [allEntities, boardEntityIds, shot]);
-
-  const [reviseOpen, setReviseOpen] = useState(false);
-  // Anchor for the overflow menu holding the destructive take actions; null
-  // when it is closed.
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
-  const [reviseText, setReviseText] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [iterateOpen, setIterateOpen] = useState(false);
+  const [iterateText, setIterateText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const meta = STATUS_META[shot.status];
   const isGenerating = isShotGenerating(shot);
-  // The clip is animated from a still, so a shot without one (and not set to
-  // render straight from its prompt) has the still as its next step.
-  const needsStill = !shot.keyframe && shotRenderMode(shot) !== "direct";
-  const camera = cameraLine(shot);
   const shotName = `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`;
   const shotNumber = `SH ${String(shot.index + 1).padStart(2, "0")}`;
-
-  // A start that throws records its reason on the shot's job state (and
-  // toasts it), which is what the card's error line shows — so the rejection
-  // is already reported and only needs to not go unhandled.
-  const handleGenerateStill = useCallback(() => {
-    void generateKeyframe(boardId, shot).catch(() => undefined);
-  }, [generateKeyframe, boardId, shot]);
-
-  const handleGenerateClip = useCallback(() => {
-    void generateClip(boardId, shot).catch(() => undefined);
-  }, [generateClip, boardId, shot]);
-
-  const handleReviseConfirm = useCallback(() => {
-    const instruction = reviseText.trim();
-    if (instruction.length > 0) {
-      void generateRevisedClip(boardId, shot, instruction).catch(
-        () => undefined
-      );
-    }
-    setReviseOpen(false);
-    setReviseText("");
-  }, [reviseText, generateRevisedClip, boardId, shot]);
-
-  const handleMoveUp = useCallback(() => {
-    moveShot(boardId, shot.id, "up");
-  }, [moveShot, boardId, shot.id]);
-
-  const handleMoveDown = useCallback(() => {
-    moveShot(boardId, shot.id, "down");
-  }, [moveShot, boardId, shot.id]);
-
-  // A shot covering script lines is timed by the takes under it unless the
-  // user pins it; the chip says which, and clicking it switches.
-  const duration = useShotDuration(boardId, shot);
-  const linksLines = (shot.script_line_ids?.length ?? 0) > 0;
-  const durationLabel =
-    duration.seconds != null
-      ? `${duration.seconds}s · ${duration.source === "audio" ? "from takes" : "manual"}`
-      : "model default";
-  // Cost sits in the same quiet line as the camera controls. A read-only
-  // inspector has no controls, so there the camera reads as text beside it.
-  // The figure stays one number; which step costs what is in its tooltip.
-  const costEstimate = useShotCostEstimate(boardId, shot);
 
   // Where this shot lands in the project's other documents: the script line it
   // covers, and the clip it owns in the assembled cut.
@@ -444,180 +132,28 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
     openTab({ type: "script", ref: scriptId, mode: "edit", title: "Script" });
   }, [openTab, scriptId, scriptLink]);
 
-  // Each camera part edits on its own; the shot keeps the other three.
-  const commitCamera = useCallback(
-    (key: keyof NonNullable<Shot["camera"]>, next: string) => {
-      const camera = { ...(shot.camera ?? {}), [key]: next };
-      if (next === "") {
-        delete camera[key];
-      }
-      updateShot(boardId, shot.id, {
-        camera: Object.keys(camera).length > 0 ? camera : undefined
-      });
-    },
-    [updateShot, boardId, shot.id, shot.camera]
-  );
-  const handleFramingChange = useCallback(
-    (value: string) => commitCamera("framing", value),
-    [commitCamera]
-  );
-  const handleLensChange = useCallback(
-    (value: string) => commitCamera("lens", value),
-    [commitCamera]
-  );
-  const handleAngleChange = useCallback(
-    (value: string) => commitCamera("angle", value),
-    [commitCamera]
-  );
-  const handleMovementChange = useCallback(
-    (value: string) => commitCamera("movement", value),
-    [commitCamera]
-  );
-  const framingOptions = useMemo(
-    () => cameraOptions(FRAMING_OPTIONS, shot.camera?.framing ?? ""),
-    [shot.camera?.framing]
-  );
-  const lensOptions = useMemo(
-    () => cameraOptions(LENS_OPTIONS, shot.camera?.lens ?? ""),
-    [shot.camera?.lens]
-  );
-  const angleOptions = useMemo(
-    () => cameraOptions(ANGLE_OPTIONS, shot.camera?.angle ?? ""),
-    [shot.camera?.angle]
-  );
-  const movementOptions = useMemo(
-    () => cameraOptions(MOVEMENT_OPTIONS, shot.camera?.movement ?? ""),
-    [shot.camera?.movement]
-  );
+  // A start that throws records its reason on the shot's job state (and
+  // toasts it), which is what the card's error line shows — so the rejection
+  // is already reported and only needs to not go unhandled.
+  const handleRegenerate = useCallback(() => {
+    void generateKeyframe(boardId, shot).catch(() => undefined);
+  }, [generateKeyframe, boardId, shot]);
 
-  const titleField = useShotTextField(
-    shot.slug ?? "",
-    useCallback(
-      (slug: string) => updateShot(boardId, shot.id, { slug }),
-      [updateShot, boardId, shot.id]
-    )
-  );
-  const actionField = useShotTextField(
-    shot.action,
-    useCallback(
-      (action: string) => {
-        if (action !== "") {
-          updateShot(boardId, shot.id, { action });
-        }
-      },
-      [updateShot, boardId, shot.id]
-    ),
-    true
-  );
-
-  // The shot's own length. Typing one pins the shot to it, so a linked board
-  // stops timing this shot from the takes under it.
-  const [durationDraft, setDurationDraft] = useState<string | null>(null);
-  const durationValue =
-    durationDraft ??
-    (shot.duration_seconds != null ? String(shot.duration_seconds) : "");
-  const durationPlaceholder =
-    duration.source === "audio" && duration.seconds != null
-      ? String(duration.seconds)
-      : "auto";
-
-  const handleDurationChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) =>
-      setDurationDraft(event.target.value),
-    []
-  );
-
-  const commitDuration = useCallback(() => {
-    if (durationDraft === null) {
-      return;
+  const handleIterateConfirm = useCallback(() => {
+    const instruction = iterateText.trim();
+    if (instruction.length > 0) {
+      void generateRevisedClip(boardId, shot, instruction).catch(
+        () => undefined
+      );
     }
-    const raw = durationDraft.trim();
-    setDurationDraft(null);
-    if (raw === "") {
-      // Clearing the field un-pins the shot too — otherwise it is left with
-      // no duration and a stale `duration_source: "manual"`, which blocks a
-      // linked shot from deriving one from its takes again. Same value the
-      // "unpin" chip (handleToggleDurationSource) writes.
-      updateShot(boardId, shot.id, {
-        duration_seconds: undefined,
-        duration_source: "audio"
-      });
-      return;
-    }
-    const seconds = Number(raw);
-    if (!Number.isFinite(seconds) || seconds <= 0) {
-      return;
-    }
-    const patch: Parameters<typeof updateShot>[2] = {
-      duration_seconds: seconds
-    };
-    if (linksLines) {
-      patch.duration_source = "manual";
-    }
-    updateShot(boardId, shot.id, patch);
-  }, [durationDraft, updateShot, boardId, shot.id, linksLines]);
-
-  const handleDurationKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === "Enter") {
-        (event.target as HTMLInputElement).blur();
-      } else if (event.key === "Escape") {
-        setDurationDraft(null);
-      }
-    },
-    []
-  );
-
-  const handleToggleDurationSource = useCallback(() => {
-    updateShot(boardId, shot.id, {
-      duration_source: shot.duration_source === "manual" ? "audio" : "manual"
-    });
-  }, [updateShot, boardId, shot.id, shot.duration_source]);
-
-  const handleOpenMenu = useCallback(
-    (event: React.MouseEvent<HTMLElement>) =>
-      setMenuAnchor(event.currentTarget),
-    []
-  );
-  const handleCloseMenu = useCallback(() => setMenuAnchor(null), []);
+    setIterateOpen(false);
+    setIterateText("");
+  }, [iterateText, generateRevisedClip, boardId, shot]);
 
   const handleDelete = useCallback(() => {
     removeShot(boardId, shot.id);
     setConfirmDelete(false);
   }, [removeShot, boardId, shot.id]);
-
-  const handleRemoveStill = useCallback(() => {
-    setMenuAnchor(null);
-    const versions =
-      shot.keyframe_versions ?? (shot.keyframe ? [shot.keyframe] : []);
-    if (versions.length === 0 || !shot.keyframe) {
-      return;
-    }
-    const selected = versions.findIndex((v) =>
-      sameMediaRef(v, shot.keyframe as ImageRef)
-    );
-    const index = selected >= 0 ? selected : 0;
-    removeKeyframeVersion(boardId, shot.id, index);
-  }, [
-    shot.keyframe,
-    shot.keyframe_versions,
-    removeKeyframeVersion,
-    boardId,
-    shot.id
-  ]);
-
-  const handleRemoveClip = useCallback(() => {
-    setMenuAnchor(null);
-    const versions = shot.clip_versions ?? (shot.clip ? [shot.clip] : []);
-    if (versions.length === 0 || !shot.clip) {
-      return;
-    }
-    const selected = versions.findIndex((v) =>
-      sameMediaRef(v, shot.clip as VideoRef)
-    );
-    const index = selected >= 0 ? selected : 0;
-    removeClipVersion(boardId, shot.id, index);
-  }, [shot.clip, shot.clip_versions, removeClipVersion, boardId, shot.id]);
 
   return (
     <Panel padding="none" className="shot-inspector">
@@ -663,7 +199,15 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
         {!readOnly && (
           <>
             <EditorButton
-              onClick={() => setReviseOpen(true)}
+              variant="contained"
+              color="primary"
+              onClick={() => setEditOpen(true)}
+              title="Open this shot's fields, takes and script lines"
+            >
+              Edit
+            </EditorButton>
+            <EditorButton
+              onClick={() => setIterateOpen(true)}
               disabled={isGenerating || !shot.clip}
               sx={quietActionSx}
               title={
@@ -672,47 +216,24 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
                   : "Render a clip first"
               }
             >
-              Revise take
+              Iterate
             </EditorButton>
             <EditorButton
-              variant={needsStill ? "contained" : "text"}
-              color={needsStill ? "primary" : undefined}
-              onClick={handleGenerateStill}
+              onClick={handleRegenerate}
               disabled={isGenerating}
-              sx={needsStill ? undefined : quietActionSx}
-              title={
-                shot.keyframe
-                  ? "Generate another still for this shot"
-                  : "Generate the still the clip is animated from"
-              }
+              sx={quietActionSx}
+              title="Render a new still from this shot's saved fields"
             >
-              {shot.keyframe ? "New still" : "Generate still"}
+              Regenerate
             </EditorButton>
             <EditorButton
-              variant={needsStill ? "text" : "contained"}
-              color={needsStill ? undefined : "primary"}
-              onClick={handleGenerateClip}
-              disabled={isGenerating || needsStill}
-              sx={needsStill ? quietActionSx : undefined}
-              title={
-                shot.keyframe
-                  ? "Animate the selected still into a clip"
-                  : shotRenderMode(shot) === "direct"
-                    ? "Render a clip straight from the prompt"
-                    : "Generate a still first, or set render mode to direct"
-              }
+              onClick={() => setConfirmDelete(true)}
+              disabled={isGenerating}
+              sx={quietActionSx}
+              title="Remove this shot from the board"
             >
-              {shot.clip ? "Re-render clip" : "Render clip"}
+              Delete
             </EditorButton>
-            {(shot.keyframe || shot.clip) && (
-              <ToolbarIconButton
-                icon={<MoreHorizIcon sx={{ fontSize: "1em" }} />}
-                tooltip="More actions"
-                ariaLabel="More shot actions"
-                onClick={handleOpenMenu}
-                disabled={isGenerating}
-              />
-            )}
           </>
         )}
         {onClose && (
@@ -720,240 +241,21 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
         )}
       </FlexRow>
 
-      <Divider />
-
-      <FlexColumn gap={SPACING.md} sx={{ p: SPACING.xl, minWidth: 0 }}>
-        <FlexRow align="center" justify="space-between" gap={SPACING.sm}>
-          {readOnly ? (
-            <Text size="small" truncate sx={{ minWidth: 0 }}>
-              {shotName}
-            </Text>
-          ) : (
-            <FlexRow
-              align="center"
-              gap={SPACING.xs}
-              sx={{ minWidth: 0, flex: 1 }}
-            >
-              <Box sx={shotIndexSx}>{`${shot.index + 1}.`}</Box>
-              <TextInput
-                compact
-                size="small"
-                variant="standard"
-                label="Shot title"
-                hideLabel
-                placeholder="Untitled shot"
-                {...titleField}
-                sx={shotTitleSx}
-              />
-            </FlexRow>
-          )}
-          <FlexRow align="center" gap={SPACING.xs} sx={{ flexShrink: 0 }}>
-            <StatusIndicator
-              status={meta.status}
-              label={meta.label}
-              pulse={meta.pulse}
-              labelTone={shot.status === "failed" ? "status" : "muted"}
-            />
-            {!readOnly && (
-              <>
-                <ToolbarIconButton
-                  icon={<ArrowUpwardIcon sx={{ fontSize: "1em" }} />}
-                  tooltip="Move up"
-                  ariaLabel="Move shot up"
-                  onClick={handleMoveUp}
-                  disabled={isFirst}
-                />
-                <ToolbarIconButton
-                  icon={<ArrowDownwardIcon sx={{ fontSize: "1em" }} />}
-                  tooltip="Move down"
-                  ariaLabel="Move shot down"
-                  onClick={handleMoveDown}
-                  disabled={isLast}
-                />
-                <ToolbarIconButton
-                  icon={<DeleteOutlineIcon sx={{ fontSize: "1em" }} />}
-                  tooltip="Delete shot"
-                  ariaLabel="Delete shot"
-                  variant="error"
-                  onClick={() => setConfirmDelete(true)}
-                  disabled={isGenerating}
-                />
-              </>
-            )}
-          </FlexRow>
-        </FlexRow>
-
-        {readOnly ? (
-          <Text lineClamp={3} sx={{ lineHeight: 1.6 }}>
-            {shot.action}
-          </Text>
-        ) : (
-          <TextInput
-            compact
-            size="small"
-            multiline
-            minRows={2}
-            label="Shot description"
-            hideLabel
-            placeholder="What the shot shows"
-            {...actionField}
-            sx={{ "& .MuiInputBase-input": { lineHeight: 1.6 } }}
-          />
-        )}
-
-        {readOnly ? (
-          camera.length > 0 || duration.seconds != null ? (
-            <FlexRow align="center" gap={SPACING.sm} wrap>
-              {camera.length > 0 && (
-                <Caption color="secondary" noWrap>
-                  {camera}
-                </Caption>
-              )}
-              {duration.seconds != null && (
-                <Caption color="secondary" noWrap>
-                  {durationLabel}
-                </Caption>
-              )}
-              <ShotCostLine estimate={costEstimate} />
-            </FlexRow>
-          ) : null
-        ) : (
-          <FlexRow align="flex-end" gap={SPACING.sm} wrap>
-            <Box sx={cameraFieldSx}>
-              <SelectField
-                size="small"
-                label="Framing"
-                value={shot.camera?.framing ?? ""}
-                onChange={handleFramingChange}
-                options={framingOptions}
-              />
-            </Box>
-            <Box sx={cameraFieldSx}>
-              <SelectField
-                size="small"
-                label="Lens"
-                value={shot.camera?.lens ?? ""}
-                onChange={handleLensChange}
-                options={lensOptions}
-              />
-            </Box>
-            <Box sx={cameraFieldSx}>
-              <SelectField
-                size="small"
-                label="Angle"
-                value={shot.camera?.angle ?? ""}
-                onChange={handleAngleChange}
-                options={angleOptions}
-              />
-            </Box>
-            <Box sx={movementFieldSx}>
-              <SelectField
-                size="small"
-                label="Movement"
-                value={shot.camera?.movement ?? ""}
-                onChange={handleMovementChange}
-                options={movementOptions}
-              />
-            </Box>
-            <TextInput
-              compact
-              size="small"
-              fullWidth={false}
-              type="number"
-              label="Length (s)"
-              placeholder={durationPlaceholder}
-              value={durationValue}
-              onChange={handleDurationChange}
-              onBlur={commitDuration}
-              onKeyDown={handleDurationKeyDown}
-              inputProps={{
-                min: 1,
-                step: 1,
-                "aria-label": "Clip length in seconds"
-              }}
-              sx={durationFieldSx}
-            />
-            {linksLines && (
-              <Chip
-                compact
-                variant="outlined"
-                label={duration.source === "audio" ? "from takes" : "pinned"}
-                sx={{ ...quietChipSx, mb: SPACING.micro }}
-                title={
-                  duration.source === "audio"
-                    ? "Length comes from the takes of the lines this shot covers. Click to pin it to the shot's own duration."
-                    : "Length is pinned to the shot's own duration. Click to take it from the lines this shot covers."
-                }
-                onClick={handleToggleDurationSource}
-              />
-            )}
-            <ShotCostLine estimate={costEstimate} sx={{ mb: SPACING.micro }} />
-          </FlexRow>
-        )}
-
-        {boardEntities.length > 0 && (
-          <FlexRow gap={SPACING.micro} wrap>
-            {boardEntities.map((entity) => {
-              const applied = appliedIds.includes(entity.id);
-              return (
-                <Chip
-                  key={entity.id}
-                  compact
-                  label={entity.name || "Untitled"}
-                  variant="outlined"
-                  icon={<Box sx={getEntityKindDotSx(entity.kind, applied)} />}
-                  sx={getEntityChipSx(applied)}
-                  title={
-                    applied
-                      ? `${entity.descriptor || entity.name}: click to exclude from this shot`
-                      : `Click to include ${entity.name} in this shot`
-                  }
-                  onClick={
-                    readOnly
-                      ? undefined
-                      : () =>
-                          toggleShotEntity(
-                            boardId,
-                            shot.id,
-                            entity.id,
-                            appliedIds
-                          )
-                  }
-                />
-              );
-            })}
-          </FlexRow>
-        )}
-
-        <ShotTakesGallery boardId={boardId} shot={shot} readOnly={readOnly} />
-
-        <ShotScriptPanel boardId={boardId} shot={shot} readOnly={readOnly} />
-      </FlexColumn>
-
-      <EditorMenu
-        open={menuAnchor !== null}
-        anchorEl={menuAnchor}
-        onClose={handleCloseMenu}
-      >
-        {shot.keyframe && (
-          <EditorMenuItem onClick={handleRemoveStill}>
-            Remove still
-          </EditorMenuItem>
-        )}
-        {shot.clip && (
-          <EditorMenuItem onClick={handleRemoveClip}>
-            Remove clip
-          </EditorMenuItem>
-        )}
-      </EditorMenu>
+      <ShotEditDialog
+        boardId={boardId}
+        shotId={shot.id}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        readOnly={readOnly}
+      />
 
       <Dialog
-        open={reviseOpen}
-        onClose={() => setReviseOpen(false)}
-        title="Revise clip"
-        onConfirm={handleReviseConfirm}
-        confirmText="Revise"
-        confirmDisabled={reviseText.trim().length === 0}
+        open={iterateOpen}
+        onClose={() => setIterateOpen(false)}
+        title="Iterate on this clip"
+        onConfirm={handleIterateConfirm}
+        confirmText="Iterate"
+        confirmDisabled={iterateText.trim().length === 0}
       >
         <FlexColumn gap={SPACING.xs}>
           <Caption color="secondary">
@@ -961,9 +263,9 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
             your note applied.
           </Caption>
           <TextInput
-            value={reviseText}
+            value={iterateText}
             placeholder="e.g. make it darker, add rain"
-            onChange={(e) => setReviseText(e.target.value)}
+            onChange={(e) => setIterateText(e.target.value)}
             multiline
             rows={3}
             autoFocus

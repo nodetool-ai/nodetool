@@ -4,7 +4,8 @@
  */
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
-import type { Shot } from "@nodetool-ai/protocol";
+import type { BoardRenderContext, Shot } from "@nodetool-ai/protocol";
+import { currentRenderInputs, stampRenderInputs } from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
 
 import ShotStatusPill, { shotPill } from "../ShotStatusPill";
@@ -21,12 +22,34 @@ const makeShot = (overrides: Partial<Shot> = {}): Shot => ({
   ...overrides
 });
 
-const renderPill = (shot: Shot) =>
+const renderPill = (shot: Shot, renderContext?: BoardRenderContext) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <ShotStatusPill shot={shot} />
+      <ShotStatusPill shot={shot} renderContext={renderContext} />
     </ThemeProvider>
   );
+
+const board = (imageModel: string): BoardRenderContext => ({
+  aspect_ratio: "16:9",
+  image_model: imageModel,
+  video_model: "video-model",
+  style_entity_id: null,
+  style: "noir",
+  scenes: null
+});
+
+/** A shot whose selected still records the inputs `on` would render with. */
+const shotRenderedOn = (
+  on: BoardRenderContext,
+  overrides: Partial<Shot> = {}
+) => {
+  const shot = makeShot(overrides);
+  const keyframe = {
+    ...(shot.keyframe as { type: "image"; uri: string }),
+    render_inputs: stampRenderInputs(currentRenderInputs(shot, on, "keyframe"))
+  };
+  return { ...shot, keyframe };
+};
 
 beforeEach(() => {
   useStoryboardGenerationStore.setState({
@@ -108,5 +131,39 @@ describe("ShotStatusPill", () => {
     });
     renderPill(makeShot());
     expect(screen.getByText("still · clip queued")).toBeInTheDocument();
+  });
+});
+
+describe("ShotStatusPill staleness", () => {
+  const rendered = board("image-model-a");
+
+  it("marks a still whose render record no longer matches the board", () => {
+    const shot = shotRenderedOn(rendered);
+    renderPill(shot, board("image-model-b"));
+    expect(screen.getByTestId("shot-status-pill")).toHaveTextContent(
+      "still · stale"
+    );
+  });
+
+  it("says nothing about staleness while the record still matches", () => {
+    const shot = shotRenderedOn(rendered);
+    renderPill(shot, rendered);
+    expect(screen.getByTestId("shot-status-pill")).toHaveTextContent("still");
+    expect(screen.queryByText(/stale/)).not.toBeInTheDocument();
+  });
+
+  it("stands alone on a finished shot, which has no lifecycle to show", () => {
+    const shot = {
+      ...shotRenderedOn(rendered),
+      status: "rendered" as const,
+      clip: { type: "video" as const, uri: "http://example.com/clip.mp4" }
+    };
+    renderPill(shot, board("image-model-b"));
+    expect(screen.getByTestId("shot-status-pill")).toHaveTextContent("stale");
+  });
+
+  it("shows the lifecycle alone when no board context is passed", () => {
+    renderPill(shotRenderedOn(rendered));
+    expect(screen.getByTestId("shot-status-pill")).toHaveTextContent("still");
   });
 });

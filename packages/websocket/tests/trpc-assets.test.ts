@@ -14,7 +14,9 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       paginate: vi.fn(),
       searchAssetsGlobal: vi.fn(),
       getChildren: vi.fn(),
-      validateParent: vi.fn().mockResolvedValue(null)
+      validateParent: vi.fn().mockResolvedValue(null),
+      // Statics are non-enumerable, so the spread above does not carry them.
+      systemEntityRefusal: actual.Asset.systemEntityRefusal
     }
   };
 });

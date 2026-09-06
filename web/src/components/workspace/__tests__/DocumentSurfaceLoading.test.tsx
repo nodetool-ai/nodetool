@@ -14,6 +14,18 @@ import ScriptSurface from "../ScriptSurface";
 import mockTheme from "../../../__mocks__/themeMock";
 import type { DocumentLoadState } from "../../../stores/documentSync";
 
+// The look step reaches the generation store, the entity library and the
+// cost estimate. `LookStep.test.tsx` covers what it does; these suites only
+// need it to exist so the flow can mount.
+jest.mock("../../../components/setup/storyboard/LookStep", () => ({
+  LookStep: () => null,
+  useLookStep: () => ({
+    canAdvance: true,
+    primaryDetail: undefined,
+    generate: jest.fn(async () => {})
+  })
+}));
+
 jest.mock("@mui/material/useMediaQuery", () => () => false);
 
 let storyboardLoadState: DocumentLoadState = "loading";

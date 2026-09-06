@@ -732,7 +732,7 @@ export const useAppRuntime = (
       // Node-property bindings overlay their live widget values onto the graph
       // before the run, so a slider bound to e.g. a model's `strength` drives the
       // actual node property.
-      const overlays = collectNodePropertyOverlays(state.inputs);
+      const overlays = collectNodePropertyOverlays(state.inputs, operationId);
       const nodes = (target.graph?.nodes ?? []).map((node) => {
         const rf = graphNodeToReactFlowNode(target, node);
         const overlay = overlays.get(rf.id);

@@ -60,6 +60,13 @@ describe("nodeProvider", () => {
     it("returns the key itself for unknown keys", () => {
       expect(getSecretDisplayName("UNKNOWN_KEY")).toBe("UNKNOWN_KEY");
     });
+
+    it("names the Comfy Cloud key without claiming the lib.comfy namespace", () => {
+      expect(getSecretDisplayName("COMFY_API_KEY")).toBe("Comfy Cloud");
+      // Only RunWorkflowOnCloud needs a key; the local and worker runners must
+      // not be badged. The per-node `required_settings` metadata drives that.
+      expect(getRequiredSecretKeyForNamespace("lib.comfy")).toBeNull();
+    });
   });
 
   describe("getProviderKindForNamespace", () => {

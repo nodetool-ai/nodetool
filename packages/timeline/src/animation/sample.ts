@@ -222,7 +222,8 @@ function windowT(anim: CompiledAnimation, localMs: number): number | null {
     const period = anim.periodMs ?? anim.windowEndMs - anim.windowStartMs;
     if (period <= 0) return null;
     if (localMs < anim.windowStartMs || localMs >= anim.windowEndMs) return null;
-    return ((localMs - anim.windowStartMs) % period) / period;
+    const origin = anim.loopOriginMs ?? anim.windowStartMs;
+    return ((((localMs - origin) % period) + period) % period) / period;
   }
   if (localMs < anim.windowStartMs) {
     return anim.holdBefore ? 0 : null;
@@ -397,7 +398,7 @@ function staggerUnitT(
     const period = anim.periodMs ?? anim.windowEndMs - anim.windowStartMs;
     if (period <= 0) return null;
     if (localMs < anim.windowStartMs || localMs >= anim.windowEndMs) return null;
-    const phase = localMs - anim.windowStartMs - delay;
+    const phase = localMs - (anim.loopOriginMs ?? anim.windowStartMs) - delay;
     return (((phase % period) + period) % period) / period;
   }
   const startMs = anim.windowStartMs + delay;

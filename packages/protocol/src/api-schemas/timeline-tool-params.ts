@@ -1073,5 +1073,11 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   // Both surfaces registered these from the start and neither list named them,
   // so nothing checked they stayed in step.
   "ui_timeline_set_markers_from_beats",
-  "ui_timeline_snap_to_beats"
+  "ui_timeline_snap_to_beats",
+  // The guided video flow (PRD § 8.6). Both surfaces register them; the
+  // headless one writes the plan itself where the editor asks the Director.
+  "ui_timeline_set_setup",
+  "ui_timeline_plan_beats",
+  "ui_timeline_update_beat",
+  "ui_timeline_generate_from_beats"
 ] as const;

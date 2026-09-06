@@ -19,6 +19,8 @@ export type NodeUIProperties = {
   selected_generation?: string;
   /** Ordered ids of generations chosen to feed downstream as a list. <=1 -> single-selection behavior. */
   selected_generations?: string[];
+  /** Plan step this node was placed from (Workflow creation flow, PRD § 11.5). */
+  setup_step_id?: string;
 };
 
 export const DEFAULT_NODE_WIDTH = 280;

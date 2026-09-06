@@ -32,6 +32,11 @@ import ScriptCastPanel from "../script/ScriptCastPanel";
 import ScriptAgentPanel from "../script/ScriptAgentPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import DocumentLoadStatus from "./DocumentLoadStatus";
+import { SetupFlow } from "../setup/SetupFlow";
+import {
+  useScriptSetupFlow,
+  useScriptSetupStage
+} from "../setup/script/useScriptSetupFlow";
 
 interface ScriptSurfaceProps {
   refId: string;
@@ -78,6 +83,12 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
 
   const loadState = useScriptServerSync(refId);
   useScriptAgentBridge(refId);
+
+  // A script still in setup renders the flow in place of the editor (PRD
+  // § 6.4). The stage is the only signal read — a script with no stage reads
+  // `done` and opens as the editor, as it always did (D3).
+  const setupStage = useScriptSetupStage(refId);
+  const setupConfig = useScriptSetupFlow({ scriptId: refId });
 
   useDocumentUndoShortcuts({
     active,
@@ -144,6 +155,10 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   // copy lands looks like a script with no lines.
   if (loadState !== "ready") {
     return <DocumentLoadStatus state={loadState} label="script" />;
+  }
+
+  if (setupStage !== "done") {
+    return <SetupFlow config={setupConfig} />;
   }
 
   // On mobile the fixed 320px side dock would crush the document, so the cast

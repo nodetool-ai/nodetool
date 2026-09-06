@@ -71,6 +71,8 @@ import { TracksRegion } from "./Tracks/TracksRegion";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
+import { VideoLandingStrip } from "../setup/video/VideoLandingStrip";
+import { useReattachSequenceJobs } from "../../hooks/timeline/useReattachSequenceJobs";
 import { PreviewArea } from "./preview/PreviewArea";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
 import { SourceViewerPanel } from "./SourceViewerPanel";
@@ -507,6 +509,8 @@ const TimelineEditorBody: React.FC<
   // Register the ui_timeline_* agent tools against this instance, addressable
   // by sequence id whether or not this editor is the focused surface.
   useTimelineAgentBridge(sequenceId ?? null);
+  // Clips generated while this sequence was closed still land on it (§ 8.4).
+  useReattachSequenceJobs(sequenceId ?? null);
 
   // Data fetching ─────────────────────────────────────────────────────────
   const { data: sequence, isLoading, isError, refetch } =
@@ -806,6 +810,11 @@ const TimelineEditorBody: React.FC<
         activitySlot={activitySlot}
       />
       {conflictBanner}
+      {/* The guided video flow's landing strip: progress, retries and next
+       *  steps. Renders nothing on a sequence that never went through it. */}
+      <VideoLandingStrip
+        onExport={sequenceUnavailable ? undefined : handleExportVideo}
+      />
       <SaveToFolderMenu
         anchorEl={saveAssetAnchor}
         open={!!saveAssetAnchor}

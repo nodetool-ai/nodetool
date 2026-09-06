@@ -6,6 +6,7 @@
  */
 
 import { type BlendMode, coerceBlendMode } from "@nodetool-ai/gpu";
+import type { SketchSetup } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import type {
   ToolSettings,
   EraserSettings,
@@ -318,6 +319,12 @@ export interface SketchDocument {
   activeLayerId: string;
   maskLayerId: string | null;
   toolSettings: ToolSettings;
+  /**
+   * Guided-image-flow state (PRD § 10.5). Absent on every document that never
+   * entered the flow, and read as stage `done` when it is — the stage is
+   * persisted, never inferred from content (D3).
+   */
+  setup?: SketchSetup;
   metadata: {
     createdAt: string;
     updatedAt: string;

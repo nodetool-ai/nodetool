@@ -138,6 +138,7 @@ const PAIRS: Array<[string, () => Tool]> = [
     () => toolForCapabilityName("assemble_script_timeline")
   ],
   ["edit_script", () => toolForCapabilityName("edit_script")],
+  ["write_script", () => toolForCapabilityName("write_script")],
   [
     "derive_storyboard_from_script",
     () => toolForCapabilityName("derive_storyboard_from_script")
@@ -155,6 +156,7 @@ describe("scripts capability module", () => {
       "voice_script_lines",
       "assemble_script_timeline",
       "edit_script",
+      "write_script",
       "derive_storyboard_from_script",
       "delete_script"
     ]);
@@ -530,6 +532,208 @@ describe("scripts capability behaviour", () => {
       expect(result.failed).toBe(1);
       expect(result.ops[0].error).toContain("has no voice");
     });
+  });
+
+  // ── The guided flow, headlessly (PRD § 9.6, criterion 6) ────────────────
+
+  it("writes the guided setup and refuses a stage that is not one of the five", async () => {
+    const row = await makeScript([line({ id: "l1", speakerId: "sp1" })]);
+    const result = (await run(ctx().context).invoke("edit_script", {
+      script_id: row.id,
+      ops: [
+        {
+          op: "set_setup",
+          stage: "format",
+          brief: "How tide clocks work",
+          format: "voiceover",
+          length_seconds: 60,
+          pace: "slow",
+          language: "German"
+        },
+        { op: "set_setup", stage: "voicing" }
+      ]
+    })) as { applied: number; failed: number; ops: Array<{ error?: string }> };
+
+    expect(result).toMatchObject({ applied: 1, failed: 1 });
+    expect(result.ops[1].error).toContain("stage must be one of");
+    const saved = (await Script.findById(row.id))!.toDocument();
+    expect(saved.setup).toEqual({
+      stage: "format",
+      brief: "How tide clocks work",
+      format: "voiceover",
+      length_seconds: 60,
+      pace: "slow",
+      language: "German"
+    });
+  });
+
+  it("writes lines from the brief, records no take, and moves the stage on", async () => {
+    const row = await makeScript([]);
+    await run(ctx().context).invoke("edit_script", {
+      script_id: row.id,
+      ops: [
+        {
+          op: "set_setup",
+          stage: "format",
+          brief: "Two people argue about a failed product",
+          format: "dialogue"
+        }
+      ]
+    });
+
+    const generateMessage = vi.fn(async () => ({
+      toolCalls: [
+        {
+          name: "script",
+          args: {
+            speakers: [{ name: "Ana" }, { name: "Ben" }],
+            sections: [
+              {
+                title: "Scene",
+                lines: [
+                  { speaker: "Ana", text: "We shipped it anyway." },
+                  { speaker: "Ben", text: "That was the problem." }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }));
+    const context = {
+      userId: "u1",
+      getProvider: vi.fn(async () => ({ generateMessage }))
+    } as unknown as ProcessingContext;
+
+    const result = (await run(context).invoke("write_script", {
+      script_id: row.id,
+      provider: "anthropic",
+      model: "claude-sonnet-5"
+    })) as {
+      cast: Array<{ name: string }>;
+      lines: Array<{ text: string; take_count: number }>;
+    };
+
+    expect(result.cast.map((speaker) => speaker.name)).toEqual(["Ana", "Ben"]);
+    expect(result.lines.map((l) => l.text)).toEqual([
+      "We shipped it anyway.",
+      "That was the problem."
+    ]);
+    // The writer plans; voice_script_lines spends (criterion 3).
+    expect(result.lines.every((l) => l.take_count === 0)).toBe(true);
+    const saved = (await Script.findById(row.id))!.toDocument();
+    expect(saved.setup?.stage).toBe("review");
+  });
+
+  it("keeps imported words verbatim however the model answers", async () => {
+    const row = await makeScript([]);
+    const imported =
+      "We shipped it on a Tuesday.\nEleven people used it that week.";
+    // A model that ignored the schema and sent back its own, tighter prose.
+    const generateMessage = vi.fn(async () => ({
+      toolCalls: [
+        {
+          name: "script_attribution",
+          args: {
+            speakers: [{ name: "Founder" }],
+            lines: [
+              { number: 1, speaker: "Founder", text: "We shipped Tuesday." },
+              { number: 2, speaker: "Founder", text: "Eleven users." }
+            ]
+          }
+        }
+      ]
+    }));
+    const context = {
+      userId: "u1",
+      getProvider: vi.fn(async () => ({ generateMessage }))
+    } as unknown as ProcessingContext;
+
+    const result = (await run(context).invoke("write_script", {
+      script_id: row.id,
+      provider: "anthropic",
+      model: "claude-sonnet-5",
+      imported_text: imported
+    })) as { lines: Array<{ text: string }>; imported: boolean };
+
+    expect(result.imported).toBe(true);
+    expect(result.lines.map((l) => l.text)).toEqual([
+      "We shipped it on a Tuesday.",
+      "Eleven people used it that week."
+    ]);
+  });
+
+  it("keeps the takes of a line a rewrite retained", async () => {
+    const row = await makeScript([
+      line({
+        id: "l1",
+        speakerId: "sp1",
+        text: "First",
+        takes: [
+          {
+            id: "t1",
+            assetId: "a1",
+            durationMs: 500,
+            words: [],
+            textSnapshot: "First",
+            voiceSnapshot: VOICE,
+            createdAt: "2026-01-01T00:00:00.000Z"
+          }
+        ],
+        currentTakeId: "t1"
+      })
+    ]);
+    await run(ctx().context).invoke("edit_script", {
+      script_id: row.id,
+      ops: [{ op: "set_setup", stage: "review", brief: "Tighten it" }]
+    });
+
+    const generateMessage = vi.fn(async () => ({
+      toolCalls: [
+        {
+          name: "script",
+          args: {
+            speakers: [{ name: "Narrator" }],
+            sections: [
+              {
+                title: "Main",
+                lines: [
+                  { id: "l1", speaker: "Narrator", text: "First, tightened." },
+                  { speaker: "Narrator", text: "And a new one." }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }));
+    const context = {
+      userId: "u1",
+      getProvider: vi.fn(async () => ({ generateMessage }))
+    } as unknown as ProcessingContext;
+
+    const result = (await run(context).invoke("write_script", {
+      script_id: row.id,
+      provider: "anthropic",
+      model: "claude-sonnet-5",
+      rewrite: true
+    })) as { lines: Array<{ id: string; take_count: number }> };
+
+    expect(result.lines[0]).toMatchObject({ id: "l1", take_count: 1 });
+    expect(result.lines[1].take_count).toBe(0);
+    // The cast the script already had is reused, so its voice binding holds.
+    const saved = (await Script.findById(row.id))!.toDocument();
+    expect(saved.cast[0]).toMatchObject({ id: "sp1", voice: VOICE });
+  });
+
+  it("refuses to write a script with no brief and no imported text", async () => {
+    const row = await makeScript([]);
+    const result = (await run(ctx().context).invoke("write_script", {
+      script_id: row.id,
+      provider: "anthropic",
+      model: "claude-sonnet-5"
+    })) as { error?: string };
+    expect(result.error).toContain("no brief");
   });
 
   // A provider and a model with no voice is the shape a caller sends meaning

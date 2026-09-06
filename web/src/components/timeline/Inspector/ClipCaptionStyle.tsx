@@ -22,7 +22,13 @@ import ClosedCaptionOutlinedIcon from "@mui/icons-material/ClosedCaptionOutlined
 import type { CaptionStyle, TimelineClip } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { CollapsibleSection, FlexColumn, TextInput } from "../../ui_primitives";
+import {
+  CollapsibleSection,
+  FlexColumn,
+  SPACING,
+  TextInput,
+  getSpacingPx
+} from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
 import {
   InspectorDivider,
@@ -36,8 +42,8 @@ const sectionContentStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: 2,
-    padding: theme.spacing(0.5, 0, 2)
+    gap: getSpacingPx(SPACING.micro),
+    padding: theme.spacing(SPACING.micro, SPACING.none, SPACING.md)
   });
 
 /** The colours `drawCaption` falls back to, so the swatches show what renders. */
