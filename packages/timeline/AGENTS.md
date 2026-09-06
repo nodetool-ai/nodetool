@@ -252,6 +252,16 @@
   regenerated under the matte, or its window can grow past the source the
   generation covered. `isGeneratedMatteStale` decides both, in one place, for
   the editor and for the validator's `generated_matte_stale`.
+- **The capability that generates one never loses the matte already there.**
+  `isolate_subject` (`packages/agents/src/capabilities/timeline-isolate-subject.ts`)
+  marks the clip `status: "generating"` while keeping the current `assetId` and
+  `versions`, and on a failure or a cancel it puts the previous ready result
+  back — same asset, same versions, same knobs — so a regenerate the provider
+  drops costs nothing but the call. Only a clip that had no matte at all is
+  left with a `failed` marker. It sends the whole source asset, because the
+  mask is read at the clip's own source time and a trimmed submission would
+  need an offset the document does not carry. The knobs afterwards are the
+  `set_generated_matte` op, which both hosts run through the helpers here.
 - **The scene model resolves it into the same `matte` slot a track matte uses**
   (`mode: "luma"`, plus `strength` and `featherPx`), with the keyhole carrying
   the layer's own clip, placement and source time and none of its look — so both

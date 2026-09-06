@@ -984,6 +984,110 @@ export const bakeAudioAnimationSpec: CapabilitySpec = {
     `Baking ${String(params["property"])} from audio onto ${String(params["target_clip_id"])}`
 };
 
+// ---------------------------------------------------------------------------
+// isolate_subject
+// ---------------------------------------------------------------------------
+
+/**
+ * The provider identity and the two enums live here, with the schema that
+ * advertises them, rather than beside the runner in
+ * `timeline-isolate-subject.ts`: this file is the eager half of the module and
+ * imports nothing heavy, and a second copy of an enum is a second thing to get
+ * wrong.
+ */
+export const ISOLATE_SUBJECT_ENDPOINT = "fal-ai/birefnet/v2/video";
+
+/** The node that calls it, resolved from the run's registry. */
+export const ISOLATE_SUBJECT_NODE_TYPE = "fal.video_to_video.BiRefNetV2Video";
+
+export const ISOLATE_SUBJECT_PROVIDER = "fal";
+
+/** The endpoint's `model` enum, as it spells the values. */
+export const ISOLATE_SUBJECT_MODELS = [
+  "General Use (Light)",
+  "General Use (Light 2K)",
+  "General Use (Heavy)",
+  "Matting",
+  "Portrait",
+  "General Use (Dynamic)"
+] as const;
+
+export const DEFAULT_ISOLATE_SUBJECT_MODEL = "General Use (Light)";
+
+/** `2304x2304` is only accepted by the dynamic model, which the endpoint enforces. */
+export const ISOLATE_SUBJECT_RESOLUTIONS = [
+  "1024x1024",
+  "2048x2048",
+  "2304x2304"
+] as const;
+
+export const DEFAULT_ISOLATE_SUBJECT_RESOLUTION = "1024x1024";
+
+export const ISOLATE_SUBJECT_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: { type: "string", description: "Timeline sequence id." },
+    clip_id: {
+      type: "string",
+      description:
+        'The video clip to cut the subject out of — id, name, or "selected". ' +
+        "The matte is carried on that clip, so trimming, splitting or moving " +
+        "it keeps the cutout aligned with no second clip to keep in sync."
+    },
+    model: {
+      type: "string",
+      enum: [...ISOLATE_SUBJECT_MODELS],
+      description:
+        `Segmentation model. Default "${DEFAULT_ISOLATE_SUBJECT_MODEL}" — ` +
+        '"Matting" for hair and soft edges, "Portrait" for people.'
+    },
+    operating_resolution: {
+      type: "string",
+      enum: [...ISOLATE_SUBJECT_RESOLUTIONS],
+      description:
+        `Resolution the segmentation runs at. Default "${DEFAULT_ISOLATE_SUBJECT_RESOLUTION}". ` +
+        'Higher is more accurate on high-res footage; "2304x2304" needs the ' +
+        'dynamic model.'
+    },
+    refine_foreground: {
+      type: "boolean",
+      description: "Refine the foreground against the estimated mask. Default true."
+    },
+    regenerate: {
+      type: "boolean",
+      description:
+        "Default false: a clip that already has a ready, current matte gets " +
+        "it back without spending anything. True always runs the provider, " +
+        "keeping the previous result in the version list."
+    },
+    background: {
+      type: "boolean",
+      description:
+        "Start the generation and return a generation_id instead of waiting. " +
+        "Collect it with await_generation, or read the clip back once it settles."
+    }
+  },
+  required: ["timeline_id", "clip_id"]
+};
+
+export const isolateSubjectSpec: CapabilitySpec = {
+  name: "isolate_subject",
+  description:
+    "Cut the subject out of a video clip and carry the cutout as that clip's " +
+    "own matte, so everything behind it can be replaced. The mask is " +
+    "generated from the clip's whole source and read back at the clip's own " +
+    "source time, which is what lets a later trim, split or speed change " +
+    "keep it aligned. A clip that already has a current cutout is handed it " +
+    "back for free unless `regenerate` is set, and a regenerate that fails " +
+    "leaves the working matte in place. Adjust the result — invert, " +
+    "strength, feather, or an earlier version — with set_generated_matte; " +
+    "use set_matte instead for a keyhole authored from another clip.",
+  inputSchema: ISOLATE_SUBJECT_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Isolating the subject in ${String(params["clip_id"])}`
+};
+
 export const deleteTimelineSpec: CapabilitySpec = {
   name: "delete_timeline",
   description:
@@ -1021,5 +1125,6 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   compareTimelineFramesSpec,
   renderTimelineSpec,
   bakeAudioAnimationSpec,
+  isolateSubjectSpec,
   deleteTimelineSpec
 ];

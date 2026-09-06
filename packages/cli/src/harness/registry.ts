@@ -137,6 +137,21 @@ const TIMELINE_AUDIO_DRIVE_SUITES =
   "npm run test --workspace=packages/agents -- timeline-audio-drive-demo capabilities-bake-audio-animation";
 
 /**
+ * The generated-matte suites: the pure helpers a clip's own cutout is written
+ * and re-selected through, the way the scene model resolves one into a luma
+ * keyhole, `isolate_subject`'s document state machine (with a fake runner —
+ * the provider is never called), the op/bridge parity for
+ * `set_generated_matte`, and the HTTP door the inspector posts to. One
+ * constant so the entry's `command` and its `selfcheck` cannot drift.
+ *
+ * Vitest takes these positional arguments as file-path filters.
+ */
+const TIMELINE_GENERATED_MATTE_SUITES =
+  "npm run test --workspace=packages/timeline -- generatedMatte && " +
+  "npm run test --workspace=packages/agents -- capabilities-isolate-subject timeline-op-parity && " +
+  "npm run test --workspace=packages/websocket -- timeline-isolate-subject-route";
+
+/**
  * The per-capability contract suites. One constant because the entry's
  * `command` and its `selfcheck` must not drift — a selfcheck that runs less
  * than the command it stands for reports green on code it never executed.
@@ -333,6 +348,23 @@ export const HARNESSES: HarnessEntry[] = [
     agentTool: "bake_audio_animation",
     docs: "docs/harnesses.md § Audio-driven timeline motion",
     selfcheck: { command: TIMELINE_AUDIO_DRIVE_SUITES, cost: "cheap" }
+  },
+  {
+    id: "timeline-generated-matte",
+    title: "Generated mattes (isolate_subject → the clip's own luma keyhole)",
+    // No CLI command owns it: the surface is the `isolate_subject` capability,
+    // the `set_generated_matte` op both hosts write the knobs through, and the
+    // scene model that resolves the result into a keyhole. The provider is
+    // never called — the capability takes its runner as a dependency, and the
+    // checked-in suites drive it with a fake one, so what is actually asserted
+    // is the document: which matte is current, what status it carries, and
+    // that a failed regenerate leaves the working one in place.
+    command: TIMELINE_GENERATED_MATTE_SUITES,
+    kind: "static",
+    capabilities: ["no-db"],
+    agentTool: "isolate_subject",
+    docs: "docs/harnesses.md § Generated mattes",
+    selfcheck: { command: TIMELINE_GENERATED_MATTE_SUITES, cost: "cheap" }
   },
   {
     id: "sketch-validate",
@@ -941,6 +973,19 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/timeline/src/animation/",
       "packages/agents/src/capabilities/timeline-audio-bake.ts",
       "packages/agents/src/capabilities/analysis.ts"
+    ]
+  },
+  {
+    id: "timeline-generated-matte",
+    title: "Generated mattes (isolate_subject, set_generated_matte)",
+    harnesses: ["timeline-generated-matte", "capability-suites"],
+    // Overlaps the wholesale claims on `packages/timeline/` (surface
+    // `timeline`) and `packages/agents/` (surface `workflow-authoring`), so a
+    // diff here runs their checks too.
+    paths: [
+      "packages/timeline/src/generatedMatte.ts",
+      "packages/agents/src/capabilities/timeline-isolate-subject.ts",
+      "packages/websocket/src/routes/timeline-isolate-subject.ts"
     ]
   },
   {

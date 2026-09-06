@@ -699,6 +699,35 @@ pins the arithmetic itself — the two clock hops from audio-source time through
 timeline time to the target clip's own source time — with a synthesized WAV
 and no network.
 
+### Generated mattes
+
+`isolate_subject` cuts the subject out of a video clip and carries the mask on
+that clip as `generatedMatte` (D2), so a trim, a split or a speed change keeps
+the cutout aligned with no second clip to sync. It sends the clip's **whole**
+source asset to `fal-ai/birefnet/v2/video` with `output_mask: true`, downloads
+the grayscale mask through `fetchExternalMedia` — the media-egress door, https
+to a public host with every redirect hop re-checked — and stores it as an
+asset; the mask is read back at the clip's own source time, which is why a
+submission trimmed to the clip's window would need an offset the document does
+not carry. A clip that already has a current cutout is handed it back with
+`reused: true` and nothing is spent; a matte whose source asset was replaced
+under it is stale and is regenerated instead. The knobs on the result — invert,
+strength, feather, and putting an earlier version back — are the free
+`set_generated_matte` op, which both the headless bridge and `applyTimelineOp`
+run through the same helpers in `packages/timeline/src/generatedMatte.ts`.
+
+The provider is never called in a check. `isolateSubjectOnClip`
+(`packages/agents/src/capabilities/timeline-isolate-subject.ts`) takes its
+runner, its mask store and its persist step as dependencies, so
+`capabilities-isolate-subject.test.ts` drives the whole state machine with a
+fake runner and asserts the document: the in-flight write keeps the previous
+asset visible, a finished run pushes the displaced result onto `versions` and
+keeps the user's own knobs, and a **failed regenerate leaves the previous ready
+matte selected** rather than costing the user a working cutout. The HTTP door
+the inspector posts to is `POST /api/timelines/:id/isolate-subject`
+(`timeline-isolate-subject-route.test.ts`), which is the capability's inputs
+minus `timeline_id`.
+
 ### nodetool timeline versions (Timeline Version History)
 
 `timeline versions` reads and writes a sequence's snapshot history against the

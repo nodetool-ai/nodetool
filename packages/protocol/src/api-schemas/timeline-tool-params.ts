@@ -823,6 +823,56 @@ export const matteParams = z.object({
 export type MatteParams = z.infer<typeof matteParams>;
 
 /**
+ * The knobs on a matte generated from the clip's own source (D2).
+ *
+ * Generating one is `isolate_subject`, a paid provider call. This is what a
+ * person does with the result: invert the keyhole, ease its strength, feather
+ * its edge, go back to the version before the last regenerate, throw it away.
+ * Every field is optional and an absent one leaves the stored value alone;
+ * `clear` wins over the rest, then `selectVersionAssetId`, then the knobs.
+ */
+export const setGeneratedMatteParams = z.object({
+  target: targetParam,
+  invert: z
+    .boolean()
+    .optional()
+    .describe("Keep what the matte excludes instead of what it covers."),
+  strength: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe("Multiplier on the matte's alpha. 1 is the full cutout, 0 none."),
+  featherPx: z
+    .number()
+    .min(0)
+    .optional()
+    .describe(
+      "Soften the cutout edge, in source px. GPU only — the Canvas 2D compositor draws the edge hard and reports it."
+    ),
+  selectVersionAssetId: z
+    .string()
+    .optional()
+    .describe(
+      "Make a stored version current, by its mask asset id. A version that is not in the list is a no-op."
+    ),
+  clear: z
+    .boolean()
+    .optional()
+    .describe("Remove the generated matte, stored versions and all.")
+});
+
+export type SetGeneratedMatteParams = z.infer<typeof setGeneratedMatteParams>;
+
+export const SET_GENERATED_MATTE_DESCRIPTION =
+  "Adjust the matte isolate_subject cut from a clip's own source: invert it, " +
+  "ease its strength, feather its edge, put an earlier version back, or " +
+  "clear it. This does not generate anything and costs nothing — " +
+  "isolate_subject is the call that runs the provider. Fields you leave out " +
+  "keep the value they have, so one call can change strength alone. Use " +
+  "set_matte instead for a keyhole authored from another clip's picture.";
+
+/**
  * A time-remap curve: where in the source each instant of the clip sits (D13).
  *
  * `t` is normalized over the clip's own window, so the curve has to span it —

@@ -48,6 +48,7 @@ import {
   mediaTypeForContentType,
   trackTypeForMediaType
 } from "../defaults.js";
+import { selectGeneratedMatteVersion } from "../generatedMatte.js";
 import { computeModel3DBakeHash } from "../model3dBake.js";
 import {
   model3dStyleWithPatch,
@@ -1111,6 +1112,38 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
       if (op.matte.invert !== undefined) matteOut.invert = op.matte.invert;
       clip.matte = matteOut;
       return { ok: true, clip: scope.clipOut(clip) };
+    }
+
+    case "set_generated_matte": {
+      const clip = scope.resolveClip(op.target);
+      scope.touch(clip.id);
+      if (op.clear === true) {
+        delete clip.generatedMatte;
+        return { ok: true, clip: scope.clipOut(clip), generatedMatte: null };
+      }
+      if (!clip.generatedMatte) {
+        throw new Error(
+          `"${clip.name}" carries no generated matte. Run isolate_subject on ` +
+            "it first; this op only adjusts one that exists."
+        );
+      }
+      if (op.selectVersionAssetId !== undefined) {
+        clip.generatedMatte = selectGeneratedMatteVersion(
+          clip,
+          op.selectVersionAssetId
+        ).generatedMatte;
+      }
+      // The knobs are the user's, so an absent field leaves the stored value
+      // alone rather than resetting it to a default the caller did not name.
+      const matte = clip.generatedMatte!;
+      if (op.invert !== undefined) matte.invert = op.invert;
+      if (op.strength !== undefined) {
+        matte.strength = Math.min(1, Math.max(0, op.strength));
+      }
+      if (op.featherPx !== undefined) {
+        matte.featherPx = Math.max(0, op.featherPx);
+      }
+      return { ok: true, clip: scope.clipOut(clip), generatedMatte: matte };
     }
 
     case "set_time_remap": {

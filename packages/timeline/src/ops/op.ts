@@ -220,6 +220,31 @@ export interface SetMatteOp {
   matte: MatteParams | null;
 }
 
+/**
+ * The free half of a generated matte: the knobs, the version list, the delete.
+ *
+ * Cutting the subject out is `isolate_subject`, a paid provider call. What a
+ * person does afterwards — invert the keyhole, ease its strength, feather its
+ * edge, go back to the version before the last regenerate, throw it away — is
+ * this op, so the editor and an agent reach the same helpers in
+ * `generatedMatte.ts` instead of each writing the field.
+ *
+ * Every field is optional and applied in one order: `clear` wins outright,
+ * then `selectVersionAssetId`, then the knobs.
+ */
+export interface SetGeneratedMatteOp {
+  op: "set_generated_matte";
+  target: string;
+  invert?: boolean;
+  /** 0..1 multiplier on the matte's alpha. */
+  strength?: number;
+  featherPx?: number;
+  /** Make a stored version current. One that is not in the list is a no-op. */
+  selectVersionAssetId?: string;
+  /** Remove the matte, versions and all. */
+  clear?: boolean;
+}
+
 export interface SetTimeRemapOp {
   op: "set_time_remap";
   target: string;
@@ -354,6 +379,7 @@ export type TimelineOp =
   | SetTransitionOp
   | SetMaskOp
   | SetMatteOp
+  | SetGeneratedMatteOp
   | SetTimeRemapOp
   | SetEffectsOp
   | SetClipBindingOp
@@ -398,6 +424,7 @@ export const TIMELINE_OP_NAMES = [
   "set_transition",
   "set_mask",
   "set_matte",
+  "set_generated_matte",
   "set_time_remap",
   "set_effects",
   "set_clip_binding",

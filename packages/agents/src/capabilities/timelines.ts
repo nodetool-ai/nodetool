@@ -31,6 +31,7 @@ import type {
   TimelineBridgeFinalState
 } from "../evals/surfaces/timeline.js";
 import type { BakeCustomAnimationParams } from "../custom-animation-bake.js";
+import type { IsolateSubjectInput } from "./timeline-isolate-subject.js";
 import type { SavedOutput } from "../tools/asset-persist.js";
 import type {
   CapabilityExport,
@@ -53,6 +54,11 @@ import {
   compareTimelineFramesSpec,
   renderTimelineSpec,
   bakeAudioAnimationSpec,
+  isolateSubjectSpec,
+  ISOLATE_SUBJECT_MODELS,
+  ISOLATE_SUBJECT_RESOLUTIONS,
+  DEFAULT_ISOLATE_SUBJECT_MODEL,
+  DEFAULT_ISOLATE_SUBJECT_RESOLUTION,
   DEFAULT_BAKE_ATTACK_MS,
   DEFAULT_BAKE_RELEASE_MS,
   DEFAULT_BAKE_TOLERANCE,
@@ -2292,6 +2298,174 @@ const bakeAudioAnimation: CapabilityExport = {
   }
 };
 
+// ---------------------------------------------------------------------------
+// isolate_subject
+// ---------------------------------------------------------------------------
+
+/** One of `allowed`, or the default when the caller named none of them. */
+function enumOr(
+  value: unknown,
+  allowed: readonly string[],
+  fallback: string
+): string | ToolError {
+  if (value === undefined || value === null) return fallback;
+  if (isString(value) && allowed.includes(value)) return value;
+  return {
+    error: `"${String(value)}" is not one of: ${allowed.join(", ")}.`
+  };
+}
+
+/**
+ * Cut the subject out of a clip's own source and carry the mask on that clip.
+ *
+ * The document work is `isolateSubjectOnClip`; everything here is the wiring
+ * it refuses to know about — the sequence row, the CAS save, the node registry
+ * the provider call needs, and the background receipt. The save closure
+ * carries `updated_at` forward, so the in-flight write and the settled write
+ * are two CAS updates rather than one lost one.
+ */
+const isolateSubject: CapabilityExport = {
+  spec: isolateSubjectSpec,
+  impl: async (run, params) => {
+    const timelineId = params["timeline_id"];
+    if (!isString(timelineId) || !timelineId) {
+      return {
+        error: "timeline_id is required (use list_timelines to find one)."
+      };
+    }
+    const registry = run.nodeRegistry;
+    if (!registry) {
+      const { noRegistryError } = await import("../tools/mcp-tool-support.js");
+      return noRegistryError("isolate a subject");
+    }
+    const model = enumOr(
+      params["model"],
+      ISOLATE_SUBJECT_MODELS,
+      DEFAULT_ISOLATE_SUBJECT_MODEL
+    );
+    if (isError(model)) return model;
+    const resolution = enumOr(
+      params["operating_resolution"],
+      ISOLATE_SUBJECT_RESOLUTIONS,
+      DEFAULT_ISOLATE_SUBJECT_RESOLUTION
+    );
+    if (isError(resolution)) return resolution;
+    const settings = {
+      model,
+      operating_resolution: resolution,
+      refine_foreground: params["refine_foreground"] !== false
+    };
+
+    const { TimelineSequence } = await import("@nodetool-ai/models");
+    const sequence = await TimelineSequence.findById(timelineId);
+    if (!sequence || sequence.user_id !== run.context.userId) {
+      return { error: `Timeline ${timelineId} was not found.` };
+    }
+    const document: TimelineDocument = sequence.toDocument();
+    const clip = findClip(document.clips, params["clip_id"], "clip_id");
+    if (isError(clip)) return clip;
+
+    // The asset row is the only statement of how long the source runs; a row
+    // without one falls back to the clip's own window inside the state
+    // machine, which is still an interval the generation covered.
+    let sourceDurationMs: number | undefined;
+    const userId = run.context.userId;
+    if (isString(clip.currentAssetId) && clip.currentAssetId && userId) {
+      const { Asset } = await import("@nodetool-ai/models");
+      const asset = await Asset.find(userId, clip.currentAssetId);
+      if (asset && isFiniteNumber(asset.duration) && asset.duration > 0) {
+        sourceDurationMs = Math.round(asset.duration * 1000);
+      }
+    }
+
+    const {
+      contextMaskStore,
+      falIsolateSubjectRunner,
+      isolateSubjectOnClip
+    } = await import("./timeline-isolate-subject.js");
+
+    const { randomUUID } = await import("node:crypto");
+    const generationId = randomUUID();
+
+    let expectedUpdatedAt = sequence.updated_at;
+    const persist = async (next: TimelineClipShape): Promise<boolean> => {
+      const clips = document.clips.map((c) => (c.id === next.id ? next : c));
+      const saved = await TimelineSequence.updateDocumentIfUnchanged(
+        timelineId,
+        expectedUpdatedAt,
+        { ...document, clips },
+        {
+          ops: [
+            {
+              tool: `${TOOL_PREFIX}set_generated_matte`,
+              input: { id: next.id, target: next.id }
+            }
+          ]
+        }
+      );
+      if (!saved) return false;
+      document.clips = clips;
+      expectedUpdatedAt = saved.updated_at;
+      return true;
+    };
+
+    const deps = {
+      runner: falIsolateSubjectRunner(run.context, registry, generationId),
+      storeMask: contextMaskStore(run.context),
+      persist
+    };
+    const input: IsolateSubjectInput = {
+      clip,
+      settings,
+      regenerate: params["regenerate"] === true
+    };
+    if (sourceDurationMs !== undefined) {
+      input.sourceDurationMs = sourceDurationMs;
+    }
+
+    if (params["background"] === true) {
+      const { startBackgroundGeneration, backgroundGenerationLimitError } =
+        await import("./background-generation.js");
+      const started = startBackgroundGeneration(run.context, () =>
+        isolateSubjectOnClip(deps, input)
+      );
+      if (!started) return backgroundGenerationLimitError();
+      return {
+        timeline_id: timelineId,
+        clip_id: clip.id,
+        generation_id: generationId,
+        // The clip's own matte status, which is what the caller reads back —
+        // the generation row carries `running` for `await_generation`.
+        status: "generating",
+        background: true,
+        next:
+          "Call await_generation with this generation_id, or read the clip " +
+          "back with get_timeline once it settles."
+      };
+    }
+
+    const settled = await isolateSubjectOnClip(deps, input);
+    // A refusal carries only `error`; an outcome always carries `status`,
+    // including the failed one that kept the previous matte.
+    if (!("status" in settled)) return settled;
+
+    const result: Record<string, unknown> = {
+      timeline_id: timelineId,
+      clip_id: clip.id,
+      status: settled.status,
+      source_range: settled.sourceRange,
+      reused: settled.reused
+    };
+    if (settled.assetId !== undefined) result["asset_id"] = settled.assetId;
+    if (settled.generationId !== undefined) {
+      result["generation_id"] = settled.generationId;
+    }
+    if (settled.costUsd !== undefined) result["cost_usd"] = settled.costUsd;
+    if (settled.error !== undefined) result["error"] = settled.error;
+    return result;
+  }
+};
+
 const deleteTimeline: CapabilityExport = {
   spec: deleteTimelineSpec,
   impl: async (run, params) => {
@@ -2321,6 +2495,7 @@ export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   compareTimelineFrames,
   renderTimeline,
   bakeAudioAnimation,
+  isolateSubject,
   deleteTimeline
 ];
 
@@ -2345,5 +2520,6 @@ export {
   compareTimelineFrames,
   renderTimeline,
   bakeAudioAnimation,
+  isolateSubject,
   deleteTimeline
 };

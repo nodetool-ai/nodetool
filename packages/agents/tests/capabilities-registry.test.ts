@@ -192,6 +192,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   http_request: "external",
   image_search: "read",
   invoke_node: "execute",
+  isolate_subject: "write",
   list_apps: "read",
   list_assets: "read",
   list_collections: "read",

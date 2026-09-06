@@ -843,9 +843,12 @@ export const BROWSER_ONLY_TIMELINE_TOOL_NAMES = [
  * reads a stored composition library the browser editor does not expose to the
  * agent. `ui_timeline_set_baked_animation` writes the curve a server-side bake
  * measured (`bake_audio_animation`); the editor writes curves through the
- * inspector, not through an agent call.
+ * inspector, not through an agent call. `ui_timeline_set_generated_matte` is
+ * the same story for the matte `isolate_subject` cuts: the inspector's own
+ * controls write the invert, strength and feather straight into the store.
  */
 export const HEADLESS_ONLY_TIMELINE_TOOL_NAMES = [
   "ui_timeline_insert_composition",
-  "ui_timeline_set_baked_animation"
+  "ui_timeline_set_baked_animation",
+  "ui_timeline_set_generated_matte"
 ] as const;

@@ -2029,6 +2029,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "isolate_subject",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "585af96e9fe9",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-isolate-subject.test.ts",
+    ],
+  },
+  {
     name: "delete_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",

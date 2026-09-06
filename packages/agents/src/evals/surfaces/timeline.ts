@@ -94,6 +94,7 @@ import {
   visibleNotes,
   rescaleClipsForTempo,
   resolveTempo,
+  selectGeneratedMatteVersion,
   type MidiInstrument,
   type MidiNote,
   type QuantizeDivision,
@@ -126,6 +127,9 @@ import {
   setBakedAnimationParams,
   type BakedAnimationParams,
   SET_BAKED_ANIMATION_DESCRIPTION,
+  setGeneratedMatteParams,
+  type SetGeneratedMatteParams,
+  SET_GENERATED_MATTE_DESCRIPTION,
   textStyleParams,
   textStylePatchParams,
   transitionParams,
@@ -1900,6 +1904,48 @@ export function createTimelineToolBridge(
         if (input.invert !== undefined) matteOut.invert = input.invert;
         clip.matte = matteOut;
         return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    // Headless-only: the inspector's own controls write these knobs into the
+    // store. Both this and the ops module's `set_generated_matte` reach
+    // `selectGeneratedMatteVersion`, so the version list cannot fork.
+    tool(
+      "ui_timeline_set_generated_matte",
+      SET_GENERATED_MATTE_DESCRIPTION,
+      setGeneratedMatteParams,
+      async (args) => {
+        const input = args as unknown as SetGeneratedMatteParams;
+        const clip = resolveClip(input.target);
+        if (input.clear === true) {
+          delete clip.generatedMatte;
+          return {
+            ok: true,
+            clip: serializeClip(clip),
+            generatedMatte: null
+          };
+        }
+        if (!clip.generatedMatte) {
+          throw new Error(
+            `"${clip.name}" carries no generated matte. Run isolate_subject ` +
+              "on it first; this op only adjusts one that exists."
+          );
+        }
+        if (input.selectVersionAssetId !== undefined) {
+          clip.generatedMatte = selectGeneratedMatteVersion(
+            clip,
+            input.selectVersionAssetId
+          ).generatedMatte;
+        }
+        const matte = clip.generatedMatte!;
+        if (input.invert !== undefined) matte.invert = input.invert;
+        if (input.strength !== undefined) {
+          matte.strength = Math.min(1, Math.max(0, input.strength));
+        }
+        if (input.featherPx !== undefined) {
+          matte.featherPx = Math.max(0, input.featherPx);
+        }
+        return { ok: true, clip: serializeClip(clip), generatedMatte: matte };
       }
     ),
 

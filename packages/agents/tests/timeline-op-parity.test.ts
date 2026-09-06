@@ -103,7 +103,24 @@ function seedClips(): TimelineClip[] {
       mediaType: "video",
       sourceType: "generated",
       status: "generated",
-      prompt: "a cat"
+      prompt: "a cat",
+      // `set_generated_matte` only adjusts a matte that exists, so one clip
+      // carries a finished generation with a version behind it.
+      generatedMatte: {
+        assetId: "asset_mask_2",
+        sourceAssetId: "asset_src",
+        sourceRange: { fromMs: 0, toMs: 5000 },
+        settings: { model: "Matting" },
+        status: "ready",
+        versions: [
+          {
+            assetId: "asset_mask_1",
+            sourceAssetId: "asset_src",
+            createdAt: "2026-01-01T00:00:00.000Z",
+            settings: { model: "General Use (Light)" }
+          }
+        ]
+      }
     }),
     makeClip({
       id: "clip_m",
@@ -486,6 +503,24 @@ const FIXTURES: Fixture[] = [
         ],
         bakedFrom: { kind: "audio", assetId: "asset_1" }
       }
+    }
+  },
+  {
+    tool: "set_generated_matte",
+    args: {
+      target: "clip_c",
+      invert: true,
+      strength: 0.75,
+      featherPx: 3,
+      selectVersionAssetId: "asset_mask_1"
+    },
+    op: {
+      op: "set_generated_matte",
+      target: "clip_c",
+      invert: true,
+      strength: 0.75,
+      featherPx: 3,
+      selectVersionAssetId: "asset_mask_1"
     }
   },
   {
