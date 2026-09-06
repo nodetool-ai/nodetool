@@ -6,6 +6,7 @@
 **Shipped plan this builds on:** [plans/project-view/PLAN.md](../plans/project-view/PLAN.md) (Phases 0 and 4)
 **Tasks:** [tasks.md](tasks.md)
 **Related:** [creative-agent.md](../creative-agent.md), [agentic-video-product.md](../agentic-video-product.md), [script-storyboard-link/prd.md](../script-storyboard-link/prd.md), [timeline-editor-prd.md](../timeline-editor-prd.md), [image-editor-prd.md](../image-editor-prd.md), [triggers-prd.md](../triggers-prd.md)
+**Sixth flow:** [game-prd.md](game-prd.md) — E6 Game, the guided flow to a Godot project, built on this shell
 
 ---
 
