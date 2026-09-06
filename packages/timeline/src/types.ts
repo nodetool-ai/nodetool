@@ -496,8 +496,17 @@ export type ClipBindingKind =
   | "text-to-audio";
 
 /**
- * What a clip draws. `"group"` carries no media: it is a transform parent its
- * children name with `parentId` (see {@link TimelineClip.parentId}).
+ * What a clip draws. Two members carry no media of their own:
+ *
+ * - `"group"` is a transform parent its children name with `parentId` (see
+ *   {@link TimelineClip.parentId}).
+ * - `"adjustment"` treats the picture beneath it instead of adding one. Its
+ *   `effects` run on the composite of every layer drawn below it inside its
+ *   window, and the treated result blends back over the untreated one with
+ *   its resolved `opacity`; `mask` limits where that lands, `animations`
+ *   drive both. It never draws itself and is never a matte source, so
+ *   `transform` (and with it `borderRadius`, `blendMode`, `matte`) means
+ *   nothing on one — the surface it treats is already placed.
  */
 export type ClipMediaType =
   | "image"
@@ -508,6 +517,7 @@ export type ClipMediaType =
   | "shape"
   | "model3d"
   | "group"
+  | "adjustment"
   | "midi";
 
 /**
@@ -650,7 +660,10 @@ export interface TimelineClip {
   muted?: boolean;
   hidden?: boolean;
   versions: ClipVersion[];
-  /** Opacity in the range [0, 1]. Default: 1. */
+  /**
+   * Opacity in the range [0, 1]. Default: 1. On an `adjustment` clip it is how
+   * much of the treated composite is kept: 1 is fully treated, 0 a no-op.
+   */
   opacity?: number;
   blendMode?: BlendMode;
   /** Playback speed multiplier. Default: 1. */
@@ -677,11 +690,19 @@ export interface TimelineClip {
   shapeStyle?: ClipShapeStyle;
   /** Camera, animation and look for a `model3d` clip. */
   model3dStyle?: ClipModel3DStyle;
-  /** 2D placement on the preview canvas. Default: identity (centered, contain-fit). */
+  /**
+   * 2D placement on the preview canvas. Default: identity (centered,
+   * contain-fit). Ignored on an `adjustment` clip, which draws no picture of
+   * its own: it treats the composite beneath it, already placed.
+   */
   transform?: ClipTransform;
   /** Rounded-corner radius in source pixels. 0 = sharp corners. */
   borderRadius?: number;
-  /** GPU effects applied to this clip in order. */
+  /**
+   * GPU effects applied to this clip in order. On an `adjustment` clip they
+   * run on the composite of the layers beneath it instead of on its own
+   * pixels.
+   */
   effects?: ClipEffect[];
   /**
    * Transition into this clip from the previously-overlapping clip on the
@@ -703,7 +724,11 @@ export interface TimelineClip {
    * error and renders unparented.
    */
   parentId?: string;
-  /** Shape mask applied to this layer before it is blended. */
+  /**
+   * Shape mask applied to this layer before it is blended. On an `adjustment`
+   * clip it is in frame space (the surface being treated) rather than the
+   * layer's own, and limits where the treatment lands.
+   */
   mask?: ClipMask;
   /** Track matte: another clip's alpha or luma drives this layer's alpha. */
   matte?: ClipMatte;

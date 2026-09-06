@@ -158,6 +158,34 @@ export interface FramePrecomposite {
   precomposeGroupId?: string;
 }
 
+/**
+ * An adjustment clip's treatment of the render target beneath it.
+ *
+ * Mirrors `AdjustmentLayer` from the scene model with `trackIndex` already
+ * resolved to a `zIndex`, the way {@link FrameLayer} mirrors `ActiveLayer`. It
+ * uploads no picture: at its `zIndex` the accumulation so far is run through
+ * {@link effects} and the result blends back over it at {@link opacity}.
+ */
+export interface FrameAdjustment<TSource = FrameLayerPixels> {
+  /** Stable across frames for the same clip — keys the treated texture. */
+  id: string;
+  /** Where in the composite order the treatment runs, ascending. */
+  zIndex: number;
+  /** How much of the treated accumulation is kept. 1 fully treated, 0 a no-op. */
+  opacity: number;
+  effects?: ClipEffect[];
+  /**
+   * Where the treatment lands, already rasterized as coverage in alpha — the
+   * host owns a canvas and this does not, the same split a layer's `shapeMask`
+   * takes. `invert` is baked into the raster.
+   */
+  shapeMask?: TSource;
+  /** An animated wipe limiting the treatment, as it limits a layer. */
+  wipe?: AnimationSampleMask;
+  /** The precomposite texture this treats instead of the frame. */
+  precomposeGroupId?: string;
+}
+
 /** A layer with its source texture resolved — the shape a blend pass consumes. */
 interface ResolvedLayer {
   texture: GPUTexture;
@@ -168,6 +196,40 @@ interface ResolvedLayer {
   borderRadius: number;
   mask?: AnimationSampleMask;
 }
+
+/**
+ * An adjustment with its coverage resolved — a treatment the blend loop runs on
+ * whatever it has accumulated, rather than a texture it was handed.
+ *
+ * `kind` is what separates it from a {@link ResolvedLayer} in the stack: the
+ * two travel in one array so their z-order needs no second sort.
+ */
+interface ResolvedAdjustment {
+  kind: "adjustment";
+  key: string;
+  opacity: number;
+  zIndex: number;
+  effects: ClipEffect[];
+  coverage: GpuSourceTexture | null;
+  mask?: AnimationSampleMask;
+}
+
+/** One entry of a stack the blend loop walks bottom-up. */
+type StackItem = ResolvedLayer | ResolvedAdjustment;
+
+const isAdjustment = (item: StackItem): item is ResolvedAdjustment =>
+  "kind" in item;
+
+/**
+ * Bottom-up composite order.
+ *
+ * The sort is stable and the callers push in a deliberate order at equal z: a
+ * dip solid before the clip it dips into, an adjustment after the layers it
+ * treats, a group's surface at the group's own track rather than on top of
+ * everything.
+ */
+const sortStack = (items: StackItem[]): StackItem[] =>
+  items.sort((a, b) => a.zIndex - b.zIndex);
 
 const TEXTURE_FORMAT: GPUTextureFormat = "rgba8unorm";
 
@@ -312,6 +374,10 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
    * group's opacity, blend mode and effect chain. With no precomposites this is
    * the single-pass path: the second compositor is never built.
    *
+   * An `adjustments` entry runs at its own z on the target it names — the
+   * frame's accumulation, or a group's texture — treating what has accumulated
+   * by then and blending the treated copy back over it.
+   *
    * The work is submitted before this returns, so a host records whatever it
    * does with the frame — a readback, a blit to a swap chain — in an encoder of
    * its own and submits that after.
@@ -319,10 +385,11 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   composite(
     layers: readonly FrameLayer<TSource>[],
     precomposites: readonly FramePrecomposite[] = [],
-    clearValue: GPUColor = { r: 0, g: 0, b: 0, a: 1 }
+    clearValue: GPUColor = { r: 0, g: 0, b: 0, a: 1 },
+    adjustments: readonly FrameAdjustment<TSource>[] = []
   ): GpuCompositeResult {
     const ordered = [...layers].sort((a, b) => a.zIndex - b.zIndex);
-    this.retainOnly(ordered, precomposites);
+    this.retainOnly(ordered, precomposites, adjustments);
 
     const readStart = this.core.textureA;
     const writeStart = this.core.textureB;
@@ -348,6 +415,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     const { stack, drawn } = this.composePrecomposites(
       ordered,
       precomposites,
+      adjustments,
       encoder
     );
 
@@ -379,17 +447,40 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
    * Blend `items` bottom-up over whatever `read` holds, ping-ponging between
    * the two accumulation textures, and answer the one holding the result. The
    * caller has already called `beginFrame` on `core` and seeded `read`.
+   *
+   * An adjustment in the stack takes the accumulation as its own source: the
+   * chain runs on `readTex` and the treated copy blends straight back over it,
+   * which is what makes the treatment cover everything below the adjustment and
+   * nothing above (T24).
    */
   private blendStack(
     encoder: GPUCommandEncoder,
     core: WebGPULayerCompositor,
-    items: readonly ResolvedLayer[],
+    items: readonly StackItem[],
     read: GPUTexture,
     write: GPUTexture
   ): GPUTexture {
     let readTex = read;
     let writeTex = write;
     for (const item of items) {
+      if (isAdjustment(item)) {
+        core.renderBlendPass(encoder, readTex, writeTex, {
+          source: this.treatAccumulation(item, readTex, encoder),
+          opacity: item.opacity,
+          blendModeId: blendModeGpuId("normal"),
+          canvasW: this.width,
+          canvasH: this.height,
+          // The treated copy is frame-sized, so it lands 1:1 over the
+          // accumulation it came from.
+          invAffine: this.placementOf({}, this.width, this.height),
+          borderRadius: 0,
+          wipe: wipeParams(item.mask)
+        });
+        const swap = readTex;
+        readTex = writeTex;
+        writeTex = swap;
+        continue;
+      }
       core.renderBlendPass(encoder, readTex, writeTex, {
         source: item.texture,
         opacity: item.opacity,
@@ -662,11 +753,12 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   private composePrecomposites(
     layers: readonly FrameLayer<TSource>[],
     precomposites: readonly FramePrecomposite[],
+    adjustments: readonly FrameAdjustment<TSource>[],
     encoder: GPUCommandEncoder
-  ): { stack: ResolvedLayer[]; drawn: number } {
+  ): { stack: StackItem[]; drawn: number } {
     let drawn = 0;
     if (precomposites.length === 0) {
-      const stack: ResolvedLayer[] = [];
+      const stack: StackItem[] = [];
       for (const layer of layers) {
         const item = this.resolveLayer(layer, encoder);
         if (!item) continue;
@@ -675,12 +767,17 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         if (solid) stack.push(solid);
         stack.push(item);
       }
-      return { stack, drawn };
+      // An adjustment at a layer's own z treats it, so it is appended after
+      // every layer and the sort below is stable.
+      for (const adjustment of adjustments) {
+        stack.push(this.resolveAdjustment(adjustment));
+      }
+      return { stack: sortStack(stack), drawn };
     }
 
-    const stack: ResolvedLayer[] = [];
-    const byGroup = new Map<string, ResolvedLayer[]>();
-    const assign = (groupId: string | undefined, item: ResolvedLayer): void => {
+    const stack: StackItem[] = [];
+    const byGroup = new Map<string, StackItem[]>();
+    const assign = (groupId: string | undefined, item: StackItem): void => {
       if (!groupId) {
         stack.push(item);
         return;
@@ -701,9 +798,16 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       assign(layer.precomposeGroupId, item);
     }
 
+    // After the layers, so an adjustment sharing a z with one treats it.
+    for (const adjustment of adjustments) {
+      assign(adjustment.precomposeGroupId, this.resolveAdjustment(adjustment));
+    }
+
     for (const group of precomposites) {
       const children = byGroup.get(group.id) ?? [];
-      if (children.length === 0) continue;
+      // A group whose only content is an adjustment composites nothing, so
+      // there is nothing to treat and no texture worth allocating.
+      if (children.length === 0 || children.every(isAdjustment)) continue;
       const texture = this.renderPrecomposite(group, children, encoder);
       assign(group.precomposeGroupId, {
         texture,
@@ -716,7 +820,25 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         borderRadius: 0
       });
     }
-    return { stack, drawn };
+    return { stack: sortStack(stack), drawn };
+  }
+
+  /** One adjustment with its coverage raster uploaded, ready for the stack. */
+  private resolveAdjustment(
+    adjustment: FrameAdjustment<TSource>
+  ): ResolvedAdjustment {
+    const item: ResolvedAdjustment = {
+      kind: "adjustment",
+      key: adjustment.id,
+      opacity: adjustment.opacity,
+      zIndex: adjustment.zIndex,
+      effects: (adjustment.effects ?? []).filter((effect) => effect.enabled),
+      coverage: adjustment.shapeMask
+        ? this.upload(`${adjustment.id}#adjustmask`, adjustment.shapeMask)
+        : null
+    };
+    if (adjustment.wipe) item.mask = adjustment.wipe;
+    return item;
   }
 
   /**
@@ -726,7 +848,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
    */
   private renderPrecomposite(
     group: FramePrecomposite,
-    children: readonly ResolvedLayer[],
+    children: readonly StackItem[],
     encoder: GPUCommandEncoder
   ): GPUTexture {
     return this.composeToTexture(
@@ -738,13 +860,77 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   }
 
   /**
+   * Run one adjustment's chain on the accumulation it sits on and answer the
+   * treated copy, as straight alpha — which is how the blend shader reads a
+   * source, and what lets the copy blend straight back over the untreated
+   * accumulation.
+   *
+   * The accumulation is premultiplied, so the chain and the mask run in that
+   * convention and one resolve at the end is the only alpha conversion, exactly
+   * as a precomposite's is.
+   */
+  private treatAccumulation(
+    item: ResolvedAdjustment,
+    accumulation: GPUTexture,
+    encoder: GPUCommandEncoder
+  ): GPUTexture {
+    const graded = this.effects.process(
+      `adjust:${item.key}`,
+      accumulation,
+      this.width,
+      this.height,
+      item.effects,
+      [],
+      "premultiplied",
+      encoder
+    );
+    const coverage = item.coverage;
+    const masked = coverage
+      ? this.effects.applyMask(
+          `adjust-mask:${item.key}`,
+          graded,
+          this.width,
+          this.height,
+          coverage.texture,
+          coverage.width,
+          coverage.height,
+          "premultiplied",
+          encoder
+        )
+      : graded;
+    const target = this.precompositeTarget(`adjust:${item.key}`);
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [
+        {
+          view: target.createView(),
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          loadOp: "clear",
+          storeOp: "store"
+        }
+      ]
+    });
+    const pipeline = this.unpremultiplyPipeline();
+    pass.setPipeline(pipeline);
+    pass.setBindGroup(
+      0,
+      this.device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [{ binding: 0, resource: masked.createView() }]
+      })
+    );
+    pass.draw(4);
+    pass.end();
+    return target;
+  }
+
+  /**
    * Composite `children` over transparency into the texture `key` names, run
    * `effects` on the result, and leave it there as straight alpha — which is
    * how the blend shader reads a source.
    */
   private composeToTexture(
     key: string,
-    children: readonly ResolvedLayer[],
+    children: readonly StackItem[],
     effects: ClipEffect[] = [],
     frameEncoder?: GPUCommandEncoder
   ): GPUTexture {
@@ -780,7 +966,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     const composed = this.blendStack(
       composeEncoder,
       core,
-      [...children].sort((a, b) => a.zIndex - b.zIndex),
+      sortStack([...children]),
       read,
       write
     );
@@ -890,7 +1076,8 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
 
   private retainOnly(
     layers: readonly FrameLayer<TSource>[],
-    precomposites: readonly FramePrecomposite[]
+    precomposites: readonly FramePrecomposite[],
+    adjustments: readonly FrameAdjustment<TSource>[] = []
   ): void {
     // A matte source never appears in `layers`, and its textures are keyed off
     // the layer it mattes, so the sweep walks both.
@@ -912,6 +1099,17 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       visit(layer.matte.layer);
     };
     for (const layer of layers) visit(layer);
+
+    // An adjustment holds a treated texture and a coverage upload of its own,
+    // both keyed by its clip id, and neither is reachable from any layer.
+    for (const adjustment of adjustments) {
+      liveTargets.add(`adjust:${adjustment.id}`);
+      effectKeys.add(`adjust:${adjustment.id}`);
+      if (adjustment.shapeMask) {
+        live.add(`${adjustment.id}#adjustmask`);
+        effectKeys.add(`adjust-mask:${adjustment.id}`);
+      }
+    }
 
     this.retainSources(live);
     for (const [id, texture] of this.precompTargets) {
@@ -962,6 +1160,7 @@ const BLUR_ACCUMULATION_FORMAT: GPUTextureFormat = "rgba16float";
 export interface FrameSample<TSource = FrameLayerPixels> {
   layers: FrameLayer<TSource>[];
   precomposites?: readonly FramePrecomposite[];
+  adjustments?: readonly FrameAdjustment<TSource>[];
 }
 
 /** Per-frame choices for {@link HeadlessFrameCompositor.renderFrame}. */
@@ -1073,15 +1272,16 @@ export class HeadlessFrameCompositor {
   async renderFrame(
     layers: FrameLayer[],
     precomposites: readonly FramePrecomposite[] = [],
-    options: HeadlessRenderFrameOptions = {}
+    options: HeadlessRenderFrameOptions = {},
+    adjustments: readonly FrameAdjustment[] = []
   ): Promise<Uint8Array> {
     const alpha = options.alpha === true;
-    const { texture } = this.compositor.composite(layers, precomposites, {
-      r: 0,
-      g: 0,
-      b: 0,
-      a: alpha ? 0 : 1
-    });
+    const { texture } = this.compositor.composite(
+      layers,
+      precomposites,
+      { r: 0, g: 0, b: 0, a: alpha ? 0 : 1 },
+      adjustments
+    );
 
     const readback = this.nextReadback();
     const encoder = this.device.createCommandEncoder({
@@ -1139,7 +1339,8 @@ export class HeadlessFrameCompositor {
       return this.renderFrame(
         samples[0].layers,
         samples[0].precomposites ?? [],
-        options
+        options,
+        samples[0].adjustments ?? []
       );
     }
 
@@ -1152,7 +1353,8 @@ export class HeadlessFrameCompositor {
       const { texture } = this.compositor.composite(
         samples[i].layers,
         samples[i].precomposites ?? [],
-        clearValue
+        clearValue,
+        samples[i].adjustments ?? []
       );
       // Folded per sample rather than batched: the compositor hands back its
       // own ping-pong texture, and the next sample overwrites it.

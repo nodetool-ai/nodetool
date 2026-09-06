@@ -22,6 +22,11 @@
  * and the blend meets the frame once. The host vends that surface through
  * {@link CompositeSurfaceFactory}, because there is no way to make one that
  * exists in both a browser and Node.
+ *
+ * An adjustment reuses that machinery from the other end: at its own z it
+ * copies the surface it sits on, runs its chain on the copy, and blends the
+ * copy back over the untreated composite — so it treats everything drawn below
+ * it and nothing above.
  */
 
 import { blendModeToCanvasOp } from "@nodetool-ai/gpu";
@@ -174,6 +179,31 @@ export interface Canvas2DPrecomposite {
   precomposeGroupId?: string;
 }
 
+/**
+ * An adjustment clip's treatment of the surface beneath it.
+ *
+ * Mirrors `AdjustmentLayer` from the scene model with `trackIndex` already
+ * resolved to a `zIndex`, the way {@link Canvas2DLayer} mirrors `ActiveLayer`.
+ * It draws nothing of its own: at its `zIndex` the composite so far is copied
+ * to a surface, {@link effects} run on the copy, and the copy blends back over
+ * the original at {@link opacity}.
+ */
+export interface Canvas2DAdjustment {
+  /** The clip this treatment came from, for a {@link Canvas2DDegradation}. */
+  clipId?: string;
+  /** Where in the composite order the treatment runs, ascending. */
+  zIndex: number;
+  /** How much of the treated copy is kept. 1 is fully treated, 0 a no-op. */
+  opacity: number;
+  effects?: ClipEffect[];
+  /** Where the treatment lands, in the treated surface's own pixel space. */
+  mask?: ClipMask;
+  /** An animated wipe limiting the treatment, as it limits a layer. */
+  wipe?: AnimationSampleMask;
+  /** The precomposite surface this treats instead of the frame. */
+  precomposeGroupId?: string;
+}
+
 /** Canvas geometry a composite draws into. */
 export interface Canvas2DFrameGeometry {
   /** Backing-store size of the destination canvas, in pixels. */
@@ -230,6 +260,19 @@ export interface DrawTimelineFrameOptions<TSource> {
   /** The groups to composite separately, innermost first (scene-model order). */
   precomposites?: readonly Canvas2DPrecomposite[];
   /**
+   * The adjustments to run, in any order — each one runs at its own `zIndex`,
+   * on the surface it names. Omitted, the frame draws exactly as it did before
+   * adjustments existed and no surface is asked for.
+   */
+  adjustments?: readonly Canvas2DAdjustment[];
+  /**
+   * A frame-sized surface for one adjustment's treated copy. Consumed within a
+   * single treatment — the copy is drawn back before the next layer draws — so
+   * one reused surface is enough. Without it the treatment is skipped and the
+   * untreated composite stands.
+   */
+  adjustmentSurface?: CompositeSurfaceFactory<TSource>;
+  /**
    * Frame-sized intermediates for those groups. Each call must answer with a
    * surface no other precomposite in this frame is still using — nested groups
    * hold theirs until the group above has drawn it — so this cannot be the same
@@ -277,6 +320,8 @@ export type Canvas2DDegradationReason =
   | "matte_skipped"
   /** A precompositing group's blend mode and effects lost. */
   | "group_blend_lost"
+  /** An adjustment did not run: the untreated composite stands. */
+  | "adjustment_skipped"
   /** Drop shadows past the first in the chain, not cast. */
   | "drop_shadow_extra_ignored"
   /** Brightness applied as a CSS multiply instead of the GPU's addition. */
@@ -316,8 +361,10 @@ const CANVAS_EFFECT_TYPES = new Set(["color", "blur", "dropShadow"]);
  *
  * A group's effects run on its composed surface, not on any one layer, so a
  * caller with precomposites passes them in too — `Canvas2DPrecomposite` carries
- * `effects` for exactly that. Leaving them out is how a group blur that this
- * path never applied would go unreported.
+ * `effects` for exactly that. An adjustment is the same case: its chain runs on
+ * the composite beneath it and belongs to no layer, so a caller passes its
+ * adjustments in as well. Leaving either out is how a group blur, or a keyed
+ * adjustment, that this path never applied would go unreported.
  *
  * A grade is reported per channel rather than per type: `ctx.filter` carries
  * brightness, contrast, saturation and hue, and has no white balance at all, so
@@ -427,6 +474,9 @@ function clearShadow<TSource>(ctx: CompositeContext2D<TSource>): void {
  * group's own surface first, and the surface blends once at the group's z. With
  * no precomposites the layers go straight onto `ctx` and no surface is asked
  * for at all.
+ *
+ * An adjustment in `options.adjustments` runs at its own z on the surface it
+ * names — the frame, or the group's — treating what is already on it.
  */
 export function drawTimelineFrame<TSource>(
   ctx: CompositeContext2D<TSource>,
@@ -444,6 +494,18 @@ export function drawTimelineFrame<TSource>(
 
   const skipped: Canvas2DLayer<TSource>[] = [];
   const degraded: Canvas2DDegradation[] = [];
+  const onFrame: Canvas2DAdjustment[] = [];
+  const groupIds = new Set((options.precomposites ?? []).map((g) => g.id));
+  for (const adjustment of options.adjustments ?? []) {
+    const groupId = adjustment.precomposeGroupId;
+    if (!groupId) {
+      onFrame.push(adjustment);
+    } else if (!groupIds.has(groupId)) {
+      // Scoped to a surface this frame does not build. Running it on the frame
+      // instead would treat layers outside the group it belongs to.
+      degraded.push({ clipId: adjustment.clipId, reason: "adjustment_skipped" });
+    }
+  }
   const stack = composePrecomposites(
     layers,
     geometry,
@@ -451,14 +513,124 @@ export function drawTimelineFrame<TSource>(
     skipped,
     degraded
   );
-  const ordered = [...stack].sort((a, b) => a.zIndex - b.zIndex);
-  for (const layer of ordered) {
-    if (!drawTimelineLayer(ctx, layer, geometry, options, degraded)) {
-      skipped.push(layer);
-    }
-  }
+  drawStack(ctx, stack, onFrame, geometry, options, skipped, degraded);
   resetContext(ctx);
   return { skipped, degraded };
+}
+
+/**
+ * Draw one surface's contents bottom-up: its layers and the adjustments that
+ * treat it, interleaved by `zIndex`.
+ *
+ * An adjustment at the same z as a layer runs *after* it — the layer is beneath
+ * it in draw order, so it is part of the composite the treatment reads. That
+ * falls out of a stable sort over layers-then-adjustments, which is why the two
+ * are concatenated in that order and not merged some other way.
+ */
+function drawStack<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  layers: readonly Canvas2DLayer<TSource>[],
+  adjustments: readonly Canvas2DAdjustment[],
+  geometry: Canvas2DFrameGeometry,
+  options: DrawTimelineFrameOptions<TSource>,
+  skipped: Canvas2DLayer<TSource>[],
+  degraded: Canvas2DDegradation[]
+): void {
+  type Item =
+    | { adjustment?: undefined; layer: Canvas2DLayer<TSource>; zIndex: number }
+    | { adjustment: Canvas2DAdjustment; layer?: undefined; zIndex: number };
+  const items: Item[] = layers.map((layer) => ({
+    layer,
+    zIndex: layer.zIndex
+  }));
+  for (const adjustment of adjustments) {
+    items.push({ adjustment, zIndex: adjustment.zIndex });
+  }
+  for (const item of items.sort((a, b) => a.zIndex - b.zIndex)) {
+    if (item.adjustment) {
+      applyAdjustment(ctx, item.adjustment, geometry, options, degraded);
+      continue;
+    }
+    if (!drawTimelineLayer(ctx, item.layer, geometry, options, degraded)) {
+      skipped.push(item.layer);
+    }
+  }
+}
+
+/**
+ * Run one adjustment on `ctx`: copy the composite so far, treat the copy, and
+ * blend it back over the untreated original at the adjustment's opacity (T24).
+ *
+ * The copy goes through `getImageData`/`putImageData` rather than a
+ * `drawImage`: a host hands over a context, not a drawable handle on the
+ * surface behind it, so the pixels are the only way to reach what has been
+ * drawn. Brightness is added on the copy for the reason it is added on a
+ * layer's scratch — the GPU grade adds where CSS `brightness()` multiplies —
+ * and the rest of the chain rides the filter of the draw back.
+ */
+function applyAdjustment<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  adjustment: Canvas2DAdjustment,
+  geometry: Canvas2DFrameGeometry,
+  surfaces: DrawTimelineFrameOptions<TSource>,
+  degraded: Canvas2DDegradation[]
+): void {
+  const { canvasWidth: w, canvasHeight: h } = geometry;
+  const scratch = surfaces.adjustmentSurface?.(w, h);
+  if (!scratch) {
+    degraded.push({ clipId: adjustment.clipId, reason: "adjustment_skipped" });
+    return;
+  }
+
+  const sctx = scratch.ctx;
+  resetContext(sctx);
+  sctx.clearRect(0, 0, w, h);
+  sctx.putImageData(ctx.getImageData(0, 0, w, h), 0, 0);
+
+  const brightness = brightnessForEffects(adjustment.effects, undefined);
+  const lifts = Math.abs(brightness) > 0.001;
+  if (lifts) addBrightness(sctx, w, h, brightness);
+
+  // A soft mask multiplies its coverage into the copy; a hard one is a path
+  // clip on the draw back, which costs nothing. Same split as a layer's.
+  const shape = adjustment.mask;
+  const softShape = shape !== undefined && !maskIsHard(shape);
+  let shapeApplied = false;
+  if (softShape) {
+    const coverage = surfaces.maskSurface?.(w, h);
+    if (coverage && coverage.surface !== scratch.surface) {
+      shapeApplied = drawMask(coverage.ctx, shape, w, h);
+      if (shapeApplied) {
+        sctx.globalCompositeOperation = "destination-in";
+        sctx.drawImage(coverage.surface, 0, 0, w, h);
+        sctx.globalCompositeOperation = "source-over";
+      }
+    }
+    if (!shapeApplied) {
+      degraded.push({ clipId: adjustment.clipId, reason: "mask_hard_edge" });
+    }
+  }
+
+  const wipe = adjustment.wipe;
+  const softWipe = wipe !== undefined && wipe.softness > 0;
+  if (softWipe) applyWipeGradient(sctx, w, h, wipe);
+
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = Math.max(0, Math.min(1, adjustment.opacity));
+  ctx.globalCompositeOperation = "source-over";
+  if (shape && !shapeApplied) clipMask(ctx, shape, w, h);
+  if (wipe && !softWipe) clipWipeRect(ctx, w, h, wipe);
+  ctx.filter = filterForEffects(adjustment.effects, undefined, lifts);
+  try {
+    ctx.drawImage(scratch.surface, 0, 0, w, h);
+  } catch {
+    // The host's surface refused to draw. The untreated composite stands,
+    // which is the same outcome as vending no surface at all.
+    degraded.push({ clipId: adjustment.clipId, reason: "adjustment_skipped" });
+  }
+  ctx.restore();
+  resetContext(ctx);
 }
 
 /**
@@ -499,8 +671,20 @@ function composePrecomposites<TSource>(
 
   for (const layer of layers) assign(layer.precomposeGroupId, layer);
 
+  // An adjustment inside a group treats that group's own surface, so it runs
+  // with the group's children and reaches nothing outside them.
+  const adjustmentsByGroup = new Map<string, Canvas2DAdjustment[]>();
+  for (const adjustment of options.adjustments ?? []) {
+    const groupId = adjustment.precomposeGroupId;
+    if (!groupId) continue;
+    const bucket = adjustmentsByGroup.get(groupId);
+    if (bucket) bucket.push(adjustment);
+    else adjustmentsByGroup.set(groupId, [adjustment]);
+  }
+
   for (const group of groups) {
     const children = byGroup.get(group.id) ?? [];
+    const treatments = adjustmentsByGroup.get(group.id) ?? [];
     const surface =
       children.length > 0
         ? (options.precompositeSurface?.(
@@ -516,6 +700,14 @@ function composePrecomposites<TSource>(
       if (children.length > 0) {
         degraded.push({ clipId: group.id, reason: "group_blend_lost" });
       }
+      // The treatments go with the surface they were scoped to. Running them on
+      // the stack beneath would treat layers outside the group.
+      for (const treatment of treatments) {
+        degraded.push({
+          clipId: treatment.clipId,
+          reason: "adjustment_skipped"
+        });
+      }
       for (const child of children) assign(group.precomposeGroupId, child);
       continue;
     }
@@ -523,11 +715,15 @@ function composePrecomposites<TSource>(
     const sctx = surface.ctx;
     resetContext(sctx);
     sctx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
-    for (const child of [...children].sort((a, b) => a.zIndex - b.zIndex)) {
-      if (!drawTimelineLayer(sctx, child, geometry, options, degraded)) {
-        skipped.push(child);
-      }
-    }
+    drawStack(
+      sctx,
+      children,
+      treatments,
+      geometry,
+      options,
+      skipped,
+      degraded
+    );
 
     // The surface is frame-sized, so it composites untransformed: the group's
     // own matrix already rode into each child through `parentMatrix`.

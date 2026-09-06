@@ -579,11 +579,21 @@ export type ClipBindingKind = z.infer<typeof clipBindingKind>;
  * One keyframe of a baked custom-animation curve. `t` is normalized 0..1
  * within the animation window; `easing` names the segment ENDING at this
  * keyframe and is a plain string for the same forward compat as `preset`.
+ *
+ * On a `timeBase: "source"` curve the keyframe is placed by `sourceMs` — an
+ * absolute time in the media — and `t` is derived from it, which is why `t`
+ * defaults rather than being required there.
  */
 export const animationKeyframe = z.object({
-  t: z.number(),
+  t: z.number().default(0),
   value: z.number(),
-  easing: z.string().optional()
+  easing: z.string().optional(),
+  /**
+   * Absolute source-media time in ms. Required on every keyframe of a
+   * source-anchored curve (non-negative and non-decreasing along the curve,
+   * enforced by `normalizeCustomCurves`); ignored on a clip-based one.
+   */
+  sourceMs: z.number().optional()
 });
 export type AnimationKeyframe = z.infer<typeof animationKeyframe>;
 
@@ -622,6 +632,14 @@ export const customClipAnimation = z.object({
   code: z.string().optional(),
   /** ISO timestamp of the bake that produced `curves`. */
   bakedAt: z.string().optional(),
+  /**
+   * Clock the keyframes are placed on: `"clip"` (default) normalizes `t` over
+   * the animation window, `"source"` places every keyframe at an absolute
+   * `sourceMs` in the media so the motion tracks the footage through speed,
+   * in-point and time remap — and a trim or split re-slices the curve instead
+   * of stretching it.
+   */
+  timeBase: z.enum(["clip", "source"]).optional(),
   /** Bounded to `MAX_CUSTOM_CURVES`; see `animationPropertyCurve.keyframes`. */
   curves: z.array(animationPropertyCurve).max(16),
   /**
@@ -630,6 +648,21 @@ export const customClipAnimation = z.object({
    */
   mask: z
     .object({ direction: z.string(), softness: z.number() })
+    .optional(),
+  /**
+   * What produced these curves when a hand edit did not — an audio bake, a
+   * tracker. Provenance to re-bake from, never something to execute, so `kind`
+   * is a plain string the way `preset` is.
+   */
+  bakedFrom: z
+    .object({
+      kind: z.string(),
+      clipId: z.string().optional(),
+      assetId: z.string().optional(),
+      settings: z
+        .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
+        .optional()
+    })
     .optional()
 });
 export type CustomClipAnimation = z.infer<typeof customClipAnimation>;
@@ -907,7 +940,9 @@ export const timelineClip = z.object({
   inPointMs: z.number().optional(),
   outPointMs: z.number().optional(),
   /** `"group"` carries no media: it is a transform parent children name with
-   * `parentId`. Without it here Zod fails a document containing a group. */
+   * `parentId`. `"adjustment"` carries none either: its effects treat the
+   * composite of the layers drawn beneath it. Without them here Zod fails a
+   * document containing either. */
   mediaType: z.enum([
     "image",
     "video",
@@ -917,6 +952,7 @@ export const timelineClip = z.object({
     "shape",
     "model3d",
     "group",
+    "adjustment",
     "midi"
   ]),
   sourceType: z.enum(["imported", "generated"]),
