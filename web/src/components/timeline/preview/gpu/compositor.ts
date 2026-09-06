@@ -10,13 +10,26 @@ import type {
   CompositorInitResult,
   TimelineCompositor
 } from "./types";
-import { isSourceReady, shouldPresentFrame, sourceDimensions } from "./source";
+import {
+  isCanvasSource,
+  isSourceReady,
+  shouldPresentFrame,
+  sourceDimensions
+} from "./source";
 import { MaskRasterizer } from "../maskRender";
 
 interface SourceTexture extends GpuSourceTexture {
   source: CompositeSource;
   lastUploadKey: string;
 }
+
+/**
+ * Bumped for every canvas upload, so a canvas source never matches its own
+ * previous key. A 3D session redraws into one canvas at one size, so a key
+ * built from the size alone would mark the first frame current and every later
+ * frame would be skipped — the model would freeze on its first pose.
+ */
+let canvasUploads = 0;
 
 function uploadKey(source: CompositeSource): string {
   if (source instanceof HTMLVideoElement) {
@@ -29,6 +42,10 @@ function uploadKey(source: CompositeSource): string {
   }
   if (source instanceof HTMLImageElement) {
     return `i:${source.src}:${source.naturalWidth}x${source.naturalHeight}`;
+  }
+  if (isCanvasSource(source)) {
+    canvasUploads += 1;
+    return `c:${source.width}x${source.height}:${canvasUploads}`;
   }
   return `b:${source.width}x${source.height}`;
 }

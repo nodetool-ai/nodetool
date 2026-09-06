@@ -13,10 +13,20 @@ import type {
 
 export type { CompositorBlendMode };
 
+/**
+ * Pixels a layer draws from.
+ *
+ * `OffscreenCanvas` is what a 3D layer's render session hands over: both
+ * backends take one directly — `copyExternalImageToTexture` on the GPU path,
+ * `drawImage` on the Canvas 2D one — so a 3D frame never round-trips through
+ * an `ImageBitmap`. It is also the one member whose pixels change while its
+ * size does not, which is what {@link isCanvasSource} exists for.
+ */
 export type CompositeSource =
   | HTMLVideoElement
   | HTMLImageElement
-  | ImageBitmap;
+  | ImageBitmap
+  | OffscreenCanvas;
 
 export interface CompositeLayer {
   id: string;

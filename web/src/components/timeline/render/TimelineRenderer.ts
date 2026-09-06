@@ -54,6 +54,7 @@ import {
   buildCompositePrecomposites,
   type ResolvedCompositeSource
 } from "../preview/compositeLayers";
+import { Model3DLayerSource } from "../preview/Model3DLayerSource";
 import { CaptionRasterizer } from "../preview/captionRender";
 import { TextRasterizer } from "../preview/textRender";
 import { ensureBundledFontsLoaded } from "../preview/fontLoading";
@@ -321,6 +322,10 @@ export async function renderTimeline(
 
   const { compositor, init } = await createCompositor(canvas);
   const videoPool = new OffscreenVideoPool();
+  // The export's own session pool: an export can run while the editor previews,
+  // and two pools of two contexts is what the cap is sized for. Disposed with
+  // everything else in the `finally` below.
+  const model3dSource = new Model3DLayerSource({ resolveUrl: resolveCached });
   const captionRasterizer = new CaptionRasterizer();
   const textRasterizer = new TextRasterizer();
   const shapeRasterizer = new ShapeRasterizer();
@@ -475,6 +480,15 @@ export async function renderTimeline(
           return bitmap ? { source: bitmap } : null;
         }
 
+        if (layer.kind === "model3d") {
+          // Awaited rather than polled: a frame is written to the file once, so
+          // a session that is still loading must not become a missing model.
+          const session = await model3dSource.load(layer);
+          if (!session) return null;
+          const canvas3d = model3dSource.frame(layer, anim, { width, height });
+          return canvas3d ? { source: canvas3d } : null;
+        }
+
         if (!layer.assetId) return null;
         const url = await resolveCached(layer.assetId);
         if (!url) return null;
@@ -610,6 +624,7 @@ export async function renderTimeline(
   } finally {
     compositor.dispose();
     videoPool.dispose();
+    model3dSource.dispose();
     captionRasterizer.dispose();
     textRasterizer.dispose();
     shapeRasterizer.dispose();

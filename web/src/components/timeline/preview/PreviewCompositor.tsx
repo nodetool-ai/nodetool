@@ -55,6 +55,7 @@ import {
   buildCompositePrecomposites,
   type ResolvedCompositeSource
 } from "./compositeLayers";
+import { Model3DLayerSource } from "./Model3DLayerSource";
 import { CaptionRasterizer } from "./captionRender";
 import { TextRasterizer } from "./textRender";
 import { ShapeRasterizer } from "./shapeRender";
@@ -240,6 +241,23 @@ export const PreviewCompositor: React.FC = memo(() => {
     },
     [getAsset]
   );
+
+  /**
+   * The 3D layers' pixels: one three.js render session per active `model3d`
+   * clip, capped and evicted by the pool itself. A session resolves
+   * asynchronously, so `model3dVersion` bumps when one becomes ready (or turns
+   * out to be impossible on this machine) and re-runs the scene memo below.
+   */
+  const [model3dVersion, setModel3dVersion] = useState(0);
+  const model3dSource = useMemo(
+    () =>
+      new Model3DLayerSource({
+        resolveUrl,
+        onChange: () => setModel3dVersion((v) => v + 1)
+      }),
+    [resolveUrl]
+  );
+  useEffect(() => () => model3dSource.dispose(), [model3dSource]);
 
   // Hidden HTMLVideoElement pool — still browser-decoded, but never rendered.
   // Their pixels are uploaded each frame to GPU textures by the compositor.
@@ -520,6 +538,20 @@ export const PreviewCompositor: React.FC = memo(() => {
         }
         if (layer.kind === "video") {
           videoSlots.push({ clipId: layer.clipId, assetUrl: url });
+          return;
+        }
+        if (
+          layer.kind === "model3d" &&
+          model3dSource.state(layer.clipId)?.status === "unavailable"
+        ) {
+          // No WebGL, or a model that could not be loaded (R1). Draw the
+          // outlined placeholder rather than a silent gap in the frame.
+          placeholders.push({
+            clipId: layer.clipId,
+            trackIndex: layer.trackIndex,
+            status: layer.clip.status,
+            name: layer.clip.name
+          });
         }
       };
       for (const layer of layers) visit(layer);
@@ -530,7 +562,24 @@ export const PreviewCompositor: React.FC = memo(() => {
         activeVideoSlots: videoSlots,
         placeholderLayers: placeholders
       };
-    }, [tracks, clips, currentTimeMs, resolveUrl, urlCacheVersion, sceneCanvas]);
+    }, [
+      tracks,
+      clips,
+      currentTimeMs,
+      resolveUrl,
+      urlCacheVersion,
+      sceneCanvas,
+      model3dSource,
+      model3dVersion
+    ]);
+
+  // Hold a render session only while its clip is on screen: each one is a
+  // WebGL context, and a browser has about sixteen (R2).
+  useEffect(() => {
+    model3dSource.retain(
+      sceneLayers.filter((l) => l.kind === "model3d").map((l) => l.clipId)
+    );
+  }, [model3dSource, sceneLayers]);
 
   // Source dims + transform for the single selected clip, but only while it is
   // actually rendered (active at the playhead) so the gizmo traces a visible
@@ -843,6 +892,16 @@ export const PreviewCompositor: React.FC = memo(() => {
           return bitmap ? { source: bitmap } : null;
         }
 
+        if (layer.kind === "model3d") {
+          // Rendered at the sequence resolution, the space the export renders
+          // in, so the preview and the exported file frame the model alike.
+          const canvas = model3dSource.frame(layer, anim, {
+            width: sequenceWidth,
+            height: sequenceHeight
+          });
+          return canvas ? { source: canvas } : null;
+        }
+
         const url = resolveUrl(layer.assetId);
         if (!url) return null;
         if (layer.kind === "image") {
@@ -872,6 +931,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       clips,
       ensureImageElement,
       resolveUrl,
+      model3dSource,
       sceneCanvas,
       sequenceWidth,
       sequenceHeight
