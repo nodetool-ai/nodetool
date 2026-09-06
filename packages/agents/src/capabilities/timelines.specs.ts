@@ -126,6 +126,7 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "add_group, split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
         "set_clip_params, set_parent, set_clip_binding, set_transition, set_mask, " +
         "set_matte, set_time_remap, set_effects, animate_clip, " +
+        "set_baked_animation, " +
         "clear_animations, list_animation_presets, select_clip, seek, " +
         "add_marker, delete_marker, set_markers_from_beats, snap_to_beats, " +
         "insert_composition, add_midi_clip, set_notes, set_tempo, " +
@@ -142,6 +143,14 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "once, host-side); add `mask` when a curve drives wipeProgress. " +
         "Either may sit under a nested `custom: {curves|code|mask}` instead. " +
         "list_animation_presets reports the animatable properties. " +
+        'set_baked_animation writes ONE curve something measured — {"target", ' +
+        '"animation": {property, keyframes: [{sourceMs, value, easing?}], ' +
+        "bakedFrom: {kind, clipId?, assetId?, settings?}, replace?}}. Its " +
+        "keyframes name absolute milliseconds in the target clip's own media, " +
+        "so a trim or split re-slices the motion, and a second write with the " +
+        "same `bakedFrom.kind` on the same property replaces that curve in " +
+        "place. bake_audio_animation is the tool that produces one; reach for " +
+        "animate_clip for a preset or a hand-written curve. " +
         'set_transition takes {"target", "transition": {type, durationMs, ' +
         "easing?, color?, direction?, softness?} | null} — the cut plays over " +
         "the target's head against the clip beneath it, so overlap the two. " +
@@ -851,6 +860,130 @@ export const renderTimelineSpec: CapabilitySpec = {
     `Rendering timeline ${String(params["timeline_id"])}`
 };
 
+// ---------------------------------------------------------------------------
+// bake_audio_animation
+// ---------------------------------------------------------------------------
+
+export const DEFAULT_BAKE_ATTACK_MS = 20;
+export const DEFAULT_BAKE_RELEASE_MS = 150;
+export const DEFAULT_BAKE_TOLERANCE = 0.01;
+/** Keyframes one bake writes. Well under the curve cap, and readable in the UI. */
+export const DEFAULT_BAKE_MAX_POINTS = 240;
+/** Hard ceiling on `max_points`, matching the engine's per-curve limit. */
+export const MAX_BAKE_POINTS = 4096;
+/** Seconds of audio one bake decodes before it reports truncation. */
+export const DEFAULT_BAKE_MAX_SECONDS = 120;
+
+export const BAKE_AUDIO_ANIMATION_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: { type: "string", description: "Timeline sequence id." },
+    audio_clip_id: {
+      type: "string",
+      description:
+        "The clip whose audio is measured — id, name, or \"selected\". Only " +
+        "the stretch it actually plays (its in-point to its out-point) is " +
+        "analyzed."
+    },
+    target_clip_id: {
+      type: "string",
+      description:
+        "The clip the curve is written onto — id, name, or \"selected\". It " +
+        "may be the audio clip itself."
+    },
+    property: {
+      type: "string",
+      enum: ["scale", "opacity", "offsetX", "offsetY"],
+      description: "Channel the curve drives."
+    },
+    mode: {
+      type: "string",
+      enum: ["envelope", "beats"],
+      description:
+        "'envelope' follows the loudness continuously; 'beats' puts one " +
+        "pulse on each detected onset and rests between them. Default " +
+        "'envelope'."
+    },
+    output_range: {
+      type: "array",
+      items: { type: "number" },
+      description:
+        "[quiet, loud] — the property's value at the bottom and top of the " +
+        "measured range, e.g. [1, 1.12] for scale or [0.6, 1] for opacity."
+    },
+    sensitivity: {
+      type: "number",
+      description:
+        "Envelope mode. The measured range is the quietest to the loudest " +
+        "frame; sensitivity divides its top, so 2 reaches the loud end of " +
+        "output_range at half the loudest level and 0.5 needs twice it. " +
+        "Default 1 (the full measured range)."
+    },
+    attack_ms: {
+      type: "number",
+      description: `Rise time. Default ${DEFAULT_BAKE_ATTACK_MS}.`
+    },
+    release_ms: {
+      type: "number",
+      description: `Fall time. Default ${DEFAULT_BAKE_RELEASE_MS}.`
+    },
+    offset_ms: {
+      type: "number",
+      description:
+        "Shift the whole curve along the timeline, in ms. Negative moves the " +
+        "motion earlier. Default 0."
+    },
+    tolerance: {
+      type: "number",
+      description:
+        "How far a point may sit off the line through its neighbours before " +
+        "it is kept, in the property's own units. Peaks survive whatever it " +
+        `is set to. Default ${DEFAULT_BAKE_TOLERANCE}.`
+    },
+    max_points: {
+      type: "number",
+      description: `Keyframes to write at most. Default ${DEFAULT_BAKE_MAX_POINTS}, ceiling ${MAX_BAKE_POINTS}.`
+    },
+    frame_ms: {
+      type: "number",
+      description: "Analysis frame hop in ms. Default 20."
+    },
+    max_seconds: {
+      type: "number",
+      description:
+        "Seconds of audio to decode. A window longer than this is analyzed " +
+        `as far as the cap allows and reported as truncated. Default ${DEFAULT_BAKE_MAX_SECONDS}.`
+    },
+    replace: {
+      type: "boolean",
+      description:
+        "Default true: overwrite the curve an earlier audio bake left on " +
+        "this property. False appends beside it."
+    }
+  },
+  required: ["timeline_id", "audio_clip_id", "target_clip_id", "property", "output_range"]
+};
+
+export const bakeAudioAnimationSpec: CapabilitySpec = {
+  name: "bake_audio_animation",
+  description:
+    "Drive a clip's motion from a piece of audio: measure the audio clip, " +
+    "turn what it measured into keyframes, and write them onto the target " +
+    "clip as one custom animation. 'envelope' follows the loudness so a " +
+    "layer breathes with the music; 'beats' puts a pulse on each onset so it " +
+    "hits with the track. The keyframes are placed in the target clip's own " +
+    "media, so trimming or splitting it re-slices the motion instead of " +
+    "stretching it, and the animation carries `bakedFrom` — re-running with " +
+    "different settings replaces that curve rather than stacking another " +
+    "one. A curve someone keyframed by hand is never touched. Use " +
+    "set_markers_from_beats instead when you want to cut to the beat rather " +
+    "than animate to it.",
+  inputSchema: BAKE_AUDIO_ANIMATION_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Baking ${String(params["property"])} from audio onto ${String(params["target_clip_id"])}`
+};
+
 export const deleteTimelineSpec: CapabilitySpec = {
   name: "delete_timeline",
   description:
@@ -887,5 +1020,6 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   previewTimelineFrameSpec,
   compareTimelineFramesSpec,
   renderTimelineSpec,
+  bakeAudioAnimationSpec,
   deleteTimelineSpec
 ];

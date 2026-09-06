@@ -841,8 +841,11 @@ export const BROWSER_ONLY_TIMELINE_TOOL_NAMES = [
 /**
  * Tools only the headless bridge registers. `ui_timeline_insert_composition`
  * reads a stored composition library the browser editor does not expose to the
- * agent.
+ * agent. `ui_timeline_set_baked_animation` writes the curve a server-side bake
+ * measured (`bake_audio_animation`); the editor writes curves through the
+ * inspector, not through an agent call.
  */
 export const HEADLESS_ONLY_TIMELINE_TOOL_NAMES = [
-  "ui_timeline_insert_composition"
+  "ui_timeline_insert_composition",
+  "ui_timeline_set_baked_animation"
 ] as const;

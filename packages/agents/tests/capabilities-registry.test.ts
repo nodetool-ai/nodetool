@@ -45,6 +45,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   assemble_storyboard_timeline: "write",
   asset_list: "read",
   asset_search: "read",
+  bake_audio_animation: "write",
   browser: "external",
   browser_capture_media: "external",
   browser_click: "external",

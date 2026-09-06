@@ -12,6 +12,7 @@ import type {
   EffectParams,
   MaskParams,
   MatteParams,
+  SetBakedAnimationParams,
   SetParentParams,
   TimeRemapParams,
   TransitionParams
@@ -255,6 +256,20 @@ export interface AnimateClipOp {
   animations: TimelineAnimationInput[];
 }
 
+/**
+ * Write one machine-produced, source-anchored curve onto a clip.
+ *
+ * Separate from `animate_clip` because a bake is re-run: `custom.bakedFrom`
+ * names the producer, and a second bake of the same kind driving the same
+ * property replaces its own curve in place instead of stacking another one.
+ * A hand-edited animation carries no `bakedFrom` and is never touched.
+ */
+export interface SetBakedAnimationOp {
+  op: "set_baked_animation";
+  target: string;
+  animation: SetBakedAnimationParams["animation"];
+}
+
 export interface ClearAnimationsOp {
   op: "clear_animations";
   target: string;
@@ -343,6 +358,7 @@ export type TimelineOp =
   | SetEffectsOp
   | SetClipBindingOp
   | AnimateClipOp
+  | SetBakedAnimationOp
   | ClearAnimationsOp
   | ListAnimationPresetsOp
   | SelectClipOp
@@ -386,6 +402,7 @@ export const TIMELINE_OP_NAMES = [
   "set_effects",
   "set_clip_binding",
   "animate_clip",
+  "set_baked_animation",
   "clear_animations",
   "list_animation_presets",
   "select_clip",

@@ -52,6 +52,13 @@ import {
   previewTimelineFrameSpec,
   compareTimelineFramesSpec,
   renderTimelineSpec,
+  bakeAudioAnimationSpec,
+  DEFAULT_BAKE_ATTACK_MS,
+  DEFAULT_BAKE_RELEASE_MS,
+  DEFAULT_BAKE_TOLERANCE,
+  DEFAULT_BAKE_MAX_POINTS,
+  DEFAULT_BAKE_MAX_SECONDS,
+  MAX_BAKE_POINTS,
   DEFAULT_RENDER_TIMEOUT_MS,
   MAX_RENDER_TIMEOUT_MS,
   DEFAULT_PREVIEW_COUNT,
@@ -63,9 +70,11 @@ import {
   deleteTimelineSpec
 } from "./timelines.specs.js";
 import {
+  AUDIO_BAKED_ANIMATION_KIND,
   normalizeAuthoredDocument,
   type AuthoredRenderSettings
 } from "@nodetool-ai/timeline";
+import { clipSourceWindowMs } from "./timeline-audio-bake.js";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
 
 import { resolveProjectId } from "./project-scope.js";
@@ -1991,6 +2000,298 @@ const renderTimeline: CapabilityExport = {
  * of one rule, and version rows outliving their document would be unreachable
  * garbage. Missing and not-yours are one answer.
  */
+// ---------------------------------------------------------------------------
+// bake_audio_animation
+// ---------------------------------------------------------------------------
+
+/** A number param, or the default when it is absent or not finite. */
+function numberOr(value: unknown, fallback: number): number {
+  return isFiniteNumber(value) ? value : fallback;
+}
+
+/** The `[lo, hi]` a curve's values run between. */
+function outputRange(value: unknown): [number, number] | ToolError {
+  if (
+    !Array.isArray(value) ||
+    value.length !== 2 ||
+    !isFiniteNumber(value[0]) ||
+    !isFiniteNumber(value[1])
+  ) {
+    return {
+      error:
+        "output_range must be two numbers, [quiet, loud] — e.g. [1, 1.12] " +
+        "for scale, [0.6, 1] for opacity."
+    };
+  }
+  return [value[0], value[1]];
+}
+
+/** The clip a name, id or "selected" addresses, or a message naming the rest. */
+function findClip(
+  clips: readonly TimelineClipShape[],
+  target: unknown,
+  field: string
+): TimelineClipShape | ToolError {
+  if (!isString(target) || target.trim() === "") {
+    return { error: `${field} is required (a clip id or name).` };
+  }
+  const lower = target.trim().toLowerCase();
+  const clip =
+    clips.find((c) => c.id === target.trim()) ??
+    clips.find((c) => c.name.toLowerCase() === lower);
+  if (clip) return clip;
+  const known = clips
+    .slice(0, 12)
+    .map((c) => `${c.id} ("${c.name}")`)
+    .join(", ");
+  return {
+    error: `No clip matching "${target}" for ${field}. Clips: ${known || "none"}.`
+  };
+}
+
+/** What the bake reads off a clip. `TimelineDocument["clips"]` element. */
+type TimelineClipShape = TimelineDocument["clips"][number];
+
+const bakeAudioAnimation: CapabilityExport = {
+  spec: bakeAudioAnimationSpec,
+  impl: async (run, params) => {
+    const timelineId = params["timeline_id"];
+    if (!isString(timelineId) || !timelineId) {
+      return {
+        error: "timeline_id is required (use list_timelines to find one)."
+      };
+    }
+    const property = params["property"];
+    if (!isString(property)) {
+      return { error: "property is required (scale, opacity, offsetX, offsetY)." };
+    }
+    const range = outputRange(params["output_range"]);
+    if (isError(range)) return range;
+    const mode = params["mode"] === "beats" ? "beats" : "envelope";
+    const attackMs = Math.max(0, numberOr(params["attack_ms"], DEFAULT_BAKE_ATTACK_MS));
+    const releaseMs = Math.max(
+      0,
+      numberOr(params["release_ms"], DEFAULT_BAKE_RELEASE_MS)
+    );
+    const offsetMs = numberOr(params["offset_ms"], 0);
+    const tolerance = Math.max(
+      0,
+      numberOr(params["tolerance"], DEFAULT_BAKE_TOLERANCE)
+    );
+    const maxPoints = Math.min(
+      MAX_BAKE_POINTS,
+      Math.max(2, Math.floor(numberOr(params["max_points"], DEFAULT_BAKE_MAX_POINTS)))
+    );
+    const maxSeconds = Math.max(
+      1,
+      numberOr(params["max_seconds"], DEFAULT_BAKE_MAX_SECONDS)
+    );
+    const frameMs = Math.max(1, numberOr(params["frame_ms"], 20));
+    const replace = params["replace"] !== false;
+
+    const { TimelineSequence } = await import("@nodetool-ai/models");
+    const sequence = await TimelineSequence.findById(timelineId);
+    if (!sequence || sequence.user_id !== run.context.userId) {
+      return { error: `Timeline ${timelineId} was not found.` };
+    }
+    const document: TimelineDocument = sequence.toDocument();
+
+    const audioClip = findClip(document.clips, params["audio_clip_id"], "audio_clip_id");
+    if (isError(audioClip)) return audioClip;
+    const targetClip = findClip(
+      document.clips,
+      params["target_clip_id"],
+      "target_clip_id"
+    );
+    if (isError(targetClip)) return targetClip;
+
+    // Both hops are affine only while neither clip's source position is a
+    // curve. A remap makes "which source ms plays here" normalized over the
+    // clip's own window, so there is no inverse to map an onset through.
+    for (const [clip, field] of [
+      [audioClip, "audio_clip_id"],
+      [targetClip, "target_clip_id"]
+    ] as const) {
+      if ((clip.timeRemap?.keyframes.length ?? 0) > 0) {
+        return {
+          error:
+            `Clip "${clip.name}" (${field}) carries a time remap, so its ` +
+            "source position is a curve over its own window and an audio " +
+            "time cannot be placed in it. Clear `timeRemap` with " +
+            "set_time_remap, or bake the remap into the media first."
+        };
+      }
+    }
+
+    const assetId = audioClip.currentAssetId;
+    if (!isString(assetId) || !assetId) {
+      return {
+        error:
+          `Clip "${audioClip.name}" has no asset to measure — it has not ` +
+          "been generated or imported yet."
+      };
+    }
+
+    const [analyzeFromMs, analyzeToMs] = clipSourceWindowMs(audioClip);
+    const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
+    let bytes: Uint8Array | null;
+    try {
+      bytes = await loadMediaRefBytes(
+        { uri: `asset://${assetId}`, asset_id: assetId },
+        run.context
+      );
+    } catch (error) {
+      return {
+        error: `Could not read the audio of "${audioClip.name}": ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      };
+    }
+    if (!bytes || bytes.byteLength === 0) {
+      return {
+        error: `The asset behind "${audioClip.name}" resolved to no bytes.`
+      };
+    }
+
+    const { analyzeAudioFrames } = await import("./analysis.js");
+    let envelope: Awaited<ReturnType<typeof analyzeAudioFrames>>;
+    try {
+      envelope = await analyzeAudioFrames(bytes, {
+        fromMs: analyzeFromMs,
+        toMs: analyzeToMs,
+        frameMs,
+        maxSeconds,
+        detectTempo: false
+      });
+    } catch (error) {
+      return {
+        error: `Could not analyze "${audioClip.name}": ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      };
+    }
+    const analyzed = envelope.truncated
+      ? envelope.truncated.analyzed
+      : ([analyzeFromMs, analyzeToMs] as const);
+
+    const {
+      beatCurve,
+      envelopeCurve,
+      mapAudioCurveToTarget
+    } = await import("./timeline-audio-bake.js");
+    const measured =
+      mode === "beats"
+        ? beatCurve(envelope.onsetsMs, {
+            attackMs,
+            releaseMs,
+            outputRange: range,
+            tolerance,
+            maxPoints,
+            windowMs: [analyzed[0], analyzed[1]]
+          })
+        : envelopeCurve(envelope.frames, {
+            attackMs,
+            releaseMs,
+            outputRange: range,
+            sensitivity: Math.max(
+              0.01,
+              numberOr(params["sensitivity"], 1)
+            ),
+            tolerance,
+            maxPoints
+          });
+
+    const keyframes = mapAudioCurveToTarget(measured, {
+      audioClip,
+      targetClip,
+      offsetMs
+    });
+    if (keyframes.length === 0) {
+      return {
+        error:
+          `Nothing to write: the stretch of "${audioClip.name}" that was ` +
+          `analyzed does not overlap "${targetClip.name}" on the timeline` +
+          (offsetMs === 0 ? "." : ` after the ${offsetMs}ms offset.`)
+      };
+    }
+
+    const { records, state } = await applyOps(run, sequence, document, [
+      {
+        op: `${TOOL_PREFIX}set_baked_animation`,
+        input: {
+          target: targetClip.id,
+          animation: {
+            property,
+            keyframes,
+            timeBase: "source",
+            replace,
+            bakedFrom: {
+              kind: AUDIO_BAKED_ANIMATION_KIND,
+              clipId: audioClip.id,
+              assetId,
+              settings: {
+                mode,
+                attackMs,
+                releaseMs,
+                offsetMs,
+                tolerance,
+                maxPoints,
+                frameMs,
+                sensitivity: Math.max(0.01, numberOr(params["sensitivity"], 1)),
+                outputLow: range[0],
+                outputHigh: range[1]
+              }
+            }
+          }
+        }
+      }
+    ]);
+    const record = records[0];
+    if (!record || !record.ok) {
+      return { error: record?.error ?? "The bake wrote nothing." };
+    }
+
+    const next: TimelineDocument = {
+      ...document,
+      tracks: state.documentTracks,
+      clips: state.documentClips,
+      markers: state.markers
+    };
+    const saved = await TimelineSequence.updateDocumentIfUnchanged(
+      timelineId,
+      sequence.updated_at,
+      next,
+      {
+        ops: [
+          {
+            tool: `${TOOL_PREFIX}set_baked_animation`,
+            input: { id: targetClip.id, target: targetClip.id }
+          }
+        ]
+      }
+    );
+    if (!saved) {
+      return {
+        error: `Timeline ${timelineId} is being modified concurrently; nothing was saved. Retry the call.`
+      };
+    }
+
+    const result = isRecord(record.result) ? record.result : {};
+    return {
+      timeline_id: timelineId,
+      updated_at: saved.updated_at,
+      clip_id: targetClip.id,
+      property,
+      mode,
+      animationId: result["animationId"],
+      keyframeCount: keyframes.length,
+      analyzed: { fromMs: analyzed[0], toMs: analyzed[1] },
+      truncated: envelope.truncated !== null,
+      replaced: result["replaced"] === true
+    };
+  }
+};
+
 const deleteTimeline: CapabilityExport = {
   spec: deleteTimelineSpec,
   impl: async (run, params) => {
@@ -2019,6 +2320,7 @@ export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   previewTimelineFrame,
   compareTimelineFrames,
   renderTimeline,
+  bakeAudioAnimation,
   deleteTimeline
 ];
 
@@ -2042,5 +2344,6 @@ export {
   previewTimelineFrame,
   compareTimelineFrames,
   renderTimeline,
+  bakeAudioAnimation,
   deleteTimeline
 };

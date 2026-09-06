@@ -30,6 +30,7 @@ import {
   trimClip,
   ANIMATION_PRESETS,
   ANIMATED_PROPERTIES,
+  buildBakedAnimation,
   CUSTOM_ANIMATION_CONTRACT,
   CUSTOM_ANIMATION_PRESET_ID,
   normalizeCustomCurves,
@@ -122,6 +123,9 @@ import {
   timeRemapParams,
   resolveMoveTrackArgs,
   resolveShapeArg,
+  setBakedAnimationParams,
+  type BakedAnimationParams,
+  SET_BAKED_ANIMATION_DESCRIPTION,
   textStyleParams,
   textStylePatchParams,
   transitionParams,
@@ -2012,6 +2016,32 @@ export function createTimelineToolBridge(
             ? [...(clip.animations ?? []), ...built]
             : built;
         return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    // Headless-only: the browser writes curves through the inspector, not
+    // through an agent call. Both this and the ops module's `set_baked_animation`
+    // go through `buildBakedAnimation`, so the replace rule cannot fork.
+    tool(
+      "ui_timeline_set_baked_animation",
+      SET_BAKED_ANIMATION_DESCRIPTION,
+      setBakedAnimationParams,
+      async ({ target, animation }) => {
+        const clip = resolveClip(target as string);
+        const outcome = buildBakedAnimation(
+          clip,
+          animation as BakedAnimationParams,
+          nextAnimId
+        );
+        clip.animations = outcome.animations;
+        return {
+          ok: true,
+          clip: serializeClip(clip),
+          animationId: outcome.animationId,
+          keyframeCount:
+            outcome.animation.custom?.curves[0]?.keyframes.length ?? 0,
+          replaced: outcome.replaced
+        };
       }
     ),
 

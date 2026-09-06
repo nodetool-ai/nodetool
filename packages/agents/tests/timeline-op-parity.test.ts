@@ -463,6 +463,32 @@ const FIXTURES: Fixture[] = [
     op: { op: "snap_to_beats", bpm: 120, targets: ["clip_a"] }
   },
   {
+    tool: "set_baked_animation",
+    args: {
+      target: "clip_a",
+      animation: {
+        property: "scale",
+        keyframes: [
+          { sourceMs: 0, value: 1 },
+          { sourceMs: 400, value: 1.3 }
+        ],
+        bakedFrom: { kind: "audio", assetId: "asset_1" }
+      }
+    },
+    op: {
+      op: "set_baked_animation",
+      target: "clip_a",
+      animation: {
+        property: "scale",
+        keyframes: [
+          { sourceMs: 0, value: 1 },
+          { sourceMs: 400, value: 1.3 }
+        ],
+        bakedFrom: { kind: "audio", assetId: "asset_1" }
+      }
+    }
+  },
+  {
     tool: "insert_composition",
     args: { composition_id: "lower_third", startMs: 1000 },
     op: { op: "insert_composition", composition_id: "lower_third", startMs: 1000 }

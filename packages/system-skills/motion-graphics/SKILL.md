@@ -193,6 +193,16 @@ channel table and the worked recipes. Then `{"role": "in", "preset": "custom",
 Add `mask` when a curve drives `wipeProgress`; without it the wipe has no edge
 to run against.
 
+Motion that has to follow a piece of audio is a different call: `bake_audio_animation`
+measures an audio clip and writes the curve onto a target clip through the
+`set_baked_animation` op, either following the loudness (`mode: "envelope"`) or
+pulsing on each onset (`mode: "beats"`). Its keyframes sit in the target clip's
+own media, so trimming or splitting that clip re-slices the motion, and the
+animation carries `bakedFrom` — running it again with different settings
+replaces that curve instead of stacking a second one, and never touches a curve
+you keyframed by hand. `set_markers_from_beats` is the other tool: markers to
+cut against, rather than motion to animate with.
+
 How several animations on one channel combine decides whether the second one
 adds to the first or throws it away:
 

@@ -23,6 +23,7 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import {
   ANIMATION_PRESETS,
+  buildBakedAnimation,
   CUSTOM_ANIMATION_CONTRACT,
   CUSTOM_ANIMATION_PRESET_ID,
   normalizeCustomCurves,
@@ -1197,6 +1198,22 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
         op.mode === "add" ? [...(clip.animations ?? []), ...built] : built;
       scope.touch(clip.id);
       return { ok: true, clip: scope.clipOut(clip) };
+    }
+
+    case "set_baked_animation": {
+      const clip = scope.resolveClip(op.target);
+      const outcome = buildBakedAnimation(clip, op.animation, () =>
+        scope.ctx.newId("anim")
+      );
+      clip.animations = outcome.animations;
+      scope.touch(clip.id);
+      return {
+        ok: true,
+        clip: scope.clipOut(clip),
+        animationId: outcome.animationId,
+        keyframeCount: outcome.animation.custom?.curves[0]?.keyframes.length ?? 0,
+        replaced: outcome.replaced
+      };
     }
 
     case "clear_animations": {
