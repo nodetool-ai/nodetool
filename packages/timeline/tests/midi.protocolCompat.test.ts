@@ -9,6 +9,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { QUANTIZE_DIVISION_VALUES } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import {
   MIDI_MAX_NOTES_PER_CLIP as PROTOCOL_MAX_NOTES,
   midiInstrument,
@@ -21,6 +22,7 @@ import {
 import { DEFAULT_MIDI_INSTRUMENT } from "../src/midi/instrument.js";
 import { DEFAULT_TEMPO } from "../src/midi/tempo.js";
 import { MIDI_MAX_NOTES_PER_CLIP } from "../src/midi/notes.js";
+import { QUANTIZE_DIVISIONS } from "../src/midi/edit.js";
 import type { MidiInstrument, MidiNote, TimelineTempo } from "../src/types.js";
 
 // Both directions: a field on one side and not the other breaks compilation.
@@ -49,5 +51,11 @@ describe("midi types match the protocol schemas", () => {
 
   it("keeps the note cap the same on both sides", () => {
     expect(MIDI_MAX_NOTES_PER_CLIP).toBe(PROTOCOL_MAX_NOTES);
+  });
+
+  // The quantize grids are duplicated in protocol for the same reason the
+  // types are: this package depends on that one, not the other way round.
+  it("keeps the quantize divisions the same on both sides", () => {
+    expect([...QUANTIZE_DIVISIONS]).toEqual([...QUANTIZE_DIVISION_VALUES]);
   });
 });

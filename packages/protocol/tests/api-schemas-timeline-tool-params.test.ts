@@ -29,18 +29,22 @@ import {
   effectParams,
   partialTextStyleParams,
   midiNoteParams,
+  quantizeNotesParams,
+  scaleVelocityParams,
   setNotesParams,
   setParentParams,
   setTempoParams,
   setTimeRemapParams,
   setTrackInstrumentParams,
   shapeStyleParams,
+  transposeClipParams,
   textStyleParams,
   transitionParams,
   resolveDeleteTrackArgs,
   resolveShapeArg,
   withFieldNotes,
   withTextClipRemedies,
+  QUANTIZE_DIVISION_VALUES,
   SHARED_TIMELINE_TOOL_NAMES
 } from "../src/api-schemas/timeline-tool-params.js";
 import { parseWithTypeCoercion } from "../src/zod-schema.js";
@@ -509,12 +513,89 @@ describe("the midi ops", () => {
     ).toThrow();
   });
 
-  it("names all four ops on the shared surface", () => {
+  it("takes a preset id in place of the whole instrument", () => {
+    expect(
+      setTrackInstrumentParams.parse({ track: "Keys", instrument: { preset: "soft-pad" } })
+    ).toEqual({ track: "Keys", instrument: { preset: "soft-pad" } });
+    expect(() =>
+      setTrackInstrumentParams.parse({ track: "Keys", instrument: { preset: 4 } })
+    ).toThrow();
+    expect(() =>
+      setTrackInstrumentParams.parse({ track: "Keys", instrument: {} })
+    ).toThrow();
+  });
+
+  it("transposes by whole semitones inside two octaves either way", () => {
+    expect(transposeClipParams.parse({ clip: "Phrase", semitones: -12 })).toEqual({
+      clip: "Phrase",
+      semitones: -12
+    });
+    expect(() =>
+      transposeClipParams.parse({ clip: "Phrase", semitones: 1.5 })
+    ).toThrow();
+    expect(() =>
+      transposeClipParams.parse({ clip: "Phrase", semitones: 49 })
+    ).toThrow();
+    expect(() =>
+      transposeClipParams.parse({ clip: "Phrase", semitones: -49 })
+    ).toThrow();
+  });
+
+  it("quantizes to a named grid, strength and target optional", () => {
+    expect(
+      quantizeNotesParams.parse({ clip: "Phrase", division: "1/16" })
+    ).toEqual({ clip: "Phrase", division: "1/16" });
+    expect(
+      quantizeNotesParams.parse({
+        clip: "Phrase",
+        division: "1/8T",
+        strength: 0.5,
+        target: "start_and_length"
+      })
+    ).toEqual({
+      clip: "Phrase",
+      division: "1/8T",
+      strength: 0.5,
+      target: "start_and_length"
+    });
+    for (const division of QUANTIZE_DIVISION_VALUES) {
+      expect(
+        quantizeNotesParams.parse({ clip: "Phrase", division }).division
+      ).toBe(division);
+    }
+    expect(() =>
+      quantizeNotesParams.parse({ clip: "Phrase", division: "1/3" })
+    ).toThrow();
+    expect(() =>
+      quantizeNotesParams.parse({ clip: "Phrase", division: "1/16", strength: 1.5 })
+    ).toThrow();
+    expect(() =>
+      quantizeNotesParams.parse({ clip: "Phrase", division: "1/16", target: "length" })
+    ).toThrow();
+  });
+
+  it("scales velocity by a factor the renderer can hear", () => {
+    expect(scaleVelocityParams.parse({ clip: "Phrase", factor: 1.2 })).toEqual({
+      clip: "Phrase",
+      factor: 1.2
+    });
+    expect(() =>
+      scaleVelocityParams.parse({ clip: "Phrase", factor: 0 })
+    ).toThrow();
+    expect(() =>
+      scaleVelocityParams.parse({ clip: "Phrase", factor: 4.1 })
+    ).toThrow();
+  });
+
+  it("names every midi op on the shared surface", () => {
     for (const name of [
       "ui_timeline_add_midi_clip",
       "ui_timeline_set_notes",
       "ui_timeline_set_tempo",
-      "ui_timeline_set_track_instrument"
+      "ui_timeline_set_track_instrument",
+      "ui_timeline_transpose_clip",
+      "ui_timeline_quantize_notes",
+      "ui_timeline_scale_velocity"
     ]) {
       expect(SHARED_TIMELINE_TOOL_NAMES).toContain(name);
     }

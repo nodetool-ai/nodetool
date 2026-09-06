@@ -29,8 +29,11 @@ import {
   ADD_TRACK_DESCRIPTION,
   DELETE_TRACK_DESCRIPTION,
   MOVE_TRACK_DESCRIPTION,
+  QUANTIZE_NOTES_DESCRIPTION,
+  SCALE_VELOCITY_DESCRIPTION,
   SET_TEMPO_DESCRIPTION,
   SET_TRACK_INSTRUMENT_DESCRIPTION,
+  TRANSPOSE_CLIP_DESCRIPTION,
   addGroupParams,
   addMidiClipParams,
   captionStyleParams,
@@ -41,12 +44,15 @@ import {
   matteParams,
   moveTrackShape,
   partialTextStyleParams,
+  quantizeNotesParams,
+  scaleVelocityParams,
   setNotesParams,
   setParentParams,
   setTempoParams,
   setTimeRemapParams,
   setTrackInstrumentParams,
   shapeStyleParams,
+  transposeClipParams,
   targetParam,
   textStyleParams,
   transitionParams,
@@ -629,6 +635,21 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
     ui_timeline_set_track_instrument: {
       description: SET_TRACK_INSTRUMENT_DESCRIPTION,
       shape: setTrackInstrumentParams.shape
+    },
+
+    ui_timeline_transpose_clip: {
+      description: TRANSPOSE_CLIP_DESCRIPTION,
+      shape: transposeClipParams.shape
+    },
+
+    ui_timeline_quantize_notes: {
+      description: QUANTIZE_NOTES_DESCRIPTION,
+      shape: quantizeNotesParams.shape
+    },
+
+    ui_timeline_scale_velocity: {
+      description: SCALE_VELOCITY_DESCRIPTION,
+      shape: scaleVelocityParams.shape
     }
   } satisfies Record<string, UiToolContract>;
 }
