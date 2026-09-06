@@ -44,6 +44,35 @@ body {
   font-weight: 600;
 }
 
+.popup__subtitle {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.popup__divider {
+  height: 1px;
+  margin: 0;
+  background: var(--border);
+  border: none;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat__hint {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .status {
   display: flex;
   align-items: center;
