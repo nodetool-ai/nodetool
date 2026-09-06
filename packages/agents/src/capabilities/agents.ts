@@ -28,12 +28,10 @@
  * namespaces" (`/agents`).
  */
 
-import type { JsonSchema } from "@nodetool-ai/runtime";
 import { budgetFromContext } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import { Tool } from "../tools/base-tool.js";
 import { TOOL_CALL_ID_FIELD } from "../tools/subtask-fields.js";
-import { READ_ONLY_SEARCH_DESCRIPTION } from "../prompts/read-only-search-prompt.js";
 import type { SubAgentToolRuntime } from "../subagent.js";
 import type {
   CapabilityExport,
@@ -46,22 +44,13 @@ import {
   startSubtaskSpec,
   waitSubtasksSpec,
   createPlanSpec,
-  executePlanSpec,
-  RUN_SUBTASK_DESCRIPTION,
-  RUN_SUBTASK_SCHEMA,
-  RUN_SEARCH_SCHEMA
+  executePlanSpec
 } from "./agents.specs.js";
 import {
   isNonEmptyString,
   isObjectLike,
   isString
 } from "../utils/type-guards.js";
-
-export {
-  RUN_SUBTASK_DESCRIPTION,
-  RUN_SUBTASK_SCHEMA,
-  RUN_SEARCH_SCHEMA
-} from "./agents.specs.js";
 
 const log = createLogger("nodetool.agents.capabilities.agents");
 

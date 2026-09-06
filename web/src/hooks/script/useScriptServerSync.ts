@@ -41,7 +41,10 @@ type ScriptWireDocument = ScriptResponse["document"];
 /** The saved payload: the script minus identity and transient UI state. */
 const scriptToDocument = (script: ScriptDraft): ScriptWireDocument => ({
   cast: script.cast,
-  sections: script.sections
+  sections: script.sections,
+  // Omitted when the script has none, so a script written before the guided
+  // flow existed is saved back exactly as it was read (PRD § 9.5).
+  setup: script.setup ?? undefined
 });
 
 const responseToScript = (
@@ -52,6 +55,7 @@ const responseToScript = (
     title: res.name === "Untitled script" ? "" : res.name,
     cast: doc.cast,
     sections: doc.sections,
+    setup: doc.setup ?? null,
     timelineId: res.timelineId ?? null,
     storyboardId: res.storyboardId ?? null
   };
@@ -584,7 +588,23 @@ export const useScriptServerSync = (
       isDirty: () =>
         (store.getState().scripts[scriptId] ?? null) !== syncedRef.current,
       reload: () => {
-        void load("reloaded");
+        void (async () => {
+          try {
+            const response = await trpcClient.scripts.get.query({ id: scriptId });
+            if (disposed) return;
+            // A take may complete while the clean-editor reload is in flight.
+            // Merge that new draft with the external response instead of
+            // applying the response over the take.
+            if (isDirty()) {
+              await mergeExternal({ updatedAt: response.updatedAt }, response);
+              return;
+            }
+            applyResponse(response, "reloaded");
+          } catch (error) {
+            console.error("Failed to reload script", error);
+            store.getState().setSaveStatus(scriptId, "error");
+          }
+        })();
       },
       merge: (notice) => {
         // A save in flight makes the notice ambiguous: it may be that save's

@@ -9,10 +9,6 @@ describe("agents index exports", () => {
     expect(mod.Tool).toBeDefined();
     expect(mod.FinishStepTool).toBeDefined();
     expect(mod.htmlToText).toBeDefined();
-    expect(mod.registerTool).toBeDefined();
-    expect(mod.resolveTool).toBeDefined();
-    expect(mod.listTools).toBeDefined();
-    expect(mod.getAllTools).toBeDefined();
 
     // The belt. A tool is a capability wire name now, not an exported class:
     // the names are the belt, `getBuiltinTools()` assembles it, and

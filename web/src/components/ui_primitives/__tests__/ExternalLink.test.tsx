@@ -10,6 +10,7 @@ import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { ExternalLink } from "../ExternalLink";
 import mockTheme from "../../../__mocks__/themeMock";
+import { asElement } from "../../../test-utils/doubles";
 
 describe("ExternalLink", () => {
   const renderWithTheme = (component: React.ReactElement) => {
@@ -167,7 +168,7 @@ describe("ExternalLink", () => {
 
       const link = container.querySelector("a.external-link");
       expect(link).toBeInTheDocument();
-      const styles = window.getComputedStyle(link as HTMLElement);
+      const styles = window.getComputedStyle(asElement(link));
       expect(styles.fontSize).toBe(mockTheme.fontSizeSmaller);
     });
 
@@ -180,7 +181,7 @@ describe("ExternalLink", () => {
 
       const link = container.querySelector("a.external-link");
       expect(link).toBeInTheDocument();
-      const styles = window.getComputedStyle(link as HTMLElement);
+      const styles = window.getComputedStyle(asElement(link));
       expect(styles.fontSize).toBe(mockTheme.fontSizeSmall);
     });
 
@@ -193,7 +194,7 @@ describe("ExternalLink", () => {
 
       const link = container.querySelector("a.external-link");
       expect(link).toBeInTheDocument();
-      const styles = window.getComputedStyle(link as HTMLElement);
+      const styles = window.getComputedStyle(asElement(link));
       expect(styles.fontSize).toBe(mockTheme.fontSizeNormal);
     });
 
@@ -204,7 +205,7 @@ describe("ExternalLink", () => {
 
       const link = container.querySelector("a.external-link");
       expect(link).toBeInTheDocument();
-      const styles = window.getComputedStyle(link as HTMLElement);
+      const styles = window.getComputedStyle(asElement(link));
       expect(styles.fontSize).toBe(mockTheme.fontSizeSmall);
     });
   });

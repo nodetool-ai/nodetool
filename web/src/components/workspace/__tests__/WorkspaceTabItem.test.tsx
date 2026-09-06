@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -62,6 +62,25 @@ const renderTab = (overrides: Partial<React.ComponentProps<typeof WorkspaceTabIt
 };
 
 describe("WorkspaceTabItem rename input", () => {
+  it("shows the full tab name on hover well before the chrome delay", async () => {
+    jest.useFakeTimers();
+    try {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderTab();
+
+      await user.hover(screen.getByText(tab.title));
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByRole("tooltip")).toHaveTextContent(tab.title);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("lets the user type spaces into the rename input", async () => {
     const user = userEvent.setup();
     const handlers = renderTab({ isEditing: true });

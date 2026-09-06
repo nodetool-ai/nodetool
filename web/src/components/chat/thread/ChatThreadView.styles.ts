@@ -36,6 +36,11 @@ export const createStyles = (theme: Theme) => ({
     justifyContent: "flex-start",
     alignItems: "center",
     overflowY: "auto",
+    // Without this the axis computes to `auto` alongside `overflowY`, and a
+    // single wide turn lets a phone pan the whole conversation sideways.
+    // Content that genuinely needs the width (code blocks, tables, JSON
+    // dumps) scrolls inside its own box.
+    overflowX: "hidden",
     overflowAnchor: "none",
     padding: theme.spacing(2, 0),
     marginTop: 0,
@@ -78,6 +83,15 @@ export const createStyles = (theme: Theme) => ({
       flexDirection: "column",
       alignItems: "flex-start",
       gap: theme.spacing(1)
+    },
+    // The turn's body. `.chat-message` aligns its children to the start, so
+    // without a width this box takes its content's min-content size — an
+    // unbreakable URL or a wide table then makes the turn wider than the
+    // column instead of wrapping or scrolling inside it.
+    ".message-body": {
+      width: "100%",
+      minWidth: 0,
+      maxWidth: "100%"
     },
     ".chat-message.assistant": {
       padding: theme.spacing(3, 4),

@@ -12,27 +12,11 @@
  * creative project.
  *
  * The five tools live in the `memory` capability module
- * (`../capabilities/memory.ts`); this module keeps the names, the getter, and
- * the prompt renderer, which is not a tool.
+ * (`../capabilities/memory.ts`) and reach a belt through `BUILTIN_TOOL_NAMES`;
+ * this module keeps the prompt renderer, which is not a tool.
  */
 
 import type { MemoryResource } from "@nodetool-ai/models";
-import { toolForCapabilityName } from "../capabilities/lazy-tool.js";
-import type { Tool } from "./base-tool.js";
-
-/** Names of the memory tools. */
-export const MEMORY_TOOL_NAMES = [
-  "memory_save",
-  "memory_list",
-  "memory_search",
-  "memory_update",
-  "memory_delete"
-] as const;
-
-/** Fresh instances of the five memory tools. */
-export function getMemoryTools(): Tool[] {
-  return MEMORY_TOOL_NAMES.map((name) => toolForCapabilityName(name));
-}
 
 /**
  * Render memories as a block for injection at the start of a chat turn.

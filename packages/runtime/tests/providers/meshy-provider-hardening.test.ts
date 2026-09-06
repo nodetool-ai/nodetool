@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   MeshyProvider,
   MESHY_3D_MODELS,
-  detectImageMime,
+  meshyImageMime,
   bytesToBase64,
   buildTextTo3DPayload
 } from "../../src/providers/meshy-provider.js";
@@ -44,25 +44,24 @@ const txt = (over: Partial<TextTo3DParams> = {}): TextTo3DParams => ({
 });
 
 describe("Meshy pure helpers", () => {
-  it("detectImageMime returns png only for the full 8-byte signature", () => {
-    expect(detectImageMime(PNG)).toBe("image/png");
-    // exactly the 8 magic bytes (boundary: length === PNG_MAGIC.length)
-    expect(detectImageMime(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))).toBe(
+  it("meshyImageMime identifies png", () => {
+    expect(meshyImageMime(PNG)).toBe("image/png");
+    expect(meshyImageMime(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))).toBe(
       "image/png"
     );
   });
-  it("detectImageMime returns jpeg when too short", () => {
-    expect(detectImageMime(new Uint8Array([0x89, 0x50, 0x4e]))).toBe("image/jpeg");
-    expect(detectImageMime(new Uint8Array([]))).toBe("image/jpeg");
-  });
-  it("detectImageMime returns jpeg when any signature byte differs", () => {
-    // Differ at the very last magic byte to exercise the full loop.
-    const almost = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x00, 0xff]);
-    expect(detectImageMime(almost)).toBe("image/jpeg");
-    // Differ at the first byte.
-    expect(detectImageMime(new Uint8Array([0x00, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))).toBe(
+  it("meshyImageMime falls back to jpeg for unrecognized or short input", () => {
+    expect(meshyImageMime(new Uint8Array([0x00, 0x01, 0x02]))).toBe("image/jpeg");
+    expect(meshyImageMime(new Uint8Array([]))).toBe("image/jpeg");
+    expect(meshyImageMime(new Uint8Array([0x00, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))).toBe(
       "image/jpeg"
     );
+  });
+  it("meshyImageMime identifies WebP rather than mislabeling it JPEG", () => {
+    const webp = new Uint8Array([
+      0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50
+    ]);
+    expect(meshyImageMime(webp)).toBe("image/webp");
   });
   it("bytesToBase64 encodes exactly", () => {
     expect(bytesToBase64(new Uint8Array([1, 2, 3]))).toBe("AQID");

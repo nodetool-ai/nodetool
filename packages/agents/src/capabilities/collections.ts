@@ -16,7 +16,6 @@
  */
 
 import { readFile } from "node:fs/promises";
-import type { JsonSchema } from "@nodetool-ai/runtime";
 import type { VectorCollection, VectorMatch } from "@nodetool-ai/vectorstore";
 import {
   flattenMetadata,
@@ -39,13 +38,10 @@ import {
   vectorMarkdownSplitAndIndexSpec,
   vectorBatchIndexSpec,
   createCollectionSpec,
-  deleteCollectionSpec,
-  QUERY_COLLECTION_SCHEMA
+  deleteCollectionSpec
 } from "./collections.specs.js";
 import { userIdOf } from "../tools/mcp-tool-support.js";
 import { isString } from "../utils/type-guards.js";
-
-export { QUERY_COLLECTION_SCHEMA } from "./collections.specs.js";
 
 interface CollectionSummary {
   name: string;

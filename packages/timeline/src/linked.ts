@@ -4,10 +4,11 @@
  * The two documents keep their jobs — the board owns the picture, the script
  * owns the words — and this is where they meet. Shots lay out end to end as in
  * `buildStoryboardTimeline`, but each one is as long as the takes it covers
- * (`linkedShotDurationMs`), and every voiced line gets its own clip on the
- * voiceover track, parked where its words fall inside the shot. Each shot also
- * keeps the sound of its own rendered clip, on the shot-audio track
- * `buildStoryboardTimeline` uses. The whole-cut narration draft clip is gone:
+ * (`linkedShotDurationMs`) — falling back to its own footage, as an unlinked
+ * cut does, when the words say nothing about it — and every voiced line gets
+ * its own clip on the voiceover track, parked where its words fall inside the
+ * shot. Each shot also keeps the sound of its own rendered clip, on the
+ * shot-audio track `buildStoryboardTimeline` uses. The whole-cut narration draft clip is gone:
  * the script says the words now, so a prompt spanning the cut would be a
  * second, competing answer.
  *
@@ -38,8 +39,7 @@ import {
   SHOT_AUDIO_TRACK_NAME,
   shotAudioClip,
   shotDurationMs,
-  shotSource,
-  shotsById,
+  shotSources,
   type AssembledTimeline,
   type TrimmedShot
 } from "./storyboard.js";
@@ -83,12 +83,12 @@ export function buildLinkedTimeline(
       ? input.script.cast.find((s) => s.id === speakerId)?.name
       : undefined;
 
-  const byId = shotsById(input.shots);
+  const sources = shotSources(input.shots);
   let cursorMs = 0;
   const trimmedShots: TrimmedShot[] = [];
   for (const shot of ordered) {
     const lineIds = shot.script_line_ids ?? [];
-    const source = shotSource(shot, byId);
+    const source = sources.get(shot.id) ?? null;
     if (!source) {
       skippedShotIds.push(shot.id);
       skippedLineIds.push(...lineIds);
@@ -101,8 +101,12 @@ export function buildLinkedTimeline(
     // imposed. A shot whose render is shorter than its lines still shows up in
     // `trimmedShots` with a negative headroom of its own kind: `sourceMs`
     // under `usedMs` is the caller's cue that the picture runs out first.
+    // A shot the words say nothing about falls back to its footage, as an
+    // unlinked cut does, and only then to the length it was directed at.
     const durationMs =
-      linkedShotDurationMs(shot, linesById) ?? shotDurationMs(shot);
+      linkedShotDurationMs(shot, linesById) ??
+      source.availableMs ??
+      shotDurationMs(shot);
     const sourceMs = source.availableMs;
     if (sourceMs !== null && sourceMs !== durationMs) {
       trimmedShots.push({ shotId: shot.id, usedMs: durationMs, sourceMs });
@@ -198,6 +202,9 @@ export function buildLinkedTimeline(
     durationMs: cursorMs,
     skippedShotIds,
     skippedLineIds,
-    trimmedShots
+    trimmedShots,
+    // Nothing is reported as retimed: a linked shot is meant to run as long
+    // as its lines, so differing from `duration_seconds` is the point.
+    retimedShots: []
   };
 }

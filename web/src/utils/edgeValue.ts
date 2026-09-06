@@ -1,12 +1,9 @@
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
+import { isRecord } from "./typePredicates";
 
 type GetResult = (_workflowId: string, _nodeId: string) => unknown;
 type FindNode = (_nodeId: string) => Node<NodeData> | undefined;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 export const isLiteralSourceNode = (nodeType?: string): boolean => {
   if (!nodeType) {

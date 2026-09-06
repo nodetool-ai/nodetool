@@ -1,0 +1,419 @@
+{
+  "slug": "ad-maker",
+  "name": "Ad Maker",
+  "emoji": "📣",
+  "description": "Type the offer once. Three agents run side by side: ad copy written plain, playful and premium; five headlines each taking a different angle; and a hero image whose prompt stays visible so it can be corrected rather than guessed at.",
+  "tagline": "One offer, three registers of copy, five headlines and a hero image.",
+  "note": "🔑 Needs an OpenAI key for the writing and a FAL key for the image.",
+  "featured": false,
+  "image": "/app-preview/img/ad-maker.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "📣 Ad Maker",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One offer, three registers of copy, five headlines and a hero image."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Needs an OpenAI key for the writing and a FAL key for the image."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-the-offer",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-offer",
+                  "title": "The offer",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-offer",
+                        "binding": "var:offer",
+                        "label": "What are you advertising?",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-copy-headlines-visual",
+                        "label": "Make the ad",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "copy",
+                            "key": "",
+                            "value": ""
+                          },
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "headlines",
+                            "key": "",
+                            "value": ""
+                          },
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "visual",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-the-offer-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-copy",
+                        "binding": "op:copy/exec#progress",
+                        "label": "Writing copy…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-copy-variants",
+                        "text": "Ad copy",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-copy-variants",
+                        "binding": "op:copy/out:out",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-headlines-headlines",
+                        "text": "Headlines",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-headlines-headlines",
+                        "binding": "op:headlines/out:out",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-visual-image",
+                        "text": "Hero image",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-visual-image",
+                        "binding": "op:visual/out:out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-visual-prompt-used",
+                        "text": "Prompt used",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-visual-prompt-used",
+                        "binding": "op:visual/out:op",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "copy",
+        "name": "Copy",
+        "workflowId": "copy",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "offer"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "headlines",
+        "name": "Headlines",
+        "workflowId": "headlines",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "offer"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      },
+      {
+        "id": "visual",
+        "name": "Visual",
+        "workflowId": "visual",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "offer"
+          }
+        },
+        "outputs": {},
+        "policy": "parallel"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "offer",
+        "name": "The offer",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Aurora Trail running shoes: a third lighter than last season, grip that holds on wet rock, launching this Friday",
+        "scope": "user",
+        "persist": true
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "copy",
+      "name": "Ad Copy in Three Registers",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "offer",
+              "value": "",
+              "description": "The offer to advertise"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Input"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "variants"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Output"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "headlines",
+      "name": "Five Headlines for a Landing Page",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "offer",
+              "value": "",
+              "description": "What the page is selling"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Input"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "headlines"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Output"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "visual",
+      "name": "Write the Prompt, Then Make the Image",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "idea",
+              "value": "",
+              "description": "The idea, in plain words"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Idea"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "op",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "prompt_used"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 990,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "4  Prompt used"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "image"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "5  Image"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:copy/out:out": "**Plain**\nAurora Trail. A third lighter. Grips wet rock. Out Friday.\n\n**Playful**\nYour old shoes just got a text: it's over.\n\n**Premium**\nEngineered for the ground that gives nothing back.",
+    "op:headlines/out:out": "1. Lighter than your excuses\n2. Grip that argues with gravity\n3. Built for the rock, not the treadmill",
+    "op:visual/out:out": {
+      "$demo": "image"
+    },
+    "var:offer": "Aurora Trail running shoes: a third lighter than last season, grip that holds on wet rock, launching this Friday"
+  }
+}

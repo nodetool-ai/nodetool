@@ -22,13 +22,9 @@ import {
   type DeployerFactory,
   type DeploymentConfig,
   type DeploymentType,
-  type SyncerAssetStorage,
-  type WorkflowSyncerDeps,
-  type AssetInfo
+  type WorkflowSyncerDeps
 } from "@nodetool-ai/deploy";
-import { Asset, Workflow } from "@nodetool-ai/models";
-import { FileStorageAdapter } from "@nodetool-ai/runtime";
-import { getDefaultAssetsPath } from "@nodetool-ai/config";
+import { Workflow } from "@nodetool-ai/models";
 
 // Pure output + prompt helpers live in ./output.js so lightweight command
 // modules can import them without pulling in the heavy deploy stack above.
@@ -194,21 +190,8 @@ export function buildStubDeployment(
 /** Local user ID used by the CLI — matches the rest of the TS stack. */
 export const LOCAL_USER_ID = "1";
 
-/** Build WorkflowSyncer deps backed by the local DB + FileStorage. */
+/** Build WorkflowSyncer deps backed by the local workflow table. */
 export function makeSyncerDeps(): WorkflowSyncerDeps {
-  const storageRoot = getDefaultAssetsPath();
-  const adapter = new FileStorageAdapter(storageRoot);
-
-  const storage: SyncerAssetStorage = {
-    async download(key: string): Promise<Uint8Array> {
-      const data = await adapter.retrieve(`/api/storage/${key}`);
-      if (!data) {
-        throw new Error(`Asset file not found in local storage: ${key}`);
-      }
-      return data;
-    }
-  };
-
   return {
     async getWorkflowData(id: string) {
       const wf = await Workflow.find(LOCAL_USER_ID, id);
@@ -223,63 +206,8 @@ export function makeSyncerDeps(): WorkflowSyncerDeps {
         updated_at: wf.updated_at,
         created_at: wf.created_at
       };
-    },
-    async getAsset(id: string): Promise<AssetInfo | null> {
-      const asset = await Asset.find(LOCAL_USER_ID, id);
-      if (!asset) return null;
-      const fileExt = contentTypeToExt(asset.content_type);
-      const fileName = asset.isFolder ? null : `${asset.id}.${fileExt}`;
-      const thumbFileName = asset.hasThumbnail ? `${asset.id}_thumb.jpg` : null;
-      return {
-        id: asset.id,
-        user_id: asset.user_id,
-        name: asset.name,
-        content_type: asset.content_type,
-        parent_id: asset.parent_id,
-        workflow_id: asset.workflow_id,
-        metadata: asset.metadata,
-        file_name: fileName,
-        has_thumbnail: asset.hasThumbnail,
-        thumb_file_name: thumbFileName
-      };
-    },
-    getSyncerAssetStorage() {
-      return storage;
     }
   };
-}
-
-const CONTENT_TYPE_TO_EXT: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/gif": "gif",
-  "image/svg+xml": "svg",
-  "image/webp": "webp",
-  "image/tiff": "tiff",
-  "image/bmp": "bmp",
-  "text/plain": "txt",
-  "text/csv": "csv",
-  "text/html": "html",
-  "application/json": "json",
-  "application/pdf": "pdf",
-  "application/zip": "zip",
-  "audio/mpeg": "mp3",
-  "audio/mp3": "mp3",
-  "audio/wav": "wav",
-  "audio/ogg": "ogg",
-  "audio/aac": "aac",
-  "audio/x-wav": "wav",
-  "audio/x-flac": "flac",
-  "audio/x-m4a": "m4a",
-  "video/mp4": "mp4",
-  "video/mpeg": "mpeg",
-  "video/quicktime": "mov",
-  "video/x-msvideo": "avi",
-  "video/webm": "webm"
-};
-
-function contentTypeToExt(contentType: string): string {
-  return CONTENT_TYPE_TO_EXT[contentType] ?? "bin";
 }
 
 // ---------------------------------------------------------------------------

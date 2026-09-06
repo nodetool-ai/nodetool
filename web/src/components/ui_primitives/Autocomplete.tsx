@@ -150,4 +150,8 @@ function AutocompleteInternal<
   );
 }
 
-export const Autocomplete = memo(AutocompleteInternal) as typeof AutocompleteInternal;
+export const Autocomplete =
+  // SAFETY: `memo` returns a non-generic `MemoExoticComponent`, dropping the
+  // three type parameters callers pass. The runtime value is unchanged; only
+  // the generic call signature is restored.
+  memo(AutocompleteInternal) as typeof AutocompleteInternal;

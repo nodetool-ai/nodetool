@@ -16,6 +16,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 import { TextInput } from "../TextInput";
 import { SelectField } from "../SelectField";
 import { CONTROL } from "../tokens";
+import { asElement } from "../../../test-utils/doubles";
 
 const renderWithTheme = (component: React.ReactElement) => {
   return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
@@ -52,7 +53,7 @@ describe("control token heights", () => {
   it("TextInput medium: root floor 36px, input padding 7px", () => {
     renderWithTheme(<TextInput label="Name" />);
     const rules = cssRulesFor(
-      screen.getByLabelText("Name").closest(".MuiFormControl-root") as Element
+      asElement(screen.getByLabelText("Name").closest(".MuiFormControl-root"))
     );
     expect(rules).toContain(`min-height:${CONTROL.height.lg}px`);
     expect(rules).toContain("padding-top:7px");
@@ -62,7 +63,7 @@ describe("control token heights", () => {
   it("TextInput compact: root floor 28px, input padding 3px", () => {
     renderWithTheme(<TextInput label="Name" compact />);
     const rules = cssRulesFor(
-      screen.getByLabelText("Name").closest(".MuiFormControl-root") as Element
+      asElement(screen.getByLabelText("Name").closest(".MuiFormControl-root"))
     );
     expect(rules).toContain(`min-height:${CONTROL.height.sm}px`);
     expect(rules).toContain("padding-top:3px");
@@ -81,9 +82,9 @@ describe("control token heights", () => {
           variant={variant}
         />
       );
-      const root = screen
-        .getByRole("combobox")
-        .closest(".MuiInputBase-root") as Element;
+      const root = asElement(
+        screen.getByRole("combobox").closest(".MuiInputBase-root")
+      );
       expect(root).toHaveStyle({ minHeight: `${CONTROL.height.lg}px` });
       // Zero vertical padding keeps the display content under the minHeight
       // floor in every variant; the InputBase root's own flex row centers it.
@@ -112,9 +113,9 @@ describe("control token heights", () => {
           size="small"
         />
       );
-      const root = screen
-        .getByRole("combobox")
-        .closest(".MuiInputBase-root") as Element;
+      const root = asElement(
+        screen.getByRole("combobox").closest(".MuiInputBase-root")
+      );
       expect(root).toHaveStyle({ minHeight: `${CONTROL.height.sm}px` });
       const rules = cssRulesFor(root);
       expect(rules).toContain("padding-top:0px");

@@ -7,7 +7,10 @@ import type {
   JsonResources,
   Model3DRefLike
 } from "./types.js";
-import { isNonEmptyString, isObjectLike } from "../../type-predicates.js";
+import {
+  isNonEmptyString,
+  isObjectLike
+} from "@nodetool-ai/node-sdk";
 
 export function toBytes(data: Uint8Array | string | undefined): Uint8Array {
   if (!data) return new Uint8Array();

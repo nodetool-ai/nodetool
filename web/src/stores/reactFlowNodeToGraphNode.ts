@@ -25,7 +25,8 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     model_id: node.data.model_id,
     endpoint_id: node.data.endpoint_id,
     selected_generation: node.data.selected_generation,
-    selected_generations: node.data.selected_generations
+    selected_generations: node.data.selected_generations,
+    setup_step_id: node.data.setupStepId
   };
 
   if (node.data.collapsed) {

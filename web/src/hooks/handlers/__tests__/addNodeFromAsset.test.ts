@@ -80,4 +80,70 @@ describe("useAddNodeFromAsset", () => {
     });
     expect(mockAddNode).toHaveBeenCalledWith(createdNode);
   });
+
+  it("creates a String constant node holding the text of a markdown asset", async () => {
+    const metadata = { node_type: "nodetool.constant.String" };
+    const createdNode: { data: { properties: Record<string, unknown> } } = {
+      data: { properties: {} }
+    };
+
+    mockGetMetadata.mockReturnValue(metadata);
+    mockCreateNode.mockReturnValue(createdNode);
+    asMock(global.fetch).mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode("# hello").buffer
+    } as unknown as Response);
+
+    const asset = {
+      id: "asset-md-1",
+      name: "notes.md",
+      content_type: "text/markdown",
+      get_url: "/assets/notes.md"
+    };
+
+    const { result } = renderHook(() => useAddNodeFromAsset());
+
+    await act(async () => {
+      result.current(asset as any, { x: 10, y: 20 });
+    });
+
+    expect(mockGetMetadata).toHaveBeenCalledWith("nodetool.constant.String");
+    expect(createdNode.data.properties.value).toBe("# hello");
+    expect(mockAddNode).toHaveBeenCalledWith(createdNode);
+    expect(mockAddNotification).not.toHaveBeenCalled();
+  });
+
+  it("creates an AssetFolderInput node for a folder asset", () => {
+    const metadata = { node_type: "nodetool.input.AssetFolderInput" };
+    const createdNode: { data: { properties: Record<string, unknown> } } = {
+      data: { properties: {} }
+    };
+
+    mockGetMetadata.mockReturnValue(metadata);
+    mockCreateNode.mockReturnValue(createdNode);
+
+    const asset = {
+      id: "folder-1",
+      name: "My Folder",
+      content_type: "folder",
+      get_url: null
+    };
+
+    const { result } = renderHook(() => useAddNodeFromAsset());
+
+    act(() => {
+      result.current(asset as any, { x: 0, y: 0 });
+    });
+
+    expect(mockGetMetadata).toHaveBeenCalledWith(
+      "nodetool.input.AssetFolderInput"
+    );
+    expect(createdNode.data.properties.value).toEqual({
+      type: "folder",
+      uri: "",
+      asset_id: "folder-1"
+    });
+    expect(createdNode.data.properties.name).toBe("my_folder");
+    expect(mockAddNode).toHaveBeenCalledWith(createdNode);
+  });
 });

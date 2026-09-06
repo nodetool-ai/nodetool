@@ -183,25 +183,26 @@ export interface CircularActionButtonProps {
   tabIndex?: number;
 }
 
+/**
+ * Resolves a `"group.variant"` palette path, or a top-level palette color's
+ * `main`. MUI's `Palette` carries no index signature, so the dynamic key a
+ * `color` prop names is matched against the palette's entries. An unresolvable
+ * key comes back unchanged, which is how a literal CSS color passes through.
+ */
 const getThemeColor = (theme: Theme, colorKey: string): string => {
-  const palette = theme.vars.palette as Record<string, unknown>;
-
-  const parts = colorKey.split(".");
-  if (parts.length === 2 && parts[0] in palette) {
-    const [category, variant] = parts;
-    const categoryPalette = palette[category];
-    if (categoryPalette && isObjectLike(categoryPalette) && variant in (categoryPalette as Record<string, unknown>)) {
-      const value = (categoryPalette as Record<string, string>)[variant];
-      return value || colorKey;
-    }
+  const [group, variant] = colorKey.split(".");
+  const groupName = variant === undefined ? colorKey : group;
+  const entry = Object.entries(theme.vars.palette).find(
+    ([name]) => name === groupName
+  )?.[1];
+  if (!isObjectLike(entry)) {
+    return colorKey;
   }
-  if (colorKey in palette) {
-    const colorEntry = palette[colorKey];
-    if (colorEntry && isObjectLike(colorEntry) && "main" in colorEntry) {
-      return (colorEntry as { main: string }).main || colorKey;
-    }
-  }
-  return colorKey;
+  const variantName = variant ?? "main";
+  const color = Object.entries(entry).find(
+    ([name]) => name === variantName
+  )?.[1];
+  return (isString(color) && color) || colorKey;
 };
 
 export const CircularActionButton = memo(

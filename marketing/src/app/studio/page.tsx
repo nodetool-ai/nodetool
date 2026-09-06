@@ -83,16 +83,16 @@ const proPoints = [
 
 const consPoints = [
   {
-    title: "Hardware matters",
-    body: "Local models need memory and ideally a graphics card. For serious local work we suggest 16GB or more of RAM and at least 4GB of graphics memory.",
+    title: "Hardware matters, if you run models locally",
+    body: "Working through hosted providers needs no graphics card at all. Running open weights on your own machine does: for serious local work we suggest 16GB or more of RAM and at least 4GB of graphics memory.",
   },
   {
     title: "You manage updates",
     body: "When a new release comes out, you install it. Builds are signed and notarized for macOS and Windows, so updating stays simple.",
   },
   {
-    title: "Disk space",
-    body: "Local models are large. Allow around 20GB for a small starter set, and considerably more for image and video models.",
+    title: "Disk space, if you download models",
+    body: "The app installs and downloads nothing else on its own. Open weights are large, so if you want them: allow around 20GB for a small starter set, and considerably more for image and video models.",
   },
 ];
 
@@ -172,28 +172,23 @@ export default function StudioPage() {
                   <Cpu className="h-3.5 w-3.5" />
                   Studio · Desktop · Open source
                 </span>
-                {/* Sized a step below the landing hero's 3.25rem cap: this
-                    headline carries an extra clause, and at that cap it wrapped
-                    to five lines in the 5/12 column and pushed the demo out of
-                    line with the copy. text-balance is off for the same reason
-                    — it broke the short first line to equalise against the
-                    much longer second one. */}
                 <h1
                   id="studio-hero-title"
                   className="mt-6 text-[clamp(2rem,7vw,2.75rem)] font-bold leading-[1.1] tracking-tight text-white lg:text-[clamp(2rem,3.1vw,2.75rem)]"
                 >
-                  You are the director.
+                  Open-source
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-300 pb-[0.12em]">
-                    The agent is your crew — on your hardware.
+                    creative AI workspace
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
-                  Describe your idea. The agent writes the script, storyboards
-                  every scene, generates the footage, and cuts the timeline —
-                  all of it on your own machine, on open weights through Ollama
-                  and MLX, or on your own API keys when a cloud model is the
-                  right call.
+                  Create and edit images, video, audio, and text with agents that
+                  work alongside you. Let them build and revise workflows, then
+                  inspect and edit the results yourself. Your project keeps the
+                  brief, assets, and edits together. Run supported local models
+                  through Ollama or MLX, or connect cloud providers with your own API
+                  keys.
                 </p>
                 <div className="mt-8 flex flex-col gap-3">
                   <SmartDownloadButton
@@ -255,7 +250,10 @@ export default function StudioPage() {
                   }}
                 />
                 <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-                  <HeroDemoPlayer alt="NodeTool Studio: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film — all on your own machine" />
+                  <HeroDemoPlayer
+                    alt="NodeTool Studio: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film — all on your own machine"
+                    caption="Storyboard, rendered shots, a cut on the timeline, a finished film — all on your own machine. Open it full screen to read the panels."
+                  />
                 </div>
               </div>
             </div>

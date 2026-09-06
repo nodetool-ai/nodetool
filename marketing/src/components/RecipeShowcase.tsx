@@ -1,13 +1,13 @@
 import React from "react";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
-import { recipeEntries, type RecipeEntry } from "../data/recipes";
+import { recipeEntries, sampleFidelity, type RecipeEntry } from "../data/recipes";
 import { PROVIDER_DISPLAY } from "../data/providerDisplay";
 
 /**
  * The jobs on the homepage: the four recipes, because each is a job with a
- * buyer, a real run against live models, and a `.nodetool` bundle to
- * download. The demo use cases stay on /use-cases.
+ * buyer, a real run against live models, and a chain that ships inside Studio.
+ * The demo use cases stay on /use-cases.
  *
  * A card names the models the shipped chain calls and says "at provider list
  * prices". It never carries a dollar figure: no recorded run has produced one
@@ -53,13 +53,14 @@ export default function RecipeShowcase() {
             id="jobs-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            Four jobs a team runs every week
+            How teams are using NodeTool.
           </h2>
           <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-            Each one is a real run against live models: what you end up holding,
-            who it is for, the models the chain calls, and every workflow in it
-            as one file you import into Studio. You pay those providers at
-            their list prices.
+            Four jobs that run every week, each a real run against live models:
+            what you end up holding, who it is for, the models the chain calls,
+            and every workflow in it already installed with Studio. Opening a
+            chain and reading every graph in it needs no key and no account.
+            Running it bills the providers you chose, at their list prices.
           </p>
         </div>
 
@@ -68,6 +69,9 @@ export default function RecipeShowcase() {
             const image = recipe.sample?.image ?? recipe.heroThumbnail;
             const providers = providersOf(recipe);
             const models = modelsOf(recipe);
+            const fidelity = recipe.sample
+              ? sampleFidelity(recipe.sample)
+              : null;
             return (
               <article
                 key={recipe.slug}
@@ -96,6 +100,20 @@ export default function RecipeShowcase() {
                   </h3>
                   <p className="mt-3 text-slate-400 leading-relaxed">
                     {recipe.outcome}
+                  </p>
+
+                  {fidelity && (
+                    <p className="mt-4 text-xs text-slate-500">
+                      {fidelity.changed.length === 0
+                        ? "The picture above is this chain run exactly as Studio ships it."
+                        : `The picture above is this chain run for real, with ${fidelity.changed.length} of ${fidelity.total} models reached another way — the recipe page names which, and why.`}
+                    </p>
+                  )}
+
+                  <p className="mt-2 text-xs text-slate-500">
+                    {recipe.keys.length === 1
+                      ? "One provider key to run it. None to read it."
+                      : `${recipe.keys.length} provider keys to run the whole chain. None to read it.`}
                   </p>
 
                   <div className="mt-5">

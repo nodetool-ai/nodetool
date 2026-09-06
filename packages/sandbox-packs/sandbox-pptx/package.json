@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-pptx",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Extract text from PowerPoint files inside the NodeTool sandbox, from office-text-extractor running on the host",
   "license": "MIT",
   "nodetool": {

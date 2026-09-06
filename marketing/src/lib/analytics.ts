@@ -19,6 +19,9 @@ declare global {
 
 /** Known custom events. Keep names stable — they become Plausible goals. */
 export type TrackEvent =
+  // The CTA click and the installer click are separate now that /download
+  // sits between them: one measures intent, the other measures a file leaving.
+  | "Download CTA"
   | "Download"
   | "View Demo"
   | "Star GitHub"

@@ -22,8 +22,13 @@ const shotNode = (
   slug: "Opening",
   action: "A lighthouse at dusk",
   status: "planned",
+  sceneId: null,
   hasKeyframe: false,
   hasClip: false,
+  keyframeVersionCount: 0,
+  clipVersionCount: 0,
+  staleKeyframe: false,
+  staleClip: false,
   ...overrides
 });
 
@@ -33,6 +38,9 @@ const snapshot = (): StoryboardSnapshot => ({
   brief: "A short film",
   style: "noir",
   aspectRatio: "16:9",
+  setupStage: "done",
+  genre: "",
+  scenes: [],
   entityIds: [],
   hasScreenplay: true,
   scriptId: null,
@@ -41,11 +49,23 @@ const snapshot = (): StoryboardSnapshot => ({
 });
 
 const createMockHandler = (): jest.Mocked<StoryboardAgentHandler> => ({
-  getSnapshot: jest.fn(),
+  getSnapshot: jest.fn().mockReturnValue(snapshot()),
   setScreenplay: jest.fn(),
+  setSetup: jest.fn(),
+  direct: jest.fn(),
   setEntityIds: jest.fn(),
   addShot: jest.fn(),
   updateShot: jest.fn(),
+  moveShot: jest.fn(),
+  duplicateShot: jest.fn(),
+  removeShot: jest.fn(),
+  updateScene: jest.fn(),
+  createScene: jest.fn(),
+  mergeScene: jest.fn(),
+  setStyle: jest.fn(),
+  selectVersion: jest.fn(),
+  deleteVersion: jest.fn(),
+  addKeyframeVersion: jest.fn(),
   generateKeyframe: jest.fn(),
   generateClip: jest.fn(),
   reviseShot: jest.fn(),
@@ -210,9 +230,10 @@ describe("ui_storyboard_* tools", () => {
 
   it("generates a keyframe through the handler", async () => {
     const handler = createMockHandler();
-    handler.generateKeyframe.mockResolvedValue(
-      shotNode({ status: "keyframe_generating" })
-    );
+    handler.generateKeyframe.mockResolvedValue({
+      shots: [shotNode({ status: "keyframe_generating" })],
+      skipped: []
+    });
     setStoryboardAgentHandler(BOARD_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
@@ -222,7 +243,9 @@ describe("ui_storyboard_* tools", () => {
       ctx
     )) as { ok: boolean; shot: StoryboardShotNode };
 
-    expect(handler.generateKeyframe).toHaveBeenCalledWith("selected");
+    expect(handler.generateKeyframe).toHaveBeenCalledWith("selected", {
+      staleOnly: undefined
+    });
     expect(result.shot.status).toBe("keyframe_generating");
   });
 
@@ -283,6 +306,25 @@ describe("ui_storyboard_* tools", () => {
   });
 
   describe("ui_storyboard_set_screenplay", () => {
+    it.each(["hasKeyframe", "hasClip"])("refuses to drop a shot with %s when the agent omits its id", async (media) => {
+      const handler = createMockHandler();
+      handler.getSnapshot.mockReturnValue({
+        ...snapshot(),
+        shots: [shotNode({ [media]: true })]
+      });
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      await expect(FrontendToolRegistry.call(
+        "ui_storyboard_set_screenplay",
+        { storyboard_id: BOARD_ID, screenplay: {
+          type: "screenplay", title: "Revised", shots: [{ action: "A different prompt" }]
+        } },
+        "tc-preserve-media",
+        ctx
+      )).rejects.toThrow("ui_storyboard_update_shot");
+      expect(handler.setScreenplay).not.toHaveBeenCalled();
+    });
+
     // The shape an agent actually sent, which the store copied verbatim and the
     // save then rejected: no `type`, no `id`, no `index`, no `status`.
     const agentScreenplay = {

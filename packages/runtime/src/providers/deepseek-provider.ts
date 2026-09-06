@@ -16,8 +16,6 @@ export class DeepSeekProvider extends OpenAICompatProvider {
     return ["DEEPSEEK_API_KEY"];
   }
 
-  private _deepseekFetch: typeof fetch;
-
   constructor(
     secrets: { DEEPSEEK_API_KEY?: string },
     options: OpenAICompatProviderOptions = {}
@@ -27,14 +25,10 @@ export class DeepSeekProvider extends OpenAICompatProvider {
       throw new Error("DEEPSEEK_API_KEY is required");
     }
 
-    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
-
     super(
       { providerId: "deepseek", apiKey, baseURL: DEEPSEEK_BASE_URL },
-      { ...options, fetchFn }
+      options
     );
-
-    this._deepseekFetch = fetchFn;
   }
 
   override getContainerEnv() {
@@ -46,33 +40,6 @@ export class DeepSeekProvider extends OpenAICompatProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const response = await this._deepseekFetch(
-      `${DEEPSEEK_BASE_URL}/models`,
-      {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`
-        }
-      }
-    );
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string; name?: string }>;
-    };
-    // Stryker disable next-line ArrayDeclaration: the fallback is filtered downstream (rows need a string id), so [] vs any array is observably identical.
-    const rows = payload.data ?? [];
-    return rows
-      .filter(
-        (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
-      )
-      .map((row) => ({
-        id: row.id,
-        name: row.name ?? row.id,
-        provider: "deepseek"
-      }));
+    return this.listCompatModels();
   }
 }

@@ -299,9 +299,9 @@ async function main() {
   let PythonStdioBridge;
   let PythonNodeExecutor;
   let getSecret;
-  let SQLiteAdapterFactory;
-  let setGlobalAdapterResolver;
-  let Secret;
+  let initDb;
+  let getDefaultDbPath;
+  let initMasterKey;
   try {
     const kernelPath = path.resolve(tsRoot, "packages/kernel/dist/index.js");
     const nodeSdkPath = path.resolve(tsRoot, "packages/node-sdk/dist/index.js");
@@ -312,6 +312,8 @@ async function main() {
     const falNodesPath = path.resolve(tsRoot, "packages/fal-nodes/dist/index.js");
     const huggingfaceNodesPath = path.resolve(tsRoot, "packages/huggingface-nodes/dist/index.js");
     const modelsPath = path.resolve(tsRoot, "packages/models/dist/index.js");
+    const configPath = path.resolve(tsRoot, "packages/config/dist/index.js");
+    const securityPath = path.resolve(tsRoot, "packages/security/dist/index.js");
 
     ({ WorkflowRunner } = await import(pathToFileURL(kernelPath).href));
     ({ NodeRegistry } = await import(pathToFileURL(nodeSdkPath).href));
@@ -331,7 +333,9 @@ async function main() {
       PythonStdioBridge,
       PythonNodeExecutor,
     } = await import(pathToFileURL(runtimePath).href));
-    ({ SQLiteAdapterFactory, setGlobalAdapterResolver, Secret, getSecret } = await import(pathToFileURL(modelsPath).href));
+    ({ initDb, getSecret } = await import(pathToFileURL(modelsPath).href));
+    ({ getDefaultDbPath } = await import(pathToFileURL(configPath).href));
+    ({ initMasterKey } = await import(pathToFileURL(securityPath).href));
     try {
       ({ registerFalNodes } = await import(pathToFileURL(falNodesPath).href));
     } catch {
@@ -348,15 +352,19 @@ async function main() {
     );
   }
 
-  // Set up SQLite DB for secrets resolution
+  // Open the same SQLite database the CLI and server use, then unlock the
+  // master key so `getSecret` can decrypt stored provider credentials. A
+  // locked keychain is survivable — the run falls back to environment
+  // variables — but a database that will not open is not.
+  initDb(getDefaultDbPath());
   try {
-    const { homedir } = await import("node:os");
-    const dbPath = process.env.DB_PATH ?? path.join(homedir(), ".local", "share", "nodetool", "nodetool.sqlite3");
-    const factory = new SQLiteAdapterFactory(dbPath);
-    setGlobalAdapterResolver((schema) => factory.getAdapter(schema));
-    await Secret.createTable();
-  } catch {
-    // DB not available — fall back to env vars only
+    await initMasterKey();
+  } catch (err) {
+    await writeStream(
+      process.stderr,
+      `Could not unlock the secret store: ${err instanceof Error ? err.message : String(err)}\n` +
+        `Stored provider credentials will not resolve; set SECRETS_MASTER_KEY or grant keychain access.\n`
+    );
   }
 
   const jobId = `job-${Date.now()}`;

@@ -74,6 +74,7 @@ export const Surface = memo(
       ref
     ) => {
       const theme = useTheme();
+      const radiusKey = RADIUS_MAP[rounded];
 
       // Read backgrounds from theme.vars (CSS variables) so the active color
       // scheme is honored. theme.palette.* is baked from the default scheme at
@@ -90,10 +91,7 @@ export const Surface = memo(
           ref={ref}
           elevation={elevation}
           sx={{
-            borderRadius:
-              RADIUS_MAP[rounded] === "none"
-                ? 0
-                : theme.rounded[RADIUS_MAP[rounded] as keyof Theme["rounded"]],
+            borderRadius: radiusKey === "none" ? 0 : theme.rounded[radiusKey],
             padding:
               isNumber(padding)
                 ? theme.spacing(padding)

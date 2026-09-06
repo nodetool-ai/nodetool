@@ -3,10 +3,19 @@ import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { HoverActionGroup } from "../HoverActionGroup";
 import mockTheme from "../../../__mocks__/themeMock";
+import { firstElement } from "../../../test-utils/doubles";
 
-const renderGroup = (
-  props: Partial<React.ComponentProps<typeof HoverActionGroup>> = {}
-) =>
+/**
+ * The group's own props, plus the `data-*` the pass-through test sets.
+ * TypeScript special-cases `data-*` on a JSX attribute, not on an object type.
+ */
+type RenderGroupProps = Partial<
+  React.ComponentProps<typeof HoverActionGroup>
+> & {
+  "data-testid"?: string;
+};
+
+const renderGroup = (props: RenderGroupProps = {}) =>
   render(
     <ThemeProvider theme={mockTheme}>
       <HoverActionGroup {...props}>
@@ -25,13 +34,13 @@ describe("HoverActionGroup", () => {
 
   it("starts hidden by default", () => {
     const { container } = renderGroup();
-    const box = container.firstChild as HTMLElement;
+    const box = firstElement(container);
     expect(box).toHaveStyle({ opacity: "0" });
   });
 
   it("is always visible when alwaysVisible is set", () => {
     const { container } = renderGroup({ alwaysVisible: true });
-    const box = container.firstChild as HTMLElement;
+    const box = firstElement(container);
     expect(box).toHaveStyle({ opacity: "1" });
   });
 
@@ -49,7 +58,7 @@ describe("HoverActionGroup", () => {
 
   it("applies configured transition duration", () => {
     const { container } = renderGroup({ transitionMs: 300 });
-    const box = container.firstChild as HTMLElement;
+    const box = firstElement(container);
     expect(box).toHaveStyle({ transition: "opacity 300ms ease" });
   });
 
@@ -57,7 +66,7 @@ describe("HoverActionGroup", () => {
     const { container } = renderGroup({
       "data-testid": "hag",
       "aria-label": "Row actions"
-    } as any);
+    });
     expect(container.firstChild).toHaveAttribute("data-testid", "hag");
     expect(container.firstChild).toHaveAttribute("aria-label", "Row actions");
   });

@@ -14,12 +14,20 @@ import {
   modelRefToBytes
 } from "./utils.js";
 import {
+  folderPathOf,
   saveFilename,
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
 } from "@nodetool-ai/nodes-utils";
+import type { Model3DRefLike } from "./types.js";
+
+/**
+ * What a `folder` slot delivers. Mirrors `FolderValue` in nodes-utils'
+ * save-target.ts, which the package index does not re-export.
+ */
+type FolderRefLike = string | { uri?: string } | null;
 
 /** Output handles LoadModel3DFileNode.process() emits. */
 type LoadModel3DFileNodeOutputs = {
@@ -43,10 +51,10 @@ export class LoadModel3DFileNode extends BaseNode {
     title: "Path",
     description: "Path to the 3D model file to read"
   })
-  declare path: any;
+  declare path: string;
 
   async process(): Promise<LoadModel3DFileNodeOutputs> {
-    const p = filePath(String(this.path ?? ""));
+    const p = filePath(this.path);
     const data = new Uint8Array(await fs.readFile(p));
     return {
       output: modelRef(data, { uri: pathToFileURL(p).toString(), format: extFormat(p) })
@@ -76,7 +84,7 @@ export class SaveModel3DFileNode extends BaseNode {
     title: "Model",
     description: "The 3D model to save"
   })
-  declare model: any;
+  declare model: Model3DRefLike;
 
   @prop({
     type: "bool",
@@ -84,7 +92,7 @@ export class SaveModel3DFileNode extends BaseNode {
     title: SAVE_TO_WORKSPACE_TITLE,
     description: SAVE_TO_WORKSPACE_DESCRIPTION
   })
-  declare save_to_workspace: any;
+  declare save_to_workspace: boolean;
 
   @prop({
     type: "str",
@@ -93,7 +101,7 @@ export class SaveModel3DFileNode extends BaseNode {
     description: "Folder where the file will be saved",
     json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
-  declare folder: any;
+  declare folder: string;
 
   @prop({
     type: "str",
@@ -102,7 +110,7 @@ export class SaveModel3DFileNode extends BaseNode {
     description:
       "\n        The name of the 3D model file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
   })
-  declare filename: any;
+  declare filename: string;
 
   @prop({
     type: "bool",
@@ -111,16 +119,16 @@ export class SaveModel3DFileNode extends BaseNode {
     description:
       "Overwrite the file if it already exists, otherwise file will be renamed"
   })
-  declare overwrite: any;
+  declare overwrite: boolean;
 
   async process(context?: ProcessingContext): Promise<SaveModel3DFileNodeOutputs> {
     const bytes = await modelRefToBytes(this.model, context);
     const targetPath = await writeSavedFile({
       folder: this.folder,
       filename: saveFilename({
-        filename: dateName(String(this.filename ?? "")),
+        filename: dateName(this.filename),
         fallback: dateName("model_%Y-%m-%d_%H-%M-%S"),
-        extension: `.${modelFormat(this.model ?? {})}`
+        extension: `.${modelFormat(this.model)}`
       }),
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
@@ -160,7 +168,7 @@ export class SaveModel3DNode extends BaseNode {
     title: "Model",
     description: "The 3D model to save."
   })
-  declare model: any;
+  declare model: Model3DRefLike;
 
   @prop({
     type: "folder",
@@ -168,7 +176,7 @@ export class SaveModel3DNode extends BaseNode {
     title: "Folder",
     description: "The asset folder to save the 3D model in."
   })
-  declare folder: any;
+  declare folder: FolderRefLike;
 
   @prop({
     type: "str",
@@ -177,11 +185,13 @@ export class SaveModel3DNode extends BaseNode {
     description:
       "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
   })
-  declare name: any;
+  declare name: string;
 
   async process(context?: ProcessingContext): Promise<SaveModel3DNodeOutputs> {
-    const folder = String(this.folder ?? ".");
-    const name = dateName(String(this.name ?? "model.glb"));
+    // folderPathOf, not String(): `folder` carries a folder ref object, and
+    // stringifying it wrote every model into a directory named "[object Object]".
+    const folder = folderPathOf(this.folder);
+    const name = dateName(this.name);
     const full = path.resolve(folder, name);
     await fs.mkdir(path.dirname(full), { recursive: true });
     const bytes = await modelRefToBytes(this.model, context);

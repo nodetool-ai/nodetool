@@ -39,24 +39,8 @@ import {
   stepRefSchema,
   isJobUpdate,
   isNodeUpdate,
-  isGenerationComplete,
-  isNodeProgress,
-  isEdgeUpdate,
   isOutputUpdate,
-  isSaveUpdate,
-  isBinaryUpdate,
-  isLogUpdate,
-  isNotification,
-  isErrorMessage,
-  isToolCallUpdate,
-  isToolResultUpdate,
-  isTaskUpdate,
-  isStepResult,
-  isPlanningUpdate,
   isChunk,
-  isPrediction,
-  isLLMCallUpdate,
-  isTodoUpdate,
   isProcessingMessage,
   type MessageType
 } from "../src/messages.js";
@@ -349,38 +333,25 @@ describe("embedded schemas", () => {
 // Type guards
 // ---------------------------------------------------------------------------
 
-const guards: Record<MessageType, (value: unknown) => boolean> = {
+const guards: Partial<Record<MessageType, (value: unknown) => boolean>> = {
   job_update: isJobUpdate,
   node_update: isNodeUpdate,
-  generation_complete: isGenerationComplete,
-  node_progress: isNodeProgress,
-  edge_update: isEdgeUpdate,
   output_update: isOutputUpdate,
-  save_update: isSaveUpdate,
-  binary_update: isBinaryUpdate,
-  log_update: isLogUpdate,
-  notification: isNotification,
-  error: isErrorMessage,
-  tool_call_update: isToolCallUpdate,
-  tool_result_update: isToolResultUpdate,
-  task_update: isTaskUpdate,
-  step_result: isStepResult,
-  planning_update: isPlanningUpdate,
-  chunk: isChunk,
-  prediction: isPrediction,
-  llm_call: isLLMCallUpdate,
-  todo_update: isTodoUpdate
+  chunk: isChunk
 };
 
 describe("is* guards narrow correctly", () => {
-  for (const type of Object.keys(samples) as MessageType[]) {
+  for (const [type, guard] of Object.entries(guards) as [
+    MessageType,
+    (value: unknown) => boolean
+  ][]) {
     it(`${"is" + type} guard accepts a ${type} sample and rejects others`, () => {
-      expect(guards[type](samples[type])).toBe(true);
+      expect(guard(samples[type])).toBe(true);
 
       const otherType = (Object.keys(samples) as MessageType[]).find(
         (t) => t !== type
       )!;
-      expect(guards[type](samples[otherType])).toBe(false);
+      expect(guard(samples[otherType])).toBe(false);
     });
   }
 

@@ -2,14 +2,16 @@ import JsonLd from "../../components/JsonLd";
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "NodeTool for marketing teams | Agent-first production at campaign scale",
+  title: "AI for Advertising | NodeTool",
   description:
-    "The agent-first workspace for marketing teams: hand the brief to an agent and it builds the workflow that turns out product videos, ad creative, social calendars, and brand assets from every major model, with your own keys. No marked-up credits, no lock-in, output at campaign volume.",
+    "Put generative models into your creative and production pipeline, from the first idea through to delivery. Product videos, ad creative, social calendars, and brand assets from every major model, on your own keys. Teams move faster, pitch more ambitious work, and spend less doing it.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/marketing",
   },
   keywords: [
+    "AI for advertising",
+    "AI advertising workflow",
     "AI marketing agent",
     "agent-first marketing workspace",
     "AI product video generator",
@@ -20,9 +22,9 @@ export const metadata: Metadata = {
     "BYOK AI for marketing teams",
   ],
   openGraph: {
-    title: "NodeTool for marketing teams | Agent-first production at campaign scale",
+    title: "AI for Advertising | NodeTool",
     description:
-      "Hand the brief to an agent: product videos, ad creative, social calendars, and brand assets — every model, your keys, built for campaign volume.",
+      "From the first idea through to delivery: product videos, ad creative, social calendars, and brand assets, from every major model, on your own keys.",
     url: "https://nodetool.ai/marketing",
     siteName: "NodeTool",
     images: [
@@ -36,9 +38,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "NodeTool for marketing teams",
+    title: "AI for Advertising | NodeTool",
     description:
-      "Every model. Your keys. Your agent. AI production at campaign scale.",
+      "Every model. Your keys. Your agent. Advertising production end to end.",
     images: ["/preview.png"],
   },
 };

@@ -16,7 +16,8 @@ import { ExecutionSession } from "@nodetool-ai/execution";
 import { resolveLocalSecret } from "./local-secrets.js";
 import type { Intervention } from "@nodetool-ai/protocol";
 import { createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
-import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
+import { ProcessingContext } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { buildFullRegistry } from "./node-registry.js";
 import { dslWorkflowToGraph, loadDslWorkflows } from "./run-dsl.js";
 import {

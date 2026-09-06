@@ -33,8 +33,10 @@
  * ../TimelineShortcutsDialog.tsx — keep the two in sync when a shortcut
  * changes.
  *
- * Zoom: Ctrl/Cmd+wheel (or a trackpad pinch) on the lane area changes msPerPx,
- *   anchored at the cursor.
+ * Zoom: Ctrl/Cmd+wheel on the lane area changes msPerPx, anchored at the
+ *   cursor. A macOS trackpad pinch arrives as that same synthetic ctrlKey
+ *   wheel in Chromium and as WebKit gesture events in Safari; both routes land
+ *   on the same anchored zoom.
  * Horizontal scroll: a trackpad two-finger horizontal swipe or Shift+wheel
  *   scrolls the lanes left/right. The handler takes the gesture over so the
  *   browser's back/forward swipe never fires at the scroll edges; a plain
@@ -101,6 +103,11 @@ import { deserializeDragData } from "../../../lib/dragdrop";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { buildTypedIndexMap } from "./trackVisuals";
 import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
+import {
+  pinchMsPerPx,
+  supportsWebKitGestures,
+  type WebKitGestureEvent
+} from "./timelineGesture";
 import { resolveTimelineAction } from "../timelineKeymap";
 import { performSourceEdit } from "../sourceEdit";
 import {
@@ -483,6 +490,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const pendingZoomFactorRef = useRef(1);
     const pendingZoomClientXRef = useRef(0);
     const zoomRafIdRef = useRef<number | null>(null);
+    // Set while a WebKit pinch is in flight so a stray ctrlKey wheel can't
+    // apply a second, compounding zoom on top of the gesture's own scale.
+    const webkitGestureActiveRef = useRef(false);
 
     useEffect(() => {
       const el = scrollableRef.current;
@@ -520,6 +530,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
+          if (webkitGestureActiveRef.current) return;
           pendingZoomFactorRef.current *= 1 + zoomDelta * ZOOM_SENSITIVITY;
           pendingZoomClientXRef.current = e.clientX;
           if (zoomRafIdRef.current === null) {
@@ -557,6 +568,86 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           cancelAnimationFrame(zoomRafIdRef.current);
           zoomRafIdRef.current = null;
         }
+      };
+    }, [uiStoreApi]);
+
+    // Pinch-to-zoom (macOS trackpad, WebKit). Chromium turns a pinch into the
+    // ctrlKey wheel the handler above already routes to zoom; Safari instead
+    // fires gesture events with a cumulative scale and no wheel at all, so
+    // without this a pinch over the timeline zooms the page. Feeds the same
+    // setZoom + `zoomAnchorRef` path, so the time under the fingers stays put.
+    useEffect(() => {
+      const el = scrollableRef.current;
+      if (!el || !supportsWebKitGestures(window)) return;
+
+      let startMsPerPx = 0;
+      let pendingScale = 1;
+      let pendingClientX = 0;
+      let rafId: number | null = null;
+
+      const applyGesture = () => {
+        rafId = null;
+        if (startMsPerPx === 0) return;
+        const current = uiStoreApi.getState().msPerPx;
+        const next = pinchMsPerPx(
+          startMsPerPx,
+          pendingScale,
+          MIN_MS_PER_PX,
+          MAX_MS_PER_PX
+        );
+        if (next === current) return;
+
+        const rect = el.getBoundingClientRect();
+        const cursorPx = pendingClientX - rect.left;
+        zoomAnchorRef.current = {
+          timeMs: (el.scrollLeft + cursorPx) * current,
+          cursorPx
+        };
+        uiStoreApi.getState().setZoom(next);
+      };
+
+      const onGestureStart = (event: Event) => {
+        const e = event as WebKitGestureEvent;
+        // Claim the pinch before Safari applies its own page zoom.
+        e.preventDefault();
+        webkitGestureActiveRef.current = true;
+        startMsPerPx = uiStoreApi.getState().msPerPx;
+        pendingScale = 1;
+        pendingClientX = e.clientX;
+      };
+
+      const onGestureChange = (event: Event) => {
+        const e = event as WebKitGestureEvent;
+        e.preventDefault();
+        if (startMsPerPx === 0) return;
+        pendingScale = e.scale;
+        pendingClientX = e.clientX;
+        // A pinch delivers several events per frame; batch to one setZoom per
+        // frame so the lanes/clips/ruler re-render once.
+        if (rafId === null) rafId = requestAnimationFrame(applyGesture);
+      };
+
+      const endGesture = (event: Event) => {
+        event.preventDefault();
+        webkitGestureActiveRef.current = false;
+        startMsPerPx = 0;
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+      };
+
+      // Non-passive so preventDefault() actually suppresses Safari's own page
+      // zoom.
+      el.addEventListener("gesturestart", onGestureStart, { passive: false });
+      el.addEventListener("gesturechange", onGestureChange, { passive: false });
+      el.addEventListener("gestureend", endGesture, { passive: false });
+      return () => {
+        el.removeEventListener("gesturestart", onGestureStart);
+        el.removeEventListener("gesturechange", onGestureChange);
+        el.removeEventListener("gestureend", endGesture);
+        webkitGestureActiveRef.current = false;
+        if (rafId !== null) cancelAnimationFrame(rafId);
       };
     }, [uiStoreApi]);
 

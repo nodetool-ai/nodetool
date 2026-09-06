@@ -6,11 +6,7 @@ import {
   stripImagePayload,
   IMAGE_CONTENT_FIELD
 } from "../src/tools/image-injection.js";
-import {
-  registerBuiltinTools,
-  resetBuiltinToolsRegistration
-} from "../src/tools/builtin-tools.js";
-import { resolveTool } from "../src/tools/tool-registry.js";
+import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 import type { MessageContent } from "@nodetool-ai/runtime";
 import { createMockContext } from "./_helpers/mock-context.js";
 
@@ -236,13 +232,11 @@ describe("ListImagesTool", () => {
   });
 });
 
-describe("builtin registration", () => {
-  it("registers view_image and list_images", () => {
-    resetBuiltinToolsRegistration();
-    const names = registerBuiltinTools();
-    expect(names).toContain("view_image");
-    expect(names).toContain("list_images");
-    expect(resolveTool("view_image")?.name).toBe("view_image");
-    expect(resolveTool("list_images")?.name).toBe("list_images");
+describe("builtin belt", () => {
+  it("lists view_image and list_images and builds both", () => {
+    expect(BUILTIN_TOOL_NAMES).toContain("view_image");
+    expect(BUILTIN_TOOL_NAMES).toContain("list_images");
+    expect(viewImageTool().name).toBe("view_image");
+    expect(listImagesTool().name).toBe("list_images");
   });
 });

@@ -1,13 +1,15 @@
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { BaseNode, isString, prop } from "@nodetool-ai/node-sdk";
 import type {
   ColumnDef,
+  FolderRef,
   InputMode,
   OutputCorrelation,
   Platform
 } from "@nodetool-ai/protocol";
 import {
   loadNodeFsPromises,
-  loadNodePath
+  loadNodePath,
+  loadNodeUrl
 } from "@nodetool-ai/nodes-utils";
 import Papa from "papaparse";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
@@ -113,6 +115,22 @@ function toDataframe(rows: Row[]): RowsDataframe {
   return { rows };
 }
 
+/**
+ * A `folder` prop carries a `FolderRef`, not a path. Its `uri` is the directory
+ * to scan; an empty ref (the descriptor default) means the working directory.
+ */
+async function folderPath(folder: FolderRef | string): Promise<string> {
+  const uri = isString(folder) ? folder : (folder?.uri ?? "");
+  if (!uri) return ".";
+  if (!uri.startsWith("file://")) return uri;
+  try {
+    const { fileURLToPath } = await loadNodeUrl();
+    return fileURLToPath(new URL(uri));
+  } catch {
+    return uri.slice("file://".length);
+  }
+}
+
 function parseCsv(csv: string): Row[] {
   if (!csv) return [];
   const result = Papa.parse<Row>(csv, {
@@ -164,7 +182,7 @@ export class ForEachRowNode extends BaseNode {
     title: "Dataframe",
     description: "The input dataframe."
   })
-  declare dataframe: any;
+  declare dataframe: DataframeInput;
 
   async process(): Promise<Partial<ForEachRowNodeOutputs>> {
     return {};
@@ -221,7 +239,7 @@ export class LoadCSVAssetsNode extends BaseNode {
     title: "Folder",
     description: "The asset folder to load the dataframes from."
   })
-  declare folder: any;
+  declare folder: FolderRef | string;
 
   async process(): Promise<LoadCSVAssetsNodeOutputs> {
     const allDataframes: RowsDataframe[] = [];
@@ -242,7 +260,7 @@ export class LoadCSVAssetsNode extends BaseNode {
     dataframe: RowsDataframe;
     name: string;
   }> {
-    const folder = String(this.folder ?? ".");
+    const folder = await folderPath(this.folder);
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
     const entries = await fs.readdir(folder, { withFileTypes: true });

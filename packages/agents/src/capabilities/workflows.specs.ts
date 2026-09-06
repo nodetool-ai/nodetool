@@ -598,6 +598,156 @@ export const exportWorkflowDigraphSpec: CapabilitySpec = {
     `Exporting workflow ${params["workflow_id"]} as digraph`
 };
 
+
+// ── Guided setup (PRD § 11.6) ────────────────────────────────────────────────
+// The headless half of the Workflow creation flow. The browser drives the same
+// four operations through `ui_workflow_set_setup`, `ui_workflow_plan`,
+// `ui_workflow_update_plan_step` and `ui_workflow_build_from_plan`; these act
+// on the stored row instead, so every § 11.7 criterion is reachable with no
+// editor open.
+
+export const SET_WORKFLOW_SETUP_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The workflow to write setup on. You must own it."
+    },
+    brief: {
+      type: "string",
+      description: "What the workflow should do — the planner's input."
+    },
+    category: {
+      type: "string",
+      description:
+        "Workflow kind, biasing the planner: content-pipeline, media-batch, data-extraction, research-agent, trigger-automation, chat-app.",
+      enum: [
+        "content-pipeline",
+        "media-batch",
+        "data-extraction",
+        "research-agent",
+        "trigger-automation",
+        "chat-app"
+      ]
+    },
+    run_mode: {
+      type: "string",
+      description: "How the finished workflow is meant to be run.",
+      enum: ["manual", "app", "trigger"]
+    },
+    stage: {
+      type: "string",
+      description:
+        "Where the guided flow resumes. A workflow that has finished setup, or was built before the flow existed, reads 'done'.",
+      enum: ["idea", "category", "review", "setup", "done"]
+    }
+  },
+  required: ["workflow_id"]
+};
+
+export const PLAN_WORKFLOW_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The workflow whose brief is planned. You must own it."
+    },
+    provider: { type: "string", description: "Provider for the planner call." },
+    model: { type: "string", description: "Model id for the planner call." },
+    plan: {
+      type: "object",
+      description:
+        "A plan to store as-is instead of calling a model — {inputs, steps, outputs}. Use it to replay a plan, or to test the build without a provider."
+    }
+  },
+  required: ["workflow_id"]
+};
+
+export const UPDATE_WORKFLOW_PLAN_STEP_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: { type: "string", description: "The workflow. You must own it." },
+    step_id: {
+      type: "string",
+      description:
+        "Id of the plan step to change, as listed by plan_workflow. Omit with op 'add'."
+    },
+    op: {
+      type: "string",
+      description:
+        "'update' edits the step's fields, 'add' appends a new one, 'remove' drops it, 'move' reorders it to `index`.",
+      enum: ["update", "add", "remove", "move"],
+      default: "update"
+    },
+    title: { type: "string" },
+    summary: { type: "string" },
+    node_type: {
+      type: ["string", "null"],
+      description:
+        "Registry node type this step maps to, or null when none fits. An unknown type blocks the setup step (D23)."
+    },
+    model_role: {
+      type: "string",
+      enum: ["language", "image", "video", "audio"]
+    },
+    index: {
+      type: "number",
+      description: "0-based position for op 'move' or 'add'."
+    }
+  },
+  required: ["workflow_id"]
+};
+
+export const BUILD_WORKFLOW_FROM_PLAN_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: { type: "string", description: "The workflow. You must own it." },
+    save: {
+      type: "boolean",
+      description:
+        "Write the built graph onto the workflow row. False builds and validates without saving.",
+      default: true
+    }
+  },
+  required: ["workflow_id"]
+};
+
+export const setWorkflowSetupSpec: CapabilitySpec = {
+  name: "set_workflow_setup",
+  description:
+    "Write the guided-setup answers on a workflow: the `brief` (what it should do), the `category` that biases the planner, the `run_mode` it is built for, and the `stage` the flow sits at. Omit a field to leave it unchanged. The stages run idea → category → review → setup → done. Setting the stage is what moves an open flow to that step.",
+  inputSchema: SET_WORKFLOW_SETUP_SCHEMA,
+  category: "write",
+  userMessage: () => "Writing the workflow setup"
+};
+
+export const planWorkflowSpec: CapabilitySpec = {
+  name: "plan_workflow",
+  description:
+    "Plan the steps a workflow's brief needs, and store the plan under settings.setup. Places no node and creates no job: it returns inputs, steps and outputs as text, each step mapped to a node type that exists in the registry or marked unknown, with the model role it needs and whether a provider covers it. Review the plan and fix it with update_workflow_plan_step before build_workflow_from_plan.",
+  inputSchema: PLAN_WORKFLOW_SCHEMA,
+  category: "write",
+  userMessage: () => "Planning the workflow steps"
+};
+
+export const updateWorkflowPlanStepSpec: CapabilitySpec = {
+  name: "update_workflow_plan_step",
+  description:
+    "Edit the stored plan: change a step's title, summary, node type or model role, add a step, remove one, or move one to another position. Use it to replace a node type the registry does not have — the build refuses a plan that still names one.",
+  inputSchema: UPDATE_WORKFLOW_PLAN_STEP_SCHEMA,
+  category: "write",
+  userMessage: () => "Editing the workflow plan"
+};
+
+export const buildWorkflowFromPlanSpec: CapabilitySpec = {
+  name: "build_workflow_from_plan",
+  description:
+    "Build the workflow's graph from its stored plan and validate it. Places one input node per plan input, one node per step in plan order chained to the one before it, and one output node per plan output; then runs the same checks as validate_workflow. Refused while any step names a node type the registry does not have. Run the workflow afterwards with the plan's sample inputs to see whether it produces anything.",
+  inputSchema: BUILD_WORKFLOW_FROM_PLAN_SCHEMA,
+  category: "write",
+  userMessage: () => "Building the workflow from its plan"
+};
+
 /** Every spec this module declares, in declaration order. */
 export const workflowsSpecs: readonly CapabilitySpec[] = [
   listWorkflowsSpec,
@@ -617,5 +767,9 @@ export const workflowsSpecs: readonly CapabilitySpec[] = [
   validateWorkflowSpec,
   startBackgroundJobSpec,
   getExampleWorkflowSpec,
-  exportWorkflowDigraphSpec
+  exportWorkflowDigraphSpec,
+  setWorkflowSetupSpec,
+  planWorkflowSpec,
+  updateWorkflowPlanStepSpec,
+  buildWorkflowFromPlanSpec
 ];

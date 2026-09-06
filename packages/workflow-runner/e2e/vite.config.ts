@@ -90,6 +90,20 @@ const BARE_STUBBED = new Set([
 ]);
 
 /**
+ * npm packages — not builtins — that are Node-only *at module scope*, so
+ * having one in a browser graph throws before any code calls into it.
+ *
+ * `@openclaw/fs-safe` backs `@nodetool-ai/storage`'s `FileStorageAdapter`.
+ * Its native-binding loader builds a `createRequire` and reads `process.env`
+ * while the module evaluates; both fail in a browser and took the harness
+ * entry down with them. Nothing here ever constructs that adapter — a
+ * browser has no local directory — so the stub throws on use.
+ */
+const PACKAGE_STUBS: Record<string, string> = {
+  "@openclaw/fs-safe": `${STUBS}/fs-safe-stub.js`
+};
+
+/**
  * Every specifier form that maps to a stub. Insertion order matters: Vite's
  * alias matches a string `find` as a path prefix, so `fs/promises` has to be
  * offered before `fs`.
@@ -99,6 +113,7 @@ for (const [name, stub] of Object.entries(BUILTIN_STUBS)) {
   SPECIFIER_STUBS[`node:${name}`] = stub;
   if (BARE_STUBBED.has(name)) SPECIFIER_STUBS[name] = stub;
 }
+Object.assign(SPECIFIER_STUBS, PACKAGE_STUBS);
 
 const STUB_SPECIFIER_FILTER = new RegExp(
   `^(${Object.keys(SPECIFIER_STUBS)

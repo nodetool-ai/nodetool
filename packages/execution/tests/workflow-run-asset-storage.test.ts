@@ -15,10 +15,8 @@ import {
   prop,
   type GraphInput
 } from "@nodetool-ai/node-sdk";
-import {
-  InMemoryStorageAdapter,
-  type ProcessingContext
-} from "@nodetool-ai/runtime";
+import { type ProcessingContext } from "@nodetool-ai/runtime";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 
 const graph: GraphInput = {
   nodes: [

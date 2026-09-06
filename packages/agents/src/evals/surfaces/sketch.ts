@@ -71,6 +71,10 @@ import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase
 } from "../tool-loop-eval.js";
+import {
+  IMAGE_USE_CASES,
+  findImageUseCase
+} from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import { isString } from "../../utils/type-guards.js";
 
 /**
@@ -256,10 +260,18 @@ export interface SketchBridgeFinalState {
     prompt?: string;
     provider?: string;
     model?: string;
+    seed?: number;
     fillColor?: string;
     imageRef?: string;
     imageBounds?: { x: number; y: number; width: number; height: number };
   }[];
+  /** Guided image-flow state, once a caller has written any (PRD § 10.5). */
+  setup?: {
+    stage?: string;
+    brief?: string;
+    use_case?: string;
+    variations?: number;
+  };
 }
 
 /** Internal layer node, bottom-to-top ordering matches array order. */
@@ -279,6 +291,8 @@ interface Layer {
   provider?: string;
   model?: string;
   bindingStatus?: string;
+  /** Sampling seed, the one thing a set of variations differs by. */
+  seed?: number;
   /** Solid fill applied to the bitmap when it is first materialized. */
   fillColor?: string;
   /**
@@ -503,6 +517,7 @@ export function createSketchToolBridge(
   let backgroundColor = "#ffffff";
   let activeTool = "brush";
   let selection: RasterSelection | null = null;
+  let setup: SketchBridgeFinalState["setup"];
 
   let layerSeq = 0;
   const nextLayerId = () => `layer_${++layerSeq}`;
@@ -818,6 +833,13 @@ export function createSketchToolBridge(
         height: z.number().optional(),
         aspectRatio: z.string().optional(),
         resolution: z.string().optional(),
+        seed: z
+          .number()
+          .int()
+          .optional()
+          .describe(
+            "Sampling seed. Call once per variation with the same prompt, size and model and a different seed to get a set to choose from."
+          ),
         autoGenerate: z.boolean().optional()
       }),
       async (args) => {
@@ -841,6 +863,7 @@ export function createSketchToolBridge(
           prompt,
           provider: args.provider as string | undefined,
           model: args.model as string | undefined,
+          seed: args.seed as number | undefined,
           bindingStatus: generationStarted ? "generating" : "idle"
         };
         layers.splice(idx, 0, layer);
@@ -859,6 +882,57 @@ export function createSketchToolBridge(
           result.note = "Generation not started (autoGenerate=false).";
         }
         return result;
+      }
+    ),
+
+    tool(
+      "ui_sketch_set_setup",
+      "Write the guided image flow's state onto the image document: the `brief` (what the picture should be), the `use_case` (product, portrait, key-art, social, logo, concept, texture), how many `variations` to render, and the `stage` the flow resumes at. Nothing is rendered here — this is the step-by-step state the Image flow reads, and a document whose stage is `done` opens straight in the editor. Omit a field to leave it unchanged.",
+      z.object({
+        brief: z.string().optional(),
+        use_case: z
+          .string()
+          .optional()
+          .describe(
+            "One of: product, portrait, key-art, social, logo, concept, texture."
+          ),
+        variations: z.number().int().min(1).max(8).optional(),
+        stage: z
+          .enum(["idea", "useCase", "review", "look", "done"])
+          .optional()
+          .describe(
+            "Where the flow resumes: idea, useCase, review, look, or done (the editor)."
+          )
+      }),
+      async (args) => {
+        const useCase = args.use_case as string | undefined;
+        if (useCase !== undefined && !findImageUseCase(useCase)) {
+          throw new Error(
+            `use_case must be one of ${IMAGE_USE_CASES.map((entry) => entry.id).join(", ")}.`
+          );
+        }
+        const next = { ...(setup ?? {}) };
+        if (args.brief !== undefined) next.brief = args.brief as string;
+        if (useCase !== undefined) {
+          next.use_case = useCase;
+          const picked = findImageUseCase(useCase);
+          if (picked) {
+            next.variations ??= picked.defaultVariations;
+            width = picked.defaultSize.width;
+            height = picked.defaultSize.height;
+            // Re-cut the bitmaps, as ui_sketch_resize_canvas does, so the
+            // reported pixel counts describe the canvas the flow just chose.
+            for (const layer of layers) {
+              if (layer.raster) ensureRaster(layer);
+            }
+          }
+        }
+        if (args.variations !== undefined) {
+          next.variations = args.variations as number;
+        }
+        if (args.stage !== undefined) next.stage = args.stage as string;
+        setup = next;
+        return { ok: true, setup: next };
       }
     ),
 
@@ -1485,6 +1559,7 @@ export function createSketchToolBridge(
         backgroundColor,
         activeTool,
         hasSelection: hasSelectionPixels(selection),
+        setup,
         paintedPixels,
         paintedFraction: paintedPixels / area,
         strokedFraction: strokedPixels / area,
@@ -1504,6 +1579,7 @@ export function createSketchToolBridge(
           if (l.prompt !== undefined) entry.prompt = l.prompt;
           if (l.provider !== undefined) entry.provider = l.provider;
           if (l.model !== undefined) entry.model = l.model;
+          if (l.seed !== undefined) entry.seed = l.seed;
           if (l.fillColor !== undefined) entry.fillColor = l.fillColor;
           if (l.imageRef !== undefined) entry.imageRef = l.imageRef;
           if (l.imageBounds !== undefined) entry.imageBounds = l.imageBounds;
@@ -1531,6 +1607,8 @@ You can draw. ui_sketch_stroke paints real pixels with the editor's brush, penci
 - Pass several strokes in one call to lay down a whole figure at once. Paint on raster layers only, and never on a locked one.
 - Put separate parts of a drawing on separate, named layers (ui_sketch_add_layer) so each can be moved, recolored or hidden on its own.
 - Call ui_sketch_get_layer_image to look at your own work — omit target for the flattened composite, or name a layer to see it alone. Check the result and fix what looks wrong before you finish.
+
+The guided image flow lives on the document: ui_sketch_set_setup writes its brief, use case, variation count and stage. It renders nothing. To make a set of variations, call ui_sketch_generate once per variation with the same prompt, size and model and a different seed each time.
 
 Call one tool at a time and use the result before the next call. When the objective is fully satisfied, STOP calling tools and give a one-line summary.`;
 
@@ -1625,6 +1703,70 @@ export const SKETCH_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<SketchBridgeFinal
             name: "hasSelection",
             detail: "canvas has no active selection",
             test: (s) => s.hasSelection === true
+          }
+        ]
+      }
+    },
+    {
+      id: "image-flow-variations",
+      description:
+        "Walk the guided image flow's state and render a set of variations that differ only by seed",
+      objective:
+        "Set up the guided image flow for a product shot of a ceramic pour-over coffee dripper on a sunlit kitchen counter, asking for 3 variations, and leave the flow finished. Then render those 3 variations with provider 'fal_ai' and model 'fal-ai/flux/schnell', using the same prompt and size for every one and a different seed each time.",
+      createBridge: () => createSketchToolBridge(),
+      systemPrompt: SKETCH_SYSTEM_PROMPT,
+      maxIterations: 20,
+      expect: {
+        requiredTools: ["ui_sketch_set_setup", "ui_sketch_generate"],
+        // The brief is written before anything is rendered (D4).
+        ordering: [["ui_sketch_set_setup", "ui_sketch_generate"]],
+        noErrorResults: true,
+        minToolCalls: 4,
+        maxToolCalls: 20,
+        finalState: [
+          {
+            name: "setupNamesTheProductShot",
+            detail: "the flow state does not name a product shot with a brief",
+            test: (s) =>
+              s.setup?.use_case === "product" &&
+              (s.setup?.brief ?? "").trim().length > 0
+          },
+          {
+            name: "askedForThreeVariations",
+            detail: "the flow state does not ask for 3 variations",
+            test: (s) => s.setup?.variations === 3
+          },
+          {
+            name: "renderedThreeVariations",
+            detail: "fewer than 3 generated layers",
+            test: (s) => s.layers.filter((l) => l.hasBinding).length >= 3
+          },
+          {
+            name: "variationsShareOnePrompt",
+            // Criterion 4: same prompt, same model, differing only by seed.
+            detail: "the generated layers do not share one prompt and model",
+            test: (s) => {
+              const generated = s.layers.filter((l) => l.hasBinding);
+              return (
+                new Set(
+                  generated.map((l) => `${l.prompt ?? ""}|${l.model ?? ""}`)
+                ).size === 1
+              );
+            }
+          },
+          {
+            name: "variationsDifferBySeed",
+            detail: "the generated layers do not each carry a distinct seed",
+            test: (s) => {
+              const seeds = s.layers
+                .filter((l) => l.hasBinding)
+                .map((l) => l.seed);
+              return (
+                seeds.length >= 3 &&
+                seeds.every((seed) => seed !== undefined) &&
+                new Set(seeds).size === seeds.length
+              );
+            }
           }
         ]
       }

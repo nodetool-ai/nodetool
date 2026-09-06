@@ -8,97 +8,36 @@ type SmartDownloadButtonProps = {
   labelPrefix?: string;
 };
 
-const RELEASES_URL = "https://github.com/nodetool-ai/nodetool/releases/latest";
-
 /**
- * Apple Silicon vs Intel can't be read from `navigator.platform` (both report
- * "MacIntel"). The WebGL renderer string is the reliable browser-side signal:
- * Apple Silicon reports an "Apple" GPU, Intel Macs report Intel/AMD.
+ * The download CTA every page carries.
+ *
+ * It names the reader's system and lands on /download, where that system's
+ * installer is the first thing on the page along with what the app needs and
+ * how to open it. It used to link to the GitHub releases page, which answered
+ * an OS-specific label with a list of build artifacts.
+ *
+ * Apple silicon and Intel are not separated here: both report "MacIntel" and
+ * telling them apart costs a WebGL context, which /download pays for once
+ * rather than every page paying for it in a header CTA.
  */
-function isAppleSilicon(): boolean {
-  try {
-    const canvas = document.createElement("canvas");
-    const gl = (canvas.getContext("webgl") ||
-      canvas.getContext("experimental-webgl")) as WebGLRenderingContext | null;
-    if (!gl) return false;
-    const ext = gl.getExtension("WEBGL_debug_renderer_info");
-    if (!ext) return false;
-    const renderer = String(
-      gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || ""
-    );
-    return /apple/i.test(renderer);
-  } catch {
-    return false;
-  }
-}
-
 export const SmartDownloadButton = ({
   classNameOverride,
   icon,
   labelPrefix = "Download NodeTool",
 }: SmartDownloadButtonProps) => {
-  // Default to the releases page — always a valid link, never a 404 from a
-  // stale hardcoded version (P4). A direct per-OS link replaces it once we
-  // know the latest release tag and can build a real artifact URL.
-  const [downloadUrl, setDownloadUrl] = useState(RELEASES_URL);
   const [osName, setOsName] = useState("");
 
   useEffect(() => {
-    const detect = async () => {
-      let version = "";
-      try {
-        const response = await fetch(
-          "https://api.github.com/repos/nodetool-ai/nodetool/releases/latest"
-        );
-        const data = await response.json();
-        if (typeof data?.tag_name === "string") {
-          version = data.tag_name.replace(/^v/, "");
-        }
-      } catch {
-        // Leave version empty — we fall back to the releases page below.
-      }
-
-      const ua = navigator.userAgent;
-      const platform = navigator.platform || "";
-      const isWin = ua.includes("Win") || platform.includes("Win");
-      const isMac =
-        ua.includes("Mac") || platform.includes("Mac");
-      const isLinux = ua.includes("Linux") || platform.includes("Linux");
-
-      const direct = (file: string) =>
-        `https://github.com/nodetool-ai/nodetool/releases/download/v${version}/${file}`;
-
-      if (isWin) {
-        setOsName("Windows");
-        setDownloadUrl(version ? direct(`Nodetool-Setup-${version}.exe`) : RELEASES_URL);
-      } else if (isMac) {
-        setOsName("macOS");
-        // Only Apple Silicon has a known direct artifact. Intel Macs (and any
-        // uncertainty) go to the releases page so they pick a working build
-        // instead of a broken arm64 link.
-        setDownloadUrl(
-          version && isAppleSilicon()
-            ? direct(`Nodetool-${version}-arm64.dmg`)
-            : RELEASES_URL
-        );
-      } else if (isLinux) {
-        setOsName("Linux");
-        setDownloadUrl(
-          version ? direct(`Nodetool-${version}-x86_64.AppImage`) : RELEASES_URL
-        );
-      } else {
-        setOsName("");
-        setDownloadUrl(RELEASES_URL);
-      }
-    };
-
-    detect();
+    const ua = `${navigator.userAgent} ${navigator.platform || ""}`;
+    if (/win/i.test(ua)) setOsName("Windows");
+    else if (/mac/i.test(ua)) setOsName("macOS");
+    else if (/linux|x11/i.test(ua)) setOsName("Linux");
   }, []);
 
   return (
     <a
-      href={downloadUrl}
-      onClick={() => track("Download", { os: osName || "unknown" })}
+      href="/download"
+      onClick={() => track("Download CTA", { os: osName || "unknown" })}
       className={
         classNameOverride ??
         "inline-flex items-center bg-white hover:bg-gray-100 text-black px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg"

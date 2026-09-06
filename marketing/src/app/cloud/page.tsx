@@ -174,28 +174,23 @@ export default function CloudPage() {
                     Alpha — not generally available
                   </span>
                 </div>
-                {/* Sized a step below the landing hero's 3.25rem cap: this
-                    headline carries an extra clause, and at that cap it wrapped
-                    to five lines in the 5/12 column and pushed the demo out of
-                    line with the copy. text-balance is off for the same reason
-                    — it broke the short first line to equalise against the
-                    much longer second one. */}
                 <h1
                   id="cloud-hero-title"
                   className="mt-6 text-[clamp(2rem,7vw,2.75rem)] font-bold leading-[1.1] tracking-tight text-white lg:text-[clamp(2rem,3.1vw,2.75rem)]"
                 >
-                  You are the director.
+                  Open-source
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300 pb-[0.12em]">
-                    The agent is your crew — in your browser.
+                    creative AI workspace
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
-                  Describe your idea. The agent writes the script, storyboards
-                  every scene, generates the footage, and cuts the timeline —
-                  all of it in the hosted version of the same open-source
-                  studio. Nothing to install, no hardware to set up, and your
-                  own API keys for whichever providers you want to use.
+                  Create and edit images, video, audio, and text with agents that
+                  work alongside you. Let them build and revise workflows, then
+                  inspect and edit the results yourself. Your project keeps the
+                  brief, assets, and edits together. Cloud brings the workspace to
+                  your browser with hosted storage and your own provider keys. Cloud
+                  is in alpha.
                 </p>
                 <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-4 text-sm text-amber-100/90 max-w-xl">
                   <strong className="text-amber-200">Heads up:</strong> Cloud is
@@ -246,11 +241,14 @@ export default function CloudPage() {
                   className="absolute -inset-6 -z-10 rounded-[2rem] opacity-70 blur-3xl"
                   style={{
                     background:
-                      "radial-gradient(60% 60% at 50% 0%, rgba(59,130,246,0.32), transparent 60%), radial-gradient(50% 60% at 100% 100%, rgba(34,211,238,0.22), transparent 60%), radial-gradient(50% 60% at 0% 100%, rgba(168,85,247,0.22), transparent 60%)",
+                      "radial-gradient(60% 60% at 50% 0%, rgba(59,130,246,0.18), transparent 60%), radial-gradient(50% 60% at 100% 100%, rgba(34,211,238,0.12), transparent 60%), radial-gradient(50% 60% at 0% 100%, rgba(168,85,247,0.12), transparent 60%)",
                   }}
                 />
                 <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-                  <HeroDemoPlayer alt="NodeTool Cloud: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film — all in the browser" />
+                  <HeroDemoPlayer
+                    alt="NodeTool Cloud: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film — all in the browser"
+                    caption="The same workspace, in a browser tab: storyboard, rendered shots, a cut on the timeline, a finished film. Open it full screen to read the panels."
+                  />
                 </div>
               </div>
             </div>

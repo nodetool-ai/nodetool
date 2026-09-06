@@ -17,7 +17,7 @@ import type {
   LanguageModel,
   TextToImageParams
 } from "./types.js";
-import { isString } from "../type-predicates.js";
+import { isString } from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.aki");
@@ -246,7 +246,6 @@ export class AkiProvider extends OpenAICompatProvider {
   }
 
   private readonly _akiClientFactory: (config: AkiClientConfig) => AkiClient;
-  private _akiFetch: typeof fetch;
 
   constructor(
     secrets: { AKI_API_KEY?: string },
@@ -257,21 +256,17 @@ export class AkiProvider extends OpenAICompatProvider {
       throw new Error("AKI_API_KEY is not configured");
     }
 
-    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
-
     super(
       { providerId: "aki", apiKey, baseURL: AKI_BASE_URL },
       {
         ...options,
-        clientFactory: options.openaiClientFactory ?? options.clientFactory,
-        fetchFn
+        clientFactory: options.openaiClientFactory ?? options.clientFactory
       }
     );
 
     this._akiClientFactory =
       // Stryker disable next-line ArrowFunction: the default constructs a real AkiClient (network SDK); exercised only outside unit tests, where akiClientFactory is injected.
       options.akiClientFactory ?? ((config) => new AkiClient(config));
-    this._akiFetch = fetchFn;
   }
 
   override getContainerEnv() {
@@ -360,26 +355,7 @@ export class AkiProvider extends OpenAICompatProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const response = await this._akiFetch(`${AKI_BASE_URL}/models`, {
-      headers: { Authorization: `Bearer ${this.apiKey}` }
-    });
-    if (!response.ok) {
-      return [];
-    }
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string; name?: string }>;
-    };
-    // Stryker disable next-line ArrayDeclaration: the fallback is filtered downstream (rows need a string id), so [] vs any array is observably identical.
-    return (payload.data ?? [])
-      .filter(
-        (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
-      )
-      .map((row) => ({
-        id: row.id,
-        name: row.name ?? row.id,
-        provider: "aki" as const
-      }));
+    return this.listCompatModels();
   }
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {

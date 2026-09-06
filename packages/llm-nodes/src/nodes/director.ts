@@ -45,7 +45,11 @@ import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 import { asText, generateStructured, getModelConfig } from "./agent-utils.js";
 import { meterProviderSpend } from "./provider-spend.js";
-import { isCallable, isObjectLike, isString } from "./type-predicates.js";
+import {
+  isCallable,
+  isObjectLike,
+  isString
+} from "@nodetool-ai/node-sdk";
 
 const EMPTY_MODEL = {
   type: "language_model",

@@ -14,7 +14,7 @@
 import { readFile } from "node:fs/promises";
 import { resolvePackageAssetPath } from "@nodetool-ai/config";
 import type { Render3DOptions } from "./render3d-core.js";
-import { isNonEmptyString } from "../../type-predicates.js";
+import { isNonEmptyString } from "@nodetool-ai/node-sdk";
 
 const RENDER_TIMEOUT_MS = 120_000;
 

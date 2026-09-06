@@ -1,7 +1,7 @@
 import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
-import { isNonEmptyString, isRecord, isString } from "../type-predicates.js";
+import { isNonEmptyString, isRecord, isString } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.providers.ollama");
 import type {

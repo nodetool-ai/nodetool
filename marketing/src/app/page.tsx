@@ -7,18 +7,18 @@ import React, { useEffect, useState, useCallback } from "react";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import NodeToolHero from "../components/NodeToolHero";
-import StatusQuoSection from "../components/StatusQuoSection";
 import BuildRunDeploy from "../components/BuildRunDeploy";
 import OwnershipSection from "../components/OwnershipSection";
 import ModelSupportSection from "../components/ModelSupportSection";
 import SurfaceShowcase from "../components/SurfaceShowcase";
-import ByokCalculator from "../components/ByokCalculator";
 import ProjectSection from "../components/ProjectSection";
 import CommunitySection from "../components/CommunitySection";
 import ContactSection from "../components/ContactSection";
 import ComparisonSection from "../components/ComparisonSection";
+import EditionsCompareSection from "../components/EditionsCompareSection";
 import RecipeShowcase from "../components/RecipeShowcase";
 import UnderneathSection from "../components/UnderneathSection";
+import AppsSection from "../components/AppsSection";
 import WaysInSection from "../components/WaysInSection";
 import FaqBlock from "../components/FaqBlock";
 import { XMarkIcon } from "@heroicons/react/24/outline";
@@ -173,7 +173,7 @@ export default function Home() {
         />
         <svg
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full opacity-[.28]"
+          className="pointer-events-none absolute inset-0 h-full w-full opacity-[.12]"
           shapeRendering="crispEdges"
         >
           <defs>
@@ -210,11 +210,17 @@ export default function Home() {
           </div>
         </section>
 
-        {/* The enemy, once: the closed studio (NARRATIVE.md § The enemy) */}
-        <StatusQuoSection />
+        {/* Breadth first: the model wall sits directly under the hero, because
+            a reader who cannot find their model stops reading and no amount of
+            finished work later recovers them (NARRATIVE.md § Order of the
+            page). Ownership rides in the same headline: your own keys. */}
+        <ModelSupportSection reducedMotion={reducedMotion} />
 
-        {/* The core differentiator, right after the problem: the agent leaves
-            an executable, editable process behind — not a transcript */}
+        {/* Then proof: four recipes, each a real run with its bundle */}
+        <RecipeShowcase />
+
+        {/* What one of those runs leaves behind: an executable, editable
+            project rather than a transcript */}
         <ProjectSection />
 
         {/* How it works (Describe / Run / Inspect) — the 3-step mental model */}
@@ -224,27 +230,29 @@ export default function Home() {
           </div>
         </section>
 
-        {/* The jobs: four recipes, each a real run with its bundle */}
-        <RecipeShowcase />
-
         {/* The five editors, each over a loop of the real thing (#surface-<id>) */}
         <SurfaceShowcase />
 
-        {/* Ownership — keys, project file, source; local inference stays on /studio */}
+        {/* One job, one tool — for the reader who is not here to direct a film */}
+        <AppsSection />
+
+        {/* Ownership: keys, project file, source. Local inference stays on
+            /studio; the calculator lives on /pricing. */}
         <OwnershipSection reducedMotion={reducedMotion} />
-        <ModelSupportSection reducedMotion={reducedMotion} />
 
-        {/* The one place cost is proven with numbers */}
-        <ByokCalculator />
+        {/* The node canvas as the power-user layer, introduced last */}
+        <UnderneathSection />
 
-        {/* Against the closed studios — answers the enemy block up top */}
+        {/* Open studio against hosted platform, as categories with a real price
+            worked through — never a brand name and a column of crosses
+            (NARRATIVE.md § The argument we do not make) */}
         <ComparisonSection reducedMotion={reducedMotion} />
+
+        {/* Which edition to run, before the FAQ asks it */}
+        <EditionsCompareSection reducedMotion={reducedMotion} />
 
         {/* Route by intent once the core story has landed */}
         <WaysInSection />
-
-        {/* What is underneath, as one strip of routes rather than ten sections */}
-        <UnderneathSection />
 
         {/* Feature Modal (accessible) */}
         {selectedFeature && (

@@ -26,13 +26,6 @@ export interface PuckData {
 /** Bumped whenever the parser needs a new branch. */
 export const APP_SCHEMA_VERSION = 4 as const;
 
-/**
- * Legacy `workflow.app_doc` versions. v1/v2 were `{ version, data }` with
- * name-keyed widget bindings and no operations; v3 is the first version with
- * bindings, variables, and an explicit operation list.
- */
-export const LEGACY_APP_DATA_VERSIONS = [1, 2] as const;
-
 /** Where an operation input takes its value from. */
 export type InputMapping =
   | { from: "widget" }

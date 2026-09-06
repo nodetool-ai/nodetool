@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/agents",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Agent system for planning and executing multi-step LLM tasks",
   "type": "module",
   "engines": {
@@ -101,6 +101,12 @@
       "types": "./dist/tools/base-tool.d.ts",
       "import": "./dist/tools/base-tool.js",
       "default": "./dist/tools/base-tool.js"
+    },
+    "./host-modules/mammoth": {
+      "nodetool-dev": "./src/host-modules/mammoth.ts",
+      "types": "./dist/host-modules/mammoth.d.ts",
+      "import": "./dist/host-modules/mammoth.js",
+      "default": "./dist/host-modules/mammoth.js"
     },
     "./js-sandbox": {
       "nodetool-dev": "./src/js-sandbox.ts",

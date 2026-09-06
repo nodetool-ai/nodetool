@@ -1,5 +1,14 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import type {
+  AudioRef,
+  DataframeRef,
+  ImageRef
+} from "@nodetool-ai/node-sdk";
+import type {
+  InputMode,
+  LanguageModel,
+  OutputCorrelation
+} from "@nodetool-ai/protocol";
 import { isChunk } from "@nodetool-ai/protocol";
 import type { Message, ProcessingContext, ToolCall } from "@nodetool-ai/runtime";
 import { isToolCall } from "@nodetool-ai/runtime";
@@ -10,7 +19,13 @@ import {
   toProviderTools,
   type ToolLike
 } from "./agents.js";
-import { hasProviderAccess } from "./agent-utils.js";
+import {
+  asText,
+  buildUserMessage,
+  getModelConfig,
+  hasProviderAccess,
+  hasProviderSupport
+} from "./agent-utils.js";
 import { meterProviderSpend } from "./provider-spend.js";
 import {
   isBoolean,
@@ -20,31 +35,11 @@ import {
   isObjectLike,
   isRecord,
   isString
-} from "./type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 
 type Row = Record<string, unknown>;
 type ColumnSpec = { name: string; data_type?: string };
-type LanguageModelLike = { provider?: string; id?: string; name?: string };
-type BinaryRef = {
-  uri?: string;
-  data?: Uint8Array | string;
-  mimeType?: string;
-};
-type MessageTextContent = { type: "text"; text: string };
-type MessageImageContent = { type: "image"; image: BinaryRef };
-type MessageAudioContent = { type: "audio"; audio: BinaryRef };
-type MessageContent =
-  | MessageTextContent
-  | MessageImageContent
-  | MessageAudioContent;
-
-function asText(value: unknown): string {
-  if (isString(value)) return value;
-  if (isNumber(value) || isBoolean(value)) return String(value);
-  if (!value) return "";
-  return JSON.stringify(value);
-}
-
+type RecordTypeRef = { type: "record_type"; columns: ColumnSpec[] };
 function parseRequestedCount(prompt: string, fallback: number): number {
   // Match any integer; large requests are clamped below rather than ignored.
   const m = prompt.match(/\b(\d{1,9})\b/);
@@ -136,69 +131,6 @@ function buildSchemaFromDynamicOutputs(
   }
   if (required.length === 0) return null;
   return { type: "object", additionalProperties: false, required, properties };
-}
-
-function normalizeBinaryRef(value: unknown): BinaryRef | null {
-  if (!isObjectLike(value)) return null;
-  const record = value as Record<string, unknown>;
-  const out: BinaryRef = {};
-  if (isNonEmptyString(record.uri)) out.uri = record.uri;
-  if (record.data instanceof Uint8Array || isString(record.data))
-    out.data = record.data;
-  if (isNonEmptyString(record.mimeType)) out.mimeType = record.mimeType;
-  if (isNonEmptyString(record.mime_type)) out.mimeType = record.mime_type;
-  return out.uri || out.data ? out : null;
-}
-
-/**
- * Normalize a list-typed media input to an array. Accepts an array (the
- * declared `list[image]`/`list[audio]` shape), a lone ref (defensive, in case
- * coercion didn't run), or null/undefined.
- */
-function toRefArray(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value;
-  if (value === null || value === undefined) return [];
-  return [value];
-}
-
-function buildMessageContent(
-  text: string,
-  images: unknown,
-  audios: unknown
-): string | MessageContent[] {
-  const imageRefs = toRefArray(images)
-    .map(normalizeBinaryRef)
-    .filter((ref): ref is BinaryRef => ref !== null);
-  const audioRefs = toRefArray(audios)
-    .map(normalizeBinaryRef)
-    .filter((ref): ref is BinaryRef => ref !== null);
-  if (imageRefs.length === 0 && audioRefs.length === 0) return text;
-  const parts: MessageContent[] = [{ type: "text", text }];
-  for (const image of imageRefs) parts.push({ type: "image", image });
-  for (const audio of audioRefs) parts.push({ type: "audio", audio });
-  return parts;
-}
-
-function getModelConfig(props: Record<string, unknown>) {
-  const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
-  return {
-    providerId: model.provider ?? "",
-    modelId: model.id ?? ""
-  };
-}
-
-function hasProviderSupport(
-  context: ProcessingContext | undefined,
-  providerId: string,
-  modelId: string
-): context is ProcessingContext {
-  return (
-    !!context &&
-    typeof context.runProviderPrediction === "function" &&
-    typeof context.streamProviderPrediction === "function" &&
-    !!providerId &&
-    !!modelId
-  );
 }
 
 /**
@@ -438,7 +370,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     title: "System Prompt",
     description: "The system prompt guiding JSON generation."
   })
-  declare system_prompt: any;
+  declare system_prompt: string;
 
   @prop({
     type: "language_model",
@@ -453,7 +385,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     title: "Model",
     description: "Model to use for structured generation."
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "str",
@@ -461,7 +393,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     title: "Instructions",
     description: "Detailed instructions for the structured output."
   })
-  declare instructions: any;
+  declare instructions: string;
 
   @prop({
     type: "str",
@@ -469,7 +401,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     title: "Context",
     description: "Optional context to ground the generation."
   })
-  declare context: any;
+  declare context: string;
 
   @prop({
     type: "int",
@@ -479,7 +411,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     min: 1,
     max: 16384
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   @prop({
     type: "list[image]",
@@ -488,7 +420,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     description:
       "Optional images to include in the generation request. Accepts a list, or a single Image (auto-wrapped). Each becomes a separate block in the message sent to the provider."
   })
-  declare image: any;
+  declare image: ImageRef[] | ImageRef;
 
   @prop({
     type: "list[audio]",
@@ -497,7 +429,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     description:
       "Optional audio to include in the generation request. Accepts a list, or a single Audio (auto-wrapped). Each becomes a separate block in the message sent to the provider."
   })
-  declare audio: any;
+  declare audio: AudioRef[] | AudioRef;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const { providerId, modelId } = getModelConfig(this.serialize());
@@ -505,23 +437,21 @@ export class StructuredOutputGeneratorNode extends BaseNode {
       (this as any)._dynamic_outputs
     );
     if (schema && hasProviderSupport(context, providerId, modelId)) {
-      const instructions = asText(this.instructions ?? "");
-      const extraContext = asText(this.context ?? "");
-      const systemPrompt = asText(this.system_prompt ?? "");
+      const instructions = asText(this.instructions);
+      const extraContext = asText(this.context);
+      const systemPrompt = asText(this.system_prompt);
       const userText = [instructions, extraContext]
         .filter(Boolean)
         .join("\n\n");
-      const messages: Array<{ role: string; content: unknown }> = [];
+      const messages: Message[] = [];
       if (systemPrompt) {
         messages.push({ role: "system", content: systemPrompt });
       }
-      messages.push({
-        role: "user",
-        content: buildMessageContent(userText, this.image, this.audio)
-      });
+      messages.push(buildUserMessage(userText, this.image, this.audio));
       const result = await runMeteredMessage(context, providerId, modelId, {
         model: modelId,
         messages,
+        max_tokens: this.max_tokens,
         response_format: {
           type: "json_schema",
           json_schema: {
@@ -554,8 +484,8 @@ export class StructuredOutputGeneratorNode extends BaseNode {
       return out;
     }
 
-    const instructions = asText(this.instructions ?? "");
-    const contextText = asText(this.context ?? "");
+    const instructions = asText(this.instructions);
+    const contextText = asText(this.context);
     return {
       output: {
         instructions,
@@ -602,7 +532,7 @@ export class DataGeneratorNode extends BaseNode {
     title: "Model",
     description: "The model to use for data generation."
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "str",
@@ -610,7 +540,7 @@ export class DataGeneratorNode extends BaseNode {
     title: "Prompt",
     description: "The user prompt"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -618,7 +548,7 @@ export class DataGeneratorNode extends BaseNode {
     title: "Input Text",
     description: "The input text to be analyzed by the agent."
   })
-  declare input_text: any;
+  declare input_text: string;
 
   @prop({
     type: "int",
@@ -628,7 +558,7 @@ export class DataGeneratorNode extends BaseNode {
     min: 1,
     max: 100000
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   @prop({
     type: "record_type",
@@ -639,11 +569,11 @@ export class DataGeneratorNode extends BaseNode {
     title: "Columns",
     description: "The columns to use in the dataframe."
   })
-  declare columns: any;
+  declare columns: RecordTypeRef;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const prompt = asText(this.prompt ?? "");
-    const inputText = asText(this.input_text ?? "");
+    const prompt = asText(this.prompt);
+    const inputText = asText(this.input_text);
     const columnsInput = this.columns;
     const columns = parseColumns(columnsInput);
     const count = parseRequestedCount(`${prompt} ${inputText}`, 5);
@@ -656,7 +586,7 @@ export class DataGeneratorNode extends BaseNode {
         [prompt, inputText].filter(Boolean).join("\n\n"),
         columnsInput,
         count,
-        Number(this.max_tokens ?? 4096)
+        this.max_tokens
       );
       if (rows.length > 0) {
         return { output: dataframeFromRows(rows, columnsInput) };
@@ -735,7 +665,7 @@ export class ListGeneratorNode extends BaseNode {
     title: "Model",
     description: "The model to use for string generation."
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "str",
@@ -743,7 +673,7 @@ export class ListGeneratorNode extends BaseNode {
     title: "Prompt",
     description: "The user prompt"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -751,7 +681,7 @@ export class ListGeneratorNode extends BaseNode {
     title: "Input Text",
     description: "The input text to be analyzed by the agent."
   })
-  declare input_text: any;
+  declare input_text: string;
 
   @prop({
     type: "int",
@@ -761,7 +691,7 @@ export class ListGeneratorNode extends BaseNode {
     min: 1,
     max: 100000
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   async process(context?: ProcessingContext): Promise<ListGeneratorNodeOutputs> {
     const items: string[] = [];
@@ -775,8 +705,8 @@ export class ListGeneratorNode extends BaseNode {
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<ListGeneratorNodeStreamOutputs> {
-    const prompt = asText(this.prompt ?? "");
-    const inputText = asText(this.input_text ?? "");
+    const prompt = asText(this.prompt);
+    const inputText = asText(this.input_text);
     const userMessage = [prompt, inputText].filter(Boolean).join("\n\n");
     const { providerId, modelId } = getModelConfig(this.serialize());
     // Accumulate items so the stream-end frame can carry the whole list on the
@@ -785,7 +715,7 @@ export class ListGeneratorNode extends BaseNode {
 
     if (hasProviderAccess(context) && providerId && modelId) {
       let index = 0;
-      const maxTokens = Number(this.max_tokens ?? 128);
+      const maxTokens = this.max_tokens;
       // Try the neutral prompt first. If the model answers in prose and emits no
       // `add_item` calls (zero items), re-run once with an enforcement prompt
       // that pushes it to use the tool before giving up.
@@ -858,7 +788,7 @@ export class ChartGeneratorNode extends BaseNode {
     title: "Model",
     description: "The model to use for chart generation."
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "str",
@@ -866,7 +796,7 @@ export class ChartGeneratorNode extends BaseNode {
     title: "Prompt",
     description: "Natural language description of the desired chart"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "dataframe",
@@ -881,7 +811,10 @@ export class ChartGeneratorNode extends BaseNode {
     title: "Data",
     description: "The data to visualize"
   })
-  declare data: any;
+  // `DataframeRef` in the protocol has no `rows`, but every dataframe this repo
+  // actually passes carries one — `dataframeFromRows` above emits it, and
+  // `data-nodes` builds the same `RowsDataframe` shape.
+  declare data: DataframeRef & { rows?: Row[] };
 
   @prop({
     type: "int",
@@ -891,14 +824,11 @@ export class ChartGeneratorNode extends BaseNode {
     min: 1,
     max: 100000
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const prompt = asText(this.prompt ?? "");
-    const data = this.data ?? { rows: [] };
-    const rows = Array.isArray((data as { rows?: unknown }).rows)
-      ? ((data as { rows: Row[] }).rows ?? [])
-      : [];
+    const prompt = asText(this.prompt);
+    const rows = Array.isArray(this.data.rows) ? this.data.rows : [];
     const keys = rows.length > 0 ? Object.keys(rows[0]) : [];
     const xKey = keys[0] ?? "x";
     const yKey = keys[1] ?? xKey;
@@ -955,7 +885,7 @@ Set a descriptive title, axis labels, and legend settings.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessage }
         ],
-        max_tokens: Number(this.max_tokens ?? 4096),
+        max_tokens: this.max_tokens,
         response_format: {
           type: "json_schema",
           json_schema: {
@@ -1094,7 +1024,7 @@ export class SVGGeneratorNode extends BaseNode {
     title: "Model",
     description: "The language model to use for SVG generation."
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "str",
@@ -1102,7 +1032,7 @@ export class SVGGeneratorNode extends BaseNode {
     title: "Prompt",
     description: "The user prompt for SVG generation"
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "list[image]",
@@ -1111,7 +1041,7 @@ export class SVGGeneratorNode extends BaseNode {
     description:
       "Images to use for generation. Accepts a list, or a single Image (auto-wrapped). Each becomes a separate block in the message sent to the provider."
   })
-  declare image: any;
+  declare image: ImageRef[] | ImageRef;
 
   @prop({
     type: "list[audio]",
@@ -1120,7 +1050,7 @@ export class SVGGeneratorNode extends BaseNode {
     description:
       "Audio to use for generation. Accepts a list, or a single Audio (auto-wrapped). Each becomes a separate block in the message sent to the provider."
   })
-  declare audio: any;
+  declare audio: AudioRef[] | AudioRef;
 
   @prop({
     type: "int",
@@ -1130,10 +1060,10 @@ export class SVGGeneratorNode extends BaseNode {
     min: 1,
     max: 100000
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   async process(context?: ProcessingContext): Promise<SVGGeneratorNodeOutputs> {
-    const prompt = asText(this.prompt ?? "");
+    const prompt = asText(this.prompt);
     const width = Number((this as any).width ?? 512) || 512;
     const height = Number((this as any).height ?? 512) || 512;
 
@@ -1144,18 +1074,15 @@ Return one or more complete <svg>...</svg> elements. Each SVG should use the xml
 Default canvas size is ${width}x${height} unless the user specifies otherwise.
 Output only SVG markup, no explanations or markdown fences.`;
 
-      const messages: Array<{ role: string; content: unknown }> = [
+      const messages: Message[] = [
         { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: buildMessageContent(prompt, this.image, this.audio)
-        }
+        buildUserMessage(prompt, this.image, this.audio)
       ];
 
       const result = await runMeteredMessage(context, providerId, modelId, {
         model: modelId,
         messages,
-        max_tokens: Number(this.max_tokens ?? 8192)
+        max_tokens: this.max_tokens
       });
 
       const content = asText(

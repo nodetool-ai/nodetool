@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { OpenAICompatProvider } from "../../src/providers/openai-compat-provider.js";
+import { GMIProvider } from "../../src/providers/gmi-provider.js";
+import { MetaProvider } from "../../src/providers/meta-provider.js";
+import { AlibabaProvider } from "../../src/providers/alibaba-provider.js";
+import { EvolinkProvider } from "../../src/providers/evolink-provider.js";
+import { AtlasCloudProvider } from "../../src/providers/atlascloud-provider.js";
+import { MinimaxProvider } from "../../src/providers/minimax-provider.js";
 import type {
   Message,
   ProviderStreamItem,
@@ -464,5 +470,128 @@ describe("OpenAICompatProvider compat client wiring", () => {
 
     // Both calls went through the same lazily-created client over the same fetch.
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("OpenAICompatProvider.listCompatModels", () => {
+  const listing = (body: unknown, ok = true, status = 200) =>
+    vi.fn().mockResolvedValue({
+      ok,
+      status,
+      json: async () => body
+    } as unknown as Response);
+
+  class Probe extends OpenAICompatProvider {
+    async list(url?: string) {
+      return this.listCompatModels(url);
+    }
+  }
+
+  it("decodes the listing, stamps the provider id and defaults name to id", async () => {
+    const fetchMock = listing({
+      data: [{ id: "a", name: "Model A" }, { id: "b" }]
+    });
+    const provider = new Probe(CONFIG, { fetchFn: fetchMock as typeof fetch });
+
+    expect(await provider.list()).toEqual([
+      { id: "a", name: "Model A", provider: "groq" },
+      { id: "b", name: "b", provider: "groq" }
+    ]);
+  });
+
+  it("derives the URL from the configured base URL and sends auth + default headers", async () => {
+    const fetchMock = listing({ data: [] });
+    const provider = new Probe(CONFIG, { fetchFn: fetchMock as typeof fetch });
+
+    await provider.list();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.com/v1/models",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer secret-key",
+          "X-Title": "NodeTool"
+        })
+      })
+    );
+  });
+
+  it("honors an explicit URL for gateways that list models off the chat root", async () => {
+    const fetchMock = listing({ data: [] });
+    const provider = new Probe(CONFIG, { fetchFn: fetchMock as typeof fetch });
+
+    await provider.list("https://other.example.com/models");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://other.example.com/models",
+      expect.anything()
+    );
+  });
+
+  it("drops rows without a usable string id", async () => {
+    const fetchMock = listing({
+      data: [{ id: "" }, { id: 7 }, { name: "no id" }, { id: "ok" }]
+    });
+    const provider = new Probe(CONFIG, { fetchFn: fetchMock as typeof fetch });
+
+    expect(await provider.list()).toEqual([
+      { id: "ok", name: "ok", provider: "groq" }
+    ]);
+  });
+
+  it("answers an empty list on a failed request rather than throwing", async () => {
+    const fetchMock = listing({}, false, 401);
+    const provider = new Probe(CONFIG, { fetchFn: fetchMock as typeof fetch });
+
+    await expect(provider.list()).resolves.toEqual([]);
+  });
+
+  it("answers an empty list when the payload carries no data array", async () => {
+    const fetchMock = listing({});
+    const provider = new Probe(CONFIG, { fetchFn: fetchMock as typeof fetch });
+
+    expect(await provider.list()).toEqual([]);
+  });
+});
+
+describe("OpenAICompatProvider inherits OpenAI's catalog guard", () => {
+  it("reports no OpenAI media or embedding models under a non-openai id", async () => {
+    const provider = new OpenAICompatProvider(CONFIG);
+
+    expect(await provider.getAvailableTTSModels()).toEqual([]);
+    expect(await provider.getAvailableASRModels()).toEqual([]);
+    expect(await provider.getAvailableVideoModels()).toEqual([]);
+    expect(await provider.getAvailableImageModels()).toEqual([]);
+    expect(await provider.getAvailableEmbeddingModels()).toEqual([]);
+  });
+
+  // These dropped their own `return []` overrides; the guard above is what
+  // keeps `whisper-1` / `gpt-image-2` out of their pickers.
+  it.each([
+    ["gmi", new GMIProvider({ GMI_API_KEY: "k" })],
+    ["meta", new MetaProvider({ META_API_KEY: "k" })],
+    ["alibaba", new AlibabaProvider({ DASHSCOPE_API_KEY: "k" })],
+    ["evolink", new EvolinkProvider({ EVOLINK_API_KEY: "k" })],
+    ["atlascloud", new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" })]
+  ])("%s serves no OpenAI TTS, ASR or embedding models", async (_id, p) => {
+    expect(await p.getAvailableTTSModels()).toEqual([]);
+    expect(await p.getAvailableASRModels()).toEqual([]);
+    expect(await p.getAvailableEmbeddingModels()).toEqual([]);
+  });
+
+  // MiniMax serves its own TTS catalog; only ASR and embeddings are empty.
+  it("minimax serves no OpenAI ASR or embedding models", async () => {
+    const p = new MinimaxProvider({ MINIMAX_API_KEY: "k" });
+    expect(await p.getAvailableASRModels()).toEqual([]);
+    expect(await p.getAvailableEmbeddingModels()).toEqual([]);
+  });
+
+  it.each([
+    ["gmi", new GMIProvider({ GMI_API_KEY: "k" })],
+    ["meta", new MetaProvider({ META_API_KEY: "k" })],
+    ["alibaba", new AlibabaProvider({ DASHSCOPE_API_KEY: "k" })]
+  ])("%s serves no OpenAI image or video models", async (_id, p) => {
+    expect(await p.getAvailableImageModels()).toEqual([]);
+    expect(await p.getAvailableVideoModels()).toEqual([]);
   });
 });

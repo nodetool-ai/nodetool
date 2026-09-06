@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-notion",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Build Notion API requests and read Notion rich text and blocks inside the NodeTool sandbox, from NodeTool's helper running on the host",
   "license": "MIT",
   "nodetool": {

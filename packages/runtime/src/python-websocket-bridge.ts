@@ -42,7 +42,7 @@ import type {
   PythonWorkerLoadError,
   PythonWorkerStatus
 } from "./python-bridge-types.js";
-import { isCallable } from "./type-predicates.js";
+import { isCallable } from "@nodetool-ai/protocol";
 
 export type {
   PythonNodeMetadata,

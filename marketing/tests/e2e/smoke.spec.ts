@@ -29,11 +29,22 @@ test.describe("marketing smoke", () => {
     await expect(page.getByRole("link", { name: "Docs" }).first()).toBeVisible();
   });
 
-  test("homepage has a working download CTA", async ({ page }) => {
+  test("homepage download CTA lands on the first-party download page", async ({ page }) => {
     await page.goto("/");
     const cta = page.getByRole("link", { name: /download nodetool/i }).first();
     await expect(cta).toBeVisible();
-    await expect(cta).toHaveAttribute("href", /github\.com\/nodetool-ai\/nodetool/);
+    await expect(cta).toHaveAttribute("href", "/download");
+  });
+
+  test("the download page offers an installer for every platform", async ({ page }) => {
+    await page.goto("/download");
+    for (const name of [/Apple silicon/i, /Intel Macs/i, /64-bit Windows/i, /AppImage/i]) {
+      await expect(page.getByRole("link", { name }).first()).toBeVisible();
+    }
+    // GitHub is the secondary route to the same builds, not the destination.
+    await expect(
+      page.getByRole("link", { name: /the GitHub releases page/i }),
+    ).toBeVisible();
   });
 
   test("homepage ships JSON-LD structured data", async ({ page }) => {

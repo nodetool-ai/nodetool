@@ -84,3 +84,45 @@ describe("estimateDirectTextSpend", () => {
     expect(usd).toBe(0);
   });
 });
+
+describe("estimateDirectTextSpend on content blocks", () => {
+  // The wire schema checks a block only as `{ type: string }` + passthrough, so
+  // a `{ type: "text" }` carrying no `text` is a valid frame. Reading `.length`
+  // off it threw here — a crash on the spend-admission path, before anything
+  // could refuse the call.
+  it("prices a text block with no text instead of throwing", () => {
+    expect(() =>
+      estimateDirectTextSpend({
+        provider: "anthropic",
+        model: "claude-sonnet-5",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text" } as unknown as { type: "text"; text: string }
+            ]
+          }
+        ],
+        maxTokens: 1024
+      })
+    ).not.toThrow();
+  });
+
+  it("still counts a text block that has its text", () => {
+    const withText = estimateDirectTextSpend({
+      provider: "anthropic",
+      model: "claude-sonnet-5",
+      messages: [
+        { role: "user", content: [{ type: "text", text: "x".repeat(20_000) }] }
+      ],
+      maxTokens: 1024
+    });
+    const empty = estimateDirectTextSpend({
+      provider: "anthropic",
+      model: "claude-sonnet-5",
+      messages: [{ role: "user", content: [{ type: "text", text: "" }] }],
+      maxTokens: 1024
+    });
+    expect(withText).toBeGreaterThan(empty);
+  });
+});

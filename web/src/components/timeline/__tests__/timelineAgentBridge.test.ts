@@ -7,11 +7,39 @@ import {
 import type { TimelineAgentHandler } from "../timelineAgentBridge";
 
 const makeMockHandler = (): TimelineAgentHandler => ({
-  getSequenceId: jest.fn(),
-  applyOp: jest.fn(),
+  getSnapshot: jest.fn(),
+  addTrack: jest.fn(),
+  moveTrack: jest.fn(),
+  deleteTrack: jest.fn(),
+  addMediaClip: jest.fn(),
+  addTextClip: jest.fn(),
+  addShapeClip: jest.fn(),
   generateClip: jest.fn(),
-  regenerateClip: jest.fn(),
-  getClipFrames: jest.fn()
+  splitClip: jest.fn(),
+  trimClip: jest.fn(),
+  moveClip: jest.fn(),
+  deleteClip: jest.fn(),
+  duplicateClip: jest.fn(),
+  setClipParams: jest.fn(),
+  setClipBinding: jest.fn(),
+  setClipAnimations: jest.fn(),
+  clearClipAnimations: jest.fn(),
+  getClipFrames: jest.fn(),
+  addGroup: jest.fn(),
+  setParent: jest.fn(),
+  setTransition: jest.fn(),
+  setMask: jest.fn(),
+  setMatte: jest.fn(),
+  setEffects: jest.fn(),
+  selectClip: jest.fn(),
+  seek: jest.fn(),
+  addMarker: jest.fn(),
+  deleteMarker: jest.fn(),
+  setTimeRemap: jest.fn(),
+  setSetup: jest.fn(),
+  planBeats: jest.fn(),
+  updateBeat: jest.fn(),
+  generateFromBeats: jest.fn()
 });
 
 describe("timelineAgentBridge", () => {

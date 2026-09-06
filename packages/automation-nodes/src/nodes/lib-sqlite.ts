@@ -45,11 +45,10 @@ export class GetDatabasePathLibNode extends BaseNode {
     title: "Database Name",
     description: "Name of the SQLite database file"
   })
-  declare database_name: any;
+  declare database_name: string;
 
   async process(context?: ProcessingContext): Promise<GetDatabasePathLibNodeOutputs> {
-    const databaseName = String(this.database_name ?? "memory.db");
-    const dbPath = resolveDbPath(context, databaseName);
+    const dbPath = resolveDbPath(context, this.database_name);
     return { output: dbPath };
   }
 }

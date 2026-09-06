@@ -17,18 +17,8 @@ The HTML report lands in `reports/mutation/mutation.html` (git-ignored).
 
 ## Current status
 
-```
-File               | % score | killed | survived
--------------------|---------|--------|---------
-crypto.ts          |  100.00 |     77 |        0
-master-key.ts      |  100.00 |     99 |        0
-startup-checks.ts  |  100.00 |     26 |        0
--------------------|---------|--------|---------
-All files          |  100.00 |    202 |        0
-```
-
-The config gate (`stryker.config.json`) **breaks below 90%** so a regression in
-test quality fails fast.
+Stryker reports a per-file score; the config gate (`stryker.config.json`)
+**breaks below 90%** so a regression in test quality fails fast.
 
 ## How the suite was hardened
 
@@ -41,8 +31,6 @@ property and reads as Arrange/Act/Assert):
   timestamp embedded as **unix seconds** (a seconds-vs-millis mutant breaks
   Python-side TTL), unpadded base64url acceptance, and the exact `too short`
   length boundary.
-- **Startup error branches** (`startup-checks-error-paths.test.ts`): the master
-  key check's throw path and empty-key path, driven by mocking `initMasterKey`.
 - **Keychain failure contracts** (`master-key-keychain-errors.test.ts`,
   `master-key-keytar-failure.test.ts`): `KeychainAccessError` type/name and the
   full operator-facing message (operation + remediation hint).

@@ -9,42 +9,96 @@ import {
   type ComfyEvent,
   type ComfyExecuteResult,
   type ProcessingContext,
-  type MediaRefValue,
   type ComfyNodeOutputs,
   type ComfyFileOutput,
   type ComfyProgressEvent
 } from "@nodetool-ai/runtime";
+import { ComfyCloudWorkflowNode } from "./comfy-cloud.js";
+import {
+  extFromUri,
+  isMediaRef,
+  runComfyWorkflow,
+  stripTrailingSlashes,
+  UPLOAD_DEFAULTS,
+  v2Transport,
+  type ComfyPrompt,
+  type ComfyTransport
+} from "./comfy-sdk.js";
 
-type ComfyPrompt = Record<
-  string,
-  { class_type: string; inputs: Record<string, unknown> }
->;
-
-/** Media kind → default filename extension / mime for uploads. */
-const UPLOAD_DEFAULTS: Record<string, { ext: string; mime: string }> = {
-  image: { ext: "png", mime: "image/png" },
-  audio: { ext: "wav", mime: "audio/wav" },
-  video: { ext: "mp4", mime: "video/mp4" }
-};
-
-/** A connected media ref looks like an object carrying uri/data/asset_id. */
-function isMediaRef(value: unknown): value is MediaRefValue {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false;
-  }
-  const v = value as Record<string, unknown>;
-  return (
-    "uri" in v || "data" in v || "asset_id" in v || typeof v.type === "string"
-  );
+/**
+ * Turn a user-supplied server address into an http(s) base URL: a bare
+ * `host:port` gets `http://`, and trailing slashes are dropped. Mirrors
+ * `normalizeBaseUrl` in the native executor so both APIs read the same prop
+ * the same way.
+ */
+function httpBaseUrl(address: string): string {
+  const withScheme = /^https?:\/\//i.test(address)
+    ? address
+    : `http://${address}`;
+  return stripTrailingSlashes(withScheme);
 }
 
-function extFromUri(uri: string | undefined): string | undefined {
-  if (!uri) return undefined;
-  const clean = uri.split("?")[0].split("#")[0];
-  const ext = clean.split(".").pop();
-  return ext && ext.length <= 5 && /^[a-z0-9]+$/i.test(ext)
-    ? ext.toLowerCase()
-    : undefined;
+/**
+ * Turn a worker WebSocket URL into the HTTP origin its API v2 routes live on:
+ * `ws:` becomes `http:`, `wss:` becomes `https:`, and path and query are
+ * dropped (`wss://abc-7777.proxy.runpod.net/ws` →
+ * `https://abc-7777.proxy.runpod.net`).
+ */
+export function workerHttpOrigin(workerUrl: string): string {
+  const address = workerUrl.trim();
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(address)
+    ? address
+    : `ws://${address}`;
+  let url: URL;
+  try {
+    url = new URL(withScheme);
+  } catch {
+    throw new Error(`Worker URL is not a valid URL: ${workerUrl}`);
+  }
+  if (url.protocol === "ws:") url.protocol = "http:";
+  else if (url.protocol === "wss:") url.protocol = "https:";
+  return url.origin;
+}
+
+/**
+ * Run one prompt over a Comfy API v2 transport, enforcing the node's `timeout`
+ * prop with a signal the way the Comfy Cloud node does, and reporting a
+ * timeout as a timeout rather than as a bare abort.
+ */
+async function* streamComfyV2(
+  transport: ComfyTransport,
+  prompt: ComfyPrompt,
+  dynamicProps: Iterable<[string, unknown]>,
+  options: {
+    timeoutSeconds: number;
+    nodeId: string;
+    nodeName: string;
+    context?: ProcessingContext;
+    previews?: boolean;
+  }
+): AsyncGenerator<Record<string, unknown>> {
+  const { context, timeoutSeconds } = options;
+  const timeoutSignal = AbortSignal.timeout(timeoutSeconds * 1000);
+  const signal = context?.signal
+    ? AbortSignal.any([context.signal, timeoutSignal])
+    : timeoutSignal;
+
+  try {
+    yield* runComfyWorkflow(transport, prompt, dynamicProps, {
+      signal,
+      context,
+      nodeId: options.nodeId,
+      nodeName: options.nodeName,
+      previews: options.previews
+    });
+  } catch (err) {
+    if (timeoutSignal.aborted) {
+      throw new Error(
+        `ComfyUI workflow did not finish within ${timeoutSeconds}s`
+      );
+    }
+    throw err;
+  }
 }
 
 /**
@@ -62,6 +116,12 @@ function extFromUri(uri: string | undefined): string | undefined {
  * is emitted on a per-node slot keyed `"<comfyNodeId>:image|audio|video"` the
  * moment that node finishes — one item per file, so batches naturally produce
  * multiple outputs. A final `output` slot carries the raw ComfyUI history.
+ *
+ * Two APIs, selected by the `api` prop. `native` (the default) speaks
+ * ComfyUI's own `/prompt` plus WebSocket protocol. `v2` speaks Comfy API v2
+ * against `endpoint` as an HTTP origin, for a ComfyUI behind `comfy-api-proxy`
+ * (port 8189) or a ComfyUI that serves `/api/v2` itself; its final `output`
+ * slot carries the job manifest instead of ComfyUI history.
  */
 export class ComfyWorkflowNode extends BaseNode {
   static readonly nodeType = "lib.comfy.RunWorkflow";
@@ -82,7 +142,17 @@ export class ComfyWorkflowNode extends BaseNode {
       "ComfyUI server address, e.g. 127.0.0.1:8188 or http://host:8188.",
     required: true
   })
-  declare endpoint: any;
+  declare endpoint: string;
+
+  @prop({
+    type: "enum",
+    default: "native",
+    title: "API",
+    description:
+      "Which API to speak. `native` speaks ComfyUI's own /prompt and WebSocket protocol; `v2` speaks Comfy API v2 for a server behind comfy-api-proxy (port 8189) or a ComfyUI that serves /api/v2.",
+    values: ["native", "v2"]
+  })
+  declare api: "native" | "v2";
 
   @prop({
     type: "str",
@@ -92,7 +162,7 @@ export class ComfyWorkflowNode extends BaseNode {
       "ComfyUI workflow in API (prompt) format, as a JSON string: a map of node id to { class_type, inputs }.",
     required: true
   })
-  declare workflow: any;
+  declare workflow: string | ComfyPrompt;
 
   @prop({
     type: "int",
@@ -101,7 +171,16 @@ export class ComfyWorkflowNode extends BaseNode {
     description: "Maximum seconds to wait for the workflow to finish.",
     min: 1
   })
-  declare timeout: any;
+  declare timeout: number;
+
+  /**
+   * Build the Comfy API v2 transport for the `v2` API. Split out so tests can
+   * inject a fake without a v2 server, the way {@link ComfyWorkerWorkflowNode}
+   * splits out `connectBridge`.
+   */
+  protected createTransport(baseUrl: string): ComfyTransport {
+    return v2Transport(baseUrl);
+  }
 
   /**
    * Parse the `workflow` prop into a ComfyUI prompt object. The prop holds a
@@ -201,7 +280,7 @@ export class ComfyWorkflowNode extends BaseNode {
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
-    const endpoint = String(this.endpoint ?? "").trim();
+    const endpoint = this.endpoint.trim();
     if (!endpoint) {
       throw new Error("ComfyUI endpoint is required");
     }
@@ -213,6 +292,21 @@ export class ComfyWorkflowNode extends BaseNode {
       );
     }
 
+    if (this.api === "v2") {
+      yield* streamComfyV2(
+        this.createTransport(httpBaseUrl(endpoint)),
+        source,
+        this.dynamicProps,
+        {
+          timeoutSeconds: Math.max(1, this.timeout),
+          nodeId: this.__node_id,
+          nodeName: this.__node_name ?? "Run ComfyUI Workflow",
+          context
+        }
+      );
+      return;
+    }
+
     // Deep clone so injected inputs never mutate the stored workflow prop.
     const prompt = JSON.parse(JSON.stringify(source)) as ComfyPrompt;
 
@@ -222,7 +316,7 @@ export class ComfyWorkflowNode extends BaseNode {
       await this.injectInput(prompt, endpoint, handle, value, context);
     }
 
-    const timeoutMs = Math.max(1, Number(this.timeout ?? 600)) * 1000;
+    const timeoutMs = Math.max(1, this.timeout) * 1000;
 
     const nodeCount = Object.keys(prompt).length;
     const nodeId = this.__node_id;
@@ -310,27 +404,67 @@ export class ComfyWorkflowNode extends BaseNode {
     };
 
     let settledResult: Awaited<typeof result> | null = null;
-    const { result } = executeComfy(
+    const { result, cancel } = executeComfy(
       prompt,
       endpoint,
       onProgress,
       timeoutMs,
       onNodeOutput
     );
-    const done = result.then((r) => {
-      settledResult = r;
+
+    // Run-level cancellation: interrupt ComfyUI (POST /interrupt + WS close)
+    // rather than merely discarding the result, and wake the drain loop so it
+    // does not block on a notify that will never come.
+    const signal = context?.signal;
+    const onAbort = (): void => {
+      cancel();
       wake();
-    });
+    };
+    if (signal) {
+      if (signal.aborted) {
+        onAbort();
+      } else {
+        signal.addEventListener("abort", onAbort, { once: true });
+      }
+    }
+
+    const done = result.then(
+      (r) => {
+        settledResult = r;
+        wake();
+      },
+      (err) => {
+        settledResult = {
+          status: "failed",
+          error: err instanceof Error ? err.message : String(err)
+        };
+        wake();
+      }
+    );
 
     // Drain streamed outputs as they arrive, until execution settles.
-    while (settledResult === null || queue.length > 0) {
-      if (queue.length === 0) {
-        await new Promise<void>((resolve) => {
-          notify = resolve;
-        });
-        continue;
+    try {
+      while (settledResult === null || queue.length > 0) {
+        if (queue.length === 0) {
+          // An abort that the executor has not yet turned into a result must
+          // not park this loop on a notify nobody will fire.
+          if (signal?.aborted) break;
+          await new Promise<void>((resolve) => {
+            notify = resolve;
+          });
+          continue;
+        }
+        yield queue.shift() as Record<string, unknown>;
       }
-      yield queue.shift() as Record<string, unknown>;
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+    }
+
+    if (settledResult === null) {
+      const aborted = new Error("ComfyUI execution was canceled");
+      aborted.name = "AbortError";
+      logLine(aborted.message, "error");
+      throw aborted;
     }
     await done;
 
@@ -398,17 +532,27 @@ function sniffMedia(bytes: Uint8Array) {
 
 /**
  * Run a ComfyUI workflow on a NodeTool worker that fronts a co-located,
- * loopback-only ComfyUI server (the `nodetool-worker-comfy` image), proxied
- * over the worker bridge as `comfy.*` messages.
+ * loopback-only ComfyUI server (the `nodetool-worker-comfy` image). ComfyUI
+ * itself is never exposed outside the worker.
  *
- * Unlike {@link ComfyWorkflowNode} — which talks to a ComfyUI HTTP endpoint
- * directly — this node connects to the worker's WebSocket bridge and calls
- * `comfy.execute`. ComfyUI itself is never exposed outside the worker. Input
- * media is sent as bridge blobs referenced from the workflow JSON via
- * `"blob:<key>"` placeholders; the worker uploads them to ComfyUI before
- * submitting. Generated files come back as output blobs and are emitted as
- * typed media refs (kind sniffed from the bytes), one dynamic slot per file,
- * plus a static `output` slot carrying the raw ComfyUI outputs.
+ * Two paths, chosen by what the connected worker reports on
+ * `worker.status.comfy`. The bridge is connected either way, because it is how
+ * that status is read.
+ *
+ * - **API v2** (`comfy.api_v2: true`): the bridge is closed again and the
+ *   workflow runs over the worker's Comfy API v2 routes, on the HTTP origin
+ *   derived from `worker_url` and behind the same bearer token. Media inputs
+ *   are uploaded as v2 assets. Outputs stream: each file is emitted the moment
+ *   it lands, on a per-node slot keyed `"<comfyNodeId>:image|audio|video|
+ *   text|file"`, and the final `output` slot carries the job manifest.
+ * - **Bridge** (every worker image that predates v2): the node calls
+ *   `comfy.execute` over the WebSocket bridge. Input media is sent as bridge
+ *   blobs referenced from the workflow JSON via `"blob:<key>"` placeholders;
+ *   the worker uploads them to ComfyUI before submitting. Generated files come
+ *   back as output blobs, emitted as typed media refs (kind sniffed from the
+ *   bytes) on their blob-key slots, plus a static `output` slot carrying the
+ *   raw ComfyUI outputs — all in one final frame, since the bridge call is
+ *   buffered.
  */
 export class ComfyWorkerWorkflowNode extends BaseNode {
   static readonly nodeType = "lib.comfy.RunWorkflowOnWorker";
@@ -429,7 +573,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
       "WebSocket URL of the NodeTool worker fronting ComfyUI, e.g. ws://host:7777/ws.",
     required: true
   })
-  declare worker_url: any;
+  declare worker_url: string;
 
   @prop({
     type: "str",
@@ -437,7 +581,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
     title: "Worker Token",
     description: "Bearer token for the worker, if it requires authentication."
   })
-  declare worker_token: any;
+  declare worker_token: string;
 
   @prop({
     type: "str",
@@ -447,7 +591,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
       "ComfyUI workflow in API (prompt) format, as a JSON string: a map of node id to { class_type, inputs }.",
     required: true
   })
-  declare workflow: any;
+  declare workflow: string | ComfyPrompt;
 
   @prop({
     type: "int",
@@ -456,7 +600,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
     description: "Maximum seconds to wait for the workflow to finish.",
     min: 1
   })
-  declare timeout: any;
+  declare timeout: number;
 
   @prop({
     type: "bool",
@@ -464,15 +608,15 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
     title: "Previews",
     description: "Stream ComfyUI preview images while the workflow runs."
   })
-  declare previews: any;
+  declare previews: boolean;
 
   /**
    * Connect a bridge to the worker. Split out so tests can inject a fake
    * bridge without standing up a real WebSocket worker.
    */
   protected async connectBridge(): Promise<PythonBridge> {
-    const url = String(this.worker_url ?? "").trim();
-    const token = String(this.worker_token ?? "").trim();
+    const url = this.worker_url.trim();
+    const token = this.worker_token.trim();
     const bridge = new WebsocketPythonBridge({
       wsUrl: url,
       workerToken: token || undefined,
@@ -481,6 +625,15 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
     });
     await bridge.connect();
     return bridge;
+  }
+
+  /**
+   * Build the Comfy API v2 transport for a worker that serves it. Split out
+   * alongside {@link connectBridge} so tests can inject a fake without a
+   * v2-capable worker.
+   */
+  protected createTransport(baseUrl: string, token?: string): ComfyTransport {
+    return v2Transport(baseUrl, token);
   }
 
   private parseWorkflow(value: unknown): ComfyPrompt {
@@ -504,8 +657,30 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
     return parsed as ComfyPrompt;
   }
 
+  /**
+   * Buffered fallback for non-streaming consumers: drain the streaming output
+   * and merge frames into a single record (slots with multiple files collapse
+   * to an array).
+   */
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const url = String(this.worker_url ?? "").trim();
+    const merged: Record<string, unknown> = {};
+    for await (const frame of this.genProcess(context)) {
+      for (const [key, value] of Object.entries(frame)) {
+        if (key in merged) {
+          const prev = merged[key];
+          merged[key] = Array.isArray(prev) ? [...prev, value] : [prev, value];
+        } else {
+          merged[key] = value;
+        }
+      }
+    }
+    return merged;
+  }
+
+  async *genProcess(
+    context?: ProcessingContext
+  ): AsyncGenerator<Record<string, unknown>> {
+    const url = this.worker_url.trim();
     if (!url) {
       throw new Error("Worker URL is required");
     }
@@ -517,6 +692,41 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
       );
     }
 
+    const bridge = await this.connectBridge();
+    // The bridge is how we learn which path this worker supports. A worker
+    // serving API v2 is then driven over HTTP, so the bridge is closed again.
+    if (bridge.getComfyStatus()?.api_v2 === true) {
+      bridge.close();
+      const token = this.worker_token.trim();
+      yield* streamComfyV2(
+        this.createTransport(workerHttpOrigin(url), token || undefined),
+        source,
+        this.dynamicProps,
+        {
+          timeoutSeconds: Math.max(1, this.timeout),
+          nodeId: this.__node_id,
+          nodeName: this.__node_name ?? "Run ComfyUI Workflow (Worker)",
+          context,
+          previews: this.previews
+        }
+      );
+      return;
+    }
+
+    yield await this.runOverBridge(bridge, source, url, context);
+  }
+
+  /**
+   * The `comfy.execute` bridge path, for a worker image that does not serve
+   * API v2. Buffered: the worker returns every output blob at once, so this
+   * resolves to the single frame `genProcess` yields.
+   */
+  private async runOverBridge(
+    bridge: PythonBridge,
+    source: ComfyPrompt,
+    url: string,
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
     // Deep clone so injected inputs never mutate the stored workflow prop.
     const prompt = JSON.parse(JSON.stringify(source)) as ComfyPrompt;
 
@@ -594,7 +804,6 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
       }
     };
 
-    const bridge = await this.connectBridge();
     let result: ComfyExecuteResult;
     try {
       if (!bridge.supportsComfy()) {
@@ -610,8 +819,8 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
         prompt,
         {
           blobs: Object.keys(blobs).length > 0 ? blobs : undefined,
-          previews: Boolean(this.previews),
-          timeout: Math.max(1, Number(this.timeout ?? 600))
+          previews: this.previews,
+          timeout: Math.max(1, this.timeout)
         },
         onEvent
       );
@@ -645,5 +854,6 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
 
 export const COMFY_NODES = tagAsServer([
   ComfyWorkflowNode,
-  ComfyWorkerWorkflowNode
+  ComfyWorkerWorkflowNode,
+  ComfyCloudWorkflowNode
 ]);

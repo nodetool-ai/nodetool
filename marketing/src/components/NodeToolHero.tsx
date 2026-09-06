@@ -18,7 +18,7 @@ export default function NodeToolHero() {
         <div className="hero-rise lg:col-span-5">
           <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-300">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-            Open-source AI film studio
+            Agents build. You edit.
           </span>
 
           {/*
@@ -34,17 +34,17 @@ export default function NodeToolHero() {
             id="hero-title"
             className="mt-5 text-balance text-[clamp(2rem,7.5vw,3.25rem)] font-bold leading-[1.1] tracking-tight text-white lg:text-[clamp(2.25rem,3.6vw,3.25rem)]"
           >
-            <span className="block">You are the director.</span>
+            <span className="block">Open-source</span>
             <span className="block bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text pb-[0.12em] text-transparent">
-              The agent is your crew.
+              creative AI workspace
             </span>
           </h1>
 
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-slate-300">
-            Describe your idea. The agent writes the script, storyboards every
-            scene, generates the footage, and cuts the timeline. What comes back
-            is a project, not a render: re-roll one shot, re-voice one line,
-            re-cut the ending.
+            Create and edit images, video, audio, and text with agents that work
+            alongside you. Let them build and revise workflows, then inspect and edit
+            the results yourself. Your project keeps the brief, assets, and edits
+            together.
           </p>
 
           <div className="mt-7 flex">
@@ -53,6 +53,12 @@ export default function NodeToolHero() {
               classNameOverride="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:shadow-blue-900/60"
             />
           </div>
+
+          {/* Trust line, directly under the CTA (NARRATIVE.md § Positioning
+              line). One number we actually have, no adjectives. */}
+          <p className="mt-3 text-xs text-slate-400">
+            Free and open source, AGPL-3.0. macOS, Windows, and Linux.
+          </p>
 
           <ul className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-300">
             <li className="flex items-center gap-1.5">
@@ -74,14 +80,17 @@ export default function NodeToolHero() {
         <div className="hero-rise-delayed relative lg:col-span-7">
           <div
             aria-hidden
-            className="absolute -inset-6 -z-10 rounded-[2rem] opacity-70 blur-3xl"
+            className="absolute -inset-6 -z-10 rounded-[2rem] opacity-40 blur-3xl"
             style={{
               background:
                 "radial-gradient(60% 60% at 50% 0%, rgba(168,85,247,0.35), transparent 60%), radial-gradient(50% 60% at 100% 100%, rgba(244,114,182,0.25), transparent 60%), radial-gradient(50% 60% at 0% 100%, rgba(59,130,246,0.25), transparent 60%)",
             }}
           />
           <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-            <HeroDemoPlayer alt="NodeTool: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film" />
+            <HeroDemoPlayer
+              alt="NodeTool: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film"
+              caption="One sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film. Recorded in the app — open it full screen to read the panels."
+            />
           </div>
         </div>
       </div>

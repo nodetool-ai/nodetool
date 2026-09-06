@@ -15,7 +15,7 @@
 
 import { getNodeBuiltinSync, importNodeBuiltin } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
-import { isObjectLike } from "../type-predicates.js";
+import { isObjectLike } from "@nodetool-ai/protocol";
 import type { UsageInfo } from "./cost-calculator.js";
 import { createUsageSlot } from "../tracing-helpers.js";
 import type {

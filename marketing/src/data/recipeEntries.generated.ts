@@ -86,7 +86,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "openai",
             "model": "gpt-5-mini"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "hook-and-thumbnail-factory",
@@ -105,7 +106,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "fal_ai",
             "model": "fal-ai/flux/schnell"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "ad-loop-from-a-product-photo",
@@ -120,7 +122,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "kie",
             "model": "kling-2.6/image-to-video"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "cut-a-landscape-clip-for-vertical",
@@ -130,7 +133,8 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "In: the 16:9 loop. Out: a 1080×1920 file. Runs through ffmpeg on your own machine — no key, no per-run charge.",
         "thumbnail": "/templates/cut-a-landscape-clip-for-vertical.jpg",
         "nodeCount": 3,
-        "models": []
+        "models": [],
+        "alternative": null
       }
     ]
   },
@@ -226,7 +230,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "openai",
             "model": "gpt-4o-mini-transcribe"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "localise-a-script-and-revoice-it",
@@ -245,7 +250,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "openai",
             "model": "tts-1"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "one-tagline-six-markets",
@@ -260,7 +266,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "openai",
             "model": "gpt-5-mini"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "ai-spokesperson",
@@ -279,7 +286,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "fal_ai",
             "model": "fal-ai/sync-lipsync/v2/pro"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "subtitle-text-from-a-recording",
@@ -298,7 +306,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "openai",
             "model": "gpt-5-mini"
           }
-        ]
+        ],
+        "alternative": null
       }
     ]
   },
@@ -396,7 +405,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "fal_ai",
             "model": "fal-ai/bria/background/remove"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "put-a-product-on-a-studio-backdrop",
@@ -415,7 +425,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "fal_ai",
             "model": "fal-ai/nano-banana/edit"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "relight-a-product-for-a-seasonal-campaign",
@@ -430,7 +441,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "fal_ai",
             "model": "fal-ai/image-apps-v2/relighting"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "spin-a-packshot-into-a-turntable-clip",
@@ -445,7 +457,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "fal_ai",
             "model": "fal-ai/ltx-2.3/image-to-video/fast"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "take-a-product-shot-to-print-resolution",
@@ -460,7 +473,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "fal_ai",
             "model": "fal-ai/clarity-upscaler"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "write-a-listing-from-the-product-photo",
@@ -475,7 +489,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "openai",
             "model": "gpt-5-mini"
           }
-        ]
+        ],
+        "alternative": null
       }
     ]
   },
@@ -530,8 +545,7 @@ export const recipeEntries: RecipeEntry[] = [
     ],
     "caveats": [
       "Steps three and four both hold their own storyboard. Rewriting the beat sheet does not reach back into a teaser you already rendered — re-run the chain.",
-      "Continuity across shots comes from a shared style bible, not from a persistent character model. Faces drift over a long cut.",
-      "For a rough cut you can keep editing rather than a finished teaser, swap step three for Directed Film to Timeline, which ends in an editable sequence."
+      "Continuity across shots comes from a shared style bible, not from a persistent character model. Faces drift over a long cut."
     ],
     "heroThumbnail": "/templates/movie-trailer-generator.jpg",
     "bundle": "/recipes/storyboard-to-trailer.nodetool",
@@ -569,7 +583,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "openai",
             "model": "gpt-5-mini"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "shot-list-from-a-synopsis",
@@ -584,7 +599,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "openai",
             "model": "gpt-5-mini"
           }
-        ]
+        ],
+        "alternative": null
       },
       {
         "template": "movie-trailer-generator",
@@ -607,7 +623,14 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "gemini",
             "model": "veo-3.1-generate-preview"
           }
-        ]
+        ],
+        "alternative": {
+          "template": "directed-film-to-timeline",
+          "name": "Directed Film to Timeline",
+          "route": "/templates/directed-film-to-timeline",
+          "label": "Swap this step to keep editing",
+          "why": "The same director-to-shots chain, ending on the timeline as an editable sequence rather than a finished file. Re-roll one shot or re-cut the ending without running the chain again."
+        }
       },
       {
         "template": "score-a-silent-clip",
@@ -622,7 +645,8 @@ export const recipeEntries: RecipeEntry[] = [
             "provider": "fal_ai",
             "model": "fal-ai/stable-audio-25/text-to-audio"
           }
-        ]
+        ],
+        "alternative": null
       }
     ]
   }

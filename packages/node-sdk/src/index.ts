@@ -33,6 +33,17 @@ export * from "./sandbox-catalog-host.js";
 export * from "./sandbox-bridge-packs.js";
 export * from "./docs/index.js";
 export * from "./python-package-scan.js";
+export {
+  isString,
+  isNonEmptyString,
+  isNumber,
+  isFiniteNumber,
+  isPositiveNumber,
+  isBoolean,
+  isObjectLike,
+  isRecord,
+  isCallable
+} from "./type-predicates.js";
 export type {
   StreamingInputs,
   StreamingOutputs,

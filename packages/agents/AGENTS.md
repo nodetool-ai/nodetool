@@ -75,7 +75,7 @@ does it with a smaller view of the run than the caller has.
 ### Tests
 
 - `packages/runtime/tests/agent-memory.test.ts` — unit tests for `AgentMemory`
-- `packages/agents/tests/memory-tools.test.ts` — unit tests for the `shared` capabilities `list_shared` / `read_shared` / `share_result`, and the belt `getMemoryTools()` builds from them
+- `packages/agents/tests/shared-tools.test.ts` — unit tests for the `shared` capabilities `list_shared` / `read_shared` / `share_result`, and the belt `getSharedTools()` builds from them
 - `packages/agents/tests/memory-propagation.test.ts` — end-to-end through `execute_plan`, `TaskExecutor` and `StepExecutor`, including a fake-provider round trip that drives `list_shared` → `read_shared` → `finish_step`
 - `packages/agents/tests/_helpers/mock-context.ts` — shared mock context with a real `AgentMemory` for executor tests
 
@@ -623,26 +623,34 @@ arrives at *call* time, not at construction time, which is what lets one
 process-level registry serve every host. Design:
 [docs/tool-class-retirement-design.md](../../docs/tool-class-retirement-design.md).
 
-`registry.ts` is the table, in two halves. The **lazy** half is one `import()`
-per namespace, so no implementation sits in an entry graph. The **eager** half
-is a spec table: every module has a data-only sibling (`workflows.specs.ts`,
-`media.specs.ts`, …) holding wire name, description, JSON schema, category and
-message template, and importing no implementation, so `capabilitySpec(name)`
-and `listCapabilitySpecs()` answer synchronously. That is what lets a belt be
+`registry.ts` is one table, `CAPABILITY_MODULES`, with one entry per namespace
+carrying both halves: a **lazy** `loader` — one `import()`, so no
+implementation sits in an entry graph — and an **eager** `specs` list. Every
+module has a data-only sibling (`workflows.specs.ts`, `media.specs.ts`, …)
+holding wire name, description, JSON schema, category and message template, and
+importing no implementation, so `capabilitySpec(name)` and
+`listCapabilitySpecs()` answer synchronously. That is what lets a belt be
 assembled synchronously from the registry: `toolFromLazyCapability(spec, run)` /
 `toolForCapabilityName(name, run)` (`capabilities/lazy-tool.ts`) return a `Tool`
 whose spec is there at assembly time and whose implementation loads from its own
 module at the first `process()` — `Tool.process()` was already async, so only the
 spec ever had to be eager. `getBuiltinTools()`, `getAllMcpTools()` and
-`getGoogleWorkspaceTools()` all build this way; the ninety-two one-line
-`extends CapabilityTool` subclasses they replaced are gone.
+`getGoogleWorkspaceTools()` all build this way; the one-line
+`extends CapabilityTool` subclasses they replaced are gone, and so is
+`CapabilityTool` itself — `toolFromCapability(spec, impl, run)`
+(`capabilities/adapters.ts`) hands the implementation it already has to
+`toolFromLazyCapability`'s optional `impl` argument.
 
 A module imports its own specs back and attaches each to an implementation, so
 one spec *object* stands behind both halves, and `eagerSpecDrift` compares them
 by identity — a module that copied its spec would pass a field check and still
 be two things to keep in step. `CapabilitySpec.zodSchema` carries the Zod schema
-for the few capabilities whose identity is one (`view_image`, `list_images`, the
-eight `ui_*` document tools), so `Tool.execute` still validates on the way in.
+for the capabilities whose identity is one (`view_image`, `list_images`, the
+`ui_*` document tools, the `settings` and `packs` namespaces). It is checked
+once, by `validateCapabilityArgs` (`capabilities/args.ts`): in
+`LazyCapabilityTool.process()` on the belt path, in `gatedCall` on the `invoke`
+path. `Tool.execute` does not pre-parse — `LazyCapabilityTool` exposes no
+`schema` — so neither entrance validates twice and neither skips it.
 
 What the registry deliberately does *not* serve is written down where the API
 it mirrors lives: `packages/websocket/src/trpc/sandbox-coverage.ts` classifies
@@ -655,10 +663,14 @@ a run may act on the rows its own user owns, and may not touch credentials,
 billing, other tenants, host control, the transcript of its own behaviour, or
 anything that grants a third party access.
 
-`DECLARED_CAPABILITY_MODULES` is the module list a reviewer reads. Three drift
-walks keep everything honest. `capabilityModuleDrift()` reports a declared module with no loader,
-a loader nobody declared, an export with no category or no schema, and one name
-owned by two modules; `tests/capabilities-registry.test.ts` also pins a
+`DECLARED_CAPABILITY_MODULES` is the module list a reviewer reads, derived from
+`CAPABILITY_MODULES` — a declared module with no loader, or a loader nobody
+declared, cannot occur, because both come from the same entry. Three drift
+walks keep the rest honest. `capabilityModuleDrift()` reports an export with no
+name, description, schema, category or implementation
+(`capabilityModuleIssues`), a spec object a module rebuilt instead of importing
+from its `.specs.ts` sibling (`eagerSpecDrift`), and one name owned by two
+modules; `tests/capabilities-registry.test.ts` also pins a
 checked-in `name → category` snapshot, so a reclassification is a one-line diff.
 `tests/capabilities-coverage.test.ts` walks the other way: everything
 `getBuiltinTools()` and `getAllMcpTools({})` assemble must resolve through
@@ -857,13 +869,24 @@ result as an asset, and write it back onto the persisted board.
 | `list_storyboards` | Boards newest first, with per-board still/clip counts |
 | `create_storyboard` | Blank board (then `edit_storyboard` adds shots) |
 | `get_storyboard` | Shots with ids, status, and whether each has a still/clip |
+| `direct_storyboard` | Runs the Director over the board's brief/genre/style and writes the screenplay; `redirect` keeps retained shots' ids and media |
 | `render_storyboard_stills` | `text_to_image` per shot → the shot's keyframe |
 | `render_storyboard_clips` | the shot's clip: `image_to_video` seeded by the keyframe, or `text_to_video` from the prompt |
 | `revise_storyboard_clip` | `video_to_video` revision of one shot's clip |
 | `assemble_storyboard_timeline` | Rendered clips → a saved `timeline_sequences` row |
 
+`edit_storyboard` is the document half: beside the shot ops it carries the
+guided flow's `set_setup`, the scene ops (`move_shot`, `duplicate_shot`,
+`update_scene`, `create_scene`, `merge_scene`), `set_style`, and the version ops
+(`select_version`, `delete_version`, `add_keyframe_version`). Every one mirrors
+a `ui_storyboard_*` browser tool and writes the same document shape, so a board
+edited headlessly and one edited in the editor cannot diverge (PRD § 7.10).
+
 Both render tools take `targets` (shot ids, indexes, or slugs) and default to
-"whatever still needs this step", so a whole board is one call. Shots render
+"whatever still needs this step", so a whole board is one call. `stale_only`
+narrows that to the shots whose selected version was rendered from inputs the
+shot no longer has (`isVersionStale`), which is how a style change is re-rendered
+without re-rendering the board. Shots render
 concurrently (default 3, max 8, 24 shots per call). Every write is a CAS on the
 row's `updated_at` with a bounded retry, because concurrent renders all land on
 the same board document; a conflicting write re-reads and re-applies rather than
@@ -1010,13 +1033,9 @@ await gmail_send_message({ to: "a@b.c", subject: "Invoices", body: String(files.
 ```
 
 ```ts
-import {
-  getGoogleWorkspaceTools,
-  registerGoogleWorkspaceTools
-} from "@nodetool-ai/agents";
+import { getGoogleWorkspaceTools } from "@nodetool-ai/agents";
 
 if (isGoogleWorkspaceEnabled()) {
-  registerGoogleWorkspaceTools();   // makes resolveTool(name) work
   toolbelt.push(...getGoogleWorkspaceTools());
 }
 ```

@@ -9,15 +9,8 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import {
-  FileStorageAdapter,
-  ProcessingContext,
-  type NodeExecutor,
-  withNodeSpan,
-  withSpanGen,
-  type PythonBridgeBase,
-  type PythonBridgeOptions
-} from "@nodetool-ai/runtime";
+import { ProcessingContext, type NodeExecutor, withNodeSpan, withSpanGen, type PythonBridgeBase, type PythonBridgeOptions } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import {
   buildBuiltinRegistry,

@@ -15,6 +15,7 @@
  */
 
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
+import { isCompactionMessage } from "@nodetool-ai/models";
 import {
   sanitizeForLog,
   type BaseProvider,
@@ -119,21 +120,36 @@ export interface CompactionCut<T> {
  * them, so neither side of the cut can hold half a tool round — which
  * Anthropic rejects outright. Null when the thread has nothing to summarize:
  * fewer than `keepUserTurns` user messages, or a cut that would land at the
- * very start.
+ * very start. With a token budget, keep fewer turns when needed, but always
+ * keep the latest user turn. A prior summary alone is never summarized again.
  */
-export function chooseCompactionCut<T extends { role: string }>(
+export function chooseCompactionCut<
+  T extends {
+    role: string;
+    execution_event_type?: string | null;
+  }
+>(
   rows: readonly T[],
-  keepUserTurns: number
+  keepUserTurns: number,
+  budget?: { maxTokens: number; countTokens: (row: T) => number }
 ): CompactionCut<T> | null {
   if (keepUserTurns < 1) return null;
   let seen = 0;
+  let tokens = 0;
+  let boundary = -1;
   for (let i = rows.length - 1; i >= 0; i--) {
-    if (rows[i].role !== "user") continue;
-    if (++seen < keepUserTurns) continue;
-    if (i === 0) return null;
-    return { summarize: rows.slice(0, i), keep: rows.slice(i) };
+    const row = rows[i];
+    tokens += budget?.countTokens(row) ?? 0;
+    if (row.role !== "user" || isCompactionMessage(row)) continue;
+    // Always retain the latest user turn, even if it alone exceeds the budget.
+    if (budget && tokens > budget.maxTokens && boundary >= 0) break;
+    boundary = i;
+    if (++seen >= keepUserTurns) break;
   }
-  return null;
+  if (boundary <= 0 || (!budget && seen < keepUserTurns)) return null;
+  const summarize = rows.slice(0, boundary);
+  if (summarize.every(isCompactionMessage)) return null;
+  return { summarize, keep: rows.slice(boundary) };
 }
 
 /**

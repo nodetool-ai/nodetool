@@ -3,8 +3,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Tilt3D from "./Tilt3D";
-import { DownloadButtons } from "../app/DownloadButtons";
-import { Link2, Layers, ShieldCheck, Zap } from "lucide-react";
+import { ArrowRight, Link2, Layers, ShieldCheck, Zap } from "lucide-react";
 
 interface ProvidersSectionProps {
   reducedMotion?: boolean;
@@ -109,7 +108,7 @@ export default function ProvidersSection({
             },
             {
               title: "No Middleman",
-              description: "Requests go straight from your machine to the provider. No markup, no tracking.",
+              description: "Your key goes to the provider you picked and nowhere else. No markup, no resold credits.",
               icon: ShieldCheck,
               color: "text-emerald-400",
               bg: "bg-emerald-500/10",
@@ -141,8 +140,18 @@ export default function ProvidersSection({
           ))}
         </motion.div>
 
-        <div className="text-center">
-          <DownloadButtons />
+        <div className="mx-auto max-w-2xl rounded-2xl border border-white/10 bg-slate-900/40 p-6 text-center">
+          <p className="text-slate-400 leading-relaxed">
+            Providers bill you directly, at their list prices, whichever edition
+            you run.
+          </p>
+          <a
+            href="/download"
+            className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-300 transition-colors hover:text-blue-200 focus-ring"
+          >
+            Run it on your own machine instead
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </a>
         </div>
       </div>
     </section>

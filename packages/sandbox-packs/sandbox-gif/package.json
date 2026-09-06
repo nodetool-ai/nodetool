@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-gif",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Encode an animated GIF from RGBA frames inside the NodeTool sandbox, from gifenc",
   "license": "MIT",
   "dependencies": {

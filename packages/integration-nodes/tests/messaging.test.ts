@@ -195,3 +195,37 @@ describe("MESSAGING_NODES", () => {
     expect(types).toContain("messaging.telegram.TelegramBotTrigger");
   });
 });
+
+
+// ---------------------------------------------------------------------------
+// Declared props must be wired
+// ---------------------------------------------------------------------------
+describe("trigger props the stub never reads", () => {
+  const propNames = (NodeCls: any): string[] =>
+    getNodeMetadata(NodeCls).properties.map((p) => p.name);
+
+  it("DiscordBotTrigger declares no max_events", () => {
+    expect(propNames(DiscordBotTrigger)).not.toContain("max_events");
+  });
+
+  it("TelegramBotTrigger declares no polling knobs", () => {
+    const names = propNames(TelegramBotTrigger);
+    expect(names).not.toContain("max_events");
+    expect(names).not.toContain("poll_timeout_seconds");
+    expect(names).not.toContain("poll_interval_seconds");
+  });
+
+  it("keeps the props process() actually reads", () => {
+    expect(propNames(DiscordBotTrigger)).toEqual(
+      expect.arrayContaining(["token", "channel_id", "allow_bot_messages"])
+    );
+    expect(propNames(TelegramBotTrigger)).toEqual(
+      expect.arrayContaining([
+        "token",
+        "chat_id",
+        "allow_bot_messages",
+        "include_edited_messages"
+      ])
+    );
+  });
+});

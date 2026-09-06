@@ -43,6 +43,8 @@ export interface ScriptLine {
   text: string;
   direction?: string;
   pauseAfterMs?: number;
+  /** How long the line is meant to take, in ms (a subtitle cue's own timing). */
+  targetDurationMs?: number;
   voiceOverride?: VoiceBinding | null;
   takes: ScriptTake[];
   currentTakeId?: string | null;
@@ -66,9 +68,24 @@ export interface ScriptSpeaker {
  * The persisted script payload: text is the source of truth, audio is derived.
  * Everything the editor carries except identity/timestamps (columns).
  */
+/**
+ * Where a script sits in the guided setup, and the answers each step wrote
+ * (PRD § 9.5). Absent on a script written before the flow existed, which is
+ * what makes such a script open as the editor.
+ */
+export interface ScriptSetup {
+  stage: "idea" | "format" | "review" | "voices" | "done";
+  brief: string;
+  format?: string;
+  length_seconds?: number;
+  pace?: "slow" | "normal" | "fast";
+  language?: string;
+}
+
 export interface ScriptDocument {
   cast: ScriptSpeaker[];
   sections: ScriptSection[];
+  setup?: ScriptSetup;
 }
 
 export interface ScriptResponse {

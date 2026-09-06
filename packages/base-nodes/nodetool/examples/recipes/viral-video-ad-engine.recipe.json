@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "slug": "viral-video-ad-engine",
+  "name": "Viral Video Ad Engine",
+  "outcome": "A vertical product ad, plus the hook lines and thumbnails to test it against.",
+  "audience": "Performance and social teams shipping several ad variants a week.",
+  "summary": [
+    "Four workflows, ordered cheapest first. The copy and the hook set are text and fast images, so you can throw most of them away; only the last two steps touch a video model, and by then you have already chosen the line and the frame.",
+    "That order is the whole point. Deciding register and hook after paying for footage is how an ad budget disappears into renders nobody posts."
+  ],
+  "caveats": [
+    "The vertical step rescales rather than crops, so frame the loop with room to lose or add a crop node ahead of it.",
+    "Nothing here measures performance. The recipe produces variants to test; the testing happens in your ad platform."
+  ],
+  "hero": "Hook & Thumbnail Factory",
+  "steps": [
+    {
+      "example": "Ad Copy in Three Registers",
+      "role": "Settle the register before anything renders",
+      "handoff": "In: the offer in a sentence. Out: the same offer written plain, playful and premium. One text call, so the argument about tone costs cents instead of a render queue."
+    },
+    {
+      "example": "Hook & Thumbnail Factory",
+      "role": "Fan the winning line into a test set",
+      "handoff": "In: the video topic. Out: a stream of hook lines, each with its own color-graded thumbnail. The fan-out is the useful part — one hook stream drives the whole gallery in a single run."
+    },
+    {
+      "example": "Ad Loop from a Product Photo",
+      "role": "Put the product in motion",
+      "handoff": "In: the product photo. Out: a short hero loop. A prompt node writes the motion brief, the image-to-video model animates the still, and a speed pass slows it. This is the step that costs real money."
+    },
+    {
+      "example": "Cut a Landscape Clip for Vertical",
+      "role": "Cut it to the frame the channel wants",
+      "handoff": "In: the 16:9 loop. Out: a 1080×1920 file. Runs through ffmpeg on your own machine — no key, no per-run charge."
+    }
+  ]
+}

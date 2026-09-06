@@ -18,7 +18,6 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
-import type { JsonSchema } from "@nodetool-ai/runtime";
 import type {
   TimelineDocument,
   TimelineSequence,
@@ -61,18 +60,6 @@ import {
   MAX_PREVIEW_RANGE_COUNT,
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT,
-  SAVE_TYPE_PROPERTY,
-  LIST_TIMELINES_SCHEMA,
-  CREATE_TIMELINE_SCHEMA,
-  GET_TIMELINE_SCHEMA,
-  LIST_TIMELINE_VERSIONS_SCHEMA,
-  GET_TIMELINE_VERSION_SCHEMA,
-  CREATE_TIMELINE_VERSION_SCHEMA,
-  RESTORE_TIMELINE_VERSION_SCHEMA,
-  DELETE_TIMELINE_VERSION_SCHEMA,
-  EDIT_TIMELINE_SCHEMA,
-  VALIDATE_TIMELINE_SCHEMA,
-  SET_TIMELINE_DOCUMENT_SCHEMA,
   deleteTimelineSpec
 } from "./timelines.specs.js";
 import {
@@ -81,23 +68,6 @@ import {
 } from "@nodetool-ai/timeline";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
 
-export {
-  DEFAULT_VERSION_LIMIT,
-  MAX_VERSION_LIMIT,
-  SAVE_TYPE_PROPERTY,
-  LIST_TIMELINES_SCHEMA,
-  CREATE_TIMELINE_SCHEMA,
-  GET_TIMELINE_SCHEMA,
-  LIST_TIMELINE_VERSIONS_SCHEMA,
-  GET_TIMELINE_VERSION_SCHEMA,
-  CREATE_TIMELINE_VERSION_SCHEMA,
-  RESTORE_TIMELINE_VERSION_SCHEMA,
-  DELETE_TIMELINE_VERSION_SCHEMA,
-  EDIT_TIMELINE_SCHEMA,
-  VALIDATE_TIMELINE_SCHEMA,
-  SET_TIMELINE_DOCUMENT_SCHEMA,
-  COMPARE_TIMELINE_FRAMES_SCHEMA
-} from "./timelines.specs.js";
 import { resolveProjectId } from "./project-scope.js";
 
 type ToolError = { error: string };
@@ -643,7 +613,8 @@ async function applyOps(
       height: sequence.height,
       tracks: document.tracks,
       clips: document.clips,
-      markers: document.markers
+      markers: document.markers,
+      setup: document.setup
     },
     resolveAsset: (ref) => resolveTimelineAsset(run, ref),
     bakeAnimation: (request) => bakeTimelineAnimation(run, request),
@@ -815,6 +786,12 @@ const editTimeline: CapabilityExport = {
         clips: state.documentClips,
         markers: state.markers
       };
+      // The guided flow's stage and plan are document state like the rest: an
+      // op run that moved the flow on has to be what the row holds afterwards,
+      // or the next surface to open the sequence resumes at the old step.
+      if (state.setup) {
+        next.setup = state.setup;
+      }
       const failed = records.filter((record) => !record.ok);
       // Only the ops that landed describe the write, and a script where none
       // landed is not a write at all: saving it would bump the revision and

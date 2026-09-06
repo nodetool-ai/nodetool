@@ -100,6 +100,17 @@ export default function OwnershipSection({
             </motion.div>
           ))}
         </motion.div>
+
+        <p className="mt-10 text-center text-sm text-slate-400">
+          What that comes to in a month, model by model, is on the{" "}
+          <a
+            href="/pricing#byok-calculator"
+            className="text-blue-300 underline underline-offset-2 hover:text-blue-200 focus-ring"
+          >
+            pricing page
+          </a>
+          .
+        </p>
       </div>
     </section>
   );

@@ -61,9 +61,10 @@ import {
   extractInjectableImages,
   stripImagePayload
 } from "@nodetool-ai/agents";
-import { FileStorageAdapter } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { uiToolSchemas } from "@nodetool-ai/protocol";
+import { loadConfiguredProviders } from "./configured-providers.js";
 import { mcpToolHostDeps } from "./mcp-tool-deps.js";
 import type { SketchLoader, TimelineLoader } from "@nodetool-ai/agents";
 import {
@@ -189,31 +190,6 @@ const loadSketchForUser: SketchLoader = async (context, id) => {
 export const __buildAgentToolContextForTests = (
   userId: string
 ): ProcessingContext => buildAgentToolContext(userId);
-
-/** Load every configured provider, keyed by id, into `into` (mirrors the runner). */
-async function loadConfiguredProviders(
-  into: Record<string, BaseProvider>,
-  userId: string
-): Promise<void> {
-  const providersMod = await import("@nodetool-ai/runtime");
-  const getSecretFor = (key: string) =>
-    getSecret(key, userId).then((v) => v ?? undefined);
-  const ids = providersMod.listRegisteredProviderIds();
-  await Promise.all(
-    ids.map(async (id) => {
-      try {
-        if (await providersMod.isProviderConfigured(id, getSecretFor)) {
-          into[id] = await providersMod.getProvider(id, getSecretFor);
-        }
-      } catch (err) {
-        log.debug("Skipping unconfigured provider for MCP find_model", {
-          provider: id,
-          error: err instanceof Error ? err.message : String(err)
-        });
-      }
-    })
-  );
-}
 
 // ── JSON Schema → Zod shape ─────────────────────────────────────────
 //
@@ -709,8 +685,13 @@ export function registerAgentMcpTools(
   const sharedProviders: Record<string, BaseProvider> = {};
   let providersPromise: Promise<void> | null = null;
   const ensureProviders = (): Promise<void> => {
-    if (!providersPromise)
-      providersPromise = loadConfiguredProviders(sharedProviders, scope.userId);
+    if (!providersPromise) {
+      providersPromise = loadConfiguredProviders(scope.userId).then(
+        (loaded) => {
+          Object.assign(sharedProviders, loaded);
+        }
+      );
+    }
     return providersPromise;
   };
 

@@ -17,7 +17,6 @@
  * namespaces".
  */
 
-import type { JsonSchema } from "@nodetool-ai/runtime";
 import {
   requireGoogleAccessToken,
   driveSearchFiles,
@@ -69,47 +68,9 @@ import {
   calendarEventsSpec,
   calendarCreateSpec,
   calendarDeleteSpec,
-  str,
-  DRIVE_SEARCH_SCHEMA,
-  DRIVE_FILE_ID_SCHEMA,
-  DRIVE_CREATE_SCHEMA,
-  GMAIL_SEARCH_SCHEMA,
-  GMAIL_MESSAGE_ID_SCHEMA,
-  GMAIL_SEND_SCHEMA,
-  GMAIL_MODIFY_LABELS_SCHEMA,
-  DOCS_READ_SCHEMA,
-  DOCS_CREATE_SCHEMA,
-  DOCS_APPEND_SCHEMA,
-  SHEETS_READ_SCHEMA,
-  SHEETS_APPEND_SCHEMA,
-  SHEETS_UPDATE_SCHEMA,
-  SHEETS_CREATE_SCHEMA,
-  CALENDAR_LIST_EVENTS_SCHEMA,
-  CALENDAR_CREATE_EVENT_SCHEMA,
-  CALENDAR_DELETE_EVENT_SCHEMA
+  str
 } from "./google.specs.js";
 import { isFiniteNumber } from "../utils/type-guards.js";
-
-export {
-  str,
-  DRIVE_SEARCH_SCHEMA,
-  DRIVE_FILE_ID_SCHEMA,
-  DRIVE_CREATE_SCHEMA,
-  GMAIL_SEARCH_SCHEMA,
-  GMAIL_MESSAGE_ID_SCHEMA,
-  GMAIL_SEND_SCHEMA,
-  GMAIL_MODIFY_LABELS_SCHEMA,
-  DOCS_READ_SCHEMA,
-  DOCS_CREATE_SCHEMA,
-  DOCS_APPEND_SCHEMA,
-  SHEETS_READ_SCHEMA,
-  SHEETS_APPEND_SCHEMA,
-  SHEETS_UPDATE_SCHEMA,
-  SHEETS_CREATE_SCHEMA,
-  CALENDAR_LIST_EVENTS_SCHEMA,
-  CALENDAR_CREATE_EVENT_SCHEMA,
-  CALENDAR_DELETE_EVENT_SCHEMA
-} from "./google.specs.js";
 
 /**
  * Shared plumbing: resolve the token, run the call, and turn a failure into a

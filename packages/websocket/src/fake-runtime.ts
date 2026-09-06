@@ -29,13 +29,13 @@ import {
   autoScript,
   registerProvider,
   listRegisteredProviderIds,
+  isToolCall,
   type BaseProvider,
   type ProviderStreamItem
 } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
 import { chunkSchema } from "@nodetool-ai/protocol";
-import { isObjectLike } from "./lib/wire-values.js";
 
 /** Valid 1x1 transparent PNG — bytes for faked image/media outputs, so
  *  downstream nodes that decode them don't choke. */
@@ -109,9 +109,8 @@ export class FakeProvider extends ScriptedProvider {
     args: Parameters<ScriptedProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
     for await (const item of super.generateMessages(args)) {
-      if (isObjectLike(item) && "type" in item) {
-        const type = item.type;
-        if (type === "chunk") assertValidFakeChunk(item);
+      if (!isToolCall(item) && item.type === "chunk") {
+        assertValidFakeChunk(item);
       }
       yield item;
     }

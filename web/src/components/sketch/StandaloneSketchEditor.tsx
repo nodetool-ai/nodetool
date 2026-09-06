@@ -59,6 +59,9 @@ import { useSaveSketchAsAsset } from "../../hooks/sketch/useSaveSketchAsAsset";
 
 const containerStyles = (theme: Theme) =>
   css({
+    // The conflict banner and the guided-flow overlay both position against
+    // this box, so it has to be the containing block.
+    position: "relative",
     width: "100%",
     height: "100%",
     overflow: "hidden",
@@ -77,6 +80,12 @@ interface StandaloneSketchEditorProps {
    * standalone page; the workspace tab passes its active flag.
    */
   active?: boolean;
+  /**
+   * Rendered inside this editor's `SketchProvider`, over the canvas — the
+   * guided image flow, which has to address this instance's stores rather than
+   * whichever editor happens to be active.
+   */
+  overlay?: React.ReactNode;
 }
 
 /**
@@ -105,7 +114,7 @@ const ConflictBannerHost: React.FC<{ documentId: string }> = ({ documentId }) =>
 };
 
 const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
-  function StandaloneSketchEditorBody({ documentId, headerActions }) {
+  function StandaloneSketchEditorBody({ documentId, headerActions, overlay }) {
     const theme = useTheme();
     const styles = useMemo(() => containerStyles(theme), [theme]);
     const editorRef = useRef<SketchEditorHandle | null>(null);
@@ -256,6 +265,7 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
     return (
       <div className="sketch-editor-page" css={styles}>
         <ConflictBannerHost documentId={documentId} />
+        {overlay}
         <SketchEditor
           ref={editorRef}
           documentId={documentId}

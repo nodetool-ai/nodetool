@@ -10,12 +10,8 @@
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  InMemoryStorageAdapter,
-  StorageWorkspace,
-  type ProcessingContext,
-  type Workspace
-} from "@nodetool-ai/runtime";
+import { StorageWorkspace, type ProcessingContext, type Workspace } from "@nodetool-ai/runtime";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
 import type { CapabilityRun } from "../src/capabilities/types.js";

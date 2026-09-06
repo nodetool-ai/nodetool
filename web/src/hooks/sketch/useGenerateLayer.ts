@@ -76,6 +76,18 @@ interface JobSubscriptionContext {
   paramOverridesSnapshot?: Record<string, unknown>;
   onComplete?: (info: LayerGenerationCompletion) => void;
   onFailed?: (errorMessage: string) => void;
+  /**
+   * Fired once on every terminal job state, including the ones that produce no
+   * version (no dependency hash to record against, or a cancellation). A batch
+   * driver waits on this; `onComplete` alone would hang on those paths.
+   */
+  onSettled?: (outcome: LayerGenerationOutcome) => void;
+}
+
+/** Terminal state of one layer generation. */
+export interface LayerGenerationOutcome {
+  status: "completed" | "failed" | "cancelled";
+  errorMessage?: string;
 }
 
 const jobSubscriptions = new Map<string, () => void>();
@@ -310,6 +322,7 @@ export const handleJobMessage = async (
         "Workflow finished without producing an output asset.";
       generationStore.updateJobStatus(jobId, "failed", { errorMessage });
       context.onFailed?.(errorMessage);
+      context.onSettled?.({ status: "failed", errorMessage });
       unsubscribeJob(jobId);
       return;
     }
@@ -360,12 +373,14 @@ export const handleJobMessage = async (
           );
         generationStore.updateJobStatus(jobId, "failed", { errorMessage });
         context.onFailed?.(errorMessage);
+        context.onSettled?.({ status: "failed", errorMessage });
         unsubscribeJob(jobId);
         return;
       }
     }
 
     generationStore.clearJob(context.layerId);
+    context.onSettled?.({ status: "completed" });
     unsubscribeJob(jobId);
     return;
   }
@@ -382,12 +397,14 @@ export const handleJobMessage = async (
       .setError(context.workflowId, jobId, nodeId, errorMessage);
     generationStore.updateJobStatus(jobId, "failed", { errorMessage });
     context.onFailed?.(errorMessage);
+    context.onSettled?.({ status: "failed", errorMessage });
     unsubscribeJob(jobId);
     return;
   }
 
   if (status === "cancelled") {
     generationStore.clearJob(context.layerId);
+    context.onSettled?.({ status: "cancelled" });
     unsubscribeJob(jobId);
   }
 };
@@ -432,6 +449,107 @@ const subscribeJob = async (
   }
 };
 
+interface StartLayerGenerationOptions {
+  onComplete?: (info: LayerGenerationCompletion) => void;
+  onFailed?: (errorMessage: string) => void;
+  onSettled?: (outcome: LayerGenerationOutcome) => void;
+}
+
+/**
+ * Run a layer's bound workflow and subscribe to the resulting job. Returns the
+ * job id, or null when the layer already has a job in flight (single-flight).
+ *
+ * Non-hook, so batch drivers (Re-generate Stale) get the whole flow — the job
+ * subscription included — rather than re-implementing the run half and waiting
+ * forever for a status nothing writes.
+ */
+export const startLayerGeneration = async (
+  binding: LayerGenerationBinding,
+  options: StartLayerGenerationOptions = {}
+): Promise<string | null> => {
+  if (binding.locked) {
+    throw new Error("Layer is locked");
+  }
+  if (!binding.workflowId) {
+    throw new Error("Layer is not bound to a workflow");
+  }
+
+  // Single-flight per layer: if a job is already queued or running for this
+  // layer, do nothing. Without this guard a rapid double-click registers a
+  // second job that overwrites the first in the store, orphans its
+  // subscription, and leaves the original job running on the server.
+  // `startingLayers` covers the async window before registerJob runs.
+  if (startingLayers.has(binding.layerId)) {
+    return null;
+  }
+  const existingJob =
+    useSketchGenerationStore.getState().layerJobs[binding.layerId];
+  if (
+    existingJob &&
+    (existingJob.status === "queued" || existingJob.status === "running")
+  ) {
+    return null;
+  }
+
+  // No pre-run error clear: each run uses a fresh job id, so its per-job error
+  // slice (keyed by workflowId, jobId, nodeId) starts empty and a stale
+  // failure can't carry over. A workflow-wide clear here would wipe other
+  // concurrent runs' errors, breaking run isolation.
+
+  startingLayers.add(binding.layerId);
+  try {
+    const workflow = await queryClient.fetchQuery({
+      queryKey: workflowQueryKey(binding.workflowId),
+      queryFn: () => fetchWorkflowById(binding.workflowId),
+      staleTime: 0
+    });
+
+    const graphNodes = workflow.graph?.nodes ?? [];
+    const graphEdges = workflow.graph?.edges ?? [];
+    const nodes = graphNodes.map((node: WorkflowGraphNode) =>
+      graphNodeToReactFlowNode(workflow, node)
+    );
+    const edges = graphEdges.map(graphEdgeToReactFlowEdge);
+
+    const runnerStore = getWorkflowRunnerStore(binding.workflowId);
+    // Use the id run() returns, not runnerStore.job_id: when the runner is
+    // already busy the run is queued under a fresh id while the store keeps
+    // pointing at the active run, so reading it back would subscribe this
+    // layer to the wrong job and strand its updates.
+    const jobId = await runnerStore
+      .getState()
+      .run(binding.paramOverrides ?? {}, workflow, nodes, edges, undefined, undefined, true);
+
+    if (!jobId) {
+      throw new Error("Workflow runner did not return a job id");
+    }
+
+    useSketchGenerationStore
+      .getState()
+      .registerJob(binding.layerId, jobId, binding.workflowId);
+    await subscribeJob(
+      jobId,
+      {
+        layerId: binding.layerId,
+        documentId: binding.documentId,
+        workflowId: binding.workflowId,
+        selectedOutputNodeId: binding.selectedOutputNodeId,
+        dependencyHash: binding.dependencyHash,
+        workflowUpdatedAt:
+          binding.workflowUpdatedAt ?? workflow.updated_at ?? "",
+        paramOverridesSnapshot: binding.paramOverrides,
+        onComplete: options.onComplete,
+        onFailed: options.onFailed,
+        onSettled: options.onSettled
+      },
+      false
+    );
+    return jobId;
+  } finally {
+    startingLayers.delete(binding.layerId);
+  }
+};
+
 interface UseGenerateLayerResult {
   generateLayer: () => Promise<void>;
   cancelLayerGeneration: () => Promise<void>;
@@ -457,88 +575,11 @@ export const useGenerateLayer = (
   const jobState = useSketchGenerationStore(
     (state) => state.layerJobs[binding.layerId]
   );
-  const registerJob = useSketchGenerationStore((state) => state.registerJob);
   const clearJob = useSketchGenerationStore((state) => state.clearJob);
 
   const generateLayer = useCallback(async () => {
-    if (binding.locked) {
-      throw new Error("Layer is locked");
-    }
-    if (!binding.workflowId) {
-      throw new Error("Layer is not bound to a workflow");
-    }
-
-    // Single-flight per layer: if a job is already queued or running for this
-    // layer, do nothing. Without this guard a rapid double-click registers a
-    // second job that overwrites the first in the store, orphans its
-    // subscription, and leaves the original job running on the server.
-    // `startingLayers` covers the async window before registerJob runs.
-    if (startingLayers.has(binding.layerId)) {
-      return;
-    }
-    const existingJob =
-      useSketchGenerationStore.getState().layerJobs[binding.layerId];
-    if (
-      existingJob &&
-      (existingJob.status === "queued" || existingJob.status === "running")
-    ) {
-      return;
-    }
-
-    // No pre-run error clear: each run uses a fresh job id, so its per-job error
-    // slice (keyed by workflowId, jobId, nodeId) starts empty and a stale
-    // failure can't carry over. A workflow-wide clear here would wipe other
-    // concurrent runs' errors, breaking run isolation.
-
-    startingLayers.add(binding.layerId);
-    try {
-      const workflow = await queryClient.fetchQuery({
-        queryKey: workflowQueryKey(binding.workflowId),
-        queryFn: () => fetchWorkflowById(binding.workflowId),
-        staleTime: 0
-      });
-
-      const graphNodes = workflow.graph?.nodes ?? [];
-      const graphEdges = workflow.graph?.edges ?? [];
-      const nodes = graphNodes.map((node: WorkflowGraphNode) =>
-        graphNodeToReactFlowNode(workflow, node)
-      );
-      const edges = graphEdges.map(graphEdgeToReactFlowEdge);
-
-      const runnerStore = getWorkflowRunnerStore(binding.workflowId);
-      // Use the id run() returns, not runnerStore.job_id: when the runner is
-      // already busy the run is queued under a fresh id while the store keeps
-      // pointing at the active run, so reading it back would subscribe this
-      // layer to the wrong job and strand its updates.
-      const jobId = await runnerStore
-        .getState()
-        .run(binding.paramOverrides ?? {}, workflow, nodes, edges, undefined, undefined, true);
-
-      if (!jobId) {
-        throw new Error("Workflow runner did not return a job id");
-      }
-
-      registerJob(binding.layerId, jobId, binding.workflowId);
-      await subscribeJob(
-        jobId,
-        {
-          layerId: binding.layerId,
-          documentId: binding.documentId,
-          workflowId: binding.workflowId,
-          selectedOutputNodeId: binding.selectedOutputNodeId,
-          dependencyHash: binding.dependencyHash,
-          workflowUpdatedAt:
-            binding.workflowUpdatedAt ?? workflow.updated_at ?? "",
-          paramOverridesSnapshot: binding.paramOverrides,
-          onComplete,
-          onFailed
-        },
-        false
-      );
-    } finally {
-      startingLayers.delete(binding.layerId);
-    }
-  }, [binding, onComplete, onFailed, registerJob]);
+    await startLayerGeneration(binding, { onComplete, onFailed });
+  }, [binding, onComplete, onFailed]);
 
   const cancelLayerGeneration = useCallback(async () => {
     if (!jobState?.jobId) {

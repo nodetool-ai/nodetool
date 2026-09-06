@@ -29,9 +29,6 @@ import {
   MAX_LIMIT
 } from "./entities.specs.js";
 import {
-  CREATE_ENTITY_SCHEMA,
-  DELETE_ENTITY_SCHEMA,
-  UPDATE_ENTITY_SCHEMA,
   createEntitySpec,
   deleteEntitySpec,
   updateEntitySpec
@@ -39,17 +36,6 @@ import {
 import { MIME_TO_EXT } from "../tools/asset-persist.js";
 import { userIdOf } from "../tools/mcp-tool-support.js";
 import { isRecord, isString } from "../utils/type-guards.js";
-
-export {
-  DEFAULT_LIMIT,
-  MAX_LIMIT,
-  LIST_ENTITIES_SCHEMA,
-  GET_ENTITY_SCHEMA,
-  APPLY_ENTITIES_SCHEMA,
-  CREATE_ENTITY_SCHEMA,
-  UPDATE_ENTITY_SCHEMA,
-  DELETE_ENTITY_SCHEMA
-} from "./entities.specs.js";
 
 /** The metadata key an entity's marker lives under, set by the library UI. */
 export const ENTITY_METADATA_KEY = "nodetool_entity";
@@ -332,6 +318,10 @@ const saveEntityAsset = async (
   if (!asset) {
     return { error: `Asset ${assetId} was not found.` };
   }
+  const readOnly = Asset.systemEntityRefusal(asset);
+  if (readOnly) {
+    return { error: readOnly };
+  }
   if (!asset.content_type.startsWith("image/")) {
     return {
       error: `${asset.name || asset.id} is a ${asset.content_type} asset; entities are image assets. Generate or upload an image first.`
@@ -419,6 +409,10 @@ const updateEntity: CapabilityExport = {
       const sourceEntity = sourceAsset ? entityFromAsset(sourceAsset) : null;
       if (!sourceEntity || !sourceAsset) {
         return { error: `Asset ${entityId} is not an entity — use create_entity to tag it.` };
+      }
+      const readOnly = Asset.systemEntityRefusal(sourceAsset);
+      if (readOnly) {
+        return { error: readOnly };
       }
       const targetAsset = await Asset.find(userId, targetId);
       if (!targetAsset) {
@@ -550,6 +544,10 @@ const deleteEntity: CapabilityExport = {
     const entity = entityFromAsset(asset);
     if (!entity) {
       return { error: `Entity ${entityId} was not found.` };
+    }
+    const readOnly = Asset.systemEntityRefusal(asset);
+    if (readOnly) {
+      return { error: readOnly };
     }
 
     const nextMetadata = { ...(asset.metadata ?? {}) } as Record<string, unknown>;

@@ -21,18 +21,15 @@
  */
 
 import { z } from "zod";
-import type { UnifiedCommandType } from "./messages.js";
 
 // ---------------------------------------------------------------------------
 // Command envelope
 // ---------------------------------------------------------------------------
 
 /**
- * Every literal of `UnifiedCommandType`, duplicated as a runtime tuple so
- * Zod can validate against it. Kept in exact sync with the type via the
- * compile-time assertion below — if the two ever drift, `typecheck` fails
- * here instead of silently accepting/rejecting the wrong commands at
- * runtime.
+ * Every command a client may send. The runtime tuple is the single
+ * declaration: `UnifiedCommandType` below is derived from it, so the type and
+ * the Zod enum cannot drift.
  */
 export const UNIFIED_COMMAND_TYPES = [
   "run_job",
@@ -61,16 +58,7 @@ export const UNIFIED_COMMAND_TYPES = [
   "transcribe_audio"
 ] as const;
 
-type _AssertCommandTypesCoverType =
-  (typeof UNIFIED_COMMAND_TYPES)[number] extends UnifiedCommandType
-    ? UnifiedCommandType extends (typeof UNIFIED_COMMAND_TYPES)[number]
-      ? true
-      : never
-    : never;
-// If this line fails to typecheck, `UNIFIED_COMMAND_TYPES` above has drifted
-// from `UnifiedCommandType` in messages.ts — add/remove the literal there too.
-const _commandTypesMatch: _AssertCommandTypesCoverType = true;
-void _commandTypesMatch;
+export type UnifiedCommandType = (typeof UNIFIED_COMMAND_TYPES)[number];
 
 export const unifiedCommandTypeSchema = z.enum(UNIFIED_COMMAND_TYPES);
 
@@ -199,11 +187,18 @@ export const stopDataSchema = z
 
 export const generateMediaDataSchema = z
   .object({
+    /**
+     * "image" = text-to-image; "image_edit" = image-to-image;
+     * "inpaint" = image-to-image confined to `mask_asset_id`;
+     * "video" = text-to-video; "audio" = text-to-speech.
+     */
     mode: z.enum(["image", "image_edit", "inpaint", "video", "audio"]).optional(),
     provider: z.string().optional(),
     model: z.string().optional(),
     prompt: z.string().optional(),
+    /** Required for "image_edit" and "inpaint". Bytes are loaded server-side. */
     source_asset_id: z.string().optional(),
+    /** The region to repaint, for "inpaint". */
     mask_asset_id: z.string().optional(),
     width: z.number().optional(),
     height: z.number().optional(),
@@ -211,12 +206,35 @@ export const generateMediaDataSchema = z
     resolution: z.string().optional(),
     strength: z.number().optional(),
     num_inference_steps: z.number().optional(),
+    /**
+     * Sampling seed. Two image requests alike but for this one are a set of
+     * variations rather than unrelated pictures; providers that take no seed
+     * ignore it.
+     */
+    seed: z.number().optional(),
+    /** Number of variations to request (1..8, clamped server-side). */
     variations: z.number().optional(),
+    /** TTS voice id, when mode === "audio". */
     voice: z.string().optional(),
+    /** Playback rate for TTS, when mode === "audio". */
     speed: z.number().optional(),
+    /** Requested audio container ("mp3", "wav", "flac", "ogg", "aac", "pcm"). */
     audio_format: z.string().optional()
   })
   .passthrough();
+
+/**
+ * Request payload for the `generate_media` RPC. Drives the sketch editor's
+ * direct-generation layers (text-to-image, image-to-image, inpaint) and the
+ * timeline's direct-gen clips (text-to-video, text-to-audio) — bypasses the
+ * chat path so no thread/Message row is created. Returns
+ * `{ asset_ids: string[] }` (`GenerateMediaResponse` in `messages.ts`).
+ *
+ * Derived from the schema rather than restated: the hand-written twin that
+ * used to live in `messages.ts` had missed `inpaint`, `mask_asset_id`,
+ * `aspect_ratio` and `resolution`, all four of which `handleCommand` reads.
+ */
+export type GenerateMediaRequest = z.infer<typeof generateMediaDataSchema>;
 
 export const transcribeAudioDataSchema = z
   .object({
@@ -248,11 +266,19 @@ export const transcribeAudioDataSchema = z
  * One message in a `generate_text` request. Role stays a bare string — the
  * runner maps anything it does not know onto "user" rather than rejecting the
  * frame, which is the loose-schema convention this file follows.
+ *
+ * Content is a string or the content blocks a chat turn uses, so a caller can
+ * hand the model a picture to look at: the storyboard's "Add your own style"
+ * sends reference images this way. The block shape stays loose here — the
+ * providers own what they accept.
  */
 const generateTextMessageSchema = z
   .object({
     role: z.string(),
-    content: z.string()
+    content: z.union([
+      z.string(),
+      z.array(z.object({ type: z.string() }).passthrough())
+    ])
   })
   .passthrough();
 
@@ -501,12 +527,26 @@ export const systemStatsMessageOutSchema = z
   })
   .passthrough();
 
+/** One per-merge-unit edit a document write was made with (`DocumentOp`). */
+export const documentOpOutSchema = z
+  .object({
+    tool: z.string(),
+    input: z.unknown()
+  })
+  .passthrough();
+
 export const resourceChangeMessageOutSchema = z
   .object({
     type: z.literal("resource_change"),
     event: z.enum(["created", "updated", "deleted"]),
     resource_type: z.string(),
-    resource: z.record(z.string(), z.unknown())
+    resource: z.record(z.string(), z.unknown()),
+    /**
+     * The ops the write was made with, when the writer attached them
+     * (`meta.ops` on the model write). A change without ops — another tab's
+     * autosave, a CLI restore — is a whole-document replacement to editors.
+     */
+    ops: z.array(documentOpOutSchema).optional()
   })
   .passthrough();
 

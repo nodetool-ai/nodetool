@@ -33,15 +33,6 @@ export { isGoogleWorkspaceEnabled } from "./google-workspace.js";
 export { isAutomaticStorageCleanupEnabled } from "./retention.js";
 
 export {
-  registerSetting,
-  getSettings,
-  clearSettings,
-  type SettingDefinition,
-  type SettingStatus
-} from "./settings.js";
-
-export {
-  registerSettingDefinition,
   settingCatalog,
   settingDefinition,
   type SettingCatalogEntry
@@ -55,12 +46,6 @@ export {
   type LoggingOptions,
   type Logger
 } from "./logging.js";
-
-export {
-  diagnoseEnvironment,
-  maskSecret,
-  type DiagnosticResult
-} from "./diagnostics.js";
 
 export { importOptionalModule } from "./optional-modules.js";
 

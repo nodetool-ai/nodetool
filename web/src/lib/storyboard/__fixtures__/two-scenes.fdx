@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<FinalDraft DocumentType="Script" Template="No" Version="5">
+  <Content>
+    <Paragraph Type="Scene Heading">
+      <Text>INT. SOPHIA'S FLAT - HALLWAY - EARLY MORNING</Text>
+    </Paragraph>
+    <Paragraph Type="Action">
+      <Text>Sophia pulls a coat off the hook, keys already in her teeth.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>SOPHIA</Text>
+    </Paragraph>
+    <Paragraph Type="Parenthetical">
+      <Text>(under her breath)</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Not today. Not again.</Text>
+    </Paragraph>
+    <Paragraph Type="Transition">
+      <Text>CUT TO:</Text>
+    </Paragraph>
+    <Paragraph Type="Scene Heading">
+      <Text>EXT. CANAL PATH - MINUTES LATER</Text>
+    </Paragraph>
+    <Paragraph Type="Action">
+      <Text>She runs the towpath. A barge slides the other way.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>BARGEMAN</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>You dropped something back there!</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Two streets, maybe three.</Text>
+    </Paragraph>
+  </Content>
+</FinalDraft>

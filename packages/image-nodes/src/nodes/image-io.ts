@@ -58,7 +58,7 @@ import {
   isNonEmptyString,
   isNumber,
   isObjectLike
-} from "../type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 export { base64ToBytes, bytesToBase64 };
 
 /** Strip a `data:...;base64,` prefix if present, returning the raw base64. */

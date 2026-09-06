@@ -4,6 +4,7 @@ import { ContextMenu } from "../ContextMenu";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import { MenuItem } from "@mui/material";
+import { asElement } from "../../../test-utils/doubles";
 
 describe("ContextMenu", () => {
   const renderWithTheme = (component: React.ReactElement) => {
@@ -50,7 +51,7 @@ describe("ContextMenu", () => {
     );
     const backdrop = document.querySelector(".MuiBackdrop-root");
     if (backdrop) {
-      (backdrop as HTMLElement).click();
+      asElement(backdrop).click();
       expect(handleClose).toHaveBeenCalled();
     }
   });

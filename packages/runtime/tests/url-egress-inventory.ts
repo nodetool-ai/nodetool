@@ -210,11 +210,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Model bytes → bytes (shared resolution)",
     "The shared resolveModelBytes both RenderToImage and the Blender nodes call; same policy."
   ),
-  guardedMedia(
-    "packages/reve-nodes/src/reve-base.ts",
-    "Reve reference-image upload",
-    "Reads the ref a workflow points at before sending it to Reve."
-  ),
+  {
+    ...guardedMedia(
+      "packages/reve-nodes/src/reve-base.ts",
+      "Reve reference-image upload",
+      "Reads the ref a workflow points at before sending it to Reve."
+    ),
+    // Reaches fetchExternalMedia through loadMediaRefBytes rather than calling
+    // it here: the hand-rolled resolver this replaced missed the asset_id-only
+    // ref and tested `if (ref.data)`, where a zero-length array shadows a good
+    // uri. media-ref-bytes.ts carries its own entry above.
+    guardedBy: ["loadMediaRefBytes"]
+  },
   guardedMedia(
     "packages/huggingface-nodes/src/huggingface-base.ts",
     "HF pipeline media input",
@@ -273,7 +280,10 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
       "provider-response",
       "download_url from a status body, plus a media-ref read on the way in."
     ),
-    guardedBy: ["safeFetch", "fetchExternalMedia"]
+    // Same delegation as reve-base: the inbound media read goes through
+    // loadMediaRefBytes, which is inventoried above; safeFetch still guards the
+    // download_url that comes out of the status body.
+    guardedBy: ["safeFetch", "loadMediaRefBytes"]
   },
   guardedSafeFetch(
     "packages/minimax-nodes/src/minimax-base.ts",
@@ -310,6 +320,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Topaz provider download",
     "provider-response",
     "finalUrl from the result body."
+  ),
+  guardedSafeFetch(
+    "packages/runtime/src/providers/atlascloud-transport.ts",
+    "AtlasCloud submit/poll/download, shared by the provider and the node pack",
+    "provider-response",
+    "Prediction output URLs; submit and poll address the constant API base."
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",
@@ -416,6 +432,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     policy: "private-integration",
     guardedBy: [],
     note: "A Comfy server is normally on localhost or the LAN — reaching it is the feature, so screening private addresses would refuse the ordinary case. The address is the node's `endpoint` property, so the graph author picks it, and the two runners are allowlisted on the cloud profile."
+  },
+  {
+    file: "packages/integration-nodes/src/nodes/comfy-sdk.ts",
+    owner: "Comfy API v2 transport (@comfyorg/sdk)",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope: "the user's COMFY_API_KEY as a Bearer header, same-origin only",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "@comfyorg/sdk opens the socket against the constant https://cloud.comfy.org, which COMFY_BASE_URL can repoint at a local comfy-api-proxy. The key is attached only to requests on the client's own origin: a job's urls.* link resolves against that origin, and a signed output URL elsewhere is fetched without it."
   },
   {
     file: "packages/agents/src/capabilities/web.ts",
@@ -574,12 +602,6 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "generativelanguage.googleapis.com, model id from a constant."
   ),
   fixedHost(
-    "packages/atlascloud-nodes/src/atlascloud-base.ts",
-    "AtlasCloud API",
-    "ATLASCLOUD_API_KEY",
-    "AtlasCloud base URL from a constant."
-  ),
-  fixedHost(
     "packages/elevenlabs-nodes/src/nodes/text-to-speech.ts",
     "ElevenLabs TTS",
     "ELEVENLABS_API_KEY",
@@ -662,12 +684,6 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Google API client",
     "the user's Google OAuth token",
     "googleapis.com from constants."
-  ),
-  fixedHost(
-    "packages/runtime/src/providers/atlascloud-provider.ts",
-    "AtlasCloud provider",
-    "ATLASCLOUD_API_KEY",
-    "Constant base URL."
   ),
   fixedHost(
     "packages/runtime/src/providers/codex-provider.ts",

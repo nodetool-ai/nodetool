@@ -99,10 +99,11 @@ const evalOptions = (
 });
 
 describe("app-build eval cases", () => {
-  it("ships two deterministic cases and eight prompt cases", () => {
+  it("ships three keyless cases and eight prompt cases", () => {
     expect(APP_BUILD_DETERMINISTIC_CASE_IDS).toEqual([
       "greeting-card",
-      "draft-then-publish"
+      "draft-then-publish",
+      "workflow-plan-to-graph"
     ]);
     const prompts = APP_BUILD_EVAL_CASES.filter((c) => c.prompt !== undefined);
     expect(prompts.length).toBeGreaterThanOrEqual(8);
@@ -118,12 +119,14 @@ describe("app-build eval cases", () => {
     }
   });
 
-  it("declares a prompt or a deterministic build, never both", () => {
+  it("declares exactly one of a prompt, a scripted build, or a plan", () => {
     for (const evalCase of APP_BUILD_EVAL_CASES) {
-      expect(
-        (evalCase.prompt !== undefined) !==
-          (evalCase.deterministic !== undefined)
-      ).toBe(true);
+      const declared = [
+        evalCase.prompt,
+        evalCase.deterministic,
+        evalCase.planToGraph
+      ].filter((value) => value !== undefined);
+      expect(declared).toHaveLength(1);
     }
   });
 

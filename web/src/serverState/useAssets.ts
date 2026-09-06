@@ -32,7 +32,7 @@ type AssetUpdate = {
   duration?: number;
 };
 
-export const useAssets = (_initialFolderId: string | null = null) => {
+export const useAssets = () => {
   const gridStore = useAssetGridStoreApi();
   const setCurrentFolderId = useAssetGridStore(
     (state) => state.setCurrentFolderId

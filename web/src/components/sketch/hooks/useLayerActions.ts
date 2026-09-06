@@ -62,6 +62,8 @@ export interface UseLayerActionsReturn {
   handleFlipVertical: () => void;
   handleRotate180: () => void;
   handleMergeDown: () => void;
+  /** Merge a named layer down; returns the surviving layer id, or null. */
+  handleMergeLayerDown: (upperLayerId: string) => string | null;
   handleFlattenVisible: () => void;
   handleAddGroup: (name?: string) => void;
   handleToggleGroupCollapsed: (groupId: string) => void;
@@ -346,38 +348,57 @@ export function useLayerActions({
     canvasRef
   ]);
 
+  // Merge is an explicit destructive bake flow: runtime rebases both layers
+  // into document-space pixels, then the store drops the upper layer and keeps
+  // the lower layer at identity transform/full document bounds. Running only
+  // the store half discards every pixel the upper layer carried.
+  const mergeLayerDownPair = useCallback(
+    (upperLayerId: string, lowerLayerId: string) => {
+      const mergedData = canvasRef.current?.mergeLayerDown(
+        upperLayerId,
+        lowerLayerId
+      );
+      mergeLayerDown(upperLayerId);
+      if (mergedData) {
+        updateLayerData(lowerLayerId, mergedData);
+      }
+    },
+    [canvasRef, mergeLayerDown, updateLayerData]
+  );
+
+  /**
+   * Merge a named layer into the sibling below it and return the survivor's id,
+   * or null when the layer has no legal merge target. Reads the live store so
+   * an agent call landing between renders does not merge against a stale stack.
+   */
+  const handleMergeLayerDown = useCallback(
+    (upperLayerId: string): string | null => {
+      if (!canvasRef.current) {
+        return null;
+      }
+      const layers = useSketchStore.getState().document.layers;
+      // Sibling-aware target: never merges into a parent group or across
+      // parents, never targets a locked layer. Mirrors the panel's
+      // `canMergeDown` so the disabled state and the action stay in sync.
+      const lowerIdx = findMergeDownTargetIndex(layers, upperLayerId);
+      if (lowerIdx === -1) {
+        return null;
+      }
+      const lower = layers[lowerIdx];
+      pushHistory("merge down");
+      mergeLayerDownPair(upperLayerId, lower.id);
+      return lower.id;
+    },
+    [canvasRef, pushHistory, mergeLayerDownPair]
+  );
+
   const handleMergeDown = useCallback(() => {
-    const layers = document.layers;
     const activeId = document.activeLayerId;
-    if (!activeId || !canvasRef.current) {
+    if (!activeId) {
       return;
     }
-    // Sibling-aware target: never merges into a parent group or across parents,
-    // never targets a locked layer. Mirrors the panel's `canMergeDown` so the
-    // disabled state and the action stay in sync.
-    const lowerIdx = findMergeDownTargetIndex(layers, activeId);
-    if (lowerIdx === -1) {
-      return;
-    }
-    const upper = layers[lowerIdx + 1];
-    const lower = layers[lowerIdx];
-    // Merge is an explicit destructive bake flow: runtime rebases both layers
-    // into document-space pixels, then the store drops the upper layer and keeps
-    // the lower layer at identity transform/full document bounds.
-    pushHistory("merge down");
-    const mergedData = canvasRef.current.mergeLayerDown(upper.id, lower.id);
-    mergeLayerDown(upper.id);
-    if (mergedData) {
-      updateLayerData(lower.id, mergedData);
-    }
-  }, [
-    document.layers,
-    document.activeLayerId,
-    pushHistory,
-    mergeLayerDown,
-    updateLayerData,
-    canvasRef
-  ]);
+    handleMergeLayerDown(activeId);
+  }, [document.activeLayerId, handleMergeLayerDown]);
 
   const handleFlattenVisible = useCallback(() => {
     if (!canvasRef.current) {
@@ -487,16 +508,9 @@ export function useLayerActions({
     pushHistory("merge selected");
 
     for (const { upperLayerId, lowerLayerId } of plan.mergePairs) {
-      const mergedData = canvasRef.current.mergeLayerDown(
-        upperLayerId,
-        lowerLayerId
-      );
-      mergeLayerDown(upperLayerId);
-      if (mergedData) {
-        updateLayerData(lowerLayerId, mergedData);
-      }
+      mergeLayerDownPair(upperLayerId, lowerLayerId);
     }
-  }, [canvasRef, document.layers, mergeLayerDown, pushHistory, updateLayerData]);
+  }, [canvasRef, document.layers, mergeLayerDownPair, pushHistory]);
 
   return {
     handleAddLayer,
@@ -516,6 +530,7 @@ export function useLayerActions({
     handleFlipVertical,
     handleRotate180,
     handleMergeDown,
+    handleMergeLayerDown,
     handleFlattenVisible,
     handleAddGroup,
     handleToggleGroupCollapsed,

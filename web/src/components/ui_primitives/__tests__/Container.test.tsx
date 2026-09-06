@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { Container } from "../Container";
 import mockTheme from "../../../__mocks__/themeMock";
+import { firstElement } from "../../../test-utils/doubles";
 
 describe("Container", () => {
   const renderContainer = (props = {}) => {
@@ -22,7 +23,7 @@ describe("Container", () => {
 
     it("renders with normal padding by default", () => {
       const { container } = renderContainer();
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ padding: "16px" });
     });
 
@@ -35,37 +36,37 @@ describe("Container", () => {
   describe("Padding Variants", () => {
     it("renders with none padding", () => {
       const { container } = renderContainer({ padding: "none" });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ padding: "0px" });
     });
 
     it("renders with compact padding", () => {
       const { container } = renderContainer({ padding: "compact" });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ padding: "8px" });
     });
 
     it("renders with normal padding", () => {
       const { container } = renderContainer({ padding: "normal" });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ padding: "16px" });
     });
 
     it("renders with comfortable padding", () => {
       const { container } = renderContainer({ padding: "comfortable" });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ padding: "24px" });
     });
 
     it("renders with spacious padding", () => {
       const { container } = renderContainer({ padding: "spacious" });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ padding: "32px" });
     });
 
     it("renders with custom number padding", () => {
       const { container } = renderContainer({ padding: 3 });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ padding: "24px" });
     });
   });
@@ -73,13 +74,13 @@ describe("Container", () => {
   describe("Scrollable", () => {
     it("does not set overflow when scrollable is false", () => {
       const { container } = renderContainer({ scrollable: false });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).not.toHaveStyle({ overflow: "auto" });
     });
 
     it("sets overflow auto when scrollable is true", () => {
       const { container } = renderContainer({ scrollable: true });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ overflow: "auto" });
     });
   });
@@ -87,19 +88,19 @@ describe("Container", () => {
   describe("Max Width", () => {
     it("does not set maxWidth when not provided", () => {
       const { container } = renderContainer();
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box.style.maxWidth).toBe("");
     });
 
     it("sets maxWidth with string value", () => {
       const { container } = renderContainer({ maxWidth: "800px" });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ maxWidth: "800px" });
     });
 
     it("sets maxWidth with number value", () => {
       const { container } = renderContainer({ maxWidth: 800 });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ maxWidth: "800px" });
     });
   });
@@ -107,13 +108,13 @@ describe("Container", () => {
   describe("Centered", () => {
     it("does not center when centered is false", () => {
       const { container } = renderContainer({ centered: false });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).not.toHaveStyle({ margin: "0 auto" });
     });
 
     it("centers horizontally when centered is true", () => {
       const { container } = renderContainer({ centered: true });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ margin: "0 auto" });
     });
   });
@@ -123,7 +124,7 @@ describe("Container", () => {
       const { container } = renderContainer({
         sx: { backgroundColor: "red" }
       });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       // Check that the component renders - the sx prop is passed through to Box
       // Note: MUI's sx prop uses emotion for styling, so we verify the element exists
       expect(box).toBeInTheDocument();
@@ -135,7 +136,7 @@ describe("Container", () => {
         padding: "spacious",
         sx: { backgroundColor: "red" }
       });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ padding: "32px" });
       // Check that component renders correctly with sx prop
       expect(box).toBeInTheDocument();
@@ -152,7 +153,7 @@ describe("Container", () => {
       const { container } = renderContainer({
         className: "custom-class"
       });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveClass("custom-class");
     });
   });
@@ -163,7 +164,7 @@ describe("Container", () => {
         scrollable: true,
         maxWidth: 600
       });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ overflow: "auto" });
       expect(box).toHaveStyle({ maxWidth: "600px" });
     });
@@ -173,7 +174,7 @@ describe("Container", () => {
         centered: true,
         maxWidth: 800
       });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ margin: "0 auto" });
       expect(box).toHaveStyle({ maxWidth: "800px" });
     });
@@ -185,7 +186,7 @@ describe("Container", () => {
         maxWidth: 1000,
         centered: true
       });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveStyle({ padding: "24px" });
       expect(box).toHaveStyle({ overflow: "auto" });
       expect(box).toHaveStyle({ maxWidth: "1000px" });
@@ -196,7 +197,7 @@ describe("Container", () => {
   describe("Edge Cases", () => {
     it("renders with empty children", () => {
       const { container } = renderContainer({ children: undefined });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toBeInTheDocument();
     });
 
@@ -237,7 +238,7 @@ describe("Container", () => {
         role: "region",
         "aria-label": "Content region"
       });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       expect(box).toHaveAttribute("role", "region");
       expect(box).toHaveAttribute("aria-label", "Content region");
     });
@@ -246,7 +247,7 @@ describe("Container", () => {
   describe("Theme Integration", () => {
     it("uses theme spacing for padding calculation", () => {
       const { container } = renderContainer({ padding: "normal" });
-      const box = container.firstChild as HTMLElement;
+      const box = firstElement(container);
       // theme.spacing(2) should return "16px" (2 * 8px)
       expect(box).toHaveStyle({ padding: "16px" });
     });

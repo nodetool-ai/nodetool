@@ -246,6 +246,13 @@ FrontendToolRegistry.register({
     height: z.number().optional(),
     aspectRatio: z.string().optional(),
     resolution: z.string().optional(),
+    seed: z
+      .number()
+      .int()
+      .optional()
+      .describe(
+        "Sampling seed. Call once per variation with the same prompt, size and model and a different seed to get a set to choose from."
+      ),
     autoGenerate: z.boolean().optional()
   }),
   async execute({ sketch_id, ...args }) {
@@ -255,6 +262,45 @@ FrontendToolRegistry.register({
       ...result,
       url: docUrl("sketch", sketch_id, { key: "layer", value: result.layer.id })
     };
+  }
+});
+
+const setupStageEnum = z.enum(["idea", "useCase", "review", "look", "done"]);
+
+FrontendToolRegistry.register({
+  name: "ui_sketch_set_setup",
+  description:
+    "Write the guided image flow's state onto an image document: the `brief` (what the picture should be), the `use_case` (product, portrait, key-art, social, logo, concept, texture), how many `variations` to render, and the `stage` the flow resumes at. Nothing is rendered here — this is the step-by-step state the Image flow reads, and a document whose stage is `done` opens straight in the editor. Omit a field to leave it unchanged.",
+  parameters: z.object({
+    sketch_id: sketchIdParam,
+    brief: z.string().optional(),
+    use_case: z
+      .string()
+      .optional()
+      .describe(
+        "One of: product, portrait, key-art, social, logo, concept, texture."
+      ),
+    variations: z.number().int().min(1).max(8).optional(),
+    stage: setupStageEnum
+      .optional()
+      .describe(
+        "Where the flow resumes: idea, useCase, review, look, or done (the editor)."
+      )
+  }),
+  async execute({ sketch_id, ...patch }) {
+    const setup = getSketchAgentHandler(sketch_id).setSetup(patch);
+    return { ok: true, setup, url: docUrl("sketch", sketch_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_sketch_refine_brief",
+  description:
+    "Expand the image document's brief into the five fields an image model needs — subject, composition, lighting, style words, and what to leave out — and leave the flow at its review step. This creates no layer and starts no generation: it is the cheap text pass the creator edits before anything is rendered. Write the brief with ui_sketch_set_setup first.",
+  parameters: z.object({ sketch_id: sketchIdParam }),
+  async execute({ sketch_id }) {
+    const setup = await getSketchAgentHandler(sketch_id).refineBrief();
+    return { ok: true, setup, url: docUrl("sketch", sketch_id) };
   }
 });
 

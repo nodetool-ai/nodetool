@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/godot-templates",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Godot 4.3 game project templates with asset-slot manifests, plus a headless Godot runner for import, script check, and smoke tests",
   "type": "module",
   "engines": {

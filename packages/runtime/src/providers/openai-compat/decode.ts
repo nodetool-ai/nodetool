@@ -9,7 +9,7 @@
  * test can reach without a network call.
  */
 
-import { isObjectLike } from "../../type-predicates.js";
+import { isObjectLike } from "@nodetool-ai/protocol";
 import type {
   ChatCompletionResponse,
   ChatCompletionUsage

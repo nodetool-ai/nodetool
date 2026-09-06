@@ -39,21 +39,13 @@ import {
   testCodeSpec,
   MAX_TIMEOUT_SECONDS,
   DEFAULT_TIMEOUT_SECONDS,
-  MAX_TEST_CASES,
-  CODE_FIELD
+  MAX_TEST_CASES
 } from "./code.specs.js";
 import {
   isNonBlankString,
   isObjectLike,
   isRecord
 } from "../utils/type-guards.js";
-
-export {
-  MAX_TIMEOUT_SECONDS,
-  DEFAULT_TIMEOUT_SECONDS,
-  MAX_TEST_CASES,
-  CODE_FIELD
-} from "./code.specs.js";
 
 export type {
   EmittedEntry,

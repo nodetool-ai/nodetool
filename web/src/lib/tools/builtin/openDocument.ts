@@ -96,7 +96,7 @@ const isReady = {
   workflow: (id, ctx) => ctx.getState().getNodeStore(id) !== undefined,
   timeline: (id) =>
     hasTimelineAgentHandler(id) &&
-    getTimelineAgentHandler(id).getSequenceId() === id,
+    getTimelineAgentHandler(id).getSnapshot().sequenceId === id,
   storyboard: (id) =>
     hasStoryboardAgentHandler(id) &&
     getStoryboardAgentHandler(id).getSnapshot().boardId === id,

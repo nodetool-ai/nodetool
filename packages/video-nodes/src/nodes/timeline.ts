@@ -74,7 +74,7 @@ import {
   isNumber,
   isPositiveNumber,
   isString
-} from "../type-predicates.js";
+} from "@nodetool-ai/node-sdk";
 
 interface TimelineRefLike {
   type?: string;

@@ -39,10 +39,15 @@ import type {
   TrackChromaKeyEffect
 } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
+import {
+  useBatchedGesture,
+  useWheelBatch
+} from "../../../hooks/timeline/useBatchedGesture";
 import {
   DEVICE_WIDTHS,
   EFFECT_LABELS,
+  KNOBS,
+  type Knob,
   AUDIO_EFFECT_TYPES,
   VIDEO_EFFECT_TYPES
 } from "./trackEffectsConstants";
@@ -221,64 +226,21 @@ interface ParamRowProps {
 const ParamRow: React.FC<ParamRowProps> = memo(
   ({ label, value, min, max, step, unit, format, onChange, disabled }) => {
     const theme = useTheme();
-    const history = useTimelineHistoryBatch();
-
-    // Same rAF-coalesced, history-batched gesture as InspectorSliderRow: at
-    // most one store write per animation frame while dragging, one undo
-    // entry per gesture (or per key-repeat press) instead of one per tick.
-    const onChangeRef = useRef(onChange);
-    onChangeRef.current = onChange;
-    const gestureActiveRef = useRef(false);
-    const pendingValueRef = useRef<number | null>(null);
-    const rafIdRef = useRef<number | null>(null);
-
-    const flush = useCallback(() => {
-      rafIdRef.current = null;
-      if (pendingValueRef.current === null) return;
-      const next = pendingValueRef.current;
-      pendingValueRef.current = null;
-      onChangeRef.current(next);
-      history.mark();
-    }, [history]);
+    const gesture = useBatchedGesture(onChange);
 
     const handleChange = useCallback(
       (_e: Event, v: number | number[]) => {
-        const next = Array.isArray(v) ? v[0] : v;
-        if (!gestureActiveRef.current) {
-          gestureActiveRef.current = true;
-          history.begin();
-        }
-        pendingValueRef.current = next;
-        if (rafIdRef.current === null) {
-          rafIdRef.current = requestAnimationFrame(flush);
-        }
+        gesture.schedule(Array.isArray(v) ? v[0] : v);
       },
-      [history, flush]
+      [gesture]
     );
 
     const handleChangeCommitted = useCallback(
       (_e: React.SyntheticEvent | Event, v: number | number[]) => {
-        const next = Array.isArray(v) ? v[0] : v;
-        if (rafIdRef.current !== null) {
-          cancelAnimationFrame(rafIdRef.current);
-          rafIdRef.current = null;
-        }
-        pendingValueRef.current = null;
-        onChangeRef.current(next);
-        history.mark();
-        history.end();
-        gestureActiveRef.current = false;
+        gesture.commit(Array.isArray(v) ? v[0] : v);
       },
-      [history]
+      [gesture]
     );
-
-    useEffect(() => {
-      return () => {
-        if (rafIdRef.current !== null) {
-          cancelAnimationFrame(rafIdRef.current);
-        }
-      };
-    }, []);
 
     // Dragging the slider re-renders this row once per animation frame.
     const labelCss = useMemo(() => paramLabelStyles(theme), [theme]);
@@ -308,28 +270,50 @@ const ParamRow: React.FC<ParamRowProps> = memo(
 );
 ParamRow.displayName = "ParamRow";
 
+interface KnobListProps<E extends TrackEffect> {
+  effect: E;
+  knobs: readonly Knob<E>[];
+  onPatch: (patch: Partial<E>) => void;
+  disabled: boolean;
+}
+
+/** The slider rows one effect type declares in {@link KNOBS}, in rack order. */
+const KnobList = <E extends TrackEffect>({
+  effect,
+  knobs,
+  onPatch,
+  disabled
+}: KnobListProps<E>) => (
+  <>
+    {knobs.map((knob) => (
+      <ParamRow
+        key={String(knob.key)}
+        label={knob.label}
+        value={effect[knob.key] as number}
+        min={knob.min}
+        max={knob.max}
+        step={knob.step}
+        unit={knob.unit}
+        format={
+          knob.digits === undefined
+            ? undefined
+            : (v) => v.toFixed(knob.digits)
+        }
+        onChange={(v) => onPatch({ [knob.key]: v } as Partial<E>)}
+        disabled={disabled}
+      />
+    ))}
+  </>
+);
+
 interface EffectEditorProps<E extends TrackEffect> {
   effect: E;
   onPatch: (patch: Partial<E>) => void;
   disabled: boolean;
 }
 
-const GainEditor: React.FC<EffectEditorProps<TrackGainEffect>> = ({
-  effect,
-  onPatch,
-  disabled
-}) => (
-  <ParamRow
-    label="Gain"
-    value={effect.gainDb}
-    min={-24}
-    max={24}
-    step={0.1}
-    unit="dB"
-    format={(v) => v.toFixed(1)}
-    onChange={(v) => onPatch({ gainDb: v })}
-    disabled={disabled}
-  />
+const GainEditor: React.FC<EffectEditorProps<TrackGainEffect>> = (props) => (
+  <KnobList {...props} knobs={KNOBS.gain} />
 );
 
 // 3-Band EQ visualizer (Logic-style)
@@ -496,9 +480,7 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [width, setWidth] = useState(600);
   const [dragBand, setDragBand] = useState<Band | null>(null);
-  const history = useTimelineHistoryBatch();
-  const onPatchRef = useRef(onPatch);
-  onPatchRef.current = onPatch;
+  const gesture = useBatchedGesture<Partial<TrackEq3Effect>>(onPatch);
 
   // Track SVG width to compute layout in user space.
   React.useEffect(() => {
@@ -557,49 +539,17 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
     );
   }, [curvePath, width, height]);
 
-  // Drag gestures are rAF-coalesced (one onPatch per frame) and wrapped in a
-  // single undo entry: begin() on pointerdown, mark() per flushed patch,
-  // end() on pointerup/pointercancel (flushing any not-yet-flushed patch
-  // synchronously first so the final position is never dropped).
-  const pendingPatchRef = useRef<Partial<TrackEq3Effect> | null>(null);
-  const dragRafIdRef = useRef<number | null>(null);
-
-  const flushPatch = useCallback(() => {
-    dragRafIdRef.current = null;
-    if (!pendingPatchRef.current) return;
-    const patch = pendingPatchRef.current;
-    pendingPatchRef.current = null;
-    onPatchRef.current(patch);
-    history.mark();
-  }, [history]);
-
-  const schedulePatch = useCallback(
-    (patch: Partial<TrackEq3Effect>) => {
-      pendingPatchRef.current = patch;
-      if (dragRafIdRef.current === null) {
-        dragRafIdRef.current = requestAnimationFrame(flushPatch);
-      }
-    },
-    [flushPatch]
-  );
-
-  useEffect(() => {
-    return () => {
-      if (dragRafIdRef.current !== null) {
-        cancelAnimationFrame(dragRafIdRef.current);
-      }
-    };
-  }, []);
+  const schedulePatch = gesture.schedule;
 
   const handlePointerDown = useCallback(
     (band: Band) => (e: React.PointerEvent<SVGElement>) => {
       if (disabled) return;
       (e.target as Element).setPointerCapture(e.pointerId);
       setDragBand(band);
-      history.begin();
+      gesture.begin();
       e.stopPropagation();
     },
-    [disabled, history]
+    [disabled, gesture]
   );
 
   const handlePointerMove = useCallback(
@@ -632,72 +582,24 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
         } catch {
           // ignore — capture may have already ended
         }
-        if (dragRafIdRef.current !== null) {
-          cancelAnimationFrame(dragRafIdRef.current);
-          dragRafIdRef.current = null;
-        }
-        if (pendingPatchRef.current) {
-          const patch = pendingPatchRef.current;
-          pendingPatchRef.current = null;
-          onPatchRef.current(patch);
-          history.mark();
-        }
-        history.end();
+        gesture.commit();
       }
       setDragBand(null);
     },
-    [dragBand, history]
+    [dragBand, gesture]
   );
 
-  // Scroll-wheel on mid handle adjusts Q. Attached as a native non-passive
-  // listener: React's onWheel is passive, so preventDefault() there can't
-  // stop the page from scrolling. `midQRef`/`disabledRef` keep the listener
-  // itself stable (attached once) instead of re-attaching on every value
-  // change; a burst of wheel ticks is batched into one undo entry, closed
-  // after 300 ms of inactivity.
+  // Scroll-wheel on the mid handle adjusts Q.
   const midHandleRef = useRef<SVGCircleElement | null>(null);
-  const midQRef = useRef(effect.midQ);
-  midQRef.current = effect.midQ;
-  const disabledRef = useRef(disabled);
-  disabledRef.current = disabled;
-  const wheelActiveRef = useRef(false);
-  const wheelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const el = midHandleRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      if (disabledRef.current) return;
-      e.preventDefault();
-      if (!wheelActiveRef.current) {
-        wheelActiveRef.current = true;
-        history.begin();
-      }
-      const next = clamp(midQRef.current * (e.deltaY > 0 ? 0.9 : 1.1), 0.1, 10);
-      onPatchRef.current({ midQ: parseFloat(next.toFixed(2)) });
-      history.mark();
-      if (wheelTimeoutRef.current !== null) {
-        clearTimeout(wheelTimeoutRef.current);
-      }
-      wheelTimeoutRef.current = setTimeout(() => {
-        wheelTimeoutRef.current = null;
-        wheelActiveRef.current = false;
-        history.end();
-      }, 300);
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => {
-      el.removeEventListener("wheel", onWheel);
-      if (wheelTimeoutRef.current !== null) {
-        clearTimeout(wheelTimeoutRef.current);
-        wheelTimeoutRef.current = null;
-        if (wheelActiveRef.current) {
-          wheelActiveRef.current = false;
-          history.end();
-        }
-      }
-    };
-  }, [history]);
+  const midQ = effect.midQ;
+  const onQTick = useCallback(
+    (direction: 1 | -1) => {
+      const next = clamp(midQ * (direction < 0 ? 0.9 : 1.1), 0.1, 10);
+      onPatch({ midQ: parseFloat(next.toFixed(2)) });
+    },
+    [midQ, onPatch]
+  );
+  useWheelBatch(midHandleRef, onQTick, disabled);
 
   // Static grid: log decade lines + dB lines.
   const gridFreqs = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
@@ -935,24 +837,10 @@ const FilterEditor: React.FC<EffectEditorProps<TrackFilterEffect>> = ({
       size="small"
       disabled={disabled}
     />
-    <ParamRow
-      label="Frequency"
-      value={effect.frequency}
-      min={20}
-      max={20000}
-      step={10}
-      unit="Hz"
-      onChange={(v) => onPatch({ frequency: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Q"
-      value={effect.q}
-      min={0.1}
-      max={20}
-      step={0.1}
-      format={(v) => v.toFixed(1)}
-      onChange={(v) => onPatch({ q: v })}
+    <KnobList
+      effect={effect}
+      knobs={KNOBS.filter}
+      onPatch={onPatch}
       disabled={disabled}
     />
   </FlexColumn>
@@ -1060,9 +948,7 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [drag, setDrag] = useState<CompDrag>(null);
   const size = COMP_GRAPH_SIZE;
-  const history = useTimelineHistoryBatch();
-  const onPatchRef = useRef(onPatch);
-  onPatchRef.current = onPatch;
+  const gesture = useBatchedGesture<Partial<TrackCompressorEffect>>(onPatch);
 
   const curvePath = useMemo(() => {
     const samples = 80;
@@ -1118,45 +1004,17 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
 
   // Drag gestures are rAF-coalesced (one onPatch per frame) and wrapped in a
   // single undo entry, matching Eq3Curve's band handles.
-  const pendingPatchRef = useRef<Partial<TrackCompressorEffect> | null>(null);
-  const dragRafIdRef = useRef<number | null>(null);
-
-  const flushPatch = useCallback(() => {
-    dragRafIdRef.current = null;
-    if (!pendingPatchRef.current) return;
-    const patch = pendingPatchRef.current;
-    pendingPatchRef.current = null;
-    onPatchRef.current(patch);
-    history.mark();
-  }, [history]);
-
-  const schedulePatch = useCallback(
-    (patch: Partial<TrackCompressorEffect>) => {
-      pendingPatchRef.current = patch;
-      if (dragRafIdRef.current === null) {
-        dragRafIdRef.current = requestAnimationFrame(flushPatch);
-      }
-    },
-    [flushPatch]
-  );
-
-  useEffect(() => {
-    return () => {
-      if (dragRafIdRef.current !== null) {
-        cancelAnimationFrame(dragRafIdRef.current);
-      }
-    };
-  }, []);
+  const schedulePatch = gesture.schedule;
 
   const onDown = useCallback(
     (which: CompDrag) => (e: React.PointerEvent<SVGElement>) => {
       if (disabled) return;
       (e.target as Element).setPointerCapture(e.pointerId);
       setDrag(which);
-      history.begin();
+      gesture.begin();
       e.stopPropagation();
     },
-    [disabled, history]
+    [disabled, gesture]
   );
 
   const onMove = useCallback(
@@ -1204,71 +1062,24 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
         } catch {
           // ignore
         }
-        if (dragRafIdRef.current !== null) {
-          cancelAnimationFrame(dragRafIdRef.current);
-          dragRafIdRef.current = null;
-        }
-        if (pendingPatchRef.current) {
-          const patch = pendingPatchRef.current;
-          pendingPatchRef.current = null;
-          onPatchRef.current(patch);
-          history.mark();
-        }
-        history.end();
+        gesture.commit();
       }
       setDrag(null);
     },
-    [drag, history]
+    [drag, gesture]
   );
 
-  // Threshold-line wheel changes knee width. Native non-passive listener so
-  // preventDefault() actually blocks scrolling (React's onWheel is passive).
-  // `kneeDbRef`/`disabledRef` keep the listener itself stable instead of
-  // re-attaching on every value change; a wheel burst batches into one undo
-  // entry, closed after 300 ms of inactivity.
+  // Wheel on the threshold line changes knee width.
   const threshHandleRef = useRef<SVGCircleElement | null>(null);
-  const kneeDbRef = useRef(effect.kneeDb);
-  kneeDbRef.current = effect.kneeDb;
-  const disabledRef = useRef(disabled);
-  disabledRef.current = disabled;
-  const wheelActiveRef = useRef(false);
-  const wheelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const el = threshHandleRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      if (disabledRef.current) return;
-      e.preventDefault();
-      if (!wheelActiveRef.current) {
-        wheelActiveRef.current = true;
-        history.begin();
-      }
-      const next = clamp(kneeDbRef.current + (e.deltaY > 0 ? -1 : 1), 0, 40);
-      onPatchRef.current({ kneeDb: parseFloat(next.toFixed(1)) });
-      history.mark();
-      if (wheelTimeoutRef.current !== null) {
-        clearTimeout(wheelTimeoutRef.current);
-      }
-      wheelTimeoutRef.current = setTimeout(() => {
-        wheelTimeoutRef.current = null;
-        wheelActiveRef.current = false;
-        history.end();
-      }, 300);
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => {
-      el.removeEventListener("wheel", onWheel);
-      if (wheelTimeoutRef.current !== null) {
-        clearTimeout(wheelTimeoutRef.current);
-        wheelTimeoutRef.current = null;
-        if (wheelActiveRef.current) {
-          wheelActiveRef.current = false;
-          history.end();
-        }
-      }
-    };
-  }, [history]);
+  const kneeDb = effect.kneeDb;
+  const onKneeTick = useCallback(
+    (direction: 1 | -1) => {
+      const next = clamp(kneeDb + direction, 0, 40);
+      onPatch({ kneeDb: parseFloat(next.toFixed(1)) });
+    },
+    [kneeDb, onPatch]
+  );
+  useWheelBatch(threshHandleRef, onKneeTick, disabled);
 
   const gridDbs = [-48, -36, -24, -12];
   const gridColor = theme.vars.palette.divider;
@@ -1490,35 +1301,10 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
         </div>
       </FlexRow>
       <FlexColumn gap={0.5}>
-        <ParamRow
-          label="Attack"
-          value={effect.attackMs}
-          min={0}
-          max={500}
-          step={1}
-          unit="ms"
-          onChange={(v) => onPatch({ attackMs: v })}
-          disabled={disabled}
-        />
-        <ParamRow
-          label="Release"
-          value={effect.releaseMs}
-          min={0}
-          max={2000}
-          step={1}
-          unit="ms"
-          onChange={(v) => onPatch({ releaseMs: v })}
-          disabled={disabled}
-        />
-        <ParamRow
-          label="Knee"
-          value={effect.kneeDb}
-          min={0}
-          max={40}
-          step={0.5}
-          unit="dB"
-          format={(v) => v.toFixed(1)}
-          onChange={(v) => onPatch({ kneeDb: v })}
+        <KnobList
+          effect={effect}
+          knobs={KNOBS.compressor}
+          onPatch={onPatch}
           disabled={disabled}
         />
       </FlexColumn>
@@ -1533,88 +1319,9 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
 
 const ColorCorrectionEditor: React.FC<
   EffectEditorProps<TrackColorCorrectionEffect>
-> = ({ effect, onPatch, disabled }) => (
+> = (props) => (
   <FlexColumn gap={0.5}>
-    <ParamRow
-      label="Brightness"
-      value={effect.brightness}
-      min={-1}
-      max={1}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ brightness: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Contrast"
-      value={effect.contrast}
-      min={0}
-      max={4}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ contrast: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Saturation"
-      value={effect.saturation}
-      min={0}
-      max={4}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ saturation: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Hue"
-      value={effect.hue}
-      min={-180}
-      max={180}
-      step={1}
-      unit="°"
-      onChange={(v) => onPatch({ hue: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Temp"
-      value={effect.temperature}
-      min={-1}
-      max={1}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ temperature: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Tint"
-      value={effect.tint}
-      min={-1}
-      max={1}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ tint: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Shadows"
-      value={effect.shadows}
-      min={-1}
-      max={1}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ shadows: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Highlights"
-      value={effect.highlights}
-      min={-1}
-      max={1}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ highlights: v })}
-      disabled={disabled}
-    />
+    <KnobList {...props} knobs={KNOBS.colorCorrection} />
   </FlexColumn>
 );
 
@@ -1647,45 +1354,21 @@ const VideoBlurEditor: React.FC<
           }}
         />
       </div>
-      <ParamRow
-        label="Radius"
-        value={effect.radius}
-        min={0}
-        max={40}
-        step={0.5}
-        unit="px"
-        format={(v) => v.toFixed(1)}
-        onChange={(v) => onPatch({ radius: v })}
+      <KnobList
+        effect={effect}
+        knobs={KNOBS.videoBlur}
+        onPatch={onPatch}
         disabled={disabled}
       />
     </FlexColumn>
   );
 };
 
-const SharpenEditor: React.FC<
-  EffectEditorProps<TrackSharpenEffect>
-> = ({ effect, onPatch, disabled }) => (
+const SharpenEditor: React.FC<EffectEditorProps<TrackSharpenEffect>> = (
+  props
+) => (
   <FlexColumn gap={0.5}>
-    <ParamRow
-      label="Amount"
-      value={effect.amount}
-      min={0}
-      max={2}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ amount: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Threshold"
-      value={effect.threshold}
-      min={0}
-      max={1}
-      step={0.01}
-      format={(v) => v.toFixed(2)}
-      onChange={(v) => onPatch({ threshold: v })}
-      disabled={disabled}
-    />
+    <KnobList {...props} knobs={KNOBS.sharpen} />
   </FlexColumn>
 );
 
@@ -1715,34 +1398,10 @@ const VignetteEditor: React.FC<
           }}
         />
       </div>
-      <ParamRow
-        label="Intensity"
-        value={effect.intensity}
-        min={0}
-        max={1}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        onChange={(v) => onPatch({ intensity: v })}
-        disabled={disabled}
-      />
-      <ParamRow
-        label="Radius"
-        value={effect.radius}
-        min={0.1}
-        max={1.5}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        onChange={(v) => onPatch({ radius: v })}
-        disabled={disabled}
-      />
-      <ParamRow
-        label="Softness"
-        value={effect.softness}
-        min={0}
-        max={1}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        onChange={(v) => onPatch({ softness: v })}
+      <KnobList
+        effect={effect}
+        knobs={KNOBS.vignette}
+        onPatch={onPatch}
         disabled={disabled}
       />
     </FlexColumn>
@@ -1797,34 +1456,10 @@ const ChromaKeyEditor: React.FC<
           {effect.keyColor.toUpperCase()}
         </span>
       </FlexRow>
-      <ParamRow
-        label="Tolerance"
-        value={effect.tolerance}
-        min={0}
-        max={1}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        onChange={(v) => onPatch({ tolerance: v })}
-        disabled={disabled}
-      />
-      <ParamRow
-        label="Softness"
-        value={effect.softness}
-        min={0}
-        max={1}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        onChange={(v) => onPatch({ softness: v })}
-        disabled={disabled}
-      />
-      <ParamRow
-        label="Spill"
-        value={effect.spill}
-        min={0}
-        max={1}
-        step={0.01}
-        format={(v) => v.toFixed(2)}
-        onChange={(v) => onPatch({ spill: v })}
+      <KnobList
+        effect={effect}
+        knobs={KNOBS.chromaKey}
+        onPatch={onPatch}
         disabled={disabled}
       />
     </FlexColumn>

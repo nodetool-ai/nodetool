@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { FlexColumn } from "../FlexColumn";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
+import { firstElement } from "../../../test-utils/doubles";
 
 describe("FlexColumn", () => {
   const renderWithTheme = (component: React.ReactElement) => {
@@ -32,7 +33,7 @@ describe("FlexColumn", () => {
       </FlexColumn>
     );
     
-    const flexColumn = container.firstChild as HTMLElement;
+    const flexColumn = firstElement(container);
     expect(flexColumn).toHaveStyle({ display: "flex", flexDirection: "column" });
   });
 
@@ -43,7 +44,7 @@ describe("FlexColumn", () => {
       </FlexColumn>
     );
     
-    const flexColumn = container.firstChild as HTMLElement;
+    const flexColumn = firstElement(container);
     expect(flexColumn).toHaveStyle({ width: "100%" });
   });
 
@@ -54,7 +55,7 @@ describe("FlexColumn", () => {
       </FlexColumn>
     );
     
-    const flexColumn = container.firstChild as HTMLElement;
+    const flexColumn = firstElement(container);
     expect(flexColumn).toHaveStyle({ 
       alignItems: "center",
       justifyContent: "space-between"
@@ -68,7 +69,7 @@ describe("FlexColumn", () => {
       </FlexColumn>
     );
 
-    const flexColumn = container.firstChild as HTMLElement;
+    const flexColumn = firstElement(container);
     // Check that the component renders - the sx prop is passed through to Box
     // Note: MUI's sx prop uses emotion for styling, so we verify the element exists
     expect(flexColumn).toBeInTheDocument();
@@ -82,7 +83,7 @@ describe("FlexColumn", () => {
       </FlexColumn>
     );
     
-    const flexColumn = container.firstChild as HTMLElement;
+    const flexColumn = firstElement(container);
     expect(flexColumn).toHaveStyle({ flexWrap: "wrap" });
   });
 });

@@ -13,6 +13,7 @@
  */
 
 import type {
+  ClipMediaType,
   TimelineSequence,
   TimelineTrack,
   TimelineClip,
@@ -62,6 +63,22 @@ export function trackTypeForMediaType(
   mediaType: "image" | "video" | "audio"
 ): "video" | "audio" {
   return mediaType === "audio" ? "audio" : "video";
+}
+
+/**
+ * Whether a clip of this media type may sit on a track of this type.
+ *
+ * The one rule: audio goes on audio tracks, everything else — imported picture
+ * and the authored kinds alike — goes on video or overlay tracks. Subtitle
+ * tracks carry no clips. Every surface that places or moves a clip asks here,
+ * so a drag and a `ui_timeline_*` call refuse the same things.
+ */
+export function clipFitsTrack(
+  mediaType: ClipMediaType,
+  trackType: TimelineTrack["type"]
+): boolean {
+  if (mediaType === "audio") return trackType === "audio";
+  return trackType === "video" || trackType === "overlay";
 }
 
 /** Default authored-shape colors, stored as canvas-ready color data. */

@@ -807,7 +807,11 @@ const EditorBody: React.FC<{
   // bows out while anything editable is focused (Write mode, inputs, the slash
   // command's own field); the Space binding additionally bows out on a focused
   // control so Space still activates buttons.
-  const scriptMode = { active: !writing } as const;
+  // Targeted at this instance's surface: an inert background workspace tab must
+  // not swallow Space (or "/" and the arrows) from the visible editor.
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const surfaceTarget = useCallback(() => surfaceRef.current, []);
+  const scriptMode = { active: !writing, target: surfaceTarget } as const;
   useGlobalCombo(
     " ",
     (event) => {
@@ -890,6 +894,7 @@ const EditorBody: React.FC<{
 
   return (
     <EditorSurface
+      ref={surfaceRef}
       className={writing ? "is-writing" : undefined}
       onKeyDown={onKeyDown}
       onClick={onClick}

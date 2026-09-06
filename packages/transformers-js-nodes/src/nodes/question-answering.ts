@@ -11,6 +11,9 @@ import {
   tjsModelDefault,
   normalizeOption
 } from "../transformers-base.js";
+import type {
+  HfModelRef
+} from "../transformers-base.js";
 import { defaultRepoFor } from "../recommended-models.js";
 
 const TJS_TYPE = "tjs.question_answering";
@@ -57,7 +60,7 @@ export class QuestionAnsweringNode extends BaseNode {
     title: "Question",
     description: "The question to answer."
   })
-  declare question: any;
+  declare question: string;
 
   @prop({
     type: "str",
@@ -65,7 +68,7 @@ export class QuestionAnsweringNode extends BaseNode {
     title: "Context",
     description: "The passage that contains the answer."
   })
-  declare context: any;
+  declare context: string;
 
   @prop({
     type: TJS_TYPE,
@@ -73,7 +76,7 @@ export class QuestionAnsweringNode extends BaseNode {
     title: "Model",
     description: "Transformers.js model (ONNX-compatible)."
   })
-  declare model: any;
+  declare model: HfModelRef;
 
   @prop({
     type: "int",
@@ -83,7 +86,7 @@ export class QuestionAnsweringNode extends BaseNode {
     min: 1,
     max: 20
   })
-  declare top_k: any;
+  declare top_k: number;
 
   @prop({
     type: "enum",
@@ -92,7 +95,7 @@ export class QuestionAnsweringNode extends BaseNode {
     description: "Model dtype / quantization level.",
     values: DTYPE_VALUES
   })
-  declare dtype: any;
+  declare dtype: string;
 
   @prop({
     type: "enum",
@@ -101,7 +104,7 @@ export class QuestionAnsweringNode extends BaseNode {
     description: "Inference device.",
     values: DEVICE_VALUES
   })
-  declare device: any;
+  declare device: string;
 
   async process(): Promise<QuestionAnsweringNodeOutputs> {
     const question = asString(this.question);

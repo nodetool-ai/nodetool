@@ -14,11 +14,12 @@ interface ComparisonRow {
 }
 
 /**
- * One competitor set: the closed AI studios. That is who a production team
- * is choosing between. ComfyUI, n8n and the LLM builders are compared on
- * /alternatives, where the reader who wants them goes (NARRATIVE.md § The
- * enemy). Every cell is a claim that holds for Runway, LTX Studio and Figma
- * Weave alike; a claim true of only one of them belongs on its own page.
+ * Two categories, not two brands: the open studio against the hosted platform.
+ * The homepage names no competitor (NARRATIVE.md § The argument we do not
+ * make) — the head-to-head pages under /alternatives do, because a reader who
+ * lands there is already searching for one. Every cell is a claim that holds
+ * for hosted platforms generally; a claim true of only one belongs on its
+ * own page.
  */
 const comparisonRows: ComparisonRow[] = [
   {
@@ -76,7 +77,7 @@ export default function ComparisonSection({
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            What changes when the studio is open
+            What changes when the studio is open.
           </motion.h2>
           <motion.p
             initial={false}
@@ -85,9 +86,9 @@ export default function ComparisonSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
-            Runway, LTX Studio, and Figma Weave will make the film. Each keeps
-            the model list, the billing, and the project. Here is the same
-            table with the studio open.
+            A hosted platform will make the film, and it keeps the model list,
+            the billing, and the project. Here is the same table with the
+            studio open.
           </motion.p>
         </header>
 
@@ -97,7 +98,7 @@ export default function ComparisonSection({
             id="comparison-table-title"
             className="text-xl md:text-2xl font-semibold tracking-tight text-white"
           >
-            How does NodeTool compare with Runway, LTX Studio, and Figma Weave?
+            An open studio and a hosted platform, row by row
           </h3>
           <div
             className="mt-6 overflow-x-auto rounded-2xl border border-slate-800/80"
@@ -107,8 +108,8 @@ export default function ComparisonSection({
           >
             <table className="w-full min-w-[36rem] border-collapse text-left">
               <caption className="sr-only">
-                NodeTool compared with the closed AI studios: Runway, LTX
-                Studio, and Figma Weave
+                NodeTool, an open studio, compared with a hosted AI video
+                platform
               </caption>
               <thead>
                 <tr className="bg-slate-900/60 text-sm">
@@ -119,7 +120,7 @@ export default function ComparisonSection({
                     NodeTool
                   </th>
                   <th scope="col" className="px-5 py-4 font-semibold text-slate-200">
-                    Closed AI studios
+                    Hosted platforms
                   </th>
                 </tr>
               </thead>
@@ -143,7 +144,7 @@ export default function ComparisonSection({
             </table>
           </div>
           <p className="mt-4 text-sm text-slate-500">
-            Choosing against a node tool instead? See{" "}
+            Comparing against a specific product? See{" "}
             <a
               href="/alternatives/comfyui"
               className="text-blue-300 underline decoration-blue-300/40 underline-offset-2 hover:text-blue-200"

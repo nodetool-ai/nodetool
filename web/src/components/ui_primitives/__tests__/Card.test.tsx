@@ -4,6 +4,7 @@ import { Card } from "../Card";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import userEvent from "@testing-library/user-event";
+import { firstElement } from "../../../test-utils/doubles";
 
 describe("Card", () => {
   const renderWithTheme = (component: React.ReactElement) => {
@@ -31,7 +32,7 @@ describe("Card", () => {
       </Card>
     );
     
-    const card = container.firstChild as HTMLElement;
+    const card = firstElement(container);
     const styles = window.getComputedStyle(card);
     expect(styles.border).not.toBe("");
   });
@@ -60,7 +61,7 @@ describe("Card", () => {
       </Card>
     );
     
-    const card = container.firstChild as HTMLElement;
+    const card = firstElement(container);
     expect(card).toBeInTheDocument();
   });
 
@@ -71,7 +72,7 @@ describe("Card", () => {
       </Card>
     );
     
-    const card = container.firstChild as HTMLElement;
+    const card = firstElement(container);
     const styles = window.getComputedStyle(card);
     expect(styles.boxShadow).not.toBe("none");
   });

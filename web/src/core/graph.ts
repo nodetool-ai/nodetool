@@ -6,8 +6,6 @@ import { COMMENT_NODE_TYPE } from "../constants/nodeTypes";
 /**
  * Graph utilities for workflow layout and traversal.
  *
- * - `topologicalSort` (Kahn) returns layered node ids for parallel-friendly
- *   processing and warns on cycles.
  * - `subgraph` collects nodes reachable from a start node (optional stop) and
  *   returns all edges whose endpoints are in that reachable set.
  * - `autoLayout` runs ELK layered layout, filtering out comment nodes, grouping
@@ -19,8 +17,8 @@ import { COMMENT_NODE_TYPE } from "../constants/nodeTypes";
 const NO_TARGETS: string[] = [];
 
 /**
- * Group edge targets by source. Both traversals below need it: without one,
- * every node they visit rescans the whole edge list.
+ * Group edge targets by source: without one, every node the traversal visits
+ * rescans the whole edge list.
  */
 function targetsBySource(edges: Edge[]): Map<string, string[]> {
   const outgoing = new Map<string, string[]>();
@@ -33,59 +31,6 @@ function targetsBySource(edges: Edge[]): Map<string, string[]> {
     }
   }
   return outgoing;
-}
-
-export function topologicalSort(
-  edges: Edge[],
-  nodes: Node<NodeData>[]
-): string[][] {
-  if (edges.length === 0) {
-    return [nodes.map((node) => node.id)];
-  }
-
-  const indegree: Record<string, number> = {};
-  nodes.forEach((node) => {
-    indegree[node.id] = 0;
-  });
-
-  edges.forEach((edge) => {
-    indegree[edge.target]++;
-  });
-  const outgoing = targetsBySource(edges);
-
-  const queue: string[] = [];
-  Object.keys(indegree).forEach((nodeId) => {
-    if (indegree[nodeId] === 0) {queue.push(nodeId);}
-  });
-
-  // Each entry is a layer of nodes with no remaining incoming edges.
-  const sortedNodes: string[][] = [];
-  // Read head instead of `shift()`, which is O(queue length) per node.
-  let head = 0;
-
-  while (head < queue.length) {
-    const levelNodes: string[] = [];
-    const levelEnd = queue.length;
-
-    while (head < levelEnd) {
-      const n = queue[head++];
-      levelNodes.push(n);
-
-      for (const target of outgoing.get(n) ?? NO_TARGETS) {
-        indegree[target]--;
-        if (indegree[target] === 0) {
-          queue.push(target);
-        }
-      }
-    }
-    sortedNodes.push(levelNodes);
-  }
-
-  if (head < nodes.length) {
-    console.warn("Graph contains at least one cycle", { edges, nodes });
-  }
-
-  return sortedNodes;
 }
 
 type Result = { edges: Edge[]; nodes: Node<NodeData>[] };

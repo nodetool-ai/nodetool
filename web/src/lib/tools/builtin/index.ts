@@ -23,6 +23,9 @@ import "./getGraph";
 import "./deleteNode";
 import "./deleteEdge";
 
+// Guided creation flow for workflows (PRD § 11.6).
+import "./workflowSetup";
+
 // Discovery.
 import "./searchNodes";
 import "./searchModels";

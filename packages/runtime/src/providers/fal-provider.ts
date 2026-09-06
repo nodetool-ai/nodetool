@@ -53,7 +53,7 @@ import {
   isObjectLike,
   isRecord,
   isString
-} from "../type-predicates.js";
+} from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.providers.fal");
 

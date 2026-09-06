@@ -86,6 +86,48 @@ export interface SurfaceEntry {
   gap?: string;
 }
 
+/**
+ * The pure suites behind the script↔storyboard link and the guided creation
+ * flows. One constant because the entry's `command` and its `selfcheck` must
+ * not drift: a selfcheck that runs less than the command it stands for reports
+ * green on code it never executed.
+ *
+ * Vitest and Jest both take these positional arguments as file-path filters.
+ */
+const SCRIPT_STORYBOARD_LINK_SUITES =
+  "npm run test --workspace=packages/protocol -- script-link shot-prompt " +
+  "render-record creative-scenes screenplay-authoring api-schemas-storyboards && " +
+  "npm run test --workspace=packages/timeline -- script-link linked storyboard && " +
+  "npm run test --workspace=packages/execution -- linked-timeline-validate && " +
+  "npm run test --workspace=web -- src/lib/storyboard src/components/setup";
+
+/**
+ * The Workflow flow's pure suites (PRD § 11): the plan schema and the plan→graph
+ * builder in protocol, the shipped inspiration chips built against the real node
+ * registry, the plan-to-graph case's grading, and the browser flow's steps and
+ * tools. One constant so the entry's `command` and its `selfcheck` cannot drift.
+ */
+const WORKFLOW_PLAN_SUITES =
+  "npm run test --workspace=packages/protocol -- workflow && " +
+  "npm run test --workspace=packages/base-nodes -- workflow-plan-chips && " +
+  "npm run test --workspace=packages/agents -- app-build-workflow-plan && " +
+  "npm run test --workspace=web -- src/components/setup/workflow src/hooks/workflow src/lib/tools/builtin/__tests__/workflowSetupTools";
+
+/**
+ * The per-capability contract suites. One constant because the entry's
+ * `command` and its `selfcheck` must not drift — a selfcheck that runs less
+ * than the command it stands for reports green on code it never executed.
+ *
+ * The arguments are vitest path filters, so a suite whose filename matches
+ * none of them is not run however well it is written: `timeline-video-flow`
+ * is named explicitly for that reason.
+ */
+const CAPABILITY_SUITES =
+  "npm run test --workspace=packages/agents -- capabilities capability " +
+  "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
+  "sandbox-package-docs sandbox-package-listing browser-tools " +
+  "timelines-op-input timeline-video-flow";
+
 export const HARNESSES: HarnessEntry[] = [
   {
     id: "validate",
@@ -185,11 +227,15 @@ export const HARNESSES: HarnessEntry[] = [
     capabilities: ["json", "watch", "supervise", "gated:pr"],
     docs: "docs/harnesses.md § nodetool app build",
     selfcheck: {
-      // The suite's two deterministic cases: scripted author, real kernel,
+      // The suite's three keyless cases: two scripted app authors and the
+      // Workflow flow's plan-to-graph case, all on the real kernel with the
       // provider constructed but never called — the same invocation the
-      // Quality Gate's app-build leg runs.
+      // Quality Gate's app-build leg runs. `workflow-plan-to-graph` is graded
+      // on what its built graph produced, not only on whether it validated
+      // (PRD R6), so a plan that wires into a graph that runs and returns
+      // nothing fails here.
       command:
-        "npm run dev:nodetool -- eval app-build --cases greeting-card,draft-then-publish -p ollama -m none --no-find-model --min-success 1",
+        "npm run dev:nodetool -- eval app-build --cases greeting-card,draft-then-publish,workflow-plan-to-graph -p ollama -m none --no-find-model --min-success 1",
       cost: "cheap"
     }
   },
@@ -401,20 +447,37 @@ export const HARNESSES: HarnessEntry[] = [
     // timeline plus the tools that call them. The checked-in suites are the
     // headless surface — they build a linked document and hand the assembled
     // timeline to the same validator `nodetool timeline validate` runs.
-    command:
-      "npm run test --workspace=packages/protocol -- script-link && " +
-      "npm run test --workspace=packages/timeline -- script-link linked && " +
-      "npm run test --workspace=packages/execution -- linked-timeline-validate",
+    //
+    // The guided-creation-flow suites ride here too (PRD § 7.7): prompt
+    // composition, scene ordering, staleness, the Director's scene output and
+    // the P5 import parsers (`parseFdx`, `verifyImportedText`,
+    // `parseShotlistCsv`) are pure functions on the same documents, and a diff
+    // that touches one usually touches the link. `web/src/components/setup`
+    // rides along because the flow steps are where those functions are wired:
+    // an FDX import that stops reading back verbatim shows up there first.
+    command: SCRIPT_STORYBOARD_LINK_SUITES,
     kind: "static",
     capabilities: ["no-db"],
     docs: "docs/script-storyboard-link/design.md § 6",
     selfcheck: {
-      command:
-        "npm run test --workspace=packages/protocol -- script-link && " +
-        "npm run test --workspace=packages/timeline -- script-link linked && " +
-        "npm run test --workspace=packages/execution -- linked-timeline-validate",
+      command: SCRIPT_STORYBOARD_LINK_SUITES,
       cost: "cheap"
     }
+  },
+  {
+    id: "workflow-plan",
+    title: "Workflow plan → graph (planner contract, builder, inspiration chips)",
+    // No CLI command owns the planner: the surface is a plan on a workflow's
+    // `settings.setup` and the graph it builds. The checked-in suites are the
+    // headless surface — they build every shipped chip's plan against the real
+    // node registry and hand the graph to the same validator
+    // `validate_workflow` runs. What a graph *produces* is graded one harness
+    // over, by the app-build suite's `workflow-plan-to-graph` case (PRD R6).
+    command: WORKFLOW_PLAN_SUITES,
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "docs/creation-flows/prd.md § 11",
+    selfcheck: { command: WORKFLOW_PLAN_SUITES, cost: "cheap" }
   },
   {
     id: "capability-suites",
@@ -424,10 +487,7 @@ export const HARNESSES: HarnessEntry[] = [
     // `packages/cli/src/harness/capability-table.ts` says which suite covers
     // which capability — the audit fails on one that names none.
     command:
-      "npm run test --workspace=packages/agents -- capabilities capability " +
-      "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
-      "sandbox-package-docs sandbox-package-listing browser-tools " +
-      "timelines-op-input",
+CAPABILITY_SUITES,
     kind: "static",
     // Runs in CI as part of the whole-package `--filter=@nodetool-ai/agents`
     // leg, but no workflow names this filtered command specifically, so it
@@ -439,10 +499,7 @@ export const HARNESSES: HarnessEntry[] = [
       // a capability added without a mapping fails here rather than in review.
       command:
         "npm run capabilities:check && " +
-        "npm run test --workspace=packages/agents -- capabilities capability " +
-        "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
-        "sandbox-package-docs sandbox-package-listing browser-tools " +
-        "timelines-op-input",
+CAPABILITY_SUITES,
       cost: "cheap"
     }
   },
@@ -475,6 +532,25 @@ export const HARNESSES: HarnessEntry[] = [
       command:
         "npm run generate:fal:check -- --strict && " +
         "npm run generate:kie:check -- --strict",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "recipes",
+    title: "Recipe chains (shipped manifests, the app listing, the site pages)",
+    // A recipe names shipped example workflows and stores no graph, so what
+    // rots is a step whose example was renamed: the app drops the recipe from
+    // its Examples listing and the site's page loses a workflow. Both readers
+    // are checked — the resolver the app calls, and the generator the site
+    // builds its pages and bundles with.
+    command: "npx tsx marketing/scripts/generate-recipes.mjs --check",
+    kind: "static",
+    capabilities: ["no-db", "gated:pr"],
+    docs: "docs/harnesses.md § Shipped recipes",
+    selfcheck: {
+      command:
+        "npm run test --workspace=packages/websocket -- example-recipes && " +
+        "npx tsx marketing/scripts/generate-recipes.mjs --check",
       cost: "cheap"
     }
   },
@@ -727,6 +803,21 @@ export const SURFACES: SurfaceEntry[] = [
     ]
   },
   {
+    id: "workflow-creation-flow",
+    title:
+      "Workflow creation flow (settings.setup, planner, plan review, build from plan)",
+    harnesses: ["workflow-plan", "app-build", "capability-suites", "validate"],
+    paths: [
+      "packages/protocol/src/workflow-plan.ts",
+      "packages/protocol/src/api-schemas/workflows.ts",
+      "packages/agents/src/evals/app-build-plan.ts",
+      "packages/base-nodes/tests/workflow-plan-chips.test.ts",
+      "web/src/components/setup/workflow/",
+      "web/src/hooks/workflow/",
+      "web/src/lib/tools/builtin/workflowSetup.ts"
+    ]
+  },
+  {
     id: "mini-apps",
     title: "Mini apps (documents, bindings, operations)",
     harnesses: ["app-debug", "app-build", "eval"],
@@ -815,6 +906,14 @@ export const SURFACES: SurfaceEntry[] = [
     paths: [
       "packages/protocol/src/script-link.ts",
       "packages/protocol/src/api-schemas/storyboards.ts",
+      // The guided creation flow's pure modules (PRD § 7.7): one prompt
+      // composition for both surfaces, the derived scene order, and the
+      // staleness comparison the board's marks come from.
+      "packages/protocol/src/shot-prompt.ts",
+      "packages/protocol/src/render-record.ts",
+      "packages/protocol/src/screenplay-authoring.ts",
+      "web/src/lib/storyboard/",
+      "web/src/components/setup/",
       "packages/timeline/src/storyboard.ts",
       "packages/timeline/src/script-link.ts",
       "packages/timeline/src/linked.ts",
@@ -1094,6 +1193,39 @@ export const SURFACES: SurfaceEntry[] = [
     paths: ["scripts/"]
   },
   {
+    id: "recipes",
+    title: "Recipes (ordered chains of shipped examples)",
+    harnesses: ["recipes"],
+    // The manifests, the resolver behind the app's Examples listing, and the
+    // site pages built from the same files. Overlaps the surfaces that claim
+    // the packages and the site; a diff here runs both.
+    paths: [
+      "packages/base-nodes/nodetool/examples/recipes/",
+      "packages/protocol/src/api-schemas/recipes.ts",
+      "packages/websocket/src/lib/example-recipes.ts",
+      "web/src/components/portal/DashboardRecipes.tsx",
+      "web/src/hooks/useRecipeActions.ts",
+      "marketing/scripts/generate-recipes.mjs",
+      "marketing/scripts/recipes.mjs",
+      "marketing/src/app/recipes/",
+      "marketing/src/data/recipes.ts"
+    ]
+  },
+  {
+    id: "marketing-site",
+    title: "Marketing site (nodetool.ai)",
+    harnesses: [],
+    paths: ["marketing/"],
+    gap:
+      "A separate npm project with its own lockfile, so the root gate cannot " +
+      "install it: marketing-ci.yml runs its typecheck, lint, Next build, " +
+      "generated-data --check steps, a Playwright smoke suite and a route " +
+      "loader against its own tree. The one part the root gate does reach is " +
+      "the recipe pages, whose data comes from the shipped manifests — that " +
+      "is the `recipes` harness above. A fuller harness would drive the built " +
+      "site the way the debug harness drives the graph canvas.",
+  },
+  {
     id: "harness-registry",
     title: "Harness registry (this file, its tests, capability sync)",
     harnesses: ["harness-audit"],
@@ -1139,6 +1271,16 @@ export const UNCLAIMED_PATHS: Record<string, string> = {
     "backend by scripts/bundle-backend.mjs; verify-backend-bundle.mjs " +
     "checks every directory ships, not the skill content."
 };
+
+/**
+ * Whether a repo-relative file sits under a directory {@link UNCLAIMED_PATHS}
+ * already documents as having no harness. `nodetool harness gate` uses this so
+ * a diff touching such a directory is not reported as an unmapped code file —
+ * the judgement, and its reason, are already recorded above.
+ */
+export function isUnclaimedPath(file: string): boolean {
+  return Object.keys(UNCLAIMED_PATHS).some((prefix) => file.startsWith(prefix));
+}
 
 interface HarnessAuditResult {
   surfaces: Array<{

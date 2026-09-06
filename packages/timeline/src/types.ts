@@ -25,6 +25,16 @@ export type { BlendMode };
 // here (not re-exported) to avoid a duplicate star-export.
 import type { ClipAnimation } from "./animation/types.js";
 
+// The guided-setup shapes are declared once, as zod, in the protocol package;
+// the inferred types are re-exported here so a timeline consumer reaches them
+// through the same import as the rest of the document.
+import type {
+  TimelineBeat,
+  TimelineSetup,
+  TimelineSetupStage
+} from "@nodetool-ai/protocol/api-schemas/timeline.js";
+export type { TimelineBeat, TimelineSetup, TimelineSetupStage };
+
 export interface TimelineSequence {
   id: string;
   projectId: string;
@@ -49,6 +59,11 @@ export interface TimelineSequence {
    * Unset on legacy sequences (treated as enabled if transcript clips exist).
    */
   scriptEnabled?: boolean;
+  /**
+   * Guided video-flow state (PRD § 8.5). Absent on every sequence not built
+   * through the flow, which is what makes those open straight in the editor.
+   */
+  setup?: TimelineSetup;
   createdAt: string;
   updatedAt: string;
 }
@@ -504,6 +519,12 @@ export interface TimelineClip {
    */
   scriptId?: string;
   scriptLineId?: string;
+  /**
+   * The guided-setup beat this clip was generated from (PRD § 8.5). Reading it
+   * back is what lets a finished timeline show the plan that produced it. Also
+   * on the protocol zod schema, or PATCH strips it.
+   */
+  beatId?: string;
   status: ClipStatus;
   locked: boolean;
   muted?: boolean;
@@ -884,6 +905,13 @@ export interface ClipVignetteEffect {
   amount: number;
   /** Falloff width, 0..1. */
   softness: number;
+  /**
+   * Outer radius relative to the frame half-diagonal, 0.1..1.5. Absent means
+   * `vignette@1`'s own default, which is where a clip vignette has always
+   * started. Written by the track conversion, which carries a midpoint the
+   * legacy spelling made mandatory.
+   */
+  radius?: number;
 }
 
 export interface ClipSharpenEffect {
@@ -894,6 +922,11 @@ export interface ClipSharpenEffect {
   amount: number;
   /** Unsharp-mask radius in source pixels. */
   radius?: number;
+  /**
+   * Edge threshold 0..1. Absent means `filters.sharpen.unsharpMask@1`'s own
+   * default. Same provenance as {@link ClipVignetteEffect.radius}.
+   */
+  threshold?: number;
 }
 
 export interface ClipChromaKeyEffect {

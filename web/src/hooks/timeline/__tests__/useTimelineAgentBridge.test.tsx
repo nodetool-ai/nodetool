@@ -7,7 +7,6 @@ import type { TimelineClip } from "@nodetool-ai/timeline";
 
 import {
   createTimelineStore,
-  timelineTemporalOf,
   type TimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
 import {
@@ -89,15 +88,11 @@ beforeEach(() => {
 });
 
 describe("useTimelineAgentBridge group-aware edits", () => {
-  it("moves a group's children with it", async () => {
+  it("moves a group's children with it", () => {
     seedGroup();
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
 
-    await getTimelineAgentHandler(SEQ_ID).applyOp({
-      op: "move_clip",
-      target: "group-1",
-      startMs: 3000
-    });
+    getTimelineAgentHandler(SEQ_ID).moveClip("group-1", { startMs: 3000 });
 
     // The group moved by +2000ms, so everything it holds did too. Writing
     // startMs straight onto the group left the children behind.
@@ -106,15 +101,11 @@ describe("useTimelineAgentBridge group-aware edits", () => {
     expect(clipById("child-b").startMs).toBe(3500);
   });
 
-  it("trims a group's children inside the shorter window", async () => {
+  it("trims a group's children inside the shorter window", () => {
     seedGroup();
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
 
-    await getTimelineAgentHandler(SEQ_ID).applyOp({
-      op: "trim_clip",
-      target: "group-1",
-      durationMs: 1200
-    });
+    getTimelineAgentHandler(SEQ_ID).trimClip("group-1", { durationMs: 1200 });
 
     expect(clipById("group-1").durationMs).toBe(1200);
     // child-b ran 1500–2000; the group now ends at 2200, so it stays inside.
@@ -124,7 +115,7 @@ describe("useTimelineAgentBridge group-aware edits", () => {
     );
   });
 
-  it("moves a lone clip to an absolute start", async () => {
+  it("moves a lone clip to an absolute start", () => {
     mockDoc.getState().addTrack("video", "Video 1");
     const trackId = mockDoc.getState().tracks[0].id;
     mockDoc.getState().addClip(
@@ -140,73 +131,12 @@ describe("useTimelineAgentBridge group-aware edits", () => {
     );
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
 
-    const result = (await getTimelineAgentHandler(SEQ_ID).applyOp({
-      op: "move_clip",
-      target: "solo",
+    const node = getTimelineAgentHandler(SEQ_ID).moveClip("solo", {
       startMs: 4000
-    })) as { clip: { startMs: number } };
+    });
 
-    expect(result.clip.startMs).toBe(4000);
+    expect(node.startMs).toBe(4000);
     expect(clipById("solo").durationMs).toBe(800);
-  });
-});
-
-describe("useTimelineAgentBridge set_clip_params", () => {
-  const seedText = (): void => {
-    mockDoc.getState().addTrack("overlay", "Titles");
-    const trackId = mockDoc.getState().tracks[0].id;
-    mockDoc.getState().addClip(
-      makeClip({
-        id: "title-1",
-        name: "Title",
-        trackId,
-        mediaType: "text",
-        sourceType: "imported",
-        startMs: 0,
-        durationMs: 2000,
-        textStyle: { text: "Hello", fontSizePx: 48, color: "#ffffff" }
-      })
-    );
-  };
-
-  // The browser handler used to copy a fixed list of fields off the patch, so
-  // timing and the fontSizePx shorthand were accepted and silently dropped —
-  // the headless surface applied all three. One op module, one answer.
-  it("applies startMs, durationMs and fontSizePx like every other surface", async () => {
-    seedText();
-    renderHook(() => useTimelineAgentBridge(SEQ_ID));
-
-    await getTimelineAgentHandler(SEQ_ID).applyOp({
-      op: "set_clip_params",
-      target: "title-1",
-      patch: {
-        startMs: 500,
-        durationMs: 3000,
-        fontSizePx: 96,
-        opacity: 0.5
-      }
-    });
-
-    const clip = clipById("title-1");
-    expect(clip.startMs).toBe(500);
-    expect(clip.durationMs).toBe(3000);
-    expect(clip.textStyle?.fontSizePx).toBe(96);
-    expect(clip.opacity).toBe(0.5);
-  });
-
-  it("records one undo entry per tool call", async () => {
-    seedText();
-    renderHook(() => useTimelineAgentBridge(SEQ_ID));
-    const depth = () => timelineTemporalOf(mockDoc).pastStates.length;
-    const before = depth();
-
-    await getTimelineAgentHandler(SEQ_ID).applyOp({
-      op: "set_clip_params",
-      target: "title-1",
-      patch: { opacity: 0.25 }
-    });
-
-    expect(depth()).toBe(before + 1);
   });
 });
 
@@ -227,48 +157,36 @@ describe("useTimelineAgentBridge setTimeRemap", () => {
     );
   };
 
-  it("stores a curve and clears it with null", async () => {
+  it("stores a curve and clears it with null", () => {
     seedClip();
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
     const handler = getTimelineAgentHandler(SEQ_ID);
 
-    await handler.applyOp({
-      op: "set_time_remap",
-      target: "clip-1",
-      timeRemap: {
-        keyframes: [
-          { t: 0, sourceMs: 0 },
-          { t: 0.5, sourceMs: 200, easing: "easeInOut" },
-          { t: 1, sourceMs: 2000 }
-        ]
-      }
+    handler.setTimeRemap("clip-1", {
+      keyframes: [
+        { t: 0, sourceMs: 0 },
+        { t: 0.5, sourceMs: 200, easing: "easeInOut" },
+        { t: 1, sourceMs: 2000 }
+      ]
     });
     expect(clipById("clip-1").timeRemap?.keyframes).toHaveLength(3);
 
-    await handler.applyOp({
-      op: "set_time_remap",
-      target: "clip-1",
-      timeRemap: null
-    });
+    handler.setTimeRemap("clip-1", null);
     expect(clipById("clip-1").timeRemap).toBeUndefined();
   });
 
-  it("refuses a curve that does not span the clip", async () => {
+  it("refuses a curve that does not span the clip", () => {
     seedClip();
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
 
-    await expect(
-      getTimelineAgentHandler(SEQ_ID).applyOp({
-        op: "set_time_remap",
-        target: "clip-1",
-        timeRemap: {
-          keyframes: [
-            { t: 0.3, sourceMs: 0 },
-            { t: 1, sourceMs: 2000 }
-          ]
-        }
+    expect(() =>
+      getTimelineAgentHandler(SEQ_ID).setTimeRemap("clip-1", {
+        keyframes: [
+          { t: 0.3, sourceMs: 0 },
+          { t: 1, sourceMs: 2000 }
+        ]
       })
-    ).rejects.toThrow(/must span the clip/);
+    ).toThrow(/must span the clip/);
     expect(clipById("clip-1").timeRemap).toBeUndefined();
   });
 });

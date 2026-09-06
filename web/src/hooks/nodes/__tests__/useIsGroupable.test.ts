@@ -38,13 +38,6 @@ describe("useIsGroupable", () => {
       expect(result.current.isGroupable(node)).toBe(true);
     });
 
-    it("returns false for Loop group nodes", () => {
-      const { result } = renderHook(() => useIsGroupable());
-      const node = createMockNode("nodetool.group.Loop");
-
-      expect(result.current.isGroupable(node)).toBe(false);
-    });
-
     it("returns false for Group nodes", () => {
       const { result } = renderHook(() => useIsGroupable());
       const node = createMockNode("nodetool.workflows.base_node.Group");
@@ -52,13 +45,12 @@ describe("useIsGroupable", () => {
       expect(result.current.isGroupable(node)).toBe(false);
     });
 
-    it("returns false for both Loop and Group node types", () => {
+    it("returns true for a node type the backend no longer declares", () => {
       const { result } = renderHook(() => useIsGroupable());
-      const loopNode = createMockNode("nodetool.group.Loop");
-      const groupNode = createMockNode("nodetool.workflows.base_node.Group");
 
-      expect(result.current.isGroupable(loopNode)).toBe(false);
-      expect(result.current.isGroupable(groupNode)).toBe(false);
+      expect(result.current.isGroupable(createMockNode("nodetool.group.Loop"))).toBe(
+        true
+      );
     });
   });
 
@@ -77,13 +69,6 @@ describe("useIsGroupable", () => {
       expect(result.current.isGroup(node)).toBe(false);
     });
 
-    it("returns true for Loop group nodes", () => {
-      const { result } = renderHook(() => useIsGroupable());
-      const node = createMockNode("nodetool.group.Loop");
-
-      expect(result.current.isGroup(node)).toBe(true);
-    });
-
     it("returns true for Group nodes", () => {
       const { result } = renderHook(() => useIsGroupable());
       const node = createMockNode("nodetool.workflows.base_node.Group");
@@ -91,13 +76,12 @@ describe("useIsGroupable", () => {
       expect(result.current.isGroup(node)).toBe(true);
     });
 
-    it("returns true for both Loop and Group node types", () => {
+    it("returns false for a node type the backend no longer declares", () => {
       const { result } = renderHook(() => useIsGroupable());
-      const loopNode = createMockNode("nodetool.group.Loop");
-      const groupNode = createMockNode("nodetool.workflows.base_node.Group");
 
-      expect(result.current.isGroup(loopNode)).toBe(true);
-      expect(result.current.isGroup(groupNode)).toBe(true);
+      expect(result.current.isGroup(createMockNode("nodetool.group.Loop"))).toBe(
+        false
+      );
     });
   });
 

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-diff",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Unified text diffs inside the NodeTool sandbox, from the diff library running on the host",
   "license": "MIT",
   "nodetool": {

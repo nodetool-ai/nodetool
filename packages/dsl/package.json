@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Type-safe TypeScript DSL for defining NodeTool workflows",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -35,16 +35,17 @@
   },
   "dependencies": {
     "@nodetool-ai/base-nodes": "*",
+    "@nodetool-ai/config": "*",
     "@nodetool-ai/elevenlabs-nodes": "*",
-    "@nodetool-ai/minimax-nodes": "*",
-    "@nodetool-ai/transformers-js-nodes": "*",
     "@nodetool-ai/huggingface-nodes": "*",
-    "@nodetool-ai/reve-nodes": "*",
-    "@nodetool-ai/protocol": "*",
     "@nodetool-ai/kernel": "*",
+    "@nodetool-ai/minimax-nodes": "*",
     "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/reve-nodes": "*",
     "@nodetool-ai/runtime": "*",
-    "@nodetool-ai/config": "*"
+    "@nodetool-ai/storage": "*",
+    "@nodetool-ai/transformers-js-nodes": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

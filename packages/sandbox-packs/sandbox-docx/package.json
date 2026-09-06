@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-docx",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "Build Word documents inside the NodeTool sandbox, from docx running on the host",
   "license": "MIT",
   "nodetool": {

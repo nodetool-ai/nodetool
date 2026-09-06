@@ -1,6 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import type { RecipeSample } from "@/data/recipes";
+import { sampleFidelity, type RecipeSample } from "@/data/recipes";
 
 interface RecipeSampleFigureProps {
   sample: RecipeSample;
@@ -20,8 +20,22 @@ export default function RecipeSampleFigure({
   sample,
   name,
 }: RecipeSampleFigureProps) {
+  const fidelity = sampleFidelity(sample);
   return (
     <figure className="m-0">
+      <p
+        className={`mb-4 inline-flex rounded-lg border px-3 py-2 text-sm ${
+          fidelity.changed.length === 0
+            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
+            : "border-amber-500/25 bg-amber-500/10 text-amber-100"
+        }`}
+      >
+        {fidelity.changed.length === 0
+          ? `Run as the download ships it — all ${fidelity.total} models are the ones the workflows name.`
+          : `${fidelity.asShipped} of ${fidelity.total} models ran as the workflows name them. ${
+              fidelity.changed.length === 1 ? "One was" : `${fidelity.changed.length} were`
+            } reached another way or replaced, listed below with the reason. Your run uses what the workflow names.`}
+      </p>
       <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 shadow-xl">
           <Image

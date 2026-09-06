@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/automation-nodes",
-  "version": "0.7.0-rc.39",
+  "version": "0.7.0-rc.40",
   "description": "NodeTool automation/system nodes — browser control, OS, workspace FS, triggers",
   "type": "module",
   "engines": {

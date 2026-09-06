@@ -1,4 +1,8 @@
-import { isObjectLike, isString } from "../../../../utils/typePredicates";
+import {
+  isObjectLike,
+  isRecord,
+  isString
+} from "../../../../utils/typePredicates";
 /**
  * Normalizes the many shapes a search-style tool can return into a single
  * `SearchResultItem[]` the UI can render. Tools in this repo return results in
@@ -73,9 +77,6 @@ function itemFromObject(obj: Record<string, unknown>): SearchResultItem | null {
     imageUrl: pickString(obj, "thumbnail", "original", "image_url")
   };
 }
-
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v);
 
 function normalizeArray(arr: unknown[]): SearchResultItem[] {
   const items: SearchResultItem[] = [];
