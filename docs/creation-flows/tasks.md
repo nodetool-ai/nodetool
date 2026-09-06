@@ -418,27 +418,27 @@ of each other. Inside a phase, tasks are listed in dependency order.
 
 ### G1a — Contracts (protocol only, first)
 
-- [ ] **Settings shape.** `settings.game` per game-prd § 5.1: `gameSetup`,
+- [x] **Settings shape.** `settings.game` per game-prd § 5.1: `gameSetup`,
       `readGameSetup`, `writeGameSetup` beside the workflow setup helpers in
       `packages/protocol/src/api-schemas/workflows.ts`. Tests: a workflow
       without `game` reads null; every stage round-trips; a patch keeps the
       other settings keys.
-- [ ] **Designer contract.** `packages/protocol/src/game-design.ts`:
+- [x] **Designer contract.** `packages/protocol/src/game-design.ts`:
       system prompt, `buildGameDesignSchema(manifest)` with slot ids pinned
       as enums, `parseGameDesign` filling skipped slots from the manifest
       and reporting them, `GAME_INSPIRATION_CHIPS` with a pinned design per
       shipped template. Tests: a design missing a slot prompt is filled and
       reported; a chip's design has one cast entry per spritesheet slot.
-- [ ] **Slot prompt.** `packages/protocol/src/game-slot-prompt.ts` per
+- [x] **Slot prompt.** `packages/protocol/src/game-slot-prompt.ts` per
       § 5.3. Test table: sizes per kind for every slot in the three shipped
       manifests, style descriptor present verbatim, cast descriptor present
       only on the slot that names it, closest aspect ratio.
-- [ ] **Graph builder.** `packages/protocol/src/game-graph.ts`
+- [x] **Graph builder.** `packages/protocol/src/game-graph.ts`
       `gameGraphPlacement` per § 5.3, returning a `WorkflowPlacement`.
       Tests: one chain per slot kind, audio chains omitted when unchosen,
       every checker feeds a dynamic input named by its slot id on one export
       node, an unknown node type is an issue and no node.
-- [ ] **Style presets.** `GAME_STYLE_PRESETS` in `style-presets.ts` per
+- [x] **Style presets.** `GAME_STYLE_PRESETS` in `style-presets.ts` per
       § 5.6, thumbnails as `package://nodetool-base/styles/game-<id>.png`.
 
 ### G1b — Node, seeds, harness (backend)
