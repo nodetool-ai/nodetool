@@ -3,8 +3,8 @@
  * ComfyUI nodes.
  *
  * A {@link ComfyTransport} is the only thing that differs between Comfy
- * surfaces: Comfy Cloud gets {@link cloudTransport}, and a self-hosted v2
- * surface will get its own factory. {@link runComfyWorkflow} takes one, plus
+ * surfaces: Comfy Cloud gets {@link cloudTransport}, and any other v2 surface
+ * at a known base URL gets {@link v2Transport}. {@link runComfyWorkflow} takes one, plus
  * an API-format prompt and the node's dynamic inputs, and yields the same
  * frames every ComfyUI node in this package yields — one per output file on
  * `"<comfyNodeId>:<kind>"`, then a final `output` frame.
@@ -16,15 +16,19 @@
  */
 
 import { Buffer } from "node:buffer";
+import { randomUUID } from "node:crypto";
 import {
+  Asset,
+  AssetFactory,
   Comfy,
   ComfyError,
-  InsufficientCredits,
+  Job,
   QueueFull,
   WorkflowFormatUi,
   type ComfyEvent as SdkComfyEvent,
   type Job as SdkJob
 } from "@comfyorg/sdk";
+import { ApiError, ComfyLow } from "@comfyorg/sdk/low";
 import {
   loadMediaRefBytes,
   type MediaRefValue,
@@ -170,6 +174,172 @@ export function cloudTransport(apiKey: string): ComfyTransport {
   };
 }
 
+// How long a full queue is retried before submit gives up, and the pause used
+// for a `queue_full` a server sent without a `Retry-After` header.
+const QUEUE_RETRY_BUDGET_MS = 60_000;
+const DEFAULT_RETRY_AFTER_S = 2;
+
+/** UI-export JSON carries all three of these top-level keys; API format never does. */
+const UI_FORMAT_KEYS = ["nodes", "links", "last_node_id"] as const;
+
+/**
+ * Validate and canonicalize a caller-supplied Comfy API v2 base URL.
+ *
+ * `ComfyLow` builds every request URL by appending `/api/v2/<path>` to this
+ * string, so a query or fragment would land in the middle of the path and a
+ * trailing slash would double the separator. Same rule the SDK applies to
+ * `COMFY_BASE_URL` in `resolveBaseUrl`, which is the only base URL it accepts.
+ */
+function normalizeBaseUrl(baseUrl: string): string {
+  const raw = baseUrl.trim();
+  let parsed: URL | undefined;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    parsed = undefined;
+  }
+  const valid =
+    parsed !== undefined &&
+    (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+    parsed.search === "" &&
+    parsed.hash === "";
+  if (!valid) {
+    throw new TypeError(
+      "Comfy base URL must be an http(s) URL with no query or fragment " +
+        `(e.g. "http://127.0.0.1:8189"), got ${JSON.stringify(baseUrl)}`
+    );
+  }
+  return raw.replace(/\/+$/, "");
+}
+
+/** `setTimeout` sleep that rejects as soon as `signal` aborts. */
+function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+  const canceled = (): Error => abortError("Comfy submit was canceled");
+  if (signal?.aborted) {
+    return Promise.reject(canceled());
+  }
+  return new Promise((resolve, reject) => {
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(canceled());
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+/**
+ * Replace every `Asset` handle sitting on a node input with the `core/ASSET`
+ * reference the server understands, uploading its bytes on first use.
+ *
+ * Copies the nodes and their `inputs` maps rather than writing through, so the
+ * caller's graph is left as it was. The high-level client does this with
+ * `findAssetHandles`/`substituteAssetHandles`, which `@comfyorg/sdk` keeps
+ * private to `sdk/core.js`.
+ */
+async function materializeAssets(
+  graph: ComfyPrompt,
+  signal?: AbortSignal
+): Promise<Record<string, unknown>> {
+  const materialized: Record<string, unknown> = {};
+  for (const [nodeId, node] of Object.entries(graph)) {
+    const inputs = node === null ? undefined : node.inputs;
+    if (typeof inputs !== "object" || inputs === null) {
+      materialized[nodeId] = node;
+      continue;
+    }
+    const substituted: Record<string, unknown> = {};
+    for (const [field, value] of Object.entries(inputs)) {
+      substituted[field] =
+        value instanceof Asset ? await value.asReference(signal) : value;
+    }
+    materialized[nodeId] = { ...node, inputs: substituted };
+  }
+  return materialized;
+}
+
+/**
+ * Any Comfy API v2 surface at a caller-supplied base URL — a
+ * `comfy-api-proxy` in front of a local ComfyUI, a NodeTool worker, or a
+ * ComfyUI that serves v2 itself.
+ *
+ * The high-level `Comfy` client cannot target one: it reads `COMFY_BASE_URL`
+ * from the environment per construction, which is process-global and races
+ * across concurrent node runs. So this builds `ComfyLow` directly and
+ * reimplements the one thing `Comfy` keeps private — the submit loop: guard
+ * UI-format JSON, materialize asset handles, mint an idempotency key, and
+ * retry a 429 against a 60 second budget with the same key. Collapses to
+ * `new Comfy({ apiKey, baseUrl })` once upstream accepts a `baseUrl` option
+ * (spec D3), and the loop below is deleted with it.
+ *
+ * `options.fetch` is handed to `ComfyLow` verbatim; tests script the wire with
+ * it, and production passes nothing.
+ */
+export function v2Transport(
+  baseUrl: string,
+  apiKey?: string,
+  options?: { fetch?: typeof fetch }
+): ComfyTransport {
+  const low = new ComfyLow(normalizeBaseUrl(baseUrl), apiKey, {
+    fetch: options?.fetch
+  });
+  const assets = new AssetFactory(low);
+
+  return {
+    async submit(graph, submitOptions) {
+      if (UI_FORMAT_KEYS.every((key) => key in graph)) {
+        throw new WorkflowFormatUi(
+          "workflow is in UI-export format (nodes/links/last_node_id); " +
+            "submit the API-format graph instead",
+          { code: "workflow_format_ui", httpStatus: 422 }
+        );
+      }
+      const { signal } = submitOptions;
+      const workflow = await materializeAssets(graph, signal);
+      // One key for the whole loop: a retry must not create a second job.
+      const idempotencyKey = randomUUID();
+      const extraData = submitOptions.apiKey
+        ? { api_key_comfy_org: submitOptions.apiKey }
+        : undefined;
+      const deadline = performance.now() + QUEUE_RETRY_BUDGET_MS;
+
+      for (;;) {
+        try {
+          return new Job(
+            low,
+            await low.postJobs(workflow, {
+              idempotencyKey,
+              extraData,
+              signal
+            })
+          );
+        } catch (err) {
+          if (!(err instanceof ApiError)) throw err;
+          // Any 429 carrying Retry-After is backpressure; a `queue_full`
+          // without one gets the default pause, since servers omit it today.
+          const retryAfterS =
+            err.retryAfter ??
+            (err.code === "queue_full" ? DEFAULT_RETRY_AFTER_S : null);
+          // Clamp to what is left of the budget, so a hostile Retry-After
+          // (86400s) cannot sleep past it — the loop-entry check bounds when
+          // the next attempt starts, not how long this sleep runs.
+          const remainingMs = deadline - performance.now();
+          if (err.httpStatus === 429 && retryAfterS !== null && remainingMs > 0) {
+            await abortableSleep(Math.min(retryAfterS * 1000, remainingMs), signal);
+            continue;
+          }
+          throw err;
+        }
+      }
+    },
+    assetFromBytes: (bytes, filename, contentType) =>
+      assets.fromBytes(bytes, { filename, contentType })
+  };
+}
+
 export interface ComfyRunOptions {
   /** Cancels the submit, the event stream, and the output downloads. */
   signal: AbortSignal;
@@ -199,26 +369,30 @@ function abortError(message: string): Error {
 
 /** Turn an SDK error into a message a workflow author can act on. */
 export function describeComfyError(err: unknown): Error {
-  if (err instanceof QueueFull) {
-    const wait =
-      err.retryAfter === null ? "" : ` Retry after ${err.retryAfter}s.`;
+  // The high-level client throws `ComfyError` subclasses and `v2Transport`
+  // surfaces the low layer's `ApiError`s. Both carry the same `code` and
+  // `httpStatus`, so the mapping keys on those rather than on the class.
+  if (!(err instanceof ComfyError) && !(err instanceof ApiError)) {
+    return err instanceof Error ? err : new Error(String(err));
+  }
+  if (err.code === "queue_full") {
+    const retryAfter =
+      err instanceof QueueFull || err instanceof ApiError
+        ? err.retryAfter
+        : null;
+    const wait = retryAfter === null ? "" : ` Retry after ${retryAfter}s.`;
     return new Error(`Comfy queue is full: ${err.message}${wait}`);
   }
-  if (err instanceof WorkflowFormatUi) {
+  if (err.code === "workflow_format_ui") {
     return new Error(
       "ComfyUI workflow is in UI-export format. Save it with " +
         "Workflow → Export (API) and paste the API-format JSON instead."
     );
   }
-  if (
-    err instanceof InsufficientCredits ||
-    (err instanceof ComfyError && err.httpStatus === 402)
-  ) {
-    return new Error(
-      `Comfy account has insufficient credits: ${(err as ComfyError).message}`
-    );
+  if (err.code === "insufficient_credits" || err.httpStatus === 402) {
+    return new Error(`Comfy account has insufficient credits: ${err.message}`);
   }
-  return err instanceof Error ? err : new Error(String(err));
+  return err;
 }
 
 function jobFailure(job: ComfyJob): Error {

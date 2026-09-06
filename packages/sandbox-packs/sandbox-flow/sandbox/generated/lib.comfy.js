@@ -9,6 +9,9 @@ runWorkflow.stream = function(inputs) {
 function runWorkflowOnWorker(inputs) {
   return callNode("lib.comfy.RunWorkflowOnWorker", inputs);
 }
+runWorkflowOnWorker.stream = function(inputs) {
+  return streamNode("lib.comfy.RunWorkflowOnWorker", inputs);
+};
 function runWorkflowOnCloud(inputs) {
   return callNode("lib.comfy.RunWorkflowOnCloud", inputs);
 }

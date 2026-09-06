@@ -1,7 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { QueueFull, WorkflowFormatUi, InsufficientCredits } from "@comfyorg/sdk";
+import { ApiError } from "@comfyorg/sdk/low";
 import {
   runComfyWorkflow,
+  v2Transport,
   type ComfyJob,
   type ComfyJobError,
   type ComfyOutput,
@@ -478,6 +480,33 @@ describe("runComfyWorkflow — submit errors", () => {
     );
   });
 
+  it("explains a full queue reported by the low-level transport", async () => {
+    const transport = makeTransport(
+      new FakeJob([succeeded]),
+      new ApiError("no free workers", {
+        retryAfter: 3,
+        code: "queue_full",
+        httpStatus: 429
+      })
+    );
+    await expect(drain(run(transport))).rejects.toThrow(
+      "Comfy queue is full: no free workers Retry after 3s."
+    );
+  });
+
+  it("explains a 402 reported by the low-level transport", async () => {
+    const transport = makeTransport(
+      new FakeJob([succeeded]),
+      new ApiError("balance is 0", {
+        code: "insufficient_credits",
+        httpStatus: 402
+      })
+    );
+    await expect(drain(run(transport))).rejects.toThrow(
+      "Comfy account has insufficient credits: balance is 0"
+    );
+  });
+
   it("explains an exhausted credit balance", async () => {
     const transport = makeTransport(
       new FakeJob([succeeded]),
@@ -489,5 +518,302 @@ describe("runComfyWorkflow — submit errors", () => {
     await expect(drain(run(transport))).rejects.toThrow(
       "Comfy account has insufficient credits: balance is 0"
     );
+  });
+});
+
+// --------------------------------------------------------------------------
+// v2Transport — the reimplemented submit loop against a scripted wire.
+// --------------------------------------------------------------------------
+
+interface WireCall {
+  url: string;
+  method: string;
+  /** Header names lowercased, as `Headers` iteration yields them. */
+  headers: Record<string, string>;
+  body: string | undefined;
+}
+
+/**
+ * A `fetch` that answers from a positional script. The last responder repeats,
+ * so a retry loop of unknown length still gets an answer.
+ */
+function scriptFetch(responders: Array<() => Response>): {
+  fetchImpl: typeof fetch;
+  calls: WireCall[];
+} {
+  const calls: WireCall[] = [];
+  const fetchImpl = async (
+    input: RequestInfo | URL,
+    init?: RequestInit
+  ): Promise<Response> => {
+    const headers: Record<string, string> = {};
+    new Headers(init?.headers).forEach((value, key) => {
+      headers[key] = value;
+    });
+    calls.push({
+      url: String(input),
+      method: init?.method ?? "GET",
+      headers,
+      body: typeof init?.body === "string" ? init.body : undefined
+    });
+    const responder =
+      responders[calls.length - 1] ?? responders[responders.length - 1];
+    if (!responder) {
+      throw new Error(`unscripted request: ${String(input)}`);
+    }
+    return responder();
+  };
+  return { fetchImpl: fetchImpl as unknown as typeof fetch, calls };
+}
+
+function jobCreated(id = "job-42"): Response {
+  return new Response(
+    JSON.stringify({
+      id,
+      status: "queued",
+      created_at: "2026-01-01T00:00:00Z",
+      started_at: null,
+      completed_at: null,
+      expires_at: "2026-01-02T00:00:00Z",
+      queue_position: null,
+      progress: null,
+      outputs: [],
+      error: null,
+      urls: {
+        self: `/api/v2/jobs/${id}`,
+        cancel: `/api/v2/jobs/${id}/cancel`,
+        events: `/api/v2/jobs/${id}/events`
+      }
+    }),
+    { status: 201, headers: { "Content-Type": "application/json" } }
+  );
+}
+
+function queueFull(retryAfter?: string): Response {
+  return new Response(
+    JSON.stringify({
+      error: { code: "queue_full", message: "no free workers" }
+    }),
+    {
+      status: 429,
+      headers: {
+        "Content-Type": "application/json",
+        ...(retryAfter === undefined ? {} : { "Retry-After": retryAfter })
+      }
+    }
+  );
+}
+
+const v2Prompt: ComfyPrompt = {
+  "10": { class_type: "LoadImage", inputs: { image: "" } },
+  "13": { class_type: "SaveImage", inputs: { images: ["10", 0] } }
+};
+
+function fresh(): AbortSignal {
+  return new AbortController().signal;
+}
+
+describe("v2Transport — base URL", () => {
+  it("rejects a base URL carrying a query string", () => {
+    expect(() => v2Transport("http://comfy.test:8189/?token=abc")).toThrow(
+      TypeError
+    );
+    expect(() => v2Transport("http://comfy.test:8189/#frag")).toThrow(
+      /no query or fragment/
+    );
+    expect(() => v2Transport("ftp://comfy.test:8189")).toThrow(/http\(s\)/);
+  });
+});
+
+describe("v2Transport — submit", () => {
+  it("posts the workflow to /api/v2/jobs with a bearer key and an idempotency key", async () => {
+    const { fetchImpl, calls } = scriptFetch([() => jobCreated()]);
+    const transport = v2Transport("http://comfy.test:8189/", "ck_secret", {
+      fetch: fetchImpl
+    });
+
+    const job = await transport.submit(v2Prompt, { signal: fresh() });
+
+    expect(job.id).toBe("job-42");
+    expect(calls).toHaveLength(1);
+    expect(calls[0].method).toBe("POST");
+    // The trailing slash on the configured base URL is stripped, not doubled.
+    expect(calls[0].url).toBe("http://comfy.test:8189/api/v2/jobs");
+    expect(calls[0].headers.authorization).toBe("Bearer ck_secret");
+    expect(calls[0].headers["idempotency-key"]).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+    );
+    expect(JSON.parse(calls[0].body ?? "")).toEqual({ workflow: v2Prompt });
+  });
+
+  it("sends no Authorization header when no API key is configured", async () => {
+    const { fetchImpl, calls } = scriptFetch([() => jobCreated()]);
+    const transport = v2Transport("http://comfy.test:8189", undefined, {
+      fetch: fetchImpl
+    });
+
+    await transport.submit(v2Prompt, { signal: fresh() });
+
+    expect(calls[0].headers.authorization).toBeUndefined();
+  });
+
+  it("throws on UI-format JSON before touching the network", async () => {
+    const { fetchImpl, calls } = scriptFetch([() => jobCreated()]);
+    const transport = v2Transport("http://comfy.test:8189", undefined, {
+      fetch: fetchImpl
+    });
+    const uiFormat = {
+      nodes: [],
+      links: [],
+      last_node_id: 12
+    } as unknown as ComfyPrompt;
+
+    await expect(
+      transport.submit(uiFormat, { signal: fresh() })
+    ).rejects.toBeInstanceOf(WorkflowFormatUi);
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe("v2Transport — asset substitution", () => {
+  it("uploads an asset handle and posts it as a core/ASSET reference", async () => {
+    // The dedup fast path: the server already has these bytes, so the handle
+    // mints from the hash instead of streaming a multipart upload.
+    const { fetchImpl, calls } = scriptFetch([
+      () => new Response(null, { status: 200 }),
+      () =>
+        new Response(
+          JSON.stringify({
+            id: "asset-9",
+            hash: "blake3:deadbeef",
+            size_bytes: PNG.length,
+            content_type: "image/png",
+            file_path: "nodetool_10_image.png",
+            created_new: false,
+            created_at: "2026-01-01T00:00:00Z",
+            url: "https://cdn.test/asset-9",
+            url_expires_at: "2026-01-01T01:00:00Z"
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        ),
+      () => jobCreated()
+    ]);
+    const transport = v2Transport("http://comfy.test:8189", "ck_secret", {
+      fetch: fetchImpl
+    });
+
+    const handle = transport.assetFromBytes(
+      PNG,
+      "nodetool_10_image.png",
+      "image/png"
+    );
+    const graph: ComfyPrompt = {
+      "10": { class_type: "LoadImage", inputs: { image: handle } },
+      "13": { class_type: "SaveImage", inputs: { images: ["10", 0] } }
+    };
+
+    await transport.submit(graph, { signal: fresh() });
+
+    expect(calls[0].method).toBe("HEAD");
+    expect(calls[0].url).toContain("/api/v2/assets/by-hash/");
+    expect(calls[1].url).toBe("http://comfy.test:8189/api/v2/assets/from-hash");
+    const posted = JSON.parse(calls[2].body ?? "");
+    expect(posted.workflow["10"].inputs.image).toEqual({
+      __type: "core/ASSET",
+      info: {
+        id: "asset-9",
+        hash: "blake3:deadbeef",
+        file_path: "nodetool_10_image.png"
+      }
+    });
+    // The caller's graph still holds the handle; substitution happens on a copy.
+    expect(graph["10"].inputs.image).toBe(handle);
+    expect(posted.workflow["13"].inputs.images).toEqual(["10", 0]);
+  });
+});
+
+describe("v2Transport — 429 retry", () => {
+  it("retries a full queue with the same idempotency key and then succeeds", async () => {
+    const { fetchImpl, calls } = scriptFetch([
+      () => queueFull("0"),
+      () => jobCreated()
+    ]);
+    const transport = v2Transport("http://comfy.test:8189", "ck_secret", {
+      fetch: fetchImpl
+    });
+
+    const job = await transport.submit(v2Prompt, { signal: fresh() });
+
+    expect(job.id).toBe("job-42");
+    expect(calls).toHaveLength(2);
+    expect(calls[1].headers["idempotency-key"]).toBe(
+      calls[0].headers["idempotency-key"]
+    );
+  });
+
+  it("retries a queue_full sent without Retry-After", async () => {
+    vi.useFakeTimers();
+    try {
+      const { fetchImpl, calls } = scriptFetch([
+        () => queueFull(),
+        () => jobCreated()
+      ]);
+      const transport = v2Transport("http://comfy.test:8189", "ck_secret", {
+        fetch: fetchImpl
+      });
+      const settled = transport
+        .submit(v2Prompt, { signal: fresh() })
+        .then((job) => job.id);
+
+      // The default pause is 2 s when the server names none.
+      await vi.advanceTimersByTimeAsync(2_000);
+
+      await expect(settled).resolves.toBe("job-42");
+      expect(calls).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("clamps a hostile Retry-After to the budget and surfaces the error when it runs out", async () => {
+    vi.useFakeTimers();
+    try {
+      const { fetchImpl, calls } = scriptFetch([() => queueFull("86400")]);
+      const transport = v2Transport("http://comfy.test:8189", "ck_secret", {
+        fetch: fetchImpl
+      });
+      const settled = transport
+        .submit(v2Prompt, { signal: fresh() })
+        .then(() => null, (err: Error) => err);
+
+      // A day-long Retry-After must sleep at most the 60 s budget, so the
+      // whole loop is over once that much time has passed.
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      const err = await settled;
+      expect(err?.message).toBe("no free workers");
+      expect(calls).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rejects promptly when the signal aborts during the retry pause", async () => {
+    const { fetchImpl, calls } = scriptFetch([() => queueFull("3600")]);
+    const transport = v2Transport("http://comfy.test:8189", "ck_secret", {
+      fetch: fetchImpl
+    });
+    const controller = new AbortController();
+
+    const settled = transport.submit(v2Prompt, { signal: controller.signal });
+    // Let the first attempt fail and the (clamped, ~60 s) pause start.
+    while (calls.length === 0) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    await new Promise((resolve) => setImmediate(resolve));
+    controller.abort();
+
+    await expect(settled).rejects.toThrow(/canceled/);
+    expect(calls).toHaveLength(1);
   });
 });

@@ -4,7 +4,7 @@ function runWorkflow(inputs) {
   return createNode("lib.comfy.RunWorkflow", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true });
 }
 function runWorkflowOnWorker(inputs) {
-  return createNode("lib.comfy.RunWorkflowOnWorker", inputs, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode("lib.comfy.RunWorkflowOnWorker", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true });
 }
 function runWorkflowOnCloud(inputs) {
   return createNode("lib.comfy.RunWorkflowOnCloud", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true });

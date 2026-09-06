@@ -5,6 +5,7 @@ import { createNode, Connectable, DslNode } from "../core.js";
 // Run ComfyUI Workflow — lib.comfy.RunWorkflow
 export type RunWorkflowInputs = {
   endpoint?: Connectable<string>;
+  api?: Connectable<"native" | "v2">;
   workflow?: Connectable<string>;
   timeout?: Connectable<number>;
 };
@@ -31,7 +32,7 @@ export interface RunWorkflowOnWorkerOutputs {
 }
 
 export function runWorkflowOnWorker(inputs: RunWorkflowOnWorkerInputs): DslNode<RunWorkflowOnWorkerOutputs, "output"> {
-  return createNode("lib.comfy.RunWorkflowOnWorker", inputs, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode("lib.comfy.RunWorkflowOnWorker", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true });
 }
 
 // Run ComfyUI Workflow (Comfy Cloud) — lib.comfy.RunWorkflowOnCloud
