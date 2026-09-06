@@ -110,6 +110,15 @@ import { printCommandError } from "./command-errors.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+/**
+ * The CLI's own version, read from its package.json rather than repeated here.
+ * A literal drifts silently: it sat at "0.1.0" across every 0.7.0-rc release,
+ * so `nodetool --version` told users nothing about what they had installed.
+ */
+const CLI_VERSION: string = (
+  createRequire(import.meta.url)("../package.json") as { version: string }
+).version;
+
 // ---------------------------------------------------------------------------
 // DB setup (for secrets commands)
 // ---------------------------------------------------------------------------
@@ -266,7 +275,7 @@ function describeRunFailure(error: unknown): string {
 program
   .name("nodetool")
   .description("NodeTool CLI")
-  .version("0.1.0")
+  .version(CLI_VERSION)
   .option(
     "--trace-file <path>",
     "Append every LLM/agent/workflow span as JSONL to <path>"
@@ -392,7 +401,7 @@ program
       "HF_TOKEN"
     ];
     const data = {
-      version: "0.1.0",
+      version: CLI_VERSION,
       node_version: process.version,
       platform: process.platform,
       arch: process.arch,
