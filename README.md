@@ -7,17 +7,14 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 [![Powered by Atlas Cloud](https://www.atlascloud.ai/oss-program/powered-by-atlas-cloud.svg)](https://www.atlascloud.ai/?ref=PW9AD2)
 
-**Open-source creative AI workspace**
+**Open-source Agent-First Creative Workspace**
 
-Create and edit AI images, video, audio, and text in NodeTool, an open-source
+Create and edit AI media in NodeTool, an open-source
 creative studio. Describe what you want and the agent builds it. What comes
-back is a project, not a render: open it in the workflow canvas, storyboard, or
-timeline and re-roll one shot, re-voice one line, re-cut the ending.
+back is an editable project: open it and re-roll, re-voice or re-cut.
 
-The closed AI studios will generate your trailer too, on the model list they
-picked, priced in their credits, saved in a project only their app opens. When
-they raise the price or drop the model, the film goes with it. NodeTool hands
-the project back, on your keys.
+The closed AI studios will generate your media too, priced in their credits, 
+saved in their cloud, locked away. NodeTool hands the project back, on your keys.
 
 **[Download NodeTool Studio](https://github.com/nodetool-ai/nodetool/releases/latest)** ·
 **[Quick start](#first-run-in-studio)** ·
@@ -29,21 +26,18 @@ the project back, on your keys.
 ## Every model you need, on your own keys
 
 You connect the provider and NodeTool calls it with your key, so you pay that
-provider directly at their published price. An image that costs $0.03 at the
-provider costs $0.03 here. There is no NodeTool billing unit in between, and a
-price the provider drops is a price you get the same day. When a better model
-ships, add it the day it ships — no roster has to catch up first.
+provider directly at their price. There is no NodeTool billing unit in between. 
+When a better model ships, add it the day it ships.
+
 [Models and Providers](docs/models-and-providers.md) lists what runs where.
 
 ## Why NodeTool
 
-- Agents drive the real editors, not a transcript. They wire the graph, run it,
-  and repair failures within the limits you set, and you take the wheel at any
+- Agents drive the real editors. They wire the graph, run it, and you take the wheel at any
   point.
 - Inspect intermediate results, swap a model, and rerun only the part that
   changed.
-- The graph, inputs, assets, and edits stay together in your project. Export a
-  `.nodetool` bundle and reopen it in any NodeTool installation.
+- The graph, inputs, assets, and edits stay together in your project. 
 - Run the same workflow from the studio, the CLI, or an external agent over
   [MCP](#mcp).
 
@@ -58,16 +52,9 @@ storage and cloud providers rather than your machine's local models.
 1. Download the [latest release](https://github.com/nodetool-ai/nodetool/releases/latest)
    for your operating system and install it. See the
    [installation guide](docs/installation.md) for requirements and per-OS steps.
-2. Open Studio and press **+** on the workspace tab bar, then choose
-   **New storyboard…**.
-3. Choose the **Lighthouse Keeper** opening, listed as **already rendered**.
-   Open its shot cards to inspect the existing images and clips.
-4. Press **Preview**, then play the board to watch its shots in sequence.
-   Exploring this example does not require a provider key or new generation.
+2. Connect providers through **Settings → Models & Providers** to enable agents and media generation.
+3. Start a new project and follow along.
 
-Connect providers through **Settings → Models & Providers** when you are ready
-to generate new media. Cloud generation uses paid provider calls and needs no
-GPU.
 
 ## One workspace, brief through final cut
 
