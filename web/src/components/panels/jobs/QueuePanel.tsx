@@ -85,18 +85,26 @@ const QueuePanel = memo(function QueuePanel() {
 
   const { running, queued, cancelled, completed } = useMemo(() => {
     const all = jobs ?? [];
-    const status = (j: Job) => j.status ?? "";
-    return {
-      running: all.filter((j) => RUNNING.has(status(j))),
-      queued: all.filter((j) => QUEUED.has(status(j))),
-      cancelled: all.filter((j) => CANCELLED.has(status(j))),
-      completed: all.filter(
-        (j) =>
-          !RUNNING.has(status(j)) &&
-          !QUEUED.has(status(j)) &&
-          !CANCELLED.has(status(j))
-      )
-    };
+    const running: Job[] = [];
+    const queued: Job[] = [];
+    const cancelled: Job[] = [];
+    const completed: Job[] = [];
+
+    for (let i = 0; i < all.length; i++) {
+      const job = all[i];
+      const s = job.status ?? "";
+      if (RUNNING.has(s)) {
+        running.push(job);
+      } else if (QUEUED.has(s)) {
+        queued.push(job);
+      } else if (CANCELLED.has(s)) {
+        cancelled.push(job);
+      } else {
+        completed.push(job);
+      }
+    }
+
+    return { running, queued, cancelled, completed };
   }, [jobs]);
 
   if (isLoading) {
