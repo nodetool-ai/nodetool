@@ -813,6 +813,9 @@ export const timelineClip = z.object({
    * round-trips. */
   scriptId: z.string().optional(),
   scriptLineId: z.string().optional(),
+  /** The `setup.beats` entry this clip was generated from (PRD § 8.5). Without
+   * it the plan behind a finished timeline is unreadable after one save. */
+  beatId: z.string().optional(),
   status: z.enum([
     "draft",
     "queued",
@@ -874,12 +877,67 @@ export const timelineClip = z.object({
 });
 export type TimelineClip = z.infer<typeof timelineClip>;
 
+// ── Guided setup (PRD § 8.5) ─────────────────────────────────────────────────
+
+/**
+ * Where a sequence sits in the guided video flow. A sequence built before the
+ * flow existed carries no `setup` at all and opens straight in the editor, so
+ * there is no `"done"` default to write anywhere — absence is the signal.
+ */
+export const timelineSetupStage = z.enum([
+  "idea",
+  "format",
+  "review",
+  "look",
+  "done"
+]);
+export type TimelineSetupStage = z.infer<typeof timelineSetupStage>;
+
+/**
+ * One beat of the plan: the cheap, editable text the creator reviews before
+ * anything is spent (D4). `clip_id` is written at generate time, which is what
+ * lets the finished timeline be read back as the plan that produced it.
+ */
+export const timelineBeat = z
+  .object({
+    id: z.string(),
+    prompt: z.string(),
+    duration_ms: z.number(),
+    /** How this beat opens against the one before it, e.g. "crossfade". */
+    transition: z.string().optional(),
+    /** The line spoken over this beat. Absent or empty means no voiceover. */
+    voiceover: z.string().optional(),
+    music: z.boolean().optional(),
+    clip_id: z.string().optional()
+  })
+  .passthrough();
+export type TimelineBeat = z.infer<typeof timelineBeat>;
+
+/**
+ * The flow's state, on the document the flow produces (D19). Loose, like the
+ * beat: the field travels through the editor, autosave and version history
+ * untouched, so a client that knows more about it than this schema does keeps
+ * what it wrote.
+ */
+export const timelineSetup = z
+  .object({
+    stage: timelineSetupStage,
+    brief: z.string(),
+    /** The format card's id, e.g. "social-9x16". */
+    format: z.string().optional(),
+    beats: z.array(timelineBeat).optional()
+  })
+  .passthrough();
+export type TimelineSetup = z.infer<typeof timelineSetup>;
+
 export const timelineDocument = z.object({
   tracks: z.array(timelineTrack),
   clips: z.array(timelineClip),
   markers: z.array(timelineMarker),
   transcript: z.array(transcriptLine).optional(),
-  scriptEnabled: z.boolean().optional()
+  scriptEnabled: z.boolean().optional(),
+  /** Guided-setup state. Absent on every sequence not built through the flow. */
+  setup: timelineSetup.optional()
 });
 export type TimelineDocument = z.infer<typeof timelineDocument>;
 
@@ -899,6 +957,7 @@ export const timelineSequenceResponse = z.object({
   markers: z.array(timelineMarker),
   transcript: z.array(transcriptLine).optional(),
   scriptEnabled: z.boolean().optional(),
+  setup: timelineSetup.optional(),
   createdAt: z.string(),
   updatedAt: z.string()
 });

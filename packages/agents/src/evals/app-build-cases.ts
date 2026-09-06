@@ -31,6 +31,7 @@ import type {
 } from "./app-build-eval.js";
 import { APP_BUILD_TRAITS } from "./app-build-eval.js";
 import type { BuildSpec } from "../app-build/types.js";
+import type { WorkflowSetupPlan } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 /** The application id every `ui_app_*` call carries (see `author.ts`). */
 const APP = "app-under-build";
@@ -451,6 +452,40 @@ const REVIEW_SCRIPT: ScriptedToolCall[] = [
   }
 ];
 
+
+// ---------------------------------------------------------------------------
+// Deterministic case 3 — a workflow plan built into a graph that must produce
+// something (PRD § 11.6, R6)
+// ---------------------------------------------------------------------------
+
+/**
+ * The plan the Workflow flow's planner writes for a one-step text task.
+ *
+ * Every node type here is a real base node with no provider behind it, so the
+ * case builds a graph, checks it, and runs it on the kernel with no credentials
+ * — and is graded on what came out. That last part is the case's reason to
+ * exist: a plan naming node types that exist can build a graph that passes
+ * `validate_workflow` and produce nothing, and only running it says which.
+ */
+const TEXT_PASSTHROUGH_PLAN: WorkflowSetupPlan = {
+  inputs: [
+    {
+      name: "text",
+      type: "string",
+      sample: "The plan is reviewed before a node is placed."
+    }
+  ],
+  steps: [
+    {
+      id: "compose",
+      title: "Compose the post",
+      summary: "Lay the text into the post template.",
+      node_type: "nodetool.text.Template"
+    }
+  ],
+  outputs: [{ name: "post", type: "string" }]
+};
+
 // ---------------------------------------------------------------------------
 // The suite
 // ---------------------------------------------------------------------------
@@ -502,6 +537,22 @@ export const APP_BUILD_EVAL_CASES: readonly AppBuildEvalCase[] = [
         { widget: "published-output", equals: "PUBLISHED: SHIP IT" }
       ]
     }
+  },
+  {
+    id: "workflow-plan-to-graph",
+    description:
+      "Deterministic: a workflow plan built into a graph, validated, run, and graded on what it produced (R6)",
+    traits: ["multi-operation"],
+    planToGraph: {
+      plan: TEXT_PASSTHROUGH_PLAN,
+      outputs: [
+        {
+          name: "post",
+          contains: "The plan is reviewed before a node is placed."
+        }
+      ]
+    },
+    expect: {}
   },
   {
     id: "caption-review",
@@ -706,9 +757,9 @@ export const APP_BUILD_EVAL_CASES: readonly AppBuildEvalCase[] = [
 
 /** Case ids that need neither credentials nor network — the CI gate's set. */
 export const APP_BUILD_DETERMINISTIC_CASE_IDS: readonly string[] =
-  APP_BUILD_EVAL_CASES.filter((c) => c.deterministic !== undefined).map(
-    (c) => c.id
-  );
+  APP_BUILD_EVAL_CASES.filter(
+    (c) => c.deterministic !== undefined || c.planToGraph !== undefined
+  ).map((c) => c.id);
 
 /**
  * Traits no case exercises. The suite's claim is that it covers the PRD's

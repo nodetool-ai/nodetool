@@ -8,7 +8,8 @@
  * has already been replaced.
  */
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import type { ScriptSetup } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
 import {
   useScriptStore,
@@ -23,6 +24,7 @@ import { voiceLine, voiceAll } from "../../stores/script/scriptVoicing";
 import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useAssembleScriptTimeline } from "./useAssembleScriptTimeline";
 import { useDeriveStoryboard } from "./useDeriveStoryboard";
+import { useWriteScript } from "./useWriteScript";
 import {
   getScriptAgentHandler,
   hasScriptAgentHandler,
@@ -59,6 +61,11 @@ const toSpeakerNode = (speaker: ScriptSpeaker): ScriptSpeakerNode => ({
 export const useScriptAgentBridge = (scriptId: string): void => {
   const { assemble } = useAssembleScriptTimeline();
   const { derive } = useDeriveStoryboard();
+  const { write, error: writeError } = useWriteScript();
+  // The reason a refused write gives lands in state a render later, so the
+  // handler's own closure cannot see it. Mirror it and read the mirror.
+  const writeErrorRef = useRef<string | null>(null);
+  writeErrorRef.current = writeError;
 
   const handler = useMemo<ScriptAgentHandler>(() => {
     const store = () => useScriptStore.getState();
@@ -140,12 +147,37 @@ export const useScriptAgentBridge = (scriptId: string): void => {
         ),
         hasTimeline: script.timelineId !== null,
         timelineId: script.timelineId,
-        storyboardId: script.storyboardId
+        storyboardId: script.storyboardId,
+        setup: script.setup ?? null
       };
     };
 
     return {
       getSnapshot,
+
+      setSetup(patch: Partial<ScriptSetup>) {
+        requireScript();
+        store().setSetup(scriptId, patch);
+        const setup = requireScript().setup;
+        if (!setup) {
+          throw new Error(`Setup could not be written to script ${scriptId}.`);
+        }
+        return setup;
+      },
+
+      async write(options) {
+        requireScript();
+        const written = await write(scriptId, {
+          rewrite: options?.rewrite === true
+        });
+        if (!written) {
+          throw new Error(
+            writeErrorRef.current ?? "The writer did not return a script."
+          );
+        }
+        const snapshot = getSnapshot();
+        return { cast: snapshot.cast, lines: snapshot.lines };
+      },
 
       addSpeaker(
         name: string,
@@ -259,7 +291,7 @@ export const useScriptAgentBridge = (scriptId: string): void => {
         };
       }
     };
-  }, [scriptId, assemble, derive]);
+  }, [scriptId, assemble, derive, write]);
 
   useEffect(() => {
     if (!scriptId) return;

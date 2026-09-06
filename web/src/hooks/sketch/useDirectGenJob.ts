@@ -21,6 +21,55 @@ import {
   canvasToBlob
 } from "../../components/sketch/serialization";
 import { maskInpaintResult } from "../../lib/sketch/maskInpaintResult";
+import { computeLayerDependencyHash } from "../../lib/sketch/dependencyHash";
+import type {
+  LayerVersion,
+  LayerWorkflowBinding
+} from "@nodetool-ai/image-editor";
+
+/**
+ * What the take was made from. Two takes of the same binding hash the same, so
+ * editing the prompt (or asking for a different seed) marks the layer stale
+ * against its last generation — the same rule workflow-bound layers follow.
+ */
+const directGenDependencyHash = (binding: LayerWorkflowBinding): string =>
+  computeLayerDependencyHash({
+    workflowId: `direct:${binding.kind ?? "text-to-image"}`,
+    workflowUpdatedAt: "",
+    paramOverrides: {
+      prompt: binding.prompt,
+      provider: binding.provider,
+      model: binding.model,
+      width: binding.width,
+      height: binding.height,
+      seed: binding.seed
+    },
+    inputAssetHashes: []
+  });
+
+const directGenVersion = (
+  binding: LayerWorkflowBinding,
+  requestId: string,
+  assetId: string
+): LayerVersion => ({
+  id: crypto.randomUUID(),
+  createdAt: new Date().toISOString(),
+  // Direct generation opens no job row; the RPC request id is the only
+  // identifier the take ever had, and it is what a trace correlates on.
+  jobId: requestId,
+  assetId,
+  workflowUpdatedAt: "",
+  dependencyHash: directGenDependencyHash(binding),
+  paramOverridesSnapshot: {
+    prompt: binding.prompt ?? "",
+    provider: binding.provider ?? "",
+    model: binding.model ?? "",
+    width: binding.width ?? null,
+    height: binding.height ?? null,
+    seed: binding.seed ?? null
+  },
+  status: "success"
+});
 
 function assetIdFromUri(uri: string | undefined | null): string | null {
   if (!uri || !uri.startsWith("asset://")) return null;
@@ -275,9 +324,18 @@ export function useDirectGenJob(): UseDirectGenJobApi {
         return;
       }
 
-      store.patchBinding(layerId, {
-        status: "generated",
-        currentAssetId: finalAssetId
+      // A direct-gen take is a take: record it as a `layerVersion` so the
+      // layer keeps its history the way a workflow-bound layer does. The image
+      // flow depends on it — a picked variation and every hidden one carry
+      // their record (PRD § 10.4, criterion 5) — and the version list in the
+      // inspector reads the same rows. The record is written onto the binding
+      // rather than through `sketch.versions.append`, because a direct-gen
+      // binding is created client-side and the server has not seen it until
+      // the next autosave.
+      store.recordGeneratedVersion(layerId, {
+        version: directGenVersion(binding, requestId, finalAssetId),
+        dependencyHash: directGenDependencyHash(binding),
+        assetId: finalAssetId
       });
     };
 
@@ -310,6 +368,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
           resolution: binding.resolution,
           strength: binding.strength,
           num_inference_steps: binding.numInferenceSteps,
+          seed: binding.seed,
           variations: 1
         }
       });

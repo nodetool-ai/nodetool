@@ -14,6 +14,8 @@
  * lines also by 0-based document index or the literal `"selected"` keyword.
  */
 
+import type { ScriptSetup } from "@nodetool-ai/protocol/api-schemas/scripts.js";
+
 import type { VoiceBinding } from "../../stores/script/ScriptStore";
 import type {
   SubtitleFormat,
@@ -61,6 +63,8 @@ export interface ScriptSnapshot {
   timelineId: string | null;
   /** Storyboard derived from this script in this session, if any. */
   storyboardId: string | null;
+  /** Where the script sits in the guided setup, or null when it has none. */
+  setup: ScriptSetup | null;
 }
 
 /** Fields the agent can supply when adding a line. */
@@ -80,6 +84,21 @@ export interface ScriptAddLineInput {
  */
 export interface ScriptAgentHandler {
   getSnapshot: () => ScriptSnapshot;
+  /**
+   * Merge fields into the guided setup (stage, brief, format, length, pace,
+   * language), seeding one at stage `idea` when the script has none. Returns
+   * the setup as it stands after the write.
+   */
+  setSetup: (patch: Partial<ScriptSetup>) => ScriptSetup;
+  /**
+   * Write the script from its brief, format and length, or rewrite the one it
+   * already has. Imported words are only split and attributed, never
+   * rewritten. Returns the cast and the lines that resulted.
+   */
+  write: (options?: { rewrite?: boolean }) => Promise<{
+    cast: ScriptSpeakerNode[];
+    lines: ScriptLineNode[];
+  }>;
   addSpeaker: (
     name: string,
     voice?: VoiceBinding,

@@ -24,7 +24,11 @@ import type { HttpApiOptions } from "../http-api.js";
 import type { JobRunExecutionHooks } from "../job-run-registry.js";
 import type { ChatTurnHandler } from "./chat-turn.js";
 import type { ClientSession } from "./client-session.js";
-import type { DirectInferenceHandler } from "./inference.js";
+import type { MessageContent } from "@nodetool-ai/runtime";
+import type {
+  DirectInferenceHandler,
+  DirectTextContent
+} from "./inference.js";
 import type { RunJobRequest } from "./job-execution.js";
 
 const log = createLogger("nodetool.websocket.runner");
@@ -673,13 +677,21 @@ export class CommandRouter {
       const provider = String(data.provider ?? defaults.provider);
       const model = String(data.model ?? defaults.model);
       const rawMessages = Array.isArray(data.messages) ? data.messages : [];
-      const messages: Array<{ role: string; content: string }> =
+      // Content travels as a string or as content blocks. The blocks are how a
+      // caller sends a picture to look at — the storyboard's "Add your own
+      // style" reads reference images this way — and the providers take the
+      // same shape here as they do from a chat turn.
+      const messages: Array<{ role: string; content: DirectTextContent }> =
         rawMessages.length > 0
           ? rawMessages.map((m) => {
               const msg = m as Record<string, unknown>;
               return {
                 role: isString(msg.role) ? msg.role : "user",
-                content: isString(msg.content) ? msg.content : ""
+                content: isString(msg.content)
+                  ? msg.content
+                  : Array.isArray(msg.content)
+                    ? (msg.content as MessageContent[])
+                    : ""
               };
             })
           : [];
@@ -757,6 +769,7 @@ export class CommandRouter {
       const numInferenceSteps = isNumber(data.num_inference_steps)
         ? (data.num_inference_steps as number)
         : undefined;
+      const seed = isNumber(data.seed) ? (data.seed as number) : undefined;
       const durationSeconds = isNumber(data.duration)
         ? (data.duration as number)
         : undefined;
@@ -782,6 +795,7 @@ export class CommandRouter {
           resolution,
           strength,
           numInferenceSteps,
+          seed,
           durationSeconds,
           variations,
           voice,

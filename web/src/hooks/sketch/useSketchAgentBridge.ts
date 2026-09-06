@@ -35,6 +35,11 @@ import {
 import { useSketchInstance } from "../../stores/sketch/SketchInstance";
 import type { SketchCanvasRefState } from "../../stores/sketch/SketchCanvasRefStore";
 import { useDirectGenJob } from "./useDirectGenJob";
+import { requestRefinedBrief } from "./useRefineBrief";
+import {
+  IMAGE_USE_CASES,
+  findImageUseCase
+} from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import {
   renderLayerToAsset,
   renderLayersMerged
@@ -243,8 +248,42 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
           backgroundColor: state.backgroundColor || "#000000",
           activeTool: state.activeTool,
           hasSelection: state.hasActiveSelection,
-          layers: d.layers.map((l, i) => toLayerNode(l, i, bindingFor(l.id)))
+          layers: d.layers.map((l, i) => toLayerNode(l, i, bindingFor(l.id))),
+          setup: d.setup
         };
+      },
+
+      setSetup(patch) {
+        const next = { ...patch };
+        if (patch.use_case !== undefined) {
+          const useCase = findImageUseCase(patch.use_case);
+          if (!useCase) {
+            throw new Error(
+              `use_case must be one of ${IMAGE_USE_CASES.map((entry) => entry.id).join(", ")}.`
+            );
+          }
+          // The card writes the same two defaults, so an agent that picks a
+          // use case gets the document a person would have got.
+          next.variations ??=
+            editor.getState().document.setup?.variations ??
+            useCase.defaultVariations;
+          editor
+            .getState()
+            .resizeCanvas(useCase.defaultSize.width, useCase.defaultSize.height);
+        }
+        editor.getState().setSetup(next);
+        return editor.getState().document.setup ?? {};
+      },
+
+      async refineBrief() {
+        const setup = editor.getState().document.setup;
+        const refined = await requestRefinedBrief({
+          brief: setup?.brief,
+          use_case: setup?.use_case
+        });
+        // D4: one language-model call and one store write. No layer, no job.
+        editor.getState().setSetup({ refined, stage: "review" });
+        return editor.getState().document.setup ?? {};
       },
 
       addLayer(opts) {
@@ -375,6 +414,7 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
           height,
           aspectRatio: opts.aspectRatio,
           resolution: opts.resolution,
+          seed: opts.seed,
           sourceLayerId,
           status: "draft",
           versions: []

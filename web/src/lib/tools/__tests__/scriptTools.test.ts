@@ -42,11 +42,14 @@ const snapshot = (): ScriptSnapshot => ({
   lines: [lineNode()],
   hasTimeline: false,
   timelineId: null,
-  storyboardId: null
+  storyboardId: null,
+  setup: null
 });
 
 const createMockHandler = (): jest.Mocked<ScriptAgentHandler> => ({
   getSnapshot: jest.fn(),
+  setSetup: jest.fn(),
+  write: jest.fn(),
   addSpeaker: jest.fn(),
   setSpeakerVoice: jest.fn(),
   addLine: jest.fn(),

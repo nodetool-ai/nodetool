@@ -55,6 +55,8 @@ const board = (timelineId: string | null): StoryboardBoard => ({
   style: "",
   entityIds: [],
   aspectRatio: "16:9",
+  setupStage: "done",
+  genre: "",
   directorModel: null,
   imageModel: null,
   videoModel: null,

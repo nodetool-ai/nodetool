@@ -40,6 +40,26 @@ import {
   userIdOf,
   workflowRecord
 } from "../tools/mcp-tool-support.js";
+import {
+  planNodeShape,
+  planToPlacement,
+  parseWorkflowPlan,
+  resolveWorkflowPlan,
+  WORKFLOW_PLANNER_SYSTEM_PROMPT,
+  WORKFLOW_PLAN_TOOL_DESCRIPTION,
+  WORKFLOW_PLAN_TOOL_NAME,
+  buildWorkflowPlanSchema,
+  type PlanNodeLookup
+} from "@nodetool-ai/protocol";
+import {
+  readWorkflowSetup,
+  workflowSetupPlan,
+  writeWorkflowSetup,
+  type WorkflowPlanStep,
+  type WorkflowSetup,
+  type WorkflowSetupPlan
+} from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { declareDynamicOutputsInGraph } from "../dynamic-slots.js";
 import { findCapability } from "./registry.js";
 import { REQUEST_SECRET_TOOL_NAME } from "./settings.specs.js";
@@ -67,10 +87,14 @@ import {
   startBackgroundJobSpec,
   getExampleWorkflowSpec,
   exportWorkflowDigraphSpec,
+  setWorkflowSetupSpec,
+  planWorkflowSpec,
+  updateWorkflowPlanStepSpec,
+  buildWorkflowFromPlanSpec,
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT
 } from "./workflows.specs.js";
-import { isObjectLike, isString } from "../utils/type-guards.js";
+import { isNumber, isObjectLike, isString } from "../utils/type-guards.js";
 
 /** The run environment this run can execute a workflow in, or null. */
 function runEnvironmentOf(run: CapabilityRun) {
@@ -840,6 +864,456 @@ const exportWorkflowDigraph: CapabilityExport = {
   }
 };
 
+
+// ── Guided setup (PRD § 11.6) ────────────────────────────────────────────────
+//
+// The headless half of the Workflow creation flow: write the setup answers,
+// plan the steps, edit one step, build the graph from the plan. The browser
+// drives the same four through `ui_workflow_set_setup`, `ui_workflow_plan`,
+// `ui_workflow_update_plan_step` and `ui_workflow_build_from_plan`, and both
+// halves share the planner contract and the plan→graph builder in
+// `@nodetool-ai/protocol`, so a plan built here places the nodes the editor
+// would have placed.
+//
+// Two rules carry the phase and both are asserted:
+//
+//  - `plan_workflow` places no node (criterion 3). It writes text and nothing
+//    else.
+//  - `build_workflow_from_plan` refuses a plan that still names an unknown node
+//    type (D23), and reports the wiring it could not do rather than reporting a
+//    graph that validates and produces nothing (R6).
+
+/** How many candidate node types the planner prompt lists. */
+const CANDIDATE_LIMIT = 60;
+
+/**
+ * Which model role each provider capability answers. Read to decide whether a
+ * step's role is covered — the same question the review step's amber marker
+ * asks in the browser (D23).
+ */
+const ROLE_CAPABILITY: Readonly<Record<string, string>> = {
+  language: "generate_message",
+  image: "text_to_image",
+  video: "text_to_video",
+  audio: "text_to_speech"
+};
+
+interface OwnedSetup {
+  row: WorkflowRow;
+  setup: WorkflowSetup | null;
+}
+
+async function loadOwned(
+  run: CapabilityRun,
+  id: string
+): Promise<OwnedSetup | { error: string }> {
+  const { Workflow } = await import("@nodetool-ai/models");
+  const row = (await Workflow.get(id)) as WorkflowRow | null;
+  if (!row || row.user_id !== userIdOf(run.context)) {
+    return { error: `Workflow ${id} was not found, or it is not yours.` };
+  }
+  return { row, setup: readWorkflowSetup(row.settings) };
+}
+
+const isError = (value: unknown): value is { error: string } =>
+  isObjectLike(value) && isString((value as { error?: unknown }).error);
+
+/** Write a setup patch back onto the row, leaving the rest of `settings` alone. */
+async function persistSetup(
+  row: WorkflowRow,
+  patch: Partial<WorkflowSetup>,
+  extra: { graph?: WorkflowRow["graph"] } = {}
+): Promise<WorkflowRow | { error: string }> {
+  const { Workflow } = await import("@nodetool-ai/models");
+  const fields: Parameters<typeof Workflow.updateFieldsIfUnchanged>[2] = {
+    settings: writeWorkflowSetup(row.settings, patch)
+  };
+  if (extra.graph !== undefined) {
+    fields.graph = extra.graph;
+  }
+  const updated = await Workflow.updateFieldsIfUnchanged(
+    row.id,
+    row.updated_at,
+    fields
+  );
+  if (!updated) {
+    return {
+      error: `Workflow ${row.id} changed since you read it — read it again and retry.`
+    };
+  }
+  return updated as WorkflowRow;
+}
+
+/** The plan on the row, or the reason there is none to act on. */
+function requirePlan(
+  setup: WorkflowSetup | null
+): WorkflowSetupPlan | { error: string } {
+  const plan = setup?.plan;
+  if (!plan) {
+    return {
+      error:
+        "This workflow has no plan yet. Run plan_workflow first, or store one with plan_workflow's `plan` argument."
+    };
+  }
+  return plan;
+}
+
+/** Grade a plan against the live registry and this install's providers. */
+async function reviewPlan(
+  run: CapabilityRun,
+  plan: WorkflowSetupPlan
+): Promise<ReturnType<typeof resolveWorkflowPlan>> {
+  const registry = run.nodeRegistry;
+  const providers = run.providers ?? {};
+  const { providerCapabilities } = await import("@nodetool-ai/runtime");
+  const capabilities = new Set<string>();
+  for (const provider of Object.values(providers)) {
+    for (const capability of providerCapabilities(provider)) {
+      capabilities.add(capability);
+    }
+  }
+  return resolveWorkflowPlan(plan, {
+    // With no registry nothing can be confirmed, so every step reads unknown
+    // and the build is blocked — the same answer validate_workflow gives.
+    knownNodeType: (type) => registry?.has(type) === true,
+    providerConfigured: (role) => {
+      const capability = ROLE_CAPABILITY[role];
+      // A role nothing maps to is not a provider question; do not block on it.
+      if (capability === undefined) return true;
+      return capabilities.size === 0 ? false : capabilities.has(capability);
+    }
+  });
+}
+
+/** Shape the review into the marker list the caller renders (D23). */
+function reviewReport(resolved: ReturnType<typeof resolveWorkflowPlan>) {
+  return {
+    can_continue: resolved.canContinue,
+    missing_roles: resolved.missingRoles,
+    steps: resolved.steps.map((entry) => ({
+      id: entry.step.id,
+      title: entry.step.title,
+      summary: entry.step.summary,
+      node_type: entry.step.node_type,
+      model_role: entry.step.model_role ?? null,
+      unknown_node_type: entry.unknownNodeType,
+      missing_provider: entry.missingProvider,
+      block: entry.block
+    }))
+  };
+}
+
+/** The registry lookup the builder wires from. */
+function registryLookup(registry: NodeRegistry): PlanNodeLookup {
+  return (nodeType) => {
+    const meta = registry.getMetadata(nodeType);
+    return meta ? planNodeShape(meta) : null;
+  };
+}
+
+// ── set_workflow_setup ──────────────────────────────────────────────────────
+
+const setWorkflowSetup: CapabilityExport = {
+  spec: setWorkflowSetupSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const owned = await loadOwned(run, id);
+    if (isError(owned)) return owned;
+
+    const patch: Partial<WorkflowSetup> = {};
+    if (isString(params["brief"])) patch.brief = params["brief"];
+    if (isString(params["category"])) patch.category = params["category"];
+    if (isString(params["run_mode"])) {
+      patch.run_mode = params["run_mode"] as WorkflowSetup["run_mode"];
+    }
+    if (isString(params["stage"])) {
+      patch.stage = params["stage"] as WorkflowSetup["stage"];
+    }
+    if (Object.keys(patch).length === 0) {
+      return {
+        error: "Nothing to set — pass brief, category, run_mode or stage."
+      };
+    }
+
+    const saved = await persistSetup(owned.row, patch);
+    if (isError(saved)) return saved;
+    return { workflow_id: id, setup: readWorkflowSetup(saved.settings) };
+  }
+};
+
+// ── plan_workflow ───────────────────────────────────────────────────────────
+
+/** Candidate node types for the planner prompt, ranked against the brief. */
+function candidateLines(registry: NodeRegistry, terms: string[]): string[] {
+  const ranked = registry.searchMetadata(terms).slice(0, CANDIDATE_LIMIT);
+  return ranked.map(
+    (entry) =>
+      `- ${entry.meta.node_type}: ${entry.meta.title} — ${entry.meta.description.split("\n")[0]}`
+  );
+}
+
+const planWorkflow: CapabilityExport = {
+  spec: planWorkflowSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const owned = await loadOwned(run, id);
+    if (isError(owned)) return owned;
+
+    const brief = owned.setup?.brief?.trim() ?? "";
+    const supplied = params["plan"];
+
+    let plan: WorkflowSetupPlan | null = null;
+    if (supplied !== undefined) {
+      // A plan handed in replaces the model call outright: it is how a harness
+      // case and a replay reach the builder with no provider at all.
+      const parsed = workflowSetupPlan.safeParse(
+        parseWorkflowPlan(supplied) ?? supplied
+      );
+      if (!parsed.success) {
+        return { error: "`plan` is not a plan ({inputs, steps, outputs})." };
+      }
+      plan = parsed.data;
+    } else {
+      if (brief.length === 0) {
+        return {
+          error:
+            "This workflow has no brief, so there is nothing to plan. Write one with set_workflow_setup first."
+        };
+      }
+      const registry = run.nodeRegistry;
+      if (!registry) {
+        return {
+          error:
+            "Cannot plan: no node registry is available in this process, so no step could name a node type that exists."
+        };
+      }
+      const provider = isString(params["provider"]) ? params["provider"] : "";
+      const model = isString(params["model"]) ? params["model"] : "";
+      if (provider.length === 0 || model.length === 0) {
+        return {
+          error:
+            "Pass provider and model to plan, or pass a `plan` to store without calling one."
+        };
+      }
+      const { generateStructured } = await import("@nodetool-ai/runtime");
+      const category = owned.setup?.category ?? "";
+      const terms = brief
+        .split(/\s+/)
+        .filter((term: string) => term.length > 2);
+      const candidates = candidateLines(registry, terms);
+      const raw = await generateStructured(
+        await run.context.getProvider(provider),
+        {
+          model,
+          maxTokens: 4096,
+          messages: [
+            { role: "system", content: WORKFLOW_PLANNER_SYSTEM_PROMPT },
+            {
+              role: "user",
+              content: [
+                `Task: ${brief}`,
+                category ? `Kind of workflow: ${category}` : "",
+                "",
+                "Candidate node types:",
+                ...candidates
+              ]
+                .filter((line) => line !== "")
+                .join("\n")
+            }
+          ],
+          toolName: WORKFLOW_PLAN_TOOL_NAME,
+          toolDescription: WORKFLOW_PLAN_TOOL_DESCRIPTION,
+          schema: buildWorkflowPlanSchema()
+        }
+      );
+      plan = parseWorkflowPlan(raw);
+      if (!plan) {
+        return { error: "The planner did not return a plan." };
+      }
+    }
+
+    // Nothing below places a node — criterion 3. The plan is text on the row.
+    const saved = await persistSetup(owned.row, { plan, stage: "review" });
+    if (isError(saved)) return saved;
+    const resolved = await reviewPlan(run, plan);
+    return {
+      workflow_id: id,
+      stage: "review",
+      plan,
+      review: reviewReport(resolved),
+      nodes_placed: 0
+    };
+  }
+};
+
+// ── update_workflow_plan_step ───────────────────────────────────────────────
+
+const updateWorkflowPlanStep: CapabilityExport = {
+  spec: updateWorkflowPlanStepSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const owned = await loadOwned(run, id);
+    if (isError(owned)) return owned;
+    const plan = requirePlan(owned.setup);
+    if (isError(plan)) return plan;
+
+    const op = isString(params["op"]) ? params["op"] : "update";
+    const stepId = isString(params["step_id"]) ? params["step_id"] : null;
+    const steps = [...plan.steps];
+    const at = stepId === null ? -1 : steps.findIndex((s) => s.id === stepId);
+    if (op !== "add" && at === -1) {
+      return {
+        error: `No plan step "${stepId ?? ""}". The step ids are: ${steps
+          .map((step) => step.id)
+          .join(", ")}.`
+      };
+    }
+
+    const fields: Partial<WorkflowPlanStep> = {};
+    if (isString(params["title"])) fields.title = params["title"];
+    if (isString(params["summary"])) fields.summary = params["summary"];
+    if (params["node_type"] !== undefined) {
+      fields.node_type = isString(params["node_type"])
+        ? params["node_type"]
+        : null;
+    }
+    if (isString(params["model_role"])) {
+      fields.model_role = params["model_role"];
+    }
+
+    if (op === "remove") {
+      steps.splice(at, 1);
+    } else if (op === "move") {
+      if (!isNumber(params["index"])) {
+        return { error: "op 'move' needs an `index`." };
+      }
+      const [moved] = steps.splice(at, 1);
+      steps.splice(Math.max(0, Math.min(steps.length, params["index"])), 0, moved);
+    } else if (op === "add") {
+      const added: WorkflowPlanStep = {
+        id: stepId ?? `step-${steps.length + 1}`,
+        title: fields.title ?? "New step",
+        summary: fields.summary ?? "",
+        node_type: fields.node_type ?? null
+      };
+      if (fields.model_role !== undefined) {
+        added.model_role = fields.model_role;
+      }
+      steps.splice(
+        isNumber(params["index"])
+          ? Math.max(0, Math.min(steps.length, params["index"]))
+          : steps.length,
+        0,
+        added
+      );
+    } else {
+      steps[at] = { ...steps[at], ...fields };
+    }
+
+    const next = workflowSetupPlan.parse({ ...plan, steps });
+    const saved = await persistSetup(owned.row, { plan: next });
+    if (isError(saved)) return saved;
+    const resolved = await reviewPlan(run, next);
+    return { workflow_id: id, plan: next, review: reviewReport(resolved) };
+  }
+};
+
+// ── build_workflow_from_plan ────────────────────────────────────────────────
+
+const buildWorkflowFromPlan: CapabilityExport = {
+  spec: buildWorkflowFromPlanSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const owned = await loadOwned(run, id);
+    if (isError(owned)) return owned;
+    const plan = requirePlan(owned.setup);
+    if (isError(plan)) return plan;
+
+    const registry = run.nodeRegistry;
+    if (!registry) {
+      return {
+        error:
+          "Cannot build: no node registry is available in this process, so no node type could be resolved."
+      };
+    }
+
+    // D23: an unknown type blocks the build, and names itself.
+    const resolved = await reviewPlan(run, plan);
+    const unknown = resolved.steps.filter((entry) => entry.unknownNodeType);
+    if (unknown.length > 0) {
+      return {
+        error:
+          "Every step must name a node type the registry has before the graph is built. " +
+          `Unresolved: ${unknown
+            .map((entry) => `${entry.step.id} (${entry.step.node_type ?? "no type"})`)
+            .join(", ")}. Fix them with update_workflow_plan_step.`,
+        review: reviewReport(resolved)
+      };
+    }
+
+    const placement = planToPlacement(plan, registryLookup(registry));
+    const graph = {
+      nodes: placement.nodes.map((node) => ({
+        id: node.id,
+        type: node.type,
+        data: node.properties,
+        ui_properties: { position: node.position, setup_step_id: node.setupStepId },
+        dynamic_properties: node.dynamicProperties ?? {},
+        dynamic_outputs: {}
+      })),
+      edges: placement.edges.map((edge, index) => ({
+        id: `e${index + 1}`,
+        source: edge.source,
+        sourceHandle: edge.sourceHandle,
+        target: edge.target,
+        targetHandle: edge.targetHandle
+      }))
+    };
+
+    const validation = await validateBuiltGraph(run, graph);
+    const save = params["save"] !== false;
+    let savedRow: WorkflowRow | null = null;
+    if (save) {
+      const written = await persistSetup(
+        owned.row,
+        { stage: "done" },
+        { graph: graph as unknown as WorkflowRow["graph"] }
+      );
+      if (isError(written)) return written;
+      savedRow = written;
+    }
+
+    return {
+      workflow_id: id,
+      saved: savedRow !== null,
+      stage: save ? "done" : owned.setup?.stage ?? "setup",
+      graph,
+      /** Plan input name → the sample a test run should send. */
+      sample_inputs: Object.fromEntries(
+        plan.inputs.map((input: WorkflowSetupPlan["inputs"][number]) => [
+          input.name,
+          input.sample ?? ""
+        ])
+      ),
+      /**
+       * What the builder could not wire. Empty is the only value that means the
+       * graph does what the plan described — a validated graph with issues here
+       * is exactly the R6 failure: it runs and produces nothing.
+       */
+      issues: placement.issues,
+      validation
+    };
+  }
+};
+
+/** Run the same static checks `validate_workflow` runs, on a built graph. */
+async function validateBuiltGraph(
+  run: CapabilityRun,
+  graph: { nodes: unknown[]; edges: unknown[] }
+): Promise<unknown> {
+  return validateWorkflow.impl(run, { graph });
+}
+
 /** Every workflow capability, in the order `getAllMcpTools` offered them. */
 export const WORKFLOW_CAPABILITIES: readonly CapabilityExport[] = [
   listWorkflows,
@@ -859,7 +1333,11 @@ export const WORKFLOW_CAPABILITIES: readonly CapabilityExport[] = [
   validateWorkflow,
   getExampleWorkflow,
   exportWorkflowDigraph,
-  startBackgroundJob
+  startBackgroundJob,
+  setWorkflowSetup,
+  planWorkflow,
+  updateWorkflowPlanStep,
+  buildWorkflowFromPlan
 ];
 
 export const module: CapabilityModule = {
@@ -885,5 +1363,10 @@ export {
   validateWorkflow,
   getExampleWorkflow,
   exportWorkflowDigraph,
-  startBackgroundJob
+  startBackgroundJob,
+  setWorkflowSetup,
+  planWorkflow,
+  updateWorkflowPlanStep,
+  buildWorkflowFromPlan,
+  registryLookup
 };

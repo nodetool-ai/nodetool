@@ -60,6 +60,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   browser_status: "read",
   browser_upload_asset: "external",
   browser_view: "read",
+  build_workflow_from_plan: "write",
   cancel_job: "write",
   close_node_stream: "read",
   compare_images: "external",
@@ -75,6 +76,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   delete_composition: "write",
   get_composition: "read",
   list_compositions: "read",
+  plan_workflow: "write",
   save_composition: "write",
   create_model3d: "write",
   create_plan: "read",
@@ -104,6 +106,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   derive_storyboard_from_script: "write",
   detect_audio_events: "read",
   detect_video_scenes: "read",
+  direct_storyboard: "write",
   download_file: "write",
   edit_app: "write",
   edit_file: "write",
@@ -200,6 +203,8 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   list_model3ds: "read",
   list_game_templates: "read",
   export_godot_project: "write",
+  set_workflow_setup: "write",
+  update_workflow_plan_step: "write",
   verify_godot_project: "read",
   list_models: "read",
   list_nodes: "read",
@@ -228,6 +233,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   compare_timeline_frames: "read",
   read_media_bytes: "read",
   read_shared: "read",
+  refine_image_brief: "write",
   render_model3d: "write",
   render_storyboard_clips: "write",
   render_timeline: "write",
@@ -300,6 +306,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   wait_subtasks: "read",
   web_search: "read",
   write_file: "write",
+  write_script: "write",
   yt_dlp: "external"
 };
 

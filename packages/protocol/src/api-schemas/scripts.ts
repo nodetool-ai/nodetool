@@ -59,6 +59,11 @@ export const scriptLine = z.object({
   direction: z.string().optional(),
   /** Authored silence after this line, used when laying out a timeline. */
   pauseAfterMs: z.number().optional(),
+  /**
+   * How long this line is meant to take, in ms. Written by a subtitle import,
+   * where the cue's own timing is the target the take should hit (PRD § 9.1).
+   */
+  targetDurationMs: z.number().optional(),
   /** Per-line voice override; falls back to the speaker's voice when absent. */
   voiceOverride: voiceBinding.nullable().optional(),
   takes: z.array(take).default([]),
@@ -75,9 +80,43 @@ export type ScriptSection = z.infer<typeof scriptSection>;
 
 // ── Document ─────────────────────────────────────────────────────────────────
 
+/** Where a script sits in the guided setup. A script written before it reads "done". */
+export const scriptSetupStage = z.enum([
+  "idea",
+  "format",
+  "review",
+  "voices",
+  "done"
+]);
+export type ScriptSetupStage = z.infer<typeof scriptSetupStage>;
+
+/** How fast the cast reads, which is what turns a word count into seconds. */
+export const scriptPace = z.enum(["slow", "normal", "fast"]);
+export type ScriptPace = z.infer<typeof scriptPace>;
+
+/**
+ * The guided flow's own state (PRD § 9.5). Optional: a script written before
+ * the flow existed has no `setup` and opens as the editor, which is why every
+ * field but the stage is optional and the object passes unknown keys through —
+ * a newer client's field survives a round trip through an older one.
+ */
+export const scriptSetup = z
+  .object({
+    stage: scriptSetupStage,
+    brief: z.string().default(""),
+    /** One of the § 9.2 format ids, e.g. "voiceover". Free-form on purpose. */
+    format: z.string().optional(),
+    length_seconds: z.number().optional(),
+    pace: scriptPace.optional(),
+    language: z.string().optional()
+  })
+  .passthrough();
+export type ScriptSetup = z.infer<typeof scriptSetup>;
+
 export const scriptDocument = z.object({
   cast: z.array(speaker).default([]),
-  sections: z.array(scriptSection).default([])
+  sections: z.array(scriptSection).default([]),
+  setup: scriptSetup.optional()
 });
 export type ScriptDocumentSchema = z.infer<typeof scriptDocument>;
 

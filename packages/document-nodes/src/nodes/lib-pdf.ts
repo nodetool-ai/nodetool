@@ -12,6 +12,7 @@ import {
   requireDocumentBytes,
   type DocumentRefLike
 } from "../document-bytes.js";
+import { parsePdfBuffer } from "../lib/pdf-text.js";
 
 async function resolvePdfBuffer(
   pdf: DocumentRefLike,
@@ -24,10 +25,7 @@ async function parsePdf(
   pdf: DocumentRefLike,
   context?: ProcessingContext
 ): Promise<ParseResult> {
-  const { LiteParse } = await import("@llamaindex/liteparse");
-  const pdfBuffer = await resolvePdfBuffer(pdf, context);
-  const parser = new LiteParse({ ocrEnabled: false });
-  return parser.parse(pdfBuffer, true);
+  return parsePdfBuffer(await resolvePdfBuffer(pdf, context));
 }
 
 function resolvePageRange(

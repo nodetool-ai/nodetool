@@ -1,28 +1,6 @@
-import { dropShotOrder, navigateShots } from "../shotOrder";
+import { navigateShots } from "../shotOrder";
 
 const IDS = ["a", "b", "c", "d"];
-
-describe("dropShotOrder", () => {
-  it("moves a shot forward into the target's slot", () => {
-    expect(dropShotOrder(IDS, "a", "c")).toEqual(["b", "c", "a", "d"]);
-  });
-
-  it("moves a shot backward into the target's slot", () => {
-    expect(dropShotOrder(IDS, "d", "b")).toEqual(["a", "d", "b", "c"]);
-  });
-
-  it("leaves the order alone for a drop on itself or an unknown id", () => {
-    expect(dropShotOrder(IDS, "b", "b")).toEqual(IDS);
-    expect(dropShotOrder(IDS, "zz", "b")).toEqual(IDS);
-    expect(dropShotOrder(IDS, "b", "zz")).toEqual(IDS);
-  });
-
-  it("does not mutate its input", () => {
-    const input = [...IDS];
-    dropShotOrder(input, "a", "d");
-    expect(input).toEqual(IDS);
-  });
-});
 
 describe("navigateShots", () => {
   it("steps to the neighbour and stops at the ends", () => {

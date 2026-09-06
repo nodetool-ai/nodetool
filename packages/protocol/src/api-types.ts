@@ -421,7 +421,12 @@ export interface Workflow {
   graph: WorkflowGraph;
   input_schema?: Record<string, unknown> | null;
   output_schema?: Record<string, unknown> | null;
-  settings?: Record<string, string | number | boolean | null> | null;
+  /**
+   * Client-owned settings bag. Values nest: the guided creation flow keeps a
+   * `setup` record here (PRD § 11.5), and the zod schema and the models layer
+   * have always typed it `Record<string, unknown>`.
+   */
+  settings?: Record<string, unknown> | null;
   package_name?: string | null;
   path?: string | null;
   run_mode?: string | null;
@@ -452,7 +457,12 @@ export interface WorkflowRequest {
   tags?: string[] | null;
   access: string;
   graph?: WorkflowGraph;
-  settings?: Record<string, string | number | boolean | null> | null;
+  /**
+   * Client-owned settings bag. Values nest: the guided creation flow keeps a
+   * `setup` record here (PRD § 11.5), and the zod schema and the models layer
+   * have always typed it `Record<string, unknown>`.
+   */
+  settings?: Record<string, unknown> | null;
   run_mode?: string | null;
   workspace_id?: string | null;
   html_app?: string | null;
