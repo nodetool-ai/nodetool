@@ -17,13 +17,37 @@
 import { z } from "zod";
 import type { GameSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
+/**
+ * What the last completed run's export node answered, kept beside the build.
+ *
+ * The live run lives in `ResultsStore`/`WorkflowRunsStore`, neither of which
+ * survives a reload, and `startRunReconciliation` only reattaches jobs that are
+ * still going — so a creator who exports, closes the tab and comes back has no
+ * directory, no zip and three disabled buttons. The outcome is small and it is
+ * the document's own result, so it travels with the document.
+ *
+ * `job_id` is what makes the write idempotent: one record per completed run,
+ * overwritten by the next one rather than appended to.
+ */
+export const gameExportSchema = z.object({
+  job_id: z.string(),
+  directory: z.string().nullable(),
+  archive: z.string().nullable(),
+  verified: z.boolean(),
+  verification_reason: z.string().nullable(),
+  checked: z.number(),
+  total: z.number()
+});
+export type GameExportRecord = z.infer<typeof gameExportSchema>;
+
 /** What `useBuildGame` returned, in the shape the document stores it. */
 export const gameBuildSchema = z.object({
   node_count: z.number(),
   issues: z.array(z.string()),
   validation_errors: z.array(z.string()),
   run_started: z.boolean(),
-  run_error: z.string().nullable()
+  run_error: z.string().nullable(),
+  export: gameExportSchema.optional()
 });
 export type GameBuildRecord = z.infer<typeof gameBuildSchema>;
 
@@ -35,6 +59,11 @@ export const readGameBuild = (
   const parsed = gameBuildSchema.safeParse(game?.[GAME_BUILD_KEY]);
   return parsed.success ? parsed.data : null;
 };
+
+/** The last completed export the document kept, or null when it kept none. */
+export const readGameExport = (
+  game: GameSetup | null
+): GameExportRecord | null => readGameBuild(game)?.export ?? null;
 
 /** The stored record for one build result. */
 export const gameBuildRecord = (result: {

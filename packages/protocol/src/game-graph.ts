@@ -43,6 +43,20 @@ export const GAME_MUSIC_LOOP_NODE_TYPE = "nodetool.game.MusicLoop";
 export const GAME_EXPORT_NODE_TYPE = "nodetool.game.ExportGodotProject";
 export const GAME_PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 
+/**
+ * The five checker node types, one per slot kind — exactly what
+ * `checkerTypeFor` returns. A slot's asset is only filled once its checker
+ * accepted it, so this is how a reader tells the node that means "checked"
+ * from the generator and resize nodes that share the slot's `setupStepId`.
+ */
+export const GAME_CHECKER_NODE_TYPES: readonly string[] = [
+  GAME_SPRITESHEET_NODE_TYPE,
+  GAME_TILESET_NODE_TYPE,
+  GAME_SEAMLESS_IMAGE_NODE_TYPE,
+  GAME_SOUND_EFFECT_NODE_TYPE,
+  GAME_MUSIC_LOOP_NODE_TYPE
+];
+
 /** The output node the export result lands on, named for the landing step. */
 export const GAME_PROJECT_OUTPUT_NAME = "project";
 

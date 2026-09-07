@@ -18,6 +18,7 @@ import {
   GAME_TEXT_TO_IMAGE_NODE_TYPE,
   GAME_TEXT_TO_MUSIC_NODE_TYPE,
   GAME_TILESET_NODE_TYPE,
+  GAME_CHECKER_NODE_TYPES,
   GAME_PLACEHOLDER_SENTINEL,
   gameAudioChoice,
   gameGraphPlacement,
@@ -576,6 +577,28 @@ describe("gameGraphPlacement", () => {
       }
     });
   }
+});
+
+describe("GAME_CHECKER_NODE_TYPES", () => {
+  // The landing checklist counts a slot as checked off its checker alone, so
+  // this list has to name the checker of every chain the placement builds —
+  // one per slot kind, and never the generator, resize or preview beside it.
+  it("names exactly one node of every chain the placement builds", () => {
+    const placement = gameGraphPlacement(platformer, design, choices(), lookup);
+    const bySlot = new Map<string, string[]>();
+    for (const node of placement.nodes) {
+      const slot = node.setupStepId;
+      if (slot === undefined) continue;
+      bySlot.set(slot, [...(bySlot.get(slot) ?? []), node.type]);
+    }
+    expect(bySlot.size).toBe(platformer.slots.length);
+    for (const [slot, types] of bySlot) {
+      const checkers = types.filter((type) =>
+        GAME_CHECKER_NODE_TYPES.includes(type)
+      );
+      expect([slot, checkers.length]).toEqual([slot, 1]);
+    }
+  });
 });
 
 describe("gameProjectSlug", () => {

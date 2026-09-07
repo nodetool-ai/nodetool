@@ -25,9 +25,12 @@
  * of them read as not verified, and the reason is shown instead.
  */
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { Node } from "@xyflow/react";
-import { GAME_EXPORT_NODE_TYPE } from "@nodetool-ai/protocol";
+import {
+  GAME_CHECKER_NODE_TYPES,
+  GAME_EXPORT_NODE_TYPE
+} from "@nodetool-ai/protocol";
 
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import useResultsStore from "../../../stores/ResultsStore";
@@ -36,9 +39,21 @@ import useErrorStore, {
   type NodeError
 } from "../../../stores/ErrorStore";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
+import {
+  useGameSetupDocument,
+  useGameSetupWriter
+} from "../../../hooks/game/useGameSetup";
 import type { NodeData } from "../../../stores/NodeData";
 import type { Generation } from "../../../utils/nodeGenerations";
 import { isRecord } from "../../../utils/typePredicates";
+import {
+  GAME_BUILD_KEY,
+  readGameBuild,
+  type GameExportRecord
+} from "./gameExtras";
+
+/** The node of a slot's chain whose result means the asset passed its check. */
+const CHECKER_TYPES = new Set<string>(GAME_CHECKER_NODE_TYPES);
 
 /** One node of the built graph, as the summary needs it. */
 export interface GameRunNode {
@@ -131,9 +146,18 @@ export const summarizeGameRun = ({
     const slotId = node.slotId as string;
     bySlot.set(slotId, [...(bySlot.get(slotId) ?? []), node]);
   }
+  // Only the checker counts, never the generator or the resize beside it: they
+  // share the slot's `setupStepId`, and a TextToImage that finished says
+  // nothing about whether the sheet it produced has the cells the template
+  // needs. A checker that errored is not a checked slot either.
   let checked = 0;
   for (const [, chain] of bySlot) {
-    if (chain.some((node) => outputsFor(node.id) !== undefined)) {
+    const checker = chain.find((node) => CHECKER_TYPES.has(node.type));
+    if (
+      checker !== undefined &&
+      outputsFor(checker.id) !== undefined &&
+      nodeErrorToDisplayString(errorFor(checker.id)).length === 0
+    ) {
       checked += 1;
     }
   }
@@ -191,6 +215,33 @@ export const completedOutputs = (
   return latest && isRecord(latest.outputs) ? latest.outputs : undefined;
 };
 
+/** The last completed export, read back as the checklist's rows. */
+const storedSummary = (record: GameExportRecord): GameRunSummary => ({
+  checked: record.checked,
+  total: record.total,
+  directory: record.directory,
+  archive: record.archive,
+  verified: record.verified,
+  verificationReason: record.verification_reason,
+  // Not kept: a failure belongs to the run that produced it, and the run is
+  // over. What failed is in the job's own logs.
+  failures: []
+});
+
+/** What the document keeps of a finished run, out of that run's summary. */
+const exportRecord = (
+  jobId: string,
+  summary: GameRunSummary
+): GameExportRecord => ({
+  job_id: jobId,
+  directory: summary.directory,
+  archive: summary.archive,
+  verified: summary.verified,
+  verification_reason: summary.verificationReason,
+  checked: summary.checked,
+  total: summary.total
+});
+
 /**
  * The live summary for one workflow's focused run.
  *
@@ -199,7 +250,7 @@ export const completedOutputs = (
  * errors are subscribed to, because they are what arrives while the checklist
  * is on screen.
  */
-export const useGameRunSummary = (workflowId: string): GameRunSummary => {
+const useLiveGameRunSummary = (workflowId: string): GameRunSummary => {
   const nodeStore = useWorkflowManager((state) =>
     state.getNodeStore(workflowId)
   );
@@ -224,4 +275,47 @@ export const useGameRunSummary = (workflowId: string): GameRunSummary => {
         errors[`${workflowId}:${jobId}:${nodeId}` as keyof typeof errors]
     });
   }, [errors, jobId, liveGenerations, nodeStore, workflowId]);
+};
+
+/**
+ * The checklist's rows: this workflow's live run, or the last completed export
+ * the document kept when there is no live run to read.
+ *
+ * Both run stores are in memory only, and `startRunReconciliation` reattaches
+ * jobs that are still going, not ones that finished — so after a reload the
+ * live half of this is empty and the export outcome has to come off the
+ * document. It is written there once per completed run, keyed by job id.
+ *
+ * The persisted record is read only while this workflow has no focused job, so
+ * a re-run in progress shows its own (empty) state and never the last run's
+ * green rows.
+ */
+export const useGameRunSummary = (workflowId: string): GameRunSummary => {
+  const live = useLiveGameRunSummary(workflowId);
+  const jobId = useWorkflowRunsStore((state) => state.focusedJob[workflowId]);
+  const build = readGameBuild(useGameSetupDocument(workflowId));
+  const { setGame } = useGameSetupWriter(workflowId);
+  // The document lands a save later than the render that started it; without
+  // this the same job would be written on every frame until it comes back.
+  const written = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (jobId === undefined || live.directory === null || build === null) {
+      return;
+    }
+    if (build.export?.job_id === jobId || written.current === jobId) {
+      return;
+    }
+    written.current = jobId;
+    void setGame({
+      [GAME_BUILD_KEY]: { ...build, export: exportRecord(jobId, live) }
+    }).catch(() => {
+      written.current = null;
+    });
+  }, [build, jobId, live, setGame]);
+
+  if (jobId === undefined && build?.export) {
+    return storedSummary(build.export);
+  }
+  return live;
 };

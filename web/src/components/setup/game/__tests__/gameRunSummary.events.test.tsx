@@ -58,16 +58,24 @@ const NODES = [
   }
 ];
 
+/** The workflow the tab holds, with whatever `settings.game` this test seeded. */
+let settings: Record<string, unknown> = {};
+const workflowRow = () => ({ id: WORKFLOW_ID, name: "Ember Run", settings });
+const managerState = {
+  getWorkflow: workflowRow,
+  getNodeStore: () => ({
+    getState: () => ({ nodes: NODES, getWorkflow: workflowRow })
+  }),
+  updateWorkflow: (next: { settings: Record<string, unknown> }) => {
+    settings = next.settings;
+  },
+  saveWorkflow: jest.fn(async () => {})
+};
 jest.mock("../../../../contexts/WorkflowManagerContext", () => ({
   __esModule: true,
-  useWorkflowManager: <T,>(
-    selector: (state: {
-      getNodeStore: (id: string) => { getState: () => { nodes: unknown[] } };
-    }) => T
-  ) =>
-    selector({
-      getNodeStore: () => ({ getState: () => ({ nodes: NODES }) })
-    })
+  useWorkflowManager: (selector: (state: unknown) => unknown) =>
+    selector(managerState),
+  useWorkflowManagerStore: () => ({ getState: () => managerState })
 }));
 
 const workflow = stub<WorkflowAttributes>({
@@ -156,6 +164,7 @@ const emitCompletedExport = () => {
 };
 
 beforeEach(() => {
+  settings = {};
   useResultsStore.setState({
     outputResults: {},
     liveGenerations: {}
@@ -226,6 +235,59 @@ describe("the checklist against the run's own messages", () => {
     expect(result.current.verificationReason).toBe(
       "No Godot binary on this server"
     );
+  });
+
+  // The generator, the resize and the checker all carry the slot's
+  // `setupStepId`. A picture that came back is not a picture that passed the
+  // template's cell grid, so only the checker moves this row.
+  it("does not count a slot whose generator finished but whose checker has not", () => {
+    emit(
+      stub<NodeUpdate>({
+        type: "node_update",
+        node_id: "gen_player",
+        node_name: "TextToImage",
+        node_type: "nodetool.image.TextToImage",
+        status: "completed",
+        result: { output: { type: "image", uri: "a.png" } },
+        job_id: JOB_ID
+      })
+    );
+    const { result } = renderHook(() => useGameRunSummary(WORKFLOW_ID));
+    expect(result.current).toMatchObject({ checked: 0, total: 1 });
+  });
+
+  it("does not count a slot whose checker refused the asset", () => {
+    emit(
+      stub<NodeUpdate>({
+        type: "node_update",
+        node_id: "gen_player",
+        node_name: "TextToImage",
+        node_type: "nodetool.image.TextToImage",
+        status: "completed",
+        result: { output: { type: "image", uri: "a.png" } },
+        job_id: JOB_ID
+      })
+    );
+    emit(
+      stub<NodeUpdate>({
+        type: "node_update",
+        node_id: "check_player",
+        node_name: "SpriteSheet",
+        node_type: "nodetool.game.SpriteSheet",
+        status: "error",
+        error: "the sheet is 3 cells wide, the slot needs 4",
+        job_id: JOB_ID
+      })
+    );
+    const { result } = renderHook(() => useGameRunSummary(WORKFLOW_ID));
+    expect(result.current.checked).toBe(0);
+    expect(result.current.failures).toEqual([
+      {
+        nodeId: "check_player",
+        slotId: "player",
+        error: "the sheet is 3 cells wide, the slot needs 4"
+      }
+    ]);
   });
 
   it("names a node that failed by the slot it was filling", () => {

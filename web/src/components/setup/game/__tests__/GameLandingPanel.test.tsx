@@ -21,9 +21,20 @@ const nodes = [
   { id: "check_1", type: "nodetool.game.SpriteSheet", data: { setupStepId: "player" } },
   { id: "export", type: GAME_EXPORT_NODE_TYPE, data: {} }
 ];
+const saveWorkflow = jest.fn(async () => {});
+const updateWorkflow = jest.fn((workflow: { settings: unknown }) => {
+  settings = workflow.settings as Record<string, unknown>;
+});
 const managerState = {
   getWorkflow: () => ({ id: "w1", name: "W", settings, graph: null }),
-  getNodeStore: () => ({ getState: () => ({ nodes }) })
+  getNodeStore: () => ({
+    getState: () => ({
+      nodes,
+      getWorkflow: () => ({ id: "w1", name: "W", settings, graph: null })
+    })
+  }),
+  updateWorkflow,
+  saveWorkflow
 };
 jest.mock("../../../../contexts/WorkflowManagerContext", () => ({
   useWorkflowManager: (selector: (state: unknown) => unknown) =>
@@ -35,30 +46,25 @@ jest.mock("../../../../contexts/WorkflowManagerContext", () => ({
 // `generation_complete` and a completed `node_update` both write, keyed by
 // handle. The checklist reads its rows out of this, never out of
 // `outputResults` (see gameRunSummary's header).
-const liveGenerations: Record<string, unknown[]> = {
-  "w1:check_1": [
-    {
-      id: "job1",
-      jobId: "job1",
-      createdAt: 1,
-      status: "completed",
-      outputs: { output: { asset_id: "a" }, fill: { slot_id: "player" } }
-    }
-  ],
-  "w1:export": [
-    {
-      id: "job1",
-      jobId: "job1",
-      createdAt: 1,
-      status: "completed",
-      outputs: {
-        directory: "games/ember-run",
-        archive: "games/ember-run.zip",
-        verified: true
-      }
-    }
-  ]
+const CHECKED = {
+  id: "job1",
+  jobId: "job1",
+  createdAt: 1,
+  status: "completed",
+  outputs: { output: { asset_id: "a" }, fill: { slot_id: "player" } }
 };
+const EXPORTED = {
+  id: "job1",
+  jobId: "job1",
+  createdAt: 1,
+  status: "completed",
+  outputs: {
+    directory: "games/ember-run",
+    archive: "games/ember-run.zip",
+    verified: true
+  }
+};
+const liveGenerations: Record<string, unknown[]> = {};
 jest.mock("../../../../stores/ResultsStore", () => ({
   __esModule: true,
   default: (selector: (state: unknown) => unknown) =>
@@ -72,10 +78,12 @@ jest.mock("../../../../stores/ErrorStore", () => {
     default: (selector: (state: unknown) => unknown) => selector({ errors: {} })
   };
 });
+// Mutated per test: a focused job is a run this session is watching, and an
+// empty map is what a reload leaves behind.
+const focusedJob: Record<string, string> = { w1: "job1" };
 jest.mock("../../../../stores/WorkflowRunsStore", () => ({
   __esModule: true,
-  default: (selector: (state: unknown) => unknown) =>
-    selector({ focusedJob: { w1: "job1" } })
+  default: (selector: (state: unknown) => unknown) => selector({ focusedJob })
 }));
 
 const openTab = jest.fn();
@@ -123,9 +131,17 @@ jest.mock("../../../../lib/tools/frontendToolRuntimeState", () => ({
   getFrontendToolRuntimeState: () => ({})
 }));
 
-import { writeGameSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import {
+  readGameSetup,
+  writeGameSetup
+} from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { GameLandingPanel } from "../GameLandingPanel";
-import { GAME_BUILD_KEY, gameBuildRecord, readGameBuild } from "../gameExtras";
+import {
+  GAME_BUILD_KEY,
+  gameBuildRecord,
+  readGameBuild,
+  readGameExport
+} from "../gameExtras";
 import { stageProjectFirstTurn } from "../../../projects/projectAgent";
 
 jest.mock("../../../projects/projectAgent", () => ({
@@ -175,9 +191,31 @@ const renderPanel = () =>
     </ThemeProvider>
   );
 
+/** What the document keeps of the run the checklist above just finished. */
+const EXPORT = {
+  job_id: "job1",
+  directory: "games/ember-run",
+  archive: "games/ember-run.zip",
+  verified: true,
+  verification_reason: null,
+  checked: 1,
+  total: 1
+};
+
+/** A reload: both run stores are in memory only, so both come back empty. */
+const afterReload = () => {
+  delete focusedJob["w1"];
+  for (const key of Object.keys(liveGenerations)) {
+    delete liveGenerations[key];
+  }
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
   settings = built();
+  focusedJob["w1"] = "job1";
+  liveGenerations["w1:check_1"] = [CHECKED];
+  liveGenerations["w1:export"] = [EXPORTED];
 });
 
 describe("GameLandingPanel", () => {
@@ -199,6 +237,52 @@ describe("GameLandingPanel", () => {
     settings = value;
     const { container } = renderPanel();
     expect(container).toBeEmptyDOMElement();
+  });
+
+  // Both run stores are in memory only, so a reload leaves the checklist with
+  // nothing to read. The outcome the run persisted is what brings it back.
+  it("restores a finished export after a reload", () => {
+    settings = built({ [GAME_BUILD_KEY]: { ...BUILD, export: EXPORT } });
+    afterReload();
+    renderPanel();
+
+    expect(screen.getByText("games/ember-run")).toBeInTheDocument();
+    expect(screen.getByText("Verified with Godot 4.3")).toBeInTheDocument();
+    expect(screen.getByText("1 of 1")).toBeInTheDocument();
+    for (const name of [
+      "Open project folder",
+      "Download project",
+      "Play-test with the agent"
+    ]) {
+      expect(screen.getByRole("button", { name })).toBeEnabled();
+    }
+  });
+
+  it("writes the finished export onto the document, once, keyed by job", () => {
+    renderPanel();
+    expect(readGameExport(readGameSetup(settings))).toMatchObject({
+      job_id: "job1",
+      directory: "games/ember-run",
+      archive: "games/ember-run.zip",
+      verified: true,
+      checked: 1,
+      total: 1
+    });
+    expect(saveWorkflow).toHaveBeenCalledTimes(1);
+  });
+
+  // A re-run is this workflow's live state, however green the last one was.
+  it("shows the new run rather than the last one once one starts", () => {
+    settings = built({ [GAME_BUILD_KEY]: { ...BUILD, export: EXPORT } });
+    afterReload();
+    focusedJob["w1"] = "job2";
+    renderPanel();
+
+    expect(screen.getByText("Waiting for the export node")).toBeInTheDocument();
+    expect(screen.queryByText("games/ember-run")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Open project folder" })
+    ).toBeDisabled();
   });
 
   it("opens the project file in a workspace-file tab", async () => {
