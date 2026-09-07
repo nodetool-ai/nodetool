@@ -39,6 +39,14 @@ interface BassNote {
  * Group the events into the order a mono voice plays them: sorted by onset,
  * and each note marked as sliding when it starts before its predecessor's
  * gate closes.
+ *
+ * "Predecessor" is the note that held the voice, not the longest note so far.
+ * The voice is monophonic, so a short note takes it over from a long one and
+ * releases on its own gate — measured against the longest gate seen, a later
+ * note would be called a slide into an envelope that had already finished, and
+ * `renderBassVoices` would render it as silence. Read this way a slide always
+ * starts while its predecessor is still gated, and a gated envelope is never
+ * released, so an inherited one is always live.
  */
 function monoOrder(events: ReadonlyArray<BassVoiceEvent>): BassNote[] {
   const sorted = [...events].sort(
@@ -55,7 +63,7 @@ function monoOrder(events: ReadonlyArray<BassVoiceEvent>): BassNote[] {
       continue;
     }
     notes.push({ event, slide: event.startFrame < previousGateOff });
-    previousGateOff = Math.max(previousGateOff, event.gateOffFrame);
+    previousGateOff = event.gateOffFrame;
   }
   return notes;
 }

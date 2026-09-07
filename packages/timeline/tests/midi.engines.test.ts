@@ -279,6 +279,23 @@ describe("BL-1", () => {
     expect(rms(slid, ...window)).toBeGreaterThan(rms(retriggered, ...window) * 3);
   });
 
+  it("plays a note whose predecessor already let go", () => {
+    // A short note takes the voice over from a long one and releases before
+    // the next onset. That third note does not overlap anything still
+    // sounding, so it is a fresh note — not a slide into a finished envelope.
+    const rendered = renderInstrumentEvents(
+      [
+        note(40, 100, 0, 1000),
+        note(47, 100, 200, 100),
+        note(52, 100, 500, 200)
+      ],
+      ms(900),
+      bl1,
+      SAMPLE_RATE
+    );
+    expect(peak(rendered, ms(500), ms(700))).toBeGreaterThan(0.01);
+  });
+
   it("hits harder on an accent", () => {
     const plain = renderInstrumentEvents(
       [note(40, 99, 0, 300)],
