@@ -139,7 +139,16 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
           onChange={handlePicked}
         />
         {files.length > 0 ? (
-          <FlexColumn gap={GAP.tight} component="ul">
+          <FlexColumn
+            gap={GAP.tight}
+            component="ul"
+            sx={{
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
+              "& li": { listStyle: "none" }
+            }}
+          >
             {files.map((file, index) => (
               <FlexRow
                 key={`${file.name}:${index}`}

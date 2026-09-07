@@ -40,7 +40,11 @@ export const ShotlistReport: React.FC<ShotlistReportProps> = ({
         {shotCount} shot{shotCount === 1 ? "" : "s"} imported. These values did
         not come with them.
       </Text>
-      <FlexColumn gap={GAP.tight} component="ul">
+      <FlexColumn
+        gap={GAP.tight}
+        component="ul"
+        sx={{ listStyle: "none", margin: 0, padding: 0, "& li": { listStyle: "none" } }}
+      >
         {entries.map((entry) => (
           <Caption
             key={`${entry.row}:${entry.column}:${entry.value}`}

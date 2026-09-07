@@ -20,6 +20,9 @@ jest.mock("../../../components/setup/storyboard/LookStep", () => ({
     generate: jest.fn(async () => {})
   })
 }));
+jest.mock("../../../components/setup/storyboard/EntitiesStep", () => ({
+  EntitiesStep: () => null
+}));
 
 jest.mock("../../storyboard/StoryboardBoard", () => ({
   __esModule: true,
@@ -138,7 +141,8 @@ describe("StoryboardSurface setup stages", () => {
   it.each([
     ["idea", "Continue"],
     ["genre", "Generate screenplay"],
-    ["review", "Choose the look"],
+    ["review", "Set up entities"],
+    ["entities", "Choose the look"],
     ["look", "Generate your storyboard"]
   ] as const)("mounts the %s step, not the board", (stage, primary) => {
     seedBoard(stage);

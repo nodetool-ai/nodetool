@@ -69,6 +69,9 @@ export interface SetupStep<Stage extends string> {
    */
   primaryDetail?: ReactNode;
   generation?: GenerationSummaryProps;
+  /** Optional way to leave a non-required step without making a selection. */
+  skipLabel?: string;
+  onSkip?: () => void | Promise<void>;
 }
 
 export interface SetupFlowConfig<Stage extends string> {

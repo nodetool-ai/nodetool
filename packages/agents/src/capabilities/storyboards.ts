@@ -84,6 +84,7 @@ const SETUP_STAGES: readonly StoryboardSetupStage[] = [
   "idea",
   "genre",
   "review",
+  "entities",
   "look",
   "done"
 ];

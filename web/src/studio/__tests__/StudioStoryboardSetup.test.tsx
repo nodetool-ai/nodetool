@@ -67,6 +67,9 @@ jest.mock("../../components/setup/storyboard/LookStep", () => ({
     generate: jest.fn(async () => {})
   })
 }));
+jest.mock("../../components/setup/storyboard/EntitiesStep", () => ({
+  EntitiesStep: () => null
+}));
 
 jest.mock("../../hooks/useDocumentUndoShortcuts", () => ({
   useDocumentUndoShortcuts: jest.fn()
@@ -114,7 +117,8 @@ describe("StudioStoryboardPage setup stages", () => {
   it.each([
     ["idea", "Continue"],
     ["genre", "Generate screenplay"],
-    ["review", "Choose the look"],
+    ["review", "Set up entities"],
+    ["entities", "Choose the look"],
     ["look", "Generate your storyboard"]
   ] as const)("mounts the %s step, not the board", (stage, primary) => {
     useStoryboardStore.getState().ensureBoard(BOARD_ID);

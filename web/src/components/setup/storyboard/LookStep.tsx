@@ -348,7 +348,16 @@ export const LookStep: React.FC<LookStepProps> = ({ boardId }) => {
                     shotlistImport.entries.length === 1 ? "" : "s"
                   } did not come with them`}
                 </Caption>
-                <FlexColumn gap={GAP.tight} component="ul">
+                <FlexColumn
+                  gap={GAP.tight}
+                  component="ul"
+                  sx={{
+                    listStyle: "none",
+                    margin: 0,
+                    padding: 0,
+                    "& li": { listStyle: "none" }
+                  }}
+                >
                   {shotlistImport.entries.map((entry) => (
                     <Caption
                       key={`${entry.row}:${entry.column}:${entry.value}`}

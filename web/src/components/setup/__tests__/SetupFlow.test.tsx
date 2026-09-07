@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
+import { useBugReportStore } from "../../../stores/BugReportStore";
 import { SetupFlow } from "../SetupFlow";
 import type { SetupFlowConfig, SetupStep } from "../types";
 
@@ -132,13 +133,16 @@ describe("SetupFlow", () => {
     expect(onStageChange).toHaveBeenCalledWith("review");
   });
 
-  it("keeps the stage and shows the message when the step's action fails", async () => {
+  it("keeps the stage and shows a reportable failure screen when the action fails", async () => {
     const user = userEvent.setup();
+    const failingAction = jest
+      .fn()
+      .mockRejectedValue(new Error("Director unavailable"));
     const failing = steps.map((entry) =>
       entry.stage === "genre"
         ? {
             ...entry,
-            onAdvance: () => Promise.reject(new Error("Director unavailable"))
+            onAdvance: failingAction
           }
         : entry
     );
@@ -153,6 +157,22 @@ describe("SetupFlow", () => {
         "Director unavailable"
       )
     );
+    expect(
+      screen.getByRole("heading", {
+        name: "We couldn't complete this step"
+      })
+    ).toBeInTheDocument();
+    expect(screen.queryByText("genre body")).toBeNull();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
+
+    await user.click(
+      screen.getByRole("button", { name: "Report this failure" })
+    );
+    expect(useBugReportStore.getState().context).toMatchObject({
+      source: "manual",
+      summary: "Storyboard setup failed at Story",
+      errorText: "Director unavailable"
+    });
     expect(onStageChange).not.toHaveBeenCalled();
   });
 

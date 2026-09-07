@@ -115,7 +115,11 @@ const SourcePanel: React.FC<SourcePanelProps> = ({
         {sourceSummary(source)}
       </Caption>
     </FlexColumn>
-    <FlexColumn gap={GAP.micro} component="ul" sx={{ margin: 0, paddingLeft: 0, listStyle: "none" }}>
+    <FlexColumn
+      gap={GAP.micro}
+      component="ul"
+      sx={{ margin: 0, paddingLeft: 0, listStyle: "none", "& li": { listStyle: "none" } }}
+    >
       {source.lines.slice(0, PREVIEW_LINES).map((line, index) => (
         <Caption key={`${index}-${line.text}`} component="li">
           {line.speakerName === "" ? line.text : `${line.speakerName}: ${line.text}`}
@@ -170,7 +174,7 @@ const CarriedContext: React.FC<{
       <FlexColumn
         gap={GAP.micro}
         component="ul"
-        sx={{ margin: 0, paddingLeft: 0, listStyle: "none" }}
+        sx={{ margin: 0, paddingLeft: 0, listStyle: "none", "& li": { listStyle: "none" } }}
       >
         {attachments.map((attachment) => (
           <Caption key={attachment.uri} component="li">

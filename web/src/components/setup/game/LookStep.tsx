@@ -38,6 +38,9 @@ import {
 } from "../../ui_primitives";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import type { OnboardingCapability } from "../../../stores/ProviderOnboardingStore";
+import ImageModelSelect from "../../properties/ImageModelSelect";
+import type { ImageModelValue } from "../../../stores/ApiTypes";
+import type { ImageModelTask } from "../../../hooks/useModelsByProvider";
 import { OptionCardGrid } from "../OptionCardGrid";
 import type { OptionCardItem } from "../OptionCardGrid";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
@@ -209,6 +212,104 @@ export const gameCostLine = (estimate: GameCostEstimate): string =>
   estimate.total !== null && estimate.total > 0
     ? `About ${formatUsd(estimate.total)}`
     : "Cost unknown until the first asset returns";
+
+/** What the image picker lists: the models that draw text to image. */
+const IMAGE_MODEL_TASKS: ImageModelTask[] = ["text_to_image"];
+
+/**
+ * The image model, through the usual picker rather than tiles. Every sprite,
+ * tile and background goes through one model, and the catalog behind the
+ * picker (recents, search, Studio curation) is what a creator already knows
+ * from every other surface. The tile id on the document stays
+ * `${provider}:${id}`, so the stored answer and the build are unchanged.
+ */
+const ImageModelField: React.FC<{ row: GameModelRow }> = ({ row }) => {
+  const handleChange = useCallback(
+    (model: ImageModelValue) => row.onSelect(`${model.provider}:${model.id}`),
+    [row]
+  );
+  if (row.status === "loading") {
+    return (
+      <FlexColumn gap={GAP.normal}>
+        <Text size="normal" component="h3">
+          {row.label}
+        </Text>
+        <FlexRow gap={GAP.normal} align="center">
+          <LoadingSpinner size="small" />
+          <Caption color="secondary" component="span">
+            {`Reading what your providers offer for ${row.label.toLowerCase()}…`}
+          </Caption>
+        </FlexRow>
+      </FlexColumn>
+    );
+  }
+  if (row.status === "error") {
+    return (
+      <FlexColumn gap={GAP.normal}>
+        <Text size="normal" component="h3">
+          {row.label}
+        </Text>
+        <AlertBanner
+          severity="error"
+          action={
+            <EditorButton variant="text" onClick={row.onRetry}>
+              Try again
+            </EditorButton>
+          }
+        >
+          <Caption component="span">
+            {row.errorMessage
+              ? `${row.emptyMessage} ${row.errorMessage}`
+              : row.emptyMessage}
+          </Caption>
+        </AlertBanner>
+      </FlexColumn>
+    );
+  }
+  // The image model is required — there is no placeholder art to fall back
+  // to — so an empty catalog is a warning with the way out, not a picker
+  // with nothing in it.
+  if (row.status === "empty") {
+    return (
+      <FlexColumn gap={GAP.normal}>
+        <Text size="normal" component="h3">
+          {row.label}
+        </Text>
+        <AlertBanner
+          severity="warning"
+          action={
+            <EditorButton
+              variant="text"
+              onClick={() =>
+                openProviderOnboarding({
+                  capability: row.capability,
+                  reason: row.emptyMessage
+                })
+              }
+            >
+              Connect a provider
+            </EditorButton>
+          }
+        >
+          <Caption component="span">{row.emptyMessage}</Caption>
+        </AlertBanner>
+      </FlexColumn>
+    );
+  }
+  return (
+    <FormField
+      label="Image model"
+      helperText="Draws every sprite, tile and background. The estimate beside the button follows it."
+      sx={{ maxWidth: SETUP_FIELD_WIDTH }}
+    >
+      <ImageModelSelect
+        value={splitTileId(row.selectedId)?.id ?? ""}
+        task={IMAGE_MODEL_TASKS}
+        onChange={handleChange}
+      />
+    </FormField>
+  );
+};
 
 /** One row of tiles, with the four states its source can be in. */
 const ModelTileRow: React.FC<{ row: GameModelRow }> = ({ row }) => {
@@ -410,7 +511,7 @@ const LookStepInternal: React.FC<GameLookStepProps> = ({
         />
       </FlexColumn>
 
-      <ModelTileRow row={image} />
+      <ImageModelField row={image} />
       <ModelTileRow row={sfx} />
       <ModelTileRow row={music} />
 

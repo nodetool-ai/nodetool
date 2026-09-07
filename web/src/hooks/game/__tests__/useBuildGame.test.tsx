@@ -5,6 +5,8 @@
  * each slot's node carries its slot id and the export node its dynamic inputs,
  * the terminal stage is written as soon as the nodes are down, and the run
  * only starts on a graph that both validates and had nothing left unplaced.
+ * The build stays on the setup surface until that work completes, so a tool
+ * failure remains visible there instead of being erased by navigation.
  */
 import { act, renderHook } from "@testing-library/react";
 import type { GameAssetManifest } from "@nodetool-ai/protocol";
@@ -161,10 +163,11 @@ beforeEach(() => {
 });
 
 describe("buildGame", () => {
-  it("opens the editor, then places the nodes and the edges", async () => {
+  it("places the nodes and edges without navigating away from setup", async () => {
     await build();
-    expect(calls[0].name).toBe("ui_open_workflow");
     const names = calls.map((call) => call.name);
+    expect(names).not.toContain("ui_open_workflow");
+    expect(calls[0].name).toBe("ui_add_node");
     // Generate, resize, check and preview for the one slot, then the export
     // node and the output the project lands on.
     expect(names.filter((name) => name === "ui_add_node").length).toBe(6);

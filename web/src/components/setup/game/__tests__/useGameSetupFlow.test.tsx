@@ -24,7 +24,16 @@ jest.mock("../../../model_menu/LanguageModelMenuDialog", () => ({
 }));
 jest.mock("../../../../hooks/useModelsByProvider", () => ({
   __esModule: true,
-  useLanguageModelsByProvider: () => ({ models: [], isLoading: false })
+  useLanguageModelsByProvider: () => ({ models: [], isLoading: false }),
+  useImageModelsByProvider: () => ({ models: [], isLoading: false }),
+  useMusicModelsByProvider: () => ({ models: [], isLoading: false })
+}));
+// The image row uses the usual picker; its own suite pins what it does.
+jest.mock("../../../properties/ImageModelSelect", () => ({
+  __esModule: true,
+  default: ({ value }: { value: string }) => (
+    <button type="button">{`image-model:${value}`}</button>
+  )
 }));
 jest.mock("../useGameCustomStyle", () => ({
   __esModule: true,

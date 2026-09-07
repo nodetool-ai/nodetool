@@ -563,7 +563,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_set_setup",
   description:
-    "Write the guided-setup answers on the specified storyboard: the `brief` (what the piece is), the `genre` the Director works in, the `stage` the flow sits at, how many shots a run asks for (`shotCount`), and the file the words came from (`importSource`). Omit a field to leave it unchanged. The stages run idea → genre → review → look → done; a board that has finished setup, or was built before the flow existed, reads 'done'. Setting the stage is what moves the open flow to that step. An `importSource` with `preserveWords: true` is a contract: the Director is then asked for camera work only and may not rewrite the dialogue or the scene order.",
+    "Write the guided-setup answers on the specified storyboard: the `brief` (what the piece is), the `genre` the Director works in, the `stage` the flow sits at, how many shots a run asks for (`shotCount`), and the file the words came from (`importSource`). Omit a field to leave it unchanged. The stages run idea → genre → review → entities → look → done; a board that has finished setup, or was built before the flow existed, reads 'done'. Setting the stage is what moves the open flow to that step. An `importSource` with `preserveWords: true` is a contract: the Director is then asked for camera work only and may not rewrite the dialogue or the scene order.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     brief: z
@@ -577,7 +577,7 @@ FrontendToolRegistry.register({
     stage: storyboards.storyboardSetupStage
       .optional()
       .describe(
-        "Where the guided flow should resume: idea, genre, review, look, or done."
+        "Where the guided flow should resume: idea, genre, review, entities, look, or done."
       ),
     shotCount: z
       .number()

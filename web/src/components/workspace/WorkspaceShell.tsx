@@ -19,6 +19,8 @@ import WorkspaceTabBar from "./WorkspaceTabBar";
 import TabContent from "./TabContent";
 import WorkspaceTabLayer from "./WorkspaceTabLayer";
 
+import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
+
 const NewProjectSurface = React.lazy(
   () => import("../projects/NewProjectSurface")
 );
@@ -167,6 +169,11 @@ const WorkspaceShell = () => {
 
   return (
     <div css={shellStyles} className="workspace-shell">
+      {/* The guided game/workflow flows build their graphs through the same
+          `ui_*` tools an agent drives, from tabs (e.g. New Project) where the
+          editor chrome — and its own sync — is not mounted. Without this the
+          build fails with "Frontend tool runtime state is not initialized". */}
+      <FrontendToolRuntimeSync />
       <WorkspaceTabBar />
       <div className="workspace-main">
         <Suspense fallback={null}>

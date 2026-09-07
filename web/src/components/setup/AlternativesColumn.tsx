@@ -58,7 +58,7 @@ const AlternativesColumnInternal: React.FC<AlternativesColumnProps> = ({
       component="ul"
       aria-label={label}
       gap={GAP.comfortable}
-      sx={{ listStyle: "none", margin: 0, padding: 0 }}
+      sx={{ listStyle: "none", margin: 0, padding: 0, "& li": { listStyle: "none" } }}
     >
       {alternatives.map((alternative) => (
         <Box component="li" key={alternative.id}>

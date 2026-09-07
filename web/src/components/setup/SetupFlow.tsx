@@ -20,6 +20,7 @@ import React, {
 } from "react";
 
 import {
+  AlertBanner,
   Box,
   Caption,
   Dialog,
@@ -35,6 +36,7 @@ import {
   Text,
   ThinkingIndicator
 } from "../ui_primitives";
+import ReportBugButton from "../support/ReportBugButton";
 import type { SetupFlowConfig, SetupStep } from "./types";
 
 const GenerationSummary = lazy(() => import("./GenerationSummary"));
@@ -202,6 +204,31 @@ export function SetupFlow<Stage extends string>({
     }
   }, [currentIndex, isCurrent, onStageChange, step, steps]);
 
+  const handleSkip = useCallback(async () => {
+    if (!step?.onSkip) {
+      return;
+    }
+    const origin = { stage: step.stage, revision: revisionRef.current };
+    setError(null);
+    setBusy(true);
+    try {
+      await step.onSkip();
+      if (!isCurrent(origin)) {
+        return;
+      }
+      const next = steps[currentIndex + 1];
+      if (next) {
+        onStageChange(next.stage);
+      }
+    } catch (cause) {
+      if (isCurrent(origin)) {
+        setError(cause instanceof Error ? cause.message : String(cause));
+      }
+    } finally {
+      setBusy(false);
+    }
+  }, [currentIndex, isCurrent, onStageChange, step, steps]);
+
   // A stage outside the flow (a finished document) belongs to the editor, not
   // to this shell.
   if (!step) {
@@ -313,14 +340,35 @@ export function SetupFlow<Stage extends string>({
         fullHeight
         sx={{ flex: 1, minHeight: 0, paddingBottom: SPACING.xxl }}
       >
-        {step.render()}
+        {error ? (
+          <FlexColumn gap={GAP.spacious} fullWidth>
+            <Text size="big" component="h1">
+              We couldn&apos;t complete this step
+            </Text>
+            <AlertBanner severity="error" title="What failed">
+              {error}
+            </AlertBanner>
+            <Text size="normal" color="secondary">
+              Your setup is still here. Try again below, go back to change it,
+              or report the failure with its diagnostics.
+            </Text>
+            <FlexRow gap={GAP.normal} align="center" wrap>
+              <ReportBugButton
+                label="Report this failure"
+                variant="outlined"
+                size="medium"
+                context={{
+                  source: "manual",
+                  summary: `${labels.title} setup failed at ${step.label}`,
+                  errorText: error
+                }}
+              />
+            </FlexRow>
+          </FlexColumn>
+        ) : (
+          step.render()
+        )}
       </ScrollArea>
-
-      {error ? (
-        <Text size="small" color="error" role="alert">
-          {error}
-        </Text>
-      ) : null}
 
       {step.generation ? (
         <Suspense
@@ -367,6 +415,17 @@ export function SetupFlow<Stage extends string>({
               Change flow
             </EditorButton>
           ) : null}
+          {step.onSkip ? (
+            <EditorButton
+              variant="text"
+              size="large"
+              onClick={() => void handleSkip()}
+              disabled={pending}
+              sx={{ fontSize: FONT_SIZE_SANS.body }}
+            >
+              {step.skipLabel ?? "Skip"}
+            </EditorButton>
+          ) : null}
         </FlexRow>
         <FlexRow gap={GAP.normal} align="center">
           {/* Why the button is off comes first, and replaces the detail: a
@@ -392,7 +451,7 @@ export function SetupFlow<Stage extends string>({
               paddingX: SPACING.xxl
             }}
           >
-            {step.primaryLabel}
+            {error ? "Try again" : step.primaryLabel}
           </EditorButton>
         </FlexRow>
       </FlexRow>

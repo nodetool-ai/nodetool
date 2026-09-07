@@ -274,6 +274,7 @@ export const storyboardSetupStage = z.enum([
   "idea",
   "genre",
   "review",
+  "entities",
   "look",
   "done"
 ]);

@@ -9,9 +9,11 @@
  * function of manifest, design and choices (D26), shared with the harness, so
  * what the harness graded is what gets placed.
  *
- * The canvas opens as soon as the nodes are down, before validation and before
- * the run: a creator who is about to see an error should already be looking at
- * the graph the error is about.
+ * This hook runs from the workflow tab that owns the setup flow, so its node
+ * store is already mounted. It must not navigate through `ui_open_workflow`:
+ * that unmounts the setup shell before placement finishes and turns a rejected
+ * tool call into a disappearing error. The terminal stage swaps the same tab
+ * to the canvas after the build result has been recorded.
  *
  * `issues` is part of the result because a graph whose slots are all placed can
  * still be missing the export node, and that graph validates and writes no
@@ -91,9 +93,6 @@ export const useBuildGame = (workflowId: string): UseBuildGameResult => {
             return meta ? planNodeShape(meta) : null;
           }
         );
-
-        // The editor has to be open before a node tool can reach it.
-        await callTool("ui_open_workflow", { workflow_id: workflowId });
 
         for (const node of placement.nodes) {
           await callTool("ui_add_node", {

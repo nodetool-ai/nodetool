@@ -10,8 +10,10 @@ import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 /**
  * Keeps the frontend tool runtime state (the context `ui_*` tools execute
  * against) in sync with the workflow manager. Mount it anywhere an agent with
- * workflow tools is active — the editor's right panel and the app builder both
- * render it so the agent can read and edit the open workflow.
+ * workflow tools is active — the workspace shell mounts it always so the
+ * guided game/workflow builds work from non-editor tabs, and the editor's
+ * right panel and the app builder both render it so the agent can read and
+ * edit the open workflow.
  */
 const FrontendToolRuntimeSync = memo(function FrontendToolRuntimeSync() {
   const navigate = useNavigate();

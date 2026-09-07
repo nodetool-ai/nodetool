@@ -253,7 +253,14 @@ describe("setup stage and genre", () => {
   });
 
   it("round-trips every stage", () => {
-    for (const stage of ["idea", "genre", "review", "look", "done"] as const) {
+    for (const stage of [
+      "idea",
+      "genre",
+      "review",
+      "entities",
+      "look",
+      "done"
+    ] as const) {
       const doc = storyboardDocument.parse({
         ...legacyDocument,
         setupStage: stage,

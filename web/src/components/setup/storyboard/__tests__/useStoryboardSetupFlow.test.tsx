@@ -12,6 +12,11 @@ jest.mock("../../../../hooks/storyboard/useStoryboards", () => ({
   useExampleStoryboards: () => ({ data: [], isLoading: false })
 }));
 jest.mock("../../../../hooks/useResolvedMediaUri");
+jest.mock("../../../../serverState/useEntities", () => ({
+  useEntities: () => ({ data: [], isLoading: false })
+}));
+jest.mock("../../../entities/EntityAssetPickerDialog", () => () => null);
+jest.mock("../../../entities/EntityEditorDialog", () => () => null);
 // The Director is the one model call in this flow. Its result decides whether
 // the genre step advances, so the suite drives it directly; the hook also
 // reaches the entity library through TanStack Query, which this suite does not
@@ -267,17 +272,17 @@ describe("useStoryboardSetupFlow", () => {
     expect(direct).toHaveBeenCalledWith(BOARD_ID, 10);
   });
 
-  it("collapses genre and review into one stepper entry", () => {
+  it("shows entities as an optional step", () => {
     useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "idea" });
     renderFlow();
 
     const steps = screen.getByRole("navigation", { name: "Setup steps" });
     expect(
       Array.from(steps.querySelectorAll("li")).map((item) => item.textContent)
-    ).toEqual(["1. Idea", "2. Story", "3. Look"]);
+    ).toEqual(["1. Idea", "2. Story", "3. Entities", "4. Look"]);
   });
 
-  it("walks idea to look, one stage per primary press", async () => {
+  it("walks idea through entities to look", async () => {
     const user = userEvent.setup();
     seedStepValues();
     useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "idea" });
@@ -295,7 +300,24 @@ describe("useStoryboardSetupFlow", () => {
     // The mocked run writes no shots; the real one always does, and the review
     // step will not spend over an empty screenplay.
     act(() => seedScreenplay());
+    await user.click(screen.getByRole("button", { name: "Set up entities" }));
+    expect(stageOf()).toBe("entities");
+
+    act(() => useStoryboardStore.getState().setEntityIds(BOARD_ID, ["mara"]));
     await user.click(screen.getByRole("button", { name: "Choose the look" }));
+    expect(stageOf()).toBe("look");
+  });
+
+  it("lets the creator skip entities", async () => {
+    const user = userEvent.setup();
+    seedScreenplay();
+    useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "entities" });
+    renderFlow();
+
+    expect(screen.getByText("Keep people and places consistent")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Choose the look" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Skip entities" }));
+
     expect(stageOf()).toBe("look");
   });
 
@@ -314,10 +336,10 @@ describe("useStoryboardSetupFlow", () => {
     );
 
     expect(onReviewed).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Choose the look" }));
+    await user.click(screen.getByRole("button", { name: "Set up entities" }));
 
     await waitFor(() => expect(onReviewed).toHaveBeenCalledTimes(1));
-    expect(stageOf()).toBe("look");
+    expect(stageOf()).toBe("entities");
   });
 
   it("does not extract for a host that has no linked script", async () => {
@@ -326,8 +348,8 @@ describe("useStoryboardSetupFlow", () => {
     useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "review" });
     renderFlow();
 
-    await user.click(screen.getByRole("button", { name: "Choose the look" }));
-    await waitFor(() => expect(stageOf()).toBe("look"));
+    await user.click(screen.getByRole("button", { name: "Set up entities" }));
+    await waitFor(() => expect(stageOf()).toBe("entities"));
   });
 
   it("writes done on the last step and tells the host", async () => {

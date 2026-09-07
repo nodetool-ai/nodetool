@@ -345,7 +345,7 @@ export class ExportGodotProjectNode extends BaseNode {
   declare name: string;
 
   @prop({
-    type: "list[slot_fill]",
+    type: "list[union[image,audio]]",
     default: [],
     title: "Fills",
     description:

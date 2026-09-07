@@ -26,7 +26,42 @@ jest.mock("../../../model_menu/LanguageModelMenuDialog", () => ({
 }));
 jest.mock("../../../../hooks/useModelsByProvider", () => ({
   __esModule: true,
-  useLanguageModelsByProvider: () => ({ models: [], isLoading: false })
+  useLanguageModelsByProvider: () => ({ models: [], isLoading: false }),
+  useImageModelsByProvider: () => ({ models: [], isLoading: false }),
+  useMusicModelsByProvider: () => ({ models: [], isLoading: false })
+}));
+// The image row uses the usual picker; what the picker itself does is pinned
+// by its own suite. Here it only has to report a choice back.
+jest.mock("../../../properties/ImageModelSelect", () => ({
+  __esModule: true,
+  default: ({
+    value,
+    onChange
+  }: {
+    value: string;
+    onChange: (v: {
+      type: "image_model";
+      id: string;
+      provider: string;
+      name: string;
+      path: string;
+    }) => void;
+  }) => (
+    <button
+      type="button"
+      onClick={() =>
+        onChange({
+          type: "image_model",
+          id: "picked-image",
+          provider: "fal_ai",
+          name: "Picked",
+          path: ""
+        })
+      }
+    >
+      {`image-model:${value}`}
+    </button>
+  )
 }));
 // The `Add your own style` path is the storyboard dialog plus one model call;
 // this suite only has to know the tile is offered.
@@ -343,12 +378,15 @@ describe("GameLookStep", () => {
     );
   });
 
-  it("has no placeholder tile on the image row, which is required", () => {
-    renderStep();
-    const images = screen.getByRole("radiogroup", { name: "Image model" });
+  it("uses the usual image model picker on the image row, which is required", async () => {
+    const user = userEvent.setup();
+    const onSelect = jest.fn();
+    renderStep({ image: row("Image model", { onSelect }) });
     expect(
-      within(images).queryByRole("radio", { name: /Keep the placeholder/ })
+      screen.queryByRole("radiogroup", { name: "Image model" })
     ).toBeNull();
+    await user.click(screen.getByRole("button", { name: "image-model:" }));
+    expect(onSelect).toHaveBeenCalledWith("fal_ai:picked-image");
   });
 
   it("prompts for a provider when nothing offers an image model", () => {

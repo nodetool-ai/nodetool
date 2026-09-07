@@ -148,7 +148,7 @@ const METADATA: Record<string, unknown> = {
     [
       ["template", "str"],
       ["name", "str"],
-      ["fills", "list[slot_fill]"],
+      ["fills", "list[union[image,audio]]"],
       ["directory", "str"],
       ["verify", "bool"]
     ],

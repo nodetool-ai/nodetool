@@ -158,7 +158,7 @@ const SHAPES: Record<string, PlanNodeShape> = {
     inputs: [
       { name: "template", type: "str" },
       { name: "name", type: "str" },
-      { name: "fills", type: "list[slot_fill]" },
+      { name: "fills", type: "list[union[image,audio]]" },
       { name: "directory", type: "str" },
       { name: "verify", type: "bool" }
     ],

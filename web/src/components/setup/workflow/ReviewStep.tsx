@@ -245,7 +245,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
       <FlexColumn
         gap={GAP.spacious}
         component="ol"
-        sx={{ listStyle: "none", m: 0, p: 0 }}
+        sx={{ listStyle: "none", m: 0, p: 0, "& li": { listStyle: "none" } }}
       >
         {resolved.steps.map((entry, index) => (
           <Box component="li" key={entry.step.id} sx={REVIEW_BLOCK}>

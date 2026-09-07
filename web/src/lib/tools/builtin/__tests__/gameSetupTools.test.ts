@@ -40,7 +40,18 @@ const METADATA = {
     node_type: "nodetool.game.ExportGodotProject",
     properties: [
       { name: "template", type: { type: "str" } },
-      { name: "fills", type: { type: "list", type_args: [{ type: "slot_fill" }] } }
+      {
+        name: "fills",
+        type: {
+          type: "list",
+          type_args: [
+            {
+              type: "union",
+              type_args: [{ type: "image" }, { type: "audio" }]
+            }
+          ]
+        }
+      }
     ],
     outputs: [{ name: "output", type: { type: "dict" } }]
   },

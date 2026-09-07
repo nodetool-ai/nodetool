@@ -25,6 +25,7 @@ import { useImportSource } from "../../../hooks/storyboard/useImportSource";
 import { openPageTab } from "../../workspace/openPageTab";
 import type { SetupFlowConfig, SetupStep } from "../types";
 import { GenreStep } from "./GenreStep";
+import { EntitiesStep } from "./EntitiesStep";
 import { IdeaStep } from "./IdeaStep";
 import { LookStep, useLookStep } from "./LookStep";
 import { ReviewStep } from "./ReviewStep";
@@ -77,6 +78,7 @@ const FLOW_LABELS = { title: "Storyboard" } as const;
 
 /** What the Director is allowed to answer with, for the cost estimate. */
 const DIRECTOR_MAX_OUTPUT_TOKENS = 8192;
+const EMPTY_ENTITY_IDS: string[] = [];
 
 export interface StoryboardSetupFlowOptions {
   boardId: string;
@@ -112,6 +114,9 @@ export const useStoryboardSetupFlow = ({
     (state) => state.boards[boardId]?.genre ?? ""
   );
   const shots = useStoryboardStore((state) => state.boards[boardId]?.shots);
+  const entityIds = useStoryboardStore(
+    (state) => state.boards[boardId]?.entityIds ?? EMPTY_ENTITY_IDS
+  );
   const directorModel = useStoryboardStore(
     (state) => state.boards[boardId]?.directorModel ?? null
   );
@@ -276,7 +281,7 @@ export const useStoryboardSetupFlow = ({
       {
         stage: "review",
         label: "Story",
-        primaryLabel: "Choose the look",
+        primaryLabel: "Set up entities",
         canAdvance: reviewBlockedReason === undefined,
         blockedReason: reviewBlockedReason,
         // `Rewrite from brief` runs outside the shell's primary button, so the
@@ -296,6 +301,16 @@ export const useStoryboardSetupFlow = ({
             maxOutputTokens: DIRECTOR_MAX_OUTPUT_TOKENS
           }),
         onAdvance: onReviewed
+      },
+      {
+        stage: "entities",
+        label: "Entities",
+        primaryLabel: "Choose the look",
+        canAdvance: entityIds.length > 0,
+        blockedReason: "Select or create an entity, or skip this step",
+        skipLabel: "Skip entities",
+        onSkip: () => undefined,
+        render: () => createElement(EntitiesStep, { boardId })
       },
       {
         stage: "look",
@@ -324,6 +339,7 @@ export const useStoryboardSetupFlow = ({
       directErrorRef,
       directing,
       directorModel,
+      entityIds.length,
       finish,
       genre,
       hasScreenplay,
