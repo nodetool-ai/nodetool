@@ -11,7 +11,15 @@
  * velocity 127 stay inside [-1, 1] instead of wrapping.
  */
 
-import type { MidiInstrument, TimelineClip } from "../types.js";
+import type {
+  MidiInstrument,
+  SubtractiveMidiInstrument,
+  TimelineClip
+} from "../types.js";
+import { instrumentTailMs } from "./instrument.js";
+import { renderBassVoices } from "./engines/bl1.js";
+import { renderDrumVoice } from "./engines/dr1.js";
+import { renderWavetableVoice } from "./engines/wt1.js";
 import { visibleNotes } from "./notes.js";
 import { noteWindowMs } from "./ticks.js";
 
@@ -76,7 +84,7 @@ export function sineWave(phase: number): number {
 }
 
 function oscillator(
-  waveform: MidiInstrument["waveform"],
+  waveform: SubtractiveMidiInstrument["waveform"],
   phase: number,
   dt: number
 ): number {
@@ -119,7 +127,7 @@ export interface EnvelopeState {
  * a NaN.
  */
 export function createEnvelope(
-  instrument: MidiInstrument,
+  instrument: SubtractiveMidiInstrument,
   sampleRate: number
 ): EnvelopeState {
   const perSample = (ms: number, span: number) =>
@@ -285,17 +293,50 @@ export interface VoiceEvent {
 }
 
 /**
+ * Apply the master gain, soft-limit the sum, and ramp out a tail that was still
+ * sounding at the last frame so the cut does not click.
+ *
+ * Every engine finishes this way, so a buffer's ending does not depend on which
+ * instrument filled it.
+ */
+function finishBuffer(
+  out: Float32Array,
+  gainDb: number,
+  soundingAtEnd: boolean,
+  sampleRate: number
+): Float32Array {
+  const masterGain = Math.pow(10, gainDb / 20);
+  for (let frame = 0; frame < out.length; frame++) {
+    out[frame] = softLimit(out[frame] * masterGain);
+  }
+  if (soundingAtEnd) {
+    const rampFrames = Math.min(
+      out.length,
+      Math.round((MIDI_END_RAMP_MS / 1000) * sampleRate)
+    );
+    for (let i = 0; i < rampFrames; i++) {
+      const frame = out.length - rampFrames + i;
+      out[frame] *= 1 - (i + 1) / rampFrames;
+    }
+  }
+  return out;
+}
+
+/**
  * Sum a set of voices into a buffer of exactly `totalFrames` frames.
  *
  * Everything past the buffer is discarded, release tail included: the window
  * is the contract, so a clip's audio is the same length whatever its notes do.
  * When a voice is still sounding at the last frame the tail is ramped to zero
  * over `MIDI_END_RAMP_MS` so the cut does not click.
+ *
+ * This is the built-in subtractive voice. `renderInstrumentEvents` picks it or
+ * one of the FableSynth engines from the instrument's `type`.
  */
 export function renderVoiceEvents(
   events: ReadonlyArray<VoiceEvent>,
   totalFrames: number,
-  instrument: MidiInstrument,
+  instrument: SubtractiveMidiInstrument,
   sampleRate: number
 ): Float32Array {
   const out = new Float32Array(Math.max(0, totalFrames));
@@ -306,7 +347,6 @@ export function renderVoiceEvents(
     instrument.cutoffHz,
     instrument.resonance
   );
-  const masterGain = Math.pow(10, instrument.gainDb / 20);
   let soundingAtEnd = false;
 
   for (const event of events) {
@@ -329,22 +369,50 @@ export function renderVoiceEvents(
     if (envelope.stage !== "done") soundingAtEnd = true;
   }
 
-  for (let frame = 0; frame < out.length; frame++) {
-    out[frame] = softLimit(out[frame] * masterGain);
+  return finishBuffer(out, instrument.gainDb, soundingAtEnd, sampleRate);
+}
+
+/**
+ * Render a set of note events with whichever engine the instrument names.
+ *
+ * The events are the same for every engine — pitch, velocity, and the frames
+ * the note sounds between — so a clip switched from one instrument to another
+ * plays the same phrase.
+ */
+export function renderInstrumentEvents(
+  events: ReadonlyArray<VoiceEvent>,
+  totalFrames: number,
+  instrument: MidiInstrument,
+  sampleRate: number
+): Float32Array {
+  if (instrument.type === "subtractive") {
+    return renderVoiceEvents(events, totalFrames, instrument, sampleRate);
+  }
+  const out = new Float32Array(Math.max(0, totalFrames));
+  if (out.length === 0) return out;
+  let soundingAtEnd = false;
+
+  switch (instrument.type) {
+    case "wavetable":
+      for (const event of events) {
+        if (renderWavetableVoice(out, event, instrument, sampleRate)) {
+          soundingAtEnd = true;
+        }
+      }
+      break;
+    case "bass":
+      soundingAtEnd = renderBassVoices(out, events, instrument, sampleRate);
+      break;
+    case "drum":
+      for (const event of events) {
+        if (renderDrumVoice(out, event, instrument, sampleRate)) {
+          soundingAtEnd = true;
+        }
+      }
+      break;
   }
 
-  if (soundingAtEnd) {
-    const rampFrames = Math.min(
-      out.length,
-      Math.round((MIDI_END_RAMP_MS / 1000) * sampleRate)
-    );
-    for (let i = 0; i < rampFrames; i++) {
-      const frame = out.length - rampFrames + i;
-      out[frame] *= 1 - (i + 1) / rampFrames;
-    }
-  }
-
-  return out;
+  return finishBuffer(out, instrument.gainDb, soundingAtEnd, sampleRate);
 }
 
 export interface RenderMidiClipInput {
@@ -386,7 +454,7 @@ export function renderMidiClip(input: RenderMidiClipInput): Float32Array {
     };
   });
 
-  return renderVoiceEvents(events, totalFrames, instrument, sampleRate);
+  return renderInstrumentEvents(events, totalFrames, instrument, sampleRate);
 }
 
 export interface RenderAuditionNoteInput {
@@ -407,10 +475,10 @@ export function renderAuditionNote(
 ): Float32Array {
   const { pitch, velocity, durationMs, instrument, sampleRate } = input;
   const totalFrames = Math.round(
-    ((durationMs + instrument.releaseMs) / 1000) * sampleRate
+    ((durationMs + instrumentTailMs(instrument)) / 1000) * sampleRate
   );
   const gateOffFrame = Math.round((durationMs / 1000) * sampleRate);
-  return renderVoiceEvents(
+  return renderInstrumentEvents(
     [
       {
         pitch,

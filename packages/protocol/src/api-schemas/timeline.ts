@@ -230,9 +230,100 @@ export const midiNote = z.object({
 });
 export type MidiNote = z.infer<typeof midiNote>;
 
+/** An ADSR envelope, in milliseconds with a 0..1 sustain level. */
+export const midiEnvelope = z.object({
+  attackMs: z.number().min(0),
+  decayMs: z.number().min(0),
+  sustain: z.number().min(0).max(1),
+  releaseMs: z.number().min(0)
+});
+export type MidiEnvelope = z.infer<typeof midiEnvelope>;
+
+/** The filter shapes the FableSynth-derived voices offer. */
+export const midiFilterType = z.enum([
+  "lp12",
+  "lp24",
+  "bp12",
+  "hp12",
+  "notch"
+]);
+export type MidiFilterType = z.infer<typeof midiFilterType>;
+
+/** The tonal wavetables WT-1 and BL-1 play. */
+export const midiWavetableName = z.enum([
+  "prime",
+  "bloom",
+  "pulse",
+  "vox",
+  "chime",
+  "glitch"
+]);
+export type MidiWavetableName = z.infer<typeof midiWavetableName>;
+
+/** DR-1's percussive tables. A pad can also play any tonal table. */
+export const midiDrumTableName = z.enum(["thud", "crack", "tine", "grit"]);
+export type MidiDrumTableName = z.infer<typeof midiDrumTableName>;
+
+/** One of WT-1's two wavetable oscillators. */
+export const wavetableOscillator = z.object({
+  table: midiWavetableName,
+  /** Morph position across the table's frames, 0..1. */
+  position: z.number().min(0).max(1),
+  /** Offset from the played note, in semitones. */
+  semitones: z.number(),
+  /** Further offset in cents. */
+  fine: z.number(),
+  /** Output level, 0..1. */
+  level: z.number().min(0).max(1),
+  /** Detuned copies of the oscillator, 1..7. */
+  unison: z.number().int().min(1).max(7),
+  /** How far the copies spread, 0..1 (1 = ±50 cents). */
+  detune: z.number().min(0).max(1)
+});
+export type WavetableOscillator = z.infer<typeof wavetableOscillator>;
+
+/** One DR-1 pad: a tuned one-shot with its own envelope and filter. */
+export const drumPad = z.object({
+  name: z.string(),
+  table: z.union([midiWavetableName, midiDrumTableName]),
+  position: z.number().min(0).max(1),
+  /** Pitch offset from the pad's base note, in semitones. */
+  semitones: z.number(),
+  /** How far the pitch envelope starts above the pad's pitch, in semitones. */
+  pitchEnvAmount: z.number(),
+  pitchEnvDecayMs: z.number().min(0),
+  noiseLevel: z.number().min(0).max(1),
+  /** Noise colour, -1 (dark) to 1 (bright). */
+  noiseColor: z.number().min(-1).max(1),
+  /** Ring-modulator carrier in Hz. */
+  ringHz: z.number().positive(),
+  ringMix: z.number().min(0).max(1),
+  attackMs: z.number().min(0),
+  /** How long the envelope holds at full before decaying, in ms. */
+  holdMs: z.number().min(0),
+  decayMs: z.number().min(0),
+  /** Decay shape, 0 (a straight line) to 1 (exponential). */
+  curve: z.number().min(0).max(1),
+  /** The pad's filter, or null for no filter. */
+  filter: z
+    .object({
+      type: midiFilterType,
+      cutoffHz: z.number().positive(),
+      resonance: z.number().min(0).max(1)
+    })
+    .nullable(),
+  level: z.number().min(0).max(1),
+  /** How much velocity scales the level, 0..1. */
+  velocityToLevel: z.number().min(0).max(1)
+});
+export type DrumPad = z.infer<typeof drumPad>;
+
 /**
- * The voice a midi track plays. A discriminated union with one member today,
- * so a second synth type is added without reshaping what is already stored.
+ * The voice a midi track plays.
+ *
+ * `subtractive` is the built-in synth. The other three are ports of the
+ * FableSynth instruments (github.com/georgi/fablesynth): WT-1 the wavetable
+ * synth, BL-1 the acid bassline, DR-1 the drum machine.
  */
 export const midiInstrument = z.discriminatedUnion("type", [
   z.object({
@@ -251,6 +342,65 @@ export const midiInstrument = z.discriminatedUnion("type", [
     /** Lowpass Q. */
     resonance: z.number().positive(),
     /** Output gain in dB. */
+    gainDb: z.number()
+  }),
+  z.object({
+    type: z.literal("wavetable"),
+    oscA: wavetableOscillator,
+    oscB: wavetableOscillator,
+    /** Sine sub-oscillator level, 0..1. */
+    subLevel: z.number().min(0).max(1),
+    /** Sub octave below the note: -1 or -2. */
+    subOctave: z.number().int().min(-2).max(-1),
+    /** White noise level, 0..1. */
+    noiseLevel: z.number().min(0).max(1),
+    filterType: midiFilterType,
+    cutoffHz: z.number().positive(),
+    /** Filter resonance, 0..1. */
+    resonance: z.number().min(0).max(1),
+    /** Anti-aliased tanh drive into the filter, 0..1. */
+    drive: z.number().min(0).max(1),
+    /** How far the mod envelope sweeps the cutoff, in octaves. */
+    filterEnvAmount: z.number(),
+    /** How far the played note tracks the cutoff, 0..1. */
+    keyTrack: z.number().min(0).max(1),
+    ampEnv: midiEnvelope,
+    modEnv: midiEnvelope,
+    gainDb: z.number()
+  }),
+  z.object({
+    type: z.literal("bass"),
+    table: midiWavetableName,
+    position: z.number().min(0).max(1),
+    /** Offset from the played note, in semitones. */
+    semitones: z.number(),
+    subShape: z.enum(["sine", "square"]),
+    /** Sub octave below the note: -1 or -2. */
+    subOctave: z.number().int().min(-2).max(-1),
+    subLevel: z.number().min(0).max(1),
+    filterType: midiFilterType,
+    cutoffHz: z.number().positive(),
+    resonance: z.number().min(0).max(1),
+    drive: z.number().min(0).max(1),
+    /** How far the filter envelope sweeps the cutoff, in octaves. */
+    filterEnvAmount: z.number(),
+    keyTrack: z.number().min(0).max(1),
+    filterAttackMs: z.number().min(0),
+    filterDecayMs: z.number().min(0),
+    ampEnv: midiEnvelope,
+    /** How much an accented note adds to its level and filter sweep, 0..1. */
+    accentAmount: z.number().min(0).max(1),
+    /** The velocity at which a note counts as accented. */
+    accentVelocity: z.number().int().min(1).max(127),
+    /** How long a note overlapping the one before it glides, in ms. */
+    slideMs: z.number().min(0),
+    gainDb: z.number()
+  }),
+  z.object({
+    type: z.literal("drum"),
+    /** The MIDI note pad 0 answers to. Pads run `baseNote`..`baseNote + 15`. */
+    baseNote: z.number().int().min(0).max(127),
+    pads: z.array(drumPad),
     gainDb: z.number()
   })
 ]);

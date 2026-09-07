@@ -20,6 +20,7 @@ import {
   type TimelineTempo as ProtocolTimelineTempo
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import { DEFAULT_MIDI_INSTRUMENT } from "../src/midi/instrument.js";
+import { MIDI_INSTRUMENT_PRESETS } from "../src/midi/presets.js";
 import { DEFAULT_TEMPO } from "../src/midi/tempo.js";
 import { MIDI_MAX_NOTES_PER_CLIP } from "../src/midi/notes.js";
 import { QUANTIZE_DIVISIONS } from "../src/midi/edit.js";
@@ -47,6 +48,24 @@ describe("midi types match the protocol schemas", () => {
     expect(midiNote.parse(noteBack)).toEqual(noteThere);
     expect(midiInstrument.parse(instrumentBack)).toEqual(instrumentThere);
     expect(timelineTempo.parse(tempoBack)).toEqual(tempoThere);
+  });
+
+  // The presets are the only place every branch of the instrument union is
+  // spelled out, so parsing them is what keeps the four synths in step with
+  // the schema that stores and validates them.
+  it.each(MIDI_INSTRUMENT_PRESETS.map((p) => [p.id, p] as const))(
+    "parses the %s preset through the protocol schema",
+    (_id, presetEntry) => {
+      const there: ProtocolMidiInstrument =
+        presetEntry.instrument satisfies MidiInstrument;
+      expect(midiInstrument.parse(there)).toEqual(presetEntry.instrument);
+    }
+  );
+
+  it("covers every instrument type with a preset", () => {
+    expect(
+      new Set(MIDI_INSTRUMENT_PRESETS.map((p) => p.instrument.type))
+    ).toEqual(new Set(["subtractive", "wavetable", "bass", "drum"]));
   });
 
   it("keeps the note cap the same on both sides", () => {

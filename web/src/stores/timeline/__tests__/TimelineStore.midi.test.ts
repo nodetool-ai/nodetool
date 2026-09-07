@@ -16,7 +16,15 @@ import {
   makeClip,
   resolveTempo
 } from "@nodetool-ai/timeline";
-import type { TimelineSequence, TimelineTempo } from "@nodetool-ai/timeline";
+import type {
+  MidiInstrument,
+  TimelineSequence,
+  TimelineTempo
+} from "@nodetool-ai/timeline";
+
+/** The waveform of a voice, when the voice is the built-in synth. */
+const waveformOf = (instrument: MidiInstrument | undefined) =>
+  instrument?.type === "subtractive" ? instrument.waveform : undefined;
 import { createTimelineStore, timelineTemporalOf } from "../TimelineStore";
 import { buildTimelineDocumentPayload } from "../../../hooks/timeline/timelineDocumentPayload";
 
@@ -192,9 +200,9 @@ describe("TimelineStore — midi tracks", () => {
         waveform: "square"
       });
 
-    expect(store.getState().tracks[0].instrument?.waveform).toBe("square");
+    expect(waveformOf(store.getState().tracks[0].instrument)).toBe("square");
     expect(store.getState().tracks[1].id).toBe(other);
-    expect(store.getState().tracks[1].instrument?.waveform).toBe("saw");
+    expect(waveformOf(store.getState().tracks[1].instrument)).toBe("saw");
   });
 
   it("round-trips tempo, instrument and notes through the save payload", () => {
