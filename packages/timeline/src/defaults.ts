@@ -83,9 +83,11 @@ export function trackTypeForMediaType(
  * Whether a clip of this media type may sit on a track of this type.
  *
  * The one rule: audio goes on audio tracks, midi on midi tracks, everything
- * else — imported picture and the authored kinds alike — goes on video or
- * overlay tracks. Subtitle tracks carry no clips. Every surface that places or
- * moves a clip asks here, so a drag and a `ui_timeline_*` call refuse the same
+ * else — imported picture, the authored kinds, and the two that carry no media
+ * of their own (`group`, `adjustment`) alike — goes on video or overlay
+ * tracks. An adjustment treats the composite below it, and only a visual track
+ * has one. Subtitle tracks carry no clips. Every surface that places or moves
+ * a clip asks here, so a drag and a `ui_timeline_*` call refuse the same
  * things.
  */
 export function clipFitsTrack(

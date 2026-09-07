@@ -1937,7 +1937,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "10f415c49c83",
+    contract: "98f86a8ce304",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
@@ -2016,6 +2016,26 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
       "packages/agents/tests/capabilities-timeline-render.test.ts",
+    ],
+  },
+  {
+    name: "bake_audio_animation",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "5dc8c66be598",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-bake-audio-animation.test.ts",
+    ],
+  },
+  {
+    name: "isolate_subject",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "585af96e9fe9",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-isolate-subject.test.ts",
     ],
   },
   {

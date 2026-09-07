@@ -32,6 +32,7 @@ import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
+import FilterBAndWOutlinedIcon from "@mui/icons-material/FilterBAndWOutlined";
 
 import {
   Text,
@@ -50,6 +51,7 @@ import {
   useTimelineStore,
   useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { PlaybackClock } from "./PlaybackClock";
 import { AudioGraph } from "./AudioGraph";
@@ -293,6 +295,22 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         return Array.from(pts).sort((a, b) => a - b);
       })
     );
+
+    // "Show matte": swap the composite for the selected clip's generated
+    // matte, drawn on its own. Offered only when there is one to look at —
+    // one clip selected, its matte cut and ready.
+    const matteViewEnabled = useTimelineUIStore((s) => s.matteViewEnabled);
+    const toggleMatteView = useTimelineUIStore((s) => s.toggleMatteView);
+    const selectedClipId = useTimelineUIStore((s) =>
+      s.selectedClipIds.size === 1 ? [...s.selectedClipIds][0] : null
+    );
+    const hasReadyMatte = useTimelineStore((s) => {
+      if (!selectedClipId) return false;
+      const matte = s.clips.find(
+        (c) => c.id === selectedClipId
+      )?.generatedMatte;
+      return matte !== undefined && (matte.status ?? "ready") === "ready";
+    });
 
     const getAsset = useAssetStore((s) => s.get);
     const timelineApi = useTimelineStoreApi();
@@ -979,6 +997,18 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
               {fps} fps
             </Caption>
           )}
+
+          <ToolbarIconButton
+            icon={<FilterBAndWOutlinedIcon />}
+            tooltip="Show the selected clip's subject matte instead of the frame"
+            onClick={toggleMatteView}
+            disabled={!hasReadyMatte}
+            active={matteViewEnabled}
+            aria-label="Show matte"
+            aria-pressed={matteViewEnabled}
+            size="small"
+            className="timeline-preview__matte-view"
+          />
 
           <ToolbarIconButton
             icon={isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}

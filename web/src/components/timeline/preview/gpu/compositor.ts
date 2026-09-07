@@ -272,7 +272,9 @@ export class WebGPUCompositor implements TimelineCompositor {
         ? {
             mode: layer.matte.mode,
             invert: layer.matte.invert,
-            layer: this.toFrameLayer(layer.matte.layer)
+            layer: this.toFrameLayer(layer.matte.layer),
+            strength: layer.matte.strength,
+            featherPx: layer.matte.featherPx
           }
         : undefined,
       effects: layer.effects,

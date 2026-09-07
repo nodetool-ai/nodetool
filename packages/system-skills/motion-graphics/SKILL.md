@@ -138,12 +138,18 @@ Four roles. A clip may carry several, one of each kind or more:
 default 12), `colorFade` (600ms, grayscale blooming into color).
 
 `emphasis` — `pulse` (600ms; `intensity` 0–0.5, default 0.06), `flash` (400ms;
-`intensity` 0–1, default 0.6), `shake` (600ms; `intensity` 0–0.2 default 0.02,
-`cycles` 1–12 default 4), `bounce` (600ms; `height` 0–0.3, default 0.05),
-`squash` (500ms, easeOutBack; `amount` 0–0.5, default 0.12).
+`intensity` 0–1, default 0.6), `shake` (600ms; seeded noise on both axes:
+`intensity` 0–0.2 default 0.02, `frequency` Hz default 8, `seed` default 1,
+`fadeInMs`/`fadeOutMs` default 0; the same seed repeats the same motion),
+`bounce` (600ms; `height` 0–0.3, default 0.05), `squash` (500ms, easeOutBack;
+`amount` 0–0.5, default 0.12), `followPath` (also `loop`; `d` an SVG path in
+0..1 space plus `pathX`/`pathY`/`pathWidth`/`pathHeight`, `orient` turns the
+clip along the tangent, `startT`/`endT` pick a stretch of the path; writes
+`positionX`/`positionY`, so it replaces the clip's position).
 
 `loop` — `kenBurns` (3000ms; `zoom` 0–1 default 0.12, `direction` in/out,
-`driftX`/`driftY` −0.2–0.2), `float` (3000ms; `amplitude` 0–0.2), `breathe`
+`driftX`/`driftY` −0.2–0.2), `float` (3000ms; `amplitude` 0–0.2, `frequency`
+cycles per period default 1, `seed` 0 = pure sine, else drift), `breathe`
 (3000ms; `intensity` 0–0.3), `rotate` (3000ms; `direction` cw/ccw),
 `hueShift` (3000ms; `direction` forward/reverse), `orbit` (3000ms; `degrees`
 default 360, `direction` cw/ccw) — which sweeps a 3D clip's camera and does
@@ -186,6 +192,16 @@ channel table and the worked recipes. Then `{"role": "in", "preset": "custom",
 
 Add `mask` when a curve drives `wipeProgress`; without it the wipe has no edge
 to run against.
+
+Motion that has to follow a piece of audio is a different call: `bake_audio_animation`
+measures an audio clip and writes the curve onto a target clip through the
+`set_baked_animation` op, either following the loudness (`mode: "envelope"`) or
+pulsing on each onset (`mode: "beats"`). Its keyframes sit in the target clip's
+own media, so trimming or splitting that clip re-slices the motion, and the
+animation carries `bakedFrom` — running it again with different settings
+replaces that curve instead of stacking a second one, and never touches a curve
+you keyframed by hand. `set_markers_from_beats` is the other tool: markers to
+cut against, rather than motion to animate with.
 
 How several animations on one channel combine decides whether the second one
 adds to the first or throws it away:

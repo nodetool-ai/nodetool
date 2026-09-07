@@ -88,6 +88,10 @@ export interface CompositeMatte {
   mode: MatteMode;
   invert: boolean;
   layer: CompositeLayer;
+  /** Multiplies the matte's alpha. Absent means 1. */
+  strength?: number;
+  /** Softens the matte's edge, in pixels. GPU only. */
+  featherPx?: number;
 }
 
 /**

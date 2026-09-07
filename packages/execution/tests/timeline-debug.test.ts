@@ -550,6 +550,132 @@ describe("validateTimelineSequence — structural checks", () => {
     expect(result.warnings).toEqual([]);
   });
 
+  it("flags a source-anchored curve that reaches past the clip's source window", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            // 2000ms of timeline at 1x from source 1000 → the clip plays
+            // 1000–3000ms of the media.
+            inPointMs: 1000,
+            outPointMs: 3000,
+            animations: [
+              {
+                id: "anim-1",
+                role: "emphasis",
+                preset: "custom",
+                durationMs: 2000,
+                custom: {
+                  timeBase: "source",
+                  curves: [
+                    {
+                      property: "offsetY",
+                      keyframes: [
+                        { sourceMs: 1000, value: 0 },
+                        { sourceMs: 5000, value: 100 }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        ]
+      })
+    );
+    const outside = result.warnings.filter(
+      (issue) => issue.code === "source_curve_outside_window"
+    );
+    expect(outside).toHaveLength(1);
+    expect(outside[0].message).toContain("5000");
+    expect(outside[0].path).toBe(
+      "animations[*].custom.curves[*].keyframes[*].sourceMs"
+    );
+    // A warning: the clip still renders, holding the edge value.
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts a source-anchored curve inside the clip's source window", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            inPointMs: 1000,
+            outPointMs: 3000,
+            animations: [
+              {
+                id: "anim-1",
+                role: "emphasis",
+                preset: "custom",
+                durationMs: 2000,
+                custom: {
+                  timeBase: "source",
+                  bakedFrom: { kind: "audio", assetId: "asset-1" },
+                  curves: [
+                    {
+                      property: "offsetY",
+                      keyframes: [
+                        { sourceMs: 1000, value: 0 },
+                        { sourceMs: 2500, value: 100 },
+                        { sourceMs: 3000, value: 0 }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        ]
+      })
+    );
+    expect(result.warnings).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("measures a remapped clip's window against the remap's own range", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            inPointMs: 0,
+            outPointMs: 2000,
+            timeRemap: {
+              keyframes: [
+                { t: 0, sourceMs: 4000 },
+                { t: 1, sourceMs: 9000 }
+              ]
+            },
+            animations: [
+              {
+                id: "anim-1",
+                role: "emphasis",
+                preset: "custom",
+                durationMs: 2000,
+                custom: {
+                  timeBase: "source",
+                  curves: [
+                    {
+                      property: "offsetY",
+                      keyframes: [
+                        { sourceMs: 4000, value: 0 },
+                        { sourceMs: 9000, value: 100 }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        ]
+      })
+    );
+    expect(
+      result.warnings.filter(
+        (issue) => issue.code === "source_curve_outside_window"
+      )
+    ).toEqual([]);
+  });
+
   it("flags an easing string this build cannot parse, once per site", () => {
     const result = validateTimelineSequence(
       doc({
@@ -1001,5 +1127,88 @@ describe("renderTimelineReportMarkdown", () => {
     expect(md).toContain("✅");
     expect(md).not.toContain("## Issues");
     expect(md).not.toContain("## Interactions");
+  });
+});
+
+/**
+ * A generated matte is carried on the clip it was cut from (D2), so nothing can
+ * pull it out of alignment — but the clip can be re-generated or re-windowed
+ * under it, and then the mask no longer describes the picture. That is the one
+ * thing `generated_matte_stale` reports, and the controls below pin the two
+ * ways it must stay quiet.
+ */
+describe("validateTimelineSequence — generated mattes", () => {
+  const matte = (over: Json = {}): Json => ({
+    assetId: "mask-1",
+    sourceAssetId: "asset-1",
+    sourceRange: { fromMs: 0, toMs: 10000 },
+    settings: { model: "fal-ai/birefnet/v2/video" },
+    status: "ready",
+    ...over
+  });
+
+  const matted = (over: Json = {}): Json =>
+    doc({
+      clips: [
+        clip({
+          currentAssetId: "asset-1",
+          inPointMs: 0,
+          durationMs: 2000,
+          generatedMatte: matte(),
+          ...over
+        })
+      ]
+    });
+
+  it("stays quiet while the matte still describes what the clip plays", () => {
+    const result = validateTimelineSequence(matted());
+    expect(codes(result.warnings)).not.toContain("generated_matte_stale");
+    expect(result.ok).toBe(true);
+  });
+
+  it("keeps the field across a schema round-trip", () => {
+    // A generated matte the schema stripped would be lost on the next autosave,
+    // and the clip would silently un-cut-out.
+    const result = validateTimelineSequence(matted());
+    expect(codes(result.warnings)).not.toContain("field_stripped");
+  });
+
+  it("reports generated_matte_stale when the clip's asset changed under it", () => {
+    const result = validateTimelineSequence(
+      matted({ currentAssetId: "asset-2" })
+    );
+    const issue = result.warnings.find(
+      (w) => w.code === "generated_matte_stale"
+    );
+    expect(issue?.path).toBe("generatedMatte");
+    expect(issue?.clipId).toBe("clip-1");
+    expect(issue?.trackId).toBe("track-1");
+    expect(issue?.message).toContain("asset-1");
+    expect(issue?.message).toContain("asset-2");
+    // A warning, not an error: the clip still renders, keyed by what it has.
+    expect(result.ok).toBe(true);
+  });
+
+  it("reports generated_matte_stale when the window outgrew the generation", () => {
+    const result = validateTimelineSequence(
+      matted({ inPointMs: 9000, durationMs: 3000 })
+    );
+    const issue = result.warnings.find(
+      (w) => w.code === "generated_matte_stale"
+    );
+    expect(issue?.message).toContain("9000");
+    expect(issue?.message).toContain("12000");
+  });
+
+  it("reports generated_matte_stale when speed outruns the covered range", () => {
+    const result = validateTimelineSequence(
+      matted({ durationMs: 8000, speedMultiplier: 4 })
+    );
+    expect(codes(result.warnings)).toContain("generated_matte_stale");
+  });
+
+  it("says nothing about a clip with no generated matte", () => {
+    const result = validateTimelineSequence(doc());
+    expect(codes(result.warnings)).not.toContain("generated_matte_stale");
   });
 });

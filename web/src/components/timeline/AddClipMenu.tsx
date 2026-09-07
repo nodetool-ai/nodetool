@@ -19,6 +19,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import {
   FlexColumn,
@@ -49,8 +50,14 @@ import type {
   ImageModelValue,
   TTSModelValue
 } from "../../stores/ApiTypes";
-import { clipFitsTrack } from "@nodetool-ai/timeline";
+import { clipFitsTrack, makeClip } from "@nodetool-ai/timeline";
 import type { TimelineTrack } from "@nodetool-ai/timeline";
+
+/**
+ * An adjustment layer draws nothing of its own — like an authored text or
+ * shape clip, it needs a placeholder length rather than one read off media.
+ */
+const ADJUSTMENT_CLIP_DURATION_MS = 4000;
 
 interface VideoModelChange {
   type: "video_model";
@@ -438,6 +445,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
     const addGeneratedClip = useTimelineStore((s) => s.addGeneratedClip);
     const addDirectGenClip = useTimelineStore((s) => s.addDirectGenClip);
     const addImportedClip = useTimelineStore((s) => s.addImportedClip);
+    const addClip = useTimelineStore((s) => s.addClip);
     const selectClip = useTimelineUIStore((s) => s.selectClip);
     const directGen = useTimelineDirectGenJob();
 
@@ -541,6 +549,25 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
 
     // 3D is picture, so it goes wherever a title goes: a video or overlay lane.
     const canAddModel3D = clipFitsTrack("model3d", trackType);
+    // An adjustment treats the layers below it, so it belongs on the same
+    // lanes a title or a 3D clip does — never on an audio or subtitle track.
+    const canAddAdjustment = clipFitsTrack("adjustment", trackType);
+
+    const handleAddAdjustmentLayer = useCallback(() => {
+      const clip = makeClip({
+        trackId,
+        startMs,
+        durationMs: ADJUSTMENT_CLIP_DURATION_MS,
+        name: "Adjustment",
+        mediaType: "adjustment",
+        sourceType: "imported",
+        status: "generated",
+        opacity: 1
+      });
+      addClip(clip);
+      selectClip(clip.id);
+      onClose();
+    }, [addClip, trackId, startMs, selectClip, onClose]);
 
     const handleModel3DSelect = useCallback(
       (asset: Asset) => {
@@ -763,6 +790,37 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                         </Text>
                         <Caption sx={{ color: "text.secondary" }}>
                           Place a glTF asset on this track
+                        </Caption>
+                      </FlexColumn>
+                    </FlexRow>
+                  )}
+
+                  {/* Adjustment layer — no media, no prompt; it treats the
+                      lower tracks in its window. */}
+                  {canAddAdjustment && (
+                    <FlexRow
+                      align="center"
+                      gap={1}
+                      css={workflowItemStyles(theme)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Add an adjustment layer"
+                      data-testid="add-clip-adjustment"
+                      onClick={handleAddAdjustmentLayer}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          handleAddAdjustmentLayer();
+                        }
+                      }}
+                    >
+                      <TuneOutlinedIcon fontSize="small" />
+                      <FlexColumn gap={0}>
+                        <Text size="small" weight={500}>
+                          Adjustment layer
+                        </Text>
+                        <Caption sx={{ color: "text.secondary" }}>
+                          Grade or blur every layer beneath it
                         </Caption>
                       </FlexColumn>
                     </FlexRow>

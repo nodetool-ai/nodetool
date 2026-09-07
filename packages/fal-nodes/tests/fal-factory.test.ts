@@ -473,6 +473,38 @@ describe("FAL factory argument building", () => {
     });
   });
 
+  it("keeps a declared secondary output beside the primary video slot", async () => {
+    falSubmit.mockResolvedValueOnce({
+      video: { url: "https://fal.media/cut.mp4" },
+      mask_video: "https://fal.media/mask.mp4"
+    });
+    const NodeClass = makeNode({
+      outputType: "video",
+      outputFields: [
+        { name: "video", propType: "video", tsType: "video", default: null, description: "", fieldType: "output", required: true },
+        { name: "mask_video", propType: "str", tsType: "string", default: "", description: "", fieldType: "output", required: false }
+      ]
+    });
+    const result = await new NodeClass({}).process();
+    expect(result).toEqual({
+      output: { type: "video", uri: "https://fal.media/cut.mp4" },
+      mask_video: "https://fal.media/mask.mp4"
+    });
+  });
+
+  it("omits a secondary output the response left empty", async () => {
+    falSubmit.mockResolvedValueOnce({ video: { url: "https://fal.media/cut.mp4" }, mask_video: "" });
+    const NodeClass = makeNode({
+      outputType: "video",
+      outputFields: [
+        { name: "video", propType: "video", tsType: "video", default: null, description: "", fieldType: "output", required: true },
+        { name: "mask_video", propType: "str", tsType: "string", default: "", description: "", fieldType: "output", required: false }
+      ]
+    });
+    const result = await new NodeClass({}).process();
+    expect(result).toEqual({ output: { type: "video", uri: "https://fal.media/cut.mp4" } });
+  });
+
   it("maps an `audio_file` object output onto the `output` slot", async () => {
     falSubmit.mockResolvedValueOnce({
       audio_file: { url: "https://fal.media/sound.wav" }

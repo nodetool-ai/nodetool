@@ -39,11 +39,21 @@ export interface Keyframe {
    * too (see `parseEasing`).
    */
   easing?: string;
+  /**
+   * Absolute source-media time in ms. Present (and the keyframe's real
+   * position) only on a source-anchored curve — one whose animation compiled
+   * with `timeBase: "source"`; the sampler reads this instead of `t` there.
+   */
+  sourceMs?: number;
 }
 
 export interface PropertyCurve {
   property: AnimatedProperty;
-  /** Sorted by `t`; first `t === 0`, last `t === 1`. */
+  /**
+   * Sorted by `t`; first `t === 0`, last `t === 1`. On a source-anchored curve
+   * the keyframes are sorted by `sourceMs` and `t` is its normalized position
+   * over the curve's own source span, which lands on the same invariant.
+   */
   keyframes: Keyframe[];
 }
 
@@ -184,6 +194,13 @@ export interface CompiledAnimation {
   /** Hold the `t=1` values after the window (true for `"out"`). */
   holdAfter: boolean;
   curves: PropertyCurve[];
+  /**
+   * Clock the curves are placed on. Absent or `"clip"`: the sampler evaluates
+   * them at the normalized `t` of the window. `"source"`: it evaluates them at
+   * the clip's current source time in ms, which the caller passes to
+   * `sampleAnimations`. The window still gates when the animation applies.
+   */
+  timeBase?: "clip" | "source";
   /** Present only when the preset drives a `wipeProgress` curve. */
   mask?: CompiledAnimationMask;
   /** Present only when a per-unit stagger is active (see {@link CompiledStagger}). */
@@ -226,8 +243,7 @@ function applyEasing(
   return curves.map((curve) => ({
     property: curve.property,
     keyframes: curve.keyframes.map((kf) => ({
-      t: kf.t,
-      value: kf.value,
+      ...kf,
       easing: override ?? kf.easing ?? base
     }))
   }));
@@ -285,6 +301,7 @@ export function compileClipAnimations(
     let mask: CompiledAnimationMask | undefined;
     let baseEasing: string | undefined;
     let fullClip = false;
+    let timeBase: "clip" | "source" = "clip";
 
     if (animation.preset === CUSTOM_ANIMATION_PRESET_ID) {
       // A custom animation's curves are already baked (see `custom.ts`), so
@@ -294,7 +311,10 @@ export function compileClipAnimations(
       // easing is linear, because a body that sampled `f(t)` densely has
       // already shaped its own values and a role easing on top would distort
       // them. An explicit `animation.easing` or per-keyframe easing still wins.
-      const baked = normalizeCustomCurves(animation.custom?.curves);
+      const baked = normalizeCustomCurves(
+        animation.custom?.curves,
+        animation.custom?.timeBase
+      );
       if (!baked.ok) {
         console.warn(
           `[timeline] custom animation "${animation.id}" has unusable curves (${baked.error}) — skipped`
@@ -311,6 +331,7 @@ export function compileClipAnimations(
       curves = baked.curves;
       mask = resolvedMask.mask;
       baseEasing = "linear";
+      timeBase = baked.timeBase;
     } else {
       const preset = getAnimationPreset(animation.preset);
       if (!preset) {
@@ -327,7 +348,13 @@ export function compileClipAnimations(
       }
       const params = resolvePresetParams(preset, animation.params);
       mask = preset.mask?.(params);
-      curves = preset.curves(params, canvas, animation.role);
+      // `durationMs` is the animation's own window length — computed here
+      // (ahead of the delay/window math below, which needs it too) so a
+      // preset whose motion depends on the window (seeded noise's envelope,
+      // arc-length sample density) can size itself to it rather than to a
+      // fixed sample count.
+      const animDurationMs = Math.max(1, animation.durationMs);
+      curves = preset.curves(params, canvas, animation.role, animDurationMs);
       if (animation.role === "out") {
         curves = curves.map(reverseCurve);
       }
@@ -381,6 +408,7 @@ export function compileClipAnimations(
         holdAfter: false,
         curves
       };
+      if (timeBase === "source") compiled.timeBase = timeBase;
       if (staggerConfig) {
         // Loops need no span stretch or clamp: the delay is a phase shift, so
         // nothing can compress it.
@@ -444,6 +472,7 @@ export function compileClipAnimations(
       holdAfter: animation.role === "out",
       curves
     };
+    if (timeBase === "source") compiled.timeBase = timeBase;
     if (mask) compiled.mask = mask;
     if (staggerConfig && staggerOffsetMs > 0) {
       compiled.stagger = {

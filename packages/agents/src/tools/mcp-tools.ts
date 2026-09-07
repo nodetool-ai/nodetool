@@ -239,6 +239,9 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     // be, and a belt without it leaves the model authoring cuts it can never
     // export.
     "render_timeline",
+    // Same reason: the subject cutout runs the provider through a node, so it
+    // needs the registry the built-in timeline capabilities do without.
+    "isolate_subject",
     // apps — unlike the `ui_app_*` tools, these also work when the App
     // Builder is not already open in the browser. Keep the whole headless
     // app lifecycle on the chat belt so `nodetool.apps.*` never advertises a

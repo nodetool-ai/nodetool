@@ -17,7 +17,8 @@ export type EasingId =
   | "easeInOut" // cubic
   | "easeOutBack" // overshoot (pop)
   | "easeOutElastic"
-  | "easeOutBounce";
+  | "easeOutBounce"
+  | "hold"; // step: the previous value until the segment's own keyframe
 
 /** Which unit of a staggered animation starts first. */
 export type StaggerFrom = "start" | "end" | "center";
@@ -79,9 +80,50 @@ export interface CustomClipAnimation {
   code?: string;
   /** ISO timestamp of the bake that produced `curves`. */
   bakedAt?: string;
-  curves: { property: string; keyframes: { t: number; value: number; easing?: string }[] }[];
+  /**
+   * Clock the curves' keyframes are placed on. Absent or `"clip"`: `t` runs
+   * 0..1 over the animation's window, so trimming the clip stretches the
+   * motion with it. `"source"`: every keyframe names an absolute time in the
+   * source media through `sourceMs`, and the sampler evaluates the curve at
+   * the clip's current source time — so speed, in-point and time remap move
+   * the motion the way they move the footage, and a trim or split re-slices
+   * the curve instead of stretching it.
+   *
+   * **`sourceMs` is the stored truth for a `"source"` curve.** `t` is kept on
+   * the keyframe (every reader already walks it, and it is what a clip-based
+   * curve is placed by), but the gate `normalizeCustomCurves` recomputes it
+   * from `sourceMs` — as the keyframe's normalized position over the curve's
+   * own source span — and the sampler never reads it for a source curve.
+   */
+  timeBase?: "clip" | "source";
+  curves: {
+    property: string;
+    keyframes: {
+      t: number;
+      value: number;
+      easing?: string;
+      /**
+       * Absolute source-media time in ms. Required on every keyframe of a
+       * `timeBase: "source"` curve (non-negative, non-decreasing along the
+       * curve); ignored on a clip-based one.
+       */
+      sourceMs?: number;
+    }[];
+  }[];
   /** Required when a curve drives `wipeProgress`. */
   mask?: { direction: string; softness: number };
+  /**
+   * What produced these curves, when something other than a hand edit did — an
+   * audio bake, a tracker. Typed loosely for the same forward compat `preset`
+   * has: a `kind` this build does not know is provenance to show and re-bake
+   * from, never something to execute.
+   */
+  bakedFrom?: {
+    kind: string;
+    clipId?: string;
+    assetId?: string;
+    settings?: Record<string, number | string | boolean>;
+  };
 }
 
 export interface ClipAnimation {
@@ -161,7 +203,8 @@ export type AnimationPresetId =
   | "rotate"
   | "squash"
   | "hueShift"
-  | "orbit";
+  | "orbit"
+  | "followPath";
 
 /**
  * Every property a curve can drive, as a runtime list so a custom animation's

@@ -83,6 +83,34 @@ export function clipRemapSourceMs(
 }
 
 /**
+ * The source position (ms) a clip shows at timeline position `currentTimeMs` —
+ * the remap curve when there is one, otherwise the in-point plus the elapsed
+ * clip time at the clip's rate. Never negative.
+ *
+ * This is `clipSourceTimeSec` (`render/sceneModel.ts`) in milliseconds and
+ * without the render dependency, so the pure editing math — the source-anchored
+ * animation curves in particular — resolves a clip's source time exactly the
+ * way the compositor seeks its video.
+ */
+export function clipSourceMsAt(
+  clip: Pick<
+    TimelineClip,
+    | "timeRemap"
+    | "startMs"
+    | "durationMs"
+    | "inPointMs"
+    | "speedMultiplier"
+    | "speedBaked"
+  >,
+  currentTimeMs: number
+): number {
+  const remapped = clipRemapSourceMs(clip, currentTimeMs);
+  if (remapped !== null) return Math.max(0, remapped);
+  const intoClipMs = currentTimeMs - clip.startMs;
+  return Math.max(0, intoClipMs * sourceRate(clip) + (clip.inPointMs ?? 0));
+}
+
+/**
  * One stretch of a clip over which the source runs at a constant rate.
  *
  * `rate` is Δsource / Δtimeline, the same quantity `sourceRate` names for an

@@ -128,6 +128,10 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "edit_timeline",
   "set_timeline_document",
   "validate_timeline",
+  // Measure a piece of audio and write the curve onto a clip. It reads the
+  // asset through the context and composites nothing, so it needs no node
+  // registry — unlike `render_timeline`, which does.
+  "bake_audio_animation",
 
   // Look at the cut without an editor, a browser or a GPU: the composited
   // frame at a timecode, and the pixel difference between two versions of a

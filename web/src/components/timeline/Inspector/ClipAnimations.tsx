@@ -1,10 +1,13 @@
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import type { Theme } from "@mui/material/styles";
+import { useShallow } from "zustand/react/shallow";
 import AnimationOutlinedIcon from "@mui/icons-material/AnimationOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import {
   ANIMATION_PRESETS,
+  EASING_IDS,
   STAGGER_UNITS,
+  isSourceAnchoredAnimation,
   type AnimationPreset,
   type AnimationRole,
   type ClipAnimation,
@@ -37,19 +40,17 @@ import {
 } from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
 import { ClipCustomCurves, makeCustomAnimation } from "./ClipCustomCurves";
-import { EasingField } from "./InspectorMotionFields";
+import { EasingField, TextCommitField } from "./InspectorMotionFields";
 import { isNumber } from "../../../utils/typePredicates";
+import {
+  shapeClipToFollowPathParams,
+  type FollowPathParams
+} from "./followPathParams";
 
 const ROLES: AnimationRole[] = ["in", "out", "emphasis", "loop"];
-const EASINGS: EasingId[] = [
-  "linear",
-  "easeIn",
-  "easeOut",
-  "easeInOut",
-  "easeOutBack",
-  "easeOutElastic",
-  "easeOutBounce"
-];
+const EASINGS: EasingId[] = EASING_IDS;
+/** Labels that differ from the raw id. Every other easing shows its id as-is. */
+const EASING_LABELS: Partial<Record<EasingId, string>> = { hold: "Hold" };
 const EMPTY_ANIMATIONS: ClipAnimation[] = [];
 
 /**
@@ -71,7 +72,7 @@ const ROLE_LABELS: Record<AnimationRole, string> = {
 
 const EASING_OPTIONS = EASINGS.map((easing) => ({
   value: easing,
-  label: easing
+  label: EASING_LABELS[easing] ?? easing
 }));
 const ROLE_OPTIONS = ROLES.map((role) => ({
   value: role,
@@ -161,6 +162,16 @@ const AnimationParamControl: React.FC<AnimationParamControlProps> = memo(
       spec.options?.map((option) => ({ value: option, label: option })) ?? [],
     [spec.options]
   );
+  const handleSeedCommit = useCallback(
+    (raw: string) => {
+      const parsed = Number.parseInt(raw, 10);
+      if (!Number.isFinite(parsed)) return;
+      const min = spec.min ?? 0;
+      const max = spec.max ?? parsed;
+      handleChange(Math.min(max, Math.max(min, parsed)));
+    },
+    [handleChange, spec.min, spec.max]
+  );
   if (spec.options) {
     return (
       <InspectorRow label={spec.name}>
@@ -169,6 +180,47 @@ const AnimationParamControl: React.FC<AnimationParamControlProps> = memo(
           value={String(value)}
           options={options}
           onChange={handleChange}
+        />
+      </InspectorRow>
+    );
+  }
+
+  // Control kind is inferred from the default's own type — `PresetParamValue`
+  // already covers number/string/boolean, so a param needs no extra "kind"
+  // field to say which control it wants.
+  if (typeof spec.default === "boolean") {
+    return (
+      <InspectorToggleRow
+        label={spec.name}
+        checked={value === true}
+        onChange={handleChange}
+      />
+    );
+  }
+
+  // A bare string param with no enumerated `options` (e.g. `followPath`'s
+  // authored path `d`) is free text rather than a slider or a select.
+  if (typeof spec.default === "string") {
+    return (
+      <InspectorRow label={spec.name}>
+        <TextCommitField
+          value={typeof value === "string" ? value : String(spec.default)}
+          ariaLabel={`${animation.role} ${spec.name}`}
+          onCommit={handleChange}
+        />
+      </InspectorRow>
+    );
+  }
+
+  // `seed` picks a PRNG stream rather than sitting on a meaningful scale
+  // (0..1,000,000) — a typed integer field, not a slider.
+  if (spec.name === "seed" && isNumber(value)) {
+    return (
+      <InspectorRow label={spec.name}>
+        <InspectorPillInput
+          value={String(Math.round(value))}
+          onCommit={handleSeedCommit}
+          ariaLabel={`${animation.role} ${spec.name}`}
         />
       </InspectorRow>
     );
@@ -281,6 +333,75 @@ const EDITOR_SX = {
 };
 const DELETE_SX = { width: 24, height: 24 };
 
+const CHOOSE_SHAPE_CLIP = "";
+
+interface FollowPathShapePickerProps {
+  /** Fills `d`, `pathX`, `pathY`, `pathWidth`, `pathHeight` from the chosen clip. */
+  onPick: (params: FollowPathParams) => void;
+}
+
+/**
+ * Lists the document's shape clips so a `followPath` animation can borrow one
+ * clip's geometry instead of typing `d` by hand. Picking one is a one-shot
+ * fill, not a persisted reference — the animation keeps its own copy of the
+ * params, so editing the source clip afterward does not move the path.
+ */
+const FollowPathShapePicker: React.FC<FollowPathShapePickerProps> = memo(
+  ({ onPick }) => {
+    const shapeClips = useTimelineStore(
+      useShallow((s) =>
+        s.clips.flatMap((candidate) =>
+          candidate.mediaType === "shape"
+            ? [
+                {
+                  id: candidate.id,
+                  name: candidate.name,
+                  shapeStyle: candidate.shapeStyle
+                }
+              ]
+            : []
+        )
+      )
+    );
+
+    const options = useMemo(
+      () => [
+        { value: CHOOSE_SHAPE_CLIP, label: "Choose a shape clip…" },
+        ...shapeClips.map((candidate) => ({
+          value: candidate.id,
+          label: candidate.name || candidate.id
+        }))
+      ],
+      [shapeClips]
+    );
+
+    const handlePick = useCallback(
+      (value: string) => {
+        if (value === CHOOSE_SHAPE_CLIP) return;
+        const candidate = shapeClips.find((c) => c.id === value);
+        const params = shapeClipToFollowPathParams(candidate?.shapeStyle);
+        if (params) onPick(params);
+      },
+      [shapeClips, onPick]
+    );
+
+    if (shapeClips.length === 0) return null;
+
+    return (
+      <InspectorRow label="Use shape clip">
+        <InspectorSelect
+          label="Use shape clip"
+          value={CHOOSE_SHAPE_CLIP}
+          options={options}
+          onChange={handlePick}
+          grow
+        />
+      </InspectorRow>
+    );
+  }
+);
+FollowPathShapePicker.displayName = "FollowPathShapePicker";
+
 interface ClipAnimationEditorProps {
   animation: ClipAnimation;
   /** True on text clips — the only place per-word stagger applies. */
@@ -355,6 +476,15 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = memo(({
     (name: string, value: number | string | boolean) => {
       onPatchThis({
         params: { ...animationRef.current.params, [name]: value }
+      });
+    },
+    [onPatchThis]
+  );
+
+  const patchParams = useCallback(
+    (patch: FollowPathParams) => {
+      onPatchThis({
+        params: { ...animationRef.current.params, ...patch }
       });
     },
     [onPatchThis]
@@ -561,8 +691,13 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = memo(({
         <ClipCustomCurves
           custom={animation.custom}
           labelPrefix={animation.role}
+          sourceAnchored={isSourceAnchoredAnimation(animation)}
           onChange={handleCustomChange}
         />
+      )}
+
+      {preset?.id === "followPath" && (
+        <FollowPathShapePicker onPick={patchParams} />
       )}
 
       {preset?.params.map((spec) => (

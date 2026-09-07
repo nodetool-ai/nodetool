@@ -93,6 +93,26 @@ jest.mock("../../../../stores/timeline/TimelineStore", () => {
   };
 });
 
+let mockMatteViewEnabled = false;
+let mockSelectedClipIds = new Set<string>();
+const mockToggleMatteView = jest.fn();
+
+jest.mock("../../../../stores/timeline/TimelineUIStore", () => {
+  const getState = () => ({
+    matteViewEnabled: mockMatteViewEnabled,
+    toggleMatteView: mockToggleMatteView,
+    selectedClipIds: mockSelectedClipIds
+  });
+  const useTimelineUIStore = <T,>(
+    selector: (s: ReturnType<typeof getState>) => T
+  ) => {
+    const state = getState();
+    return selector ? selector(state) : state;
+  };
+  useTimelineUIStore.getState = getState;
+  return { useTimelineUIStore };
+});
+
 jest.mock("../../../../stores/AssetStore", () => ({
   useAssetStore: <T,>(selector: (s: { get: jest.Mock }) => T) => {
     const state = {
@@ -118,6 +138,40 @@ describe("PreviewArea", () => {
     mockIsPlaying = false;
     mockDurationMs = 60_000;
     mockClips = [];
+    mockMatteViewEnabled = false;
+    mockSelectedClipIds = new Set<string>();
+  });
+
+  describe("show matte", () => {
+    const mattedClip = (status: "ready" | "generating") => ({
+      id: "shot",
+      startMs: 0,
+      durationMs: 4000,
+      generatedMatte: { assetId: "mask-1", status }
+    });
+
+    it("is offered only once the selected clip's matte is ready", () => {
+      mockClips = [mattedClip("generating")];
+      mockSelectedClipIds = new Set(["shot"]);
+      renderPreview();
+      expect(screen.getByRole("button", { name: /show matte/i })).toBeDisabled();
+    });
+
+    it("toggles the view for a clip that has one", async () => {
+      mockClips = [mattedClip("ready")];
+      mockSelectedClipIds = new Set(["shot"]);
+      renderPreview();
+
+      const toggle = screen.getByRole("button", { name: /show matte/i });
+      expect(toggle).toBeEnabled();
+      fireEvent.click(toggle);
+      expect(mockToggleMatteView).toHaveBeenCalledTimes(1);
+    });
+
+    it("is not offered with nothing selected", () => {
+      renderPreview();
+      expect(screen.getByRole("button", { name: /show matte/i })).toBeDisabled();
+    });
   });
 
   describe("rendering", () => {

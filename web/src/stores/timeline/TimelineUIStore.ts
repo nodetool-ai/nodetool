@@ -129,6 +129,12 @@ export interface TimelineUIState {
   /** Whether the tracks area is in fullscreen mode. */
   fullscreen: boolean;
   /**
+   * Preview shows the selected clip's generated matte instead of the frame it
+   * cuts, so the mask can be judged on its own. A view, not a document field —
+   * it changes nothing that is saved.
+   */
+  matteViewEnabled: boolean;
+  /**
    * ID of the audio track whose DSP chain editor is currently expanded
    * inline below the track row, or null if none. Only one chain editor is
    * shown at a time to keep vertical layout tractable.
@@ -214,6 +220,10 @@ export interface TimelineUIState {
 
   setFullscreen: (full: boolean) => void;
   toggleFullscreen: () => void;
+
+  /** Turn the preview's matte view on or off. */
+  setMatteViewEnabled: (on: boolean) => void;
+  toggleMatteView: () => void;
 
   // ── Tool ─────────────────────────────────────────────────────────────────
 
@@ -309,6 +319,7 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   scrollLeftPx: 0,
   revealRequest: null,
   fullscreen: false,
+  matteViewEnabled: false,
   expandedFxTrackId: null,
   expandedInstrumentTrackId: null,
   pianoRollClipId: null,
@@ -383,6 +394,11 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   setFullscreen: (full) => set({ fullscreen: full }),
 
   toggleFullscreen: () => set((state) => ({ fullscreen: !state.fullscreen })),
+
+  setMatteViewEnabled: (on) => set({ matteViewEnabled: on }),
+
+  toggleMatteView: () =>
+    set((state) => ({ matteViewEnabled: !state.matteViewEnabled })),
 
   setActiveTool: (tool) => set({ activeTool: tool }),
 

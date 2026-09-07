@@ -823,6 +823,56 @@ export const matteParams = z.object({
 export type MatteParams = z.infer<typeof matteParams>;
 
 /**
+ * The knobs on a matte generated from the clip's own source (D2).
+ *
+ * Generating one is `isolate_subject`, a paid provider call. This is what a
+ * person does with the result: invert the keyhole, ease its strength, feather
+ * its edge, go back to the version before the last regenerate, throw it away.
+ * Every field is optional and an absent one leaves the stored value alone;
+ * `clear` wins over the rest, then `selectVersionAssetId`, then the knobs.
+ */
+export const setGeneratedMatteParams = z.object({
+  target: targetParam,
+  invert: z
+    .boolean()
+    .optional()
+    .describe("Keep what the matte excludes instead of what it covers."),
+  strength: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe("Multiplier on the matte's alpha. 1 is the full cutout, 0 none."),
+  featherPx: z
+    .number()
+    .min(0)
+    .optional()
+    .describe(
+      "Soften the cutout edge, in source px. GPU only — the Canvas 2D compositor draws the edge hard and reports it."
+    ),
+  selectVersionAssetId: z
+    .string()
+    .optional()
+    .describe(
+      "Make a stored version current, by its mask asset id. A version that is not in the list is a no-op."
+    ),
+  clear: z
+    .boolean()
+    .optional()
+    .describe("Remove the generated matte, stored versions and all.")
+});
+
+export type SetGeneratedMatteParams = z.infer<typeof setGeneratedMatteParams>;
+
+export const SET_GENERATED_MATTE_DESCRIPTION =
+  "Adjust the matte isolate_subject cut from a clip's own source: invert it, " +
+  "ease its strength, feather its edge, put an earlier version back, or " +
+  "clear it. This does not generate anything and costs nothing — " +
+  "isolate_subject is the call that runs the provider. Fields you leave out " +
+  "keep the value they have, so one call can change strength alone. Use " +
+  "set_matte instead for a keyhole authored from another clip's picture.";
+
+/**
  * A time-remap curve: where in the source each instant of the clip sits (D13).
  *
  * `t` is normalized over the clip's own window, so the curve has to span it —
@@ -902,6 +952,130 @@ export function buildTimeRemap(input: TimeRemapParams): ClipTimeRemap {
     )
   };
 }
+
+// ── Baked animations ────────────────────────────────────────────────────────
+
+/**
+ * Where a baked curve came from, stored on the animation as
+ * `custom.bakedFrom`.
+ *
+ * `kind` plus the driven property is the identity a re-bake matches to replace
+ * its own curve, so it is required. The rest is what a caller needs to re-run
+ * the bake or show its provenance: which clip was measured, which asset, and
+ * the settings that produced these numbers. `kind` is a free string for the
+ * forward compat `preset` has — one this build does not know is provenance to
+ * display, never something to execute.
+ */
+export const bakedFromParams = z.object({
+  kind: z
+    .string()
+    .min(1)
+    .describe(
+      'What produced the curve, e.g. "audio". A second bake of the same kind driving the same property replaces this one.'
+    ),
+  clipId: z
+    .string()
+    .optional()
+    .describe("The clip that was measured, when it is not the animated one."),
+  assetId: z.string().optional().describe("The media the curve was read from."),
+  settings: z
+    .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
+    .optional()
+    .describe("The knobs the bake ran with, so it can be repeated.")
+});
+
+export type BakedFromParams = z.infer<typeof bakedFromParams>;
+
+/**
+ * One source-anchored curve, as `set_baked_animation` takes it.
+ *
+ * `sourceMs` is absolute time in the animated clip's own media, not time on
+ * the timeline and not `t` over the clip's window: the curve travels with the
+ * footage, so a trim or a split re-slices it instead of stretching it. The
+ * property name is loose here — `@nodetool-ai/timeline` owns the list, and
+ * `normalizeCustomCurves` is the one gate that checks it, the same way it
+ * checks a curve `animate_clip` writes.
+ */
+export const bakedAnimationParams = z.object({
+  property: z
+    .string()
+    .describe(
+      "Channel the curve drives, e.g. scale, opacity, offsetX. list_animation_presets reports every one with its identity and range."
+    ),
+  keyframes: z
+    .array(
+      z.object({
+        sourceMs: z
+          .number()
+          .min(0)
+          .describe("Milliseconds into the animated clip's own source media."),
+        value: z.number().describe("The channel's value at that source time."),
+        easing: z
+          .string()
+          .optional()
+          .describe("Easing for the segment ending here. Default linear.")
+      })
+    )
+    .min(1)
+    .describe("Ascending in `sourceMs`; a list that goes back is refused."),
+  timeBase: z
+    .literal("source")
+    .optional()
+    .describe(
+      'Only "source". A curve normalized over the clip\'s window is what animate_clip takes.'
+    ),
+  bakedFrom: bakedFromParams,
+  role: z
+    .enum(["in", "out", "emphasis", "loop"])
+    .optional()
+    .describe('Default "emphasis" — the role whose window is the whole clip.'),
+  durationMs: z
+    .number()
+    .positive()
+    .optional()
+    .describe("The animation's window. Default the clip's own duration."),
+  delayMs: z.number().optional().describe("Offset of the window. Default 0."),
+  easing: z
+    .string()
+    .optional()
+    .describe("Overrides every segment's own easing."),
+  params: z
+    .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
+    .optional(),
+  mask: z
+    .object({
+      direction: z.enum(["left", "right", "up", "down"]),
+      softness: z.number().min(0).max(1)
+    })
+    .optional()
+    .describe("Required when the curve drives wipeProgress."),
+  replace: z
+    .boolean()
+    .optional()
+    .describe(
+      "Default true: overwrite the curve an earlier bake of this kind left on this property. False appends beside it."
+    )
+});
+
+export type BakedAnimationParams = z.infer<typeof bakedAnimationParams>;
+
+/** `set_baked_animation`'s whole input. */
+export const setBakedAnimationParams = z.object({
+  target: targetParam,
+  animation: bakedAnimationParams
+});
+
+export type SetBakedAnimationParams = z.infer<typeof setBakedAnimationParams>;
+
+export const SET_BAKED_ANIMATION_DESCRIPTION =
+  "Write one machine-produced curve onto a clip, anchored to the clip's own " +
+  "media rather than to its window: every keyframe names an absolute " +
+  "`sourceMs`, so a trim or a split re-slices the motion instead of " +
+  "stretching it. `bakedFrom` says what produced the curve, and a second " +
+  "bake of the same `kind` driving the same property replaces that curve in " +
+  "place, keeping its id. An animation with no `bakedFrom` — anything a " +
+  "person keyframed — is never touched. Use animate_clip for a preset or a " +
+  "hand-written curve; this op is for a bake something measured.";
 
 // ── Effects ─────────────────────────────────────────────────────────────────
 

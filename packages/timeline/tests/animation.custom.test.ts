@@ -43,6 +43,7 @@ describe("normalizeCustomCurves", () => {
     ]);
     expect(result).toEqual({
       ok: true,
+      timeBase: "clip",
       curves: [
         { property: "offsetY", keyframes: [{ t: 0, value: -100 }, { t: 1, value: 0 }] }
       ]

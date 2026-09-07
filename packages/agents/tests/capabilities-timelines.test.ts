@@ -127,6 +127,8 @@ describe("timelines capability module", () => {
       "preview_timeline_frame",
       "compare_timeline_frames",
       "render_timeline",
+      "bake_audio_animation",
+      "isolate_subject",
       "delete_timeline"
     ]);
   });

@@ -103,7 +103,24 @@ function seedClips(): TimelineClip[] {
       mediaType: "video",
       sourceType: "generated",
       status: "generated",
-      prompt: "a cat"
+      prompt: "a cat",
+      // `set_generated_matte` only adjusts a matte that exists, so one clip
+      // carries a finished generation with a version behind it.
+      generatedMatte: {
+        assetId: "asset_mask_2",
+        sourceAssetId: "asset_src",
+        sourceRange: { fromMs: 0, toMs: 5000 },
+        settings: { model: "Matting" },
+        status: "ready",
+        versions: [
+          {
+            assetId: "asset_mask_1",
+            sourceAssetId: "asset_src",
+            createdAt: "2026-01-01T00:00:00.000Z",
+            settings: { model: "General Use (Light)" }
+          }
+        ]
+      }
     }),
     makeClip({
       id: "clip_m",
@@ -461,6 +478,50 @@ const FIXTURES: Fixture[] = [
     tool: "snap_to_beats",
     args: { bpm: 120, targets: ["clip_a"] },
     op: { op: "snap_to_beats", bpm: 120, targets: ["clip_a"] }
+  },
+  {
+    tool: "set_baked_animation",
+    args: {
+      target: "clip_a",
+      animation: {
+        property: "scale",
+        keyframes: [
+          { sourceMs: 0, value: 1 },
+          { sourceMs: 400, value: 1.3 }
+        ],
+        bakedFrom: { kind: "audio", assetId: "asset_1" }
+      }
+    },
+    op: {
+      op: "set_baked_animation",
+      target: "clip_a",
+      animation: {
+        property: "scale",
+        keyframes: [
+          { sourceMs: 0, value: 1 },
+          { sourceMs: 400, value: 1.3 }
+        ],
+        bakedFrom: { kind: "audio", assetId: "asset_1" }
+      }
+    }
+  },
+  {
+    tool: "set_generated_matte",
+    args: {
+      target: "clip_c",
+      invert: true,
+      strength: 0.75,
+      featherPx: 3,
+      selectVersionAssetId: "asset_mask_1"
+    },
+    op: {
+      op: "set_generated_matte",
+      target: "clip_c",
+      invert: true,
+      strength: 0.75,
+      featherPx: 3,
+      selectVersionAssetId: "asset_mask_1"
+    }
   },
   {
     tool: "insert_composition",

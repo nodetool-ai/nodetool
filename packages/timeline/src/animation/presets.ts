@@ -24,6 +24,12 @@ import type {
   PropertyCurve
 } from "./compile.js";
 import { ease } from "./easing.js";
+import { MAX_CUSTOM_KEYFRAMES } from "./custom.js";
+import {
+  flattenNormalizedPath,
+  pointAtPathFraction,
+  type PathBox
+} from "../pathSampling.js";
 
 export interface Canvas {
   width: number;
@@ -60,7 +66,20 @@ export interface AnimationPreset {
    * `holdAfter`), ignoring duration/delay. Only `kenBurns` sets this.
    */
   fullClip?: boolean;
-  curves(params: ResolvedParams, canvas: Canvas, role: AnimationRole): PropertyCurve[];
+  /**
+   * `durationMs` is the animation's own window length in ms (before delay,
+   * before stagger stretch) — `compileClipAnimations` passes it so a preset
+   * whose motion depends on its window (seeded noise's fade envelope,
+   * arc-length sample density) can size itself to it rather than to a fixed
+   * sample count. Optional so a preset that ignores it (nearly all of them)
+   * can keep its existing three-argument signature.
+   */
+  curves(
+    params: ResolvedParams,
+    canvas: Canvas,
+    role: AnimationRole,
+    durationMs?: number
+  ): PropertyCurve[];
   /**
    * Static mask config for presets that drive a `wipeProgress` curve. Carried
    * on the `CompiledAnimation` (direction/softness never animate). Only `wipe`
@@ -96,6 +115,127 @@ function sampleCurve(
 }
 
 const TWO_PI = Math.PI * 2;
+
+// ── sample density (T8) ─────────────────────────────────────────────────────
+
+export interface SampleCountBounds {
+  min: number;
+  max: number;
+}
+
+/**
+ * Keyframe count for a curve sampled at ~8 points per cycle of `frequencyHz`
+ * over `durationMs`, clamped to `bounds`. One extra keyframe closes the last
+ * cycle (`sampleCurve` divides by `count - 1`), so a whole number of cycles
+ * still lands its final sample exactly at `t = 1`.
+ *
+ * `bounds.max` should never exceed `MAX_CUSTOM_KEYFRAMES` — the limit
+ * `normalizeCustomCurves` enforces on a baked custom animation's curves.
+ * Preset-generated curves are not run through that gate today, but staying
+ * under the same ceiling keeps a preset's output document-shaped even if a
+ * future caller (a "bake this preset to custom" op) starts saving it as one.
+ */
+export function sampleCountFor(
+  durationMs: number,
+  frequencyHz: number,
+  bounds: SampleCountBounds
+): number {
+  const cycles =
+    durationMs > 0 && frequencyHz > 0 ? (durationMs / 1000) * frequencyHz : 0;
+  const raw = Math.round(cycles * 8) + 1;
+  return Math.max(bounds.min, Math.min(bounds.max, raw));
+}
+
+// ── seeded value noise (T6, T7) ──────────────────────────────────────────────
+
+/**
+ * mulberry32: a small, fast, deterministic PRNG. Same seed, same sequence —
+ * which is what lets `shake`/`float` reproduce identical curves for identical
+ * params rather than re-rolling on every compile.
+ */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Smooth (cubic Hermite) interpolant, for value noise between lattice points. */
+function smoothstep(t: number): number {
+  return t * t * (3 - 2 * t);
+}
+
+/** `count` random values in [-1, 1], drawn from `rand`. */
+function buildNoiseLattice(rand: () => number, count: number): number[] {
+  const lattice: number[] = [];
+  for (let i = 0; i < count; i++) lattice.push(rand() * 2 - 1);
+  return lattice;
+}
+
+/**
+ * Value noise at `u` (expected 0..1) over an open lattice — the two end
+ * lattice points are NOT the same value, so this is for a one-shot animation
+ * (`shake`), not a loop.
+ */
+function sampleLatticeNoise(lattice: readonly number[], u: number): number {
+  const n = lattice.length;
+  if (n === 0) return 0;
+  if (n === 1) return lattice[0]!;
+  const scaled = Math.max(0, Math.min(1, u)) * (n - 1);
+  const i0 = Math.min(n - 2, Math.floor(scaled));
+  const i1 = i0 + 1;
+  const frac = scaled - i0;
+  const a = lattice[i0]!;
+  const b = lattice[i1]!;
+  return a + (b - a) * smoothstep(frac);
+}
+
+/**
+ * Value noise at `u` (0..1) over a CIRCULAR lattice: `u = 0` and `u = 1` both
+ * resolve to `lattice[0]`, so a loop preset (`float`) can blend this in
+ * without breaking its own seamless-loop invariant.
+ */
+function sampleCircularLatticeNoise(
+  lattice: readonly number[],
+  u: number
+): number {
+  const n = lattice.length;
+  if (n === 0) return 0;
+  const scaled = u * n;
+  const i0 = ((Math.floor(scaled) % n) + n) % n;
+  const i1 = (i0 + 1) % n;
+  const frac = scaled - Math.floor(scaled);
+  const a = lattice[i0]!;
+  const b = lattice[i1]!;
+  return a + (b - a) * smoothstep(frac);
+}
+
+/**
+ * Amplitude envelope for `shake`: ramps 0→1 over the first `fadeInMs` of the
+ * window and 1→0 over the last `fadeOutMs`, 1 elsewhere. A `0` fade length
+ * disables that ramp — the caller separately forces the curve's own t=0/t=1
+ * keyframes to 0, which is the actual "starts and ends at rest" guarantee;
+ * this only shapes how quickly the interior approaches full amplitude.
+ */
+function fadeEnvelope(
+  tMs: number,
+  windowMs: number,
+  fadeInMs: number,
+  fadeOutMs: number
+): number {
+  let e = 1;
+  if (fadeInMs > 0 && tMs < fadeInMs) e = Math.min(e, tMs / fadeInMs);
+  if (fadeOutMs > 0 && tMs > windowMs - fadeOutMs) {
+    e = Math.min(e, (windowMs - tMs) / fadeOutMs);
+  }
+  return Math.max(0, Math.min(1, e));
+}
+
+/** Nominal sample-density frequency for `followPath` — see its `describe`. */
+const FOLLOW_PATH_SAMPLE_HZ = 1;
 
 // ── catalog ────────────────────────────────────────────────────────────────
 
@@ -292,15 +432,49 @@ const PRESETS: AnimationPreset[] = [
     defaultEasing: "linear",
     params: [
       { name: "intensity", default: 0.02, min: 0, max: 0.2 },
-      { name: "cycles", default: 4, min: 1, max: 12 }
+      { name: "frequency", default: 8, min: 0.5, max: 30 },
+      { name: "seed", default: 1, min: 0, max: 1000000 },
+      { name: "fadeInMs", default: 0, min: 0, max: 5000 },
+      { name: "fadeOutMs", default: 0, min: 0, max: 5000 }
     ],
-    describe: "Horizontal zig-zag; starts and ends at rest.",
-    curves: (params, canvas) => {
+    describe:
+      "Seeded jitter on both axes (deterministic per seed); starts and ends " +
+      "at rest, with optional fade-in/out.",
+    curves: (params, canvas, _role, durationMs) => {
       const intensity = num(params, "intensity", 0.02);
-      const cycles = Math.max(1, Math.round(num(params, "cycles", 4)));
-      const amp = intensity * canvas.width;
-      const count = cycles * 4 + 1;
-      return [sampleCurve("offsetX", count, (t) => amp * Math.sin(TWO_PI * cycles * t))];
+      const frequency = Math.max(0.01, num(params, "frequency", 8));
+      const seed = Math.round(num(params, "seed", 1));
+      const fadeInMs = Math.max(0, num(params, "fadeInMs", 0));
+      const fadeOutMs = Math.max(0, num(params, "fadeOutMs", 0));
+      const windowMs = durationMs ?? 600;
+
+      const count = sampleCountFor(windowMs, frequency, {
+        min: 9,
+        max: MAX_CUSTOM_KEYFRAMES
+      });
+      // A lattice point roughly every cycle; two independent PRNG streams
+      // (odd/even seed offsets) so X and Y jitter don't move in lockstep.
+      const latticeCount = Math.max(
+        2,
+        Math.round((frequency * windowMs) / 1000) + 1
+      );
+      const noiseX = buildNoiseLattice(mulberry32(seed * 2 + 1), latticeCount);
+      const noiseY = buildNoiseLattice(mulberry32(seed * 2 + 2), latticeCount);
+      const ampX = intensity * canvas.width;
+      const ampY = intensity * canvas.height;
+
+      const axis = (lattice: number[], amp: number) => (t: number): number => {
+        // Force exact rest at both ends regardless of fade settings — the
+        // invariant is on the curve, not on the envelope.
+        if (t <= 0 || t >= 1) return 0;
+        const envelope = fadeEnvelope(t * windowMs, windowMs, fadeInMs, fadeOutMs);
+        return amp * sampleLatticeNoise(lattice, t) * envelope;
+      };
+
+      return [
+        sampleCurve("offsetX", count, axis(noiseX, ampX)),
+        sampleCurve("offsetY", count, axis(noiseY, ampY))
+      ];
     }
   },
   {
@@ -382,11 +556,42 @@ const PRESETS: AnimationPreset[] = [
     roles: ["loop"],
     defaultDurationMs: 3000,
     defaultEasing: "linear",
-    params: [{ name: "amplitude", default: 0.015, min: 0, max: 0.2 }],
-    describe: "Gentle vertical bob (loops seamlessly).",
-    curves: (params, canvas) => {
+    params: [
+      { name: "amplitude", default: 0.015, min: 0, max: 0.2 },
+      { name: "frequency", default: 1, min: 0.1, max: 8 },
+      { name: "seed", default: 0, min: 0, max: 1000000 }
+    ],
+    describe:
+      "Gentle vertical bob (loops seamlessly); `frequency` sets bobs per " +
+      "period, `seed` blends in organic drift instead of a pure sine.",
+    curves: (params, canvas, _role, durationMs) => {
       const amp = num(params, "amplitude", 0.015) * canvas.height;
-      return [sampleCurve("offsetY", 16, (t) => -amp * Math.sin(TWO_PI * t))];
+      const frequency = Math.max(0.01, num(params, "frequency", 1));
+      const seed = Math.round(num(params, "seed", 0));
+      const windowMs = durationMs ?? 3000;
+      const count = sampleCountFor(windowMs, frequency, {
+        min: 9,
+        max: MAX_CUSTOM_KEYFRAMES
+      });
+      // The oscillation itself always closes on a whole cycle — sin(2π·n) = 0
+      // for integer n — so the loop is seamless regardless of a fractional
+      // `frequency`; the unrounded value only steers sample/lattice density.
+      const cycles = Math.max(1, Math.round(frequency));
+      let lattice: number[] | null = null;
+      if (seed !== 0) {
+        const latticeCount = Math.max(4, Math.min(64, Math.round(frequency * 8)));
+        lattice = buildNoiseLattice(mulberry32(seed), latticeCount);
+      }
+      return [
+        sampleCurve("offsetY", count, (t) => {
+          const base = -amp * Math.sin(TWO_PI * cycles * t);
+          if (!lattice) return base;
+          // Circular lattice: sampleCircularLatticeNoise(lattice, 0) ===
+          // sampleCircularLatticeNoise(lattice, 1), so the drift stays as
+          // seamless as the sine it rides on.
+          return base + amp * 0.5 * sampleCircularLatticeNoise(lattice, t);
+        })
+      ];
     }
   },
   {
@@ -449,6 +654,83 @@ const PRESETS: AnimationPreset[] = [
           keyframes: [{ t: 0, value: 0 }, { t: 1, value: sign * degrees }]
         }
       ];
+    }
+  },
+  {
+    id: "followPath",
+    roles: ["emphasis", "loop"],
+    defaultDurationMs: 800,
+    defaultEasing: "linear",
+    params: [
+      { name: "d", default: "" },
+      { name: "pathX", default: 0, min: 0, max: 1 },
+      { name: "pathY", default: 0, min: 0, max: 1 },
+      { name: "pathWidth", default: 1, min: 0, max: 1 },
+      { name: "pathHeight", default: 1, min: 0, max: 1 },
+      { name: "orient", default: false },
+      { name: "startT", default: 0, min: 0, max: 1 },
+      { name: "endT", default: 1, min: 0, max: 1 }
+    ],
+    describe:
+      "Move along an authored SVG path (`d`, normalized 0..1 the same way " +
+      "as ClipShapeStyle.d, placed in the pathX/Y/Width/Height box) from " +
+      "startT to endT, sampled uniformly by arc length. Writes " +
+      "positionX/positionY in canvas px; `orient` also writes rotation from " +
+      "the path's tangent. Resolving an existing shape clip's `d` into " +
+      "these params (by `pathClipId`) instead of authoring the path inline " +
+      "is a follow-up op — this preset only takes the path literally, " +
+      "because a preset compiles without the document to look a clip up in.",
+    curves: (params, canvas, _role, durationMs) => {
+      const d = str(params, "d", "");
+      const box: PathBox = {
+        x: num(params, "pathX", 0),
+        y: num(params, "pathY", 0),
+        width: num(params, "pathWidth", 1),
+        height: num(params, "pathHeight", 1)
+      };
+      const orient = params.orient === true;
+      const startT = Math.max(0, Math.min(1, num(params, "startT", 0)));
+      const endT = Math.max(0, Math.min(1, num(params, "endT", 1)));
+
+      const flat = flattenNormalizedPath(d, box, canvas.width, canvas.height);
+      if (!flat) {
+        // No usable path (empty/unparsable `d`, or zero length): drive
+        // nothing rather than snapping the clip to (0, 0) — matches how an
+        // unknown preset id or role compiles to no curves elsewhere (I2).
+        return [];
+      }
+
+      const window = durationMs ?? 800;
+      // followPath has no oscillation of its own to count cycles of; treat
+      // the whole window as advancing through path positions at a nominal
+      // 1 Hz, so a longer follow gets proportionally more samples to track
+      // curvature.
+      const count = sampleCountFor(window, FOLLOW_PATH_SAMPLE_HZ, {
+        min: 5,
+        max: MAX_CUSTOM_KEYFRAMES
+      });
+
+      const xs: Keyframe[] = [];
+      const ys: Keyframe[] = [];
+      const rotations: Keyframe[] = [];
+      for (let i = 0; i < count; i++) {
+        const t = i / (count - 1);
+        const u = startT + t * (endT - startT);
+        const point = pointAtPathFraction(flat, u);
+        if (!point) continue;
+        xs.push({ t, value: point.x });
+        ys.push({ t, value: point.y });
+        if (orient) rotations.push({ t, value: point.angle });
+      }
+
+      const curves: PropertyCurve[] = [
+        { property: "positionX", keyframes: xs },
+        { property: "positionY", keyframes: ys }
+      ];
+      if (orient && rotations.length > 0) {
+        curves.push({ property: "rotation", keyframes: rotations });
+      }
+      return curves;
     }
   }
 ];
