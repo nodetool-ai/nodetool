@@ -277,6 +277,30 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "endpoints and `save`/`test` write and exercise credentials, so " +
       "the whole router is credential surface."
   },
+  "externalMcp.delete": {
+    withheld:
+      "External MCP servers carry commands, env vars and headers that may " +
+      "name secrets. `save`/`probe` spawn or connect to one, so the whole " +
+      "router is credential and host-process surface."
+  },
+  "externalMcp.list": {
+    withheld:
+      "External MCP servers carry commands, env vars and headers that may " +
+      "name secrets. `save`/`probe` spawn or connect to one, so the whole " +
+      "router is credential and host-process surface."
+  },
+  "externalMcp.probe": {
+    withheld:
+      "External MCP servers carry commands, env vars and headers that may " +
+      "name secrets. `save`/`probe` spawn or connect to one, so the whole " +
+      "router is credential and host-process surface."
+  },
+  "externalMcp.save": {
+    withheld:
+      "External MCP servers carry commands, env vars and headers that may " +
+      "name secrets. `save`/`probe` spawn or connect to one, so the whole " +
+      "router is credential and host-process surface."
+  },
   "extension.status": {
     gap:
       "Browser-extension liveness; nothing a headless run acts on."

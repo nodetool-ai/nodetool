@@ -11,6 +11,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import { findInstrumentPreset } from "@nodetool-ai/timeline";
+import type { MidiInstrument } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { TracksRegion } from "../TracksRegion";
@@ -37,6 +38,10 @@ const renderRegion = () =>
 /** The header's preset select — the toolbar has a combobox of its own. */
 const presetSelect = () =>
   screen.getByRole("combobox", { name: /instrument for bass/i });
+
+/** The waveform of a voice, when the voice is the built-in synth. */
+const waveformOf = (instrument: MidiInstrument | undefined) =>
+  instrument?.type === "subtractive" ? instrument.waveform : undefined;
 
 function seedMidiTrack(): string {
   act(() => {
@@ -95,6 +100,44 @@ describe("TrackHeader — midi instrument", () => {
     expect(presetSelect()).toHaveTextContent("Custom");
   });
 
+  it("edits a FableSynth voice with its own controls", async () => {
+    const user = userEvent.setup();
+    renderRegion();
+    const trackId = seedMidiTrack();
+
+    await user.click(presetSelect());
+    await user.click(await screen.findByRole("option", { name: "BL-1 Acid" }));
+    await user.click(screen.getByTestId(`track-instrument-${trackId}`));
+
+    // BL-1 is not the built-in synth, so the panel offers its filter and level
+    // rather than a waveform.
+    expect(
+      screen.queryByRole("combobox", { name: /waveform/i })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Drive" })).toBeInTheDocument();
+    expect(
+      screen.getByText(/BL-1 — a monophonic acid line/)
+    ).toBeInTheDocument();
+  });
+
+  it("names the DR-1 kit's pads in the editor", async () => {
+    const user = userEvent.setup();
+    renderRegion();
+    const trackId = seedMidiTrack();
+
+    await user.click(presetSelect());
+    await user.click(
+      await screen.findByRole("option", { name: "DR-1 TR-Void Kit" })
+    );
+    await user.click(screen.getByTestId(`track-instrument-${trackId}`));
+
+    // A kit has no cutoff of its own — each pad carries its own filter.
+    expect(
+      screen.queryByRole("slider", { name: "Cutoff" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Pads from MIDI 36: Kick,/)).toBeInTheDocument();
+  });
+
   it("opens the instrument editor from the Edit toggle", async () => {
     const user = userEvent.setup();
     renderRegion();
@@ -123,8 +166,10 @@ describe("TrackHeader — midi instrument", () => {
     await user.click(await screen.findByRole("option", { name: "Square" }));
 
     expect(
-      useTimelineStore.getState().tracks.find((t) => t.id === trackId)
-        ?.instrument?.waveform
+      waveformOf(
+        useTimelineStore.getState().tracks.find((t) => t.id === trackId)
+          ?.instrument
+      )
     ).toBe("square");
     // Debounced: the note is scheduled, not played on the keystroke.
     await screen.findByTestId(`track-instrument-panel-${trackId}`);

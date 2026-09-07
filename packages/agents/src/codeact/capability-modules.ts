@@ -18,6 +18,8 @@ import {
   generateSandboxCapabilityFacade,
   sandboxCapabilityModuleName,
   sandboxCapabilitySpecifier,
+  MCP_CAPABILITY_MODULE,
+  MCP_TOOL_PREFIX,
   SANDBOX_CAPABILITY_PACK
 } from "@nodetool-ai/protocol";
 import {
@@ -97,6 +99,17 @@ export type CapabilityModuleMount =
  * a name under it belongs to this session, not to the platform.
  */
 export const SESSION_CAPABILITY_MODULE = "session";
+
+/**
+ * The guest namespace a belt name no capability module owns is grafted onto:
+ * a client `ui_*` tool goes under `ui`, an external MCP tool under `mcp`,
+ * anything else a host added under `session`.
+ */
+export function graftedModuleFor(name: string): string {
+  if (name.startsWith("ui_")) return "ui";
+  if (name.startsWith(MCP_TOOL_PREFIX)) return MCP_CAPABILITY_MODULE;
+  return SESSION_CAPABILITY_MODULE;
+}
 
 export interface SessionCapabilityModule {
   /** The namespace to graft onto, e.g. `"ui"`. */

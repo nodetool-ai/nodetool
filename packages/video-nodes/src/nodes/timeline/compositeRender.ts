@@ -207,7 +207,11 @@ export async function renderTimelineComposited(
     clip: TimelineClip,
     assetId: string
   ): Promise<ClipVideoSource | null> => {
-    const existing = videoSources.get(clip.id);
+    // Keyed by clip *and* asset: a clip with a generated matte decodes two
+    // videos at the same source time — the picture and its mask — and keying on
+    // the clip alone handed the mask decode back the picture's stream.
+    const key = `${clip.id}:${assetId}`;
+    const existing = videoSources.get(key);
     if (existing) return existing;
     const file = await pathFor(assetId);
     if (!file) return null;
@@ -240,7 +244,10 @@ export async function renderTimelineComposited(
           if (!rgba) return null;
           // Keyed on the source instant, not the timeline one: a hold shows the
           // same pixels at many timeline frames and should upload once.
-          return { rgba, version: `${clip.id}@${Math.round(sourceSec * fps)}` };
+          return {
+            rgba,
+            version: `${key}@${Math.round(sourceSec * fps)}`
+          };
         },
         close: () => stream.close()
       };
@@ -263,12 +270,12 @@ export async function renderTimelineComposited(
           );
           const rgba = await stream.frameAt(index);
           if (!rgba) return null;
-          return { rgba, version: `${clip.id}:${index}` };
+          return { rgba, version: `${key}#${index}` };
         },
         close: () => stream.close()
       };
     }
-    videoSources.set(clip.id, source);
+    videoSources.set(key, source);
     return source;
   };
 
@@ -417,7 +424,9 @@ export async function renderTimelineComposited(
             built.matte = {
               mode: layer.matte.mode,
               invert: layer.matte.invert,
-              layer: source
+              layer: source,
+              strength: layer.matte.strength,
+              featherPx: layer.matte.featherPx
             };
           }
         }
@@ -466,10 +475,10 @@ export async function renderTimelineComposited(
       if (signal?.aborted) throw abortError();
       const timeMs = (frame * 1000) / fps;
 
-      for (const [clipId, source] of videoSources) {
+      for (const [sourceKey, source] of videoSources) {
         if (source.endMs < timeMs) {
           source.close();
-          videoSources.delete(clipId);
+          videoSources.delete(sourceKey);
         }
       }
 

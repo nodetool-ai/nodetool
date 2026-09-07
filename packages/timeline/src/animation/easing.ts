@@ -5,7 +5,7 @@
  * *composition* site (opacity to [0,1], scale to ≥ 0), never here — the
  * overshoot is the point.
  *
- * Two grammars sit beside the seven named ids, parsed by {@link parseEasing}:
+ * Two grammars sit beside the named ids, parsed by {@link parseEasing}:
  * `cubic-bezier(x1,y1,x2,y2)` and `spring(stiffness,damping,mass)`. An easing
  * is a string in the document (I2), so a build that does not know one falls
  * back to linear rather than failing the document; the validator reports it as
@@ -72,6 +72,16 @@ function easeOutBounce(t: number): number {
   return n1 * u * u + 0.984375;
 }
 
+/**
+ * A step: no progress until the segment's own (ending) keyframe, then all of
+ * it. A curve segment eased by `hold` therefore shows the PREVIOUS keyframe's
+ * value for the whole segment and jumps exactly at the ending keyframe's time
+ * — `t` reaches 1 only there, and every caller composes `a + (b - a) · f(t)`.
+ */
+function hold(t: number): number {
+  return t >= 1 ? 1 : 0;
+}
+
 const NAMED_EASINGS: Record<EasingId, EasingFn> = {
   linear,
   easeIn,
@@ -79,7 +89,8 @@ const NAMED_EASINGS: Record<EasingId, EasingFn> = {
   easeInOut,
   easeOutBack,
   easeOutElastic,
-  easeOutBounce
+  easeOutBounce,
+  hold
 };
 
 /** The named ids, for a caller listing what an `easing` field accepts. */
@@ -283,7 +294,7 @@ function compileEasing(id: string): EasingFn | null {
 
 /**
  * Resolve an easing string to a function, or null when nothing in the grammar
- * matches. Accepts the seven named ids, `cubic-bezier(x1,y1,x2,y2)` and
+ * matches. Accepts the named ids ({@link EASING_IDS}), `cubic-bezier(x1,y1,x2,y2)` and
  * `spring(stiffness,damping,mass)`; whitespace inside the argument list is
  * tolerated. Results are memoized per string, null included.
  */

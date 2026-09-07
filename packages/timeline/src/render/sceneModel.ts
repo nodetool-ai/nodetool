@@ -36,7 +36,7 @@ import {
   parseStaggerUnit,
   sampleAnimations
 } from "../animation/index.js";
-import { clipRemapSourceMs } from "../timeRemap.js";
+import { clipSourceMsAt } from "../timeRemap.js";
 import type { ResolvedCaption, TextRenderStagger } from "./draw.js";
 import { countTextStaggerUnits, type RenderCanvas } from "./textLayout.js";
 import { buildTransformMatrix } from "./transform.js";
@@ -203,18 +203,17 @@ function resolveBlendMode(b: TimelineClip["blendMode"]): CompositorBlendMode {
  * A clip carrying a `timeRemap` reads its source position off that curve
  * instead (D13): the keyframes name absolute source milliseconds, so neither
  * the rate nor the in-point applies on top of them.
+ *
+ * Delegates to `clipSourceMsAt` (`timeRemap.ts`) — the same source time a
+ * source-anchored custom animation is sampled at — so this and the animation
+ * sampler can't drift into disagreeing about what "now" is on the clip's
+ * media clock.
  */
 export function clipSourceTimeSec(
   clip: TimelineClip,
   currentTimeMs: number
 ): number {
-  const remapped = clipRemapSourceMs(clip, currentTimeMs);
-  if (remapped !== null) return Math.max(0, remapped / 1000);
-  const rate = clip.speedBaked
-    ? 1
-    : Math.max(0.0001, clip.speedMultiplier ?? 1);
-  const intoClipTimelineSec = (currentTimeMs - clip.startMs) / 1000;
-  return Math.max(0, intoClipTimelineSec * rate + (clip.inPointMs ?? 0) / 1000);
+  return clipSourceMsAt(clip, currentTimeMs) / 1000;
 }
 
 /**
@@ -315,8 +314,17 @@ export interface GroupPrecomposite {
  * one of them — multiplying it into each child is what the group already does,
  * and a surface per group would cost a frame-sized allocation on every
  * document that uses grouping at all.
+ *
+ * `holdsAdjustment` is the third: an adjustment child treats the composite of
+ * the siblings beneath it, and "the siblings" only exists as a picture once the
+ * group has a surface of its own. Without it the adjustment would reach the
+ * whole frame below the group, which is not what putting it inside says.
  */
-export function groupNeedsPrecomposite(group: TimelineClip): boolean {
+export function groupNeedsPrecomposite(
+  group: TimelineClip,
+  holdsAdjustment = false
+): boolean {
+  if (holdsAdjustment) return true;
   if (resolveBlendMode(group.blendMode) !== "normal") return true;
   return (group.effects ?? []).some((effect) => effect.enabled);
 }
@@ -366,6 +374,17 @@ export function resolveGroups(
     if (clip.mediaType === "group") groupById.set(clip.id, clip);
   }
 
+  // A group holding a live adjustment composites its children whatever else it
+  // carries: the adjustment treats that composite (see
+  // {@link groupNeedsPrecomposite}).
+  const adjusted = new Set<string>();
+  for (const clip of clips) {
+    if (clip.mediaType !== "adjustment" || clip.parentId === undefined) {
+      continue;
+    }
+    if (isClipActive(clip, currentTimeMs)) adjusted.add(clip.parentId);
+  }
+
   const resolved: ResolvedGroups = new Map();
   for (const group of groupById.values()) {
     if (resolved.has(group.id)) continue;
@@ -392,7 +411,10 @@ export function resolveGroups(
       // so none of them inherit anything.
       const parent = cycle ? undefined : inherited;
       const own = groupProps(current, currentTimeMs, canvas, cache);
-      const precompose = groupNeedsPrecomposite(current);
+      const precompose = groupNeedsPrecomposite(
+        current,
+        adjusted.has(current.id)
+      );
       const folded = (parent?.opacity ?? 1) * own.opacity;
       const entry: ResolvedGroup = {
         // A precompositing group hands its children full opacity: its own is
@@ -467,6 +489,17 @@ export interface ResolvedMatte {
    * of it; it never reaches the frame.
    */
   layer: ActiveLayer;
+  /**
+   * Multiplies the matte's alpha, so 0.5 lets half of what the matte hides
+   * back through. Absent means 1. Only a generated matte carries it.
+   */
+  strength?: number;
+  /**
+   * Softens the matte's edge by this many pixels before it is applied. Absent
+   * means a hard edge. GPU only: Canvas 2D draws it hard and reports
+   * `generated_matte_feather_ignored`.
+   */
+  featherPx?: number;
 }
 
 /** A visual layer active at a point in time, in bottom-to-top composite order. */
@@ -622,8 +655,61 @@ export interface PrecompositeLayer {
   precomposeGroupId?: string;
 }
 
+/**
+ * An adjustment clip resolved at one point in time: a treatment of the picture
+ * beneath it, not a picture of its own (T24).
+ *
+ * A compositor runs this at `trackIndex`'s z, on whatever the surface holds by
+ * then — every layer on a track with a higher index, plus any layer at the same
+ * z already drawn. It takes that composite, runs {@link effects} on it, and
+ * mixes the treated result into the untreated one by {@link opacity}: 1 is
+ * fully treated — the treatment replacing what it covers, alpha included — and
+ * 0 a no-op. So stacked adjustments apply bottom-up on their
+ * own, without either compositor deciding anything — the higher one simply
+ * finds the lower one's result already on the surface.
+ *
+ * The record only exists when the chain has something enabled in it. An
+ * adjustment with no effects treats nothing, so it costs no surface.
+ */
+export interface AdjustmentLayer {
+  clip: TimelineClip;
+  clipId: string;
+  /** The adjustment's own track — the z its treatment runs at (I9). */
+  trackIndex: number;
+  /** How much of the treated composite is kept, 0..1. */
+  opacity: number;
+  /**
+   * The chain to run on the composite below, the clip's animated effect
+   * channels already folded in by `resolveAnimatedLayerProps` — so a keyframed
+   * saturation treats the frame the way a keyframed one grades a layer.
+   *
+   * The clip's own effects only: a track effect grades the pictures on that
+   * track, and an adjustment has none. Inheriting it would grade everything
+   * below the adjustment as a side effect of which track it was dropped on.
+   */
+  effects: ClipEffect[];
+  /**
+   * Where the treatment lands, in the treated surface's normalized space (the
+   * frame, or the group's surface). Absent treats all of it.
+   */
+  mask?: ClipMask;
+  /** An animated wipe limiting the treatment, exactly as it limits a layer. */
+  wipe?: AnimationSampleMask;
+  /**
+   * The intermediate surface this adjustment treats, named by the group that
+   * holds it. Absent when it treats the frame — the ordinary case.
+   */
+  precomposeGroupId?: string;
+}
+
 export interface ActiveLayersResult {
   layers: ActiveLayer[];
+  /**
+   * The adjustment clips active at the query time, each naming the surface it
+   * treats and the z it treats at. Empty unless the document has one, so a
+   * host that never saw an adjustment allocates nothing new.
+   */
+  adjustments: AdjustmentLayer[];
   /**
    * The groups that composite their children before blending, innermost first
    * — so a host can build each surface in array order and always find a nested
@@ -672,6 +758,13 @@ export interface ActiveLayersResult {
  * mode instead contributes a {@link PrecompositeLayer}: its children name it in
  * `precomposeGroupId` and draw into its surface, and the surface blends once.
  *
+ * An adjustment clip contributes no layer either. It becomes an
+ * {@link AdjustmentLayer}: the effect chain a compositor runs on whatever the
+ * surface holds at that clip's z, blended back over the untreated composite at
+ * the adjustment's opacity. Inside a group it treats the group's own surface —
+ * which is why a group holding one always precomposites — so it reaches its
+ * siblings beneath it and nothing outside.
+ *
  * Video layers are capped to keep parity with the live preview's video pool;
  * the cap is applied in composite order (top tracks win, matching the preview
  * which fills slots while iterating top-to-bottom). Each clip the cap turns
@@ -706,6 +799,7 @@ export function computeActiveLayersWithHorizon(
 
   const mediaLayers: ActiveLayer[] = [];
   const captionLayers: ActiveLayer[] = [];
+  const resolvedAdjustments: AdjustmentLayer[] = [];
   const droppedLayers: DroppedLayer[] = [];
   let videoCount = 0;
   let model3dCount = 0;
@@ -719,7 +813,12 @@ export function computeActiveLayersWithHorizon(
   for (const clip of clips) {
     const matte = clip.matte;
     if (!matte || parseMatteMode(matte.mode) === null) continue;
-    if (clipById.has(matte.sourceClipId)) matteSourceIds.add(matte.sourceClipId);
+    const source = clipById.get(matte.sourceClipId);
+    // An adjustment has no pixels to read a channel out of, so it is no more a
+    // matte source than a clip that is not in the document — the layer naming
+    // it draws unmatted rather than vanishing.
+    if (!source || source.mediaType === "adjustment") continue;
+    matteSourceIds.add(matte.sourceClipId);
   }
   const matteLayers = new Map<string, ActiveLayer>();
   const emitMedia = (layer: ActiveLayer): void => {
@@ -763,10 +862,43 @@ export function computeActiveLayersWithHorizon(
     // A group draws nothing itself: it is a transform parent, and its children
     // carry its contribution to the frame. Leaving it out here also keeps it
     // out of the auto-crossfade's partner list, where an earlier-starting group
-    // would otherwise read as the clip beneath its own child.
+    // would otherwise read as the clip beneath its own child. An adjustment is
+    // held out for the same reason: it is a treatment of the picture beneath,
+    // so it can be neither side of a cut.
     const activeClips = trackClips
-      .filter((c) => c.mediaType !== "group" && isClipActive(c, currentTimeMs))
+      .filter(
+        (c) =>
+          c.mediaType !== "group" &&
+          c.mediaType !== "adjustment" &&
+          isClipActive(c, currentTimeMs)
+      )
       .sort((a, b) => a.startMs - b.startMs);
+
+    // Adjustments: resolved here so they carry this track's index, which is the
+    // z their treatment runs at. Only a visual track has a composite to treat.
+    if (isVisual) {
+      for (const clip of trackClips) {
+        if (clip.mediaType !== "adjustment") continue;
+        if (!isClipActive(clip, currentTimeMs)) continue;
+        considerBoundary(clip.startMs + clip.durationMs);
+        const parent = clip.parentId ? groups.get(clip.parentId) : undefined;
+        if (
+          parent &&
+          (currentTimeMs < parent.window.startMs ||
+            currentTimeMs >= parent.window.endMs)
+        ) {
+          continue;
+        }
+        const resolved = resolveAdjustment(
+          clip,
+          track.index,
+          parent,
+          currentTimeMs,
+          options
+        );
+        if (resolved) resolvedAdjustments.push(resolved);
+      }
+    }
 
     // Both sides of every cut in flight on this track, resolved before any
     // layer is emitted: the outgoing record belongs to a clip that was already
@@ -1001,12 +1133,124 @@ export function computeActiveLayersWithHorizon(
     droppedLayers
   );
 
+  const precomposites = collectPrecomposites(
+    clips,
+    tracks,
+    groups,
+    usedSurfaces
+  );
+  // An adjustment inside a group treats that group's surface. A group with
+  // nothing else on screen composites nothing, so the adjustment has nothing to
+  // treat — dropped here rather than left naming a surface no host builds.
+  const built = new Set(precomposites.map((p) => p.clipId));
+  const adjustments = resolvedAdjustments.filter(
+    (a) => a.precomposeGroupId === undefined || built.has(a.precomposeGroupId)
+  );
+
   return {
     layers: [...drawn, ...captionLayers],
-    precomposites: collectPrecomposites(clips, tracks, groups, usedSurfaces),
+    adjustments,
+    precomposites,
     droppedLayers,
     nextChangeMs
   };
+}
+
+/**
+ * One adjustment clip as a plan record, or null when its chain would treat
+ * nothing.
+ *
+ * The effect chain and the opacity both come back through
+ * `resolveAnimatedLayerProps`, so an animated grade or a keyframed strength
+ * lands here rather than in each compositor. Without a canvas there is nothing
+ * to compile animations against, so the clip's own static values stand — the
+ * same fallback a group's transform takes.
+ */
+function resolveAdjustment(
+  clip: TimelineClip,
+  trackIndex: number,
+  parent: ResolvedGroup | undefined,
+  currentTimeMs: number,
+  options: ComputeActiveLayersOptions
+): AdjustmentLayer | null {
+  const base = (clip.opacity ?? 1) * (parent?.opacity ?? 1);
+  const animated = options.canvas
+    ? resolveAnimatedLayerProps(
+        { clip, opacity: base },
+        currentTimeMs,
+        options.canvas,
+        options.animationCache
+      )
+    : null;
+  const effects = (animated?.effects ?? clip.effects ?? []).filter(
+    (effect) => effect.enabled
+  );
+  if (effects.length === 0) return null;
+  const out: AdjustmentLayer = {
+    clip,
+    clipId: clip.id,
+    trackIndex,
+    opacity: clamp01(animated?.opacity ?? base),
+    effects
+  };
+  if (clip.mask) out.mask = clip.mask;
+  if (animated?.mask) out.wipe = animated.mask;
+  if (parent?.surfaceId) out.precomposeGroupId = parent.surfaceId;
+  return out;
+}
+
+/**
+ * The keyhole a clip's own generated matte drives, or undefined when it has
+ * none this build applies (D2).
+ *
+ * A generated matte is a luma mask video cut from the clip's source frame for
+ * frame, carried on the clip rather than on a second one. So the source layer
+ * is this layer again with the mask asset in place of the picture: same clip,
+ * same placement, same source time — which is what makes a trim, a split or a
+ * speed change move the matte with the footage instead of sliding it off.
+ *
+ * A status other than `ready` resolves to nothing and the layer draws unmatted:
+ * a generation in flight must not blank the shot it was asked to cut out.
+ *
+ * The keyhole carries the layer's geometry and none of its look. Its effects
+ * would grade the mask; its shape mask and its opacity are already on the
+ * picture, and applying them again would multiply twice. A cut in flight
+ * contributes its offset and scale for the same reason the geometry does —
+ * without them a pushed layer would slide out from under its own matte — and
+ * not its reveal or its dip solid, which the picture already carries.
+ */
+function resolveGeneratedMatte(layer: ActiveLayer): ResolvedMatte | undefined {
+  const generated = layer.clip.generatedMatte;
+  if (!generated) return undefined;
+  if ((generated.status ?? "ready") !== "ready") return undefined;
+  const transition = layer.transition;
+  const source: ActiveLayer = {
+    kind: "video",
+    clip: layer.clip,
+    clipId: layer.clipId,
+    trackIndex: layer.trackIndex,
+    blendMode: "normal",
+    opacity: 1,
+    assetId: generated.assetId,
+    transform: layer.transform,
+    parentMatrix: layer.parentMatrix,
+    precomposeGroupId: layer.precomposeGroupId,
+    transition: transition
+      ? { ...transition, mask: undefined, solid: undefined }
+      : undefined
+  };
+  const resolved: ResolvedMatte = {
+    mode: "luma",
+    invert: generated.invert ?? false,
+    layer: source
+  };
+  if (generated.strength !== undefined) {
+    resolved.strength = clamp01(generated.strength);
+  }
+  if (generated.featherPx !== undefined && generated.featherPx > 0) {
+    resolved.featherPx = generated.featherPx;
+  }
+  return resolved;
 }
 
 /**
@@ -1018,7 +1262,8 @@ export function computeActiveLayersWithHorizon(
  * clip is in the document but produced no layer here — outside its own window,
  * on a hidden track — so its matte is empty and the layer it drives shows
  * nothing; the layer is dropped and named. The source clip is not in the
- * document at all: the matte is ignored and the layer draws unmatted, which is
+ * document at all — or is an adjustment, which has no pixels a channel could
+ * be read out of: the matte is ignored and the layer draws unmatted, which is
  * what `matte_source_missing` reports, the way a missing parent renders
  * unparented.
  */
@@ -1030,6 +1275,16 @@ function attachMattes(
 ): ActiveLayer[] {
   const out: ActiveLayer[] = [];
   for (const layer of layers) {
+    // A generated matte is cut from this clip's own source, so it needs no
+    // source clip to be present and nothing to keep in sync — and it wins over
+    // an authored `matte` on the same clip: the cutout is what the user asked
+    // the picture to be, and a compositor applies one keyhole, not two.
+    const generated = resolveGeneratedMatte(layer);
+    if (generated) {
+      layer.matte = generated;
+      out.push(layer);
+      continue;
+    }
     const matte = layer.clip.matte;
     const mode = matte ? parseMatteMode(matte.mode) : null;
     if (!matte || mode === null) {
@@ -1042,7 +1297,10 @@ function attachMattes(
       out.push(layer);
       continue;
     }
-    if (!clipById.has(matte.sourceClipId)) {
+    // A source that is not in the document, and an adjustment — which has no
+    // pixels of its own — are the same case: no matte, and the layer draws.
+    const sourceClip = clipById.get(matte.sourceClipId);
+    if (!sourceClip || sourceClip.mediaType === "adjustment") {
       out.push(layer);
       continue;
     }
@@ -1284,7 +1542,12 @@ export function resolveAnimatedLayerProps(
     return staticProps(layer);
   }
 
-  const s = sampleAnimations(compiled, currentTimeMs - clip.startMs);
+  const s = sampleAnimations(
+    compiled,
+    currentTimeMs - clip.startMs,
+    undefined,
+    clipSourceMsAt(clip, currentTimeMs)
+  );
   if (isIdentitySample(s)) {
     return staticProps(layer);
   }
@@ -1417,7 +1680,11 @@ export function resolveTextStaggerContext(
   if (clip.mediaType !== "text") return null;
   const compiled = compiledFor(clip, canvas, cache);
   if (compiled.length === 0 || !hasStaggeredAnimation(compiled)) return null;
-  return { compiled, localMs: currentTimeMs - clip.startMs };
+  return {
+    compiled,
+    localMs: currentTimeMs - clip.startMs,
+    sourceMs: clipSourceMsAt(clip, currentTimeMs)
+  };
 }
 
 /**

@@ -8,6 +8,10 @@
  * After the unit merge a clip whose `trackId` names a track the draft deleted
  * is dangling: it is dropped and listed as a conflict rather than saved in a
  * state the renderer cannot draw.
+ *
+ * {@link adoptGeneratedClipField} is the second pass a server route's own
+ * write needs: the engine merges a clip atomically, so a matte or a baked
+ * curve generated onto a clip the user renamed meanwhile is refused whole.
  */
 import type { DocumentOp } from "@nodetool-ai/protocol";
 import type {
@@ -15,7 +19,7 @@ import type {
   MergeConflict,
   MergeResult
 } from "../documentMerge";
-import { mergeByUnits } from "../documentMerge";
+import { mergeByUnits, structuralEqual } from "../documentMerge";
 
 /** The slice of the store's document state the engine merges. */
 export interface TimelineMergeDoc {
@@ -212,5 +216,179 @@ export function mergeTimelineDocuments(
     },
     nextBase: result.nextBase,
     conflicts
+  };
+}
+
+// ── Field-scoped adoption of one generated clip field ──────────────────────
+
+/** The conflict-banner key for one open sequence. */
+export const timelineConflictKey = (sequenceId: string): string =>
+  `timelinesequence:${sequenceId}`;
+
+/**
+ * One field a server route generates onto a clip: the `generatedMatte` an
+ * isolate run cuts, or the one animation an audio bake wrote (by the id the
+ * route reports, or by `bakedFrom` kind + driven property when it reports
+ * none).
+ */
+export interface GeneratedClipField<TClip> {
+  /** What the field holds on one clip; `undefined` when it holds nothing. */
+  valueOf(clip: TClip): unknown;
+  /** `target` with the value `source` carries in this field written onto it. */
+  overlay(target: TClip, source: TClip): TClip;
+}
+
+export interface GeneratedFieldAdoption {
+  doc: TimelineMergeDoc;
+  nextBase: TimelineMergeDoc;
+  /** Every refusal still to surface: the merge's, minus the ones adopted. */
+  conflicts: MergeConflict[];
+  /** The generated values the draft refused. A subset of `conflicts`. */
+  pending: MergeConflict[];
+}
+
+/** The clip shape this pass needs: an id, and a name for the banner label. */
+interface AdoptableClip {
+  id: string;
+  name?: string;
+}
+
+const clipsById = <TClip extends AdoptableClip>(
+  doc: TimelineMergeDoc
+): Map<string, TClip> =>
+  new Map((doc.clips as TClip[]).map((clip) => [clip.id, clip]));
+
+/**
+ * Merge the field a server route generated separately from the rest of the
+ * clip it sits on.
+ *
+ * The unit merge is atomic: a clip the user renamed while the route ran
+ * differs from base on the draft side and differs from base on the server
+ * side (its new matte, its new curve), so the draft wins whole and the
+ * generated value comes back as a conflict — dropped, in the version of this
+ * that had no second pass, leaving the inspector spinning on a placeholder
+ * the next autosave then wrote over the finished result.
+ *
+ * So for each clip the route wrote:
+ *
+ *  - the draft left this field as the base had it → the two sides edited
+ *    different parts of one clip, which is not a contest: keep the draft's
+ *    clip and overlay the server's value, drop the conflict, and roll this
+ *    clip's next base to the server's copy, which is what it now holds;
+ *  - the draft already holds what the server generated → the result is
+ *    applied, not contested. A live document sync can land the finished value
+ *    before this action's own GET returns, while the action still holds its
+ *    pre-run base. Keep the draft's clip, raise no conflict, and roll the
+ *    next base forward to the server's copy — leaving it at the pre-run base
+ *    made the action report a conflict over a value already on the clip;
+ *  - the draft changed this field to something else (cleared the matte,
+ *    edited the baked curve) → a genuine contest. The draft stands, the
+ *    server's clip is returned in `pending` for the banner to offer, and the
+ *    next base keeps the base it had so the offer stays reachable
+ *    (`MergeResult.nextBase`).
+ *
+ * A clip the route did not actually change in this field is left exactly as
+ * the unit merge resolved it.
+ */
+export function adoptGeneratedClipField<TClip extends AdoptableClip>(
+  merged: MergeResult<TimelineMergeDoc>,
+  sides: {
+    base: TimelineMergeDoc;
+    draft: TimelineMergeDoc;
+    server: TimelineMergeDoc;
+  },
+  clipIds: readonly string[],
+  field: GeneratedClipField<TClip>
+): GeneratedFieldAdoption {
+  const baseClips = clipsById<TClip>(sides.base);
+  const draftClips = clipsById<TClip>(sides.draft);
+  const serverClips = clipsById<TClip>(sides.server);
+  const mergedClips = merged.doc.clips as TClip[];
+
+  /** Clip id → the clip that replaces the merged one. */
+  const adopted = new Map<string, TClip>();
+  /** Clip id → the clip that replaces the merged next base. */
+  const rebased = new Map<string, TClip>();
+  const resolved = new Set<string>();
+  const pending: MergeConflict[] = [];
+
+  for (const clipId of new Set(clipIds)) {
+    const serverClip = serverClips.get(clipId);
+    const draftClip = draftClips.get(clipId);
+    const baseClip = baseClips.get(clipId);
+    // Nothing to adopt: the route wrote no clip by this id, the draft deleted
+    // it (the deletion stands), or it was created after the document was sent.
+    if (!serverClip || !draftClip || !baseClip) continue;
+
+    const generated = field.valueOf(serverClip);
+    // The route did not move this field, so there is no generated value to
+    // hand over and no reason to disturb what the unit merge decided.
+    if (structuralEqual(field.valueOf(baseClip), generated)) continue;
+
+    const target =
+      mergedClips.find((clip) => clip.id === clipId) ?? draftClip;
+
+    const drafted = field.valueOf(draftClip);
+    if (structuralEqual(drafted, field.valueOf(baseClip))) {
+      adopted.set(clipId, field.overlay(target, serverClip));
+      rebased.set(clipId, serverClip);
+      resolved.add(clipId);
+      continue;
+    }
+
+    // The draft already carries the generated value: a live sync applied it
+    // while this pass still holds the pre-run base. Nothing to overlay and
+    // nothing to offer — only the base has to catch up.
+    if (structuralEqual(drafted, generated)) {
+      rebased.set(clipId, serverClip);
+      resolved.add(clipId);
+      continue;
+    }
+
+    rebased.set(clipId, baseClip);
+    pending.push(
+      merged.conflicts.find(
+        (conflict) =>
+          conflict.unit.kind === "clip" && conflict.unit.id === clipId
+      ) ?? {
+        unit: {
+          kind: "clip",
+          id: clipId,
+          label: draftClip.name || clipId
+        },
+        external: serverClip,
+        draft: target,
+        reason: "edited"
+      }
+    );
+  }
+
+  const conflicts = merged.conflicts.filter(
+    (conflict) =>
+      !(conflict.unit.kind === "clip" && resolved.has(conflict.unit.id))
+  );
+  for (const conflict of pending) {
+    if (!conflicts.includes(conflict)) conflicts.push(conflict);
+  }
+
+  return {
+    doc:
+      adopted.size === 0
+        ? merged.doc
+        : {
+            ...merged.doc,
+            clips: mergedClips.map((clip) => adopted.get(clip.id) ?? clip)
+          },
+    nextBase:
+      rebased.size === 0
+        ? merged.nextBase
+        : {
+            ...merged.nextBase,
+            clips: (merged.nextBase.clips as TClip[]).map(
+              (clip) => rebased.get(clip.id) ?? clip
+            )
+          },
+    conflicts,
+    pending
   };
 }

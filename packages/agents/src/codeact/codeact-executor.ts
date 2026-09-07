@@ -59,8 +59,8 @@ import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 
 import { capabilityModuleOf } from "../capabilities/registry.js";
 import {
+  graftedModuleFor,
   mountCapabilityModules,
-  SESSION_CAPABILITY_MODULE,
   type MountCapabilityModulesOptions
 } from "./capability-modules.js";
 import {
@@ -671,7 +671,7 @@ export class CodeActExecutor {
     this.sessionModuleExports = new Map();
     this.graftedSpecifiers = new Map();
     for (const tool of this.tools) {
-      const module = capabilityModuleOf(tool.name) ?? SESSION_CAPABILITY_MODULE;
+      const module = capabilityModuleOf(tool.name) ?? graftedModuleFor(tool.name);
       this.graftedSpecifiers.set(tool.name, sandboxCapabilitySpecifier(module));
       const names = this.sessionModuleExports.get(module);
       if (names === undefined)
@@ -892,7 +892,7 @@ export class CodeActExecutor {
           (entry): ToolSearchHit =>
             toolSearchHit(
               byName.get(entry.name) as Tool,
-              capabilityModuleOf(entry.name) ?? SESSION_CAPABILITY_MODULE
+              capabilityModuleOf(entry.name) ?? graftedModuleFor(entry.name)
             )
         );
         return { ok: true, result: hits };

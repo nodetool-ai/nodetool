@@ -26,6 +26,7 @@ import {
 } from "../../stores/timeline/TimelineStore";
 import {
   mergeTimelineDocuments,
+  timelineConflictKey,
   type TimelineMergeDoc
 } from "../../stores/timeline/merge";
 import { useConflictStore } from "../../stores/ConflictStore";
@@ -40,9 +41,6 @@ import type {
 } from "@nodetool-ai/timeline";
 import { isTimelineDocumentDirty } from "./useTimelineAutosave";
 import { applyTimelineSequenceToStore } from "./useLoadTimelineIntoStore";
-
-const conflictKey = (sequenceId: string): string =>
-  `timelinesequence:${sequenceId}`;
 
 /** Name a whole-document replacement so the banner can address it. */
 const listable = (
@@ -311,11 +309,11 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
             });
 
           useConflictStore.getState().addConflicts(
-            conflictKey(sequenceId),
+            timelineConflictKey(sequenceId),
             listable(conflicts),
             {
               onAccept: (unitId) => {
-                const key = conflictKey(sequenceId);
+                const key = timelineConflictKey(sequenceId);
                 const entry = useConflictStore.getState().byKey[key];
                 const conflict = entry?.conflicts.find(
                   (c) => c.unit.id === unitId

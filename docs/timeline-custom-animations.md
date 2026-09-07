@@ -115,6 +115,30 @@ The animation carries `preset: "custom"` and a `custom` payload
 Limits, enforced at bake and again at compile: 16 curves per animation, 4096
 keyframes per curve, one curve per property.
 
+### Source-anchored curves
+
+`custom.timeBase` picks the clock a curve's keyframes are placed on:
+`"clip"` (the default) normalizes `t` over the animation window, the way a
+preset does. `"source"` places every keyframe at an absolute `sourceMs`
+instead — a time in the clip's own media — and the sampler evaluates the curve
+at the clip's current source time (`clipSourceMsAt`, `timeRemap.ts`) rather
+than at the window's `t`. That is the same time the compositor seeks the
+clip's video to, so a speed change, an in-point trim, or a `timeRemap` moves
+the animation exactly the way it moves the footage.
+
+`bakedFrom` names what produced the curve when a hand edit did not — an audio
+loudness bake, a motion tracker — as provenance to re-bake from (`kind`, and
+optionally `clipId`, `assetId`, `settings`), never something rendered.
+
+Because the curve is placed in the media, a trim or a split **re-slices** it
+instead of letting the window stretch it (`animation/sourceCurves.ts`):
+keyframes outside the retained source window are dropped, and an interpolated
+keyframe is added at each new edge, so the motion at a timeline instant the
+edit did not touch is unchanged. That is exact for a linear segment — the
+compiler's default for a custom animation — and an approximation when a cut
+lands inside an eased segment. A clip-based curve carries no `sourceMs` and is
+left alone: stretching with the window is what its `t` means.
+
 ## Baking
 
 `POST /api/timelines/animations/bake`, with `code` or `script_id` (a `js_scripts`
@@ -173,6 +197,7 @@ Four rules the op enforces, each with the message that says how to fix it:
   the ones a curve may drive.
 - A `wipeProgress` curve needs `mask` (`{direction, softness}`) — the same
   refusal the compiler and the validator raise.
+- A machine-produced curve goes through `set_baked_animation`, not this op.
 - `code` needs a host that can bake it. `edit_timeline` wires one; a surface
   with none says so and points at `curves` rather than storing an unbaked body.
 
@@ -182,6 +207,43 @@ no arithmetic to line up with a cut.
 `list_animation_presets` reports the `custom` contract and every animatable
 property with its fold, identity and range, so the channels can be read off the
 tool rather than out of this document.
+
+### A curve something measured
+
+A bake is re-run — change the sensitivity, bake again — so it cannot use
+`animate_clip`, whose `mode` is "append everything" or "replace everything".
+`set_baked_animation` writes **one** source-anchored curve and carries its
+provenance:
+
+```jsonc
+{
+  "op": "set_baked_animation",
+  "target": "Shot 3",
+  "animation": {
+    "property": "scale",
+    "keyframes": [{ "sourceMs": 0, "value": 1 }, { "sourceMs": 1500, "value": 1.12 }],
+    "timeBase": "source",
+    "bakedFrom": { "kind": "audio", "clipId": "clip_music", "assetId": "asset_x" }
+  }
+}
+```
+
+`bakedFrom.kind` plus the driven property is the identity a re-bake matches: a
+second write of the same kind on the same property replaces that animation in
+place, keeping its id, and `replace: false` appends beside it instead. An
+animation with no `bakedFrom` — anything a person keyframed — never matches and
+is never overwritten. `role` defaults to `emphasis` over the whole clip, and
+`bakedAt` is not stamped: `bakedFrom` is this path's provenance, and a
+wall-clock field would make two hosts running the same bake write two different
+documents.
+
+`bake_audio_animation` is the producer that exists today. It measures an audio
+clip's own stretch of its file, turns loudness (`mode: "envelope"`) or onsets
+(`mode: "beats"`) into keyframes, maps each one from audio-source time through
+timeline time into the target clip's source time, and applies the op. It
+refuses a time-remapped clip on either end, because a remap makes "which source
+millisecond plays here" a curve over the clip's window with no inverse to map a
+beat through.
 
 ## Checks
 
@@ -202,6 +264,8 @@ the agent path they are the source, not a bake of one.
 | Bake (the one place the body runs) | `packages/agents/src/custom-animation-bake.ts` |
 | HTTP surface | `packages/websocket/src/routes/timeline-animations.ts` |
 | Agent op (one bridge, both surfaces) | `packages/agents/src/evals/surfaces/timeline.ts` |
+| Baked-curve write and its replace rule (pure) | `packages/timeline/src/animation/bakedAnimation.ts` |
+| Audio bake: the three clocks and the two curve shapes | `packages/agents/src/capabilities/timeline-audio-bake.ts` |
 | Validation | `packages/execution/src/timeline-debug/validate.ts` |
 
 ## Not built yet

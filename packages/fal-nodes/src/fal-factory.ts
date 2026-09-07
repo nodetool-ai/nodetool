@@ -336,47 +336,61 @@ function resolveAssetUri(
   return "";
 }
 
+/**
+ * The declared output fields a single-asset endpoint returns beside its
+ * primary asset — BiRefNet's `mask_video` next to `video`, for one. The
+ * primary lands on `output`; these keep their own names, so a caller that
+ * asked for the mask finds it instead of a record that silently dropped it.
+ * Asset-typed fields are coerced to refs, everything else is passed through.
+ */
+function secondaryOutputs(
+  spec: FalManifestEntry,
+  res: Record<string, unknown>,
+  primaryKeys: readonly string[]
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const primary = new Set(primaryKeys);
+  const first = spec.outputFields[0]?.name;
+  for (const field of spec.outputFields) {
+    if (primary.has(field.name) || field.name === first) continue;
+    if (!(field.name in res)) continue;
+    const value = res[field.name];
+    if (value === null || value === undefined || value === "") continue;
+    out[field.name] =
+      assetKindOf(field.propType) !== null
+        ? // SAFETY: `res` is the endpoint's JSON response body.
+          coerceAssetRef(value as FalResponseValue, field.propType)
+        : value;
+  }
+  return out;
+}
+
 function mapOutput(
   spec: FalManifestEntry,
   res: Record<string, unknown>
 ) {
   switch (spec.outputType) {
-    case "video":
+    case "video": {
+      const keys = ["video", "videos", "video_url", "video_file"];
       return {
-        output: {
-          type: "video",
-          uri: resolveAssetUri(spec, res, [
-            "video",
-            "videos",
-            "video_url",
-            "video_file"
-          ])
-        }
+        output: { type: "video", uri: resolveAssetUri(spec, res, keys) },
+        ...secondaryOutputs(spec, res, keys)
       };
-    case "audio":
+    }
+    case "audio": {
+      const keys = ["audio", "audios", "audio_url", "audio_file"];
       return {
-        output: {
-          type: "audio",
-          uri: resolveAssetUri(spec, res, [
-            "audio",
-            "audios",
-            "audio_url",
-            "audio_file"
-          ])
-        }
+        output: { type: "audio", uri: resolveAssetUri(spec, res, keys) },
+        ...secondaryOutputs(spec, res, keys)
       };
-    case "model_3d":
+    }
+    case "model_3d": {
+      const keys = ["model_glb", "model_mesh", "model", "model_url"];
       return {
-        output: {
-          type: "model_3d",
-          uri: resolveAssetUri(spec, res, [
-            "model_glb",
-            "model_mesh",
-            "model",
-            "model_url"
-          ])
-        }
+        output: { type: "model_3d", uri: resolveAssetUri(spec, res, keys) },
+        ...secondaryOutputs(spec, res, keys)
       };
+    }
     case "str": {
       // The text lives under the endpoint's declared field name (e.g.
       // `results`, `voice_id`), which is not always `output`.

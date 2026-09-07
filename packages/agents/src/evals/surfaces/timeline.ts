@@ -30,6 +30,7 @@ import {
   trimClip,
   ANIMATION_PRESETS,
   ANIMATED_PROPERTIES,
+  buildBakedAnimation,
   CUSTOM_ANIMATION_CONTRACT,
   CUSTOM_ANIMATION_PRESET_ID,
   normalizeCustomCurves,
@@ -93,6 +94,7 @@ import {
   visibleNotes,
   rescaleClipsForTempo,
   resolveTempo,
+  selectGeneratedMatteVersion,
   type MidiInstrument,
   type MidiNote,
   type QuantizeDivision,
@@ -122,6 +124,12 @@ import {
   timeRemapParams,
   resolveMoveTrackArgs,
   resolveShapeArg,
+  setBakedAnimationParams,
+  type BakedAnimationParams,
+  SET_BAKED_ANIMATION_DESCRIPTION,
+  setGeneratedMatteParams,
+  type SetGeneratedMatteParams,
+  SET_GENERATED_MATTE_DESCRIPTION,
   textStyleParams,
   textStylePatchParams,
   transitionParams,
@@ -1899,6 +1907,48 @@ export function createTimelineToolBridge(
       }
     ),
 
+    // Headless-only: the inspector's own controls write these knobs into the
+    // store. Both this and the ops module's `set_generated_matte` reach
+    // `selectGeneratedMatteVersion`, so the version list cannot fork.
+    tool(
+      "ui_timeline_set_generated_matte",
+      SET_GENERATED_MATTE_DESCRIPTION,
+      setGeneratedMatteParams,
+      async (args) => {
+        const input = args as unknown as SetGeneratedMatteParams;
+        const clip = resolveClip(input.target);
+        if (input.clear === true) {
+          delete clip.generatedMatte;
+          return {
+            ok: true,
+            clip: serializeClip(clip),
+            generatedMatte: null
+          };
+        }
+        if (!clip.generatedMatte) {
+          throw new Error(
+            `"${clip.name}" carries no generated matte. Run isolate_subject ` +
+              "on it first; this op only adjusts one that exists."
+          );
+        }
+        if (input.selectVersionAssetId !== undefined) {
+          clip.generatedMatte = selectGeneratedMatteVersion(
+            clip,
+            input.selectVersionAssetId
+          ).generatedMatte;
+        }
+        const matte = clip.generatedMatte!;
+        if (input.invert !== undefined) matte.invert = input.invert;
+        if (input.strength !== undefined) {
+          matte.strength = Math.min(1, Math.max(0, input.strength));
+        }
+        if (input.featherPx !== undefined) {
+          matte.featherPx = Math.max(0, input.featherPx);
+        }
+        return { ok: true, clip: serializeClip(clip), generatedMatte: matte };
+      }
+    ),
+
     sharedTool(
       "ui_timeline_set_time_remap",
       async ({ target, timeRemap }) => {
@@ -2012,6 +2062,32 @@ export function createTimelineToolBridge(
             ? [...(clip.animations ?? []), ...built]
             : built;
         return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    // Headless-only: the browser writes curves through the inspector, not
+    // through an agent call. Both this and the ops module's `set_baked_animation`
+    // go through `buildBakedAnimation`, so the replace rule cannot fork.
+    tool(
+      "ui_timeline_set_baked_animation",
+      SET_BAKED_ANIMATION_DESCRIPTION,
+      setBakedAnimationParams,
+      async ({ target, animation }) => {
+        const clip = resolveClip(target as string);
+        const outcome = buildBakedAnimation(
+          clip,
+          animation as BakedAnimationParams,
+          nextAnimId
+        );
+        clip.animations = outcome.animations;
+        return {
+          ok: true,
+          clip: serializeClip(clip),
+          animationId: outcome.animationId,
+          keyframeCount:
+            outcome.animation.custom?.curves[0]?.keyframes.length ?? 0,
+          replaced: outcome.replaced
+        };
       }
     ),
 

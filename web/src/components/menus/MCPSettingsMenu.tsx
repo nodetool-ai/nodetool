@@ -11,6 +11,7 @@ import { Text, FlexRow, FlexColumn, NavButton } from "../ui_primitives";
 import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import AgentAccessSection from "./AgentAccessSection";
+import ExternalMcpServersSection from "./ExternalMcpServersSection";
 import { trpcClient } from "../../trpc/client";
 
 interface TargetStatus {
@@ -299,6 +300,8 @@ const MCPSettingsMenu = () => {
             </FlexRow>
           </div>
         )}
+
+        <ExternalMcpServersSection />
 
         <AgentAccessSection />
       </div>

@@ -32,7 +32,8 @@ import {
 import {
   InspectorPillInput,
   InspectorRow,
-  InspectorSelect
+  InspectorSelect,
+  InspectorStaticValue
 } from "./InspectorPrimitives";
 import {
   EASING_HINT,
@@ -69,6 +70,13 @@ interface KeyframeRowProps {
   keyIndex: number;
   /** Label stem shared by this row's three inputs and its delete button. */
   name: string;
+  /**
+   * True when the animation is `timeBase: "source"` — `sourceMs` is the
+   * curve's stored truth then (see `isSourceAnchoredAnimation`), so the row
+   * shows it instead of the clip-normalized `t`. Read-only here; editing a
+   * source-anchored keyframe's placement is a follow-up op.
+   */
+  sourceAnchored: boolean;
   onPatch: (
     curveIndex: number,
     keyIndex: number,
@@ -82,7 +90,7 @@ interface KeyframeRowProps {
  * scrubbing one row leaves every other row's props identical.
  */
 const KeyframeRow: React.FC<KeyframeRowProps> = memo(
-  ({ keyframe, curveIndex, keyIndex, name, onPatch, onRemove }) => {
+  ({ keyframe, curveIndex, keyIndex, name, sourceAnchored, onPatch, onRemove }) => {
     const handleTimeCommit = useCallback(
       (raw: string) => {
         const t = Number(raw);
@@ -121,13 +129,19 @@ const KeyframeRow: React.FC<KeyframeRowProps> = memo(
     return (
       <FlexColumn gap={SPACING.micro}>
         <FlexRow align="center" gap={SPACING.micro}>
-          <InspectorPillInput
-            value={keyframe.t.toFixed(2)}
-            minWidth={52}
-            scrub={SCRUB_T}
-            onCommit={handleTimeCommit}
-            ariaLabel={`${name} time`}
-          />
+          {sourceAnchored ? (
+            <InspectorStaticValue
+              value={`${Math.round(keyframe.sourceMs ?? 0)}ms`}
+            />
+          ) : (
+            <InspectorPillInput
+              value={keyframe.t.toFixed(2)}
+              minWidth={52}
+              scrub={SCRUB_T}
+              onCommit={handleTimeCommit}
+              ariaLabel={`${name} time`}
+            />
+          )}
           <InspectorPillInput
             value={String(keyframe.value)}
             minWidth={64}
@@ -163,6 +177,7 @@ interface CurveEditorProps {
   curve: CustomCurve;
   curveIndex: number;
   labelPrefix: string;
+  sourceAnchored: boolean;
   onPatchCurve: (index: number, patch: Partial<CustomCurve>) => void;
   onRemoveCurve: (index: number) => void;
   onAddKeyframe: (curveIndex: number) => void;
@@ -179,6 +194,7 @@ const CurveEditor: React.FC<CurveEditorProps> = memo(
     curve,
     curveIndex,
     labelPrefix,
+    sourceAnchored,
     onPatchCurve,
     onRemoveCurve,
     onAddKeyframe,
@@ -230,6 +246,7 @@ const CurveEditor: React.FC<CurveEditorProps> = memo(
             curveIndex={curveIndex}
             keyIndex={keyIndex}
             name={`${curveLabel} keyframe ${keyIndex + 1}`}
+            sourceAnchored={sourceAnchored}
             onPatch={onPatchKeyframe}
             onRemove={onRemoveKeyframe}
           />
@@ -253,13 +270,20 @@ interface ClipCustomCurvesProps {
   custom: CustomClipAnimation | undefined;
   /** Distinguishes this animation's controls from the others on the panel. */
   labelPrefix: string;
+  /**
+   * True for a `timeBase: "source"` animation — `isSourceAnchoredAnimation`
+   * on the full `ClipAnimation` (this component only sees `custom`, so the
+   * caller computes it).
+   */
+  sourceAnchored: boolean;
   onChange: (next: CustomClipAnimation) => void;
 }
 
 export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
-  ({ custom, labelPrefix, onChange }) => {
+  ({ custom, labelPrefix, sourceAnchored, onChange }) => {
     const curves = custom?.curves ?? [];
     const bakedFromCode = custom?.code !== undefined;
+    const bakedFrom = custom?.bakedFrom;
 
     // Latest-payload ref, the pattern the rest of the inspector uses: the
     // handlers below merge onto the current curves without taking a new
@@ -350,12 +374,21 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
 
     return (
       <FlexColumn gap={SPACING.md}>
+        {sourceAnchored && (
+          <Caption color="muted">
+            Keyframes are placed on the media clock (source ms)
+          </Caption>
+        )}
+        {bakedFrom && (
+          <Caption color="muted">{`Baked from ${bakedFrom.kind}.`}</Caption>
+        )}
         {curves.map((curve, curveIndex) => (
           <CurveEditor
             key={`${curve.property}-${curveIndex}`}
             curve={curve}
             curveIndex={curveIndex}
             labelPrefix={labelPrefix}
+            sourceAnchored={sourceAnchored}
             onPatchCurve={patchCurve}
             onRemoveCurve={removeCurve}
             onAddKeyframe={addKeyframe}
@@ -364,7 +397,9 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
           />
         ))}
         <Caption color="muted">
-          Columns are time (0..1 across the animation), value, and easing:{" "}
+          {sourceAnchored
+            ? "Columns are source time (ms, read-only), value, and easing: "
+            : "Columns are time (0..1 across the animation), value, and easing: "}
           {EASING_HINT}
         </Caption>
         <Button

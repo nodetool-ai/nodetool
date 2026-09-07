@@ -149,6 +149,256 @@ const ParamRow: React.FC<ParamRowProps> = memo(
 );
 ParamRow.displayName = "ParamRow";
 
+interface SubtractiveEditorProps {
+  instrument: Extract<MidiInstrument, { type: "subtractive" }>;
+  onChange: (next: MidiInstrument) => void;
+}
+
+/** The built-in synth: one oscillator, one filter, one envelope. */
+const SubtractiveEditor: React.FC<SubtractiveEditorProps> = memo(
+  ({ instrument, onChange }) => {
+    const handleWaveform = useCallback(
+      (value: string) =>
+        onChange({
+          ...instrument,
+          waveform: value as typeof instrument.waveform
+        }),
+      [instrument, onChange]
+    );
+    const handleAttack = useCallback(
+      (attackMs: number) => onChange({ ...instrument, attackMs }),
+      [instrument, onChange]
+    );
+    const handleDecay = useCallback(
+      (decayMs: number) => onChange({ ...instrument, decayMs }),
+      [instrument, onChange]
+    );
+    const handleSustain = useCallback(
+      (sustain: number) => onChange({ ...instrument, sustain }),
+      [instrument, onChange]
+    );
+    const handleRelease = useCallback(
+      (releaseMs: number) => onChange({ ...instrument, releaseMs }),
+      [instrument, onChange]
+    );
+    const handleCutoff = useCallback(
+      (value: number) =>
+        onChange({ ...instrument, cutoffHz: sliderToCutoff(value) }),
+      [instrument, onChange]
+    );
+    const handleResonance = useCallback(
+      (resonance: number) => onChange({ ...instrument, resonance }),
+      [instrument, onChange]
+    );
+    const handleGain = useCallback(
+      (gainDb: number) => onChange({ ...instrument, gainDb }),
+      [instrument, onChange]
+    );
+
+    return (
+      <FlexColumn gap={SPACING.xs}>
+        <SelectField
+          label="Waveform"
+          size="small"
+          variant="outlined"
+          value={instrument.waveform}
+          options={WAVEFORM_OPTIONS}
+          onChange={handleWaveform}
+        />
+        <ParamRow
+          label="Attack"
+          value={instrument.attackMs}
+          display={`${Math.round(instrument.attackMs)} ms`}
+          min={0}
+          max={2000}
+          step={1}
+          onChange={handleAttack}
+        />
+        <ParamRow
+          label="Decay"
+          value={instrument.decayMs}
+          display={`${Math.round(instrument.decayMs)} ms`}
+          min={0}
+          max={4000}
+          step={1}
+          onChange={handleDecay}
+        />
+        <ParamRow
+          label="Sustain"
+          value={instrument.sustain}
+          display={instrument.sustain.toFixed(2)}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={handleSustain}
+        />
+        <ParamRow
+          label="Release"
+          value={instrument.releaseMs}
+          display={`${Math.round(instrument.releaseMs)} ms`}
+          min={0}
+          max={4000}
+          step={1}
+          onChange={handleRelease}
+        />
+        <ParamRow
+          label="Cutoff"
+          value={cutoffToSlider(instrument.cutoffHz)}
+          display={`${Math.round(instrument.cutoffHz)} Hz`}
+          min={0}
+          max={1}
+          step={0.001}
+          onChange={handleCutoff}
+        />
+        <ParamRow
+          label="Resonance"
+          value={instrument.resonance}
+          display={instrument.resonance.toFixed(2)}
+          min={0}
+          max={20}
+          step={0.1}
+          onChange={handleResonance}
+        />
+        <ParamRow
+          label="Gain"
+          value={instrument.gainDb}
+          display={`${instrument.gainDb.toFixed(1)} dB`}
+          min={-40}
+          max={12}
+          step={0.5}
+          onChange={handleGain}
+        />
+      </FlexColumn>
+    );
+  }
+);
+SubtractiveEditor.displayName = "SubtractiveEditor";
+
+/** What each FableSynth voice is, in one line. */
+const SYNTH_SUMMARY: Record<
+  Exclude<MidiInstrument["type"], "subtractive">,
+  string
+> = {
+  wavetable:
+    "WT-1 — two morphing wavetable oscillators through a swept filter.",
+  bass: "BL-1 — a monophonic acid line: accented notes bite, overlapping notes slide.",
+  drum: "DR-1 — one drum per note, each ringing for its own decay."
+};
+
+interface PitchedSynthEditorProps {
+  instrument: Extract<MidiInstrument, { type: "wavetable" | "bass" }>;
+  onChange: (next: MidiInstrument) => void;
+}
+
+/**
+ * WT-1 and BL-1. Their full patch is picked from the preset list on the track
+ * header; what is editable here is the handful of controls a mix asks for —
+ * how open the filter is, how hard it is driven, how loud it plays.
+ */
+const PitchedSynthEditor: React.FC<PitchedSynthEditorProps> = memo(
+  ({ instrument, onChange }) => {
+    const handleCutoff = useCallback(
+      (value: number) =>
+        onChange({ ...instrument, cutoffHz: sliderToCutoff(value) }),
+      [instrument, onChange]
+    );
+    const handleResonance = useCallback(
+      (resonance: number) => onChange({ ...instrument, resonance }),
+      [instrument, onChange]
+    );
+    const handleDrive = useCallback(
+      (drive: number) => onChange({ ...instrument, drive }),
+      [instrument, onChange]
+    );
+    const handleGain = useCallback(
+      (gainDb: number) => onChange({ ...instrument, gainDb }),
+      [instrument, onChange]
+    );
+
+    return (
+      <FlexColumn gap={SPACING.xs}>
+        <Caption color="muted">{SYNTH_SUMMARY[instrument.type]}</Caption>
+        <ParamRow
+          label="Cutoff"
+          value={cutoffToSlider(instrument.cutoffHz)}
+          display={`${Math.round(instrument.cutoffHz)} Hz`}
+          min={0}
+          max={1}
+          step={0.001}
+          onChange={handleCutoff}
+        />
+        <ParamRow
+          label="Resonance"
+          value={instrument.resonance}
+          display={instrument.resonance.toFixed(2)}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={handleResonance}
+        />
+        <ParamRow
+          label="Drive"
+          value={instrument.drive}
+          display={instrument.drive.toFixed(2)}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={handleDrive}
+        />
+        <ParamRow
+          label="Gain"
+          value={instrument.gainDb}
+          display={`${instrument.gainDb.toFixed(1)} dB`}
+          min={-40}
+          max={12}
+          step={0.5}
+          onChange={handleGain}
+        />
+      </FlexColumn>
+    );
+  }
+);
+PitchedSynthEditor.displayName = "PitchedSynthEditor";
+
+interface DrumKitEditorProps {
+  instrument: Extract<MidiInstrument, { type: "drum" }>;
+  onChange: (next: MidiInstrument) => void;
+}
+
+/**
+ * DR-1. A kit has no filter of its own — each pad carries one — so the only
+ * control here is how loud the kit plays; the pad list says what the track's
+ * notes will hit.
+ */
+const DrumKitEditor: React.FC<DrumKitEditorProps> = memo(
+  ({ instrument, onChange }) => {
+    const handleGain = useCallback(
+      (gainDb: number) => onChange({ ...instrument, gainDb }),
+      [instrument, onChange]
+    );
+
+    return (
+      <FlexColumn gap={SPACING.xs}>
+        <Caption color="muted">{SYNTH_SUMMARY.drum}</Caption>
+        <ParamRow
+          label="Gain"
+          value={instrument.gainDb}
+          display={`${instrument.gainDb.toFixed(1)} dB`}
+          min={-40}
+          max={12}
+          step={0.5}
+          onChange={handleGain}
+        />
+        <Caption color="muted">
+          {`Pads from MIDI ${instrument.baseNote}: ` +
+            instrument.pads.map((pad) => pad.name).join(", ")}
+        </Caption>
+      </FlexColumn>
+    );
+  }
+);
+DrumKitEditor.displayName = "DrumKitEditor";
+
 interface TrackInstrumentPanelProps {
   trackId: string;
 }
@@ -175,9 +425,8 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
       []
     );
 
-    const apply = useCallback(
-      (patch: Partial<MidiInstrument>) => {
-        const next: MidiInstrument = { ...instrument, ...patch };
+    const commit = useCallback(
+      (next: MidiInstrument) => {
         setTrackInstrument(trackId, next);
         if (auditionTimerRef.current !== null) {
           clearTimeout(auditionTimerRef.current);
@@ -189,41 +438,7 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
           });
         }, AUDITION_DEBOUNCE_MS);
       },
-      [instrument, setTrackInstrument, trackId]
-    );
-
-    const handleWaveform = useCallback(
-      (value: string) =>
-        apply({ waveform: value as MidiInstrument["waveform"] }),
-      [apply]
-    );
-    const handleAttack = useCallback(
-      (attackMs: number) => apply({ attackMs }),
-      [apply]
-    );
-    const handleDecay = useCallback(
-      (decayMs: number) => apply({ decayMs }),
-      [apply]
-    );
-    const handleSustain = useCallback(
-      (sustain: number) => apply({ sustain }),
-      [apply]
-    );
-    const handleRelease = useCallback(
-      (releaseMs: number) => apply({ releaseMs }),
-      [apply]
-    );
-    const handleCutoff = useCallback(
-      (value: number) => apply({ cutoffHz: sliderToCutoff(value) }),
-      [apply]
-    );
-    const handleResonance = useCallback(
-      (resonance: number) => apply({ resonance }),
-      [apply]
-    );
-    const handleGain = useCallback(
-      (gainDb: number) => apply({ gainDb }),
-      [apply]
+      [setTrackInstrument, trackId]
     );
 
     return (
@@ -236,83 +451,22 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
             Instrument
           </Text>
           <div css={cardStyles(theme)}>
-            <FlexColumn gap={SPACING.xs}>
-              <SelectField
-                label="Waveform"
-                size="small"
-                variant="outlined"
-                value={instrument.waveform}
-                options={WAVEFORM_OPTIONS}
-                onChange={handleWaveform}
-              />
-              <ParamRow
-                label="Attack"
-                value={instrument.attackMs}
-                display={`${Math.round(instrument.attackMs)} ms`}
-                min={0}
-                max={2000}
-                step={1}
-                onChange={handleAttack}
-              />
-              <ParamRow
-                label="Decay"
-                value={instrument.decayMs}
-                display={`${Math.round(instrument.decayMs)} ms`}
-                min={0}
-                max={4000}
-                step={1}
-                onChange={handleDecay}
-              />
-              <ParamRow
-                label="Sustain"
-                value={instrument.sustain}
-                display={instrument.sustain.toFixed(2)}
-                min={0}
-                max={1}
-                step={0.01}
-                onChange={handleSustain}
-              />
-              <ParamRow
-                label="Release"
-                value={instrument.releaseMs}
-                display={`${Math.round(instrument.releaseMs)} ms`}
-                min={0}
-                max={4000}
-                step={1}
-                onChange={handleRelease}
-              />
-              <ParamRow
-                label="Cutoff"
-                value={cutoffToSlider(instrument.cutoffHz)}
-                display={`${Math.round(instrument.cutoffHz)} Hz`}
-                min={0}
-                max={1}
-                step={0.001}
-                onChange={handleCutoff}
-              />
-              <ParamRow
-                label="Resonance"
-                value={instrument.resonance}
-                display={instrument.resonance.toFixed(2)}
-                min={0}
-                max={20}
-                step={0.1}
-                onChange={handleResonance}
-              />
-              <ParamRow
-                label="Gain"
-                value={instrument.gainDb}
-                display={`${instrument.gainDb.toFixed(1)} dB`}
-                min={-40}
-                max={12}
-                step={0.5}
-                onChange={handleGain}
-              />
-            </FlexColumn>
+            {instrument.type === "subtractive" && (
+              <SubtractiveEditor instrument={instrument} onChange={commit} />
+            )}
+            {(instrument.type === "wavetable" || instrument.type === "bass") && (
+              <PitchedSynthEditor instrument={instrument} onChange={commit} />
+            )}
+            {instrument.type === "drum" && (
+              <DrumKitEditor instrument={instrument} onChange={commit} />
+            )}
           </div>
           <Caption color="muted">
-            Every clip on this track plays this voice. Changes are auditioned on
-            middle C.
+            Every clip on this track plays this voice. Changes are auditioned on{" "}
+            {instrument.type === "drum"
+              ? "the kit's first pad"
+              : "middle C"}
+            .
           </Caption>
         </FlexColumn>
       </div>

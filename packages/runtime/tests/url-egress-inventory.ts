@@ -266,6 +266,21 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Reads the uri a workflow output named before storing the bytes as an asset."
   ),
 
+  {
+    file: "packages/websocket/src/external-mcp.ts",
+    owner: "external MCP server (HTTP transport)",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope:
+      "The headers the user configured for that server, resolved from their own secrets; safeFetch strips Authorization on a cross-origin hop.",
+    redirects: "checked-per-hop",
+    dnsRebinding: "deployment-egress",
+    policy: "guarded",
+    guardedBy: ["safeFetch", "assertSafePublicHttpsUrl"],
+    note:
+      "A user's own MCP server URL. Under the cloud profile the MCP transport is handed safeFetch and the URL is checked on save and probe; a local install may reach its own loopback servers and uses the global fetch."
+  },
+
   // -------------------------------------------- guarded (provider result URLs)
   guardedSafeFetch(
     "packages/kie-nodes/src/kie-base.ts",
@@ -386,6 +401,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Apify run artifacts → assets",
     "provider-response",
     "Key-value store and dataset file URLs out of an actor run."
+  ),
+  guardedMedia(
+    "packages/agents/src/capabilities/timeline-isolate-subject.ts",
+    "isolate_subject mask video → asset",
+    "The mask_video URL BiRefNet returns for a clip's source asset, stored as the clip's generated matte.",
+    "provider-response"
   ),
   guardedSafeFetch(
     "packages/websocket/src/lib/asset-export.ts",

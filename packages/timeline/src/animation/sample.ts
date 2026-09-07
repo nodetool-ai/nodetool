@@ -10,6 +10,11 @@
  * order, and it records which animation won in `replacedBy` so a validator can
  * warn about two replace curves overlapping in time.
  *
+ * An animation compiled with `timeBase: "source"` is evaluated at the clip's
+ * source-media time (the `sourceMs` argument) instead of the window's `t`; the
+ * window still decides when it applies, and the fold table is the same either
+ * way.
+ *
  * Pure; supports an optional scratch `out` object so the render loop allocates
  * nothing in the steady state.
  */
@@ -213,19 +218,38 @@ function resetIdentity(s: AnimationSample): AnimationSample {
   return s;
 }
 
-/** Evaluate a curve at normalized `t` (keyframes sorted, first t=0, last t=1). */
-function evalCurve(curve: PropertyCurve, t: number): number {
+/**
+ * Where a keyframe sits on the clock its curve is placed on: normalized `t`
+ * for a clip-based curve, absolute source milliseconds for a source-anchored
+ * one (`sourceMs` is the stored truth there — see `custom.ts`).
+ */
+function keyframeAt(kf: Keyframe, sourceBased: boolean): number {
+  return sourceBased ? kf.sourceMs ?? 0 : kf.t;
+}
+
+/**
+ * Evaluate a curve at `at` — normalized `t` for a clip-based curve (keyframes
+ * sorted, first t=0, last t=1), the clip's source time in ms for a
+ * source-anchored one (keyframes ascending in `sourceMs`). Outside the
+ * keyframes the end values are held either way.
+ */
+function evalCurve(
+  curve: PropertyCurve,
+  at: number,
+  sourceBased: boolean
+): number {
   const kfs = curve.keyframes;
   if (kfs.length === 0) return 0;
-  if (t <= kfs[0].t) return kfs[0].value;
+  if (at <= keyframeAt(kfs[0], sourceBased)) return kfs[0].value;
   const last = kfs[kfs.length - 1];
-  if (t >= last.t) return last.value;
+  if (at >= keyframeAt(last, sourceBased)) return last.value;
   for (let i = 1; i < kfs.length; i++) {
     const b: Keyframe = kfs[i];
-    if (t <= b.t) {
+    const bAt = keyframeAt(b, sourceBased);
+    if (at <= bAt) {
       const a = kfs[i - 1];
-      const span = b.t - a.t;
-      const segT = span > 0 ? (t - a.t) / span : 0;
+      const span = bAt - keyframeAt(a, sourceBased);
+      const segT = span > 0 ? (at - keyframeAt(a, sourceBased)) / span : 0;
       const eased = ease(b.easing ?? "linear", segT);
       return a.value + (b.value - a.value) * eased;
     }
@@ -307,12 +331,19 @@ function foldAnimation(
   anim: CompiledAnimation,
   t: number,
   acc: AnimationSample,
-  mode: FoldMode = "all"
+  mode: FoldMode = "all",
+  sourceMs?: number
 ): void {
+  const sourceBased = anim.timeBase === "source";
+  // A source-anchored animation is placed on the media's clock, so a caller
+  // that did not resolve the clip's source time has nothing to evaluate it at.
+  // It contributes identity rather than being replayed on the wrong clock.
+  if (sourceBased && sourceMs === undefined) return;
+  const at = sourceBased ? (sourceMs as number) : t;
   for (const curve of anim.curves) {
     const property = curve.property;
     if (mode !== "all" && ANIMATED_PROPERTY_PASS[property] !== mode) continue;
-    const value = evalCurve(curve, t);
+    const value = evalCurve(curve, at, sourceBased);
     // The arithmetic folds mirror how the compositor's effect pre-pass
     // aggregates: blur radii and the grade's additive terms sum across
     // effects, its multipliers multiply, so concurrent animations do the same.
@@ -343,11 +374,18 @@ function foldAnimation(
 /**
  * Fold all compiled animations at `localMs` into one sample. Pass `out` to
  * reuse a scratch object (it is reset before writing).
+ *
+ * `sourceMs` is the clip's source-media time at this instant — what
+ * `clipSourceMsAt` (`timeRemap.ts`) resolves, so speed, in-point and a time
+ * remap move a source-anchored curve the way they move the footage. Only a
+ * `timeBase: "source"` animation reads it; omitting it leaves those animations
+ * at identity and changes nothing for every other document.
  */
 export function sampleAnimations(
   compiled: CompiledAnimation[],
   localMs: number,
-  out?: AnimationSample
+  out?: AnimationSample,
+  sourceMs?: number
 ): AnimationSample {
   const acc = resetIdentity(out ?? createAnimationSample());
   for (const anim of compiled) {
@@ -356,7 +394,7 @@ export function sampleAnimations(
     // A staggered animation's transform/opacity curves run per word (see
     // `sampleStaggeredAnimations`); only its effect/mask curves apply at the
     // block level, over the full stagger span.
-    foldAnimation(anim, t, acc, anim.stagger ? "effects" : "all");
+    foldAnimation(anim, t, acc, anim.stagger ? "effects" : "all", sourceMs);
   }
   return clampSample(acc);
 }
@@ -436,20 +474,22 @@ function staggerUnitT(
  * Fold the staggered animations' transform/opacity curves for one unit (word)
  * at `localMs`. Un-staggered animations are skipped — they already applied at
  * the block level — as are effect/mask curves (block-level in v1). Pass `out`
- * to reuse a scratch object.
+ * to reuse a scratch object, and `sourceMs` for the same reason
+ * {@link sampleAnimations} takes one.
  */
 export function sampleStaggeredAnimations(
   compiled: CompiledAnimation[],
   localMs: number,
   unitIndex: number,
-  out?: AnimationSample
+  out?: AnimationSample,
+  sourceMs?: number
 ): AnimationSample {
   const acc = resetIdentity(out ?? createAnimationSample());
   for (const anim of compiled) {
     if (!anim.stagger) continue;
     const t = staggerUnitT(anim, anim.stagger, localMs, unitIndex);
     if (t === null) continue;
-    foldAnimation(anim, t, acc, "motion");
+    foldAnimation(anim, t, acc, "motion", sourceMs);
   }
   return clampSample(acc);
 }

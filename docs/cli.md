@@ -745,6 +745,7 @@ authored motion did not fit the clip.
 | `transition_exceeds_duration` | warning | The cut is longer than the clip carrying it |
 | `unknown_transition` | warning | A transition `type` or `direction` this build cannot draw; it cross-fades left |
 | `unknown_easing` | warning | An `easing` outside the grammar; it eases linearly |
+| `generated_matte_stale` | warning | A `generatedMatte` cut from an asset the clip no longer plays, or from less source than its window now shows; regenerate it |
 | `unknown_effect` | warning | A clip effect type this build cannot apply; the layer draws ungraded |
 | `mask_path_invalid` | warning | A mask `kind` or path `d` that cannot rasterize; the layer draws unmasked |
 | `unknown_shape_kind` | warning | A `shapeStyle.kind` this build has no geometry for; the shape draws nothing |

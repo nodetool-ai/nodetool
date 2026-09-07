@@ -34,6 +34,7 @@ const emptyMutate = () =>
 export const mockWorkflowsGet = jest.fn();
 export const mockWorkflowsCreate = jest.fn();
 export const mockTimelineClipsCreate = jest.fn();
+export const mockTimelineGet = jest.fn();
 export const mockSketchVersionsAppend = jest.fn();
 
 // Minimal `useUtils` shim so hooks that touch the query cache after a
@@ -236,6 +237,7 @@ export const trpcClient = {
   timeline: {
     create: { mutate: jest.fn(async () => ({ id: "mock-seq", name: "mock" })) },
     update: { mutate: jest.fn(async () => ({ ok: true })) },
+    get: { query: mockTimelineGet },
     clips: {
       create: { mutate: mockTimelineClipsCreate }
     }

@@ -89,6 +89,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | `save_asset` / `view_image` | `packages/agents/src/capabilities/assets.ts` | model |
 | `yt_dlp` download | `packages/agents/src/capabilities/media.ts` | model |
 | Apify run artifacts → assets | `packages/agents/src/apify/assets.ts` | provider response |
+| `isolate_subject` mask video → asset | `packages/agents/src/capabilities/timeline-isolate-subject.ts` | provider response |
 | Reve reference image | `packages/reve-nodes/src/reve-base.ts` | workflow |
 | HF pipeline media input | `packages/huggingface-nodes/src/huggingface-base.ts` | workflow |
 | FAL media upload | `packages/fal-nodes/src/fal-base.ts` | workflow |
@@ -104,6 +105,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | Gemini node video download | `packages/llm-nodes/src/nodes/gemini.ts` | provider response |
 | provider result downloads | `packages/runtime/src/providers/{fal,replicate,kie,topaz,meshy,rodin,minimax,evolink,gemini,anthropic}-provider.ts` | provider response |
 | MCP OAuth Client ID Metadata Document fetch | `packages/websocket/src/oauth/cimd.ts` | model/client (an MCP client's self-hosted `client_id` URL) |
+| external MCP server (HTTP transport) | `packages/websocket/src/external-mcp.ts` | operator (a user's own MCP server URL; guarded under the cloud profile, loopback allowed on a local install) |
 
 The provider row is eleven files, each downloading a URL a provider's response
 named — plus one reading a URL the caller's own message named

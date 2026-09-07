@@ -1,5 +1,9 @@
 import { createTimeOrderedUuid } from "./defaults.js";
 import { getAnimationPreset } from "./animation/presets.js";
+import {
+  isSourceAnchoredAnimation,
+  sliceSourceAnimation
+} from "./animation/sourceCurves.js";
 import { sourceRate } from "./sourceRate.js";
 import { assertNotTimeRemapped } from "./timeRemap.js";
 import type { ClipAnimation } from "./animation/types.js";
@@ -22,17 +26,46 @@ import type { CaptionWord, TimelineClip } from "./types.js";
  *   whole clip, and its curves are in canvas pixels that `splitClip` cannot
  *   compute, so neither half can carry a partial move: both replay the whole
  *   one-shot.
+ * - A source-anchored custom animation (`custom.timeBase: "source"`) is placed
+ *   on the media's clock rather than the clip's, so role says nothing about
+ *   which half it belongs to: BOTH halves get it, each carrying the stretch of
+ *   the curve its own source window shows (`animation/sourceCurves.ts`).
  *
  * Right-half animations get fresh ids so the two clips edit independently.
  */
 function splitAnimations(
   animations: ReadonlyArray<ClipAnimation>,
-  splitMs: number
+  splitMs: number,
+  source: {
+    inPointMs: number;
+    cutPointMs: number;
+    outPointMs: number;
+    leftDurationMs: number;
+    rightDurationMs: number;
+  }
 ) {
   const left: ClipAnimation[] = [];
   const right: ClipAnimation[] = [];
   for (const anim of animations) {
-    if (anim.role === "in") {
+    if (isSourceAnchoredAnimation(anim)) {
+      left.push(
+        sliceSourceAnimation(
+          anim,
+          source.inPointMs,
+          source.cutPointMs,
+          source.leftDurationMs
+        )
+      );
+      right.push({
+        ...sliceSourceAnimation(
+          anim,
+          source.cutPointMs,
+          source.outPointMs,
+          source.rightDurationMs
+        ),
+        id: createTimeOrderedUuid()
+      });
+    } else if (anim.role === "in") {
       left.push({ ...anim });
     } else if (anim.role === "out") {
       right.push({ ...anim, id: createTimeOrderedUuid() });
@@ -143,7 +176,15 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
     ? splitCaptionWords(clip.caption.words, leftDurationMs, rightDurationMs)
     : null;
 
-  const animations = clip.animations ? splitAnimations(clip.animations, leftDurationMs) : null;
+  const animations = clip.animations
+    ? splitAnimations(clip.animations, leftDurationMs, {
+        inPointMs,
+        cutPointMs,
+        outPointMs,
+        leftDurationMs,
+        rightDurationMs
+      })
+    : null;
 
   const leftClip: TimelineClip = {
     ...clip,

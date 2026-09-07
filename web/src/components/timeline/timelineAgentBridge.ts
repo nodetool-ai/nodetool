@@ -87,6 +87,7 @@ export interface TimelineClipNode {
     | "shape"
     | "model3d"
     | "group"
+    | "adjustment"
     | "midi";
   sourceType: "imported" | "generated";
   bindingKind?: string;

@@ -131,7 +131,9 @@ export function buildCompositeLayer(
       built.matte = {
         mode: layer.matte.mode,
         invert: layer.matte.invert,
-        layer: source
+        layer: source,
+        strength: layer.matte.strength,
+        featherPx: layer.matte.featherPx
       };
     }
   }
@@ -195,7 +197,9 @@ export function toCanvas2DLayer(
       matte = {
         mode: layer.matte.mode,
         invert: layer.matte.invert,
-        layer: source
+        layer: source,
+        strength: layer.matte.strength,
+        featherPx: layer.matte.featherPx
       };
     }
   }

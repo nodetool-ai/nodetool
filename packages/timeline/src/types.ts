@@ -501,8 +501,17 @@ export type ClipBindingKind =
   | "text-to-audio";
 
 /**
- * What a clip draws. `"group"` carries no media: it is a transform parent its
- * children name with `parentId` (see {@link TimelineClip.parentId}).
+ * What a clip draws. Two members carry no media of their own:
+ *
+ * - `"group"` is a transform parent its children name with `parentId` (see
+ *   {@link TimelineClip.parentId}).
+ * - `"adjustment"` treats the picture beneath it instead of adding one. Its
+ *   `effects` run on the composite of every layer drawn below it inside its
+ *   window, and the treated result blends back over the untreated one with
+ *   its resolved `opacity`; `mask` limits where that lands, `animations`
+ *   drive both. It never draws itself and is never a matte source, so
+ *   `transform` (and with it `borderRadius`, `blendMode`, `matte`) means
+ *   nothing on one — the surface it treats is already placed.
  */
 export type ClipMediaType =
   | "image"
@@ -513,6 +522,7 @@ export type ClipMediaType =
   | "shape"
   | "model3d"
   | "group"
+  | "adjustment"
   | "midi";
 
 /**
@@ -538,7 +548,18 @@ export interface MidiNote {
 
 /** The synth a midi track plays. One member today; a union so adding a second
  * synth does not reshape what is already stored. */
-export type MidiInstrument = SubtractiveMidiInstrument;
+/**
+ * The voice a midi track plays.
+ *
+ * `subtractive` is the built-in synth. The other three are ports of the
+ * FableSynth instruments (github.com/georgi/fablesynth): WT-1 the wavetable
+ * synth, BL-1 the acid bassline, DR-1 the drum machine.
+ */
+export type MidiInstrument =
+  | SubtractiveMidiInstrument
+  | WavetableMidiInstrument
+  | BassMidiInstrument
+  | DrumMidiInstrument;
 
 /** One oscillator through a lowpass filter and an ADSR envelope. */
 export interface SubtractiveMidiInstrument {
@@ -552,6 +573,176 @@ export interface SubtractiveMidiInstrument {
   cutoffHz: number;
   /** Lowpass Q. */
   resonance: number;
+  gainDb: number;
+}
+
+/** An ADSR envelope, in milliseconds with a 0..1 sustain level. */
+export interface MidiEnvelope {
+  attackMs: number;
+  decayMs: number;
+  /** Sustain level, 0..1 of the peak. */
+  sustain: number;
+  releaseMs: number;
+}
+
+/** The filter shapes the FableSynth-derived voices offer. */
+export type MidiFilterType = "lp12" | "lp24" | "bp12" | "hp12" | "notch";
+
+/** The tonal wavetables WT-1 and BL-1 play. */
+export type MidiWavetableName =
+  | "prime"
+  | "bloom"
+  | "pulse"
+  | "vox"
+  | "chime"
+  | "glitch";
+
+/** DR-1's percussive tables. A pad can also play any tonal table. */
+export type MidiDrumTableName = "thud" | "crack" | "tine" | "grit";
+
+/** One of WT-1's two wavetable oscillators. */
+export interface WavetableOscillator {
+  table: MidiWavetableName;
+  /** Morph position across the table's frames, 0..1. */
+  position: number;
+  /** Offset from the played note, in semitones. */
+  semitones: number;
+  /** Further offset in cents. */
+  fine: number;
+  /** Output level, 0..1. */
+  level: number;
+  /** Detuned copies of the oscillator, 1..7. */
+  unison: number;
+  /** How far the copies spread, 0..1 (1 = ±50 cents). */
+  detune: number;
+}
+
+/**
+ * FableSynth WT-1 — two morphing wavetable oscillators, a sub and noise, into
+ * one zero-delay filter swept by a second envelope.
+ */
+export interface WavetableMidiInstrument {
+  type: "wavetable";
+  oscA: WavetableOscillator;
+  oscB: WavetableOscillator;
+  /** Sine sub-oscillator level, 0..1. */
+  subLevel: number;
+  /** Sub octave below the note: -1 or -2. */
+  subOctave: number;
+  /** White noise level, 0..1. */
+  noiseLevel: number;
+  filterType: MidiFilterType;
+  cutoffHz: number;
+  /** Filter resonance, 0..1. */
+  resonance: number;
+  /** Anti-aliased tanh drive into the filter, 0..1. */
+  drive: number;
+  /** How far the mod envelope sweeps the cutoff, in octaves (may be negative). */
+  filterEnvAmount: number;
+  /** How far the played note tracks the cutoff, 0..1 (1 = one octave/octave). */
+  keyTrack: number;
+  ampEnv: MidiEnvelope;
+  modEnv: MidiEnvelope;
+  gainDb: number;
+}
+
+/**
+ * FableSynth BL-1 — a monophonic acid bassline: one wavetable oscillator and a
+ * square sub through a resonant filter with its own decay envelope, plus the
+ * accent and slide a 303 line is written with.
+ */
+export interface BassMidiInstrument {
+  type: "bass";
+  table: MidiWavetableName;
+  /** Morph position across the table's frames, 0..1. */
+  position: number;
+  /** Offset from the played note, in semitones. */
+  semitones: number;
+  /** Sub-oscillator shape. */
+  subShape: "sine" | "square";
+  /** Sub octave below the note: -1 or -2. */
+  subOctave: number;
+  /** Sub level, 0..1. */
+  subLevel: number;
+  filterType: MidiFilterType;
+  cutoffHz: number;
+  /** Filter resonance, 0..1. */
+  resonance: number;
+  /** Anti-aliased tanh drive into the filter, 0..1. */
+  drive: number;
+  /** How far the filter envelope sweeps the cutoff, in octaves. */
+  filterEnvAmount: number;
+  /** How far the played note tracks the cutoff, 0..1. */
+  keyTrack: number;
+  /** Filter envelope attack in ms. */
+  filterAttackMs: number;
+  /** Filter envelope decay in ms. */
+  filterDecayMs: number;
+  ampEnv: MidiEnvelope;
+  /**
+   * How much an accented note (velocity at or above `accentVelocity`) adds:
+   * 0..1 scales both its level and its filter sweep.
+   */
+  accentAmount: number;
+  /** The velocity at which a note counts as accented. */
+  accentVelocity: number;
+  /** How long a note overlapping the one before it glides, in ms. */
+  slideMs: number;
+  gainDb: number;
+}
+
+/** One DR-1 pad: a tuned one-shot with its own envelope and filter. */
+export interface DrumPad {
+  /** What the pad plays, shown in the editor. */
+  name: string;
+  table: MidiWavetableName | MidiDrumTableName;
+  /** Morph position across the table's frames, 0..1. */
+  position: number;
+  /** Pitch offset from the pad's base note, in semitones. */
+  semitones: number;
+  /** How far the pitch envelope starts above the pad's pitch, in semitones. */
+  pitchEnvAmount: number;
+  /** Pitch envelope decay in ms. */
+  pitchEnvDecayMs: number;
+  /** Noise level, 0..1. */
+  noiseLevel: number;
+  /** Noise colour, -1 (dark) to 1 (bright). */
+  noiseColor: number;
+  /** Ring-modulator carrier in Hz. */
+  ringHz: number;
+  /** How much of the ring modulator is heard, 0..1. */
+  ringMix: number;
+  /** Amp envelope attack in ms. */
+  attackMs: number;
+  /** How long the envelope holds at full before decaying, in ms. */
+  holdMs: number;
+  /** Amp envelope decay in ms. */
+  decayMs: number;
+  /** Decay shape, 0 (a straight line) to 1 (exponential). */
+  curve: number;
+  /** The pad's filter, or null for no filter. */
+  filter: {
+    type: MidiFilterType;
+    cutoffHz: number;
+    /** Filter resonance, 0..1. */
+    resonance: number;
+  } | null;
+  /** Pad level, 0..1. */
+  level: number;
+  /** How much velocity scales the level, 0..1. */
+  velocityToLevel: number;
+}
+
+/**
+ * FableSynth DR-1 — sixteen pads, played from `baseNote` upward, one per MIDI
+ * note. A note outside that range is silent rather than transposed: a pad is a
+ * drum sound, not a pitch.
+ */
+export interface DrumMidiInstrument {
+  type: "drum";
+  /** The MIDI note pad 0 answers to. Pads run `baseNote`..`baseNote + 15`. */
+  baseNote: number;
+  pads: DrumPad[];
   gainDb: number;
 }
 
@@ -655,7 +846,10 @@ export interface TimelineClip {
   muted?: boolean;
   hidden?: boolean;
   versions: ClipVersion[];
-  /** Opacity in the range [0, 1]. Default: 1. */
+  /**
+   * Opacity in the range [0, 1]. Default: 1. On an `adjustment` clip it is how
+   * much of the treated composite is kept: 1 is fully treated, 0 a no-op.
+   */
   opacity?: number;
   blendMode?: BlendMode;
   /** Playback speed multiplier. Default: 1. */
@@ -682,11 +876,19 @@ export interface TimelineClip {
   shapeStyle?: ClipShapeStyle;
   /** Camera, animation and look for a `model3d` clip. */
   model3dStyle?: ClipModel3DStyle;
-  /** 2D placement on the preview canvas. Default: identity (centered, contain-fit). */
+  /**
+   * 2D placement on the preview canvas. Default: identity (centered,
+   * contain-fit). Ignored on an `adjustment` clip, which draws no picture of
+   * its own: it treats the composite beneath it, already placed.
+   */
   transform?: ClipTransform;
   /** Rounded-corner radius in source pixels. 0 = sharp corners. */
   borderRadius?: number;
-  /** GPU effects applied to this clip in order. */
+  /**
+   * GPU effects applied to this clip in order. On an `adjustment` clip they
+   * run on the composite of the layers beneath it instead of on its own
+   * pixels.
+   */
   effects?: ClipEffect[];
   /**
    * Transition into this clip from the previously-overlapping clip on the
@@ -708,10 +910,21 @@ export interface TimelineClip {
    * error and renders unparented.
    */
   parentId?: string;
-  /** Shape mask applied to this layer before it is blended. */
+  /**
+   * Shape mask applied to this layer before it is blended. On an `adjustment`
+   * clip it is in frame space (the surface being treated) rather than the
+   * layer's own, and limits where the treatment lands.
+   */
   mask?: ClipMask;
   /** Track matte: another clip's alpha or luma drives this layer's alpha. */
   matte?: ClipMatte;
+  /**
+   * A matte generated from this clip's own source — subject cutout, sky
+   * replacement — as an attribute of the clip rather than a second clip (D2).
+   * It therefore shares the in-point, speed, window and time remap by
+   * construction, so every trim, split and move keeps it aligned.
+   */
+  generatedMatte?: ClipGeneratedMatte;
   /** Retime the clip's source. Replaces `speedMultiplier` when set. */
   timeRemap?: ClipTimeRemap;
   /** Composition provenance, stamped by `insert_composition`. */
@@ -756,6 +969,39 @@ export interface ClipMatte {
   /** `"alpha" | "luma"`. */
   mode: string;
   invert?: boolean;
+}
+
+/**
+ * A matte generated from a clip's own source, carried on that clip (D2).
+ *
+ * The asset is a luma mask video cut from `sourceAssetId` frame for frame, so
+ * it is read at the clip's own source time — the in-point, the speed and a time
+ * remap all apply to it exactly as they apply to the picture. That is what
+ * makes it survive a trim or a split with no re-generation and no second clip
+ * to keep in sync.
+ */
+export interface ClipGeneratedMatte {
+  /** The mask video asset in use (luma, same frame rate and duration as the source asset it was cut from). */
+  assetId: string;
+  /** The source clip asset the matte was generated from; a mismatch with `currentAssetId` means stale. */
+  sourceAssetId: string;
+  /** Source interval the generation covered, in source ms. */
+  sourceRange: { fromMs: number; toMs: number };
+  /** Provider/model/resolution knobs the generation ran with. Provenance only. */
+  settings: Record<string, number | string | boolean>;
+  invert?: boolean;
+  /** 0..1 multiplier on the matte's alpha; default 1. */
+  strength?: number;
+  featherPx?: number;
+  /** Earlier results, newest first, so a regenerate can be undone. */
+  versions?: {
+    assetId: string;
+    sourceAssetId: string;
+    createdAt: string;
+    jobId?: string;
+    settings: Record<string, number | string | boolean>;
+  }[];
+  status?: "ready" | "generating" | "failed";
 }
 
 /**

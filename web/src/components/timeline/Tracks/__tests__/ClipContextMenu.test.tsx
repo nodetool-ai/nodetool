@@ -19,6 +19,7 @@ const makeActions = (
   locked: false,
   canOpenInNodeEditor: false,
   isMidi: false,
+  canReplace: true,
   splitAtPlayhead: jest.fn(),
   duplicate: jest.fn(),
   editNotes: jest.fn(),
@@ -104,5 +105,20 @@ describe("ClipContextMenu", () => {
     mockUseClipMenuActions.mockReturnValue(makeActions({ locked: true }));
     renderMenu();
     expect(screen.getByText("Unlock")).toBeTruthy();
+  });
+
+  it("hides Replace clip… when the clip has no media to replace", () => {
+    mockUseClipMenuActions.mockReturnValue(makeActions({ canReplace: false }));
+    renderMenu();
+    expect(screen.queryByText("Replace clip…")).toBeNull();
+  });
+
+  it("still offers Split and Duplicate when Replace is hidden", async () => {
+    mockUseClipMenuActions.mockReturnValue(makeActions({ canReplace: false }));
+    const onClose = jest.fn();
+    renderMenu({ onClose });
+    expect(screen.getByText("Duplicate")).toBeTruthy();
+    await userEvent.click(screen.getByText("Split at playhead"));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

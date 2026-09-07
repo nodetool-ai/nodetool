@@ -243,6 +243,11 @@ export const CUSTOM_ANIMATION_CONTRACT = {
       "A JS body run once, host-side, returning `{curves}` or `{samples}`. " +
       "It reads role, durationMs, clipDurationMs, canvasWidth, canvasHeight, " +
       "params, staggerCount and sampleCount off `inputs`.",
+    timeBase:
+      "clip (default) places keyframes by `t` over the animation window, so " +
+      "a trim stretches them. source places every keyframe at an absolute " +
+      "`sourceMs` in the media, so the motion tracks the footage and a trim " +
+      "or split re-slices the curve instead.",
     mask:
       "{direction: left|right|up|down, softness: 0..1} — required when a " +
       "curve drives wipeProgress, ignored otherwise.",
@@ -301,10 +306,35 @@ export function buildCustomAnimationInputs(
   };
 }
 
+/**
+ * Clock a custom animation's keyframes are placed on. `"clip"` normalizes `t`
+ * over the animation window (the original behaviour); `"source"` places every
+ * keyframe at an absolute `sourceMs` in the media. See
+ * {@link CustomClipAnimation.timeBase}.
+ */
+export type CustomTimeBase = "clip" | "source";
+
+const TIME_BASES: readonly CustomTimeBase[] = ["clip", "source"];
+
+/**
+ * Narrow a document's `custom.timeBase` to a base this build samples. Absent
+ * means `"clip"`; anything else is `null`, which the gate turns into a rejected
+ * animation rather than sampling a curve on a clock it does not understand.
+ */
+export function parseCustomTimeBase(raw: unknown): CustomTimeBase | null {
+  if (raw === undefined || raw === null) return "clip";
+  return typeof raw === "string" &&
+    (TIME_BASES as readonly string[]).includes(raw)
+    ? (raw as CustomTimeBase)
+    : null;
+}
+
 export type CustomCurvesResult =
   | {
       ok: true;
       curves: PropertyCurve[];
+      /** The base the curves were normalized on (`"clip"` unless asked). */
+      timeBase: CustomTimeBase;
       /**
        * Easing strings the grammar does not cover, in document order and
        * de-duplicated. Not a rejection: an easing from a newer build eases
@@ -327,7 +357,7 @@ const isFiniteNumber = (value: unknown): value is number =>
  * whose ends fall short is extended by holding its end values, which is what a
  * body sampling `0.05..0.95` means.
  */
-function normalizeKeyframes(raw: readonly Keyframe[]): Keyframe[] {
+function normalizeClipKeyframes(raw: readonly Keyframe[]): Keyframe[] {
   const sorted = raw
     .map((kf) => {
       const clamped: Keyframe = {
@@ -351,11 +381,62 @@ function normalizeKeyframes(raw: readonly Keyframe[]): Keyframe[] {
   return sorted;
 }
 
+/**
+ * Check a source-anchored curve's keyframes and recompute their `t`.
+ *
+ * `sourceMs` is the stored truth here, so it is validated rather than repaired:
+ * a missing, non-finite or negative time, or one that goes backwards along the
+ * curve, is rejected the way a non-finite `t` is on a clip-based curve —
+ * sorting it would invent an order the author did not write. `t` is rewritten
+ * to the keyframe's normalized position over the curve's own source span, so a
+ * reader that only walks `t` still sees the curve's shape.
+ */
+function normalizeSourceKeyframes(
+  raw: readonly Keyframe[],
+  property: string,
+  index: number
+): { ok: true; keyframes: Keyframe[] } | { ok: false; error: string } {
+  for (let i = 0; i < raw.length; i++) {
+    const sourceMs = raw[i].sourceMs;
+    if (!isFiniteNumber(sourceMs) || sourceMs < 0) {
+      return {
+        ok: false,
+        error:
+          `curves[${index}] (${property}) keyframe ${i} needs a finite ` +
+          "non-negative `sourceMs` — a source-anchored curve is placed by it"
+      };
+    }
+    const previous = raw[i - 1]?.sourceMs;
+    if (previous !== undefined && sourceMs < previous) {
+      return {
+        ok: false,
+        error:
+          `curves[${index}] (${property}) keyframe ${i} goes back in the ` +
+          `source (${sourceMs}ms after ${previous}ms) — keyframes must ascend`
+      };
+    }
+  }
+  const firstMs = raw[0].sourceMs as number;
+  const span = (raw[raw.length - 1].sourceMs as number) - firstMs;
+  return {
+    ok: true,
+    keyframes: raw.map((kf) => ({
+      ...kf,
+      t: span > 0 ? ((kf.sourceMs as number) - firstMs) / span : 0
+    }))
+  };
+}
+
+type ParsedCurveResult =
+  | { ok: true; curve: PropertyCurve }
+  | { ok: false; error: string };
+
 function parseCurve(
   raw: unknown,
   index: number,
+  timeBase: CustomTimeBase,
   unknownEasings: Set<string>
-): CustomCurvesResult {
+): ParsedCurveResult {
   if (!isRecord(raw)) {
     return { ok: false, error: `curves[${index}] is not an object` };
   }
@@ -384,18 +465,28 @@ function parseCurve(
     };
   }
 
+  const sourceBased = timeBase === "source";
   const parsed: Keyframe[] = [];
   for (let i = 0; i < keyframes.length; i++) {
     const kf: unknown = keyframes[i];
-    if (!isRecord(kf) || !isFiniteNumber(kf.t) || !isFiniteNumber(kf.value)) {
+    // A source curve is placed by `sourceMs`, so `t` may be left out; it is
+    // recomputed below either way.
+    const hasTime = isRecord(kf) && (isFiniteNumber(kf.t) || sourceBased);
+    if (!hasTime || !isRecord(kf) || !isFiniteNumber(kf.value)) {
       return {
         ok: false,
         error:
           `curves[${index}] (${property}) keyframe ${i} needs finite ` +
-          "numeric `t` and `value`"
+          `numeric ${sourceBased ? "`sourceMs`" : "`t`"} and \`value\``
       };
     }
-    const keyframe: Keyframe = { t: kf.t, value: kf.value };
+    const keyframe: Keyframe = {
+      t: isFiniteNumber(kf.t) ? kf.t : 0,
+      value: kf.value
+    };
+    if (isFiniteNumber(kf.sourceMs)) {
+      keyframe.sourceMs = kf.sourceMs;
+    }
     if (typeof kf.easing === "string") {
       // Unknown easing strings fall through to linear in `ease`, matching how
       // an unknown preset id is tolerated rather than rejected — but they are
@@ -408,17 +499,49 @@ function parseCurve(
     parsed.push(keyframe);
   }
 
+  if (sourceBased) {
+    const source = normalizeSourceKeyframes(parsed, property, index);
+    if (!source.ok) return source;
+    return {
+      ok: true,
+      curve: {
+        property: property as AnimatedProperty,
+        keyframes: source.keyframes
+      }
+    };
+  }
   return {
     ok: true,
-    curves: [{ property: property as AnimatedProperty, keyframes: normalizeKeyframes(parsed) }]
+    curve: {
+      property: property as AnimatedProperty,
+      keyframes: normalizeClipKeyframes(parsed)
+    }
   };
 }
 
 /**
  * Check and normalize a baked curve list — the one gate between a script's
  * output (or a document written by another client) and the sampler.
+ *
+ * `timeBase` is the animation's `custom.timeBase` (see
+ * {@link parseCustomTimeBase}); omit it for the clip-normalized curves that
+ * were the only kind. A source-anchored list is validated against `sourceMs`
+ * instead of `t`, and a base this build does not know is refused rather than
+ * sampled on the wrong clock.
  */
-export function normalizeCustomCurves(raw: unknown): CustomCurvesResult {
+export function normalizeCustomCurves(
+  raw: unknown,
+  timeBase?: unknown
+): CustomCurvesResult {
+  const base = parseCustomTimeBase(timeBase);
+  if (base === null) {
+    return {
+      ok: false,
+      error:
+        `timeBase is ${JSON.stringify(timeBase)}; expected ` +
+        TIME_BASES.join(" or ")
+    };
+  }
   if (!Array.isArray(raw)) {
     return { ok: false, error: "curves must be an array" };
   }
@@ -436,9 +559,9 @@ export function normalizeCustomCurves(raw: unknown): CustomCurvesResult {
   const seen = new Set<string>();
   const unknownEasings = new Set<string>();
   for (let i = 0; i < raw.length; i++) {
-    const parsed = parseCurve(raw[i], i, unknownEasings);
+    const parsed = parseCurve(raw[i], i, base, unknownEasings);
     if (!parsed.ok) return parsed;
-    const curve = parsed.curves[0];
+    const curve = parsed.curve;
     if (seen.has(curve.property)) {
       return {
         ok: false,
@@ -449,8 +572,8 @@ export function normalizeCustomCurves(raw: unknown): CustomCurvesResult {
     curves.push(curve);
   }
   return unknownEasings.size > 0
-    ? { ok: true, curves, unknownEasings: [...unknownEasings] }
-    : { ok: true, curves };
+    ? { ok: true, curves, timeBase: base, unknownEasings: [...unknownEasings] }
+    : { ok: true, curves, timeBase: base };
 }
 
 /**

@@ -22,6 +22,12 @@
  * and the blend meets the frame once. The host vends that surface through
  * {@link CompositeSurfaceFactory}, because there is no way to make one that
  * exists in both a browser and Node.
+ *
+ * An adjustment reuses that machinery from the other end: at its own z it
+ * copies the surface it sits on, runs its chain on the copy, and mixes the copy
+ * back into the untreated composite by its coverage — so it treats everything
+ * drawn below it and nothing above, and replaces what it covers rather than
+ * lying over it.
  */
 
 import { blendModeToCanvasOp } from "@nodetool-ai/gpu";
@@ -152,6 +158,14 @@ export interface Canvas2DMatte<TSource> {
   mode: MatteMode;
   invert: boolean;
   layer: Canvas2DLayer<TSource>;
+  /** Multiplies the matte's alpha. Absent means 1. */
+  strength?: number;
+  /**
+   * Softened edge, in pixels. This path has no separable blur to run on a
+   * keyhole surface, so it draws the edge hard and reports
+   * `generated_matte_feather_ignored`.
+   */
+  featherPx?: number;
 }
 
 /**
@@ -171,6 +185,32 @@ export interface Canvas2DPrecomposite {
   /** Run once on the composed surface, not once per child. */
   effects?: ClipEffect[];
   /** Set when a precompositing group holds this one: the surface it draws into. */
+  precomposeGroupId?: string;
+}
+
+/**
+ * An adjustment clip's treatment of the surface beneath it.
+ *
+ * Mirrors `AdjustmentLayer` from the scene model with `trackIndex` already
+ * resolved to a `zIndex`, the way {@link Canvas2DLayer} mirrors `ActiveLayer`.
+ * It draws nothing of its own: at its `zIndex` the composite so far is copied
+ * to a surface, {@link effects} run on the copy, and the copy is mixed back
+ * into the original at {@link opacity} — a replacement at full coverage, not a
+ * second picture over the first.
+ */
+export interface Canvas2DAdjustment {
+  /** The clip this treatment came from, for a {@link Canvas2DDegradation}. */
+  clipId?: string;
+  /** Where in the composite order the treatment runs, ascending. */
+  zIndex: number;
+  /** How much of the treated copy is kept. 1 is fully treated, 0 a no-op. */
+  opacity: number;
+  effects?: ClipEffect[];
+  /** Where the treatment lands, in the treated surface's own pixel space. */
+  mask?: ClipMask;
+  /** An animated wipe limiting the treatment, as it limits a layer. */
+  wipe?: AnimationSampleMask;
+  /** The precomposite surface this treats instead of the frame. */
   precomposeGroupId?: string;
 }
 
@@ -230,6 +270,19 @@ export interface DrawTimelineFrameOptions<TSource> {
   /** The groups to composite separately, innermost first (scene-model order). */
   precomposites?: readonly Canvas2DPrecomposite[];
   /**
+   * The adjustments to run, in any order — each one runs at its own `zIndex`,
+   * on the surface it names. Omitted, the frame draws exactly as it did before
+   * adjustments existed and no surface is asked for.
+   */
+  adjustments?: readonly Canvas2DAdjustment[];
+  /**
+   * A frame-sized surface for one adjustment's treated copy. Consumed within a
+   * single treatment — the copy is drawn back before the next layer draws — so
+   * one reused surface is enough. Without it the treatment is skipped and the
+   * untreated composite stands.
+   */
+  adjustmentSurface?: CompositeSurfaceFactory<TSource>;
+  /**
    * Frame-sized intermediates for those groups. Each call must answer with a
    * surface no other precomposite in this frame is still using — nested groups
    * hold theirs until the group above has drawn it — so this cannot be the same
@@ -275,8 +328,12 @@ export type Canvas2DDegradationReason =
   | "wipe_hard_edge"
   /** A track matte skipped: the layer drew unmatted. */
   | "matte_skipped"
+  /** A generated matte's feathered edge drawn hard. */
+  | "generated_matte_feather_ignored"
   /** A precompositing group's blend mode and effects lost. */
   | "group_blend_lost"
+  /** An adjustment did not run: the untreated composite stands. */
+  | "adjustment_skipped"
   /** Drop shadows past the first in the chain, not cast. */
   | "drop_shadow_extra_ignored"
   /** Brightness applied as a CSS multiply instead of the GPU's addition. */
@@ -316,8 +373,10 @@ const CANVAS_EFFECT_TYPES = new Set(["color", "blur", "dropShadow"]);
  *
  * A group's effects run on its composed surface, not on any one layer, so a
  * caller with precomposites passes them in too — `Canvas2DPrecomposite` carries
- * `effects` for exactly that. Leaving them out is how a group blur that this
- * path never applied would go unreported.
+ * `effects` for exactly that. An adjustment is the same case: its chain runs on
+ * the composite beneath it and belongs to no layer, so a caller passes its
+ * adjustments in as well. Leaving either out is how a group blur, or a keyed
+ * adjustment, that this path never applied would go unreported.
  *
  * A grade is reported per channel rather than per type: `ctx.filter` carries
  * brightness, contrast, saturation and hue, and has no white balance at all, so
@@ -427,6 +486,9 @@ function clearShadow<TSource>(ctx: CompositeContext2D<TSource>): void {
  * group's own surface first, and the surface blends once at the group's z. With
  * no precomposites the layers go straight onto `ctx` and no surface is asked
  * for at all.
+ *
+ * An adjustment in `options.adjustments` runs at its own z on the surface it
+ * names — the frame, or the group's — treating what is already on it.
  */
 export function drawTimelineFrame<TSource>(
   ctx: CompositeContext2D<TSource>,
@@ -444,6 +506,18 @@ export function drawTimelineFrame<TSource>(
 
   const skipped: Canvas2DLayer<TSource>[] = [];
   const degraded: Canvas2DDegradation[] = [];
+  const onFrame: Canvas2DAdjustment[] = [];
+  const groupIds = new Set((options.precomposites ?? []).map((g) => g.id));
+  for (const adjustment of options.adjustments ?? []) {
+    const groupId = adjustment.precomposeGroupId;
+    if (!groupId) {
+      onFrame.push(adjustment);
+    } else if (!groupIds.has(groupId)) {
+      // Scoped to a surface this frame does not build. Running it on the frame
+      // instead would treat layers outside the group it belongs to.
+      degraded.push({ clipId: adjustment.clipId, reason: "adjustment_skipped" });
+    }
+  }
   const stack = composePrecomposites(
     layers,
     geometry,
@@ -451,14 +525,240 @@ export function drawTimelineFrame<TSource>(
     skipped,
     degraded
   );
-  const ordered = [...stack].sort((a, b) => a.zIndex - b.zIndex);
-  for (const layer of ordered) {
-    if (!drawTimelineLayer(ctx, layer, geometry, options, degraded)) {
-      skipped.push(layer);
-    }
-  }
+  drawStack(ctx, stack, onFrame, geometry, options, skipped, degraded);
   resetContext(ctx);
   return { skipped, degraded };
+}
+
+/**
+ * Draw one surface's contents bottom-up: its layers and the adjustments that
+ * treat it, interleaved by `zIndex`.
+ *
+ * An adjustment at the same z as a layer runs *after* it — the layer is beneath
+ * it in draw order, so it is part of the composite the treatment reads. That
+ * falls out of a stable sort over layers-then-adjustments, which is why the two
+ * are concatenated in that order and not merged some other way.
+ */
+function drawStack<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  layers: readonly Canvas2DLayer<TSource>[],
+  adjustments: readonly Canvas2DAdjustment[],
+  geometry: Canvas2DFrameGeometry,
+  options: DrawTimelineFrameOptions<TSource>,
+  skipped: Canvas2DLayer<TSource>[],
+  degraded: Canvas2DDegradation[]
+): void {
+  type Item =
+    | { adjustment?: undefined; layer: Canvas2DLayer<TSource>; zIndex: number }
+    | { adjustment: Canvas2DAdjustment; layer?: undefined; zIndex: number };
+  const items: Item[] = layers.map((layer) => ({
+    layer,
+    zIndex: layer.zIndex
+  }));
+  for (const adjustment of adjustments) {
+    items.push({ adjustment, zIndex: adjustment.zIndex });
+  }
+  for (const item of items.sort((a, b) => a.zIndex - b.zIndex)) {
+    if (item.adjustment) {
+      applyAdjustment(ctx, item.adjustment, geometry, options, degraded);
+      continue;
+    }
+    if (!drawTimelineLayer(ctx, item.layer, geometry, options, degraded)) {
+      skipped.push(item.layer);
+    }
+  }
+}
+
+/**
+ * Run one adjustment on `ctx`: copy the composite so far, treat the copy, and
+ * mix the treated picture back into the untreated one by the adjustment's
+ * coverage (T24).
+ *
+ * The copy goes through `getImageData`/`putImageData` rather than a
+ * `drawImage`: a host hands over a context, not a drawable handle on the
+ * surface behind it, so the pixels are the only way to reach what has been
+ * drawn. Brightness is added on the copy for the reason it is added on a
+ * layer's scratch — the GPU grade adds where CSS `brightness()` multiplies —
+ * and the rest of the chain rides the filter of the draw back.
+ *
+ * **A treatment replaces the composite, it does not lie on top of it.** With
+ * `c` the coverage — the adjustment's opacity times its mask times its wipe —
+ * every premultiplied channel, alpha included, ends at
+ * `original * (1 - c) + treated * c`. The copy carries the accumulation's own
+ * alpha, so drawing it back `source-over` added that alpha to itself: a
+ * 50%-opaque pixel under a fully applied neutral chain came back at 75%, which
+ * thickened every softened edge inside a group surface and every alpha export
+ * (F3). So the composite is cleared where the treatment lands and the treated
+ * copy drawn onto the cleared ground, which replaces rather than adds; anything
+ * short of full coverage is then mixed back into the snapshot by
+ * {@link mixTreatment}. Full coverage skips the mix, and over an opaque frame
+ * that case is byte-for-byte the draw it was.
+ *
+ * Both draws are `source-over`, and the coverage is arithmetic rather than a
+ * `destination-out` + `lighter` pair, because `@napi-rs/canvas` applies both a
+ * source's alpha and `ctx.filter` twice under any other composite operation —
+ * `destination-out` at 0.5 erases a quarter, and `copy` with `contrast(2)`
+ * lands a 40% grey on white. A coverage or a grade carried by a composite
+ * operation would render differently on the server than in a browser.
+ *
+ * The clip is what keeps a hard mask or wipe out of both draws, and the mix
+ * needs no second opinion about it: outside the clip the surface still holds
+ * the snapshot, and mixing a pixel with itself returns it unchanged.
+ */
+function applyAdjustment<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  adjustment: Canvas2DAdjustment,
+  geometry: Canvas2DFrameGeometry,
+  surfaces: DrawTimelineFrameOptions<TSource>,
+  degraded: Canvas2DDegradation[]
+): void {
+  const { canvasWidth: w, canvasHeight: h } = geometry;
+  const scratch = surfaces.adjustmentSurface?.(w, h);
+  if (!scratch) {
+    degraded.push({ clipId: adjustment.clipId, reason: "adjustment_skipped" });
+    return;
+  }
+
+  const original = ctx.getImageData(0, 0, w, h);
+  const sctx = scratch.ctx;
+  resetContext(sctx);
+  sctx.clearRect(0, 0, w, h);
+  sctx.putImageData(original, 0, 0);
+
+  const brightness = brightnessForEffects(adjustment.effects, undefined);
+  const lifts = Math.abs(brightness) > 0.001;
+  if (lifts) addBrightness(sctx, w, h, brightness);
+
+  // A soft mask and a feathered wipe rasterize their coverage together on one
+  // surface, because the mix needs `mask * wipe` as one number per pixel. A
+  // hard edge is a path clip on the draws instead, which costs nothing. Same
+  // split as a layer's.
+  const shape = adjustment.mask;
+  const wipe = adjustment.wipe;
+  const softShape = shape !== undefined && !maskIsHard(shape);
+  const softWipe = wipe !== undefined && wipe.softness > 0;
+  let coverage: ImagePixels | null = null;
+  if (softShape || softWipe) {
+    const surface = surfaces.maskSurface?.(w, h);
+    if (surface && surface.surface !== scratch.surface) {
+      const cctx = surface.ctx;
+      resetContext(cctx);
+      cctx.clearRect(0, 0, w, h);
+      let painted = true;
+      if (softShape) {
+        painted = drawMask(cctx, shape, w, h);
+      } else {
+        cctx.fillStyle = "#fff";
+        cctx.fillRect(0, 0, w, h);
+      }
+      if (painted) {
+        if (softWipe) applyWipeGradient(cctx, w, h, wipe);
+        coverage = cctx.getImageData(0, 0, w, h);
+      }
+    }
+    if (!coverage) {
+      // Both feathers fall back to the hard edge the clip draws, and both are
+      // reported: a caller cannot see which one it lost otherwise.
+      if (softShape) {
+        degraded.push({ clipId: adjustment.clipId, reason: "mask_hard_edge" });
+      }
+      if (softWipe) {
+        degraded.push({ clipId: adjustment.clipId, reason: "wipe_hard_edge" });
+      }
+    }
+  }
+  const maskRasterized = coverage !== null && softShape;
+  const wipeRasterized = coverage !== null && softWipe;
+
+  const opacity = Math.max(0, Math.min(1, adjustment.opacity));
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  if (shape && !maskRasterized) clipMask(ctx, shape, w, h);
+  if (wipe && !wipeRasterized) clipWipeRect(ctx, w, h, wipe);
+
+  ctx.globalCompositeOperation = "source-over";
+  let treated = true;
+  try {
+    // Cleared first: over transparency a source-over draw *is* the source, so
+    // what lands is the treated picture and not the treated picture over the
+    // one it was copied from. The chain is armed after the clear, so no host
+    // can read it as something to run on one.
+    ctx.clearRect(0, 0, w, h);
+    ctx.filter = filterForEffects(adjustment.effects, undefined, lifts);
+    ctx.drawImage(scratch.surface, 0, 0, w, h);
+  } catch {
+    // The host's surface refused to draw. The snapshot the copy was made from
+    // puts the untreated composite back, which is the same outcome as vending
+    // no surface at all.
+    treated = false;
+  }
+
+  if (treated && (opacity < 1 || coverage)) {
+    const mixed = ctx.getImageData(0, 0, w, h);
+    mixTreatment(original, mixed, coverage, opacity);
+    ctx.putImageData(mixed, 0, 0);
+  }
+
+  ctx.restore();
+  resetContext(ctx);
+  if (!treated) {
+    ctx.putImageData(original, 0, 0);
+    degraded.push({ clipId: adjustment.clipId, reason: "adjustment_skipped" });
+  }
+}
+
+/**
+ * Mix the treated picture into the original by the treatment's coverage, in
+ * place in `treated`: `out = original * (1 - c) + treated * c` on every
+ * premultiplied channel, alpha included, where `c` is `opacity` times the
+ * coverage raster's alpha.
+ *
+ * Premultiplied, because that is the space a composite is a linear mix in —
+ * mixing straight colours would let a nearly transparent original drag the
+ * treated colour toward whatever it happens to carry under its zero alpha.
+ * `ImagePixels` is straight alpha at both ends, so the multiply in and the
+ * divide out are here.
+ *
+ * The two ends are byte-exact: `c >= 1` keeps the treated pixel and `c <= 0`
+ * restores the original one, rather than rounding through the arithmetic.
+ */
+function mixTreatment(
+  original: ImagePixels,
+  treated: ImagePixels,
+  coverage: ImagePixels | null,
+  opacity: number
+): void {
+  const src = original.data;
+  const out = treated.data;
+  const cov = coverage?.data;
+  for (let i = 0; i < out.length; i += 4) {
+    const c = cov ? (opacity * cov[i + 3]!) / 255 : opacity;
+    if (c >= 1) continue;
+    if (c <= 0) {
+      out[i] = src[i]!;
+      out[i + 1] = src[i + 1]!;
+      out[i + 2] = src[i + 2]!;
+      out[i + 3] = src[i + 3]!;
+      continue;
+    }
+    const oa = src[i + 3]! / 255;
+    const ta = out[i + 3]! / 255;
+    const keep = oa * (1 - c);
+    const take = ta * c;
+    const alpha = keep + take;
+    if (alpha <= 0) {
+      out[i] = 0;
+      out[i + 1] = 0;
+      out[i + 2] = 0;
+      out[i + 3] = 0;
+      continue;
+    }
+    for (let k = 0; k < 3; k++) {
+      out[i + k] = Math.round((src[i + k]! * keep + out[i + k]! * take) / alpha);
+    }
+    out[i + 3] = Math.round(alpha * 255);
+  }
 }
 
 /**
@@ -499,8 +799,20 @@ function composePrecomposites<TSource>(
 
   for (const layer of layers) assign(layer.precomposeGroupId, layer);
 
+  // An adjustment inside a group treats that group's own surface, so it runs
+  // with the group's children and reaches nothing outside them.
+  const adjustmentsByGroup = new Map<string, Canvas2DAdjustment[]>();
+  for (const adjustment of options.adjustments ?? []) {
+    const groupId = adjustment.precomposeGroupId;
+    if (!groupId) continue;
+    const bucket = adjustmentsByGroup.get(groupId);
+    if (bucket) bucket.push(adjustment);
+    else adjustmentsByGroup.set(groupId, [adjustment]);
+  }
+
   for (const group of groups) {
     const children = byGroup.get(group.id) ?? [];
+    const treatments = adjustmentsByGroup.get(group.id) ?? [];
     const surface =
       children.length > 0
         ? (options.precompositeSurface?.(
@@ -516,6 +828,14 @@ function composePrecomposites<TSource>(
       if (children.length > 0) {
         degraded.push({ clipId: group.id, reason: "group_blend_lost" });
       }
+      // The treatments go with the surface they were scoped to. Running them on
+      // the stack beneath would treat layers outside the group.
+      for (const treatment of treatments) {
+        degraded.push({
+          clipId: treatment.clipId,
+          reason: "adjustment_skipped"
+        });
+      }
       for (const child of children) assign(group.precomposeGroupId, child);
       continue;
     }
@@ -523,11 +843,15 @@ function composePrecomposites<TSource>(
     const sctx = surface.ctx;
     resetContext(sctx);
     sctx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
-    for (const child of [...children].sort((a, b) => a.zIndex - b.zIndex)) {
-      if (!drawTimelineLayer(sctx, child, geometry, options, degraded)) {
-        skipped.push(child);
-      }
-    }
+    drawStack(
+      sctx,
+      children,
+      treatments,
+      geometry,
+      options,
+      skipped,
+      degraded
+    );
 
     // The surface is frame-sized, so it composites untransformed: the group's
     // own matrix already rode into each child through `parentMatrix`.
@@ -902,6 +1226,17 @@ function drawMattedLayer<TSource>(
   );
   if (matte.mode === "luma") lumaToAlpha(keyhole.ctx, w, h);
   if (matte.invert) invertAlpha(keyhole.ctx, w, h);
+  const strength = matte.strength ?? 1;
+  if (strength < 1) scaleAlpha(keyhole.ctx, w, h, Math.max(0, strength));
+  // The GPU path blurs the keyhole before it is read; there is no separable
+  // blur here, and `ctx.filter` would soften the *picture* rather than the
+  // matte. Named rather than silently dropped (I7).
+  if (matte.featherPx !== undefined && matte.featherPx > 0) {
+    degraded.push({
+      clipId: layer.clipId,
+      reason: "generated_matte_feather_ignored"
+    });
+  }
 
   composed.ctx.globalCompositeOperation = "destination-in";
   composed.ctx.drawImage(keyhole.surface, 0, 0, w, h);
@@ -958,6 +1293,25 @@ function lumaToAlpha<TSource>(
     data[i + 1] = 255;
     data[i + 2] = 255;
     data[i + 3] = Math.round((luma * data[i + 3]!) / 255);
+  }
+  ctx.putImageData(pixels, 0, 0);
+}
+
+/**
+ * `alpha *= scale`, which is what a matte's `strength` means: at 0.5 half of
+ * what the matte hides comes back through. Run on the keyhole rather than on
+ * the layer so the two compositors read one number the same way.
+ */
+function scaleAlpha<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  width: number,
+  height: number,
+  scale: number
+): void {
+  const pixels = ctx.getImageData(0, 0, width, height);
+  const data = pixels.data;
+  for (let i = 3; i < data.length; i += 4) {
+    data[i] = Math.round(data[i]! * scale);
   }
   ctx.putImageData(pixels, 0, 0);
 }

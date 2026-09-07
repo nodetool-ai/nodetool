@@ -1,7 +1,18 @@
+import { resliceSourceAnimations } from "./animation/sourceCurves.js";
 import { sourceRate } from "./sourceRate.js";
 import { assertNotTimeRemapped } from "./timeRemap.js";
 import type { TimelineClip } from "./types.js";
 
+/**
+ * Move one edge of a clip.
+ *
+ * Animations ride along untouched — a clip-based curve is normalized over the
+ * window, so a trim stretches its keyframes with the clip. The exception is a
+ * source-anchored custom animation (`custom.timeBase: "source"`), whose
+ * keyframes name times in the media: those curves are re-sliced onto the
+ * retained source window so the motion the trim kept is the motion that was
+ * there (`animation/sourceCurves.ts`).
+ */
 export function trimClip(
   clip: TimelineClip,
   edge: "start" | "end",
@@ -40,11 +51,20 @@ export function trimClip(
     throw new Error("trimClip cannot extend beyond source out-point");
   }
 
-  return {
+  const next: TimelineClip = {
     ...clip,
     startMs: nextStartMs,
     durationMs: nextDurationMs,
     inPointMs: nextInPointMs,
     outPointMs: nextOutPointMs
   };
+  if (clip.animations) {
+    next.animations = resliceSourceAnimations(
+      clip.animations,
+      nextInPointMs,
+      nextOutPointMs,
+      nextDurationMs
+    );
+  }
+  return next;
 }

@@ -6,6 +6,7 @@ import { segmentationRouter } from "./routers/segmentation.js";
 import { collectionsRouter } from "./routers/collections.js";
 import { costsRouter } from "./routers/costs.js";
 import { customProvidersRouter } from "./routers/custom-providers.js";
+import { externalMcpRouter } from "./routers/external-mcp.js";
 import { creditsRouter } from "./routers/credits.js";
 import { extensionRouter } from "./routers/extension.js";
 import { filesRouter } from "./routers/files.js";
@@ -49,6 +50,7 @@ export const appRouter = router({
   costs: costsRouter,
   credits: creditsRouter,
   customProviders: customProvidersRouter,
+  externalMcp: externalMcpRouter,
   extension: extensionRouter,
   files: filesRouter,
   fonts: fontsRouter,

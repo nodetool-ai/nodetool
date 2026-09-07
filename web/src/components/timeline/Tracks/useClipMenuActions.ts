@@ -29,6 +29,11 @@ export interface ClipMenuActions {
   canOpenInNodeEditor: boolean;
   /** A midi clip's notes are editable in the clip-editor panel. */
   isMidi: boolean;
+  /**
+   * Whether "Replace clip…" applies. An `adjustment` clip draws no media of
+   * its own, so there is nothing to replace.
+   */
+  canReplace: boolean;
 
   splitAtPlayhead: () => void;
   duplicate: () => void;
@@ -118,6 +123,7 @@ export function useClipMenuActions(
       locked: Boolean(clip?.locked),
       canOpenInNodeEditor: Boolean(clip?.workflowId && sequenceId),
       isMidi: clip?.mediaType === "midi",
+      canReplace: clip?.mediaType !== "adjustment",
       splitAtPlayhead,
       duplicate,
       editNotes,

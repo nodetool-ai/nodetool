@@ -24,6 +24,25 @@
   interpolation is `evalCurve`'s — the segment is eased by its *ending*
   keyframe and held flat past both ends — so one keyframe is a freeze frame
   and the easing grammar is the one the rest of the document speaks.
+- **A custom animation can be anchored to the media instead of the clip**
+  (`custom.timeBase: "source"`). Its keyframes name absolute source
+  milliseconds in `sourceMs` — the stored truth there, with `t` derived from it
+  by `normalizeCustomCurves` — and the sampler evaluates them at
+  `clipSourceMsAt`, the same source time the compositor seeks the video to, so
+  speed and a time remap move the motion the way they move the footage. The
+  caller passes that time to `sampleAnimations`; one that does not leaves such
+  an animation at identity rather than replaying it on the clip's clock.
+  Because the curve is placed in the media, **`trimClip` and `splitClip`
+  re-slice it** (`animation/sourceCurves.ts`) instead of letting the window
+  stretch it: keyframes outside the retained source window are dropped and an
+  interpolated keyframe is put on each new edge, so the motion at a given
+  timeline instant survives the edit — exactly for a linear segment (the
+  default a custom animation compiles with), approximately when an eased
+  segment is cut in half. A split hands each half the stretch of the curve its
+  own source window shows, so role says nothing about which half carries it. A
+  clip-based curve keeps stretching, which is what `t` over the window means.
+  The validator reports a curve reaching past the clip's source window as
+  `source_curve_outside_window`.
 - **Split and trim refuse a remapped clip** (`assertNotTimeRemapped`). The
   curve is normalized over the window, so changing the window retimes every
   frame the clip shows, including the ones the edit did not touch. The refusal
@@ -102,6 +121,35 @@
   scrim came back with a hard outline the same call in the editor did not draw.
   A shape the caller filled gets no stroke it did not ask for.
 
+## Midi voices (`src/midi`, `src/midi/engines`)
+
+- **One renderer, four synths.** `renderInstrumentEvents` switches on
+  `instrument.type` and every host — the browser preview, the audition, the
+  `RenderTimeline` node — goes through it. `subtractive` is the built-in voice;
+  `wavetable`, `bass` and `drum` are ports of FableSynth's WT-1, BL-1 and DR-1
+  ([github.com/georgi/fablesynth](https://github.com/georgi/fablesynth)),
+  living in `src/midi/engines/`.
+- **What was ported is the sound-shaping, not the plugin.** The band-limited
+  wavetables and their mip ladder, the Cytomic SVF, the ADAA tanh drive, the
+  envelopes, BL-1's accent and slide, DR-1's pad voice. Not ported: stereo
+  (this renderer is mono), the LFOs and mod matrix, the FX racks, and the
+  plugins' own sequencers — a track's effects live on the track and its notes
+  live in the clip.
+- **A render is reproducible or the cache is wrong.** No `Math.random` and no
+  clock: DR-1's noise is a seeded xorshift keyed by the pad and the hit, and
+  unison start phases are a fixed spread. `midiRenderKey` hands back a previous
+  render, so a voice that drifted between two renders would play as whichever
+  one was cached first.
+- **`instrumentSignature` walks the instrument rather than listing its
+  fields.** The FableSynth voices carry nested oscillators, envelopes and
+  sixteen pads; a hand-written field list would go stale on the first one
+  added, and the cache would serve audio from before the change.
+- **A new instrument type is two edits, not one.** `types.ts` and
+  `@nodetool-ai/protocol`'s `midiInstrument` schema both describe the union, and
+  `tests/midi.protocolCompat.test.ts` parses every shipped preset through the
+  schema — so a branch added on one side fails there rather than being stripped
+  by Zod on the first autosave.
+
 ## Rendering (`src/render`, `@nodetool-ai/timeline/render`)
 
 - **One scene model, one compositor, four hosts.** The live preview, the
@@ -116,6 +164,24 @@
   the headless frame preview draw through it. Effects are where the two
   genuinely differ, so `unsupportedEffectTypes` names what Canvas 2D drops
   rather than letting a caller show a different picture silently.
+- **An adjustment clip is z-order, bottom-up, group-scoped, and mixed by its
+  coverage.** `mediaType: "adjustment"` draws nothing: it treats the composite of
+  everything already on the surface at its own track's z — every track with a
+  higher index — runs its effect chain on that, and **mixes** the treated result
+  into the untreated one by its coverage — resolved opacity × mask × wipe —
+  rather than compositing it over: `out = original * (1 - c) + treated * c` on
+  every premultiplied channel, alpha included, so a fully applied treatment
+  *replaces* what it covers (1 fully treated, 0 a no-op). Blending it over
+  instead added the copy's alpha to its own, and a neutral chain thickened every
+  translucent pixel — 50% opaque came back at 75% — which only a group surface
+  or an alpha export can see. Both compositors say so in one place each:
+  `mixTreatment` in `canvas2d.ts` and in `frameCompositor.ts`. Stacked adjustments therefore
+  apply bottom-up with no rule of their own: the higher one simply finds the
+  lower one's result. Inside a group it treats that group's surface and nothing
+  outside, which is why a group holding one always precomposites
+  (`groupNeedsPrecomposite`). The scene model decides all of it — `computeActiveLayers`
+  returns `AdjustmentLayer` records — so `canvas2d` and `frameCompositor`
+  execute one plan instead of each deciding.
 - **Nothing in `src/render` may be re-exported from the package root.** The root
   export stays runtime-dependency-free (mobile compiles it from source); the
   render module pulls in WebGPU through `@nodetool-ai/gpu`.
@@ -206,3 +272,35 @@
   `trimStart`/`trimEnd` change the outline, so every host rasterizes
   `AnimatedLayerProps.shapeStyle`, not the clip's own; a host that reaches for
   `layer.shapeStyle` renders a trim animation as a held first frame.
+
+## Generated mattes (`src/generatedMatte.ts`, D2)
+
+- **A generated matte is an attribute of the clip, not a second clip.**
+  `clip.generatedMatte` names a luma mask video cut from the clip's own source
+  frame for frame, so it shares the in-point, the speed, the window and the time
+  remap by construction — every trim, split and move keeps it aligned, and
+  `splitClip`/`trimClip` need nothing beyond copying the field across. The
+  two-clip `matte` (`ClipMatte`, `matte.sourceClipId`) stays for a keyhole
+  authored from another clip's picture; a clip carrying both is resolved by the
+  generated one, because that is what the user asked the picture to be.
+- **What can go wrong is staleness, not alignment.** The clip's asset can be
+  regenerated under the matte, or its window can grow past the source the
+  generation covered. `isGeneratedMatteStale` decides both, in one place, for
+  the editor and for the validator's `generated_matte_stale`.
+- **The capability that generates one never loses the matte already there.**
+  `isolate_subject` (`packages/agents/src/capabilities/timeline-isolate-subject.ts`)
+  marks the clip `status: "generating"` while keeping the current `assetId` and
+  `versions`, and on a failure or a cancel it puts the previous ready result
+  back — same asset, same versions, same knobs — so a regenerate the provider
+  drops costs nothing but the call. Only a clip that had no matte at all is
+  left with a `failed` marker. It sends the whole source asset, because the
+  mask is read at the clip's own source time and a trimmed submission would
+  need an offset the document does not carry. The knobs afterwards are the
+  `set_generated_matte` op, which both hosts run through the helpers here.
+- **The scene model resolves it into the same `matte` slot a track matte uses**
+  (`mode: "luma"`, plus `strength` and `featherPx`), with the keyhole carrying
+  the layer's own clip, placement and source time and none of its look — so both
+  compositors apply one keyhole through one path. `status` other than `ready`
+  draws unmatted rather than blanking the shot a generation is still cutting
+  out. `featherPx` is GPU-only; Canvas 2D draws the edge hard and reports
+  `generated_matte_feather_ignored`.

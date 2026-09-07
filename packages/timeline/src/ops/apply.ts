@@ -23,6 +23,7 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import {
   ANIMATION_PRESETS,
+  buildBakedAnimation,
   CUSTOM_ANIMATION_CONTRACT,
   CUSTOM_ANIMATION_PRESET_ID,
   normalizeCustomCurves,
@@ -47,6 +48,7 @@ import {
   mediaTypeForContentType,
   trackTypeForMediaType
 } from "../defaults.js";
+import { selectGeneratedMatteVersion } from "../generatedMatte.js";
 import { computeModel3DBakeHash } from "../model3dBake.js";
 import {
   model3dStyleWithPatch,
@@ -1112,6 +1114,38 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
       return { ok: true, clip: scope.clipOut(clip) };
     }
 
+    case "set_generated_matte": {
+      const clip = scope.resolveClip(op.target);
+      scope.touch(clip.id);
+      if (op.clear === true) {
+        delete clip.generatedMatte;
+        return { ok: true, clip: scope.clipOut(clip), generatedMatte: null };
+      }
+      if (!clip.generatedMatte) {
+        throw new Error(
+          `"${clip.name}" carries no generated matte. Run isolate_subject on ` +
+            "it first; this op only adjusts one that exists."
+        );
+      }
+      if (op.selectVersionAssetId !== undefined) {
+        clip.generatedMatte = selectGeneratedMatteVersion(
+          clip,
+          op.selectVersionAssetId
+        ).generatedMatte;
+      }
+      // The knobs are the user's, so an absent field leaves the stored value
+      // alone rather than resetting it to a default the caller did not name.
+      const matte = clip.generatedMatte!;
+      if (op.invert !== undefined) matte.invert = op.invert;
+      if (op.strength !== undefined) {
+        matte.strength = Math.min(1, Math.max(0, op.strength));
+      }
+      if (op.featherPx !== undefined) {
+        matte.featherPx = Math.max(0, op.featherPx);
+      }
+      return { ok: true, clip: scope.clipOut(clip), generatedMatte: matte };
+    }
+
     case "set_time_remap": {
       const clip = scope.resolveClip(op.target);
       if (op.timeRemap === null) {
@@ -1197,6 +1231,22 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
         op.mode === "add" ? [...(clip.animations ?? []), ...built] : built;
       scope.touch(clip.id);
       return { ok: true, clip: scope.clipOut(clip) };
+    }
+
+    case "set_baked_animation": {
+      const clip = scope.resolveClip(op.target);
+      const outcome = buildBakedAnimation(clip, op.animation, () =>
+        scope.ctx.newId("anim")
+      );
+      clip.animations = outcome.animations;
+      scope.touch(clip.id);
+      return {
+        ok: true,
+        clip: scope.clipOut(clip),
+        animationId: outcome.animationId,
+        keyframeCount: outcome.animation.custom?.curves[0]?.keyframes.length ?? 0,
+        replaced: outcome.replaced
+      };
     }
 
     case "clear_animations": {
