@@ -16,7 +16,12 @@
  * the rows fill in.
  */
 
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  readGameSetup,
+  writeGameSetup
+} from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 import { stub } from "../../../../test-utils/doubles";
 import useResultsStore from "../../../../stores/ResultsStore";
@@ -30,9 +35,29 @@ import type {
   WorkflowAttributes
 } from "../../../../stores/ApiTypes";
 import { useGameRunSummary } from "../gameRunSummary";
+import { readGameBuild } from "../gameExtras";
 
 const WORKFLOW_ID = "wf-game";
 const JOB_ID = "job-export-1";
+
+const listJobs = jest.fn();
+jest.mock("../../../../trpc/client", () => ({
+  trpcClient: {
+    jobs: { list: { query: (...args: unknown[]) => listJobs(...args) } },
+    assets: { list: { query: jest.fn().mockResolvedValue({ assets: [] }) } }
+  }
+}));
+
+const renderSummary = () => {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } }
+  });
+  return renderHook(() => useGameRunSummary(WORKFLOW_ID), {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    )
+  });
+};
 
 /** The graph `gameGraphPlacement` builds, as the node store holds it. */
 const NODES = [
@@ -164,6 +189,8 @@ const emitCompletedExport = () => {
 };
 
 beforeEach(() => {
+  jest.clearAllMocks();
+  listJobs.mockResolvedValue({ jobs: [] });
   settings = {};
   useResultsStore.setState({
     outputResults: {},
@@ -178,7 +205,7 @@ beforeEach(() => {
 describe("the checklist against the run's own messages", () => {
   it("reports the directory, the archive and the verification the export sent", () => {
     emitCompletedExport();
-    const { result } = renderHook(() => useGameRunSummary(WORKFLOW_ID));
+    const { result } = renderSummary();
     expect(result.current).toMatchObject({
       checked: 1,
       total: 1,
@@ -206,7 +233,7 @@ describe("the checklist against the run's own messages", () => {
         } as unknown as OutputUpdate)
       );
     }
-    const { result } = renderHook(() => useGameRunSummary(WORKFLOW_ID));
+    const { result } = renderSummary();
     expect(result.current).toMatchObject({
       directory: null,
       archive: null,
@@ -230,7 +257,7 @@ describe("the checklist against the run's own messages", () => {
         job_id: JOB_ID
       })
     );
-    const { result } = renderHook(() => useGameRunSummary(WORKFLOW_ID));
+    const { result } = renderSummary();
     expect(result.current.verified).toBe(false);
     expect(result.current.verificationReason).toBe(
       "No Godot binary on this server"
@@ -252,7 +279,7 @@ describe("the checklist against the run's own messages", () => {
         job_id: JOB_ID
       })
     );
-    const { result } = renderHook(() => useGameRunSummary(WORKFLOW_ID));
+    const { result } = renderSummary();
     expect(result.current).toMatchObject({ checked: 0, total: 1 });
   });
 
@@ -279,7 +306,7 @@ describe("the checklist against the run's own messages", () => {
         job_id: JOB_ID
       })
     );
-    const { result } = renderHook(() => useGameRunSummary(WORKFLOW_ID));
+    const { result } = renderSummary();
     expect(result.current.checked).toBe(0);
     expect(result.current.failures).toEqual([
       {
@@ -302,7 +329,7 @@ describe("the checklist against the run's own messages", () => {
         job_id: JOB_ID
       })
     );
-    const { result } = renderHook(() => useGameRunSummary(WORKFLOW_ID));
+    const { result } = renderSummary();
     expect(result.current.failures).toEqual([
       {
         nodeId: "gen_player",
@@ -310,5 +337,59 @@ describe("the checklist against the run's own messages", () => {
         error: "the provider refused"
       }
     ]);
+  });
+
+  it("restores a completed export after the panel was unmounted", async () => {
+    settings = writeGameSetup({}, {
+      stage: "done",
+      build: {
+        node_count: NODES.length,
+        issues: [],
+        validation_errors: [],
+        run_started: true,
+        run_error: null
+      }
+    });
+    const mounted = renderSummary();
+    mounted.unmount();
+    expect(readGameBuild(readGameSetup(settings))?.export).toBeUndefined();
+
+    useResultsStore.setState({ outputResults: {}, liveGenerations: {} } as never);
+    useErrorStore.setState({ errors: {} } as never);
+    useWorkflowRunsStore.setState({ focusedJob: {} } as never);
+    listJobs.mockResolvedValue({
+      jobs: [
+        {
+          id: JOB_ID,
+          status: "completed",
+          workflow_id: WORKFLOW_ID,
+          outputs: { project: [EXPORT_OUTPUTS.output] }
+        }
+      ]
+    });
+
+    const reopened = renderSummary();
+
+    await waitFor(() =>
+      expect(readGameBuild(readGameSetup(settings))?.export).toMatchObject({
+        job_id: JOB_ID,
+        directory: "games/ember-run",
+        archive: "games/ember-run.zip",
+        verified: true
+      })
+    );
+    reopened.rerender();
+    expect(reopened.result.current).toMatchObject({
+      checked: 1,
+      total: 1,
+      directory: "games/ember-run",
+      archive: "games/ember-run.zip",
+      verified: true
+    });
+    expect(listJobs).toHaveBeenCalledWith({
+      workflow_id: WORKFLOW_ID,
+      limit: 20,
+      include_outputs: true
+    });
   });
 });

@@ -22,7 +22,8 @@ const validJob = {
   started_at: null,
   finished_at: null,
   error: null,
-  cost: null
+  cost: null,
+  outputs: null
 };
 
 const validBg = {
@@ -45,7 +46,8 @@ describe("jobs.jobResponse", () => {
         ...validJob,
         name: "My job",
         started_at: "2026-01-01",
-        cost: 1.5
+        cost: 1.5,
+        outputs: { project: [{ directory: "games/example" }] }
       }).success
     ).toBe(true);
   });
@@ -72,10 +74,17 @@ describe("jobs.backgroundJobResponse", () => {
 describe("jobs.listInput", () => {
   it("defaults limit to 100", () => {
     expect(listInput.parse({}).limit).toBe(100);
+    expect(listInput.parse({}).include_outputs).toBe(false);
   });
 
   it("accepts workflow_id filter", () => {
     expect(listInput.safeParse({ workflow_id: "w1", limit: 5 }).success).toBe(
+      true
+    );
+  });
+
+  it("accepts an output projection", () => {
+    expect(listInput.parse({ include_outputs: true }).include_outputs).toBe(
       true
     );
   });

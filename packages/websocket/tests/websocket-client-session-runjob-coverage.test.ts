@@ -675,6 +675,43 @@ describe("WebSocketClientSession run_job — terminal persistence", () => {
     expect(job?.status).toBe("cancelled");
   });
 
+  it("persists completed outputs on the job row", async () => {
+    await seedJob("OUTPUTS");
+    const active = makeActive({
+      jobId: "OUTPUTS",
+      workflowId: "wf",
+      messages: []
+    });
+
+    await streamTo(
+      runner,
+      active,
+      Promise.resolve({
+        status: "completed",
+        outputs: {
+          project: [
+            {
+              directory: "games/ember-run",
+              archive: "games/ember-run.zip",
+              verified: true
+            }
+          ]
+        }
+      })
+    );
+
+    const job = await Job.get<Job>("OUTPUTS");
+    expect(job?.runOutputs()).toEqual({
+      project: [
+        {
+          directory: "games/ember-run",
+          archive: "games/ember-run.zip",
+          verified: true
+        }
+      ]
+    });
+  });
+
   it("does not overwrite a DB-only cancellation with completed", async () => {
     await seedJob("DC");
     const row = await Job.get<Job>("DC");

@@ -26,7 +26,7 @@ import {
   type BackgroundJobResponse
 } from "@nodetool-ai/protocol/api-schemas/jobs.js";
 
-function toJobResponse(job: JobModel): JobResponse {
+function toJobResponse(job: JobModel, includeOutputs: boolean): JobResponse {
   return {
     id: job.id,
     user_id: job.user_id,
@@ -37,7 +37,8 @@ function toJobResponse(job: JobModel): JobResponse {
     started_at: job.started_at ?? null,
     finished_at: job.finished_at ?? null,
     error: job.error ?? null,
-    cost: job.cost ?? null
+    cost: job.cost ?? null,
+    outputs: includeOutputs ? job.runOutputs() : null
   };
 }
 
@@ -135,7 +136,7 @@ export const jobsRouter = router({
         startKey: input.start_key
       });
       return {
-        jobs: jobs.map((j) => toJobResponse(j)),
+        jobs: jobs.map((j) => toJobResponse(j, input.include_outputs)),
         next_start_key: nextStartKey || null
       };
     }),
@@ -148,7 +149,7 @@ export const jobsRouter = router({
       if (!job || job.user_id !== ctx.userId) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Job not found");
       }
-      return toJobResponse(job);
+      return toJobResponse(job, true);
     }),
 
   cancel: protectedProcedure

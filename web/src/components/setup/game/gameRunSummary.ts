@@ -26,11 +26,14 @@
  */
 
 import { useEffect, useMemo, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { Node } from "@xyflow/react";
 import {
   GAME_CHECKER_NODE_TYPES,
-  GAME_EXPORT_NODE_TYPE
+  GAME_EXPORT_NODE_TYPE,
+  GAME_PROJECT_OUTPUT_NAME
 } from "@nodetool-ai/protocol";
+import type { JobResponse } from "@nodetool-ai/protocol/api-schemas/jobs.js";
 
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import useResultsStore from "../../../stores/ResultsStore";
@@ -39,6 +42,7 @@ import useErrorStore, {
   type NodeError
 } from "../../../stores/ErrorStore";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
+import { trpcClient } from "../../../trpc/client";
 import {
   useGameSetupDocument,
   useGameSetupWriter
@@ -242,6 +246,40 @@ const exportRecord = (
   total: summary.total
 });
 
+/** Recover a completed game export from the output bag persisted on its job. */
+const completedJobExport = (
+  job: Pick<JobResponse, "id" | "status" | "outputs">,
+  nodes: readonly GameRunNode[]
+): GameExportRecord | null => {
+  if (job.status !== "completed" || job.outputs === null) {
+    return null;
+  }
+  const projectValues = job.outputs[GAME_PROJECT_OUTPUT_NAME];
+  const project = Array.isArray(projectValues)
+    ? projectValues.at(-1)
+    : projectValues;
+  const exported = readExportOutput(project);
+  if (exported.directory === null) {
+    return null;
+  }
+  const slots = new Set(
+    nodes
+      .filter(
+        (node) => node.slotId !== null && CHECKER_TYPES.has(node.type)
+      )
+      .map((node) => node.slotId)
+  );
+  return {
+    job_id: job.id,
+    directory: exported.directory,
+    archive: exported.archive,
+    verified: exported.verified,
+    verification_reason: exported.reason,
+    checked: slots.size,
+    total: slots.size
+  };
+};
+
 /**
  * The live summary for one workflow's focused run.
  *
@@ -282,9 +320,9 @@ const useLiveGameRunSummary = (workflowId: string): GameRunSummary => {
  * the document kept when there is no live run to read.
  *
  * Both run stores are in memory only, and `startRunReconciliation` reattaches
- * jobs that are still going, not ones that finished — so after a reload the
- * live half of this is empty and the export outcome has to come off the
- * document. It is written there once per completed run, keyed by job id.
+ * jobs that are still going, not ones that finished. The completed job keeps
+ * its final outputs so this hook can recover the export after a reload, then
+ * write it to the document once, keyed by job id.
  *
  * The persisted record is read only while this workflow has no focused job, so
  * a re-run in progress shows its own (empty) state and never the last run's
@@ -292,12 +330,41 @@ const useLiveGameRunSummary = (workflowId: string): GameRunSummary => {
  */
 export const useGameRunSummary = (workflowId: string): GameRunSummary => {
   const live = useLiveGameRunSummary(workflowId);
+  const nodeStore = useWorkflowManager((state) =>
+    state.getNodeStore(workflowId)
+  );
   const jobId = useWorkflowRunsStore((state) => state.focusedJob[workflowId]);
   const build = readGameBuild(useGameSetupDocument(workflowId));
   const { setGame } = useGameSetupWriter(workflowId);
   // The document lands a save later than the render that started it; without
   // this the same job would be written on every frame until it comes back.
   const written = useRef<string | null>(null);
+  const needsRecovery =
+    jobId === undefined && build !== null && build.export === undefined;
+  const { data: recoveryJobs } = useQuery({
+    queryKey: ["jobs", workflowId, "game-export-recovery"],
+    queryFn: async () => {
+      const result = await trpcClient.jobs.list.query({
+        workflow_id: workflowId,
+        limit: 20,
+        include_outputs: true
+      });
+      return result.jobs;
+    },
+    enabled: needsRecovery,
+    staleTime: 30_000,
+    retry: false,
+    refetchOnWindowFocus: false
+  });
+  const recovered = useMemo(() => {
+    if (!needsRecovery || recoveryJobs === undefined) return null;
+    const nodes = toRunNodes(nodeStore?.getState().nodes ?? []);
+    for (const job of recoveryJobs) {
+      const record = completedJobExport(job, nodes);
+      if (record !== null) return record;
+    }
+    return null;
+  }, [needsRecovery, nodeStore, recoveryJobs]);
 
   useEffect(() => {
     if (jobId === undefined || live.directory === null || build === null) {
@@ -313,6 +380,18 @@ export const useGameRunSummary = (workflowId: string): GameRunSummary => {
       written.current = null;
     });
   }, [build, jobId, live, setGame]);
+
+  useEffect(() => {
+    if (build === null || recovered === null) return;
+    void setGame({
+      [GAME_BUILD_KEY]: { ...build, export: recovered }
+    }).catch((error: unknown) => {
+      console.warn(
+        `[gameRunSummary] Failed to recover export for ${workflowId}`,
+        error
+      );
+    });
+  }, [build, recovered, setGame, workflowId]);
 
   if (jobId === undefined && build?.export) {
     return storedSummary(build.export);

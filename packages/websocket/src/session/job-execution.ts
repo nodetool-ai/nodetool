@@ -30,6 +30,10 @@ import {
   priceGeneration,
   toRawGraphInput
 } from "@nodetool-ai/execution";
+import {
+  persistableOutputs,
+  withoutInlineAssetBytes
+} from "@nodetool-ai/execution/service";
 import { createRunSupervisor } from "../run-supervisor.js";
 import {
   jobRunRegistry,
@@ -1675,7 +1679,10 @@ export class JobExecutionManager {
    * explicitly session-scoped runs, which own no row. Never throws —
    * persistence is best-effort and must not mask the run's own outcome.
    */
-  private async persistTerminalJobStatus(active: ActiveJob): Promise<void> {
+  private async persistTerminalJobStatus(
+    active: ActiveJob,
+    outputs?: Record<string, unknown>
+  ): Promise<void> {
     if (
       (active.executionOptions?.persistence ??
         DEFAULT_RUN_JOB_EXECUTION_OPTIONS.persistence) !== "job"
@@ -1691,6 +1698,12 @@ export class JobExecutionManager {
         if (job.status !== "cancelled") {
           if (active.status === "completed") {
             job.markCompleted();
+            if (outputs !== undefined) {
+              job.metadata_json = {
+                ...(job.metadata_json ?? {}),
+                outputs: persistableOutputs(withoutInlineAssetBytes(outputs))
+              };
+            }
           } else if (active.status === "failed") {
             job.markFailed(active.error ?? "Unknown error");
           } else if (active.status === "cancelled") {
@@ -2116,7 +2129,7 @@ export class JobExecutionManager {
       }
     });
 
-    await this.persistTerminalJobStatus(active);
+    await this.persistTerminalJobStatus(active, finalOutputs);
     await this.settleApplicationInvocation(active);
     releaseSpend(this.session.requireUserId(), active.jobId);
     // Slot release + queue drain happen in the streamJobMessages wrapper's

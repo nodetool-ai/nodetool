@@ -11,6 +11,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";
 import { GAME_EXPORT_NODE_TYPE } from "@nodetool-ai/protocol";
 
@@ -186,9 +187,13 @@ const built = (
 
 const renderPanel = () =>
   render(
-    <ThemeProvider theme={mockTheme}>
-      <GameLandingPanel workflowId="w1" />
-    </ThemeProvider>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <ThemeProvider theme={mockTheme}>
+        <GameLandingPanel workflowId="w1" />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 
 /** What the document keeps of the run the checklist above just finished. */
