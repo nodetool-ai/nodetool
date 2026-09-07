@@ -104,9 +104,11 @@ function seedStore(animations?: ClipAnimation[]) {
     name: "Shot 1",
     startMs: 0,
     durationMs: 2000,
-    mediaType: "video",
-    ...(animations ? { animations } : {})
+    mediaType: "video"
   });
+  if (animations) {
+    target.animations = animations;
+  }
   store.setState({
     sequenceId: SEQUENCE_ID,
     baseUpdatedAt: "2026-01-01T00:00:00.000Z",
