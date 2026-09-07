@@ -963,5 +963,6 @@ export type {
   McpClientPoolOptions,
   McpConnectError,
   McpRemoteTool,
+  McpResourceLink,
   McpSecretResolver
 } from "./tools/external-mcp-tools.js";

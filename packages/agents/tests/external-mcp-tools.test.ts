@@ -21,7 +21,8 @@ import {
   McpClientPool,
   getCachedExternalMcpTools,
   getExternalMcpTools,
-  normalizeCallResult
+  normalizeCallResult,
+  type McpClientPoolOptions
 } from "../src/tools/external-mcp-tools.js";
 import { graftedModuleFor } from "../src/codeact/capability-modules.js";
 import { IMAGE_CONTENTS_FIELD } from "../src/tools/image-injection.js";
@@ -77,6 +78,38 @@ function poolOver(server: McpServer): McpClientPool {
       return client;
     }
   });
+}
+
+/**
+ * A pool whose connection never opens: the server accepted the socket and
+ * went quiet, the way an HTTP server does when it refuses the Streamable POST
+ * and then opens an SSE stream with no `endpoint` event. Only cancellation
+ * settles it — which is what a real transport's `close()` does.
+ */
+function hangingPool(overrides: Partial<McpClientPoolOptions> = {}): {
+  pool: McpClientPool;
+  cancelled: () => number;
+} {
+  let cancels = 0;
+  const pool = new McpClientPool({
+    ...overrides,
+    connect: (_config, _secrets, signal) =>
+      new Promise<Client>((_resolve, reject) => {
+        signal.addEventListener(
+          "abort",
+          () => {
+            cancels += 1;
+            reject(
+              signal.reason instanceof Error
+                ? signal.reason
+                : new Error("cancelled")
+            );
+          },
+          { once: true }
+        );
+      })
+  });
+  return { pool, cancelled: () => cancels };
 }
 
 afterEach(async () => {
@@ -143,6 +176,21 @@ describe("resolveSecretReferences", () => {
     );
     expect(out).toEqual({ Authorization: "Bearer tok" });
   });
+
+  it("reports every value an expansion produced, not just the finished one", async () => {
+    const seen: string[] = [];
+    await resolveSecretReferences(
+      { Authorization: "${MCP_HF_AUTH}" },
+      async (name) =>
+        name === "MCP_HF_AUTH"
+          ? "Bearer ${HF_TOKEN}"
+          : name === "HF_TOKEN"
+            ? "hf_secret_value"
+            : null,
+      (value) => seen.push(value)
+    );
+    expect(seen).toEqual(["hf_secret_value", "Bearer hf_secret_value"]);
+  });
 });
 
 describe("normalizeCallResult", () => {
@@ -159,6 +207,30 @@ describe("normalizeCallResult", () => {
     expect(out.images).toEqual([{ data: PNG_BYTE, mimeType: "image/jpeg" }]);
     expect(out.structured).toEqual({ n: 1 });
     expect(out.isError).toBe(false);
+    expect(out.links).toEqual([]);
+  });
+
+  it("keeps a resource_link, the only thing a file-producing tool returned", () => {
+    const out = normalizeCallResult({
+      content: [
+        {
+          type: "resource_link",
+          uri: "https://example.com/render.glb",
+          name: "render.glb",
+          mimeType: "model/gltf-binary",
+          description: "The finished render"
+        }
+      ]
+    });
+    expect(out.links).toEqual([
+      {
+        uri: "https://example.com/render.glb",
+        name: "render.glb",
+        mimeType: "model/gltf-binary",
+        description: "The finished render"
+      }
+    ]);
+    expect(out.text).toBe("[resource render.glb: https://example.com/render.glb]");
   });
 });
 
@@ -283,6 +355,62 @@ describe("McpClientPool", () => {
     await pool.sync([config]);
     expect(await getExternalMcpTools(pool)).toEqual([]);
     expect(closed).toBe(1);
+  });
+
+  it("hands back a resource link as the tool's answer", async () => {
+    const server = new McpServer({ name: "links", version: "0" });
+    server.registerTool("export", { inputSchema: {} }, async () => ({
+      content: [
+        {
+          type: "resource_link",
+          uri: "https://example.com/render.glb",
+          name: "render.glb",
+          mimeType: "model/gltf-binary"
+        }
+      ]
+    }));
+    const pool = poolOver(server);
+    await pool.sync([config]);
+    const [tool] = await getExternalMcpTools(pool);
+    const out = (await tool.process({} as ProcessingContext, {})) as Record<
+      string,
+      unknown
+    >;
+    expect(out.resource_links).toEqual([
+      {
+        uri: "https://example.com/render.glb",
+        name: "render.glb",
+        mimeType: "model/gltf-binary"
+      }
+    ]);
+    await pool.close();
+  });
+
+  it("gives up on a server that accepts the connection and never answers", async () => {
+    const { pool } = hangingPool({ connectTimeoutMs: 50 });
+    await pool.sync([config]);
+    const errors: string[] = [];
+    const tools = await getExternalMcpTools(pool, (id, err) =>
+      errors.push(`${id}:${err.message}`)
+    );
+    expect(tools).toEqual([]);
+    expect(errors[0]).toContain("did not answer within 50ms");
+    expect(pool.serverIds()).toEqual([]);
+    await pool.close();
+  });
+
+  it("lets a removal cancel a connection discovery is still waiting on", async () => {
+    const { pool, cancelled } = hangingPool({ connectTimeoutMs: 60_000 });
+    await pool.sync([config]);
+    // The turn's belt is blocked on the server that never answers.
+    const discovery = getExternalMcpTools(pool);
+    // The user disables it in Settings. Without cancellation this waits out
+    // the full deadline behind the discovery holding the pool's queue.
+    await pool.sync([{ ...config, enabled: false }]);
+    expect(pool.serverIds()).toEqual([]);
+    expect(await discovery).toEqual([]);
+    expect(cancelled()).toBe(1);
+    await pool.close();
   });
 
   it("drops disabled and removed servers, reconnects on a changed config", async () => {

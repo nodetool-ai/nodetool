@@ -33,6 +33,23 @@ const log = createLogger("nodetool.agents.external-mcp");
 /** Longest stderr line kept in a log record. */
 const MAX_STDERR_CHARS = 500;
 
+/**
+ * How long one server has to finish opening. `Client.connect` awaits
+ * `transport.start()` before it sends the timed `initialize` request, so a
+ * server that accepts the socket and then says nothing — an HTTP server that
+ * refuses the Streamable POST and opens an SSE stream with no `endpoint`
+ * event — leaves that first await pending forever. Discovery holds the pool's
+ * queue while it waits, and every later save or delete queues behind it.
+ */
+const DEFAULT_CONNECT_TIMEOUT_MS = 30_000;
+
+/**
+ * Values shorter than this are not redacted. A one- or two-character secret
+ * would blank unrelated text everywhere it happened to occur, and nothing a
+ * server authenticates with is that short.
+ */
+const MIN_REDACTABLE_SECRET_CHARS = 4;
+
 /** How a pool answers `${SECRET}` references in env vars and headers. */
 export type McpSecretResolver = (
   name: string
@@ -56,6 +73,17 @@ interface PoolEntry {
    * shared: one user's values are no oracle for another's text.
    */
   secrets: Set<string>;
+  /**
+   * Cancels a connection still opening. Aborting closes the transport, which
+   * is what settles a startup nobody can finish — so dropping this server
+   * never waits on it.
+   */
+  cancel: AbortController;
+}
+
+/** Remember one value to blank out of anything this connection reports. */
+function rememberSecret(secrets: Set<string>, value: string): void {
+  if (value.length >= MIN_REDACTABLE_SECRET_CHARS) secrets.add(value);
 }
 
 /** Replace every value in `secrets` found in `text` with a marker. */
@@ -96,9 +124,16 @@ export interface McpClientPoolOptions {
   fetch?: typeof fetch;
   /**
    * Inject the connection (tests: an in-memory transport). Values the
-   * connection resolved may be added to `secrets` for redaction.
+   * connection resolved may be added to `secrets` for redaction, and
+   * `signal` aborts when the entry is dropped or its deadline expires.
    */
-  connect?: (config: McpServerConfig, secrets: Set<string>) => Promise<Client>;
+  connect?: (
+    config: McpServerConfig,
+    secrets: Set<string>,
+    signal: AbortSignal
+  ) => Promise<Client>;
+  /** How long one connection has to open. Default 30s. */
+  connectTimeoutMs?: number;
 }
 
 /**
@@ -115,15 +150,20 @@ export class McpClientPool {
   private readonly fetchImpl: typeof fetch | undefined;
   private readonly connectFn: (
     config: McpServerConfig,
-    secrets: Set<string>
+    secrets: Set<string>,
+    signal: AbortSignal
   ) => Promise<Client>;
+  private readonly connectTimeoutMs: number;
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(options: McpClientPoolOptions = {}) {
     this.getSecret = options.getSecret ?? (async () => undefined);
     this.fetchImpl = options.fetch;
     this.connectFn =
-      options.connect ?? ((config, secrets) => this.connect(config, secrets));
+      options.connect ??
+      ((config, secrets, signal) => this.connect(config, secrets, signal));
+    this.connectTimeoutMs =
+      options.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS;
   }
 
   /** Run `fn` after every queued reconciliation, and before the next. */
@@ -135,10 +175,20 @@ export class McpClientPool {
 
   /** Reconcile the pool with the current config list. */
   sync(configs: readonly McpServerConfig[]): Promise<void> {
+    const wanted = new Map(
+      configs.filter((c) => c.enabled).map((c) => [c.id, c] as const)
+    );
+    // Cancel what this list drops *before* queueing. A discovery waiting on a
+    // server that never answers holds the queue for the whole deadline, and
+    // disabling that server is exactly how the user recovers from it — so the
+    // cancellation must not be behind the discovery it ends.
+    for (const [id, entry] of this.entries) {
+      const next = wanted.get(id);
+      if (next === undefined || fingerprintOf(next) !== entry.fingerprint) {
+        entry.cancel.abort(cancelledError(entry.config.id));
+      }
+    }
     return this.serialized(async () => {
-      const wanted = new Map(
-        configs.filter((c) => c.enabled).map((c) => [c.id, c] as const)
-      );
       for (const [id, entry] of this.entries) {
         const next = wanted.get(id);
         if (next === undefined || fingerprintOf(next) !== entry.fingerprint) {
@@ -148,22 +198,53 @@ export class McpClientPool {
       }
       for (const [id, config] of wanted) {
         if (!this.entries.has(id)) {
-          const secrets = new Set<string>();
-          const client = this.connectFn(config, secrets);
-          // The rejection is observed by whoever awaits the entry; without
-          // this a server that refuses between `sync` and `discover` is an
-          // unhandled rejection.
-          client.catch(() => undefined);
-          this.entries.set(id, {
-            config,
-            fingerprint: fingerprintOf(config),
-            client,
-            tools: null,
-            secrets
-          });
+          this.entries.set(id, this.openEntry(config));
         }
       }
     });
+  }
+
+  /**
+   * Start one connection under its deadline. The timer aborts the entry's
+   * signal, which the transport is closed by, so an expired startup rejects
+   * here instead of pending inside the SDK.
+   */
+  private openEntry(config: McpServerConfig): PoolEntry {
+    const secrets = new Set<string>();
+    const cancel = new AbortController();
+    const timer = setTimeout(() => {
+      cancel.abort(
+        new Error(
+          `MCP server "${config.id}" did not answer within ${this.connectTimeoutMs}ms`
+        )
+      );
+    }, this.connectTimeoutMs);
+    timer.unref?.();
+    const started = this.connectFn(config, secrets, cancel.signal);
+    // A connection that lands after its deadline has no owner: close it
+    // rather than leave a socket or a child process behind.
+    void started.then(
+      (client) => {
+        if (cancel.signal.aborted) void client.close().catch(() => undefined);
+      },
+      () => undefined
+    );
+    const client = Promise.race([
+      started,
+      abortRejection(cancel.signal)
+    ]).finally(() => clearTimeout(timer));
+    // The rejection is observed by whoever awaits the entry; without this a
+    // server that refuses between `sync` and `discover` is an unhandled
+    // rejection.
+    client.catch(() => undefined);
+    return {
+      config,
+      fingerprint: fingerprintOf(config),
+      client,
+      tools: null,
+      secrets,
+      cancel
+    };
   }
 
   /** Every configured server id with a live or pending connection. */
@@ -242,6 +323,9 @@ export class McpClientPool {
 
   /** Close every connection. */
   close(): Promise<void> {
+    for (const entry of this.entries.values()) {
+      entry.cancel.abort(cancelledError(entry.config.id));
+    }
     return this.serialized(async () => {
       const entries = [...this.entries.values()];
       this.entries.clear();
@@ -263,7 +347,8 @@ export class McpClientPool {
 
   private async connect(
     config: McpServerConfig,
-    secrets: Set<string>
+    secrets: Set<string>,
+    signal: AbortSignal
   ): Promise<Client> {
     const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
     const client = new Client({ name: "nodetool", version: "1.0.0" });
@@ -272,7 +357,11 @@ export class McpClientPool {
       const { StdioClientTransport } = await import(
         "@modelcontextprotocol/sdk/client/stdio.js"
       );
-      const env = await resolveSecretReferences(transport.env, this.getSecret);
+      const env = await resolveSecretReferences(
+        transport.env,
+        this.getSecret,
+        (value) => rememberSecret(secrets, value)
+      );
       rememberResolved(transport.env, env, secrets);
       const stdio = new StdioClientTransport({
         command: transport.command,
@@ -290,12 +379,14 @@ export class McpClientPool {
           .slice(0, MAX_STDERR_CHARS);
         if (text) log.debug("MCP server stderr", { server: config.id, text });
       });
+      closeOnAbort(signal, stdio);
       await client.connect(stdio);
       return client;
     }
     const headers = await resolveSecretReferences(
       transport.headers,
-      this.getSecret
+      this.getSecret,
+      (value) => rememberSecret(secrets, value)
     );
     rememberResolved(transport.headers, headers, secrets);
     const url = new URL(transport.url);
@@ -305,12 +396,12 @@ export class McpClientPool {
       "@modelcontextprotocol/sdk/client/streamableHttp.js"
     );
     try {
-      await client.connect(
-        new StreamableHTTPClientTransport(url, {
-          requestInit: { headers },
-          ...fetchOpt
-        })
-      );
+      const streamable = new StreamableHTTPClientTransport(url, {
+        requestInit: { headers },
+        ...fetchOpt
+      });
+      closeOnAbort(signal, streamable);
+      await client.connect(streamable);
       return client;
     } catch (err) {
       log.debug("Streamable HTTP failed, trying SSE", {
@@ -319,15 +410,54 @@ export class McpClientPool {
       });
       await client.close().catch(() => undefined);
     }
+    // A cancelled entry must not open a second transport on the way out.
+    if (signal.aborted) throw cancelledError(config.id);
     const { SSEClientTransport } = await import(
       "@modelcontextprotocol/sdk/client/sse.js"
     );
     const sseClient = new Client({ name: "nodetool", version: "1.0.0" });
-    await sseClient.connect(
-      new SSEClientTransport(url, { requestInit: { headers }, ...fetchOpt })
-    );
+    const sse = new SSEClientTransport(url, {
+      requestInit: { headers },
+      ...fetchOpt
+    });
+    closeOnAbort(signal, sse);
+    await sseClient.connect(sse);
     return sseClient;
   }
+}
+
+/** The error a dropped or expired entry rejects its pending connection with. */
+function cancelledError(serverId: string): Error {
+  return new Error(`MCP server "${serverId}" connection cancelled`);
+}
+
+/** A promise that rejects when `signal` aborts, and never resolves. */
+function abortRejection(signal: AbortSignal): Promise<never> {
+  return new Promise((_resolve, reject) => {
+    const fail = () => {
+      reject(
+        signal.reason instanceof Error
+          ? signal.reason
+          : new Error("MCP connection cancelled")
+      );
+    };
+    if (signal.aborted) fail();
+    else signal.addEventListener("abort", fail, { once: true });
+  });
+}
+
+/**
+ * Close a transport when its entry is cancelled. `Client.connect` awaits
+ * `transport.start()` before the timed `initialize` request, so closing the
+ * transport is the only thing that ends a startup nobody can finish.
+ */
+function closeOnAbort(
+  signal: AbortSignal,
+  transport: { close(): Promise<void> }
+): void {
+  const close = () => void transport.close().catch(() => undefined);
+  if (signal.aborted) close();
+  else signal.addEventListener("abort", close, { once: true });
 }
 
 /** Every page of `tools/list`. */
@@ -354,6 +484,9 @@ async function listAllTools(client: Client): Promise<McpRemoteTool[]> {
 }
 
 async function closeEntry(entry: PoolEntry): Promise<void> {
+  // Cancel first: a connection still opening is closed through its transport
+  // and rejects, rather than being waited on until its deadline.
+  entry.cancel.abort(cancelledError(entry.config.id));
   try {
     const client = await entry.client;
     await client.close();
@@ -363,9 +496,12 @@ async function closeEntry(entry: PoolEntry): Promise<void> {
 }
 
 /**
- * Record the values a reference produced. Only what came out of a secret
- * counts: a literal the user typed into the config is not a secret to blank,
- * and blanking `true` or `1` would eat unrelated text.
+ * Record the finished values, beside the individual secrets the resolver
+ * already reported. Both are needed: an upstream error quotes the token
+ * (`Invalid token <tok>`) as readily as the header it arrived in
+ * (`Bearer <tok>`), and neither substring covers the other. Only what came
+ * out of a secret counts — a literal the user typed into the config is not a
+ * secret to blank.
  */
 function rememberResolved(
   raw: Record<string, string>,
@@ -373,7 +509,7 @@ function rememberResolved(
   secrets: Set<string>
 ): void {
   for (const [key, value] of Object.entries(resolved)) {
-    if (value && value !== raw[key]) secrets.add(value);
+    if (value !== raw[key]) rememberSecret(secrets, value);
   }
 }
 
@@ -390,17 +526,32 @@ function fingerprintOf(config: McpServerConfig): string {
   return JSON.stringify(config);
 }
 
+/** A file a tool produced but did not inline: an MCP `resource_link` block. */
+export interface McpResourceLink {
+  uri: string;
+  name?: string;
+  mimeType?: string;
+  description?: string;
+}
+
 /** A remote tool's answer, flattened into what a belt tool returns. */
 export interface McpCallResult {
   text: string;
   isError: boolean;
   images: Array<{ data: string; mimeType: string }>;
+  /** Files the tool produced by reference. */
+  links: McpResourceLink[];
   /** Structured content when the server returned any. */
   structured?: unknown;
 }
 
 export function normalizeCallResult(result: unknown): McpCallResult {
-  const out: McpCallResult = { text: "", isError: false, images: [] };
+  const out: McpCallResult = {
+    text: "",
+    isError: false,
+    images: [],
+    links: []
+  };
   if (!isRecord(result)) return out;
   out.isError = result.isError === true;
   if (result.structuredContent !== undefined) {
@@ -421,6 +572,19 @@ export function normalizeCallResult(result: unknown): McpCallResult {
       const res = block.resource;
       if (isString(res.text)) parts.push(res.text);
       else if (isString(res.uri)) parts.push(`[resource ${res.uri}]`);
+    } else if (block.type === "resource_link" && isString(block.uri)) {
+      // A file the tool produced rather than inlined — the render it was
+      // asked for. Dropping it left a successful call with nothing to use.
+      const link: McpResourceLink = { uri: block.uri };
+      if (isString(block.name)) link.name = block.name;
+      if (isString(block.mimeType)) link.mimeType = block.mimeType;
+      if (isString(block.description)) link.description = block.description;
+      out.links.push(link);
+      parts.push(
+        link.name === undefined
+          ? `[resource ${link.uri}]`
+          : `[resource ${link.name}: ${link.uri}]`
+      );
     }
   }
   out.text = parts.join("\n");
@@ -470,6 +634,7 @@ export class ExternalMcpTool extends Tool {
     const out: Record<string, unknown> = {};
     if (result.structured !== undefined) out.result = result.structured;
     if (result.text) out.text = result.text;
+    if (result.links.length > 0) out.resource_links = result.links;
     if (result.images.length > 0) {
       out[IMAGE_CONTENTS_FIELD] = result.images.map((img) => ({
         data: img.data,

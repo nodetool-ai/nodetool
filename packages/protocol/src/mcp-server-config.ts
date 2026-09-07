@@ -104,14 +104,19 @@ export function secretReferencesIn(value: string): string[] {
  * `Bearer ${HF_TOKEN}` works. A reference the resolver cannot answer becomes
  * empty rather than passing through, so a placeholder never reaches a child
  * process or a wire as a literal.
+ *
+ * `onResolved` sees every value a reference produced, at every level of
+ * expansion — not just the finished string. A caller redacting `Bearer <tok>`
+ * would otherwise leave `Invalid token <tok>` from an upstream error intact.
  */
 export async function resolveSecretReferences(
   values: Record<string, string>,
-  getSecret: (name: string) => Promise<string | null | undefined>
+  getSecret: (name: string) => Promise<string | null | undefined>,
+  onResolved?: (value: string) => void
 ): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   for (const [key, raw] of Object.entries(values)) {
-    out[key] = await resolveOne(raw, getSecret, 0);
+    out[key] = await resolveOne(raw, getSecret, 0, onResolved);
   }
   return out;
 }
@@ -126,14 +131,17 @@ const MAX_REFERENCE_DEPTH = 3;
 async function resolveOne(
   raw: string,
   getSecret: (name: string) => Promise<string | null | undefined>,
-  depth: number
+  depth: number,
+  onResolved?: (value: string) => void
 ): Promise<string> {
   const names = secretReferencesIn(raw);
   if (names.length === 0 || depth >= MAX_REFERENCE_DEPTH) return raw;
   const resolved = new Map<string, string>();
   for (const name of new Set(names)) {
     const value = (await getSecret(name)) ?? "";
-    resolved.set(name, await resolveOne(value, getSecret, depth + 1));
+    const expanded = await resolveOne(value, getSecret, depth + 1, onResolved);
+    if (expanded !== "") onResolved?.(expanded);
+    resolved.set(name, expanded);
   }
   return raw.replace(SECRET_REFERENCE, (_m, name: string) =>
     resolved.get(name) ?? ""

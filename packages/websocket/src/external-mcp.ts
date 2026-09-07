@@ -95,8 +95,18 @@ const guardedFetch: typeof fetch = (input, init) => {
   return safeFetch(url, init);
 };
 
-function newPool(userId: string): McpClientPool {
+/**
+ * A probe has someone watching it, so it waits less than a chat turn does for
+ * a server that accepts the socket and then says nothing.
+ */
+const PROBE_CONNECT_TIMEOUT_MS = 15_000;
+
+function newPool(
+  userId: string,
+  extra: McpClientPoolOptions = {}
+): McpClientPool {
   const options: McpClientPoolOptions = {
+    ...extra,
     getSecret: userSecretResolver(userId)
   };
   // The cloud profile fetches through the SSRF guard, which re-checks every
@@ -310,7 +320,9 @@ export async function probeExternalMcpServer(
       error: err instanceof Error ? err.message : String(err)
     };
   }
-  const pool = newPool(userId);
+  const pool = newPool(userId, {
+    connectTimeoutMs: PROBE_CONNECT_TIMEOUT_MS
+  });
   try {
     await pool.sync([{ ...config, enabled: true }]);
     let error: string | null = null;

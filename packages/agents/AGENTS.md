@@ -834,8 +834,29 @@ an encrypted secret named `MCP_<SERVER>_<KEY as hex>` and stores the reference, 
 resolves references from the user's own secrets only, never the process
 environment. Under the cloud profile HTTP servers fetch through `safeFetch`,
 so a private or loopback URL is refused on save and on every redirect. A tool
-result's text and structured content come back as the tool's answer, and its
-image blocks ride `image_contents` like any other belt tool's pixels.
+result's text and structured content come back as the tool's answer, its
+`resource_link` blocks as `resource_links` (a file the tool produced rather
+than inlined), and its image blocks ride `image_contents` like any other belt
+tool's pixels.
+
+**Opening a connection is bounded, and dropping one cancels it.**
+`Client.connect` awaits `transport.start()` before it sends the timed
+`initialize` request, so a server that accepts the socket and then says
+nothing — an HTTP server refusing the Streamable POST and opening an SSE
+stream with no `endpoint` event — leaves that first await pending forever.
+Each entry therefore carries a deadline (`connectTimeoutMs`, 30s; the settings
+probe uses 15s) and an `AbortController` whose abort closes the transport.
+`sync` cancels the entries its list drops **before** it queues, because
+`discover()` holds the pool's queue while it waits and disabling the offending
+server is how the user recovers — a cancellation queued behind that discovery
+would be one the user has to wait out.
+
+**Redaction is per resolved value, not per header.** `resolveSecretReferences`
+reports every value an expansion produced, at every level, so an entry blanks
+both `Bearer <tok>` and `<tok>` — an upstream `Invalid token <tok>` quotes the
+token, not the header it arrived in. Values under four characters are left
+alone; nothing authenticates with one, and blanking it would eat unrelated
+text.
 
 The config shape (`McpServerConfig`, `@nodetool-ai/protocol`) is shared with
 the server's persistence (`packages/websocket/src/external-mcp.ts`, one
