@@ -395,6 +395,22 @@ describe("MuAPI transport rules", () => {
     ).toBe("see https://cdn.muapi.ai/a.mp4?<redacted> now");
   });
 
+  it("redacts every URL in a body and leaves query-less ones intact", () => {
+    expect(
+      sanitizeMuapiText("a https://x/y?k=1 b http://z/w c https://q/r", API_KEY)
+    ).toBe("a https://x/y?<redacted> b http://z/w c https://q/r");
+  });
+
+  it("stays linear on a URL-like body with no query string", () => {
+    // The lazy `[^\s"'\\]+?\?` form this replaced treated every "http://" as a
+    // match start and rescanned the rest of the string for a "?" that never
+    // comes: ~7n² character steps, seconds at this size. One pass now.
+    const pathological = "http://".repeat(20_000);
+    const startedAt = Date.now();
+    expect(sanitizeMuapiText(pathological, API_KEY)).toBe(pathological);
+    expect(Date.now() - startedAt).toBeLessThan(1_000);
+  });
+
   it("polls until a terminal success, then downloads", async () => {
     const counts = mockWire({ pending: ["queued", "processing"] });
     await provider().textToVideo({

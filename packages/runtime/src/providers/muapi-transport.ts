@@ -136,10 +136,15 @@ export function sanitizeMuapiText(text: string, apiKey: string): string {
     apiKey.trim().length > 0
       ? text.split(apiKey.trim()).join("<redacted-api-key>")
       : text;
-  return withoutKey.replace(
-    /(https?:\/\/[^\s"'\\]+?)\?[^\s"'\\]*/g,
-    "$1?<redacted>"
-  );
+  // Match the whole URL token with one greedy class and split at "?" in code.
+  // Spelling the split as a regex (`[^\s"'\\]+?\?…`) makes the class ambiguous
+  // with the "?" that follows it, so a body of many "http://" and no query
+  // backtracks quadratically — CodeQL js/polynomial-redos, and a real cost on a
+  // large error body. This form visits each character once.
+  return withoutKey.replace(/https?:\/\/[^\s"'\\]*/g, (url) => {
+    const query = url.indexOf("?");
+    return query === -1 ? url : `${url.slice(0, query)}?<redacted>`;
+  });
 }
 
 function authHeaders(apiKey: string): Record<string, string> {
