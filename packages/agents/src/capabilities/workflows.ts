@@ -45,16 +45,34 @@ import {
   planToPlacement,
   parseWorkflowPlan,
   resolveWorkflowPlan,
+  readEntityMarker,
+  GAME_DESIGNER_SYSTEM_PROMPT,
+  GAME_DESIGN_TOOL_DESCRIPTION,
+  GAME_DESIGN_TOOL_NAME,
+  GAME_INSPIRATION_CHIPS,
   WORKFLOW_PLANNER_SYSTEM_PROMPT,
   WORKFLOW_PLAN_TOOL_DESCRIPTION,
   WORKFLOW_PLAN_TOOL_NAME,
+  buildGameDesignSchema,
   buildWorkflowPlanSchema,
-  type PlanNodeLookup
+  designSourceOf,
+  gameAudioChoice,
+  gameGraphPlacement,
+  gameProjectDirectory,
+  parseGameDesign,
+  type GameGraphChoices,
+  type PlanNodeLookup,
+  type WorkflowPlacement
 } from "@nodetool-ai/protocol";
 import {
+  gameDesign,
+  readGameSetup,
   readWorkflowSetup,
   workflowSetupPlan,
+  writeGameSetup,
   writeWorkflowSetup,
+  type GameDesign,
+  type GameSetup,
   type WorkflowPlanStep,
   type WorkflowSetup,
   type WorkflowSetupPlan
@@ -91,6 +109,10 @@ import {
   planWorkflowSpec,
   updateWorkflowPlanStepSpec,
   buildWorkflowFromPlanSpec,
+  setGameSetupSpec,
+  designGameSpec,
+  updateGameDesignSpec,
+  buildGameSpec,
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT
 } from "./workflows.specs.js";
@@ -1011,6 +1033,35 @@ function registryLookup(registry: NodeRegistry): PlanNodeLookup {
   };
 }
 
+/**
+ * A placement as a workflow graph. The Workflow flow's build and the Game
+ * flow's build write the same node shape, so one function answers both — a
+ * second copy is how `setup_step_id` or `dynamic_properties` goes missing on
+ * one of them.
+ */
+function placementToGraph(placement: WorkflowPlacement): {
+  nodes: unknown[];
+  edges: unknown[];
+} {
+  return {
+    nodes: placement.nodes.map((node) => ({
+      id: node.id,
+      type: node.type,
+      data: node.properties,
+      ui_properties: { position: node.position, setup_step_id: node.setupStepId },
+      dynamic_properties: node.dynamicProperties ?? {},
+      dynamic_outputs: {}
+    })),
+    edges: placement.edges.map((edge, index) => ({
+      id: `e${index + 1}`,
+      source: edge.source,
+      sourceHandle: edge.sourceHandle,
+      target: edge.target,
+      targetHandle: edge.targetHandle
+    }))
+  };
+}
+
 // ── set_workflow_setup ──────────────────────────────────────────────────────
 
 const setWorkflowSetup: CapabilityExport = {
@@ -1252,23 +1303,7 @@ const buildWorkflowFromPlan: CapabilityExport = {
     }
 
     const placement = planToPlacement(plan, registryLookup(registry));
-    const graph = {
-      nodes: placement.nodes.map((node) => ({
-        id: node.id,
-        type: node.type,
-        data: node.properties,
-        ui_properties: { position: node.position, setup_step_id: node.setupStepId },
-        dynamic_properties: node.dynamicProperties ?? {},
-        dynamic_outputs: {}
-      })),
-      edges: placement.edges.map((edge, index) => ({
-        id: `e${index + 1}`,
-        source: edge.source,
-        sourceHandle: edge.sourceHandle,
-        target: edge.target,
-        targetHandle: edge.targetHandle
-      }))
-    };
+    const graph = placementToGraph(placement);
 
     const validation = await validateBuiltGraph(run, graph);
     const save = params["save"] !== false;
@@ -1314,6 +1349,449 @@ async function validateBuiltGraph(
   return validateWorkflow.impl(run, { graph });
 }
 
+
+// ── Guided game setup (game-prd § 5.7) ──────────────────────────────────────
+//
+// The headless half of the Game creation flow, beside the Workflow flow's four
+// above: write the setup answers, design the game, edit the design, build the
+// slot-filling graph. The browser drives the same four through
+// `ui_game_set_setup`, `ui_game_design`, `ui_game_update_design` and
+// `ui_game_build`, and both halves share the designer contract and the pure
+// graph builder in `@nodetool-ai/protocol`, so a game built here places the
+// nodes the editor would have placed.
+//
+// Two rules carry the phase and both are asserted:
+//
+//  - `design_game` places no node. It writes text and nothing else, and with no
+//    model it falls back to the shipped chip whose brief this is — the way
+//    `plan_workflow` takes a pinned plan — so a keyless install walks the flow.
+//  - `build_game` refuses a design with an unnamed cast member or an empty slot
+//    prompt (criterion 4), and reports the chains it could not place rather
+//    than a graph that validates and generates nothing (D23).
+
+interface OwnedGame {
+  row: WorkflowRow;
+  game: GameSetup | null;
+}
+
+async function loadOwnedGame(
+  run: CapabilityRun,
+  id: string
+): Promise<OwnedGame | { error: string }> {
+  const { Workflow } = await import("@nodetool-ai/models");
+  const row = (await Workflow.get(id)) as WorkflowRow | null;
+  if (!row || row.user_id !== userIdOf(run.context)) {
+    return { error: `Workflow ${id} was not found, or it is not yours.` };
+  }
+  return { row, game: readGameSetup(row.settings) };
+}
+
+/** Write a game patch back onto the row, leaving the rest of `settings` alone. */
+async function persistGame(
+  row: WorkflowRow,
+  patch: Partial<GameSetup>,
+  extra: { graph?: WorkflowRow["graph"] } = {}
+): Promise<WorkflowRow | { error: string }> {
+  const { Workflow } = await import("@nodetool-ai/models");
+  const fields: Parameters<typeof Workflow.updateFieldsIfUnchanged>[2] = {
+    settings: writeGameSetup(row.settings, patch)
+  };
+  if (extra.graph !== undefined) {
+    fields.graph = extra.graph;
+  }
+  const updated = await Workflow.updateFieldsIfUnchanged(
+    row.id,
+    row.updated_at,
+    fields
+  );
+  if (!updated) {
+    return {
+      error: `Workflow ${row.id} changed since you read it — read it again and retry.`
+    };
+  }
+  return updated as WorkflowRow;
+}
+
+/** The template's manifest, or the reason there is none to work from. */
+async function requireGameTemplate(game: GameSetup | null) {
+  const id = game?.template?.trim() ?? "";
+  if (id === "") {
+    return {
+      error:
+        "This workflow has no game template yet. Pick one with set_game_setup — list_game_templates has the ids."
+    };
+  }
+  const { getTemplate, listTemplates } = await import(
+    "@nodetool-ai/godot-templates"
+  );
+  try {
+    return getTemplate(id);
+  } catch {
+    return {
+      error: `Unknown template ${id}. Templates: ${listTemplates()
+        .map((t) => t.id)
+        .join(", ")}.`
+    };
+  }
+}
+
+/** `provider:model_id` as the model value a node's model prop takes. */
+function modelValue(
+  tileId: string,
+  type: "image_model" | "music_model"
+): Record<string, unknown> | null {
+  const at = tileId.indexOf(":");
+  if (at <= 0 || at === tileId.length - 1) return null;
+  const provider = tileId.slice(0, at);
+  const id = tileId.slice(at + 1);
+  return { type, provider, id, name: id, path: null };
+}
+
+/** The style entity's name and descriptor, read off the library row. */
+async function loadStyle(
+  run: CapabilityRun,
+  entityId: string | undefined
+): Promise<{ name: string; descriptor: string } | null> {
+  if (!entityId) return null;
+  const { Asset } = await import("@nodetool-ai/models");
+  const asset = await Asset.find(userIdOf(run.context), entityId);
+  const marker = readEntityMarker(asset?.metadata ?? null);
+  if (!marker || marker.kind !== "style") return null;
+  return { name: marker.name, descriptor: marker.descriptor };
+}
+
+/**
+ * What the Look step's `Continue` is blocked on (criterion 4): every cast
+ * entry named and described, every slot prompt written.
+ */
+function designGaps(design: GameDesign): string[] {
+  const gaps: string[] = [];
+  for (const member of design.cast) {
+    if (member.name.trim() === "") {
+      gaps.push(`cast "${member.slot_id}" has no name`);
+    }
+    if (member.descriptor.trim() === "") {
+      gaps.push(`cast "${member.slot_id}" has no descriptor`);
+    }
+  }
+  for (const entry of design.slot_prompts) {
+    if (entry.prompt.trim() === "") {
+      gaps.push(`slot "${entry.slot_id}" has no prompt`);
+    }
+  }
+  return gaps;
+}
+
+// ── set_game_setup ──────────────────────────────────────────────────────────
+
+const SET_GAME_STRING_FIELDS = [
+  "brief",
+  "template",
+  "style_entity_id",
+  "image_model",
+  "sfx_node_type",
+  "music_model",
+  "project_name",
+  "stage"
+] as const;
+
+const setGameSetup: CapabilityExport = {
+  spec: setGameSetupSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const owned = await loadOwnedGame(run, id);
+    if (isError(owned)) return owned;
+
+    const patch: Record<string, unknown> = {};
+    for (const field of SET_GAME_STRING_FIELDS) {
+      if (isString(params[field])) patch[field] = params[field];
+    }
+    if (Object.keys(patch).length === 0) {
+      return {
+        error:
+          "Nothing to set — pass brief, template, style_entity_id, image_model, sfx_node_type, music_model, project_name or stage."
+      };
+    }
+
+    const saved = await persistGame(owned.row, patch as Partial<GameSetup>);
+    if (isError(saved)) return saved;
+    return { workflow_id: id, game: readGameSetup(saved.settings) };
+  }
+};
+
+// ── design_game ─────────────────────────────────────────────────────────────
+
+const designGame: CapabilityExport = {
+  spec: designGameSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const owned = await loadOwnedGame(run, id);
+    if (isError(owned)) return owned;
+    const template = await requireGameTemplate(owned.game);
+    if (isError(template)) return template;
+
+    const brief = owned.game?.brief?.trim() ?? "";
+    const supplied = params["design"];
+    const provider = isString(params["provider"]) ? params["provider"] : "";
+    const model = isString(params["model"]) ? params["model"] : "";
+
+    let raw: unknown;
+    if (supplied !== undefined) {
+      raw = supplied;
+    } else if (provider.length > 0 && model.length > 0) {
+      if (brief.length === 0) {
+        return {
+          error:
+            "This workflow has no game brief, so there is nothing to design. Write one with set_game_setup first."
+        };
+      }
+      const { generateStructured } = await import("@nodetool-ai/runtime");
+      raw = await generateStructured(await run.context.getProvider(provider), {
+        model,
+        maxTokens: 4096,
+        messages: [
+          { role: "system", content: GAME_DESIGNER_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: [
+              `Brief: ${brief}`,
+              `Template: ${template.id}`,
+              "",
+              "Asset manifest:",
+              JSON.stringify(template.manifest.slots, null, 2)
+            ].join("\n")
+          }
+        ],
+        toolName: GAME_DESIGN_TOOL_NAME,
+        toolDescription: GAME_DESIGN_TOOL_DESCRIPTION,
+        schema: buildGameDesignSchema(template.manifest)
+      });
+    } else {
+      // No model: the shipped chip whose brief this is carries a pinned design,
+      // so a keyless install still reaches the review step.
+      const chip = GAME_INSPIRATION_CHIPS.find(
+        (entry) =>
+          entry.template === template.id &&
+          entry.brief.trim().toLowerCase() === brief.toLowerCase()
+      );
+      if (!chip) {
+        return {
+          error:
+            "Pass provider and model to design, or pass a `design` to store without calling one. " +
+            `Without either, only a shipped inspiration chip's brief designs: ${GAME_INSPIRATION_CHIPS.map(
+              (entry) => `"${entry.brief}"`
+            ).join(", ")}.`
+        };
+      }
+      raw = chip.design;
+    }
+
+    const parsed = parseGameDesign(raw, template.manifest);
+    if (!parsed) {
+      return { error: "The designer did not return a design." };
+    }
+
+    // Nothing below places a node: the design is text on the row.
+    const saved = await persistGame(owned.row, {
+      design: parsed.design,
+      design_source: designSourceOf(template.id, brief),
+      stage: "review"
+    });
+    if (isError(saved)) return saved;
+    return {
+      workflow_id: id,
+      stage: "review",
+      design: parsed.design,
+      /** Slots the designer skipped, filled from the template's own prompt. */
+      filled_from_manifest: parsed.filled,
+      gaps: designGaps(parsed.design),
+      nodes_placed: 0
+    };
+  }
+};
+
+// ── update_game_design ──────────────────────────────────────────────────────
+
+/** Merge `patch` entries into `current` by `slot_id`, keeping order. */
+function mergeBySlot<T extends { slot_id: string }>(
+  current: readonly T[],
+  patch: unknown
+): T[] {
+  if (!Array.isArray(patch)) return [...current];
+  const merged = [...current];
+  for (const entry of patch) {
+    if (!isObjectLike(entry) || !isString((entry as T).slot_id)) continue;
+    const slotId = (entry as T).slot_id;
+    const at = merged.findIndex((item) => item.slot_id === slotId);
+    if (at === -1) {
+      merged.push(entry as T);
+    } else {
+      merged[at] = { ...merged[at], ...(entry as object) } as T;
+    }
+  }
+  return merged;
+}
+
+const GAME_DESIGN_TEXT_FIELDS = [
+  "title",
+  "premise",
+  "core_loop",
+  "level",
+  "win",
+  "lose"
+] as const;
+
+const updateGameDesign: CapabilityExport = {
+  spec: updateGameDesignSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const owned = await loadOwnedGame(run, id);
+    if (isError(owned)) return owned;
+    const current = owned.game?.design;
+    if (!current) {
+      return {
+        error:
+          "This workflow has no game design yet. Run design_game first, or store one with design_game's `design` argument."
+      };
+    }
+
+    const next: Record<string, unknown> = { ...current };
+    for (const field of GAME_DESIGN_TEXT_FIELDS) {
+      if (isString(params[field])) next[field] = params[field];
+    }
+    if (Array.isArray(params["player_verbs"])) {
+      next["player_verbs"] = params["player_verbs"].filter(isString);
+    }
+    next["cast"] = mergeBySlot(current.cast, params["cast"]);
+    next["enemies"] = mergeBySlot(current.enemies, params["enemies"]);
+    next["slot_prompts"] = mergeBySlot(
+      current.slot_prompts,
+      params["slot_prompts"]
+    );
+
+    const parsed = gameDesign.safeParse(next);
+    if (!parsed.success) {
+      return { error: `The edited design is malformed: ${parsed.error.message}` };
+    }
+    const saved = await persistGame(owned.row, { design: parsed.data });
+    if (isError(saved)) return saved;
+    return {
+      workflow_id: id,
+      design: parsed.data,
+      gaps: designGaps(parsed.data)
+    };
+  }
+};
+
+// ── build_game ──────────────────────────────────────────────────────────────
+
+const buildGame: CapabilityExport = {
+  spec: buildGameSpec,
+  impl: async (run, params) => {
+    const id = String(params["workflow_id"]);
+    const owned = await loadOwnedGame(run, id);
+    if (isError(owned)) return owned;
+    const template = await requireGameTemplate(owned.game);
+    if (isError(template)) return template;
+    const design = owned.game?.design;
+    if (!design) {
+      return {
+        error:
+          "This workflow has no game design yet. Run design_game first, then build_game."
+      };
+    }
+    const gaps = designGaps(design);
+    if (gaps.length > 0) {
+      return {
+        error:
+          "Every cast member needs a name and a descriptor and every slot needs a prompt before the graph is built. " +
+          `Unfinished: ${gaps.join("; ")}. Fix them with update_game_design.`,
+        gaps
+      };
+    }
+
+    const registry = run.nodeRegistry;
+    if (!registry) {
+      return {
+        error:
+          "Cannot build: no node registry is available in this process, so no node type could be resolved."
+      };
+    }
+
+    const imageTile = owned.game?.image_model ?? "";
+    const imageModel = modelValue(imageTile, "image_model");
+    if (!imageModel) {
+      return {
+        error:
+          "No image model is chosen. Set image_model to `provider:model_id` with set_game_setup — find_model has the ids."
+      };
+    }
+    // A setup saved in the browser keeps "the template's own audio" as the
+    // placeholder sentinel, not as an absent field, so both audio answers are
+    // normalized the way the flow normalizes them (D27). Handing the sentinel
+    // on would fail this as an invalid model id and reach the registry as a
+    // node type nothing answers for.
+    const musicTile = gameAudioChoice(owned.game?.music_model);
+    const musicModel = musicTile === null ? null : modelValue(musicTile, "music_model");
+    if (musicTile !== null && !musicModel) {
+      return {
+        error: `music_model "${musicTile}" is not \`provider:model_id\`. Omit it to keep the template's placeholder music.`
+      };
+    }
+
+    const projectName =
+      owned.game?.project_name?.trim() ||
+      design.title.trim() ||
+      template.id;
+    const choices: GameGraphChoices = {
+      imageModel,
+      sfxNodeType: gameAudioChoice(owned.game?.sfx_node_type),
+      musicModel,
+      style: await loadStyle(run, owned.game?.style_entity_id),
+      projectName,
+      directory: gameProjectDirectory(projectName),
+      verify: true
+    };
+
+    const placement = gameGraphPlacement(
+      template.manifest,
+      design,
+      choices,
+      registryLookup(registry)
+    );
+    const graph = placementToGraph(placement);
+    const validation = await validateBuiltGraph(run, graph);
+
+    const save = params["save"] !== false;
+    let savedRow: WorkflowRow | null = null;
+    if (save) {
+      const written = await persistGame(
+        owned.row,
+        { stage: "done", project_name: projectName },
+        { graph: graph as unknown as WorkflowRow["graph"] }
+      );
+      if (isError(written)) return written;
+      savedRow = written;
+    }
+
+    return {
+      workflow_id: id,
+      saved: savedRow !== null,
+      stage: save ? "done" : owned.game?.stage ?? "look",
+      graph,
+      node_count: placement.nodes.length,
+      directory: choices.directory,
+      /**
+       * The slots the builder could not wire. Empty is the only value that
+       * means the graph fills every slot the template needs — a validated graph
+       * with issues here exports a project with holes in it.
+       */
+      issues: placement.issues,
+      validation
+    };
+  }
+};
+
 /** Every workflow capability, in the order `getAllMcpTools` offered them. */
 export const WORKFLOW_CAPABILITIES: readonly CapabilityExport[] = [
   listWorkflows,
@@ -1337,7 +1815,11 @@ export const WORKFLOW_CAPABILITIES: readonly CapabilityExport[] = [
   setWorkflowSetup,
   planWorkflow,
   updateWorkflowPlanStep,
-  buildWorkflowFromPlan
+  buildWorkflowFromPlan,
+  setGameSetup,
+  designGame,
+  updateGameDesign,
+  buildGame
 ];
 
 export const module: CapabilityModule = {
@@ -1368,5 +1850,9 @@ export {
   planWorkflow,
   updateWorkflowPlanStep,
   buildWorkflowFromPlan,
+  setGameSetup,
+  designGame,
+  updateGameDesign,
+  buildGame,
   registryLookup
 };

@@ -44,6 +44,7 @@ function makeJob(opts: {
   finished_at?: string | null;
   error?: string | null;
   cost?: number | null;
+  outputs?: Record<string, unknown> | null;
 }) {
   return {
     id: opts.id ?? "job-1",
@@ -54,6 +55,7 @@ function makeJob(opts: {
     finished_at: opts.finished_at ?? null,
     error: opts.error ?? null,
     cost: opts.cost ?? null,
+    runOutputs: vi.fn(() => opts.outputs ?? null),
     markCancelled: vi.fn(function (this: { status: string }) {
       this.status = "cancelled";
     }),
@@ -89,7 +91,8 @@ describe("jobs router", () => {
         user_id: "user-1",
         job_type: "workflow",
         status: "completed",
-        cost: null
+        cost: null,
+        outputs: null
       });
       expect(result.next_start_key).toBe("next-cursor");
       expect(Job.paginate).toHaveBeenCalledWith("user-1", {
@@ -105,6 +108,22 @@ describe("jobs router", () => {
       const caller = createCaller(makeCtx());
       const result = await caller.jobs.list({ limit: 50 });
       expect(result.jobs[0]).toMatchObject({ id: "j-cost", cost: 45 });
+    });
+
+    it("surfaces persisted run outputs", async () => {
+      const outputs = {
+        project: [{ directory: "games/ember-run", verified: true }]
+      };
+      const j = makeJob({ id: "j-output", status: "completed", outputs });
+      (Job.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([[j], ""]);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.jobs.list({
+        limit: 50,
+        include_outputs: true
+      });
+
+      expect(result.jobs[0]).toMatchObject({ id: "j-output", outputs });
     });
 
     it("coerces empty cursor to null", async () => {

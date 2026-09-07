@@ -28,6 +28,7 @@ import { storageRouter } from "./routers/storage.js";
 import { threadsRouter } from "./routers/threads.js";
 import { memoriesRouter } from "./routers/memories.js";
 import { sketchRouter } from "./routers/sketch.js";
+import { gamesRouter } from "./routers/games.js";
 import { storyboardsRouter } from "./routers/storyboards.js";
 import { skillsRouter } from "./routers/skills.js";
 import { applicationsRouter } from "./routers/applications.js";
@@ -53,6 +54,7 @@ export const appRouter = router({
   extension: extensionRouter,
   files: filesRouter,
   fonts: fontsRouter,
+  games: gamesRouter,
   integrations: integrationsRouter,
   jobs: jobsRouter,
   jsScripts: jsScriptsRouter,

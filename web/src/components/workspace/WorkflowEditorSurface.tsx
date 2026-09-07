@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 
 import NodeEditor from "../node_editor/NodeEditor";
@@ -9,6 +9,8 @@ import {
   tabId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
+import GameSetupHost from "../setup/game/GameSetupHost";
+import { useGameSetupStage } from "../../hooks/game/useGameSetup";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import KeyboardProvider from "../KeyboardProvider";
@@ -45,6 +47,15 @@ interface WorkflowEditorSurfaceProps {
  * from TabsNodeEditor so the workspace shell can host one workflow per tab.
  * The per-workflow NodeStore stays owned by the WorkflowManager; this surface
  * just looks it up (and triggers a fetch when a restored tab has none yet).
+ *
+ * A workflow whose `settings.game` is not at stage `done` is still mid-flow,
+ * and this tab is where it is reopened after a refresh or a close — the New
+ * Project tab that started the flow holds its target in component state, which
+ * a reload throws away (game-prd criterion 2). So the setup host takes the tab
+ * until the flow finishes, and `Build your game` hands the same tab back to
+ * the canvas rather than opening a second one. A workflow saved before the
+ * flow existed has no `game` key and reads `done`, so it opens as it always
+ * did.
  */
 const WorkflowEditorSurface = ({
   workflowId,
@@ -57,6 +68,11 @@ const WorkflowEditorSurface = ({
     (state) => state.settings.editorViewMode
   );
   const [missing, setMissing] = useState(false);
+  const gameStage = useGameSetupStage(workflowId);
+  // The document reaches stage `done` in the same click that places the nodes,
+  // but this keeps the swap independent of when that save lands.
+  const [gameFinished, setGameFinished] = useState(false);
+  const finishGameFlow = useCallback(() => setGameFinished(true), []);
   // Only this workflow's subgraph tabs may take over its canvas — another
   // workflow tab's open subgraph must not hijack this one.
   const activeSubgraph = useSubgraphTabsStore((state) =>
@@ -98,6 +114,10 @@ const WorkflowEditorSurface = ({
         <LoadingSpinner />
       </FlexColumn>
     );
+  }
+
+  if (gameStage !== "done" && !gameFinished) {
+    return <GameSetupHost workflowId={workflowId} onFinish={finishGameFlow} />;
   }
 
   const showChain = active && editorViewMode === "chain";

@@ -150,10 +150,13 @@ export type ExportGodotProjectInputs = {
 };
 
 export interface ExportGodotProjectOutputs {
+  output: Record<string, unknown>;
   directory: string;
   files: string[];
   verified: boolean;
+  verification: Record<string, unknown>;
   errors: string[];
+  archive: string;
 }
 
 export function exportGodotProject(inputs: ExportGodotProjectInputs): Promise<ExportGodotProjectOutputs> {

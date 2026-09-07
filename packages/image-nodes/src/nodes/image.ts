@@ -3319,6 +3319,11 @@ const IMAGE_TRANSFORM_NODES = tagAsContentCard(
   tagAsBrowserGpu([
     PasteNode,
     ScaleNode,
+    // The replacement for Scale/Resize/Fit. It was written, exported and
+    // tested but never listed here, so `nodetool.image.ResizeImage` was not in
+    // the registry and every `replacedBy` pointing at it named a node the
+    // editor could not place.
+    ResizeImageNode,
     ResizeNode,
     CanvasResizeNode,
     CropNode,

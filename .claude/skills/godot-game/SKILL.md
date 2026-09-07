@@ -20,6 +20,13 @@ sheet generated with a different model than the tileset reads as two games.
 
 Each phase ends with a report and a wait. The user approves before the next spends.
 
+Look at the project's workflows first. The Game entry card builds a slot-filling
+workflow that ends in `nodetool.game.ExportGodotProject`, so when the project
+already holds one, a first build is a re-run rather than P0-P2 by hand: run the
+whole workflow to refill every slot, or re-run one slot's chain to replace a
+single asset, then pick up at P3. Do the phases below by hand when there is no
+such workflow.
+
 ### P0 — Brief to design
 
 1. `list_game_templates`. Pick the template whose loop matches the brief; say why.

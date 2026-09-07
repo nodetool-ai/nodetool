@@ -114,6 +114,23 @@ const WORKFLOW_PLAN_SUITES =
   "npm run test --workspace=web -- src/components/setup/workflow src/hooks/workflow src/lib/tools/builtin/__tests__/workflowSetupTools";
 
 /**
+ * The Game-flow suites: the protocol contracts (designer, slot prompt, graph
+ * builder, settings), criterion 5's chip build against the real node registry,
+ * the export node over the filled fixture, the four headless capabilities, and
+ * the browser flow's steps and tools. One constant so the entry's `command` and
+ * its `selfcheck` cannot drift.
+ *
+ * Vitest takes these positional arguments as file-path filters.
+ */
+const GAME_FLOW_SUITES =
+  "npm run test --workspace=packages/protocol -- game && " +
+  "npm run test --workspace=packages/base-nodes -- game-graph-chips && " +
+  "npm run test --workspace=packages/game-nodes && " +
+  "npm run test --workspace=packages/agents -- capabilities-game-setup capabilities-godot && " +
+  "npm run test --workspace=packages/websocket -- trpc-games && " +
+  "npm run test --workspace=web -- src/components/setup/game src/hooks/game src/lib/tools/builtin/__tests__/gameSetupTools";
+
+/**
  * The 3D-clip suites: the render session `model3d` layers draw through in the
  * browser, and the headless pre-pass that draws them for
  * `preview_timeline_frame`. One constant so the entry's `command` and its
@@ -597,6 +614,23 @@ export const HARNESSES: HarnessEntry[] = [
     selfcheck: { command: WORKFLOW_PLAN_SUITES, cost: "cheap" }
   },
   {
+    id: "game-flow",
+    title: "Game flow (design contract, slot graph, export node, headless tools)",
+    // No CLI command owns the flow: the surface is `settings.game` on a
+    // workflow and the Godot project the graph it builds writes. The checked-in
+    // suites are the headless surface — they build every shipped chip's design
+    // against the real node registry and hand the graph to the same validator
+    // `validate_workflow` runs, then run the export node over the filled
+    // fixture and read the project it wrote. Verification under real Godot is
+    // the one part that needs a binary: those cases skip with a reason when
+    // `GODOT_BIN` is unset rather than reporting green.
+    command: GAME_FLOW_SUITES,
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "docs/creation-flows/game-prd.md § 8",
+    selfcheck: { command: GAME_FLOW_SUITES, cost: "cheap" }
+  },
+  {
     id: "capability-suites",
     title: "Agent capability suites (per-capability contract tests)",
     // No CLI command owns a capability: the surface is the wire name a guest
@@ -958,6 +992,25 @@ export const SURFACES: SurfaceEntry[] = [
     ]
   },
   {
+    id: "game-creation-flow",
+    title:
+      "Game creation flow (settings.game, designer, slot graph, export node, seeds)",
+    harnesses: ["game-flow", "capability-suites", "validate"],
+    paths: [
+      "packages/protocol/src/game-design.ts",
+      "packages/protocol/src/game-graph.ts",
+      "packages/protocol/src/game-flow-prompt.ts",
+      "packages/protocol/src/style-presets.ts",
+      "packages/game-nodes/",
+      "packages/base-nodes/tests/game-graph-chips.test.ts",
+      "packages/websocket/src/trpc/routers/games.ts",
+      "packages/websocket/src/lib/style-presets.ts",
+      "web/src/components/setup/game/",
+      "web/src/hooks/game/",
+      "web/src/lib/tools/builtin/gameSetup.ts"
+    ]
+  },
+  {
     id: "mini-apps",
     title: "Mini apps (documents, bindings, operations)",
     harnesses: ["app-debug", "app-build", "eval"],
@@ -1163,6 +1216,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/godot-templates/",
       "packages/image-nodes/src/nodes/game.ts",
       "packages/audio-nodes/src/nodes/game.ts",
+      "packages/game-nodes/src/project.ts",
       "packages/agents/src/capabilities/godot.ts",
       "packages/agents/src/capabilities/godot.specs.ts"
     ]

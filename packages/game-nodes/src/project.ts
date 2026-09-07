@@ -19,7 +19,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
-import { slotFileStem, type GodotProject } from "@nodetool-ai/godot";
+import {
+  checkGodotProject,
+  slotFileStem,
+  writeGodotProject,
+  type GodotProject
+} from "@nodetool-ai/godot";
 import {
   checkScripts,
   findGodot,
@@ -27,11 +32,20 @@ import {
   smokeProject,
   type GodotRunResult
 } from "@nodetool-ai/godot-templates";
-import type { FilledManifest } from "@nodetool-ai/protocol";
-import type { Workspace } from "@nodetool-ai/runtime";
+import {
+  checkFilledManifest,
+  type FilledManifest,
+  type GameAssetManifest
+} from "@nodetool-ai/protocol";
+import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import type {
+  MediaRefValue,
+  ProcessingContext,
+  Workspace
+} from "@nodetool-ai/runtime";
 
 /** Text files whose `res://` references may name a slot's asset. */
-const REFERENCING_EXTENSIONS = new Set(["tscn", "tres", "gd", "godot"]);
+export const REFERENCING_EXTENSIONS = new Set(["tscn", "tres", "gd", "godot"]);
 
 export const extensionOf = (path: string): string => {
   const match = /\.([a-z0-9]+)$/i.exec(path);
@@ -190,13 +204,33 @@ export async function danglingReferences(
   return [...dangling].sort();
 }
 
+/**
+ * What a headless Godot pass saw.
+ *
+ * `errors` is the reader's summary — one line per objection — and the three
+ * run results below it are the raw output the `verify_godot_project` capability
+ * hands an agent. Both come from the same pass, so a node reporting `errors`
+ * and a capability reporting `smoke.stdout` can never disagree.
+ */
 export interface GodotVerification {
   ran: boolean;
   /** Why it did not run, when `ran` is false. */
   reason?: string;
   /** Everything the run objected to; empty on a green run. */
   errors: string[];
+  import?: GodotRunResult;
+  scripts?: Array<{ script: string; code: number | null; stderr: string }>;
+  smoke?: GodotRunResult;
+  /** True only on a run that happened and objected to nothing. */
+  ok?: boolean;
 }
+
+/** A run result small enough to hand back whole. */
+const clipped = (r: GodotRunResult): GodotRunResult => ({
+  code: r.code,
+  stdout: r.stdout.slice(-4000),
+  stderr: r.stderr.slice(-4000)
+});
 
 const trimmed = (r: GodotRunResult): string =>
   [r.stderr, r.stdout].map((s) => s.trim()).filter((s) => s !== "").join("\n").slice(-2000);
@@ -216,20 +250,20 @@ export async function verifyWithGodot(
   if (!workspace.localDir) {
     return {
       ran: false,
-      reason: "this run has a virtual workspace and Godot needs a real directory",
+      reason: "This run has a virtual workspace; Godot needs a real directory.",
       errors: []
     };
   }
   if (!findGodot()) {
     return {
       ran: false,
-      reason: "no Godot binary found: set GODOT_BIN or put godot on PATH",
+      reason: "No Godot binary found: set GODOT_BIN or put godot on PATH.",
       errors: []
     };
   }
   const projectDir = join(workspace.localDir, workspace.key(dir));
   const errors: string[] = [];
-  const imported = await importProject(projectDir);
+  const imported = clipped(await importProject(projectDir));
   if (imported.code !== 0) {
     errors.push(`godot --import exited ${imported.code}: ${trimmed(imported)}`);
   }
@@ -239,9 +273,200 @@ export async function verifyWithGodot(
       errors.push(`${result.script} failed its script check: ${result.stderr.slice(-2000)}`);
     }
   }
-  const smoke = await smokeProject(projectDir);
+  const smoke = clipped(await smokeProject(projectDir));
   if (smoke.code !== 0) {
     errors.push(`the smoke scene exited ${smoke.code}: ${trimmed(smoke)}`);
   }
-  return { ran: true, errors };
+  return {
+    ran: true,
+    errors,
+    import: imported,
+    scripts: scripts.results.map((r) => ({
+      script: r.script,
+      code: r.code,
+      stderr: r.stderr.slice(-2000)
+    })),
+    smoke,
+    ok: errors.length === 0
+  };
+}
+
+// ── The join ────────────────────────────────────────────────────────────────
+
+/** A join that stopped before it wrote anything the caller can use. */
+export interface JoinError {
+  error: string;
+  problems?: Record<string, string[]> | string[];
+}
+
+export const isJoinError = (value: unknown): value is JoinError =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as JoinError).error === "string";
+
+export interface JoinInput {
+  /** Manifest of the template being exported. */
+  manifest: GameAssetManifest;
+  /** The template's directory on disk (`getTemplate(id).dir`). */
+  templateDir: string;
+  /** Godot feature string (`manifest.godot`). */
+  godot: string;
+  /** The project's `config/name`. */
+  name: string;
+  /** Workspace-relative export directory. */
+  dir: string;
+  filled: FilledManifest;
+  workspace: Workspace;
+  /** Read for `loadMediaRefBytes`; the asset store a copy's bytes come from. */
+  context?: ProcessingContext;
+  /**
+   * The ref to read each asset's bytes from, by asset id. A graph hands the
+   * checker's own stamped ref here, so a hermetic run whose assets were never
+   * stored still exports; a caller that omits it reads `asset://<id>`.
+   */
+  refs?: ReadonlyMap<string, MediaRefValue>;
+  verify: boolean;
+  /** Replace the template's own files even where the directory already has them. */
+  overwrite: boolean;
+}
+
+export interface JoinOutcome {
+  dir: string;
+  template: string;
+  mode: LayoutMode;
+  written: string[];
+  preserved: string[];
+  copied: string[];
+  rewritten: string[];
+  dangling: string[];
+  verification: GodotVerification;
+  ok: boolean;
+}
+
+export async function copyAssets(
+  context: ProcessingContext | undefined,
+  workspace: Workspace,
+  dir: string,
+  project: GodotProject,
+  refs?: ReadonlyMap<string, MediaRefValue>
+): Promise<string[] | JoinError> {
+  const copied: string[] = [];
+  for (const copy of project.copies) {
+    const ref = refs?.get(copy.asset_id) ?? {
+      uri: `asset://${copy.asset_id}`,
+      asset_id: copy.asset_id
+    };
+    let bytes: Uint8Array | null;
+    try {
+      bytes = await loadMediaRefBytes(ref, context);
+    } catch (error) {
+      return {
+        error: `Could not read asset ${copy.asset_id}: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+    if (!bytes || bytes.length === 0) {
+      return {
+        error:
+          `The asset for ${copy.path} has no bytes. Wire the checker's output ` +
+          `handle, not a ref that was never stored.`
+      };
+    }
+    await workspace.write(under(dir, copy.path), bytes);
+    copied.push(copy.path);
+  }
+  return copied;
+}
+
+/**
+ * Write the project, copy the assets, check every reference, and verify.
+ *
+ * `filled` may cover fewer slots than the manifest: a creator who kept the
+ * template's placeholder audio (game-prd D27) fills none of the audio slots,
+ * and the blank-template path fills none at all. Only the filled slots are
+ * handed to the writer, so the template's own placeholders stand for the rest —
+ * a caller that needs every slot filled (the `export_godot_project` capability)
+ * checks that itself before calling.
+ */
+export async function joinGodotProject(
+  input: JoinInput
+): Promise<JoinOutcome | JoinError> {
+  const { workspace, dir, filled, manifest } = input;
+
+  const filledIds = new Set(filled.slots.map((slot) => slot.slot_id));
+  const unknown = [...filledIds].filter(
+    (id) => !manifest.slots.some((slot) => slot.id === id)
+  );
+  if (unknown.length > 0) {
+    return {
+      error: `Template ${manifest.template} has no slot named ${unknown.join(", ")}.`
+    };
+  }
+  // The writer refuses a manifest with an unfilled slot, so it is shown only
+  // the slots that were actually filled. Every fill is still checked against
+  // its real spec.
+  const writerManifest: GameAssetManifest = {
+    ...manifest,
+    slots: manifest.slots.filter((slot) => filledIds.has(slot.id))
+  };
+  const problems = checkFilledManifest(writerManifest, filled);
+  if (Object.keys(problems).length > 0) {
+    return {
+      error: "The filled slots do not satisfy the template's manifest.",
+      problems
+    };
+  }
+
+  const project = writeGodotProject({
+    name: input.name,
+    godot: input.godot,
+    filled,
+    manifest: writerManifest
+  });
+  const resourceProblems = checkGodotProject(project);
+  if (resourceProblems.length > 0) {
+    return {
+      error: "The writer produced dangling resources.",
+      problems: resourceProblems
+    };
+  }
+
+  const mode: LayoutMode =
+    !input.overwrite && (await workspace.exists(under(dir, "project.godot")))
+      ? "refresh"
+      : "create";
+  const { written, rewritten, preserved } = await layOutProject(
+    workspace,
+    dir,
+    input.templateDir,
+    input.name,
+    project,
+    filled,
+    mode
+  );
+  const copied = await copyAssets(
+    input.context,
+    workspace,
+    dir,
+    project,
+    input.refs
+  );
+  if (isJoinError(copied)) return copied;
+
+  const dangling = await danglingReferences(workspace, dir);
+  const verification: GodotVerification = input.verify
+    ? await verifyWithGodot(workspace, dir)
+    : { ran: false, reason: "verify was false", errors: [] };
+
+  return {
+    dir,
+    template: manifest.template,
+    mode,
+    written,
+    preserved,
+    copied,
+    rewritten,
+    dangling,
+    verification,
+    ok: dangling.length === 0 && (verification.ran ? verification.ok === true : true)
+  };
 }

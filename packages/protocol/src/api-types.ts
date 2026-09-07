@@ -958,6 +958,7 @@ export interface JobResponse {
   finished_at?: string | null;
   cost?: number | null;
   error_message?: string | null;
+  outputs?: Record<string, unknown> | null;
   etag?: string | null;
 }
 

@@ -411,6 +411,89 @@ of each other. Inside a phase, tasks are listed in dependency order.
 - [ ] **Entry.** Enable the Workflow card on the New Project surface (not
       Studio); resume by stage in the workflow editor surface.
 
+## P10 — Game flow
+
+> Spec: [game-prd.md](game-prd.md). Depends on P2 (the shell) and P9 (the
+> build-from-placement path it mirrors). Sub-phases G1a → (G1b ∥ G2 ∥ G3).
+
+### G1a — Contracts (protocol only, first)
+
+- [x] **Settings shape.** `settings.game` per game-prd § 5.1: `gameSetup`,
+      `readGameSetup`, `writeGameSetup` beside the workflow setup helpers in
+      `packages/protocol/src/api-schemas/workflows.ts`. Tests: a workflow
+      without `game` reads null; every stage round-trips; a patch keeps the
+      other settings keys.
+- [x] **Designer contract.** `packages/protocol/src/game-design.ts`:
+      system prompt, `buildGameDesignSchema(manifest)` with slot ids pinned
+      as enums, `parseGameDesign` filling skipped slots from the manifest
+      and reporting them, `GAME_INSPIRATION_CHIPS` with a pinned design per
+      shipped template. Tests: a design missing a slot prompt is filled and
+      reported; a chip's design has one cast entry per spritesheet slot.
+- [x] **Slot prompt.** `packages/protocol/src/game-flow-prompt.ts`, on top of
+      `slotPrompt`, per § 5.3. Test table: sizes per kind for every slot in the three shipped
+      manifests, style descriptor present verbatim, cast descriptor present
+      only on the slot that names it, closest aspect ratio.
+- [x] **Graph builder.** `packages/protocol/src/game-graph.ts`
+      `gameGraphPlacement` per § 5.3, returning a `WorkflowPlacement`.
+      Tests: one chain per slot kind, audio chains omitted when unchosen,
+      every checker's stamped output feeds the one export node's `fills` list
+      and nothing else does, an unknown node type is an issue and no node.
+- [x] **Style presets.** `GAME_STYLE_PRESETS` in `style-presets.ts` per
+      § 5.6, thumbnails as `package://nodetool-base/styles/game-<id>.png`.
+
+### G1b — Node, seeds, harness (backend)
+
+- [x] **`packages/game-nodes`.** `nodetool.game.ExportGodotProject` per
+      § 5.5, the export join (`joinGodotProject` in `src/project.ts`) that the
+      node and `packages/agents/src/capabilities/godot.ts` both call, the zip
+      beside the directory. Registered in `@nodetool-ai/base-nodes`,
+      the root workspaces, the backend bundle. Tests: the filled fixture
+      exports and reports `verified: false` with a reason without Godot; no
+      fills exports the placeholders; an unfilled slot keeps its own; a fill
+      for a slot the template lacks is an error naming it.
+- [x] **Templates query and seeds.** `games.templates` trpc query;
+      `seedStylePresets` takes a preset list; `games.stylePresets` seeds the
+      six game presets idempotently.
+- [x] **Headless setup capabilities.** `ui_game_*`'s server mirrors in
+      `packages/agents/src/capabilities/workflows.ts`, capability table rows,
+      `npm run capabilities:check` green.
+- [x] **Harness.** `game-flow` entry in `packages/cli/src/harness/registry.ts`
+      whose selfcheck runs the protocol suites, a `packages/base-nodes` suite
+      that builds every chip's placement against the real registry and
+      passes it through the validator (criterion 5), the game-nodes suite,
+      and the web suites. `harness gate` maps the new paths to it. Docs:
+      `docs/harnesses.md` entry, AGENTS.md harness table row.
+
+### G2 — Web flow
+
+- [x] **Hooks.** `web/src/hooks/game/useGameSetup.ts` (reader, stage, writer
+      over `settings.game`), `useDesignGame.ts` (one `generate_text` call),
+      `useBuildGame.ts` (place, validate, run per § 5.4), `useGameTemplates.ts`
+      (the trpc query), `useGameStylePresets.ts`.
+- [x] **Steps.** `web/src/components/setup/game/`: `IdeaStep`, `TemplateStep`,
+      `ReviewStep`, `LookStep`, `useGameSetupFlow.ts`, `GameSetupHost.tsx`,
+      `templates.ts` (card copy), `GameLandingChecklist.tsx`. Copy from
+      game-prd Appendix A. Blocked reasons per § 4.2 and § 4.3.
+- [x] **Entry.** `game` in `EntryFlowId` and `ENTRY_CARDS` (not Studio),
+      `startGameFlow` and the `game` setup target in `NewProjectSurface`,
+      landing through `handleSetupFinished` with the checklist in the agent
+      panel. Update the "five flows" tests to six.
+- [x] **Tools.** `ui_game_set_setup`, `ui_game_design`,
+      `ui_game_update_design`, `ui_game_build` in
+      `web/src/lib/tools/builtin/gameSetup.ts`, registered in the index,
+      tests in `__tests__/gameSetupTools.test.ts`.
+- [x] **Tests.** Each step, the flow config at every stage, the checklist's
+      verified-only-when-true rule (criterion 7), the entry card.
+
+### G3 — Assets and docs
+
+- [x] **Tiles.** `scripts/make-game-style-tiles.mjs` and its nine PNGs under
+      `packages/base-nodes/nodetool/assets/nodetool-base/` per § 6.2 and
+      § 6.3, each under the asset budget.
+- [x] **Docs.** `docs/harnesses.md` game-flow entry, `docs/creation-flows/prd.md`
+      link, `.claude/skills/godot-game/SKILL.md` gains a line pointing the
+      agent at the flow's graph for a first build.
+
 ## Cross-cutting, every phase
 
 - [ ] UI primitives only, design tokens only, media through `ResponsiveImage`

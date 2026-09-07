@@ -1,6 +1,6 @@
 /**
- * Seeding the twelve shipped style presets into a user's library
- * (PRD § 7.3, § 7.7.9).
+ * Seeding a shipped preset set into a user's library (PRD § 7.3, § 7.7.9, and
+ * game-prd § 5.6 for the game set).
  *
  * A style preset is an entity, and an entity is an asset carrying a
  * `nodetool_entity` marker — so a preset is one asset row. Unlike the example
@@ -10,8 +10,10 @@
  *
  * The row ids are derived from `(user, preset slug)`, which is what makes
  * seeding idempotent — a second call finds the rows the first one wrote instead
- * of adding twelve more. The marker carries `system: true`, which
- * `Asset.systemEntityRefusal` reads to keep the row read-only.
+ * of adding a second copy. Preset ids are unique across the sets, so the two
+ * callers (the storyboard look step and the game look step) never collide. The
+ * marker carries `system: true`, which `Asset.systemEntityRefusal` reads to
+ * keep the row read-only.
  *
  * No bytes are stored. The tile art is a `package://` path on the marker,
  * served from the package asset root the same way an example board's stills
@@ -48,11 +50,17 @@ function buildAsset(userId: string, preset: StylePreset): Asset {
 
 /**
  * Write any missing preset into the user's library and return every preset row,
- * in shipped order. Safe to call on every visit to the style step.
+ * in shipped order. Safe to call on every visit to a style step.
+ *
+ * `presets` defaults to the storyboard set, so the caller that predates the
+ * game set reads unchanged.
  */
-export async function seedStylePresets(userId: string): Promise<Asset[]> {
+export async function seedStylePresets(
+  userId: string,
+  presets: readonly StylePreset[] = STYLE_PRESETS
+): Promise<Asset[]> {
   const seeded: Asset[] = [];
-  for (const preset of STYLE_PRESETS) {
+  for (const preset of presets) {
     const existing = await Asset.find(
       userId,
       stylePresetAssetId(userId, preset.id)

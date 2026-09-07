@@ -22,7 +22,7 @@ function slotPrompt(inputs) {
   return createNode("nodetool.game.SlotPrompt", inputs, { outputNames: ["prompt", "width", "height", "kind", "checker", "seconds"] });
 }
 function exportGodotProject(inputs) {
-  return createNode("nodetool.game.ExportGodotProject", inputs, { outputNames: ["directory", "files", "verified", "errors"] });
+  return createNode("nodetool.game.ExportGodotProject", inputs, { outputNames: ["output", "directory", "files", "verified", "verification", "errors", "archive"] });
 }
 export {
   exportGodotProject,

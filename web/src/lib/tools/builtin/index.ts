@@ -25,6 +25,7 @@ import "./deleteEdge";
 
 // Guided creation flow for workflows (PRD § 11.6).
 import "./workflowSetup";
+import "./gameSetup";
 
 // Discovery.
 import "./searchNodes";

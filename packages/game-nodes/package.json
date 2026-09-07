@@ -20,7 +20,8 @@
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/runtime": "*"
+    "@nodetool-ai/runtime": "*",
+    "fflate": "^0.8.2"
   },
   "devDependencies": {
     "@nodetool-ai/audio-nodes": "*",

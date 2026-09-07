@@ -54,6 +54,7 @@ import {
   exampleSeedRef
 } from "../../utils/exampleWorkflow";
 import type { BuildFromPlanResult } from "../../hooks/workflow/useBuildFromPlan";
+import type { BuildGameResult } from "../../hooks/game/useBuildGame";
 import { useFileHandling } from "../chat/hooks/useFileHandling";
 import { useTextareaAssetMention } from "../chat/composer/useTextareaAssetMention";
 import { useTextareaSkillMention } from "../chat/composer/useTextareaSkillMention";
@@ -97,6 +98,7 @@ import StoryboardSetupHost from "../setup/storyboard/StoryboardSetupHost";
 import VideoSetupHost from "../setup/video/VideoSetupHost";
 import ScriptSetupHost from "../setup/script/ScriptSetupHost";
 import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
+import GameSetupHost from "../setup/game/GameSetupHost";
 import { newVideoSetupDocument } from "../setup/video/useVideoSetupFlow";
 import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
 import { startImageFlow } from "../setup/image/startImageFlow";
@@ -107,7 +109,10 @@ import {
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { trpcClient } from "../../trpc/client";
-import { writeWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import {
+  writeGameSetup,
+  writeWorkflowSetup
+} from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { clearProjectFirstTurn, stageProjectFirstTurn } from "./projectAgent";
 import { PROJECT_COLOR } from "./projectIdentity";
@@ -151,12 +156,13 @@ interface SubmenuAnchor {
  * The document an entry card created, which this tab then hosts.
  *
  * Discriminated because each flow lands somewhere different: a storyboard tab,
- * a timeline, a script, a workflow canvas. Image is absent on purpose — its
- * flow renders as an overlay on the sketch editor, so its card opens the
- * editor straight away rather than hosting a step here.
+ * a timeline, a script, a workflow canvas — and the Game flow's own canvas,
+ * which is a workflow too (D25). Image is absent on purpose — its flow renders
+ * as an overlay on the sketch editor, so its card opens the editor straight
+ * away rather than hosting a step here.
  */
 interface SetupTarget {
-  kind: "storyboard" | "video" | "script" | "workflow";
+  kind: "storyboard" | "video" | "script" | "workflow" | "game";
   id: string;
   projectId: string;
   name: string;
@@ -167,7 +173,10 @@ const SETUP_TAB_TYPE = {
   storyboard: "storyboard",
   video: "timeline",
   script: "script",
-  workflow: "workflow"
+  workflow: "workflow",
+  // The Game flow's document is a workflow, so its landing is the node editor
+  // with the graph the build placed (D25).
+  game: "workflow"
 } as const;
 
 /**
@@ -226,17 +235,22 @@ const deleteSetupDocument = async (target: SetupTarget): Promise<void> => {
     await trpcClient.timeline.delete.mutate({ id: target.id });
     return;
   }
+  // Workflow and Game both draft a workflow row.
   await trpcClient.workflows.delete.mutate({ id: target.id });
 };
 
 /**
- * What a workflow build got wrong, one line each. Empty on a clean build.
+ * What a graph build got wrong, one line each. Empty on a clean build.
  *
  * The flow's own surface is gone the moment this tab opens the canvas, so a
- * placement gap, a validation error or a refused test run has to be said here
- * or it is never said at all.
+ * placement gap, a validation error or a refused run has to be said here or it
+ * is never said at all. Both graph flows land here: the Workflow flow calls its
+ * one run a test run, the Game flow just runs the graph, and the two results
+ * differ only in that name.
  */
-const buildFailures = (result: BuildFromPlanResult): string[] => {
+const buildFailures = (
+  result: BuildFromPlanResult | BuildGameResult
+): string[] => {
   const lines: string[] = [];
   if (result.issues.length > 0) {
     lines.push(
@@ -248,8 +262,9 @@ const buildFailures = (result: BuildFromPlanResult): string[] => {
   if (result.validationErrors.length > 0) {
     lines.push(`The graph did not validate: ${result.validationErrors.join("; ")}`);
   }
-  if (result.testRun.error) {
-    lines.push(`The test run was refused: ${result.testRun.error}`);
+  const run = "testRun" in result ? result.testRun : result.run;
+  if (run.error) {
+    lines.push(`The run was refused: ${run.error}`);
   }
   return lines;
 };
@@ -856,6 +871,58 @@ const NewProjectSurface = () => {
     starting
   ]);
 
+  /**
+   * The Game card (game-prd § 4, D25/D30).
+   *
+   * The document is a workflow, as the Workflow flow's is, so the create is
+   * the same one — only the settings differ: `settings.game` at stage `idea`
+   * with the brief the composer holds. The project row carries `kind: "game"`,
+   * which is what its spend history is read back by.
+   */
+  const startGameFlow = useCallback(async () => {
+    if (starting) {
+      return;
+    }
+    const text = prompt.trim();
+    const name = text.length > 0 ? projectNameFromPrompt(text, null) : "New game";
+    setStarting(true);
+    try {
+      const project = await createProject.mutateAsync({
+        name,
+        kind: "game"
+      });
+      const created = await createWorkflow({
+        name,
+        description: "",
+        tags: [],
+        access: "private",
+        settings: writeGameSetup({}, { stage: "idea", brief: text })
+      });
+      noteUncarriedContext("game", {
+        entities: false,
+        references: false
+      });
+      applySetupTarget({
+        kind: "game",
+        id: created.id,
+        projectId: project.id,
+        name
+      });
+    } catch (error) {
+      reportEntryFailure("game", error);
+    } finally {
+      setStarting(false);
+    }
+  }, [
+    applySetupTarget,
+    createProject,
+    createWorkflow,
+    noteUncarriedContext,
+    prompt,
+    reportEntryFailure,
+    starting
+  ]);
+
   const handleEntryCard = useCallback(
     (id: string) => {
       if (pendingFlow !== null || starting) {
@@ -872,7 +939,8 @@ const NewProjectSurface = () => {
         video: startVideoFlow,
         script: startScriptFlow,
         image: startImageProject,
-        workflow: startWorkflowFlow
+        workflow: startWorkflowFlow,
+        game: startGameFlow
       };
       // Marked before the first await, so the card reads as busy on the click
       // rather than on the create's first render.
@@ -881,6 +949,7 @@ const NewProjectSurface = () => {
     },
     [
       pendingFlow,
+      startGameFlow,
       startImageProject,
       startScriptFlow,
       startStoryboardFlow,
@@ -921,7 +990,7 @@ const NewProjectSurface = () => {
    * here, because this tab is the last place that holds them.
    */
   const handleSetupFinished = useCallback(
-    (result?: BuildFromPlanResult | null) => {
+    (result?: BuildFromPlanResult | BuildGameResult | null) => {
       const target = setupTargetRef.current;
       if (!target) {
         return;
@@ -1125,6 +1194,15 @@ const NewProjectSurface = () => {
       return (
         <ScriptSetupHost
           scriptId={setupTarget.id}
+          onFinish={handleSetupFinished}
+          onChangeFlow={handleChangeFlow}
+        />
+      );
+    }
+    if (setupTarget.kind === "game") {
+      return (
+        <GameSetupHost
+          workflowId={setupTarget.id}
           onFinish={handleSetupFinished}
           onChangeFlow={handleChangeFlow}
         />

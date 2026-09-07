@@ -712,6 +712,155 @@ export const BUILD_WORKFLOW_FROM_PLAN_SCHEMA: JsonSchema = {
   required: ["workflow_id"]
 };
 
+// ── Guided game setup (game-prd § 5.7) ──────────────────────────────────────
+//
+// The server-side mirrors of the browser's `ui_game_*` tools, beside the
+// Workflow flow's four. Same document (`settings.game`), same designer
+// contract and same pure graph builder, so a game set up headlessly and one set
+// up in the browser cannot diverge.
+
+export const SET_GAME_SETUP_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The workflow to write the game setup on. You must own it."
+    },
+    brief: {
+      type: "string",
+      description: "One sentence describing the game — the designer's input."
+    },
+    template: {
+      type: "string",
+      description:
+        "Game template id, as list_game_templates returns: platformer, topdown, shmup."
+    },
+    style_entity_id: {
+      type: "string",
+      description: "Library entity id of the pixel style every prompt carries."
+    },
+    image_model: {
+      type: "string",
+      description:
+        "`provider:model_id` of the text-to-image model every sprite, tile and background is generated with."
+    },
+    sfx_node_type: {
+      type: "string",
+      description:
+        "Registry node type of the sound-effect generator. Omit to keep the template's placeholder sounds."
+    },
+    music_model: {
+      type: "string",
+      description:
+        "`provider:model_id` of the music model. Omit to keep the template's placeholder music."
+    },
+    project_name: {
+      type: "string",
+      description:
+        "The Godot project's name, which also names its export directory games/<slug>."
+    },
+    stage: {
+      type: "string",
+      description:
+        "Where the guided flow resumes. A game that has finished setup, or a workflow built before the flow existed, reads 'done'.",
+      enum: ["idea", "template", "review", "look", "done"]
+    }
+  },
+  required: ["workflow_id"]
+};
+
+export const DESIGN_GAME_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: {
+      type: "string",
+      description: "The workflow whose brief is designed. You must own it."
+    },
+    provider: { type: "string", description: "Provider for the designer call." },
+    model: { type: "string", description: "Model id for the designer call." },
+    design: {
+      type: "object",
+      description:
+        "A design to store as-is instead of calling a model. Use it to replay a design, or to reach the build with no provider."
+    }
+  },
+  required: ["workflow_id"]
+};
+
+export const UPDATE_GAME_DESIGN_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: { type: "string", description: "The workflow. You must own it." },
+    title: { type: "string", description: "The game's title." },
+    premise: { type: "string", description: "Two or three sentences of premise." },
+    core_loop: { type: "string", description: "What the player does every ten seconds." },
+    level: { type: "string", description: "The first level's layout in words." },
+    win: { type: "string", description: "How the player wins." },
+    lose: { type: "string", description: "How the player loses." },
+    player_verbs: {
+      type: "array",
+      items: { type: "string" },
+      description: "The verbs the player has: move, jump, shoot."
+    },
+    cast: {
+      type: "array",
+      description:
+        "Cast entries to merge by slot_id: {slot_id, name, descriptor}. A slot not named here is left alone.",
+      items: {
+        type: "object",
+        properties: {
+          slot_id: { type: "string" },
+          name: { type: "string" },
+          descriptor: { type: "string" }
+        },
+        required: ["slot_id"]
+      }
+    },
+    enemies: {
+      type: "array",
+      description:
+        "Enemy entries to merge by slot_id: {slot_id, name, behaviour}.",
+      items: {
+        type: "object",
+        properties: {
+          slot_id: { type: "string" },
+          name: { type: "string" },
+          behaviour: { type: "string" }
+        },
+        required: ["slot_id"]
+      }
+    },
+    slot_prompts: {
+      type: "array",
+      description:
+        "Slot prompts to merge by slot_id: {slot_id, prompt}. The subject only — style and pixel size are added by the builder.",
+      items: {
+        type: "object",
+        properties: {
+          slot_id: { type: "string" },
+          prompt: { type: "string" }
+        },
+        required: ["slot_id", "prompt"]
+      }
+    }
+  },
+  required: ["workflow_id"]
+};
+
+export const BUILD_GAME_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    workflow_id: { type: "string", description: "The workflow. You must own it." },
+    save: {
+      type: "boolean",
+      description:
+        "Write the built graph onto the workflow row. False builds and validates without saving.",
+      default: true
+    }
+  },
+  required: ["workflow_id"]
+};
+
 export const setWorkflowSetupSpec: CapabilitySpec = {
   name: "set_workflow_setup",
   description:
@@ -748,6 +897,42 @@ export const buildWorkflowFromPlanSpec: CapabilitySpec = {
   userMessage: () => "Building the workflow from its plan"
 };
 
+export const setGameSetupSpec: CapabilitySpec = {
+  name: "set_game_setup",
+  description:
+    "Write the guided game-setup answers on a workflow: the `brief` (one sentence about the game), the `template` whose loop it uses, the style entity and models every asset is generated with, and the `project_name` the Godot project takes. Omit a field to leave it unchanged. The stages run idea → template → review → look → done. Setting the stage is what moves an open flow to that step.",
+  inputSchema: SET_GAME_SETUP_SCHEMA,
+  category: "write",
+  userMessage: () => "Writing the game setup"
+};
+
+export const designGameSpec: CapabilitySpec = {
+  name: "design_game",
+  description:
+    "Write the design for a workflow's game brief and store it under settings.game. Places no node and creates no job: it returns the title, premise, loop, cast, enemies, level and one prompt per asset slot the chosen template needs, as text. A slot the designer skipped is filled from the template's own prompt and reported. Review it and fix it with update_game_design before build_game.",
+  inputSchema: DESIGN_GAME_SCHEMA,
+  category: "write",
+  userMessage: () => "Writing the game design"
+};
+
+export const updateGameDesignSpec: CapabilitySpec = {
+  name: "update_game_design",
+  description:
+    "Edit the stored game design: any of its text sections, and cast, enemy or slot-prompt entries merged by slot_id. Use it to replace a placeholder the designer left, or to change what one slot generates — the build refuses a design with an empty cast descriptor or slot prompt.",
+  inputSchema: UPDATE_GAME_DESIGN_SCHEMA,
+  category: "write",
+  userMessage: () => "Editing the game design"
+};
+
+export const buildGameSpec: CapabilitySpec = {
+  name: "build_game",
+  description:
+    "Build the workflow's graph from its stored game design and validate it. Places one generate → resize → check chain per asset slot the template needs, feeds every checker into one nodetool.game.ExportGodotProject node, and runs the same checks as validate_workflow. Refused while the design has an unnamed cast member or an empty slot prompt. Run the workflow afterwards to generate the assets and write the project.",
+  inputSchema: BUILD_GAME_SCHEMA,
+  category: "write",
+  userMessage: () => "Building the game graph"
+};
+
 /** Every spec this module declares, in declaration order. */
 export const workflowsSpecs: readonly CapabilitySpec[] = [
   listWorkflowsSpec,
@@ -771,5 +956,9 @@ export const workflowsSpecs: readonly CapabilitySpec[] = [
   setWorkflowSetupSpec,
   planWorkflowSpec,
   updateWorkflowPlanStepSpec,
-  buildWorkflowFromPlanSpec
+  buildWorkflowFromPlanSpec,
+  setGameSetupSpec,
+  designGameSpec,
+  updateGameDesignSpec,
+  buildGameSpec
 ];

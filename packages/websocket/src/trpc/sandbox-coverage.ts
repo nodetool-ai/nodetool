@@ -827,6 +827,15 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "outside every check in this table, for as long as it is valid. " +
       "read_asset returns the bytes to the run instead."
   },
+  "games.templates": { capability: "list_game_templates" },
+  "games.stylePresets": {
+    gap:
+      "Seeds the shipped game style presets into the caller's own library, " +
+      "then lists them — the same shape, and the same gap, as " +
+      "storyboards.stylePresets: reading them back is already reachable " +
+      "through list_entities, and only the seeding half has no headless " +
+      "trigger."
+  },
   "storyboards.create": { capability: "create_storyboard" },
   "storyboards.delete": { capability: "delete_storyboard" },
   "storyboards.examples": {

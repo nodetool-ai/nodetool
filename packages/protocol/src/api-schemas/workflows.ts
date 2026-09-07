@@ -783,3 +783,155 @@ export function writeWorkflowSetup(
   });
   return base;
 }
+
+// ── Guided game setup (game-prd § 5.1) ───────────────────────────────────────
+// The Game flow's document is a workflow too (D25), so its state is a second
+// optional bag beside `settings.setup`. A workflow saved before this flow
+// existed has no `game` key, parses fine, and opens as the editor it always
+// did — and a workflow that went through the Workflow flow keeps its `setup`
+// untouched when the Game flow writes.
+
+/** Where a workflow sits in the guided game setup. One built before it reads "done". */
+export const gameSetupStage = z.enum([
+  "idea",
+  "template",
+  "review",
+  "look",
+  "done"
+]);
+export type GameSetupStage = z.infer<typeof gameSetupStage>;
+
+/** One playable or enemy character, bound to the spritesheet slot it fills. */
+export const gameCastMember = z
+  .object({
+    /** The spritesheet slot this character fills. */
+    slot_id: z.string(),
+    name: z.string(),
+    /** Silhouette, colours, proportions; no pose — the slot prompt sets that. */
+    descriptor: z.string()
+  })
+  .passthrough();
+export type GameCastMember = z.infer<typeof gameCastMember>;
+
+export const gameEnemy = z
+  .object({
+    slot_id: z.string(),
+    name: z.string(),
+    behaviour: z.string()
+  })
+  .passthrough();
+export type GameEnemy = z.infer<typeof gameEnemy>;
+
+/**
+ * The subject half of one slot's prompt. Style words, pixel size and sheet
+ * boilerplate are added by `gameSlotPrompt`, never stored here.
+ */
+export const gameSlotPrompt = z
+  .object({
+    slot_id: z.string(),
+    prompt: z.string()
+  })
+  .passthrough();
+export type GameSlotPrompt = z.infer<typeof gameSlotPrompt>;
+
+export const gameDesign = z
+  .object({
+    title: z.string(),
+    premise: z.string(),
+    core_loop: z.string(),
+    player_verbs: z.array(z.string()).default([]),
+    enemies: z.array(gameEnemy).default([]),
+    level: z.string(),
+    win: z.string(),
+    lose: z.string(),
+    cast: z.array(gameCastMember).default([]),
+    slot_prompts: z.array(gameSlotPrompt).default([])
+  })
+  .passthrough();
+export type GameDesign = z.infer<typeof gameDesign>;
+
+/**
+ * The model that writes the design. Kept on the workflow for the same reason
+ * the Workflow flow keeps its planner model: a reload designs with the model
+ * the creator picked, not with whatever the provider list returns first.
+ */
+export const gameSetupModel = z
+  .object({ provider: z.string(), id: z.string() })
+  .passthrough();
+export type GameSetupModel = z.infer<typeof gameSetupModel>;
+
+export const gameSetup = z
+  .object({
+    stage: gameSetupStage.default("done"),
+    brief: z.string().default(""),
+    /** Manifest template id: `platformer`, `topdown`, `shmup`. */
+    template: z.string().optional(),
+    designer_model: gameSetupModel.optional(),
+    design: gameDesign.optional(),
+    /**
+     * What the stored design was written from, so the template step can tell
+     * "keep it" from "re-design". `${template}\n${brief}`, written by
+     * `designSourceOf`.
+     */
+    design_source: z.string().optional(),
+    style_entity_id: z.string().optional(),
+    /** `${provider}:${id}` tile id of the text-to-image model. */
+    image_model: z.string().optional(),
+    /** Registry node type of the sound-effect generator, absent for placeholders. */
+    sfx_node_type: z.string().optional(),
+    /** Tile id of the music model, absent for placeholders. */
+    music_model: z.string().optional(),
+    project_name: z.string().optional()
+  })
+  .passthrough();
+export type GameSetup = z.infer<typeof gameSetup>;
+
+/**
+ * A workflow's `settings` bag with the one field the Game flow owns. Same
+ * additive, permissive shape as {@link workflowSettingsWithSetup}: `hide_ui`,
+ * `setup` and whatever else a surface put there travel untouched.
+ */
+export const workflowSettingsWithGame = z
+  .object({ game: gameSetup.optional() })
+  .passthrough();
+export type WorkflowSettingsWithGame = z.infer<typeof workflowSettingsWithGame>;
+
+/**
+ * Read `settings.game` off a workflow's settings bag.
+ *
+ * Null both for a workflow that never went through the flow and for one whose
+ * `game` is malformed — the flow then does not open, which is what a creator
+ * sees today. Callers get a stage or nothing, never a half-parsed design.
+ */
+export function readGameSetup(settings: unknown): GameSetup | null {
+  const parsed = workflowSettingsWithGame.safeParse(settings ?? {});
+  return parsed.success ? (parsed.data.game ?? null) : null;
+}
+
+/**
+ * Merge a patch into `settings.game` and hand back the whole settings bag.
+ *
+ * As with `writeWorkflowSetup`, the caller's own keys survive even when `game`
+ * does not parse — a `game` a newer client wrote fails this build's parse, and
+ * starting from `{}` would drop `hide_ui`, `setup` and every other sibling on
+ * the next write. Only `game` is replaced.
+ */
+export function writeGameSetup(
+  settings: unknown,
+  patch: Partial<GameSetup>
+): Record<string, unknown> {
+  const parsed = workflowSettingsWithGame.safeParse(settings ?? {});
+  const base: Record<string, unknown> = parsed.success
+    ? { ...parsed.data }
+    : isRecord(settings)
+      ? { ...settings }
+      : {};
+  const current = parsed.success ? (parsed.data.game ?? null) : null;
+  base["game"] = gameSetup.parse({
+    stage: "idea",
+    brief: "",
+    ...(current ?? {}),
+    ...patch
+  });
+  return base;
+}

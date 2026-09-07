@@ -272,6 +272,46 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "set_game_setup",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "810bd5e94a02",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-setup.test.ts",
+    ],
+  },
+  {
+    name: "design_game",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "78db82a76559",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-setup.test.ts",
+    ],
+  },
+  {
+    name: "update_game_design",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "dd496066a910",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-setup.test.ts",
+    ],
+  },
+  {
+    name: "build_game",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "cb237625aaf0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-setup.test.ts",
+    ],
+  },
+  {
     name: "find_model",
     module: "models",
     impl: "packages/agents/src/capabilities/models.ts",

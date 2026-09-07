@@ -151,6 +151,66 @@ export function stylePresetMarker(
   };
 }
 
+/**
+ * The six shipped game style presets (game-prd § 5.6).
+ *
+ * Separate from {@link STYLE_PRESETS} because they answer a different
+ * question: a storyboard style describes a lens and a grade, a game style
+ * describes a pixel grid. The Game flow's Look step renders these, the seeder
+ * writes them as library `style` entities from the same list, and every prompt
+ * the game graph builds carries the descriptor verbatim.
+ *
+ * Every descriptor ends with {@link GAME_STYLE_DESCRIPTOR_TAIL}: a sprite that
+ * comes back on a painted backdrop cannot be composited, and text baked into a
+ * tile sheet cannot be removed.
+ */
+export const GAME_STYLE_DESCRIPTOR_TAIL =
+  "transparent background for sprites, flat lighting, no text, no watermark";
+
+const gameStyle = (
+  id: string,
+  name: string,
+  gist: string
+): StylePreset => ({
+  id,
+  name,
+  descriptor: `${gist}, ${GAME_STYLE_DESCRIPTOR_TAIL}`,
+  thumbnail: `package://nodetool-base/styles/game-${id}.png`
+});
+
+export const GAME_STYLE_PRESETS: readonly StylePreset[] = [
+  gameStyle(
+    "pixel-16bit",
+    "16-bit console",
+    "16-bit console pixel art on a 32px cell, four-shade ramps per material, solid black outlines, warm palette of rust orange, moss green and slate blue, no anti-aliasing, no dithering"
+  ),
+  gameStyle(
+    "pixel-8bit",
+    "8-bit",
+    "8-bit pixel art on a 16px cell, three colours per sprite, hard black outlines, primary palette of red, blue and cream on black, chunky one-pixel detail, no dithering, no anti-aliasing"
+  ),
+  gameStyle(
+    "pixel-handheld",
+    "Handheld pastel",
+    "Handheld pixel art on a 32px cell, four-tone pastel ramp of pale green, cream, sage and deep olive, soft grey-green outlines rather than black, no anti-aliasing"
+  ),
+  gameStyle(
+    "pixel-1bit",
+    "1-bit",
+    "1-bit pixel art in two colours only, off-white on near-black, shading carried entirely by ordered dither patterns, thick single-colour outlines, no midtones"
+  ),
+  gameStyle(
+    "pixel-modern",
+    "Chunky modern pixel",
+    "Modern pixel art on a 32px cell, wide saturated palette, outlines coloured from the material rather than black, a cool rim light along the top edge, subtle dithering in the shadow ramp only"
+  ),
+  gameStyle(
+    "painted-2d",
+    "Painted 2D",
+    "Hand-painted 2D game art in gouache, visible brush texture, soft edges, saturated mid-tones with muted shadows, no pixel grid and no outline"
+  )
+];
+
 /** The one field a read-only check cares about, parsed out of stored JSON. */
 const systemMarker = z.object({ system: z.literal(true) });
 

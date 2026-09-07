@@ -14,7 +14,8 @@ export const jobResponse = z.object({
   started_at: z.string().nullable(),
   finished_at: z.string().nullable(),
   error: z.string().nullable(),
-  cost: z.number().nullable()
+  cost: z.number().nullable(),
+  outputs: z.record(z.string(), z.unknown()).nullable()
 });
 export type JobResponse = z.infer<typeof jobResponse>;
 
@@ -35,6 +36,7 @@ export type BackgroundJobResponse = z.infer<typeof backgroundJobResponse>;
 export const listInput = z.object({
   limit: z.number().int().min(1).max(500).default(100),
   workflow_id: z.string().optional(),
+  include_outputs: z.boolean().default(false),
   // Cursor from a previous response's next_start_key. Without this the returned
   // cursor could never be submitted, so pagination past the first page was
   // unreachable.

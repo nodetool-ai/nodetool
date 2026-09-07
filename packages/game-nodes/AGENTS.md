@@ -17,7 +17,8 @@ contract, and `slotPrompt`).
 
 - **Nothing decides layout twice.** Sizes, prompts and the checker prop bag are
   `slotPrompt` in `@nodetool-ai/protocol/game-slot-prompt.ts`, so the node, the
-  `godot-game` skill and the editor agree by construction. A checker reads the
+  `godot-game` skill, the editor and the Game guided flow's `game-flow-prompt.ts`
+  agree by construction. A checker reads the
   same bag off its `game_slot` input, which is why a connected slot beats every
   hand-typed number beside it.
 - **`ExportGodotProject` takes the checker's `output`, not its `fill`.** A
@@ -44,7 +45,12 @@ contract, and `slotPrompt`).
   actually imported the project, checked every script and ran the smoke scene
   with no objection. No local directory or no `GODOT_BIN` reports the reason in
   `errors` and leaves `verified` false.
+- **An unfilled slot keeps the template's placeholder.** Only the slots that
+  were filled reach the writer, so a creator who kept the placeholder audio
+  (game-prd D27) and the blank-template export with no fills at all both
+  produce a project that runs. The `export_godot_project` capability wants every
+  slot and checks the whole manifest itself before calling the same join.
 - **Structural failures throw; findings are reported.** An unknown template, a
-  missing workspace, a bare fill or a manifest the fills do not satisfy stop the
-  node. Dangling `res://` references and Godot's own complaints come back in
-  `errors` so a retry loop can read them.
+  missing workspace, a bare fill or a fill for a slot the template does not have
+  stop the node. Dangling `res://` references and Godot's own complaints come
+  back in `errors` so a retry loop can read them.

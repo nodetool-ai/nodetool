@@ -6,6 +6,11 @@
 # curated assets built by scripts/build-example-storyboards.mjs and served as
 # `package://` URIs; the blanket *.mp4 above swallowed every one of them.
 !nodetool/assets/nodetool-base/storyboards/**
+
+# …and the Game flow's style tiles and template cards, drawn by
+# scripts/make-game-style-tiles.mjs and served as `package://` URIs.
+!nodetool/assets/nodetool-base/styles/**
+!nodetool/assets/nodetool-base/templates/**
 %Y-%m-%d-%H-%M-%S.txt
 \[object\ Object\]/
 
