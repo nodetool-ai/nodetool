@@ -17,7 +17,7 @@
 
 import { z } from "zod";
 import { listTemplates } from "@nodetool-ai/godot-templates";
-import { GAME_STYLE_PRESETS } from "@nodetool-ai/protocol";
+import { gameSlotSpec, GAME_STYLE_PRESETS } from "@nodetool-ai/protocol";
 import { seedStylePresets } from "../../lib/style-presets.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -28,8 +28,13 @@ const gameTemplateSummary = z.object({
   id: z.string(),
   /** Godot minor the template targets, e.g. `4.3`. */
   godot: z.string(),
-  /** Every asset slot the template declares, verbatim from its manifest. */
-  slots: z.array(z.unknown()),
+  /**
+   * Every asset slot the template declares, verbatim from its manifest. Typed
+   * with the manifest's own schema, not `unknown`: the browser rebuilds a
+   * `GameAssetManifest` out of one of these rows, so the slot shape has to
+   * survive the wire type.
+   */
+  slots: z.array(gameSlotSpec),
   /** Project-relative files the agent edits after export. */
   hooks: z.array(z.string())
 });

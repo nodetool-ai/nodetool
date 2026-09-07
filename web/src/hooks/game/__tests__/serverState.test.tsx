@@ -2,10 +2,11 @@
  * The two server-state hooks the flow reads its shipped data through
  * (game-prd § 6.1, § 5.6).
  *
- * What is asserted: the envelope each procedure answers with, so a change on
- * the router side fails here rather than as an empty template grid; and that
- * seeding the style presets invalidates the entity library, because the style
- * the graph pastes into every prompt is read back off an entity row.
+ * What is asserted: the shape each procedure answers with — both return the
+ * array itself, not an envelope around it — so a change on the router side
+ * fails here rather than as an empty template grid; and that seeding the style
+ * presets invalidates the entity library, because the style the graph pastes
+ * into every prompt is read back off an entity row.
  */
 import React from "react";
 import { renderHook, waitFor } from "@testing-library/react";
@@ -48,8 +49,8 @@ beforeEach(() => {
 });
 
 describe("useGameTemplates", () => {
-  it("reads the templates out of the procedure's envelope", async () => {
-    templatesQuery.mockResolvedValue({ templates: [PLATFORMER] });
+  it("reads the array the procedure answers with", async () => {
+    templatesQuery.mockResolvedValue([PLATFORMER]);
     const { result } = renderHook(() => useGameTemplates(), {
       wrapper: wrapper(client())
     });

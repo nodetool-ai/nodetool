@@ -56,6 +56,7 @@ import {
   buildGameDesignSchema,
   buildWorkflowPlanSchema,
   designSourceOf,
+  gameAudioChoice,
   gameGraphPlacement,
   gameProjectDirectory,
   parseGameDesign,
@@ -1725,9 +1726,14 @@ const buildGame: CapabilityExport = {
           "No image model is chosen. Set image_model to `provider:model_id` with set_game_setup — find_model has the ids."
       };
     }
-    const musicTile = owned.game?.music_model ?? "";
-    const musicModel = musicTile === "" ? null : modelValue(musicTile, "music_model");
-    if (musicTile !== "" && !musicModel) {
+    // A setup saved in the browser keeps "the template's own audio" as the
+    // placeholder sentinel, not as an absent field, so both audio answers are
+    // normalized the way the flow normalizes them (D27). Handing the sentinel
+    // on would fail this as an invalid model id and reach the registry as a
+    // node type nothing answers for.
+    const musicTile = gameAudioChoice(owned.game?.music_model);
+    const musicModel = musicTile === null ? null : modelValue(musicTile, "music_model");
+    if (musicTile !== null && !musicModel) {
       return {
         error: `music_model "${musicTile}" is not \`provider:model_id\`. Omit it to keep the template's placeholder music.`
       };
@@ -1739,7 +1745,7 @@ const buildGame: CapabilityExport = {
       template.id;
     const choices: GameGraphChoices = {
       imageModel,
-      sfxNodeType: owned.game?.sfx_node_type?.trim() || null,
+      sfxNodeType: gameAudioChoice(owned.game?.sfx_node_type),
       musicModel,
       style: await loadStyle(run, owned.game?.style_entity_id),
       projectName,

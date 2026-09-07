@@ -19,6 +19,7 @@
 import { createElement, useCallback, useMemo, useState } from "react";
 import {
   designSourceOf,
+  gameAudioChoice,
   gameProjectDirectory,
   type Entity,
   type GameGraphChoices
@@ -232,16 +233,11 @@ export const useGameSetupFlow = ({
       : null;
   }, [presets, styleEntity, styleEntityId]);
 
-  const sfxNodeType =
-    setup?.sfx_node_type === undefined ||
-    setup.sfx_node_type === GAME_PLACEHOLDER_TILE_ID
-      ? null
-      : setup.sfx_node_type;
-  const musicTileId =
-    setup?.music_model === undefined ||
-    setup.music_model === GAME_PLACEHOLDER_TILE_ID
-      ? null
-      : setup.music_model;
+  // The placeholder tile is saved on the document like any other answer, so
+  // both readers of that document — this flow and the headless `build_game` —
+  // turn it back into "nothing to generate" through the same helper.
+  const sfxNodeType = gameAudioChoice(setup?.sfx_node_type);
+  const musicTileId = gameAudioChoice(setup?.music_model);
 
   /** Everything the graph builder is given beyond the manifest and design. */
   const buildChoices = useCallback(

@@ -17,7 +17,10 @@ import { describe, it, expect, beforeEach } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { Workflow, initTestDb } from "@nodetool-ai/models";
-import { GAME_INSPIRATION_CHIPS } from "@nodetool-ai/protocol";
+import {
+  GAME_INSPIRATION_CHIPS,
+  GAME_PLACEHOLDER_SENTINEL
+} from "@nodetool-ai/protocol";
 import { readGameSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { getTemplate } from "@nodetool-ai/godot-templates";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
@@ -493,6 +496,31 @@ describe("build_game", () => {
     expect(await run().invoke("build_game", { workflow_id: row.id })).toMatchObject(
       { error: expect.stringContaining("No image model is chosen") }
     );
+  });
+
+  // What the Look step saves when the creator keeps the template's own audio:
+  // the placeholder tile id, on both rows. It is an answer, not an absence, so
+  // the headless builder has to read it as one (D27).
+  it("builds a browser setup that kept the placeholder audio", async () => {
+    const id = await designedWorkflow();
+    await run().invoke("set_game_setup", {
+      workflow_id: id,
+      sfx_node_type: GAME_PLACEHOLDER_SENTINEL,
+      music_model: GAME_PLACEHOLDER_SENTINEL
+    });
+    const result = (await run().invoke("build_game", {
+      workflow_id: id
+    })) as {
+      issues: string[];
+      graph: { nodes: Array<{ type: string }> };
+    };
+    expect(result.issues).toEqual([]);
+    const types = result.graph.nodes.map((node) => node.type);
+    expect(types).toContain("nodetool.game.ExportGodotProject");
+    expect(types).not.toContain("nodetool.audio.TextToMusic");
+    expect(types).not.toContain("nodetool.game.MusicLoop");
+    expect(types).not.toContain(GAME_PLACEHOLDER_SENTINEL);
+    expect(types).not.toContain("nodetool.game.SoundEffect");
   });
 
   it("adds the music chain when a music model is chosen", async () => {

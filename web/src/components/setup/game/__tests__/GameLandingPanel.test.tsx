@@ -31,18 +31,38 @@ jest.mock("../../../../contexts/WorkflowManagerContext", () => ({
   useWorkflowManagerStore: () => ({ getState: () => managerState })
 }));
 
-const outputResults: Record<string, unknown> = {
-  "w1:job1:check_1": { asset_id: "a" },
-  "w1:job1:export": {
-    directory: "games/ember-run",
-    archive: "games/ember-run.zip",
-    verified: true
-  }
+// One completed generation per node of the focused job — the shape
+// `generation_complete` and a completed `node_update` both write, keyed by
+// handle. The checklist reads its rows out of this, never out of
+// `outputResults` (see gameRunSummary's header).
+const liveGenerations: Record<string, unknown[]> = {
+  "w1:check_1": [
+    {
+      id: "job1",
+      jobId: "job1",
+      createdAt: 1,
+      status: "completed",
+      outputs: { output: { asset_id: "a" }, fill: { slot_id: "player" } }
+    }
+  ],
+  "w1:export": [
+    {
+      id: "job1",
+      jobId: "job1",
+      createdAt: 1,
+      status: "completed",
+      outputs: {
+        directory: "games/ember-run",
+        archive: "games/ember-run.zip",
+        verified: true
+      }
+    }
+  ]
 };
 jest.mock("../../../../stores/ResultsStore", () => ({
   __esModule: true,
   default: (selector: (state: unknown) => unknown) =>
-    selector({ outputResults })
+    selector({ liveGenerations })
 }));
 jest.mock("../../../../stores/ErrorStore", () => {
   const actual = jest.requireActual("../../../../stores/ErrorStore");

@@ -16,7 +16,11 @@
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { formatUsd, getModelUnitPrice } from "@nodetool-ai/model-pricing";
-import type { Entity, GameSlotSpec } from "@nodetool-ai/protocol";
+import {
+  GAME_PLACEHOLDER_SENTINEL,
+  type Entity,
+  type GameSlotSpec
+} from "@nodetool-ai/protocol";
 
 import {
   AlertBanner,
@@ -45,9 +49,11 @@ import type { StylePresetEntity } from "../../../serverState/useStylePresets";
 /**
  * The tile that keeps a template's shipped audio. It is a real choice, not an
  * absent one (D27), so it is the first tile of its row rather than a cleared
- * selection nobody can see.
+ * selection nobody can see. The id is the protocol's, because the value is
+ * saved on the document and every reader — this flow and the headless
+ * `build_game` — has to normalize the same string.
  */
-export const GAME_PLACEHOLDER_TILE_ID = "keep-placeholder";
+export const GAME_PLACEHOLDER_TILE_ID = GAME_PLACEHOLDER_SENTINEL;
 
 /** Whether a row's tiles are there yet, and why not when they are not. */
 export type GameRowStatus = "loading" | "error" | "empty" | "ready";

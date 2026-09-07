@@ -109,6 +109,30 @@ export function gameProjectDirectory(name: string): string {
   return `games/${gameProjectSlug(name)}`;
 }
 
+/**
+ * The Look step's "keep the template's own audio" tile, which the browser
+ * saves onto the document like any other choice (D27). It is a real answer,
+ * not an absent one, so it has to be readable as an answer — and it is not a
+ * model id or a node type, so every reader has to turn it back into "nothing
+ * to generate" before handing it on.
+ */
+export const GAME_PLACEHOLDER_SENTINEL = "keep-placeholder";
+
+/**
+ * One saved audio answer as a builder takes it: a model id or a node type, or
+ * null for the template's own sound. Blank, absent and the sentinel all mean
+ * the placeholder.
+ */
+export function gameAudioChoice(
+  value: string | undefined | null
+): string | null {
+  const trimmed = (value ?? "").trim();
+  if (trimmed === "" || trimmed === GAME_PLACEHOLDER_SENTINEL) {
+    return null;
+  }
+  return trimmed;
+}
+
 // ── Layout ──────────────────────────────────────────────────────────────────
 
 const COLUMN_WIDTH = 300;

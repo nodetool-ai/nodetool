@@ -18,6 +18,8 @@ import {
   GAME_TEXT_TO_IMAGE_NODE_TYPE,
   GAME_TEXT_TO_MUSIC_NODE_TYPE,
   GAME_TILESET_NODE_TYPE,
+  GAME_PLACEHOLDER_SENTINEL,
+  gameAudioChoice,
   gameGraphPlacement,
   gameProjectDirectory,
   gameProjectSlug,
@@ -593,5 +595,26 @@ describe("gameProjectSlug", () => {
   it("exports under games/", () => {
     expect(gameProjectDirectory("Ember Run")).toBe("games/ember-run");
     expect(gameProjectDirectory("")).toBe("games/game");
+  });
+});
+
+describe("gameAudioChoice", () => {
+  it("reads the placeholder tile as nothing to generate", () => {
+    expect(gameAudioChoice(GAME_PLACEHOLDER_SENTINEL)).toBeNull();
+  });
+
+  it("reads an absent or blank answer as the placeholder too", () => {
+    expect(gameAudioChoice(undefined)).toBeNull();
+    expect(gameAudioChoice(null)).toBeNull();
+    expect(gameAudioChoice("   ")).toBeNull();
+  });
+
+  it("hands a real model id or node type through, trimmed", () => {
+    expect(gameAudioChoice("replicate:meta/musicgen")).toBe(
+      "replicate:meta/musicgen"
+    );
+    expect(gameAudioChoice("  fal.text_to_audio.SoundEffect  ")).toBe(
+      "fal.text_to_audio.SoundEffect"
+    );
   });
 });

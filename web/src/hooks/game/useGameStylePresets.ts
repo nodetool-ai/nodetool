@@ -11,9 +11,10 @@
  * The entity library is invalidated on success, because the seeded rows are
  * entities and `useEntities` is what the step reads their descriptors from.
  *
- * The router lives in `packages/websocket/src/trpc/routers/games.ts`. Until it
- * is built, `trpcClient.games` is not on the client's type, so the call goes
- * through one narrow cast — kept in this file only.
+ * The router lives in `packages/websocket/src/trpc/routers/games.ts` and
+ * answers with the preset array itself. Returning it as `StylePresetEntity[]`
+ * is what checks the two shapes still agree: a field the router drops or
+ * renames fails this function's return type.
  */
 
 import {
@@ -25,13 +26,6 @@ import {
 import { trpcClient } from "../../trpc/client";
 import type { StylePresetEntity } from "../../serverState/useStylePresets";
 
-/** The shape `games.stylePresets` answers with — `storyboards.stylePresets`'. */
-interface GameStylePresetsRouter {
-  games: {
-    stylePresets: { mutate: () => Promise<StylePresetEntity[]> };
-  };
-}
-
 export const GAME_STYLE_PRESETS_QUERY_KEY = ["game-style-presets"] as const;
 
 export function useGameStylePresets(): UseQueryResult<
@@ -42,8 +36,7 @@ export function useGameStylePresets(): UseQueryResult<
   return useQuery({
     queryKey: GAME_STYLE_PRESETS_QUERY_KEY,
     queryFn: async (): Promise<StylePresetEntity[]> => {
-      const client = trpcClient as unknown as GameStylePresetsRouter;
-      const presets = await client.games.stylePresets.mutate();
+      const presets = await trpcClient.games.stylePresets.mutate();
       await queryClient.invalidateQueries({ queryKey: ["entities"] });
       return presets;
     },

@@ -40,12 +40,12 @@ const NODES = [
 ];
 
 const summarize = (
-  results: Record<string, unknown>,
+  outputs: Record<string, Record<string, unknown>>,
   errors: Record<string, string> = {}
 ): GameRunSummary =>
   summarizeGameRun({
     nodes: NODES,
-    resultFor: (nodeId) => results[nodeId],
+    outputsFor: (nodeId) => outputs[nodeId],
     errorFor: (nodeId) => errors[nodeId]
   });
 
@@ -72,7 +72,7 @@ const renderChecklist = (run: GameRunSummary, result = CLEAN) => {
 
 describe("summarizeGameRun", () => {
   it("counts a slot as checked once any node of its chain answered", () => {
-    const run = summarize({ check_1: { asset_id: "a" } });
+    const run = summarize({ check_1: { output: { asset_id: "a" } } });
     expect(run).toMatchObject({ checked: 1, total: 2 });
   });
 
@@ -95,8 +95,8 @@ describe("summarizeGameRun", () => {
     ["verified false", { directory: "games/x", verified: false }],
     ["a truthy non-boolean", { directory: "games/x", verified: "yes" }],
     ["a truthy number", { directory: "games/x", verified: 1 }]
-  ])("does not report %s as verified", (_label, value) => {
-    const run = summarize(value === undefined ? {} : { export: value });
+  ])("does not report %s as verified", (_label, outputs) => {
+    const run = summarize(outputs === undefined ? {} : { export: outputs });
     expect(run.verified).toBe(false);
   });
 

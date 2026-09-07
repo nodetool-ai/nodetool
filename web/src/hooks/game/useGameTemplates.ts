@@ -8,35 +8,19 @@
  * per-slot rows of the design review, and the manifest `gameGraphPlacement`
  * builds the graph from.
  *
- * The router lives in `packages/websocket/src/trpc/routers/games.ts`. Until it
- * is built and its types reach `AppRouter`, `trpcClient.games` is not on the
- * client's type, so the call goes through one narrow cast — kept in this file
- * only, so removing it is a single edit.
+ * The procedure answers with the array itself, and `GameTemplate` is that
+ * array's element type as `AppRouter` declares it — so a change to the
+ * router's output stops this file at compile time rather than emptying the
+ * template grid at runtime.
  */
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import type {
-  GameAssetManifest,
-  GameSlotSpec
-} from "@nodetool-ai/protocol";
+import type { GameAssetManifest } from "@nodetool-ai/protocol";
 
-import { trpcClient } from "../../trpc/client";
+import { trpcClient, type RouterOutputs } from "../../trpc/client";
 
 /** One shipped template, as `games.templates` returns it. */
-export interface GameTemplate {
-  /** Manifest template id: `platformer`, `topdown`, `shmup`. */
-  id: string;
-  /** Godot minor the template targets, e.g. `4.3`. */
-  godot: string;
-  slots: GameSlotSpec[];
-  /** Project-relative gameplay files the agent edits after export. */
-  hooks: string[];
-}
-
-/** The shape `games.templates` answers with. */
-interface GameTemplatesRouter {
-  games: { templates: { query: () => Promise<{ templates: GameTemplate[] }> } };
-}
+export type GameTemplate = RouterOutputs["games"]["templates"][number];
 
 export const GAME_TEMPLATES_QUERY_KEY = ["game-templates"] as const;
 
@@ -54,11 +38,7 @@ export const templateManifest = (
 export function useGameTemplates(): UseQueryResult<GameTemplate[], Error> {
   return useQuery({
     queryKey: GAME_TEMPLATES_QUERY_KEY,
-    queryFn: async (): Promise<GameTemplate[]> => {
-      const client = trpcClient as unknown as GameTemplatesRouter;
-      const answer = await client.games.templates.query();
-      return answer.templates;
-    },
+    queryFn: () => trpcClient.games.templates.query(),
     // Three manifests that ship with the install and never change under it.
     staleTime: Infinity
   });
