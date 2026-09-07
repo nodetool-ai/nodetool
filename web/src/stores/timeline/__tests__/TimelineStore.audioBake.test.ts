@@ -9,13 +9,18 @@
 
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import { makeClip, makeTrack } from "@nodetool-ai/timeline";
-import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
+import type {
+  ClipAnimation,
+  TimelineClip,
+  TimelineTrack
+} from "@nodetool-ai/timeline";
 
 import { createTimelineStore, timelineTemporalOf } from "../TimelineStore";
 import {
   mockTimelineGet,
   trpcClient
 } from "../../../__mocks__/trpcClientMock";
+import { useConflictStore, clearAllConflicts } from "../../ConflictStore";
 import { bakeAudioAnimation } from "../../../utils/timelineAudioBake";
 import type { BakeAudioAnimationBody } from "../../../utils/timelineAudioBake";
 
@@ -64,7 +69,33 @@ const BAKED_ANIMATION = {
   }
 };
 
-function seedStore() {
+/** An earlier bake of the same kind and property: what a re-bake replaces. */
+const EARLIER_BAKE: ClipAnimation = {
+  ...BAKED_ANIMATION,
+  id: "anim-0",
+  custom: {
+    ...BAKED_ANIMATION.custom,
+    curves: [
+      {
+        property: "scale" as const,
+        keyframes: [
+          { t: 0, sourceMs: 0, value: 1 },
+          { t: 1, sourceMs: 2000, value: 1.05 }
+        ]
+      }
+    ]
+  }
+};
+
+/** A curve nobody baked: it carries no `bakedFrom`, so no bake owns it. */
+const HAND_ANIMATION: ClipAnimation = {
+  id: "hand-1",
+  role: "in",
+  preset: "fade-in",
+  durationMs: 500
+};
+
+function seedStore(animations?: ClipAnimation[]) {
   const store = createTimelineStore();
   const track: TimelineTrack = makeTrack({ type: "video", name: "V1" });
   const target: TimelineClip = makeClip({
@@ -73,7 +104,8 @@ function seedStore() {
     name: "Shot 1",
     startMs: 0,
     durationMs: 2000,
-    mediaType: "video"
+    mediaType: "video",
+    ...(animations ? { animations } : {})
   });
   store.setState({
     sequenceId: SEQUENCE_ID,
@@ -96,7 +128,14 @@ function serverSequence(track: TimelineTrack, target: TimelineClip) {
   };
 }
 
+/** The conflict-banner key the store reports this sequence's refusals under. */
+const CONFLICT_KEY = `timelinesequence:${SEQUENCE_ID}`;
+
+const listedConflicts = () =>
+  useConflictStore.getState().byKey[CONFLICT_KEY]?.conflicts ?? [];
+
 beforeEach(() => {
+  clearAllConflicts();
   postBake.mockReset();
   updateMutate.mockReset();
   mockTimelineGet.mockReset();
@@ -235,6 +274,116 @@ describe("bakeAudioAnimation", () => {
       "No timeline is open."
     );
     expect(postBake).not.toHaveBeenCalled();
+  });
+
+  it("keeps a rename made while the INITIAL SAVE was in flight", async () => {
+    const { store, track, target } = seedStore();
+    let releaseSave: () => void = () => {};
+    updateMutate.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseSave = () =>
+            resolve({ updatedAt: "2026-01-01T00:01:00.000Z" });
+        })
+    );
+    // The server never saw the rename: it started from the document the save
+    // carried, and answers with that document plus the curve.
+    mockTimelineGet.mockResolvedValue(serverSequence(track, target));
+
+    const pending = store.getState().bakeAudioAnimation(BODY);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(updateMutate).toHaveBeenCalledTimes(1);
+
+    // Inside the save's own window — the edit is not in what was sent.
+    store.getState().patchClip("target-1", { name: "User rename" });
+    releaseSave();
+    await pending;
+
+    const clip = store.getState().clips.find((c) => c.id === "target-1");
+    expect(clip?.name).toBe("User rename");
+    expect(clip?.animations).toEqual([BAKED_ANIMATION]);
+    expect(listedConflicts()).toEqual([]);
+  });
+
+  it("bakes onto a clip edited while the bake was in flight", async () => {
+    const { store, track, target } = seedStore();
+    let releaseGet: () => void = () => {};
+    mockTimelineGet.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseGet = () => resolve(serverSequence(track, target));
+        })
+    );
+
+    const pending = store.getState().bakeAudioAnimation(BODY);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockTimelineGet).toHaveBeenCalledTimes(1);
+
+    // The user edits the very clip the bake is writing to — a rename, and a
+    // curve of their own that no bake owns.
+    store.getState().patchClip("target-1", { name: "User rename" });
+    store.getState().setClipAnimations("target-1", [HAND_ANIMATION]);
+
+    releaseGet();
+    const result = await pending;
+
+    const clip = store.getState().clips.find((c) => c.id === "target-1");
+    expect(clip?.name).toBe("User rename");
+    // The bake replaces only the curve it owns; the hand-made one stays.
+    expect(clip?.animations).toEqual([HAND_ANIMATION, BAKED_ANIMATION]);
+    expect(result.pendingUserResolution).toBeUndefined();
+    expect(listedConflicts()).toEqual([]);
+    // The next merge base and the next autosave's baseline hold what the
+    // server now has, curve included — nothing left to overwrite it with.
+    expect(store.getState().baseUpdatedAt).toBe("2026-01-01T00:05:00.000Z");
+    expect(
+      store
+        .getState()
+        .syncedDocument?.clips.find((c) => c.id === "target-1")?.animations
+    ).toEqual([BAKED_ANIMATION]);
+  });
+
+  it("offers the baked curve in the banner when the draft deleted it", async () => {
+    // A re-bake: the clip already carries the curve this bake owns, so the
+    // user deleting it during the request is a change to the same field.
+    const { store, track, target } = seedStore([EARLIER_BAKE]);
+    let releaseGet: () => void = () => {};
+    mockTimelineGet.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseGet = () => resolve(serverSequence(track, target));
+        })
+    );
+
+    const pending = store.getState().bakeAudioAnimation(BODY);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    store.getState().setClipAnimations("target-1", []);
+
+    releaseGet();
+    const result = await pending;
+
+    // The draft stands …
+    expect(
+      store.getState().clips.find((c) => c.id === "target-1")?.animations
+    ).toEqual([]);
+    // … the bake's result is offered rather than dropped …
+    const conflicts = listedConflicts();
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].unit).toMatchObject({ kind: "clip", id: "target-1" });
+    expect((conflicts[0].external as TimelineClip).animations).toEqual([
+      BAKED_ANIMATION
+    ]);
+    // … and the caller is told the bake has not landed.
+    expect(result.pendingUserResolution).toBe(true);
+
+    // Accepting takes only the baked curve, through a normal store mutation.
+    store.getState().patchClip("target-1", { name: "User rename" });
+    useConflictStore.getState().accept(CONFLICT_KEY, "target-1");
+    const clip = store.getState().clips.find((c) => c.id === "target-1");
+    expect(clip?.animations).toEqual([BAKED_ANIMATION]);
+    expect(clip?.name).toBe("User rename");
+    expect(listedConflicts()).toEqual([]);
   });
 
   it("propagates the server's refusal without touching the document", async () => {

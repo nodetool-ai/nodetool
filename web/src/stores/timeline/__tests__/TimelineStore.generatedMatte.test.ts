@@ -21,6 +21,7 @@ import { createTimelineStore, timelineTemporalOf } from "../TimelineStore";
 import { mockTimelineGet, trpcClient } from "../../../__mocks__/trpcClientMock";
 import { isolateSubject } from "../../../utils/timelineIsolateSubject";
 import { useNotificationStore } from "../../NotificationStore";
+import { useConflictStore, clearAllConflicts } from "../../ConflictStore";
 
 jest.mock("../../../utils/timelineIsolateSubject", () => ({
   ...(jest.requireActual(
@@ -94,12 +95,19 @@ function serverSequence(
   };
 }
 
+/** The conflict-banner key the store reports this sequence's refusals under. */
+const CONFLICT_KEY = `timelinesequence:${SEQUENCE_ID}`;
+
+const listedConflicts = () =>
+  useConflictStore.getState().byKey[CONFLICT_KEY]?.conflicts ?? [];
+
 beforeEach(() => {
   postIsolate.mockReset();
   updateMutate.mockReset();
   mockTimelineGet.mockReset();
   updateMutate.mockResolvedValue({ updatedAt: "2026-01-01T00:01:00.000Z" });
   useNotificationStore.getState().clearNotifications();
+  clearAllConflicts();
 });
 
 describe("setGeneratedMatteKnobs", () => {
@@ -368,5 +376,139 @@ describe("isolateSubject", () => {
     await store.getState().isolateSubject(CLIP_ID);
 
     expect(store.getState().clips[0].generatedMatte?.assetId).toBe("");
+  });
+
+  it("keeps a rename made while the INITIAL SAVE was in flight", async () => {
+    const { store, track, clip } = seedStore();
+    let releaseSave: () => void = () => {};
+    updateMutate.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseSave = () =>
+            resolve({ updatedAt: "2026-01-01T00:01:00.000Z" });
+        })
+    );
+    postIsolate.mockResolvedValue({
+      status: "ready",
+      assetId: "mask-2",
+      sourceRange: { fromMs: 0, toMs: 4000 },
+      reused: false
+    });
+    // The server never saw the rename: it started from the document the save
+    // carried, and answers with that document plus the matte.
+    mockTimelineGet.mockResolvedValue(serverSequence(track, clip, MATTE));
+
+    const pending = store.getState().isolateSubject(CLIP_ID);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(updateMutate).toHaveBeenCalledTimes(1);
+
+    // Inside the save's own window — the edit is not in what was sent, so the
+    // optimistic base must not claim it was.
+    store.getState().patchClip(CLIP_ID, { name: "User rename" });
+    releaseSave();
+    await pending;
+
+    const target = store.getState().clips.find((c) => c.id === CLIP_ID);
+    expect(target?.name).toBe("User rename");
+    expect(target?.generatedMatte).toMatchObject({
+      assetId: "mask-2",
+      status: "ready"
+    });
+    expect(listedConflicts()).toEqual([]);
+  });
+
+  it("takes the matte onto a clip renamed while the run was in flight", async () => {
+    const { store, track, clip } = seedStore();
+    postIsolate.mockResolvedValue({
+      status: "ready",
+      assetId: "mask-2",
+      sourceRange: { fromMs: 0, toMs: 4000 },
+      reused: false
+    });
+    let releaseGet: () => void = () => {};
+    mockTimelineGet.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseGet = () => resolve(serverSequence(track, clip, MATTE));
+        })
+    );
+
+    const pending = store.getState().isolateSubject(CLIP_ID);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockTimelineGet).toHaveBeenCalledTimes(1);
+
+    // The user renames the very clip the run is writing to. The rename and
+    // the matte are different fields of one clip, so neither costs the other.
+    store.getState().patchClip(CLIP_ID, { name: "User rename" });
+
+    releaseGet();
+    const result = await pending;
+
+    const target = store.getState().clips.find((c) => c.id === CLIP_ID);
+    expect(target?.name).toBe("User rename");
+    expect(target?.generatedMatte).toMatchObject({
+      assetId: "mask-2",
+      status: "ready"
+    });
+    expect(result?.pendingUserResolution).toBeUndefined();
+    expect(listedConflicts()).toEqual([]);
+    // The next merge base and the next autosave's baseline hold what the
+    // server now has, matte included — nothing left to overwrite it with.
+    expect(store.getState().baseUpdatedAt).toBe("2026-01-01T00:05:00.000Z");
+    expect(
+      store
+        .getState()
+        .syncedDocument?.clips.find((c) => c.id === CLIP_ID)?.generatedMatte
+    ).toMatchObject({ assetId: "mask-2", status: "ready" });
+  });
+
+  it("offers the finished matte in the banner when the draft cleared it", async () => {
+    const { store, track, clip } = seedStore(MATTE);
+    const generated = { ...MATTE, assetId: "paid-mask" };
+    postIsolate.mockResolvedValue({
+      status: "ready",
+      assetId: "paid-mask",
+      sourceRange: { fromMs: 0, toMs: 4000 },
+      reused: false
+    });
+    let releaseGet: () => void = () => {};
+    mockTimelineGet.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseGet = () => resolve(serverSequence(track, clip, generated));
+        })
+    );
+
+    const pending = store.getState().isolateSubject(CLIP_ID);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Both sides changed the matte itself: the user threw it away while the
+    // run was cutting a new one. That is a real contest, not a merge.
+    store.getState().clearGeneratedMatte(CLIP_ID);
+
+    releaseGet();
+    const result = await pending;
+
+    // The draft stands …
+    expect(
+      store.getState().clips.find((c) => c.id === CLIP_ID)?.generatedMatte
+    ).toBeUndefined();
+    // … the run's result is offered rather than dropped …
+    const conflicts = listedConflicts();
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].unit).toMatchObject({ kind: "clip", id: CLIP_ID });
+    expect(
+      (conflicts[0].external as TimelineClip).generatedMatte
+    ).toMatchObject({ assetId: "paid-mask" });
+    // … and the caller is told the run has not landed.
+    expect(result?.pendingUserResolution).toBe(true);
+
+    // Accepting takes only the matte, through a normal store mutation.
+    store.getState().patchClip(CLIP_ID, { name: "User rename" });
+    useConflictStore.getState().accept(CONFLICT_KEY, CLIP_ID);
+    const target = store.getState().clips.find((c) => c.id === CLIP_ID);
+    expect(target?.generatedMatte).toMatchObject({ assetId: "paid-mask" });
+    expect(target?.name).toBe("User rename");
+    expect(listedConflicts()).toEqual([]);
   });
 });

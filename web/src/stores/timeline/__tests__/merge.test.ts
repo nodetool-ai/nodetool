@@ -5,8 +5,10 @@
 import { describe, expect, it } from "@jest/globals";
 
 import {
+  adoptGeneratedClipField,
   mergeTimelineDocuments,
   timelineUnitsTouchedByOp,
+  type GeneratedClipField,
   type TimelineMergeDoc
 } from "../merge";
 
@@ -126,5 +128,117 @@ describe("mergeTimelineDocuments", () => {
     expect(conflicts.map((c) => `${c.unit.kind}:${c.reason}`)).toEqual([
       "clip:edited"
     ]);
+  });
+});
+
+describe("adoptGeneratedClipField", () => {
+  /** A stand-in for `generatedMatte`: one field a route writes onto a clip. */
+  const matteField: GeneratedClipField<{
+    id: string;
+    name?: string;
+    matte?: unknown;
+  }> = {
+    valueOf: (clip) => clip.matte,
+    overlay: (target, source) => ({ ...target, matte: source.matte })
+  };
+
+  const ops = [
+    { tool: "ui_timeline_update_clip", input: { clip_id: "C1" } }
+  ];
+
+  /** base → draft → server for a clip the route wrote a matte onto. */
+  const scenario = (draftClip: Record<string, unknown>) => {
+    const base = docOf(
+      [trackOf("T1")],
+      [clipOf("C1", "T1", { matte: { assetId: "", status: "generating" } })]
+    );
+    const draft = docOf([trackOf("T1")], [clipOf("C1", "T1", draftClip)]);
+    const server = docOf(
+      [trackOf("T1")],
+      [clipOf("C1", "T1", { matte: { assetId: "paid", status: "ready" } })]
+    );
+    return {
+      base,
+      draft,
+      server,
+      merged: mergeTimelineDocuments(base, draft, server, ops)
+    };
+  };
+
+  it("overlays the generated field onto a clip the draft changed elsewhere", () => {
+    const { base, draft, server, merged } = scenario({
+      name: "User rename",
+      matte: { assetId: "", status: "generating" }
+    });
+    // The unit merge alone refuses the whole clip: that is the bug.
+    expect(merged.conflicts).toHaveLength(1);
+
+    const adopted = adoptGeneratedClipField(
+      merged,
+      { base, draft, server },
+      ["C1"],
+      matteField
+    );
+
+    expect(adopted.doc.clips[0]).toMatchObject({
+      name: "User rename",
+      matte: { assetId: "paid", status: "ready" }
+    });
+    expect(adopted.conflicts).toEqual([]);
+    expect(adopted.pending).toEqual([]);
+    // The clip's next base is what the server now holds.
+    expect(adopted.nextBase.clips[0]).toMatchObject({
+      name: "C1",
+      matte: { assetId: "paid", status: "ready" }
+    });
+  });
+
+  it("contests only a draft that changed the generated field itself", () => {
+    const { base, draft, server, merged } = scenario({
+      name: "User rename",
+      matte: undefined
+    });
+
+    const adopted = adoptGeneratedClipField(
+      merged,
+      { base, draft, server },
+      ["C1"],
+      matteField
+    );
+
+    expect(adopted.doc.clips[0]).toMatchObject({
+      name: "User rename",
+      matte: undefined
+    });
+    expect(adopted.pending).toHaveLength(1);
+    expect(adopted.pending[0].external).toMatchObject({
+      matte: { assetId: "paid", status: "ready" }
+    });
+    expect(adopted.conflicts).toEqual(adopted.pending);
+    // A refused slot keeps the base it had, so the offer stays reachable.
+    expect(adopted.nextBase.clips[0]).toMatchObject({
+      matte: { assetId: "", status: "generating" }
+    });
+  });
+
+  it("leaves a clip the route did not write in this field alone", () => {
+    const base = docOf([trackOf("T1")], [clipOf("C1", "T1")]);
+    const draft = docOf(
+      [trackOf("T1")],
+      [clipOf("C1", "T1", { name: "User rename" })]
+    );
+    const server = docOf([trackOf("T1")], [clipOf("C1", "T1")]);
+    const merged = mergeTimelineDocuments(base, draft, server, ops);
+
+    const adopted = adoptGeneratedClipField(
+      merged,
+      { base, draft, server },
+      ["C1"],
+      matteField
+    );
+
+    expect(adopted.doc).toBe(merged.doc);
+    expect(adopted.nextBase).toBe(merged.nextBase);
+    expect(adopted.conflicts).toEqual(merged.conflicts);
   });
 });

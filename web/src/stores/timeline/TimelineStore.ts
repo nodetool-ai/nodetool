@@ -62,7 +62,9 @@ import {
   transposeNotes,
   DEFAULT_MIDI_INSTRUMENT,
   clearGeneratedMatte as clearMatteOnClip,
-  selectGeneratedMatteVersion as selectMatteVersionOnClip
+  selectGeneratedMatteVersion as selectMatteVersionOnClip,
+  findBakedAnimationIndex,
+  AUDIO_BAKED_ANIMATION_KIND
 } from "@nodetool-ai/timeline";
 import type {
   AnimatedProperty,
@@ -107,7 +109,14 @@ import {
   reflowGenerated,
   isTranscriptClip
 } from "./transcriptOps";
-import { mergeTimelineDocuments, type TimelineMergeDoc } from "./merge";
+import {
+  adoptGeneratedClipField,
+  mergeTimelineDocuments,
+  timelineConflictKey,
+  type GeneratedClipField,
+  type TimelineMergeDoc
+} from "./merge";
+import { reportDocumentConflicts } from "../documentConflictReporter";
 import type { DocumentOp } from "@nodetool-ai/protocol";
 
 // ── Snap threshold ─────────────────────────────────────────────────────────
@@ -134,6 +143,67 @@ export interface IsolateSubjectOptions
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * What a generating action adds to the route's own answer when the draft
+ * refused the result: it is waiting in the conflict banner, not on the clip,
+ * so the caller must not report the run as landed.
+ */
+export interface PendingUserResolution {
+  /** True when the generated value needs the user to accept or discard it. */
+  pendingUserResolution?: boolean;
+}
+
+/** The `generatedMatte` an isolate-subject run cuts onto one clip. */
+const GENERATED_MATTE_FIELD: GeneratedClipField<TimelineClip> = {
+  valueOf: (clip) => clip.generatedMatte,
+  overlay: (target, source) => {
+    const next: TimelineClip = {
+      ...target,
+      generatedMatte: source.generatedMatte
+    };
+    if (next.generatedMatte === undefined) delete next.generatedMatte;
+    return next;
+  }
+};
+
+/**
+ * The one animation an audio bake owns on a clip: the curve an earlier bake
+ * of the same kind left driving `property`. Every other animation on the clip
+ * — a hand-tuned curve, a bake of another property — belongs to whoever wrote
+ * it and is carried through untouched.
+ */
+const bakedAudioAnimationField = (
+  property: string
+): GeneratedClipField<TimelineClip> => {
+  const indexIn = (clip: TimelineClip): number =>
+    findBakedAnimationIndex(
+      clip.animations,
+      AUDIO_BAKED_ANIMATION_KIND,
+      property
+    );
+  return {
+    valueOf: (clip) => {
+      const index = indexIn(clip);
+      return index < 0 ? undefined : clip.animations?.[index];
+    },
+    overlay: (target, source) => {
+      const sourceIndex = indexIn(source);
+      const generated = source.animations?.[sourceIndex];
+      const animations = [...(target.animations ?? [])];
+      const targetIndex = indexIn(target);
+      if (generated === undefined) {
+        if (targetIndex < 0) return target;
+        animations.splice(targetIndex, 1);
+      } else if (targetIndex < 0) {
+        animations.push(generated);
+      } else {
+        animations[targetIndex] = generated;
+      }
+      return { ...target, animations };
+    }
+  };
+};
 
 // ── State interface ────────────────────────────────────────────────────────
 
@@ -566,10 +636,14 @@ export interface TimelineStoreState {
    * server wrote in one `applyAgentEdit`, i.e. one undo entry. What comes back
    * is merged against the document that was saved, so an edit made while the
    * bake ran survives instead of being overwritten by the server's copy.
+   *
+   * A draft that edited or deleted this same baked curve while the bake ran
+   * contests it: the draft stands, the server's clip goes to the conflict
+   * banner, and the answer carries `pendingUserResolution`.
    */
   bakeAudioAnimation: (
     body: BakeAudioAnimationBody
-  ) => Promise<BakeAudioAnimationResult>;
+  ) => Promise<BakeAudioAnimationResult & PendingUserResolution>;
 
   /**
    * The look knobs on a clip's generated matte (D2): how hard it cuts, which
@@ -597,11 +671,15 @@ export interface TimelineStoreState {
    * an edit made while the run was in flight survives. Each round of the wait
    * is one undo entry. Resolves null when the run failed — the error
    * reaches the user as a notification rather than an unhandled rejection.
+   *
+   * A draft that changed the matte itself while the run was in flight
+   * contests it: the draft stands, the server's clip goes to the conflict
+   * banner, and the answer carries `pendingUserResolution`.
    */
   isolateSubject: (
     clipId: string,
     options?: IsolateSubjectOptions
-  ) => Promise<IsolateSubjectResult | null>;
+  ) => Promise<(IsolateSubjectResult & PendingUserResolution) | null>;
 
   /** Restore a clip to a previously generated version (purely local; autosave persists on next save cycle). */
   restoreVersion: (clipId: string, versionId: string) => void;
@@ -1307,6 +1385,13 @@ const clipWriteOps = (clipIds: readonly string[]): DocumentOp[] =>
  * because `setBaseUpdatedAt` then marked the replacement as synchronized and
  * autosave had nothing left to write.
  *
+ * The unit merge is atomic per clip, so the field the route generated gets a
+ * second, field-scoped pass (`adoptGeneratedClipField`): a matte or a baked
+ * curve lands on a clip the user renamed meanwhile, and only a draft that
+ * changed that same field contests it. What is contested reaches the user
+ * through the conflict banner and is reported back as `pending` — dropping it
+ * left the action claiming success while the inspector sat on a placeholder.
+ *
  * The whole write is one `applyAgentEdit`, i.e. one undo entry. Returns the
  * base for the next adoption, so a polling caller rolls forward instead of
  * merging against a copy two rounds old.
@@ -1317,8 +1402,9 @@ function adoptServerSequence(
   get: () => TimelineStoreState,
   sequence: FetchedSequence,
   base: TimelineSyncedDoc,
-  touchedClipIds: readonly string[]
-): TimelineSyncedDoc {
+  touchedClipIds: readonly string[],
+  field: GeneratedClipField<TimelineClip>
+): { synced: TimelineSyncedDoc; pending: boolean } {
   const state = get();
   const draft: TimelineMergeDoc = {
     tracks: state.tracks,
@@ -1343,11 +1429,11 @@ function adoptServerSequence(
     height: sequence.height ?? base.height
   };
 
-  const { doc, nextBase } = mergeTimelineDocuments(
-    base,
-    draft,
-    server,
-    clipWriteOps(touchedClipIds)
+  const { doc, nextBase, conflicts, pending } = adoptGeneratedClipField(
+    mergeTimelineDocuments(base, draft, server, clipWriteOps(touchedClipIds)),
+    { base, draft, server },
+    touchedClipIds,
+    field
   );
 
   get().applyAgentEdit({
@@ -1369,7 +1455,31 @@ function adoptServerSequence(
     height: nextBase.height
   };
   get().setBaseUpdatedAt(sequence.updatedAt, synced);
-  return synced;
+
+  const sequenceId = get().sequenceId;
+  if (conflicts.length > 0 && sequenceId) {
+    const touched = new Set(touchedClipIds);
+    reportDocumentConflicts(timelineConflictKey(sequenceId), conflicts, {
+      // Accepting takes the external value in through a normal store
+      // mutation, so it lands on the undo stack (ADR 0001). For the clip the
+      // route wrote that is the generated field alone — the rest of the
+      // server's copy predates the edits the draft won with.
+      onAccept: (unitId) => {
+        const conflict = conflicts.find((c) => c.unit.id === unitId);
+        const external = conflict?.external as TimelineClip | null | undefined;
+        if (!conflict || conflict.unit.kind !== "clip" || !external) return;
+        const current = get().clips.find((c) => c.id === unitId);
+        if (!current) return;
+        get().patchClip(
+          unitId,
+          touched.has(unitId) ? field.overlay(current, external) : external
+        );
+      },
+      // Discard keeps the draft exactly as the merge left it.
+      onDiscard: () => {}
+    });
+  }
+  return { synced, pending: pending.length > 0 };
 }
 
 // ── Factory ────────────────────────────────────────────────────────────────
@@ -2463,10 +2573,14 @@ export const createTimelineStore = (
           // loading this one over it is the clobber every reload path avoids.
           if (get().sequenceId !== sequenceId) return result;
 
-          adoptServerSequence(get, sequence, base, [
-            result.clip_id || body.target_clip_id
-          ]);
-          return result;
+          const { pending } = adoptServerSequence(
+            get,
+            sequence,
+            base,
+            [result.clip_id || body.target_clip_id],
+            bakedAudioAnimationField(result.property || body.property)
+          );
+          return pending ? { ...result, pendingUserResolution: true } : result;
         },
 
         setGeneratedMatteKnobs: (clipId, knobs) =>
@@ -2537,26 +2651,32 @@ export const createTimelineStore = (
             ...body
           } = options;
 
+          /**
+           * The matte this action writes optimistically at `status`. Pure, so
+           * the merge base below can carry the same placeholder built from the
+           * clip as it was SENT instead of reading it back off the store.
+           */
+          const placeholderMatte = (
+            source: TimelineClip,
+            status: ClipGeneratedMatte["status"]
+          ): ClipGeneratedMatte => ({
+            // Nothing has been cut yet on a first run, so the placeholder
+            // carries no asset — the scene model draws a matte only when it is
+            // `ready`, so it never reaches the picture.
+            assetId: "",
+            sourceAssetId: source.currentAssetId ?? "",
+            sourceRange: { fromMs: 0, toMs: 0 },
+            settings: {},
+            ...(previous ?? {}),
+            status
+          });
+
           /** Write one status onto the clip's matte without touching the rest. */
           const mark = (status: ClipGeneratedMatte["status"]): void => {
             set((state) => ({
               clips: state.clips.map((c) =>
                 c.id === clipId
-                  ? {
-                      ...c,
-                      generatedMatte: {
-                        // Nothing has been cut yet on a first run, so the
-                        // placeholder carries no asset — the scene model draws
-                        // a matte only when it is `ready`, so it never reaches
-                        // the picture.
-                        assetId: "",
-                        sourceAssetId: c.currentAssetId ?? "",
-                        sourceRange: { fromMs: 0, toMs: 0 },
-                        settings: {},
-                        ...(previous ?? {}),
-                        status
-                      }
-                    }
+                  ? { ...c, generatedMatte: placeholderMatte(c, status) }
                   : c
               )
             }));
@@ -2574,6 +2694,7 @@ export const createTimelineStore = (
           ): Promise<{
             clip: TimelineClip | undefined;
             base: TimelineSyncedDoc;
+            pending: boolean;
           }> => {
             const sequence = await trpcClient.timeline.get.query({
               id: sequenceId
@@ -2583,10 +2704,20 @@ export const createTimelineStore = (
             // ran; loading this one over it is the clobber every reload path
             // avoids.
             if (get().sequenceId !== sequenceId) {
-              return { clip: undefined, base };
+              return { clip: undefined, base, pending: false };
             }
-            const nextBase = adoptServerSequence(get, sequence, base, [clipId]);
-            return { clip: clips.find((c) => c.id === clipId), base: nextBase };
+            const adopted = adoptServerSequence(
+              get,
+              sequence,
+              base,
+              [clipId],
+              GENERATED_MATTE_FIELD
+            );
+            return {
+              clip: clips.find((c) => c.id === clipId),
+              base: adopted.synced,
+              pending: adopted.pending
+            };
           };
 
           try {
@@ -2606,17 +2737,33 @@ export const createTimelineStore = (
             }
 
             mark("generating");
-            // What the server started from: the document that was SENT, plus
-            // the placeholder `mark` just wrote onto the clip. The placeholder
-            // is this action's own optimistic state, not a user edit — leaving
-            // it out of the base would make the clip read as edited on both
-            // sides, and the merge would refuse the matte the run produced.
+            // What the server started from: the document that was SENT, with
+            // this action's own placeholder folded onto the target clip. The
+            // placeholder is optimistic state, not a user edit — leaving it
+            // out of the base would make the clip read as edited on both sides
+            // and the merge would refuse the matte the run produced.
+            //
+            // Only the placeholder is folded in: reading the marked clip back
+            // off the store would carry in every edit the user made while the
+            // save was in flight, and telling the merge those already existed
+            // on the server is how a rename made during the save was silently
+            // reverted to the server's copy.
             const sent = syncedSnapshotOf(beforeSave);
-            const marked = get().clips.find((c) => c.id === clipId);
-            let base: TimelineSyncedDoc = marked
+            const sentClip = sent.clips.find((c) => c.id === clipId);
+            let base: TimelineSyncedDoc = sentClip
               ? {
                   ...sent,
-                  clips: sent.clips.map((c) => (c.id === clipId ? marked : c))
+                  clips: sent.clips.map((c) =>
+                    c.id === clipId
+                      ? {
+                          ...sentClip,
+                          generatedMatte: placeholderMatte(
+                            sentClip,
+                            "generating"
+                          )
+                        }
+                      : c
+                  )
                 }
               : sent;
 
@@ -2626,27 +2773,39 @@ export const createTimelineStore = (
             });
 
             if (result.status !== "generating") {
-              await adopt(base);
-              return result;
+              const settled = await adopt(base);
+              return settled.pending
+                ? { ...result, pendingUserResolution: true }
+                : result;
             }
 
             // The generation outlives this call's socket and settles in the
             // document, so waiting for it is reading the row until it stops
             // saying "generating".
             const deadline = Date.now() + timeoutMs;
+            // A round the draft refused stays refused until the user answers
+            // the banner, so the flag survives the rounds that follow it.
+            let pendingUserResolution = false;
+            const answer = ():
+              | IsolateSubjectResult
+              | (IsolateSubjectResult & PendingUserResolution) =>
+              pendingUserResolution
+                ? { ...result, pendingUserResolution: true }
+                : result;
             for (;;) {
               await sleep(pollIntervalMs);
-              if (get().sequenceId !== sequenceId) return result;
+              if (get().sequenceId !== sequenceId) return answer();
               const settled = await adopt(base);
               base = settled.base;
+              pendingUserResolution = pendingUserResolution || settled.pending;
               if (
                 settled.clip === undefined ||
                 (settled.clip.generatedMatte?.status ?? "ready") !==
                   "generating"
               ) {
-                return result;
+                return answer();
               }
-              if (Date.now() >= deadline) return result;
+              if (Date.now() >= deadline) return answer();
             }
           } catch (error) {
             // A run that never landed costs the clip nothing: the result it had
