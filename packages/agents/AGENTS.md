@@ -812,6 +812,66 @@ none — a Code node, a JS script — got a belt that could `critique_image` and
 toolbelt` after the run had paid for the prompt that produced its argument.
 Pinned by `tests/sandbox-belt-reach.test.ts`.
 
+## External MCP servers (`src/tools/external-mcp-tools.ts`)
+
+A user's own MCP servers — Blender, Hugging Face, a local script — join the
+belt as ordinary `Tool`s named `mcp_<server>_<tool>`. That one shape is why
+every loop reaches them the same way: the base provider loop and the OpenAI
+Responses loop (Codex included) dispatch through the harness `executeTool`,
+the Claude Agent SDK wraps the belt in its in-process MCP server, and a
+CodeAct guest imports them from `@nodetool-ai/sandbox-nodetool/mcp`
+(`graftedModuleFor` in `codeact/capability-modules.ts`). No provider knows
+they are remote.
+
+`McpClientPool` keeps one client per server config: `sync(configs)` opens,
+replaces or closes connections as the list changes, `discover()` caches each
+server's `listTools`, and a server that refuses is skipped for the turn and
+retried on the next sync. Stdio servers spawn with the parent's environment
+plus the config's `env`; HTTP servers try Streamable HTTP and fall back to
+SSE. `${SECRET_NAME}` in an env var or header resolves inline through the
+pool's `getSecret`; the server's persistence moves every literal value into
+an encrypted secret named `MCP_<SERVER>_<KEY as hex>` and stores the reference, and
+resolves references from the user's own secrets only, never the process
+environment. Under the cloud profile HTTP servers fetch through `safeFetch`,
+so a private or loopback URL is refused on save and on every redirect. A tool
+result's text and structured content come back as the tool's answer, its
+`resource_link` blocks as `resource_links` (a file the tool produced rather
+than inlined), and its image blocks ride `image_contents` like any other belt
+tool's pixels.
+
+**Opening a connection is bounded, and dropping one cancels it.**
+`Client.connect` awaits `transport.start()` before it sends the timed
+`initialize` request, so a server that accepts the socket and then says
+nothing — an HTTP server refusing the Streamable POST and opening an SSE
+stream with no `endpoint` event — leaves that first await pending forever.
+Each entry therefore carries a deadline (`connectTimeoutMs`, 30s; the settings
+probe uses 15s) and an `AbortController` whose abort closes the transport.
+`sync` cancels the entries its list drops **before** it queues, because
+`discover()` holds the pool's queue while it waits and disabling the offending
+server is how the user recovers — a cancellation queued behind that discovery
+would be one the user has to wait out. Every transport starts through
+`startTransport`, which refuses a start the entry has already cancelled:
+resolving secrets and importing the SDK module are awaited, so the server can
+be deleted while a connection is still being prepared, and closing an
+unstarted stdio transport does not stop a later `start()` from spawning the
+command.
+
+**Redaction is per resolved value, not per header.** `resolveSecretReferences`
+reports every value an expansion produced, at every level, so an entry blanks
+both `Bearer <tok>` and `<tok>` — an upstream `Invalid token <tok>` quotes the
+token, not the header it arrived in. Values under four characters are left
+alone; nothing authenticates with one, and blanking it would eat unrelated
+text.
+
+The config shape (`McpServerConfig`, `@nodetool-ai/protocol`) is shared with
+the server's persistence (`packages/websocket/src/external-mcp.ts`, one
+`Setting` row per user, the `externalMcp` tRPC router) and the settings UI
+(`web/src/components/menus/ExternalMcpServersSection.tsx`). The cloud
+profile refuses stdio servers, since a command runs on the machine the server
+owns. A remote tool has no capability entry, so `gateTools` classifies it
+`external`. Tests: `tests/external-mcp-tools.test.ts` (a real MCP server over
+an in-memory transport), `packages/websocket/tests/external-mcp.test.ts`.
+
 ## Script Voicing Tools (`src/capabilities/scripts.ts`)
 
 The headless path from a written script to voiced takes and an assembled

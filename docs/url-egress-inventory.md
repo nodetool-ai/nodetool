@@ -105,6 +105,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | Gemini node video download | `packages/llm-nodes/src/nodes/gemini.ts` | provider response |
 | provider result downloads | `packages/runtime/src/providers/{fal,replicate,kie,topaz,meshy,rodin,minimax,evolink,gemini,anthropic}-provider.ts` | provider response |
 | MCP OAuth Client ID Metadata Document fetch | `packages/websocket/src/oauth/cimd.ts` | model/client (an MCP client's self-hosted `client_id` URL) |
+| external MCP server (HTTP transport) | `packages/websocket/src/external-mcp.ts` | operator (a user's own MCP server URL; guarded under the cloud profile, loopback allowed on a local install) |
 
 The provider row is eleven files, each downloading a URL a provider's response
 named — plus one reading a URL the caller's own message named
