@@ -135,12 +135,18 @@
   the headless frame preview draw through it. Effects are where the two
   genuinely differ, so `unsupportedEffectTypes` names what Canvas 2D drops
   rather than letting a caller show a different picture silently.
-- **An adjustment clip is z-order, bottom-up, group-scoped, and blended by its
-  opacity.** `mediaType: "adjustment"` draws nothing: it treats the composite of
+- **An adjustment clip is z-order, bottom-up, group-scoped, and mixed by its
+  coverage.** `mediaType: "adjustment"` draws nothing: it treats the composite of
   everything already on the surface at its own track's z — every track with a
-  higher index — runs its effect chain on that, and blends the treated result
-  back over the untreated one with its resolved opacity (1 fully treated, 0 a
-  no-op), inside its `mask` where it has one. Stacked adjustments therefore
+  higher index — runs its effect chain on that, and **mixes** the treated result
+  into the untreated one by its coverage — resolved opacity × mask × wipe —
+  rather than compositing it over: `out = original * (1 - c) + treated * c` on
+  every premultiplied channel, alpha included, so a fully applied treatment
+  *replaces* what it covers (1 fully treated, 0 a no-op). Blending it over
+  instead added the copy's alpha to its own, and a neutral chain thickened every
+  translucent pixel — 50% opaque came back at 75% — which only a group surface
+  or an alpha export can see. Both compositors say so in one place each:
+  `mixTreatment` in `canvas2d.ts` and in `frameCompositor.ts`. Stacked adjustments therefore
   apply bottom-up with no rule of their own: the higher one simply finds the
   lower one's result. Inside a group it treats that group's surface and nothing
   outside, which is why a group holding one always precomposites

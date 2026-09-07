@@ -662,8 +662,9 @@ export interface PrecompositeLayer {
  * A compositor runs this at `trackIndex`'s z, on whatever the surface holds by
  * then — every layer on a track with a higher index, plus any layer at the same
  * z already drawn. It takes that composite, runs {@link effects} on it, and
- * blends the treated result back over the untreated one at {@link opacity}: 1
- * is fully treated, 0 a no-op. So stacked adjustments apply bottom-up on their
+ * mixes the treated result into the untreated one by {@link opacity}: 1 is
+ * fully treated — the treatment replacing what it covers, alpha included — and
+ * 0 a no-op. So stacked adjustments apply bottom-up on their
  * own, without either compositor deciding anything — the higher one simply
  * finds the lower one's result already on the surface.
  *

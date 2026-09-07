@@ -321,6 +321,19 @@ function solid(color: string): Canvas {
   return band(color, 0, W);
 }
 
+/**
+ * A frame-sized canvas of one colour at half alpha — what a group's surface, an
+ * alpha export or a softened subject edge hands the compositor.
+ */
+function translucent(color: string): Canvas {
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext("2d");
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, W, H);
+  return canvas;
+}
+
 // SAFETY: `CompositeContext2D` is the subset of the 2D canvas API the
 // compositing rules use, and `@napi-rs/canvas` implements all of it — the cast
 // only bridges the wider concrete type, exactly as `packages/agents` does.
@@ -338,6 +351,12 @@ function pixel(canvas: Canvas, x: number): [number, number, number] {
   return [data[0]!, data[1]!, data[2]!];
 }
 
+/** RGB *and* alpha at one pixel — what a treatment must leave alone. */
+function pixelRgba(canvas: Canvas, x: number): [number, number, number, number] {
+  const data = canvas.getContext("2d").getImageData(x, H / 2, 1, 1).data;
+  return [data[0]!, data[1]!, data[2]!, data[3]!];
+}
+
 const isGrey = ([r, g, b]: [number, number, number]): boolean =>
   Math.abs(r - g) <= 1 && Math.abs(g - b) <= 1;
 
@@ -345,6 +364,8 @@ interface Scene {
   layers: Canvas2DLayer<Canvas>[];
   adjustments?: Canvas2DAdjustment[];
   precomposites?: Canvas2DPrecomposite[];
+  /** Seed the frame transparent instead of opaque black — an alpha export. */
+  alpha?: boolean;
 }
 
 /**
@@ -365,6 +386,7 @@ function render(scene: Scene): Canvas {
     return surfaceOf(surface);
   };
   drawTimelineFrame(contextOf(frame), scene.layers, GEOMETRY, {
+    alpha: scene.alpha,
     adjustments: scene.adjustments,
     precomposites: scene.precomposites,
     adjustmentSurface: take,
@@ -632,6 +654,105 @@ describe("drawTimelineFrame — adjustments", () => {
       { clipId: "adj", reason: "adjustment_skipped" }
     ]);
     expect(isGrey(pixel(frame, MIDDLE))).toBe(false);
+  });
+});
+
+/**
+ * A treatment on a composite that is not opaque — a group's own surface, an
+ * alpha export, the softened edge of an isolated subject.
+ *
+ * The treated copy carries the composite's alpha, so blending it *over* the
+ * composite it was copied from added that alpha to itself and thickened the
+ * pixel: a neutral chain at full opacity took a 50%-opaque pixel to 75% (F3).
+ * A fully applied treatment replaces what is under it and a partial one mixes
+ * with it, both on premultiplied channels, alpha included — which is what these
+ * assert on a real `@napi-rs/canvas` surface, where an opaque frame cannot see
+ * the difference.
+ */
+describe("drawTimelineFrame — a treatment on a translucent composite", () => {
+  const halfAlpha = (): Canvas2DLayer<Canvas>[] => [
+    layerOf(translucent(CRIMSON), 3)
+  ];
+
+  it("leaves a neutral treatment's alpha and colour exactly where it found them", () => {
+    const untreated = render({ layers: halfAlpha(), alpha: true });
+    // The pixel the claim is about: half transparent, and coloured.
+    expect(pixelRgba(untreated, MIDDLE)[3]).toBe(127);
+
+    // An enabled grade at its identity — the chain runs and changes nothing, so
+    // every channel including alpha has to come back untouched.
+    const treated = render({
+      layers: halfAlpha(),
+      alpha: true,
+      adjustments: [adjustmentOf(1, { effects: [contrast(1)] })]
+    });
+    expect(pixelRgba(treated, MIDDLE)).toEqual(pixelRgba(untreated, MIDDLE));
+  });
+
+  it("mixes a half-strength treatment in without moving the alpha", () => {
+    const untreated = pixelRgba(render({ layers: halfAlpha(), alpha: true }), MIDDLE);
+    const treated = pixelRgba(
+      render({
+        layers: halfAlpha(),
+        alpha: true,
+        adjustments: [adjustmentOf(1, { effects: [desaturate()] })]
+      }),
+      MIDDLE
+    );
+    const half = pixelRgba(
+      render({
+        layers: halfAlpha(),
+        alpha: true,
+        adjustments: [
+          adjustmentOf(1, { opacity: 0.5, effects: [desaturate()] })
+        ]
+      }),
+      MIDDLE
+    );
+    expect(treated).not.toEqual(untreated);
+    // A grade moves colour, not coverage: both ends of the mix carry the
+    // composite's own alpha, so the premultiplied midpoint is the plain one.
+    expect(treated[3]).toBe(untreated[3]);
+    expect(half[3]).toBe(untreated[3]);
+    for (let i = 0; i < 3; i++) {
+      expect(half[i]!).toBeCloseTo((untreated[i]! + treated[i]!) / 2, -0.5);
+    }
+  });
+
+  it("leaves a hard-masked pixel outside the mask byte for byte", () => {
+    const mask: ClipMask = { kind: "rect", x: 0, y: 0, width: 0.5, height: 1 };
+    const untreated = render({ layers: halfAlpha(), alpha: true });
+    const frame = render({
+      layers: halfAlpha(),
+      alpha: true,
+      adjustments: [adjustmentOf(1, { effects: [desaturate()], mask })]
+    });
+    expect(pixelRgba(frame, RIGHT)).toEqual(pixelRgba(untreated, RIGHT));
+    expect(isGrey(pixel(frame, LEFT))).toBe(true);
+    expect(pixelRgba(frame, LEFT)[3]).toBe(pixelRgba(untreated, LEFT)[3]);
+  });
+
+  it("leaves a feathered-masked pixel outside the mask byte for byte", () => {
+    // Feathered, so the coverage is a raster the mix reads per pixel rather
+    // than a path clip — the other half of the masking code.
+    const mask: ClipMask = {
+      kind: "rect",
+      x: 0,
+      y: 0,
+      width: 0.5,
+      height: 1,
+      featherPx: 2
+    };
+    const untreated = render({ layers: halfAlpha(), alpha: true });
+    const frame = render({
+      layers: halfAlpha(),
+      alpha: true,
+      adjustments: [adjustmentOf(1, { effects: [desaturate()], mask })]
+    });
+    // RIGHT is 8px clear of the feather band, LEFT 8px inside it.
+    expect(pixelRgba(frame, RIGHT)).toEqual(pixelRgba(untreated, RIGHT));
+    expect(isGrey(pixel(frame, LEFT))).toBe(true);
+    expect(pixelRgba(frame, LEFT)[3]).toBe(pixelRgba(untreated, LEFT)[3]);
   });
 });
 

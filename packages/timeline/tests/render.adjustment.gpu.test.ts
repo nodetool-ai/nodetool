@@ -76,6 +76,12 @@ function rgbAt(frame: Uint8Array, x: number): Rgb {
   return [frame[i]!, frame[i + 1]!, frame[i + 2]!];
 }
 
+/** The RGB *and* alpha there — what a treatment must leave alone. */
+function rgbaAt(frame: Uint8Array, x: number): [number, number, number, number] {
+  const i = ((SIZE >> 1) * SIZE + x) * 4;
+  return [frame[i]!, frame[i + 1]!, frame[i + 2]!, frame[i + 3]!];
+}
+
 const isGrey = ([r, g, b]: Rgb): boolean =>
   Math.abs(r - g) <= 2 && Math.abs(g - b) <= 2;
 
@@ -112,6 +118,14 @@ const punch: ClipEffect = {
   type: "color",
   enabled: true,
   contrast: 2
+};
+
+/** An enabled grade at its identity: the chain runs and changes nothing. */
+const neutral: ClipEffect = {
+  id: "flat",
+  type: "color",
+  enabled: true,
+  contrast: 1
 };
 
 const adjustment = (
@@ -223,6 +237,37 @@ describe.runIf(!noAdapterReason)(
         expect(Math.abs(stacked[0]! - bottomThenTop[0]!)).toBeLessThanOrEqual(
           3
         );
+      });
+    });
+
+    /**
+     * The claim `render.adjustment.test.ts` makes on the Canvas 2D side: a
+     * treatment replaces the composite under it, so a fully applied neutral
+     * chain moves nothing — alpha included. The treated copy carries the
+     * accumulation's own alpha, and blending it back *over* that accumulation
+     * added the alpha to itself: 50% opaque became 75% (F3). Only a frame with
+     * a transparent ground can see it, which is what `alpha` seeds.
+     */
+    it("leaves the alpha of a translucent composite alone", async () => {
+      await withCompositor(async (compositor) => {
+        const layers = (): FrameLayer[] => [
+          layer("pic", solid(CRIMSON), 0, { opacity: 0.5 })
+        ];
+        const untreated = await compositor.renderFrame(layers(), [], {
+          alpha: true
+        });
+        // The pixel the claim is about: half transparent, and coloured.
+        const before = rgbaAt(untreated, MIDDLE);
+        expect(before[3]).toBeGreaterThan(0);
+        expect(before[3]).toBeLessThan(255);
+
+        const treated = await compositor.renderFrame(
+          layers(),
+          [],
+          { alpha: true },
+          [adjustment("adj", 1, { effects: [neutral] })]
+        );
+        expect(rgbaAt(treated, MIDDLE)).toEqual(before);
       });
     });
 

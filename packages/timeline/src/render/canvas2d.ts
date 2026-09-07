@@ -24,9 +24,10 @@
  * exists in both a browser and Node.
  *
  * An adjustment reuses that machinery from the other end: at its own z it
- * copies the surface it sits on, runs its chain on the copy, and blends the
- * copy back over the untreated composite — so it treats everything drawn below
- * it and nothing above.
+ * copies the surface it sits on, runs its chain on the copy, and mixes the copy
+ * back into the untreated composite by its coverage — so it treats everything
+ * drawn below it and nothing above, and replaces what it covers rather than
+ * lying over it.
  */
 
 import { blendModeToCanvasOp } from "@nodetool-ai/gpu";
@@ -193,8 +194,9 @@ export interface Canvas2DPrecomposite {
  * Mirrors `AdjustmentLayer` from the scene model with `trackIndex` already
  * resolved to a `zIndex`, the way {@link Canvas2DLayer} mirrors `ActiveLayer`.
  * It draws nothing of its own: at its `zIndex` the composite so far is copied
- * to a surface, {@link effects} run on the copy, and the copy blends back over
- * the original at {@link opacity}.
+ * to a surface, {@link effects} run on the copy, and the copy is mixed back
+ * into the original at {@link opacity} — a replacement at full coverage, not a
+ * second picture over the first.
  */
 export interface Canvas2DAdjustment {
   /** The clip this treatment came from, for a {@link Canvas2DDegradation}. */
@@ -569,7 +571,8 @@ function drawStack<TSource>(
 
 /**
  * Run one adjustment on `ctx`: copy the composite so far, treat the copy, and
- * blend it back over the untreated original at the adjustment's opacity (T24).
+ * mix the treated picture back into the untreated one by the adjustment's
+ * coverage (T24).
  *
  * The copy goes through `getImageData`/`putImageData` rather than a
  * `drawImage`: a host hands over a context, not a drawable handle on the
@@ -577,6 +580,30 @@ function drawStack<TSource>(
  * drawn. Brightness is added on the copy for the reason it is added on a
  * layer's scratch — the GPU grade adds where CSS `brightness()` multiplies —
  * and the rest of the chain rides the filter of the draw back.
+ *
+ * **A treatment replaces the composite, it does not lie on top of it.** With
+ * `c` the coverage — the adjustment's opacity times its mask times its wipe —
+ * every premultiplied channel, alpha included, ends at
+ * `original * (1 - c) + treated * c`. The copy carries the accumulation's own
+ * alpha, so drawing it back `source-over` added that alpha to itself: a
+ * 50%-opaque pixel under a fully applied neutral chain came back at 75%, which
+ * thickened every softened edge inside a group surface and every alpha export
+ * (F3). So the composite is cleared where the treatment lands and the treated
+ * copy drawn onto the cleared ground, which replaces rather than adds; anything
+ * short of full coverage is then mixed back into the snapshot by
+ * {@link mixTreatment}. Full coverage skips the mix, and over an opaque frame
+ * that case is byte-for-byte the draw it was.
+ *
+ * Both draws are `source-over`, and the coverage is arithmetic rather than a
+ * `destination-out` + `lighter` pair, because `@napi-rs/canvas` applies both a
+ * source's alpha and `ctx.filter` twice under any other composite operation —
+ * `destination-out` at 0.5 erases a quarter, and `copy` with `contrast(2)`
+ * lands a 40% grey on white. A coverage or a grade carried by a composite
+ * operation would render differently on the server than in a browser.
+ *
+ * The clip is what keeps a hard mask or wipe out of both draws, and the mix
+ * needs no second opinion about it: outside the clip the surface still holds
+ * the snapshot, and mixing a pixel with itself returns it unchanged.
  */
 function applyAdjustment<TSource>(
   ctx: CompositeContext2D<TSource>,
@@ -592,55 +619,146 @@ function applyAdjustment<TSource>(
     return;
   }
 
+  const original = ctx.getImageData(0, 0, w, h);
   const sctx = scratch.ctx;
   resetContext(sctx);
   sctx.clearRect(0, 0, w, h);
-  sctx.putImageData(ctx.getImageData(0, 0, w, h), 0, 0);
+  sctx.putImageData(original, 0, 0);
 
   const brightness = brightnessForEffects(adjustment.effects, undefined);
   const lifts = Math.abs(brightness) > 0.001;
   if (lifts) addBrightness(sctx, w, h, brightness);
 
-  // A soft mask multiplies its coverage into the copy; a hard one is a path
-  // clip on the draw back, which costs nothing. Same split as a layer's.
+  // A soft mask and a feathered wipe rasterize their coverage together on one
+  // surface, because the mix needs `mask * wipe` as one number per pixel. A
+  // hard edge is a path clip on the draws instead, which costs nothing. Same
+  // split as a layer's.
   const shape = adjustment.mask;
+  const wipe = adjustment.wipe;
   const softShape = shape !== undefined && !maskIsHard(shape);
-  let shapeApplied = false;
-  if (softShape) {
-    const coverage = surfaces.maskSurface?.(w, h);
-    if (coverage && coverage.surface !== scratch.surface) {
-      shapeApplied = drawMask(coverage.ctx, shape, w, h);
-      if (shapeApplied) {
-        sctx.globalCompositeOperation = "destination-in";
-        sctx.drawImage(coverage.surface, 0, 0, w, h);
-        sctx.globalCompositeOperation = "source-over";
+  const softWipe = wipe !== undefined && wipe.softness > 0;
+  let coverage: ImagePixels | null = null;
+  if (softShape || softWipe) {
+    const surface = surfaces.maskSurface?.(w, h);
+    if (surface && surface.surface !== scratch.surface) {
+      const cctx = surface.ctx;
+      resetContext(cctx);
+      cctx.clearRect(0, 0, w, h);
+      let painted = true;
+      if (softShape) {
+        painted = drawMask(cctx, shape, w, h);
+      } else {
+        cctx.fillStyle = "#fff";
+        cctx.fillRect(0, 0, w, h);
+      }
+      if (painted) {
+        if (softWipe) applyWipeGradient(cctx, w, h, wipe);
+        coverage = cctx.getImageData(0, 0, w, h);
       }
     }
-    if (!shapeApplied) {
-      degraded.push({ clipId: adjustment.clipId, reason: "mask_hard_edge" });
+    if (!coverage) {
+      // Both feathers fall back to the hard edge the clip draws, and both are
+      // reported: a caller cannot see which one it lost otherwise.
+      if (softShape) {
+        degraded.push({ clipId: adjustment.clipId, reason: "mask_hard_edge" });
+      }
+      if (softWipe) {
+        degraded.push({ clipId: adjustment.clipId, reason: "wipe_hard_edge" });
+      }
     }
   }
+  const maskRasterized = coverage !== null && softShape;
+  const wipeRasterized = coverage !== null && softWipe;
 
-  const wipe = adjustment.wipe;
-  const softWipe = wipe !== undefined && wipe.softness > 0;
-  if (softWipe) applyWipeGradient(sctx, w, h, wipe);
-
+  const opacity = Math.max(0, Math.min(1, adjustment.opacity));
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.globalAlpha = Math.max(0, Math.min(1, adjustment.opacity));
+  ctx.globalAlpha = 1;
+  if (shape && !maskRasterized) clipMask(ctx, shape, w, h);
+  if (wipe && !wipeRasterized) clipWipeRect(ctx, w, h, wipe);
+
   ctx.globalCompositeOperation = "source-over";
-  if (shape && !shapeApplied) clipMask(ctx, shape, w, h);
-  if (wipe && !softWipe) clipWipeRect(ctx, w, h, wipe);
-  ctx.filter = filterForEffects(adjustment.effects, undefined, lifts);
+  let treated = true;
   try {
+    // Cleared first: over transparency a source-over draw *is* the source, so
+    // what lands is the treated picture and not the treated picture over the
+    // one it was copied from. The chain is armed after the clear, so no host
+    // can read it as something to run on one.
+    ctx.clearRect(0, 0, w, h);
+    ctx.filter = filterForEffects(adjustment.effects, undefined, lifts);
     ctx.drawImage(scratch.surface, 0, 0, w, h);
   } catch {
-    // The host's surface refused to draw. The untreated composite stands,
-    // which is the same outcome as vending no surface at all.
-    degraded.push({ clipId: adjustment.clipId, reason: "adjustment_skipped" });
+    // The host's surface refused to draw. The snapshot the copy was made from
+    // puts the untreated composite back, which is the same outcome as vending
+    // no surface at all.
+    treated = false;
   }
+
+  if (treated && (opacity < 1 || coverage)) {
+    const mixed = ctx.getImageData(0, 0, w, h);
+    mixTreatment(original, mixed, coverage, opacity);
+    ctx.putImageData(mixed, 0, 0);
+  }
+
   ctx.restore();
   resetContext(ctx);
+  if (!treated) {
+    ctx.putImageData(original, 0, 0);
+    degraded.push({ clipId: adjustment.clipId, reason: "adjustment_skipped" });
+  }
+}
+
+/**
+ * Mix the treated picture into the original by the treatment's coverage, in
+ * place in `treated`: `out = original * (1 - c) + treated * c` on every
+ * premultiplied channel, alpha included, where `c` is `opacity` times the
+ * coverage raster's alpha.
+ *
+ * Premultiplied, because that is the space a composite is a linear mix in —
+ * mixing straight colours would let a nearly transparent original drag the
+ * treated colour toward whatever it happens to carry under its zero alpha.
+ * `ImagePixels` is straight alpha at both ends, so the multiply in and the
+ * divide out are here.
+ *
+ * The two ends are byte-exact: `c >= 1` keeps the treated pixel and `c <= 0`
+ * restores the original one, rather than rounding through the arithmetic.
+ */
+function mixTreatment(
+  original: ImagePixels,
+  treated: ImagePixels,
+  coverage: ImagePixels | null,
+  opacity: number
+): void {
+  const src = original.data;
+  const out = treated.data;
+  const cov = coverage?.data;
+  for (let i = 0; i < out.length; i += 4) {
+    const c = cov ? (opacity * cov[i + 3]!) / 255 : opacity;
+    if (c >= 1) continue;
+    if (c <= 0) {
+      out[i] = src[i]!;
+      out[i + 1] = src[i + 1]!;
+      out[i + 2] = src[i + 2]!;
+      out[i + 3] = src[i + 3]!;
+      continue;
+    }
+    const oa = src[i + 3]! / 255;
+    const ta = out[i + 3]! / 255;
+    const keep = oa * (1 - c);
+    const take = ta * c;
+    const alpha = keep + take;
+    if (alpha <= 0) {
+      out[i] = 0;
+      out[i + 1] = 0;
+      out[i + 2] = 0;
+      out[i + 3] = 0;
+      continue;
+    }
+    for (let k = 0; k < 3; k++) {
+      out[i + k] = Math.round((src[i + k]! * keep + out[i + k]! * take) / alpha);
+    }
+    out[i + 3] = Math.round(alpha * 255);
+  }
 }
 
 /**
