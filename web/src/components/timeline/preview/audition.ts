@@ -7,12 +7,13 @@
  * must never join the mix the export reads.
  */
 
-import { renderAuditionNote } from "@nodetool-ai/timeline";
+import { auditionPitch, renderAuditionNote } from "@nodetool-ai/timeline";
 import type { MidiInstrument } from "@nodetool-ai/timeline";
 
 /** How long the auditioned note is held before its release. */
 export const AUDITION_NOTE_MS = 600;
-/** Middle C — what an audition plays when the caller names no pitch. */
+/** Middle C — what an audition plays when the caller names no pitch and the
+ * voice is a pitched one. A drum kit is auditioned on its first pad instead. */
 export const AUDITION_DEFAULT_PITCH = 60;
 const AUDITION_DEFAULT_VELOCITY = 100;
 
@@ -25,7 +26,7 @@ const AUDITION_DEFAULT_VELOCITY = 100;
  */
 export async function playAuditionNote(
   instrument: MidiInstrument,
-  pitch: number = AUDITION_DEFAULT_PITCH,
+  pitch?: number,
   velocity: number = AUDITION_DEFAULT_VELOCITY,
   contextFactory: () => BaseAudioContext = () => new AudioContext()
 ): Promise<void> {
@@ -38,7 +39,7 @@ export async function playAuditionNote(
     await (ctx as AudioContext).resume();
   }
   const samples = renderAuditionNote({
-    pitch,
+    pitch: pitch ?? auditionPitch(instrument),
     velocity,
     durationMs: AUDITION_NOTE_MS,
     instrument,

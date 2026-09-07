@@ -3,7 +3,7 @@
  */
 import { renderHook } from "@testing-library/react";
 import { makeClip } from "@nodetool-ai/timeline";
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import type { MidiInstrument, TimelineClip } from "@nodetool-ai/timeline";
 
 import {
   createTimelineStore,
@@ -19,6 +19,10 @@ import {
 } from "../../../stores/timeline/TimelinePlaybackStore";
 import { getTimelineAgentHandler } from "../../../components/timeline/timelineAgentBridge";
 import { useTimelineAgentBridge } from "../useTimelineAgentBridge";
+
+/** The waveform of a voice, when the voice is the built-in synth. */
+const waveformOf = (instrument: MidiInstrument | undefined) =>
+  instrument?.type === "subtractive" ? instrument.waveform : undefined;
 
 let mockDoc: TimelineStoreApi;
 let mockUi: TimelineUIStoreApi;
@@ -381,10 +385,11 @@ describe("useTimelineAgentBridge midi", () => {
       resonance: 1,
       gainDb: -3
     });
-    expect(track.instrument?.waveform).toBe("square");
+    expect(waveformOf(track.instrument)).toBe("square");
     expect(
-      getTimelineAgentHandler(SEQ_ID).getSnapshot().tracks[0].instrument
-        ?.waveform
+      waveformOf(
+        getTimelineAgentHandler(SEQ_ID).getSnapshot().tracks[0].instrument
+      )
     ).toBe("square");
   });
 

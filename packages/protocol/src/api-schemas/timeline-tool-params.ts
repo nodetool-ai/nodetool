@@ -1416,7 +1416,7 @@ export const midiInstrumentPresetRef = z.object({
   preset: z
     .string()
     .describe(
-      "A shipped voice by id: saw-lead, square-lead, soft-pad, pluck, bass, bell."
+      "A shipped voice by id: saw-lead, square-lead, soft-pad, pluck, bass, bell, wt1-prime-lead, wt1-bloom-pad, wt1-vox-morph, wt1-chime-bell, bl1-acid, bl1-deep, bl1-rubber, dr1-tr-void."
     )
 });
 export type MidiInstrumentPresetRef = z.infer<typeof midiInstrumentPresetRef>;
@@ -1427,7 +1427,7 @@ export const setTrackInstrumentParams = z.object({
   instrument: z
     .union([midiInstrument, midiInstrumentPresetRef])
     .describe(
-      "The voice this track's clips play, either way round. Named: `{\"preset\": \"soft-pad\"}` — one of saw-lead, square-lead, soft-pad, pluck, bass, bell. Spelled out: `subtractive` is one oscillator through a lowpass filter and an ADSR envelope: `waveform` saw/square/triangle/sine, `attackMs`/`decayMs`/`releaseMs` in milliseconds, `sustain` 0..1 of the peak, `cutoffHz` the filter frequency in Hz, `resonance` its Q, `gainDb` the output level in dB."
+      "The voice this track's clips play, either way round. Named: `{\"preset\": \"soft-pad\"}` — one of saw-lead, square-lead, soft-pad, pluck, bass, bell, wt1-prime-lead, wt1-bloom-pad, wt1-vox-morph, wt1-chime-bell, bl1-acid, bl1-deep, bl1-rubber, dr1-tr-void. Spelled out, there are four synths. `subtractive` is one oscillator through a lowpass filter and an ADSR envelope: `waveform` saw/square/triangle/sine, `attackMs`/`decayMs`/`releaseMs` in milliseconds, `sustain` 0..1 of the peak, `cutoffHz` the filter frequency in Hz, `resonance` its Q, `gainDb` the output level in dB. The other three are the FableSynth instruments: `wavetable` (WT-1) is two morphing wavetable oscillators plus a sub and noise through one filter swept by `modEnv`; `bass` (BL-1) is a monophonic acid line where a note at or above `accentVelocity` hits harder and a note overlapping the one before it glides over `slideMs`; `drum` (DR-1) is a kit of pads played one per note from `baseNote`, each ringing for its own decay however short the note is."
     )
 });
 export type SetTrackInstrumentParams = z.infer<typeof setTrackInstrumentParams>;

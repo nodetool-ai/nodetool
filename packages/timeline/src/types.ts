@@ -548,7 +548,18 @@ export interface MidiNote {
 
 /** The synth a midi track plays. One member today; a union so adding a second
  * synth does not reshape what is already stored. */
-export type MidiInstrument = SubtractiveMidiInstrument;
+/**
+ * The voice a midi track plays.
+ *
+ * `subtractive` is the built-in synth. The other three are ports of the
+ * FableSynth instruments (github.com/georgi/fablesynth): WT-1 the wavetable
+ * synth, BL-1 the acid bassline, DR-1 the drum machine.
+ */
+export type MidiInstrument =
+  | SubtractiveMidiInstrument
+  | WavetableMidiInstrument
+  | BassMidiInstrument
+  | DrumMidiInstrument;
 
 /** One oscillator through a lowpass filter and an ADSR envelope. */
 export interface SubtractiveMidiInstrument {
@@ -562,6 +573,176 @@ export interface SubtractiveMidiInstrument {
   cutoffHz: number;
   /** Lowpass Q. */
   resonance: number;
+  gainDb: number;
+}
+
+/** An ADSR envelope, in milliseconds with a 0..1 sustain level. */
+export interface MidiEnvelope {
+  attackMs: number;
+  decayMs: number;
+  /** Sustain level, 0..1 of the peak. */
+  sustain: number;
+  releaseMs: number;
+}
+
+/** The filter shapes the FableSynth-derived voices offer. */
+export type MidiFilterType = "lp12" | "lp24" | "bp12" | "hp12" | "notch";
+
+/** The tonal wavetables WT-1 and BL-1 play. */
+export type MidiWavetableName =
+  | "prime"
+  | "bloom"
+  | "pulse"
+  | "vox"
+  | "chime"
+  | "glitch";
+
+/** DR-1's percussive tables. A pad can also play any tonal table. */
+export type MidiDrumTableName = "thud" | "crack" | "tine" | "grit";
+
+/** One of WT-1's two wavetable oscillators. */
+export interface WavetableOscillator {
+  table: MidiWavetableName;
+  /** Morph position across the table's frames, 0..1. */
+  position: number;
+  /** Offset from the played note, in semitones. */
+  semitones: number;
+  /** Further offset in cents. */
+  fine: number;
+  /** Output level, 0..1. */
+  level: number;
+  /** Detuned copies of the oscillator, 1..7. */
+  unison: number;
+  /** How far the copies spread, 0..1 (1 = ±50 cents). */
+  detune: number;
+}
+
+/**
+ * FableSynth WT-1 — two morphing wavetable oscillators, a sub and noise, into
+ * one zero-delay filter swept by a second envelope.
+ */
+export interface WavetableMidiInstrument {
+  type: "wavetable";
+  oscA: WavetableOscillator;
+  oscB: WavetableOscillator;
+  /** Sine sub-oscillator level, 0..1. */
+  subLevel: number;
+  /** Sub octave below the note: -1 or -2. */
+  subOctave: number;
+  /** White noise level, 0..1. */
+  noiseLevel: number;
+  filterType: MidiFilterType;
+  cutoffHz: number;
+  /** Filter resonance, 0..1. */
+  resonance: number;
+  /** Anti-aliased tanh drive into the filter, 0..1. */
+  drive: number;
+  /** How far the mod envelope sweeps the cutoff, in octaves (may be negative). */
+  filterEnvAmount: number;
+  /** How far the played note tracks the cutoff, 0..1 (1 = one octave/octave). */
+  keyTrack: number;
+  ampEnv: MidiEnvelope;
+  modEnv: MidiEnvelope;
+  gainDb: number;
+}
+
+/**
+ * FableSynth BL-1 — a monophonic acid bassline: one wavetable oscillator and a
+ * square sub through a resonant filter with its own decay envelope, plus the
+ * accent and slide a 303 line is written with.
+ */
+export interface BassMidiInstrument {
+  type: "bass";
+  table: MidiWavetableName;
+  /** Morph position across the table's frames, 0..1. */
+  position: number;
+  /** Offset from the played note, in semitones. */
+  semitones: number;
+  /** Sub-oscillator shape. */
+  subShape: "sine" | "square";
+  /** Sub octave below the note: -1 or -2. */
+  subOctave: number;
+  /** Sub level, 0..1. */
+  subLevel: number;
+  filterType: MidiFilterType;
+  cutoffHz: number;
+  /** Filter resonance, 0..1. */
+  resonance: number;
+  /** Anti-aliased tanh drive into the filter, 0..1. */
+  drive: number;
+  /** How far the filter envelope sweeps the cutoff, in octaves. */
+  filterEnvAmount: number;
+  /** How far the played note tracks the cutoff, 0..1. */
+  keyTrack: number;
+  /** Filter envelope attack in ms. */
+  filterAttackMs: number;
+  /** Filter envelope decay in ms. */
+  filterDecayMs: number;
+  ampEnv: MidiEnvelope;
+  /**
+   * How much an accented note (velocity at or above `accentVelocity`) adds:
+   * 0..1 scales both its level and its filter sweep.
+   */
+  accentAmount: number;
+  /** The velocity at which a note counts as accented. */
+  accentVelocity: number;
+  /** How long a note overlapping the one before it glides, in ms. */
+  slideMs: number;
+  gainDb: number;
+}
+
+/** One DR-1 pad: a tuned one-shot with its own envelope and filter. */
+export interface DrumPad {
+  /** What the pad plays, shown in the editor. */
+  name: string;
+  table: MidiWavetableName | MidiDrumTableName;
+  /** Morph position across the table's frames, 0..1. */
+  position: number;
+  /** Pitch offset from the pad's base note, in semitones. */
+  semitones: number;
+  /** How far the pitch envelope starts above the pad's pitch, in semitones. */
+  pitchEnvAmount: number;
+  /** Pitch envelope decay in ms. */
+  pitchEnvDecayMs: number;
+  /** Noise level, 0..1. */
+  noiseLevel: number;
+  /** Noise colour, -1 (dark) to 1 (bright). */
+  noiseColor: number;
+  /** Ring-modulator carrier in Hz. */
+  ringHz: number;
+  /** How much of the ring modulator is heard, 0..1. */
+  ringMix: number;
+  /** Amp envelope attack in ms. */
+  attackMs: number;
+  /** How long the envelope holds at full before decaying, in ms. */
+  holdMs: number;
+  /** Amp envelope decay in ms. */
+  decayMs: number;
+  /** Decay shape, 0 (a straight line) to 1 (exponential). */
+  curve: number;
+  /** The pad's filter, or null for no filter. */
+  filter: {
+    type: MidiFilterType;
+    cutoffHz: number;
+    /** Filter resonance, 0..1. */
+    resonance: number;
+  } | null;
+  /** Pad level, 0..1. */
+  level: number;
+  /** How much velocity scales the level, 0..1. */
+  velocityToLevel: number;
+}
+
+/**
+ * FableSynth DR-1 — sixteen pads, played from `baseNote` upward, one per MIDI
+ * note. A note outside that range is silent rather than transposed: a pad is a
+ * drum sound, not a pitch.
+ */
+export interface DrumMidiInstrument {
+  type: "drum";
+  /** The MIDI note pad 0 answers to. Pads run `baseNote`..`baseNote + 15`. */
+  baseNote: number;
+  pads: DrumPad[];
   gainDb: number;
 }
 
