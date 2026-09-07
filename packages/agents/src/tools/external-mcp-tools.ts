@@ -379,8 +379,7 @@ export class McpClientPool {
           .slice(0, MAX_STDERR_CHARS);
         if (text) log.debug("MCP server stderr", { server: config.id, text });
       });
-      closeOnAbort(signal, stdio);
-      await client.connect(stdio);
+      await startTransport(client, stdio, signal, config.id);
       return client;
     }
     const headers = await resolveSecretReferences(
@@ -400,18 +399,17 @@ export class McpClientPool {
         requestInit: { headers },
         ...fetchOpt
       });
-      closeOnAbort(signal, streamable);
-      await client.connect(streamable);
+      await startTransport(client, streamable, signal, config.id);
       return client;
     } catch (err) {
+      await client.close().catch(() => undefined);
+      // A cancelled entry must not fall through and open a second transport.
+      if (signal.aborted) throw cancelledError(config.id);
       log.debug("Streamable HTTP failed, trying SSE", {
         server: config.id,
         error: describeError(err, secrets)
       });
-      await client.close().catch(() => undefined);
     }
-    // A cancelled entry must not open a second transport on the way out.
-    if (signal.aborted) throw cancelledError(config.id);
     const { SSEClientTransport } = await import(
       "@modelcontextprotocol/sdk/client/sse.js"
     );
@@ -420,8 +418,7 @@ export class McpClientPool {
       requestInit: { headers },
       ...fetchOpt
     });
-    closeOnAbort(signal, sse);
-    await sseClient.connect(sse);
+    await startTransport(sseClient, sse, signal, config.id);
     return sseClient;
   }
 }
@@ -458,6 +455,29 @@ function closeOnAbort(
   const close = () => void transport.close().catch(() => undefined);
   if (signal.aborted) close();
   else signal.addEventListener("abort", close, { once: true });
+}
+
+/**
+ * Start one transport, refusing a startup its entry has already dropped.
+ *
+ * Everything before this point is awaited — resolving `${SECRET}` references,
+ * importing the SDK's transport module — so the user can disable the server,
+ * or the deadline can expire, while this connection is still being prepared.
+ * Closing an unstarted stdio transport does not mark it closed, so a
+ * `closeOnAbort` that fired during those awaits would not stop the `start()`
+ * below from spawning the command afterwards. The check and the start share
+ * one tick: `Client.connect` reaches `transport.start()` before its first
+ * await, so nothing can abort between them.
+ */
+async function startTransport(
+  client: Client,
+  transport: Parameters<Client["connect"]>[0],
+  signal: AbortSignal,
+  serverId: string
+): Promise<void> {
+  if (signal.aborted) throw cancelledError(serverId);
+  closeOnAbort(signal, transport);
+  await client.connect(transport);
 }
 
 /** Every page of `tools/list`. */

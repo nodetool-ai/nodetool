@@ -5,6 +5,10 @@
  */
 
 import { afterEach, describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { z } from "zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -110,6 +114,31 @@ function hangingPool(overrides: Partial<McpClientPoolOptions> = {}): {
       })
   });
   return { pool, cancelled: () => cancels };
+}
+
+/** How long "the command did not run" waits before it believes itself. */
+const NO_SPAWN_WINDOW_MS = 1_500;
+
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
+}
+
+/** Milliseconds until `path` appeared, or null if it never did. */
+async function waitForFile(
+  path: string,
+  timeoutMs: number
+): Promise<number | null> {
+  const started = Date.now();
+  for (;;) {
+    const elapsed = Date.now() - started;
+    if (existsSync(path)) return elapsed;
+    if (elapsed >= timeoutMs) return null;
+    await new Promise((r) => setTimeout(r, 20));
+  }
 }
 
 afterEach(async () => {
@@ -411,6 +440,52 @@ describe("McpClientPool", () => {
     expect(await discovery).toEqual([]);
     expect(cancelled()).toBe(1);
     await pool.close();
+  });
+
+  it("does not spawn a removed server's command when its secret arrives late", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nodetool-mcp-"));
+    const marker = join(dir, "spawned");
+    // A real stdio server: the command writes a file the moment it runs, so
+    // the file is the ground truth for whether the transport started.
+    const spawning: McpServerConfig = {
+      ...config,
+      transport: {
+        type: "stdio",
+        command: process.execPath,
+        args: [
+          "-e",
+          "require('node:fs').writeFileSync(process.env.MCP_TEST_MARKER, 'x')"
+        ],
+        env: { MCP_TEST_MARKER: marker, TOKEN: "${MCP_TOKEN}" }
+      }
+    };
+
+    const held = deferred<string>();
+    const cancelled = new McpClientPool({
+      getSecret: () => held.promise,
+      connectTimeoutMs: 60_000
+    });
+    await cancelled.sync([spawning]);
+    // The user deletes the server while `connect()` is parked on the secret.
+    await cancelled.sync([]);
+    expect(cancelled.serverIds()).toEqual([]);
+    held.resolve("token-value");
+    expect(await waitForFile(marker, NO_SPAWN_WINDOW_MS)).toBeNull();
+    await cancelled.close();
+
+    // The same setup, uncancelled: the command does run, and it runs well
+    // inside the window the assertion above waited out — so that assertion
+    // cannot pass by watching a machine too slow to have spawned yet.
+    const live = new McpClientPool({
+      getSecret: async () => "token-value",
+      connectTimeoutMs: 5_000
+    });
+    await live.sync([spawning]);
+    const spawnMs = await waitForFile(marker, 10_000);
+    expect(spawnMs).not.toBeNull();
+    expect(spawnMs).toBeLessThan(NO_SPAWN_WINDOW_MS);
+    await live.close();
+    await rm(dir, { recursive: true, force: true });
   });
 
   it("drops disabled and removed servers, reconnects on a changed config", async () => {

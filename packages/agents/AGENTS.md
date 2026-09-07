@@ -849,7 +849,12 @@ probe uses 15s) and an `AbortController` whose abort closes the transport.
 `sync` cancels the entries its list drops **before** it queues, because
 `discover()` holds the pool's queue while it waits and disabling the offending
 server is how the user recovers — a cancellation queued behind that discovery
-would be one the user has to wait out.
+would be one the user has to wait out. Every transport starts through
+`startTransport`, which refuses a start the entry has already cancelled:
+resolving secrets and importing the SDK module are awaited, so the server can
+be deleted while a connection is still being prepared, and closing an
+unstarted stdio transport does not stop a later `start()` from spawning the
+command.
 
 **Redaction is per resolved value, not per header.** `resolveSecretReferences`
 reports every value an expansion produced, at every level, so an entry blanks
