@@ -227,8 +227,9 @@ export const timelineConflictKey = (sequenceId: string): string =>
 
 /**
  * One field a server route generates onto a clip: the `generatedMatte` an
- * isolate run cuts, or the single animation an audio bake owns (`bakedFrom`
- * kind + driven property).
+ * isolate run cuts, or the one animation an audio bake wrote (by the id the
+ * route reports, or by `bakedFrom` kind + driven property when it reports
+ * none).
  */
 export interface GeneratedClipField<TClip> {
   /** What the field holds on one clip; `undefined` when it holds nothing. */
@@ -274,10 +275,17 @@ const clipsById = <TClip extends AdoptableClip>(
  *    different parts of one clip, which is not a contest: keep the draft's
  *    clip and overlay the server's value, drop the conflict, and roll this
  *    clip's next base to the server's copy, which is what it now holds;
- *  - the draft changed this field too (cleared the matte, edited the baked
- *    curve) → a genuine contest. The draft stands, the server's clip is
- *    returned in `pending` for the banner to offer, and the next base keeps
- *    the base it had so the offer stays reachable (`MergeResult.nextBase`).
+ *  - the draft already holds what the server generated → the result is
+ *    applied, not contested. A live document sync can land the finished value
+ *    before this action's own GET returns, while the action still holds its
+ *    pre-run base. Keep the draft's clip, raise no conflict, and roll the
+ *    next base forward to the server's copy — leaving it at the pre-run base
+ *    made the action report a conflict over a value already on the clip;
+ *  - the draft changed this field to something else (cleared the matte,
+ *    edited the baked curve) → a genuine contest. The draft stands, the
+ *    server's clip is returned in `pending` for the banner to offer, and the
+ *    next base keeps the base it had so the offer stays reachable
+ *    (`MergeResult.nextBase`).
  *
  * A clip the route did not actually change in this field is left exactly as
  * the unit merge resolved it.
@@ -320,8 +328,18 @@ export function adoptGeneratedClipField<TClip extends AdoptableClip>(
     const target =
       mergedClips.find((clip) => clip.id === clipId) ?? draftClip;
 
-    if (structuralEqual(field.valueOf(draftClip), field.valueOf(baseClip))) {
+    const drafted = field.valueOf(draftClip);
+    if (structuralEqual(drafted, field.valueOf(baseClip))) {
       adopted.set(clipId, field.overlay(target, serverClip));
+      rebased.set(clipId, serverClip);
+      resolved.add(clipId);
+      continue;
+    }
+
+    // The draft already carries the generated value: a live sync applied it
+    // while this pass still holds the pre-run base. Nothing to overlay and
+    // nothing to offer — only the base has to catch up.
+    if (structuralEqual(drafted, generated)) {
       rebased.set(clipId, serverClip);
       resolved.add(clipId);
       continue;

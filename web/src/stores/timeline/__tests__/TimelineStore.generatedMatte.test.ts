@@ -511,4 +511,46 @@ describe("isolateSubject", () => {
     expect(target?.name).toBe("User rename");
     expect(listedConflicts()).toEqual([]);
   });
+
+  it("adopts a matte a live sync already applied, without a conflict", async () => {
+    // The document sync loads the finished matte into the store while this
+    // action's own GET is still in flight; the action still holds the base it
+    // sent, whose matte is its own "generating" placeholder.
+    const { store, track, clip } = seedStore();
+    postIsolate.mockResolvedValue({
+      status: "ready",
+      assetId: "mask-2",
+      sourceRange: { fromMs: 0, toMs: 4000 },
+      reused: false
+    });
+    let releaseGet: () => void = () => {};
+    mockTimelineGet.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseGet = () => resolve(serverSequence(track, clip, MATTE));
+        })
+    );
+
+    const pending = store.getState().isolateSubject(CLIP_ID);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockTimelineGet).toHaveBeenCalledTimes(1);
+
+    store.getState().patchClip(CLIP_ID, { generatedMatte: MATTE });
+
+    releaseGet();
+    const result = await pending;
+
+    // The result is already on the clip, so there is nothing to resolve …
+    expect(
+      store.getState().clips.find((c) => c.id === CLIP_ID)?.generatedMatte
+    ).toEqual(MATTE);
+    expect(listedConflicts()).toEqual([]);
+    expect(result?.pendingUserResolution).toBeUndefined();
+    // … and the base carries it, so the next autosave writes nothing back.
+    expect(
+      store
+        .getState()
+        .syncedDocument?.clips.find((c) => c.id === CLIP_ID)?.generatedMatte
+    ).toEqual(MATTE);
+  });
 });

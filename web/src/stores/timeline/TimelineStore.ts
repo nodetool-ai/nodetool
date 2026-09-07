@@ -168,20 +168,36 @@ const GENERATED_MATTE_FIELD: GeneratedClipField<TimelineClip> = {
 };
 
 /**
- * The one animation an audio bake owns on a clip: the curve an earlier bake
- * of the same kind left driving `property`. Every other animation on the clip
- * — a hand-tuned curve, a bake of another property — belongs to whoever wrote
- * it and is carried through untouched.
+ * The one animation an audio bake owns on a clip.
+ *
+ * `animationId` is the id the route reports for the curve THIS bake wrote. An
+ * append (`replace: false`) beside an earlier bake of the same property needs
+ * it: the property selector returns the FIRST bake driving `property`, which
+ * in append mode is the curve the bake left alone, so the pass would read the
+ * same animation on base, draft and server and decide nothing was generated.
+ * Without an id — an older server that reports none — it falls back to that
+ * property selector: the curve an earlier bake of the same kind left driving
+ * `property`.
+ *
+ * Every other animation on the clip — a hand-tuned curve, a bake of another
+ * property — belongs to whoever wrote it and is carried through untouched.
  */
-const bakedAudioAnimationField = (
-  property: string
+export const bakedAudioAnimationField = (
+  property: string,
+  animationId?: string
 ): GeneratedClipField<TimelineClip> => {
-  const indexIn = (clip: TimelineClip): number =>
-    findBakedAnimationIndex(
-      clip.animations,
-      AUDIO_BAKED_ANIMATION_KIND,
-      property
+  const indexIn = (clip: TimelineClip): number => {
+    if (animationId === undefined) {
+      return findBakedAnimationIndex(
+        clip.animations,
+        AUDIO_BAKED_ANIMATION_KIND,
+        property
+      );
+    }
+    return (clip.animations ?? []).findIndex(
+      (animation) => animation.id === animationId
     );
+  };
   return {
     valueOf: (clip) => {
       const index = indexIn(clip);
@@ -2578,7 +2594,12 @@ export const createTimelineStore = (
             sequence,
             base,
             [result.clip_id || body.target_clip_id],
-            bakedAudioAnimationField(result.property || body.property)
+            // The id of the curve THIS bake wrote, so an append beside an
+            // earlier bake of the same property adopts the new curve.
+            bakedAudioAnimationField(
+              result.property || body.property,
+              result.animationId
+            )
           );
           return pending ? { ...result, pendingUserResolution: true } : result;
         },
