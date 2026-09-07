@@ -249,6 +249,71 @@ describe("isolateSubject", () => {
     expect(store.getState().clips[0].generatedMatte?.status).toBe("ready");
   });
 
+  it("keeps edits made while the matte was in flight", async () => {
+    const { store, track, clip } = seedStore();
+    // A second track with nothing on it, and a clip the run never touches:
+    // the two things the user is about to change while the request runs.
+    const spare: TimelineTrack = makeTrack({ type: "video", name: "V2" });
+    const other: TimelineClip = makeClip({
+      id: "other-1",
+      trackId: track.id,
+      name: "Shot 2",
+      startMs: 4000,
+      durationMs: 2000,
+      mediaType: "video"
+    });
+    store.setState({ tracks: [track, spare], clips: [clip, other] });
+    timelineTemporalOf(store).clear();
+
+    postIsolate.mockResolvedValue({
+      status: "ready",
+      assetId: "mask-2",
+      sourceRange: { fromMs: 0, toMs: 4000 },
+      reused: false
+    });
+    // The server answers with the document as it was SAVED plus the matte —
+    // it never saw the edits made after the save.
+    let releaseGet: () => void = () => {};
+    mockTimelineGet.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseGet = () =>
+            resolve({
+              id: SEQUENCE_ID,
+              updatedAt: "2026-01-01T00:05:00.000Z",
+              tracks: [track, spare],
+              clips: [{ ...clip, generatedMatte: MATTE }, other],
+              markers: []
+            });
+        })
+    );
+
+    const pending = store.getState().isolateSubject(CLIP_ID);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockTimelineGet).toHaveBeenCalledTimes(1);
+
+    // Inside the 750 ms autosave debounce: none of this has reached the
+    // server, and the response in flight predates all of it.
+    store.getState().patchClip("other-1", { name: "Renamed" });
+    const marker = store.getState().addMarker({ timeMs: 1000, label: "Beat" });
+    store.getState().removeTrack(spare.id);
+    const before = timelineTemporalOf(store).pastStates.length;
+
+    releaseGet();
+    await pending;
+
+    const state = store.getState();
+    expect(state.clips.find((c) => c.id === "other-1")?.name).toBe("Renamed");
+    expect(state.markers.map((m) => m.id)).toEqual([marker.id]);
+    expect(state.tracks.map((t) => t.id)).toEqual([track.id]);
+    // …and the run's own write still arrived.
+    expect(
+      state.clips.find((c) => c.id === CLIP_ID)?.generatedMatte
+    ).toMatchObject({ assetId: "mask-2", status: "ready" });
+    expect(state.baseUpdatedAt).toBe("2026-01-01T00:05:00.000Z");
+    expect(timelineTemporalOf(store).pastStates.length).toBe(before + 1);
+  });
+
   it("reports a refusal as a notification and puts the previous result back", async () => {
     const { store } = seedStore(MATTE);
     postIsolate.mockRejectedValue(new Error("Clip carries a time remap"));

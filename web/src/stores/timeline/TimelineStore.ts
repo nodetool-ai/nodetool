@@ -107,6 +107,8 @@ import {
   reflowGenerated,
   isTranscriptClip
 } from "./transcriptOps";
+import { mergeTimelineDocuments, type TimelineMergeDoc } from "./merge";
+import type { DocumentOp } from "@nodetool-ai/protocol";
 
 // ── Snap threshold ─────────────────────────────────────────────────────────
 
@@ -561,7 +563,9 @@ export interface TimelineStoreState {
    * Drive a clip's motion from an audio clip. The measuring and the write both
    * happen on the server, which reads the STORED document — so this saves the
    * open document first, posts the bake, and takes back the document the
-   * server wrote in one `applyAgentEdit`, i.e. one undo entry.
+   * server wrote in one `applyAgentEdit`, i.e. one undo entry. What comes back
+   * is merged against the document that was saved, so an edit made while the
+   * bake ran survives instead of being overwritten by the server's copy.
    */
   bakeAudioAnimation: (
     body: BakeAudioAnimationBody
@@ -589,7 +593,9 @@ export interface TimelineStoreState {
    * The segmentation reads the STORED document and writes the result onto the
    * clip, so this saves the open document first, marks the clip generating for
    * the editor to show, waits for the run to settle, and takes back the
-   * document the server wrote. Resolves null when the run failed — the error
+   * document the server wrote — merged against the document that was saved, so
+   * an edit made while the run was in flight survives. Each round of the wait
+   * is one undo entry. Resolves null when the run failed — the error
    * reaches the user as a notification rather than an unhandled rejection.
    */
   isolateSubject: (
@@ -1266,6 +1272,105 @@ const syncedSnapshotOf = (
   width: state.width,
   height: state.height
 });
+
+// ── Server-write adoption ──────────────────────────────────────────────────
+
+/** The document as the editor last read or wrote it. */
+type TimelineSyncedDoc = NonNullable<TimelineStoreState["syncedDocument"]>;
+
+/** What `trpc.timeline.get` answers with. */
+type FetchedSequence = Awaited<
+  ReturnType<typeof trpcClient.timeline.get.query>
+>;
+
+/**
+ * The write a server route made, as merge ops: it wrote the clips it was
+ * pointed at and nothing else. Without ops the merge engine reads the fetched
+ * copy as a whole-document replacement, which a dirty draft refuses whole —
+ * the generated field would never arrive.
+ */
+const clipWriteOps = (clipIds: readonly string[]): DocumentOp[] =>
+  clipIds.map((clipId) => ({
+    tool: "ui_timeline_update_clip",
+    input: { clip_id: clipId }
+  }));
+
+/**
+ * Take back the document a server route wrote, keeping every edit the user
+ * made while the request was in flight.
+ *
+ * `base` is the document as the action saved it — the copy the server started
+ * from — so the three-way merge of (base, current draft, fetched copy) hands
+ * the generated field to the clips the route wrote and leaves every other
+ * local edit, addition and deletion alone. Adopting the fetched copy wholesale
+ * (what this replaced) dropped any edit made inside the request window,
+ * because `setBaseUpdatedAt` then marked the replacement as synchronized and
+ * autosave had nothing left to write.
+ *
+ * The whole write is one `applyAgentEdit`, i.e. one undo entry. Returns the
+ * base for the next adoption, so a polling caller rolls forward instead of
+ * merging against a copy two rounds old.
+ *
+ * The caller has already checked that the store still holds this sequence.
+ */
+function adoptServerSequence(
+  get: () => TimelineStoreState,
+  sequence: FetchedSequence,
+  base: TimelineSyncedDoc,
+  touchedClipIds: readonly string[]
+): TimelineSyncedDoc {
+  const state = get();
+  const draft: TimelineMergeDoc = {
+    tracks: state.tracks,
+    clips: state.clips,
+    markers: state.markers,
+    transcript: state.transcript,
+    scriptEnabled: state.scriptEnabled,
+    fps: state.fps,
+    width: state.width,
+    height: state.height
+  };
+  // A field the response leaves out is one the route did not write, so the
+  // base stands in for it rather than reading as an external clear.
+  const server: TimelineMergeDoc = {
+    tracks: sequence.tracks ?? base.tracks,
+    clips: sequence.clips ?? base.clips,
+    markers: sequence.markers ?? base.markers,
+    transcript: sequence.transcript ?? base.transcript,
+    scriptEnabled: sequence.scriptEnabled ?? base.scriptEnabled,
+    fps: sequence.fps ?? base.fps,
+    width: sequence.width ?? base.width,
+    height: sequence.height ?? base.height
+  };
+
+  const { doc, nextBase } = mergeTimelineDocuments(
+    base,
+    draft,
+    server,
+    clipWriteOps(touchedClipIds)
+  );
+
+  get().applyAgentEdit({
+    tracks: doc.tracks as TimelineTrack[],
+    clips: doc.clips as TimelineClip[],
+    markers: doc.markers as TimelineMarker[]
+  });
+  // The base for the next external change is what the SERVER holds, minus the
+  // slots the draft refused, which keep the base they had — the rule
+  // `MergeResult.nextBase` documents.
+  const synced: TimelineSyncedDoc = {
+    tracks: nextBase.tracks as TimelineTrack[],
+    clips: nextBase.clips as TimelineClip[],
+    markers: nextBase.markers as TimelineMarker[],
+    transcript: nextBase.transcript as TranscriptLine[],
+    scriptEnabled: nextBase.scriptEnabled,
+    fps: nextBase.fps,
+    width: nextBase.width,
+    height: nextBase.height
+  };
+  get().setBaseUpdatedAt(sequence.updatedAt, synced);
+  return synced;
+}
 
 // ── Factory ────────────────────────────────────────────────────────────────
 
@@ -2335,6 +2440,11 @@ export const createTimelineStore = (
             baseUpdatedAt: beforeSave.baseUpdatedAt ?? undefined,
             document: buildTimelineDocumentPayload(beforeSave)
           });
+          // What the server now holds, and so the base the bake's own write
+          // is merged against below — captured from the document that was
+          // SENT, not from the store after the save, which may already carry
+          // an edit the user made while the save was in flight.
+          const base = syncedSnapshotOf(beforeSave);
           const savedAt = (saved as { updatedAt?: unknown } | undefined)
             ?.updatedAt;
           if (
@@ -2353,12 +2463,9 @@ export const createTimelineStore = (
           // loading this one over it is the clobber every reload path avoids.
           if (get().sequenceId !== sequenceId) return result;
 
-          get().applyAgentEdit({
-            tracks: (sequence.tracks ?? []) as TimelineTrack[],
-            clips: (sequence.clips ?? []) as TimelineClip[],
-            markers: (sequence.markers ?? []) as TimelineMarker[]
-          });
-          get().setBaseUpdatedAt(sequence.updatedAt);
+          adoptServerSequence(get, sequence, base, [
+            result.clip_id || body.target_clip_id
+          ]);
           return result;
         },
 
@@ -2455,8 +2562,19 @@ export const createTimelineStore = (
             }));
           };
 
-          /** Take back the document the server wrote, in one undo entry. */
-          const adopt = async (): Promise<TimelineClip | undefined> => {
+          /**
+           * Take back the document the server wrote, in one undo entry,
+           * merged against `base` so an edit the user made while the matte ran
+           * survives. Answers with the SERVER's copy of the clip — whether the
+           * run has settled is a question about the row, not about the draft —
+           * and with the base for the next round.
+           */
+          const adopt = async (
+            base: TimelineSyncedDoc
+          ): Promise<{
+            clip: TimelineClip | undefined;
+            base: TimelineSyncedDoc;
+          }> => {
             const sequence = await trpcClient.timeline.get.query({
               id: sequenceId
             });
@@ -2464,14 +2582,11 @@ export const createTimelineStore = (
             // The editor may have moved to another sequence while the matte
             // ran; loading this one over it is the clobber every reload path
             // avoids.
-            if (get().sequenceId !== sequenceId) return undefined;
-            get().applyAgentEdit({
-              tracks: (sequence.tracks ?? []) as TimelineTrack[],
-              clips,
-              markers: (sequence.markers ?? []) as TimelineMarker[]
-            });
-            get().setBaseUpdatedAt(sequence.updatedAt);
-            return clips.find((c) => c.id === clipId);
+            if (get().sequenceId !== sequenceId) {
+              return { clip: undefined, base };
+            }
+            const nextBase = adoptServerSequence(get, sequence, base, [clipId]);
+            return { clip: clips.find((c) => c.id === clipId), base: nextBase };
           };
 
           try {
@@ -2491,13 +2606,27 @@ export const createTimelineStore = (
             }
 
             mark("generating");
+            // What the server started from: the document that was SENT, plus
+            // the placeholder `mark` just wrote onto the clip. The placeholder
+            // is this action's own optimistic state, not a user edit — leaving
+            // it out of the base would make the clip read as edited on both
+            // sides, and the merge would refuse the matte the run produced.
+            const sent = syncedSnapshotOf(beforeSave);
+            const marked = get().clips.find((c) => c.id === clipId);
+            let base: TimelineSyncedDoc = marked
+              ? {
+                  ...sent,
+                  clips: sent.clips.map((c) => (c.id === clipId ? marked : c))
+                }
+              : sent;
+
             const result = await postIsolateSubject(sequenceId, {
               ...body,
               clip_id: clipId
             });
 
             if (result.status !== "generating") {
-              await adopt();
+              await adopt(base);
               return result;
             }
 
@@ -2508,10 +2637,12 @@ export const createTimelineStore = (
             for (;;) {
               await sleep(pollIntervalMs);
               if (get().sequenceId !== sequenceId) return result;
-              const settled = await adopt();
+              const settled = await adopt(base);
+              base = settled.base;
               if (
-                settled === undefined ||
-                (settled.generatedMatte?.status ?? "ready") !== "generating"
+                settled.clip === undefined ||
+                (settled.clip.generatedMatte?.status ?? "ready") !==
+                  "generating"
               ) {
                 return result;
               }

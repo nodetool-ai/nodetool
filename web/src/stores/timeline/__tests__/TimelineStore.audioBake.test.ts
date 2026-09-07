@@ -153,6 +153,68 @@ describe("bakeAudioAnimation", () => {
     expect(store.getState().clips[0].animations).toBeUndefined();
   });
 
+  it("keeps edits made while the bake was in flight", async () => {
+    const { store, track, target } = seedStore();
+    // A second track with nothing on it, and a clip the bake never touches:
+    // the two things the user is about to change while the request runs.
+    const spare: TimelineTrack = makeTrack({ type: "video", name: "V2" });
+    const other: TimelineClip = makeClip({
+      id: "other-1",
+      trackId: track.id,
+      name: "Shot 2",
+      startMs: 2000,
+      durationMs: 2000,
+      mediaType: "video"
+    });
+    store.setState({
+      tracks: [track, spare],
+      clips: [target, other]
+    });
+    timelineTemporalOf(store).clear();
+
+    // The server answers with the document as it was SAVED plus the bake —
+    // it never saw the edits made after the save.
+    let releaseGet: () => void = () => {};
+    mockTimelineGet.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseGet = () =>
+            resolve({
+              id: SEQUENCE_ID,
+              updatedAt: "2026-01-01T00:05:00.000Z",
+              tracks: [track, spare],
+              clips: [{ ...target, animations: [BAKED_ANIMATION] }, other],
+              markers: []
+            });
+        })
+    );
+
+    const pending = store.getState().bakeAudioAnimation(BODY);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockTimelineGet).toHaveBeenCalledTimes(1);
+
+    // Inside the 750 ms autosave debounce: none of this has reached the
+    // server, and the response in flight predates all of it.
+    store.getState().patchClip("other-1", { name: "Renamed" });
+    const marker = store.getState().addMarker({ timeMs: 1000, label: "Beat" });
+    store.getState().removeTrack(spare.id);
+    const before = timelineTemporalOf(store).pastStates.length;
+
+    releaseGet();
+    await pending;
+
+    const state = store.getState();
+    expect(state.clips.find((c) => c.id === "other-1")?.name).toBe("Renamed");
+    expect(state.markers.map((m) => m.id)).toEqual([marker.id]);
+    expect(state.tracks.map((t) => t.id)).toEqual([track.id]);
+    // …and the bake's own write still arrived.
+    expect(state.clips.find((c) => c.id === "target-1")?.animations).toEqual([
+      BAKED_ANIMATION
+    ]);
+    expect(state.baseUpdatedAt).toBe("2026-01-01T00:05:00.000Z");
+    expect(timelineTemporalOf(store).pastStates.length).toBe(before + 1);
+  });
+
   it("leaves the document alone when the editor moved to another sequence", async () => {
     const { store, track, target } = seedStore();
     mockTimelineGet.mockImplementation(async () => {
