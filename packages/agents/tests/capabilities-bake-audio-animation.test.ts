@@ -22,6 +22,8 @@ import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { analyzeAudioFrames } from "../src/capabilities/analysis.js";
 import {
   audioSourceMsToTimelineMs,
+  beatCurve,
+  mapAudioCurveToTarget,
   timelineMsToTargetSourceMs
 } from "../src/capabilities/timeline-audio-bake.js";
 
@@ -187,6 +189,135 @@ describe("the two time hops", () => {
     // The target plays at 0.5x, so 1250 ms of timeline is 625 ms of media.
     const slow = { ...TARGET_CLIP, speedMultiplier: 0.5 };
     expect(timelineMsToTargetSourceMs(slow, 2250)).toBe(625);
+  });
+});
+
+/**
+ * The curve reaching the mapper is already simplified, so "no keyframe inside
+ * the target" is not "no motion over the target". These cases pin the
+ * geometric clip that replaced the membership test.
+ */
+describe("clipping a simplified curve to the target's window", () => {
+  /** 1:1 on the timeline — audio-source ms and timeline ms are one number. */
+  const AUDIO = { startMs: 0, durationMs: 4000 };
+  /** A linear envelope over 0–4000ms, simplified to its two ends. */
+  const RAMP = [
+    { timeMs: 0, value: 1 },
+    { timeMs: 4000, value: 2 }
+  ];
+
+  it("interpolates both boundaries when the target sits between two keyframes", () => {
+    // The reviewer's reproduction: this returned [] before, and the capability
+    // reported "does not overlap" over a ramp that covers the whole target.
+    expect(
+      mapAudioCurveToTarget(RAMP, {
+        audioClip: AUDIO,
+        targetClip: { startMs: 1000, durationMs: 2000 },
+        offsetMs: 0
+      })
+    ).toEqual([
+      { sourceMs: 0, value: 1.25 },
+      { sourceMs: 2000, value: 1.75 }
+    ]);
+  });
+
+  it("clips to one segment of a curve that has interior vertices elsewhere", () => {
+    const curve = [
+      { timeMs: 0, value: 1 },
+      { timeMs: 1000, value: 2 },
+      { timeMs: 3000, value: 3 },
+      { timeMs: 4000, value: 1 }
+    ];
+    // 1500–2500ms falls inside the 1000→3000ms segment, so both ends are
+    // interpolated and no vertex of the curve is retained.
+    expect(
+      mapAudioCurveToTarget(curve, {
+        audioClip: AUDIO,
+        targetClip: { startMs: 1500, durationMs: 1000 },
+        offsetMs: 0
+      })
+    ).toEqual([
+      { sourceMs: 0, value: 2.25 },
+      { sourceMs: 1000, value: 2.75 }
+    ]);
+  });
+
+  it("interpolates the crossed boundary and keeps the rest on a partial overlap", () => {
+    const curve = [
+      { timeMs: 0, value: 1 },
+      { timeMs: 2000, value: 3 },
+      { timeMs: 4000, value: 1 }
+    ];
+    // The target starts mid-curve and outlasts it, so only the start boundary
+    // is crossed and the peak and tail come through as measured.
+    expect(
+      mapAudioCurveToTarget(curve, {
+        audioClip: AUDIO,
+        targetClip: { startMs: 1000, durationMs: 5000 },
+        offsetMs: 0
+      })
+    ).toEqual([
+      { sourceMs: 0, value: 2 },
+      { sourceMs: 1000, value: 3 },
+      { sourceMs: 3000, value: 1 }
+    ]);
+  });
+
+  it("still returns nothing when the curve never reaches the target", () => {
+    expect(
+      mapAudioCurveToTarget(RAMP, {
+        audioClip: AUDIO,
+        targetClip: { startMs: 10000, durationMs: 2000 },
+        offsetMs: 0
+      })
+    ).toEqual([]);
+  });
+});
+
+describe("beatCurve", () => {
+  const ONSETS = [1000, 2000, 3000];
+  const OPTIONS = {
+    releaseMs: 150,
+    outputRange: [1, 1.2] as [number, number],
+    windowMs: [0, 4000] as [number, number],
+    tolerance: 0.01,
+    maxPoints: 4096
+  };
+
+  const peakTimes = (points: readonly { timeMs: number; value: number }[]) =>
+    points.filter((point) => point.value === 1.2).map((point) => point.timeMs);
+
+  it("keeps every peak with a zero attack, as a step into the onset", () => {
+    // Zero attack is what the route and the inspector accept as "no rise";
+    // it used to drop every onset and leave a flat curve.
+    const points = beatCurve(ONSETS, { ...OPTIONS, attackMs: 0 });
+    expect(peakTimes(points)).toEqual(ONSETS);
+
+    for (const onsetMs of ONSETS) {
+      const peak = points.findIndex((point) => point.timeMs === onsetMs);
+      const rest = points[peak - 1]!;
+      expect(rest.value).toBe(1);
+      // Inside a millisecond of the onset: the step is a jump, not a ramp.
+      expect(rest.timeMs).toBeGreaterThan(onsetMs - 1);
+      expect(rest.timeMs).toBeLessThan(onsetMs);
+    }
+    expect(
+      points.every(
+        (point, index) => index === 0 || point.timeMs > points[index - 1]!.timeMs
+      )
+    ).toBe(true);
+    expect(points[0]).toEqual({ timeMs: 0, value: 1 });
+    expect(points[points.length - 1]).toEqual({ timeMs: 4000, value: 1 });
+  });
+
+  it("leaves a non-zero attack untouched: the rise starts attack_ms early", () => {
+    const points = beatCurve(ONSETS, { ...OPTIONS, attackMs: 30 });
+    expect(peakTimes(points)).toEqual(ONSETS);
+    for (const onsetMs of ONSETS) {
+      const peak = points.findIndex((point) => point.timeMs === onsetMs);
+      expect(points[peak - 1]).toEqual({ timeMs: onsetMs - 30, value: 1 });
+      expect(points[peak + 1]).toEqual({ timeMs: onsetMs + 150, value: 1 });
+    }
   });
 });
 

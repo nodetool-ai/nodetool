@@ -79,11 +79,36 @@ export interface MapCurveOptions {
   offsetMs: number;
 }
 
+/** One point of the measured curve, carried onto the timeline. */
+interface TimedCurvePoint {
+  timelineMs: number;
+  value: number;
+}
+
+/** The value the segment `a → b` holds at `timelineMs`. */
+function interpolateAt(
+  a: TimedCurvePoint,
+  b: TimedCurvePoint,
+  timelineMs: number
+): number {
+  const span = b.timelineMs - a.timelineMs;
+  if (span <= 0) return b.value;
+  return a.value + (b.value - a.value) * ((timelineMs - a.timelineMs) / span);
+}
+
 /**
  * Carry a series measured in audio-source time onto the target clip's clock,
- * dropping what falls outside the target's own window.
+ * clipped to the stretch of timeline the target occupies.
  *
- * A point the target never shows is dropped rather than clamped: a source
+ * The clip is geometric, not a filter: the incoming series is already
+ * simplified, so a target can sit between two retained keyframes and still be
+ * fully covered by the motion between them. Each boundary the curve crosses
+ * contributes an interpolated point, and only then are the vertices outside
+ * dropped. Testing membership first instead returned nothing for such a target
+ * — the capability reported "does not overlap" over a curve that spans it —
+ * and turned the ends of a partially-covered target flat.
+ *
+ * A vertex the target never shows is dropped rather than clamped: a source
  * curve holds its first and last value flat outside its ends, so the retained
  * motion is the motion the target actually plays, and the validator's
  * `source_curve_outside_window` stays quiet.
@@ -95,18 +120,52 @@ export function mapAudioCurveToTarget(
   const { targetClip } = options;
   const windowStartMs = targetClip.startMs;
   const windowEndMs = targetClip.startMs + targetClip.durationMs;
-  const mapped: BakedCurvePoint[] = [];
-  for (const point of points) {
-    const timelineMs =
+  const timed: TimedCurvePoint[] = points.map((point) => ({
+    timelineMs:
       audioSourceMsToTimelineMs(options.audioClip, point.timeMs) +
-      options.offsetMs;
-    if (timelineMs < windowStartMs || timelineMs > windowEndMs) continue;
-    mapped.push({
-      sourceMs: Math.max(0, timelineMsToTargetSourceMs(targetClip, timelineMs)),
-      value: point.value
-    });
+      options.offsetMs,
+    value: point.value
+  }));
+
+  const kept: TimedCurvePoint[] = [];
+  for (let index = 0; index < timed.length; index += 1) {
+    const current = timed[index]!;
+    const previous = index > 0 ? timed[index - 1]! : undefined;
+    if (previous) {
+      if (
+        previous.timelineMs < windowStartMs &&
+        current.timelineMs > windowStartMs
+      ) {
+        kept.push({
+          timelineMs: windowStartMs,
+          value: interpolateAt(previous, current, windowStartMs)
+        });
+      }
+      if (
+        previous.timelineMs < windowEndMs &&
+        current.timelineMs > windowEndMs
+      ) {
+        kept.push({
+          timelineMs: windowEndMs,
+          value: interpolateAt(previous, current, windowEndMs)
+        });
+      }
+    }
+    if (
+      current.timelineMs >= windowStartMs &&
+      current.timelineMs <= windowEndMs
+    ) {
+      kept.push(current);
+    }
   }
-  return mapped;
+
+  return kept.map((point) => ({
+    sourceMs: Math.max(
+      0,
+      timelineMsToTargetSourceMs(targetClip, point.timelineMs)
+    ),
+    value: point.value
+  }));
 }
 
 export interface EnvelopeCurveOptions {
@@ -174,6 +233,13 @@ const EPSILON_MS = 1e-3;
  * Pulses that would overlap are shortened rather than interleaved — a series
  * whose times went backwards is refused by the curve gate, and an onset inside
  * the previous pulse's release is one the ear hears as part of it anyway.
+ *
+ * `attackMs: 0` is a step, not a skipped onset. The route and the inspector
+ * both accept zero, and it used to put the rest point *at* the onset, which
+ * the ascending guard then dropped — every onset in the series, leaving a flat
+ * curve between the two resting endpoints. The rest point sits `EPSILON_MS`
+ * before the onset instead, so the times still ascend and the value jumps at
+ * the onset itself.
  */
 export function beatCurve(
   onsetsMs: readonly number[],
@@ -186,11 +252,11 @@ export function beatCurve(
 
   for (const onsetMs of [...onsetsMs].sort((a, b) => a - b)) {
     if (onsetMs <= lastTimeMs || onsetMs > windowEndMs) continue;
-    const riseMs = Math.max(
-      onsetMs - Math.max(0, options.attackMs),
-      lastTimeMs + EPSILON_MS
+    const riseMs = Math.min(
+      Math.max(onsetMs - Math.max(0, options.attackMs), lastTimeMs + EPSILON_MS),
+      onsetMs - EPSILON_MS
     );
-    if (riseMs >= onsetMs) continue;
+    if (riseMs <= lastTimeMs) continue;
     points.push({ timeMs: riseMs, value: lo });
     points.push({ timeMs: onsetMs, value: hi });
     const fallMs = Math.min(
