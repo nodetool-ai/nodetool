@@ -468,6 +468,38 @@ function meanEdgeDifference(
   return total / (length * 3);
 }
 
+function repairEdgeBand(
+  rgba: Buffer,
+  width: number,
+  height: number,
+  axis: "x" | "y"
+): void {
+  const extent = axis === "x" ? width : height;
+  const length = axis === "x" ? height : width;
+  const band = Math.min(Math.floor(extent / 2), Math.max(1, Math.ceil(extent * 0.1)));
+  for (let depth = 0; depth < band; depth++) {
+    const t = depth / band;
+    const weight = (1 - t * t * (3 - 2 * t)) / 2;
+    for (let i = 0; i < length; i++) {
+      const a = (axis === "x" ? i * width + depth : depth * width + i) * 4;
+      const b = (axis === "x" ? i * width + width - 1 - depth : (height - 1 - depth) * width + i) * 4;
+      // Blend premultiplied colors so invisible RGB cannot tint opaque pixels.
+      const alphaA = rgba[a + 3];
+      const alphaB = rgba[b + 3];
+      const blendedA = alphaA * (1 - weight) + alphaB * weight;
+      const blendedB = alphaB * (1 - weight) + alphaA * weight;
+      for (let c = 0; c < 3; c++) {
+        const colorA = rgba[a + c] * alphaA;
+        const colorB = rgba[b + c] * alphaB;
+        rgba[a + c] = blendedA === 0 ? 0 : Math.round((colorA * (1 - weight) + colorB * weight) / blendedA);
+        rgba[b + c] = blendedB === 0 ? 0 : Math.round((colorB * (1 - weight) + colorA * weight) / blendedB);
+      }
+      rgba[a + 3] = Math.round(blendedA);
+      rgba[b + 3] = Math.round(blendedB);
+    }
+  }
+}
+
 export class SeamlessImageNode extends BaseNode {
   static readonly nodeType = "nodetool.game.SeamlessImage";
   static readonly title = "Seamless Image";
@@ -477,7 +509,7 @@ export class SeamlessImageNode extends BaseNode {
     output: "image",
     fill: "dict"
   };
-  static readonly inlineFields = ["check_x", "check_y", "threshold"];
+  static readonly inlineFields = ["check_x", "check_y", "repair", "threshold"];
   static readonly inputFields = ["image", "slot"];
 
   @prop({
@@ -533,6 +565,15 @@ export class SeamlessImageNode extends BaseNode {
   })
   declare threshold: number;
 
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Repair seams",
+    description:
+      "Blend the outer 10% on each checked axis before measuring. Preserves dimensions and the center, but softens detail near the edges."
+  })
+  declare repair: boolean;
+
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const name = SeamlessImageNode.title;
     const fromSlot = slotOverrides(name, this.slot, "image");
@@ -553,11 +594,18 @@ export class SeamlessImageNode extends BaseNode {
         throw new Error(`${name}: ${SHARP_UNAVAILABLE_MESSAGE}`);
       }
       const rgba = await sharp(img.buf, { failOn: "none" })
+        .toColourspace("srgb")
         .ensureAlpha()
         .raw()
         .toBuffer();
       const { width, height } = img;
       const stride = width * 4;
+      if (this.repair) {
+        if (checkX) repairEdgeBand(rgba, width, height, "x");
+        if (checkY) repairEdgeBand(rgba, width, height, "y");
+        img.buf = await sharp(rgba, { raw: { width, height, channels: 4 } })
+          .png().toBuffer();
+      }
       if (checkX) {
         const diff = meanEdgeDifference(
           rgba,
@@ -588,12 +636,18 @@ export class SeamlessImageNode extends BaseNode {
     if (!parsed.success) {
       throw formatZodIssues(name, parsed.error);
     }
+    const stampedImage: Record<string, unknown> = stampFill(this.image, img, parsed.data);
+    if (this.repair && (checkX || checkY)) {
+      // The repaired bytes must not retain the original asset's identity.
+      stampedImage.uri = "";
+      stampedImage.asset_id = null;
+    }
     return {
       output: await persistStamped(
         context,
         name,
         parsed.data.slot_id,
-        stampFill(this.image, img, parsed.data)
+        stampedImage
       ),
       fill: parsed.data
     };
