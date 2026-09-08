@@ -637,23 +637,27 @@ export abstract class PythonBridgeBase
 
     log.debug("Python bridge execute dispatched", { nodeType, requestId });
 
+    const executeData: Record<string, unknown> = {
+      node_type: nodeType,
+      fields,
+      secrets,
+      blobs,
+      ...this._identityPayload(identity)
+    };
+    if (
+      this._workerStatus?.protocol_version != null &&
+      this._workerStatus.protocol_version >= 5
+    ) {
+      executeData["blob_transfer"] = "chunked-v1";
+    }
+
     const executePromise = new Promise<ExecuteResult>((resolve, reject) => {
       this._pending.set(requestId, { resolve, reject, onProgress });
       try {
         this._send({
           type: "execute",
           request_id: requestId,
-          data: {
-            node_type: nodeType,
-            fields,
-            secrets,
-            blobs,
-            ...(this._workerStatus?.protocol_version != null &&
-            this._workerStatus.protocol_version >= 5
-              ? { blob_transfer: "chunked-v1" }
-              : {}),
-            ...this._identityPayload(identity)
-          }
+          data: executeData
         });
       } catch (err) {
         this._pending.delete(requestId);
