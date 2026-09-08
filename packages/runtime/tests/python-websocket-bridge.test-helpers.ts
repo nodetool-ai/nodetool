@@ -8,6 +8,7 @@
 
 import { WebSocketServer, type WebSocket as WsServerSocket } from "ws";
 import { AddressInfo } from "node:net";
+import { createHash } from "node:crypto";
 import { pack, unpack } from "msgpackr";
 
 import { BRIDGE_PROTOCOL_VERSION } from "@nodetool-ai/protocol/bridge-protocol";
@@ -35,6 +36,10 @@ interface FakeWorkerOptions {
   answerStatus?: boolean;
   /** When false, execute requests are silently ignored (no reply). */
   answerExecute?: boolean;
+  /** Return this execute output through protocol-v5 chunked blob frames. */
+  executeBlob?: Uint8Array;
+  /** Override the chunked blob digest to exercise integrity failures. */
+  executeBlobSha256?: string;
   /**
    * execute.stream behavior:
    *  - "chunks": emit two chunks then the empty result terminator (default)
@@ -288,6 +293,8 @@ export function startFakeWorker(
     answerDiscover: initialOptions.answerDiscover ?? true,
     answerStatus: initialOptions.answerStatus ?? true,
     answerExecute: initialOptions.answerExecute ?? true,
+    executeBlob: initialOptions.executeBlob ?? new Uint8Array(),
+    executeBlobSha256: initialOptions.executeBlobSha256 ?? "",
     streamMode: initialOptions.streamMode ?? "chunks",
     protocolVersion: initialOptions.protocolVersion ?? BRIDGE_PROTOCOL_VERSION,
     downloadMode: initialOptions.downloadMode ?? "progress",
@@ -372,13 +379,45 @@ export function startFakeWorker(
           break;
         case "execute": {
           if (!opts.answerExecute) break;
-          const data = msg.data as { fields?: Record<string, unknown> };
+          const data = msg.data as {
+            fields?: Record<string, unknown>;
+            blob_transfer?: string;
+          };
+          if (opts.executeBlob.length > 0 && data.blob_transfer === "chunked-v1") {
+            const blob = opts.executeBlob;
+            send({
+              type: "blob.start",
+              request_id: requestId,
+              data: { name: "out", size: blob.length }
+            });
+            for (let offset = 0; offset < blob.length; offset += 3) {
+              send({
+                type: "blob.chunk",
+                request_id: requestId,
+                data: { name: "out", offset, bytes: blob.subarray(offset, offset + 3) }
+              });
+            }
+            send({
+              type: "blob.end",
+              request_id: requestId,
+              data: {
+                name: "out",
+                size: blob.length,
+                sha256:
+                  opts.executeBlobSha256 ||
+                  createHash("sha256").update(blob).digest("hex")
+              }
+            });
+          }
           send({
             type: "result",
             request_id: requestId,
             data: {
               outputs: { out: (data.fields?.value as string) ?? "executed" },
-              blobs: {}
+              blobs:
+                opts.executeBlob.length > 0 && data.blob_transfer !== "chunked-v1"
+                  ? { out: opts.executeBlob }
+                  : {}
             }
           });
           break;

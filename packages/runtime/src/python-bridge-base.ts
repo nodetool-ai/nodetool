@@ -121,6 +121,14 @@ interface PendingRequest {
   resolve: (value: ExecuteResult) => void;
   reject: (error: Error) => void;
   onProgress?: (event: ProgressEvent) => void;
+  blobTransfers?: Map<string, BlobTransfer>;
+  completedBlobs?: Record<string, Uint8Array>;
+}
+
+interface BlobTransfer {
+  size: number;
+  received: number;
+  chunks: Uint8Array[];
 }
 
 interface PendingStreamRequest {
@@ -137,6 +145,9 @@ const DEFAULT_STATUS_TIMEOUT_MS = Number(
 );
 const DEFAULT_DOWNLOAD_IDLE_TIMEOUT_MS = Number(
   safeProcessEnv()["NODETOOL_PYTHON_DOWNLOAD_IDLE_TIMEOUT_MS"] ?? 5 * 60 * 1000
+);
+const MAX_RESULT_BLOB_BYTES = Number(
+  safeProcessEnv()["NODETOOL_PYTHON_MAX_RESULT_BLOB_BYTES"] ?? 2 * 1024 * 1024 * 1024
 );
 
 /**
@@ -312,11 +323,20 @@ export abstract class PythonBridgeBase
       const pending = this._pending.get(requestId);
       if (pending) {
         this._pending.delete(requestId);
+        if (pending.blobTransfers?.size) {
+          pending.reject(
+            new Error("Python worker ended the result before all blob transfers completed")
+          );
+          return;
+        }
         const data = msg.data as {
           outputs: Record<string, unknown>;
           blobs: Record<string, Uint8Array>;
         };
-        pending.resolve({ outputs: data.outputs, blobs: data.blobs ?? {} });
+        pending.resolve({
+          outputs: data.outputs,
+          blobs: { ...(data.blobs ?? {}), ...(pending.completedBlobs ?? {}) }
+        });
       }
     } else if (type === "error" && requestId) {
       const streamReq = this._pendingStream.get(requestId);
@@ -341,6 +361,12 @@ export abstract class PythonBridgeBase
       if (streamReq) {
         streamReq.onChunk(msg.data as Record<string, unknown>);
       }
+    } else if (type === "blob.start" && requestId) {
+      this._startBlobTransfer(requestId, msg.data as Record<string, unknown>);
+    } else if (type === "blob.chunk" && requestId) {
+      this._appendBlobChunk(requestId, msg.data as Record<string, unknown>);
+    } else if (type === "blob.end" && requestId) {
+      this._finishBlobTransfer(requestId, msg.data as Record<string, unknown>);
     } else if (type === "progress" && requestId) {
       const pending = this._pending.get(requestId);
       if (pending?.onProgress) {
@@ -366,6 +392,103 @@ export abstract class PythonBridgeBase
         onEvent(msg.data as BlenderEvent);
       }
     }
+  }
+
+  private _rejectBlobTransfer(requestId: string, message: string): void {
+    const pending = this._pending.get(requestId);
+    if (!pending) return;
+    this._pending.delete(requestId);
+    pending.reject(new Error(message));
+    try {
+      this.cancel(requestId);
+    } catch {
+      // The worker may already have completed; cancellation is best-effort.
+    }
+  }
+
+  private _startBlobTransfer(
+    requestId: string,
+    data: Record<string, unknown>
+  ): void {
+    const pending = this._pending.get(requestId);
+    const name = data["name"];
+    const size = data["size"];
+    if (!pending || typeof name !== "string" || typeof size !== "number") return;
+    if (!Number.isSafeInteger(size) || size < 0 || size > MAX_RESULT_BLOB_BYTES) {
+      this._rejectBlobTransfer(
+        requestId,
+        `Python worker declared invalid blob size ${String(size)} for "${name}"`
+      );
+      return;
+    }
+    pending.blobTransfers ??= new Map();
+    pending.completedBlobs ??= Object.create(null) as Record<string, Uint8Array>;
+    if (pending.blobTransfers.has(name) || Object.hasOwn(pending.completedBlobs, name)) {
+      this._rejectBlobTransfer(requestId, `Python worker started duplicate blob "${name}"`);
+      return;
+    }
+    pending.blobTransfers.set(name, { size, received: 0, chunks: [] });
+  }
+
+  private _appendBlobChunk(
+    requestId: string,
+    data: Record<string, unknown>
+  ): void {
+    const pending = this._pending.get(requestId);
+    const name = data["name"];
+    const offset = data["offset"];
+    const bytes = data["bytes"];
+    if (
+      !pending ||
+      typeof name !== "string" ||
+      typeof offset !== "number" ||
+      !(bytes instanceof Uint8Array)
+    ) return;
+    const transfer = pending.blobTransfers?.get(name);
+    if (!transfer || offset !== transfer.received || offset + bytes.length > transfer.size) {
+      this._rejectBlobTransfer(
+        requestId,
+        `Python worker sent an out-of-order or oversized chunk for blob "${name}"`
+      );
+      return;
+    }
+    transfer.chunks.push(bytes);
+    transfer.received += bytes.length;
+  }
+
+  private _finishBlobTransfer(
+    requestId: string,
+    data: Record<string, unknown>
+  ): void {
+    const pending = this._pending.get(requestId);
+    const name = data["name"];
+    const size = data["size"];
+    const expectedDigest = data["sha256"];
+    if (
+      !pending ||
+      typeof name !== "string" ||
+      typeof size !== "number" ||
+      typeof expectedDigest !== "string"
+    ) return;
+    const transfer = pending.blobTransfers?.get(name);
+    if (!transfer || size !== transfer.size || transfer.received !== transfer.size) {
+      this._rejectBlobTransfer(requestId, `Python worker truncated blob "${name}"`);
+      return;
+    }
+    const blob = new Uint8Array(transfer.size);
+    let offset = 0;
+    for (const chunk of transfer.chunks) {
+      blob.set(chunk, offset);
+      offset += chunk.length;
+    }
+    const digest = nodeCrypto?.createHash("sha256").update(blob).digest("hex");
+    if (!digest || digest !== expectedDigest) {
+      this._rejectBlobTransfer(requestId, `Python worker blob "${name}" failed SHA-256 verification`);
+      return;
+    }
+    pending.blobTransfers?.delete(name);
+    pending.completedBlobs ??= Object.create(null) as Record<string, Uint8Array>;
+    pending.completedBlobs[name] = blob;
   }
 
   /**
@@ -525,6 +648,10 @@ export abstract class PythonBridgeBase
             fields,
             secrets,
             blobs,
+            ...(this._workerStatus?.protocol_version != null &&
+            this._workerStatus.protocol_version >= 5
+              ? { blob_transfer: "chunked-v1" }
+              : {}),
             ...this._identityPayload(identity)
           }
         });

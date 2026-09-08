@@ -21,8 +21,9 @@
  *    Python worker repo's test suite validates against, so the two sides of
  *    the bridge can never silently drift apart.
  *
- * The dispatcher only ever switches on seven frame `type`s — `discover`,
- * `result`, `error`, `chunk`, `progress`, `comfy.event`, and `blender.event`
+ * The dispatcher switches on the response frame `type`s modeled below,
+ * including execution results, streamed output, blob transfer, progress, and
+ * integration events.
  * — everything else is either a request the JS side sends (`execute`,
  * `worker.status`, `provider.*`, `models.*`, `comfy.execute`,
  * `blender.execute`, …) or silently ignored. Only the seven response types
@@ -229,6 +230,37 @@ export const chunkFrameSchema = z.object({
   data: resultOrChunkDataSchema
 });
 
+const blobNameSchema = z.string().min(1);
+
+export const blobStartFrameSchema = z.object({
+  type: z.literal("blob.start"),
+  request_id: requestIdSchema,
+  data: z.object({
+    name: blobNameSchema,
+    size: z.number().int().nonnegative()
+  })
+});
+
+export const blobChunkFrameSchema = z.object({
+  type: z.literal("blob.chunk"),
+  request_id: requestIdSchema,
+  data: z.object({
+    name: blobNameSchema,
+    offset: z.number().int().nonnegative(),
+    bytes: z.instanceof(Uint8Array)
+  })
+});
+
+export const blobEndFrameSchema = z.object({
+  type: z.literal("blob.end"),
+  request_id: requestIdSchema,
+  data: z.object({
+    name: blobNameSchema,
+    size: z.number().int().nonnegative(),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/)
+  })
+});
+
 // ---------------------------------------------------------------------------
 // progress
 // ---------------------------------------------------------------------------
@@ -375,6 +407,9 @@ export const bridgeFrameSchemas = {
   result: resultFrameSchema,
   error: errorFrameSchema,
   chunk: chunkFrameSchema,
+  "blob.start": blobStartFrameSchema,
+  "blob.chunk": blobChunkFrameSchema,
+  "blob.end": blobEndFrameSchema,
   progress: progressFrameSchema,
   "comfy.event": comfyEventFrameSchema,
   "blender.event": blenderEventFrameSchema
@@ -388,6 +423,9 @@ export const bridgeFrameSchema = z.discriminatedUnion("type", [
   resultFrameSchema,
   errorFrameSchema,
   chunkFrameSchema,
+  blobStartFrameSchema,
+  blobChunkFrameSchema,
+  blobEndFrameSchema,
   progressFrameSchema,
   comfyEventFrameSchema,
   blenderEventFrameSchema
