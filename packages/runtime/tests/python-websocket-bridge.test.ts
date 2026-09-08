@@ -106,6 +106,45 @@ describe("WebsocketPythonBridge", () => {
     expect(result.blobs).toEqual({});
   });
 
+  it("execute() reassembles and verifies protocol-v5 blob chunks", async () => {
+    const expected = new Uint8Array([1, 2, 3, 4, 5, 6, 7]);
+    worker = await startFakeWorker(0, { executeBlob: expected });
+    bridge = new WebsocketPythonBridge({ wsUrl: `ws://127.0.0.1:${worker.port}` });
+    await bridge.connect();
+
+    const result = await bridge.execute("fake.TestNode", {}, {}, {});
+
+    expect(Array.from(result.blobs.out)).toEqual(Array.from(expected));
+    expect(worker.received("execute")[0]?.data).toMatchObject({
+      blob_transfer: "chunked-v1"
+    });
+  });
+
+  it("keeps legacy inline blob results for pre-v5 workers", async () => {
+    const expected = new Uint8Array([8, 9]);
+    worker = await startFakeWorker(0, { protocolVersion: 4, executeBlob: expected });
+    bridge = new WebsocketPythonBridge({ wsUrl: `ws://127.0.0.1:${worker.port}` });
+    await bridge.connect();
+
+    const result = await bridge.execute("fake.TestNode", {}, {}, {});
+
+    expect(Array.from(result.blobs.out)).toEqual(Array.from(expected));
+    expect(worker.received("execute")[0]?.data).not.toHaveProperty("blob_transfer");
+  });
+
+  it("rejects a chunked blob whose digest does not match", async () => {
+    worker = await startFakeWorker(0, {
+      executeBlob: new Uint8Array([1, 2, 3]),
+      executeBlobSha256: "0".repeat(64)
+    });
+    bridge = new WebsocketPythonBridge({ wsUrl: `ws://127.0.0.1:${worker.port}` });
+    await bridge.connect();
+
+    await expect(bridge.execute("fake.TestNode", {}, {}, {})).rejects.toThrow(
+      /SHA-256 verification/
+    );
+  });
+
   it("emits 'activity' on each outbound RPC so the cost guard can keep last_activity_at fresh", async () => {
     // The reaper measures idle time from last_activity_at; the bridge is the
     // designated source of activity heartbeats. Every frame sent to the remote

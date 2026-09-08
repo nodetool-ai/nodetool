@@ -46,7 +46,7 @@
  *   3. Update `MIN_NODETOOL_CORE_VERSION` to that new release.
  */
 
-export const BRIDGE_PROTOCOL_VERSION = 4;
+export const BRIDGE_PROTOCOL_VERSION = 5;
 
 /**
  * Hard floor: the JS runtime rejects (at `discover`) any worker reporting a
@@ -63,6 +63,10 @@ export const BRIDGE_PROTOCOL_VERSION = 4;
  * JS side sends them unconditionally; only the new `job.start` / `job.end` /
  * `models.evict` message types are gated, because a pre-v4 worker answers
  * those with `Unknown message type`.
+ *
+ * v5 adds an optional `chunked-v1` execute-result blob transfer. The JS side
+ * requests it only from workers reporting v5 or newer; older workers keep
+ * returning the legacy inline `blobs` map.
  */
 export const MIN_BRIDGE_PROTOCOL_VERSION = 1;
 
