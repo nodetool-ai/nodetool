@@ -16,9 +16,10 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "../ui_primitives";
+import { Box, Caption, CollapsibleSection, FlexRow, Label, SPACING } from "../ui_primitives";
 import { useWorkflowCostEstimate } from "../../hooks/useWorkflowCostEstimate";
 import { CostEstimateSummary } from "./CostEstimateSummary";
+import { useCostEstimateSummary } from "./useCostEstimateSummary";
 
 const styles = (theme: Theme) =>
   css({
@@ -48,13 +49,54 @@ const styles = (theme: Theme) =>
 
 interface WorkflowCostEstimatePanelProps {
   workflowId: string;
+  compact?: boolean;
 }
 
 const WorkflowCostEstimatePanelInternal: React.FC<
   WorkflowCostEstimatePanelProps
-> = ({ workflowId }) => {
+> = ({ workflowId, compact = false }) => {
   const theme = useTheme();
   const estimate = useWorkflowCostEstimate(workflowId);
+  const summary = useCostEstimateSummary(estimate);
+
+  if (compact) {
+    return (
+      <CollapsibleSection
+        defaultOpen={false}
+        unmountOnExit
+        onKeyDown={(event) => {
+          if (event.key === " " || event.key === "Enter") {
+            event.stopPropagation();
+          }
+        }}
+        title={
+          <FlexRow gap={SPACING.md} justify="space-between" wrap>
+            <Label>Cost estimate</Label>
+            <Caption>
+              {summary?.hasItems
+                ? `${summary.isTotalLowerBound ? "≥ " : summary.isTotalApproximate ? "~" : ""}${summary.totalLabel}${summary.unknownCount > 0 ? " · incomplete" : " / run"}`
+                : "Per run"}
+            </Caption>
+          </FlexRow>
+        }
+        sx={{
+          px: SPACING.lg,
+          py: SPACING.xs,
+          "& > [role=button]": {
+            minHeight: 28,
+            "&:focus-visible": {
+              outline: `2px solid ${theme.vars.palette.primary.main}`,
+              outlineOffset: -2
+            }
+          }
+        }}
+      >
+        <Box sx={{ py: SPACING.md }}>
+          <CostEstimateSummary estimate={estimate} />
+        </Box>
+      </CollapsibleSection>
+    );
+  }
 
   return (
     <Box css={styles(theme)} className="cost-estimate">

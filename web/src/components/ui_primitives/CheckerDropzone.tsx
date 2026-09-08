@@ -14,7 +14,7 @@ import React, { memo, useCallback, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { MOTION } from "./tokens";
+import { MOTION, BORDER_RADIUS, reducedMotion } from "./tokens";
 
 const DEFAULT_CHECKER_SIZE = 12;
 
@@ -29,19 +29,19 @@ const styles = (theme: Theme, checkerSize: number, isOver: boolean) =>
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing(0.5),
-    borderRadius: "var(--rounded-sm)",
-    color: theme.vars.palette.grey[400],
+    borderRadius: BORDER_RADIUS.sm,
+    color: theme.vars.palette.text.secondary,
     fontFamily: theme.fontFamily1,
     fontSize: theme.fontSizeSmall,
     textAlign: "center",
     overflow: "hidden",
     // CSS-only checker pattern using two layered gradients
-    backgroundColor: theme.vars.palette.grey[900],
+    backgroundColor: theme.vars.palette.c_overlay_subtle,
     backgroundImage: `
-      linear-gradient(45deg, ${theme.vars.palette.grey[800]} 25%, transparent 25%),
-      linear-gradient(-45deg, ${theme.vars.palette.grey[800]} 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, ${theme.vars.palette.grey[800]} 75%),
-      linear-gradient(-45deg, transparent 75%, ${theme.vars.palette.grey[800]} 75%)
+      linear-gradient(45deg, color-mix(in srgb, ${theme.vars.palette.c_overlay_subtle} 35%, transparent) 25%, transparent 25%),
+      linear-gradient(-45deg, color-mix(in srgb, ${theme.vars.palette.c_overlay_subtle} 35%, transparent) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, color-mix(in srgb, ${theme.vars.palette.c_overlay_subtle} 35%, transparent) 75%),
+      linear-gradient(-45deg, transparent 75%, color-mix(in srgb, ${theme.vars.palette.c_overlay_subtle} 35%, transparent) 75%)
     `,
     backgroundSize: `${checkerSize * 2}px ${checkerSize * 2}px`,
     backgroundPosition: [
@@ -50,7 +50,8 @@ const styles = (theme: Theme, checkerSize: number, isOver: boolean) =>
       `${checkerSize}px -${checkerSize}px`,
       `-${checkerSize}px 0px`
     ].join(", "),
-    transition: `${MOTION.shadow}, border-color 150ms ease`,
+    transition: `${MOTION.shadow}, ${MOTION.border}`,
+    ...reducedMotion({ transition: MOTION.none }),
     outline: isOver
       ? `2px dashed ${theme.vars.palette.primary.main}`
       : "1px solid transparent",
@@ -58,7 +59,7 @@ const styles = (theme: Theme, checkerSize: number, isOver: boolean) =>
     ".checker-icon": {
       opacity: 0.55,
       "& svg": {
-        fontSize: 36,
+        fontSize: "1.5em",
         display: "block"
       }
     },

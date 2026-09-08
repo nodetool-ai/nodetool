@@ -34,7 +34,7 @@ export const waveformSelectorStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       width: 26,
-      height: 20,
+      height: 24,
       padding: 0,
       border: "none",
       borderRadius: BORDER_RADIUS.sm,
@@ -42,10 +42,14 @@ export const waveformSelectorStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       cursor: "pointer",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800]
+        backgroundColor: theme.vars.palette.action.hover
       },
       "&.active": {
-        backgroundColor: theme.vars.palette.grey[800]
+        backgroundColor: theme.vars.palette.action.selected
+      },
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: 2
       }
     }
   });

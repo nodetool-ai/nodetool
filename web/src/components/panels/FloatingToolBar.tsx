@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect } from "react";
 import { useMediaQuery } from "@mui/material";
 import { EditorMenu } from "../ui_primitives";
-import { Tooltip, AlertBanner, FlexRow, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Tooltip, AlertBanner, FlexRow, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, SHADOW, reducedMotion } from "../ui_primitives";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -27,9 +27,11 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
+import { useRightPanelStore } from "../../stores/RightPanelStore";
+import { usePanelStore } from "../../stores/PanelStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import MobilePaneMenu from "../menus/MobilePaneMenu";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY, TOOLBAR_WIDTH, LEFT_PANEL_MIN_DRAWER_WIDTH } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { cn } from "../editor_ui/editorUtils";
 import { MenuItemPrimitive } from "../ui_primitives";
@@ -105,6 +107,44 @@ const dockStyles = (theme: Theme) =>
     alignItems: "stretch",
     gap: `${theme.spacing(1)}`,
     pointerEvents: "auto",
+    minWidth: 0,
+    maxWidth: `calc(100% - ${getSpacingPx(SPACING.xl)})`,
+    containerType: "inline-size",
+    containerName: "canvas-dock",
+
+    ".media-compose-card": {
+      borderRadius: BORDER_RADIUS.lg,
+      background: theme.vars.palette.background.paper,
+      backdropFilter: "none",
+      boxShadow: SHADOW(theme).sm,
+      gap: theme.spacing(SPACING.xs),
+      "&:focus-within": {
+        boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}`
+      }
+    },
+    ".media-compose-card textarea.media-compose-input": {
+      padding: `${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.md)}`
+    },
+    "@container canvas-dock (max-width: 640px)": {
+      ".media-chip-row.has-trailing": {
+        flexWrap: "wrap",
+        rowGap: theme.spacing(SPACING.xs)
+      },
+      ".media-chip-row.has-trailing .media-chip-main": {
+        flexBasis: "100%",
+        overflowX: "auto"
+      },
+      ".composer-drag-handle, .media-primary-action": {
+        order: 1
+      },
+      ".composer-workflow-actions": {
+        order: 1,
+        marginLeft: "auto",
+        paddingLeft: 0,
+        borderLeft: "none",
+        flexWrap: "wrap"
+      }
+    },
 
     // Grab affordance the user drags to move the whole dock. Rendered as a
     // span (not a button) so the drag hook's `cancel="button"` doesn't exclude
@@ -157,7 +197,12 @@ const actionStyles = (theme: Theme) =>
       border: "none",
       cursor: "pointer",
       borderRadius: BORDER_RADIUS.pill,
-      transition: `${MOTION.background}, color ${MOTION.fast}`
+      transition: `${MOTION.background}, color ${MOTION.fast}`,
+      ...reducedMotion({ transition: MOTION.none }),
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: 2
+      }
     },
 
     ".composer-run": {
@@ -298,6 +343,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const toolbarPosition = useFloatingToolbarPosition(
     bottomPanelVisible,
     bottomPanelSize
+  );
+  const inspectorWidth = useRightPanelStore((state) =>
+    state.panel.isVisible ? state.panel.panelSize : 0
+  );
+  const leftPanelWidth = usePanelStore((state) => state.panel.isVisible
+    ? Math.max(state.panel.panelSize, TOOLBAR_WIDTH + LEFT_PANEL_MIN_DRAWER_WIDTH)
+    : TOOLBAR_WIDTH
   );
 
   const { instantUpdate, setInstantUpdate, editorViewMode, setEditorViewMode } =
@@ -652,7 +704,11 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     <>
       <div
         css={dockLayerStyles(theme)}
-        style={isMobile ? MOBILE_DOCK_LAYER_STYLE : toolbarPosition}
+        style={isMobile ? MOBILE_DOCK_LAYER_STYLE : {
+          ...toolbarPosition,
+          right: inspectorWidth,
+          left: leftPanelWidth
+        }}
       >
         <div
           ref={dockRef}

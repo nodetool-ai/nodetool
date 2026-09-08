@@ -13,7 +13,7 @@ import {
   ShortcutHint,
   Text,
   Tooltip,
-  MOTION, BORDER_RADIUS } from "../ui_primitives";
+  MOTION, BORDER_RADIUS, SPACING, TYPOGRAPHY, reducedMotion } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import {
   MAX_RUNS,
@@ -27,28 +27,25 @@ const styles = (theme: Theme) =>
     "&": {
       borderTop: `1px solid ${theme.vars.palette.divider}`,
       padding: `${theme.spacing(1.5)} ${theme.spacing(3)} ${theme.spacing(2)}`,
-      display: "flex",
-      flexDirection: "column",
-      gap: theme.spacing(1),
+      display: "grid",
+      gridTemplateColumns: "auto minmax(0, 1fr)",
+      alignItems: "center",
+      gap: theme.spacing(SPACING.md),
       backgroundColor: theme.vars.palette.background.default
     },
     ".runs-row": {
-      width: "100%"
+      width: "auto",
+      gap: theme.spacing(SPACING.xs)
     },
     ".runs-label": {
-      fontFamily: theme.fontFamily1,
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
-      letterSpacing: "0.08em",
-      textTransform: "uppercase",
+      ...TYPOGRAPHY.sans.caption,
       color: theme.vars.palette.text.secondary
     },
     ".stepper-control": {
-      border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.md,
       paddingLeft: theme.spacing(0.5),
       paddingRight: theme.spacing(0.5),
-      backgroundColor: "transparent"
+      backgroundColor: theme.vars.palette.c_overlay_subtle
     },
     ".stepper-control .MuiButtonBase-root": {
       borderRadius: BORDER_RADIUS.sm,
@@ -71,10 +68,10 @@ const styles = (theme: Theme) =>
       padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
-      fontSize: theme.fontSizeNormal,
-      fontWeight: 500,
+      ...TYPOGRAPHY.sans.label,
       borderRadius: BORDER_RADIUS.md,
       transition: `background-color ${MOTION.fast}`,
+      ...reducedMotion({ transition: MOTION.none }),
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.dark
       },
@@ -93,6 +90,11 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
+    },
+    "@container (max-width: 240px)": {
+      "&": {
+        gridTemplateColumns: "minmax(0, 1fr)"
+      }
     }
   });
 
@@ -167,7 +169,7 @@ const RunSelectedNodesSectionInternal: React.FC = () => {
             aria-label="Run selected nodes"
           >
             <PlayArrowIcon className="play-icon" />
-            <span className="run-label">Run selected nodes</span>
+            <span className="run-label">Run selected</span>
           </EditorButton>
         </Tooltip>
         {inSequence && runProgress !== null ? (

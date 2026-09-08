@@ -22,6 +22,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
+  TYPOGRAPHY,
+  reducedMotion,
   ScrollArea,
   Text,
   Tooltip,
@@ -58,34 +60,37 @@ const styles = (theme: Theme) =>
   css({
     "&": {
       display: "grid",
-      gridTemplateRows: "auto auto 1fr auto",
+      gridTemplateRows: "auto auto minmax(0, 1fr) auto",
       gridTemplateColumns: "100%",
       backgroundColor: theme.vars.palette.background.default,
       padding: "0",
       width: "100%",
-      maxWidth: "500px",
+      minWidth: 0,
       height: "100%",
+      containerType: "inline-size",
       overflow: "hidden"
     },
 
     /* ---------- Head: icon + title + namespace + close ---------- */
     ".inspector-head": {
       display: "grid",
-      gridTemplateColumns: "auto 1fr auto",
+      gridTemplateColumns: "auto minmax(0, 1fr) auto",
       alignItems: "center",
       gap: theme.spacing(1.5),
-      padding: `${theme.spacing(3)} ${theme.spacing(4)} ${theme.spacing(2)}`,
-      borderBottom: `1px solid ${theme.vars.palette.divider}`
+      padding: `${theme.spacing(SPACING.md)} ${theme.spacing(SPACING.lg)}`
+    },
+    ".inspector-head:not(:has(.inspector-head-icon))": {
+      gridTemplateColumns: "minmax(0, 1fr) auto"
     },
     ".inspector-head-icon": {
-      width: 32,
-      height: 32,
+      width: 24,
+      height: 24,
       borderRadius: BORDER_RADIUS.md,
       display: "grid",
       placeItems: "center",
       flexShrink: 0,
       backgroundColor:
-        "var(--inspector-icon-tint, rgba(102,144,212,0.22))",
+        theme.vars.palette.c_overlay_subtle,
       "& .icon-container": {
         width: 16,
         height: 16
@@ -103,9 +108,7 @@ const styles = (theme: Theme) =>
       gap: 0
     },
     ".inspector-title": {
-      fontFamily: theme.fontFamily1,
-      fontSize: "var(--fontSizeBig)",
-      fontWeight: 600,
+      ...TYPOGRAPHY.sans.label,
       letterSpacing: "-0.01em",
       lineHeight: 1.2,
       color: theme.vars.palette.text.primary,
@@ -133,13 +136,17 @@ const styles = (theme: Theme) =>
       font: "inherit",
       minWidth: 0,
       display: "inline-flex",
-      alignItems: "center"
+      alignItems: "center",
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: 2
+      }
     },
     ".inspector-namespace-text": {
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
-      maxWidth: "26ch"
+      maxWidth: "100%"
     },
     ".inspector-namespace .copy-button": {
       width: 16,
@@ -150,7 +157,8 @@ const styles = (theme: Theme) =>
       "& svg": { fontSize: "var(--fontSizeSmall)" }
     },
     ".inspector-head-close": {
-      paddingTop: getSpacingPx(SPACING.micro)
+      paddingTop: getSpacingPx(SPACING.micro),
+      flexShrink: 0
     },
 
     /* ---------- Tabs ---------- */
@@ -158,12 +166,13 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "stretch",
       gap: 0,
-      padding: `0 ${theme.spacing(4)}`,
+      padding: `0 ${theme.spacing(SPACING.lg)}`,
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.background.default
     },
     ".inspector-tab": {
       position: "relative",
+      minHeight: 28,
       background: "transparent",
       border: "none",
       cursor: "pointer",
@@ -179,6 +188,7 @@ const styles = (theme: Theme) =>
       alignItems: "baseline",
       gap: getSpacingPx(SPACING.sm),
       transition: `color ${MOTION.fast}`,
+      ...reducedMotion({ transition: MOTION.none }),
       "&:hover": { color: theme.vars.palette.text.primary },
       "&:focus-visible": {
         outline: `2px solid ${theme.vars.palette.primary.main}`,
@@ -223,10 +233,11 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(3),
       width: "100%",
       height: "100%",
-      padding: theme.spacing(4)
+      padding: theme.spacing(SPACING.lg)
     },
-    ".top-content.tab-params": {
-      paddingLeft: `calc(${theme.spacing(3)} - 2px)`
+    ".top-content.tab-params .node-property": {
+      padding: 0,
+      marginBottom: 0
     },
     ".top-content > .node-property": {
       display: "contents"
@@ -235,7 +246,8 @@ const styles = (theme: Theme) =>
     /* ---------- Property rows ---------- */
     ".property-row": {
       width: "100%",
-      minWidth: 0
+      minWidth: 0,
+      flexShrink: 0
     },
     ".property-row .node-property": {
       width: "100%",
@@ -251,7 +263,8 @@ const styles = (theme: Theme) =>
     ".property-row .inspector-header-toolbar.inspector-toolbar-hoverable .MuiIconButton-root, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable .MuiButtonBase-root":
       {
         opacity: 0,
-        transition: `opacity ${MOTION.fast}`
+        transition: `opacity ${MOTION.fast}`,
+        ...reducedMotion({ transition: MOTION.none })
       },
     ".property-row:hover .inspector-header-toolbar.inspector-toolbar-hoverable .MuiIconButton-root, .property-row:hover .inspector-header-toolbar.inspector-toolbar-hoverable .MuiButtonBase-root, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable:focus-within .MuiIconButton-root, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable:focus-within .MuiButtonBase-root":
       {
@@ -393,9 +406,8 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
       padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
-      borderRadius: BORDER_RADIUS.pill,
-      backgroundColor: theme.vars.palette.action.hover,
-      border: `1px solid ${theme.vars.palette.divider}`
+      borderRadius: BORDER_RADIUS.sm,
+      backgroundColor: theme.vars.palette.action.hover
     },
     ".help-meta": {
       display: "flex",

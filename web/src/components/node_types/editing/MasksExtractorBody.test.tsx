@@ -49,6 +49,7 @@ jest.mock("../../node/NodeProgress", () => ({
 }));
 
 jest.mock("../../ui_primitives", () => ({
+  ...jest.requireActual("../../ui_primitives/spacing"),
   BORDER_RADIUS: jest.requireActual("../../ui_primitives/tokens").BORDER_RADIUS,
   CheckerDropzone: ({ message }: { message: string }) => (
     <div data-testid="checker-dropzone">{message}</div>
@@ -115,7 +116,7 @@ jest.mock("../../ui_primitives", () => ({
 jest.mock("@mui/material/styles", () => ({
   useTheme: () => ({
     spacing: (n: number) => `${n * 8}px`,
-    vars: { palette: { grey: { 900: "#000" }, divider: "#ccc", common: { white: "#fff" }, text: { secondary: "#999", primary: "#fff" }, action: { hover: "#333" } } },
+    vars: { palette: { background: { default: "#18191d" }, grey: { 900: "#000" }, divider: "#ccc", common: { white: "#fff" }, text: { secondary: "#999", primary: "#fff" }, action: { hover: "#333" } } },
     fontSizeSmaller: "0.75rem",
     fontFamily2: "sans-serif"
   })

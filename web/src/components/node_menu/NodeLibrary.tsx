@@ -14,7 +14,8 @@ import {
   FONT_WEIGHT,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  reducedMotion
 } from "../ui_primitives";
 import PanelHeadline from "../ui/PanelHeadline";
 import NodeLibraryRow from "./NodeLibraryRow";
@@ -62,7 +63,6 @@ const styles = (theme: Theme, isMobile: boolean) =>
       alignItems: "center",
       padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`, // was 1px 8px
       borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary,
       fontSize: "var(--fontSizeSmall)",
       fontWeight: FONT_WEIGHT.medium,
@@ -81,11 +81,16 @@ const styles = (theme: Theme, isMobile: boolean) =>
       ),
       padding: theme.spacing(SPACING.xs, SPACING.xs),
       borderRadius: BORDER_RADIUS.md,
-      backgroundColor: theme.vars.palette.background.paper,
-      border: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.c_overlay_subtle,
+      border: "1px solid transparent",
       transition: `border-color ${MOTION.fast}`,
+      ...reducedMotion({ transition: MOTION.none }),
+      "&:hover": {
+        borderColor: theme.vars.palette.divider
+      },
       "&:focus-within": {
-        borderColor: theme.vars.palette.primary.main
+        borderColor: theme.vars.palette.primary.main,
+        outline: `1px solid ${theme.vars.palette.primary.main}`
       },
       "& .nl-search-icon": {
         fontSize: 17,
@@ -100,19 +105,25 @@ const styles = (theme: Theme, isMobile: boolean) =>
         outline: "none",
         color: theme.vars.palette.text.primary,
         fontFamily: theme.fontFamily1,
-        fontSize: theme.fontSizeNormal
+        fontSize: theme.fontSizeSmall
       },
       "& .nl-search-clear": {
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
         padding: getSpacingPx(SPACING.micro),
+        minWidth: 24,
+        minHeight: 24,
         border: "none",
         background: "transparent",
         borderRadius: BORDER_RADIUS.sm,
         color: theme.vars.palette.text.secondary,
         cursor: "pointer",
         "&:hover": { color: theme.vars.palette.text.primary },
+        "&:focus-visible": {
+          outline: `2px solid ${theme.vars.palette.primary.main}`,
+          outlineOffset: -2
+        },
         "& svg": { fontSize: 15 }
       }
     },
@@ -146,19 +157,18 @@ const styles = (theme: Theme, isMobile: boolean) =>
       minHeight: 0
     },
     ".nl-info": {
-      flex: "0 0 200px",
+      flex: "0 0 128px",
       display: "flex",
-      height: 200,
+      height: 128,
       overflow: "hidden",
       borderTop: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.background.paper,
       // NodeInfo pins its own width/maxHeight for the floating menu; here it
       // fills the width and scrolls within this fixed-height bottom strip, so
       // the node list above keeps the rest of the height.
       "& > div": {
         width: "100% !important",
-        height: "200px !important",
-        maxHeight: "200px !important",
+        height: "128px",
+        maxHeight: "128px",
         flex: 1,
         minHeight: 0
       }
@@ -168,14 +178,15 @@ const styles = (theme: Theme, isMobile: boolean) =>
       alignItems: "center",
       justifyContent: "center",
       textAlign: "center",
-      padding: theme.spacing(3),
+      padding: theme.spacing(SPACING.lg),
       color: theme.vars.palette.text.secondary,
       fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.5
     },
 
     ".nl-rail": {
-      width: isMobile ? "106px" : "120px",
+      width: isMobile ? "124px" : "156px",
+      maxWidth: "42%",
       flexShrink: 0,
       display: "flex",
       flexDirection: "column",
@@ -187,7 +198,6 @@ const styles = (theme: Theme, isMobile: boolean) =>
         isMobile ? SPACING.xs : SPACING.lg
       ),
       overflowY: "auto",
-      borderRight: `1px solid ${theme.vars.palette.divider}`,
       ...thinScrollbarStyles(theme)
     },
     ".nl-cat": {
@@ -206,6 +216,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       textAlign: "left",
       cursor: "pointer",
       transition: `${MOTION.background}, color ${MOTION.fast}`,
+      ...reducedMotion({ transition: MOTION.none }),
       "& .nl-cat-icon": {
         display: "inline-flex",
         flexShrink: 0,
@@ -514,8 +525,8 @@ const NodeLibrary = memo<NodeLibraryProps>(
               <NodeInfo nodeMetadata={infoNode} showConnections={false} />
             ) : (
               <div className="nl-info-empty">
-                <Text component="span">
-                  Drag a node to place it on the workspace. Hover for details
+                <Text component="span" size="small" color="secondary">
+                  Drag a node onto the canvas. Hover for details.
                 </Text>
               </div>
             )}

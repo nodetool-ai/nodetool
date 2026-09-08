@@ -13,7 +13,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 
-import {
+import { SPACING,
   CheckerDropzone,
   FlexColumn,
   FlexRow,
@@ -49,22 +49,22 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     "& > .handle-column": {
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
       left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
-      minHeight: 160,
+      minHeight: 96,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -79,7 +79,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       ".MuiToggleButton-root": {
         flex: "1 1 auto",
-        padding: `${theme.spacing(0.5)} ${theme.spacing(0.5)}`,
+        padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.micro)}`,
         fontSize: theme.fontSizeSmaller,
         fontFamily: theme.fontFamily2,
         textTransform: "none",
@@ -180,6 +180,7 @@ const MaskBodyInner: React.FC<MaskBodyProps> = ({
       <FlexColumn className="controls" gap={0.5}>
         <FlexRow align="center" gap={0.5}>
           <ToggleGroup
+          quiet
             className="tab-toggle"
             size="small"
             value={tab}

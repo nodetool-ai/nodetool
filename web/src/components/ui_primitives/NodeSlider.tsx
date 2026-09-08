@@ -15,7 +15,8 @@ import { Slider, SliderProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "../editor_ui";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
-import { MOTION } from "./tokens";
+import { BORDER_RADIUS, MOTION, reducedMotion } from "./tokens";
+import { SPACING } from "./spacing";
 
 export interface NodeSliderProps extends Omit<SliderProps, "size"> {
   /**
@@ -53,42 +54,47 @@ export const NodeSlider = forwardRef<HTMLSpanElement, NodeSliderProps>(
     useEditorScope();
 
     const sliderSx = useMemo(() => ({
-      marginTop: density === "compact" ? "4px" : "6px",
-      padding: 0,
+      marginTop: 0,
+      minWidth: 0,
+      padding: `${theme.spacing(SPACING.md)} 0`,
       "& .MuiSlider-rail": {
-        backgroundColor: theme.vars.palette.grey[500],
-        borderRadius: 0,
-        height: density === "compact" ? 5 : 6
+        backgroundColor: theme.vars.palette.action.selected,
+        opacity: 1,
+        borderRadius: BORDER_RADIUS.pill,
+        height: density === "compact" ? 4 : 6
       },
       "& .MuiSlider-track": {
-        height: density === "compact" ? 5 : 6,
+        height: density === "compact" ? 4 : 6,
         opacity: 1,
         left: 0,
-        borderRadius: 0,
+        borderRadius: BORDER_RADIUS.pill,
+        border: "none",
         backgroundColor: theme.vars.palette.primary.main
       },
       "& .MuiSlider-thumb": {
         backgroundColor: changed
           ? theme.vars.palette.primary.main
-          : theme.vars.palette.grey[200],
-        boxShadow: `0px 0px 5px 1px rgba(${theme.vars.palette.common.blackChannel ?? '0 0 0'} / 0.25)`,
-        borderRadius: 0,
-        width: density === "compact" ? 8 : 10,
-        height: density === "compact" ? 8 : 10,
+          : theme.vars.palette.text.secondary,
+        boxShadow: "none",
+        borderRadius: BORDER_RADIUS.circle,
+        width: density === "compact" ? 10 : 12,
+        height: density === "compact" ? 10 : 12,
         transition: MOTION.background,
+        ...reducedMotion({ transition: MOTION.none }),
         "&:hover, &:focus, &:active": {
-          boxShadow: `0px 0px 5px 1px rgba(${theme.vars.palette.common.blackChannel ?? '0 0 0'} / 0.25)`,
+          boxShadow: `0 0 0 4px ${theme.vars.palette.action.selected}`,
           backgroundColor: theme.vars.palette.primary.main
         },
         "&.Mui-focusVisible": {
-          boxShadow: `0px 0px 5px 1px rgba(${theme.vars.palette.common.blackChannel ?? '0 0 0'} / 0.25)`
+          outline: `2px solid ${theme.vars.palette.primary.main}`,
+          outlineOffset: 3
         },
         "&.Mui-active": {
-          boxShadow: `0px 0px 5px 1px rgba(${theme.vars.palette.common.blackChannel ?? '0 0 0'} / 0.25)`
+          boxShadow: `0 0 0 4px ${theme.vars.palette.action.selected}`
         },
         "&::before, &::after": {
-          width: density === "compact" ? 12 : 14,
-          height: density === "compact" ? 12 : 14
+          width: 24,
+          height: 24
         }
       },
       ...sx

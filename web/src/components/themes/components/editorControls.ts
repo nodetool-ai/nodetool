@@ -20,7 +20,7 @@ export const editorControlsComponents: Components<Theme> = {
             minHeight: "unset",
             padding: 0,
             color: theme.vars.palette.text.primary,
-            backgroundColor: theme.vars.palette.Paper.overlay,
+            backgroundColor: theme.vars.palette.c_overlay_subtle,
             borderRadius: editor.controlRadius,
             transition: theme.transitions.create(
               ["border-color", "background-color"],
@@ -30,7 +30,7 @@ export const editorControlsComponents: Components<Theme> = {
             ),
 
             "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: theme.vars.palette.divider,
+              borderColor: "transparent",
               borderWidth: "1px",
               transition: theme.transitions.create(["border-color"], {
                 duration: theme.transitions.duration.shortest
@@ -49,8 +49,15 @@ export const editorControlsComponents: Components<Theme> = {
             "&.Mui-focused": {
               backgroundColor: theme.vars.palette.action.selected,
               "& .MuiOutlinedInput-notchedOutline": {
-                borderColor: theme.vars.palette.primary.main
+                borderColor: theme.vars.palette.primary.main,
+                borderWidth: "2px"
               }
+            },
+            "&.Mui-error .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.vars.palette.error.main
+            },
+            "&.Mui-disabled": {
+              backgroundColor: theme.vars.palette.action.disabledBackground
             },
 
             // Notched outline legend (hide it) — avoids weird notch sizing on dense controls
@@ -63,7 +70,7 @@ export const editorControlsComponents: Components<Theme> = {
               padding: `${editor.padYInspector} ${editor.padXInspector}`,
               minHeight: "1.7em",
               lineHeight: "1.5em",
-              fontSize: theme.fontSizeSmaller
+              fontSize: theme.fontSizeSmall
             },
             [`&.${editorUiClasses.scopeNode} .MuiOutlinedInput-input`]: {
               padding: 0,
@@ -101,9 +108,9 @@ export const editorControlsComponents: Components<Theme> = {
             padding: `${editor.padYNode} ${editor.padXNode}`,
             paddingRight: getSpacingPx(SPACING.xxl),
             fontSize: theme.fontSizeSmaller,
-            backgroundColor: theme.vars.palette.Paper.overlay,
+            backgroundColor: "transparent",
             borderRadius: editor.controlRadius,
-            border: `1px solid ${theme.vars.palette.divider}`,
+            border: "none",
             margin: 0,
             minHeight: editor.heightNode,
             display: "flex",
@@ -115,12 +122,10 @@ export const editorControlsComponents: Components<Theme> = {
               }
             ),
             "&:hover": {
-              backgroundColor: theme.vars.palette.action.selected,
-              borderColor: theme.vars.palette.text.secondary
+              backgroundColor: "transparent"
             },
             "&:focus": {
-              backgroundColor: theme.vars.palette.action.selected,
-              borderColor: theme.vars.palette.primary.main
+              backgroundColor: "transparent"
             }
           },
           [`.${editorUiClasses.control}.${editorUiClasses.scopeInspector} &`]: {

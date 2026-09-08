@@ -72,6 +72,8 @@ jest.mock("@mui/material/styles", () => ({
     spacing: (n: number) => `${n * 8}px`,
     vars: {
       palette: {
+        background: { default: "#18191d", paper: "#24262b" },
+        action: { selected: "#34373e" },
         primary: { main: "#6a8dff" },
         grey: { 900: "#111", 800: "#222", 700: "#333", 600: "#555", 500: "#888" },
         text: { secondary: "#999", primary: "#fff" }

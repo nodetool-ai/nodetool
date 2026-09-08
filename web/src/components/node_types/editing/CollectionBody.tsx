@@ -73,8 +73,7 @@ const styles = (theme: Theme) =>
     },
     ".col-header .spacer": { flex: 1 },
     ".col-type": {
-      textTransform: "uppercase",
-      letterSpacing: "0.04em",
+      letterSpacing: "normal",
       color: theme.vars.palette.primary.main
     },
     ".col-grid": {

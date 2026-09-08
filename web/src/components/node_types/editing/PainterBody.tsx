@@ -36,7 +36,7 @@ import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
-import {
+import { SPACING,
   FlexColumn,
   FlexRow,
   SvgIcon,
@@ -103,15 +103,15 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     ".paint-row": {
       flex: "1 1 auto",
-      minHeight: 200,
+      minHeight: 96,
       display: "flex",
-      gap: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
       // Canvas is now full-bleed — no side toolbar column.
       width: "100%",
       // HandleColumn lives here (sibling of `.paint-area`, not inside it) so
@@ -154,7 +154,7 @@ const styles = (theme: Theme) =>
       minHeight: 0,
       // Checker pattern only on the canvas footprint, so transparent
       // regions of the paint canvas read as "unpainted".
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       backgroundImage: `linear-gradient(45deg, ${theme.vars.palette.grey[800]} 25%, transparent 25%),
         linear-gradient(-45deg, ${theme.vars.palette.grey[800]} 25%, transparent 25%),
         linear-gradient(45deg, transparent 75%, ${theme.vars.palette.grey[800]} 75%),
@@ -233,19 +233,18 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(1),
-      padding: theme.spacing(1),
+      gap: theme.spacing(SPACING.xs),
+      padding: theme.spacing(SPACING.xs),
       margin: theme.spacing(0.5, 0),
       borderRadius: BORDER_RADIUS.sm,
-      background: theme.vars.palette.action.hover,
-      border: `1px solid ${theme.vars.palette.divider}`,
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller
     },
     ".bottom-row": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.5)
+      gap: theme.spacing(SPACING.micro)
     },
     /* Row 2 sliders: equal-width tracks so the three numeric fields align. */
     ".sliders-row .slider-field": {
@@ -278,12 +277,9 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(0.5, 1),
       "& svg": { fontSize: 22 }
     },
-    /* History cluster (undo/redo/clear) styled as proper buttons: the
-       background separates them from the surrounding toolbar tint so they
-       read as actionable rather than just hoverable. */
+    /* History actions share the toolbar surface until hovered or focused. */
     ".tools-row .toolbar-icon-button": {
-      backgroundColor: theme.vars.palette.action.selected,
-      border: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: "transparent",
       borderRadius: BORDER_RADIUS.sm,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.focus
@@ -1045,6 +1041,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
             icon strip; no sliders here so the row stays tight. */}
         <FlexRow className="bottom-row tools-row" align="center" gap={0.5}>
           <ToggleGroup
+          quiet
             className="tool-toggle"
             value={tool}
             exclusive

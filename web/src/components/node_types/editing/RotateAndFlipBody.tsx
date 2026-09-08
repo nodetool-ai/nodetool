@@ -14,7 +14,7 @@ import ImageIcon from "@mui/icons-material/Image";
 import FlipIcon from "@mui/icons-material/Flip";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
-import {
+import { SPACING,
   CheckerDropzone,
   FlexColumn,
   FlexRow,
@@ -34,15 +34,15 @@ import { ROTATE_AND_FLIP_NODE_TYPE } from "../../../constants/nodeTypes";
 // 90° snap marks across the slider's full -360..360 range. Material UI's
 // `Slider` shows ticks for `marks`; the user can still drag freely between.
 const ANGLE_MARKS = [
-  { value: -360, label: "-360" },
+  { value: -360 },
   { value: -270 },
   { value: -180 },
   { value: -90 },
-  { value: 0, label: "0" },
+  { value: 0 },
   { value: 90 },
   { value: 180 },
   { value: 270 },
-  { value: 360, label: "360" }
+  { value: 360 }
 ];
 
 const styles = (theme: Theme) =>
@@ -53,22 +53,22 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     "& > .handle-column": {
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
       left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
-      minHeight: 160,
+      minHeight: 96,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -81,11 +81,11 @@ const styles = (theme: Theme) =>
     },
     ".controls": {
       flex: "0 0 auto",
-      paddingTop: theme.spacing(0.5)
+      paddingTop: theme.spacing(SPACING.micro)
     },
     ".angle-row": {
-      paddingLeft: theme.spacing(0.5),
-      paddingRight: theme.spacing(0.5)
+      paddingLeft: theme.spacing(SPACING.micro),
+      paddingRight: theme.spacing(SPACING.micro)
     },
     ".angle-readout": {
       flex: "0 0 auto",
@@ -96,7 +96,7 @@ const styles = (theme: Theme) =>
       textAlign: "right"
     },
     ".action-row": {
-      paddingTop: theme.spacing(0.5)
+      paddingTop: theme.spacing(SPACING.micro)
     },
     ".outputs-row": {
       flex: "0 0 auto"

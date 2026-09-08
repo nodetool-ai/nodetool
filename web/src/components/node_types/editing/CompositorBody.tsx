@@ -30,7 +30,7 @@ import {
 } from "@nodetool-ai/gpu";
 import type { LayerTransform2D } from "@nodetool-ai/gpu/webgpu";
 
-import {
+import { SPACING,
   CheckerDropzone,
   DynamicInputButton,
   EditButton,
@@ -104,18 +104,18 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     ".preview-area": {
       position: "relative",
       flex: "0 0 auto",
-      minHeight: 160,
+      minHeight: 96,
       maxHeight: 280,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -132,20 +132,20 @@ const styles = (theme: Theme) =>
       overflowY: "auto",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      paddingRight: theme.spacing(0.5)
+      gap: theme.spacing(SPACING.micro),
+      paddingRight: theme.spacing(SPACING.micro)
     },
     ".add-row": {
       flex: "0 0 auto",
       display: "flex",
       justifyContent: "flex-start",
-      paddingTop: theme.spacing(0.5)
+      paddingTop: theme.spacing(SPACING.micro)
     },
     ".outputs-row": {
       flex: "0 0 auto"
     },
     ".empty-state": {
-      padding: theme.spacing(1),
+      padding: theme.spacing(SPACING.xs),
       color: theme.vars.palette.text.secondary,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
