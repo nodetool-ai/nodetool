@@ -63,6 +63,8 @@ interface FakeWorkerOptions {
    *    worker)
    */
   downloadMode?: "progress" | "error" | "hang";
+  /** Image-provided model preparation backends advertised in worker.status. */
+  modelPrepareBackends?: string[];
   /**
    * The `comfy` block echoed in the worker.status response. Defaults to an
    * enabled block so comfy tests route correctly; pass `null` to omit it
@@ -298,6 +300,7 @@ export function startFakeWorker(
     streamMode: initialOptions.streamMode ?? "chunks",
     protocolVersion: initialOptions.protocolVersion ?? BRIDGE_PROTOCOL_VERSION,
     downloadMode: initialOptions.downloadMode ?? "progress",
+    modelPrepareBackends: initialOptions.modelPrepareBackends ?? [],
     comfy:
       initialOptions.comfy === undefined
         ? { enabled: true, url: "http://127.0.0.1:8188" }
@@ -372,6 +375,7 @@ export function startFakeWorker(
               namespaces: ["fake"],
               load_errors: [],
               max_frame_size: 256 * 1024 * 1024,
+              model_prepare_backends: opts.modelPrepareBackends,
               ...(opts.comfy ? { comfy: opts.comfy } : {}),
               ...(opts.blender ? { blender: opts.blender } : {})
             }
@@ -561,6 +565,32 @@ export function startFakeWorker(
             type: "result",
             request_id: requestId,
             data: { repo_id: "org/m", status: "completed" }
+          });
+          break;
+        }
+        case "models.prepare": {
+          const data = msg.data as Record<string, unknown>;
+          send({
+            type: "progress",
+            request_id: requestId,
+            data: {
+              status: "progress",
+              repo_id: data.repo_id,
+              path: null,
+              model_type: data.model_type,
+              downloaded_bytes: 4096,
+              total_bytes: 0,
+              downloaded_files: 0,
+              current_files: ["model.safetensors.incomplete"],
+              total_files: 0,
+              bytes_per_second: 2048,
+              stalled: false
+            }
+          });
+          send({
+            type: "result",
+            request_id: requestId,
+            data: { repo_id: data.repo_id, status: "completed" }
           });
           break;
         }
