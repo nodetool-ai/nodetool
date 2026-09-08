@@ -163,6 +163,10 @@ const TimelineContext: React.Context<TimelineInstance | null> = (() => {
 const useTimelineInstance = (): TimelineInstance =>
   useContext(TimelineContext) ?? getDefaultInstance();
 
+const TimelineActiveContext = createContext(true);
+
+export const useTimelineIsActive = (): boolean => useContext(TimelineActiveContext);
+
 interface TimelineProviderProps {
   /**
    * Whether this surface is the focused/visible one. While active, the
@@ -199,7 +203,9 @@ export const TimelineProvider = ({
 
   return (
     <TimelineContext.Provider value={instance}>
-      {children}
+      <TimelineActiveContext.Provider value={active}>
+        {children}
+      </TimelineActiveContext.Provider>
     </TimelineContext.Provider>
   );
 };

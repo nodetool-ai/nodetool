@@ -44,7 +44,16 @@
  *   scrollbar stays available.
  */
 
-import React, { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useTimelineIsActive } from "../../../stores/timeline/TimelineInstance";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -58,7 +67,10 @@ import {
   useTimelineUIStore,
   useTimelineUIStoreApi,
   MIN_MS_PER_PX,
-  MAX_MS_PER_PX
+  MAX_MS_PER_PX,
+  MIN_TRACK_HEADER_WIDTH_PX,
+  MAX_TRACK_HEADER_WIDTH_PX,
+  maxTrackHeaderWidthForViewport
 } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
@@ -69,7 +81,6 @@ import {
 } from "../../../stores/timeline/clipboardOps";
 import {
   MOBILE_TRACK_HEADER_WIDTH_PX,
-  TRACK_HEADER_WIDTH_PX,
   TRACK_HEADER_WIDTH_VAR,
   trackHeaderWidthCss
 } from "./TrackHeader";
@@ -87,7 +98,6 @@ import {
   TIMELINE_SCROLLBAR_HEIGHT_PX
 } from "./TimelineScrollbar";
 import { TrackEffectsPanel } from "./TrackEffectsPanel";
-import { TrackInstrumentPanel } from "./TrackInstrumentPanel";
 import {
   ScriptLane,
   ScriptLaneHeader,
@@ -96,7 +106,17 @@ import {
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
 import { TimelineShortcutsDialog } from "../TimelineShortcutsDialog";
-import { FlexRow, HelpButton, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
+import {
+  FlexRow,
+  HelpButton,
+  ResizeHandle,
+  FONT_SIZE_MONO,
+  FONT_WEIGHT,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  Z_INDEX
+} from "../../ui_primitives";
 import { useHasScript } from "../../../hooks/timeline/useHasScript";
 import { useTimelineIsMobile } from "../../../hooks/timeline/useTimelineIsMobile";
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
@@ -228,7 +248,7 @@ const scrollableAreaStyles = css({
 });
 
 const lanesContainerStyles = css({
-  position: "relative",
+  position: "relative"
   // Will be set dynamically via style.width
 });
 
@@ -241,6 +261,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
   ({ heightPx }) => {
     const theme = useTheme();
     const isMobile = useTimelineIsMobile();
+    const isActive = useTimelineIsActive();
     const activeExplorer = usePanelStore((s) =>
       s.panel.activeView === "library" || s.panel.activeView === "assets"
         ? s.panel.activeView
@@ -248,14 +269,23 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     );
     const assetsAsset = useAssetsSelectedAsset();
     const libraryAsset = useLibrarySelectedAsset();
-    const activeAssetId = activeExplorer === "library"
-      ? libraryAsset?.id ?? null
-      : activeExplorer === "assets"
-        ? assetsAsset?.id ?? null
-        : null;
+    const activeAssetId =
+      activeExplorer === "library"
+        ? (libraryAsset?.id ?? null)
+        : activeExplorer === "assets"
+          ? (assetsAsset?.id ?? null)
+          : null;
+    const storedHeaderWidthPx = useTimelineUIStore((s) => s.trackHeaderWidthPx);
+    const setTrackHeaderWidthPx = useTimelineUIStore(
+      (s) => s.setTrackHeaderWidthPx
+    );
     const headerWidthPx = isMobile
       ? MOBILE_TRACK_HEADER_WIDTH_PX
-      : TRACK_HEADER_WIDTH_PX;
+      : storedHeaderWidthPx;
+    const handleHeaderResize = useCallback(
+      (delta: number) => setTrackHeaderWidthPx(headerWidthPx + delta),
+      [headerWidthPx, setTrackHeaderWidthPx]
+    );
 
     const tracks = useTimelineStore((s) => s.tracks);
     // Content extent for sizing the ruler / scroll width. The stored
@@ -392,8 +422,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         );
 
         addTrack(trackType);
-        const newTrack =
-          useTimelineStore.getState().tracks.slice(-1)[0];
+        const newTrack = useTimelineStore.getState().tracks.slice(-1)[0];
         if (!newTrack) return;
         // A video on a new video track also gets a linked audio clip
         // (extracted from the video), matching the per-lane drop path.
@@ -667,7 +696,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       let startMsPerPx = 0;
       let rafId: number | null = null;
 
-      const twoPoints = (): [{ x: number; y: number }, { x: number; y: number }] | null => {
+      const twoPoints = ():
+        | [{ x: number; y: number }, { x: number; y: number }]
+        | null => {
         if (points.size !== 2) return null;
         const [a, b] = [...points.values()];
         return [a, b];
@@ -704,7 +735,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         if (points.size === 2) {
           const pair = twoPoints();
           if (!pair) return;
-          startDistance = Math.hypot(pair[0].x - pair[1].x, pair[0].y - pair[1].y);
+          startDistance = Math.hypot(
+            pair[0].x - pair[1].x,
+            pair[0].y - pair[1].y
+          );
           startMsPerPx = uiStoreApi.getState().msPerPx;
         }
       };
@@ -791,6 +825,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     // regions are skipped so typing isn't hijacked.
 
     useEffect(() => {
+      if (!isActive) return;
       const isEditableTarget = (target: EventTarget | null): boolean =>
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||
@@ -960,6 +995,20 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           case "trimEditRightLarge":
             if (trimEditBy(Math.round(frameMs * 10))) e.preventDefault();
             return;
+
+          case "stepFrameBack":
+          case "stepFrameForward": {
+            e.preventDefault();
+            if (playback.isPlaying) return;
+            const endMs = doc.clips.reduce(
+              (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
+              0
+            );
+            const direction = action === "stepFrameBack" ? -1 : 1;
+            const nextFrame = Math.round(liveMs / frameMs) + direction;
+            playback.seek(Math.max(0, Math.min(endMs, nextFrame * frameMs)));
+            return;
+          }
 
           case "markIn":
             e.preventDefault();
@@ -1183,7 +1232,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               ui,
               playheadMs: playback.currentTimeMs,
               asset: activeExplorer
-                ? getSelectedAssetForExplorer(activeExplorer) ?? undefined
+                ? (getSelectedAssetForExplorer(activeExplorer) ?? undefined)
                 : undefined
             });
             if (id) {
@@ -1211,6 +1260,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         endArrowNudgeBatch();
       };
     }, [
+      isActive,
       uiStoreApi,
       deleteSelected,
       duplicateSelected,
@@ -1231,13 +1281,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       activeExplorer
     ]);
 
-    const expandedFxTrackId = useTimelineUIStore(
-      (s) => s.expandedFxTrackId
-    );
-    const expandedInstrumentTrackId = useTimelineUIStore(
-      (s) => s.expandedInstrumentTrackId
-    );
-
+    const expandedFxTrackId = useTimelineUIStore((s) => s.expandedFxTrackId);
     // Precompute per-type index map (O(n)) to avoid O(n²) per-header lookups.
     const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
 
@@ -1246,8 +1290,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         (sum, t) =>
           sum +
           (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) +
-          (t.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0) +
-          (t.id === expandedInstrumentTrackId ? FX_PANEL_HEIGHT_PX : 0),
+          (t.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0),
         0
       ) + (hasScript ? SCRIPT_LANE_HEIGHT_PX : 0);
 
@@ -1277,6 +1320,17 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       ro.observe(el);
       return () => ro.disconnect();
     }, [setLanesViewportWidthPx]);
+
+    const headerResizeMaxPx =
+      fxPanelWidth === 0
+        ? MAX_TRACK_HEADER_WIDTH_PX
+        : maxTrackHeaderWidthForViewport(headerWidthPx + fxPanelWidth);
+
+    useEffect(() => {
+      if (!isMobile && headerWidthPx > headerResizeMaxPx) {
+        setTrackHeaderWidthPx(headerResizeMaxPx);
+      }
+    }, [headerResizeMaxPx, headerWidthPx, isMobile, setTrackHeaderWidthPx]);
 
     return (
       <div
@@ -1329,6 +1383,35 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           </div>
         </FlexRow>
 
+        {!isMobile && (
+          <ResizeHandle
+            orientation="vertical"
+            value={headerWidthPx}
+            min={MIN_TRACK_HEADER_WIDTH_PX}
+            max={headerResizeMaxPx}
+            onResize={handleHeaderResize}
+            ariaLabel="Resize track headers"
+            sx={{
+              position: "absolute",
+              top: TOOLBAR_HEIGHT_PX,
+              bottom: TIMELINE_SCROLLBAR_HEIGHT_PX,
+              left: trackHeaderWidthCss,
+              width: getSpacingPx(SPACING.md),
+              transform: "translateX(-50%)",
+              zIndex: Z_INDEX.overlay,
+              "&::after": {
+                content: '""',
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                height: 32,
+                borderLeft: `2px solid ${theme.vars.palette.text.secondary}`,
+                transform: "translate(-50%, -50%)"
+              }
+            }}
+          />
+        )}
+
         {/* ── Track rows ──────────────────────────────────────────────── */}
         <FlexRow
           sx={{
@@ -1364,12 +1447,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                     aria-hidden="true"
                   />
                 )}
-                {expandedInstrumentTrackId === track.id && (
-                  <div
-                    style={{ height: FX_PANEL_HEIGHT_PX }}
-                    aria-hidden="true"
-                  />
-                )}
               </React.Fragment>
             ))}
             {hasScript && scriptBeforeTrackId === null && <ScriptLaneHeader />}
@@ -1385,7 +1462,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           >
             <div
               css={lanesContainerStyles}
-              style={{ minWidth: totalWidthPx, width: "100%", height: totalTracksHeight }}
+              style={{
+                minWidth: totalWidthPx,
+                width: "100%",
+                height: totalTracksHeight
+              }}
               data-timeline-lanes="true"
             >
               {/* Zero-size sticky anchor: must be the first child so its
@@ -1410,24 +1491,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                       <TrackEffectsPanel trackId={track.id} />
                     </div>
                   )}
-                  {expandedInstrumentTrackId === track.id && (
-                    <div
-                      style={{
-                        position: "sticky",
-                        left: 0,
-                        width: fxPanelWidth,
-                        height: FX_PANEL_HEIGHT_PX,
-                        zIndex: Z_INDEX.base + 2
-                      }}
-                    >
-                      <TrackInstrumentPanel trackId={track.id} />
-                    </div>
-                  )}
                 </React.Fragment>
               ))}
-              {hasScript && scriptBeforeTrackId === null && (
-                <ScriptLane />
-              )}
+              {hasScript && scriptBeforeTrackId === null && <ScriptLane />}
               {/* Marquee rect — drawn here, above every lane, because a band
                   started on one lane may cover several. */}
               <RubberBandOverlay />

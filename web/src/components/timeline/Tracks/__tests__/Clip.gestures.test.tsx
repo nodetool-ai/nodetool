@@ -156,7 +156,7 @@ const dragClip = (clipId: string, fromX: number, toX: number) => {
   const el = screen.getByTestId(`clip-${clipId}`);
   fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: fromX, clientY: 20, pointerId: 1 });
   fireEvent.pointerMove(window, { buttons: 1, clientX: toX, clientY: 20, pointerId: 1 });
-  fireEvent.pointerUp(window, { pointerId: 1 });
+  fireEvent.pointerUp(window, { pointerId: 1, clientX: toX, clientY: 20 });
 };
 
 const dragHandle = (
@@ -172,6 +172,7 @@ const dragHandle = (
 };
 
 beforeEach(() => {
+  document.elementsFromPoint = () => [];
   seed();
 });
 
@@ -226,6 +227,24 @@ describe("Clip drag across tracks", () => {
     pointerOverLane("t2");
     dragClip("a1", 100, 100 + DRAG_PX);
     expect(clipState("a1")).toEqual({ trackId: "t2", startMs: 2000 + DRAG_MS, durationMs: 1000 });
+  });
+
+  it("moves vertically into another lane without changing start time", () => {
+    renderLanes();
+    pointerOverLane("t2");
+    const el = screen.getByTestId("clip-a1");
+    fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: 100, clientY: 20 });
+    fireEvent.pointerMove(window, { buttons: 1, clientX: 100, clientY: 90 });
+    fireEvent.pointerUp(window, { clientX: 100, clientY: 90 });
+    expect(clipState("a1")).toEqual({ trackId: "t2", startMs: 2000, durationMs: 1000 });
+  });
+
+  it("uses the release lane when the final hit test has not painted yet", () => {
+    rafSpy.mockImplementation(() => 1);
+    renderLanes();
+    pointerOverLane("t2");
+    dragClip("a1", 100, 130);
+    expect(clipState("a1").trackId).toBe("t2");
   });
 
   it("moves only the primary clip of a multi-selection to the new lane", () => {

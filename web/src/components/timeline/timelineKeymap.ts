@@ -37,6 +37,8 @@ export type TimelineAction =
   | "copy"
   | "cut"
   | "paste"
+  | "stepFrameBack"
+  | "stepFrameForward"
   | "nudgeLeft"
   | "nudgeRight"
   | "nudgeLeftLarge"
@@ -96,6 +98,8 @@ const COMMON: Partial<Keymap> = {
   paste: [k("v", { ctrl: true })],
   markIn: [k("i")],
   markOut: [k("o")],
+  stepFrameBack: [k("ArrowLeft")],
+  stepFrameForward: [k("ArrowRight")],
   shuttleBack: [k("j")],
   shuttleStop: [k("k")],
   shuttleForward: [k("l")],
@@ -118,6 +122,8 @@ const NODETOOL: Keymap = {
   rippleDeleteSelected: [k("Delete", { shift: true }), k("Backspace", { shift: true })],
   duplicate: [k("d", { ctrl: true })],
   duplicateWithGap: [k("d", { ctrl: true, shift: true })],
+  stepFrameBack: [k("ArrowLeft", { alt: true })],
+  stepFrameForward: [k("ArrowRight", { alt: true })],
   nudgeLeft: [k("ArrowLeft")],
   nudgeRight: [k("ArrowRight")],
   nudgeLeftLarge: [k("ArrowLeft", { shift: true })],

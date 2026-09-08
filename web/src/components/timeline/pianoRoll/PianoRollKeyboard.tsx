@@ -14,6 +14,7 @@ import { useColorScheme, useTheme } from "@mui/material/styles";
 
 import type { MidiInstrument } from "@nodetool-ai/timeline";
 
+import { TYPOGRAPHY } from "../../ui_primitives";
 import { playAuditionNote } from "../preview/audition";
 import { pickPianoRollColors } from "./pianoRollColors";
 import {
@@ -32,6 +33,7 @@ const BLACK_KEY_WIDTH_RATIO = 0.62;
 const MIN_LABEL_ROW_HEIGHT_PX = 9;
 
 const canvasStyles = css({
+  ...TYPOGRAPHY.mono.caption,
   display: "block",
   width: "100%",
   cursor: "pointer",
@@ -66,18 +68,19 @@ export const PianoRollKeyboard: React.FC<PianoRollKeyboardProps> = memo(
       canvas.height = heightPx * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      ctx.fillStyle = colors.whiteRow;
+      ctx.fillStyle = theme.colorSchemes?.light?.palette.background.paper ?? colors.noteSelected;
       ctx.fillRect(0, 0, KEYBOARD_WIDTH_PX, heightPx);
 
       const rows = Math.ceil(heightPx / geometry.rowHeightPx) + 1;
       ctx.textBaseline = "middle";
-      ctx.font = "9px var(--fontFamily2), monospace";
+      const canvasStyle = getComputedStyle(canvas);
+      ctx.font = `${canvasStyle.fontSize} ${canvasStyle.fontFamily}`;
       for (let row = 0; row < rows; row++) {
         const pitch = geometry.topPitch - row;
         if (pitch < 0 || pitch > 127) continue;
         const y = pitchToY(pitch, geometry);
         if (isBlackKey(pitch)) {
-          ctx.fillStyle = colors.noteSelected;
+          ctx.fillStyle = theme.colorSchemes?.dark?.palette.background.default ?? colors.blackRow;
           ctx.fillRect(
             0,
             y,
@@ -93,7 +96,7 @@ export const PianoRollKeyboard: React.FC<PianoRollKeyboardProps> = memo(
         // Only C is labelled: every row named turns the column into a wall of
         // text, and C is what you count octaves from.
         if (pitch % 12 === 0 && geometry.rowHeightPx >= MIN_LABEL_ROW_HEIGHT_PX) {
-          ctx.fillStyle = colors.text;
+          ctx.fillStyle = theme.colorSchemes?.light?.palette.text.primary ?? colors.blackRow;
           ctx.fillText(
             pitchName(pitch),
             KEYBOARD_WIDTH_PX * BLACK_KEY_WIDTH_RATIO + 3,
@@ -105,11 +108,11 @@ export const PianoRollKeyboard: React.FC<PianoRollKeyboardProps> = memo(
 
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
-        if (!instrument) return;
+        if (e.button !== 0 || !instrument) return;
         const rect = e.currentTarget.getBoundingClientRect();
         const pitch = yToPitch(e.clientY - rect.top, geometry);
         if (pitch < 0 || pitch > 127) return;
-        void playAuditionNote(instrument, pitch);
+        void playAuditionNote(instrument, pitch).catch(() => undefined);
       },
       [geometry, instrument]
     );

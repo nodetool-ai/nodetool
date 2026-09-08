@@ -43,7 +43,7 @@ jest.mock("../ui_primitives", () => ({
   Text: ({ children }: React.PropsWithChildren) => <span>{children}</span>,
   Tooltip: ({ children }: React.PropsWithChildren) => <>{children}</>,
   TruncatedText: ({ children }: React.PropsWithChildren) => <span>{children}</span>,
-  VideoPlayer: ({ onDurationChange }: { onDurationChange?: (duration: number) => void }) => <button aria-label="Video player" onClick={() => onDurationChange?.(5)}>Video</button>,
+  VideoPlayer: ({ onDurationChange, onTimeUpdate }: { onDurationChange?: (duration: number) => void; onTimeUpdate?: (time: number) => void }) => <button aria-label="Video player" onClick={() => { onDurationChange?.(5); onTimeUpdate?.(2); }}>Video</button>,
   SPACING: { md: 1, xs: 1, sm: 1 },
   getSpacingPx: () => "1px"
 }));
@@ -76,4 +76,26 @@ describe("SourceViewerPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Append" }));
     expect(mockPerformSourceEdit).toHaveBeenCalledWith("append", expect.objectContaining({ ui: expect.objectContaining({ sourceRange: { inMs: 1000, outMs: 2000 } }) }));
   });
+});
+
+
+it("marks the source playhead with I/O without forwarding to the timeline", () => {
+  render(<SourceViewerPanel />);
+  fireEvent.click(screen.getByRole("button", { name: "Video player" }));
+  mockSetSourceRange.mockClear();
+  const forwarded = jest.fn();
+  window.addEventListener("keydown", forwarded);
+  try {
+    fireEvent.keyDown(screen.getByTestId("source-viewer"), { key: "i" });
+    expect(mockSetSourceRange).toHaveBeenLastCalledWith({ inMs: 2000, outMs: 5000 });
+    fireEvent.keyDown(screen.getByTestId("source-viewer"), { key: "o" });
+    expect(mockSetSourceRange).toHaveBeenLastCalledWith({ inMs: 2000, outMs: 2000 });
+    expect(forwarded).not.toHaveBeenCalled();
+    mockSetSourceRange.mockClear();
+    fireEvent.keyDown(screen.getByLabelText("Source in point"), { key: "i" });
+    fireEvent.keyDown(screen.getByTestId("source-viewer"), { key: "i", ctrlKey: true });
+    expect(mockSetSourceRange).not.toHaveBeenCalled();
+  } finally {
+    window.removeEventListener("keydown", forwarded);
+  }
 });
