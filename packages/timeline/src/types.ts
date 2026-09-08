@@ -623,6 +623,8 @@ export interface WavetableOscillator {
  */
 export interface WavetableMidiInstrument {
   type: "wavetable";
+  /** UI parameters from the WT-1 rack that are not part of the render core. */
+  fableParams?: Record<string, number>;
   oscA: WavetableOscillator;
   oscB: WavetableOscillator;
   /** Sine sub-oscillator level, 0..1. */
@@ -653,6 +655,8 @@ export interface WavetableMidiInstrument {
  */
 export interface BassMidiInstrument {
   type: "bass";
+  /** UI parameters from the BL-1 rack that are not part of the render core. */
+  fableParams?: Record<string, number>;
   table: MidiWavetableName;
   /** Morph position across the table's frames, 0..1. */
   position: number;
@@ -740,6 +744,8 @@ export interface DrumPad {
  */
 export interface DrumMidiInstrument {
   type: "drum";
+  /** UI parameters from the DR-1 rack that are not part of the render core. */
+  fableParams?: Record<string, number>;
   /** The MIDI note pad 0 answers to. Pads run `baseNote`..`baseNote + 15`. */
   baseNote: number;
   pads: DrumPad[];
