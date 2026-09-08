@@ -263,7 +263,8 @@ function checkerPropertiesFor(slot: GameSlotSpec): Record<string, unknown> {
       return {
         slot_id: slot.id,
         check_x: slot.seamless_x,
-        check_y: slot.seamless_y
+        check_y: slot.seamless_y,
+        repair: slot.seamless_x || slot.seamless_y
       };
     case "sfx":
       return { slot_id: slot.id, seconds: slot.seconds };

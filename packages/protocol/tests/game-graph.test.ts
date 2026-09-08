@@ -105,6 +105,7 @@ const SHAPES: Record<string, PlanNodeShape> = {
       { name: "slot_id", type: "str" },
       { name: "check_x", type: "bool" },
       { name: "check_y", type: "bool" },
+      { name: "repair", type: "bool" },
       { name: "threshold", type: "float" }
     ],
     outputs: [
@@ -244,6 +245,15 @@ const typesOf = (placement: WorkflowPlacement, slotId: string): string[] =>
     .map((node) => node.type);
 
 describe("gameGraphPlacement", () => {
+  it("repairs scrolling backgrounds but leaves title artwork untouched", () => {
+    const placement = gameGraphPlacement(manifestOf("shmup"), chipDesign("shmup"), choices(), lookup);
+    const checkers = placement.nodes.filter((node) => node.type === GAME_SEAMLESS_IMAGE_NODE_TYPE);
+    expect(checkers.find((node) => node.setupStepId === "bg.space")?.properties)
+      .toMatchObject({ check_x: false, check_y: true, repair: true });
+    expect(checkers.find((node) => node.setupStepId === "title")?.properties)
+      .toMatchObject({ check_x: false, check_y: false, repair: false });
+  });
+
   it("builds one chain per slot kind, with nothing left to report", () => {
     const placement = gameGraphPlacement(platformer, design, choices(), lookup);
     expect(placement.issues).toEqual([]);

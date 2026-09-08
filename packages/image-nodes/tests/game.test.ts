@@ -243,6 +243,68 @@ describe("nodetool.game.Tileset", () => {
 });
 
 describe("nodetool.game.SeamlessImage", () => {
+  it.each([[true, false], [false, true], [true, true]])(
+    "repairs requested axes x=%s y=%s and preserves the center",
+    async (checkX, checkY) => {
+      const image = await makeImage(64, 64, (x, y) => [x * 4, y * 4, 80]);
+      const result = await runNode(".SeamlessImage", {
+        image, slot_id: "bg.space", check_x: checkX, check_y: checkY,
+        repair: true, threshold: 0
+      });
+      const output = result.output as { data: Uint8Array; uri: string; asset_id: string | null };
+      expect(output.uri).toBe("");
+      expect(output.asset_id).toBeNull();
+      const { data, info } = await sharp(output.data).ensureAlpha().raw()
+        .toBuffer({ resolveWithObject: true });
+      expect([info.width, info.height]).toEqual([64, 64]);
+      const pixel = (x: number, y: number) => [...data.subarray((y * 64 + x) * 4, (y * 64 + x) * 4 + 4)];
+      expect(pixel(32, 32)).toEqual([128, 128, 80, 255]);
+      for (let i = 0; i < 64; i++) {
+        if (checkX) expect(pixel(0, i)).toEqual(pixel(63, i));
+        if (checkY) expect(pixel(i, 0)).toEqual(pixel(i, 63));
+      }
+      expect(result.fill).toMatchObject({ seamless_x: checkX, seamless_y: checkY });
+      expect(stamped(result)).toEqual(result.fill);
+    }
+  );
+
+  it.each([[1, 1], [1, 7], [7, 1], [2, 2], [9, 11], [1920, 1080]])(
+    "repairs images sized %s by %s",
+    async (width, height) => {
+      const image = await makeImage(width, height, (x, y) => [x * 20, y * 20, 50]);
+      const result = await runNode(".SeamlessImage", {
+        image, slot_id: "bg.space", check_x: true, check_y: true,
+        repair: true, threshold: 0
+      });
+      expect(result.fill).toMatchObject({ size: [width, height], seamless_x: true, seamless_y: true });
+    }
+  );
+
+  it("does not alter artwork when neither axis requires tiling", async () => {
+    const image = await makeImage(16, 16, (x, y) => [x * 10, y * 10, 50]);
+    const result = await runNode(".SeamlessImage", {
+      image, slot_id: "title", check_x: false, check_y: false, repair: true
+    });
+    const output = result.output as { data: Uint8Array };
+    expect(Buffer.from(output.data)).toEqual(Buffer.from(image.data as string, "base64"));
+  });
+
+  it("blends transparency without leaking invisible colors into the edge", async () => {
+    const pixels = Buffer.alloc(16 * 16 * 4);
+    for (let i = 0; i < 16 * 16; i++) {
+      pixels.set(i < 128 ? [255, 0, 0, 0] : [0, 0, 255, 255], i * 4);
+    }
+    const data = await sharp(pixels, { raw: { width: 16, height: 16, channels: 4 } }).png().toBuffer();
+    const result = await runNode(".SeamlessImage", {
+      image: { type: "image", data }, slot_id: "bg.space",
+      check_x: false, check_y: true, repair: true, threshold: 0
+    });
+    const output = result.output as { data: Uint8Array };
+    const rgba = await sharp(output.data).ensureAlpha().raw().toBuffer();
+    expect([...rgba.subarray(0, 4)]).toEqual([0, 0, 255, 128]);
+    expect([...rgba.subarray(15 * 16 * 4, 15 * 16 * 4 + 4)]).toEqual([0, 0, 255, 128]);
+  });
+
   const bgFar = slot("bg.far");
   if (bgFar.kind !== "image") throw new Error("bg.far is an image");
   const [w, h] = bgFar.size;
