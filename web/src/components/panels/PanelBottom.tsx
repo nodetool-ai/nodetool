@@ -29,6 +29,7 @@ import WorkerStatusIndicator from "../workers/WorkerStatusIndicator";
 import { VersionHistoryPanel } from "../version";
 import PanelHeadline from "../ui/PanelHeadline";
 import { useCombo } from "../../stores/KeyPressedStore";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -469,7 +470,11 @@ const PanelBottom: React.FC = () => {
   const systemStats = useSystemStatsStore((state) => state.stats);
 
   useCombo(["Control", "Shift", "T"], () => handlePanelToggle("trace"), false);
-  useCombo(["l"], () => handlePanelToggle("logs"), false);
+  const timelineEditing = useWorkspaceTabsStore((state) => {
+    const tab = state.tabs.find((item) => item.id === state.activeTabId);
+    return tab?.type === "timeline" && tab.mode === "edit";
+  });
+  useCombo(["l"], () => handlePanelToggle("logs"), false, !timelineEditing);
 
   // Shown in the legacy editor (/editor) and the unified workspace (/workspace).
   if (!path.startsWith("/editor") && !path.startsWith("/workspace")) {

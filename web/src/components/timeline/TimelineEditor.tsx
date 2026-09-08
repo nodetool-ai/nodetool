@@ -76,6 +76,8 @@ import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { VideoLandingStrip } from "../setup/video/VideoLandingStrip";
 import { useReattachSequenceJobs } from "../../hooks/timeline/useReattachSequenceJobs";
 import { PreviewArea } from "./preview/PreviewArea";
+import { SelectFieldDensityContext } from "../ui_primitives";
+import { TimelineInstrumentsPanel } from "./TimelineInstrumentsPanel";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
 import { SourceViewerPanel } from "./SourceViewerPanel";
 import MovieFilterOutlinedIcon from "@mui/icons-material/MovieFilterOutlined";
@@ -125,7 +127,13 @@ const editorStyles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     overflow: "hidden",
-    backgroundColor: theme.vars.palette.background.default
+    backgroundColor: theme.vars.palette.background.default,
+    "&& .MuiOutlinedInput-root:not(.Mui-focused):not(.Mui-error)": {
+      "& .MuiOutlinedInput-notchedOutline": { borderColor: "transparent" },
+      "&:hover:not(.Mui-disabled) .MuiOutlinedInput-notchedOutline": {
+        borderColor: theme.vars.palette.divider
+      }
+    }
   });
 
 const middleAreaStyles = (theme: Theme) =>
@@ -157,7 +165,8 @@ const dragHandleStyles = (theme: Theme, tall: boolean) =>
     height: tall ? TOUCH_HANDLE_HEIGHT_PX : HANDLE_HEIGHT_PX,
     cursor: "ns-resize",
     flexShrink: 0,
-    backgroundColor: theme.vars.palette.divider,
+    backgroundColor: theme.vars.palette.background.default,
+    boxShadow: `inset 0 1px ${theme.vars.palette.divider}`,
     transition: MOTION.background,
     outline: "none",
     // The handle is a drag target, not a scroll surface: without this a touch
@@ -299,10 +308,11 @@ const PreviewRegion: React.FC<{
 });
 PreviewRegion.displayName = "PreviewRegion";
 
-type InspectorTab = "inspector" | "source" | "agent" | "history" | "script";
+type InspectorTab = "inspector" | "source" | "instrument" | "agent" | "history" | "script";
 
 const INSPECTOR_TABS = [
   { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon /> },
+  { value: "instrument", label: "Instruments", icon: <TuneOutlinedIcon /> },
   { value: "source", label: "Source", icon: <MovieFilterOutlinedIcon /> },
   { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon /> },
   { value: "history", label: "History", icon: <HistoryOutlinedIcon /> }
@@ -317,7 +327,8 @@ const SCRIPT_TAB = {
 const InspectorRegion: React.FC<{ sequenceId: string | undefined }> = memo(
   ({ sequenceId }) => {
   const theme = useTheme();
-  const [tab, setTab] = useState<InspectorTab>("inspector");
+  const tab = useTimelineUIStore(s => s.panelTab);
+  const setTab = useTimelineUIStore(s => s.setPanelTab);
 
   const tabs = INSPECTOR_TABS;
 
@@ -333,7 +344,6 @@ const InspectorRegion: React.FC<{ sequenceId: string | undefined }> = memo(
           value={tab}
           onChange={(value) => setTab(value as InspectorTab)}
           size="small"
-          fullWidth
           sx={{
             flexShrink: 0,
             borderBottom: `1px solid ${theme.vars.palette.divider}`
@@ -342,6 +352,8 @@ const InspectorRegion: React.FC<{ sequenceId: string | undefined }> = memo(
         <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
           {tab === "inspector" ? (
             <TimelineInspector />
+          ) : tab === "instrument" ? (
+            <TimelineInstrumentsPanel />
           ) : tab === "source" ? (
             <SourceViewerPanel />
           ) : tab === "agent" ? (
@@ -406,7 +418,6 @@ const MobilePanelSheet: React.FC<{
       value={activeTab}
       onChange={(value) => onTabChange(value as InspectorTab)}
       size="small"
-      fullWidth
     />
   );
 
@@ -425,6 +436,10 @@ const MobilePanelSheet: React.FC<{
       <FlexColumn fullWidth sx={{ height: "52vh", minHeight: 0 }}>
         {activeTab === "inspector" ? (
           <TimelineInspector />
+        ) : activeTab === "instrument" ? (
+          <TimelineInstrumentsPanel />
+        ) : activeTab === "source" ? (
+          <SourceViewerPanel />
         ) : activeTab === "agent" ? (
           <TimelineAgentPanel />
         ) : activeTab === "script" ? (
@@ -504,7 +519,9 @@ const TimelineEditorBody: React.FC<
 
   // Phone panel sheet (Inspector / Assistant / History / Script).
   const [panelSheetOpen, setPanelSheetOpen] = useState(false);
-  const [panelTab, setPanelTab] = useState<InspectorTab>("inspector");
+  const panelTab = useTimelineUIStore(s => s.panelTab);
+  const setPanelTab = useTimelineUIStore(s => s.setPanelTab);
+  useEffect(() => { if (isMobile && panelTab === "instrument") setPanelSheetOpen(true); }, [isMobile, panelTab]);
   const openPanelSheet = useCallback(() => setPanelSheetOpen(true), []);
   const closePanelSheet = useCallback(() => setPanelSheetOpen(false), []);
   const hasSelection = useTimelineUIStore((s) => s.selectedClipIds.size > 0);
@@ -608,6 +625,13 @@ const TimelineEditorBody: React.FC<
 
   // Tracks resize ─────────────────────────────────────────────────────────
   const [tracksHeight, setTracksHeight] = useState(DEFAULT_TRACKS_HEIGHT_PX);
+  const expandedInstrumentTrackId = useTimelineUIStore((s) => s.expandedInstrumentTrackId);
+  useEffect(() => {
+    if (expandedInstrumentTrackId && !pianoRollOpen) setTracksHeight((height) => Math.max(height, 420));
+  }, [expandedInstrumentTrackId, pianoRollOpen]);
+  useEffect(() => {
+    if (pianoRollOpen) setTracksHeight((height) => Math.min(height, DEFAULT_TRACKS_HEIGHT_PX));
+  }, [pianoRollOpen]);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartYRef = useRef(0);
   const dragStartHeightRef = useRef(DEFAULT_TRACKS_HEIGHT_PX);
@@ -801,6 +825,7 @@ const TimelineEditorBody: React.FC<
   );
 
   return (
+    <SelectFieldDensityContext.Provider value="compact">
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
       {/* ── Top bar ───────────────────────────────────────────────── */}
       <TopBar
@@ -827,7 +852,9 @@ const TimelineEditorBody: React.FC<
         onSelectFolder={(folderId) => void saveAsAsset(folderId, sequence?.name)}
       />
 
-      {/* ── Middle: assets + preview + inspector ──────────────────── */}
+      <FlexRow fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+      <FlexColumn sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+      {/* ── Middle: assets + preview ──────────────────────────────── */}
       {/* Basis 0 (not `auto`): the middle row absorbs all leftover height via
        *  flex-grow, but its *content* never contributes to the column's size.
        *  With `auto`, a tall inspector (clip selected) inflated this row's
@@ -850,7 +877,6 @@ const TimelineEditorBody: React.FC<
           createSequenceErrorMessage={createErrorMessage}
           fullWidth={isMobile}
         />
-        {!isMobile && <InspectorRegion sequenceId={sequenceId} />}
       </FlexRow>
 
       {/* ── Horizontal drag handle (pointer + keyboard resizable) ─── */}
@@ -877,6 +903,9 @@ const TimelineEditorBody: React.FC<
 
       {/* ── Clip editor (piano roll) ──────────────────────────────── */}
       <PianoRollPanel fullHeight={pianoRollFullScreen} />
+      </FlexColumn>
+      {!isMobile && <InspectorRegion sequenceId={sequenceId} />}
+      </FlexRow>
 
       {/* ── Bottom status bar ─────────────────────────────────────── */}
       <TimelineStatusBar
@@ -948,6 +977,7 @@ const TimelineEditorBody: React.FC<
       </Dialog>
 
     </FlexColumn>
+    </SelectFieldDensityContext.Provider>
   );
 });
 

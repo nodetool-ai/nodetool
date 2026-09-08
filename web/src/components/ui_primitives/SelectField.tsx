@@ -6,7 +6,7 @@
  * The label renders above the control via the shared Label primitive.
  */
 
-import React, { memo, useCallback, useId } from "react";
+import React, { createContext, memo, useCallback, useContext, useId } from "react";
 import {
   FormControl,
   Select,
@@ -16,8 +16,11 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Label } from "./Label";
-import { CONTROL } from "./tokens";
+import { CONTROL, FONT_SIZE_SANS } from "./tokens";
 import { useFormFieldContext } from "./formFieldContext";
+
+/** Compact editor typography also reaches dropdown menus rendered in portals. */
+export const SelectFieldDensityContext = createContext<"normal" | "compact">("normal");
 
 export interface SelectOption {
   /** Option value */
@@ -130,7 +133,8 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
       [onChange]
     );
 
-    const fieldFontSize = theme.fontSizeNormal || "15px";
+    const density = useContext(SelectFieldDensityContext);
+    const fieldFontSize = density === "compact" ? FONT_SIZE_SANS.caption : FONT_SIZE_SANS.body;
     const controlHeight =
       size === "small" ? CONTROL.height.sm : CONTROL.height.lg;
 

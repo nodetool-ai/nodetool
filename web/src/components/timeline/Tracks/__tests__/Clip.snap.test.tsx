@@ -57,6 +57,7 @@ beforeAll(installPointerEvent);
 // every whole second, so the neighbours' edges are deliberately off-grid. a4
 // starts 2 s into its source so its start edge has room to grow leftwards.
 beforeEach(() => {
+  document.elementsFromPoint = () => [];
   seedTimeline(
     [makeTrack("t1", 0), makeTrack("t2", 1)],
     [

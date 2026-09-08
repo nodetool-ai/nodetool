@@ -30,10 +30,10 @@ import VerticalAlignTopIcon from "@mui/icons-material/VerticalAlignTop";
 import VerticalAlignBottomIcon from "@mui/icons-material/VerticalAlignBottom";
 
 import {
-  MIDI_INSTRUMENT_PRESETS,
   findInstrumentPreset,
   presetIdForInstrument
 } from "@nodetool-ai/timeline";
+import { TIMELINE_INSTRUMENT_PRESETS } from "../../../stores/timeline/instrumentPresets";
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import {
   useTimelineStore,
@@ -41,6 +41,7 @@ import {
 } from "../../../stores/timeline/TimelineStore";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import {
+  DEFAULT_TRACK_HEADER_WIDTH_PX,
   useTimelineUIStore,
   useTimelineUIStoreApi
 } from "../../../stores/timeline/TimelineUIStore";
@@ -67,13 +68,9 @@ import type { SelectOption } from "../../ui_primitives";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import { DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX } from "./trackHeight";
-import {
-  trackTypeMeta,
-  trackTypeAccent
-} from "./trackVisuals";
+import { trackTypeMeta, trackTypeAccent } from "./trackVisuals";
 import ConfirmDialog from "../../dialogs/ConfirmDialog";
-
-export const TRACK_HEADER_WIDTH_PX = 192;
+export const TRACK_HEADER_WIDTH_PX = DEFAULT_TRACK_HEADER_WIDTH_PX;
 /**
  * Phone header width. 192px is half a 390px viewport — the lanes get less room
  * than the labels. 132px is the narrowest that still fits the full control row
@@ -102,6 +99,7 @@ const RESIZE_HANDLE_HEIGHT_PX = 6;
 const headerStyles = (theme: Theme, heightPx: number, compact: boolean) =>
   css({
     position: "relative",
+    containerType: "inline-size",
     width: trackHeaderWidthCss,
     height: heightPx,
     flexShrink: 0,
@@ -110,7 +108,7 @@ const headerStyles = (theme: Theme, heightPx: number, compact: boolean) =>
     justifyContent: "space-between",
     padding: compact
       ? `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`
-      : `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)}`,
+      : `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
     backgroundColor: theme.vars.palette.background.default,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     overflow: "hidden",
@@ -171,7 +169,6 @@ const typeGlyphStyles = (theme: Theme, accent: string) =>
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.vars.palette.background.paper,
-    border: `1px solid ${theme.vars.palette.divider}`,
     color: accent,
     "& svg": {
       fontSize: 15
@@ -219,7 +216,6 @@ const indexChipStyles = (theme: Theme) =>
     alignItems: "center",
     justifyContent: "center",
     borderRadius: BORDER_RADIUS.sm,
-    border: `1px solid ${theme.vars.palette.divider}`,
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
     fontSize: FONT_SIZE_MONO.caption,
@@ -298,15 +294,11 @@ const resizeHandleStyles = (theme: Theme) =>
     }
   });
 
-/**
- * The preset select next to the midi controls. It is the width of two icon
- * buttons: the header is 192px (132px on a phone) and the name row above it
- * carries the track's identity, so the voice is named in as little room as a
- * name can be read in.
- */
+/** Keep the preset compact as the track header grows. */
 const presetSelectStyles = css({
-  minWidth: 96,
-  flexShrink: 0,
+  minWidth: 0,
+  flex: "0 1 160px",
+  "@container (max-width: 280px)": { display: "none" },
   "& .MuiInputBase-root": {
     height: 22
   }
@@ -316,7 +308,7 @@ const presetSelectStyles = css({
 const CUSTOM_PRESET = "custom";
 
 const PRESET_OPTIONS: readonly SelectOption[] = [
-  ...MIDI_INSTRUMENT_PRESETS.map((preset) => ({
+  ...TIMELINE_INSTRUMENT_PRESETS.map((preset) => ({
     value: preset.id,
     label: preset.name
   })),
@@ -336,589 +328,602 @@ interface TrackHeaderProps {
   compact?: boolean;
 }
 
-export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex, compact = false }) => {
-  const theme = useTheme();
+export const TrackHeader: React.FC<TrackHeaderProps> = memo(
+  ({ track, typedIndex, compact = false }) => {
+    const theme = useTheme();
 
-  const setTrackVisible = useTimelineStore((s) => s.setTrackVisible);
-  const setTrackLocked = useTimelineStore((s) => s.setTrackLocked);
-  const setTrackMuted = useTimelineStore((s) => s.setTrackMuted);
-  const setTrackSolo = useTimelineStore((s) => s.setTrackSolo);
-  const setTrackHeight = useTimelineStore((s) => s.setTrackHeight);
-  const setTrackName = useTimelineStore((s) => s.setTrackName);
-  const removeTrack = useTimelineStore((s) => s.removeTrack);
-  const reorderTracks = useTimelineStore((s) => s.reorderTracks);
-  const insertTrack = useTimelineStore((s) => s.insertTrack);
-  const duplicateTrack = useTimelineStore((s) => s.duplicateTrack);
+    const setTrackVisible = useTimelineStore((s) => s.setTrackVisible);
+    const setTrackLocked = useTimelineStore((s) => s.setTrackLocked);
+    const setTrackMuted = useTimelineStore((s) => s.setTrackMuted);
+    const setTrackSolo = useTimelineStore((s) => s.setTrackSolo);
+    const setTrackHeight = useTimelineStore((s) => s.setTrackHeight);
+    const setTrackName = useTimelineStore((s) => s.setTrackName);
+    const removeTrack = useTimelineStore((s) => s.removeTrack);
+    const reorderTracks = useTimelineStore((s) => s.reorderTracks);
+    const insertTrack = useTimelineStore((s) => s.insertTrack);
+    const duplicateTrack = useTimelineStore((s) => s.duplicateTrack);
 
-  const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
-  const meta = trackTypeMeta(track.type);
-  const accent = trackTypeAccent(theme, track.type);
-  const TypeIcon = meta.Icon;
+    const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
+    const meta = trackTypeMeta(track.type);
+    const accent = trackTypeAccent(theme, track.type);
+    const TypeIcon = meta.Icon;
 
-  const [editingName, setEditingName] = useState(false);
-  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
-  const [contextMenuPos, setContextMenuPos] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
+    const [editingName, setEditingName] = useState(false);
+    const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
+    const [contextMenuPos, setContextMenuPos] = useState<{
+      x: number;
+      y: number;
+    } | null>(null);
 
-  // `InlineEditableText` owns the draft, the deferred focus (the input is
-  // read-only until the edit render lands, and the focus has to outrun the
-  // closing menu), and the guard against a stale blur committing after Escape.
-  const startRename = useCallback(() => {
-    setEditingName(true);
-  }, []);
+    // `InlineEditableText` owns the draft, the deferred focus (the input is
+    // read-only until the edit render lands, and the focus has to outrun the
+    // closing menu), and the guard against a stale blur committing after Escape.
+    const startRename = useCallback(() => {
+      setEditingName(true);
+    }, []);
 
-  const commitName = useCallback(
-    (next: string) => {
-      setTrackName(track.id, next);
-    },
-    [setTrackName, track.id]
-  );
-
-  const dragStartYRef = useRef(0);
-  const dragStartHeightRef = useRef(heightPx);
-  // Gesture-ownership flag: the move handler only runs when this handle's
-  // pointerdown started the gesture (not when another drag passes over it).
-  const isResizingRef = useRef(false);
-
-  const timelineStoreApi = useTimelineStoreApi();
-
-  // Undo batching: begin on pointerdown, mark() after each mutation (pauses
-  // history once the pre-resize state is checkpointed), end() on pointerup, so
-  // the whole resize collapses into one undo entry.
-  const history = useTimelineHistoryBatch();
-
-  const handleResizePointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      e.currentTarget.setPointerCapture(e.pointerId);
-      dragStartYRef.current = e.clientY;
-      dragStartHeightRef.current = heightPx;
-      isResizingRef.current = true;
-      history.begin();
-    },
-    [heightPx, history]
-  );
-
-  const handleResizePointerMove = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!isResizingRef.current || e.buttons !== 1) {
-        return;
-      }
-      const deltaY = e.clientY - dragStartYRef.current;
-      const newHeight = Math.min(
-        MAX_TRACK_HEIGHT_PX,
-        Math.max(MIN_TRACK_HEIGHT_PX, dragStartHeightRef.current + deltaY)
-      );
-      setTrackHeight(track.id, newHeight);
-      // First effective mutation recorded the pre-resize state; batch the rest.
-      history.mark();
-    },
-    [setTrackHeight, track.id, history]
-  );
-
-  const handleResizePointerEnd = useCallback(() => {
-    isResizingRef.current = false;
-    history.end();
-  }, [history]);
-
-  // Context menu: right-click anywhere on the header, or a touch hold. The
-  // resize handle and the drag grip stop pointer/contextmenu propagation so a
-  // resize or reorder gesture never opens it.
-
-  const openHeaderMenuAt = useCallback(
-    (x: number, y: number) => {
-      if (editingName) {
-        return;
-      }
-      setContextMenuPos({ x, y });
-    },
-    [editingName]
-  );
-
-  const headerLongPress = useLongPress(
-    useCallback(
-      (point: LongPressPoint) => {
-        openHeaderMenuAt(point.clientX, point.clientY);
+    const commitName = useCallback(
+      (next: string) => {
+        setTrackName(track.id, next);
       },
-      [openHeaderMenuAt]
-    )
-  );
+      [setTrackName, track.id]
+    );
 
-  const handleHeaderContextMenu = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (editingName) {
-        return;
-      }
-      e.preventDefault();
-      openHeaderMenuAt(e.clientX, e.clientY);
-    },
-    [editingName, openHeaderMenuAt]
-  );
+    const dragStartYRef = useRef(0);
+    const dragStartHeightRef = useRef(heightPx);
+    // Gesture-ownership flag: the move handler only runs when this handle's
+    // pointerdown started the gesture (not when another drag passes over it).
+    const isResizingRef = useRef(false);
 
-  const closeContextMenu = useCallback(() => setContextMenuPos(null), []);
+    const timelineStoreApi = useTimelineStoreApi();
 
-  const stopPointerPropagation = useCallback(
-    (e: React.SyntheticEvent) => e.stopPropagation(),
-    []
-  );
+    // Undo batching: begin on pointerdown, mark() after each mutation (pauses
+    // history once the pre-resize state is checkpointed), end() on pointerup, so
+    // the whole resize collapses into one undo entry.
+    const history = useTimelineHistoryBatch();
 
-  const positionOf = useCallback(
-    () =>
-      timelineStoreApi.getState().tracks.findIndex((t) => t.id === track.id),
-    [timelineStoreApi, track.id]
-  );
+    const handleResizePointerDown = useCallback(
+      (e: React.PointerEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        dragStartYRef.current = e.clientY;
+        dragStartHeightRef.current = heightPx;
+        isResizingRef.current = true;
+        history.begin();
+      },
+      [heightPx, history]
+    );
 
-  const handleMenuRename = useCallback(() => {
-    closeContextMenu();
-    startRename();
-  }, [closeContextMenu, startRename]);
-
-  const handleMenuDuplicate = useCallback(() => {
-    closeContextMenu();
-    duplicateTrack(track.id);
-  }, [closeContextMenu, duplicateTrack, track.id]);
-
-  const handleMenuInsertAbove = useCallback(() => {
-    closeContextMenu();
-    insertTrack(track.type, positionOf());
-  }, [closeContextMenu, insertTrack, positionOf, track.type]);
-
-  const handleMenuInsertBelow = useCallback(() => {
-    closeContextMenu();
-    insertTrack(track.type, positionOf() + 1);
-  }, [closeContextMenu, insertTrack, positionOf, track.type]);
-
-  const handleMenuRemove = useCallback(() => {
-    closeContextMenu();
-    setConfirmRemoveOpen(true);
-  }, [closeContextMenu]);
-
-  // A midi track is mixed like an audio one: it carries gain, mute/solo and
-  // a DSP chain, and has no picture to show or hide.
-  const isSoundTrack = track.type === "audio" || track.type === "midi";
-  const supportsEffects = isSoundTrack || track.type === "video";
-  const effectsCount = track.effects?.length ?? 0;
-  const hasActiveEffects =
-    track.effects?.some((e) => e.enabled) ?? false;
-
-  const isMidi = track.type === "midi";
-  const setTrackInstrument = useTimelineStore((s) => s.setTrackInstrument);
-  const presetId =
-    isMidi && track.instrument
-      ? (presetIdForInstrument(track.instrument) ?? CUSTOM_PRESET)
-      : CUSTOM_PRESET;
-  const handlePresetChange = useCallback(
-    (value: string) => {
-      const preset = findInstrumentPreset(value);
-      if (preset) {
-        setTrackInstrument(track.id, preset.instrument);
-      }
-    },
-    [setTrackInstrument, track.id]
-  );
-
-  const instrumentExpanded = useTimelineUIStore(
-    (s) => s.expandedInstrumentTrackId === track.id
-  );
-  const toggleExpandedInstrument = useTimelineUIStore(
-    (s) => s.toggleExpandedInstrument
-  );
-  const handleInstrumentToggle = useCallback(() => {
-    toggleExpandedInstrument(track.id);
-  }, [toggleExpandedInstrument, track.id]);
-
-  const fxExpanded = useTimelineUIStore(
-    (s) => s.expandedFxTrackId === track.id
-  );
-  const toggleExpandedFx = useTimelineUIStore((s) => s.toggleExpandedFx);
-  const handleFxToggle = useCallback(() => {
-    toggleExpandedFx(track.id);
-  }, [toggleExpandedFx, track.id]);
-
-  // Drag-reorder: the grip is the HTML5 drag source; the whole header is the drop target.
-  // Reordering is constrained to same-type tracks (see trackReorder). The drop
-  // target / indicator state lives in the UI store so sibling headers can show
-  // the insertion line; the per-header selector returns the edge only for the
-  // hovered row, so other headers don't re-render on every dragover.
-
-  const headerRef = useRef<HTMLDivElement>(null);
-  const uiStoreApi = useTimelineUIStoreApi();
-  const beginTrackDrag = useTimelineUIStore((s) => s.beginTrackDrag);
-  const setTrackDropTarget = useTimelineUIStore((s) => s.setTrackDropTarget);
-  const endTrackDrag = useTimelineUIStore((s) => s.endTrackDrag);
-  const dropEdge = useTimelineUIStore((s) =>
-    s.trackDropTarget?.trackId === track.id ? s.trackDropTarget.position : null
-  );
-
-  const handleDragStart = useCallback(
-    (e: React.DragEvent) => {
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData(TRACK_DRAG_MIME, track.id);
-      if (headerRef.current) {
-        e.dataTransfer.setDragImage(headerRef.current, 12, 12);
-      }
-      beginTrackDrag(track.id);
-    },
-    [beginTrackDrag, track.id]
-  );
-
-  const handleDragEnd = useCallback(() => {
-    endTrackDrag();
-  }, [endTrackDrag]);
-
-  const handleDragOver = useCallback(
-    (e: React.DragEvent) => {
-      const draggingId = uiStoreApi.getState().draggingTrackId;
-      if (!draggingId || draggingId === track.id) {
-        return;
-      }
-      const dragged = timelineStoreApi
-        .getState()
-        .tracks.find((t) => t.id === draggingId);
-      // Only accept same-type drops; a cross-type hover shows no indicator.
-      if (!dragged || dragged.type !== track.type) {
-        if (uiStoreApi.getState().trackDropTarget?.trackId === track.id) {
-          setTrackDropTarget(null);
+    const handleResizePointerMove = useCallback(
+      (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!isResizingRef.current || e.buttons !== 1) {
+          return;
         }
-        return;
-      }
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      const rect = e.currentTarget.getBoundingClientRect();
-      const position: TrackDropPosition =
-        e.clientY < rect.top + rect.height / 2 ? "before" : "after";
-      const current = uiStoreApi.getState().trackDropTarget;
-      if (current?.trackId !== track.id || current.position !== position) {
-        setTrackDropTarget({ trackId: track.id, position });
-      }
-    },
-    [uiStoreApi, timelineStoreApi, setTrackDropTarget, track.id, track.type]
-  );
+        const deltaY = e.clientY - dragStartYRef.current;
+        const newHeight = Math.min(
+          MAX_TRACK_HEIGHT_PX,
+          Math.max(MIN_TRACK_HEIGHT_PX, dragStartHeightRef.current + deltaY)
+        );
+        setTrackHeight(track.id, newHeight);
+        // First effective mutation recorded the pre-resize state; batch the rest.
+        history.mark();
+      },
+      [setTrackHeight, track.id, history]
+    );
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      const draggingId = uiStoreApi.getState().draggingTrackId;
-      const position = uiStoreApi.getState().trackDropTarget?.position;
+    const handleResizePointerEnd = useCallback(() => {
+      isResizingRef.current = false;
+      history.end();
+    }, [history]);
+
+    // Context menu: right-click anywhere on the header, or a touch hold. The
+    // resize handle and the drag grip stop pointer/contextmenu propagation so a
+    // resize or reorder gesture never opens it.
+
+    const openHeaderMenuAt = useCallback(
+      (x: number, y: number) => {
+        if (editingName) {
+          return;
+        }
+        setContextMenuPos({ x, y });
+      },
+      [editingName]
+    );
+
+    const headerLongPress = useLongPress(
+      useCallback(
+        (point: LongPressPoint) => {
+          openHeaderMenuAt(point.clientX, point.clientY);
+        },
+        [openHeaderMenuAt]
+      )
+    );
+
+    const handleHeaderContextMenu = useCallback(
+      (e: React.MouseEvent<HTMLDivElement>) => {
+        if (editingName) {
+          return;
+        }
+        e.preventDefault();
+        openHeaderMenuAt(e.clientX, e.clientY);
+      },
+      [editingName, openHeaderMenuAt]
+    );
+
+    const closeContextMenu = useCallback(() => setContextMenuPos(null), []);
+
+    const stopPointerPropagation = useCallback(
+      (e: React.SyntheticEvent) => e.stopPropagation(),
+      []
+    );
+
+    const positionOf = useCallback(
+      () =>
+        timelineStoreApi.getState().tracks.findIndex((t) => t.id === track.id),
+      [timelineStoreApi, track.id]
+    );
+
+    const handleMenuRename = useCallback(() => {
+      closeContextMenu();
+      startRename();
+    }, [closeContextMenu, startRename]);
+
+    const handleMenuDuplicate = useCallback(() => {
+      closeContextMenu();
+      duplicateTrack(track.id);
+    }, [closeContextMenu, duplicateTrack, track.id]);
+
+    const handleMenuInsertAbove = useCallback(() => {
+      closeContextMenu();
+      insertTrack(track.type, positionOf());
+    }, [closeContextMenu, insertTrack, positionOf, track.type]);
+
+    const handleMenuInsertBelow = useCallback(() => {
+      closeContextMenu();
+      insertTrack(track.type, positionOf() + 1);
+    }, [closeContextMenu, insertTrack, positionOf, track.type]);
+
+    const handleMenuRemove = useCallback(() => {
+      closeContextMenu();
+      setConfirmRemoveOpen(true);
+    }, [closeContextMenu]);
+
+    // A midi track is mixed like an audio one: it carries gain, mute/solo and
+    // a DSP chain, and has no picture to show or hide.
+    const isSoundTrack = track.type === "audio" || track.type === "midi";
+    const supportsEffects = isSoundTrack || track.type === "video";
+    const effectsCount = track.effects?.length ?? 0;
+    const hasActiveEffects = track.effects?.some((e) => e.enabled) ?? false;
+
+    const isMidi = track.type === "midi";
+    const setTrackInstrument = useTimelineStore((s) => s.setTrackInstrument);
+    const presetId =
+      isMidi && track.instrument && track.instrument.type !== "subtractive"
+        ? (presetIdForInstrument(track.instrument) ?? CUSTOM_PRESET)
+        : CUSTOM_PRESET;
+    const handlePresetChange = useCallback(
+      (value: string) => {
+        const preset = findInstrumentPreset(value);
+        if (preset) {
+          setTrackInstrument(track.id, preset.instrument);
+        }
+      },
+      [setTrackInstrument, track.id]
+    );
+
+    const instrumentExpanded = useTimelineUIStore(
+      (s) => s.panelTab === "instrument" && s.expandedInstrumentTrackId === track.id
+    );
+    const toggleExpandedInstrument = useTimelineUIStore(
+      (s) => s.toggleExpandedInstrument
+    );
+    const handleInstrumentToggle = useCallback(() => {
+      toggleExpandedInstrument(track.id);
+    }, [toggleExpandedInstrument, track.id]);
+
+    const fxExpanded = useTimelineUIStore(
+      (s) => s.expandedFxTrackId === track.id
+    );
+    const toggleExpandedFx = useTimelineUIStore((s) => s.toggleExpandedFx);
+    const handleFxToggle = useCallback(() => {
+      toggleExpandedFx(track.id);
+    }, [toggleExpandedFx, track.id]);
+
+    // Drag-reorder: the grip is the HTML5 drag source; the whole header is the drop target.
+    // Reordering is constrained to same-type tracks (see trackReorder). The drop
+    // target / indicator state lives in the UI store so sibling headers can show
+    // the insertion line; the per-header selector returns the edge only for the
+    // hovered row, so other headers don't re-render on every dragover.
+
+    const headerRef = useRef<HTMLDivElement>(null);
+    const uiStoreApi = useTimelineUIStoreApi();
+    const beginTrackDrag = useTimelineUIStore((s) => s.beginTrackDrag);
+    const setTrackDropTarget = useTimelineUIStore((s) => s.setTrackDropTarget);
+    const endTrackDrag = useTimelineUIStore((s) => s.endTrackDrag);
+    const dropEdge = useTimelineUIStore((s) =>
+      s.trackDropTarget?.trackId === track.id
+        ? s.trackDropTarget.position
+        : null
+    );
+
+    const handleDragStart = useCallback(
+      (e: React.DragEvent) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData(TRACK_DRAG_MIME, track.id);
+        if (headerRef.current) {
+          e.dataTransfer.setDragImage(headerRef.current, 12, 12);
+        }
+        beginTrackDrag(track.id);
+      },
+      [beginTrackDrag, track.id]
+    );
+
+    const handleDragEnd = useCallback(() => {
       endTrackDrag();
-      if (!draggingId || !position) {
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      const ordered = computeReorderedTrackIds(
-        timelineStoreApi.getState().tracks,
-        draggingId,
-        track.id,
-        position
-      );
-      if (ordered) {
-        reorderTracks(ordered);
-      }
-    },
-    [uiStoreApi, timelineStoreApi, endTrackDrag, reorderTracks, track.id]
-  );
+    }, [endTrackDrag]);
 
-  // A resize drag re-renders this per pointermove, one header per track. Only
-  // the root style reads heightPx; the six icon buttons share two variants.
-  const headerCss = useMemo(
-    () => headerStyles(theme, heightPx, compact),
-    [theme, heightPx, compact]
-  );
-  const dropIndicatorCss = useMemo(
-    () => (dropEdge ? dropIndicatorStyles(theme, dropEdge) : undefined),
-    [theme, dropEdge]
-  );
-  const dragHandleCss = useMemo(() => dragHandleStyles(theme), [theme]);
-  const typeGlyphCss = useMemo(
-    () => typeGlyphStyles(theme, accent),
-    [theme, accent]
-  );
-  const nameInputCss = useMemo(() => nameInputStyles(theme), [theme]);
-  const indexChipCss = useMemo(() => indexChipStyles(theme), [theme]);
-  const controlsRowCss = useMemo(
-    () => controlsRowStyles(compact, compact || isMidi),
-    [compact, isMidi]
-  );
-  const iconButtonOnCss = useMemo(() => iconButtonStyles(theme, true), [theme]);
-  const iconButtonOffCss = useMemo(
-    () => iconButtonStyles(theme, false),
-    [theme]
-  );
-  const resizeHandleCss = useMemo(() => resizeHandleStyles(theme), [theme]);
+    const handleDragOver = useCallback(
+      (e: React.DragEvent) => {
+        const draggingId = uiStoreApi.getState().draggingTrackId;
+        if (!draggingId || draggingId === track.id) {
+          return;
+        }
+        const dragged = timelineStoreApi
+          .getState()
+          .tracks.find((t) => t.id === draggingId);
+        // Only accept same-type drops; a cross-type hover shows no indicator.
+        if (!dragged || dragged.type !== track.type) {
+          if (uiStoreApi.getState().trackDropTarget?.trackId === track.id) {
+            setTrackDropTarget(null);
+          }
+          return;
+        }
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        const rect = e.currentTarget.getBoundingClientRect();
+        const position: TrackDropPosition =
+          e.clientY < rect.top + rect.height / 2 ? "before" : "after";
+        const current = uiStoreApi.getState().trackDropTarget;
+        if (current?.trackId !== track.id || current.position !== position) {
+          setTrackDropTarget({ trackId: track.id, position });
+        }
+      },
+      [uiStoreApi, timelineStoreApi, setTrackDropTarget, track.id, track.type]
+    );
 
-  return (
-    <>
-    <div
-      ref={headerRef}
-      css={headerCss}
-      data-testid={`track-header-${track.id}`}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
-      onContextMenu={handleHeaderContextMenu}
-      onPointerDown={headerLongPress.start}
-      onPointerMove={headerLongPress.move}
-      onPointerUp={headerLongPress.cancel}
-      onPointerCancel={headerLongPress.cancel}
-    >
-      {dropEdge && (
+    const handleDrop = useCallback(
+      (e: React.DragEvent) => {
+        const draggingId = uiStoreApi.getState().draggingTrackId;
+        const position = uiStoreApi.getState().trackDropTarget?.position;
+        endTrackDrag();
+        if (!draggingId || !position) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        const ordered = computeReorderedTrackIds(
+          timelineStoreApi.getState().tracks,
+          draggingId,
+          track.id,
+          position
+        );
+        if (ordered) {
+          reorderTracks(ordered);
+        }
+      },
+      [uiStoreApi, timelineStoreApi, endTrackDrag, reorderTracks, track.id]
+    );
+
+    // A resize drag re-renders this per pointermove, one header per track. Only
+    // the root style reads heightPx; the six icon buttons share two variants.
+    const headerCss = useMemo(
+      () => headerStyles(theme, heightPx, compact),
+      [theme, heightPx, compact]
+    );
+    const dropIndicatorCss = useMemo(
+      () => (dropEdge ? dropIndicatorStyles(theme, dropEdge) : undefined),
+      [theme, dropEdge]
+    );
+    const dragHandleCss = useMemo(() => dragHandleStyles(theme), [theme]);
+    const typeGlyphCss = useMemo(
+      () => typeGlyphStyles(theme, accent),
+      [theme, accent]
+    );
+    const nameInputCss = useMemo(() => nameInputStyles(theme), [theme]);
+    const indexChipCss = useMemo(() => indexChipStyles(theme), [theme]);
+    const controlsRowCss = useMemo(
+      () => controlsRowStyles(compact, compact || isMidi),
+      [compact, isMidi]
+    );
+    const iconButtonOnCss = useMemo(
+      () => iconButtonStyles(theme, true),
+      [theme]
+    );
+    const iconButtonOffCss = useMemo(
+      () => iconButtonStyles(theme, false),
+      [theme]
+    );
+    const resizeHandleCss = useMemo(() => resizeHandleStyles(theme), [theme]);
+
+    return (
+      <>
         <div
-          css={dropIndicatorCss}
-          data-testid={`track-drop-indicator-${track.id}-${dropEdge}`}
-          aria-hidden
-        />
-      )}
-      {/* Top row: drag handle · type glyph · name · index chip */}
-      <div css={topRowStyles}>
-        {!compact && (
-          <>
+          ref={headerRef}
+          css={headerCss}
+          data-testid={`track-header-${track.id}`}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onContextMenu={handleHeaderContextMenu}
+          onPointerDown={headerLongPress.start}
+          onPointerMove={headerLongPress.move}
+          onPointerUp={headerLongPress.cancel}
+          onPointerCancel={headerLongPress.cancel}
+        >
+          {dropEdge && (
             <div
-              css={dragHandleCss}
-              draggable
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onPointerDown={stopPointerPropagation}
-              onContextMenu={stopPointerPropagation}
-              aria-label={`Reorder ${track.name}`}
-              role="button"
-              tabIndex={-1}
-              title="Drag to reorder track"
-              data-testid={`track-drag-handle-${track.id}`}
-            >
-              <DragIndicatorIcon />
-            </div>
-            <div
-              css={typeGlyphCss}
+              css={dropIndicatorCss}
+              data-testid={`track-drop-indicator-${track.id}-${dropEdge}`}
               aria-hidden
-              title={meta.label}
-            >
-              <TypeIcon />
-            </div>
-          </>
-        )}
-        <div css={nameWrapStyles}>
-          <InlineEditableText
-            css={nameInputCss}
-            unstyled
-            displayAsInput
-            value={track.name}
-            editing={editingName}
-            onEditingChange={setEditingName}
-            onCommit={commitName}
-            ariaLabel={`Track name: ${track.name}`}
-            title="Double-click to rename"
-          />
-          <span
-            css={indexChipCss}
-            aria-label={`${meta.label} track ${typedIndex}`}
-            title={`${meta.label} ${typedIndex}`}
-          >
-            {meta.prefix}
-            {typedIndex}
-          </span>
-        </div>
-      </div>
-
-      {/* Controls row */}
-      <div
-        css={controlsRowCss}
-        className={compact ? "timeline-track-controls" : undefined}
-      >
-        {track.type !== "midi" && (
-          <Tooltip title={track.visible ? "Hide track" : "Show track"}>
-            <button
-              type="button"
-              css={track.visible ? iconButtonOnCss : iconButtonOffCss}
-              onClick={() => setTrackVisible(track.id, !track.visible)}
-              aria-label={track.visible ? "Hide track" : "Show track"}
-              aria-pressed={!track.visible}
-            >
-              {track.visible ? (
-                <VisibilityOutlinedIcon />
-              ) : (
-                <VisibilityOffOutlinedIcon />
-              )}
-            </button>
-          </Tooltip>
-        )}
-
-        <Tooltip title={track.locked ? "Unlock track" : "Lock track"}>
-          <button
-            type="button"
-            css={track.locked ? iconButtonOffCss : iconButtonOnCss}
-            onClick={() => setTrackLocked(track.id, !track.locked)}
-            aria-label={track.locked ? "Unlock track" : "Lock track"}
-            aria-pressed={track.locked}
-          >
-            {track.locked ? <LockOutlinedIcon /> : <LockOpenOutlinedIcon />}
-          </button>
-        </Tooltip>
-
-        {isSoundTrack && (
-          <>
-            <Tooltip title={track.muted ? "Unmute" : "Mute"} key="mute">
-              <button
-                type="button"
-                css={track.muted ? iconButtonOffCss : iconButtonOnCss}
-                onClick={() => setTrackMuted(track.id, !track.muted)}
-                aria-label={track.muted ? "Unmute" : "Mute"}
-                aria-pressed={!!track.muted}
-              >
-                {track.muted ? <VolumeOffOutlinedIcon /> : <VolumeUpOutlinedIcon />}
-              </button>
-            </Tooltip>
-
-            <Tooltip title={track.solo ? "Unsolo" : "Solo"}>
-              <button
-                type="button"
-                css={track.solo ? iconButtonOnCss : iconButtonOffCss}
-                onClick={() => setTrackSolo(track.id, !track.solo)}
-                aria-label={track.solo ? "Unsolo" : "Solo"}
-                aria-pressed={!!track.solo}
-              >
-                <span
-                  style={{
-                    fontSize: theme.fontSizeSmaller,
-                    fontWeight: 600,
-                    letterSpacing: "0.04em"
-                  }}
-                >
-                  S
-                </span>
-              </button>
-            </Tooltip>
-          </>
-        )}
-
-        {isMidi && (
-          <>
-            <SelectField
-              label={`Instrument for ${track.name}`}
-              hideLabel
-              size="small"
-              variant="outlined"
-              value={presetId}
-              options={PRESET_OPTIONS}
-              onChange={handlePresetChange}
-              css={presetSelectStyles}
             />
-            <Tooltip title="Edit instrument">
+          )}
+          {/* Top row: drag handle · type glyph · name · index chip */}
+          <div css={topRowStyles}>
+            {!compact && (
+              <>
+                <div
+                  css={dragHandleCss}
+                  draggable
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onPointerDown={stopPointerPropagation}
+                  onContextMenu={stopPointerPropagation}
+                  aria-label={`Reorder ${track.name}`}
+                  role="button"
+                  tabIndex={-1}
+                  title="Drag to reorder track"
+                  data-testid={`track-drag-handle-${track.id}`}
+                >
+                  <DragIndicatorIcon />
+                </div>
+                <div css={typeGlyphCss} aria-hidden title={meta.label}>
+                  <TypeIcon />
+                </div>
+              </>
+            )}
+            <div css={nameWrapStyles}>
+              <InlineEditableText
+                css={nameInputCss}
+                unstyled
+                displayAsInput
+                value={track.name}
+                editing={editingName}
+                onEditingChange={setEditingName}
+                onCommit={commitName}
+                ariaLabel={`Track name: ${track.name}`}
+                title="Double-click to rename"
+              />
+              <span
+                css={indexChipCss}
+                aria-label={`${meta.label} track ${typedIndex}`}
+                title={`${meta.label} ${typedIndex}`}
+              >
+                {meta.prefix}
+                {typedIndex}
+              </span>
+            </div>
+          </div>
+
+          {/* Controls row */}
+          <div
+            css={controlsRowCss}
+            className={compact ? "timeline-track-controls" : undefined}
+          >
+            {track.type !== "midi" && (
+              <Tooltip title={track.visible ? "Hide track" : "Show track"}>
+                <button
+                  type="button"
+                  css={track.visible ? iconButtonOnCss : iconButtonOffCss}
+                  onClick={() => setTrackVisible(track.id, !track.visible)}
+                  aria-label={track.visible ? "Hide track" : "Show track"}
+                  aria-pressed={!track.visible}
+                >
+                  {track.visible ? (
+                    <VisibilityOutlinedIcon />
+                  ) : (
+                    <VisibilityOffOutlinedIcon />
+                  )}
+                </button>
+              </Tooltip>
+            )}
+
+            <Tooltip title={track.locked ? "Unlock track" : "Lock track"}>
               <button
                 type="button"
-                css={instrumentExpanded ? iconButtonOnCss : iconButtonOffCss}
-                onClick={handleInstrumentToggle}
-                aria-label={
-                  instrumentExpanded ? "Hide instrument" : "Edit instrument"
-                }
-                aria-pressed={instrumentExpanded}
-                data-testid={`track-instrument-${track.id}`}
+                css={track.locked ? iconButtonOffCss : iconButtonOnCss}
+                onClick={() => setTrackLocked(track.id, !track.locked)}
+                aria-label={track.locked ? "Unlock track" : "Lock track"}
+                aria-pressed={track.locked}
               >
-                <TuneOutlinedIcon />
+                {track.locked ? <LockOutlinedIcon /> : <LockOpenOutlinedIcon />}
               </button>
             </Tooltip>
-          </>
-        )}
 
-        {supportsEffects && (
-          <Tooltip
-            title={
-              effectsCount === 0
-                ? "Effects chain (empty)"
-                : `Effects chain (${effectsCount})`
-            }
-          >
-            <button
-              type="button"
-              css={hasActiveEffects || fxExpanded ? iconButtonOnCss : iconButtonOffCss}
-              onClick={handleFxToggle}
-              aria-label={fxExpanded ? "Hide effects chain" : "Show effects chain"}
-              aria-pressed={fxExpanded}
-              data-testid={`track-fx-${track.id}`}
-            >
-              <GraphicEqOutlinedIcon />
-            </button>
-          </Tooltip>
-        )}
+            {isSoundTrack && (
+              <>
+                <Tooltip title={track.muted ? "Unmute" : "Mute"} key="mute">
+                  <button
+                    type="button"
+                    css={track.muted ? iconButtonOffCss : iconButtonOnCss}
+                    onClick={() => setTrackMuted(track.id, !track.muted)}
+                    aria-label={track.muted ? "Unmute" : "Mute"}
+                    aria-pressed={!!track.muted}
+                  >
+                    {track.muted ? (
+                      <VolumeOffOutlinedIcon />
+                    ) : (
+                      <VolumeUpOutlinedIcon />
+                    )}
+                  </button>
+                </Tooltip>
 
-        <Tooltip title="Remove track">
-          <button
-            type="button"
-            css={iconButtonOnCss}
-            onClick={() => setConfirmRemoveOpen(true)}
-            aria-label="Remove track"
-          >
-            <DeleteOutlineOutlinedIcon />
-          </button>
-        </Tooltip>
-      </div>
+                <Tooltip title={track.solo ? "Unsolo" : "Solo"}>
+                  <button
+                    type="button"
+                    css={track.solo ? iconButtonOnCss : iconButtonOffCss}
+                    onClick={() => setTrackSolo(track.id, !track.solo)}
+                    aria-label={track.solo ? "Unsolo" : "Solo"}
+                    aria-pressed={!!track.solo}
+                  >
+                    <span
+                      style={{
+                        fontSize: theme.fontSizeSmaller,
+                        fontWeight: 600,
+                        letterSpacing: "0.04em"
+                      }}
+                    >
+                      S
+                    </span>
+                  </button>
+                </Tooltip>
+              </>
+            )}
 
-      {/* Height resize handle */}
-      <div
-        css={resizeHandleCss}
-        onPointerDown={handleResizePointerDown}
-        onPointerMove={handleResizePointerMove}
-        onPointerUp={handleResizePointerEnd}
-        onPointerCancel={handleResizePointerEnd}
-        onContextMenu={stopPointerPropagation}
-        aria-label="Resize track height"
-        role="separator"
-        aria-orientation="horizontal"
-      />
-    </div>
-    <ContextMenu
-      open={contextMenuPos !== null}
-      position={contextMenuPos}
-      onClose={closeContextMenu}
-      disableRestoreFocus
-      compact
-      data-testid={`track-context-menu-${track.id}`}
-    >
-      <MenuItemPrimitive
-        label="Rename"
-        icon={<DriveFileRenameOutlineIcon fontSize="small" />}
-        onClick={handleMenuRename}
-        compact
-      />
-      <MenuItemPrimitive
-        label="Duplicate track"
-        icon={<ContentCopyIcon fontSize="small" />}
-        onClick={handleMenuDuplicate}
-        compact
-      />
-      <MenuItemPrimitive
-        label={`Insert ${meta.label} track above`}
-        icon={<VerticalAlignTopIcon fontSize="small" />}
-        onClick={handleMenuInsertAbove}
-        compact
-      />
-      <MenuItemPrimitive
-        label={`Insert ${meta.label} track below`}
-        icon={<VerticalAlignBottomIcon fontSize="small" />}
-        onClick={handleMenuInsertBelow}
-        compact
-      />
-      <MenuItemPrimitive
-        label="Remove track"
-        icon={<DeleteOutlineOutlinedIcon fontSize="small" />}
-        onClick={handleMenuRemove}
-        color="error"
-        dividerBefore
-        compact
-      />
-    </ContextMenu>
-    <ConfirmDialog
-      open={confirmRemoveOpen}
-      onClose={() => setConfirmRemoveOpen(false)}
-      onConfirm={() => removeTrack(track.id)}
-      title="Remove track"
-      content={`Remove track "${track.name}" and all its clips?`}
-      confirmText="Remove"
-      cancelText="Cancel"
-    />
-    </>
-  );
-});
+            {isMidi && (
+              <>
+                <SelectField
+                  label={`Instrument for ${track.name}`}
+                  hideLabel
+                  size="small"
+                  variant="outlined"
+                  value={presetId}
+                  options={PRESET_OPTIONS}
+                  onChange={handlePresetChange}
+                  css={presetSelectStyles}
+                />
+                <Tooltip title="Edit instrument">
+                  <button
+                    type="button"
+                    css={
+                      instrumentExpanded ? iconButtonOnCss : iconButtonOffCss
+                    }
+                    onClick={handleInstrumentToggle}
+                    aria-label="Edit instrument"
+                    aria-expanded={instrumentExpanded}
+                    aria-pressed={instrumentExpanded}
+                    data-testid={`track-instrument-${track.id}`}
+                  >
+                    <TuneOutlinedIcon />
+                  </button>
+                </Tooltip>
+              </>
+            )}
+
+            {supportsEffects && (
+              <Tooltip
+                title={
+                  effectsCount === 0
+                    ? "Effects chain (empty)"
+                    : `Effects chain (${effectsCount})`
+                }
+              >
+                <button
+                  type="button"
+                  css={
+                    hasActiveEffects || fxExpanded
+                      ? iconButtonOnCss
+                      : iconButtonOffCss
+                  }
+                  onClick={handleFxToggle}
+                  aria-label={
+                    fxExpanded ? "Hide effects chain" : "Show effects chain"
+                  }
+                  aria-pressed={fxExpanded}
+                  data-testid={`track-fx-${track.id}`}
+                >
+                  <GraphicEqOutlinedIcon />
+                </button>
+              </Tooltip>
+            )}
+
+            <Tooltip title="Remove track">
+              <button
+                type="button"
+                css={iconButtonOnCss}
+                onClick={() => setConfirmRemoveOpen(true)}
+                aria-label="Remove track"
+              >
+                <DeleteOutlineOutlinedIcon />
+              </button>
+            </Tooltip>
+          </div>
+
+          {/* Height resize handle */}
+          <div
+            css={resizeHandleCss}
+            onPointerDown={handleResizePointerDown}
+            onPointerMove={handleResizePointerMove}
+            onPointerUp={handleResizePointerEnd}
+            onPointerCancel={handleResizePointerEnd}
+            onContextMenu={stopPointerPropagation}
+            aria-label="Resize track height"
+            role="separator"
+            aria-orientation="horizontal"
+          />
+        </div>
+        <ContextMenu
+          open={contextMenuPos !== null}
+          position={contextMenuPos}
+          onClose={closeContextMenu}
+          disableRestoreFocus
+          compact
+          data-testid={`track-context-menu-${track.id}`}
+        >
+          <MenuItemPrimitive
+            label="Rename"
+            icon={<DriveFileRenameOutlineIcon fontSize="small" />}
+            onClick={handleMenuRename}
+            compact
+          />
+          <MenuItemPrimitive
+            label="Duplicate track"
+            icon={<ContentCopyIcon fontSize="small" />}
+            onClick={handleMenuDuplicate}
+            compact
+          />
+          <MenuItemPrimitive
+            label={`Insert ${meta.label} track above`}
+            icon={<VerticalAlignTopIcon fontSize="small" />}
+            onClick={handleMenuInsertAbove}
+            compact
+          />
+          <MenuItemPrimitive
+            label={`Insert ${meta.label} track below`}
+            icon={<VerticalAlignBottomIcon fontSize="small" />}
+            onClick={handleMenuInsertBelow}
+            compact
+          />
+          <MenuItemPrimitive
+            label="Remove track"
+            icon={<DeleteOutlineOutlinedIcon fontSize="small" />}
+            onClick={handleMenuRemove}
+            color="error"
+            dividerBefore
+            compact
+          />
+        </ContextMenu>
+        <ConfirmDialog
+          open={confirmRemoveOpen}
+          onClose={() => setConfirmRemoveOpen(false)}
+          onConfirm={() => removeTrack(track.id)}
+          title="Remove track"
+          content={`Remove track "${track.name}" and all its clips?`}
+          confirmText="Remove"
+          cancelText="Cancel"
+        />
+      </>
+    );
+  }
+);
 
 TrackHeader.displayName = "TrackHeader";

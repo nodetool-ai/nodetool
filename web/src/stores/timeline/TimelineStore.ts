@@ -1,3 +1,4 @@
+import { DEFAULT_TIMELINE_INSTRUMENT } from "./instrumentPresets";
 /**
  * TimelineStore
  *
@@ -60,7 +61,6 @@ import {
   scaleVelocity,
   sortNotes,
   transposeNotes,
-  DEFAULT_MIDI_INSTRUMENT,
   clearGeneratedMatte as clearMatteOnClip,
   selectGeneratedMatteVersion as selectMatteVersionOnClip,
   findBakedAnimationIndex,
@@ -1715,7 +1715,7 @@ export const createTimelineStore = (
           // instrument-less track would render silence. `makeTrack` in
           // `@nodetool-ai/timeline` does not fill it in, so the store does.
           if (type === "midi") {
-            track.instrument = DEFAULT_MIDI_INSTRUMENT;
+            track.instrument = DEFAULT_TIMELINE_INSTRUMENT;
           }
           set((state) => {
             const next: Partial<TimelineStoreState> = {

@@ -8,16 +8,23 @@
  * `window` rather than a specific element. Store state is seeded AFTER render
  * so `getState()` routes to the mounted provider's instance (not the default).
  */
-import { describe, it, expect, jest } from "@jest/globals";
+import { describe, it, expect, jest, afterEach } from "@jest/globals";
 import { act, fireEvent, render } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { makeClip } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { TracksRegion } from "../TracksRegion";
-import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
+import { TimelineProvider, createTimelineInstance } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
+
+import { useSettingsStore } from "../../../../stores/SettingsStore";
+import { useTimelinePlaybackStore } from "../../../../stores/timeline/TimelinePlaybackStore";
+
+afterEach(() => {
+  useSettingsStore.getState().updateSettings({ timelineKeyboardPreset: "nodetool" });
+});
 
 jest.mock("../../../../lib/rest-fetch", () => ({
   restFetch: jest.fn()
@@ -143,4 +150,66 @@ describe("TracksRegion keyboard shortcuts", () => {
     });
     expect(useTimelineUIStore.getState().selectedClipIds.size).toBe(0);
   });
+});
+
+
+describe.each(["premiere", "fcp"] as const)("%s frame stepping", (preset) => {
+  it("steps the playhead without moving the selected clip", () => {
+    setup();
+    const clip = useTimelineStore.getState().clips[0];
+    act(() => {
+      useSettingsStore.getState().updateSettings({ timelineKeyboardPreset: preset });
+      useTimelineUIStore.getState().setSelection([clip.id]);
+      useTimelinePlaybackStore.getState().seek(2000);
+      fireEvent.keyDown(window, { key: "ArrowRight" });
+    });
+    const frameMs = 1000 / useTimelineStore.getState().fps;
+    expect(useTimelinePlaybackStore.getState().currentTimeMs).toBeCloseTo(2000 + frameMs);
+    expect(useTimelineStore.getState().clips[0].startMs).toBe(0);
+    act(() => fireEvent.keyDown(window, { key: "ArrowLeft" }));
+    expect(useTimelinePlaybackStore.getState().currentTimeMs).toBeCloseTo(2000);
+  });
+
+  it("clamps frame stepping to the sequence content", () => {
+    setup();
+    act(() => {
+      useSettingsStore.getState().updateSettings({ timelineKeyboardPreset: preset });
+      useTimelinePlaybackStore.getState().seek(0);
+      fireEvent.keyDown(window, { key: "ArrowLeft" });
+    });
+    expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(0);
+    act(() => {
+      useTimelinePlaybackStore.getState().seek(6000);
+      fireEvent.keyDown(window, { key: "ArrowRight" });
+    });
+    expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(6000);
+  });
+});
+
+
+it("routes editing shortcuts only to the active timeline", () => {
+  const hidden = createTimelineInstance();
+  const visible = createTimelineInstance();
+  for (const instance of [hidden, visible]) {
+    const clip = makeClip({ trackId: "t1", name: "clip", startMs: 0, durationMs: 1000 });
+    instance.doc.getState().addClips([clip]);
+    instance.ui.getState().setSelection([clip.id]);
+  }
+  const tree = (firstActive: boolean) => (
+    <ThemeProvider theme={mockTheme}>
+      <TimelineProvider instance={hidden} active={firstActive}>
+        <TracksRegion heightPx={400} />
+      </TimelineProvider>
+      <TimelineProvider instance={visible} active={!firstActive}>
+        <TracksRegion heightPx={400} />
+      </TimelineProvider>
+    </ThemeProvider>
+  );
+  const { rerender } = render(tree(false));
+  act(() => fireEvent.keyDown(window, { key: "Delete" }));
+  expect(hidden.doc.getState().clips).toHaveLength(1);
+  expect(visible.doc.getState().clips).toHaveLength(0);
+  rerender(tree(true));
+  act(() => fireEvent.keyDown(window, { key: "Delete" }));
+  expect(hidden.doc.getState().clips).toHaveLength(0);
 });

@@ -102,6 +102,8 @@ const GROUPS: Group[] = [
     title: "Playback",
     rows: [
       { keys: ["Space"], label: "Play / pause" },
+      { action: "stepFrameBack", label: "Step back one frame" },
+      { action: "stepFrameForward", label: "Step forward one frame" },
       { action: "shuttleBack", label: "Shuttle backwards (again: faster)" },
       { action: "shuttleStop", label: "Stop shuttle" },
       { action: "shuttleForward", label: "Shuttle forwards (again: faster)" },

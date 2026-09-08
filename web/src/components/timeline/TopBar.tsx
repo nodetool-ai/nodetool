@@ -234,7 +234,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
 
         {onSave && (
           <EditorButton
-            variant="outlined"
+            variant="text"
             onClick={onSave}
             disabled={isSaving}
             startIcon={<SaveIcon />}
@@ -246,7 +246,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
 
         {onSaveToAssets && (
           <EditorButton
-            variant="outlined"
+            variant="text"
             onClick={(e) => onSaveToAssets(e.currentTarget)}
             disabled={isExporting}
             startIcon={<VideoLibraryOutlinedIcon />}
@@ -258,7 +258,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
 
         {onExportVideo && (
           <EditorButton
-            variant="outlined"
+            variant="text"
             onClick={onExportVideo}
             disabled={isExporting}
             startIcon={<FileDownloadIcon />}
@@ -270,7 +270,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
 
         {onExportBundle && (
           <EditorButton
-            variant="outlined"
+            variant="text"
             onClick={onExportBundle}
             disabled={isExportingBundle}
             startIcon={<FolderZipOutlinedIcon />}

@@ -15,21 +15,25 @@ import { useColorScheme, useTheme } from "@mui/material/styles";
 
 import type { MidiNote, NoteRect } from "@nodetool-ai/timeline";
 
+import { BORDER_RADIUS, TYPOGRAPHY } from "../../ui_primitives";
 import { pickPianoRollColors } from "./pianoRollColors";
 import {
   isBlackKey,
   noteRect,
   pitchToY,
+  pitchName,
   tickToX,
   type PianoRollGeometry
 } from "./pianoRollGeometry";
 
 /** How round a note bar's corners are, in px. */
-const NOTE_CORNER_PX = 2;
+
 /** The quietest note still draws at this opacity. */
 const MIN_NOTE_ALPHA = 0.45;
 
 const canvasStyles = css({
+  ...TYPOGRAPHY.mono.caption,
+  borderRadius: BORDER_RADIUS.xs,
   position: "absolute",
   inset: 0,
   display: "block",
@@ -86,6 +90,9 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
       canvas.width = widthPx * dpr;
       canvas.height = heightPx * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const canvasStyle = getComputedStyle(canvas);
+      const noteRadius = parseFloat(canvasStyle.borderRadius) || 0;
+      ctx.font = `${canvasStyle.fontSize} ${canvasStyle.fontFamily}`;
 
       // Rows.
       ctx.fillStyle = colors.whiteRow;
@@ -143,10 +150,14 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
           rect.y + 1,
           Math.max(2, rect.width - 1),
           Math.max(1, rect.height - 2),
-          NOTE_CORNER_PX
+          noteRadius
         );
         ctx.fill();
         ctx.globalAlpha = 1;
+        if (rect.width > 44 && rect.height >= 16) {
+          ctx.fillStyle = colors.noteSelected;
+          ctx.fillText(pitchName(note.pitch), rect.x + 4, rect.y + rect.height - 4);
+        }
         if (selected) {
           ctx.strokeStyle = colors.noteSelected;
           ctx.stroke();

@@ -13,6 +13,7 @@ import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 
 import type { TimelineTempo } from "@nodetool-ai/timeline";
+import { TYPOGRAPHY } from "../../ui_primitives";
 
 import { computeBarRulerTicks } from "../Tracks/tempoGrid";
 import { pickPianoRollColors } from "./pianoRollColors";
@@ -23,7 +24,10 @@ export const PIANO_ROLL_RULER_HEIGHT_PX = 22;
 
 const canvasStyles = css({
   display: "block",
-  width: "100%"
+  width: "100%",
+  cursor: "pointer",
+  touchAction: "none",
+  ...TYPOGRAPHY.mono.caption
 });
 
 interface PianoRollRulerProps {
@@ -34,14 +38,16 @@ interface PianoRollRulerProps {
   tickToTimelineMs: (tick: number) => number;
   /** The content tick playing at timeline ms `ms`. */
   timelineMsToTick: (ms: number) => number;
+  onSeekTick: (tick: number) => void;
 }
 
 export const PianoRollRuler: React.FC<PianoRollRulerProps> = memo(
-  ({ geometry, widthPx, tempo, tickToTimelineMs, timelineMsToTick }) => {
+  ({ geometry, widthPx, tempo, tickToTimelineMs, timelineMsToTick, onSeekTick }) => {
     const theme = useTheme();
     const { mode, systemMode } = useColorScheme();
     const activeMode = (mode === "system" ? systemMode : mode) ?? "dark";
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const scrubPointer = useRef<number | null>(null);
 
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -74,7 +80,8 @@ export const PianoRollRuler: React.FC<PianoRollRulerProps> = memo(
       });
 
       ctx.textBaseline = "middle";
-      ctx.font = "9px var(--fontFamily2), monospace";
+      const canvasStyle = getComputedStyle(canvas);
+      ctx.font = `${canvasStyle.fontSize} ${canvasStyle.fontFamily}`;
       for (const tick of ticks) {
         const x = Math.round(tickToX(timelineMsToTick(tick.timeMs), geometry)) + 0.5;
         ctx.strokeStyle = tick.kind === "bar" ? colors.barLine : colors.gridLine;
@@ -102,6 +109,23 @@ export const PianoRollRuler: React.FC<PianoRollRulerProps> = memo(
         ref={canvasRef}
         css={canvasStyles}
         style={{ height: PIANO_ROLL_RULER_HEIGHT_PX }}
+        data-testid="piano-roll-ruler"
+        title="Click or drag to position the playhead"
+        onPointerDown={(event) => {
+          if (event.button !== 0) return;
+          event.preventDefault();
+          event.currentTarget.closest<HTMLElement>('[data-testid="piano-roll"]')?.focus();
+          event.currentTarget.setPointerCapture(event.pointerId);
+          scrubPointer.current = event.pointerId;
+          onSeekTick(Math.round(xToTick(event.clientX - event.currentTarget.getBoundingClientRect().left, geometry)));
+        }}
+        onPointerMove={(event) => {
+          if (scrubPointer.current !== event.pointerId) return;
+          onSeekTick(Math.round(xToTick(event.clientX - event.currentTarget.getBoundingClientRect().left, geometry)));
+        }}
+        onPointerUp={() => { scrubPointer.current = null; }}
+        onPointerCancel={() => { scrubPointer.current = null; }}
+        onLostPointerCapture={() => { scrubPointer.current = null; }}
         aria-hidden
       />
     );

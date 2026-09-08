@@ -148,6 +148,7 @@ export function useClipDrag({
       // element) because moveClip(id, _, toTrackId) re-parents the clip into
       // a different TrackLane mid-drag, which would unmount the captured
       // element and abort the gesture. Window listeners survive remounts.
+      const dragStartY = e.clientY;
       dragStartXRef.current = e.clientX;
       dragStartMsRef.current = clip.startMs;
       isDraggingRef.current = false;
@@ -240,7 +241,7 @@ export function useClipDrag({
 
         const scrollDeltaPx = (scrollArea?.scrollLeft ?? 0) - scrollLeftAtStart;
         const deltaPx = lastPointer.x - dragStartXRef.current + scrollDeltaPx;
-        if (!isDraggingRef.current && Math.abs(deltaPx) < DRAG_THRESHOLD_PX) {
+        if (!isDraggingRef.current && Math.hypot(deltaPx, lastPointer.y - dragStartY) < DRAG_THRESHOLD_PX) {
           return;
         }
         isDraggingRef.current = true;
@@ -361,6 +362,10 @@ export function useClipDrag({
           hitTestRafId = null;
         }
         stopAutoScroll();
+        if (isDraggingRef.current && ev?.type === "pointerup") {
+          sampleCrossTrack();
+          applyMove();
+        }
         clearGestureFeedback(useTimelineUIStore.getState());
         if (isDraggingRef.current && ev?.type === "pointerup") {
           // The drop settles inside the gesture's undo entry. Ctrl/Cmd on

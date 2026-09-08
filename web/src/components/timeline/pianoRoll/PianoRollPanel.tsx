@@ -27,6 +27,8 @@ import {
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import {
   Caption,
+  SelectField,
+  EditorButton,
   CloseButton,
   FlexColumn,
   FlexRow,
@@ -35,6 +37,7 @@ import {
   ToolbarIconButton,
   TruncatedText
 } from "../../ui_primitives";
+import type { TempoGridDivision } from "@nodetool-ai/timeline";
 import { GRID_DIVISION_OPTIONS } from "../Tracks/tempoGrid";
 import { PianoRoll } from "./PianoRoll";
 
@@ -72,7 +75,8 @@ const panelStyles = (theme: Theme) =>
 const headerStyles = (theme: Theme) =>
   css({
     flexShrink: 0,
-    height: TOUCH_HANDLE_HEIGHT_PX + HANDLE_HEIGHT_PX,
+    minHeight: 36,
+    flexWrap: "wrap",
     borderBottom: `1px solid ${theme.vars.palette.divider}`
   });
 
@@ -88,6 +92,9 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
     const heightPx = useTimelineUIStore((s) => s.pianoRollHeightPx);
     const setHeightPx = useTimelineUIStore((s) => s.setPianoRollHeightPx);
     const closePianoRoll = useTimelineUIStore((s) => s.closePianoRoll);
+    const setGridDivision = useTimelineUIStore((s) => s.setGridDivision);
+    const snapEnabled = useTimelineUIStore((s) => s.snapEnabled);
+    const toggleSnap = useTimelineUIStore((s) => s.toggleSnap);
     const gridDivision = useTimelineUIStore((s) => s.gridDivision);
 
     // A clip the panel is open on can be deleted, or the whole document
@@ -153,10 +160,6 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
 
     if (clipId === null || !isEditable) return null;
 
-    const gridLabel =
-      GRID_DIVISION_OPTIONS.find((option) => option.value === gridDivision)
-        ?.label ?? String(gridDivision);
-
     return (
       <>
         {!fullHeight && (
@@ -204,8 +207,12 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
               {clip.name || "Midi clip"}
             </TruncatedText>
             <Caption color="muted">
-              {(clip.notes?.length ?? 0)} notes · grid {gridLabel}
+              {clip.notes?.length ?? 0} {(clip.notes?.length ?? 0) === 1 ? "note" : "notes"}
             </Caption>
+            <SelectField label="Note grid" hideLabel size="small" value={gridDivision}
+              options={GRID_DIVISION_OPTIONS} css={css({ width: 96 })}
+              onChange={(value) => setGridDivision(value as TempoGridDivision)} />
+            <EditorButton variant={snapEnabled ? "contained" : "text"} onClick={toggleSnap} aria-label="Snap notes" aria-pressed={snapEnabled}>Snap</EditorButton>
             <FlexRow sx={{ flex: 1 }} />
             {!fullHeight && (
               <CloseButton

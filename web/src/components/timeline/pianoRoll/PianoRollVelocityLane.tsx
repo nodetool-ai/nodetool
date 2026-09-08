@@ -23,7 +23,7 @@ export const VELOCITY_LANE_HEIGHT_PX = 56;
 const MAX_VELOCITY = 127;
 const MIN_VELOCITY = 1;
 /** A bar this wide is still grabbable when its note is a hairline. */
-const MIN_BAR_WIDTH_PX = 3;
+const MIN_BAR_WIDTH_PX = 8;
 
 const canvasStyles = css({
   display: "block",
@@ -96,9 +96,10 @@ export const PianoRollVelocityLane: React.FC<PianoRollVelocityLaneProps> = memo(
         ctx.fillRect(
           rect.x,
           VELOCITY_LANE_HEIGHT_PX - height,
-          Math.max(MIN_BAR_WIDTH_PX, rect.width),
+          4,
           height
         );
+        ctx.fillRect(rect.x, VELOCITY_LANE_HEIGHT_PX - height, MIN_BAR_WIDTH_PX, 4);
       }
     }, [theme, activeMode, notes, selectedIds, geometry, widthPx]);
 
@@ -108,7 +109,7 @@ export const PianoRollVelocityLane: React.FC<PianoRollVelocityLaneProps> = memo(
         for (let i = notes.length - 1; i >= 0; i--) {
           const note = notes[i]!;
           const rect = noteRect(note, geometry);
-          const width = Math.max(MIN_BAR_WIDTH_PX, rect.width);
+          const width = MIN_BAR_WIDTH_PX;
           if (x >= rect.x && x < rect.x + width) return note;
         }
         return null;
@@ -118,6 +119,7 @@ export const PianoRollVelocityLane: React.FC<PianoRollVelocityLaneProps> = memo(
 
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
+        if (e.button !== 0) return;
         const rect = e.currentTarget.getBoundingClientRect();
         const note = noteAtX(e.clientX - rect.left);
         if (!note) return;

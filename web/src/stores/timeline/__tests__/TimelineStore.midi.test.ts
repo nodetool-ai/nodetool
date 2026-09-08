@@ -8,6 +8,7 @@
  * a silent strip only shows up as "my part came back at the wrong speed after
  * a save".
  */
+import { DEFAULT_TIMELINE_INSTRUMENT } from "../instrumentPresets";
 import { describe, it, expect } from "@jest/globals";
 import { timeline } from "@nodetool-ai/protocol/api-schemas";
 import {
@@ -56,7 +57,7 @@ describe("TimelineStore — midi tracks", () => {
   it("gives a new midi track the default instrument", () => {
     const { store } = seed();
     expect(store.getState().tracks[0].instrument).toEqual(
-      DEFAULT_MIDI_INSTRUMENT
+      DEFAULT_TIMELINE_INSTRUMENT
     );
   });
 
@@ -202,7 +203,7 @@ describe("TimelineStore — midi tracks", () => {
 
     expect(waveformOf(store.getState().tracks[0].instrument)).toBe("square");
     expect(store.getState().tracks[1].id).toBe(other);
-    expect(waveformOf(store.getState().tracks[1].instrument)).toBe("saw");
+    expect(store.getState().tracks[1].instrument).toEqual(DEFAULT_TIMELINE_INSTRUMENT);
   });
 
   it("round-trips tempo, instrument and notes through the save payload", () => {

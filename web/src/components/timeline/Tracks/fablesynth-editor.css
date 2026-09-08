@@ -1,0 +1,356 @@
+.fs-editor {
+  --fs-accent: var(--palette-info-main);
+  --fs-secondary: var(--palette-warning-main);
+  color: var(--palette-text-primary);
+  font-family: var(--fontFamily1);
+  font-size: var(--fontSizeSmaller);
+  container-type: inline-size;
+  min-width: 0;
+}
+.fs-bass {
+  --fs-accent: var(--palette-success-main);
+}
+.fs-drum {
+  --fs-accent: var(--palette-warning-main);
+}
+.fs-editor [data-accent="b"] {
+  --fs-accent: var(--fs-secondary);
+}
+.fs-editor [data-accent="f"] {
+  --fs-accent: var(--palette-secondary-main);
+}
+.fs-editor [data-accent="n"] {
+  --fs-accent: var(--palette-text-primary);
+}
+.fs-editor * {
+  box-sizing: border-box;
+}
+.fs-header {
+  padding: var(--spacing-xs) 0;
+  margin-bottom: var(--spacing-xs);
+}
+.fs-header > .fs-knob {
+  margin-left: auto;
+}
+.fs-voice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: var(--spacing-xs);
+}
+.fs-panel {
+  min-width: 0;
+  padding: var(--spacing-md);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.fs-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xs);
+}
+.fs-panel-head h3 {
+  margin: 0;
+  font-size: var(--fontSizeSmaller);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--fs-accent);
+}
+.fs-stepper {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--fontSizeSmaller);
+  font-weight: 400;
+}
+.fs-st-label {
+  color: var(--palette-text-secondary);
+}
+.fs-st-value {
+  min-width: 44px;
+  text-align: center;
+  font-family: var(--fontFamily2);
+  color: var(--palette-text-primary);
+}
+.fs-stepper button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--rounded-sm);
+  background: transparent;
+  color: var(--palette-text-primary);
+  cursor: pointer;
+}
+.fs-power {
+  width: 24px;
+  height: 24px;
+  padding: var(--spacing-xs);
+  border: 1px solid var(--palette-text-secondary);
+  border-radius: var(--rounded-circle);
+  background: var(--palette-background-default);
+  color: var(--palette-text-secondary);
+  cursor: pointer;
+}
+.fs-power::after {
+  content: "⏻";
+}
+.fs-power.on {
+  border-color: var(--fs-accent);
+  color: var(--fs-accent);
+}
+.fs-knob-row {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: var(--spacing-xs);
+}
+.fs-knob {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-micro);
+  width: 48px;
+  flex: 0 0 48px;
+  color: var(--palette-text-primary);
+  user-select: none;
+}
+.fs-knob-face {
+  display: block;
+  position: relative;
+  width: 32px;
+  height: 32px;
+}
+.fs-knob-face svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.fs-knob input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: ns-resize;
+  touch-action: none;
+}
+.fs-k-body {
+  fill: var(--palette-background-default);
+  stroke: var(--palette-text-secondary);
+  stroke-width: 1;
+}
+.fs-k-track,
+.fs-k-arc {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.fs-k-track {
+  stroke: var(--palette-divider);
+}
+.fs-k-arc {
+  stroke: var(--fs-accent);
+}
+.fs-k-ptr {
+  stroke: var(--palette-text-primary);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.fs-k-label {
+  font-size: var(--fontSizeSmaller);
+  color: var(--palette-text-secondary);
+}
+.fs-k-value {
+  font-family: var(--fontFamily2);
+  font-size: var(--fontSizeSmaller);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.fs-knob:hover .fs-k-body {
+  fill: var(--palette-action-hover);
+}
+.fs-knob:has(input:focus-visible) .fs-knob-face,
+.fs-editor button:focus-visible {
+  outline: 2px solid var(--palette-primary-main);
+  outline-offset: 2px;
+  border-radius: var(--rounded-sm);
+}
+.fs-editor button:hover {
+  background-color: var(--palette-action-hover);
+}
+.fs-keys-panel {
+  margin-top: var(--spacing-md);
+}
+.fs-keys {
+  position: relative;
+  height: 64px;
+}
+.fs-white-keys {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  gap: var(--spacing-micro);
+}
+.fs-white-keys button {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--palette-text-secondary);
+  border-radius: 0 0 var(--rounded-sm) var(--rounded-sm);
+  background: var(--palette-common-white);
+  color: var(--palette-common-black);
+  cursor: pointer;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  font-size: var(--fontSizeSmaller);
+  font-family: var(--fontFamily2);
+}
+.fs-black-key {
+  position: absolute;
+  top: 0;
+  width: max(24px, 4%);
+  height: 58%;
+  padding: 0;
+  transform: translateX(-50%);
+  border: 1px solid var(--palette-text-secondary);
+  border-radius: 0 0 var(--rounded-sm) var(--rounded-sm);
+  background: var(--palette-common-black);
+  cursor: pointer;
+}
+.fs-keys button:active {
+  background: var(--fs-accent);
+}
+.fs-keys button:focus-visible {
+  outline-offset: -3px;
+}
+.fs-dr-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 2fr);
+  gap: var(--spacing-md);
+}
+.fs-pad-panel {
+  align-self: start;
+}
+.fs-pad-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-xs);
+}
+.fs-pad-grid button {
+  min-height: 48px;
+  min-width: 0;
+  padding: var(--spacing-sm);
+  border: 1px solid transparent;
+  border-radius: var(--rounded-sm);
+  background: var(--palette-action-hover);
+  color: var(--palette-text-primary);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.fs-pad-grid button.selected {
+  border: 1px solid var(--fs-accent);
+  background: var(--palette-action-selected);
+}
+.fs-pad-grid b {
+  display: block;
+  font-size: var(--fontSizeSmaller);
+  font-weight: 600;
+  font-family: var(--fontFamily2);
+}
+.fs-pad-grid span {
+  display: block;
+  font-size: var(--fontSizeSmaller);
+  overflow-wrap: anywhere;
+  margin-top: var(--spacing-xs);
+}
+.fs-selected-pad {
+  display: block;
+  margin-bottom: var(--spacing-md);
+}
+@container (max-width: 760px) {
+  .fs-dr-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@container (max-width: 480px) {
+  .fs-white-keys button:nth-child(n + 9),
+  .fs-black-key:nth-of-type(n + 6) {
+    display: none;
+  }
+  .fs-keys { --fs-key-scale: 1.875; }
+  .fs-black-key { width: max(24px, 7.5%); }
+}
+.fs-header > .fs-knob {
+  flex-direction: row;
+  width: auto;
+  flex-basis: auto;
+  gap: var(--spacing-sm);
+}
+.fs-header .fs-knob-face { width: 32px; height: 32px; }
+.fs-drum .fs-knob-row {
+  gap: var(--spacing-xs);
+}
+.fs-drum .fs-knob-row .fs-knob {
+  width: 56px;
+  flex-basis: 56px;
+}
+
+/* Keep sparse voice sections horizontal in the instrument dock. */
+.fs-panel-inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.fs-panel-inline .fs-panel-head {
+  align-items: flex-start;
+  flex-direction: column;
+  margin-bottom: 0;
+  gap: var(--spacing-xs);
+}
+.fs-panel-inline .fs-knob-row {
+  flex-wrap: nowrap;
+}
+.fs-k-label {
+  line-height: 1.2;
+  white-space: nowrap;
+}
+@container (max-width: 300px) {
+  .fs-panel-inline {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.fs-sub-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+}
+.fs-sub-controls .fs-stepper {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
+}
+.fs-sub-controls .fs-st-label {
+  grid-column: 1 / -1;
+}
+.fs-sub-controls .fs-st-value {
+  min-width: 0;
+}
+@container (max-width: 480px) {
+  .fs-description {
+    display: none;
+  }
+}
+
+.fs-voice-grid > .fs-panel + .fs-panel {
+  border-top: 1px solid var(--palette-divider);
+}

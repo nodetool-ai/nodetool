@@ -79,7 +79,6 @@ export const SourceViewerPanel: React.FC = memo(() => {
 
   // The player's own time, so "mark in/out here" reads where it is parked.
   const playerTimeRef = useRef(0);
-  const [playerTimeMs, setPlayerTimeMs] = useState(0);
   const [sourceDurationMs, setSourceDurationMs] = useState<number | null>(null);
   const onDurationChange = useCallback(
     (seconds: number) => {
@@ -93,7 +92,6 @@ export const SourceViewerPanel: React.FC = memo(() => {
   );
   const onTimeUpdate = useCallback((sec: number) => {
     playerTimeRef.current = Math.round(sec * 1000);
-    setPlayerTimeMs(playerTimeRef.current);
   }, []);
 
   // A new asset starts with no range.
@@ -101,7 +99,6 @@ export const SourceViewerPanel: React.FC = memo(() => {
   useEffect(() => {
     setSourceRange(null);
     setSourceDurationMs(null);
-    setPlayerTimeMs(0);
     playerTimeRef.current = 0;
   }, [assetId, setSourceRange]);
 
@@ -135,8 +132,41 @@ export const SourceViewerPanel: React.FC = memo(() => {
   const keys = (action: "sourceAppend" | "sourceInsert" | "sourceOverwrite") =>
     bindingKeys(TIMELINE_KEYMAPS[preset][action][0]);
 
+  const markSource = (edge: "in" | "out") => {
+    const currentRange = sourceRangeFor(asset, uiApi.getState().sourceRange);
+    const timeMs = Math.max(
+      0, Math.min(playerTimeRef.current, sourceDurationMs ?? Infinity)
+    );
+    setSourceRange(
+      edge === "in"
+        ? { inMs: timeMs, outMs: Math.max(timeMs, currentRange.outMs) }
+        : { inMs: Math.min(timeMs, currentRange.inMs), outMs: timeMs }
+    );
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (
+      event.ctrlKey || event.metaKey || event.altKey || event.shiftKey ||
+      event.target instanceof HTMLInputElement ||
+      event.target instanceof HTMLTextAreaElement ||
+      (event.target instanceof HTMLElement && event.target.isContentEditable)
+    ) return;
+    if (mediaType === "video" && (event.key === "i" || event.key === "o")) {
+      event.preventDefault();
+      event.stopPropagation();
+      markSource(event.key === "i" ? "in" : "out");
+    }
+  };
+
   return (
-    <div css={panelStyles(theme)} data-testid="source-viewer">
+    <div
+      css={panelStyles(theme)}
+      data-testid="source-viewer"
+      role="region"
+      aria-label="Source monitor"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
       <FlexColumn gap={SPACING.md}>
         <TruncatedText variant="body2" sx={{ fontWeight: 500 }} showTooltip>
           {asset.name}
@@ -172,7 +202,7 @@ export const SourceViewerPanel: React.FC = memo(() => {
               }}
             />
             {mediaType === "video" && (
-              <Button size="small" variant="text" onClick={() => setSourceRange({ inMs: playerTimeMs, outMs: range.outMs })}>
+              <Button size="small" variant="text" onClick={() => markSource("in")} aria-label="Mark source in (I)">
                 Mark here
               </Button>
             )}
@@ -193,7 +223,7 @@ export const SourceViewerPanel: React.FC = memo(() => {
               }}
             />
             {mediaType === "video" && (
-              <Button size="small" variant="text" onClick={() => setSourceRange({ inMs: range.inMs, outMs: playerTimeMs })}>
+              <Button size="small" variant="text" onClick={() => markSource("out")} aria-label="Mark source out (O)">
                 Mark here
               </Button>
             )}

@@ -115,6 +115,8 @@ export interface TimelineUIState {
    * view can hold.
    */
   lanesViewportWidthPx: number;
+  /** Width of the desktop track-header column in pixels. */
+  trackHeaderWidthPx: number;
   /** The property Alt+K keyframes; the inspector's last-touched row. */
   keyframeProperty: KeyframeProperty;
   /** In and out on the source viewer's asset, clip-source milliseconds. */
@@ -237,6 +239,8 @@ export interface TimelineUIState {
   toggleRulerMode: () => void;
   setGridDivision: (division: TempoGridDivision) => void;
   setLanesViewportWidthPx: (px: number) => void;
+  /** Resize the desktop track-header column, clamped to its bounds. */
+  setTrackHeaderWidthPx: (px: number) => void;
   setKeyframeProperty: (property: KeyframeProperty) => void;
   setSourceRange: (range: { inMs: number; outMs: number } | null) => void;
 
@@ -271,11 +275,14 @@ export interface TimelineUIState {
   // ── Instrument panel ──────────────────────────────────────────────────────
 
   /**
-   * Id of the midi track whose instrument editor is expanded inline below its
-   * row, or null. One at a time, like the DSP chain editor.
+   * Id of the MIDI track selected in the right-panel Instruments tab.
    */
   expandedInstrumentTrackId: string | null;
-  /** Toggle the inline instrument editor for the given midi track. */
+  panelTab: "inspector" | "source" | "instrument" | "agent" | "history" | "script";
+  setPanelTab: (tab: TimelineUIState["panelTab"]) => void;
+  instrumentKeyboards: Record<string, boolean>;
+  toggleInstrumentKeyboard: (trackId: string) => void;
+  /** Open the Instruments tab for the given MIDI track. */
   toggleExpandedInstrument: (trackId: string) => void;
 
   // ── Track drag-reorder ─────────────────────────────────────────────────────
@@ -292,9 +299,24 @@ export interface TimelineUIState {
 
 export const MIN_MS_PER_PX = 0.5;
 
-export const DEFAULT_PIANO_ROLL_HEIGHT_PX = 280;
+export const DEFAULT_PIANO_ROLL_HEIGHT_PX = 360;
 export const MIN_PIANO_ROLL_HEIGHT_PX = 160;
 export const MAX_PIANO_ROLL_HEIGHT_PX = 720;
+export const DEFAULT_TRACK_HEADER_WIDTH_PX = 320;
+export const MIN_TRACK_HEADER_WIDTH_PX = 160;
+export const MAX_TRACK_HEADER_WIDTH_PX = 480;
+export const MIN_TIMELINE_LANES_WIDTH_PX = 240;
+
+export const maxTrackHeaderWidthForViewport = (
+  viewportWidthPx: number
+): number =>
+  Math.min(
+    MAX_TRACK_HEADER_WIDTH_PX,
+    Math.max(
+      MIN_TRACK_HEADER_WIDTH_PX,
+      viewportWidthPx - MIN_TIMELINE_LANES_WIDTH_PX
+    )
+  );
 
 export const MAX_MS_PER_PX = 500;
 
@@ -303,167 +325,182 @@ export type TimelineUIStoreApi = UseBoundStore<StoreApi<TimelineUIState>>;
 /** Create an isolated UI store for one timeline-editor instance. */
 export const createTimelineUIStore = (): TimelineUIStoreApi =>
   create<TimelineUIState>((set, get) => ({
-  selectedClipIds: new Set(),
-  hoveredClipId: null,
-  activeTool: "select",
-  rippleMode: false,
-  dropMode: "overwrite",
-  selectedEdit: null,
-  snapEnabled: true,
-  rulerMode: "timecode",
-  gridDivision: "beat",
-  lanesViewportWidthPx: 0,
-  keyframeProperty: "opacity",
-  sourceRange: null,
-  msPerPx: 10,
-  scrollLeftPx: 0,
-  revealRequest: null,
-  fullscreen: false,
-  matteViewEnabled: false,
-  expandedFxTrackId: null,
-  expandedInstrumentTrackId: null,
-  pianoRollClipId: null,
-  pianoRollHeightPx: DEFAULT_PIANO_ROLL_HEIGHT_PX,
-  draggingTrackId: null,
-  trackDropTarget: null,
-  selectClip: (id) =>
-    set({ selectedClipIds: new Set([id]), selectedEdit: null }),
-
-  addToSelection: (id) =>
-    set((state) => ({
-      selectedClipIds: new Set([...state.selectedClipIds, id])
+    selectedClipIds: new Set(),
+    hoveredClipId: null,
+    activeTool: "select",
+    rippleMode: false,
+    dropMode: "overwrite",
+    selectedEdit: null,
+    snapEnabled: true,
+    rulerMode: "timecode",
+    gridDivision: "beat",
+    lanesViewportWidthPx: 0,
+    trackHeaderWidthPx: DEFAULT_TRACK_HEADER_WIDTH_PX,
+    keyframeProperty: "opacity",
+    sourceRange: null,
+    msPerPx: 10,
+    scrollLeftPx: 0,
+    revealRequest: null,
+    fullscreen: false,
+    matteViewEnabled: false,
+    expandedFxTrackId: null,
+    expandedInstrumentTrackId: null,
+    panelTab: "inspector",
+    setPanelTab: (panelTab) => set({ panelTab }),
+    instrumentKeyboards: {},
+    toggleInstrumentKeyboard: (trackId) => set(state => ({
+      instrumentKeyboards: {...state.instrumentKeyboards, [trackId]: !state.instrumentKeyboards[trackId]}
     })),
+    pianoRollClipId: null,
+    pianoRollHeightPx: DEFAULT_PIANO_ROLL_HEIGHT_PX,
+    draggingTrackId: null,
+    trackDropTarget: null,
+    selectClip: (id) =>
+      set({ selectedClipIds: new Set([id]), selectedEdit: null }),
 
-  removeFromSelection: (id) =>
-    set((state) => {
-      const next = new Set(state.selectedClipIds);
-      next.delete(id);
-      return { selectedClipIds: next };
-    }),
+    addToSelection: (id) =>
+      set((state) => ({
+        selectedClipIds: new Set([...state.selectedClipIds, id])
+      })),
 
-  toggleSelection: (id) => {
-    const { selectedClipIds } = get();
-    if (selectedClipIds.has(id)) {
-      get().removeFromSelection(id);
-    } else {
-      get().addToSelection(id);
-    }
-  },
+    removeFromSelection: (id) =>
+      set((state) => {
+        const next = new Set(state.selectedClipIds);
+        next.delete(id);
+        return { selectedClipIds: next };
+      }),
 
-  clearSelection: () =>
-    set({ selectedClipIds: new Set(), selectedEdit: null }),
-
-  setSelection: (ids) =>
-    set({ selectedClipIds: new Set(ids), selectedEdit: null }),
-
-  rubberBand: null,
-
-  setRubberBand: (rect) => set({ rubberBand: rect }),
-
-  snapGuideMs: null,
-
-  setSnapGuide: (ms) => set({ snapGuideMs: ms }),
-
-  gestureReadout: null,
-
-  setGestureReadout: (readout) => set({ gestureReadout: readout }),
-
-  wordSelection: null,
-
-  beginWordSelection: (ref) => set({ wordSelection: { anchor: ref, focus: ref } }),
-
-  extendWordSelection: (ref) =>
-    set((state) => ({
-      wordSelection: {
-        anchor: state.wordSelection?.anchor ?? ref,
-        focus: ref
+    toggleSelection: (id) => {
+      const { selectedClipIds } = get();
+      if (selectedClipIds.has(id)) {
+        get().removeFromSelection(id);
+      } else {
+        get().addToSelection(id);
       }
-    })),
+    },
 
-  clearWordSelection: () => set({ wordSelection: null }),
+    clearSelection: () =>
+      set({ selectedClipIds: new Set(), selectedEdit: null }),
 
-  setHoveredClipId: (id) => set({ hoveredClipId: id }),
+    setSelection: (ids) =>
+      set({ selectedClipIds: new Set(ids), selectedEdit: null }),
 
-  setZoom: (msPerPx) =>
-    set({ msPerPx: Math.min(MAX_MS_PER_PX, Math.max(MIN_MS_PER_PX, msPerPx)) }),
+    rubberBand: null,
 
-  setScrollLeftPx: (px) => set({ scrollLeftPx: Math.max(0, px) }),
+    setRubberBand: (rect) => set({ rubberBand: rect }),
 
-  revealAt: (timeMs) => set({ revealRequest: { timeMs: Math.max(0, timeMs) } }),
+    snapGuideMs: null,
 
-  setFullscreen: (full) => set({ fullscreen: full }),
+    setSnapGuide: (ms) => set({ snapGuideMs: ms }),
 
-  toggleFullscreen: () => set((state) => ({ fullscreen: !state.fullscreen })),
+    gestureReadout: null,
 
-  setMatteViewEnabled: (on) => set({ matteViewEnabled: on }),
+    setGestureReadout: (readout) => set({ gestureReadout: readout }),
 
-  toggleMatteView: () =>
-    set((state) => ({ matteViewEnabled: !state.matteViewEnabled })),
+    wordSelection: null,
 
-  setActiveTool: (tool) => set({ activeTool: tool }),
+    beginWordSelection: (ref) =>
+      set({ wordSelection: { anchor: ref, focus: ref } }),
 
-  setRippleMode: (on) => set({ rippleMode: on }),
+    extendWordSelection: (ref) =>
+      set((state) => ({
+        wordSelection: {
+          anchor: state.wordSelection?.anchor ?? ref,
+          focus: ref
+        }
+      })),
 
-  toggleRippleMode: () => set((state) => ({ rippleMode: !state.rippleMode })),
+    clearWordSelection: () => set({ wordSelection: null }),
 
-  setDropMode: (mode) => set({ dropMode: mode }),
+    setHoveredClipId: (id) => set({ hoveredClipId: id }),
 
-  setSelectedEdit: (edit) => set({ selectedEdit: edit }),
+    setZoom: (msPerPx) =>
+      set({
+        msPerPx: Math.min(MAX_MS_PER_PX, Math.max(MIN_MS_PER_PX, msPerPx))
+      }),
 
-  toggleSnap: () => set((state) => ({ snapEnabled: !state.snapEnabled })),
+    setScrollLeftPx: (px) => set({ scrollLeftPx: Math.max(0, px) }),
 
-  setRulerMode: (mode) => set({ rulerMode: mode }),
+    revealAt: (timeMs) =>
+      set({ revealRequest: { timeMs: Math.max(0, timeMs) } }),
 
-  toggleRulerMode: () =>
-    set((state) => ({
-      rulerMode: state.rulerMode === "bars" ? "timecode" : "bars"
-    })),
+    setFullscreen: (full) => set({ fullscreen: full }),
 
-  setGridDivision: (division) => set({ gridDivision: division }),
+    toggleFullscreen: () => set((state) => ({ fullscreen: !state.fullscreen })),
 
-  setLanesViewportWidthPx: (px) =>
-    set((state) =>
-      state.lanesViewportWidthPx === px
-        ? state
-        : { lanesViewportWidthPx: Math.max(0, px) }
-    ),
+    setMatteViewEnabled: (on) => set({ matteViewEnabled: on }),
 
-  setKeyframeProperty: (property) => set({ keyframeProperty: property }),
+    toggleMatteView: () =>
+      set((state) => ({ matteViewEnabled: !state.matteViewEnabled })),
 
-  setSourceRange: (range) => set({ sourceRange: range }),
+    setActiveTool: (tool) => set({ activeTool: tool }),
 
-  setExpandedFxTrackId: (trackId) => set({ expandedFxTrackId: trackId }),
+    setRippleMode: (on) => set({ rippleMode: on }),
 
-  toggleExpandedFx: (trackId) =>
-    set((state) => ({
-      expandedFxTrackId:
-        state.expandedFxTrackId === trackId ? null : trackId
-    })),
+    toggleRippleMode: () => set((state) => ({ rippleMode: !state.rippleMode })),
 
-  openPianoRoll: (clipId) => set({ pianoRollClipId: clipId }),
+    setDropMode: (mode) => set({ dropMode: mode }),
 
-  closePianoRoll: () => set({ pianoRollClipId: null }),
+    setSelectedEdit: (edit) => set({ selectedEdit: edit }),
 
-  setPianoRollHeightPx: (px) =>
-    set({
-      pianoRollHeightPx: Math.min(
-        MAX_PIANO_ROLL_HEIGHT_PX,
-        Math.max(MIN_PIANO_ROLL_HEIGHT_PX, px)
-      )
-    }),
+    toggleSnap: () => set((state) => ({ snapEnabled: !state.snapEnabled })),
 
-  toggleExpandedInstrument: (trackId) =>
-    set((state) => ({
-      expandedInstrumentTrackId:
-        state.expandedInstrumentTrackId === trackId ? null : trackId
-    })),
+    setRulerMode: (mode) => set({ rulerMode: mode }),
 
-  beginTrackDrag: (trackId) =>
-    set({ draggingTrackId: trackId, trackDropTarget: null }),
+    toggleRulerMode: () =>
+      set((state) => ({
+        rulerMode: state.rulerMode === "bars" ? "timecode" : "bars"
+      })),
 
-  setTrackDropTarget: (target) => set({ trackDropTarget: target }),
+    setGridDivision: (division) => set({ gridDivision: division }),
 
-  endTrackDrag: () => set({ draggingTrackId: null, trackDropTarget: null })
+    setLanesViewportWidthPx: (px) =>
+      set((state) =>
+        state.lanesViewportWidthPx === px
+          ? state
+          : { lanesViewportWidthPx: Math.max(0, px) }
+      ),
+
+    setTrackHeaderWidthPx: (px) =>
+      set({
+        trackHeaderWidthPx: Math.min(
+          MAX_TRACK_HEADER_WIDTH_PX,
+          Math.max(MIN_TRACK_HEADER_WIDTH_PX, px)
+        )
+      }),
+
+    setKeyframeProperty: (property) => set({ keyframeProperty: property }),
+
+    setSourceRange: (range) => set({ sourceRange: range }),
+
+    setExpandedFxTrackId: (trackId) => set({ expandedFxTrackId: trackId }),
+
+    toggleExpandedFx: (trackId) =>
+      set((state) => ({
+        expandedFxTrackId: state.expandedFxTrackId === trackId ? null : trackId
+      })),
+
+    openPianoRoll: (clipId) => set({ pianoRollClipId: clipId }),
+
+    closePianoRoll: () => set({ pianoRollClipId: null }),
+
+    setPianoRollHeightPx: (px) =>
+      set({
+        pianoRollHeightPx: Math.min(
+          MAX_PIANO_ROLL_HEIGHT_PX,
+          Math.max(MIN_PIANO_ROLL_HEIGHT_PX, px)
+        )
+      }),
+
+    toggleExpandedInstrument: (trackId) =>
+      set({ expandedInstrumentTrackId: trackId, panelTab: "instrument" }),
+
+    beginTrackDrag: (trackId) =>
+      set({ draggingTrackId: trackId, trackDropTarget: null }),
+
+    setTrackDropTarget: (target) => set({ trackDropTarget: target }),
+
+    endTrackDrag: () => set({ draggingTrackId: null, trackDropTarget: null })
   }));
 
 // Context-bound hooks are defined against the active instance in the instance
@@ -473,4 +510,3 @@ export {
   useTimelineUIStoreApi,
   useIsClipSelected
 } from "./TimelineInstance";
-

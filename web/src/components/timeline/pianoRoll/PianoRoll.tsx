@@ -33,6 +33,7 @@ import type { Theme } from "@mui/material/styles";
 
 import {
   addNote,
+  createTimeOrderedUuid,
   barDurationMs,
   beatDurationMs,
   divisionToTicks,
@@ -43,7 +44,6 @@ import {
   removeNotes,
   resizeNotes,
   resolveTempo,
-  setVelocity,
   snapTick,
   ticksToMs
 } from "@nodetool-ai/timeline";
@@ -54,12 +54,12 @@ import type {
   TimelineTempo
 } from "@nodetool-ai/timeline";
 
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelineStore, useTimelineStoreApi, timelineTemporalOf } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { findClipById } from "../../../stores/timeline/clipLookup";
-import { FlexColumn, FlexRow } from "../../ui_primitives";
+import { Button, Caption, Dialog, FlexColumn, FlexRow, Slider, SPACING } from "../../ui_primitives";
 import { playAuditionNote } from "../preview/audition";
 import { partitionTimelineWheel } from "../Tracks/timelineWheel";
 import { visibleTempoGrid } from "../Tracks/tempoGrid";
@@ -75,6 +75,7 @@ import {
 } from "./PianoRollVelocityLane";
 import {
   hitTestNote,
+  pitchName,
   initialTopPitch,
   tickToX,
   xToTick,
@@ -83,8 +84,14 @@ import {
   type PianoRollGeometry
 } from "./pianoRollGeometry";
 
+import { decodeNoteClipboard, encodeNoteClipboard, pasteNotes } from "./noteClipboard";
+import { NoteSelectionInspector } from "./NoteSelectionInspector";
+
+const isNoteControl = (target: EventTarget) => target instanceof HTMLElement &&
+  target.closest("input, select, textarea, button, [role=combobox], [role=dialog], [contenteditable=true]") !== null;
+
 /** Height of one semitone row. */
-const ROW_HEIGHT_PX = 12;
+const ROW_HEIGHT_PX = 16;
 /** Zoom bounds, in pixels per tick. */
 const MIN_PX_PER_TICK = 0.002;
 const MAX_PX_PER_TICK = 1;
@@ -149,9 +156,15 @@ type GridDrag =
       pointerStartTick: number;
       pointerStartPitch: number;
       lastPitch: number;
+      startX: number;
+      startY: number;
+      moved: boolean;
+      duplicate: boolean;
     }
   | {
       kind: "marquee";
+      additiveIds: readonly string[];
+      additive: boolean;
       startTick: number;
       startPitch: number;
       startX: number;
@@ -177,6 +190,7 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
     );
     const gridDivision = useTimelineUIStore((s) => s.gridDivision);
     const snapEnabled = useTimelineUIStore((s) => s.snapEnabled);
+    const docApi = useTimelineStoreApi();
     const playbackApi = useTimelinePlaybackStoreApi();
     const history = useTimelineHistoryBatch();
 
@@ -199,7 +213,11 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
     const gridWrapRef = useRef<HTMLDivElement | null>(null);
     const rootRef = useRef<HTMLDivElement | null>(null);
     const playheadRef = useRef<HTMLDivElement | null>(null);
+    const createdOnClickRef = useRef<{ id: string; time: number } | null>(null);
+    const [shortcutsOpen, setShortcutsOpen] = useState(false);
+    const [cursor, setCursor] = useState("crosshair");
     const dragRef = useRef<GridDrag | null>(null);
+    const velocityBaseline = useRef<readonly MidiNote[] | null>(null);
 
     const geometry: PianoRollGeometry = useMemo(
       () => ({ pxPerTick, scrollTick, rowHeightPx: ROW_HEIGHT_PX, topPitch }),
@@ -330,7 +348,7 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
     const audition = useCallback(
       (pitch: number, velocity?: number) => {
         if (!instrument) return;
-        void playAuditionNote(instrument, pitch, velocity);
+        void playAuditionNote(instrument, pitch, velocity).catch(() => undefined);
       },
       [instrument]
     );
@@ -353,6 +371,7 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
 
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLDivElement>) => {
+        if (e.button !== 0) return;
         rootRef.current?.focus();
         const { x, y } = localPoint(e);
         const geo = geometryRef.current;
@@ -394,12 +413,18 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
                 : hit.note.startTick,
             pointerStartTick: pointerTick,
             pointerStartPitch: pointerPitch,
-            lastPitch: hit.note.pitch
+            lastPitch: hit.note.pitch,
+            startX: e.clientX,
+            startY: e.clientY,
+            moved: false,
+            duplicate: e.altKey && edge !== "end"
           };
           history.begin();
         } else {
           dragRef.current = {
             kind: "marquee",
+            additive: e.shiftKey,
+            additiveIds: e.shiftKey ? [...selectedIdsRef.current] : [],
             startTick: pointerTick,
             startPitch: pointerPitch,
             startX: e.clientX,
@@ -421,21 +446,20 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
     const handlePointerMove = useCallback(
       (e: React.PointerEvent<HTMLDivElement>) => {
         const drag = dragRef.current;
-        if (!drag) return;
         const { x, y } = localPoint(e);
+        if (!drag) {
+          const hit = hitTestNote(notesRef.current, x, y, geometryRef.current);
+          setCursor(hit ? hit.edge === "end" ? "ew-resize" : e.altKey ? "copy" : "grab" : "crosshair");
+          return;
+        }
+        if (!drag.moved && Math.abs(e.clientX - drag.startX) < DRAG_THRESHOLD_PX &&
+            Math.abs(e.clientY - drag.startY) < DRAG_THRESHOLD_PX) return;
         const geo = geometryRef.current;
         const pointerTick = xToTick(x, geo);
         const pointerPitch = yToPitch(y, geo);
-        const bypassSnap = e.altKey;
+        const bypassSnap = e.metaKey || e.ctrlKey;
 
         if (drag.kind === "marquee") {
-          if (
-            !drag.moved &&
-            Math.abs(e.clientX - drag.startX) < DRAG_THRESHOLD_PX &&
-            Math.abs(e.clientY - drag.startY) < DRAG_THRESHOLD_PX
-          ) {
-            return;
-          }
           drag.moved = true;
           const rect: NoteRect = {
             fromTick: drag.startTick,
@@ -446,12 +470,22 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
           setMarquee(rect);
           setSelectedIds(
             new Set(
-              notesInRectIds(notesRef.current, rect)
+              [...drag.additiveIds, ...notesInRectIds(notesRef.current, rect)]
             )
           );
           return;
         }
 
+        if (!drag.moved && drag.duplicate) {
+          const originalCount = drag.baseline.length;
+          drag.baseline = duplicateNotes(drag.baseline, drag.ids, 0);
+          drag.ids = drag.baseline.slice(originalCount).map(note => note.id);
+          const selection = new Set(drag.ids);
+          selectedIdsRef.current = selection;
+          setSelectedIds(selection);
+        }
+        drag.moved = true;
+        setCursor(drag.kind === "resize" ? "ew-resize" : drag.duplicate ? "copy" : "grabbing");
         const rawDelta = pointerTick - drag.pointerStartTick;
         const deltaTick =
           snapOrNot(drag.anchorTick + rawDelta, bypassSnap) - drag.anchorTick;
@@ -485,12 +519,14 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
 
     const handlePointerUp = useCallback(
       (e: React.PointerEvent<HTMLDivElement>) => {
+        if (dragRef.current) handlePointerMove(e);
         const drag = dragRef.current;
         dragRef.current = null;
         if (!drag) return;
         if (drag.kind === "marquee") {
           setMarquee(null);
           if (drag.moved) return;
+          if (drag.additive) return;
           // A press that never moved is a click on empty space: write a note
           // one grid unit long where it landed.
           const { x, y } = localPoint(e);
@@ -500,7 +536,10 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
             setSelectedIds(new Set());
             return;
           }
-          const startTick = snapOrNot(xToTick(x, geo), e.altKey);
+          const rawTick = xToTick(x, geo);
+          const startTick = snapEnabled && !e.metaKey && !e.ctrlKey
+            ? Math.floor(rawTick / gridStepTicks) * gridStepTicks
+            : Math.round(rawTick);
           const created = addNote(notesRef.current, {
             pitch,
             startTick,
@@ -509,21 +548,25 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
           setClipNotes(clipId, created);
           const newest = created[created.length - 1];
           if (newest) {
+            createdOnClickRef.current = { id: newest.id, time: e.timeStamp };
             setSelectedIds(new Set([newest.id]));
             audition(pitch, newest.velocity);
           }
           return;
         }
         history.end();
+        setCursor("grab");
+        if (!drag.moved && drag.kind === "move") audition(drag.lastPitch);
       },
       [
         audition,
         clipId,
         gridStepTicks,
         history,
+        handlePointerMove,
         localPoint,
         setClipNotes,
-        snapOrNot
+        snapEnabled
       ]
     );
 
@@ -539,6 +582,8 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
         const { x, y } = localPoint(e);
         const hit = hitTestNote(notesRef.current, x, y, geometryRef.current);
         if (!hit) return;
+        const created = createdOnClickRef.current;
+        if (created?.id === hit.note.id && e.timeStamp - created.time < 500) return;
         e.preventDefault();
         setClipNotes(clipId, removeNotes(notesRef.current, [hit.note.id]));
         setSelectedIds((prev) => {
@@ -552,13 +597,30 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
     );
 
     // ── Velocity lane ─────────────────────────────────────────────────────
-    const handleVelocityStart = useCallback(() => history.begin(), [history]);
+    const handleVelocityStart = useCallback(() => {
+      velocityBaseline.current = notesRef.current;
+      history.begin();
+    }, [history]);
+    const changeRelativeVelocity = useCallback((baseline: readonly MidiNote[], ids: ReadonlySet<string>, delta: number) => {
+      const selected = baseline.filter(note => ids.has(note.id));
+      const min = selected.reduce((value, note) => Math.min(value, note.velocity), 127);
+      const max = selected.reduce((value, note) => Math.max(value, note.velocity), 1);
+      const shift = Math.max(1 - min, Math.min(127 - max, Math.round(delta)));
+      commit(baseline.map(note => ids.has(note.id) ? {...note, velocity: note.velocity + shift} : note));
+    }, [commit]);
     const handleVelocityChange = useCallback(
-      (noteId: string, velocity: number) =>
-        commit(setVelocity(notesRef.current, [noteId], velocity)),
-      [commit]
+      (noteId: string, velocity: number) => {
+        const baseline = velocityBaseline.current ?? notesRef.current;
+        const anchor = baseline.find(note => note.id === noteId);
+        if (!anchor) return;
+        changeRelativeVelocity(baseline, selectedIdsRef.current.has(noteId) ? selectedIdsRef.current : new Set([noteId]), velocity - anchor.velocity);
+      },
+      [changeRelativeVelocity]
     );
-    const handleVelocityEnd = useCallback(() => history.end(), [history]);
+    const handleVelocityEnd = useCallback(() => {
+      velocityBaseline.current = null;
+      history.end();
+    }, [history]);
 
     // ── Wheel ─────────────────────────────────────────────────────────────
     // Registered by hand: React's onWheel is passive, so it cannot suppress
@@ -602,9 +664,34 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
       return () => el.removeEventListener("wheel", onWheel);
     }, [size.height]);
 
+    const copySelection = (event: React.ClipboardEvent<HTMLDivElement>, cut: boolean) => {
+      if (isNoteControl(event.target)) return;
+      const selected = notesRef.current.filter(note => selectedIdsRef.current.has(note.id));
+      if (selected.length === 0 || dragRef.current) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.clipboardData.setData("text/plain", encodeNoteClipboard(selected));
+      if (cut) {
+        setClipNotes(clipId, removeNotes(notesRef.current, selected.map(note => note.id)));
+        setSelectedIds(new Set());
+      }
+    };
+
+    const handlePaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
+      if (isNoteControl(event.target) || dragRef.current) return;
+      const copied = decodeNoteClipboard(event.clipboardData.getData("text/plain"));
+      if (!copied) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const copies = pasteNotes(copied, timelineMsToTick(playbackApi.getState().getTimeMs()));
+      setClipNotes(clipId, [...notesRef.current, ...copies]);
+      setSelectedIds(new Set(copies.map(note => note.id)));
+    };
+
     // ── Keyboard ──────────────────────────────────────────────────────────
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (isNoteControl(e.target)) return;
         const ctrl = e.ctrlKey || e.metaKey;
         const ids = [...selectedIdsRef.current];
         const current = notesRef.current;
@@ -613,6 +700,23 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
           e.stopPropagation();
         };
 
+        if (ctrl && ["c", "x", "v"].includes(e.key.toLowerCase())) {
+          e.stopPropagation();
+          return; // Let the browser dispatch its native clipboard event.
+        }
+        if (e.key === "?") {
+          handled();
+          setShortcutsOpen(true);
+          return;
+        }
+        if (ctrl && (e.key.toLowerCase() === "z" || e.key.toLowerCase() === "y")) {
+          handled();
+          if (dragRef.current) return;
+          const temporal = timelineTemporalOf(docApi);
+          if (e.shiftKey || e.key.toLowerCase() === "y") temporal.redo();
+          else temporal.undo();
+          return;
+        }
         if (e.key === "Escape") {
           handled();
           if (ids.length > 0) {
@@ -627,7 +731,33 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
           setSelectedIds(new Set(current.map((note) => note.id)));
           return;
         }
-        if (ids.length === 0) return;
+        if (ctrl && ["r", "t", "d"].includes(e.key.toLowerCase())) handled();
+        if (dragRef.current || ids.length === 0) return;
+
+        if (!ctrl && !e.altKey && e.key.toLowerCase() === "q") {
+          handled();
+          setClipNotes(clipId, current.map(note => selectedIdsRef.current.has(note.id)
+            ? { ...note, startTick: snapTick(note.startTick, gridStepTicks) }
+            : note));
+          return;
+        }
+        if (ctrl && e.key.toLowerCase() === "t") {
+          handled();
+          const tick = Math.round(timelineMsToTick(playbackApi.getState().getTimeMs()));
+          const nextIds = new Set<string>();
+          const next = current.flatMap(note => {
+            if (!selectedIdsRef.current.has(note.id)) return [note];
+            nextIds.add(note.id);
+            const end = note.startTick + note.durationTick;
+            if (tick <= note.startTick || tick >= end) return [note];
+            const right = { ...note, id: createTimeOrderedUuid(), startTick: tick, durationTick: end - tick };
+            nextIds.add(right.id);
+            return [{ ...note, durationTick: tick - note.startTick }, right];
+          });
+          setClipNotes(clipId, next);
+          setSelectedIds(nextIds);
+          return;
+        }
 
         if (e.key === "Delete" || e.key === "Backspace") {
           handled();
@@ -635,17 +765,18 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
           setSelectedIds(new Set());
           return;
         }
-        if (ctrl && e.key.toLowerCase() === "d") {
+        if (ctrl && ["d", "r"].includes(e.key.toLowerCase())) {
           handled();
           // A Set, not `ids.includes`: the selection can be the whole clip,
           // and a linear scan per note is O(n²) on a 4096-note part.
           const selectedIdSet = new Set(ids);
           const selected = current.filter((note) => selectedIdSet.has(note.id));
+          if (selected.length === 0) return;
           const minStart = Math.min(...selected.map((note) => note.startTick));
           const maxEnd = Math.max(
             ...selected.map((note) => note.startTick + note.durationTick)
           );
-          const offset = maxEnd + gridStepTicks - minStart;
+          const offset = maxEnd - minStart;
           const next = duplicateNotes(current, ids, offset);
           setClipNotes(clipId, next);
           setSelectedIds(new Set(next.slice(current.length).map((n) => n.id)));
@@ -653,7 +784,12 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
         }
         if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
           handled();
-          const step = e.key === "ArrowLeft" ? -gridStepTicks : gridStepTicks;
+          const increment = (e.altKey && !ctrl) || !snapEnabled ? 1 : gridStepTicks;
+          const step = e.key === "ArrowLeft" ? -increment : increment;
+          if (e.shiftKey) {
+            setClipNotes(clipId, resizeNotes(current, ids, Math.round(step), 1));
+            return;
+          }
           setClipNotes(
             clipId,
             moveNotes(current, ids, {
@@ -673,9 +809,13 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
           if (first) audition(first.pitch, first.velocity);
         }
       },
-      [audition, clipId, gridStepTicks, onClose, setClipNotes]
+      [audition, clipId, docApi, gridStepTicks, onClose, playbackApi, setClipNotes, snapEnabled, timelineMsToTick]
     );
 
+    const selectedNotes = notes.filter(note => selectedIds.has(note.id));
+    const selectedVelocity = selectedNotes.length
+      ? Math.round(selectedNotes.reduce((sum, note) => sum + note.velocity, 0) / selectedNotes.length)
+      : 100;
     if (!clip) return null;
 
     return (
@@ -687,10 +827,55 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
         role="application"
         aria-label={`Note editor for ${clip.name || "midi clip"}`}
         onKeyDown={handleKeyDown}
+        onCopy={event => copySelection(event, false)}
+        onCut={event => copySelection(event, true)}
+        onPaste={handlePaste}
         css={rootStyles(theme)}
         fullWidth
         sx={{ flex: 1, minHeight: 0 }}
       >
+        <FlexRow gap={SPACING.md} sx={{ px: SPACING.sm, py: SPACING.xs, flexShrink: 0, flexWrap: "wrap" }}>
+          <Caption aria-live="polite">
+            {selectedNotes.map(note => `${pitchName(note.pitch)} · velocity ${note.velocity}`).slice(0, 1).join("") || "Click to add a note"}
+            {selectedNotes.length > 1 ? ` · ${selectedNotes.length} selected` : ""}
+          </Caption>
+          <Caption color="muted">Velocity ±</Caption>
+          <Slider aria-label="Selected note velocity" min={1} max={127} step={1}
+            density="compact" sx={{ width: 96 }} disabled={selectedNotes.length === 0}
+            value={selectedVelocity} valueLabelDisplay="auto"
+            onPointerDown={handleVelocityStart}
+            onChange={(_, value) => {
+              const baseline = velocityBaseline.current ?? notesRef.current;
+              const selected = baseline.filter(note => selectedIdsRef.current.has(note.id));
+              const mean = selected.reduce((sum, note) => sum + note.velocity, 0) / selected.length;
+              changeRelativeVelocity(baseline, selectedIdsRef.current, (value as number) - Math.round(mean));
+            }}
+            onChangeCommitted={handleVelocityEnd} onPointerCancel={handleVelocityEnd} />
+          <Caption color="muted">⌘C/V copy/paste · ⌘R repeat · Q quantize</Caption>
+          <Button size="small" variant="text" onClick={() => setShortcutsOpen(true)} aria-label="Note editing shortcuts">Shortcuts</Button>
+        </FlexRow>
+        <NoteSelectionInspector notes={notes} selectedIds={selectedIds}
+          beatTicks={msToTicks(beatDurationMs(tempo), tempo.bpm)}
+          onChange={next => setClipNotes(clipId, next)} />
+        <Dialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} title="Note editing shortcuts">
+          <FlexColumn gap={SPACING.sm}>
+            {[
+              "⌘C / ⌘X / ⌘V — Copy / cut / paste at the playhead",
+              "⌘R — Repeat selection immediately after its end",
+              "Q — Quantize note starts to the Note grid",
+              "⌥↑ / ⌥↓ — Transpose one semitone",
+              "⇧⌥↑ / ⇧⌥↓ — Transpose one octave",
+              "⌃⌥← / ⌃⌥→ — Nudge by the Note grid",
+              "⇧← / ⇧→ — Shorten / lengthen by the Note grid",
+              "⌘T — Split selected notes at the playhead",
+              "⌘A — Select all notes · Delete — Delete selection",
+              "⌘Z / ⇧⌘Z — Undo / redo",
+              "Shift-click — Toggle selection · Drag empty space — Select notes",
+              "Option-drag — Duplicate selection · ⌘/Ctrl-drag — Bypass snapping",
+              "Ctrl substitutes for ⌘ on Windows. Existing arrow and ⌘D shortcuts also work."
+            ].map(shortcut => <Caption key={shortcut}>{shortcut}</Caption>)}
+          </FlexColumn>
+        </Dialog>
         <FlexRow fullWidth sx={{ flex: 1, minHeight: 0 }}>
           <FlexColumn sx={{ width: KEYBOARD_WIDTH_PX, flexShrink: 0 }}>
             <div style={{ height: PIANO_ROLL_RULER_HEIGHT_PX }} />
@@ -708,10 +893,12 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
               tempo={tempo}
               tickToTimelineMs={tickToTimelineMs}
               timelineMsToTick={timelineMsToTick}
+              onSeekTick={(tick) => playbackApi.getState().seek(Math.max(0, tickToTimelineMs(tick)))}
             />
             <div
               ref={gridWrapRef}
               css={gridWrapStyles}
+              style={{ cursor }}
               data-testid="piano-roll-grid"
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
