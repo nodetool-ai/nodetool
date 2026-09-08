@@ -18,7 +18,7 @@ import React, { memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
-import { NodeSlider, BORDER_RADIUS, FONT_WEIGHT, Z_INDEX } from "../../ui_primitives";
+import { NodeSlider, BORDER_RADIUS, FONT_WEIGHT, SPACING, Z_INDEX } from "../../ui_primitives";
 
 const TRACK_HEIGHT = 4;
 const THUMB_SIZE = 12;
@@ -55,12 +55,10 @@ export const adjustmentSliderStyles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller,
       fontWeight: FONT_WEIGHT.medium,
       color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.045em",
-      lineHeight: 1,
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
+      letterSpacing: "normal",
+      lineHeight: 1.3,
+      minWidth: 0,
+      overflowWrap: "anywhere"
     },
     // Wraps the slider so the centre tick + bipolar fill can be positioned
     // over the rail. Zero vertical jitter: the slider's rail sits at 50%.
@@ -69,7 +67,7 @@ export const adjustmentSliderStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       width: "100%",
-      height: 16
+      height: 24
     },
     ".slider-wrap .center-tick": {
       position: "absolute",
@@ -78,7 +76,7 @@ export const adjustmentSliderStyles = (theme: Theme) =>
       width: 2,
       height: 9,
       borderRadius: BORDER_RADIUS.xs,
-      backgroundColor: theme.vars.palette.grey[600],
+      backgroundColor: theme.vars.palette.text.disabled,
       pointerEvents: "none",
       zIndex: 0
     },
@@ -87,7 +85,7 @@ export const adjustmentSliderStyles = (theme: Theme) =>
       top: "50%",
       transform: "translateY(-50%)",
       height: TRACK_HEIGHT,
-      borderRadius: TRACK_HEIGHT / 2,
+      borderRadius: BORDER_RADIUS.pill,
       backgroundColor: theme.vars.palette.primary.main,
       pointerEvents: "none",
       zIndex: Z_INDEX.raised
@@ -97,12 +95,10 @@ export const adjustmentSliderStyles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller,
       fontVariantNumeric: "tabular-nums",
       color: theme.vars.palette.text.primary,
-      minWidth: 46,
+      minWidth: 40,
       textAlign: "right",
       lineHeight: 1,
-      padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
-      borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: theme.vars.palette.grey[800]
+      padding: `0 ${theme.spacing(SPACING.xs)}`
     },
     // Slider polish — rounded rail/track, ring-style thumb. Scoped here so the
     // app's square editor sliders elsewhere are untouched.
@@ -112,13 +108,13 @@ export const adjustmentSliderStyles = (theme: Theme) =>
     },
     ".controls .MuiSlider-rail": {
       height: TRACK_HEIGHT,
-      borderRadius: TRACK_HEIGHT / 2,
+      borderRadius: BORDER_RADIUS.pill,
       opacity: 1,
-      backgroundColor: theme.vars.palette.grey[700]
+      backgroundColor: theme.vars.palette.action.selected
     },
     ".controls .MuiSlider-track": {
       height: TRACK_HEIGHT,
-      borderRadius: TRACK_HEIGHT / 2,
+      borderRadius: BORDER_RADIUS.pill,
       border: "none",
       backgroundColor: theme.vars.palette.primary.main
     },
@@ -128,8 +124,8 @@ export const adjustmentSliderStyles = (theme: Theme) =>
       width: THUMB_SIZE,
       height: THUMB_SIZE,
       borderRadius: BORDER_RADIUS.circle,
-      border: `2px solid ${theme.vars.palette.primary.main}`,
-      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.45)",
+      border: `2px solid ${theme.vars.palette.background.paper}`,
+      boxShadow: "none",
       "&:hover, &.Mui-focusVisible, &.Mui-active": {
         boxShadow: `0 0 0 6px color-mix(in srgb, ${theme.vars.palette.primary.main} 20%, transparent)`
       }

@@ -98,19 +98,19 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     "& > .handle-column": {
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
       left: theme.spacing(0)
     },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
-      minHeight: 140,
+      minHeight: 96,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       backgroundColor: theme.vars.palette.common.black,
@@ -157,7 +157,7 @@ const styles = (theme: Theme) =>
       flexWrap: "wrap",
       alignItems: "center",
       justifyContent: "center",
-      gap: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
       minWidth: 0
     },
     ".time-display": {
@@ -188,13 +188,13 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1),
+      gap: theme.spacing(SPACING.xs),
       paddingTop: theme.spacing(SPACING.micro)
     },
     ".field": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
       minWidth: 0
     },
     ".field-label": {

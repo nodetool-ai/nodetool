@@ -15,7 +15,7 @@ import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
-import {
+import { SPACING,
   CheckerDropzone,
   FlexRow,
   StateIconButton, BORDER_RADIUS } from "../../ui_primitives";
@@ -60,22 +60,22 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     "& > .handle-column": {
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
       left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
-      minHeight: 140,
+      minHeight: 96,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -90,13 +90,13 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5)
+      gap: theme.spacing(SPACING.micro)
     },
     ".section-header": {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`
     },
     ".section-title": {
       fontSize: theme.fontSizeSmaller,
@@ -107,11 +107,11 @@ const styles = (theme: Theme) =>
     },
     ".controls": {
       display: "grid",
-      gridTemplateColumns: "auto 1fr auto",
-      columnGap: theme.spacing(1),
-      rowGap: theme.spacing(0.5),
+      gridTemplateColumns: "minmax(0, auto) minmax(40px, 1fr) auto",
+      columnGap: theme.spacing(SPACING.xs),
+      rowGap: theme.spacing(SPACING.micro),
       alignItems: "center",
-      padding: `${theme.spacing(0.5)} ${theme.spacing(1)} ${theme.spacing(0.5)}`
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.micro)}`
     },
     // Channel tints layered over the shared `.ctrl-label` styles.
     ".ctrl-label.red": { color: theme.vars.palette.error.main },

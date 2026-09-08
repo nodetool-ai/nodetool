@@ -13,7 +13,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 
-import {
+import { SPACING,
   CheckerDropzone,
   NodeSlider,
   BORDER_RADIUS,
@@ -64,22 +64,22 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     "& > .handle-column": {
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
       left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
-      minHeight: 160,
+      minHeight: 96,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -93,17 +93,16 @@ const styles = (theme: Theme) =>
     ".controls": {
       flex: "0 0 auto",
       display: "grid",
-      gridTemplateColumns: "auto 1fr auto",
-      columnGap: theme.spacing(1),
-      rowGap: theme.spacing(0.5),
+      gridTemplateColumns: "minmax(0, auto) minmax(40px, 1fr) auto",
+      columnGap: theme.spacing(SPACING.xs),
+      rowGap: theme.spacing(SPACING.micro),
       alignItems: "center",
-      padding: `${theme.spacing(0.5)} ${theme.spacing(1)} ${theme.spacing(0.5)}`
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.micro)}`
     },
     ".ctrl-label": {
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.04em",
+      letterSpacing: "normal",
       lineHeight: 1
     },
     ".ctrl-value": {
@@ -120,7 +119,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller,
       textTransform: "capitalize",
       ".MuiSelect-select": {
-        padding: `${theme.spacing(0.5)} ${theme.spacing(1)} ${theme.spacing(0.5)} 0`
+        padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.micro)} 0`
       }
     },
     ".outputs-row": {

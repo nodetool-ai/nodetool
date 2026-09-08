@@ -13,7 +13,7 @@ import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import ImageIcon from "@mui/icons-material/Image";
 
-import {
+import { SPACING,
   CheckerDropzone,
   FlexRow,
   NodeSlider,
@@ -47,17 +47,17 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
-      minHeight: 160,
+      minHeight: 96,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "visible",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -74,9 +74,9 @@ const styles = (theme: Theme) =>
       },
       ".dimensions-badge": {
         position: "absolute",
-        bottom: theme.spacing(0.5),
-        right: theme.spacing(0.5),
-        padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+        bottom: theme.spacing(SPACING.micro),
+        right: theme.spacing(SPACING.micro),
+        padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`,
         background: theme.vars.palette.c_scrim,
         color: theme.vars.palette.common.white,
         fontFamily: theme.fontFamily2,
@@ -87,27 +87,26 @@ const styles = (theme: Theme) =>
     },
     ".mode-row": {
       flex: "0 0 auto",
-      padding: `0 ${theme.spacing(0.5)}`
+      padding: `0 ${theme.spacing(SPACING.micro)}`
     },
     ".controls-row": {
       flex: "0 0 auto",
       display: "flex",
       alignItems: "flex-end",
-      gap: theme.spacing(0.5)
+      gap: theme.spacing(SPACING.micro)
     },
     ".scale-controls": {
       flex: "0 0 auto",
       display: "grid",
-      gridTemplateColumns: "auto 1fr auto",
-      columnGap: theme.spacing(1),
+      gridTemplateColumns: "minmax(0, auto) minmax(40px, 1fr) auto",
+      columnGap: theme.spacing(SPACING.xs),
       alignItems: "center",
-      padding: `0 ${theme.spacing(1)} ${theme.spacing(0.5)}`
+      padding: `0 ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.micro)}`
     },
     ".ctrl-label": {
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.04em"
+      letterSpacing: "normal"
     },
     ".ctrl-value": {
       fontFamily: theme.fontFamily2,
@@ -124,18 +123,17 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.5),
-      padding: `${theme.spacing(0.5)} ${theme.spacing(0.5)} 0`
+      gap: theme.spacing(SPACING.micro),
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.micro)} 0`
     },
     ".presets-label": {
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.04em"
+      letterSpacing: "normal"
     },
     ".preset-chip": {
       cursor: "pointer",
-      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`,
       borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",
@@ -303,6 +301,7 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
 
       <div className="mode-row">
         <ToggleGroup
+          quiet
           value={mode}
           exclusive
           onChange={handleModeChange}

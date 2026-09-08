@@ -17,8 +17,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  ToggleButton,
-  ToggleButtonGroup
+  ToggleOption,
+  ToggleGroup
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
@@ -53,22 +53,22 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     "& > .handle-column": {
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
       left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
-      minHeight: 140,
+      minHeight: 96,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -82,18 +82,18 @@ const styles = (theme: Theme) =>
     ".controls": {
       flex: "0 0 auto",
       display: "grid",
-      gridTemplateColumns: "minmax(52px, auto) 1fr auto",
-      columnGap: theme.spacing(1),
-      rowGap: theme.spacing(0.5),
+      gridTemplateColumns: "minmax(0, 1fr) minmax(48px, 1.4fr) auto",
+      columnGap: theme.spacing(SPACING.xs),
+      rowGap: theme.spacing(SPACING.micro),
       alignItems: "center",
-      padding: `${theme.spacing(0.5)} ${theme.spacing(1)} ${theme.spacing(0.5)}`
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.micro)}`
     },
     ".wrap-row": {
       gridColumn: "1 / -1",
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1),
-      paddingTop: theme.spacing(0.5)
+      gap: theme.spacing(SPACING.xs),
+      paddingTop: theme.spacing(SPACING.micro)
     },
     ".wrap-label": {
       fontSize: theme.fontSizeSmaller,
@@ -208,7 +208,8 @@ const OffsetBodyInner: React.FC<OffsetBodyProps> = ({
 
         <div className="wrap-row">
           <span className="wrap-label">Wrap</span>
-          <ToggleButtonGroup
+          <ToggleGroup
+            quiet
             value={String(Math.round(wrapValue))}
             exclusive
             onChange={handleWrapChange}
@@ -216,11 +217,11 @@ const OffsetBodyInner: React.FC<OffsetBodyProps> = ({
             aria-label="Wrap mode"
           >
             {WRAP_LABELS.map((label, i) => (
-              <ToggleButton key={i} value={String(i)} aria-label={label}>
+              <ToggleOption key={i} value={String(i)} aria-label={label}>
                 {label}
-              </ToggleButton>
+              </ToggleOption>
             ))}
-          </ToggleButtonGroup>
+          </ToggleGroup>
         </div>
       </div>
 

@@ -28,7 +28,6 @@ import {
   FlexColumn,
   MOTION,
   reducedMotion,
-  SHADOW,
   Z_INDEX
 } from "../ui_primitives";
 
@@ -56,7 +55,6 @@ const styles = (theme: Theme, bottomOffset: number, isVisible: boolean) =>
       height: "100%",
       backgroundColor: theme.vars.palette.background.default,
       borderLeft: `1px solid ${theme.vars.palette.divider}`,
-      boxShadow: SHADOW(theme).panelRight,
       overflow: "hidden",
       display: "flex",
       flexDirection: "column"
@@ -255,7 +253,7 @@ const PanelRight: React.FC = () => {
             <div className="inspector-region">{inspectorBody}</div>
             {currentWorkflowId && (
               <div className="cost-region">
-                <WorkflowCostEstimatePanel workflowId={currentWorkflowId} />
+                <WorkflowCostEstimatePanel workflowId={currentWorkflowId} compact />
               </div>
             )}
           </div>

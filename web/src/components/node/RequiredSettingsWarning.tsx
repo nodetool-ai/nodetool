@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { Text, EditorButton } from "../ui_primitives";
+import { Text, EditorButton, FlexColumn, SPACING } from "../ui_primitives";
 import { openSettingsTab } from "../workspace/openPageTab";
 import { useRequiredSettings } from "../../hooks/useRequiredSettings";
 
@@ -27,40 +27,35 @@ const RequiredSettingsWarning: React.FC<RequiredSettingsWarningProps> = React.me
           : `Required settings ${settingsList} are not configured!`;
 
       return (
-        <>
+        <FlexColumn gap={SPACING.xs} sx={{ px: SPACING.md, py: SPACING.xs }}>
           <Text
             className="node-status required-settings-warning"
             size="smaller"
             sx={{
               width: "100%",
-              textAlign: "center",
-              textTransform: "uppercase",
-              padding: ".5em !important",
-              marginBottom: "0"
+              textAlign: "left",
+              textTransform: "none",
+              color: "warning.main",
+              overflowWrap: "anywhere",
+              marginBottom: 0
             }}
           >
             {message}
           </Text>
           <EditorButton
             className="required-settings-button"
-            variant="contained"
+            variant="text"
             color="warning"
             size="small"
             onClick={handleOpenSettings}
             sx={{
-              margin: "0 1em",
-              padding: ".2em 0 0",
-              height: "1.8em",
-              lineHeight: "1.2em",
-              color: "var(--palette-grey-1000)",
-              backgroundColor: "var(--palette-warning-main)",
-              fontSize: "var(--fontSizeSmaller)",
-              borderRadius: ".1em"
+              alignSelf: "flex-start",
+              minHeight: 24
             }}
           >
             Configure in Settings
           </EditorButton>
-        </>
+        </FlexColumn>
       );
     }, [missingSettings, handleOpenSettings]);
 

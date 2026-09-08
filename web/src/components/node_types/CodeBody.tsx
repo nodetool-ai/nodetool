@@ -108,8 +108,8 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     ".code-toolbar": {
@@ -117,8 +117,8 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      gap: theme.spacing(0.5),
-      padding: `0 ${theme.spacing(0.5)}`
+      gap: theme.spacing(SPACING.micro),
+      padding: `0 ${theme.spacing(SPACING.micro)}`
     },
     ".code-language": {
       fontFamily: theme.fontFamily2,
@@ -131,19 +131,19 @@ const styles = (theme: Theme) =>
     ".code-actions": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.5)
+      gap: theme.spacing(SPACING.micro)
     },
     ".editor-area": {
       flex: "1 1 auto",
       minHeight: 180,
       position: "relative",
       overflow: "hidden",
-      backgroundColor: "var(--palette-grey-600)",
-      border: "1px solid var(--palette-grey-500)",
+      backgroundColor: theme.vars.palette.action.hover,
+      border: "1px solid transparent",
       borderRadius: BORDER_RADIUS.sm
     },
     ".editor-area:focus-within": {
-      borderColor: "var(--palette-grey-400)"
+      borderColor: theme.vars.palette.primary.main
     },
     ".editor-loading, .editor-error, .editor-placeholder": {
       width: "100%",

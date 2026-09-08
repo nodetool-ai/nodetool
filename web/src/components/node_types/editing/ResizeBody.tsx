@@ -15,7 +15,7 @@ import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { CheckerDropzone, FlexRow, StateIconButton, BORDER_RADIUS } from "../../ui_primitives";
+import { SPACING, CheckerDropzone, FlexRow, StateIconButton, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -41,17 +41,17 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
-      minHeight: 160,
+      minHeight: 96,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "visible",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -68,9 +68,9 @@ const styles = (theme: Theme) =>
       },
       ".dimensions-badge": {
         position: "absolute",
-        bottom: theme.spacing(0.5),
-        right: theme.spacing(0.5),
-        padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+        bottom: theme.spacing(SPACING.micro),
+        right: theme.spacing(SPACING.micro),
+        padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`,
         background: theme.vars.palette.c_scrim,
         color: theme.vars.palette.common.white,
         fontFamily: theme.fontFamily2,
@@ -83,7 +83,7 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       display: "flex",
       alignItems: "flex-end",
-      gap: theme.spacing(0.5)
+      gap: theme.spacing(SPACING.micro)
     },
     ".dim-field": {
       flex: "1 1 50%",

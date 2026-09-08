@@ -13,7 +13,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { shallow } from "zustand/shallow";
 
-import { SelectField, BORDER_RADIUS } from "../../ui_primitives";
+import { SPACING, SelectField, BORDER_RADIUS } from "../../ui_primitives";
 import type { SelectOption } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -39,13 +39,13 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(1),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.xs),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     "& > .handle-column": {
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
       left: theme.spacing(0)
     },
     ".explanation": {
@@ -53,17 +53,16 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller,
       lineHeight: 1.4,
       color: theme.vars.palette.text.secondary,
-      padding: `${theme.spacing(0.5)} ${theme.spacing(0.5)}`,
-      borderRadius: BORDER_RADIUS.sm,
-      background: theme.vars.palette.background.default
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.micro)}`,
+      borderRadius: BORDER_RADIUS.sm
     },
     ".picker": { flex: "0 0 auto" },
     ".empty-hint": {
       flex: "0 0 auto",
       fontSize: theme.fontSizeSmaller,
       lineHeight: 1.4,
-      color: theme.vars.palette.warning.main,
-      padding: theme.spacing(0.5)
+      color: theme.vars.palette.text.secondary,
+      padding: theme.spacing(SPACING.micro)
     },
     ".outputs-row": { flex: "0 0 auto" }
   });

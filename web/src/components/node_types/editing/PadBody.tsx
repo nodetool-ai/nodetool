@@ -12,7 +12,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { CheckerDropzone, BORDER_RADIUS } from "../../ui_primitives";
+import { SPACING, CheckerDropzone, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -47,22 +47,22 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     "& > .handle-column": {
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
       left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
-      minHeight: 140,
+      minHeight: 96,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -75,17 +75,16 @@ const styles = (theme: Theme) =>
     },
     ".controls": {
       display: "grid",
-      gridTemplateColumns: "auto 1fr auto",
-      columnGap: theme.spacing(1),
-      rowGap: theme.spacing(0.5),
+      gridTemplateColumns: "minmax(0, auto) minmax(40px, 1fr) auto",
+      columnGap: theme.spacing(SPACING.xs),
+      rowGap: theme.spacing(SPACING.micro),
       alignItems: "center",
-      padding: `${theme.spacing(0.5)} ${theme.spacing(1)} ${theme.spacing(0.5)}`
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.micro)}`
     },
     ".ctrl-label": {
       fontSize: theme.fontSizeSmaller,
       fontWeight: 500,
       color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
       letterSpacing: "0.045em",
       lineHeight: 1,
       whiteSpace: "nowrap"

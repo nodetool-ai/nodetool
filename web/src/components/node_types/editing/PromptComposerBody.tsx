@@ -33,7 +33,7 @@ import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
-import {
+import { SPACING,
   DynamicInputButton,
   BORDER_RADIUS,
   MOTION,
@@ -75,8 +75,8 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     ".composer-area": {
@@ -84,20 +84,20 @@ const styles = (theme: Theme) =>
       flex: "1 1 auto",
       minHeight: 90,
       borderRadius: BORDER_RADIUS.sm,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      // Blend into the node body by default; only recess into a higher-contrast
-      // well (and accent the border) once the field is focused for editing.
-      background: "transparent",
-      padding: theme.spacing(1),
+      border: "1px solid transparent",
+      background: theme.vars.palette.action.hover,
+      padding: theme.spacing(SPACING.xs),
       overflow: "auto",
       // The node body carries `.node-drag-handle` (cursor: grabbing !important);
       // the composer is a text field, so override it back to a text caret.
       cursor: "text !important",
       transition: `${MOTION.background}, ${MOTION.border}`,
       ...reducedMotion({ transition: MOTION.none }),
+      "&:hover": { borderColor: theme.vars.palette.divider },
       "&:focus-within": {
         background: theme.vars.palette.background.default,
-        borderColor: theme.vars.palette.primary.main
+        borderColor: theme.vars.palette.primary.main,
+        outline: `1px solid ${theme.vars.palette.primary.main}`
       }
     },
     ".composer-input": {
@@ -115,8 +115,8 @@ const styles = (theme: Theme) =>
     },
     ".composer-placeholder": {
       position: "absolute",
-      top: theme.spacing(1),
-      left: theme.spacing(1),
+      top: theme.spacing(SPACING.xs),
+      left: theme.spacing(SPACING.xs),
       color: theme.vars.palette.text.disabled,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
@@ -127,17 +127,16 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexWrap: "wrap",
       alignItems: "center",
-      gap: theme.spacing(0.5)
+      gap: theme.spacing(SPACING.micro)
     },
     ".variable-bar-label": {
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.04em"
+      letterSpacing: "normal"
     },
     ".variable-insert-chip": {
       cursor: "pointer",
-      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`,
       borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",

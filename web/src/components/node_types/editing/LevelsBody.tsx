@@ -24,7 +24,7 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ToggleGroup, ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
+import { SPACING, ToggleGroup, ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
 import ImageIcon from "@mui/icons-material/Image";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
@@ -80,22 +80,22 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      gap: theme.spacing(SPACING.micro),
+      padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
     "& > .handle-column": {
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
       left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
-      minHeight: 160,
+      minHeight: 96,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -109,12 +109,12 @@ const styles = (theme: Theme) =>
     ".histogram-area": {
       flex: "0 0 auto",
       position: "relative",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       borderRadius: BORDER_RADIUS.sm,
-      padding: theme.spacing(0.5),
+      padding: theme.spacing(SPACING.micro),
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.5)
+      gap: theme.spacing(SPACING.micro)
     },
     ".histogram-canvas": {
       width: "100%",
@@ -128,7 +128,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       ".MuiToggleButton-root": {
         flex: "1 1 auto",
-        padding: `${theme.spacing(0.5)} ${theme.spacing(0.5)}`,
+        padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.micro)}`,
         fontSize: theme.fontSizeSmaller,
         fontFamily: theme.fontFamily2,
         textTransform: "none",
@@ -136,8 +136,8 @@ const styles = (theme: Theme) =>
       }
     },
     ".slider-row": {
-      paddingLeft: theme.spacing(0.5),
-      paddingRight: theme.spacing(0.5)
+      paddingLeft: theme.spacing(SPACING.micro),
+      paddingRight: theme.spacing(SPACING.micro)
     },
     ".slider-label": {
       flex: "0 0 auto",
@@ -155,7 +155,7 @@ const styles = (theme: Theme) =>
       textAlign: "right"
     },
     ".action-row": {
-      paddingTop: theme.spacing(0.5),
+      paddingTop: theme.spacing(SPACING.micro),
       display: "flex",
       justifyContent: "flex-end"
     },
@@ -482,6 +482,7 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
       <div className="histogram-area">
         <canvas ref={canvasRef} className="histogram-canvas" />
         <ToggleGroup
+          quiet
           className="hist-toggle"
           size="small"
           value={histView}
@@ -500,6 +501,7 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
       <FlexColumn className="controls" gap={0.5}>
         <FlexRow align="center" gap={0.5}>
           <ToggleGroup
+          quiet
             className="channel-toggle"
             size="small"
             value={channel}

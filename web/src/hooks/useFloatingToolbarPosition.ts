@@ -1,10 +1,8 @@
 import { useMemo } from "react";
 
 /**
- * Position styles for the floating toolbar. Reacts only to the bottom panel
- * (which is user-driven). The right panel auto-opens on node selection, so
- * shifting the toolbar with it would make it jump on every click — instead
- * the toolbar stays centered and the inspector overlays it when needed.
+ * Vertical position for the floating toolbar above the bottom panel.
+ * FloatingToolBar sets horizontal bounds from the visible side panels.
  */
 export const useFloatingToolbarPosition = (
   bottomPanelVisible: boolean,

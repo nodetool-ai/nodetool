@@ -12,7 +12,7 @@ import React, { memo, useCallback, useMemo, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { BORDER_RADIUS, FONT_WEIGHT } from "../../ui_primitives";
+import { SPACING, BORDER_RADIUS, FONT_WEIGHT } from "../../ui_primitives";
 
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -31,15 +31,14 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(1),
-      padding: theme.spacing(1),
+      gap: theme.spacing(SPACING.xs),
+      padding: theme.spacing(SPACING.xs),
       minHeight: 0,
-      borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: theme.vars.palette.grey[900]
+      borderRadius: BORDER_RADIUS.sm
     },
     "& > .handle-column": {
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
       left: 0
     },
     ".module-label": {
@@ -47,18 +46,17 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       fontWeight: FONT_WEIGHT.semibold,
-      letterSpacing: "0.18em",
+      letterSpacing: "0.04em",
       textTransform: "uppercase",
       lineHeight: 1,
       color: theme.vars.palette.text.secondary,
-      padding: `2px ${theme.spacing(1)}`,
-      borderRadius: BORDER_RADIUS.sm,
-      border: `1px solid ${theme.vars.palette.grey[800]}`
+      padding: `2px ${theme.spacing(SPACING.xs)}`,
+      borderRadius: BORDER_RADIUS.sm
     },
     ".player": {
       flex: "1 1 auto",
       minHeight: 0,
-      padding: `0 ${theme.spacing(0.5)}`
+      padding: `0 ${theme.spacing(SPACING.micro)}`
     },
     ".idle-hint": {
       flex: "1 1 auto",

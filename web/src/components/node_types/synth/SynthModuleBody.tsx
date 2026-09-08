@@ -12,7 +12,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { ToggleGroup, ToggleOption, BORDER_RADIUS, FONT_WEIGHT } from "../../ui_primitives";
+import { SPACING, ToggleGroup, ToggleOption, BORDER_RADIUS, FONT_WEIGHT } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
@@ -40,15 +40,14 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(1),
-      padding: theme.spacing(1),
+      gap: theme.spacing(SPACING.xs),
+      padding: theme.spacing(SPACING.xs),
       minHeight: 0,
-      borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: theme.vars.palette.grey[900]
+      borderRadius: BORDER_RADIUS.sm
     },
     "& > .handle-column": {
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
       left: 0
     },
     ".module-label": {
@@ -56,21 +55,20 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       fontWeight: FONT_WEIGHT.semibold,
-      letterSpacing: "0.18em",
+      letterSpacing: "0.04em",
       textTransform: "uppercase",
       lineHeight: 1,
       color: theme.vars.palette.text.secondary,
-      padding: `2px ${theme.spacing(1)}`,
-      borderRadius: BORDER_RADIUS.sm,
-      border: `1px solid ${theme.vars.palette.grey[800]}`
+      padding: `2px ${theme.spacing(SPACING.xs)}`,
+      borderRadius: BORDER_RADIUS.sm
     },
     ".adsr-preview": {
-      padding: `0 ${theme.spacing(0.5)}`
+      padding: `0 ${theme.spacing(SPACING.micro)}`
     },
     ".mode-toggle": {
       alignSelf: "center",
       ".MuiToggleButton-root": {
-        padding: `2px ${theme.spacing(1.5)}`,
+        padding: `2px ${theme.spacing(SPACING.sm)}`,
         fontSize: theme.fontSizeSmaller,
         fontFamily: theme.fontFamily2,
         lineHeight: 1.4,
@@ -84,8 +82,8 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       alignItems: "flex-start",
       alignContent: "center",
-      columnGap: theme.spacing(0.5),
-      rowGap: theme.spacing(1),
+      columnGap: theme.spacing(SPACING.micro),
+      rowGap: theme.spacing(SPACING.xs),
       minHeight: 0
     },
     ".jack-labels": {
@@ -94,7 +92,7 @@ const styles = (theme: Theme) =>
       gap: 2,
       position: "absolute",
       left: theme.spacing(1.25),
-      top: theme.spacing(1),
+      top: theme.spacing(SPACING.xs),
       pointerEvents: "none"
     },
     ".jack-label": {
@@ -104,7 +102,7 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.05em",
       lineHeight: "18px",
       height: 18,
-      marginBottom: theme.spacing(2),
+      marginBottom: theme.spacing(SPACING.md),
       "&:last-child": { marginBottom: 0 }
     },
     ".outputs-row": {
@@ -283,6 +281,7 @@ const SynthModuleBodyInner: React.FC<SynthModuleBodyProps> = ({
 
       {config.modeToggle && (
         <ToggleGroup
+          quiet
           className="mode-toggle nodrag"
           size="small"
           exclusive
@@ -305,6 +304,7 @@ const SynthModuleBodyInner: React.FC<SynthModuleBodyProps> = ({
           props[t.name] === undefined ? t.default : Boolean(props[t.name]);
         return (
           <ToggleGroup
+          quiet
             key={t.name}
             className="mode-toggle nodrag"
             size="small"

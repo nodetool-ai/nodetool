@@ -40,6 +40,48 @@ const renderPanel = () =>
   );
 
 describe("WorkflowCostEstimatePanel", () => {
+  it("keeps a per-run estimate visible and opens details with the keyboard without canvas shortcuts", async () => {
+    mockHook.mockReturnValue(estimate as never);
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <WorkflowCostEstimatePanel workflowId="wf_1" compact />
+      </ThemeProvider>
+    );
+    const disclosure = screen.getByRole("button", { name: /Cost estimate.*\/ run/ });
+    expect(disclosure).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Text To Image")).not.toBeInTheDocument();
+    const canvasShortcut = jest.fn();
+    window.addEventListener("keydown", canvasShortcut);
+    try {
+      disclosure.focus();
+      await userEvent.keyboard(" ");
+      expect(disclosure).toHaveAttribute("aria-expanded", "true");
+      expect(await screen.findByText("Text To Image")).toBeVisible();
+      expect(canvasShortcut).not.toHaveBeenCalled();
+      await userEvent.keyboard("{Enter}");
+      expect(disclosure).toHaveAttribute("aria-expanded", "false");
+      await waitFor(() => expect(screen.queryByText("Text To Image")).not.toBeInTheDocument());
+    } finally {
+      window.removeEventListener("keydown", canvasShortcut);
+    }
+  });
+
+  it("marks an incomplete estimate before its details are opened", () => {
+    mockHook.mockReturnValue({
+      ...estimate,
+      total: 0,
+      unknown_count: 1,
+      items: [{ ...estimate.items[0], confidence: "unknown" }]
+    } as never);
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <WorkflowCostEstimatePanel workflowId="wf_1" compact />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button", { name: "Cost estimate — · incomplete" }))
+      .toHaveAttribute("aria-expanded", "false");
+  });
+
   it("credits the price sources with the date the prices last moved", () => {
     mockHook.mockReturnValue(estimate as never);
     renderPanel();

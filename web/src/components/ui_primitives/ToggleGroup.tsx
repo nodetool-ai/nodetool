@@ -13,7 +13,8 @@ import {
   ToggleButtonProps,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { MOTION } from "./tokens";
+import { BORDER_RADIUS, MOTION, reducedMotion } from "./tokens";
+import { SPACING } from "./spacing";
 
 // --- ToggleGroup ---
 
@@ -23,6 +24,8 @@ export interface ToggleGroupProps
   size?: "small" | "medium" | "large";
   /** Compact mode with reduced padding */
   compact?: boolean;
+  /** Quiet node controls: no enclosing border, with a filled selected option. */
+  quiet?: boolean;
   /**
    * Segmented toolbar variant: a single bordered pill with a fixed 32px
    * height, sentence-case small text, and standardized selected/hover colors.
@@ -58,6 +61,7 @@ const SEGMENTED_HEIGHT = 32;
 const ToggleGroupInternal: React.FC<ToggleGroupProps> = ({
   size = "medium",
   compact = false,
+  quiet = false,
   segmented = false,
   fullWidth = false,
   sx,
@@ -121,6 +125,29 @@ const ToggleGroupInternal: React.FC<ToggleGroupProps> = ({
             },
           }),
         ...segmentedSx,
+        ...(quiet && {
+          gap: SPACING.micro,
+          "& .MuiToggleButtonGroup-grouped": {
+            minHeight: 24,
+            margin: 0,
+            border: "none",
+            borderRadius: BORDER_RADIUS.sm,
+            color: palette.text.secondary,
+            transition: MOTION.background,
+            ...reducedMotion({ transition: MOTION.none }),
+            "&:hover": { backgroundColor: palette.action.hover },
+            "&.Mui-selected": {
+              backgroundColor: palette.action.selected,
+              color: palette.text.primary,
+              "&:hover": { backgroundColor: palette.action.selected }
+            },
+            "&.Mui-focusVisible": {
+              outline: `2px solid ${palette.primary.main}`,
+              outlineOffset: -2
+            },
+            "&.Mui-disabled": { color: palette.action.disabled }
+          }
+        }),
         ...sx,
       }}
       {...props}

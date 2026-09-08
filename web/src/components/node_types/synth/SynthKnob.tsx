@@ -55,7 +55,8 @@ export const synthKnobStyles = (theme: Theme) =>
       width: KNOB_SIZE + 12,
       outline: "none",
       "&:focus-visible .knob-face": {
-        boxShadow: `0 0 0 2px color-mix(in srgb, ${theme.vars.palette.primary.main} 60%, transparent)`
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: 3
       }
     },
     ".knob-face": {
@@ -64,15 +65,13 @@ export const synthKnobStyles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.circle,
       cursor: "ns-resize",
       touchAction: "none",
-      backgroundColor: theme.vars.palette.grey[800],
-      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5), 0 1px 1px rgba(0,0,0,0.3)"
+      backgroundColor: theme.vars.palette.action.hover
     },
     ".knob-label": {
       fontSize: theme.fontSizeSmaller,
       fontWeight: FONT_WEIGHT.medium,
       color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.05em",
+      letterSpacing: "normal",
       lineHeight: 1,
       whiteSpace: "nowrap"
     },
