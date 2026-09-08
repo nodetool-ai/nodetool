@@ -10,3 +10,6 @@
 ## 2024-11-20 - O(4*N) filtering optimization in job queues
 **Learning:** Multiple array `.filter(...)` statements over the same array to partition items by disjoint conditions caused an O(K*N) performance bottleneck and unnecessary intermediate array allocations.
 **Action:** Replace multiple `.filter(...)` lines with a single manual `for` loop that iterates the array once and sorts the items into different target arrays concurrently (O(N) pass).
+## 2026-09-08 - O(N*M) filtering optimization in Game Cost Estimate
+**Learning:** Multiple array `.filter(...).length` statements inside rendering hooks and functions create performance bottlenecks and unnecessary intermediate array allocations, especially when evaluating disjoint conditions over the same array.
+**Action:** Replace multiple `.filter(...).length` lines with a single manual `for` loop that iterates the array once and sorts/counts the items concurrently (O(N) pass, avoids allocating short-lived arrays).

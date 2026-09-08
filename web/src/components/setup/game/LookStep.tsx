@@ -136,19 +136,20 @@ export const gameCostEstimate = (
     musicModel: string | null;
   }
 ): GameCostEstimate => {
-  const imageCount = slots.filter(
-    (slot) =>
-      slot.kind === "spritesheet" ||
-      slot.kind === "tileset" ||
-      slot.kind === "image"
-  ).length;
-  const sfxCount = choices.sfxChosen
-    ? slots.filter((slot) => slot.kind === "sfx").length
-    : 0;
-  const musicCount =
-    choices.musicModel === null
-      ? 0
-      : slots.filter((slot) => slot.kind === "music").length;
+  let imageCount = 0;
+  let sfxCount = 0;
+  let musicCount = 0;
+
+  for (let i = 0; i < slots.length; i++) {
+    const kind = slots[i].kind;
+    if (kind === "spritesheet" || kind === "tileset" || kind === "image") {
+      imageCount++;
+    } else if (kind === "sfx" && choices.sfxChosen) {
+      sfxCount++;
+    } else if (kind === "music" && choices.musicModel !== null) {
+      musicCount++;
+    }
+  }
 
   let total = 0;
   const priced = (tileId: string | null, quantity: number): boolean => {
@@ -366,11 +367,19 @@ const LookStepInternal: React.FC<GameLookStepProps> = ({
   );
 
   const slotCounts = useMemo(() => {
-    const spritesheets = slots.filter(
-      (slot) => slot.kind === "spritesheet"
-    ).length;
-    const tilesets = slots.filter((slot) => slot.kind === "tileset").length;
-    const images = slots.filter((slot) => slot.kind === "image").length;
+    let spritesheets = 0;
+    let tilesets = 0;
+    let images = 0;
+    for (let i = 0; i < slots.length; i++) {
+      const kind = slots[i].kind;
+      if (kind === "spritesheet") {
+        spritesheets++;
+      } else if (kind === "tileset") {
+        tilesets++;
+      } else if (kind === "image") {
+        images++;
+      }
+    }
     return { spritesheets, tilesets, images };
   }, [slots]);
 
