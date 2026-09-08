@@ -314,7 +314,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             {showClearPrompts && (
               <EditorButton
                 size="small"
-                variant="outlined"
+                variant="text"
                 onClick={onClearPrompts}
                 sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
               >
@@ -335,8 +335,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             </Text>
             <EditorButton
               size="small"
-              variant="outlined"
-              color="warning"
+              variant="text"
+              color="inherit"
               onClick={onCancelSegmentation}
               sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
@@ -357,7 +357,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             </EditorButton>
             <EditorButton
               size="small"
-              variant="outlined"
+              variant="text"
               onClick={onDiscardResult}
               sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >

@@ -165,7 +165,8 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           }}
         >
           <EditorButton
-            variant="outlined"
+            variant="text"
+            color="inherit"
             onClick={onInvertSelection}
             sx={{
               ...sketchButtonSmallSx,
@@ -180,7 +181,8 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
             <span>
               <EditorButton
                 ref={refineAnchorRef}
-                variant="outlined"
+                variant="text"
+                color="inherit"
                 disabled={!hasActiveSelection}
                 onClick={() => setRefineOpen(true)}
                 startIcon={<TuneIcon sx={{ fontSize: 14 }} />}
@@ -215,7 +217,6 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
                 }
                 sx={{
                   ...iconButtonCompactSx,
-                  border: `1px solid ${SKETCH_COLORS.border}`,
                   borderRadius: BORDER_RADIUS.xs,
                   height: 24,
                   width: 24,
@@ -255,7 +256,6 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
                   aria-label="Crop canvas to selection"
                   sx={{
                     ...iconButtonCompactSx,
-                    border: `1px solid ${SKETCH_COLORS.border}`,
                     borderRadius: BORDER_RADIUS.xs,
                     color: SKETCH_COLORS.textSecondary
                   }}

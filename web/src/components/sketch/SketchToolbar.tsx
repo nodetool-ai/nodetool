@@ -17,6 +17,7 @@ import {
   FlexColumn,
   Tooltip,
   MOTION,
+  reducedMotion,
   BORDER_RADIUS,
   ToggleButtonGroup,
   ToggleButton
@@ -31,7 +32,7 @@ import { displayCombo } from "./shortcuts";
 import ColorSwatchPair from "./ColorSwatchPair";
 import { SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 
-const BTN = 36; // button size px
+const BTN = 32; // button size px
 
 const styles = (theme: Theme) =>
   css({
@@ -39,10 +40,8 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     gap: SKETCH_SPACING.md,
     padding: `${SKETCH_SPACING.lg} ${SKETCH_SPACING.sm}`,
-    // Darker than the surrounding chrome so the soft rounded active highlight
-    // reads as a distinct box (matches the editor's tool-rail design).
-    backgroundColor: theme.vars.palette.grey[900],
-    borderRight: `1px solid ${theme.vars.palette.grey[800]}`,
+    backgroundColor: theme.vars.palette.background.paper,
+    borderRight: `1px solid ${theme.vars.palette.divider}`,
     width: `${BTN + 8 + 2}px`, // single column + padding + border
     overflowY: "auto",
     flexShrink: 0,
@@ -72,20 +71,22 @@ const styles = (theme: Theme) =>
       minHeight: `${BTN}px`,
       border: "none",
       borderRadius: `${BORDER_RADIUS.lg} !important`,
-      color: theme.vars.palette.grey[400],
+      color: theme.vars.palette.text.secondary,
       transition: `${MOTION.background}, color ${MOTION.fast}`,
+      ...reducedMotion({ transition: MOTION.none }),
+      "&:focus-visible": { outline: `2px solid ${theme.vars.palette.primary.main}`, outlineOffset: "-2px" },
       "&.Mui-selected": {
-        backgroundColor: theme.vars.palette.grey[700],
-        color: theme.vars.palette.grey[50],
-        "&:hover": { backgroundColor: theme.vars.palette.grey[700] }
+        backgroundColor: theme.vars.palette.action.selected,
+        color: theme.vars.palette.primary.main,
+        "&:hover": { backgroundColor: theme.vars.palette.action.selected }
       },
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800],
-        color: theme.vars.palette.grey[100]
+        backgroundColor: theme.vars.palette.action.hover,
+        color: theme.vars.palette.text.primary
       }
     },
     "& .MuiDivider-root": {
-      borderColor: theme.vars.palette.grey[800],
+      borderColor: theme.vars.palette.divider,
       mx: SKETCH_SPACING.xs
     }
   });

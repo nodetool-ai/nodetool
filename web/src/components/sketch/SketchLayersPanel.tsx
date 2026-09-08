@@ -18,6 +18,7 @@ import React, {
 import AddIcon from "@mui/icons-material/Add";
 import {
   sketchSliderSx,
+  sketchFieldSx,
   SKETCH_CHECKERBOARD,
   SKETCH_COLORS,
   SKETCH_FONT,
@@ -37,6 +38,8 @@ import {
   Divider,
   Text,
   MOTION,
+  reducedMotion,
+  TYPOGRAPHY,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
@@ -176,41 +179,35 @@ const OPS_ICON_SX = {
   borderRadius: BORDER_RADIUS.lg,
   color: "grey.400",
   transition: `${MOTION.background}, color ${MOTION.fast}`,
+  ...reducedMotion({ transition: MOTION.none }),
   "&:hover": { backgroundColor: "grey.800", color: "grey.100" },
   "&.Mui-disabled": { color: "grey.700" }
 };
 /** The shared op-icon styling, tinted when the op it drives is on. */
 const opsIconSx = (activeColor: string | null): SystemStyleObject<Theme> => {
-  const sx: SystemStyleObject<Theme> = { ...OPS_ICON_SX };
-  if (activeColor) sx.color = activeColor;
-  return sx;
+  return activeColor ? { ...OPS_ICON_SX, color: activeColor } : OPS_ICON_SX;
 };
 
-/**
- * The two generative actions are the point of the sketch editor, so they read
- * as buttons — labelled, filled with the secondary accent — instead of sitting
- * in the row of small icon actions below them.
- */
+/** Labeled layer-creation actions share a quiet row above the layer list. */
 const GENERATE_ACTION_SX = {
   flex: 1,
   minWidth: 0,
   height: 32,
   paddingInline: getSpacingPx(SPACING.sm),
   borderRadius: BORDER_RADIUS.md,
-  border: "1px solid",
-  borderColor: "grey.700",
-  backgroundColor: "grey.800",
+  border: "none",
+  backgroundColor: "transparent",
   color: "text.primary",
-  fontSize: "var(--fontSizeSmaller)",
-  fontWeight: 500,
+  ...TYPOGRAPHY.sans.label,
   letterSpacing: "0.01em",
   textTransform: "none",
   whiteSpace: "nowrap",
   transition: `${MOTION.background}, ${MOTION.border}`,
+  ...reducedMotion({ transition: MOTION.none }),
   "& .MuiButton-startIcon": {
     marginRight: getSpacingPx(SPACING.xs),
     marginLeft: 0,
-    color: "common.white"
+    color: "text.secondary"
   },
   "&:hover": {
     borderColor: "grey.500",
@@ -232,6 +229,7 @@ const ADD_ACTION_ICON_SX = {
   borderRadius: BORDER_RADIUS.lg,
   color: "grey.400",
   transition: `${MOTION.background}, color ${MOTION.fast}`,
+  ...reducedMotion({ transition: MOTION.none }),
   "&:hover": { backgroundColor: "grey.800", color: "grey.100" }
 };
 
@@ -239,13 +237,12 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: theme.spacing(1),
-    padding: theme.spacing(1.5),
+    gap: theme.spacing(SPACING.md),
+    padding: theme.spacing(SPACING.md, SPACING.lg, SPACING.lg),
     backgroundColor: theme.vars.palette.background.paper,
-    borderLeft: `1px solid ${theme.vars.palette.divider}`,
-    width: SKETCH_SIZE.panelWidth,
-    minWidth: SKETCH_SIZE.panelWidth,
-    maxWidth: SKETCH_SIZE.panelWidth,
+    width: "100%",
+    minWidth: 0,
+    boxSizing: "border-box",
     flexShrink: 0,
     minHeight: 0,
     maxHeight: "100%",
@@ -260,29 +257,23 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      /* No vertical padding — thumbnails dictate row height. Left/right are 0
-         so the thumbnail and visibility cell sit flush with the row edges
-         (the row's background should not extend past them). */
-      paddingTop: 0,
-      paddingBottom: 0,
-      paddingLeft: 0,
-      paddingRight: 0,
+      padding: theme.spacing(SPACING.xs),
       borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
       fontSize: SKETCH_FONT.md,
       minHeight: SKETCH_SIZE.layerItemHeight,
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[700]
+        backgroundColor: theme.vars.palette.action.selected
       },
       /* Selected row: a restrained elevated surface with a full primary ring,
          rather than a saturated blue fill. Reads as clearly "active" while
          keeping the layer's own thumbnail and name the focus. */
       "&.active": {
-        backgroundColor: theme.vars.palette.grey[700],
+        backgroundColor: theme.vars.palette.action.selected,
         boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.7)}`
       },
       "&.selected-secondary": {
-        backgroundColor: theme.vars.palette.grey[700],
+        backgroundColor: theme.vars.palette.action.selected,
         boxShadow: `inset 0 0 0 1px ${theme.vars.palette.primary.light}`
       },
       "&.mask-layer": {
@@ -306,11 +297,11 @@ const styles = (theme: Theme) =>
         backgroundColor: alpha(theme.palette.info.main, 0.18)
       },
       "&.alpha-lock.active": {
-        backgroundColor: theme.vars.palette.grey[700],
+        backgroundColor: theme.vars.palette.action.selected,
         boxShadow: `inset 3px 0 0 0 ${theme.vars.palette.info.main}, inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.7)}`
       },
       "&.alpha-lock.selected-secondary": {
-        backgroundColor: theme.vars.palette.grey[700],
+        backgroundColor: theme.vars.palette.action.selected,
         boxShadow: `inset 3px 0 0 0 ${theme.vars.palette.info.main}, inset 0 0 0 1px ${theme.vars.palette.primary.light}`
       },
       "&.alpha-lock.selected-secondary:hover": {
@@ -323,20 +314,18 @@ const styles = (theme: Theme) =>
         paddingTop: 0,
         paddingBottom: 0,
         backgroundColor: alpha(theme.palette.common.white, 0.04),
-        borderLeft: `2px solid ${theme.vars.palette.grey[600]}`,
+
         "&:hover": {
           backgroundColor: alpha(theme.palette.common.white, 0.075)
         },
-        "&.active": {
-          borderLeftColor: theme.vars.palette.primary.light
-        }
+
       }
     },
     "& .layer-thumbnail": {
       width: SKETCH_SIZE.layerThumbnail,
       height: SKETCH_SIZE.layerThumbnail,
       borderRadius: BORDER_RADIUS.xs,
-      border: `1px solid ${theme.vars.palette.grey[600]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       ...SKETCH_CHECKERBOARD,
       objectFit: "contain",
       flexShrink: 0,
@@ -346,7 +335,7 @@ const styles = (theme: Theme) =>
       width: SKETCH_SIZE.layerThumbnail,
       height: SKETCH_SIZE.layerThumbnail,
       borderRadius: BORDER_RADIUS.xs,
-      border: `1px solid ${theme.vars.palette.grey[600]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       ...SKETCH_CHECKERBOARD,
       flexShrink: 0,
       display: "flex",
@@ -364,28 +353,9 @@ const styles = (theme: Theme) =>
       minHeight: SKETCH_SIZE.layerThumbnail,
       flexShrink: 0,
       alignSelf: "center",
-      backgroundColor: alpha(theme.palette.common.black, 0.42),
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      borderRadius: BORDER_RADIUS.xs,
       "& .MuiIconButton-root": {
-        padding: getSpacingPx(SPACING.micro)
+        padding: getSpacingPx(SPACING.xs)
       }
-    },
-    "& .layer-item:hover:not(.active) .layer-visibility-cell": {
-      borderColor: theme.vars.palette.grey[600],
-      backgroundColor: alpha(theme.palette.common.black, 0.38)
-    },
-    "& .layer-item.active .layer-visibility-cell": {
-      borderColor: alpha(theme.palette.primary.contrastText, 0.22),
-      backgroundColor: alpha(theme.palette.common.black, 0.48)
-    },
-    "& .layer-item.selected-secondary:not(.active):not(.group-layer):hover .layer-visibility-cell":
-      {
-        borderColor: theme.vars.palette.grey[500]
-      },
-    "& .layer-item.selected-secondary:not(.active) .layer-visibility-cell": {
-      borderColor: theme.vars.palette.grey[600],
-      backgroundColor: alpha(theme.palette.common.black, 0.4)
     },
     "& .layer-name": {
       flex: 1,
@@ -412,13 +382,13 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "stretch",
-      gap: theme.spacing(1)
+      gap: theme.spacing(SPACING.md)
     },
     "& .opacity-row": {
       display: "flex",
       alignItems: "center",
-      gap: SKETCH_SPACING.sm,
-      padding: `0 ${SKETCH_SPACING.md}`,
+      gap: theme.spacing(SPACING.lg),
+      padding: 0,
       "& .MuiSlider-root": {
         flex: 1
       }
@@ -1020,8 +990,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         <FlexRow
           className="sketch-layers-panel__generate-row"
           align="center"
-          gap={SPACING.sm}
-          sx={{ marginBottom: getSpacingPx(SPACING.md) }}
+          gap={SPACING.md}
         >
           <Tooltip
             title="New layer generated from a text prompt"
@@ -1037,7 +1006,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }
               sx={GENERATE_ACTION_SX}
             >
-              Text to Image
+              From text
             </Button>
           </Tooltip>
           <Tooltip
@@ -1054,7 +1023,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }
               sx={GENERATE_ACTION_SX}
             >
-              Image to Image
+              From image
             </Button>
           </Tooltip>
         </FlexRow>
@@ -1062,10 +1031,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           className="sketch-layers-panel__add-layers-row"
           align="center"
           wrap
-          gap={0.5}
-          sx={{
-            rowGap: 0.5
-          }}
+          gap={SPACING.xs}
         >
           <Tooltip
             title="Add Transparent Layer"
@@ -1218,8 +1184,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         </FlexRow>
       </Box>
 
-      <Divider />
-
       {/* Layer list: cap height (~half viewport) so many layers scroll without stretching the panel */}
       <FlexColumn
         className="sketch-layers-panel__layer-list-scroll"
@@ -1275,8 +1239,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           );
         })}
       </FlexColumn>
-
-      <Divider />
 
       {/* Layer-ops toolbar: clean, evenly-spaced muted icons (no dividers).
           Role / combine / transform ops sit on the left; the lifecycle pair
@@ -1424,7 +1386,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             <Text
               sx={{
                 fontSize: SKETCH_FONT.md,
-                minWidth: "30px",
+                width: "40px",
+                flexShrink: 0,
+                fontVariantNumeric: "tabular-nums",
                 textAlign: "right"
               }}
             >
@@ -1434,7 +1398,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           <FormControl
             className="sketch-layers-panel__blend-mode"
             size="small"
-            sx={{ px: getSpacingPx(SPACING.sm) }}
+            sx={{ px: SPACING.none }}
           >
             <Select
               aria-label="Layer blend mode"
@@ -1447,7 +1411,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }
               onKeyDownCapture={handleBlendModeQuickCycleKeyDownCapture}
               onWheelCapture={handleBlendModeQuickCycleWheelCapture}
-              sx={{ fontSize: SKETCH_FONT.md, height: "28px" }}
+              sx={{ ...sketchFieldSx, fontSize: SKETCH_FONT.md, height: "28px" }}
             >
               <MenuItem value="normal">Normal</MenuItem>
               <MenuItem value="multiply">Multiply</MenuItem>

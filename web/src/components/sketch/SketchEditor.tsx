@@ -37,7 +37,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useEffect } from "react";
+import React, { memo, useEffect, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
@@ -53,6 +53,8 @@ import {
   MobileBottomSheet,
   Text,
   Tooltip,
+  SPACING,
+  TYPOGRAPHY,
   Z_INDEX
 } from "../ui_primitives";
 import TransformContextMenu from "./TransformContextMenu";
@@ -111,16 +113,14 @@ export interface SketchEditorHandle {
 
 const PRESET_SWATCH_SIZE = 18;
 
-/** Bright, uppercase, letter-spaced label for the right-panel section headers. */
+/** Shared label for inspector section headers. */
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => (
   <Text
     size="small"
     sx={{
-      textTransform: "uppercase",
-      letterSpacing: "0.06em",
-      fontWeight: 600,
+      ...TYPOGRAPHY.sans.label,
       color: "text.primary",
       fontSize: SKETCH_FONT.section
     }}
@@ -169,7 +169,7 @@ const ColorSectionHeader = memo(function ColorSectionHeader() {
       <Chip
         compact
         label={colorToHex6(foregroundColor)}
-        sx={{ fontFamily: SKETCH_FONT.familyMono }}
+        sx={{ fontFamily: SKETCH_FONT.familyMono, border: "none", backgroundColor: "transparent", color: "text.secondary" }}
       />
     </FlexRow>
   );
@@ -223,10 +223,9 @@ function SketchEditor({
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
   const assistantPanelOpen = useSketchStore((s) => s.assistantPanelOpen);
 
-  // On narrow/touch viewports the fixed side columns can't sit beside the
-  // canvas, so the right panel and assistant move into bottom sheets and the
-  // canvas keeps the full width. See useSketchIsMobile (600px, app breakpoint).
-  const isMobile = useSketchIsMobile();
+  // Measure the editor itself, including when embedded in a workspace pane.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useSketchIsMobile(containerRef);
   const mobilePanelsOpen = useSketchStore((s) => s.mobilePanelsOpen);
   const setMobilePanelsOpen = useSketchStore((s) => s.setMobilePanelsOpen);
   const setAssistantPanelOpen = useSketchStore((s) => s.setAssistantPanelOpen);
@@ -415,11 +414,15 @@ function SketchEditor({
         defaultOpen={false}
         compact
         sx={{
+          flexShrink: 0,
           fontSize: theme.fontSizeSmall,
           borderBottom: `1px solid ${theme.vars.palette.divider}`,
           "& > [role='button']": {
-            padding: theme.spacing(1, 1),
-            backgroundColor: theme.vars.palette.background.paper
+            padding: theme.spacing(SPACING.md, SPACING.lg),
+            "&:focus-visible": {
+              outline: `2px solid ${theme.vars.palette.primary.main}`,
+              outlineOffset: "-2px"
+            }
           }
         }}
       >
@@ -432,12 +435,16 @@ function SketchEditor({
         defaultOpen
         compact
         sx={{
+          flexShrink: 0,
           fontSize: theme.fontSizeSmall,
           minHeight: 0,
           borderBottom: `1px solid ${theme.vars.palette.divider}`,
           "& > [role='button']": {
-            padding: theme.spacing(1, 1),
-            backgroundColor: theme.vars.palette.background.paper
+            padding: theme.spacing(SPACING.md, SPACING.lg),
+            "&:focus-visible": {
+              outline: `2px solid ${theme.vars.palette.primary.main}`,
+              outlineOffset: "-2px"
+            }
           }
         }}
       >
@@ -494,11 +501,15 @@ function SketchEditor({
         defaultOpen={false}
         compact
         sx={{
+          flexShrink: 0,
           fontSize: theme.fontSizeSmall,
           borderBottom: `1px solid ${theme.vars.palette.divider}`,
           "& > [role='button']": {
-            padding: theme.spacing(1, 1),
-            backgroundColor: theme.vars.palette.background.paper
+            padding: theme.spacing(SPACING.md, SPACING.lg),
+            "&:focus-visible": {
+              outline: `2px solid ${theme.vars.palette.primary.main}`,
+              outlineOffset: "-2px"
+            }
           }
         }}
       >
@@ -516,7 +527,7 @@ function SketchEditor({
   );
 
   return (
-    <FlexColumn className="sketch-editor" css={styles(theme)} gap={0}>
+    <FlexColumn ref={containerRef} className="sketch-editor" css={styles(theme)} gap={0}>
       <FlexRow
         className="sketch-editor__body"
         sx={{ flex: 1, minHeight: 0, width: "100%", overflow: "hidden" }}
@@ -530,6 +541,9 @@ function SketchEditor({
             flex: 1,
             overflow: "hidden",
             minHeight: 0,
+            minWidth: 0,
+            containerType: "inline-size",
+            containerName: "sketch-workspace",
             position: "relative"
           }}
         >
@@ -602,6 +616,7 @@ function SketchEditor({
             }}
           >
             <ConnectedToolTopBar
+              compactLayout={isMobile}
               adjBrightness={session.canvasActions.adjBrightness}
               adjContrast={session.canvasActions.adjContrast}
               adjSaturation={session.canvasActions.adjSaturation}
@@ -667,7 +682,7 @@ function SketchEditor({
               flexShrink: 0,
               backgroundColor: theme.vars.palette.background.paper,
               borderLeft: `1px solid ${theme.vars.palette.divider}`,
-              overflow: "hidden",
+              overflowY: "auto",
               userSelect: "none"
             }}
             gap={0}
@@ -719,36 +734,40 @@ function SketchEditor({
             </Fab>
           </Tooltip>
 
-          <MobileBottomSheet
-            open={mobilePanelsOpen}
-            onClose={() => setMobilePanelsOpen(false)}
-            title="Layers & color"
-            ariaLabel="Layers and color panel"
-          >
-            <FlexColumn
-              className="sketch-editor__panel-right sketch-editor__panel-right--mobile"
-              sx={{ minHeight: 0, overflow: "auto" }}
-              gap={0}
+          {mobilePanelsOpen && (
+            <MobileBottomSheet
+              open={mobilePanelsOpen}
+              onClose={() => setMobilePanelsOpen(false)}
+              title="Layers & color"
+              ariaLabel="Layers and color panel"
             >
-              {rightPanelSections}
-            </FlexColumn>
-          </MobileBottomSheet>
+              <FlexColumn
+                className="sketch-editor__panel-right sketch-editor__panel-right--mobile"
+                sx={{ minHeight: 0, overflow: "auto" }}
+                gap={0}
+              >
+                {rightPanelSections}
+              </FlexColumn>
+            </MobileBottomSheet>
+          )}
 
-          <MobileBottomSheet
-            open={assistantPanelOpen}
-            onClose={() => setAssistantPanelOpen(false)}
-            title="Assistant"
-            ariaLabel="AI assistant panel"
-            maxHeight="85vh"
-          >
-            <FlexColumn
-              className="sketch-editor__assistant-panel sketch-editor__assistant-panel--mobile"
-              sx={{ height: "70vh", minHeight: 0, overflow: "hidden" }}
-              gap={0}
+          {assistantPanelOpen && (
+            <MobileBottomSheet
+              open={assistantPanelOpen}
+              onClose={() => setAssistantPanelOpen(false)}
+              title="Assistant"
+              ariaLabel="AI assistant panel"
+              maxHeight="85vh"
             >
-              <SketchAgentPanel />
-            </FlexColumn>
-          </MobileBottomSheet>
+              <FlexColumn
+                className="sketch-editor__assistant-panel sketch-editor__assistant-panel--mobile"
+                sx={{ height: "70vh", minHeight: 0, overflow: "hidden" }}
+                gap={0}
+              >
+                <SketchAgentPanel />
+              </FlexColumn>
+            </MobileBottomSheet>
+          )}
         </>
       )}
 

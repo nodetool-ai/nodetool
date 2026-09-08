@@ -13,6 +13,7 @@
 
 import React, { memo } from "react";
 import {
+  BORDER_RADIUS,
   ToggleGroup,
   ToggleOption,
   SPACING,
@@ -25,6 +26,10 @@ import type { SxProps, Theme } from "@mui/material/styles";
 
 const TEXT_OPTION_SX: SxProps<Theme> = {
   ...TYPOGRAPHY.sans.label,
+  border: "none",
+  borderRadius: BORDER_RADIUS.sm,
+  color: "text.secondary",
+  "&.Mui-selected": { backgroundColor: "action.selected", color: "text.primary" },
   py: SPACING.micro,
   px: SPACING.md,
   minHeight: SKETCH_SIZE.control
@@ -32,6 +37,10 @@ const TEXT_OPTION_SX: SxProps<Theme> = {
 
 const ICON_OPTION_SX: SxProps<Theme> = {
   ...TYPOGRAPHY.sans.label,
+  border: "none",
+  borderRadius: BORDER_RADIUS.sm,
+  color: "text.secondary",
+  "&.Mui-selected": { backgroundColor: "action.selected", color: "text.primary" },
   py: SPACING.micro,
   px: SPACING.micro,
   minWidth: 30,

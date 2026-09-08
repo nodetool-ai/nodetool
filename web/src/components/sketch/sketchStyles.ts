@@ -8,21 +8,22 @@ import {
   BORDER_RADIUS,
   SPACING,
   TYPOGRAPHY,
+  reducedMotion,
   getSpacingPx
 } from "../ui_primitives";
 
 // ─── Color Tokens ─────────────────────────────────────────────────────────────
-// Semantic names tied to MUI's grey palette (dark theme).
+// Semantic palette roles follow the active color scheme.
 
 export const SKETCH_COLORS = {
-  bgPrimary: "grey.900",     // canvas / modal backdrop
-  bgSecondary: "grey.800",   // panels, toolbars
-  bgHover: "grey.700",       // hover states
-  border: "grey.700",        // all panel borders
-  textPrimary: "grey.100",   // main readable text (bright)
-  textSecondary: "grey.300", // labels, secondary info
-  textMuted: "grey.400",     // placeholders, hints
-  textFaint: "grey.500",     // disabled / very subtle
+  bgPrimary: "background.default",     // canvas / modal backdrop
+  bgSecondary: "background.paper",   // panels, toolbars
+  bgHover: "action.hover",       // hover states
+  border: "divider",        // all panel borders
+  textPrimary: "text.primary",   // main readable text (bright)
+  textSecondary: "text.secondary", // labels, secondary info
+  textMuted: "text.secondary",     // placeholders, hints
+  textFaint: "text.secondary",     // disabled / very subtle
  } as const;
 
 // Checkerboard transparency pattern used for thumbnails and color swatches.
@@ -42,11 +43,11 @@ const SKETCH_FONT_FAMILY_MONO =
 export const SKETCH_FONT = {
   /** Monospace for coordinates, dimensions readouts, hex. Same as `theme.fontFamily2`. */
   familyMono: SKETCH_FONT_FAMILY_MONO,
-  /** Channel labels (R/G/B, H/S/L) */ xxs: "0.45rem",
-  /** FG/BG labels, tiny readouts */ xs: "0.6rem",
-  /** Setting labels, value readouts */ sm: "0.65rem",
-  /** Layer names, general UI */ md: "0.7rem",
-  /** Panel section headings */ section: "0.72rem",
+  /** Channel labels (R/G/B, H/S/L) */ xxs: "var(--fontSizeSmaller)",
+  /** FG/BG labels, tiny readouts */ xs: "var(--fontSizeSmaller)",
+  /** Setting labels, value readouts */ sm: "var(--fontSizeSmall)",
+  /** Layer names, general UI */ md: "var(--fontSizeSmall)",
+  /** Panel section headings */ section: "var(--fontSizeSmall)",
 } as const;
 
 // ─── Spacing / Size Scale ─────────────────────────────────────────────────────
@@ -62,12 +63,12 @@ export const SKETCH_SPACING = {
 export const SKETCH_SIZE = {
   /** Row min-height matches the thumbnail so the row background never shows
    *  above or below the thumbnail (flush top/bottom). */
-  layerItemHeight: "39.2px",
-  layerThumbnail: "39.2px",
+  layerItemHeight: "32px",
+  layerThumbnail: "32px",
   panelWidth: "260px",
   /** One height for every control on a tool bar — picker, toggle, field, button. */
   control: "28px",
-  iconButtonPad: "3px",
+  iconButtonPad: getSpacingPx(SPACING.xs),
   borderRadius: BORDER_RADIUS.sm
 } as const;
 
@@ -111,6 +112,7 @@ export const sketchSliderSx: SxProps<Theme> = (t) => {
       backgroundColor: t.vars.palette.grey[200],
       boxShadow: "none",
       transition: `box-shadow ${MOTION.fast}`,
+      ...reducedMotion({ transition: MOTION.none }),
       // Brightest neutral on hover (#FCFCFC), never pure #fff.
       "&:hover": {
         boxShadow: "none",
@@ -172,14 +174,14 @@ export const colorSwatchSx = {
 export const settingRowChildrenSx = (t: Theme) => ({
   // A cluster of related controls. Groups are what wrap on a narrow bar, so
   // a slider never gets separated from the label and value that name it.
-  // Three gap steps carry the hierarchy, each one step of the 4px scale:
-  // 6px inside a row, 16px inside a group, 24px between groups (the latter
-  // set by the hosting bar).
+  // The group gap keeps related rows closer than separate sections.
   "& .setting-group": {
     display: "flex",
     alignItems: "center",
-    flexWrap: "nowrap",
-    gap: getSpacingPx(SPACING.xl),
+    flexWrap: "wrap",
+    minWidth: 0,
+    maxWidth: "100%",
+    gap: getSpacingPx(SPACING.lg),
     minHeight: SKETCH_SIZE.control
   },
   "& .setting-row": {
@@ -200,16 +202,16 @@ export const settingRowChildrenSx = (t: Theme) => ({
       // from the slider they belong to and next to the following label, so
       // the bar read "100 Feather" instead of "Min Size 100".
       textAlign: "left",
-      color: t.vars.palette.grey[100],
+      color: t.vars.palette.text.primary,
     },
     "& .setting-label": {
       ...TYPOGRAPHY.sans.label,
       whiteSpace: "nowrap",
-      color: t.vars.palette.grey[300],
+      color: t.vars.palette.text.secondary,
     },
     "& .MuiSlider-root": {
-      width: "96px",
-      minWidth: "72px",
+      width: "72px",
+      minWidth: "56px",
       // Minimal clearance — the thumb may touch label/value at the
       // extremes but the wider gap looked airy and disconnected.
       marginLeft: getSpacingPx(SPACING.micro),
@@ -227,28 +229,23 @@ export const settingRowChildrenSx = (t: Theme) => ({
     paddingTop: getSpacingPx(SPACING.xs),
     paddingBottom: getSpacingPx(SPACING.xs)
   },
-  // Opt-in wider slider for the primary "Size" control. Doubling its
-  // width (relative to other sliders) gives the user finer control on
-  // the value most often tuned, without bloating every other row.
+  // Give the frequently adjusted Size slider more room than secondary sliders.
   "& .setting-row--wide": {
     "& .MuiSlider-root": {
-      width: "200px",
-      minWidth: "140px",
+      width: "112px",
+      minWidth: "80px",
     },
   },
   "& .MuiToggleButtonGroup-root": {
     "& .MuiToggleButton-root": {
       padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       ...TYPOGRAPHY.sans.label,
-      // Make the selected state pop against the dark toolbar — MUI's
-      // default selected background is barely a few percent lighter
-      // than the surrounding bar, so users couldn't tell which option
-      // was active in tool params.
+      // Keep selection visible in both color schemes.
       "&.Mui-selected": {
-        backgroundColor: t.vars.palette.grey[600],
-        color: t.vars.palette.grey[50],
+        backgroundColor: t.vars.palette.action.selected,
+        color: t.vars.palette.text.primary,
         "&:hover": {
-          backgroundColor: t.vars.palette.grey[500],
+          backgroundColor: t.vars.palette.action.hover,
         },
       },
     },
@@ -302,14 +299,14 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (t) => {
       "& .setting-label": {
         ...TYPOGRAPHY.sans.label,
         whiteSpace: "nowrap",
-        color: t.vars.palette.grey[300],
+        color: t.vars.palette.text.secondary,
       },
       "& .setting-value": {
         ...TYPOGRAPHY.mono.code,
         width: "36px",
         flexShrink: 0,
         textAlign: "right",
-        color: t.vars.palette.grey[100],
+        color: t.vars.palette.text.primary,
       },
     },
     "& .MuiToggleButtonGroup-root": {
@@ -319,10 +316,10 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (t) => {
         padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
         ...TYPOGRAPHY.sans.label,
         "&.Mui-selected": {
-          backgroundColor: t.vars.palette.grey[600],
-          color: t.vars.palette.grey[50],
+          backgroundColor: t.vars.palette.action.selected,
+          color: t.vars.palette.text.primary,
           "&:hover": {
-            backgroundColor: t.vars.palette.grey[500],
+            backgroundColor: t.vars.palette.action.hover,
           },
         },
       },
@@ -355,3 +352,13 @@ export const sketchHintTextSx: SxProps<Theme> = {
   fontStyle: "italic",
 };
 
+
+/** Quiet editable surface. Hover, focus, and errors retain distinct outlines. */
+export const sketchFieldSx = {
+  backgroundColor: "action.hover",
+  borderRadius: BORDER_RADIUS.sm,
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: "transparent" },
+  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "divider" },
+  "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "primary.main" },
+  "&.Mui-error .MuiOutlinedInput-notchedOutline": { borderColor: "error.main" }
+} as const;

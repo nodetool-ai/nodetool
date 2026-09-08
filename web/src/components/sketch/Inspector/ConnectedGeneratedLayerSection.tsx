@@ -10,7 +10,7 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 
-import { CollapsibleSection, Text } from "../../ui_primitives";
+import { CollapsibleSection, Text, SPACING, TYPOGRAPHY } from "../../ui_primitives";
 import { useSketchStore } from "../state/useSketchStore";
 import { useLayerBinding } from "../../../stores/sketch/SketchSessionStore";
 import { SKETCH_FONT } from "../sketchStyles";
@@ -40,9 +40,7 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
         <Text
           size="small"
           sx={{
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-            fontWeight: 600,
+            ...TYPOGRAPHY.sans.label,
             color: "text.primary",
             fontSize: SKETCH_FONT.section
           }}
@@ -54,11 +52,13 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
       compact
       sx={{
         minHeight: 0,
-        flex: 1,
+        flex: "1 0 auto",
         "& > [role='button']": {
-          padding: theme.spacing(1, 1),
-          backgroundColor: theme.vars.palette.background.paper,
-          borderBottom: `1px solid ${theme.vars.palette.divider}`
+          padding: theme.spacing(SPACING.md, SPACING.lg),
+          "&:focus-visible": {
+            outline: `2px solid ${theme.vars.palette.primary.main}`,
+            outlineOffset: "-2px"
+          }
         }
       }}
     >

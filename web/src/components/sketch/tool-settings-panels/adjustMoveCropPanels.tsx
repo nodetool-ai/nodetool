@@ -100,7 +100,8 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
         </EditorButton>
         <EditorButton
           size="small"
-          variant="outlined"
+          variant="text"
+          color="inherit"
           disabled={!hasChanges}
           onClick={onCancel}
           sx={{ ...sketchButtonSmallSx, flex: 1 }}
