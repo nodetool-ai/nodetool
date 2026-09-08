@@ -157,6 +157,16 @@ export interface ModelDownloadRequest {
   token?: string | null;
 }
 
+/** Request payload for an image-provided `models.prepare` backend. */
+export interface ModelPrepareRequest {
+  backend: string;
+  model_type: string;
+  /** Stable logical id used by the shared model download manager. */
+  repo_id: string;
+  /** Optional request-scoped Hugging Face credential for gated files. */
+  token?: string | null;
+}
+
 /**
  * A `models.download` progress frame. Mirrors the worker's progress `data`
  * field AND the local `DownloadUpdate` the web ModelDownloadStore already
@@ -173,6 +183,15 @@ export interface ModelDownloadUpdate {
   current_files: string[];
   total_files: number;
   error?: string;
+  message?: string;
+  /** Adapter-reported write rate when the remote total is unknown. */
+  bytes_per_second?: number;
+  /** Seconds since files or process write counters last changed. */
+  seconds_since_activity?: number;
+  elapsed_seconds?: number;
+  free_bytes?: number;
+  /** Advisory only; the worker does not abort a stalled operation. */
+  stalled?: boolean;
 }
 
 // ── ComfyUI proxy (bridge protocol v3+) ───────────────────────────────────
@@ -468,6 +487,8 @@ export interface PythonWorkerStatus {
   load_errors: PythonWorkerLoadError[];
   transport: string;
   max_frame_size: number;
+  /** Image-provided backends accepted by `models.prepare`. */
+  model_prepare_backends: string[];
   /**
    * ComfyUI proxy status (protocol v3+). Present only when the worker fronts a
    * ComfyUI server; used to route `comfy.*` requests (see {@link ComfyStatusInfo}).
@@ -572,6 +593,12 @@ export interface PythonBridge extends EventEmitter {
     onProgress: (update: ModelDownloadUpdate) => void,
     requestId?: string
   ): Promise<void>;
+  prepareModel(
+    req: ModelPrepareRequest,
+    onProgress: (update: ModelDownloadUpdate) => void,
+    requestId?: string
+  ): Promise<void>;
+  supportsModelPreparation(backend: string): boolean;
   cancelModelDownload(requestId: string): void;
   deleteCachedModel(repoId: string): Promise<boolean>;
   supportsModelManagement(): boolean;
@@ -724,6 +751,7 @@ export const workerStatusSchema = z
     load_errors: z.array(workerLoadErrorSchema).catch([]),
     transport: z.string().catch(""),
     max_frame_size: z.number().catch(0),
+    model_prepare_backends: z.array(z.string()).catch([]),
     comfy: comfyStatusInfoSchema.optional().catch(undefined),
     blender: blenderStatusInfoSchema.optional().catch(undefined)
   })

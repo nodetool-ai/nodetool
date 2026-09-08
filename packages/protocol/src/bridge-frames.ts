@@ -288,7 +288,12 @@ const downloadProgressDataSchema = z
       "exists"
     ]),
     downloaded_bytes: z.number(),
-    total_bytes: z.number()
+    total_bytes: z.number(),
+    bytes_per_second: z.number().nonnegative().optional(),
+    seconds_since_activity: z.number().nonnegative().optional(),
+    elapsed_seconds: z.number().nonnegative().optional(),
+    free_bytes: z.number().nonnegative().optional(),
+    stalled: z.boolean().optional()
   })
   .passthrough();
 

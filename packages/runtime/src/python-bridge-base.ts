@@ -97,6 +97,7 @@ import type {
   PythonWorkerStatus,
   UnifiedModelLike,
   ModelDownloadRequest,
+  ModelPrepareRequest,
   ModelDownloadUpdate,
   ComfyStatusInfo,
   ComfyEvent,
@@ -1246,6 +1247,25 @@ export abstract class PythonBridgeBase
     );
   }
 
+  /** Prepare an image-owned model through an advertised worker backend. */
+  async prepareModel(
+    req: ModelPrepareRequest,
+    onProgress: (update: ModelDownloadUpdate) => void,
+    requestId: string = randomUUID()
+  ): Promise<void> {
+    const { token, ...rest } = req;
+    const payload: Record<string, unknown> =
+      typeof token === "string" && token.trim()
+        ? { ...rest, token: token.trim() }
+        : rest;
+    return this._streamingDownload(
+      "models.prepare",
+      payload,
+      (update) => onProgress(update as unknown as ModelDownloadUpdate),
+      requestId
+    );
+  }
+
   /**
    * Shared engine for the streaming-download RPCs (`models.download`,
    * `comfy.models.download`): a request that emits ordered `progress` frames
@@ -1362,6 +1382,14 @@ export abstract class PythonBridgeBase
    */
   supportsModelManagement(): boolean {
     return (this._workerStatus?.protocol_version ?? 0) >= 2;
+  }
+
+  /** Whether the attached image advertises a specific preparation backend. */
+  supportsModelPreparation(backend: string): boolean {
+    return (
+      (this._workerStatus?.protocol_version ?? 0) >= 5 &&
+      (this._workerStatus?.model_prepare_backends ?? []).includes(backend)
+    );
   }
 
   /**

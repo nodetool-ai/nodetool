@@ -4,7 +4,7 @@ import {
   PythonProvider,
   registerProvider
 } from "@nodetool-ai/runtime";
-import type { PythonBridge } from "@nodetool-ai/runtime";
+import type { ModelDownloadUpdate, PythonBridge } from "@nodetool-ai/runtime";
 import type { WorkerManager } from "@nodetool-ai/compute";
 import { resolveWorkerHfToken } from "@nodetool-ai/huggingface";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
@@ -140,6 +140,8 @@ export interface StartDownloadCommand {
   ignore_patterns?: string[] | null;
   model_type?: string | null;
   scope?: string;
+  /** Optional image-owned model preparation backend, for example `wangp`. */
+  backend?: string;
 }
 
 /**
@@ -215,27 +217,51 @@ export async function relayWorkerDownload(
   );
 
   try {
-    await bridge.downloadModel(
-      {
-        repo_id: repoId,
-        path: msg.path ?? null,
-        allow_patterns: msg.allow_patterns ?? null,
-        ignore_patterns: msg.ignore_patterns ?? null,
-        model_type: msg.model_type ?? null,
-        token
-      },
-      (update) => {
-        if (update.status === "error") {
-          sawError = true;
-        }
-        try {
-          socket.send(JSON.stringify(update));
-        } catch {
-          /* socket gone */
-        }
-      },
-      requestId
-    );
+    const onProgress = (update: ModelDownloadUpdate) => {
+      if (update.status === "error") {
+        sawError = true;
+      }
+      try {
+        socket.send(JSON.stringify(update));
+      } catch {
+        /* socket gone */
+      }
+    };
+    if (msg.backend) {
+      if (!msg.model_type) {
+        fail("A model_type is required for worker model preparation");
+        return;
+      }
+      if (!bridge.supportsModelPreparation(msg.backend)) {
+        fail(
+          `Worker does not provide model preparation backend: ${msg.backend}`
+        );
+        return;
+      }
+      await bridge.prepareModel(
+        {
+          backend: msg.backend,
+          model_type: msg.model_type,
+          repo_id: repoId,
+          token
+        },
+        onProgress,
+        requestId
+      );
+    } else {
+      await bridge.downloadModel(
+        {
+          repo_id: repoId,
+          path: msg.path ?? null,
+          allow_patterns: msg.allow_patterns ?? null,
+          ignore_patterns: msg.ignore_patterns ?? null,
+          model_type: msg.model_type ?? null,
+          token
+        },
+        onProgress,
+        requestId
+      );
+    }
   } catch (err) {
     // Suppress the redundant error frame if the worker already forwarded one.
     if (!sawError) {

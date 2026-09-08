@@ -154,6 +154,41 @@ describe("ModelDownloadStore", () => {
     expect(useModelDownloadStore.getState().downloads["repo1"]).toBeDefined();
   });
 
+  test("startDownload forwards an image model preparation backend", async () => {
+    const sendMock = jest.fn();
+    const mockWs = stub<WebSocket>({
+      send: sendMock,
+      readyState: WebSocket.OPEN
+    });
+    useModelDownloadStore.setState(
+      { connectWebSocket: jest.fn().mockResolvedValue(mockWs) },
+      false
+    );
+
+    await useModelDownloadStore
+      .getState()
+      .startDownload(
+        "wangp:wan2.2_t2v",
+        "wan2.2_t2v",
+        null,
+        null,
+        null,
+        "worker",
+        "wangp"
+      );
+
+    expect(JSON.parse(sendMock.mock.calls[0][0])).toEqual({
+      command: "start_download",
+      repo_id: "wangp:wan2.2_t2v",
+      path: null,
+      allow_patterns: null,
+      ignore_patterns: null,
+      model_type: "wan2.2_t2v",
+      scope: "worker",
+      backend: "wangp"
+    });
+  });
+
   test("startDownload throws when path and allowPatterns provided", async () => {
     await expect(
       useModelDownloadStore

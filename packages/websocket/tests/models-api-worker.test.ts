@@ -30,7 +30,9 @@ interface FakeBridgeOverrides {
   listCachedModels?: ReturnType<typeof vi.fn>;
   deleteCachedModel?: ReturnType<typeof vi.fn>;
   downloadModel?: ReturnType<typeof vi.fn>;
+  prepareModel?: ReturnType<typeof vi.fn>;
   supportsModelManagement?: () => boolean;
+  supportsModelPreparation?: (backend: string) => boolean;
 }
 
 function fakeBridge(overrides: FakeBridgeOverrides = {}) {
@@ -40,7 +42,11 @@ function fakeBridge(overrides: FakeBridgeOverrides = {}) {
     deleteCachedModel:
       overrides.deleteCachedModel ?? vi.fn().mockResolvedValue(true),
     downloadModel: overrides.downloadModel ?? vi.fn().mockResolvedValue(undefined),
-    supportsModelManagement: overrides.supportsModelManagement ?? (() => true)
+    prepareModel:
+      overrides.prepareModel ?? vi.fn().mockResolvedValue(undefined),
+    supportsModelManagement: overrides.supportsModelManagement ?? (() => true),
+    supportsModelPreparation:
+      overrides.supportsModelPreparation ?? ((backend) => backend === "wangp")
   } as unknown as ModelsApiDeps["pythonBridge"];
 }
 
@@ -102,6 +108,55 @@ describe("relayWorkerDownload", () => {
     expect(downloadModel.mock.calls[0][0]).toMatchObject({
       repo_id: "org/m",
       model_type: "hf.model"
+    });
+  });
+
+  it("routes an image-backed model through models.prepare", async () => {
+    const sent: Array<Record<string, unknown>> = [];
+    const prepareModel = vi.fn(
+      async (
+        _req: unknown,
+        onProgress: (update: Record<string, unknown>) => void
+      ) => {
+        onProgress({
+          status: "progress",
+          repo_id: "wangp:wan2.2_t2v",
+          path: null,
+          model_type: "wan2.2_t2v",
+          downloaded_bytes: 4096,
+          total_bytes: 0,
+          downloaded_files: 0,
+          current_files: ["model.safetensors.incomplete"],
+          total_files: 0,
+          seconds_since_activity: 0,
+          stalled: false
+        });
+      }
+    );
+    const bridge = fakeBridge({ prepareModel });
+
+    await relayWorkerDownload(
+      { send: (data) => sent.push(JSON.parse(data)) },
+      bridge,
+      fakeWorkerManager(ATTACHED),
+      {
+        command: "start_download",
+        repo_id: "wangp:wan2.2_t2v",
+        model_type: "wan2.2_t2v",
+        backend: "wangp"
+      }
+    );
+
+    expect(prepareModel).toHaveBeenCalledOnce();
+    expect(prepareModel.mock.calls[0]![0]).toMatchObject({
+      backend: "wangp",
+      model_type: "wan2.2_t2v",
+      repo_id: "wangp:wan2.2_t2v"
+    });
+    expect(sent[0]).toMatchObject({
+      downloaded_bytes: 4096,
+      total_bytes: 0,
+      stalled: false
     });
   });
 

@@ -26,6 +26,7 @@ import type {
   PythonProviderInfo,
   UnifiedModelLike,
   ModelDownloadRequest,
+  ModelPrepareRequest,
   ModelDownloadUpdate,
   ComfyStatusInfo,
   ComfyEvent,
@@ -267,6 +268,18 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
     requestId?: string
   ): Promise<void> {
     return this._target.downloadModel(req, onProgress, requestId);
+  }
+
+  prepareModel(
+    req: ModelPrepareRequest,
+    onProgress: (update: ModelDownloadUpdate) => void,
+    requestId?: string
+  ): Promise<void> {
+    return this._target.prepareModel(req, onProgress, requestId);
+  }
+
+  supportsModelPreparation(backend: string): boolean {
+    return this._target.supportsModelPreparation(backend);
   }
 
   cancelModelDownload(requestId: string): void {

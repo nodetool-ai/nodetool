@@ -137,9 +137,48 @@ describe("models.* bridge methods", () => {
     });
   });
 
+  it("prepareModel uses an advertised image backend and streams telemetry", async () => {
+    worker = await startFakeWorker(0, {
+      protocolVersion: 5,
+      modelPrepareBackends: ["wangp"]
+    });
+    bridge = new WebsocketPythonBridge({ wsUrl: `ws://127.0.0.1:${worker.port}` });
+    await bridge.connect();
+
+    expect(bridge.supportsModelPreparation("wangp")).toBe(true);
+    expect(bridge.supportsModelPreparation("missing")).toBe(false);
+    const updates: ModelDownloadUpdate[] = [];
+    await bridge.prepareModel(
+      {
+        backend: "wangp",
+        model_type: "wan2.2_t2v",
+        repo_id: "wangp:wan2.2_t2v"
+      },
+      (update) => updates.push(update),
+      "wangp:wan2.2_t2v"
+    );
+
+    expect(updates).toMatchObject([
+      {
+        status: "progress",
+        downloaded_bytes: 4096,
+        total_bytes: 0,
+        bytes_per_second: 2048,
+        stalled: false
+      }
+    ]);
+    expect(worker.received("models.prepare")[0]!.data).toEqual({
+      backend: "wangp",
+      model_type: "wan2.2_t2v",
+      repo_id: "wangp:wan2.2_t2v"
+    });
+  });
+
   it("downloadModel uses a caller-supplied requestId so cancel can correlate", async () => {
     worker = await startFakeWorker(0, { protocolVersion: 2 });
-    bridge = new WebsocketPythonBridge({ wsUrl: `ws://127.0.0.1:${worker.port}` });
+    bridge = new WebsocketPythonBridge({
+      wsUrl: `ws://127.0.0.1:${worker.port}`
+    });
     await bridge.connect();
 
     // The relay passes the web's composite cancel id (repo/path) here so a

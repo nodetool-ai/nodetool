@@ -110,7 +110,8 @@ interface ModelDownloadStore {
     path?: string | null,
     allowPatterns?: string[] | null,
     ignorePatterns?: string[] | null,
-    scope?: ModelScope
+    scope?: ModelScope,
+    backend?: string
   ) => void;
   /**
    * Ask the server to cancel a download. Resolves `true` when the cancel
@@ -457,7 +458,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     path?: string | null,
     allowPatterns?: string[] | null,
     ignorePatterns?: string[] | null,
-    scope: ModelScope = "local"
+    scope: ModelScope = "local",
+    backend?: string
   ) => {
     if (path) {
       if (allowPatterns) {
@@ -494,17 +496,19 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     } else {
       try {
         const ws = await get().connectWebSocket();
-        ws.send(
-          JSON.stringify({
-            command: "start_download",
-            repo_id: repoId,
-            path: path,
-            allow_patterns: allowPatterns,
-            ignore_patterns: ignorePatterns,
-            model_type: modelType,
-            scope
-          })
-        );
+        const command: Record<string, unknown> = {
+          command: "start_download",
+          repo_id: repoId,
+          path,
+          allow_patterns: allowPatterns,
+          ignore_patterns: ignorePatterns,
+          model_type: modelType,
+          scope
+        };
+        if (backend) {
+          command.backend = backend;
+        }
+        ws.send(JSON.stringify(command));
       } catch (error) {
         console.error(
           "[ModelDownloadStore] Failed to connect for download:",
