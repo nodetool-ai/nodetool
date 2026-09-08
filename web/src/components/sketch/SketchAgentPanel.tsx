@@ -42,7 +42,7 @@ const SketchAgentPanel = () => {
       docsTopic="sketches"
       docsLabel="Sketch editor"
       welcomeTitle="Editor Assistant"
-      welcomeBody='Ask me to edit the image — e.g. "generate a mountain landscape on a new layer", "add a blank layer filled with black", or "set the background layer to 50% opacity".'
+      welcomeBody="Describe an image to generate, or ask for an edit to your layers."
     />
   );
 };

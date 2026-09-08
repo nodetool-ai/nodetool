@@ -14,7 +14,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import ResolutionIcon from "@mui/icons-material/Tv";
 import { CANVAS_PRESETS } from "./types";
-import { SKETCH_COLORS, SKETCH_FONT, SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
+import { sketchFieldSx, SKETCH_COLORS, SKETCH_FONT, SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 import {
   FlexColumn,
   FlexRow,
@@ -70,6 +70,7 @@ const dimensionFieldSx = {
   flex: 1,
   minWidth: 0,
   "& .MuiInputBase-root": {
+    ...sketchFieldSx,
     fontSize: SKETCH_FONT.md,
     height: "28px"
   },
@@ -242,6 +243,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
         onKeyDownCapture={handleCanvasPresetQuickCycleKeyDownCapture}
         onWheelCapture={handleCanvasPresetQuickCycleWheelCapture}
         sx={{
+          ...sketchFieldSx,
           width: "100%",
           marginTop: 0.5,
           fontSize: SKETCH_FONT.sm,
@@ -313,10 +315,10 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
         />
       </FlexColumn>
 
-      <FlexRow align="center" gap={0.5} sx={{ mt: 4 }}>
+      <FlexRow align="center" gap={1} sx={{ mt: 2 }}>
         <TextField
           size="small"
-          label="W"
+          label="Width"
           type="number"
           value={customWidth}
           onChange={(e) => setCustomWidth(e.target.value)}
@@ -328,7 +330,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
         </Text>
         <TextField
           size="small"
-          label="H"
+          label="Height"
           type="number"
           value={customHeight}
           onChange={(e) => setCustomHeight(e.target.value)}

@@ -44,28 +44,22 @@ import { settingRowChildrenSx } from "./sketchStyles";
 
 const styles = (theme: Theme) =>
   css({
-    display: "flex",
-    flexDirection: "row",
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) auto",
     alignItems: "flex-start",
-    columnGap: getSpacingPx(SPACING.xxl),
+    columnGap: getSpacingPx(SPACING.lg),
     padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
-    // Sit on the same chrome tier as the editor's other bars (mode/prompt,
-    // tool rail, status): grey[900] surface with a grey[800] hairline. The
-    // bar previously rode two tonal steps lighter (grey[800]/grey[700]),
-    // which read as a mismatched band between its darker neighbours.
-    backgroundColor: theme.vars.palette.grey[900],
-    borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
+    backgroundColor: theme.vars.palette.background.paper,
+    borderBottom: `1px solid ${theme.vars.palette.divider}`,
     minHeight: "40px",
     flexShrink: 0,
+    rowGap: getSpacingPx(SPACING.xs),
     // The bar is chrome: a drag that starts on a label must not start a
     // text selection that then sweeps across the whole page.
     userSelect: "none",
-    // Two columns: the settings wrap inside the first, the editor actions
-    // stay pinned to the top-right corner. With one wrapping row the actions
-    // fell to a row of their own whenever the settings wrapped, adding a
-    // fourth strip of chrome over the canvas for a three-row tool.
+    // Actions share the header; settings use the full canvas width below it.
     "& .tool-top-bar__settings": {
-      flex: "1 1 auto",
+      gridColumn: "1 / -1",
       minWidth: 0,
       display: "flex",
       flexDirection: "row",
@@ -74,14 +68,22 @@ const styles = (theme: Theme) =>
       // Between groups, not between controls: the group's own gap is
       // tighter, so a wrapped bar still reads as clusters rather than one
       // long queue.
-      columnGap: getSpacingPx(SPACING.xxl),
-      rowGap: getSpacingPx(SPACING.md),
+      columnGap: getSpacingPx(SPACING.lg),
+      rowGap: getSpacingPx(SPACING.xs),
       // Wrapped rows anchor to the top of the bar instead of being
       // re-centered when the row count changes. Without this, toggling
       // the Advanced disclosure (which adds a wrapped row below) made
       // the first row shift by 1px because `alignContent: center` had
       // free space inside `minHeight` only when there was one row.
       alignContent: "flex-start"
+    },
+    "& .tool-top-bar__global-actions": {
+      flexWrap: "wrap",
+      maxWidth: "100%"
+    },
+    "@container sketch-workspace (max-width: 400px)": {
+      gridTemplateColumns: "minmax(0, 1fr)",
+      "& .tool-top-bar__global-actions": { marginLeft: 0 }
     },
     "& .MuiIconButton-root": {
       padding: theme.spacing(1)
@@ -225,54 +227,43 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
 
   return (
     <FlexRow className="sketch-tool-top-bar" css={styles(theme)}>
-      <div className="tool-top-bar__settings">
-        <FlexRow
-          align="center"
-          gap={0.5}
-          className="tool-top-bar__tool-label"
-          sx={{ flexShrink: 0 }}
-        >
-          <Text
-            sx={{
-              ...TYPOGRAPHY.sans.caption,
-              color: theme.vars.palette.text.secondary,
-              textTransform: "uppercase",
-              letterSpacing: "0.06em"
-            }}
+      <FlexRow
+        align="center"
+        gap={0.5}
+        className="tool-top-bar__tool-label"
+        sx={{ flexShrink: 0 }}
+      >
+        <Text sx={{ ...TYPOGRAPHY.sans.label }}>
+          {getToolSettingsLabel(activeTool)}
+        </Text>
+        {onToggleSettingsCollapsed && (
+          <Tooltip
+            title={
+              settingsCollapsed ? "Show tool settings" : "Hide tool settings"
+            }
           >
-            Tool
-          </Text>
-          <Text sx={{ ...TYPOGRAPHY.sans.label, fontWeight: 600 }}>
-            {getToolSettingsLabel(activeTool)}
-          </Text>
-          {onToggleSettingsCollapsed && (
-            <Tooltip
-              title={
+            <IconButton
+              size="small"
+              onClick={onToggleSettingsCollapsed}
+              aria-expanded={!settingsCollapsed}
+              aria-label={
                 settingsCollapsed ? "Show tool settings" : "Hide tool settings"
               }
+              data-testid="sketch-toggle-tool-settings"
             >
-              <IconButton
-                size="small"
-                onClick={onToggleSettingsCollapsed}
-                aria-expanded={!settingsCollapsed}
-                aria-label={
-                  settingsCollapsed
-                    ? "Show tool settings"
-                    : "Hide tool settings"
-                }
-                data-testid="sketch-toggle-tool-settings"
-              >
-                {settingsCollapsed ? (
-                  <ExpandMoreIcon fontSize="small" />
-                ) : (
-                  <ExpandLessIcon fontSize="small" />
-                )}
-              </IconButton>
-            </Tooltip>
-          )}
-        </FlexRow>
+              {settingsCollapsed ? (
+                <ExpandMoreIcon fontSize="small" />
+              ) : (
+                <ExpandLessIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+        )}
+      </FlexRow>
 
-        {!settingsCollapsed && (
+      {trailingActions}
+      {!settingsCollapsed && (
+        <div className="tool-top-bar__settings">
           <ToolSettingsPanel
             activeTool={activeTool}
             brushSettings={brushSettings}
@@ -334,10 +325,8 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
             onClearSegmentPrompts={onClearSegmentPrompts}
             onCheckSegmentModel={onCheckSegmentModel}
           />
-        )}
-      </div>
-
-      {trailingActions}
+        </div>
+      )}
     </FlexRow>
   );
 };

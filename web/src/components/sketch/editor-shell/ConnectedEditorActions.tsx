@@ -132,9 +132,17 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
                   setGenerateOpen(true);
                 }}
                 startIcon={<AutoAwesomeIcon fontSize="small" />}
+                aria-label="Generate an image"
+                sx={{
+                  "@container sketch-workspace (max-width: 400px)": {
+                    minWidth: 44,
+                    "& .sketch-generate-label": { display: "none" },
+                    "& .MuiButton-startIcon": { margin: 0 }
+                  }
+                }}
                 data-testid="sketch-open-generate"
               >
-                Generate
+                <span className="sketch-generate-label">Generate</span>
               </EditorButton>
             </span>
           </Tooltip>

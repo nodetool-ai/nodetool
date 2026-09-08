@@ -21,10 +21,12 @@ import {
   FlexColumn,
   FlexRow,
   Panel,
+  SPACING,
   SelectField,
   Text,
   TextInput
 } from "../../ui_primitives";
+import { sketchFieldSx } from "../sketchStyles";
 import { EditorButton } from "../../editor_ui";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import type { ImageModelValue } from "../../../stores/ApiTypes";
@@ -138,6 +140,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
 
   return (
     <Panel
+      padding="none"
       sx={{
         width: "100%",
         overflow: "auto",
@@ -146,7 +149,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
         boxShadow: "none"
       }}
     >
-      <FlexColumn gap={1.5} sx={{ px: 1, py: 1 }}>
+      <FlexColumn gap={SPACING.md} sx={{ px: SPACING.lg, pb: SPACING.lg }}>
         <ImageModelSelect
           value={binding.model ?? ""}
           task={isImageToImage ? "image_to_image" : "text_to_image"}
@@ -157,6 +160,8 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
           value={binding.prompt ?? ""}
           onChange={(e) => patchBinding(layer.id, { prompt: e.target.value })}
           placeholder="Describe the image…"
+          aria-label="Image prompt"
+          sx={{ "& .MuiOutlinedInput-root": sketchFieldSx }}
           multiline
           minRows={3}
           maxRows={8}
@@ -227,8 +232,8 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
         {isRunning ? (
           <EditorButton
             size="small"
-            variant="outlined"
-            color="warning"
+            variant="text"
+            color="inherit"
             onClick={() => cancel(layer.id)}
           >
             Cancel

@@ -19,6 +19,7 @@ import { useTransformAdapter } from "../hooks/useTransformAdapter";
 import type { useSegmentation } from "../hooks/useSegmentation";
 
 export interface ConnectedToolTopBarProps {
+  compactLayout?: boolean;
   adjBrightness: number;
   adjContrast: number;
   adjSaturation: number;
@@ -61,7 +62,8 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
   // The settings rows wrap to two or three lines for most tools, which on a
   // phone leaves little canvas. Start collapsed on mobile and expanded on
   // desktop, re-applied on each breakpoint crossing (rotate/resize).
-  const isMobile = useSketchIsMobile();
+  const narrowViewport = useSketchIsMobile();
+  const isMobile = props.compactLayout ?? narrowViewport;
   useEffect(() => {
     setToolSettingsCollapsed(isMobile);
   }, [isMobile, setToolSettingsCollapsed]);
