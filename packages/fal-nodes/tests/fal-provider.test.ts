@@ -65,6 +65,12 @@ describe("FAL_IMAGE_MODELS", () => {
     expect(ids).toContain("fal-ai/flux/dev");
     expect(ids).toContain("fal-ai/flux/schnell");
   });
+
+  it("contains both GPT Image 2.5 variants", () => {
+    const ids = FAL_IMAGE_MODELS.map((model) => model.id);
+    expect(ids).toContain("openai/gpt-image-2.5/flare/text-to-image");
+    expect(ids).toContain("openai/gpt-image-2.5/sunburst/text-to-image");
+  });
 });
 
 /* ================================================================== */
@@ -219,6 +225,24 @@ describe("FalProvider.textToImage", () => {
     expect(opts.input.enable_safety_checker).toBe(false);
   });
 
+  it("passes GPT Image 2.5 quality", async () => {
+    mockSubscribe.mockResolvedValue(makeImageResult());
+    const provider = new FalProvider("key");
+    await provider.textToImage({
+      prompt: "test",
+      model: "openai/gpt-image-2.5/flare/text-to-image",
+      width: 1820,
+      height: 1024,
+      quality: "max"
+    });
+    const [, opts] = mockSubscribe.mock.calls[0] as [
+      string,
+      { input: Record<string, unknown> }
+    ];
+    expect(opts.input.quality).toBe("max");
+    expect(opts.input.image_size).toEqual({ width: 1824, height: 1024 });
+  });
+
   it("accepts response with single `image` field instead of `images` array", async () => {
     mockSubscribe.mockResolvedValue({
       data: { image: { url: "https://cdn.fal.media/single.png" } }
@@ -329,6 +353,32 @@ describe("FalProvider.imageToImage", () => {
     expect(
       (opts.input.image_url as string).startsWith("data:image/png;base64,")
     ).toBe(true);
+  });
+
+  it("routes GPT Image 2.5 edits with image_urls and quality", async () => {
+    mockSubscribe.mockResolvedValue({
+      data: { images: [{ url: "https://cdn.fal.media/out.png" }] }
+    });
+    const provider = new FalProvider("key");
+    await provider.imageToImage({
+      imageBytes: new Uint8Array([0x89, 0x50]),
+      prompt: "test",
+      model: "openai/gpt-image-2.5/sunburst/text-to-image",
+      targetWidth: 4096,
+      targetHeight: 4096,
+      quality: "xhigh"
+    });
+    const [endpoint, opts] = mockSubscribe.mock.calls[0] as [
+      string,
+      { input: Record<string, unknown> }
+    ];
+    expect(endpoint).toBe("openai/gpt-image-2.5/sunburst/edit");
+    expect(opts.input.image_urls).toEqual([
+      expect.stringMatching(/^data:image\/png;base64,/)
+    ]);
+    expect(opts.input.image_url).toBeUndefined();
+    expect(opts.input.quality).toBe("xhigh");
+    expect(opts.input.image_size).toEqual({ width: 2880, height: 2880 });
   });
 
   it("increments counters on success", async () => {

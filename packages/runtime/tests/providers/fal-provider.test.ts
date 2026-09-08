@@ -45,6 +45,18 @@ describe("FalProvider", () => {
     expect(ids).toContain("fal-ai/fast-sdxl");
   });
 
+  it("includes both GPT Image 2.5 variants for generation and editing", async () => {
+    const models = await createProvider().getAvailableImageModels();
+    expect(models.map((model) => model.id)).toEqual(
+      expect.arrayContaining([
+        "openai/gpt-image-2.5/flare/text-to-image",
+        "openai/gpt-image-2.5/flare/edit",
+        "openai/gpt-image-2.5/sunburst/text-to-image",
+        "openai/gpt-image-2.5/sunburst/edit"
+      ])
+    );
+  });
+
   // --- Language models ---
 
   function catalogFetch(rows: unknown[]): typeof fetch {

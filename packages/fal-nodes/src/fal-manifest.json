@@ -350767,5 +350767,1031 @@
       }
     ],
     "moduleName": "text_to_image"
+  },
+  {
+    "endpointId": "openai/gpt-image-2.5/flare/edit",
+    "className": "GptImage25FlareEdit",
+    "docstring": "Edit images with OpenAI GPT Image 2.5 Flare.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "openai",
+      "gpt-image"
+    ],
+    "useCases": [
+      "Automated content generation",
+      "Creative workflows",
+      "Batch processing",
+      "Professional applications",
+      "Rapid prototyping"
+    ],
+    "inputFields": [
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "The size of the generated image. Use 'auto' to infer from input images.",
+        "acceptsObject": true,
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9",
+          "auto"
+        ]
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "png",
+        "description": "Output format for the images",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "The URLs of the images to use as a reference for the generation. A maximum of 16 images are allowed.",
+        "fieldType": "input",
+        "required": true,
+        "max": 16,
+        "apiParamName": "image_urls"
+      },
+      {
+        "name": "mask",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "The URL of the mask image to use for the generation. This indicates what part of the image to edit.",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "mask_url"
+      },
+      {
+        "name": "quality",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "high",
+        "description": "Quality for the generated image. Higher settings increase detail, latency, and token usage. Use 'auto' to let the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Quality",
+        "enumValues": [
+          "auto",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      {
+        "name": "background",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Background for the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Background",
+        "enumValues": [
+          "auto",
+          "transparent",
+          "opaque"
+        ]
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_compression",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Compression level from 0 to 100. Only supported when output_format is 'jpeg' or 'webp'.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt for image generation",
+        "fieldType": "input",
+        "required": true,
+        "min": 2,
+        "max": 32000
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "Number of images to generate",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "images",
+        "tsType": "ImageFile[]",
+        "propType": "list[ImageFile]",
+        "default": [],
+        "description": "The generated images.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ],
+          [
+            "AUTO",
+            "auto"
+          ]
+        ],
+        "description": "The size of the generated image. Use 'auto' to infer from input images."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "Output format for the images"
+      },
+      {
+        "name": "Quality",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ],
+          [
+            "HIGH",
+            "high"
+          ],
+          [
+            "XHIGH",
+            "xhigh"
+          ],
+          [
+            "MAX",
+            "max"
+          ]
+        ],
+        "description": "Quality for the generated image. Higher settings increase detail, latency, and token usage. Use 'auto' to let the model choose."
+      },
+      {
+        "name": "Background",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "TRANSPARENT",
+            "transparent"
+          ],
+          [
+            "OPAQUE",
+            "opaque"
+          ]
+        ],
+        "description": "Background for the generated image"
+      }
+    ],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "openai/gpt-image-2.5/sunburst/edit",
+    "className": "GptImage25SunburstEdit",
+    "docstring": "Edit images with OpenAI GPT Image 2.5 Sunburst.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "openai",
+      "gpt-image"
+    ],
+    "useCases": [
+      "Automated content generation",
+      "Creative workflows",
+      "Batch processing",
+      "Professional applications",
+      "Rapid prototyping"
+    ],
+    "inputFields": [
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "The size of the generated image. Use 'auto' to infer from input images.",
+        "acceptsObject": true,
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9",
+          "auto"
+        ]
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "png",
+        "description": "Output format for the images",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "The URLs of the images to use as a reference for the generation. A maximum of 16 images are allowed.",
+        "fieldType": "input",
+        "required": true,
+        "max": 16,
+        "apiParamName": "image_urls"
+      },
+      {
+        "name": "mask",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "The URL of the mask image to use for the generation. This indicates what part of the image to edit.",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "mask_url"
+      },
+      {
+        "name": "quality",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "high",
+        "description": "Quality for the generated image. Higher settings increase detail, latency, and token usage. Use 'auto' to let the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Quality",
+        "enumValues": [
+          "auto",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      {
+        "name": "background",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Background for the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Background",
+        "enumValues": [
+          "auto",
+          "transparent",
+          "opaque"
+        ]
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_compression",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Compression level from 0 to 100. Only supported when output_format is 'jpeg' or 'webp'.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt for image generation",
+        "fieldType": "input",
+        "required": true,
+        "min": 2,
+        "max": 32000
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "Number of images to generate",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "images",
+        "tsType": "ImageFile[]",
+        "propType": "list[ImageFile]",
+        "default": [],
+        "description": "The generated images.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ],
+          [
+            "AUTO",
+            "auto"
+          ]
+        ],
+        "description": "The size of the generated image. Use 'auto' to infer from input images."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "Output format for the images"
+      },
+      {
+        "name": "Quality",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ],
+          [
+            "HIGH",
+            "high"
+          ],
+          [
+            "XHIGH",
+            "xhigh"
+          ],
+          [
+            "MAX",
+            "max"
+          ]
+        ],
+        "description": "Quality for the generated image. Higher settings increase detail, latency, and token usage. Use 'auto' to let the model choose."
+      },
+      {
+        "name": "Background",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "TRANSPARENT",
+            "transparent"
+          ],
+          [
+            "OPAQUE",
+            "opaque"
+          ]
+        ],
+        "description": "Background for the generated image"
+      }
+    ],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "openai/gpt-image-2.5/flare/text-to-image",
+    "className": "GptImage25FlareTextToImage",
+    "docstring": "OpenAI GPT Image 2.5 Flare text-to-image generation.",
+    "tags": [
+      "generation",
+      "text-to-image",
+      "txt2img",
+      "openai",
+      "gpt-image"
+    ],
+    "useCases": [
+      "Automated content generation",
+      "Creative workflows",
+      "Batch processing",
+      "Professional applications",
+      "Rapid prototyping"
+    ],
+    "inputFields": [
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "landscape_4_3",
+        "description": "The size of the generated image. Supports preset names, explicit {width, height}, or 'auto' to let the model pick the best size. Concrete sizes must have both dimensions as multiples of 16, max edge 3840px, aspect ratio <= 3:1, total pixels between 655,360 and 8,294,400.",
+        "acceptsObject": true,
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9",
+          "auto"
+        ]
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "png",
+        "description": "Output format for the images",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      },
+      {
+        "name": "quality",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "high",
+        "description": "Quality for the generated image. Higher settings increase detail, latency, and token usage. Use 'auto' to let the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Quality",
+        "enumValues": [
+          "auto",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      {
+        "name": "background",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Background for the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Background",
+        "enumValues": [
+          "auto",
+          "transparent",
+          "opaque"
+        ]
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_compression",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Compression level from 0 to 100. Only supported when output_format is 'jpeg' or 'webp'.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt for image generation",
+        "fieldType": "input",
+        "required": true,
+        "min": 2,
+        "max": 32000
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "Number of images to generate",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "images",
+        "tsType": "ImageFile[]",
+        "propType": "list[ImageFile]",
+        "default": [],
+        "description": "The generated images.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ],
+          [
+            "AUTO",
+            "auto"
+          ]
+        ],
+        "description": "The size of the generated image. Supports preset names, explicit {width, height}, or 'auto' to let the model pick the best size. Concrete sizes must have both dimensions as multiples of 16, max edge 3840px, aspect ratio <= 3:1, total pixels between 655,360 and 8,294,400."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "Output format for the images"
+      },
+      {
+        "name": "Quality",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ],
+          [
+            "HIGH",
+            "high"
+          ],
+          [
+            "XHIGH",
+            "xhigh"
+          ],
+          [
+            "MAX",
+            "max"
+          ]
+        ],
+        "description": "Quality for the generated image. Higher settings increase detail, latency, and token usage. Use 'auto' to let the model choose."
+      },
+      {
+        "name": "Background",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "TRANSPARENT",
+            "transparent"
+          ],
+          [
+            "OPAQUE",
+            "opaque"
+          ]
+        ],
+        "description": "Background for the generated image"
+      }
+    ],
+    "moduleName": "text_to_image"
+  },
+  {
+    "endpointId": "openai/gpt-image-2.5/sunburst/text-to-image",
+    "className": "GptImage25SunburstTextToImage",
+    "docstring": "OpenAI GPT Image 2.5 Sunburst text-to-image generation.",
+    "tags": [
+      "generation",
+      "text-to-image",
+      "txt2img",
+      "openai",
+      "gpt-image"
+    ],
+    "useCases": [
+      "Automated content generation",
+      "Creative workflows",
+      "Batch processing",
+      "Professional applications",
+      "Rapid prototyping"
+    ],
+    "inputFields": [
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "landscape_4_3",
+        "description": "The size of the generated image. Supports preset names, explicit {width, height}, or 'auto' to let the model pick the best size. Concrete sizes must have both dimensions as multiples of 16, max edge 3840px, aspect ratio <= 3:1, total pixels between 655,360 and 8,294,400.",
+        "acceptsObject": true,
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9",
+          "auto"
+        ]
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "png",
+        "description": "Output format for the images",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      },
+      {
+        "name": "quality",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "high",
+        "description": "Quality for the generated image. Higher settings increase detail, latency, and token usage. Use 'auto' to let the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Quality",
+        "enumValues": [
+          "auto",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      {
+        "name": "background",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Background for the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Background",
+        "enumValues": [
+          "auto",
+          "transparent",
+          "opaque"
+        ]
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_compression",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Compression level from 0 to 100. Only supported when output_format is 'jpeg' or 'webp'.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt for image generation",
+        "fieldType": "input",
+        "required": true,
+        "min": 2,
+        "max": 32000
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "Number of images to generate",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "images",
+        "tsType": "ImageFile[]",
+        "propType": "list[ImageFile]",
+        "default": [],
+        "description": "The generated images.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ],
+          [
+            "AUTO",
+            "auto"
+          ]
+        ],
+        "description": "The size of the generated image. Supports preset names, explicit {width, height}, or 'auto' to let the model pick the best size. Concrete sizes must have both dimensions as multiples of 16, max edge 3840px, aspect ratio <= 3:1, total pixels between 655,360 and 8,294,400."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "Output format for the images"
+      },
+      {
+        "name": "Quality",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ],
+          [
+            "HIGH",
+            "high"
+          ],
+          [
+            "XHIGH",
+            "xhigh"
+          ],
+          [
+            "MAX",
+            "max"
+          ]
+        ],
+        "description": "Quality for the generated image. Higher settings increase detail, latency, and token usage. Use 'auto' to let the model choose."
+      },
+      {
+        "name": "Background",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "TRANSPARENT",
+            "transparent"
+          ],
+          [
+            "OPAQUE",
+            "opaque"
+          ]
+        ],
+        "description": "Background for the generated image"
+      }
+    ],
+    "moduleName": "text_to_image"
   }
 ]

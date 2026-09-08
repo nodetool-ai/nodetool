@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
+import type OpenAI from "openai";
 import { OpenAIProvider } from "../../src/providers/openai-provider.js";
 import type { Message } from "../../src/providers/types.js";
 
@@ -658,7 +659,13 @@ describe("OpenAIProvider – textToImage", () => {
   it("generates image from b64_json response", async () => {
     const imageData = Buffer.from("fake-image").toString("base64");
     const generate = vi.fn().mockResolvedValue({
-      data: [{ b64_json: imageData }]
+      data: [{ b64_json: imageData }],
+      usage: {
+        input_tokens: 321,
+        output_tokens: 654,
+        input_tokens_details: { text_tokens: 21, image_tokens: 300 },
+        output_tokens_details: { text_tokens: 0, image_tokens: 654 }
+      }
     });
 
     const provider = new OpenAIProvider(
@@ -670,15 +677,26 @@ describe("OpenAIProvider – textToImage", () => {
 
     const result = await provider.textToImage({
       prompt: "a cat",
-      model: { id: "gpt-image-2", name: "GPT Image 2", provider: "openai" },
+      model: {
+        id: "gpt-image-2.5-flare",
+        name: "GPT Image 2.5 Flare",
+        provider: "openai"
+      },
       width: 2048,
-      height: 1152
+      height: 1152,
+      quality: "max"
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
     expect(generate).toHaveBeenCalledTimes(1);
     expect(generate.mock.calls[0][0].prompt).toBe("a cat");
     expect(generate.mock.calls[0][0].size).toBe("2048x1152");
+    expect(generate.mock.calls[0][0].quality).toBe("max");
+    expect(provider.usageTotals).toMatchObject({
+      inputTokens: 321,
+      outputTokens: 654
+    });
+    expect(provider.cost).toBeCloseTo(0.022125, 6);
   });
 
   it("generates image from URL response", async () => {
@@ -781,6 +799,39 @@ describe("OpenAIProvider – imageToImage", () => {
 
     expect(result).toBeInstanceOf(Uint8Array);
     expect(edit.mock.calls[0][0].size).toBe("2048x1152");
+  });
+
+  it("records GPT Image 2.5 edit token usage", async () => {
+    const imageData = Buffer.from("edited").toString("base64");
+    const edit = vi.fn().mockResolvedValue({
+      data: [{ b64_json: imageData }],
+      usage: {
+        input_tokens: 123,
+        output_tokens: 456,
+        input_tokens_details: { text_tokens: 23, image_tokens: 100 },
+        output_tokens_details: { text_tokens: 0, image_tokens: 456 }
+      }
+    });
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      { client: { images: { edit } } as unknown as OpenAI }
+    );
+
+    await provider.imageToImage([new Uint8Array([1])], {
+      prompt: "make it red",
+      model: {
+        id: "gpt-image-2.5-sunburst",
+        name: "GPT Image 2.5 Sunburst",
+        provider: "openai"
+      },
+      quality: "xhigh"
+    });
+
+    expect(provider.usageTotals).toMatchObject({
+      inputTokens: 123,
+      outputTokens: 456
+    });
+    expect(provider.cost).toBeCloseTo(0.014595, 6);
   });
 
   it("throws on empty image", async () => {

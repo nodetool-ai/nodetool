@@ -46,6 +46,7 @@ import {
   type ModelImageInput
 } from "./manifest-models.js";
 import { sniffAudioMime } from "./audio-mime.js";
+import { snapToGptImage2Size } from "./gpt-image-size.js";
 import { detectImageMime } from "./image-mime.js";
 import { safeFetch } from "./safe-url.js";
 import {
@@ -106,6 +107,7 @@ interface FalManifestField {
   apiParamName?: string;
   propType: string;
   enumValues?: string[];
+  acceptsObject?: boolean;
   /** Declared bounds. Numeric for int/float fields, a length for str/list. */
   min?: number;
   max?: number;
@@ -232,11 +234,13 @@ function topazCreativity(
  */
 class FalArgsBuilder {
   readonly args: Record<string, unknown> = {};
+  private readonly modelId: string;
   private readonly fields: FalManifestField[];
   private readonly accepted: Map<string, FalManifestField>;
   private readonly known: boolean;
 
   constructor(modelId: string) {
+    this.modelId = modelId;
     const entry = getFalManifestEntry(modelId);
     this.known = entry != null;
     this.fields = entry?.inputFields ?? [];
@@ -460,10 +464,17 @@ class FalArgsBuilder {
    */
   setImageSize(width?: number | null, height?: number | null): this {
     if (!width || !height) return this;
+    if (this.modelId.startsWith("openai/gpt-image-2.5/")) {
+      const size = snapToGptImage2Size(width, height);
+      if (size && this.field("image_size")?.acceptsObject) {
+        this.args.image_size = { width: size[0], height: size[1] };
+      }
+      return this;
+    }
     const t = this.propType("image_size");
     if (!this.known) {
       this.args.image_size = { width, height };
-    } else if (t && t !== "enum") {
+    } else if (t && (t !== "enum" || this.field("image_size")?.acceptsObject)) {
       this.args.image_size = { width, height };
     }
     return this;
@@ -487,6 +498,10 @@ class FalArgsBuilder {
     const enumValues = field.enumValues;
     if (!enumValues || enumValues.length === 0) return value;
     return enumValues.includes(value) ? value : undefined;
+  }
+
+  private field(apiName: string): FalManifestField | undefined {
+    return this.accepted.get(apiName);
   }
 
   /** Declared enum vocabulary for an enum-typed field, or undefined. */
@@ -878,6 +893,7 @@ export class FalProvider extends BaseProvider {
     const b = new FalArgsBuilder(modelId);
     b.force("prompt", params.prompt)
       .set("output_format", "png")
+      .set("quality", params.quality)
       .set("negative_prompt", params.negativePrompt)
       .set("guidance_scale", params.guidanceScale)
       .set("num_inference_steps", params.numInferenceSteps)
@@ -901,6 +917,7 @@ export class FalProvider extends BaseProvider {
     b.attachAssets("image", imageUrls)
       .force("prompt", params.prompt)
       .set("output_format", "png")
+      .set("quality", params.quality)
       .set("negative_prompt", params.negativePrompt)
       .set("guidance_scale", params.guidanceScale)
       .set("num_inference_steps", params.numInferenceSteps)

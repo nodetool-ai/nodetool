@@ -5104,6 +5104,32 @@ export const config: ModuleConfig = {
         "Rapid prototyping"
       ]
     },
+    "openai/gpt-image-2.5/flare/edit": {
+      className: "GptImage25FlareEdit",
+      docstring: "Edit images with OpenAI GPT Image 2.5 Flare.",
+      tags: ["editing", "image-to-image", "img2img", "openai", "gpt-image"],
+      fieldOverrides: { image_size: { acceptsObject: true } },
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "openai/gpt-image-2.5/sunburst/edit": {
+      className: "GptImage25SunburstEdit",
+      docstring: "Edit images with OpenAI GPT Image 2.5 Sunburst.",
+      tags: ["editing", "image-to-image", "img2img", "openai", "gpt-image"],
+      fieldOverrides: { image_size: { acceptsObject: true } },
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
     "fal-ai/bytedance/seedream/v5/lite/edit": {
       className: "BytedanceSeedreamV5LiteEdit",
       docstring: "Edit images with ByteDance Seedream v5 Lite.",

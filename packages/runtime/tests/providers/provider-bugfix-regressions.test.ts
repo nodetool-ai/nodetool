@@ -406,6 +406,26 @@ describe("CostCalculator – accounting never throws", () => {
     ).toBeCloseTo(0.084, 6);
   });
 
+  it("prices GPT Image 2.5 text, image input, and image output tokens", () => {
+    const usage = {
+      inputTokens: 300,
+      inputTextTokens: 100,
+      inputImageTokens: 200,
+      outputTokens: 400,
+      outputImageTokens: 400
+    };
+    expect(
+      CostCalculator.calculate("gpt-image-2.5-flare", usage, "openai")
+    ).toBeCloseTo(0.0141, 6);
+    expect(
+      CostCalculator.calculate(
+        "gpt-image-2.5-sunburst-2026-09-08",
+        usage,
+        "openai"
+      )
+    ).toBeCloseTo(0.0141, 6);
+  });
+
   it("prices TTS characters and ASR duration", () => {
     expect(
       CostCalculator.calculate("tts-1", { inputCharacters: 2000 }, "openai")
