@@ -330,7 +330,8 @@ describe("PythonBridgeBase — execute", () => {
       node_type: "n.T",
       fields: { a: 1 },
       secrets: { KEY: "v" },
-      blobs: {}
+      blobs: {},
+      blob_transfer: "chunked-v1"
     });
     bridge.handle({
       type: "result",

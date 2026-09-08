@@ -19,8 +19,8 @@ import {
 import type { ModelDownloadUpdate } from "../src/python-bridge-types.js";
 
 describe("bridge protocol version", () => {
-  it("is 4 (models.* + comfy.* + run identity/job.* support)", () => {
-    expect(BRIDGE_PROTOCOL_VERSION).toBe(4);
+  it("is 5 (chunked result blobs)", () => {
+    expect(BRIDGE_PROTOCOL_VERSION).toBe(5);
   });
 });
 
