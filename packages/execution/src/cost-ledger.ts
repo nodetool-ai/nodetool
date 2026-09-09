@@ -55,6 +55,7 @@ const UNIT_BILLED_CAPABILITIES = new Set([
   "inpainting",
   "text_to_video",
   "image_to_video",
+  "reference_to_video",
   "video_to_video",
   "upscale_image",
   "remove_background",

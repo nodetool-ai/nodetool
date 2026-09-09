@@ -325,7 +325,7 @@ function renderHost(context: ProcessingContext): StoryboardRenderHost {
       })) as StoryboardRowLike | null;
       return saved ? { document, updatedAt: saved.updatedAt } : null;
     },
-    loadMedia: async (ref: KeyframeVersion) => loadMediaRefBytes(ref, context)
+    loadMedia: async (ref: KeyframeVersion | ImageRef) => loadMediaRefBytes(ref, context)
   };
 }
 
@@ -1036,7 +1036,9 @@ export class RenderClipsNode extends BaseNode {
       doc.videoModel,
       this.video_model,
       "clip",
-      doc.shots.every((shot) => shotRenderMode(shot) === "direct")
+      doc.shots.some((shot) => shotRenderMode(shot) === "reference")
+        ? "reference_to_video"
+        : doc.shots.every((shot) => shotRenderMode(shot) === "direct")
         ? "text_to_video"
         : "image_to_video"
     );

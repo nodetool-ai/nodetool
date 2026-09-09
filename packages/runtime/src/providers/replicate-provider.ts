@@ -5,6 +5,7 @@ import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { withReplicateRetry } from "./replicate-retry.js";
 import { sniffAudioMime } from "./audio-mime.js";
+import { sniffVideoMime } from "./video-mime.js";
 import { detectImageMime } from "./image-mime.js";
 import type {
   ASRModel,
@@ -34,6 +35,9 @@ import type {
 } from "./types.js";
 import {
   getModelImageInputs,
+  getModelReferenceInputs,
+  getModelInputFields,
+  validateReferenceInputs,
   getModelInputNames,
   loadImageModels,
   loadMusicModels,
@@ -41,6 +45,7 @@ import {
   selectMaskImageInput,
   selectPrimaryImageInput
 } from "./manifest-models.js";
+import type { ReferenceToVideoInputs, ReferenceToVideoParams } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.replicate");
 
@@ -209,10 +214,15 @@ export class ReplicateProvider extends BaseProvider {
   /** Create a prediction, waiting out the low-credit throttle. */
   private runModel(
     modelId: string,
-    input: Record<string, unknown>
+    input: Record<string, unknown>,
+    signal?: AbortSignal
   ): Promise<unknown> {
+    signal?.throwIfAborted();
+    const options: { input: Record<string, unknown>; signal?: AbortSignal } = { input };
+    if (signal) options.signal = signal;
     return withReplicateRetry(modelId, () =>
-      this._client.run(modelId as `${string}/${string}`, { input })
+      this._client.run(modelId as `${string}/${string}`, options),
+      signal
     );
   }
 
@@ -875,7 +885,8 @@ export class ReplicateProvider extends BaseProvider {
   // Image / Video / Audio capabilities
   // ---------------------------------------------------------------------------
 
-  private async _fetchOutputBytes(output: unknown): Promise<Uint8Array> {
+  private async _fetchOutputBytes(output: unknown, signal?: AbortSignal): Promise<Uint8Array> {
+    signal?.throwIfAborted();
     const target = decodeReplicateOutput(output);
     if (!target) {
       throw new Error(
@@ -885,12 +896,12 @@ export class ReplicateProvider extends BaseProvider {
     }
     return target.kind === "stream"
       ? drainStream(target.stream)
-      : this._fetchUrlBytes(target.url);
+      : this._fetchUrlBytes(target.url, signal);
   }
 
-  private async _fetchUrlBytes(url: string): Promise<Uint8Array> {
+  private async _fetchUrlBytes(url: string, signal?: AbortSignal): Promise<Uint8Array> {
     if (url.startsWith("data:")) return decodeDataUri(url);
-    const res = await safeFetch(url);
+    const res = await safeFetch(url, signal ? { signal } : undefined);
     if (!res.ok) throw new Error(`Failed to fetch output: ${res.status}`);
     return new Uint8Array(await res.arrayBuffer());
   }
@@ -988,12 +999,17 @@ export class ReplicateProvider extends BaseProvider {
   }
 
   async imageToVideo(
-    images: Uint8Array[],
+    image: Uint8Array,
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
+    const model = (await this.getAvailableVideoModels()).find((item) => item.id === params.model.id);
+    if (model && !model.supportedTasks?.includes("image_to_video")) {
+      throw new Error(`Replicate model ${params.model.id} does not support image_to_video`);
+    }
+    if (image.length === 0) throw new Error("Replicate image_to_video requires a start image");
     const input: Record<string, unknown> = this.imageInput(
       params.model.id,
-      images
+      [image]
     );
     if (params.prompt) input.prompt = params.prompt;
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
@@ -1006,6 +1022,59 @@ export class ReplicateProvider extends BaseProvider {
     log.debug("imageToVideo", { model: params.model.id });
     const output = await this.runModel(params.model.id, input);
     return this._fetchOutputBytes(output);
+  }
+
+  async referenceToVideo(
+    inputs: ReferenceToVideoInputs,
+    params: ReferenceToVideoParams
+  ): Promise<Uint8Array> {
+    const modelId = params.model.id;
+    const model = (await this.getAvailableVideoModels()).find((item) => item.id === modelId);
+    if (!model?.supportedTasks?.includes("reference_to_video")) {
+      throw new Error(`Replicate model ${modelId} does not support reference_to_video`);
+    }
+    const fields = getModelReferenceInputs("@nodetool-ai/replicate-nodes", "replicate-manifest.json", modelId);
+    const references = {
+      images: inputs.images.filter((bytes) => bytes.length > 0),
+      videos: inputs.videos.filter((bytes) => bytes.length > 0)
+    };
+    validateReferenceInputs("Replicate", modelId, references, fields);
+    const declared = getModelInputFields("@nodetool-ai/replicate-nodes", "replicate-manifest.json", modelId);
+    const hasField = (name: string): boolean => declared.some((field) => field.name === name);
+    if (params.useReferenceVideoAudio === true && (!hasField("use_reference_video_audio") || references.videos.length === 0)) {
+      throw new Error(`Replicate model ${modelId} does not support reference video audio for these inputs`);
+    }
+    const input: Record<string, unknown> = {};
+    for (const field of fields) {
+      const buffers = field.kind === "image" ? references.images : references.videos;
+      if (buffers.length === 0) continue;
+      const urls = buffers.map((bytes) => field.kind === "image"
+        ? this.imageDataUri(bytes)
+        : this.dataUri(bytes, sniffVideoMime(bytes)));
+      input[field.apiName] = field.isList ? urls : urls[0];
+    }
+    const options: Record<string, unknown> = {
+      prompt: params.prompt,
+      negative_prompt: params.negativePrompt,
+      duration: params.durationSeconds,
+      aspect_ratio: params.aspectRatio,
+      resolution: params.resolution,
+      num_frames: params.numFrames,
+      guidance_scale: params.guidanceScale,
+      seed: params.seed,
+      use_reference_video_audio: params.useReferenceVideoAudio
+    };
+    for (const [name, value] of Object.entries(options)) {
+      if (value != null && hasField(name)) input[name] = value;
+    }
+    const timeout = params.timeoutSeconds && params.timeoutSeconds > 0
+      ? AbortSignal.timeout(params.timeoutSeconds * 1000)
+      : undefined;
+    const signal = params.signal && timeout
+      ? AbortSignal.any([params.signal, timeout])
+      : params.signal ?? timeout;
+    const output = await this.runModel(modelId, input, signal);
+    return this._fetchOutputBytes(output, signal);
   }
 
   private dataUri(bytes: Uint8Array, mimeType: string): string {

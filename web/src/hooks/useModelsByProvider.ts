@@ -237,6 +237,7 @@ export type ImageModelTask =
 export type VideoModelTask =
   | "text_to_video"
   | "image_to_video"
+  | "reference_to_video"
   | "video_to_video"
   | "lip_sync";
 
@@ -253,6 +254,7 @@ const STRICT_MODEL_TASKS = new Set<string>([
   "vectorize",
   "segment",
   "video_to_video",
+  "reference_to_video",
   "lip_sync"
 ]);
 

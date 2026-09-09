@@ -563,7 +563,7 @@ describe("inferVideoTasks", () => {
     ["decart/lucy-restyle", ["video_to_video"]],
     ["blackforestlabs/flux-3/first-last-frame-to-video", ["image_to_video"]],
     ["blackforestlabs/flux-3/keyframes-to-video", ["image_to_video"]],
-    ["bytedance/seedance-2.0/reference-to-video", ["image_to_video"]],
+    ["bytedance/seedance-2.0/reference-to-video", ["reference_to_video"]],
     // Still a generator: the direction is spelled out, so nothing above bites.
     ["fal-ai/ltx-2-19b/image-to-video", ["image_to_video"]],
     ["fal-ai/ltx-2-19b/distilled/image-to-video/lora", ["image_to_video"]],

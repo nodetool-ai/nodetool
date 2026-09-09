@@ -140,6 +140,41 @@ describe("renderShots", () => {
     expect(state.document.shots[0].status).toBe("rendered");
   });
 
+  it("resolves ordered reference images and dispatches reference_to_video", async () => {
+    const entity: Entity = {
+      type: "entity",
+      id: "e1",
+      kind: "character",
+      name: "Mara",
+      descriptor: "runner",
+      reference_images: [
+        { type: "image", asset_id: "r1", uri: "asset://r1" },
+        { type: "image", asset_id: "r2", uri: "asset://r2" }
+      ]
+    };
+    const doc = board([{ ...shot({ id: "s1", index: 0, entity_ids: ["e1"] }), render_mode: "reference" }]);
+    const { host, requests } = fakeHost(doc, {
+      loadMedia: vi.fn(async (ref) => (ref.asset_id === "r1" ? new Uint8Array([1]) : new Uint8Array([2])))
+    });
+    const plans = planShotRenders(doc, [entity], "clip");
+    await renderShots(host, { id: "b1" }, plans, { newId: ids() });
+    expect(requests[0].capability).toBe("reference_to_video");
+    expect(requests[0].params["reference_images"]).toEqual([new Uint8Array([1]), new Uint8Array([2])]);
+    expect(requests[0].params["image"]).toBeUndefined();
+  });
+
+  it("rejects an unreadable reference before spending", async () => {
+    const entity: Entity = {
+      type: "entity", id: "e1", kind: "character", name: "Mara", descriptor: "runner",
+      reference_images: [{ type: "image", asset_id: "r1", uri: "asset://r1" }]
+    };
+    const doc = board([{ ...shot({ id: "s1", index: 0, entity_ids: ["e1"] }), render_mode: "reference" }]);
+    const { host, requests } = fakeHost(doc, { loadMedia: vi.fn(async () => null) });
+    const outcomes = await renderShots(host, { id: "b1" }, planShotRenders(doc, [entity], "clip"));
+    expect(outcomes[0].ok).toBe(false);
+    expect(requests).toHaveLength(0);
+  });
+
   it("refuses a keyframe-mode clip with no still, and spends nothing", async () => {
     const doc = board([shot({ id: "s1", index: 0 })]);
     const { host, requests } = fakeHost(doc);

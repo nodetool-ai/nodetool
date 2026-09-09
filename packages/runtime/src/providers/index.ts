@@ -357,6 +357,8 @@ export type {
   ImageBox,
   TextToVideoParams,
   ImageToVideoParams,
+  ReferenceToVideoInputs,
+  ReferenceToVideoParams,
   EntityReference,
   ProviderStreamItem,
   ProviderSession,

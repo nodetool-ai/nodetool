@@ -438,7 +438,7 @@ interface ShotOutcome {
   index: number;
   slug?: string;
   /** How the clip was rendered. Absent on a stills outcome. */
-  render_mode?: "keyframe" | "direct";
+  render_mode?: "keyframe" | "direct" | "reference";
   ok: boolean;
   asset_id?: string;
   asset_uri?: string;
@@ -790,36 +790,54 @@ const renderStoryboardClips: CapabilityExport = {
     const { row, doc } = board;
 
     const override = params["mode"];
-    if (override !== undefined && override !== "keyframe" && override !== "direct") {
-      return { error: 'mode must be "keyframe" or "direct".' };
+    if (override !== undefined && override !== "keyframe" && override !== "direct" && override !== "reference") {
+      return { error: 'mode must be "keyframe", "direct", or "reference".' };
     }
     // The call's override wins over the shot's own setting, for this call only.
     const { shotRenderMode } = await import("@nodetool-ai/protocol");
-    const modeOf = (shot: Shot): "keyframe" | "direct" =>
-      override === "keyframe" || override === "direct"
+    const modeOf = (shot: Shot): "keyframe" | "direct" | "reference" =>
+      override === "keyframe" || override === "direct" || override === "reference"
         ? override
         : shotRenderMode(shot);
-
-    const model = resolveModel(
-      params,
-      doc.videoModel,
-      "clip",
-      // A board renders one way or the other far more often than both, so name
-      // the capability the selection actually needs.
-      doc.shots.every((s) => modeOf(s) === "direct")
-        ? "text_to_video"
-        : "image_to_video"
-    );
-    if (isError(model)) return model;
 
     const selected = selectShots(
       doc.shots,
       params["targets"],
       (s) =>
         !shotHasPicture(s, doc.shots) &&
-        (modeOf(s) === "direct" || !!s.keyframe)
+        (modeOf(s) === "direct" || modeOf(s) === "reference" || !!s.keyframe)
     );
     if (isError(selected)) return selected;
+    const requiredCapabilities = new Set(
+      selected.map((shot) =>
+        modeOf(shot) === "direct"
+          ? "text_to_video"
+          : modeOf(shot) === "reference"
+            ? "reference_to_video"
+            : "image_to_video"
+      )
+    );
+    const capability = requiredCapabilities.has("reference_to_video")
+      ? "reference_to_video"
+      : requiredCapabilities.has("image_to_video")
+        ? "image_to_video"
+        : "text_to_video";
+    const model = resolveModel(params, doc.videoModel, "clip", capability);
+    if (isError(model)) return model;
+    const declaredTasks = doc.videoModel?.supported_tasks;
+    if (
+      Array.isArray(declaredTasks) && declaredTasks.length > 0 &&
+      model.model === doc.videoModel?.id && model.provider === doc.videoModel?.provider
+    ) {
+      const unsupported = [...requiredCapabilities].find(
+        (task) => !declaredTasks.includes(task)
+      );
+      if (unsupported) {
+        return {
+          error: `The selected clip model does not support ${unsupported}; choose a model that supports every selected shot mode.`
+        };
+      }
+    }
     const entities = await loadBoardEntities(context, doc);
     const fresh = await filterStale(selected, params, doc, entities, "clip");
     const skipped = fresh.skipped;
@@ -1684,8 +1702,8 @@ function applyShotFields(
   }
   if (args["render_mode"] !== undefined) {
     const mode = String(args["render_mode"]);
-    if (mode !== "keyframe" && mode !== "direct") {
-      throw new Error('render_mode must be "keyframe" or "direct".');
+    if (mode !== "keyframe" && mode !== "direct" && mode !== "reference") {
+      throw new Error('render_mode must be "keyframe", "direct", or "reference".');
     }
     next.render_mode = mode;
   }

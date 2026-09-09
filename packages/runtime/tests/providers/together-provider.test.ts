@@ -805,7 +805,7 @@ describe("TogetherProvider", () => {
       prompt: "zoom out"
     };
 
-    const videoPromise = provider.imageToVideo([fakeImage], params);
+    const videoPromise = provider.imageToVideo(fakeImage, params);
     await vi.runAllTimersAsync();
 
     const result = await videoPromise;

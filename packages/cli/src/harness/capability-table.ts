@@ -315,11 +315,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "find_model",
     module: "models",
     impl: "packages/agents/src/capabilities/models.ts",
-    contract: "fdb5f2e60161",
+    contract: "cc6866ced0fd",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-models.test.ts",
-      "packages/agents/tests/capabilities-models-rankings.test.ts",
+      "packages/agents/tests/capabilities-models-and-storyboards-reference-video.test.ts",
     ],
     evals: [
       {
@@ -2473,11 +2473,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_storyboard_clips",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "99052baaa53f",
+    contract: "568457bf299c",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
-      "packages/agents/tests/capabilities-storyboard-board-ops.test.ts",
+      "packages/agents/tests/capabilities-models-and-storyboards-reference-video.test.ts",
     ],
     evals: [
       {

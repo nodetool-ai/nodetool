@@ -9,7 +9,13 @@
  * is open, which is the failure this suite exists to catch.
  */
 import { renderHook, act } from "@testing-library/react";
-import type { Shot } from "@nodetool-ai/protocol";
+import {
+  currentRenderInputs,
+  stampRenderInputs
+} from "@nodetool-ai/protocol";
+import type { Entity, Shot } from "@nodetool-ai/protocol";
+
+let mockEntities: Entity[] = [];
 
 jest.mock("../useGenerateShot", () => ({
   useGenerateShot: () => ({
@@ -31,12 +37,15 @@ jest.mock("../useDirectScreenplay", () => ({
   useDirectScreenplay: () => ({ direct: jest.fn() })
 }));
 jest.mock("../../../serverState/useEntities", () => ({
-  useEntities: () => ({ data: [] })
+  useEntities: () => ({ data: mockEntities })
 }));
 
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
 import type { FrontendToolState } from "../../../lib/tools/frontendTools";
-import { hasStoryboardAgentHandler } from "../../../components/storyboard/storyboardAgentBridge";
+import {
+  getStoryboardAgentHandler,
+  hasStoryboardAgentHandler
+} from "../../../components/storyboard/storyboardAgentBridge";
 import {
   useStoryboardStore,
   type StoryboardBoard
@@ -82,8 +91,60 @@ const seed = (): void => {
 };
 
 beforeEach(() => {
+  mockEntities = [];
   useStoryboardStore.setState({ boards: {}, history: {} } as never);
   seed();
+});
+
+it("reports reference clips stale after a cast reference replacement", async () => {
+  const entity: Entity = {
+    type: "entity",
+    id: "actor-1",
+    kind: "character",
+    name: "Mara",
+    descriptor: "a runner",
+    reference_images: [{ type: "image", asset_id: "ref-a", uri: "asset://ref-a" }]
+  };
+  mockEntities = [entity];
+  const referenceShot: Shot = {
+    type: "shot",
+    id: "shot-1",
+    index: 0,
+    action: "runs",
+    status: "rendered",
+    render_mode: "reference",
+    entity_ids: ["actor-1"]
+  };
+  referenceShot.clip = {
+    type: "video",
+    asset_id: "clip-1",
+    uri: "asset://clip-1",
+    render_inputs: stampRenderInputs(currentRenderInputs(referenceShot, {
+      aspect_ratio: "16:9",
+      image_model: "",
+      video_model: "video-1",
+      style_entity_id: null,
+      style: "",
+      scenes: null,
+      reference_asset_ids: ["ref-a"]
+    }, "clip"))
+  };
+  useStoryboardStore.getState().loadBoard(BOARD, {
+    ...board(),
+    entityIds: ["actor-1"],
+    style: "",
+    videoModel: { type: "video_model", id: "video-1", name: "Video", provider: "fal_ai" },
+    shots: [referenceShot]
+  });
+  const bridge = renderHook(() => useStoryboardAgentBridge(BOARD));
+
+  const fresh = getStoryboardAgentHandler(BOARD).getSnapshot();
+  expect(fresh.shots[0]?.staleClip).toBe(false);
+
+  mockEntities = [{ ...entity, reference_images: [{ type: "image", asset_id: "ref-b", uri: "asset://ref-b" }] }];
+  bridge.rerender();
+  const stale = getStoryboardAgentHandler(BOARD).getSnapshot();
+  expect(stale.shots[0]?.staleClip).toBe(true);
 });
 
 describe("the agent bridge a setup host registers", () => {

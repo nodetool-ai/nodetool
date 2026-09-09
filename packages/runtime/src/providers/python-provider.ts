@@ -314,13 +314,13 @@ export class PythonProvider extends BaseProvider {
   }
 
   async imageToVideo(
-    images: Uint8Array[],
+    image: Uint8Array,
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
     const { signal, ...wireParams } = params;
     return this._bridge.providerImageToVideo(
       this._pythonProviderId,
-      images[0] ?? new Uint8Array(),
+      image,
       { ...wireParams, model: params.model.id },
       this._secrets,
       signal

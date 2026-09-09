@@ -139,6 +139,14 @@ describe("planShotRenders freshness", () => {
     expect(stale.size).toBe(1);
   });
 
+  it("records reference overrides with references instead of a keyframe source", () => {
+    const target = shot({ id: "s1", index: 0, keyframe: { type: "image", asset_id: "frame" } });
+    const [plan] = planShotRenders(board([target]), [style], "clip", undefined, { mode: "reference" });
+    expect(plan.renderInputs.render_mode).toBe("reference");
+    expect(plan.renderInputs.reference_asset_ids).toEqual(["ref-1"]);
+    expect(plan.renderInputs.source_version_id).toBeUndefined();
+  });
+
   it("measures freshness against the board, not against the call's override", () => {
     const doc = stillsFixture();
     const plans = planShotRenders(doc, [style], "keyframe", ["s1"], {
@@ -205,6 +213,74 @@ describe("planShotRenders composition", () => {
     });
     expect(plans[0].mode).toBe("direct");
     expect(plans[0].prompt).toBe("The hall, slow push in, moody neon");
+  });
+
+  it("plans reference clips with ordered entity images and direct clip wording", () => {
+    const entity: Entity = {
+      type: "entity",
+      id: "person-1",
+      kind: "character",
+      name: "Mara",
+      descriptor: "a runner",
+      reference_images: [
+        { type: "image", asset_id: "mara-1", uri: "asset://mara-1" },
+        { type: "image", asset_id: "mara-2", uri: "asset://mara-2" }
+      ]
+    };
+    const target = shot({ id: "s1", index: 0, render_mode: "reference", entity_ids: ["person-1"] });
+    const [plan] = planShotRenders(
+      board([target]),
+      [entity],
+      "clip"
+    );
+    expect(plan.mode).toBe("reference");
+    expect(plan.referenceImages.map((image) => image.asset_id)).toEqual([
+      "mara-1",
+      "mara-2"
+    ]);
+    expect(plan.referenceAssetIds).toEqual(["mara-1", "mara-2"]);
+    expect(plan.prompt).toBe("action 0, moody neon");
+  });
+
+  it("marks a reference clip stale when entity reference assets change", () => {
+    const entity: Entity = {
+      type: "entity",
+      id: "person-1",
+      kind: "character",
+      name: "Mara",
+      descriptor: "a runner",
+      reference_images: [{ type: "image", asset_id: "mara-1", uri: "asset://mara-1" }]
+    };
+    const target = shot({ id: "s1", index: 0, render_mode: "reference", entity_ids: ["person-1"] });
+    const doc = { ...board([target]), entityIds: ["person-1"] };
+    const boardContext = boardRenderContext(doc, [entity]);
+    const recorded = {
+      ...target,
+      clip: {
+        type: "video" as const,
+        asset_id: "clip-1",
+        uri: "asset://clip-1",
+        render_inputs: stampRenderInputs(currentRenderInputs(target, boardContext, "clip"))
+      }
+    };
+    const changed = { ...entity, reference_images: [{ type: "image" as const, asset_id: "mara-2", uri: "asset://mara-2" }] };
+    expect(planShotRenders({ ...doc, shots: [recorded] }, [changed], "clip")[0].fresh).toBe(false);
+  });
+
+  it("tracks asset ids from URI-only entity references per shot", () => {
+    const entity: Entity = {
+      type: "entity",
+      id: "person-1",
+      kind: "character",
+      name: "Mara",
+      descriptor: "a runner",
+      reference_images: [{ type: "image", uri: "asset://mara-1.png" }]
+    };
+    const target = shot({ id: "s1", index: 0, render_mode: "reference", entity_ids: ["person-1"] });
+    const doc = { ...board([target]), entityIds: ["person-1"] };
+
+    expect(boardRenderContext(doc, [entity]).reference_asset_ids).toEqual(["mara-1"]);
+    expect(planShotRenders(doc, [entity], "clip")[0].referenceAssetIds).toEqual(["mara-1"]);
   });
 
   it("resolves targets by id, index or slug and keeps the order asked for", () => {

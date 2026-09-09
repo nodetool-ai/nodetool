@@ -605,6 +605,16 @@ export interface ImageToVideoParams {
   signal?: AbortSignal;
 }
 
+export interface ReferenceToVideoInputs {
+  images: Uint8Array[];
+  videos: Uint8Array[];
+}
+
+export interface ReferenceToVideoParams extends TextToVideoParams {
+  /** Allow conditioning on audio tracks carried by reference videos. */
+  useReferenceVideoAudio?: boolean | null;
+}
+
 /**
  * Transform an existing video into a restyled / edited video, guided by a
  * prompt (e.g. style transfer, motion restyle). Mirrors `ImageToImageParams`

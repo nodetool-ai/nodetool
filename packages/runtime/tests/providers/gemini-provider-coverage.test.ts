@@ -1253,7 +1253,7 @@ describe("GeminiProvider – imageToVideo", () => {
   it("throws on empty image", async () => {
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
     await expect(
-      provider.imageToVideo([new Uint8Array(0)], {
+      provider.imageToVideo(new Uint8Array(0), {
         model: { id: "veo-2.0-generate-001", name: "test", provider: "gemini" }
       })
     ).rejects.toThrow("empty");
@@ -1262,7 +1262,7 @@ describe("GeminiProvider – imageToVideo", () => {
   it("throws for non-veo model", async () => {
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
     await expect(
-      provider.imageToVideo([new Uint8Array([1, 2, 3])], {
+      provider.imageToVideo(new Uint8Array([1, 2, 3]), {
         model: { id: "gemini-2.0-flash", name: "test", provider: "gemini" }
       })
     ).rejects.toThrow("not a Veo model");
@@ -1297,7 +1297,7 @@ describe("GeminiProvider – imageToVideo", () => {
       } as unknown as Response);
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
-    const result = await provider.imageToVideo([new Uint8Array([1, 2, 3])], {
+    const result = await provider.imageToVideo(new Uint8Array([1, 2, 3]), {
       model: { id: "veo-2.0-generate-001", name: "test", provider: "gemini" },
       prompt: "animate this",
       durationSeconds: 8

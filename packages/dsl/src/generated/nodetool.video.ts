@@ -44,6 +44,29 @@ export function imageToVideo(inputs: ImageToVideoInputs): DslNode<ImageToVideoOu
   return createNode("nodetool.video.ImageToVideo", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
 
+// Reference To Video — nodetool.video.ReferenceToVideo
+export type ReferenceToVideoInputs = {
+  reference_images?: Connectable<ImageRef[]>;
+  reference_videos?: Connectable<VideoRef[]>;
+  model?: Connectable<unknown>;
+  prompt?: Connectable<string>;
+  use_reference_video_audio?: Connectable<boolean>;
+  negative_prompt?: Connectable<string>;
+  entities?: Connectable<Entity[]>;
+  aspect_ratio?: Connectable<string>;
+  resolution?: Connectable<string>;
+  duration?: Connectable<number>;
+  timeout_seconds?: Connectable<number>;
+};
+
+export interface ReferenceToVideoOutputs {
+  output: VideoRef;
+}
+
+export function referenceToVideo(inputs: ReferenceToVideoInputs): DslNode<ReferenceToVideoOutputs, "output"> {
+  return createNode("nodetool.video.ReferenceToVideo", inputs, { outputNames: ["output"], defaultOutput: "output" });
+}
+
 // Load Video File — nodetool.video.LoadVideoFile
 export type LoadVideoFileInputs = {
   path?: Connectable<string>;

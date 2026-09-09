@@ -44,6 +44,7 @@ import type {
   TTSModel,
   VideoModel
 } from "./types.js";
+import type { ReferenceToVideoInputs, ReferenceToVideoParams } from "./types.js";
 import { FalProvider } from "./fal-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 
@@ -101,6 +102,9 @@ export class NodetoolProvider extends BaseProvider {
         `NodeTool model "${modelId}" is not available on this server.`
       );
     }
+    if (task && Array.isArray(def.tasks) && !def.tasks.includes(task)) {
+      throw new Error(`NodeTool model "${modelId}" does not support ${task}.`);
+    }
     const delegate =
       (task === "image_to_image" ? def.editDelegate : undefined) ??
       (task === "text_to_video" ? def.textDelegate : undefined) ??
@@ -154,7 +158,8 @@ export class NodetoolProvider extends BaseProvider {
         if (def.editDelegate) capabilities.push("image_to_image");
       }
       if (def.kind === "video") {
-        capabilities.push("image_to_video");
+        if (def.tasks?.includes("image_to_video")) capabilities.push("image_to_video");
+        if (def.tasks?.includes("reference_to_video")) capabilities.push("reference_to_video");
         if (def.textDelegate) capabilities.push("text_to_video");
       }
       if (def.kind === "tts") capabilities.push("text_to_speech");
@@ -246,16 +251,24 @@ export class NodetoolProvider extends BaseProvider {
   }
 
   override async imageToVideo(
-    images: Uint8Array[],
+    image: Uint8Array,
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
-    const { provider, model } = this.delegateFor(params.model.id);
+    const { provider, model } = this.delegateFor(params.model.id, "image_to_video");
     return this.absorbing(provider, () =>
-      provider.imageToVideo(images, {
+      provider.imageToVideo(image, {
         ...params,
         model: { ...params.model, id: model, provider: provider.provider }
       })
     );
+  }
+
+  override async referenceToVideo(inputs: ReferenceToVideoInputs, params: ReferenceToVideoParams): Promise<Uint8Array> {
+    const { provider, model } = this.delegateFor(params.model.id, "reference_to_video");
+    return this.absorbing(provider, () => provider.referenceToVideo(inputs, {
+      ...params,
+      model: { ...params.model, id: model, provider: provider.provider }
+    }));
   }
 
   override async textToSpeechEncoded(args: {

@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
+import { setTimeout as waitForRetry } from "node:timers/promises";
 import { isFiniteNumber, isRecord, isString } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.providers.replicate");
@@ -69,10 +70,6 @@ export function replicateRetryAfterMs(error: unknown): number | null {
   return null;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 /**
  * Run a Replicate call, waiting out 429s instead of failing the node.
  *
@@ -82,9 +79,11 @@ function sleep(ms: number): Promise<void> {
  */
 export async function withReplicateRetry<T>(
   label: string,
-  run: () => Promise<T>
+  run: () => Promise<T>,
+  signal?: AbortSignal
 ): Promise<T> {
   for (let attempt = 0; ; attempt++) {
+    signal?.throwIfAborted();
     try {
       return await run();
     } catch (error) {
@@ -102,7 +101,11 @@ export async function withReplicateRetry<T>(
         delayMs: delay,
         retryAfterMs: requested
       });
-      await sleep(delay);
+      if (signal) {
+        await waitForRetry(delay, undefined, { signal });
+      } else {
+        await new Promise<void>((resolve) => setTimeout(resolve, delay));
+      }
     }
   }
 }

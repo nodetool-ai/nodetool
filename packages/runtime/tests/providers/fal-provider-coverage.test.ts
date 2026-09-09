@@ -412,15 +412,14 @@ describe("FalProvider — video endpoints", () => {
     const params: ImageToVideoParams = {
       prompt: "animate",
       model: {
-        id: "fal-ai/unknown-i2v-model",
+        id: "fal-ai/luma-dream-machine/image-to-video",
         name: "I2V",
         provider: "fal_ai"
       }
     };
-    const out = await p.imageToVideo([new Uint8Array([1, 2, 3])], params);
+    const out = await p.imageToVideo(new Uint8Array([1, 2, 3]), params);
     expect(out).toBeInstanceOf(Uint8Array);
     expect(uploadMock).toHaveBeenCalledTimes(1);
-    // Unknown endpoint falls back to image_url.
     expect(captured.image_url).toBe("https://fal.media/img.png");
   });
 
@@ -827,7 +826,7 @@ describe("FalProvider numeric field coercion", () => {
       subscribe: subscribeMock,
       storage: { upload: uploadMock }
     };
-    await p.imageToVideo([new Uint8Array([1, 2, 3])], {
+    await p.imageToVideo(new Uint8Array([1, 2, 3]), {
       prompt: "animate",
       model: { id: modelId, name: "M", provider: "fal_ai" },
       ...params

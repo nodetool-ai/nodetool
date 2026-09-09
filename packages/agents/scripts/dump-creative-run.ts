@@ -79,7 +79,7 @@ function createFalMediaBackend(fal: {
       return save(label, "png", bytes);
     },
     async video(from, prompt, label, durationSeconds) {
-      const bytes = await fal.imageToVideo([from], {
+      const bytes = await fal.imageToVideo(from, {
         model: videoModel,
         prompt,
         durationSeconds,

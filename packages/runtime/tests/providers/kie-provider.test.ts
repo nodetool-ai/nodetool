@@ -123,6 +123,48 @@ describe("KieProvider — imageToImage", () => {
   });
 });
 
+describe("KieProvider reference-to-video", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it("maps ordered images and videos to manifest upload names", async () => {
+    const { createdInputs } = mockKieFlow(["https://kie.test/i", "https://kie.test/v1", "https://kie.test/v2"]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+    await provider.referenceToVideo({ images: [new Uint8Array([1])], videos: [new Uint8Array([2]), new Uint8Array([3])] }, { model: { id: "minimax-h3/reference-to-video", name: "ref", provider: "kie" }, prompt: "keep", aspectRatio: "16:9", durationSeconds: 6, resolution: "2K" });
+    expect(createdInputs[0]).toMatchObject({ reference_image_urls: ["https://kie.test/i"], reference_video_urls: ["https://kie.test/v1", "https://kie.test/v2"], aspect_ratio: "16:9", duration: 6 });
+  });
+  it("accepts one reference video because H3's minimum is clip duration", async () => {
+    const { createdInputs } = mockKieFlow(["https://kie.test/video"]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+    await provider.referenceToVideo({ images: [], videos: [new Uint8Array([2])] }, {
+      model: { id: "minimax-h3/reference-to-video", name: "ref", provider: "kie" }, prompt: "keep"
+    });
+    expect(createdInputs[0].reference_video_urls).toEqual(["https://kie.test/video"]);
+    expect(createdInputs[0]).not.toHaveProperty("reference_image_urls");
+  });
+
+  it("rejects unsupported reference audio before any upload", async () => {
+    const { fetchMock } = mockKieFlow([]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+    await expect(provider.referenceToVideo({ images: [new Uint8Array([1])], videos: [new Uint8Array([2]), new Uint8Array([3])] }, { model: { id: "minimax-h3/reference-to-video", name: "ref", provider: "kie" }, prompt: "x", useReferenceVideoAudio: true })).rejects.toThrow("audio");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a pre-aborted reference request before fetch", async () => {
+    const { fetchMock } = mockKieFlow([]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+    const controller = new AbortController();
+    controller.abort();
+    await expect(provider.referenceToVideo({ images: [new Uint8Array([1])], videos: [] }, { model: { id: "minimax-h3/reference-to-video", name: "ref", provider: "kie" }, prompt: "x", signal: controller.signal })).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a reference-only model through image-to-video before fetch", async () => {
+    const { fetchMock } = mockKieFlow([]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+    await expect(provider.imageToVideo(new Uint8Array([1]), { model: { id: "minimax-h3/reference-to-video", name: "ref", provider: "kie" }, prompt: "x" })).rejects.toThrow("image_to_video");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
 describe("KieProvider — inpaint", () => {
   it("routes the source to the primary field and the mask to the mask field", async () => {
     const { createdInputs } = mockKieFlow([
@@ -158,7 +200,7 @@ describe("KieProvider — imageToVideo", () => {
       prompt: "pan left",
       durationSeconds: 5
     };
-    const result = await provider.imageToVideo([new Uint8Array([9])], params);
+    const result = await provider.imageToVideo(new Uint8Array([9]), params);
 
     expect(result).toEqual(new Uint8Array([7, 7, 7]));
     expect(createdInputs[0].image_url).toBe("https://kie.cdn/frame.png");
@@ -172,7 +214,7 @@ describe("KieProvider — imageToVideo", () => {
     const provider = new KieProvider({ KIE_API_KEY: "k" });
 
     // kling declares duration enum ["5","10"]; 7s is closer to 5.
-    await provider.imageToVideo([new Uint8Array([9])], {
+    await provider.imageToVideo(new Uint8Array([9]), {
       model: {
         id: "kling/v2-1-master-image-to-video",
         name: "Kling",
@@ -194,7 +236,7 @@ describe("KieProvider — imageToVideo", () => {
     mockKieFlow(["https://kie.cdn/frame.png"]);
     const provider = new KieProvider({ KIE_API_KEY: "k" });
 
-    const call = provider.imageToVideo([new Uint8Array([9])], {
+    const call = provider.imageToVideo(new Uint8Array([9]), {
       model: {
         id: "kling-2.6/image-to-video",
         name: "Kling 2.6",
@@ -211,7 +253,7 @@ describe("KieProvider — imageToVideo", () => {
     const { createdInputs } = mockKieFlow(["https://kie.cdn/frame.png"]);
     const provider = new KieProvider({ KIE_API_KEY: "k" });
 
-    await provider.imageToVideo([new Uint8Array([9])], {
+    await provider.imageToVideo(new Uint8Array([9]), {
       model: {
         id: "kling-2.6/image-to-video",
         name: "Kling 2.6",

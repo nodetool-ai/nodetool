@@ -349,6 +349,8 @@ export interface RenderInputs {
   style_entity_id: string | null;
   /** The still a keyframe-mode clip animated. */
   source_version_id?: string;
+  reference_asset_ids?: string[];
+  render_mode?: ShotRenderMode;
   recorded_at: string;
 }
 
@@ -374,6 +376,9 @@ export function renderInputsMatch(a: RenderInputs, b: RenderInputs): boolean {
     a.model === b.model &&
     a.aspect_ratio === b.aspect_ratio &&
     a.style_entity_id === b.style_entity_id &&
+    JSON.stringify(a.reference_asset_ids ?? []) ===
+      JSON.stringify(b.reference_asset_ids ?? []) &&
+    a.render_mode === b.render_mode &&
     a.source_version_id === b.source_version_id
   );
 }
@@ -499,12 +504,15 @@ export type ShotDurationSource = "audio" | "manual";
  * the native-audio models (dialogue, synced sound) are weakest on their
  * image path.
  */
-export type ShotRenderMode = "keyframe" | "direct";
+export type ShotRenderMode = "keyframe" | "direct" | "reference";
 
 /** A shot's render mode, with the default applied. */
 export const shotRenderMode = (
   shot: Pick<Shot, "render_mode">
-): ShotRenderMode => (shot.render_mode === "direct" ? "direct" : "keyframe");
+): ShotRenderMode =>
+  shot.render_mode === "direct" || shot.render_mode === "reference"
+    ? shot.render_mode
+    : "keyframe";
 
 /**
  * A scene: the set of shots sharing its id. Those shots are contiguous in

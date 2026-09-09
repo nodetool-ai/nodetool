@@ -43,6 +43,7 @@ import { sceneOrder } from "../../lib/storyboard/sceneOrder";
 import { linkedScriptId } from "../../lib/scriptStoryboardLink";
 import { assetLocator } from "../../utils/mediaRef";
 import { DEFAULT_SETUP_SHOT_COUNT } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
+import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
 
 /**
  * Shot count a Director run defaults to when neither the caller nor the board
@@ -55,21 +56,8 @@ const DEFAULT_SHOT_COUNT = DEFAULT_SETUP_SHOT_COUNT;
  * board's one style entity — the same id `setStylePreset` writes — so a preset
  * change is what makes a version stale, not every cast edit.
  */
-const renderContext = (board: StoryboardBoard, entities: readonly Entity[]) => {
-  const styleIds = new Set(
-    entities.filter((e) => e.kind === "style").map((e) => e.id)
-  );
-  const styleEntityId =
-    [...board.entityIds].reverse().find((id) => styleIds.has(id)) ?? null;
-  return {
-    aspect_ratio: board.aspectRatio,
-    image_model: board.imageModel?.id ?? "",
-    video_model: board.videoModel?.id ?? "",
-    style_entity_id: styleEntityId,
-    style: board.style,
-    scenes: board.screenplay?.scenes ?? null
-  };
-};
+const renderContext = (board: StoryboardBoard, entities: readonly Entity[], shot?: Shot) =>
+  boardRenderContext(board, entities, shot);
 
 const toSceneNode = (
   scene: { id: string; slugline: string; lighting?: string },
@@ -103,7 +91,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
     };
 
     const toShotNode = (shot: Shot): StoryboardShotNode => {
-      const context = renderContext(requireBoard(), entities);
+      const context = renderContext(requireBoard(), entities, shot);
       return {
         id: shot.id,
         index: shot.index,
@@ -229,13 +217,12 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
       run: (shot: Shot) => Promise<void>
     ): Promise<StoryboardRenderResult> => {
       const selected = requireShots(target);
-      const context = renderContext(requireBoard(), entities);
       const chosen = options?.staleOnly
         ? selected.filter((shot) =>
             isVersionStale(
               kind === "keyframe" ? shot.keyframe : shot.clip,
               shot,
-              context
+              renderContext(requireBoard(), entities, shot)
             )
           )
         : selected;

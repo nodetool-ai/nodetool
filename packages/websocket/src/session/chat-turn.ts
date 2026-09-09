@@ -2988,7 +2988,7 @@ export class ChatTurnHandler {
                 { ...videoParams, images: [sourceBytes] },
                 { mime: "video/mp4" },
                 (abort) =>
-                  provider.imageToVideo([sourceBytes], {
+                  provider.imageToVideo(sourceBytes, {
                     model: videoModel,
                     prompt: expandedPrompt,
                     aspectRatio,
@@ -3327,7 +3327,7 @@ export class ChatTurnHandler {
           },
           { mime: "video/mp4" },
           (abort) =>
-            provider.imageToVideo([sourceBytes], { ...params, signal: abort })
+            provider.imageToVideo(sourceBytes, { ...params, signal: abort })
         );
         if (cancelled()) return;
         const assetId =

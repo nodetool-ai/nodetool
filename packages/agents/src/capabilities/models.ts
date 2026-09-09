@@ -153,6 +153,7 @@ const CAPABILITY_REF_TYPE = {
   segment_image: "image_model",
   text_to_video: "video_model",
   image_to_video: "video_model",
+  reference_to_video: "video_model",
   text_to_speech: "tts_model",
   // A music-typed node property takes a `music_model`, never a `tts_model`.
   // Handing back the wrong tag made every music ref unassignable: the property
@@ -201,6 +202,8 @@ function capabilityToRecommendedTasks(
       return new Set(["text_to_video"]);
     case "image_to_video":
       return new Set(["image_to_video"]);
+    case "reference_to_video":
+      return new Set(["reference_to_video"]);
     case "generate_embedding":
       return new Set(["embedding"]);
     case "generate_message":
@@ -222,6 +225,7 @@ function capabilityToRecommendedModalities(
       return new Set(["image"]);
     case "text_to_video":
     case "image_to_video":
+    case "reference_to_video":
       return new Set(["video"]);
     case "text_to_speech":
       return new Set(["tts"]);
@@ -246,6 +250,7 @@ async function fetchModelsForCapability(
       return await provider.getAvailableImageModels();
     case "text_to_video":
     case "image_to_video":
+    case "reference_to_video":
       return await provider.getAvailableVideoModels();
     case "text_to_speech":
       return await provider.getAvailableTTSModels();
@@ -287,6 +292,7 @@ function capabilityTask(capability: SupportedCapability): string | null {
     case "image_to_image":
     case "text_to_video":
     case "image_to_video":
+    case "reference_to_video":
     case "text_to_speech":
     case "text_to_music":
       return capability;

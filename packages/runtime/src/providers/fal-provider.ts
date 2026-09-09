@@ -35,6 +35,7 @@ import type {
   VideoToVideoParams,
   LipSyncParams
 } from "./types.js";
+import type { ReferenceToVideoInputs, ReferenceToVideoParams } from "./types.js";
 import {
   loadImageModels,
   loadManifest,
@@ -45,9 +46,11 @@ import {
   sizeEnumToAspect,
   type ModelImageInput
 } from "./manifest-models.js";
+import { validateReferenceInputs, getModelReferenceInputs } from "./manifest-models.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { snapToGptImage2Size } from "./gpt-image-size.js";
 import { detectImageMime } from "./image-mime.js";
+import { sniffMediaMime } from "./media-mime.js";
 import { safeFetch } from "./safe-url.js";
 import {
   isNonEmptyString,
@@ -57,6 +60,13 @@ import {
 } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.providers.fal");
+
+function combineSignals(signal: AbortSignal | undefined, timeoutSeconds?: number | null): AbortSignal | undefined {
+  const timeout = timeoutSeconds && timeoutSeconds > 0 ? AbortSignal.timeout(timeoutSeconds * 1000) : undefined;
+  if (!signal) return timeout;
+  if (!timeout) return signal;
+  return AbortSignal.any([signal, timeout]);
+}
 
 const FAL_MANIFEST_PKG = "@nodetool-ai/fal-nodes";
 const FAL_MANIFEST_PATH = "fal-manifest.json";
@@ -431,6 +441,21 @@ class FalArgsBuilder {
     } else {
       this.args[fallbackApiName ?? `${kind}_url`] = urls[0];
     }
+    return this;
+  }
+
+  referenceAssetInputs(kind: "image" | "video"): ModelImageInput[] {
+    return getModelReferenceInputs(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, this.modelId)
+      .filter((field) => field.kind === kind)
+      .map(({ kind: _kind, ...field }) => field);
+  }
+
+  attachReferenceAssets(kind: "image" | "video", urls: string[]): this {
+    if (urls.length === 0) return this;
+    const fields = this.referenceAssetInputs(kind);
+    const field = fields[0];
+    if (!field) return this;
+    this.args[field.apiName] = field.isList ? urls : urls[0];
     return this;
   }
 
@@ -1064,7 +1089,7 @@ export class FalProvider extends BaseProvider {
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     const urls = extractImageUrls(data);
-    return Promise.all(urls.map(downloadBytes));
+    return Promise.all(urls.map((url) => downloadBytes(url)));
   }
 
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
@@ -1107,7 +1132,7 @@ export class FalProvider extends BaseProvider {
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     const urls = extractImageUrls(data);
-    return Promise.all(urls.map(downloadBytes));
+    return Promise.all(urls.map((url) => downloadBytes(url)));
   }
 
   override async textToImages(
@@ -1133,16 +1158,17 @@ export class FalProvider extends BaseProvider {
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     const urls = extractImageUrls(data);
-    return Promise.all(urls.map(downloadBytes));
+    return Promise.all(urls.map((url) => downloadBytes(url)));
   }
 
   override async imageToVideo(
-    images: Uint8Array[],
+    image: Uint8Array,
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
+    if (!(loadVideoModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai").find((m) => m.id === params.model.id)?.supportedTasks?.includes("image_to_video") ?? false)) throw new Error(`FAL model ${params.model.id} does not support image_to_video`);
     const client = await this.getClient();
     const modelId = params.model.id;
-    const args = await this.buildImageToVideoArgs(modelId, images, params);
+    const args = await this.buildImageToVideoArgs(modelId, [image], params);
     this.recordRequestPayload(args);
     log.debug("FAL imageToVideo", { model: modelId });
     const result = await client.subscribe(modelId, {
@@ -1153,6 +1179,40 @@ export class FalProvider extends BaseProvider {
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     return downloadBytes(extractVideoUrl(data));
+  }
+
+  override async referenceToVideo(
+    inputs: ReferenceToVideoInputs,
+    params: ReferenceToVideoParams
+  ): Promise<Uint8Array> {
+    const images = inputs.images.filter((b) => b.length > 0);
+    const videos = inputs.videos.filter((b) => b.length > 0);
+    if (images.length === 0 && videos.length === 0) {
+      throw new Error("reference_to_video requires at least one reference image or video");
+    }
+    const modelId = params.model.id;
+    const builder = new FalArgsBuilder(modelId);
+    if (!(loadVideoModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai").find((m) => m.id === modelId)?.supportedTasks?.includes("reference_to_video") ?? false)) throw new Error(`FAL model ${modelId} does not support reference_to_video`);
+    validateReferenceInputs("FAL", modelId, inputs, getModelReferenceInputs(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, modelId));
+    const imageFields = builder.referenceAssetInputs("image");
+    const videoFields = builder.referenceAssetInputs("video");
+    if (images.length > 0 && imageFields.length === 0) throw new Error(`FAL model ${modelId} does not support reference images`);
+    if (videos.length > 0 && videoFields.length === 0) throw new Error(`FAL model ${modelId} does not support reference videos`);
+    if (params.useReferenceVideoAudio === true && videos.length === 0) throw new Error(`FAL model ${modelId} requires a reference video when audio is enabled`);
+    if (params.useReferenceVideoAudio === true && !builder.has("use_reference_video_audio")) throw new Error(`FAL model ${modelId} does not support reference video audio`);
+    const signal = combineSignals(params.signal, params.timeoutSeconds);
+    signal?.throwIfAborted();
+    const imageUrls = await Promise.all(images.map((b) => this.upload(b, detectImageMime(b))));
+    const videoUrls = await Promise.all(videos.map((b) => this.upload(b, sniffMediaMime(b, "video/mp4"))));
+    signal?.throwIfAborted();
+    builder.attachReferenceAssets("image", imageUrls).attachReferenceAssets("video", videoUrls)
+      .set("prompt", params.prompt).set("negative_prompt", params.negativePrompt)
+      .set("duration", params.durationSeconds).setSize(params.aspectRatio, params.resolution)
+      .set("use_reference_video_audio", params.useReferenceVideoAudio);
+    this.recordRequestPayload(builder.args);
+    const client = await this.getClient();
+    const result = await client.subscribe(modelId, { input: builder.args, logs: true, onQueueUpdate: this.makeQueueUpdateHandler(), abortSignal: signal });
+    return downloadBytes(extractVideoUrl((result.data ?? result) as Record<string, unknown>), signal);
   }
 
   /** Upload raw bytes to FAL storage and return the hosted URL. */
@@ -1704,8 +1764,8 @@ export function extractAudioUrl(result: Record<string, unknown>): string {
   throw new Error(`Unexpected FAL audio response: ${JSON.stringify(result)}`);
 }
 
-async function downloadBytes(url: string): Promise<Uint8Array> {
-  const res = await safeFetch(url);
+async function downloadBytes(url: string, signal?: AbortSignal): Promise<Uint8Array> {
+  const res = await safeFetch(url, signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`Failed to download FAL result: ${res.status}`);
   const buf = await res.arrayBuffer();
   return new Uint8Array(buf);

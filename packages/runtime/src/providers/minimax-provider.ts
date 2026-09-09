@@ -17,6 +17,7 @@ import type { OpenAIProvider } from "./openai-provider.js";
 import { createLogger } from "@nodetool-ai/config";
 import { safeFetch } from "./safe-url.js";
 import { fetchWithRetry, pollUntilTerminal } from "./http-transport.js";
+import { sniffImageMime } from "./image-mime.js";
 import type {
   EncodedAudioResult,
   ImageModel,
@@ -29,13 +30,23 @@ import type {
   TextToMusicParams,
   TextToVideoParams,
   TTSModel,
-  VideoModel
+  VideoModel,
+  ReferenceToVideoInputs,
+  ReferenceToVideoParams
 } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.minimax");
 
 const MINIMAX_BASE_URL = "https://api.minimax.io";
 const MINIMAX_OPENAI_BASE_URL = `${MINIMAX_BASE_URL}/v1`;
+
+function combineSignals(
+  request: AbortSignal | undefined,
+  timeout: AbortSignal | undefined
+): AbortSignal | undefined {
+  if (request && timeout) return AbortSignal.any([request, timeout]);
+  return request ?? timeout;
+}
 
 /**
  * Known voice IDs shipped with MiniMax speech models. This is a curated subset
@@ -278,7 +289,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
         id: "S2V-01",
         name: "MiniMax Video-01 Subject",
         provider: "minimax",
-        supportedTasks: ["image_to_video"]
+        supportedTasks: ["reference_to_video"]
       }
     ];
   }
@@ -557,20 +568,39 @@ export class MinimaxProvider extends OpenAICompatProvider {
       prompt: params.prompt,
       durationSeconds: params.durationSeconds,
       resolution: params.resolution,
-      signal: this._timeoutSignal(params.timeoutSeconds)
+      signal: combineSignals(params.signal, this._timeoutSignal(params.timeoutSeconds))
     });
   }
 
   override async imageToVideo(
-    images: Uint8Array[],
+    image: Uint8Array,
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
+    const model = (await this.getAvailableVideoModels()).find((m) => m.id === params.model.id);
+    if (!model?.supportedTasks?.includes("image_to_video")) throw new Error(`MiniMax model ${params.model.id} does not support image_to_video`);
     return this._generateVideo(params.model.id, {
       prompt: params.prompt ?? undefined,
       durationSeconds: params.durationSeconds,
       resolution: params.resolution,
-      firstFrame: images[0],
-      signal: this._timeoutSignal(params.timeoutSeconds)
+      firstFrame: image,
+      signal: combineSignals(params.signal, this._timeoutSignal(params.timeoutSeconds))
+    });
+  }
+
+  override async referenceToVideo(inputs: ReferenceToVideoInputs, params: ReferenceToVideoParams): Promise<Uint8Array> {
+    const images = inputs.images.filter((b) => b.length > 0);
+    const videos = inputs.videos.filter((b) => b.length > 0);
+    if (images.length === 0 && videos.length === 0) throw new Error("reference_to_video requires at least one reference image or video");
+    if (params.model.id !== "S2V-01") throw new Error(`MiniMax model ${params.model.id} does not support reference_to_video`);
+    if (videos.length > 0) throw new Error(`MiniMax model ${params.model.id} does not support reference videos`);
+    if (params.useReferenceVideoAudio === true) throw new Error(`MiniMax model ${params.model.id} does not support reference video audio`);
+    if (images.length !== 1) throw new Error(`MiniMax model ${params.model.id} accepts exactly one reference image`);
+    return this._generateVideo(params.model.id, {
+      prompt: params.prompt ?? undefined,
+      durationSeconds: params.durationSeconds,
+      resolution: params.resolution,
+      subjectReference: images[0],
+      signal: combineSignals(params.signal, this._timeoutSignal(params.timeoutSeconds))
     });
   }
 
@@ -594,6 +624,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
       durationSeconds?: number | null;
       resolution?: string | null;
       firstFrame?: Uint8Array;
+      subjectReference?: Uint8Array;
       signal?: AbortSignal;
     }
   ): Promise<Uint8Array> {
@@ -633,15 +664,13 @@ export class MinimaxProvider extends OpenAICompatProvider {
       }
     }
 
-    if (opts.firstFrame) {
+    if (opts.subjectReference) {
+      const mime = sniffImageMime(opts.subjectReference) ?? "image/png";
+      const dataUrl = `data:${mime};base64,${b64(opts.subjectReference)}`;
+      body.subject_reference = [{ type: "character", image: [dataUrl] }];
+    } else if (opts.firstFrame) {
       const dataUrl = `data:image/png;base64,${b64(opts.firstFrame)}`;
-      if (modelId === "S2V-01") {
-        // S2V-01 animates a character reference, not a first frame, and
-        // rejects first_frame_image.
-        body.subject_reference = [{ type: "character", image: [dataUrl] }];
-      } else {
-        body.first_frame_image = dataUrl;
-      }
+      body.first_frame_image = dataUrl;
     }
 
     log.debug("MiniMax textToVideo submit", { model: modelId });

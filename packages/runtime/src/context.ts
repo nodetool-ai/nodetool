@@ -44,8 +44,10 @@ import { generationRegistry } from "./generation-registry.js";
 import { redactGenerationParams } from "./redact-params.js";
 import {
   isCallable,
+  isBoolean,
   isNonEmptyString,
   isObjectLike,
+  isNumber,
   isRecord,
   isString
 } from "@nodetool-ai/protocol";
@@ -300,6 +302,7 @@ export type ProviderCapability =
   | "vectorize_image"
   | "text_to_video"
   | "image_to_video"
+  | "reference_to_video"
   | "video_to_video"
   | "lip_sync"
   | "text_to_speech"
@@ -385,6 +388,7 @@ export type ProviderPredictionResult = Awaited<
       | "inpaint"
       | "textToVideo"
       | "imageToVideo"
+      | "referenceToVideo"
       | "upscaleImage"
       | "removeBackground"
       | "relightImage"
@@ -780,6 +784,21 @@ function coerceImageList(params: Record<string, unknown>): Uint8Array[] {
   }
   const single = params.image;
   return single instanceof Uint8Array ? [single] : [];
+}
+
+function coerceByteList(value: unknown): Uint8Array[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is Uint8Array => item instanceof Uint8Array && item.byteLength > 0
+  );
+}
+
+function firstNonEmptyByteList(value: Uint8Array[]): Uint8Array {
+  return value.find((bytes) => bytes.byteLength > 0) ?? new Uint8Array();
+}
+
+function isAbortSignal(value: unknown): value is AbortSignal {
+  return isObjectLike(value) && isBoolean(value.aborted) && isCallable(value.addEventListener);
 }
 
 /**
@@ -2978,7 +2997,7 @@ export class ProcessingContext {
           timeoutSeconds: params.timeout_seconds as number | undefined
         });
       case "image_to_video":
-        return provider.imageToVideo(coerceImageList(params), {
+        return provider.imageToVideo(firstNonEmptyByteList(coerceImageList(params)), {
           signal: params.signal as AbortSignal | undefined,
           prompt: params.prompt as string | undefined,
           entities: await coerceEntityList(params, this),
@@ -2990,6 +3009,37 @@ export class ProcessingContext {
           resolution: params.resolution as string | undefined,
           timeoutSeconds: params.timeout_seconds as number | undefined
         });
+      case "reference_to_video": {
+        const images = coerceByteList(params.reference_images);
+        const videos = coerceByteList(params.reference_videos);
+        if (images.length === 0 && videos.length === 0) {
+          throw new Error("reference_to_video requires at least one reference image or video");
+        }
+        return provider.referenceToVideo(
+          { images, videos },
+          {
+            model: { id: req.model, name: req.model, provider: req.provider },
+            prompt: isString(params.prompt) ? params.prompt : "",
+            entities: await coerceEntityList(params, this),
+            useReferenceVideoAudio: isBoolean(params.use_reference_video_audio)
+              ? params.use_reference_video_audio
+              : undefined,
+            negativePrompt: isString(params.negative_prompt)
+              ? params.negative_prompt
+              : undefined,
+            numFrames: isNumber(params.num_frames) ? params.num_frames : undefined,
+            durationSeconds: isNumber(params.duration_seconds)
+              ? params.duration_seconds
+              : undefined,
+            aspectRatio: isString(params.aspect_ratio) ? params.aspect_ratio : undefined,
+            resolution: isString(params.resolution) ? params.resolution : undefined,
+            timeoutSeconds: isNumber(params.timeout_seconds)
+              ? params.timeout_seconds
+              : undefined,
+            signal: isAbortSignal(params.signal) ? params.signal : undefined
+          }
+        );
+      }
       case "upscale_image":
         return provider.upscaleImage(params.image as Uint8Array, {
           model: { id: req.model, name: req.model, provider: req.provider },
@@ -3960,6 +4010,7 @@ function generationResultData(
 const VIDEO_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
   "text_to_video",
   "image_to_video",
+  "reference_to_video",
   "video_to_video",
   "lip_sync"
 ]);

@@ -75,7 +75,7 @@ interface ShotCardProps {
    * stale marker on the pill. Passed in from where the board's models, style
    * and scenes already are.
    */
-  renderContext?: BoardRenderContext | null;
+  renderContext?: BoardRenderContext | ((shot: Shot) => BoardRenderContext) | null;
   /** True when this card is the board's selected shot. */
   selected?: boolean;
   /** Selects (or, on the selected card, deselects) this shot. */
@@ -156,6 +156,8 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   onDrop
 }) => {
   const theme = useTheme();
+  const shotRenderContext =
+    typeof renderContext === "function" ? renderContext(shot) : renderContext;
   // The still or clip the fullscreen viewer shows; null when it is closed.
   const [viewerMedia, setViewerMedia] = useState<ImageRef | VideoRef | null>(
     null
@@ -391,7 +393,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       <Box
         sx={{
           ...mediaSx,
-          aspectRatio: (renderContext?.aspect_ratio ?? "16:9").replace(
+          aspectRatio: (shotRenderContext?.aspect_ratio ?? "16:9").replace(
             ":",
             " / "
           )
@@ -433,7 +435,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         />
         <ShotStatusPill
           shot={shot}
-          renderContext={renderContext}
+          renderContext={shotRenderContext}
           sx={{
             position: "absolute",
             right: SPACING.md,

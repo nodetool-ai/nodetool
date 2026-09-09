@@ -68,6 +68,7 @@ const RANKED_TASK_MODEL_TYPE: Record<string, string> = {
   image_to_image: "image_model",
   text_to_video: "video_model",
   image_to_video: "video_model",
+  reference_to_video: "video_model",
   text_to_speech: "tts_model",
   text_to_music: "music_model"
 };

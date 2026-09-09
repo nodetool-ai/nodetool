@@ -827,6 +827,8 @@ export class CommandRouter {
       const audioFormat = isString(data.audio_format)
         ? (data.audio_format as string)
         : undefined;
+      const capability = data.capability === "reference_to_video" ? "reference_to_video" : undefined;
+      const referenceImages = Array.isArray(data.reference_images) ? data.reference_images : undefined;
       return this.runRpc(command, requestId, () =>
         inference.runDirectMediaGeneration({
           mode,
@@ -847,6 +849,8 @@ export class CommandRouter {
           voice,
           speed,
           audioFormat,
+          capability,
+          referenceImages,
           requestId
         })
       );

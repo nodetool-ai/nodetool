@@ -179,11 +179,9 @@ describe("AtlasCloudProvider — getAvailableVideoModels", () => {
     expect(byId.get("bytedance/seedance-2.0/image-to-video")?.supportedTasks).toEqual([
       "image_to_video"
     ]);
-    // reference-to-video is image-conditioned: it needs the reference stills,
-    // so it is not an answer to a text_to_video search.
     expect(
       byId.get("bytedance/seedance-2.0/reference-to-video")?.supportedTasks
-    ).toEqual(["image_to_video"]);
+    ).toEqual(["reference_to_video"]);
   });
 });
 
@@ -488,7 +486,7 @@ describe("AtlasCloudProvider — imageToVideo", () => {
     mockAtlasFetch({ capture });
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
     await p.imageToVideo(
-      [Uint8Array.from([0xff, 0xd8, 0xff])], // JPEG magic
+      Uint8Array.from([0xff, 0xd8, 0xff]), // JPEG magic
       {
         model: videoModel("bytedance/seedance-2.0/image-to-video"),
         prompt: "drift forward"
@@ -503,18 +501,18 @@ describe("AtlasCloudProvider — imageToVideo", () => {
   it("rejects models without an input image field (e.g. text-to-video)", async () => {
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
     await expect(
-      p.imageToVideo([Uint8Array.from([1])], {
+      p.imageToVideo(Uint8Array.from([1]), {
         model: videoModel("bytedance/seedance-2.0/text-to-video"),
         prompt: "x"
       })
-    ).rejects.toThrow("does not accept an input image");
+    ).rejects.toThrow("does not support image_to_video");
   });
 
-  it("falls back to `reference_images` on reference-to-video", async () => {
+  it("maps `reference_images` through referenceToVideo", async () => {
     const capture: { submitBody?: Record<string, unknown> } = {};
     mockAtlasFetch({ capture });
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
-    await p.imageToVideo([Uint8Array.from([0x89, 0x50, 0x4e, 0x47])], {
+    await p.referenceToVideo({ images: [Uint8Array.from([0x89, 0x50, 0x4e, 0x47])], videos: [] }, {
       model: videoModel("bytedance/seedance-2.0/reference-to-video"),
       prompt: "spin it"
     });
@@ -529,7 +527,7 @@ describe("AtlasCloudProvider — imageToVideo", () => {
     const capture: { submitBody?: Record<string, unknown> } = {};
     mockAtlasFetch({ capture });
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
-    await p.imageToVideo([Uint8Array.from([0x89, 0x50, 0x4e, 0x47])], {
+    await p.referenceToVideo({ images: [Uint8Array.from([0x89, 0x50, 0x4e, 0x47])], videos: [] }, {
       model: videoModel("minimax/h3/reference-to-video"),
       prompt: "anchor on this"
     });

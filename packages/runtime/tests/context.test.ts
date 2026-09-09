@@ -28,6 +28,7 @@ import {
 } from "../src/index.js";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+const portablePath = (value: string): string => value.replace(/^\/private/, "");
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
@@ -627,8 +628,8 @@ describe("workspace path resolution", () => {
       jobId: "j1",
       workspaceDir: "/tmp/nodetool-workspace"
     });
-    expect(ctx.resolveWorkspacePath("workspace/out.json")).toBe(
-      resolve("/tmp/nodetool-workspace", "out.json")
+    expect(portablePath(ctx.resolveWorkspacePath("workspace/out.json"))).toBe(
+      portablePath(resolve("/tmp/nodetool-workspace", "out.json"))
     );
   });
 });
@@ -1322,7 +1323,7 @@ describe("ProcessingContext – asset helper methods", () => {
       });
 
       const filePath = await ctx.assetToSandbox("asset-42", "imports/a.txt");
-      expect(filePath).toBe(join(root, "imports/a.txt"));
+      expect(portablePath(filePath)).toBe(portablePath(join(root, "imports/a.txt")));
       await expect(readFile(filePath, "utf8")).resolves.toBe("downloaded");
     } finally {
       await rm(root, { recursive: true, force: true });
@@ -2170,10 +2171,10 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
   });
 
   it("dispatches image_to_video with a list of images", async () => {
-    let received: Uint8Array[] | undefined;
+    let received: Uint8Array | undefined;
     class I2VProvider extends MockProvider {
-      override async imageToVideo(images: Uint8Array[]): Promise<Uint8Array> {
-        received = images;
+      override async imageToVideo(image: Uint8Array): Promise<Uint8Array> {
+        received = image;
         return new Uint8Array([7]);
       }
     }
@@ -2186,7 +2187,31 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
       params: { images: [new Uint8Array([1])] }
     });
     expect(result).toEqual(new Uint8Array([7]));
-    expect(received).toEqual([new Uint8Array([1])]);
+    expect(received).toEqual(new Uint8Array([1]));
+  });
+
+  it("dispatches ordered reference image and video inputs and rejects empties", async () => {
+    let received: { images: Uint8Array[]; videos: Uint8Array[] } | undefined;
+    class RefProvider extends MockProvider {
+      override async referenceToVideo(inputs: { images: Uint8Array[]; videos: Uint8Array[] }): Promise<Uint8Array> {
+        received = inputs;
+        return new Uint8Array([8]);
+      }
+    }
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    ctx.registerProvider("ref", new RefProvider());
+    await expect(ctx.runProviderPrediction({
+      provider: "ref", capability: "reference_to_video", model: "m",
+      params: {
+        reference_images: [new Uint8Array(), new Uint8Array([1])],
+        reference_videos: [new Uint8Array([2])]
+      }
+    })).resolves.toEqual(new Uint8Array([8]));
+    expect(received).toEqual({ images: [new Uint8Array([1])], videos: [new Uint8Array([2])] });
+    await expect(ctx.runProviderPrediction({
+      provider: "ref", capability: "reference_to_video", model: "m",
+      params: { reference_images: [new Uint8Array()], reference_videos: [] }
+    })).rejects.toThrow("requires at least one reference image or video");
   });
 
   it("dispatches automatic_speech_recognition", async () => {

@@ -28,6 +28,7 @@ import React, {
   useState
 } from "react";
 import { shotRenderMode } from "@nodetool-ai/protocol";
+import type { Shot } from "@nodetool-ai/protocol";
 import AddIcon from "@mui/icons-material/Add";
 import TuneIcon from "@mui/icons-material/Tune";
 
@@ -525,7 +526,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     () =>
       shots.filter(
         (s) =>
-          shotRenderMode(s) !== "direct" &&
+          shotRenderMode(s) === "keyframe" &&
           !s.keyframe &&
           (s.status === "planned" || s.status === "failed")
       ),
@@ -533,14 +534,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   );
 
   const hasIncompleteStills = shots.some(
-    (s) => shotRenderMode(s) !== "direct" && !s.keyframe
+    (s) => shotRenderMode(s) === "keyframe" && !s.keyframe
   );
 
   const pendingClips = useMemo(
     () =>
       shots.filter(
         (s) =>
-          (!!s.keyframe || shotRenderMode(s) === "direct") &&
+          (!!s.keyframe || shotRenderMode(s) === "direct" || shotRenderMode(s) === "reference") &&
           !s.clip &&
           s.status !== "keyframe_generating" &&
           s.status !== "clip_generating"
@@ -557,6 +558,11 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       : null;
   const stillStepActive = nextRenderStep === "stills";
   const clipStepActive = nextRenderStep === "clips";
+  const clipModelTask = shots.some((shot) => shotRenderMode(shot) === "reference")
+    ? "reference_to_video"
+    : shots.some((shot) => shotRenderMode(shot) === "direct")
+      ? "text_to_video"
+      : "image_to_video";
   const missingModelStep = stillStepActive
     ? imageModel?.id
       ? null
@@ -578,11 +584,12 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   // enqueue path stamped a version with, so it is derived once here rather
   // than per card (PRD § 7.7.4). Built from what `useBoard` already returned,
   // not a second read of the store.
-  const renderContext = useMemo(
-    () =>
+  const renderContext = useCallback(
+    (shot: Shot) =>
       boardRenderContext(
         { aspectRatio, style, entityIds, imageModel, videoModel, screenplay },
-        allEntities ?? []
+        allEntities ?? [],
+        shot
       ),
     [aspectRatio, style, entityIds, imageModel, videoModel, screenplay, allEntities]
   );
@@ -818,7 +825,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     <FormField label="Clip model" sx={modelFieldSx}>
                       <VideoModelSelect
                         value={videoModel?.id ?? ""}
-                        task="image_to_video"
+                        task={clipModelTask}
                         onChange={(value) => setVideoModel(boardId, value)}
                       />
                       {clipStepActive && !videoModel?.id && (

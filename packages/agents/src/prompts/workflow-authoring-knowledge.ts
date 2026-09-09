@@ -23,6 +23,7 @@ export type GenericNodeCapability =
   | "image_to_image"
   | "text_to_video"
   | "image_to_video"
+  | "reference_to_video"
   | "text_to_speech"
   | "automatic_speech_recognition"
   | "generate_embedding"
@@ -77,6 +78,14 @@ export const GENERIC_AI_NODES: readonly GenericAINode[] = [
     task: "Image → Video",
     summary:
       "Animate a source image into a video. Required: image, prompt, model.",
+    acceptsModel: true
+  },
+  {
+    type: "nodetool.video.ReferenceToVideo",
+    capability: "reference_to_video",
+    task: "Reference → Video",
+    summary:
+      "Generate a video guided by ordered reference images and videos. Required: at least one reference image or video, prompt, model.",
     acceptsModel: true
   },
   {

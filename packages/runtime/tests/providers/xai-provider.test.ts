@@ -550,7 +550,7 @@ describe("XAIProvider", () => {
       { client: {} as any, fetchFn: mockFetch as any }
     );
 
-    await provider.imageToVideo([pngBytes], {
+    await provider.imageToVideo(pngBytes, {
       prompt: "animate",
       model: videoModel
     });
