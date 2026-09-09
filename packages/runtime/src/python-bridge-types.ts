@@ -575,6 +575,19 @@ export interface PythonBridge extends EventEmitter {
     params: Record<string, unknown>,
     secrets?: Record<string, string>
   ): Promise<Uint8Array>;
+  providerTextToVideo(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
+  ): Promise<Uint8Array>;
+  providerImageToVideo(
+    providerId: string,
+    image: Uint8Array,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
+  ): Promise<Uint8Array>;
   providerASR(
     providerId: string,
     audio: Uint8Array,

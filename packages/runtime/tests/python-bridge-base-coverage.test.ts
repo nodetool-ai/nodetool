@@ -10,14 +10,7 @@
  * bookkeeping — with zero I/O and full determinism.
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  vi
-} from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 import {
   BRIDGE_PROTOCOL_VERSION,
@@ -97,9 +90,8 @@ class TestBridge extends PythonBridgeBase {
   }
 
   comfyEventsSize(): number {
-    return (
-      this as unknown as { _pendingComfyEvents: Map<string, unknown> }
-    )._pendingComfyEvents.size;
+    return (this as unknown as { _pendingComfyEvents: Map<string, unknown> })
+      ._pendingComfyEvents.size;
   }
 }
 
@@ -408,7 +400,11 @@ describe("PythonBridgeBase — execute", () => {
     await connectBridge(bridge);
     const p = bridge.execute("n.T", {}, {}, {});
     const id = bridge.reqIdOf("execute");
-    bridge.handle({ type: "result", request_id: id, data: { outputs: { ok: 1 } } });
+    bridge.handle({
+      type: "result",
+      request_id: id,
+      data: { outputs: { ok: 1 } }
+    });
     await expect(p).resolves.toEqual({ outputs: { ok: 1 }, blobs: {} });
   });
 
@@ -653,7 +649,9 @@ describe("PythonBridgeBase — provider RPCs", () => {
       model: "gpt",
       temperature: 0.5
     });
-    reply("provider.generate", { message: { role: "assistant", content: "hi" } });
+    reply("provider.generate", {
+      message: { role: "assistant", content: "hi" }
+    });
     await expect(p).resolves.toEqual({ role: "assistant", content: "hi" });
   });
 
@@ -668,10 +666,72 @@ describe("PythonBridgeBase — provider RPCs", () => {
     const input = new Uint8Array([9]);
     const output = new Uint8Array([8]);
     const p = bridge.providerImageToImage("fal", input, { strength: 0.6 });
-    const frame = bridge.sent.find((f) => f.type === "provider.image_to_image")!;
+    const frame = bridge.sent.find(
+      (f) => f.type === "provider.image_to_image"
+    )!;
     expect((frame.data as Record<string, unknown>).image).toBe(input);
     reply("provider.image_to_image", { blobs: { image: output } });
     await expect(p).resolves.toBe(output);
+  });
+
+  it("providerTextToVideo returns the video blob", async () => {
+    const output = new Uint8Array([4, 5, 6]);
+    const p = bridge.providerTextToVideo("wangp", {
+      model: "t2v_2_2",
+      prompt: "ocean"
+    });
+    const frame = bridge.sent.find((f) => f.type === "provider.text_to_video")!;
+    expect(frame.data).toEqual({
+      provider: "wangp",
+      params: { model: "t2v_2_2", prompt: "ocean" },
+      secrets: {},
+      blob_transfer: "chunked-v1"
+    });
+    reply("provider.text_to_video", { blobs: { video: output } });
+    await expect(p).resolves.toBe(output);
+  });
+
+  it("providerImageToVideo sends the image and returns the video blob", async () => {
+    const input = new Uint8Array([1, 2]);
+    const output = new Uint8Array([7, 8]);
+    const p = bridge.providerImageToVideo(
+      "wangp",
+      input,
+      { model: "i2v_2_2", prompt: "move" },
+      { TOKEN: "secret" }
+    );
+    const frame = bridge.sent.find(
+      (f) => f.type === "provider.image_to_video"
+    )!;
+    expect(frame.data).toEqual({
+      provider: "wangp",
+      image: input,
+      params: { model: "i2v_2_2", prompt: "move" },
+      secrets: { TOKEN: "secret" },
+      blob_transfer: "chunked-v1"
+    });
+    reply("provider.image_to_video", { blobs: { video: output } });
+    await expect(p).resolves.toBe(output);
+  });
+
+  it("cancels an in-flight video provider request with its abort signal", async () => {
+    const controller = new AbortController();
+    const p = bridge.providerTextToVideo(
+      "wangp",
+      { model: "t2v_2_2", prompt: "ocean" },
+      {},
+      controller.signal
+    );
+    const request = bridge.sent.find(
+      (f) => f.type === "provider.text_to_video"
+    )!;
+    controller.abort();
+    await expect(p).rejects.toThrow("was cancelled");
+    expect(bridge.sent.at(-1)).toEqual({
+      type: "cancel",
+      request_id: request.request_id,
+      data: {}
+    });
   });
 
   it("providerASR maps text and chunks", async () => {
@@ -951,7 +1011,9 @@ describe("PythonBridgeBase — models & comfy proxy RPCs", () => {
         { folder: "loras", filename: "b" }
       ]
     });
-    await expect(p).resolves.toEqual([{ folder: "checkpoints", filename: "a" }]);
+    await expect(p).resolves.toEqual([
+      { folder: "checkpoints", filename: "a" }
+    ]);
   });
 
   it("comfyModelsList returns everything when no folder is given", async () => {
@@ -1117,7 +1179,8 @@ describe("PythonBridgeBase — inbound frame validation (B3)", () => {
       });
       await expect(p).resolves.toEqual({ outputs: undefined, blobs: {} });
     } finally {
-      if (prev === undefined) delete process.env["NODETOOL_VALIDATE_BRIDGE_FRAMES"];
+      if (prev === undefined)
+        delete process.env["NODETOOL_VALIDATE_BRIDGE_FRAMES"];
       else process.env["NODETOOL_VALIDATE_BRIDGE_FRAMES"] = prev;
     }
   });

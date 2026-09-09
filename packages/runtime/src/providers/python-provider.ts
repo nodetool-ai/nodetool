@@ -21,7 +21,9 @@ import type {
   StreamingAudioChunk,
   TextToImageParams,
   ImageToImageParams,
-  TextToSpeechParams
+  TextToSpeechParams,
+  TextToVideoParams,
+  ImageToVideoParams
 } from "./types.js";
 import type { PythonBridgeBase } from "../python-bridge-base.js";
 import { isRecord, isString } from "@nodetool-ai/protocol";
@@ -276,6 +278,30 @@ export class PythonProvider extends BaseProvider {
       images[0] ?? new Uint8Array(),
       { ...params },
       this._secrets
+    );
+  }
+
+  async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
+    const { signal, ...wireParams } = params;
+    return this._bridge.providerTextToVideo(
+      this._pythonProviderId,
+      { ...wireParams, model: params.model.id },
+      this._secrets,
+      signal
+    );
+  }
+
+  async imageToVideo(
+    images: Uint8Array[],
+    params: ImageToVideoParams
+  ): Promise<Uint8Array> {
+    const { signal, ...wireParams } = params;
+    return this._bridge.providerImageToVideo(
+      this._pythonProviderId,
+      images[0] ?? new Uint8Array(),
+      { ...wireParams, model: params.model.id },
+      this._secrets,
+      signal
     );
   }
 

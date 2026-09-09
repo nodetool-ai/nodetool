@@ -17,8 +17,10 @@ import { getNodeBuiltinSync, safeProcessEnv } from "@nodetool-ai/config";
 // Lazy-load so the module *graph* loads off-Node; instantiating a concrete
 // bridge there throws at construction. Notably the base does NOT require
 // child_process — that belongs to the stdio subclass only.
-const nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>("node:crypto");
-const nodeEvents = getNodeBuiltinSync<typeof import("node:events")>("node:events");
+const nodeCrypto =
+  getNodeBuiltinSync<typeof import("node:crypto")>("node:crypto");
+const nodeEvents =
+  getNodeBuiltinSync<typeof import("node:events")>("node:events");
 
 function notOnNode(api: string): never {
   throw new Error(`${api} requires Node — PythonBridgeBase is Node-only`);
@@ -148,7 +150,8 @@ const DEFAULT_DOWNLOAD_IDLE_TIMEOUT_MS = Number(
   safeProcessEnv()["NODETOOL_PYTHON_DOWNLOAD_IDLE_TIMEOUT_MS"] ?? 5 * 60 * 1000
 );
 const MAX_RESULT_BLOB_BYTES = Number(
-  safeProcessEnv()["NODETOOL_PYTHON_MAX_RESULT_BLOB_BYTES"] ?? 2 * 1024 * 1024 * 1024
+  safeProcessEnv()["NODETOOL_PYTHON_MAX_RESULT_BLOB_BYTES"] ??
+    2 * 1024 * 1024 * 1024
 );
 
 /**
@@ -287,8 +290,9 @@ export abstract class PythonBridgeBase
         // so an older worker keeps running everything it understands. Workers
         // that pre-date the protocol_version field are treated as version 1
         // (the initial release) — same wire format, they just don't announce.
-        const workerVersion =
-          isNumber(data.protocol_version) ? data.protocol_version : 1;
+        const workerVersion = isNumber(data.protocol_version)
+          ? data.protocol_version
+          : 1;
         if (workerVersion < MIN_BRIDGE_PROTOCOL_VERSION) {
           this._pending.delete(requestId);
           pending.reject(
@@ -326,7 +330,9 @@ export abstract class PythonBridgeBase
         this._pending.delete(requestId);
         if (pending.blobTransfers?.size) {
           pending.reject(
-            new Error("Python worker ended the result before all blob transfers completed")
+            new Error(
+              "Python worker ended the result before all blob transfers completed"
+            )
           );
           return;
         }
@@ -414,8 +420,13 @@ export abstract class PythonBridgeBase
     const pending = this._pending.get(requestId);
     const name = data["name"];
     const size = data["size"];
-    if (!pending || typeof name !== "string" || typeof size !== "number") return;
-    if (!Number.isSafeInteger(size) || size < 0 || size > MAX_RESULT_BLOB_BYTES) {
+    if (!pending || typeof name !== "string" || typeof size !== "number")
+      return;
+    if (
+      !Number.isSafeInteger(size) ||
+      size < 0 ||
+      size > MAX_RESULT_BLOB_BYTES
+    ) {
       this._rejectBlobTransfer(
         requestId,
         `Python worker declared invalid blob size ${String(size)} for "${name}"`
@@ -423,9 +434,18 @@ export abstract class PythonBridgeBase
       return;
     }
     pending.blobTransfers ??= new Map();
-    pending.completedBlobs ??= Object.create(null) as Record<string, Uint8Array>;
-    if (pending.blobTransfers.has(name) || Object.hasOwn(pending.completedBlobs, name)) {
-      this._rejectBlobTransfer(requestId, `Python worker started duplicate blob "${name}"`);
+    pending.completedBlobs ??= Object.create(null) as Record<
+      string,
+      Uint8Array
+    >;
+    if (
+      pending.blobTransfers.has(name) ||
+      Object.hasOwn(pending.completedBlobs, name)
+    ) {
+      this._rejectBlobTransfer(
+        requestId,
+        `Python worker started duplicate blob "${name}"`
+      );
       return;
     }
     pending.blobTransfers.set(name, { size, received: 0, chunks: [] });
@@ -444,9 +464,14 @@ export abstract class PythonBridgeBase
       typeof name !== "string" ||
       typeof offset !== "number" ||
       !(bytes instanceof Uint8Array)
-    ) return;
+    )
+      return;
     const transfer = pending.blobTransfers?.get(name);
-    if (!transfer || offset !== transfer.received || offset + bytes.length > transfer.size) {
+    if (
+      !transfer ||
+      offset !== transfer.received ||
+      offset + bytes.length > transfer.size
+    ) {
       this._rejectBlobTransfer(
         requestId,
         `Python worker sent an out-of-order or oversized chunk for blob "${name}"`
@@ -470,10 +495,18 @@ export abstract class PythonBridgeBase
       typeof name !== "string" ||
       typeof size !== "number" ||
       typeof expectedDigest !== "string"
-    ) return;
+    )
+      return;
     const transfer = pending.blobTransfers?.get(name);
-    if (!transfer || size !== transfer.size || transfer.received !== transfer.size) {
-      this._rejectBlobTransfer(requestId, `Python worker truncated blob "${name}"`);
+    if (
+      !transfer ||
+      size !== transfer.size ||
+      transfer.received !== transfer.size
+    ) {
+      this._rejectBlobTransfer(
+        requestId,
+        `Python worker truncated blob "${name}"`
+      );
       return;
     }
     const blob = new Uint8Array(transfer.size);
@@ -484,11 +517,17 @@ export abstract class PythonBridgeBase
     }
     const digest = nodeCrypto?.createHash("sha256").update(blob).digest("hex");
     if (!digest || digest !== expectedDigest) {
-      this._rejectBlobTransfer(requestId, `Python worker blob "${name}" failed SHA-256 verification`);
+      this._rejectBlobTransfer(
+        requestId,
+        `Python worker blob "${name}" failed SHA-256 verification`
+      );
       return;
     }
     pending.blobTransfers?.delete(name);
-    pending.completedBlobs ??= Object.create(null) as Record<string, Uint8Array>;
+    pending.completedBlobs ??= Object.create(null) as Record<
+      string,
+      Uint8Array
+    >;
     pending.completedBlobs[name] = blob;
   }
 
@@ -609,9 +648,7 @@ export abstract class PythonBridgeBase
    * them would only mean a worker that DOES understand them gets nothing
    * whenever its `worker.status` hasn't landed yet.
    */
-  protected _identityPayload(
-    identity: ExecuteIdentity | undefined
-  ) {
+  protected _identityPayload(identity: ExecuteIdentity | undefined) {
     if (!identity) return {};
     const payload: Record<string, unknown> = {};
     if (identity.nodeId) payload.node_id = identity.nodeId;
@@ -1073,6 +1110,44 @@ export abstract class PythonBridgeBase
       secrets: secrets ?? {}
     });
     return (result as { blobs: Record<string, Uint8Array> }).blobs.image;
+  }
+
+  async providerTextToVideo(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
+    const result = await this._providerBlobCall(
+      "provider.text_to_video",
+      {
+        provider: providerId,
+        params,
+        secrets: secrets ?? {}
+      },
+      signal
+    );
+    return result.blobs.video;
+  }
+
+  async providerImageToVideo(
+    providerId: string,
+    image: Uint8Array,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
+    const result = await this._providerBlobCall(
+      "provider.image_to_video",
+      {
+        provider: providerId,
+        image,
+        params,
+        secrets: secrets ?? {}
+      },
+      signal
+    );
+    return result.blobs.video;
   }
 
   async *providerTTS(
@@ -1778,6 +1853,53 @@ export abstract class PythonBridgeBase
         this._send({ type, request_id: requestId, data });
       } catch (err) {
         this._pendingStream.delete(requestId);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
+    });
+  }
+
+  /** Provider RPC variant that opts into protocol-v5 chunked result blobs. */
+  protected async _providerBlobCall(
+    type: string,
+    data: Record<string, unknown>,
+    signal?: AbortSignal
+  ): Promise<ExecuteResult> {
+    const requestId = randomUUID();
+    if (signal?.aborted) {
+      throw new Error(`Provider request "${requestId}" was cancelled.`);
+    }
+    return new Promise<ExecuteResult>((resolve, reject) => {
+      const cleanup = () => signal?.removeEventListener("abort", onAbort);
+      const onAbort = () => {
+        this._pending.delete(requestId);
+        cleanup();
+        try {
+          this.cancel(requestId);
+        } catch {
+          // Worker may already be gone; cancellation is best-effort.
+        }
+        reject(new Error(`Provider request "${requestId}" was cancelled.`));
+      };
+      this._pending.set(requestId, {
+        resolve: (value) => {
+          cleanup();
+          resolve(value);
+        },
+        reject: (error) => {
+          cleanup();
+          reject(error);
+        }
+      });
+      signal?.addEventListener("abort", onAbort, { once: true });
+      try {
+        this._send({
+          type,
+          request_id: requestId,
+          data: { ...data, blob_transfer: "chunked-v1" }
+        });
+      } catch (err) {
+        this._pending.delete(requestId);
+        cleanup();
         reject(err instanceof Error ? err : new Error(String(err)));
       }
     });
