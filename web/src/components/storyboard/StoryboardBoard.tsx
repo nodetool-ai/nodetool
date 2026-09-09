@@ -846,10 +846,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                       borderRadius: BORDER_RADIUS.lg
                     }}
                   />
-                  <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.lg }}>
-                    <Skeleton preset="text" width="85%" />
-                    <Skeleton preset="text" width="60%" />
-                  </FlexColumn>
                 </Card>
               ))}
             </Box>

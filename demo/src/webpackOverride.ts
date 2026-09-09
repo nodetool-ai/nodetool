@@ -101,6 +101,8 @@ function buildAlias(): Record<string, string> {
   const alias: Record<string, string> = {
     // Route the typed facade to the real web source at bundle time.
     "@web-demo$": WEB_DEMO_ENTRY,
+    // The browser demo never constructs storage's native filesystem adapter.
+    "@openclaw/fs-safe$": path.join(STUBS, "fs-safe-stub.js"),
   };
 
   for (const [name, file] of Object.entries(STUBBED)) {

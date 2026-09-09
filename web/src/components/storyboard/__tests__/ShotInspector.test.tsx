@@ -1,13 +1,13 @@
 /**
- * The selection footer after P4: four actions (`Edit`, `Iterate`,
- * `Regenerate`, `Delete`), the shot's cross-document chips, and nothing else.
- * Every field it used to edit is asserted in `ShotEditDialog.test.tsx`.
+ * The selection footer after P4: the selected shot's description, four actions
+ * (`Edit`, `Iterate`, `Regenerate`, `Delete`), and cross-document chips. Every
+ * editable field is asserted in `ShotEditDialog.test.tsx`.
  */
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
-import type { Shot } from "@nodetool-ai/protocol";
+import type { Entity, Shot } from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
 
 const generateKeyframeMock = jest.fn(async () => undefined);
@@ -21,11 +21,17 @@ jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   })
 }));
 
+let mockEntities: Entity[] = [];
+jest.mock("../../../serverState/useEntities", () => ({
+  useEntities: () => ({ data: mockEntities })
+}));
+
 const removeShotMock = jest.fn();
 /** Script the board links, if any — set per test before rendering. */
 let linkedScriptId: string | null = null;
 /** Assembled cut the board links, if any — set per test before rendering. */
 let linkedTimelineId: string | null = null;
+let boardEntityIds: string[] = [];
 jest.mock("../../../stores/storyboard/StoryboardStore", () => {
   const actual = jest.requireActual(
     "../../../stores/storyboard/StoryboardStore"
@@ -37,7 +43,7 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => {
         removeShot: removeShotMock,
         boards: {
           "board-1": {
-            entityIds: [],
+            entityIds: boardEntityIds,
             timelineId: linkedTimelineId,
             screenplay: linkedScriptId ? { script_id: linkedScriptId } : null
           }
@@ -140,6 +146,8 @@ beforeEach(() => {
   generateRevisedClipMock.mockClear();
   linkedScriptId = null;
   linkedTimelineId = null;
+  boardEntityIds = [];
+  mockEntities = [];
   useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
   useDocumentFocusStore.setState({ pending: null });
 });
@@ -148,6 +156,29 @@ describe("ShotInspector selection footer (PRD § 7.5)", () => {
   it("names the selected shot", () => {
     renderInspector(makeShot({ index: 4 }));
     expect(screen.getByText("SH 05 selected")).toBeInTheDocument();
+  });
+
+  it("shows the selected shot description", () => {
+    renderInspector(makeShot({ action: "A lighthouse at dusk" }));
+    expect(screen.getByText("A lighthouse at dusk")).toBeInTheDocument();
+  });
+
+  it("marks a named board entity in the selected shot description", () => {
+    mockEntities = [
+      {
+        type: "entity",
+        id: "entity-marta",
+        kind: "character",
+        name: "Marta",
+        descriptor: "a keeper in an oilskin coat"
+      }
+    ];
+    boardEntityIds = ["entity-marta"];
+
+    renderInspector(makeShot({ action: "Marta climbs the lighthouse stair" }));
+
+    expect(screen.getByTestId("shot-entity-chip")).toHaveTextContent("Marta");
+    expect(screen.getByText(/climbs the lighthouse stair/)).toBeInTheDocument();
   });
 
   it("offers exactly the four actions P4 leaves here", () => {

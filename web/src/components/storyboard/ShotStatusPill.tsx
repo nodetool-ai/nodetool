@@ -125,7 +125,7 @@ const ShotStatusPillInner = ({
       tone={pill.tone}
       accent={CLIP_COLOR}
       data-testid="shot-status-pill"
-      sx={sx}
+      sx={{ ...sx, border: "none" }}
     >
       {pill.label}
     </StatusPill>

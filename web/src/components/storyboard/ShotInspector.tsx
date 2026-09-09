@@ -2,8 +2,9 @@
  * ShotInspector
  *
  * The selection footer, docked under the shot grid: which shot is selected,
- * where it appears in the project's sibling documents, and the four actions
- * PRD § 7.5 leaves here — `Edit`, `Iterate`, `Regenerate`, `Delete`.
+ * its description, where it appears in the project's sibling documents, and
+ * the four actions PRD § 7.5 leaves here — `Edit`, `Iterate`, `Regenerate`,
+ * `Delete`.
  *
  * Every field this used to edit now lives in {@link ShotEditDialog}, which
  * `Edit` opens. The cross-document chips stay because nothing else on the
@@ -13,6 +14,17 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
 import type { Shot } from "@nodetool-ai/protocol";
 
+import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import { entitiesForShot } from "../../stores/storyboard/shotEntities";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { requestDocumentFocus } from "../../stores/DocumentFocusStore";
+import { useEntities } from "../../serverState/useEntities";
+import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
+import { useBoardScriptLines } from "../../hooks/storyboard/useShotDuration";
+import { useShotTimelineLink } from "../../hooks/storyboard/useShotTimelineLink";
+import ShotActionText from "./ShotActionText";
+import ShotEditDialog from "./ShotEditDialog";
+import { isShotGenerating } from "./ShotStatusPill";
 import {
   Box,
   Caption,
@@ -31,14 +43,6 @@ import {
   SPACING,
   TYPOGRAPHY
 } from "../ui_primitives";
-import ShotEditDialog from "./ShotEditDialog";
-import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
-import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
-import { useBoardScriptLines } from "../../hooks/storyboard/useShotDuration";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
-import { requestDocumentFocus } from "../../stores/DocumentFocusStore";
-import { useShotTimelineLink } from "../../hooks/storyboard/useShotTimelineLink";
-import { isShotGenerating } from "./ShotStatusPill";
 import { colorForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
 
@@ -74,6 +78,8 @@ const linkChipSx = (color: string) =>
 const scriptChipSx = linkChipSx(SCRIPT_COLOR);
 const timelineChipSx = linkChipSx(TIMELINE_COLOR);
 
+const NO_ENTITY_IDS: string[] = [];
+
 const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
   boardId,
   shot,
@@ -81,11 +87,15 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
   onClose
 }) => {
   const removeShot = useStoryboardStore((state) => state.removeShot);
+  const boardEntityIds = useStoryboardStore(
+    (state) => state.boards[boardId]?.entityIds ?? NO_ENTITY_IDS
+  );
   const scriptId = useStoryboardStore(
     (state) => state.boards[boardId]?.screenplay?.script_id ?? null
   );
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const { generateKeyframe, generateRevisedClip } = useGenerateShot();
+  const { data: allEntities } = useEntities();
 
   const [editOpen, setEditOpen] = useState(false);
   const [iterateOpen, setIterateOpen] = useState(false);
@@ -95,6 +105,13 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
   const isGenerating = isShotGenerating(shot);
   const shotName = `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`;
   const shotNumber = `SH ${String(shot.index + 1).padStart(2, "0")}`;
+  const onBoard = new Set(boardEntityIds);
+  const shotEntities = allEntities
+    ? entitiesForShot(
+        shot,
+        allEntities.filter((entity) => onBoard.has(entity.id))
+      )
+    : [];
 
   // Where this shot lands in the project's other documents: the script line it
   // covers, and the clip it owns in the assembled cut.
@@ -171,6 +188,10 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
           {`${shotNumber} selected`}
         </Box>
         <Divider orientation="vertical" flexItem />
+        <Box sx={{ flex: "1 1 240px", minWidth: 0 }}>
+          <ShotActionText action={shot.action} entities={shotEntities} />
+        </Box>
+        <Divider orientation="vertical" flexItem />
         <Caption color="secondary">Appears in</Caption>
         {timelineLink && (
           <Chip
@@ -195,7 +216,6 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
         {!timelineLink && !scriptLink && (
           <Caption color="muted">nothing yet</Caption>
         )}
-        <Box sx={{ flex: 1 }} />
         {!readOnly && (
           <>
             <EditorButton

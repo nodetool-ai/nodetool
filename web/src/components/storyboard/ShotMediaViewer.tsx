@@ -11,8 +11,8 @@
  * would put a video between two stills you are flipping between. What was
  * opened decides which gallery this is.
  *
- * Each shot's action line rides over the media as a caption, so a frame says
- * which shot it belongs to without leaving the viewer.
+ * Each item is captioned with its shot number. The description stays in the
+ * selected-shot inspector.
  *
  * A board holds its media as `asset://` locators, so the records come from the
  * asset store; the viewer itself is {@link AssetViewer}, which is what gives
@@ -53,9 +53,9 @@ const shotMedia = (shot: Shot, kind: "image" | "video"): (ImageRef | VideoRef)[]
     ? (shot.clip_versions ?? (shot.clip ? [shot.clip] : []))
     : (shot.keyframe_versions ?? (shot.keyframe ? [shot.keyframe] : []));
 
-/** The caption over a shot's media: which shot it is, and what happens in it. */
+/** The caption over a shot's media identifies it without repeating its description. */
 const shotCaption = (shot: Shot): string =>
-  `SH ${String(shot.index + 1).padStart(2, "0")} · ${shot.action}`;
+  `SH ${String(shot.index + 1).padStart(2, "0")}`;
 
 /**
  * The open gallery. Mounted only while there is something to show, so a

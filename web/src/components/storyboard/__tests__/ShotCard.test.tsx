@@ -189,10 +189,10 @@ describe("ShotCard drag to reorder", () => {
 });
 
 describe("ShotCard", () => {
-  it("shows the shot number, its length, and the action line", () => {
+  it("shows the shot number and length without the description", () => {
     renderCard(makeShot({ index: 4, duration_seconds: 3 }));
     expect(screen.getByText("SH 05 · 3s")).toBeInTheDocument();
-    expect(screen.getByText("A lighthouse at dusk")).toBeInTheDocument();
+    expect(screen.queryByText("A lighthouse at dusk")).not.toBeInTheDocument();
   });
 
   it("drops the length from the label when the shot has none", () => {
@@ -239,6 +239,7 @@ describe("ShotCard status pill", () => {
     renderCard(makeShot());
     expect(pill()).toHaveTextContent("planned");
     expect(pill()).toHaveAttribute("data-tone", "neutral");
+    expect(pill()).toHaveStyle({ border: "none" });
   });
 
   it("reads a neutral 'still' once the shot has a still but no clip render was requested (F18)", () => {

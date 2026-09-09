@@ -31,17 +31,27 @@ const awaitingStyles = css({
   padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`
 });
 
-const ImageProperty = (props: PropertyProps) => {
-  const theme = useTheme();
-  const id = `image-${props.property.name}-${props.propertyIndex}`;
-
-  const { asset, uri } = useAsset({ image: props.value });
-
+const ConnectedImagePreview = (props: PropertyProps) => {
   const upstreamValue = useUpstreamValue(
     props.workflowId ?? "",
     props.nodeId,
     props.property.name
   );
+
+  return (
+    <div css={connectedPreviewStyles}>
+      <ImageRefPreview
+        value={upstreamValue}
+        placeholder={<div css={awaitingStyles}>Awaiting upstream</div>}
+      />
+    </div>
+  );
+};
+
+const ImageProperty = (props: PropertyProps) => {
+  const theme = useTheme();
+  const id = `image-${props.property.name}-${props.propertyIndex}`;
+  const { asset, uri } = useAsset({ image: props.value });
 
   return (
     <div
@@ -58,12 +68,7 @@ const ImageProperty = (props: PropertyProps) => {
         id={id}
       />
       {props.isConnected ? (
-        <div css={connectedPreviewStyles}>
-          <ImageRefPreview
-            value={upstreamValue}
-            placeholder={<div css={awaitingStyles}>Awaiting upstream</div>}
-          />
-        </div>
+        <ConnectedImagePreview {...props} />
       ) : (
         <PropertyDropzone
           asset={asset}

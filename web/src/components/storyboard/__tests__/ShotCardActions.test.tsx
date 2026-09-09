@@ -1,13 +1,13 @@
 /**
- * The card's own actions against the real storyboard store — criteria 11, 12
- * and 15: duplicate, delete, download, the entity chips and dialogue icon, and
- * an upload that adds a still without replacing the one already selected.
+ * The card's own actions against the real storyboard store — criteria 11 and
+ * 15: duplicate, delete, download, the dialogue icon, and an upload that adds
+ * a still without replacing the one already selected.
  */
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
-import type { Entity, ImageRef, Shot } from "@nodetool-ai/protocol";
+import type { ImageRef, Shot } from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
 
 // Media sources resolve through TanStack Query; this suite renders no
@@ -30,9 +30,8 @@ jest.mock("../../../trpc/client", () => ({
   trpcClient: {}
 }));
 
-const mockEntities: Entity[] = [];
 jest.mock("../../../serverState/useEntities", () => ({
-  useEntities: () => ({ data: mockEntities })
+  useEntities: () => ({ data: [] })
 }));
 
 type UploadCall = {
@@ -116,7 +115,6 @@ const renderCard = (
   );
 
 beforeEach(() => {
-  mockEntities.length = 0;
   mockUploadAsset.mockReset();
 });
 
@@ -222,36 +220,7 @@ describe("ShotCard hover toolbar (criterion 11)", () => {
   });
 });
 
-describe("ShotCard action line (criterion 12)", () => {
-  const marta: Entity = {
-    type: "entity",
-    id: "e-marta",
-    kind: "character",
-    name: "Marta",
-    descriptor: "a keeper in an oilskin coat"
-  };
-
-  it("renders an entity named in the action as a chip", () => {
-    mockEntities.push(marta);
-    const shot = seedShot({ action: "Marta climbs the lighthouse stair" });
-    useStoryboardStore.getState().setEntityIds(BOARD, [marta.id]);
-    renderCard(shot);
-
-    const chips = screen.getAllByTestId("shot-entity-chip");
-    expect(chips).toHaveLength(1);
-    expect(chips[0]).toHaveTextContent("Marta");
-    expect(screen.getByText(/climbs the lighthouse stair/)).toBeInTheDocument();
-  });
-
-  it("leaves the action as prose when no cast member is named in it", () => {
-    mockEntities.push(marta);
-    const shot = seedShot({ action: "The lamp turns in the fog" });
-    useStoryboardStore.getState().setEntityIds(BOARD, [marta.id]);
-    renderCard(shot);
-
-    expect(screen.queryByTestId("shot-entity-chip")).not.toBeInTheDocument();
-  });
-
+describe("ShotCard edit affordances", () => {
   it("fills the dialogue icon only for a shot that has dialogue", () => {
     const { unmount } = renderCard(seedShot({ dialogue: "Keep it lit." }));
     expect(screen.getByTestId("shot-dialogue-icon")).toHaveAttribute(
@@ -289,9 +258,15 @@ describe("ShotCard action line (criterion 12)", () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it("renders the scene and shot caption the board computed", () => {
-    renderCard(seedShot(), { caption: "Scene 2 | Shot 3" });
-    expect(screen.getByText("Scene 2 | Shot 3")).toBeInTheDocument();
+  it("keeps the scene and shot caption as the card title", () => {
+    renderCard(seedShot(), {
+      caption: "Scene 2 | Shot 3",
+      onSelect: jest.fn()
+    });
+    expect(screen.getByRole("button", { name: "1. Opening" })).toHaveAttribute(
+      "title",
+      "Scene 2 | Shot 3"
+    );
   });
 });
 

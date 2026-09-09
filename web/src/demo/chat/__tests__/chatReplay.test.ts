@@ -91,10 +91,12 @@ describe("computeChatStateAt", () => {
 describe("seedChatGlobalState", () => {
   it("mirrors the running tool call and todos into GlobalChatStore", () => {
     const state = computeChatStateAt(events, 500);
+    useGlobalChatStore.setState({ error: "Unable to transform response from server" });
     seedChatGlobalState("demo-thread", state);
 
     const globalState = useGlobalChatStore.getState();
     expect(globalState.currentThreadId).toBe("demo-thread");
+    expect(globalState.error).toBeNull();
     expect(globalState.currentRunningToolCallId).toBe(TOOL_CALL_ID);
     expect(globalState.todosByThread["demo-thread"]).toEqual([]);
   });

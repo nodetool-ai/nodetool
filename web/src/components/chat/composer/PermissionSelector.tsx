@@ -40,9 +40,9 @@ const MODES: ModeItem[] = [
 ];
 
 const dotColor = (theme: Theme, tone: ModeItem["tone"]): string => {
-  if (tone === "info") return theme.vars.palette.info.main;
-  if (tone === "success") return theme.vars.palette.success.main;
-  return theme.vars.palette.warning.main;
+  if (tone === "info") return theme.vars.palette.grey[500];
+  if (tone === "success") return theme.vars.palette.grey[200];
+  return theme.vars.palette.grey[400];
 };
 
 const menuStyles = (theme: Theme) =>
@@ -94,7 +94,7 @@ const dotCss = (color: string) =>
 
 /**
  * Compact composer-footer dropdown for the per-thread permission mode. The
- * trigger shows the active mode (label + colored status dot) and opens a
+ * trigger shows the active mode (label + monochrome status dot) and opens a
  * three-item menu (Plan / Default / Auto), each with a short description
  * and a check on the active mode. Reads/writes the active thread's
  * `permissionMode` directly from GlobalChatStore.

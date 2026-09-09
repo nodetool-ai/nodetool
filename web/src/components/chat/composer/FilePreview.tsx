@@ -1,8 +1,14 @@
 import React from "react";
 import FileIcon from "@mui/icons-material/InsertDriveFile";
-import { ResponsiveImage } from "../../ui_primitives";
-import { CloseButton } from "../../ui_primitives";
-import { BORDER_RADIUS } from "../../ui_primitives";
+import {
+  Box,
+  FlexColumn,
+  ResponsiveImage,
+  CloseButton,
+  TruncatedText,
+  BORDER_RADIUS,
+  SPACING
+} from "../../ui_primitives";
 import { DroppedFile } from "../types/chat.types";
 
 const isDisplayableImage = (uri: string) =>
@@ -15,8 +21,10 @@ interface FilePreviewProps {
   onRemove: () => void;
 }
 
+const PREVIEW_SIZE = 48;
+
 export const FilePreview: React.FC<FilePreviewProps> = React.memo(({ file, onRemove }) => (
-  <div className="file-preview">
+  <Box className="file-preview" sx={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE, position: "relative" }}>
     {file.type.startsWith("image/") && isDisplayableImage(file.dataUri) ? (
       <ResponsiveImage
         locator={file.dataUri}
@@ -24,13 +32,19 @@ export const FilePreview: React.FC<FilePreviewProps> = React.memo(({ file, onRem
         fit="cover"
         borderRadius={BORDER_RADIUS.sm}
         showErrorFallback
-        sx={{ width: "48px", height: "48px" }}
+        sx={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
       />
     ) : (
-      <div className="file-icon-wrapper">
-        <FileIcon />
-        <div className="file-name">{file.name}</div>
-      </div>
+      <FlexColumn
+        className="file-icon-wrapper"
+        align="center"
+        justify="center"
+        title={file.name}
+        sx={{ width: "100%", height: "100%", overflow: "hidden", minWidth: 0 }}
+      >
+        <FileIcon sx={{ flexShrink: 0 }} />
+        <TruncatedText className="file-name" sx={{ width: "100%" }}>{file.name}</TruncatedText>
+      </FlexColumn>
     )}
     <CloseButton
       onClick={onRemove}
@@ -40,20 +54,16 @@ export const FilePreview: React.FC<FilePreviewProps> = React.memo(({ file, onRem
       nodrag={false}
       sx={{
         position: "absolute",
-        top: -6,
-        right: -6,
-        width: 18,
-        height: 18,
-        backgroundColor: "var(--palette-c_scrim)",
-        "&:hover": {
-          backgroundColor: "var(--palette-c_scrim_strong)"
-        },
-        "& .MuiSvgIcon-root": {
-          fontSize: 14
-        }
+        top: -SPACING.xs,
+        right: -SPACING.xs,
+        width: SPACING.xl,
+        height: SPACING.xl,
+        backgroundColor: "c_scrim",
+        "&:hover": { backgroundColor: "c_scrim_strong" },
+        "& .MuiSvgIcon-root": { fontSize: "var(--fontSizeSmall)" }
       }}
     />
-  </div>
+  </Box>
 ));
 
 FilePreview.displayName = "FilePreview";

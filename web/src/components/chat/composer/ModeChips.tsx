@@ -10,7 +10,6 @@ import React, { useMemo } from "react";
 import AppsIcon from "@mui/icons-material/Apps";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import DisplaySettingsIcon from "@mui/icons-material/Tv";
@@ -101,7 +100,7 @@ function ImageModeChips({ openModelPickerRef }: ClusterProps) {
     <>
       <ModelChip
         openRef={openModelPickerRef}
-        icon={<AutoAwesomeIcon fontSize="small" />}
+        icon={null}
         label={params.model?.name || "Select Model"}
         picker={{
           kind: "image",

@@ -1,26 +1,24 @@
 /**
  * ShotCard
  *
- * One cell of the storyboard's shot grid: the rendered clip or selected still
- * on top, the action line under it. The card carries only what reads at a
- * glance — the shot number and length, a status pill, a render's progress —
- * and clicking it selects the shot, which opens the selection footer under
- * the grid.
+ * One cell of the storyboard's shot grid. The card carries only what reads at
+ * a glance: the rendered clip or selected still, shot number and length,
+ * status, and render progress. The description lives in the inspector opened
+ * by selecting the card.
  *
  * Two rows of controls sit on top of that: {@link ShotHoverToolbar} on the
- * still (drag grip, fullscreen, download, duplicate, delete) and the footer
- * under the action (Edit, Iterate, Regenerate, Upload). Both swallow their
- * clicks, so reaching for an action never also selects the card.
+ * still (drag grip, fullscreen, download, duplicate, delete) and the action
+ * footer (Edit, Iterate, Regenerate, Upload). Both swallow their clicks, so
+ * reaching for an action never also selects the card.
  *
  * `Edit` and the dialogue icon both open {@link ShotEditDialog}; the icon
  * opens it on the dialogue cell (PRD § 7.5).
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type {
   BoardRenderContext,
-  Entity,
   ImageRef,
   Shot,
   VideoRef
@@ -45,10 +43,10 @@ import {
   VideoPlayer,
   BORDER_RADIUS,
   SPACING,
-  TYPOGRAPHY
+  TYPOGRAPHY,
+  MOTION
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
-import ShotActionText from "./ShotActionText";
 import ShotEditDialog from "./ShotEditDialog";
 import ShotHoverToolbar from "./ShotHoverToolbar";
 import ShotMediaViewer from "./ShotMediaViewer";
@@ -56,11 +54,9 @@ import ShotStatusPill, { CLIP_COLOR, isShotGenerating } from "./ShotStatusPill";
 import { downloadResolvedMedia, shotDownloadName } from "./shotMediaDownload";
 import { useStoryboardGenerationStore } from "../../stores/storyboard/StoryboardGenerationStore";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
-import { entitiesForShot } from "../../stores/storyboard/shotEntities";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import { useShotDuration } from "../../hooks/storyboard/useShotDuration";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
-import { useEntities } from "../../serverState/useEntities";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
@@ -144,9 +140,6 @@ const RENDER_BAR_HEIGHT = 3;
 const shotNumber = (shot: Shot): string =>
   `SH ${String(shot.index + 1).padStart(2, "0")}`;
 
-/** Nothing on this board, so a card with no cast reuses one empty array. */
-const NO_ENTITY_IDS: string[] = [];
-
 const ShotCardInner: React.FC<ShotCardProps> = ({
   boardId,
   shot,
@@ -194,24 +187,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const duplicateShot = useStoryboardStore((state) => state.duplicateShot);
   const removeShot = useStoryboardStore((state) => state.removeShot);
   const setShotKeyframe = useStoryboardStore((state) => state.setShotKeyframe);
-  const boardEntityIds = useStoryboardStore(
-    (state) => state.boards[boardId]?.entityIds ?? NO_ENTITY_IDS
-  );
-  const { data: allEntities } = useEntities();
   const uploadAsset = useAssetUpload((state) => state.uploadAsset);
-
-  // Which of the board's cast this shot carries — the same rule the render
-  // path seasons the prompt with, so the chips say what the prompt will.
-  const shotEntities: Entity[] = useMemo(() => {
-    if (boardEntityIds.length === 0 || !allEntities) {
-      return [];
-    }
-    const onBoard = new Set(boardEntityIds);
-    return entitiesForShot(
-      shot,
-      allEntities.filter((entity) => onBoard.has(entity.id))
-    );
-  }, [allEntities, boardEntityIds, shot]);
 
   const failed = shot.status === "failed";
   const hasDialogue = (shot.dialogue ?? "").trim().length > 0;
@@ -369,6 +345,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       onClick={handleSelect}
       className="shot-card"
       aria-label={shotName}
+      title={caption}
       aria-pressed={onSelect ? !!selected : undefined}
       data-shot-id={shot.id}
       data-generating={isGenerating ? "true" : undefined}
@@ -382,6 +359,18 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       onDrop={draggable ? handleDrop : undefined}
       sx={{
         overflow: "hidden",
+        position: "relative",
+        "& .shot-card-actions, & .controls": {
+          opacity: 0,
+          transition: MOTION.opacity
+        },
+        "&:hover .shot-card-actions, &:focus-within .shot-card-actions, &:hover .controls, &:focus-within .controls": {
+          opacity: 1,
+          pointerEvents: "auto"
+        },
+        "@media (pointer: coarse)": {
+          "& .shot-card-actions, & .controls": { opacity: 1, pointerEvents: "auto" }
+        },
         borderRadius: BORDER_RADIUS.lg,
         borderColor:
           dropTarget || selected
@@ -400,11 +389,17 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       }}
     >
       <Box
-        sx={mediaSx}
+        sx={{
+          ...mediaSx,
+          aspectRatio: (renderContext?.aspect_ratio ?? "16:9").replace(
+            ":",
+            " / "
+          )
+        }}
         onDoubleClick={previewMedia ? handleOpenViewer : undefined}
       >
         {clipUri ? (
-          <VideoPlayer locator={shot.clip} />
+          <VideoPlayer locator={shot.clip} poster={keyframeUri ?? undefined} />
         ) : (
           <ImageRefPreview
             value={shot.keyframe}
@@ -463,84 +458,95 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         )}
       </Box>
 
-      <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.lg, minWidth: 0 }}>
-        {failed && (
-          <FlexRow align="center" justify="space-between" gap={SPACING.sm}>
-            <Caption
-              role="alert"
-              data-testid="shot-render-error"
-              sx={{ color: "error.main", minWidth: 0 }}
-            >
-              {renderError ?? "The render failed. Try again."}
-            </Caption>
-            {!readOnly && (
-              <EditorButton
-                size="small"
-                variant="outlined"
-                onClick={handleRetry}
-                sx={{ flexShrink: 0 }}
-              >
-                Retry
-              </EditorButton>
-            )}
-          </FlexRow>
-        )}
-        {caption && <Caption color="muted">{caption}</Caption>}
-        <ShotActionText action={shot.action} entities={shotEntities} />
-        {!readOnly && (
-          <FlexRow
-            align="center"
-            gap={SPACING.micro}
-            onClick={swallowClick}
-            data-testid="shot-card-footer"
+      {failed && (
+        <FlexRow
+          align="center"
+          justify="space-between"
+          gap={SPACING.sm}
+          sx={{ p: SPACING.lg, minWidth: 0 }}
+        >
+          <Caption
+            role="alert"
+            data-testid="shot-render-error"
+            sx={{ color: "error.main", minWidth: 0 }}
           >
-            <EditorButton size="small" onClick={handleEdit} sx={footerButtonSx}>
-              Edit
-            </EditorButton>
+            {renderError ?? "The render failed. Try again."}
+          </Caption>
+          {!readOnly && (
             <EditorButton
               size="small"
-              onClick={handleOpenIterate}
-              disabled={isGenerating || !shot.clip}
-              sx={footerButtonSx}
-              title={
-                shot.clip
-                  ? "Re-render this clip with a note applied"
-                  : "Render a clip first"
-              }
+              variant="outlined"
+              onClick={handleRetry}
+              sx={{ flexShrink: 0 }}
             >
-              Iterate
+              Retry
             </EditorButton>
-            <ToolbarIconButton
-              icon={<AutorenewIcon sx={{ fontSize: "1em" }} />}
-              tooltip="Render a new still from this shot's fields"
-              ariaLabel="Regenerate still"
-              onClick={handleRegenerate}
-              disabled={isGenerating}
-            />
-            <UploadButton
-              onFileSelect={handleUpload}
-              tooltip="Upload your own still"
-              accept="image/*"
-              multiple={false}
-            />
-            <Box sx={{ flex: 1 }} />
-            <ToolbarIconButton
-              icon={
-                hasDialogue ? (
-                  <ChatBubbleIcon sx={{ fontSize: "1em" }} />
-                ) : (
-                  <ChatBubbleOutlineIcon sx={{ fontSize: "1em" }} />
-                )
-              }
-              tooltip={hasDialogue ? "Edit the dialogue" : "Add dialogue"}
-              ariaLabel={hasDialogue ? "Edit dialogue" : "Add dialogue"}
-              data-testid="shot-dialogue-icon"
-              data-filled={hasDialogue ? "true" : undefined}
-              onClick={handleEditDialogue}
-            />
-          </FlexRow>
-        )}
-      </FlexColumn>
+          )}
+        </FlexRow>
+      )}
+      {!readOnly && (
+        <FlexRow
+          align="center"
+          gap={SPACING.micro}
+          onClick={swallowClick}
+          data-testid="shot-card-footer"
+          className="shot-card-actions"
+          sx={{
+            position: "absolute",
+            bottom: SPACING.sm,
+            left: SPACING.sm,
+            right: SPACING.sm,
+            p: SPACING.xs,
+            bgcolor: "background.paper",
+            borderRadius: BORDER_RADIUS.sm
+          }}
+        >
+          <EditorButton size="small" onClick={handleEdit} sx={footerButtonSx}>
+            Edit
+          </EditorButton>
+          <EditorButton
+            size="small"
+            onClick={handleOpenIterate}
+            disabled={isGenerating || !shot.clip}
+            sx={footerButtonSx}
+            title={
+              shot.clip
+                ? "Re-render this clip with a note applied"
+                : "Render a clip first"
+            }
+          >
+            Iterate
+          </EditorButton>
+          <ToolbarIconButton
+            icon={<AutorenewIcon sx={{ fontSize: "1em" }} />}
+            tooltip="Render a new still from this shot's fields"
+            ariaLabel="Regenerate still"
+            onClick={handleRegenerate}
+            disabled={isGenerating}
+          />
+          <UploadButton
+            onFileSelect={handleUpload}
+            tooltip="Upload your own still"
+            accept="image/*"
+            multiple={false}
+          />
+          <Box sx={{ flex: 1 }} />
+          <ToolbarIconButton
+            icon={
+              hasDialogue ? (
+                <ChatBubbleIcon sx={{ fontSize: "1em" }} />
+              ) : (
+                <ChatBubbleOutlineIcon sx={{ fontSize: "1em" }} />
+              )
+            }
+            tooltip={hasDialogue ? "Edit the dialogue" : "Add dialogue"}
+            ariaLabel={hasDialogue ? "Edit dialogue" : "Add dialogue"}
+            data-testid="shot-dialogue-icon"
+            data-filled={hasDialogue ? "true" : undefined}
+            onClick={handleEditDialogue}
+          />
+        </FlexRow>
+      )}
 
       <ShotMediaViewer
         boardId={boardId}

@@ -1,13 +1,12 @@
 /**
  * ShotActionText
  *
- * A shot's action line with the cast in it named as chips (PRD § 7.4,
- * criterion 12), so a glance at the grid says which character or prop a shot
- * carries without opening it.
+ * A shot's description with the cast in it named as chips, shown in the
+ * selected-shot inspector rather than repeated across every card.
  *
  * Which entities count is not decided here: `entitiesForShot` is the one rule
- * for that, the same one the render path seasons prompts with, so a chip on a
- * card means the entity reaches that shot's prompt. This only finds where those
+ * for that, the same one the render path seasons prompts with, so an inspector
+ * chip means the entity reaches that shot's prompt. This only finds where those
  * entities' names fall in the text, by the same case-insensitive match.
  */
 

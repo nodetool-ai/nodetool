@@ -129,6 +129,9 @@ export function seedChatGlobalState(
 ): void {
   useGlobalChatStore.setState({
     currentThreadId: threadId,
+    // The replay is backend-free. Clear connection-level failures from the
+    // live store so an initialization request cannot leak into captured frames.
+    error: null,
     currentRunningToolCallId: state.runningToolCallId,
     currentToolMessage: state.runningToolMessage,
     todosByThread: { [threadId]: state.todos },

@@ -122,7 +122,7 @@ describe("ShotMediaViewer", () => {
     expect(viewer).toHaveAttribute("data-active", "still-a1");
   });
 
-  it("captions the media with its shot", () => {
+  it("captions the media with its shot number only", () => {
     render(
       <ShotMediaViewer
         boardId="board-1"
@@ -133,7 +133,10 @@ describe("ShotMediaViewer", () => {
 
     expect(screen.getByTestId("asset-viewer")).toHaveAttribute(
       "data-caption",
-      "SH 02 · A boat leaves the harbour"
+      "SH 02"
+    );
+    expect(screen.getByTestId("asset-viewer")).not.toHaveTextContent(
+      "A boat leaves the harbour"
     );
   });
 });

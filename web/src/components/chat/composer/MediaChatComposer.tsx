@@ -11,7 +11,6 @@ import React, {
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import AddIcon from "@mui/icons-material/Add";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 import { FlexRow, LoadingSpinner, Text } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
@@ -19,7 +18,6 @@ import useMediaGenerationStore, {
   resolveImageSize
 } from "../../../stores/MediaGenerationStore";
 import MediaControlChip from "./MediaControlChip";
-import WorkspaceChip from "../../workspaces/WorkspaceChip";
 import ModeChips from "./ModeChips";
 import ModeSelectChip from "./ModeSelectChip";
 import ModelChip, { type ModelPickerHandle } from "./ModelChip";
@@ -817,7 +815,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               <>
                 <ModelChip
                   openRef={modelPickerRef}
-                  icon={<AutoAwesomeIcon fontSize="small" />}
+                  icon={null}
                   label={chatProviderLabel}
                   title={chatProviderLabel}
                   picker={{
@@ -832,11 +830,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             )}
 
             <ModeChips mode={mode} openModelPickerRef={modelPickerRef} />
-
-            {/* The workspace every turn reads and writes in. Shown for chat as
-                well as the canvas — a chat turn writes files too, and the user
-                needs to know where they land before they send. */}
-            <WorkspaceChip compact={isCompact} />
           </div>
 
           {/* The Generate button for media modes, or Stop while a run is in

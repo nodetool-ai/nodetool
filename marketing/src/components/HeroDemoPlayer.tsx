@@ -22,11 +22,18 @@ import { Maximize2, Pause, Play } from "lucide-react";
 
 interface HeroDemoPlayerProps {
   alt: string;
+  mediaBase?: string;
+  priority?: boolean;
   /** Printed under the frame. Without it the reel has to explain itself. */
   caption?: string;
 }
 
-export default function HeroDemoPlayer({ alt, caption }: HeroDemoPlayerProps) {
+export default function HeroDemoPlayer({
+  alt,
+  caption,
+  mediaBase = "/hero-project",
+  priority = true,
+}: HeroDemoPlayerProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [mountVideo, setMountVideo] = useState(false);
@@ -99,15 +106,16 @@ export default function HeroDemoPlayer({ alt, caption }: HeroDemoPlayerProps) {
       <div ref={frameRef} className="hero-demo relative">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/hero-project-poster.webp"
-          srcSet="/hero-project-poster-960.webp 960w, /hero-project-poster.webp 1920w"
+          src={`${mediaBase}-poster.webp`}
+          srcSet={`${mediaBase}-poster-960.webp 960w, ${mediaBase}-poster.webp 1920w`}
           sizes="(max-width: 1023px) 100vw, 58vw"
           alt={caption ? "" : alt}
           width={1920}
           height={1080}
           decoding="async"
           className="block h-auto w-full rounded-xl"
-          fetchPriority="high"
+          fetchPriority={priority ? "high" : "auto"}
+          loading={priority ? "eager" : "lazy"}
         />
 
         {mountVideo && (
@@ -131,8 +139,8 @@ export default function HeroDemoPlayer({ alt, caption }: HeroDemoPlayerProps) {
             {/* The codecs are spelled out so a browser that cannot decode VP9
                 rejects this source outright instead of selecting it on a bare
                 type and stalling. */}
-            <source src="/hero-project.webm" type='video/webm; codecs="vp9"' />
-            <source src="/hero-project.mp4" type="video/mp4" />
+            <source src={`${mediaBase}.webm`} type='video/webm; codecs="vp9"' />
+            <source src={`${mediaBase}.mp4`} type="video/mp4" />
           </video>
         )}
 
