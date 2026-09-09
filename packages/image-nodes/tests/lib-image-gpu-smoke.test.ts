@@ -436,14 +436,20 @@ describe.skipIf(!hasGpu)("lib.image.* GPU node smoke", () => {
     expectRawRgba((await node.process()).output, 32, 32);
   });
 
-  it("lib.image.filter.GaussianBlur (separable recipe) runs", async () => {
-    const png = await solidPng(32, 32);
+  it("GaussianBlur preserves a solid image's colour and coverage", async () => {
+    const png = await solidPng(32, 32, { r: 180, g: 100, b: 60, alpha: 255 });
     const node = makeNode(GaussianBlurNode, {
       image: { type: "image", data: png.toString("base64") },
       radius: 4,
       sigma: 0
     });
-    expectRawRgba((await node.process()).output, 32, 32);
+    const { output } = await node.process();
+    expectRawRgba(output, 32, 32);
+    const pixels = output.data as Uint8Array;
+    const center = (16 * 32 + 16) * 4;
+    for (const [channel, expected] of [180, 100, 60, 255].entries()) {
+      expect(Math.abs(pixels[center + channel] - expected)).toBeLessThanOrEqual(1);
+    }
   });
 
   it("lib.image.filter.UnsharpMask runs", async () => {

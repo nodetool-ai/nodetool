@@ -1,3 +1,5 @@
+import TemplateSampleFigure from "@/components/TemplateSampleFigure";
+import { templateSamples } from "@/data/templateSamples";
 import React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -181,13 +183,19 @@ export default async function TemplatePage({
         </section>
 
         {/* Output / thumbnail */}
-        {entry.thumbnail && (
+        {templateSamples[entry.slug] ? (
+          <section className="relative pb-4">
+            <div className="mx-auto max-w-6xl px-6 lg:px-8">
+              <TemplateSampleFigure sample={templateSamples[entry.slug]} />
+            </div>
+          </section>
+        ) : entry.thumbnail && (
           <section className="relative pb-4">
             <div className="mx-auto max-w-6xl px-6 lg:px-8">
               <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 shadow-xl">
                 <Image
                   src={entry.thumbnail}
-                  alt={`${entry.name} — example output from the NodeTool workflow`}
+                  alt={`${entry.name} workflow illustration`}
                   width={1280}
                   height={720}
                   className="w-full object-cover"

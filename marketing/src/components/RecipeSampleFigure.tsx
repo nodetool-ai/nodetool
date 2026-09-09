@@ -1,6 +1,34 @@
 import React from "react";
 import Image from "next/image";
-import { sampleFidelity, type RecipeSample } from "@/data/recipes";
+import type { RecipeSample } from "@/data/recipes";
+
+const MODEL_NAMES: Record<string, string> = {
+  "replicate:bria/remove-background": "Bria Background Removal",
+  "fal_ai:fal-ai/bria/background/remove": "Bria Background Removal",
+  "atlascloud:google/nano-banana-pro/edit": "Nano Banana Pro",
+  "atlascloud:google/nano-banana-pro/text-to-image": "Nano Banana Pro",
+  "fal_ai:fal-ai/flux/dev": "FLUX.1 Dev",
+  "fal_ai:fal-ai/flux/schnell": "FLUX.1 Schnell",
+  "replicate:qwen-edit-apps/qwen-image-edit-plus-lora-relight": "Qwen Image Relight",
+  "fal_ai:fal-ai/image-apps-v2/relighting": "FAL Relighting",
+  "kie:kling-2.6/image-to-video": "Kling 2.6",
+  "fal_ai:fal-ai/ltx-2.3/image-to-video/fast": "LTX-2.3",
+  "replicate:recraft-ai/recraft-crisp-upscale": "Recraft Crisp Upscale",
+  "fal_ai:fal-ai/clarity-upscaler": "Clarity Upscaler",
+  "openrouter:openai/gpt-5-mini": "GPT-5 Mini",
+  "openai:gpt-5-mini": "GPT-5 Mini",
+  "openai:tts-1": "OpenAI TTS-1",
+  "replicate:inworld/realtime-tts-1.5-max": "Inworld TTS 1.5 Max",
+  "fal_ai:fal-ai/sync-lipsync/v2/pro": "Sync Lip-Sync 2",
+  "replicate:sync/lipsync-2": "Sync Lip-Sync 2",
+  "gemini:gemini-3.1-pro-preview": "Gemini 3.1 Pro",
+  "openrouter:google/gemini-3.1-pro-preview": "Gemini 3.1 Pro",
+  "kie:gpt-image-2-text-to-image": "GPT Image 2",
+  "gemini:veo-3.1-generate-preview": "Veo 3.1",
+  "atlascloud:google/veo3.1/image-to-video": "Veo 3.1",
+  "fal_ai:fal-ai/stable-audio-25/text-to-audio": "Stable Audio 2.5",
+  "kie:generate-music": "Kie Music",
+};
 
 interface RecipeSampleFigureProps {
   sample: RecipeSample;
@@ -20,22 +48,8 @@ export default function RecipeSampleFigure({
   sample,
   name,
 }: RecipeSampleFigureProps) {
-  const fidelity = sampleFidelity(sample);
   return (
     <figure className="m-0">
-      <p
-        className={`mb-4 inline-flex rounded-lg border px-3 py-2 text-sm ${
-          fidelity.changed.length === 0
-            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
-            : "border-amber-500/25 bg-amber-500/10 text-amber-100"
-        }`}
-      >
-        {fidelity.changed.length === 0
-          ? `Run as the download ships it — all ${fidelity.total} models are the ones the workflows name.`
-          : `${fidelity.asShipped} of ${fidelity.total} models ran as the workflows name them. ${
-              fidelity.changed.length === 1 ? "One was" : `${fidelity.changed.length} were`
-            } reached another way or replaced, listed below with the reason. Your run uses what the workflow names.`}
-      </p>
       <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 shadow-xl">
           <Image
@@ -67,53 +81,37 @@ export default function RecipeSampleFigure({
       <figcaption className="mt-5 max-w-3xl text-sm leading-relaxed text-slate-400">
         {sample.caption}
       </figcaption>
-      <div className="mt-5">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Produced by
-        </span>
-        <ul className="mt-3 space-y-2">
-          {sample.producedBy.map((model) => (
-            <li
-              key={model.shipped}
-              className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs"
-            >
-              <span className="rounded-md border border-white/10 bg-slate-950/60 px-2 py-1 font-mono text-slate-300">
-                {model.ran}
-              </span>
-              {model.grade === "exact" && model.shipped === model.ran && (
-                <span className="text-slate-500">as the workflow ships it</span>
-              )}
-              {model.grade === "exact" && model.shipped !== model.ran && (
-                <span className="text-emerald-400/80">
-                  the model{" "}
-                  <span className="font-mono text-slate-500">
-                    {model.shipped}
-                  </span>{" "}
-                  names, {model.why.replace(/^the same [^,]+, /, "")}
-                </span>
-              )}
-              {model.grade === "upgrade" && (
-                <span className="text-sky-400/80">
-                  chosen over{" "}
-                  <span className="font-mono text-slate-500">
-                    {model.shipped}
-                  </span>{" "}
-                  — {model.why}
-                </span>
-              )}
-              {model.grade === "substitute" && (
-                <span className="text-amber-400/80">
-                  stands in for{" "}
-                  <span className="font-mono text-slate-500">
-                    {model.shipped}
-                  </span>{" "}
-                  — {model.why}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
+      <details className="mt-5 max-w-3xl rounded-xl border border-white/10 bg-slate-900/40 p-4">
+        <summary className="cursor-pointer text-sm font-medium text-slate-300">
+          Models used in this example
+        </summary>
+        <p className="mt-4 text-sm text-slate-400">
+          Compare the models behind this example with the recipe defaults.
+          You can change models in Studio.
+        </p>
+        <table className="mt-4 w-full table-fixed text-left text-sm">
+          <thead>
+            <tr className="border-b border-white/10 text-slate-400">
+              <th scope="col" className="pb-3 pr-4 font-medium">In this example</th>
+              <th scope="col" className="pb-3 font-medium">In the recipe</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sample.producedBy.map((model) => (
+              <tr key={model.shipped} className="border-b border-white/5 last:border-0">
+                <td className="break-words py-3 pr-4 text-white">
+                  {MODEL_NAMES[model.ran] ?? model.ran}
+                </td>
+                <td className="break-words py-3 text-slate-400">
+                  {model.grade === "exact"
+                    ? "Same model"
+                    : MODEL_NAMES[model.shipped] ?? model.shipped}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </details>
     </figure>
   );
 }

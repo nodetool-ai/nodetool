@@ -1,0 +1,38 @@
+{
+  "coffee.jpg": {
+    "source": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+    "creator": "Janko Ferlic",
+    "license": "CC0-1.0",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "changes": "Resized to 1024 pixels wide and encoded as JPEG."
+  },
+  "latte.mp4": {
+    "source": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+    "creator": "Stevenndori289",
+    "license": "CC-BY-SA-4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "changes": "First eight seconds, audio removed, encoded as H.264. The scored sample is a CC-BY-SA-4.0 adaptation."
+  },
+  "presenter.mp4": {
+    "source": "marketing/public/recipes/samples/multilingual-video-dubber.mp4",
+    "description": "Generated presenter from the existing multilingual video recipe sample.",
+    "provenance": "marketing/scripts/recipe-samples.manifest.json#multilingual-video-dubber"
+  },
+  "voice.wav": {
+    "description": "Generated English coffee-shop narration from the AI Spokesperson sample. Normalised with short fades.",
+    "text": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend.",
+    "model": "replicate:inworld/realtime-tts-1.5-max"
+  },
+  "meeting.wav": {
+    "description": "Generated meeting notes for transcription examples.",
+    "model": "replicate:inworld/realtime-tts-1.5-max",
+    "script": "Let us review the coffee subscription launch. Sam will finish the landing page by Friday. Alex will test checkout on Safari before Tuesday. We agreed to offer both two hundred gram and five hundred gram bags. Nine pilot orders arrived late, so tracking emails are the top priority. Our next meeting is Thursday at ten. Please bring the shipping update and the final product photos."
+  },
+  "meeting.mp4": {
+    "source": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+    "creator": "Stevenndori289",
+    "license": "CC-BY-SA-4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "changes": "Footage looped under the generated meeting.wav narration for transcription examples."
+  }
+}

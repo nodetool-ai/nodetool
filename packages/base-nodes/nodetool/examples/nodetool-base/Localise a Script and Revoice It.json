@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Localise a Script and Revoice It",
   "tool_name": null,
-  "description": "Translation and voice in one pass. The output is audio in the target language, which is what a localised cut actually needs \u2014 a translated document still leaves the recording to do.",
+  "description": "Translate a script into Spanish, generate speech, and even out the volume. Short fades soften the start and end without changing the timing.",
   "tags": [
     "text",
     "audio",
@@ -20,7 +20,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "script",
-          "value": "",
+          "value": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend.",
           "description": "The English script"
         },
         "ui_properties": {
@@ -115,13 +115,62 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
+            "x": 1980,
             "y": 120
           },
           "zIndex": 0,
           "width": 300,
           "selectable": true,
           "title": "4  Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "level",
+        "type": "nodetool.audio.Normalize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 120
+          },
+          "width": 300,
+          "title": "Even out volume"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fade-in",
+        "type": "nodetool.audio.FadeIn",
+        "data": {
+          "duration": 0.01
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 120
+          },
+          "width": 300,
+          "title": "Soften the start"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fade-out",
+        "type": "nodetool.audio.FadeOut",
+        "data": {
+          "duration": 0.03
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1650,
+            "y": 120
+          },
+          "width": 300,
+          "title": "Soften the ending"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -143,9 +192,30 @@
         "targetHandle": "text"
       },
       {
-        "id": "e3",
+        "id": "tts-level-audio",
         "source": "tts",
         "sourceHandle": "audio",
+        "target": "level",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "level-fade-in-audio",
+        "source": "level",
+        "sourceHandle": "output",
+        "target": "fade-in",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "fade-in-fade-out-audio",
+        "source": "fade-in",
+        "sourceHandle": "output",
+        "target": "fade-out",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "fade-out",
+        "sourceHandle": "output",
         "target": "out",
         "targetHandle": "value"
       }

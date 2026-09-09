@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "A Poster in Portrait",
   "tool_name": null,
-  "description": "A 3:4 print-oriented frame. Generating at the final aspect ratio avoids the crop that otherwise loses whichever edge the composition needed.",
+  "description": "Generate a 3:4 portrait poster from a prompt. Change the subject, colors, and style to make your own.",
   "tags": [
     "image",
     "example"

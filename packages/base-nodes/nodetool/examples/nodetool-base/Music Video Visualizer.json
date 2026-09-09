@@ -5,7 +5,7 @@
   "updated_at": "2026-07-08T10:44:38.859Z",
   "name": "Music Video Visualizer",
   "tool_name": null,
-  "description": "Turn any song into a mood-matched music video. Whisper transcribes the lyrics, an LLM creative director reads the emotional arc, writes one image prompt per frame, FLUX renders every frame, and they are stitched back to your original audio. Differentiator: a full transcribe \u2192 analyze \u2192 fan-out \u2192 render \u2192 reassemble media pipeline in a single graph \u2014 no chat box can do this. Cost note: generates one image per frame (default 8) plus a Whisper transcription, so a run costs several fal-ai calls.",
+  "description": "Turn a track into a sequence of AI visuals. Read the lyrics, generate matching scenes, fit each frame to 720p, and time the sequence to the audio.",
   "tags": [
     "video",
     "audio",
@@ -115,18 +115,10 @@
       },
       {
         "id": "e13",
-        "source": "visual_frame",
+        "source": "frame-png",
         "sourceHandle": "output",
         "target": "collected_frames",
         "targetHandle": "input_item",
-        "edge_type": "data"
-      },
-      {
-        "id": "e14",
-        "source": "visual_frame",
-        "sourceHandle": "output",
-        "target": "video_output",
-        "targetHandle": "frame",
         "edge_type": "data"
       },
       {
@@ -139,7 +131,7 @@
       },
       {
         "id": "e16",
-        "source": "audio_track",
+        "source": "track-level",
         "sourceHandle": "output",
         "target": "final_video",
         "targetHandle": "audio",
@@ -152,6 +144,76 @@
         "target": "output-music-video",
         "targetHandle": "value",
         "ui_properties": null
+      },
+      {
+        "id": "visual_frame-frame-size",
+        "source": "visual_frame",
+        "sourceHandle": "output",
+        "target": "frame-size",
+        "targetHandle": "image"
+      },
+      {
+        "id": "frame-size-frame-png",
+        "source": "frame-size",
+        "sourceHandle": "output",
+        "target": "frame-png",
+        "targetHandle": "image"
+      },
+      {
+        "id": "frame-png-hold-frame",
+        "source": "frame_iterator",
+        "sourceHandle": "output",
+        "target": "hold-frame",
+        "targetHandle": "value"
+      },
+      {
+        "id": "audio_track-track-length",
+        "source": "track-level",
+        "sourceHandle": "output",
+        "target": "track-length",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "track-length-hold-length",
+        "source": "track-length",
+        "sourceHandle": "duration",
+        "target": "hold-length",
+        "targetHandle": "duration"
+      },
+      {
+        "id": "num_frames-hold-length",
+        "source": "collected_frames",
+        "sourceHandle": "output",
+        "target": "hold-length",
+        "targetHandle": "frames"
+      },
+      {
+        "id": "hold-length-hold-frame",
+        "source": "hold-length",
+        "sourceHandle": "output",
+        "target": "hold-frame",
+        "targetHandle": "count"
+      },
+      {
+        "id": "hold-frame-video_output",
+        "source": "hold-frame",
+        "sourceHandle": "output",
+        "target": "video_output",
+        "targetHandle": "frame"
+      },
+      {
+        "id": "collected-frame_iterator",
+        "source": "collected_frames",
+        "sourceHandle": "output",
+        "target": "frame_iterator",
+        "targetHandle": "input_list"
+      },
+      {
+        "id": "audio-track-level",
+        "source": "audio_track",
+        "sourceHandle": "output",
+        "target": "track-level",
+        "targetHandle": "audio"
       }
     ],
     "nodes": [
@@ -159,7 +221,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# \ud83c\udfb5 Music Video Visualizer\n\nTurn a song into a music video. Whisper transcribes the lyrics, a creative-director agent reads the emotional arc, then we fan out one image prompt per frame, render each with FLUX, and stitch the frames back to your audio.\n\n**Why the graph branches:** the mood analysis fans out into N frame prompts (ListGenerator), each prompt is rendered in parallel (ForEach \u2192 TextToImage), then Collect + FrameToVideo re-assemble the sequence and AddAudio re-attaches the original track. That fan-out / re-assemble is the part a chat box can't do.\n\n**Pipeline:** Audio \u2192 Transcribe \u2192 Mood agent \u2192 Frame prompts \u2192 Images \u2192 Video + Audio\n\n**Try this:** change the visual style or genre, or raise the frame count for a longer clip."
+          "comment": "# Music Video Visualizer\n\nAdd a track, choose a visual style, and set the scene count. The workflow reads the lyrics and creates a sequence of images. Each image is sized to 720p, saved as PNG, and held long enough to fill the track.\n\nChange the style for a new look. Add more scenes for faster cuts."
         },
         "ui_properties": {
           "position": {
@@ -451,8 +513,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 2764,
-            "y": 359
+            "x": 3440,
+            "y": 600
           },
           "zIndex": 0,
           "width": 280,
@@ -470,8 +532,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2764,
-            "y": 559
+            "x": 3780,
+            "y": 600
           },
           "zIndex": 0,
           "width": 416,
@@ -492,8 +554,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 3240,
-            "y": 50
+            "x": 4240,
+            "y": 600
           },
           "zIndex": 0,
           "width": 416,
@@ -503,7 +565,8 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_outputs": {},
+        "sync_mode": "on_all"
       },
       {
         "id": "output-music-video",
@@ -513,11 +576,133 @@
         },
         "ui_properties": {
           "position": {
-            "x": 3560,
-            "y": 50
+            "x": 4700,
+            "y": 600
           },
           "selectable": true
         }
+      },
+      {
+        "id": "frame-size",
+        "type": "nodetool.image.ResizeImage",
+        "data": {
+          "mode": "dimensions",
+          "width": 1280,
+          "height": 720
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2760,
+            "y": 600
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "frame-png",
+        "type": "nodetool.image.SaveImageFile",
+        "data": {
+          "filename": "visualizer-frame.png",
+          "save_to_workspace": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3100,
+            "y": 600
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "track-length",
+        "type": "nodetool.audio.GetAudioInfo",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 1000
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "hold-length",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "return { output: Math.max(1, Math.round(inputs.duration * 24 / inputs.frames.length)) };",
+          "packages": []
+        },
+        "ui_properties": {
+          "position": {
+            "x": 740,
+            "y": 1000
+          },
+          "width": 280
+        },
+        "dynamic_properties": {
+          "duration": 0,
+          "frames": []
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "int",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "hold-frame",
+        "type": "nodetool.control.RepeatValue",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3440,
+            "y": 600
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "frame_iterator",
+        "type": "nodetool.control.ForEach",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3440,
+            "y": 1000
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "track-level",
+        "type": "nodetool.audio.Normalize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 1000
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ]
   },

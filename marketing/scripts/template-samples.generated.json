@@ -1,0 +1,2553 @@
+{
+  "batch-a-list": {
+    "inputs": {},
+    "models": {},
+    "files": {}
+  },
+  "add-reverb-to-a-voice": {
+    "inputs": {
+      "in": {
+        "type": "audio",
+        "file": "voice.wav"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/add-reverb-to-a-voice.mp3": "74290a9988c52a25e2b166ec2fa592f7a182c10038fa78caf4bda851e92fc905"
+    }
+  },
+  "a-gradient-card-as-png": {
+    "inputs": {},
+    "models": {},
+    "files": {
+      "/templates/samples/a-gradient-card-as-png.webp": "c2df92a562ce4beea7a0b7d32ea160aee61062dc876ed4fbfb3336be7e1dbff2"
+    }
+  },
+  "black-and-white-hard": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/black-and-white-hard.webp": "a4393d712d9c6ca46e1a27a29c369df71b8a934986a1c593aaf550def5e47335"
+    }
+  },
+  "blur-a-channel": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/blur-a-channel.webp": "3c546531e84876a1d8823adf10070a3781439a16e3d6df99dfe3a85fd3011012"
+    }
+  },
+  "blur-an-image": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/blur-an-image.webp": "aa9e15e05ced8d0272e57174b68e3b0652cd695068c66f7419e07e0e57757c2f"
+    }
+  },
+  "chunk-a-transcript-for-indexing": {
+    "inputs": {
+      "t": {
+        "type": "text",
+        "value": "The keeper climbed the stair each evening. The lamp needed winding twice a night. By the third winter the mechanism had worn, and the light guttered where it had once held steady. Ships began to pass wider of the point."
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "circles-and-lines": {
+    "inputs": {},
+    "models": {},
+    "files": {
+      "/templates/samples/circles-and-lines.webp": "6da38d4c83a1e6cbc38a07af820ff76125dc98a251f49a62d4e28a99a832a272"
+    }
+  },
+  "boost-saturation": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/boost-saturation.mp4": "0d3f0fdf6fa96cb6fc426d1c6d2674e7089946d12591ccef6327cfb4b2b4cb05",
+      "/templates/samples/boost-saturation-poster.webp": "33f5b8c1b66b7a92741c5be377bd2da6d47ea41346376bfc399341ed1e43579e"
+    }
+  },
+  "clean-up-a-rough-voice-recording": {
+    "inputs": {
+      "in": {
+        "type": "audio",
+        "file": "voice.wav"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/clean-up-a-rough-voice-recording.mp3": "d88bbde426a5eedd1dde4e89a5aef197dd50dcccb62fb4dbaddd21103f8005f9"
+    }
+  },
+  "color-boost-video": {
+    "inputs": {
+      "7074f109-83b1-4864-8e37-17a89fcbf46d": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/color-boost-video.mp4": "326c01444db58ca3b18a5e35378fbd8f6a9485f1c4878adb1ddef1c1529457f4",
+      "/templates/samples/color-boost-video-poster.webp": "ce61f8ad0c7387176e213947a479981870e6e88a69174ff3e799acff57e4c0a0"
+    }
+  },
+  "conditional-logic-engine": {
+    "inputs": {},
+    "models": {},
+    "files": {}
+  },
+  "count-a-list": {
+    "inputs": {},
+    "models": {},
+    "files": {}
+  },
+  "crop-an-image": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/crop-an-image.webp": "1a0e501e6b61c4bc66937a796968ab9323e1da82cd2fbc43357511dd1f90b3e9"
+    }
+  },
+  "crop-then-fit": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/crop-then-fit.webp": "d3f2cee0be210874e825f407780e92a2c1758bb7531b1cba29053a3b8f258f74"
+    }
+  },
+  "crush-it-to-8-bits": {
+    "inputs": {
+      "in": {
+        "type": "audio",
+        "file": "voice.wav"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/crush-it-to-8-bits.mp3": "8bd0f5384b43c4317fa55e5a66ca966e790fa178159c14c52d1b84c1856f5d67"
+    }
+  },
+  "cut-a-landscape-clip-for-vertical": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/cut-a-landscape-clip-for-vertical.mp4": "9200b626fdee64a983ece1c91cff98f315c939b6f62f28ad239099d762ccfaf5",
+      "/templates/samples/cut-a-landscape-clip-for-vertical-poster.webp": "62948cb4c450169cae93a2f6eacc70bfb11f618ce7889f5897b1dae6ea48dd43"
+    }
+  },
+  "does-this-text-mention-the-deadline": {
+    "inputs": {
+      "s": {
+        "type": "text",
+        "value": "Submissions close on the 14th; late entries are not reviewed."
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "drop-duplicates": {
+    "inputs": {},
+    "models": {},
+    "files": {}
+  },
+  "draw-a-badge-in-svg": {
+    "inputs": {},
+    "models": {},
+    "files": {
+      "/templates/samples/draw-a-badge-in-svg.webp": "e208a081e6196aba901ba3d7a91f308017793be88817e98f785bf256b3c70257"
+    }
+  },
+  "drop-the-first-few": {
+    "inputs": {},
+    "models": {},
+    "files": {}
+  },
+  "emboss-a-still": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/emboss-a-still.webp": "7ac83f55448389a704b40887146918f4f65a0846236c47b9ebb0cc404cbdb72a"
+    }
+  },
+  "every-combination": {
+    "inputs": {},
+    "models": {},
+    "files": {}
+  },
+  "fade-audio-in-and-out": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/fade-audio-in-and-out.mp3": "9a016348c2583116decb8bb53d980b30517a0988614afb8bde33a5f4e2f676ee"
+    }
+  },
+  "fade-audio-out": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/fade-audio-out.mp3": "f9406b9b4aa7340718a12a05c15915e442621dceb916456fb31faae70cd537ee"
+    }
+  },
+  "fill-a-template": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "the winter release"
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "find-every-number-in-a-sentence": {
+    "inputs": {
+      "s": {
+        "type": "text",
+        "value": "Revenue rose from 12 to 47 across 3 regions."
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "find-and-replace": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "The quick brown fox jumps over the lazy dog"
+      },
+      "old": {
+        "type": "text",
+        "value": "lazy"
+      },
+      "new": {
+        "type": "text",
+        "value": "energetic"
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "find-the-edges": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/find-the-edges.webp": "29e997acfec9314052e10a8dfd62fd85da4e35441279393d3e222257e36545c7"
+    }
+  },
+  "fit-an-image": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/fit-an-image.webp": "4706752845ed2f8eaa1a1ef4dc53df6af0197b40870ba11763e3351f8f5eff09"
+    }
+  },
+  "gate-out-the-room-noise": {
+    "inputs": {
+      "in": {
+        "type": "audio",
+        "file": "voice.wav"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/gate-out-the-room-noise.mp3": "3b186c6ac0a2a792182e6767e79d6458d99a7a6cdf36f2c6712586e6c228899e"
+    }
+  },
+  "generate-a-silent-bed": {
+    "inputs": {},
+    "models": {},
+    "files": {
+      "/templates/samples/generate-a-silent-bed.mp3": "a3c088933248c9a6935fea36f9762c2b4f443e84595ae4a6619dd2a1773ce325"
+    }
+  },
+  "inspect-a-clip-s-audio": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "image-enhance": {
+    "inputs": {
+      "0c458df1-e2b2-4662-a9aa-00f2ceaae799": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/image-enhance.webp": "c186ee7e2ab15ca08bbdee56ece6aeda8248f3da9ebbd5a053dc650bf5b3d462"
+    }
+  },
+  "inspect-a-clip": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "invert-a-still": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/invert-a-still.webp": "6451373e00ee809cd244fe313cf69a6c06a4f8e7f471207f343e4af47860ffa8"
+    }
+  },
+  "keep-only-the-long-lines": {
+    "inputs": {},
+    "models": {},
+    "files": {}
+  },
+  "keep-only-the-matches": {
+    "inputs": {},
+    "models": {},
+    "files": {}
+  },
+  "denoise-footage": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/denoise-footage.mp4": "63fad0249344b5a893b5c31c9f5725e901a1290e32123a36c5e8d58508efe581",
+      "/templates/samples/denoise-footage-poster.webp": "21aad871a6c7b8f5ea41a96c63f245b8eddd3e347702c77f32b87590ad2e40de"
+    }
+  },
+  "last-one-wins": {
+    "inputs": {},
+    "models": {},
+    "files": {}
+  },
+  "key-out-a-green-screen": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/key-out-a-green-screen.mp4": "fd62e9d0d6f4d7553d279c8b661b9c0f3f0b09347deea02c3fbd966b9fe11c21",
+      "/templates/samples/key-out-a-green-screen-poster.webp": "c057a0daa65e8784c1034e1c249213debe33d2889e6d9178d2cb5dd5334f3faa"
+    }
+  },
+  "master-a-voice-track": {
+    "inputs": {
+      "in": {
+        "type": "audio",
+        "file": "voice.wav"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/master-a-voice-track.mp3": "f315a335c2ff6a2bd49d93f0f82d3d505164679a10582c516e5e64e8020e203a"
+    }
+  },
+  "normalize-a-clip-s-audio": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/normalize-a-clip-s-audio.mp3": "105365a312c5fa89472c651a111c1ab564bf9331216c2237406c9d2b957eeade"
+    }
+  },
+  "pad-a-canvas": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/pad-a-canvas.webp": "7f70a2481650aaeee8a08c2a9e36c3ac37e746c1278fb884053174415f178b77"
+    }
+  },
+  "picture-in-picture": {
+    "inputs": {
+      "main": {
+        "type": "video",
+        "file": "scored.mp4"
+      },
+      "pip": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/picture-in-picture.mp4": "c6b02979881b1409d84d113b0e66610e41ca175abc4170aa4b7155b099d76189",
+      "/templates/samples/picture-in-picture-poster.webp": "872d6135206e17b6214f0c1a0a401c2596a6d84a1a6298daeb258eb8e362e7de"
+    }
+  },
+  "pixelate-a-still": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/pixelate-a-still.webp": "cff9da961947b63e0707372ace46843a7abd0eac0217017d36a72575b346ed2f"
+    }
+  },
+  "pitch-a-voice-up": {
+    "inputs": {
+      "in": {
+        "type": "audio",
+        "file": "voice.wav"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/pitch-a-voice-up.mp3": "830f6cee5af46d92b80a305ecbace43b6004c13d7ba6e72852c32d307be45a9a"
+    }
+  },
+  "posterize-to-four-bits": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/posterize-to-four-bits.webp": "1f2408c0dc98bc9a5d92a9902fac405c4100cd38ad907bbecd11f54ad802ea5e"
+    }
+  },
+  "pull-a-still-from-a-clip": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/pull-a-still-from-a-clip.webp": "b65b76beb57b8bd6f2813c7aaec212eed7ffb63a352c6d8027bed16ffcbc3a99"
+    }
+  },
+  "read-a-clip-s-frame-rate": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "re-delimit-a-list": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "alpha, beta, gamma, delta"
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "redact-email-addresses": {
+    "inputs": {
+      "s": {
+        "type": "text",
+        "value": "Contact ada@example.com or grace@navy.mil before Friday."
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "redact-and-tidy-a-log-line": {
+    "inputs": {
+      "raw": {
+        "type": "text",
+        "value": "2026-08-02  WARN   user=ada.lovelace@example.com   ip=10.0.0.7    retry=3"
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "reverse-audio": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/reverse-audio.mp3": "4adb94e384b28ad5326f707e51d190b4fa2dc7ff0f4f43a93f47bdab9f916caa"
+    }
+  },
+  "reverse-a-clip": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/reverse-a-clip.mp4": "42af9b4e981350421a0f4d7d137ac3ec27e3b06c61fb171a47317b2de357b0f4",
+      "/templates/samples/reverse-a-clip-poster.webp": "7a0ffd3b6e7b556d34d024b4d86724a39c0174cd9e5e83e4dcb25f214995e735"
+    }
+  },
+  "rotate-footage": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/rotate-footage.mp4": "a47d53749b8293a2b5a520189c6d2cae4c8a330dbc00c3f678a1075503347062",
+      "/templates/samples/rotate-footage-poster.webp": "3042463d234074ce755fa487ff88c435ddf9e5cfbe46e0c38a7bddd147a48883"
+    }
+  },
+  "sharpen-footage": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/sharpen-footage.mp4": "836b18eea360d318ee2a1b47ce6575cc8642bf02bbc96e13b70b2ed77357c2e0",
+      "/templates/samples/sharpen-footage-poster.webp": "4b0384a15db3c2ab2e73771fbf832d64c217993dc7a38129ae1023e5309a676e"
+    }
+  },
+  "slice-text": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "0123456789abcdefghij"
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "slow-a-clip-without-dropping-pitch": {
+    "inputs": {
+      "in": {
+        "type": "audio",
+        "file": "voice.wav"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/slow-a-clip-without-dropping-pitch.mp3": "8ed4d15d8a5d933e3e5cd9ebb30be0174817acae857808ed447dee351428413a"
+    }
+  },
+  "solarize-a-still": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/solarize-a-still.webp": "40ec2a01efc063be631bacbc69cdfdfc4aab317aaabfc056248b8f8be3981259"
+    }
+  },
+  "soften-a-plate": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/soften-a-plate.mp4": "790b38265ff783788e871ab11e700298cf35247fc6b3216e017f2b0956d1f25a",
+      "/templates/samples/soften-a-plate-poster.webp": "c97b605b8b543abb7e1e9730ccb91d10520d47a6c4db6665e312134a110df5ea"
+    }
+  },
+  "split-a-channel": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/split-a-channel.webp": "7f70a2481650aaeee8a08c2a9e36c3ac37e746c1278fb884053174415f178b77"
+    }
+  },
+  "split-a-log-into-records": {
+    "inputs": {
+      "s": {
+        "type": "text",
+        "value": "2026-01-01 boot\n2026-01-02 sync\n2026-01-03 purge"
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "swirl-and-echo": {
+    "inputs": {
+      "in": {
+        "type": "audio",
+        "file": "voice.wav"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/swirl-and-echo.mp3": "661839af31c91ff4b931abf006f79809b3bafa10d1b4249cf5d95d69d156ebc7"
+    }
+  },
+  "take-while-the-numbers-are-small": {
+    "inputs": {},
+    "models": {},
+    "files": {}
+  },
+  "stabilize-handheld": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/stabilize-handheld.mp4": "39c8bd9901ae5353b655688372cabc68254a153d128702bb1b0de24ad472ec17",
+      "/templates/samples/stabilize-handheld-poster.webp": "b0ad03a493c5b05512012335da983cab1db9dfde4a63b98fa5b190ba3758ff6f"
+    }
+  },
+  "take-the-first-few": {
+    "inputs": {},
+    "models": {},
+    "files": {}
+  },
+  "telephone-voice": {
+    "inputs": {
+      "in": {
+        "type": "audio",
+        "file": "voice.wav"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/telephone-voice.mp3": "492c03839323d17af433d255a2acff60c3bba5e89c7664baaede01b00fc986a5"
+    }
+  },
+  "tidy-up-messy-text": {
+    "inputs": {
+      "s": {
+        "type": "text",
+        "value": "  The   QUICK, brown --- fox!!  "
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "trim-audio-to-a-range": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/trim-audio-to-a-range.mp3": "4898c1b28baaa6fbcd2501f614fedac3aa7633c55798ae04b1441c37e7aac936"
+    }
+  },
+  "trim-a-blurb-to-length": {
+    "inputs": {
+      "s": {
+        "type": "text",
+        "value": "A visual editor for building AI workflows that run locally on your own hardware or against cloud APIs, whichever suits the job."
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "trim-a-clip": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/trim-a-clip.mp4": "e25aeb46e60fceee86f81873b21677f0c4de4b0632da250a117e16d807fa5e22",
+      "/templates/samples/trim-a-clip-poster.webp": "aa027c76254de492e20096851b2a20ed5c20f3505f1ebce12118e02ea9fdb327"
+    }
+  },
+  "vignette-a-portrait": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/vignette-a-portrait.webp": "c700c0dc4c16f311f911e681c4ee2664452fbe374eafa993850844fe39d19528"
+    }
+  },
+  "warm-up-a-cold-clip": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "scored.mp4"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/warm-up-a-cold-clip.mp4": "945c4db4d22a9b71b20fc19181619fffe93e310c7392c56577fe5815276459a8",
+      "/templates/samples/warm-up-a-cold-clip-poster.webp": "127deaba08951edb61d2a0ada302deb0809df3d9a7f6c32a00ac8ab02ff84de6"
+    }
+  },
+  "a-poster-in-portrait": {
+    "inputs": {
+      "p": {
+        "type": "text",
+        "value": "travel poster, mid-century screenprint, limited palette, strong flat shapes, dramatic diagonal composition"
+      }
+    },
+    "models": {
+      "gen.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      }
+    },
+    "files": {
+      "/templates/samples/a-poster-in-portrait.webp": "2f130646307027d3518f1f5f7234656a68a066da077d2e324d48f1d31e8e7509"
+    }
+  },
+  "ad-copy-in-three-registers": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Field Coffee subscription. Two freshly roasted bags each month. Choose whole beans or your grind. Change or cancel any time."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "a-campaign-concept-from-a-brief": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Launch Field Coffee's monthly coffee subscription for home brewers. Focus on fresh roast dates, flexible delivery, and better weekday coffee. Tone: direct and warm."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "a-repeating-texture-tile": {
+    "inputs": {
+      "p": {
+        "type": "text",
+        "value": "seamless repeating texture, hand-made paper with visible fibres, soft even lighting, tileable, no seams, top-down"
+      }
+    },
+    "models": {
+      "gen.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      }
+    },
+    "files": {
+      "/templates/samples/a-repeating-texture-tile.webp": "b02fd05b9d48f134301475907ddc89f9bf29816242fbc42ee8583231d0099afa"
+    }
+  },
+  "album-art-from-a-mood": {
+    "inputs": {
+      "p": {
+        "type": "text",
+        "value": "album cover art, a single stark object on a deep colour field, grainy film texture, bold and simple"
+      }
+    },
+    "models": {
+      "gen.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      }
+    },
+    "files": {
+      "/templates/samples/album-art-from-a-mood.webp": "d164750f51d79b164e73a05823ce6977d97c2f055da74211a14afa44082032f6"
+    }
+  },
+  "blog-post-to-social-thread": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Better coffee starts with fresh beans. Store them in an airtight container away from heat and light. Grind only what you need before brewing. Weigh both coffee and water so you can repeat a cup you enjoy. Change one variable at a time: grind size, dose, or brew time."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "ad-loop-from-a-product-photo": {
+    "inputs": {
+      "in-photo": {
+        "type": "image",
+        "file": "coffee.jpg"
+      },
+      "in-motion": {
+        "type": "text",
+        "value": "Slow orbit around the product as a soft highlight travels across its surface"
+      }
+    },
+    "models": {
+      "animate.model": {
+        "provider": "kie",
+        "id": "kling-2.6/image-to-video"
+      }
+    },
+    "files": {
+      "/templates/samples/ad-loop-from-a-product-photo.mp4": "8e59fb911fdb8bcef9e0512a7a405535b786f59661e2c89ff22d3d55b48764b7",
+      "/templates/samples/ad-loop-from-a-product-photo-poster.webp": "a81c1c68d833337d5a3f84e566343bc3a155b1911b8f5333af5f882a4eb95fbd"
+    }
+  },
+  "bullet-points-to-press-release": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Field Coffee opens a new shop in Amsterdam on 15 October. The menu features espresso, filter coffee, and pastries. Opening hours are 8am to 6pm. Founders: Sam and Alex."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "bring-a-still-to-life": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      },
+      "mo": {
+        "type": "text",
+        "value": "Slow push in with a gentle parallax drift"
+      }
+    },
+    "models": {
+      "vid.model": {
+        "provider": "kie",
+        "id": "kling-2.6/image-to-video"
+      }
+    },
+    "files": {
+      "/templates/samples/bring-a-still-to-life.mp4": "b054bf24664a096d31d66458d23773827a1b926dd247888a276095789ce4e489",
+      "/templates/samples/bring-a-still-to-life-poster.webp": "b36983d5c82e405d9b0f728072603d3803146480fc775d2557f73e7452e55631"
+    }
+  },
+  "concept-art-iteration-board": {
+    "inputs": {
+      "10": {
+        "type": "text",
+        "value": "An ancient forest guardian: a towering tree-spirit, bark-skinned and moss-cloaked, watching over an enchanted grove. Fantasy RPG character concept."
+      },
+      "11": {
+        "type": "text",
+        "value": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art"
+      },
+      "12": {
+        "type": "text",
+        "value": "mysterious, ancient, powerful, serene, sacred"
+      }
+    },
+    "models": {
+      "4.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      },
+      "5.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "8.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {
+      "/templates/samples/concept-art-iteration-board.webp": "c9cc69af0c816f76db167f6c85a66c72a1e97bd998ffe7be037c4e03ee27955e"
+    }
+  },
+  "b-roll-reel-from-a-brief": {
+    "inputs": {
+      "in-subject": {
+        "type": "text",
+        "value": "A coastal roastery at first light, steam rising off the drum"
+      },
+      "in-look": {
+        "type": "text",
+        "value": "handheld documentary, warm morning light, 35mm, shallow depth of field"
+      }
+    },
+    "models": {
+      "shot-wide.model": {
+        "provider": "kie",
+        "id": "kling-2.6/text-to-video"
+      },
+      "shot-detail.model": {
+        "provider": "kie",
+        "id": "kling-2.6/text-to-video"
+      }
+    },
+    "files": {
+      "/templates/samples/b-roll-reel-from-a-brief.mp4": "e6e448837bcea0805a248797b871133ac6f101a561df4f930493131d7c99e19d",
+      "/templates/samples/b-roll-reel-from-a-brief-poster.webp": "fd47b21907227f38890dc3dc1af830f3190a2663110829ad7fe516785a0fe212"
+    }
+  },
+  "cut-out-the-subject": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {
+      "bg.model": {
+        "provider": "replicate",
+        "id": "bria/remove-background"
+      }
+    },
+    "files": {
+      "/templates/samples/cut-out-the-subject.webp": "cdbb2c580ca4bf38784df988eb2ad4243326f9a742930cbfd1f93a70abfdb173"
+    }
+  },
+  "data-generator": {
+    "inputs": {
+      "topic_input": {
+        "type": "text",
+        "value": "fresh vegetables, each with its typical color"
+      }
+    },
+    "models": {
+      "2ed27bde-9299-4088-a169-156b1ea5552f.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "draft-answers-for-an-faq": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "How often does the coffee arrive? Can I choose my grind? How do I pause my subscription?"
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "concept-art-then-a-moving-version": {
+    "inputs": {
+      "p": {
+        "type": "text",
+        "value": "A weathered lighthouse above a volcanic coastline at dawn, warm light against deep blue ocean."
+      }
+    },
+    "models": {
+      "gen.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      },
+      "vid.model": {
+        "provider": "kie",
+        "id": "kling-2.6/image-to-video"
+      }
+    },
+    "files": {
+      "/templates/samples/concept-art-then-a-moving-version.mp4": "6080317983c62b9c05543561ab648ae88b2ab0762f8a16f1bf7232e181452e81",
+      "/templates/samples/concept-art-then-a-moving-version-poster.webp": "97a0b555163bf3bbf4bbeef633a1a4b4e03dfd63afd55552d1d7f091e31cdb1c"
+    }
+  },
+  "executive-summary-of-a-long-document": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Field Coffee pilot: 120 customers tried monthly delivery. 84 renewed. The most common request was a smaller bag. Shipping delays affected 9 orders. Next steps: test a 200g option, add tracking emails, and interview customers who cancelled."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "extract-the-claims-worth-checking": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Your subscription renewal will be processed on the first day of the subsequent billing period. Modifications must be submitted at least 48 hours prior to renewal."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "five-headlines-for-a-landing-page": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Field Coffee subscription. Two freshly roasted bags each month. Choose whole beans or your grind. Change or cancel any time."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "flashcard-generator": {
+    "inputs": {
+      "topic_input": {
+        "type": "text",
+        "value": "Python Programming"
+      }
+    },
+    "models": {
+      "generate_flashcards.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "editorial-still-from-a-line": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "A lone lighthouse on a basalt cliff under moving storm light"
+      }
+    },
+    "models": {
+      "img.model": {
+        "provider": "replicate",
+        "id": "black-forest-labs/flux-2-klein-9b"
+      }
+    },
+    "files": {
+      "/templates/samples/editorial-still-from-a-line.webp": "174d0906d7fb10a63c0af78921ffd5d65bcab46e305aff1d426778fcfaa7f045"
+    }
+  },
+  "generate-then-upscale-a-poster": {
+    "inputs": {
+      "p": {
+        "type": "text",
+        "value": "a retro travel poster of a volcanic coastline, screenprint texture"
+      }
+    },
+    "models": {
+      "gen.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      },
+      "up.model": {
+        "provider": "replicate",
+        "id": "recraft-ai/recraft-crisp-upscale"
+      }
+    },
+    "files": {
+      "/templates/samples/generate-then-upscale-a-poster.webp": "95f6c3e9c5671955fac37ae9f0014b866e7c86b774ecb5f437dcd7434303c490"
+    }
+  },
+  "image-to-audio-story": {
+    "inputs": {
+      "1": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {
+      "77a9cf98-c4c6-4585-930b-badbe641a662.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "ffb9de38-7e20-4f07-afa8-6b2a0423315f.model": {
+        "provider": "replicate",
+        "id": "inworld/realtime-tts-1.5-max"
+      }
+    },
+    "files": {
+      "/templates/samples/image-to-audio-story.mp3": "b31a791c45b7b86fb31800d1e58d43b0fa80b9b669fa12ec467d7b7a6436d5f2"
+    }
+  },
+  "localise-a-product-listing": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Field Travel Mug. A 350 ml stainless steel mug with a screw lid. Available in sage green and black. Hand wash only."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "moodboard-frame-from-a-theme": {
+    "inputs": {
+      "p": {
+        "type": "text",
+        "value": "editorial photograph, muted earth palette, soft north light, matte finish, generous negative space"
+      }
+    },
+    "models": {
+      "gen.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      }
+    },
+    "files": {
+      "/templates/samples/moodboard-frame-from-a-theme.webp": "8172af0b6d6cd383a8c1ba01cbfcec6b021c013ebfd26231b497472894909920"
+    }
+  },
+  "narrate-a-script": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Every frame you see here was generated from a single line of text."
+      }
+    },
+    "models": {
+      "tts.model": {
+        "provider": "replicate",
+        "id": "inworld/realtime-tts-1.5-max"
+      }
+    },
+    "files": {
+      "/templates/samples/narrate-a-script.mp3": "4fdac77461c704ec3574f3ebb97d47a272a3f0d49ec852b9e777189673feb9d3"
+    }
+  },
+  "one-tagline-six-markets": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Fresh coffee. Your way."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "image-to-video-animation": {
+    "inputs": {
+      "4": {
+        "type": "text",
+        "value": "Moody twilight ocean scene with cinematic lighting"
+      },
+      "6": {
+        "type": "text",
+        "value": "Slow dolly push toward the horizon as waves shimmer with reflective highlights"
+      },
+      "7": {
+        "type": "text",
+        "value": "8 second dramatic reveal"
+      },
+      "8": {
+        "type": "text",
+        "value": "no watermarks, no text overlays, no jump cuts, no warped anatomy"
+      }
+    },
+    "models": {
+      "2.model": {
+        "provider": "atlascloud",
+        "id": "google/veo3.1/image-to-video"
+      },
+      "3.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      }
+    },
+    "files": {
+      "/templates/samples/image-to-video-animation.mp4": "f3eaa780541220a54002d11df9e909cadfe6928f3c38b001a0332f78d5920d34",
+      "/templates/samples/image-to-video-animation-poster.webp": "22a8dec02b4ad0f6195b913d03dc1f7438468320c28dca3d7ae7640044963962"
+    }
+  },
+  "narration-with-a-music-bed": {
+    "inputs": {
+      "script": {
+        "type": "text",
+        "value": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend."
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/narration-with-a-music-bed.mp3": "6f24f0b08f986051e1eb1d73917ef9aa717adece0d44e3f149badc8b72e25f9a"
+    }
+  },
+  "poster-on-kie": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "A brutalist concert hall at dusk, long shadows, single figure on the steps"
+      }
+    },
+    "models": {
+      "img.model": {
+        "provider": "kie",
+        "id": "seedream/4.5-text-to-image"
+      }
+    },
+    "files": {
+      "/templates/samples/poster-on-kie.webp": "531a8742943844e096b24dd52fa96a06967d31ebc4edc9daf8dc8a5de9cbc497"
+    }
+  },
+  "product-spot-from-text": {
+    "inputs": {
+      "in-product": {
+        "type": "text",
+        "value": "Matte-black wireless over-ear headphones with a brushed-copper accent ring"
+      },
+      "in-staging": {
+        "type": "text",
+        "value": "Polished dark concrete pedestal, volumetric rim light, fine dust drifting through a soft teal backlight"
+      },
+      "in-motion": {
+        "type": "text",
+        "value": "Slow dolly push-in with a gentle rotation, shallow depth of field holding focus on the product"
+      }
+    },
+    "models": {
+      "still.model": {
+        "provider": "replicate",
+        "id": "black-forest-labs/flux-2-klein-9b"
+      },
+      "spot.model": {
+        "provider": "kie",
+        "id": "kling-2.6/image-to-video"
+      }
+    },
+    "files": {
+      "/templates/samples/product-spot-from-text.mp4": "554ae545c21c459081a30b04343ab5942f704d8a5184867854064821a92c065f",
+      "/templates/samples/product-spot-from-text-poster.webp": "f461199eaef2d18c34176e5f4d2167a515062e38ad69a45515fdbe60325a81d3"
+    }
+  },
+  "prompt-template": {
+    "inputs": {
+      "input_topic": {
+        "type": "text",
+        "value": "Photosynthesis"
+      },
+      "input_audience": {
+        "type": "text",
+        "value": "curious 10-year-old"
+      }
+    },
+    "models": {
+      "llm.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "product-video-generator": {
+    "inputs": {
+      "5": {
+        "type": "text",
+        "value": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking."
+      },
+      "6": {
+        "type": "text",
+        "value": "active millennials who enjoy weekend hiking and fitness challenges"
+      },
+      "7": {
+        "type": "text",
+        "value": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance"
+      },
+      "ada8f51f-0155-4178-a07c-9415be82534a": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {
+      "3.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "97f03868-da4f-4604-b57e-5f2118847956.model": {
+        "provider": "atlascloud",
+        "id": "google/veo3.1/image-to-video"
+      }
+    },
+    "files": {
+      "/templates/samples/product-video-generator.mp4": "fabf04650cb69ea8dd99a9c05d72b6acb5c3f4a59120830d3884ffae4bd135a4",
+      "/templates/samples/product-video-generator-poster.webp": "9d708c5a0a24272f32f1429fc104dd6f622e74baea6312e0a67d087c90cdfe0f"
+    }
+  },
+  "put-a-voice-over-a-music-bed": {
+    "inputs": {
+      "t": {
+        "type": "text",
+        "value": "Built for people who would rather ship than configure."
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/put-a-voice-over-a-music-bed.mp3": "4ca3df62850ac5a8d29d5ab6638622ac0a486d42ea162b6285302c502fa26ac4"
+    }
+  },
+  "restyle-a-photo-as-an-illustration": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {
+      "i2i.model": {
+        "provider": "replicate",
+        "id": "google/nano-banana"
+      }
+    },
+    "files": {
+      "/templates/samples/restyle-a-photo-as-an-illustration.webp": "b8343cb964022c0dd193f497e60f4d65a8698df92a8119e84d45d4b58087aa2b"
+    }
+  },
+  "rewrite-this-so-a-customer-understands-it": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Your subscription renewal will be processed on the first day of the subsequent billing period. Modifications must be submitted at least 48 hours prior to renewal."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "seo-title-and-meta-description": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Field Coffee offers a monthly subscription with two freshly roasted bags. Customers choose whole beans or ground coffee and can change or cancel their plan any time."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "score-a-clip-from-its-own-mood": {
+    "inputs": {
+      "clip": {
+        "type": "video",
+        "file": "scored.mp4"
+      },
+      "mood": {
+        "type": "text",
+        "value": "Soft jazz guitar and brushed drums for a quiet coffee shop, instrumental"
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "mus.model": {
+        "provider": "kie",
+        "id": "generate-music"
+      }
+    },
+    "files": {
+      "/templates/samples/score-a-clip-from-its-own-mood.mp4": "43c3c02edd147b3bc84c2edb821d12466d9c10fe39e6bbc09883e1de48cc40f0",
+      "/templates/samples/score-a-clip-from-its-own-mood-poster.webp": "6a139d1b055e6ed9d4259bf91b65b48d4953789003e6de6129c805e69fbf5e9e"
+    }
+  },
+  "relight-a-product-for-a-seasonal-campaign": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {
+      "rl.model": {
+        "provider": "replicate",
+        "id": "qwen-edit-apps/qwen-image-edit-plus-lora-relight"
+      }
+    },
+    "files": {
+      "/templates/samples/relight-a-product-for-a-seasonal-campaign.webp": "534be3ef8f6bcb89da8fa55926094c3b79d4ef11d165b082b6954f3070786011"
+    }
+  },
+  "shot-list-from-a-synopsis": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "A cyclist finds an old camera in a rain-soaked city. Each photo reveals the same street one day in the future."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "speak-a-line-then-trim-the-silence": {
+    "inputs": {
+      "t": {
+        "type": "text",
+        "value": "The package arrives on Thursday. Someone has to be home to sign for it."
+      }
+    },
+    "models": {
+      "tts.model": {
+        "provider": "replicate",
+        "id": "inworld/realtime-tts-1.5-max"
+      }
+    },
+    "files": {
+      "/templates/samples/speak-a-line-then-trim-the-silence.mp3": "b043e7c62e3f261778be4420afe6d290a9e9175c456fa3658a89bd9274e1bc60"
+    }
+  },
+  "still-on-replicate": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "A weathered fishing boat hauled onto black sand, cold northern light"
+      }
+    },
+    "models": {
+      "img.model": {
+        "provider": "replicate",
+        "id": "black-forest-labs/flux-2-klein-9b"
+      }
+    },
+    "files": {
+      "/templates/samples/still-on-replicate.webp": "4f5fe3f03803eb7d77259c0befc294d1ceb435d31f27a202bc52b979ac66e095"
+    }
+  },
+  "subject-lines-worth-testing": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Meet the Field Coffee subscription. Two freshly roasted bags delivered each month. Choose your grind and change or cancel your plan any time."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "take-the-first-few-seconds-of-a-bed": {
+    "inputs": {},
+    "models": {
+      "mus.model": {
+        "provider": "kie",
+        "id": "generate-music"
+      }
+    },
+    "files": {
+      "/templates/samples/take-the-first-few-seconds-of-a-bed.mp3": "506a34b7d03c77a796d1c4fa2324c0fcf9cf4a6383a185e46e7c383def2af98e"
+    }
+  },
+  "themes-across-customer-feedback": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Love the coffee, wish there was a smaller bag. Delivery tracking would help. Great flavour and easy cancellation. The bag is too big for one person. Please send a tracking email."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "trailer-beats-from-a-premise": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "A cyclist finds a camera that photographs tomorrow."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "translate-marketing-copy-to-german": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Freshly roasted coffee, delivered your way. Choose your grind and change your plan any time."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "turn-research-notes-into-a-comparison-table": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Mug A: stainless steel, 350 ml, screw lid, hand wash, 240g. Mug B: ceramic, 300 ml, open top, dishwasher safe, 310g. Mug C: glass, 250 ml, silicone lid, dishwasher safe, 180g."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "turn-specs-into-product-copy": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Travel mug. 350 ml. Double-wall stainless steel. Screw lid. Fits cup holders. Available in sage green and black. Hand wash only."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "turn-a-changelog-into-release-notes": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Added delivery tracking emails. Fixed discount codes freezing checkout in Safari. Added a 200g bag size. Subscription pauses now take effect immediately."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "turn-a-logo-into-print-ready-vector": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {
+      "v.model": {
+        "provider": "replicate",
+        "id": "recraft-ai/recraft-vectorize"
+      }
+    },
+    "files": {
+      "/templates/samples/turn-a-logo-into-print-ready-vector.webp": "68a019df189e0b8a40090242570803417ff5f52017baf59748802d01e3241680"
+    }
+  },
+  "turn-a-support-thread-into-a-bug-report": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "Customer: The checkout spinner never stops after I apply COFFEE10. Support: Which browser? Customer: Safari on iPhone. Without the code, checkout works. Support reproduced on iOS 18 with two bags in the basket."
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "upscale-a-still": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {
+      "up.model": {
+        "provider": "replicate",
+        "id": "recraft-ai/recraft-crisp-upscale"
+      }
+    },
+    "files": {
+      "/templates/samples/upscale-a-still.webp": "8122190871611e59abe484269805baa18a7079e2b1455173488a55be24c96f59"
+    }
+  },
+  "voice-a-script-in-two-voices": {
+    "inputs": {
+      "a": {
+        "type": "text",
+        "value": "What makes a good morning?"
+      },
+      "b": {
+        "type": "text",
+        "value": "Fresh coffee, and a little time to enjoy it."
+      }
+    },
+    "models": {
+      "ta.model": {
+        "provider": "replicate",
+        "id": "inworld/realtime-tts-1.5-max"
+      },
+      "tb.model": {
+        "provider": "replicate",
+        "id": "inworld/realtime-tts-1.5-max"
+      }
+    },
+    "files": {
+      "/templates/samples/voice-a-script-in-two-voices.mp3": "dcbb16d452b1fa0e28758cb2cec03eeafb06eac647c191bea5094efe880e395b"
+    }
+  },
+  "video-restyle-studio": {
+    "inputs": {
+      "in-video": {
+        "type": "video",
+        "file": "scored.mp4"
+      },
+      "in-style": {
+        "type": "text",
+        "value": "1980s anime cel animation, hand-inked outlines, flat gouache colour, visible film grain"
+      },
+      "in-keep": {
+        "type": "text",
+        "value": "faces, text, and the position of every subject in frame"
+      }
+    },
+    "models": {
+      "restyle.model": {
+        "provider": "replicate",
+        "id": "decart/lucy-edit-2"
+      }
+    },
+    "files": {
+      "/templates/samples/video-restyle-studio.mp4": "437ec7887e066e0773b5258818c15bdfd53899354e9459eb65057baa43527a76",
+      "/templates/samples/video-restyle-studio-poster.webp": "196e7a24bc944acbe2220623171555b2f5a7f8368c3d69ce440c35511149cc77"
+    }
+  },
+  "write-a-listing-from-the-product-photo": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "write-the-prompt-then-make-the-image": {
+    "inputs": {
+      "in": {
+        "type": "text",
+        "value": "A minimal coffee campaign with warm morning light and handmade ceramic cups"
+      }
+    },
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "gen.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      }
+    },
+    "files": {
+      "/templates/samples/write-the-prompt-then-make-the-image.webp": "ba1d0f7108a4bd5f000603cf50e6cfb4fa88618b91b6f45e2c86971079a7cad6"
+    }
+  },
+  "action-items-from-a-meeting-recording": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "meeting.mp4"
+      }
+    },
+    "models": {
+      "asr.model": {
+        "provider": "together",
+        "id": "openai/whisper-large-v3"
+      },
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "audio-to-image": {
+    "inputs": {
+      "15": {
+        "type": "audio",
+        "file": "meeting.wav"
+      }
+    },
+    "models": {
+      "3620653b-0786-4222-9829-3183899984cd.model": {
+        "provider": "together",
+        "id": "openai/whisper-large-v3"
+      },
+      "8b07b1ed-2ce9-4581-993e-efad334ab7a8.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      }
+    },
+    "files": {
+      "/templates/samples/audio-to-image.webp": "c09a9ad684a5510422643dc7d3f1d441bbbef67f380459067aed8eb2852bfcf4"
+    }
+  },
+  "chapter-markers-for-a-long-recording": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "meeting.mp4"
+      }
+    },
+    "models": {
+      "asr.model": {
+        "provider": "together",
+        "id": "openai/whisper-large-v3"
+      },
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "chat-with-your-documents": {
+    "inputs": {
+      "question_input": {
+        "type": "text",
+        "value": "How long does the Aurora One take to fully charge, and what does its warranty cover?"
+      },
+      "search_input": {
+        "type": "text",
+        "value": "Aurora"
+      },
+      "doc_specs": {
+        "type": "text",
+        "value": "# Aurora One — Technical Specifications\n\nThe Aurora One is a lightweight urban electric bike. It ships with a 500 Wh removable battery and a 250 W mid-drive motor. The assisted top speed is 25 km/h and the rated range is up to 80 km per charge in eco mode. The complete bike weighs 17 kg and fits riders from 160 cm to 195 cm tall. Frame material is 6061 aluminium; wheel size is 27.5 inches."
+      },
+      "doc_charging": {
+        "type": "text",
+        "value": "# Aurora One — Battery & Charging\n\nThe Aurora One battery charges from empty to full in about 4 hours with the included standard charger, or reaches 80% in roughly 2 hours. An optional fast charger cuts a full charge to about 2.5 hours. The battery is removable, so it can be charged on or off the bike. Aurora recommends storing the battery between 20% and 80% charge when not riding for long periods."
+      },
+      "doc_warranty": {
+        "type": "text",
+        "value": "# Aurora One — Warranty & Support\n\nEvery Aurora One includes a 2-year limited warranty covering the frame, motor, and battery against manufacturing defects. The warranty does not cover wear items such as tyres, brake pads, or accidental damage. Warranty service is handled through authorised Aurora dealers; contact support at help@aurorabikes.example within the coverage period to open a claim."
+      }
+    },
+    "models": {
+      "collection.embedding_model": {
+        "provider": "ollama",
+        "id": "nomic-embed-text"
+      },
+      "answer.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "cold-outreach-co-pilot": {
+    "inputs": {
+      "input_prospect": {
+        "type": "text",
+        "value": "AtlasCloud"
+      },
+      "input_offer": {
+        "type": "text",
+        "value": "We build NodeTool - a Creative AI workspace."
+      }
+    },
+    "models": {
+      "agent.model": {
+        "provider": "openrouter",
+        "id": "anthropic/claude-sonnet-4.6"
+      }
+    },
+    "files": {}
+  },
+  "brand-asset-generator": {
+    "inputs": {
+      "in_brand_name": {
+        "type": "text",
+        "value": "Aurora Labs"
+      },
+      "in_brand_description": {
+        "type": "text",
+        "value": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering."
+      },
+      "in_tagline": {
+        "type": "text",
+        "value": "Power that gives back"
+      }
+    },
+    "models": {
+      "gen_prompts.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "txt2img.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      },
+      "brief_agent.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {
+      "/templates/samples/brand-asset-generator.webp": "9c4ffbf9eef9142934d2534778d754d814458d8f922cb367c42f408be189b3de"
+    }
+  },
+  "edit-a-still-with-words": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      },
+      "ins": {
+        "type": "text",
+        "value": "Make it golden hour, warm low sun raking across the subject"
+      },
+      "dirs": {
+        "type": "text",
+        "value": "Keep the subject unchanged. Use a warm cream studio background."
+      }
+    },
+    "models": {
+      "ed.model": {
+        "provider": "replicate",
+        "id": "google/nano-banana"
+      }
+    },
+    "files": {
+      "/templates/samples/edit-a-still-with-words.webp": "d48566c81c0a0f0122a1067d9b5d5d03fcc11c3a754f72941ac9d333762a977e"
+    }
+  },
+  "hook-and-thumbnail-factory": {
+    "inputs": {
+      "input_topic": {
+        "type": "text",
+        "value": "How compound interest quietly builds wealth"
+      },
+      "input_audience": {
+        "type": "text",
+        "value": "Gen Z just starting to invest"
+      }
+    },
+    "models": {
+      "hooks.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "thumbnail.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      }
+    },
+    "files": {
+      "/templates/samples/hook-and-thumbnail-factory.webp": "2a83cd04dcccddb5156f6ca625d04f04c7b761e3429c17d74742fac642dc3c9e"
+    }
+  },
+  "meeting-transcript-summarizer": {
+    "inputs": {
+      "recording_input": {
+        "type": "audio",
+        "file": "meeting.wav"
+      },
+      "transcript_input": {
+        "type": "text",
+        "value": ""
+      }
+    },
+    "models": {
+      "asr.model": {
+        "provider": "together",
+        "id": "openai/whisper-large-v3"
+      },
+      "summarizer.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "action_items_generator.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "photo-enhancement-suite": {
+    "inputs": {},
+    "models": {
+      "3.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      }
+    },
+    "files": {}
+  },
+  "movie-posters": {
+    "inputs": {
+      "movie_title_input": {
+        "type": "text",
+        "value": "Singularity"
+      },
+      "genre_input": {
+        "type": "text",
+        "value": "Sci-Fi Thriller"
+      },
+      "style_input": {
+        "type": "text",
+        "value": "Neo-noir, high-contrast, cinematic"
+      }
+    },
+    "models": {
+      "prompt_list_generator.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "0276f606-d899-4487-be65-4615564507cc.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      },
+      "04757c8a-dad6-48f3-a45f-459f54e26b7b.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {
+      "/templates/samples/movie-posters.webp": "c2ab615739b33a05c2b85aa47f3f8c35a5e6ceed9cb87e636e740e0ac1bd6037"
+    }
+  },
+  "podcast-repurposing-studio": {
+    "inputs": {
+      "episode_audio": {
+        "type": "audio",
+        "file": "meeting.wav"
+      },
+      "show_context": {
+        "type": "text",
+        "value": "Trailhead — a weekly hiking and outdoor-gear podcast hosted by Maya. Voice: warm, practical, a little irreverent. CTA: subscribe and grab the free gear checklist at trailhead.fm"
+      }
+    },
+    "models": {
+      "transcribe.model": {
+        "provider": "together",
+        "id": "openai/whisper-large-v3"
+      },
+      "shownotes_agent.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "newsletter_agent.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "posts_list.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "quotes_list.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "quote_card.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      }
+    },
+    "files": {
+      "/templates/samples/podcast-repurposing-studio.webp": "5e96bb46df68608e22c11e4deaf3d354cf459becf06fb91ae29d60cb7aa3ff3b"
+    }
+  },
+  "seo-content-engine": {
+    "inputs": {
+      "business": {
+        "type": "text",
+        "value": "Aurora Gear — a DTC shop for ultralight hiking equipment. The blog lives at auroragear.example/guides and supports the trail-gear collection pages."
+      },
+      "seeds": {
+        "type": "text",
+        "value": "beginner hikers researching their first serious gear; seed topics: ultralight backpacking basics, trail runners vs hiking boots, multi-day packing lists"
+      }
+    },
+    "models": {
+      "strategist.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "briefs_list.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "writer.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "hero_image.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      }
+    },
+    "files": {
+      "/templates/samples/seo-content-engine.webp": "3ac980dc3e8125cad7e680512ce5fef41f528b08a732c5b0bdeef7275614666a"
+    }
+  },
+  "widen-a-mono-voice": {
+    "inputs": {
+      "t": {
+        "type": "text",
+        "value": "Stereo is not louder. It is wider."
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/widen-a-mono-voice.mp3": "6a7e448426d7b06c9cb296fa23d565ad00a7e84b9ae0b7bfcaab6ede74ac4873"
+    }
+  },
+  "pull-a-field-out-of-json-text": {
+    "inputs": {
+      "s": {
+        "type": "text",
+        "value": "{\"user\":{\"name\":\"Ada\",\"role\":\"engineer\"},\"active\":true}"
+      }
+    },
+    "models": {},
+    "files": {}
+  },
+  "per-sku-ad-factory": {
+    "inputs": {
+      "sku": {
+        "type": "text",
+        "value": "FIELD-350-SAGE"
+      },
+      "name": {
+        "type": "text",
+        "value": "Field Travel Mug"
+      },
+      "price": {
+        "type": "text",
+        "value": "24"
+      },
+      "descriptor": {
+        "type": "text",
+        "value": "A sage green stainless steel travel mug"
+      },
+      "photo": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {
+      "stills.image_model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      },
+      "clips.video_model": {
+        "provider": "kie",
+        "id": "kling-2.6/image-to-video"
+      }
+    },
+    "files": {
+      "/templates/samples/per-sku-ad-factory.mp4": "bbdd2fd0082cda2c74ab58479f62662993b1c5f1f22699ca3a6788655c2210ef",
+      "/templates/samples/per-sku-ad-factory-poster.webp": "336831defb91f3c2e6b0ed3b234aa20a7e0c0393551b737113fdc3b52d25d5d4"
+    }
+  },
+  "hacker-news-agent": {
+    "inputs": {
+      "topic_input": {
+        "type": "text",
+        "value": "AI and developer tools"
+      }
+    },
+    "models": {
+      "3.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "model-arena": {
+    "inputs": {
+      "brief": {
+        "type": "text",
+        "value": "Should a 12-person B2B SaaS startup build its own customer-facing analytics dashboard, or integrate a third-party embedded-analytics vendor, for its reporting feature? Ship target is one quarter out."
+      },
+      "context": {
+        "type": "text",
+        "value": "Audience: the founding team (technical). Constraints: 2 engineers can be spared for 6 weeks; weak reporting is a top-3 reason prospects churn; tooling budget is about $2k/month."
+      }
+    },
+    "models": {
+      "openai_lane.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "anthropic_lane.model": {
+        "provider": "openrouter",
+        "id": "anthropic/claude-sonnet-4.6"
+      },
+      "gemini_lane.model": {
+        "provider": "openrouter",
+        "id": "google/gemini-3.1-pro-preview"
+      }
+    },
+    "files": {}
+  },
+  "music-video-visualizer": {
+    "inputs": {
+      "audio_track": {
+        "type": "audio",
+        "file": "meeting.wav"
+      },
+      "genre_hint": {
+        "type": "text",
+        "value": "electronic ambient"
+      },
+      "visual_style": {
+        "type": "text",
+        "value": "abstract geometric patterns, neon colors, flowing energy"
+      },
+      "num_frames": {
+        "type": "text",
+        "value": "8"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/music-video-visualizer.mp4": "dd8a2138d554aa1e81c90b5dde2bdb0b70b6201dbcb336e9ac0c5a64a769b991",
+      "/templates/samples/music-video-visualizer-poster.webp": "bfc8c6986c5875e0b6f8edefeafd8fb1252d4bd1b3f4074cb21a1801fcbcb76d"
+    }
+  },
+  "name-a-file-from-its-narration": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "meeting.mp4"
+      }
+    },
+    "models": {
+      "asr.model": {
+        "provider": "together",
+        "id": "openai/whisper-large-v3"
+      }
+    },
+    "files": {}
+  },
+  "podcast-episode-to-show-notes": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "meeting.mp4"
+      }
+    },
+    "models": {
+      "asr.model": {
+        "provider": "together",
+        "id": "openai/whisper-large-v3"
+      },
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "private-assistant": {
+    "inputs": {
+      "document_input": {
+        "type": "text",
+        "value": "Team sync — Thursday\n- Launch date moved to March 14 (was March 7) to finish the accessibility fixes.\n- Priya owns the onboarding rewrite; first draft due Monday.\n- Budget: $8k left for Q1, reserved for the usability study.\n- Open risk: the billing migration hasn't been tested on staging yet.\n- Decision: ship the mobile app in the second wave, not at launch."
+      },
+      "question_input": {
+        "type": "text",
+        "value": "When do we launch, and what's the biggest open risk?"
+      },
+      "tone_input": {
+        "type": "text",
+        "value": "concise and neutral"
+      }
+    },
+    "models": {
+      "assistant.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "a-run-button-for-any-job": {
+    "inputs": {},
+    "models": {},
+    "files": {}
+  },
+  "a-webhook-that-answers": {
+    "inputs": {},
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "every-hour-on-the-hour": {
+    "inputs": {},
+    "models": {},
+    "files": {}
+  },
+  "watch-a-folder-act-on-what-lands": {
+    "inputs": {},
+    "models": {
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "pull-the-quotable-lines-out-of-an-interview": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "meeting.mp4"
+      }
+    },
+    "models": {
+      "asr.model": {
+        "provider": "together",
+        "id": "openai/whisper-large-v3"
+      },
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "research-agent": {
+    "inputs": {
+      "input-topic": {
+        "type": "text",
+        "value": "Small language models running on-device in 2026"
+      },
+      "input-audience": {
+        "type": "text",
+        "value": "a technical product team deciding whether to adopt on-device models"
+      }
+    },
+    "models": {
+      "research-agent.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "spin-a-packshot-into-a-turntable-clip": {
+    "inputs": {
+      "in": {
+        "type": "image",
+        "file": "coffee.jpg"
+      }
+    },
+    "models": {
+      "v.model": {
+        "provider": "kie",
+        "id": "kling-2.6/image-to-video"
+      }
+    },
+    "files": {
+      "/templates/samples/spin-a-packshot-into-a-turntable-clip.mp4": "68858d2b634fc8eb30923072b412a079861e18d1e09e90568b5eb8a1fec5a65f",
+      "/templates/samples/spin-a-packshot-into-a-turntable-clip-poster.webp": "9139975bb7ea2efeb17d5c257ec5d9e05241f998efb7bc2330d8ca494f08efab"
+    }
+  },
+  "subtitle-text-from-a-recording": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "meeting.mp4"
+      }
+    },
+    "models": {
+      "asr.model": {
+        "provider": "together",
+        "id": "openai/whisper-large-v3"
+      },
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "summarise-a-recorded-call": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "meeting.mp4"
+      }
+    },
+    "models": {
+      "asr.model": {
+        "provider": "together",
+        "id": "openai/whisper-large-v3"
+      },
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "transcribe-audio": {
+    "inputs": {
+      "7": {
+        "type": "audio",
+        "file": "meeting.wav"
+      }
+    },
+    "models": {
+      "c5191702-2a3c-440d-b3af-2db20e74a369.model": {
+        "provider": "together",
+        "id": "openai/whisper-large-v3"
+      }
+    },
+    "files": {}
+  },
+  "transcribe-a-clip": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "meeting.mp4"
+      }
+    },
+    "models": {
+      "asr.model": {
+        "provider": "together",
+        "id": "openai/whisper-large-v3"
+      }
+    },
+    "files": {}
+  },
+  "turn-a-talk-into-a-blog-post": {
+    "inputs": {
+      "in": {
+        "type": "video",
+        "file": "meeting.mp4"
+      }
+    },
+    "models": {
+      "asr.model": {
+        "provider": "together",
+        "id": "openai/whisper-large-v3"
+      },
+      "ag.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      }
+    },
+    "files": {}
+  },
+  "three-ratios": {
+    "inputs": {},
+    "models": {},
+    "files": {
+      "/templates/samples/three-ratios.mp4": "24628fe9e5735af4ade947c56cf415d152d07496c46db9fd7f8baba785d22f12",
+      "/templates/samples/three-ratios-poster.webp": "218f4133f9b7e74985303befce7c5c752973c9818418e6dbec241a150b42784b"
+    }
+  },
+  "workflow-as-a-tool": {
+    "inputs": {
+      "topic_input": {
+        "type": "text",
+        "value": "The economics of home solar batteries"
+      }
+    },
+    "models": {
+      "orchestrator.model": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "research_specialist.model": {
+        "provider": "openrouter",
+        "id": "google/gemini-3.1-pro-preview"
+      },
+      "copy_editor.model": {
+        "provider": "openrouter",
+        "id": "anthropic/claude-sonnet-4.6"
+      }
+    },
+    "files": {}
+  },
+  "vectorize-a-generated-logo": {
+    "inputs": {
+      "p": {
+        "type": "text",
+        "value": "a flat minimal fox head logo, two colors, thick shapes, solid white background"
+      }
+    },
+    "models": {
+      "gen.model": {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-pro/text-to-image"
+      },
+      "vec.model": {
+        "provider": "replicate",
+        "id": "recraft-ai/recraft-vectorize"
+      }
+    },
+    "files": {
+      "/templates/samples/vectorize-a-generated-logo.webp": "37ce7e56484d263c7d5c580d9795d6f359419d2242220ac816e45875bbd1512c"
+    }
+  }
+}

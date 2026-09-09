@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T12:00:00.000Z",
   "name": "Pull a Field out of JSON Text",
   "tool_name": null,
-  "description": "Model output often arrives as JSON inside a string. ExtractJSON reaches into it by path so you do not have to parse it by hand downstream.",
+  "description": "Read a value from JSON text using a dotted path. This example extracts the name Ada.",
   "tags": [
     "text",
     "data",
@@ -49,11 +49,11 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "2  Extract $.user.name"
+          "title": "2  Read user.name"
         },
         "dynamic_properties": {
           "text": "",
-          "path": "$.user.name"
+          "path": "user.name"
         },
         "dynamic_outputs": {
           "output": {

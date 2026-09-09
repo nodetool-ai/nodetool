@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Put a Product on a Studio Backdrop",
   "tool_name": null,
-  "description": "Cut the product out, then place it in a described setting. The placement step is an instruction-following edit model rather than strength-based image-to-image: a strength value cannot say \"keep this object, change everything else\", and any setting high enough to build the backdrop also redraws the product \u2014 the thing a customer is actually buying.",
+  "description": "Remove the background, soften the cutout edge, and place the product in a new studio scene.",
   "tags": [
     "image",
     "example"
@@ -19,7 +19,10 @@
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "photo",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "The product photo"
         },
         "ui_properties": {
@@ -82,7 +85,7 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
+            "x": 1320,
             "y": 120
           },
           "zIndex": 0,
@@ -101,13 +104,69 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
+            "x": 1650,
             "y": 120
           },
           "zIndex": 0,
           "width": 300,
           "selectable": true,
           "title": "4  Result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "edge-softness",
+        "type": "nodetool.input.FloatInput",
+        "data": {
+          "name": "edge_softness",
+          "value": 1,
+          "min": 0,
+          "max": 3,
+          "description": "Edge softness in pixels. Set to 0 for the original cutout."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 460
+          },
+          "width": 300,
+          "title": "Edge softness"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "soften-alpha",
+        "type": "lib.image.filter.GaussianBlur",
+        "data": {
+          "radius": 1,
+          "sigma": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 300
+          },
+          "width": 300,
+          "title": "Soften cutout edge"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "refine-cutout",
+        "type": "lib.image.channel.Merge",
+        "data": {
+          "alpha_channel": 3
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 120
+          },
+          "width": 300,
+          "title": "Keep product detail"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -122,18 +181,46 @@
         "targetHandle": "image"
       },
       {
-        "id": "e2",
-        "source": "bg",
-        "sourceHandle": "output",
-        "target": "comp",
-        "targetHandle": "image"
-      },
-      {
         "id": "e3",
         "source": "comp",
         "sourceHandle": "output",
         "target": "out",
         "targetHandle": "value"
+      },
+      {
+        "id": "bg-soften-alpha-image",
+        "source": "bg",
+        "sourceHandle": "output",
+        "target": "soften-alpha",
+        "targetHandle": "image"
+      },
+      {
+        "id": "edge-softness-soften-alpha-radius",
+        "source": "edge-softness",
+        "sourceHandle": "output",
+        "target": "soften-alpha",
+        "targetHandle": "radius"
+      },
+      {
+        "id": "bg-refine-cutout-image",
+        "source": "bg",
+        "sourceHandle": "output",
+        "target": "refine-cutout",
+        "targetHandle": "image"
+      },
+      {
+        "id": "soften-alpha-refine-cutout-alpha",
+        "source": "soften-alpha",
+        "sourceHandle": "output",
+        "target": "refine-cutout",
+        "targetHandle": "alpha"
+      },
+      {
+        "id": "e2",
+        "source": "refine-cutout",
+        "sourceHandle": "output",
+        "target": "comp",
+        "targetHandle": "image"
       }
     ]
   },

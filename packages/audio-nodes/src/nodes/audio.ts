@@ -10,6 +10,7 @@ import type {
   TTSModel
 } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { loadOfflineAudioContext } from "../lib/audio-context.js";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
@@ -589,14 +590,13 @@ export class OverlayAudioNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<OverlayAudioNodeOutputs> {
     const aBytes = await audioBytesAsync(this.a, context);
     const bBytes = await audioBytesAsync(this.b, context);
-    const aw = parseWavBytes(aBytes);
-    const bw = parseWavBytes(bBytes);
+    const [aw, bw] = await Promise.all([
+      decodeAudioToWav(aBytes),
+      decodeAudioToWav(bBytes)
+    ]);
 
-    // When both inputs are WAV with matching layout, overlay = sum the
-    // samples (encodeWav clips to [-1, 1]) so the result stays playable.
+    // Matching layouts can be summed directly. encodeWav clips to [-1, 1].
     if (
-      aw &&
-      bw &&
       aw.sampleRate === bw.sampleRate &&
       aw.numChannels === bw.numChannels
     ) {
@@ -612,13 +612,38 @@ export class OverlayAudioNode extends BaseNode {
       };
     }
 
-    // Fallback: byte-level max for non-WAV / mismatched inputs.
-    const len = Math.max(aBytes.length, bBytes.length);
-    const out = new Uint8Array(len);
-    for (let i = 0; i < len; i += 1) {
-      out[i] = Math.max(aBytes[i] ?? 0, bBytes[i] ?? 0);
+    const Context = await loadOfflineAudioContext();
+    if (!Context) {
+      throw new Error("Overlay Audio requires matching sample rates and channel counts when WebAudio is unavailable.");
     }
-    return { output: audioRefFromBytes(out) };
+    const sampleRate = Math.max(aw.sampleRate, bw.sampleRate);
+    const channels = Math.max(aw.numChannels, bw.numChannels);
+    const duration = Math.max(
+      wavFrameCount(aw) / aw.sampleRate,
+      wavFrameCount(bw) / bw.sampleRate
+    );
+    const frames = Math.ceil(duration * sampleRate);
+    const offline = new Context(channels, frames, sampleRate);
+    for (const wav of [aw, bw]) {
+      const buffer = offline.createBuffer(wav.numChannels, wavFrameCount(wav), wav.sampleRate);
+      for (let channel = 0; channel < wav.numChannels; channel++) {
+        const target = buffer.getChannelData(channel);
+        for (let frame = 0; frame < target.length; frame++) {
+          target[frame] = wav.samples[frame * wav.numChannels + channel];
+        }
+      }
+      const source = offline.createBufferSource();
+      source.buffer = buffer;
+      source.connect(offline.destination);
+      source.start();
+    }
+    const rendered = await offline.startRendering();
+    const mixed = new Float32Array(frames * channels);
+    for (let channel = 0; channel < channels; channel++) {
+      const samples = rendered.getChannelData(channel);
+      for (let frame = 0; frame < frames; frame++) mixed[frame * channels + channel] = samples[frame];
+    }
+    return { output: audioRefFromWav(encodeWav(mixed, sampleRate, channels)) };
   }
 }
 
@@ -903,16 +928,7 @@ export class MonoToStereoNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<MonoToStereoNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
-    const wav = parseWavBytes(bytes);
-    if (!wav) {
-      // Non-WAV fallback: duplicate raw bytes.
-      const out = new Uint8Array(bytes.length * 2);
-      for (let i = 0; i < bytes.length; i += 1) {
-        out[i * 2] = bytes[i];
-        out[i * 2 + 1] = bytes[i];
-      }
-      return { output: audioRefFromBytes(out) };
-    }
+    const wav = await decodeAudioToWav(bytes);
     // Already stereo (or more): pass through unchanged.
     if (wav.numChannels >= 2) {
       return {

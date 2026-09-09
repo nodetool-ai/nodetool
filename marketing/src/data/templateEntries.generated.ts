@@ -165,13 +165,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/a-poster-in-portrait",
     "title": "A Poster in Portrait — NodeTool AI Workflow Template",
-    "description": "A 3:4 print-oriented frame. Generating at the final aspect ratio avoids the crop that otherwise loses whichever edge the composition needed.",
+    "description": "Generate a 3:4 portrait poster from a prompt. Change the subject, colors, and style to make your own.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "a-poster-in-portrait",
     "name": "A Poster in Portrait",
-    "summary": "A 3:4 print-oriented frame. Generating at the final aspect ratio avoids the crop that otherwise loses whichever edge the composition needed.",
+    "summary": "Generate a 3:4 portrait poster from a prompt. Change the subject, colors, and style to make your own.",
     "tags": [
       "image",
       "example"
@@ -520,13 +520,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/ai-spokesperson",
     "title": "AI Spokesperson — NodeTool AI Workflow Template",
-    "description": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
+    "description": "Turn a script into speech, normalise the volume, and soften the audio edges before syncing it to your presenter clip.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "ai-spokesperson",
     "name": "AI Spokesperson",
-    "summary": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
+    "summary": "Turn a script into speech, normalise the volume, and soften the audio edges before syncing it to your presenter clip.",
     "tags": [
       "video",
       "audio",
@@ -536,8 +536,23 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Video",
     "nodeTypes": [
       {
+        "type": "nodetool.audio.FadeIn",
+        "label": "Fade In",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.FadeOut",
+        "label": "Fade Out",
+        "count": 1
+      },
+      {
         "type": "nodetool.video.LipSync",
         "label": "Lip Sync",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.Normalize",
+        "label": "Normalize",
         "count": 1
       },
       {
@@ -561,7 +576,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 5,
+    "nodeCount": 8,
     "thumbnail": "/templates/ai-spokesperson.jpg",
     "graph": {
       "nodes": [
@@ -589,7 +604,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 0,
           "y": 400,
           "width": 280,
-          "subtitle": "Our spring release ships today. Faster renders, sharper output, and a price that did not move."
+          "subtitle": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend."
         },
         {
           "id": "speech",
@@ -604,7 +619,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "sync",
           "type": "nodetool.video.LipSync",
           "title": "Lip Sync",
-          "x": 760,
+          "x": 1750,
           "y": 300,
           "width": 280,
           "subtitle": "fal-ai/sync-lipsync/v2/pro"
@@ -613,9 +628,33 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-clip",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1120,
+          "x": 2110,
           "y": 320,
           "width": 240
+        },
+        {
+          "id": "level",
+          "type": "nodetool.audio.Normalize",
+          "title": "Normalize",
+          "x": 710,
+          "y": 380,
+          "width": 300
+        },
+        {
+          "id": "fade-in",
+          "type": "nodetool.audio.FadeIn",
+          "title": "Fade In",
+          "x": 1040,
+          "y": 380,
+          "width": 300
+        },
+        {
+          "id": "fade-out",
+          "type": "nodetool.audio.FadeOut",
+          "title": "Fade Out",
+          "x": 1370,
+          "y": 380,
+          "width": 300
         }
       ],
       "edges": [
@@ -634,17 +673,38 @@ export const templateEntries: TemplateEntry[] = [
           "color": "any"
         },
         {
-          "source": "speech",
-          "sourceHandle": "audio",
-          "target": "sync",
-          "targetHandle": "audio",
-          "color": "any"
-        },
-        {
           "source": "sync",
           "sourceHandle": "output",
           "target": "output-clip",
           "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "speech",
+          "sourceHandle": "audio",
+          "target": "level",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "level",
+          "sourceHandle": "output",
+          "target": "fade-in",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "fade-in",
+          "sourceHandle": "output",
+          "target": "fade-out",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "fade-out",
+          "sourceHandle": "output",
+          "target": "sync",
+          "targetHandle": "audio",
           "color": "any"
         }
       ]
@@ -5026,13 +5086,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/cut-a-product-out-of-its-background",
     "title": "Cut a Product Out of Its Background — NodeTool AI Workflow Template",
-    "description": "The first step of every catalogue pipeline: isolate the product so it can sit on any background the channel requires. Bria returns a real alpha channel rather than a white matte, so the edge survives compositing.",
+    "description": "Remove the background and adjust edge softness without blurring the product. Set edge softness to 0 to keep the original cutout.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "cut-a-product-out-of-its-background",
     "name": "Cut a Product Out of Its Background",
-    "summary": "The first step of every catalogue pipeline: isolate the product so it can sit on any background the channel requires. Bria returns a real alpha channel rather than a white matte, so the edge survives compositing.",
+    "summary": "Remove the background and adjust edge softness without blurring the product. Set edge softness to 0 to keep the original cutout.",
     "tags": [
       "image",
       "example"
@@ -5040,8 +5100,23 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Image & Design",
     "nodeTypes": [
       {
+        "type": "nodetool.input.FloatInput",
+        "label": "Float Input",
+        "count": 1
+      },
+      {
+        "type": "lib.image.filter.GaussianBlur",
+        "label": "Gaussian Blur",
+        "count": 1
+      },
+      {
         "type": "nodetool.input.ImageInput",
         "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "lib.image.channel.Merge",
+        "label": "Merge",
         "count": 1
       },
       {
@@ -5053,9 +5128,14 @@ export const templateEntries: TemplateEntry[] = [
         "type": "nodetool.image.RemoveBackground",
         "label": "Remove Background",
         "count": 1
+      },
+      {
+        "type": "nodetool.image.SaveImageFile",
+        "label": "Save Image File",
+        "count": 1
       }
     ],
-    "nodeCount": 3,
+    "nodeCount": 7,
     "thumbnail": "/templates/cut-a-product-out-of-its-background.jpg",
     "graph": {
       "nodes": [
@@ -5080,7 +5160,39 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
+          "x": 1650,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "edge-softness",
+          "type": "nodetool.input.FloatInput",
+          "title": "Float Input",
+          "x": 330,
+          "y": 460,
+          "width": 300
+        },
+        {
+          "id": "soften-alpha",
+          "type": "lib.image.filter.GaussianBlur",
+          "title": "Gaussian Blur",
           "x": 660,
+          "y": 300,
+          "width": 300
+        },
+        {
+          "id": "refine-cutout",
+          "type": "lib.image.channel.Merge",
+          "title": "Merge",
+          "x": 990,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "save",
+          "type": "nodetool.image.SaveImageFile",
+          "title": "Save Image File",
+          "x": 1320,
           "y": 120,
           "width": 300
         }
@@ -5095,6 +5207,41 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "source": "bg",
+          "sourceHandle": "output",
+          "target": "soften-alpha",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "edge-softness",
+          "sourceHandle": "output",
+          "target": "soften-alpha",
+          "targetHandle": "radius",
+          "color": "any"
+        },
+        {
+          "source": "bg",
+          "sourceHandle": "output",
+          "target": "refine-cutout",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "soften-alpha",
+          "sourceHandle": "output",
+          "target": "refine-cutout",
+          "targetHandle": "alpha",
+          "color": "any"
+        },
+        {
+          "source": "refine-cutout",
+          "sourceHandle": "output",
+          "target": "save",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "save",
           "sourceHandle": "output",
           "target": "out",
           "targetHandle": "value",
@@ -9879,13 +10026,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/localise-a-script-and-revoice-it",
     "title": "Localise a Script and Revoice It — NodeTool AI Workflow Template",
-    "description": "Translation and voice in one pass. The output is audio in the target language, which is what a localised cut actually needs — a translated document still leaves the recording to do.",
+    "description": "Translate a script into Spanish, generate speech, and even out the volume. Short fades soften the start and end without changing the timing.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "localise-a-script-and-revoice-it",
     "name": "Localise a Script and Revoice It",
-    "summary": "Translation and voice in one pass. The output is audio in the target language, which is what a localised cut actually needs — a translated document still leaves the recording to do.",
+    "summary": "Translate a script into Spanish, generate speech, and even out the volume. Short fades soften the start and end without changing the timing.",
     "tags": [
       "text",
       "audio",
@@ -9896,6 +10043,21 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.agents.Agent",
         "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.FadeIn",
+        "label": "Fade In",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.FadeOut",
+        "label": "Fade Out",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.Normalize",
+        "label": "Normalize",
         "count": 1
       },
       {
@@ -9914,7 +10076,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 4,
+    "nodeCount": 7,
     "thumbnail": "/templates/localise-a-script-and-revoice-it.jpg",
     "graph": {
       "nodes": [
@@ -9924,7 +10086,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 120,
-          "width": 300
+          "width": 300,
+          "subtitle": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend."
         },
         {
           "id": "ag",
@@ -9948,7 +10111,31 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
+          "x": 1980,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "level",
+          "type": "nodetool.audio.Normalize",
+          "title": "Normalize",
           "x": 990,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "fade-in",
+          "type": "nodetool.audio.FadeIn",
+          "title": "Fade In",
+          "x": 1320,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "fade-out",
+          "type": "nodetool.audio.FadeOut",
+          "title": "Fade Out",
+          "x": 1650,
           "y": 120,
           "width": 300
         }
@@ -9971,6 +10158,27 @@ export const templateEntries: TemplateEntry[] = [
         {
           "source": "tts",
           "sourceHandle": "audio",
+          "target": "level",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "level",
+          "sourceHandle": "output",
+          "target": "fade-in",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "fade-in",
+          "sourceHandle": "output",
+          "target": "fade-out",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "fade-out",
+          "sourceHandle": "output",
           "target": "out",
           "targetHandle": "value",
           "color": "any"
@@ -11501,13 +11709,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/music-video-visualizer",
     "title": "Music Video Visualizer — NodeTool AI Workflow Template",
-    "description": "Turn any song into a mood-matched music video. Whisper transcribes the lyrics, an LLM creative director reads the emotional arc, writes one image prompt per frame, FLUX renders every frame, and they are stitched back to your original audio. Differentiator: a full transcribe → analyze → fan-out → render → reassemble media pipeline in a single graph — no chat box can do this. Cost note: generates one image per frame (default 8) plus a Whisper transcription, so a run costs several fal-ai calls.",
+    "description": "Turn a track into a sequence of AI visuals. Read the lyrics, generate matching scenes, fit each frame to 720p, and time the sequence to the audio.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "music-video-visualizer",
     "name": "Music Video Visualizer",
-    "summary": "Turn any song into a mood-matched music video. Whisper transcribes the lyrics, an LLM creative director reads the emotional arc, writes one image prompt per frame, FLUX renders every frame, and they are stitched back to your original audio. Differentiator: a full transcribe → analyze → fan-out → render → reassemble media pipeline in a single graph — no chat box can do this. Cost note: generates one image per frame (default 8) plus a Whisper transcription, so a run costs several fal-ai calls.",
+    "summary": "Turn a track into a sequence of AI visuals. Read the lyrics, generate matching scenes, fit each frame to 720p, and time the sequence to the audio.",
     "tags": [
       "video",
       "audio",
@@ -11521,6 +11729,11 @@ export const templateEntries: TemplateEntry[] = [
         "type": "nodetool.input.StringInput",
         "label": "String Input",
         "count": 3
+      },
+      {
+        "type": "nodetool.control.ForEach",
+        "label": "For Each",
+        "count": 2
       },
       {
         "type": "nodetool.text.Prompt",
@@ -11548,13 +11761,13 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.control.Collect",
-        "label": "Collect",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
-        "type": "nodetool.control.ForEach",
-        "label": "For Each",
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
         "count": 1
       },
       {
@@ -11563,8 +11776,18 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.audio.GetAudioInfo",
+        "label": "Get Audio Info",
+        "count": 1
+      },
+      {
         "type": "nodetool.generators.ListGenerator",
         "label": "List Generator",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.Normalize",
+        "label": "Normalize",
         "count": 1
       },
       {
@@ -11573,12 +11796,27 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.control.RepeatValue",
+        "label": "Repeat Value",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.ResizeImage",
+        "label": "Resize Image",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.SaveImageFile",
+        "label": "Save Image File",
+        "count": 1
+      },
+      {
         "type": "nodetool.image.TextToImage",
         "label": "Text To Image",
         "count": 1
       }
     ],
-    "nodeCount": 15,
+    "nodeCount": 22,
     "thumbnail": "/templates/music-video-visualizer.jpg",
     "graph": {
       "nodes": [
@@ -11692,32 +11930,88 @@ export const templateEntries: TemplateEntry[] = [
           "id": "collected_frames",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 2764,
-          "y": 359,
+          "x": 3440,
+          "y": 600,
           "width": 280
         },
         {
           "id": "video_output",
           "type": "nodetool.video.FrameToVideo",
           "title": "Frame To Video",
-          "x": 2764,
-          "y": 559,
+          "x": 3780,
+          "y": 600,
           "width": 416
         },
         {
           "id": "final_video",
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
-          "x": 3240,
-          "y": 50,
+          "x": 4240,
+          "y": 600,
           "width": 416
         },
         {
           "id": "output-music-video",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 3560,
-          "y": 50,
+          "x": 4700,
+          "y": 600,
+          "width": 280
+        },
+        {
+          "id": "frame-size",
+          "type": "nodetool.image.ResizeImage",
+          "title": "Resize Image",
+          "x": 2760,
+          "y": 600,
+          "width": 280
+        },
+        {
+          "id": "frame-png",
+          "type": "nodetool.image.SaveImageFile",
+          "title": "Save Image File",
+          "x": 3100,
+          "y": 600,
+          "width": 280
+        },
+        {
+          "id": "track-length",
+          "type": "nodetool.audio.GetAudioInfo",
+          "title": "Get Audio Info",
+          "x": 400,
+          "y": 1000,
+          "width": 280
+        },
+        {
+          "id": "hold-length",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 740,
+          "y": 1000,
+          "width": 280
+        },
+        {
+          "id": "hold-frame",
+          "type": "nodetool.control.RepeatValue",
+          "title": "Repeat Value",
+          "x": 3440,
+          "y": 600,
+          "width": 280
+        },
+        {
+          "id": "frame_iterator",
+          "type": "nodetool.control.ForEach",
+          "title": "For Each",
+          "x": 3440,
+          "y": 1000,
+          "width": 280
+        },
+        {
+          "id": "track-level",
+          "type": "nodetool.audio.Normalize",
+          "title": "Normalize",
+          "x": 50,
+          "y": 1000,
           "width": 280
         }
       ],
@@ -11807,17 +12101,10 @@ export const templateEntries: TemplateEntry[] = [
           "color": "any"
         },
         {
-          "source": "visual_frame",
+          "source": "frame-png",
           "sourceHandle": "output",
           "target": "collected_frames",
           "targetHandle": "input_item",
-          "color": "any"
-        },
-        {
-          "source": "visual_frame",
-          "sourceHandle": "output",
-          "target": "video_output",
-          "targetHandle": "frame",
           "color": "any"
         },
         {
@@ -11828,7 +12115,7 @@ export const templateEntries: TemplateEntry[] = [
           "color": "any"
         },
         {
-          "source": "audio_track",
+          "source": "track-level",
           "sourceHandle": "output",
           "target": "final_video",
           "targetHandle": "audio",
@@ -11839,6 +12126,76 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "output-music-video",
           "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "visual_frame",
+          "sourceHandle": "output",
+          "target": "frame-size",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "frame-size",
+          "sourceHandle": "output",
+          "target": "frame-png",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "frame_iterator",
+          "sourceHandle": "output",
+          "target": "hold-frame",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "track-level",
+          "sourceHandle": "output",
+          "target": "track-length",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "track-length",
+          "sourceHandle": "duration",
+          "target": "hold-length",
+          "targetHandle": "duration",
+          "color": "any"
+        },
+        {
+          "source": "collected_frames",
+          "sourceHandle": "output",
+          "target": "hold-length",
+          "targetHandle": "frames",
+          "color": "any"
+        },
+        {
+          "source": "hold-length",
+          "sourceHandle": "output",
+          "target": "hold-frame",
+          "targetHandle": "count",
+          "color": "any"
+        },
+        {
+          "source": "hold-frame",
+          "sourceHandle": "output",
+          "target": "video_output",
+          "targetHandle": "frame",
+          "color": "any"
+        },
+        {
+          "source": "collected_frames",
+          "sourceHandle": "output",
+          "target": "frame_iterator",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "audio_track",
+          "sourceHandle": "output",
+          "target": "track-level",
+          "targetHandle": "audio",
           "color": "any"
         }
       ]
@@ -12064,19 +12421,44 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/narration-with-a-music-bed",
     "title": "Narration with a Music Bed — NodeTool AI Workflow Template",
-    "description": "Voice at full level, music at 0.35 underneath, mixed rather than replaced. The ratio is the entire craft of the thing.",
+    "description": "Voice a script over a quiet music bed. Match the music to the voiceover and fade the start and finish.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "narration-with-a-music-bed",
     "name": "Narration with a Music Bed",
-    "summary": "Voice at full level, music at 0.35 underneath, mixed rather than replaced. The ratio is the entire craft of the thing.",
+    "summary": "Voice a script over a quiet music bed. Match the music to the voiceover and fade the start and finish.",
     "tags": [
       "audio",
       "example"
     ],
     "category": "Audio & Music",
     "nodeTypes": [
+      {
+        "type": "lib.audio.Gain",
+        "label": "Gain",
+        "count": 2
+      },
+      {
+        "type": "nodetool.audio.FadeIn",
+        "label": "Fade In",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.FadeOut",
+        "label": "Fade Out",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.GetAudioInfo",
+        "label": "Get Audio Info",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.Normalize",
+        "label": "Normalize",
+        "count": 1
+      },
       {
         "type": "nodetool.output.Output",
         "label": "Output",
@@ -12101,9 +12483,14 @@ export const templateEntries: TemplateEntry[] = [
         "type": "nodetool.audio.TextToSpeech",
         "label": "Text To Speech",
         "count": 1
+      },
+      {
+        "type": "nodetool.audio.Trim",
+        "label": "Trim",
+        "count": 1
       }
     ],
-    "nodeCount": 5,
+    "nodeCount": 12,
     "thumbnail": "/templates/narration-with-a-music-bed.jpg",
     "graph": {
       "nodes": [
@@ -12128,8 +12515,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mus",
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
-          "x": 660,
-          "y": 120,
+          "x": 330,
+          "y": 400,
           "width": 300,
           "subtitle": "calm ambient bed, no percussion, unobtrusive"
         },
@@ -12137,17 +12524,73 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ov",
           "type": "nodetool.audio.OverlayAudio",
           "title": "Overlay Audio",
-          "x": 990,
-          "y": 120,
+          "x": 2640,
+          "y": 100,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 330,
+          "x": 2970,
+          "y": 100,
           "width": 300
+        },
+        {
+          "id": "voice-level",
+          "type": "nodetool.audio.Normalize",
+          "title": "Normalize",
+          "x": 660,
+          "y": 100,
+          "width": 280
+        },
+        {
+          "id": "voice-headroom",
+          "type": "lib.audio.Gain",
+          "title": "Gain",
+          "x": 990,
+          "y": 100,
+          "width": 280
+        },
+        {
+          "id": "voice-length",
+          "type": "nodetool.audio.GetAudioInfo",
+          "title": "Get Audio Info",
+          "x": 990,
+          "y": 400,
+          "width": 280
+        },
+        {
+          "id": "music-trim",
+          "type": "nodetool.audio.Trim",
+          "title": "Trim",
+          "x": 1320,
+          "y": 400,
+          "width": 280
+        },
+        {
+          "id": "music-level",
+          "type": "lib.audio.Gain",
+          "title": "Gain",
+          "x": 1650,
+          "y": 400,
+          "width": 280
+        },
+        {
+          "id": "music-start",
+          "type": "nodetool.audio.FadeIn",
+          "title": "Fade In",
+          "x": 1980,
+          "y": 400,
+          "width": 280
+        },
+        {
+          "id": "music-end",
+          "type": "nodetool.audio.FadeOut",
+          "title": "Fade Out",
+          "x": 2310,
+          "y": 400,
+          "width": 280
         }
       ],
       "edges": [
@@ -12159,8 +12602,36 @@ export const templateEntries: TemplateEntry[] = [
           "color": "any"
         },
         {
+          "source": "ov",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
           "source": "tts",
           "sourceHandle": "audio",
+          "target": "voice-level",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "voice-level",
+          "sourceHandle": "output",
+          "target": "voice-headroom",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "voice-level",
+          "sourceHandle": "output",
+          "target": "voice-length",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "voice-headroom",
+          "sourceHandle": "output",
           "target": "ov",
           "targetHandle": "a",
           "color": "any"
@@ -12168,15 +12639,43 @@ export const templateEntries: TemplateEntry[] = [
         {
           "source": "mus",
           "sourceHandle": "audio",
-          "target": "ov",
-          "targetHandle": "b",
+          "target": "music-trim",
+          "targetHandle": "audio",
           "color": "any"
         },
         {
-          "source": "ov",
+          "source": "voice-length",
+          "sourceHandle": "duration",
+          "target": "music-trim",
+          "targetHandle": "end",
+          "color": "any"
+        },
+        {
+          "source": "music-trim",
           "sourceHandle": "output",
-          "target": "out",
-          "targetHandle": "value",
+          "target": "music-level",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "music-level",
+          "sourceHandle": "output",
+          "target": "music-start",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "music-start",
+          "sourceHandle": "output",
+          "target": "music-end",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "music-end",
+          "sourceHandle": "output",
+          "target": "ov",
+          "targetHandle": "b",
           "color": "any"
         }
       ]
@@ -15019,7 +15518,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1680,
           "y": 388,
           "width": 384,
-          "subtitle": "fal-ai/flux/schnell"
+          "subtitle": "fal-ai/nano-banana/edit"
         },
         {
           "id": "5",
@@ -15749,13 +16248,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/pull-a-field-out-of-json-text",
     "title": "Pull a Field out of JSON Text — NodeTool AI Workflow Template",
-    "description": "Model output often arrives as JSON inside a string. ExtractJSON reaches into it by path so you do not have to parse it by hand downstream.",
+    "description": "Read a value from JSON text using a dotted path. This example extracts the name Ada.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "pull-a-field-out-of-json-text",
     "name": "Pull a Field out of JSON Text",
-    "summary": "Model output often arrives as JSON inside a string. ExtractJSON reaches into it by path so you do not have to parse it by hand downstream.",
+    "summary": "Read a value from JSON text using a dotted path. This example extracts the name Ada.",
     "tags": [
       "text",
       "data",
@@ -16033,19 +16532,29 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/put-a-product-on-a-studio-backdrop",
     "title": "Put a Product on a Studio Backdrop — NodeTool AI Workflow Template",
-    "description": "Cut the product out, then place it in a described setting. The placement step is an instruction-following edit model rather than strength-based image-to-image: a strength value cannot say \"keep this object, change everything else\", and any setting high enough to build the backdrop also redraws the product — the thing a customer is actually buying.",
+    "description": "Remove the background, soften the cutout edge, and place the product in a new studio scene.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "put-a-product-on-a-studio-backdrop",
     "name": "Put a Product on a Studio Backdrop",
-    "summary": "Cut the product out, then place it in a described setting. The placement step is an instruction-following edit model rather than strength-based image-to-image: a strength value cannot say \"keep this object, change everything else\", and any setting high enough to build the backdrop also redraws the product — the thing a customer is actually buying.",
+    "summary": "Remove the background, soften the cutout edge, and place the product in a new studio scene.",
     "tags": [
       "image",
       "example"
     ],
     "category": "Image & Design",
     "nodeTypes": [
+      {
+        "type": "nodetool.input.FloatInput",
+        "label": "Float Input",
+        "count": 1
+      },
+      {
+        "type": "lib.image.filter.GaussianBlur",
+        "label": "Gaussian Blur",
+        "count": 1
+      },
       {
         "type": "nodetool.input.ImageInput",
         "label": "Image Input",
@@ -16054,6 +16563,11 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.image.ImageToImage",
         "label": "Image To Image",
+        "count": 1
+      },
+      {
+        "type": "lib.image.channel.Merge",
+        "label": "Merge",
         "count": 1
       },
       {
@@ -16067,7 +16581,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 4,
+    "nodeCount": 7,
     "thumbnail": "/templates/put-a-product-on-a-studio-backdrop.jpg",
     "graph": {
       "nodes": [
@@ -16092,7 +16606,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comp",
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
-          "x": 660,
+          "x": 1320,
           "y": 120,
           "width": 300,
           "subtitle": "Keep the product as it is. Change only what is around it: warm concrete plinth, soft studio key from upper left, blurred background."
@@ -16101,6 +16615,30 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
+          "x": 1650,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "edge-softness",
+          "type": "nodetool.input.FloatInput",
+          "title": "Float Input",
+          "x": 330,
+          "y": 460,
+          "width": 300
+        },
+        {
+          "id": "soften-alpha",
+          "type": "lib.image.filter.GaussianBlur",
+          "title": "Gaussian Blur",
+          "x": 660,
+          "y": 300,
+          "width": 300
+        },
+        {
+          "id": "refine-cutout",
+          "type": "lib.image.channel.Merge",
+          "title": "Merge",
           "x": 990,
           "y": 120,
           "width": 300
@@ -16115,17 +16653,45 @@ export const templateEntries: TemplateEntry[] = [
           "color": "any"
         },
         {
-          "source": "bg",
-          "sourceHandle": "output",
-          "target": "comp",
-          "targetHandle": "image",
-          "color": "any"
-        },
-        {
           "source": "comp",
           "sourceHandle": "output",
           "target": "out",
           "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "bg",
+          "sourceHandle": "output",
+          "target": "soften-alpha",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "edge-softness",
+          "sourceHandle": "output",
+          "target": "soften-alpha",
+          "targetHandle": "radius",
+          "color": "any"
+        },
+        {
+          "source": "bg",
+          "sourceHandle": "output",
+          "target": "refine-cutout",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "soften-alpha",
+          "sourceHandle": "output",
+          "target": "refine-cutout",
+          "targetHandle": "alpha",
+          "color": "any"
+        },
+        {
+          "source": "refine-cutout",
+          "sourceHandle": "output",
+          "target": "comp",
+          "targetHandle": "image",
           "color": "any"
         }
       ]
@@ -16134,19 +16700,44 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/put-a-voice-over-a-music-bed",
     "title": "Put a Voice Over a Music Bed — NodeTool AI Workflow Template",
-    "description": "Generate a bed, synthesise a voice, and lay one over the other. Overlay mixes both signals rather than replacing one with the other.",
+    "description": "Voice a script over a quiet music bed. Match the music to the voiceover and fade the start and finish.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "put-a-voice-over-a-music-bed",
     "name": "Put a Voice Over a Music Bed",
-    "summary": "Generate a bed, synthesise a voice, and lay one over the other. Overlay mixes both signals rather than replacing one with the other.",
+    "summary": "Voice a script over a quiet music bed. Match the music to the voiceover and fade the start and finish.",
     "tags": [
       "audio",
       "example"
     ],
     "category": "Audio & Music",
     "nodeTypes": [
+      {
+        "type": "lib.audio.Gain",
+        "label": "Gain",
+        "count": 2
+      },
+      {
+        "type": "nodetool.audio.FadeIn",
+        "label": "Fade In",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.FadeOut",
+        "label": "Fade Out",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.GetAudioInfo",
+        "label": "Get Audio Info",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.Normalize",
+        "label": "Normalize",
+        "count": 1
+      },
       {
         "type": "nodetool.output.Output",
         "label": "Output",
@@ -16171,9 +16762,14 @@ export const templateEntries: TemplateEntry[] = [
         "type": "nodetool.audio.TextToSpeech",
         "label": "Text To Speech",
         "count": 1
+      },
+      {
+        "type": "nodetool.audio.Trim",
+        "label": "Trim",
+        "count": 1
       }
     ],
-    "nodeCount": 5,
+    "nodeCount": 12,
     "thumbnail": "/templates/put-a-voice-over-a-music-bed.jpg",
     "graph": {
       "nodes": [
@@ -16199,8 +16795,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mus",
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
-          "x": 640,
-          "y": 120,
+          "x": 330,
+          "y": 400,
           "width": 280,
           "subtitle": "calm ambient pad, no drums, soft and unobtrusive"
         },
@@ -16208,16 +16804,72 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ov",
           "type": "nodetool.audio.OverlayAudio",
           "title": "Overlay Audio",
-          "x": 960,
-          "y": 120,
+          "x": 2640,
+          "y": 100,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 340,
+          "x": 2970,
+          "y": 100,
+          "width": 280
+        },
+        {
+          "id": "voice-level",
+          "type": "nodetool.audio.Normalize",
+          "title": "Normalize",
+          "x": 660,
+          "y": 100,
+          "width": 280
+        },
+        {
+          "id": "voice-headroom",
+          "type": "lib.audio.Gain",
+          "title": "Gain",
+          "x": 990,
+          "y": 100,
+          "width": 280
+        },
+        {
+          "id": "voice-length",
+          "type": "nodetool.audio.GetAudioInfo",
+          "title": "Get Audio Info",
+          "x": 990,
+          "y": 400,
+          "width": 280
+        },
+        {
+          "id": "music-trim",
+          "type": "nodetool.audio.Trim",
+          "title": "Trim",
+          "x": 1320,
+          "y": 400,
+          "width": 280
+        },
+        {
+          "id": "music-level",
+          "type": "lib.audio.Gain",
+          "title": "Gain",
+          "x": 1650,
+          "y": 400,
+          "width": 280
+        },
+        {
+          "id": "music-start",
+          "type": "nodetool.audio.FadeIn",
+          "title": "Fade In",
+          "x": 1980,
+          "y": 400,
+          "width": 280
+        },
+        {
+          "id": "music-end",
+          "type": "nodetool.audio.FadeOut",
+          "title": "Fade Out",
+          "x": 2310,
+          "y": 400,
           "width": 280
         }
       ],
@@ -16230,8 +16882,36 @@ export const templateEntries: TemplateEntry[] = [
           "color": "any"
         },
         {
+          "source": "ov",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
           "source": "tts",
           "sourceHandle": "audio",
+          "target": "voice-level",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "voice-level",
+          "sourceHandle": "output",
+          "target": "voice-headroom",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "voice-level",
+          "sourceHandle": "output",
+          "target": "voice-length",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "voice-headroom",
+          "sourceHandle": "output",
           "target": "ov",
           "targetHandle": "a",
           "color": "any"
@@ -16239,15 +16919,43 @@ export const templateEntries: TemplateEntry[] = [
         {
           "source": "mus",
           "sourceHandle": "audio",
-          "target": "ov",
-          "targetHandle": "b",
+          "target": "music-trim",
+          "targetHandle": "audio",
           "color": "any"
         },
         {
-          "source": "ov",
+          "source": "voice-length",
+          "sourceHandle": "duration",
+          "target": "music-trim",
+          "targetHandle": "end",
+          "color": "any"
+        },
+        {
+          "source": "music-trim",
           "sourceHandle": "output",
-          "target": "out",
-          "targetHandle": "value",
+          "target": "music-level",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "music-level",
+          "sourceHandle": "output",
+          "target": "music-start",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "music-start",
+          "sourceHandle": "output",
+          "target": "music-end",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "music-end",
+          "sourceHandle": "output",
+          "target": "ov",
+          "targetHandle": "b",
           "color": "any"
         }
       ]
@@ -17852,13 +18560,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/score-a-silent-clip",
     "title": "Score a Silent Clip — NodeTool AI Workflow Template",
-    "description": "Give a clip a soundtrack. Describe the mood, Stable Audio on fal.ai writes a bed to match the clip's length, and the mix is laid under the original audio. Cheaper than the video templates — one audio generation per run.",
+    "description": "Generate a soundtrack to match your clip. Trim the music to the video length, normalise the volume, and add gentle fades before mixing.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "score-a-silent-clip",
     "name": "Score a Silent Clip",
-    "summary": "Give a clip a soundtrack. Describe the mood, Stable Audio on fal.ai writes a bed to match the clip's length, and the mix is laid under the original audio. Cheaper than the video templates — one audio generation per run.",
+    "summary": "Generate a soundtrack to match your clip. Trim the music to the video length, normalise the volume, and add gentle fades before mixing.",
     "tags": [
       "video",
       "audio",
@@ -17870,6 +18578,26 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.video.AddAudio",
         "label": "Add Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.FadeIn",
+        "label": "Fade In",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.FadeOut",
+        "label": "Fade Out",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.GetVideoInfo",
+        "label": "Get Video Info",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.Normalize",
+        "label": "Normalize",
         "count": 1
       },
       {
@@ -17888,12 +18616,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.audio.Trim",
+        "label": "Trim",
+        "count": 1
+      },
+      {
         "type": "nodetool.input.VideoInput",
         "label": "Video Input",
         "count": 1
       }
     ],
-    "nodeCount": 5,
+    "nodeCount": 10,
     "thumbnail": "/templates/score-a-silent-clip.jpg",
     "graph": {
       "nodes": [
@@ -17921,14 +18654,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 0,
           "y": 400,
           "width": 280,
-          "subtitle": "Warm analogue synth bed, slow pulse, hopeful but restrained, no drums"
+          "subtitle": "Soft jazz guitar and brushed drums for a quiet coffee shop, instrumental"
         },
         {
           "id": "score",
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
-          "x": 400,
-          "y": 380,
+          "x": 700,
+          "y": 400,
           "width": 280,
           "subtitle": "fal-ai/stable-audio-25/text-to-audio"
         },
@@ -17936,17 +18669,57 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mix",
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
-          "x": 760,
-          "y": 300,
+          "x": 2450,
+          "y": 240,
           "width": 280
         },
         {
           "id": "output-scored",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1120,
-          "y": 320,
+          "x": 2800,
+          "y": 240,
           "width": 240
+        },
+        {
+          "id": "level",
+          "type": "nodetool.audio.Normalize",
+          "title": "Normalize",
+          "x": 1400,
+          "y": 400,
+          "width": 300
+        },
+        {
+          "id": "fade-in",
+          "type": "nodetool.audio.FadeIn",
+          "title": "Fade In",
+          "x": 1750,
+          "y": 400,
+          "width": 300
+        },
+        {
+          "id": "fade-out",
+          "type": "nodetool.audio.FadeOut",
+          "title": "Fade Out",
+          "x": 2100,
+          "y": 400,
+          "width": 300
+        },
+        {
+          "id": "clip-info",
+          "type": "nodetool.video.GetVideoInfo",
+          "title": "Get Video Info",
+          "x": 350,
+          "y": 240,
+          "width": 300
+        },
+        {
+          "id": "trim-score",
+          "type": "nodetool.audio.Trim",
+          "title": "Trim",
+          "x": 1050,
+          "y": 400,
+          "width": 300
         }
       ],
       "edges": [
@@ -17965,17 +18738,66 @@ export const templateEntries: TemplateEntry[] = [
           "color": "any"
         },
         {
+          "source": "mix",
+          "sourceHandle": "output",
+          "target": "output-scored",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
           "source": "score",
           "sourceHandle": "audio",
+          "target": "trim-score",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "level",
+          "sourceHandle": "output",
+          "target": "fade-in",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "fade-in",
+          "sourceHandle": "output",
+          "target": "fade-out",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "fade-out",
+          "sourceHandle": "output",
           "target": "mix",
           "targetHandle": "audio",
           "color": "any"
         },
         {
-          "source": "mix",
+          "source": "in-video",
           "sourceHandle": "output",
-          "target": "output-scored",
-          "targetHandle": "value",
+          "target": "clip-info",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "clip-info",
+          "sourceHandle": "duration",
+          "target": "trim-score",
+          "targetHandle": "end",
+          "color": "any"
+        },
+        {
+          "source": "clip-info",
+          "sourceHandle": "duration",
+          "target": "score",
+          "targetHandle": "duration",
+          "color": "any"
+        },
+        {
+          "source": "trim-score",
+          "sourceHandle": "output",
+          "target": "level",
+          "targetHandle": "audio",
           "color": "any"
         }
       ]
@@ -18284,7 +19106,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1160,
           "y": 140,
           "width": 300,
-          "subtitle": "gpt-5-mini"
+          "subtitle": "Return only a valid JSON object with the requested fields. Do not wrap it in Markdown or add commentary."
         },
         {
           "id": "style_frame",
@@ -18329,7 +19151,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 2280,
           "y": 300,
           "width": 320,
-          "subtitle": "fal-ai/flux/schnell"
+          "subtitle": "fal-ai/nano-banana/edit"
         },
         {
           "id": "storyboard_collect",
@@ -20231,19 +21053,24 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/take-a-product-shot-to-print-resolution",
     "title": "Take a Product Shot to Print Resolution — NodeTool AI Workflow Template",
-    "description": "Web assets are rarely big enough for print. Upscaling at the end of the pipeline costs one call, where shooting or generating everything at print size costs it on every draft.",
+    "description": "Upscale the approved product photo, then sharpen fine detail with an adjustable, light finishing pass. Set sharpness to 0 to disable it.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "take-a-product-shot-to-print-resolution",
     "name": "Take a Product Shot to Print Resolution",
-    "summary": "Web assets are rarely big enough for print. Upscaling at the end of the pipeline costs one call, where shooting or generating everything at print size costs it on every draft.",
+    "summary": "Upscale the approved product photo, then sharpen fine detail with an adjustable, light finishing pass. Set sharpness to 0 to disable it.",
     "tags": [
       "image",
       "example"
     ],
     "category": "Image & Design",
     "nodeTypes": [
+      {
+        "type": "nodetool.input.FloatInput",
+        "label": "Float Input",
+        "count": 1
+      },
       {
         "type": "nodetool.input.ImageInput",
         "label": "Image Input",
@@ -20255,12 +21082,22 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.image.SaveImageFile",
+        "label": "Save Image File",
+        "count": 1
+      },
+      {
+        "type": "lib.image.filter.UnsharpMask",
+        "label": "Unsharp Mask",
+        "count": 1
+      },
+      {
         "type": "nodetool.image.Upscale",
         "label": "Upscale",
         "count": 1
       }
     ],
-    "nodeCount": 3,
+    "nodeCount": 6,
     "thumbnail": "/templates/take-a-product-shot-to-print-resolution.jpg",
     "graph": {
       "nodes": [
@@ -20285,7 +21122,31 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
+          "x": 1320,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "sharpen",
+          "type": "lib.image.filter.UnsharpMask",
+          "title": "Unsharp Mask",
           "x": 660,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "sharpness",
+          "type": "nodetool.input.FloatInput",
+          "title": "Float Input",
+          "x": 330,
+          "y": 440,
+          "width": 300
+        },
+        {
+          "id": "save",
+          "type": "nodetool.image.SaveImageFile",
+          "title": "Save Image File",
+          "x": 990,
           "y": 120,
           "width": 300
         }
@@ -20300,6 +21161,27 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "source": "up",
+          "sourceHandle": "output",
+          "target": "sharpen",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "sharpness",
+          "sourceHandle": "output",
+          "target": "sharpen",
+          "targetHandle": "amount",
+          "color": "any"
+        },
+        {
+          "source": "sharpen",
+          "sourceHandle": "output",
+          "target": "save",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "save",
           "sourceHandle": "output",
           "target": "out",
           "targetHandle": "value",

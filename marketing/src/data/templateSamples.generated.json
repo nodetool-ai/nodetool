@@ -1,0 +1,1134 @@
+{
+  "batch-a-list": {
+    "caption": "",
+    "text": "[\n  \"a\",\n  \"b\",\n  \"c\"\n]\n\n[\n  \"d\",\n  \"e\",\n  \"f\"\n]\n\n[\n  \"g\"\n]"
+  },
+  "add-reverb-to-a-voice": {
+    "caption": "",
+    "audio": "/templates/samples/add-reverb-to-a-voice.mp3"
+  },
+  "a-gradient-card-as-png": {
+    "caption": "",
+    "image": "/templates/samples/a-gradient-card-as-png.webp",
+    "imageWidth": 800,
+    "imageHeight": 480
+  },
+  "black-and-white-hard": {
+    "caption": "",
+    "image": "/templates/samples/black-and-white-hard.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "blur-a-channel": {
+    "caption": "",
+    "image": "/templates/samples/blur-a-channel.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "blur-an-image": {
+    "caption": "",
+    "image": "/templates/samples/blur-an-image.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "chunk-a-transcript-for-indexing": {
+    "caption": "",
+    "inputText": "The keeper climbed the stair each evening. The lamp needed winding twice a night. By the third winter the mechanism had worn, and the light guttered where it had once held steady. Ships began to pass wider of the point.",
+    "text": "[\n  \"The keeper climbed the stair each evening. The lamp needed winding twice\",\n  \"needed winding twice a night. By the third winter the mechanism had\",\n  \"the mechanism had worn, and the light guttered where it had once\",\n  \"it had once held steady. Ships began to pass wider of the\",\n  \"wider of the point.\"\n]\n\n5"
+  },
+  "circles-and-lines": {
+    "caption": "",
+    "image": "/templates/samples/circles-and-lines.webp",
+    "imageWidth": 300,
+    "imageHeight": 180
+  },
+  "boost-saturation": {
+    "caption": "",
+    "video": "/templates/samples/boost-saturation.mp4",
+    "poster": "/templates/samples/boost-saturation-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "clean-up-a-rough-voice-recording": {
+    "caption": "",
+    "audio": "/templates/samples/clean-up-a-rough-voice-recording.mp3"
+  },
+  "color-boost-video": {
+    "caption": "",
+    "video": "/templates/samples/color-boost-video.mp4",
+    "poster": "/templates/samples/color-boost-video-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "conditional-logic-engine": {
+    "caption": "",
+    "text": "## Conditional Logic Decision Result\n\n**Input Value:** 75\n\n**Condition Checks:**\n- Greater than 100? false\n- Less than 50? false\n- Combined (OR): false\n\n**Decision Logic:**\nThis workflow demonstrates:\n- Deriving a boolean from a number with PadText + Compare + Equals\n- If nodes gating three parallel branches (only the taken path emits)\n- Nested negation by chaining if_false through two If gates\n- Per-branch Output nodes: high_priority / medium_priority / low_priority\n\nBranches never converge into one non-list input — the engine's correlation\nanalysis forbids fan-in except into list-typed handles.\n\n🟡 MEDIUM VALUE: 75 is between 50 and 100. Balanced processing selected."
+  },
+  "count-a-list": {
+    "caption": "",
+    "text": "6"
+  },
+  "crop-an-image": {
+    "caption": "",
+    "image": "/templates/samples/crop-an-image.webp",
+    "imageWidth": 800,
+    "imageHeight": 500,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "crop-then-fit": {
+    "caption": "",
+    "image": "/templates/samples/crop-then-fit.webp",
+    "imageWidth": 460,
+    "imageHeight": 270,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "crush-it-to-8-bits": {
+    "caption": "",
+    "audio": "/templates/samples/crush-it-to-8-bits.mp3"
+  },
+  "cut-a-landscape-clip-for-vertical": {
+    "caption": "",
+    "video": "/templates/samples/cut-a-landscape-clip-for-vertical.mp4",
+    "poster": "/templates/samples/cut-a-landscape-clip-for-vertical-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "does-this-text-mention-the-deadline": {
+    "caption": "",
+    "inputText": "Submissions close on the 14th; late entries are not reviewed.",
+    "text": "true"
+  },
+  "drop-duplicates": {
+    "caption": "",
+    "text": "red\n\ngreen\n\nblue\n\namber"
+  },
+  "draw-a-badge-in-svg": {
+    "caption": "",
+    "image": "/templates/samples/draw-a-badge-in-svg.webp",
+    "imageWidth": 300,
+    "imageHeight": 160
+  },
+  "drop-the-first-few": {
+    "caption": "",
+    "text": "gamma\n\ndelta\n\nepsilon"
+  },
+  "emboss-a-still": {
+    "caption": "",
+    "image": "/templates/samples/emboss-a-still.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "every-combination": {
+    "caption": "",
+    "text": "portrait\n\ndawn\n\nportrait\n\nnoon\n\nportrait\n\ndusk\n\nlandscape\n\ndawn\n\nlandscape\n\nnoon\n\nlandscape\n\ndusk"
+  },
+  "fade-audio-in-and-out": {
+    "caption": "",
+    "audio": "/templates/samples/fade-audio-in-and-out.mp3",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "fade-audio-out": {
+    "caption": "",
+    "audio": "/templates/samples/fade-audio-out.mp3",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "fill-a-template": {
+    "caption": "",
+    "inputText": "the winter release",
+    "text": "Subject: the winter release\n\nWrite one sentence of launch copy about it."
+  },
+  "find-every-number-in-a-sentence": {
+    "caption": "",
+    "inputText": "Revenue rose from 12 to 47 across 3 regions.",
+    "text": "[\n  \"12\",\n  \"47\",\n  \"3\"\n]"
+  },
+  "find-and-replace": {
+    "caption": "",
+    "inputText": "The quick brown fox jumps over the lazy dog",
+    "text": "The quick brown fox jumps over the energetic dog"
+  },
+  "find-the-edges": {
+    "caption": "",
+    "image": "/templates/samples/find-the-edges.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "fit-an-image": {
+    "caption": "",
+    "image": "/templates/samples/fit-an-image.webp",
+    "imageWidth": 452,
+    "imageHeight": 360,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "gate-out-the-room-noise": {
+    "caption": "",
+    "audio": "/templates/samples/gate-out-the-room-noise.mp3"
+  },
+  "generate-a-silent-bed": {
+    "caption": "",
+    "audio": "/templates/samples/generate-a-silent-bed.mp3"
+  },
+  "inspect-a-clip-s-audio": {
+    "caption": "",
+    "text": "44100"
+  },
+  "image-enhance": {
+    "caption": "",
+    "image": "/templates/samples/image-enhance.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "inspect-a-clip": {
+    "caption": "",
+    "text": "8"
+  },
+  "invert-a-still": {
+    "caption": "",
+    "image": "/templates/samples/invert-a-still.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "keep-only-the-long-lines": {
+    "caption": "",
+    "text": "2\n\n[\n  \"a much longer line worth keeping\",\n  \"another long enough line\"\n]"
+  },
+  "keep-only-the-matches": {
+    "caption": "",
+    "text": "ok\n\nok"
+  },
+  "denoise-footage": {
+    "caption": "",
+    "video": "/templates/samples/denoise-footage.mp4",
+    "poster": "/templates/samples/denoise-footage-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "last-one-wins": {
+    "caption": "",
+    "text": "final"
+  },
+  "key-out-a-green-screen": {
+    "caption": "",
+    "video": "/templates/samples/key-out-a-green-screen.mp4",
+    "poster": "/templates/samples/key-out-a-green-screen-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "master-a-voice-track": {
+    "caption": "",
+    "audio": "/templates/samples/master-a-voice-track.mp3"
+  },
+  "normalize-a-clip-s-audio": {
+    "caption": "",
+    "audio": "/templates/samples/normalize-a-clip-s-audio.mp3",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "pad-a-canvas": {
+    "caption": "",
+    "image": "/templates/samples/pad-a-canvas.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "picture-in-picture": {
+    "caption": "",
+    "video": "/templates/samples/picture-in-picture.mp4",
+    "poster": "/templates/samples/picture-in-picture-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "pixelate-a-still": {
+    "caption": "",
+    "image": "/templates/samples/pixelate-a-still.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "pitch-a-voice-up": {
+    "caption": "",
+    "audio": "/templates/samples/pitch-a-voice-up.mp3"
+  },
+  "posterize-to-four-bits": {
+    "caption": "",
+    "image": "/templates/samples/posterize-to-four-bits.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "pull-a-still-from-a-clip": {
+    "caption": "",
+    "image": "/templates/samples/pull-a-still-from-a-clip.webp",
+    "imageWidth": 360,
+    "imageHeight": 640
+  },
+  "read-a-clip-s-frame-rate": {
+    "caption": "",
+    "text": "30"
+  },
+  "re-delimit-a-list": {
+    "caption": "",
+    "inputText": "alpha, beta, gamma, delta",
+    "text": "alpha | beta | gamma | delta"
+  },
+  "redact-email-addresses": {
+    "caption": "",
+    "inputText": "Contact ada@example.com or grace@navy.mil before Friday.",
+    "text": "Contact [redacted] or [redacted] before Friday."
+  },
+  "redact-and-tidy-a-log-line": {
+    "caption": "",
+    "inputText": "2026-08-02  WARN   user=ada.lovelace@example.com   ip=10.0.0.7    retry=3",
+    "text": "2026-08-02 WARN user=<email> ip=<ip> retry=3\n\n[\n  \"2026\",\n  \"08\",\n  \"02\",\n  \"3\"\n]"
+  },
+  "reverse-audio": {
+    "caption": "",
+    "audio": "/templates/samples/reverse-audio.mp3",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "reverse-a-clip": {
+    "caption": "",
+    "video": "/templates/samples/reverse-a-clip.mp4",
+    "poster": "/templates/samples/reverse-a-clip-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "rotate-footage": {
+    "caption": "",
+    "video": "/templates/samples/rotate-footage.mp4",
+    "poster": "/templates/samples/rotate-footage-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "sharpen-footage": {
+    "caption": "",
+    "video": "/templates/samples/sharpen-footage.mp4",
+    "poster": "/templates/samples/sharpen-footage-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "slice-text": {
+    "caption": "",
+    "inputText": "0123456789abcdefghij",
+    "text": "0123456789"
+  },
+  "slow-a-clip-without-dropping-pitch": {
+    "caption": "",
+    "audio": "/templates/samples/slow-a-clip-without-dropping-pitch.mp3"
+  },
+  "solarize-a-still": {
+    "caption": "",
+    "image": "/templates/samples/solarize-a-still.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "soften-a-plate": {
+    "caption": "",
+    "video": "/templates/samples/soften-a-plate.mp4",
+    "poster": "/templates/samples/soften-a-plate-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "split-a-channel": {
+    "caption": "",
+    "image": "/templates/samples/split-a-channel.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "split-a-log-into-records": {
+    "caption": "",
+    "inputText": "2026-01-01 boot\n2026-01-02 sync\n2026-01-03 purge",
+    "text": "[\n  \"2026-01-01 boot\",\n  \"2026-01-02 sync\",\n  \"2026-01-03 purge\"\n]"
+  },
+  "swirl-and-echo": {
+    "caption": "",
+    "audio": "/templates/samples/swirl-and-echo.mp3"
+  },
+  "take-while-the-numbers-are-small": {
+    "caption": "",
+    "text": "1\n\n2\n\n3"
+  },
+  "stabilize-handheld": {
+    "caption": "",
+    "video": "/templates/samples/stabilize-handheld.mp4",
+    "poster": "/templates/samples/stabilize-handheld-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "take-the-first-few": {
+    "caption": "",
+    "text": "red\n\ngreen\n\nblue"
+  },
+  "telephone-voice": {
+    "caption": "",
+    "audio": "/templates/samples/telephone-voice.mp3"
+  },
+  "tidy-up-messy-text": {
+    "caption": "",
+    "inputText": "  The   QUICK, brown --- fox!!  ",
+    "text": "the quick brown  fox"
+  },
+  "trim-audio-to-a-range": {
+    "caption": "",
+    "audio": "/templates/samples/trim-audio-to-a-range.mp3",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "trim-a-blurb-to-length": {
+    "caption": "",
+    "inputText": "A visual editor for building AI workflows that run locally on your own hardware or against cloud APIs, whichever suits the job.",
+    "text": "A visual editor for building AI workflows that run locall..."
+  },
+  "trim-a-clip": {
+    "caption": "",
+    "video": "/templates/samples/trim-a-clip.mp4",
+    "poster": "/templates/samples/trim-a-clip-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "vignette-a-portrait": {
+    "caption": "",
+    "image": "/templates/samples/vignette-a-portrait.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "warm-up-a-cold-clip": {
+    "caption": "",
+    "video": "/templates/samples/warm-up-a-cold-clip.mp4",
+    "poster": "/templates/samples/warm-up-a-cold-clip-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "a-poster-in-portrait": {
+    "caption": "",
+    "inputText": "travel poster, mid-century screenprint, limited palette, strong flat shapes, dramatic diagonal composition",
+    "image": "/templates/samples/a-poster-in-portrait.webp",
+    "imageWidth": 896,
+    "imageHeight": 1200
+  },
+  "ad-copy-in-three-registers": {
+    "caption": "",
+    "inputText": "Field Coffee subscription. Two freshly roasted bags each month. Choose whole beans or your grind. Change or cancel any time.",
+    "text": "Plain: Get the Field Coffee subscription—two freshly roasted bags delivered monthly. Pick whole beans or your preferred grind. Pause, change, or cancel anytime with no penalty. Fresh flavor, flexible plan, effortless delivery for consistent, café-quality coffee at home.\n\nPlayful: Join the Field Coffee club and get two joy-filled bags of freshly roasted coffee each month. Whole beans or your favorite grind — your call. Swap beans, skip a month, or cancel anytime. Freshness and smiles, delivered straight to your mug.\n\nPremium: Elevate your mornings with Field Coffee’s subscription: two meticulously roasted bags delivered monthly. Select whole beans or a bespoke grind to suit your brewer. Flexible membership—modify or cancel at any time—so exceptional, freshly roasted coffee arrives with effortless sophistication."
+  },
+  "a-campaign-concept-from-a-brief": {
+    "caption": "",
+    "inputText": "Launch Field Coffee's monthly coffee subscription for home brewers. Focus on fresh roast dates, flexible delivery, and better weekday coffee. Tone: direct and warm.",
+    "text": "Campaign line\nFresh Roast. Better Weekdays.\n\nOne-paragraph visual concept\nWarm, honest close-ups that make freshness feel immediate: a hand peels back a bag to reveal a clear roast-date stamp, steam rises from a pour-over into a sunlit mug at a kitchen counter, and a quick calendar graphic shows delivery dates sliding from “weekly” to “monthly” with a simple tap. Palette is warm browns, soft cream, and morning light; camera work is intimate — tactile shots of beans, the date stamp, and the brewer’s hands — and editing is brisk so the viewer feels how easy it is to get consistently fresh coffee on their schedule. The overall tone is direct and friendly: we show the good stuff and how it fits into weekday life.\n\nChannel executions\n\nOut of Home (bus shelter / transit poster)\n- Visual: Close-up of a coffee bag being opened; roast-date stamp in clear focus, steam curling from a mug in the background. Morning sunlight slants across the image.\n- Headline (large): Fresh Roast. Better Weekdays.\n- Subhead (smaller): Monthly subscription for home brewers — roast-date guaranteed, delivery on your schedule.\n- CTA & tech: Big QR code bottom-right linking to the subscription sign-up page + short URL (FieldCoffee.com/subscribe). Location: train stations, office district bus shelters, near co-working spaces and specialty grocery entrances.\n- Rationale: Audience is commuters and office workers who want an upgrade at home — arresting image + simple promise converts through high-readability and immediate QR action.\n\nSocial (Instagram/TikTok/Facebook ads & organic)\n- Launch Reel (15–30s vertical): Quick sequence — alarm, stale drip being poured and discarded, cut to Field bag with roast date, pour-over, first sip smile. Overlay text: “Tired of weekday coffee that tastes like yesterday?” Hold on roast-date stamp for a beat. End frame: campaign line + CTA: “Monthly subscription. Flexible delivery. Tap to start.”\n- Stories / Ads (interactive): 3-frame story set: 1) Roast-date close-up + “Fresh every batch”; 2) Calendar slider visual with “Weekly / Every 2 Weeks / Monthly” and a tappable poll letting viewers choose frequency; 3) Swipe-up CTA to subscribe. Use UGC testimonials as ad variations: home brewers showing their morning ritual and the roast-date.\n- Organic UGC push: #BetterWeekdays challenge — invite home brewers to post their first pour with the roast-date visible; offer a free month prize for best shot. Encourage tagging and share top posts to Field’s feed.\n- Copy tone example (hero post): “Not another stale weekday. Get fresh-roasted coffee, sent on your schedule. Start your subscription today. ☕️ FieldCoffee.com/subscribe”\n- Targeting: Home-brewing interests, specialty coffee, manual brew gear owners, ages 25–50 in urban/suburban areas.\n\n15-second film (script & shot plan)\n- Visual beat 1 (0–2s): Alarm clock, groggy hand reaches for old coffee cup — looks disappointed. SFX: low kettle hum.\n- VO (warm, direct): “Weekday coffee shouldn’t taste like yesterday.”\n- Visual beat 2 (2–6s): Cut to Field bag being opened; camera holds on clear roast-date stamp. Beans tumble into grinder. SFX: beans, grinder.\n- VO: “Field Coffee — fresh-roasted and shipped with the roast date on every bag.”\n- Visual beat 3 (6–11s): Pour-over, steam, bright morning light; a calendar graphic flips between delivery options (Weekly / Every 2 Weeks / Monthly) and stops on a chosen date.\n- VO: “Monthly subscription, flexible delivery that fits your morning.”\n- Visual beat 4 (11–15s): Smiling brewer takes a sip, nods approvingly. End card: Field logo + line “Fresh Roast. Better Weekdays.” On-screen CTA: FieldCoffee.com/subscribe (and a small “Start with your first fresh bag”).\n- Music & mix: Warm, simple piano loop; natural sound of pour and steam; VO friendly and direct.\n- Rationale: Quick emotional arc — from disappointment to a simple, tangible solution that fits daily life.\n\nIf you want, I can provide alternate campaign-line options, a set of taglines for A/B testing, or a 30-second film version with product details and pricing callouts."
+  },
+  "a-repeating-texture-tile": {
+    "caption": "",
+    "inputText": "seamless repeating texture, hand-made paper with visible fibres, soft even lighting, tileable, no seams, top-down",
+    "image": "/templates/samples/a-repeating-texture-tile.webp",
+    "imageWidth": 1024,
+    "imageHeight": 1024
+  },
+  "album-art-from-a-mood": {
+    "caption": "",
+    "inputText": "album cover art, a single stark object on a deep colour field, grainy film texture, bold and simple",
+    "image": "/templates/samples/album-art-from-a-mood.webp",
+    "imageWidth": 1024,
+    "imageHeight": 1024
+  },
+  "blog-post-to-social-thread": {
+    "caption": "",
+    "inputText": "Better coffee starts with fresh beans. Store them in an airtight container away from heat and light. Grind only what you need before brewing. Weigh both coffee and water so you can repeat a cup you enjoy. Change one variable at a time: grind size, dose, or brew time.",
+    "text": "Fresh beans make better coffee. Use beans roasted recently and treat them like perishable ingredients — they lose flavor as they age.\n\nStore beans in an airtight container and keep them away from heat and light. A cool, dark spot preserves aroma longer.\n\nGrind only what you need right before brewing. Pre-ground coffee loses volatile flavors quickly once exposed to air.\n\nWeigh both coffee and water each brew. Numbers make it easy to recreate a cup you liked instead of guessing.\n\nUsing a scale also helps you track changes. Small tweaks become meaningful when you can compare precise amounts.\n\nWhen dialing in your brew, change only one variable at a time. That’s the fastest way to find what actually affects taste.\n\nThe main variables to try: grind size, dose (how much coffee), and brew time. Adjust one, taste, then decide the next move."
+  },
+  "ad-loop-from-a-product-photo": {
+    "caption": "",
+    "inputText": "Slow orbit around the product as a soft highlight travels across its surface",
+    "video": "/templates/samples/ad-loop-from-a-product-photo.mp4",
+    "poster": "/templates/samples/ad-loop-from-a-product-photo-poster.webp"
+  },
+  "bullet-points-to-press-release": {
+    "caption": "",
+    "inputText": "Field Coffee opens a new shop in Amsterdam on 15 October. The menu features espresso, filter coffee, and pastries. Opening hours are 8am to 6pm. Founders: Sam and Alex.",
+    "text": "Field Coffee Opens New Amsterdam Shop on 15 October\n\nAmsterdam — 15 October 2026\n\nField Coffee will open a new shop in Amsterdam on 15 October, offering a curated menu of espresso, filter coffee, and freshly baked pastries. The café, founded by Sam and Alex, will welcome customers daily from 8:00 a.m. to 6:00 p.m., serving both walk-in and takeaway options and aiming to become a neighbourhood destination for high-quality coffee and light bites.\n\n\"We're excited to bring Field Coffee's approachable, carefully sourced coffee program to Amsterdam and to create a warm space where locals can start their day or take a relaxed afternoon pause,\" said the Co-Founders.\n\nAbout Field Coffee\n[Boilerplate placeholder]"
+  },
+  "bring-a-still-to-life": {
+    "caption": "",
+    "inputText": "Slow push in with a gentle parallax drift",
+    "video": "/templates/samples/bring-a-still-to-life.mp4",
+    "poster": "/templates/samples/bring-a-still-to-life-poster.webp"
+  },
+  "concept-art-iteration-board": {
+    "caption": "",
+    "inputText": "An ancient forest guardian: a towering tree-spirit, bark-skinned and moss-cloaked, watching over an enchanted grove. Fantasy RPG character concept.",
+    "image": "/templates/samples/concept-art-iteration-board.webp",
+    "imageWidth": 1024,
+    "imageHeight": 1024
+  },
+  "b-roll-reel-from-a-brief": {
+    "caption": "",
+    "inputText": "A coastal roastery at first light, steam rising off the drum",
+    "video": "/templates/samples/b-roll-reel-from-a-brief.mp4",
+    "poster": "/templates/samples/b-roll-reel-from-a-brief-poster.webp"
+  },
+  "cut-out-the-subject": {
+    "caption": "",
+    "image": "/templates/samples/cut-out-the-subject.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "data-generator": {
+    "caption": "",
+    "inputText": "fresh vegetables, each with its typical color",
+    "text": "{\n  \"rows\": [\n    {\n      \"name\": \"Carrot\",\n      \"color\": \"orange\"\n    },\n    {\n      \"name\": \"Spinach\",\n      \"color\": \"dark green\"\n    },\n    {\n      \"name\": \"Eggplant\",\n      \"color\": \"purple\"\n    },\n    {\n      \"name\": \"Potato\",\n      \"color\": \"brown\"\n    },\n    {\n      \"name\": \"Corn\",\n      \"color\": \"yellow\"\n    },\n    {\n      \"name\": \"Tomato\",\n      \"color\": \"red\"\n    },\n    {\n      \"name\": \"Cauliflower\",\n      \"color\": \"white\"\n    },\n    {\n      \"name\": \"Celery\",\n      \"color\": \"pale green\"\n    }\n  ],\n  \"columns\": [\n    {\n      \"name\": \"name\"\n    },\n    {\n      \"name\": \"color\"\n    }\n  ],\n  \"data\": [\n    [\n      \"Carrot\",\n      \"orange\"\n    ],\n    [\n      \"Spinach\",\n      \"dark green\"\n    ],\n    [\n      \"Eggplant\",\n      \"purple\"\n    ],\n    [\n      \"Potato\",\n      \"brown\"\n    ],\n    [\n      \"Corn\",\n      \"yellow\"\n    ],\n    [\n      \"Tomato\",\n      \"red\"\n    ],\n    [\n      \"Cauliflower\",\n      \"white\"\n    ],\n    [\n      \"Celery\",\n      \"pale green\"\n    ]\n  ]\n}"
+  },
+  "draft-answers-for-an-faq": {
+    "caption": "",
+    "inputText": "How often does the coffee arrive? Can I choose my grind? How do I pause my subscription?",
+    "text": "How often does the coffee arrive? You choose delivery frequency at signup—weekly, every two weeks, or monthly (options vary). You can change frequency anytime in Account > Subscriptions before the next shipment; exact delivery dates depend on your address and the selected schedule.\n\nCan I choose my grind? Yes—you can select whole-bean or a ground option (espresso, drip, French press, etc.) when you create or edit a shipment; available grind choices vary by product. Change grind in Account > Subscriptions before an order processes.\n\nHow do I pause my subscription? Log into your account, go to Subscriptions, select the active plan, and choose Pause or Skip next shipment; you can also cancel or change schedule. Make changes before the next billing/shipping cutoff; contact support if you need help with timing."
+  },
+  "concept-art-then-a-moving-version": {
+    "caption": "",
+    "inputText": "A weathered lighthouse above a volcanic coastline at dawn, warm light against deep blue ocean.",
+    "video": "/templates/samples/concept-art-then-a-moving-version.mp4",
+    "poster": "/templates/samples/concept-art-then-a-moving-version-poster.webp"
+  },
+  "executive-summary-of-a-long-document": {
+    "caption": "",
+    "inputText": "Field Coffee pilot: 120 customers tried monthly delivery. 84 renewed. The most common request was a smaller bag. Shipping delays affected 9 orders. Next steps: test a 200g option, add tracking emails, and interview customers who cancelled.",
+    "text": "Decision required: Approve running a controlled 200g bag test, implement tracking-email updates, and authorize interviews with customers who cancelled before scaling the monthly delivery program.\n\nFindings\n1) Strong but improvable retention — 84 of 120 customers renewed (70% renewal rate; 36 cancellations, 30%). Evidence: pilot subscription outcomes.\n2) Clear product preference signal — the single most common customer request was for a smaller bag, indicating demand for a 200g option to address freshness/consumption concerns. Evidence: qualitative feedback from pilot participants.\n3) Fulfillment issues impacted experience — 9 orders experienced shipping delays (9/120 = 7.5%), likely contributing to dissatisfaction and cancellations. Evidence: logged shipping delay incidents during the pilot.\n\nRisks\n- Operational complexity and margin pressure: Adding a 200g SKU increases SKUs, packaging and inventory complexity and may reduce per-unit margin. Mitigation: run a limited A/B test, price to preserve margin, and assess reorder frequency changes.\n- Continued logistics failures: If delays persist, churn could rise and hurt brand reputation. Mitigation: add tracking emails immediately, tighten carrier SLAs, and monitor delay rate post-change.\n- Biased feedback from cancellations: Interviews may overrepresent extreme views, leading to mis-prioritization. Mitigation: combine interviews with quantitative usage/complaint data and include a representative sample of renewers.\n\nRecommendation: Proceed with the 200g pilot + tracking emails and conduct cancellation interviews, but limit scale until margin and fulfillment performance are validated."
+  },
+  "extract-the-claims-worth-checking": {
+    "caption": "",
+    "inputText": "Your subscription renewal will be processed on the first day of the subsequent billing period. Modifications must be submitted at least 48 hours prior to renewal.",
+    "text": "- Claim: \"Your subscription renewal will be processed on the first day of the subsequent billing period.\"\n  - Checkability: Easy\n  - Where to look: The provider's subscription/billing policy in its Terms of Service or Subscription Agreement, the Help Center/Billing FAQ, your account's billing page (shows renewal dates and process), and renewal/invoice emails from the provider. A cited clause in the TOS or a billing-page field showing processing occurs on day 1 would verify this.\n\n- Claim: \"Modifications must be submitted at least 48 hours prior to renewal.\"\n  - Checkability: Easy\n  - Where to look: The provider's cancellation/change cutoff policy in the Terms of Service or Billing FAQ, the account settings or subscription management page (often shows modification cut-off), any confirmation emails that state the deadline, or an explicit support article. The relevant evidence would be the policy language stating a 48‑hour minimum notice requirement or an account page enforcing that cutoff."
+  },
+  "five-headlines-for-a-landing-page": {
+    "caption": "",
+    "inputText": "Field Coffee subscription. Two freshly roasted bags each month. Choose whole beans or your grind. Change or cancel any time.",
+    "text": "Two Fresh Roasts Delivered Monthly — Convenience\n\nRoasted the Week You Get It — Freshness Guarantee\n\nWhole Beans or Ground — Your Grind, Your Way (Customization)\n\nPause, Change, or Cancel Anytime — Flexible Subscription\n\nDiscover New Roasts Every Month — Coffee Discovery"
+  },
+  "flashcard-generator": {
+    "caption": "",
+    "inputText": "Python Programming",
+    "text": "{\n  \"rows\": [\n    {\n      \"front\": \"What is a variable in Python?\",\n      \"back\": \"A variable is a name that stores a value you can use later; create one with =, for example x = 5.\",\n      \"category\": \"Variables and Assignment\"\n    },\n    {\n      \"front\": \"What are Python's basic data types?\",\n      \"back\": \"Common data types are int (whole numbers), float (decimal numbers), str (text), and bool (True or False).\",\n      \"category\": \"Data Types\"\n    },\n    {\n      \"front\": \"How do you write an if statement in Python?\",\n      \"back\": \"Use if followed by a condition and a colon, then start the next lines with spaces (indent) to run when the condition is true; use elif and else for additional branches.\",\n      \"category\": \"Control Flow\"\n    },\n    {\n      \"front\": \"What does a for loop do in Python?\",\n      \"back\": \"A for loop repeats code for each item in a sequence (like a list or range); for example, for i in range(3): runs three times.\",\n      \"category\": \"Loops and Iteration\"\n    },\n    {\n      \"front\": \"How do you define a function in Python?\",\n      \"back\": \"Use def name(parameters):, put the function code on the indented lines below (start lines with spaces), and use return to send a result back.\",\n      \"category\": \"Defining Functions\"\n    }\n  ],\n  \"columns\": [\n    {\n      \"name\": \"front\"\n    },\n    {\n      \"name\": \"back\"\n    },\n    {\n      \"name\": \"category\"\n    }\n  ],\n  \"data\": [\n    [\n      \"What is a variable in Python?\",\n      \"A variable is a name that stores a value you can use later; create one with =, for example x = 5.\",\n      \"Variables and Assignment\"\n    ],\n    [\n      \"What are Python's basic data types?\",\n      \"Common data types are int (whole numbers), float (decimal numbers), str (text), and bool (True or False).\",\n      \"Data Types\"\n    ],\n    [\n      \"How do you write an if statement in Python?\",\n      \"Use if followed by a condition and a colon, then start the next lines with spaces (indent) to run when the condition is true; use elif and else for additional branches.\",\n      \"Control Flow\"\n    ],\n    [\n      \"What does a for loop do in Python?\",\n      \"A for loop repeats code for each item in a sequence (like a list or range); for example, for i in range(3): runs three times.\",\n      \"Loops and Iteration\"\n    ],\n    [\n      \"How do you define a function in Python?\",\n      \"Use def name(parameters):, put the function code on the indented lines below (start lines with spaces), and use return to send a result back.\",\n      \"Defining Functions\"\n    ]\n  ]\n}\n\n[\n  {\n    \"position\": 1,\n    \"front\": \"What is a variable in Python?\",\n    \"back\": \"A variable is a name that stores a value you can use later; create one with =, for example x = 5.\",\n    \"category\": \"Variables and Assignment\",\n    \"review_after_days\": [\n      0,\n      2,\n      5\n    ]\n  },\n  {\n    \"position\": 2,\n    \"front\": \"What are Python's basic data types?\",\n    \"back\": \"Common data types are int (whole numbers), float (decimal numbers), str (text), and bool (True or False).\",\n    \"category\": \"Data Types\",\n    \"review_after_days\": [\n      0,\n      2,\n      5\n    ]\n  },\n  {\n    \"position\": 3,\n    \"front\": \"How do you write an if statement in Python?\",\n    \"back\": \"Use if followed by a condition and a colon, then start the next lines with spaces (indent) to run when the condition is true; use elif and else for additional branches.\",\n    \"category\": \"Control Flow\",\n    \"review_after_days\": [\n      0,\n      2,\n      5\n    ]\n  },\n  {\n    \"position\": 4,\n    \"front\": \"What does a for loop do in Python?\",\n    \"back\": \"A for loop repeats code for each item in a sequence (like a list or range); for example, for i in range(3): runs three times.\",\n    \"category\": \"Loops and Iteration\",\n    \"review_after_days\": [\n      0,\n      2,\n      5\n    ]\n  },\n  {\n    \"position\": 5,\n    \"front\": \"How do you define a function in Python?\",\n    \"back\": \"Use def name(parameters):, put the function code on the indented lines below (start lines with spaces), and use return to send a result back.\",\n    \"category\": \"Defining Functions\",\n    \"review_after_days\": [\n      0,\n      2,\n      5\n    ]\n  }\n]"
+  },
+  "editorial-still-from-a-line": {
+    "caption": "",
+    "inputText": "A lone lighthouse on a basalt cliff under moving storm light",
+    "image": "/templates/samples/editorial-still-from-a-line.webp",
+    "imageWidth": 1024,
+    "imageHeight": 1024
+  },
+  "generate-then-upscale-a-poster": {
+    "caption": "",
+    "inputText": "a retro travel poster of a volcanic coastline, screenprint texture",
+    "image": "/templates/samples/generate-then-upscale-a-poster.webp",
+    "imageWidth": 956,
+    "imageHeight": 1280
+  },
+  "image-to-audio-story": {
+    "caption": "",
+    "audio": "/templates/samples/image-to-audio-story.mp3"
+  },
+  "localise-a-product-listing": {
+    "caption": "",
+    "inputText": "Field Travel Mug. A 350 ml stainless steel mug with a screw lid. Available in sage green and black. Hand wash only.",
+    "text": "Localised product listing (UK English, metric)\n\nField Travel Mug — 350 ml stainless‑steel travel mug with screw‑top lid. Available in sage green and black. Hand wash only.\n\nNotes for listing/copy:\n- Capacity: 350 ml\n- Material: stainless‑steel\n- Lid: screw‑top\n- Colours: sage green, black\n- Care: hand wash only\n\nCurrency conversion / pricing\n- No price was provided. If you need to convert US prices to GBP, use a placeholder rate (example): 1 USD = £0.80. Replace with live rate before publishing.\n- Example: US$20.00 → £16.00 (using 1 USD = £0.80). Round to two decimal places and show the pound sign (e.g. £16.00).\n- Confirm whether prices should be shown inclusive of VAT for consumer-facing UK listings.\n\nItems requiring a human decision or additional information (please supply before finalising product page)\n1. Insulation: is the mug single‑ or double‑walled (does it keep drinks hot/cold)?  \n2. Leakproofness: is the screw‑top lid spill/leak‑proof?  \n3. Lid material and safety: what is the lid made from and is it BPA‑free/food‑safe?  \n4. Stainless‑steel grade (e.g. 18/8) and any surface finish (polished/matte).  \n5. Dishwasher and microwave suitability (only “Hand wash only” provided — confirm).  \n6. Exact dimensions and weight for shipping/specs.  \n7. Country of origin, packaging details, and any certifications (food‑safe, REACH, etc.).  \n8. Retail price (currency to convert) and whether listing price should include VAT and delivery charges.\n\nIf you want, I can produce a product page copy with bullet points, short and long descriptions, and suggested product bullet copy for e‑commerce once you confirm the flagged items and/or provide a price."
+  },
+  "moodboard-frame-from-a-theme": {
+    "caption": "",
+    "inputText": "editorial photograph, muted earth palette, soft north light, matte finish, generous negative space",
+    "image": "/templates/samples/moodboard-frame-from-a-theme.webp",
+    "imageWidth": 1024,
+    "imageHeight": 1024
+  },
+  "narrate-a-script": {
+    "caption": "",
+    "inputText": "Every frame you see here was generated from a single line of text.",
+    "audio": "/templates/samples/narrate-a-script.mp3"
+  },
+  "one-tagline-six-markets": {
+    "caption": "",
+    "inputText": "Fresh coffee. Your way.",
+    "text": "German: Frischer Kaffee. Wie du ihn magst. [Fresh coffee. How you like it.]\n\nFrench: Café frais. À votre façon. [Fresh coffee. To your way.]\n\nSpanish: Café fresco. A tu manera. [Fresh coffee. To your way.]\n\nItalian: Caffè fresco. A modo tuo. [Fresh coffee. In your way.]\n\nJapanese: 淹れたてのコーヒー。あなたの好みで。 [Freshly brewed coffee. In your preference.]\n\nBrazilian Portuguese: Café fresco. Do seu jeito. [Fresh coffee. Of your way.]"
+  },
+  "image-to-video-animation": {
+    "caption": "",
+    "inputText": "Moody twilight ocean scene with cinematic lighting",
+    "video": "/templates/samples/image-to-video-animation.mp4",
+    "poster": "/templates/samples/image-to-video-animation-poster.webp"
+  },
+  "narration-with-a-music-bed": {
+    "caption": "",
+    "inputText": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend.",
+    "audio": "/templates/samples/narration-with-a-music-bed.mp3"
+  },
+  "poster-on-kie": {
+    "caption": "",
+    "inputText": "A brutalist concert hall at dusk, long shadows, single figure on the steps",
+    "image": "/templates/samples/poster-on-kie.webp",
+    "imageWidth": 1280,
+    "imageHeight": 719
+  },
+  "product-spot-from-text": {
+    "caption": "",
+    "inputText": "Matte-black wireless over-ear headphones with a brushed-copper accent ring",
+    "video": "/templates/samples/product-spot-from-text.mp4",
+    "poster": "/templates/samples/product-spot-from-text-poster.webp"
+  },
+  "prompt-template": {
+    "caption": "",
+    "inputText": "Photosynthesis",
+    "text": "1. In one sentence — Plants use sunlight plus water and a gas from the air to make their own food and give off oxygen.  \n2. Analogy — It’s like a tiny kitchen inside each leaf: sunlight is the stove, and the leaf mixes water and air to “cook” food.  \n3. Example — A potted plant on a sunny windowsill uses that sunlight every day to make sugar to grow and to release oxygen into the room.  \n4. Common misconception — People often think plants eat soil like we eat food; actually the soil only provides water and minerals—plants make their main food from sunlight and air."
+  },
+  "product-video-generator": {
+    "caption": "",
+    "inputText": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
+    "video": "/templates/samples/product-video-generator.mp4",
+    "poster": "/templates/samples/product-video-generator-poster.webp"
+  },
+  "put-a-voice-over-a-music-bed": {
+    "caption": "",
+    "inputText": "Built for people who would rather ship than configure.",
+    "audio": "/templates/samples/put-a-voice-over-a-music-bed.mp3"
+  },
+  "restyle-a-photo-as-an-illustration": {
+    "caption": "",
+    "image": "/templates/samples/restyle-a-photo-as-an-illustration.webp",
+    "imageWidth": 1152,
+    "imageHeight": 896,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "rewrite-this-so-a-customer-understands-it": {
+    "caption": "",
+    "inputText": "Your subscription renewal will be processed on the first day of the subsequent billing period. Modifications must be submitted at least 48 hours prior to renewal.",
+    "text": "Your subscription will be renewed on the first day of the next billing period — that is, at the start of the next payment cycle. If you want to change or cancel your subscription, you must send those changes at least 48 hours before the renewal."
+  },
+  "seo-title-and-meta-description": {
+    "caption": "",
+    "inputText": "Field Coffee offers a monthly subscription with two freshly roasted bags. Customers choose whole beans or ground coffee and can change or cancel their plan any time.",
+    "text": "Title: Field Coffee Subscription — 2 Freshly Roasted Bags (50 characters)\nMeta description: Get Field Coffee's monthly plan: two freshly roasted bags delivered monthly. Choose whole bean or ground, with easy changes or cancel anytime. (142 characters)"
+  },
+  "score-a-clip-from-its-own-mood": {
+    "caption": "",
+    "inputText": "Soft jazz guitar and brushed drums for a quiet coffee shop, instrumental",
+    "video": "/templates/samples/score-a-clip-from-its-own-mood.mp4",
+    "poster": "/templates/samples/score-a-clip-from-its-own-mood-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "relight-a-product-for-a-seasonal-campaign": {
+    "caption": "",
+    "image": "/templates/samples/relight-a-product-for-a-seasonal-campaign.webp",
+    "imageWidth": 1152,
+    "imageHeight": 928,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "shot-list-from-a-synopsis": {
+    "caption": "",
+    "inputText": "A cyclist finds an old camera in a rain-soaked city. Each photo reveals the same street one day in the future.",
+    "text": "1. Wide, rain-soaked city street at dusk — subject: cyclist weaving through puddles toward a flickering lamppost — camera move: rear tracking dolly that slowly arcs to reveal a glint in a curbside puddle — duration: 8s\n\n2. Medium-close, cyclist's boot and wheel as they skid to a stop — subject: hand reaching toward the glint — camera move: handheld push-in from wheel to hand — duration: 5s\n\n3. Low close-up insert, old leather camera half-submerged in a puddle, rain spattering off its body — subject: the camera's scratched lens and embossed nameplate — camera move: slow 180° pan around the camera, lens catching a streetlight flash — duration: 6s\n\n4. Over-the-shoulder medium, cyclist lifts the camera, shaking rain from it, fingers fumbling at the back latch — subject: the cyclist's hands and the camera's back door — camera move: rack focus from reflected neon on wet asphalt to the camera's back as the latch clicks — duration: 7s\n\n5. Extreme close-up insert, a single glossy photograph pulled from the camera — subject: the photo shows the exact street composition, but with a red balloon tied to the lamppost (absent in reality) — camera move: static micro push-in on the photo as water beads on its edge — duration: 6s\n\n6. Two-shot medium, cyclist holds the photo up against the real street to compare — subject: photo in foreground, empty real street behind — camera move: slow dolly back that reveals the mismatch between image and street — duration: 7s\n\n7. Close-up montage insert, cyclist thumbs through three more photos in quick succession — subject: each photo is the same street one day later with escalating differences (closed shutters, a spilled crate on the sidewalk, a crowd gathered) — camera move: jump cuts between each photo, finishing with a handheld tilt up to the cyclist's face — duration: 9s\n\n8. Wide, the street as a sudden gust sends a lone red balloon across frame exactly where the lamppost sits in the first photo — subject: balloon drifting, cyclist frozen holding the camera — camera move: slow crane up and back, rain easing and the cityscape aligning with the photographs as the balloon crosses the frame — duration: 10s"
+  },
+  "speak-a-line-then-trim-the-silence": {
+    "caption": "",
+    "inputText": "The package arrives on Thursday. Someone has to be home to sign for it.",
+    "audio": "/templates/samples/speak-a-line-then-trim-the-silence.mp3"
+  },
+  "still-on-replicate": {
+    "caption": "",
+    "inputText": "A weathered fishing boat hauled onto black sand, cold northern light",
+    "image": "/templates/samples/still-on-replicate.webp",
+    "imageWidth": 1024,
+    "imageHeight": 1024
+  },
+  "subject-lines-worth-testing": {
+    "caption": "",
+    "inputText": "Meet the Field Coffee subscription. Two freshly roasted bags delivered each month. Choose your grind and change or cancel your plan any time.",
+    "text": "Curiosity-led\n1. What’s in your next coffee box?\n2. Want a surprise roast each month?\n3. Two mystery bags. One perfect sip.\n4. Could this replace your morning ritual?\n\nClarity-led\n1. Field Coffee: 2 bags delivered monthly\n2. Two freshly roasted bags, every month\n3. Choose your grind. Change or cancel anytime\n4. Subscribe for 2 freshly roasted bags/month"
+  },
+  "take-the-first-few-seconds-of-a-bed": {
+    "caption": "",
+    "audio": "/templates/samples/take-the-first-few-seconds-of-a-bed.mp3"
+  },
+  "themes-across-customer-feedback": {
+    "caption": "",
+    "inputText": "Love the coffee, wish there was a smaller bag. Delivery tracking would help. Great flavour and easy cancellation. The bag is too big for one person. Please send a tracking email.",
+    "text": "1) Product quality (positive) — ~2 comments  \n   Representative quote: \"Love the coffee\"\n\n2) Bag size / packaging too large — ~2 comments  \n   Representative quote: \"The bag is too big for one person.\"\n\n3) Delivery tracking / shipping updates requested — ~2 comments  \n   Representative quote: \"Please send a tracking email.\"\n\n4) Easy cancellation / subscription management — ~1 comment  \n   Representative quote: \"easy cancellation.\""
+  },
+  "trailer-beats-from-a-premise": {
+    "caption": "",
+    "inputText": "A cyclist finds a camera that photographs tomorrow.",
+    "text": "Hook — 12s\nA dawn commute: a cyclist picks up an old Polaroid camera; the first picture develops to reveal tomorrow’s newspaper headline—himself in a crash.\n\nSetup — 28s\nHe experiments: each photo shows the next day’s small events—missed buses, spilled coffee, a stranger’s face—proof the camera photographs tomorrow, and he begins to test its limits.\n\nEscalation — 40s\nWhat starts as helpful interventions grows urgent: the camera predicts a deadly pileup and a missing child; every choice to change tomorrow spirals consequences and attracts people who’d weaponize the gift.\n\nTurn — 20s\nA chilling Polaroid appears: the cyclist dead tomorrow holding the camera—he learns the camera may be shaping fate, not just revealing it, forcing a desperate, impossible gamble.\n\nTitle card — 3s\nBlack frame, bold title and tagline—(e.g.) \"TOMORROW'S EXPOSURE\" — \"What you fix tomorrow can cost you today.\""
+  },
+  "translate-marketing-copy-to-german": {
+    "caption": "",
+    "inputText": "Freshly roasted coffee, delivered your way. Choose your grind and change your plan any time.",
+    "text": "Frisch gerösteter Kaffee – ganz nach Ihren Wünschen geliefert. Wählen Sie den Mahlgrad und passen Sie Ihr Abo jederzeit an.\n\nIch habe „Sie“ gewählt, weil der Originaltext keinen informellen Ton vorgibt und sich das Angebot an Kundinnen und Kunden allgemein richtet."
+  },
+  "turn-research-notes-into-a-comparison-table": {
+    "caption": "",
+    "inputText": "Mug A: stainless steel, 350 ml, screw lid, hand wash, 240g. Mug B: ceramic, 300 ml, open top, dishwasher safe, 310g. Mug C: glass, 250 ml, silicone lid, dishwasher safe, 180g.",
+    "text": "| Mug | Material | Capacity | Lid | Washability | Weight |\n|---|---|---:|---|---|---:|\n| Mug A | stainless steel | 350 ml | screw lid | hand wash | 240g |\n| Mug B | ceramic | 300 ml | open top | dishwasher safe | 310g |\n| Mug C | glass | 250 ml | silicone lid | dishwasher safe | 180g |"
+  },
+  "turn-specs-into-product-copy": {
+    "caption": "",
+    "inputText": "Travel mug. 350 ml. Double-wall stainless steel. Screw lid. Fits cup holders. Available in sage green and black. Hand wash only.",
+    "text": "A 350 ml travel mug in double-wall stainless steel with a screw lid. Designed to fit cup holders. Available in sage green and black. Hand wash only."
+  },
+  "turn-a-changelog-into-release-notes": {
+    "caption": "",
+    "inputText": "Added delivery tracking emails. Fixed discount codes freezing checkout in Safari. Added a 200g bag size. Subscription pauses now take effect immediately.",
+    "text": "New\n- Delivery tracking emails: You’ll now get email updates with tracking links and delivery status for your orders.\n- 200g bag size: A 200g bag option is now available when choosing product sizes.\n\nImproved\n- Subscription pauses take effect immediately: Pausing a subscription now stops the next shipment and billing right away, so you won’t be charged or receive a shipment after pausing.\n\nFixed\n- Discount codes on Safari: Applying discount codes during checkout in Safari no longer freezes the checkout — discounts apply and purchases complete as expected."
+  },
+  "turn-a-logo-into-print-ready-vector": {
+    "caption": "",
+    "image": "/templates/samples/turn-a-logo-into-print-ready-vector.webp",
+    "imageWidth": 1024,
+    "imageHeight": 816,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "turn-a-support-thread-into-a-bug-report": {
+    "caption": "",
+    "inputText": "Customer: The checkout spinner never stops after I apply COFFEE10. Support: Which browser? Customer: Safari on iPhone. Without the code, checkout works. Support reproduced on iOS 18 with two bags in the basket.",
+    "text": "Title\nCheckout spinner never stops after applying promo code COFFEE10 on iOS Safari\n\nSteps to reproduce\n1. On an iPhone running iOS 18, open Safari and navigate to the storefront (customer used the site’s checkout).  \n2. Add two bags to the shopping cart.  \n3. Go to Checkout.  \n4. Enter promo code \"COFFEE10\" and tap Apply.  \n5. Observe the checkout spinner/loading indicator.\n\nExpected result\n- The spinner stops after the coupon is applied (or a validation error is shown).  \n- The order total updates to reflect the discount (or a clear failure message is shown).  \n- Customer can proceed and complete checkout.\n\nActual result\n- The checkout spinner continues indefinitely after applying COFFEE10, blocking checkout.  \n- Without applying the code, checkout works normally.\n\nEnvironment\n- Browser: Safari (mobile)  \n- Device: iPhone  \n- OS: iOS 18 (support reproduced)  \n- Cart contents: two bags  \n- Reported by customer; issue reproduced by support on iOS 18\n\nMissing information\n- Exact storefront URL / site environment (production/staging).  \n- Whether the customer was logged in or checking out as guest.  \n- Exact product SKUs/IDs for the two bags.  \n- Whether COFFEE10 is valid for those items (coupon rules: percent/amount, minimums, product/category restrictions, expiration).  \n- Whether the issue occurs on other browsers (Chrome/Firefox) or desktop.  \n- Whether the issue occurs on other iOS versions or earlier/later Safari builds.  \n- Any client-side console errors, network logs (failed XHRs), or server-side errors correlated with the failure (stack traces, request IDs).  \n- Whether any error or failure message ever appears (hidden behind spinner).  \n- Whether retrying Apply, removing items, or changing quantities unblocks the spinner.  \n- Whether the problem occurs for other promo codes or only COFFEE10.  \n- Network conditions during reproduction (Wi‑Fi vs cellular).  \n- Whether reproduction was on a physical device or simulator.  \n- Session/cart identifiers or timestamps to find relevant server logs.\n\nSuggested next actions\n- Capture browser console and network trace while reproducing (Safari remote Web Inspector).  \n- Check server logs around the timestamp and session ID for coupon validation requests.  \n- Verify coupon configuration and eligibility rules for COFFEE10.  \n- Try reproducing on other browsers/OS versions to scope impact."
+  },
+  "upscale-a-still": {
+    "caption": "",
+    "image": "/templates/samples/upscale-a-still.webp",
+    "imageWidth": 1280,
+    "imageHeight": 1020,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "voice-a-script-in-two-voices": {
+    "caption": "",
+    "inputText": "What makes a good morning?",
+    "audio": "/templates/samples/voice-a-script-in-two-voices.mp3"
+  },
+  "video-restyle-studio": {
+    "caption": "",
+    "inputText": "1980s anime cel animation, hand-inked outlines, flat gouache colour, visible film grain",
+    "video": "/templates/samples/video-restyle-studio.mp4",
+    "poster": "/templates/samples/video-restyle-studio-poster.webp",
+    "credit": {
+      "name": "Footage by Stevenndori289; edited",
+      "url": "https://commons.wikimedia.org/wiki/File:Latte_Coffee_making.webm",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  },
+  "write-a-listing-from-the-product-photo": {
+    "caption": "",
+    "text": "Roasted Coffee Beans & Ground Espresso — Demitasse Cup\n\nRoasted whole coffee beans and finely ground espresso shown with a single demitasse cup on a warm, matte wood surface. The photo includes whole beans scattered around and an aluminum stovetop coffee chamber holding loose grounds. Whole beans are ready for grinding to your preferred coarseness; grounds appear espresso-fine for stovetop or machine extraction. Store in an airtight container away from heat and light; grind just before brewing for best freshness."
+  },
+  "write-the-prompt-then-make-the-image": {
+    "caption": "",
+    "inputText": "A minimal coffee campaign with warm morning light and handmade ceramic cups",
+    "image": "/templates/samples/write-the-prompt-then-make-the-image.webp",
+    "imageWidth": 1024,
+    "imageHeight": 1024
+  },
+  "action-items-from-a-meeting-recording": {
+    "caption": "",
+    "text": "Sam\n- Finish the landing page — by Friday\n\nAlex\n- Test checkout on Safari — before Tuesday\n\nUnassigned\n- Offer/implement both 200 g and 500 g bag options — (no owner specified)\n- Prioritize/send tracking emails for the nine late pilot orders — (no owner specified)\n- Bring shipping update to next meeting — due Thursday at 10\n- Bring final product photos to next meeting — due Thursday at 10"
+  },
+  "audio-to-image": {
+    "caption": "",
+    "image": "/templates/samples/audio-to-image.webp",
+    "imageWidth": 1024,
+    "imageHeight": 1024
+  },
+  "chapter-markers-for-a-long-recording": {
+    "caption": "",
+    "text": "1. Launch review — \"Let us review the coffee subscription launch.\"\n2. Landing page (Sam) — \"Sam will finish the landing page by Friday.\"\n3. Checkout testing (Alex) — \"Alex will test checkout on Safari before Tuesday.\"\n4. Product options — \"We agreed to offer both 200 gram and 500 gram bags.\"\n5. Pilot orders & tracking — \"Nine pilot orders arrived late, so tracking emails are the top priority.\"\n6. Next meeting — \"Our next meeting is Thursday at 10.\"\n7. Action items — \"Please bring the shipping update and the final product photos.\""
+  },
+  "chat-with-your-documents": {
+    "caption": "",
+    "inputText": "How long does the Aurora One take to fully charge, and what does its warranty cover?",
+    "text": "\n\nI couldn't find that in the provided documents."
+  },
+  "cold-outreach-co-pilot": {
+    "caption": "",
+    "inputText": "AtlasCloud",
+    "text": "{\n  \"type\": \"chunk\",\n  \"content\": \"submit_result({\\\"company_summary\\\":\\\"Atlas Cloud is a Newcastle-based managed IT services and cyber security provider specialising in regulated professional services firms — law firms, barristers' chambers, and recruitment agencies. They are a Microsoft Security & Modern Work Partner, a Cyber Essentials Certification Body, and hold ISO 27001/9001/14001 certifications. They were recently ranked No. 24 in the world on the 2026 Channel Futures MSP 501, placing them in the top 5% of MSPs globally, and have just launched a new 24/7 UK-based SOC service — a signal of rapid service expansion.\\\",\\\"pain_points\\\":[\\\"Helping clients adopt AI safely and compliantly is listed on their own site as a top unmet challenge — they advise on AI governance but lack a hands-on workspace to prototype and demo AI solutions for clients.\\\",\\\"Their service team is expanding fast (new SOC, AI pen testing, Copilot advisory) — consultants need a fast, no-code way to build and iterate AI-powered demos or internal tools without waiting on developer cycles.\\\",\\\"As a compliance-first MSP, they need AI tools that can be governed, sandboxed, and shown to clients in a controlled way — generic AI platforms create data-security and vendor-lock-in concerns.\\\",\\\"Creating differentiated content (reports, research, client-facing materials) at scale is a growing need as they climb the MSP rankings and compete for larger professional services contracts.\\\"],\\\"subject\\\":\\\"AI workspace for your Copilot advisory team\\\",\\\"body\\\":\\\"Congrats on the No. 24 spot on the 2026 MSP 501 — top 5% globally is a serious milestone, especially off the back of launching your SOC.\\\\n\\\\nI noticed your site calls out \\\\\\\"AI adoption challenges\\\\\\\" as a top pain point for your clients — and you're already advising on Copilot and AI governance. NodeTool is a visual Creative AI workspace that lets your consultants prototype and demo AI workflows (document review, content generation, client-facing automations) without writing code — useful when a law firm asks \\\\\\\"what could this actually look like for us?\\\\\\\"\\\\n\\\\nWould a 20-minute look make sense this month?\\\",\\\"follow_up\\\":\\\"Hi — just a gentle nudge on my note from a few days ago. Happy to share a short screen recording of NodeTool if that's easier than a call. Worth 5 minutes?\\\"})\",\n  \"content_type\": \"tool_call\",\n  \"content_metadata\": {\n    \"tool_call_id\": \"toolu_01XWjxsf9vAXfsJaEJFPxMLL\",\n    \"tool_name\": \"submit_result\",\n    \"args\": {\n      \"company_summary\": \"Atlas Cloud is a Newcastle-based managed IT services and cyber security provider specialising in regulated professional services firms — law firms, barristers' chambers, and recruitment agencies. They are a Microsoft Security & Modern Work Partner, a Cyber Essentials Certification Body, and hold ISO 27001/9001/14001 certifications. They were recently ranked No. 24 in the world on the 2026 Channel Futures MSP 501, placing them in the top 5% of MSPs globally, and have just launched a new 24/7 UK-based SOC service — a signal of rapid service expansion.\",\n      \"pain_points\": [\n        \"Helping clients adopt AI safely and compliantly is listed on their own site as a top unmet challenge — they advise on AI governance but lack a hands-on workspace to prototype and demo AI solutions for clients.\",\n        \"Their service team is expanding fast (new SOC, AI pen testing, Copilot advisory) — consultants need a fast, no-code way to build and iterate AI-powered demos or internal tools without waiting on developer cycles.\",\n        \"As a compliance-first MSP, they need AI tools that can be governed, sandboxed, and shown to clients in a controlled way — generic AI platforms create data-security and vendor-lock-in concerns.\",\n        \"Creating differentiated content (reports, research, client-facing materials) at scale is a growing need as they climb the MSP rankings and compete for larger professional services contracts.\"\n      ],\n      \"subject\": \"AI workspace for your Copilot advisory team\",\n      \"body\": \"Congrats on the No. 24 spot on the 2026 MSP 501 — top 5% globally is a serious milestone, especially off the back of launching your SOC.\\n\\nI noticed your site calls out \\\"AI adoption challenges\\\" as a top pain point for your clients — and you're already advising on Copilot and AI governance. NodeTool is a visual Creative AI workspace that lets your consultants prototype and demo AI workflows (document review, content generation, client-facing automations) without writing code — useful when a law firm asks \\\"what could this actually look like for us?\\\"\\n\\nWould a 20-minute look make sense this month?\",\n      \"follow_up\": \"Hi — just a gentle nudge on my note from a few days ago. Happy to share a short screen recording of NodeTool if that's easier than a call. Worth 5 minutes?\"\n    }\n  },\n  \"done\": false\n}\n\nAtlas Cloud is a Newcastle-based managed IT services and cyber security provider specialising in regulated professional services firms — law firms, barristers' chambers, and recruitment agencies. They are a Microsoft Security & Modern Work Partner, a Cyber Essentials Certification Body, and hold ISO 27001/9001/14001 certifications. They were recently ranked No. 24 in the world on the 2026 Channel Futures MSP 501, placing them in the top 5% of MSPs globally, and have just launched a new 24/7 UK-based SOC service — a signal of rapid service expansion.\n\nAI workspace for your Copilot advisory team\n\nCongrats on the No. 24 spot on the 2026 MSP 501 — top 5% globally is a serious milestone, especially off the back of launching your SOC.\n\nI noticed your site calls out \"AI adoption challenges\" as a top pain point for your clients — and you're already advising on Copilot and AI governance. NodeTool is a visual Creative AI workspace that lets your consultants prototype and demo AI workflows (document review, content generation, client-facing automations) without writing code — useful when a law firm asks \"what could this actually look like for us?\"\n\nWould a 20-minute look make sense this month?\n\nHi — just a gentle nudge on my note from a few days ago. Happy to share a short screen recording of NodeTool if that's easier than a call. Worth 5 minutes?\n\n[\n  \"Helping clients adopt AI safely and compliantly is listed on their own site as a top unmet challenge — they advise on AI governance but lack a hands-on workspace to prototype and demo AI solutions for clients.\",\n  \"Their service team is expanding fast (new SOC, AI pen testing, Copilot advisory) — consultants need a fast, no-code way to build and iterate AI-powered demos or internal tools without waiting on developer cycles.\",\n  \"As a compliance-first MSP, they need AI tools that can be governed, sandboxed, and shown to clients in a controlled way — generic AI platforms create data-security and vendor-lock-in concerns.\",\n  \"Creating differentiated content (reports, research, client-facing materials) at scale is a growing need as they climb the MSP rankings and compete for larger professional services contracts.\"\n]"
+  },
+  "brand-asset-generator": {
+    "caption": "",
+    "inputText": "Aurora Labs",
+    "image": "/templates/samples/brand-asset-generator.webp",
+    "imageWidth": 1024,
+    "imageHeight": 1024
+  },
+  "edit-a-still-with-words": {
+    "caption": "",
+    "inputText": "Make it golden hour, warm low sun raking across the subject",
+    "image": "/templates/samples/edit-a-still-with-words.webp",
+    "imageWidth": 1152,
+    "imageHeight": 896,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "hook-and-thumbnail-factory": {
+    "caption": "",
+    "inputText": "How compound interest quietly builds wealth",
+    "image": "/templates/samples/hook-and-thumbnail-factory.webp",
+    "imageWidth": 1280,
+    "imageHeight": 714
+  },
+  "meeting-transcript-summarizer": {
+    "caption": "",
+    "text": "Let us review the coffee subscription launch. Sam will finish the landing page by Friday. Alex will test checkout on Safari before Tuesday. We agreed to offer both 200 gram and 500 gram bags. Nine pilot orders arrived late, so tracking emails are the top priority. Our next meeting is Thursday at 10. Please bring the shipping update and the final product photos.\n\n\n\n{\n  \"rows\": [\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping update\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Bring final product photos\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Thursday at 10\"\n    },\n    {\n      \"action\": \"Finish landing page\",\n      \"owner\": \"Sam\",\n      \"due_date\": \"Friday\"\n    },\n    {\n      \"action\": \"Test checkout on Safari\",\n      \"owner\": \"Alex\",\n      \"due_date\": \"Before Tuesday\"\n    },\n    {\n      \"action\": \"Offer 200g and 500g bags\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Prioritize tracking emails\",\n      \"owner\": \"Unassigned\",\n      \"due_date\": \"Not specified\"\n    },\n    {\n      \"action\": \"Bring shipping\",\n      \"owner\": \"\",\n      \"due_date\": \"\"\n    }\n  ],\n  \"columns\": [\n    {\n      \"name\": \"action\"\n    },\n    {\n      \"name\": \"owner\"\n    },\n    {\n      \"name\": \"due_date\"\n    }\n  ],\n  \"data\": [\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping update\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Bring final product photos\",\n      \"Unassigned\",\n      \"Thursday at 10\"\n    ],\n    [\n      \"Finish landing page\",\n      \"Sam\",\n      \"Friday\"\n    ],\n    [\n      \"Test checkout on Safari\",\n      \"Alex\",\n      \"Before Tuesday\"\n    ],\n    [\n      \"Offer 200g and 500g bags\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Prioritize tracking emails\",\n      \"Unassigned\",\n      \"Not specified\"\n    ],\n    [\n      \"Bring shipping\",\n      \"\",\n      \"\"\n    ]\n  ]\n}"
+  },
+  "photo-enhancement-suite": {
+    "caption": "",
+    "text": "[]"
+  },
+  "movie-posters": {
+    "caption": "",
+    "inputText": "Singularity",
+    "image": "/templates/samples/movie-posters.webp",
+    "imageWidth": 896,
+    "imageHeight": 1200
+  },
+  "podcast-repurposing-studio": {
+    "caption": "",
+    "inputText": "Trailhead — a weekly hiking and outdoor-gear podcast hosted by Maya. Voice: warm, practical, a little irreverent. CTA: subscribe and grab the free gear checklist at trailhead.fm",
+    "image": "/templates/samples/podcast-repurposing-studio.webp",
+    "imageWidth": 1024,
+    "imageHeight": 1024
+  },
+  "seo-content-engine": {
+    "caption": "",
+    "inputText": "Aurora Gear — a DTC shop for ultralight hiking equipment. The blog lives at auroragear.example/guides and supports the trail-gear collection pages.",
+    "image": "/templates/samples/seo-content-engine.webp",
+    "imageWidth": 1280,
+    "imageHeight": 714
+  },
+  "widen-a-mono-voice": {
+    "caption": "",
+    "inputText": "Stereo is not louder. It is wider.",
+    "audio": "/templates/samples/widen-a-mono-voice.mp3"
+  },
+  "pull-a-field-out-of-json-text": {
+    "caption": "",
+    "inputText": "{\"user\":{\"name\":\"Ada\",\"role\":\"engineer\"},\"active\":true}",
+    "text": "Ada"
+  },
+  "per-sku-ad-factory": {
+    "caption": "",
+    "inputText": "FIELD-350-SAGE",
+    "video": "/templates/samples/per-sku-ad-factory.mp4",
+    "poster": "/templates/samples/per-sku-ad-factory-poster.webp"
+  },
+  "hacker-news-agent": {
+    "caption": "",
+    "inputText": "AI and developer tools",
+    "text": "# Hacker News Digest: AI and developer tools\n\nFront-page themes: rapid LLM iteration and deployment (GPT-6 Astra, Qwen 3.8), big-platform AI agents (Meta’s Muse), developer-facing tooling for local/mobile models (Desert Ant Labs), and UX/behaviour experiments with assistant agents (Claude/Opusfived).\n\n## Claude, change the “Add to Cart” button to blue\nhttps://opusfived.dev/\n\n**Top comments:**\n- **dudeinhawaii:** Great site, triggered memories! haha.To try to add something to this discussion -- I think that while I've seen these sort of loops less --- what I have seen is \"overly helpful\".Models nowadays want to double-triple-quadruple check things. I'm being silly but it verges on \"I have a working solution but let me write a variation in Rust to ensure a convergent solution and prove this works\".I've had to stop models nowadays mostly because they're being agonizingly pedantic in their validation. Opus is actually one of the most pedantic and \"off track\" here. But again, not in a bad way. I'm usually like \"stop testing latency between 50 runs of this app... this is version one.. we're going to make a million more changes.. you're not buying us anything\".\n- **dwedge:** I got way too annoyed at this before realising it was an optional game and I could just close the tab\n- **_fat_santa:** At least with Codex, this has not been my experience at all. It still screws up sure, but in every case I can ask \"why did you do this\" and it can trace back what made it take that particular decision. Typically it's always that I either didn't specify the problem correctly or made a really dumb mistake (executing the task on the wrong project....did this one yesterday) or it's something within a skill file that instructs it (at which point I fixup the instructions).Once in a blue moon it's actually the model making a material error in it's thinking and I have to go back and redo it.\n\n## Muse – Meta’s personal AI agent\nhttps://ai.meta.com/muse/\n\n**Top comments:**\n- **misrasaurabh1:** I really don't want to share all my personal life information with meta like this.\n- **parapsychic:** Judging from the website, Muse seems to be too keen on making me buy things - Book Tickets, Buy a Stroller. Would this personal AI spam me with ads randomly like this?\n- **sroerick:** Facebook is the first to market with a polished openclaw? Good for them.I'm sure many others will criticize other aspects of Meta, and rightly so. But imagine using a Claw agent with zero tech support available\n\n## GPT-6 Astra, looped transformers, and hidden reasoning\nhttps://magazine.sebastianraschka.com/p/gpt-6-astra-looped-transformers-and\n\n**Top comments:**\n- **shawntan:** For the research focused, there are some references in my blogpost here on what kinds of computational problems minimally require how much CoT to solve: https://blog.wtf.sg/posts/2023-02-03-the-new-xor-problem/Notably Will Merrill's work: https://arxiv.org/abs/2310.07923As for how universal transformers (looping transformers, but everyone has since forgotten prior work) will affect this, Will Merrill (again) has a paper here (https://arxiv.org/abs/2503.03961) that discusses exactly this.The original universal transformers is called \"universal\" because if you allow for per-token looping decisions, it can theoretically be Turing complete without needing CoT (some nuance here about levels of precision used).As for whether having little or no CoT is \"unsafe\": It isn't clear that the model's CoT reveal how they actually arrive at the answer. As an example, what if they provide an answer before the CoT? (https://arxiv.org/html/2603.01437v2) If this is already in question, we shouldn't be relying on the CoT for monitoring the model's reasoning.As always there is a lot of nuance to the topic once you get your hands dirty with the details.\n- **siva7:** Astra was insane until Monday but something happened on tuesday, now it feels like Sol. I grieve for the lost productivity but i hope they may give us the original Astra back.\n- **wolttam:** If you loop an entire transformer model on itself, that seems like by-definition hidden reasoning.If the output of the model is its reasoning trace, and you simply feed that back into the model again at inference time instead of outputting it - then it is by definition hidden (but I would expect you could pull both this trace and a further-down final output trace out)\n\n## Desert Ant Labs: local, fast models that run on device\nhttps://desertant.com/blog/introducing-desert-ant-labs/\n\n**Top comments:**\n- **sipjca:** at first i got very excited about a new fast transcription model (voz) but turns out its just parakeet v3 with some new inference code which is macOS/iOS specific\n- **nullbio:** This is a cool idea. The most useful one for me would be something that can process pdf files into a json schema. Title and tag generation from a post would also be useful. I'm interested in web app though.\n- **ashenke:** A lot of the models would be useful in a web context, to improve on the CMS we're making for clients. But they look like most of them are iOS only, few have a node package or something other, and all the benchmark are running it on modern iPhones so I doubt it would be that fast on a 20$ VPS.\n\n## Qwen 3.8 follows GPT-5.5 Pro reasoning prefills\nhttps://gist.github.com/wsxiaoys/e0286dc6bb624ff5fdf49e7f4c528ba3\n\n**Top comments:**\n- **wongarsu:** That writing style might be a tad too tenseIf I got it correct (appending B from https://stolen-thoughts.com/paper.pdf is essential) they are the authors of the well-known exploit to recover readable CoT from OpenAI and Anthropic models. They use that to find hints of distillation, by running a benchmark with a SotA model, recovering the CoT, then taking the first 1% of the CoT and running the open-source model as if that was the start of its own CoT. In the paper they found that Kimi-K3 gets a lot closer to Claude 4.8 answers when prefilled with the start of Claude 4.8 reasoning, suggesting that Claude 4.8 was used in its post-training. This blog post is the follow-up with results that suggest that Qwen3.8 was post-trained with the help of GPT-5.5 Pro (or some similarly responding GPT model, it's unclear how many models they tested)\n- **c7b:** I wasn't aware that we have access to raw reasoning tokens? I thought what you get is a kind of summary. Does the author have some kind of privileged access or was my assumption wrong?But for the question studied here it probably doesn't matter - overlaps in the publicly available output may be indicative of distillation (or not), regardless of what it is. I would just find it surprising that the Chinese labs would use it so trustingly. The publicly released reasoning trace is the first place where I would suspect some distillation poisoning to be injected.\n- **7734128:** The problem with this is obviously that the only GPT 5.5 thoughts that we have access to are from stolen thought.Qwen 3.8 0902 was trained after the release of the paper on August 10, so it should have seen those specific thoughts.\n"
+  },
+  "model-arena": {
+    "caption": "",
+    "inputText": "Should a 12-person B2B SaaS startup build its own customer-facing analytics dashboard, or integrate a third-party embedded-analytics vendor, for its reporting feature? Ship target is one quarter out.",
+    "text": "## Recommendation\nIntegrate a third-party embedded analytics vendor now to hit the quarter deadline and stop churn; postpone a bespoke dashboard until you have more engineering capacity and clearer product-differentiating needs.\n\n## Why\n- Time-to-market: embedding a vendor is fastest—integration (auth, data sync, white‑labeling) is achievable within 2 engineers × 6 weeks, whereas a production-grade custom dashboard will take longer and risk missing the quarter target.  \n- Churn mitigation: vendors ship polished UX, interactive drilldowns, RBAC and performance optimizations out of the box, directly addressing the top‑3 churn cause faster than an in‑house MVP.  \n- Operational burden: a vendor removes ongoing query tuning, scaling, and security maintenance from your small team, freeing engineers to work on core product improvements that drive retention.  \n- Budget fit: $2k/month is sufficient to access capable embedded or managed open‑source solutions (or low‑tier SaaS vendors) that accelerate delivery without exceeding your tooling spend.  \n- Risk management: faster validated feedback from customers lets you decide which custom analytics features are worth building later, avoiding wasted engineering effort.\n\n## Strongest counterargument\nThis is wrong if your reporting needs are highly customized, require domain-specific data transformations or latency guarantees that off‑the‑shelf vendors can’t provide, or if the $2k/month constraint cannot buy the required embedded/white‑label features (SSO, multi‑tenant security, fine‑grained controls). In that case integration will still demand substantial engineering work to reshape data and enforce product logic, and long‑term vendor costs or lock‑in could exceed the investment to build a tailored, competitive analytics experience in‑house.\n\n## Recommendation\nIntegrate a third-party embedded analytics vendor. Delivering a churn-stopping, highly polished analytics experience from scratch in just 12 engineering weeks is virtually impossible, whereas a vendor integration solves the problem immediately within your budget constraints.\n\n## Why\n* **Stops the bleed:** Because weak reporting is a top-3 churn driver, shipping a rudimentary, buggy MVP built in a rush will not save those accounts. You need a mature feature (drill-downs, exports, filtering) on day one.\n* **Respects engineering limits:** Two engineers for six weeks is only 12 engineering weeks. That is enough time to securely pipe your data to a vendor and embed an iframe or React component, but not enough time to build a charting library, query engine, and custom UI from scratch.\n* **Fits the budget:** Startup tiers for modern embedded BI tools (like Explo, Metabase, or Preset) comfortably fit within your $2,000/month tooling budget. \n* **Focuses your roadmap:** Buying the reporting layer ensures those two engineers can pivot back to building your core, differentiating SaaS features after just six weeks, rather than being permanently trapped maintaining internal analytics infrastructure.\n\n## Strongest counterargument\nThe biggest risk of buying is long-term pricing extortion and UX friction. Third-party dashboards rarely match a native design system perfectly, which can result in a disjointed \"Frankenstein\" user experience that might still frustrate your most demanding users. Furthermore, embedded analytics pricing often scales aggressively based on viewer count or data volume; while a vendor fits your $2k/month budget today, rapid customer growth could blow past this limit by year two, forcing a highly disruptive and expensive rebuild just as your company is trying to scale.\n\n## Recommendation\nIntegrate a third-party embedded analytics vendor (Metabase Embedded, Preset, or Tremor if you want lighter-weight). Do not build custom this quarter — your constraints make it a losing bet.\n\n## Why\n- **2 engineers × 6 weeks is roughly 480 engineering-hours.** A credible custom analytics layer (data model, query engine, chart library, permissions, export, performance tuning) realistically requires 3–5× that; you will ship something half-finished directly into your top-3 churn driver.\n- **$2k/month comfortably covers embedded tiers** from Metabase Cloud (~$500/mo for embedded), Preset (~$1–2k/mo), or Redash — leaving budget for infrastructure, while buying you a full-featured, battle-tested product on day one.\n- **Embedded vendors solve the hard parts you'll otherwise defer** — drill-downs, responsive charts, row-level security, PDF export — things prospects expect in a polished reporting feature and that take months to build correctly.\n- **The two engineers can instead own integration, white-labeling, and dashboard configuration** — work that is tightly coupled to your product's data model and where their leverage is highest, finishing well within the 6-week window.\n- **Speed directly counters churn risk.** Shipping a solid embedded solution in Q1 stops the bleeding now; a custom build that lands in Q3 (if ever) does not.\n\n## Strongest counterargument\nIf your analytics use case is genuinely proprietary — meaning the queries, data shapes, or interaction patterns are deeply idiosyncratic to your domain and no vendor template comes close — then an embedded tool may produce a reporting experience that feels generic and fails to differentiate you, which is arguably worse than a short delay to build something purpose-fit. Additionally, embedded vendor pricing scales per customer or per seat, so if you grow quickly the $2k/month ceiling breaks fast and you face a painful migration later under more pressure than you face today. If a technical co-founder has strong data-viz experience and you have high confidence in your data model's stability, a focused custom build using a library like Observable Plot or ECharts on a pre-aggregated data layer could be viable — but only if you scope it ruthlessly to two or three core charts and ship nothing else that quarter."
+  },
+  "music-video-visualizer": {
+    "caption": "",
+    "inputText": "electronic ambient",
+    "video": "/templates/samples/music-video-visualizer.mp4",
+    "poster": "/templates/samples/music-video-visualizer-poster.webp"
+  },
+  "name-a-file-from-its-narration": {
+    "caption": "",
+    "text": "let-us-review-the-coffee-subscription-launch-sam-will-finis"
+  },
+  "podcast-episode-to-show-notes": {
+    "caption": "",
+    "text": "Two-sentence summary:\nThe team reviewed the coffee subscription launch, confirmed product sizing, and prioritized customer communications after delayed pilot orders. Key action items: Sam will complete the landing page by Friday, Alex will test checkout on Safari before Tuesday, and tracking emails are the top priority.\n\nFive topic bullets:\n- Sam to finish the landing page by Friday (action item).\n- Alex to test the checkout flow on Safari before Tuesday (action item).\n- Product offering confirmed: 200 g and 500 g bags (decision).\n- Nine pilot orders arrived late; improving and sending tracking emails is the top priority (priority).\n- Next meeting: Thursday at 10 — bring the shipping update and the final product photos (logistics).\n\nNamed resources:\n- Landing page\n- Checkout (Safari test)\n- Tracking emails\n- Shipping update\n- Final product photos"
+  },
+  "private-assistant": {
+    "caption": "",
+    "inputText": "Team sync — Thursday\n- Launch date moved to March 14 (was March 7) to finish the accessibility fixes.\n- Priya owns the onboarding rewrite; first draft due Monday.\n- Budget: $8k left for Q1, reserved for the usability study.\n- Open risk: the billing migration hasn't been tested on staging yet.\n- Decision: ship the mobile app in the second wave, not at launch.",
+    "text": "Launch is March 14; the biggest open risk is that the billing migration hasn't been tested on staging.\n\n- Launch date moved from March 7 to March 14 to finish accessibility fixes.\n- Open risk: billing migration lacks staging testing."
+  },
+  "a-run-button-for-any-job": {
+    "caption": "",
+    "text": "run_button\n\n2026-09-09T22:36:37.359Z\n\n{\n  \"event\": \"order.paid\",\n  \"order_id\": \"SAMPLE-1042\",\n  \"total\": 24,\n  \"currency\": \"EUR\",\n  \"path\": \"orders/sample-order.json\"\n}"
+  },
+  "a-webhook-that-answers": {
+    "caption": "",
+    "text": "Order SAMPLE-1042 (orders/sample-order.json) was paid for EUR 24.00; no action required."
+  },
+  "every-hour-on-the-hour": {
+    "caption": "",
+    "text": "2026-09-09T22:36:37.385Z\n\n1"
+  },
+  "watch-a-folder-act-on-what-lands": {
+    "caption": "",
+    "text": "order.paid\n\nLooks like an order in JSON format — validate it against your order schema (check required fields, totals, payment/shipping info) then enqueue/import it into the order-processing system."
+  },
+  "pull-the-quotable-lines-out-of-an-interview": {
+    "caption": "",
+    "text": "\"Let us review the coffee subscription launch.\"\n\"Sam will finish the landing page by Friday.\"\n\"Alex will test checkout on Safari before Tuesday.\"\n\"We agreed to offer both 200 gram and 500 gram bags.\"\n\"Nine pilot orders arrived late, so tracking emails are the top priority.\""
+  },
+  "research-agent": {
+    "caption": "",
+    "inputText": "Small language models running on-device in 2026",
+    "text": "# Small language models running on-device in 2026\n\nTL;DR — what the product team needs to know\n- Running useful LLMs on-device is practical in 2026 for many product use-cases: 7B-class models are commonly run on consumer hardware after 3–4-bit quantization; 13B models are feasible with 4-bit or hybrid offload but require more memory/engineering [2][1].  \n- The open-source ecosystem (llama.cpp, AutoGPTQ/GPTQ tooling, bitsandbytes, Hugging Face Transformers) provides production-ready conversion, quantization and inference stacks — including CPU, Apple Metal, Hexagon/Adreno, and CUDA backends — so you can ship local inference without proprietary cloud-only stacks [1][4][7].  \n- Accuracy loss from modern weight-only and NF4-style 3–4-bit quantization is often small for instruction-following/chat tasks (many published benchmarks show near-FP16 quality), but quality depends on model, quantization method, and task; test for your task/metrics before committing [6][2].  \n- Operational trade-offs: on-device models give lower end-to-end latency and stronger privacy/availability, but increase engineering complexity (model packaging, conversion, on-device memory and battery budgets, update/rollback, telemetry), and in some cases require device-specific kernel tuning or CPU/GPU hybrid offload [8][1][7].\n\nResearch questions I investigated\n1. Which model sizes and quantization levels are realistically runnable on-device in 2026?  \n2. What OSS tooling and runtimes exist to convert/quantize and run models on-device?  \n3. What hardware/backends and performance tradeoffs (latency, battery, memory) should product teams expect?  \n4. What operational and engineering considerations (packaging, updates, privacy, monitoring) matter for shipping on-device LLM features?\n\nFindings organized by question\n\n1) Which model sizes and quantization levels are realistically runnable on-device?\n- Practical envelope in 2026:\n  - Small models (100M–1.5B): trivial to run on-device (CPU or modest GPU) without aggressive quantization; typical mobile/laptop memory easily covers these. This is a general baseline supported by the inference toolkits and Transformers workflows [7][1].\n  - 7B models: already commonly run locally after weight-only 3–4-bit quantization (GPTQ/AutoGPTQ, NF4). Community tool benchmarks show LLaMA‑7B in 4‑bit occupying roughly 4–5 GB of model memory (so fits on devices or GPU profiles with ~6–8 GB usable memory) and yielding competitive perplexity / generation quality in many tests [2][4].\n    - Example: community GPTQ experiments list LLaMA‑7B (4‑bit GPTQ) memory ≈ 4.7 GB vs FP16 ≈ 13.9 GB in their tables — i.e., ~3× reduction vs FP16 [2]. AutoGPTQ/GPTQ tooling is used to create such 4‑bit artifacts [4][2].\n  - 13B models: feasible on higher‑end devices or with careful 4‑bit quantization / offload. GPTQ tables show LLaMA‑13B in 4‑bit uses ≈ 8–8.5 GB; that makes it run on machines with ≥10–12 GB host/GPU RAM, or via hybrid CPU+GPU approaches [2][1].\n  - 33B and above: require large memory even when quantized (tens of GB) or need hybrid multi-device/offload strategies; impractical for most single mobile devices without server assistance [2][1].\n- Cross-check and caveats:\n  - Quantized memory numbers and quality vary with quantization configuration (bits, group-size, \"desc_act\"/activation ordering) and conversion kernels. The community uses GPTQ/AutoGPTQ/RTN/NF4/etc. — results differ model‑by‑model; validate on your target models/devices [2][4][6].\n\nSources supporting this section: GPTQ community tables and AutoGPTQ docs for 4‑bit memory/benchmarks [2][4], and llama.cpp support for CPU/Metal/Hexagon backends and hybrid offload for models larger than device VRAM [1].\n\n2) Tooling and runtimes — what’s available to build a product\n- Major open-source pieces you can use right now:\n  - llama.cpp / ggml: compact C/C++ inference library and ecosystem providing CPU-first inference, Apple Metal/Accelerate optimizations, Hexagon (Snapdragon) support, Vulkan/OpenCL backends and explicit hybrid CPU+GPU offload; supports many low-bit quantization formats (1.5–6–8 bits) and serves as the primary on-device runtime for many projects [1][8].\n  - GPTQ / GPTQ‑for‑LLaMa and AutoGPTQ: weight-only post-training quantization toolkits (one-shot GPTQ and the AutoGPTQ packaging) widely used to create 3–4‑bit model files used for on-device inference; AutoGPTQ exposes APIs to quantize, save, and load models and integrates with the Hugging Face ecosystem [2][4].\n  - bitsandbytes (and successors): 8‑bit optimizer/quantization tooling used in training/finetuning and memory reduction workflows; commonly used alongside transformers/QLoRA workflows [5][6].\n  - Hugging Face Transformers and HF Hub: Transformers supports loading local model files, caching, and workflows for saving/loading quantized artifacts; you can push quantized models to HF or load them locally for offline operation [7][4].\n- What these tools enable for a product team:\n  - Convert a HF model → quantized artifact → device-friendly format (safetensors/gguf) → run via llama.cpp or vendor kernels (CUDA/Metal/Hexagon) [4][1][7].\n  - Reuse community-built quantized models (many models on HF are distributed in quantized formats) and integrate them into an on-device runtime or a small local service [4][8].\n- Evidence of ecosystem maturity:\n  - Large community adoption: llama.cpp (very high GitHub stars), AutoGPTQ and GPTQ forks/usage show active community maintenance and many kernels/optimizations available for different hardware classes [1][4][2].\n\nSources: llama.cpp README and ecosystem pages [1], AutoGPTQ repo and docs [4], GPTQ-for-LLaMa [2], bitsandbytes repo [5], Transformers docs [7], llama.app product framing [8].\n\n3) Hardware, performance, and tradeoffs (latency, battery, memory)\n- Backends and device classes:\n  - On desktop/servers: CUDA, HIP, Vulkan, SYCL, AVX/AMX optimized CPU code paths are available; quantized kernels (int4 * fp16 hybrids, exllama/Marlin kernels) accelerate inference on modern GPUs [1][4].\n  - On Apple devices: Apple Metal/Accelerate kernels and Apple Silicon ARM NEON optimizations are supported by llama.cpp and related builds, enabling efficient CPU and GPU inference on MacBooks, iPads and iPhones that expose Metal compute [1][8].\n  - On mobile: Hexagon (Snapdragon), OpenCL for Adreno, and other vendor backends are present in the runtimes (llama.cpp explicitly lists Hexagon, OpenCL/Adreno) so running models on modern flagship phones is possible in principle, subject to available memory and thermal/power constraints [1].\n- Performance characteristics and practical tradeoffs:\n  - Quantization yields a big memory and speed win: 4‑bit weight quantization typically reduces model memory by ~3× vs FP16 and often improves token throughput vs FP16 on quantization-optimized kernels; published community tables show substantial tokens/sec improvements using GPTQ/AutoGPTQ kernels [2][4].\n  - Quality vs bit-width: NF4 / GPTQ 4‑bit and some 3‑bit variants often preserve generation quality close to FP16 for many tasks, but results are model- and task-dependent. Papers and community reports (QLoRA, GPTQ-based evaluations) show that finetuning/adapter methods plus NF4/GPTQ quantization can reach near full‑precision performance on typical chatbot benchmarks [6][2].\n  - Power/thermal & latency: on-device inference reduces network latency and avoids round‑trip time to cloud, but inference is compute-intensive and will increase CPU/GPU load, affecting battery life and device temperature; kernel-level optimizations and dynamic throttling are often required. The runtimes document optimized kernels and performance troubleshooting to tune for throughput vs power [1][4].\n- Hybrid and offload options:\n  - If a target device lacks sufficient VRAM, hybrid CPU+GPU offload is supported (llama.cpp documents CPU+GPU hybrid inference to partially accelerate models larger than available VRAM) — this can enable larger models on constrained devices at cost of latency and implementation complexity [1].\n\nSources supporting this section: llama.cpp backends and hybrid offload support [1], AutoGPTQ performance/quantization kernels and throughput discussion [4], GPTQ/GPTQ‑for‑LLaMa quantization memory/perplexity tables [2], QLoRA paper on NF4/4-bit finetuning showing competitive quality [6].\n\n4) Operational and engineering considerations for shipping on-device\n- Packaging and distribution:\n  - Use reproducible pipelines: quantize + export to a device format (safetensors / gguf), then bundle with the app or download-on-first-run using HF Hub caching. Transformers/HF tooling and AutoGPTQ explicitly support saving/pushing quantized artifacts to the Hub and loading them in-device or in a local service [7][4].\n- Updates, security, and governance:\n  - On-device model updates require signed/validated delivery (OTA or via app updates). If using third-party models, review licensing and provenance (many community models have different licenses). The HF tooling and transformer docs show the caching and local file mechanisms you would use; product teams must add update/version management and possibly remote model revocation workflows [7][4].\n- Privacy and telemetry:\n  - Running models locally gives strong privacy/availability benefits (\"no API keys, no telemetry\" is the explicit positioning of local-first runtimes), but also transfers responsibility for safe content handling, filtering, and local data management to your app [8][1].\n- Monitoring and A/B testing:\n  - On-device inference complicates centralized telemetry. You’ll need privacy-safe aggregated telemetry (or opt-in) to measure model failures and drift. For iterative model improvements, plan for collection endpoints and a mechanism to roll back problematic models.\n- Engineering effort and device-specific tuning:\n  - Expect nontrivial engineering work: (a) converting/validating quantized weights across kernel variants, (b) integrating vendor-specific compute kernels and fallbacks, (c) testing memory/thermal behavior across device fleet, (d) implementing update/rollback, and (e) evaluating task-specific quality loss from quantization. The open toolchains ease conversion, but per-device kernel tuning and QA remain necessary [1][4][7].\n\nSources: Transformers docs (model caching/loading) and AutoGPTQ save/load features [7][4], llama.app/llama.cpp statements about local-first and performance tuning [8][1].\n\nRisks, unknowns, and where to be conservative\n- Quality variability: quantization and kernel choices produce model‑ and task‑specific quality differences. Published community numbers and papers show good average results, but you must benchmark your tasks (classification, summarization, safety filters, conversation) on the actual quantized artifact you plan to ship [2][6][4].\n- Device fragmentation: mobile SoCs and drivers vary widely. Although runtimes expose Hexagon/Metal/OpenCL backends, performance and stability will differ by device/driver — you must test across representative devices [1].  \n- Energy and UX: battery and thermal impacts may degrade UX for continuous or heavy use — consider batching, on‑demand loading, short generation budgets, or hybrid cloud fallbacks for heavy workloads [1][4].  \n- Licensing & model governance: many open models have distinct licenses and provenance; verify allowed usage and safety before distribution [4][7].\n\nPractical recommendations for the product team (next steps)\n1. Define target use-cases (latency, privacy, offline requirements, max tokens per session) and a device support matrix (min RAM, GPU/SoC families, OS versions). Use those to decide target model family (e.g., 7B quantized vs 13B quantized + offload). The model-memory figures from community experiments are a starting point for RAM targets [2][1].  \n2. Prototype pipeline: pick one reference model (e.g., an open LLaMA-family or instruction‑tuned model), quantize with AutoGPTQ/GPTQ to 4‑bit, convert to gguf/safetensors, and run locally via llama.cpp on representative devices. Measure latency, tokens/s, battery/thermal curves, and end-to-end UX [4][2][1].  \n3. Benchmark quality on your exact tasks: run the quantized model (and alternative bit-widths) against your metrics (accuracy, hallucination, safety) to determine acceptable tradeoffs [6][2].  \n4. Plan ops: signing model artifacts, update/rollback paths, privacy-preserving telemetry, and device-specific kernel fallbacks. Use HF Hub or private artifact store for distribution and model versioning [7][4].  \n5. Decide hybrid/cloud fallback policy for heavy queries or to support older devices that cannot meet latency/quality targets.\n\nSources (pages I opened while researching; every factual claim above traces to at least one opened page; I cross-checked claims where noted)\n1. https://github.com/ggerganov/llama.cpp — README and supported backends, quantization and hybrid CPU+GPU inference, platform notes.  \n2. https://github.com/qwopqwop200/GPTQ-for-LLaMa — community GPTQ quantization tables (memory, perplexity) for LLaMA sizes and bits; 4‑bit/3‑bit numbers referenced above.  \n3. https://arxiv.org/abs/2306.15307 — (opened during research; paper is about CMOS sensors and is not used as an evidence source in the briefing).  \n4. https://github.com/PanQiWei/AutoGPTQ — AutoGPTQ quantization/inference APIs, performance notes, saving/loading quantized models, integration notes.  \n5. https://github.com/facebookresearch/bitsandbytes — bitsandbytes repo (8‑bit optimizer/quantization routines, referenced as part of the quantization/optimization ecosystem).  \n6. https://arxiv.org/abs/2305.14314 — QLoRA paper (NF4, 4‑bit finetuning methods and results showing strong quality for quantized finetuning workflows).  \n7. https://huggingface.co/docs/transformers/installation — Transformers docs about model loading, caching, and local-files use (explains local usage and artifact management).  \n8. https://llama.app — product/overview page for local-first inference with llama.cpp and the rationale (local, privacy-first, hardware support).  \n\nIf you want, I can:\n- Run a short feasibility checklist and an estimated device‑class matrix (e.g., minimum RAM/expected latency for 7B vs 13B quantized) tied to your target device models.  \n- Produce a small prototype plan (exact commands and steps) to quantize a chosen model and measure on a reference device (macOS with Apple Silicon or an Android flagship with a given RAM/SoC)."
+  },
+  "spin-a-packshot-into-a-turntable-clip": {
+    "caption": "",
+    "video": "/templates/samples/spin-a-packshot-into-a-turntable-clip.mp4",
+    "poster": "/templates/samples/spin-a-packshot-into-a-turntable-clip-poster.webp"
+  },
+  "subtitle-text-from-a-recording": {
+    "caption": "",
+    "text": "1. Let us review the coffee\nsubscription launch.\n\n2. Sam will finish the landing\npage by Friday.\n\n3. Alex will test checkout on\nSafari before Tuesday.\n\n4. We agreed to offer both\n200 gram and 500 gram bags.\n\n5. Nine pilot orders arrived late,\nso tracking emails are the top priority.\n\n6. Our next meeting is Thursday\nat 10.\n\n7. Please bring the shipping update\nand the final product photos."
+  },
+  "summarise-a-recorded-call": {
+    "caption": "",
+    "text": "Decisions\n- Offer both 200 g and 500 g bags.\n- Tracking emails are top priority after nine pilot orders arrived late.\n- Sam will finish the landing page by Friday.\n- Alex will test checkout on Safari before Tuesday.\n- Next meeting: Thursday at 10.\n\nOpen questions\n- Who will own sending the tracking emails and customer updates?\n- Status of the shipping update?\n- Are final product photos finalized and available?\n\nNext steps\n- Sam: complete landing page by Friday.\n- Alex: test checkout on Safari before Tuesday.\n- Draft and send tracking emails to affected pilot customers ASAP.\n- Prepare shipping update and final product photos for the Thursday 10:00 meeting.\n- Investigate cause of the nine late pilot orders and report findings before the meeting."
+  },
+  "transcribe-audio": {
+    "caption": "",
+    "text": "Let us review the coffee subscription launch. Sam will finish the landing page by Friday. Alex will test checkout on Safari before Tuesday. We agreed to offer both 200 gram and 500 gram bags. Nine pilot orders arrived late, so tracking emails are the top priority. Our next meeting is Thursday at 10. Please bring the shipping update and the final product photos."
+  },
+  "transcribe-a-clip": {
+    "caption": "",
+    "text": "Let us review the coffee subscription launch. Sam will finish the landing page by Friday. Alex will test checkout on Safari before Tuesday. We agreed to offer both 200 gram and 500 gram bags. Nine pilot orders arrived late, so tracking emails are the top priority. Our next meeting is Thursday at 10. Please bring the shipping update and the final product photos."
+  },
+  "turn-a-talk-into-a-blog-post": {
+    "caption": "",
+    "text": "Title: Coffee Subscription Launch — Progress Review and Immediate Priorities\n\nOpening\nWe reviewed progress on the coffee subscription launch, clarified outstanding tasks and deadlines, and set immediate priorities to ensure a smooth rollout. The main focus is finishing the landing page, validating checkout across browsers, resolving late pilot-order issues, and preparing shipping and product assets for the next meeting.\n\nSection 1 — Tasks and Deadlines\n- Sam: complete the landing page by Friday.\n- Alex: test checkout on Safari and report results before Tuesday.\n- Product offering: both 200 g and 500 g bags will be available at launch.\n\nSection 2 — Logistics and Priorities\nNine pilot orders arrived late. Resolving that delay and getting customers timely tracking emails is the top priority right now. Ensure the tracking-email workflow is tested and automated where possible; communicate status updates to affected customers as soon as tracking numbers are available.\n\nSection 3 — Next Meeting and Deliverables\nNext meeting: Thursday at 10:00. Required materials to bring:\n- Shipping update (current fulfillment status, expected shipments, and any outstanding delays)\n- Final product photos (ready for the landing page and marketing assets)\n\nClose\nFocus on the listed deadlines and the tracking-email fix. Confirm completion of tasks before Tuesday where noted, and be prepared to review shipping and photos at Thursday 10:00."
+  },
+  "three-ratios": {
+    "caption": "",
+    "video": "/templates/samples/three-ratios.mp4",
+    "poster": "/templates/samples/three-ratios-poster.webp"
+  },
+  "workflow-as-a-tool": {
+    "caption": "",
+    "inputText": "The economics of home solar batteries",
+    "text": "# The Economics of Home Solar Batteries\n\nA home battery storage system typically costs **$10,000–$20,000** installed before incentives. More precisely, a 10 kWh system runs $10,000–$13,000, while a 13.5 kWh system costs $12,000–$16,000—translating to roughly **$800–$1,300 per usable kilowatt-hour**. Most residential batteries fall in the 9.6–13.6 kWh range, though modular systems can be scaled in 5 kWh increments.\n\n## Performance and Lifespan\n\nModern lithium batteries deliver **95–100% depth of discharge** and last 10–15 years. Round-trip efficiency—energy out versus energy in—reaches 85–92% for AC-coupled systems and 95–97% for DC-coupled systems. Warranties typically run 10 years, guaranteeing roughly 70% capacity retention, with cycle limits of 6,000–10,000 cycles or a defined throughput threshold (for example, 37 MWh lifetime). Ongoing maintenance costs are effectively zero, but budget for an **inverter replacement of $1,500–$2,500** at the 10–15 year mark, and expect battery replacement to run 60–80% of the original installed cost.\n\n## Payback and Savings\n\nPayback period depends heavily on your utility's policies. Under flat-rate pricing with true 1:1 net metering, a battery rarely pays back on its own—the economics are essentially infinite. Switch to **time-of-use (TOU) rates**, and payback shrinks to 8–14+ years. In markets with reduced export compensation—such as California’s NEM 3.0—a combined solar-plus-storage system can pay back in **6–9 years**.\n\n## Incentives and Additional Revenue\n\nThe **federal Investment Tax Credit (ITC)** covers 30% of installed costs through 2032 for batteries larger than 3 kWh. State programs add further savings; California’s SGIP rebate, for instance, offers $150–$1,000 per kWh. Enrolling in a **virtual power plant (VPP)** program can generate an additional $100–$1,000+ annually by allowing the grid to draw on your stored energy during peak demand.\n\n## Bottom Line\n\nWhether a battery makes financial sense turns on your net metering policy, electricity rates, TOU structure, solar self-consumption rate, any peak demand charges, and local grid reliability concerns. In high-rate, export-restricted, or grid-stressed markets, the math is increasingly compelling."
+  },
+  "vectorize-a-generated-logo": {
+    "caption": "",
+    "inputText": "a flat minimal fox head logo, two colors, thick shapes, solid white background",
+    "image": "/templates/samples/vectorize-a-generated-logo.webp",
+    "imageWidth": 1024,
+    "imageHeight": 1024
+  }
+}

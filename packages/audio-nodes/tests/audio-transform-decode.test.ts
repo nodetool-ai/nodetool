@@ -12,6 +12,7 @@ import {
   FadeInAudioNode,
   FadeOutAudioNode,
   NormalizeAudioNode,
+  MonoToStereoNode,
   SliceAudioNode,
   TrimAudioNode,
   encodeWav,
@@ -151,5 +152,11 @@ describe("undecodable mp3 input throws instead of passing through", () => {
     await expect(
       new AudioMixerNode({ a: undecodableRef() }).process()
     ).rejects.toThrow();
+  });
+
+  it("Mono to Stereo rejects undecodable input", async () => {
+    await expect(
+      new MonoToStereoNode({ audio: undecodableRef() }).process()
+    ).rejects.toThrow("Could not decode audio");
   });
 });
