@@ -26,18 +26,6 @@ jest.mock("../../../../hooks/useFirstRunLanguageModel", () => ({
   useFirstRunLanguageModel: () => undefined
 }));
 
-// The workspace chip resolves the active workspace through the workflow
-// manager, which no chat surface has open. Answer with "none picked".
-jest.mock("../../../../hooks/useCurrentWorkspace", () => ({
-  useCurrentWorkspace: () => ({
-    workspaceId: undefined,
-    workspace: undefined,
-    setWorkspaceId: jest.fn(),
-    hasActiveWorkflow: false,
-    canManage: true
-  })
-}));
-
 // The `/` and `@` menus are covered by their own hook suites; here they only
 // need to stay closed so the keydown chain reaches the composer.
 jest.mock("../../../../hooks/skills/useSkills", () => ({
@@ -161,7 +149,7 @@ describe("MediaChatComposer", () => {
     useGlobalChatStore.setState({ selectedModel: CHAT_MODEL });
   });
 
-  it("renders the attach, mode, model, permission and workspace chips in chat mode", () => {
+  it("renders the attach, mode, model and permission chips in chat mode", () => {
     const { container } = renderComposer(jest.fn());
 
     expect(screen.getByRole("button", { name: "Attach files" })).toBeVisible();
@@ -170,7 +158,6 @@ describe("MediaChatComposer", () => {
     expect(
       container.querySelector(".permission-selector-trigger")
     ).toBeInTheDocument();
-    expect(screen.getByTitle("Select a workspace folder")).toBeInTheDocument();
   });
 
   it("sends the typed prompt on Enter and clears the box", async () => {
