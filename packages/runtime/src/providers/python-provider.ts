@@ -270,10 +270,12 @@ export class PythonProvider extends BaseProvider {
   // ── Media generation ──────────────────────────────────────────────
 
   async textToImage(params: TextToImageParams): Promise<Uint8Array> {
+    const { signal, ...wireParams } = params;
     return this._bridge.providerTextToImage(
       this._pythonProviderId,
-      { ...params },
-      this._secrets
+      { ...wireParams, model: params.model.id },
+      this._secrets,
+      signal
     );
   }
 
@@ -281,11 +283,13 @@ export class PythonProvider extends BaseProvider {
     images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
+    const { signal, ...wireParams } = params;
     return this._bridge.providerImageToImage(
       this._pythonProviderId,
       images[0] ?? new Uint8Array(),
-      { ...params },
-      this._secrets
+      { ...wireParams, model: params.model.id },
+      this._secrets,
+      signal
     );
   }
 
