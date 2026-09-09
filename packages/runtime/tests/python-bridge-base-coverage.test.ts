@@ -714,6 +714,40 @@ describe("PythonBridgeBase — provider RPCs", () => {
     await expect(p).resolves.toBe(output);
   });
 
+  it("providerTextToAudio returns the encoded audio blob", async () => {
+    const output = new Uint8Array([4, 5, 6]);
+    const p = bridge.providerTextToAudio("wangp", {
+      model: "ace_step_1.5",
+      prompt: "ambient"
+    });
+    const frame = bridge.sent.find((f) => f.type === "provider.text_to_audio")!;
+    expect(frame.data).toEqual({
+      provider: "wangp",
+      params: { model: "ace_step_1.5", prompt: "ambient" },
+      secrets: {},
+      blob_transfer: "chunked-v1"
+    });
+    reply("provider.text_to_audio", { blobs: { audio: output } });
+    await expect(p).resolves.toBe(output);
+  });
+
+  it("providerTTSEncoded returns the encoded audio blob", async () => {
+    const output = new Uint8Array([7, 8, 9]);
+    const p = bridge.providerTTSEncoded("wangp", {
+      model: "qwen3_tts",
+      text: "hello"
+    });
+    const frame = bridge.sent.find((f) => f.type === "provider.tts_encoded")!;
+    expect(frame.data).toEqual({
+      provider: "wangp",
+      params: { model: "qwen3_tts", text: "hello" },
+      secrets: {},
+      blob_transfer: "chunked-v1"
+    });
+    reply("provider.tts_encoded", { blobs: { audio: output } });
+    await expect(p).resolves.toBe(output);
+  });
+
   it("cancels an in-flight video provider request with its abort signal", async () => {
     const controller = new AbortController();
     const p = bridge.providerTextToVideo(

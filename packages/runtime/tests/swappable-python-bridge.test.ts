@@ -93,6 +93,12 @@ class FakeBridge extends EventEmitter {
   providerImageToVideo(): Promise<Uint8Array> {
     return Promise.resolve(new Uint8Array());
   }
+  providerTextToAudio(): Promise<Uint8Array> {
+    return Promise.resolve(new Uint8Array());
+  }
+  providerTTSEncoded(): Promise<Uint8Array> {
+    return Promise.resolve(new Uint8Array());
+  }
   providerASR(): Promise<{ text: string }> {
     return Promise.resolve({ text: "" });
   }

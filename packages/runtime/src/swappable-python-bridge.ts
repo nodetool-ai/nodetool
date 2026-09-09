@@ -275,6 +275,22 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
     );
   }
 
+  providerTextToAudio(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
+  ): Promise<Uint8Array> {
+    return this._target.providerTextToAudio(providerId, params, secrets);
+  }
+
+  providerTTSEncoded(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
+  ): Promise<Uint8Array> {
+    return this._target.providerTTSEncoded(providerId, params, secrets);
+  }
+
   providerASR(
     providerId: string,
     audio: Uint8Array,

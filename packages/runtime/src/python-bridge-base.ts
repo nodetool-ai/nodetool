@@ -1150,6 +1150,32 @@ export abstract class PythonBridgeBase
     return result.blobs.video;
   }
 
+  async providerTextToAudio(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
+  ): Promise<Uint8Array> {
+    const result = await this._providerBlobCall("provider.text_to_audio", {
+      provider: providerId,
+      params,
+      secrets: secrets ?? {}
+    });
+    return result.blobs.audio;
+  }
+
+  async providerTTSEncoded(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
+  ): Promise<Uint8Array> {
+    const result = await this._providerBlobCall("provider.tts_encoded", {
+      provider: providerId,
+      params,
+      secrets: secrets ?? {}
+    });
+    return result.blobs.audio;
+  }
+
   async *providerTTS(
     providerId: string,
     text: string,

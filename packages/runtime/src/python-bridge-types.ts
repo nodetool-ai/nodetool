@@ -588,6 +588,16 @@ export interface PythonBridge extends EventEmitter {
     secrets?: Record<string, string>,
     signal?: AbortSignal
   ): Promise<Uint8Array>;
+  providerTextToAudio(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
+  ): Promise<Uint8Array>;
+  providerTTSEncoded(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
+  ): Promise<Uint8Array>;
   providerASR(
     providerId: string,
     audio: Uint8Array,

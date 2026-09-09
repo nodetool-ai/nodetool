@@ -15,6 +15,7 @@ import type {
   ASRModel,
   EmbeddingModel,
   VideoModel,
+  MusicModel,
   Message,
   ProviderTool,
   ProviderStreamItem,
@@ -23,10 +24,13 @@ import type {
   ImageToImageParams,
   TextToSpeechParams,
   TextToVideoParams,
-  ImageToVideoParams
+  ImageToVideoParams,
+  TextToMusicParams,
+  EncodedAudioResult
 } from "./types.js";
 import type { PythonBridgeBase } from "../python-bridge-base.js";
 import { isRecord, isString } from "@nodetool-ai/protocol";
+import { sniffAudioMime } from "./audio-mime.js";
 
 type PythonProviderOptions = Record<string, unknown> & {
   _id: string;
@@ -158,6 +162,10 @@ export class PythonProvider extends BaseProvider {
 
   async getAvailableVideoModels(): Promise<VideoModel[]> {
     return this._getModels("video") as Promise<VideoModel[]>;
+  }
+
+  async getAvailableMusicModels(): Promise<MusicModel[]> {
+    return this._getModels("music") as Promise<MusicModel[]>;
   }
 
   private async _getModels(modelType: string): Promise<unknown[]> {
@@ -331,6 +339,26 @@ export class PythonProvider extends BaseProvider {
       const copy = audioBytes.slice(0, even);
       yield { samples: new Int16Array(copy.buffer, copy.byteOffset, even / 2) };
     }
+  }
+
+  async textToSpeechEncoded(
+    args: TextToSpeechParams
+  ): Promise<EncodedAudioResult | null> {
+    const data = await this._bridge.providerTTSEncoded(
+      this._pythonProviderId,
+      { ...args },
+      this._secrets
+    );
+    return { data, mimeType: sniffAudioMime(data) };
+  }
+
+  async textToMusic(params: TextToMusicParams): Promise<EncodedAudioResult> {
+    const data = await this._bridge.providerTextToAudio(
+      this._pythonProviderId,
+      { ...params, model: params.model.id },
+      this._secrets
+    );
+    return { data, mimeType: sniffAudioMime(data) };
   }
 
   async automaticSpeechRecognition(args: {
