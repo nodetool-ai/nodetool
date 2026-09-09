@@ -1087,29 +1087,39 @@ export abstract class PythonBridgeBase
   async providerTextToImage(
     providerId: string,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
   ): Promise<Uint8Array> {
-    const result = await this._providerCall("provider.text_to_image", {
-      provider: providerId,
-      params,
-      secrets: secrets ?? {}
-    });
-    return (result as { blobs: Record<string, Uint8Array> }).blobs.image;
+    const result = await this._providerBlobCall(
+      "provider.text_to_image",
+      {
+        provider: providerId,
+        params,
+        secrets: secrets ?? {}
+      },
+      signal
+    );
+    return result.blobs.image;
   }
 
   async providerImageToImage(
     providerId: string,
     image: Uint8Array,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
   ): Promise<Uint8Array> {
-    const result = await this._providerCall("provider.image_to_image", {
-      provider: providerId,
-      image,
-      params,
-      secrets: secrets ?? {}
-    });
-    return (result as { blobs: Record<string, Uint8Array> }).blobs.image;
+    const result = await this._providerBlobCall(
+      "provider.image_to_image",
+      {
+        provider: providerId,
+        image,
+        params,
+        secrets: secrets ?? {}
+      },
+      signal
+    );
+    return result.blobs.image;
   }
 
   async providerTextToVideo(
@@ -1148,6 +1158,32 @@ export abstract class PythonBridgeBase
       signal
     );
     return result.blobs.video;
+  }
+
+  async providerTextToAudio(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
+  ): Promise<Uint8Array> {
+    const result = await this._providerBlobCall("provider.text_to_audio", {
+      provider: providerId,
+      params,
+      secrets: secrets ?? {}
+    });
+    return result.blobs.audio;
+  }
+
+  async providerTTSEncoded(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
+  ): Promise<Uint8Array> {
+    const result = await this._providerBlobCall("provider.tts_encoded", {
+      provider: providerId,
+      params,
+      secrets: secrets ?? {}
+    });
+    return result.blobs.audio;
   }
 
   async *providerTTS(

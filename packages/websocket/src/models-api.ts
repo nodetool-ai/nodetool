@@ -44,6 +44,7 @@ export async function registerPythonProviders(
         _bridge: bridge,
         _id: publicId,
         _bridgeProviderId: info.id,
+        _capabilities: info.capabilities,
         ...secrets
       },
       {},

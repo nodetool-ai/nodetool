@@ -567,13 +567,15 @@ export interface PythonBridge extends EventEmitter {
   providerTextToImage(
     providerId: string,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
   ): Promise<Uint8Array>;
   providerImageToImage(
     providerId: string,
     image: Uint8Array,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
   ): Promise<Uint8Array>;
   providerTextToVideo(
     providerId: string,
@@ -587,6 +589,16 @@ export interface PythonBridge extends EventEmitter {
     params: Record<string, unknown>,
     secrets?: Record<string, string>,
     signal?: AbortSignal
+  ): Promise<Uint8Array>;
+  providerTextToAudio(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
+  ): Promise<Uint8Array>;
+  providerTTSEncoded(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
   ): Promise<Uint8Array>;
   providerASR(
     providerId: string,

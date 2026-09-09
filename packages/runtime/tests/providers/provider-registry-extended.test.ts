@@ -185,6 +185,7 @@ describe("provider-registry — extended coverage", () => {
     const imageToVideo = vi.fn(async () => new Uint8Array([2]));
     const provider = new PythonProvider({
       _id: "wangp",
+      _capabilities: ["text_to_audio", "text_to_speech_encoded"],
       _bridge: {
         providerTextToVideo: textToVideo,
         providerImageToVideo: imageToVideo
@@ -211,5 +212,78 @@ describe("provider-registry — extended coverage", () => {
       {},
       undefined
     );
+  });
+
+  it("discovers music and routes encoded audio through the Python bridge", async () => {
+    const wav = new Uint8Array([
+      0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45
+    ]);
+    const getProviderModels = vi.fn(async () => [
+      { id: "ace", name: "ACE-Step", provider: "wangp" }
+    ]);
+    const textToAudio = vi.fn(async () => wav);
+    const ttsEncoded = vi.fn(async () => wav);
+    const provider = new PythonProvider({
+      _id: "wangp",
+      _bridge: {
+        getProviderModels,
+        providerTextToAudio: textToAudio,
+        providerTTSEncoded: ttsEncoded
+      }
+    } as any);
+
+    await expect(provider.getAvailableMusicModels()).resolves.toEqual([
+      { id: "ace", name: "ACE-Step", provider: "wangp" }
+    ]);
+    await expect(
+      provider.textToMusic({
+        model: { id: "ace", name: "ACE-Step", provider: "wangp" },
+        prompt: "ambient"
+      })
+    ).resolves.toEqual({ data: wav, mimeType: "audio/wav" });
+    await expect(
+      provider.textToSpeechEncoded({ text: "hello", model: "qwen3" })
+    ).resolves.toEqual({ data: wav, mimeType: "audio/wav" });
+    expect(getProviderModels).toHaveBeenCalledWith("wangp", "music", {});
+    expect(textToAudio).toHaveBeenCalledWith(
+      "wangp",
+      {
+        model: "ace",
+        prompt: "ambient"
+      },
+      {}
+    );
+    expect(ttsEncoded).toHaveBeenCalledWith(
+      "wangp",
+      { text: "hello", model: "qwen3" },
+      {}
+    );
+  });
+
+  it("uses declared TTS capabilities to select encoded or streaming transport", async () => {
+    const providerTTSEncoded = vi.fn(async () => new Uint8Array([1]));
+    const encoded = new PythonProvider({
+      _id: "wangp",
+      _capabilities: ["text_to_speech_encoded"],
+      _bridge: { providerTTSEncoded }
+    } as any);
+    expect(encoded.supportsStreamingTextToSpeech()).toBe(false);
+    await expect(
+      encoded.textToSpeechEncoded({ text: "hello", model: "qwen3" })
+    ).resolves.toEqual({
+      data: new Uint8Array([1]),
+      mimeType: "audio/mpeg"
+    });
+
+    const streaming = new PythonProvider({
+      _id: "huggingface",
+      _capabilities: ["text_to_speech"],
+      _bridge: { providerTTSEncoded }
+    } as any);
+    expect(streaming.supportsStreamingTextToSpeech()).toBe(true);
+    await expect(
+      streaming.textToSpeechEncoded({ text: "hello", model: "local-tts" })
+    ).resolves.toBeNull();
+    expect(providerTTSEncoded).toHaveBeenCalledTimes(1);
   });
 });

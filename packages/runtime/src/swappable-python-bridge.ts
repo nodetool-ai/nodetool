@@ -226,22 +226,25 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
   providerTextToImage(
     providerId: string,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
   ): Promise<Uint8Array> {
-    return this._target.providerTextToImage(providerId, params, secrets);
+    return this._target.providerTextToImage(providerId, params, secrets, signal);
   }
 
   providerImageToImage(
     providerId: string,
     image: Uint8Array,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
   ): Promise<Uint8Array> {
     return this._target.providerImageToImage(
       providerId,
       image,
       params,
-      secrets
+      secrets,
+      signal
     );
   }
 
@@ -273,6 +276,22 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
       secrets,
       signal
     );
+  }
+
+  providerTextToAudio(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
+  ): Promise<Uint8Array> {
+    return this._target.providerTextToAudio(providerId, params, secrets);
+  }
+
+  providerTTSEncoded(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
+  ): Promise<Uint8Array> {
+    return this._target.providerTTSEncoded(providerId, params, secrets);
   }
 
   providerASR(
