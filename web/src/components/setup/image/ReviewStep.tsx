@@ -26,6 +26,7 @@ import GenerationSummary, {
 } from "../GenerationSummary";
 import { PlanReview, type PlanReviewSection } from "../PlanReview";
 import { SetupCardButton, useRovingRadioGroup } from "../SetupCardButton";
+import BriefModelSelect from "./BriefModelSelect";
 
 /** The counts the flow offers (PRD § 10.2). */
 export const VARIATION_COUNTS: readonly number[] = [1, 2, 4];
@@ -113,6 +114,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
 
   return (
     <FlexColumn gap={GAP.spacious}>
+      <BriefModelSelect />
       <PlanReview
         sections={sections}
         replanLabel="Re-refine"

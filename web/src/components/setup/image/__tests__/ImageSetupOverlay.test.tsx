@@ -1,3 +1,7 @@
+jest.mock("../../../../contexts/WorkflowManagerContext", () => ({
+  useWorkflowManager: (selector: (state: { create: jest.Mock }) => unknown) =>
+    selector({ create: jest.fn() })
+}));
 /**
  * @jest-environment jsdom
  *
@@ -36,6 +40,7 @@ const mockImageModels: Array<{
 const mockProviders: string[] = [];
 const mockRefetchModels = jest.fn(async () => {});
 jest.mock("../../../../hooks/useModelsByProvider", () => ({
+  useLanguageModelsByProvider: () => ({ models: [] }),
   useImageModelsByProvider: () => ({
     models: mockImageModels,
     providers: mockProviders,
@@ -44,6 +49,64 @@ jest.mock("../../../../hooks/useModelsByProvider", () => ({
     error: null,
     refetch: mockRefetchModels
   })
+}));
+
+jest.mock("../../../model_menu/LanguageModelMenuDialog", () => ({
+  __esModule: true,
+  default: ({
+    open,
+    onModelChange
+  }: {
+    open: boolean;
+    onModelChange: (model: {
+      id: string;
+      provider: string;
+      name: string;
+    }) => void;
+  }) =>
+    open ? (
+      <button
+        onClick={() =>
+          onModelChange({
+            id: "brief-model",
+            provider: "openai",
+            name: "Brief model"
+          })
+        }
+      >
+        Choose brief model
+      </button>
+    ) : null
+}));
+
+jest.mock("../../../model_menu/ImageModelMenuDialog", () => ({
+  __esModule: true,
+  default: ({
+    open,
+    onModelChange,
+    task
+  }: {
+    open: boolean;
+    onModelChange: (model: {
+      id: string;
+      provider: string;
+      name: string;
+    }) => void;
+    task: string;
+  }) =>
+    open ? (
+      <button
+        onClick={() =>
+          onModelChange({
+            id: "model-1",
+            provider: "prov",
+            name: "Model One"
+          })
+        }
+      >
+        Choose {task} model
+      </button>
+    ) : null
 }));
 
 const createAsset = jest.fn(async (file: File) => ({
@@ -60,6 +123,8 @@ import { ImageSetupOverlay } from "../ImageSetupOverlay";
 import { useSketchStore } from "../../../sketch/state/useSketchStore";
 import { createDefaultDocument } from "../../../sketch/types";
 import type { SketchSetup } from "@nodetool-ai/protocol/api-schemas/sketch.js";
+import useGlobalChatStore from "../../../../stores/GlobalChatStore";
+import { rpcRequest } from "../../../../lib/websocket/rpcRequest";
 
 const renderOverlay = () =>
   render(
@@ -98,6 +163,38 @@ beforeEach(() => {
 });
 
 describe("resume by stage (criterion 2)", () => {
+  it.each(["idea", "useCase", "review"] as const)(
+    "offers a language model picker at %s and uses the choice for refinement",
+    async (stage) => {
+      useGlobalChatStore.setState({ selectedModel: undefined });
+      seed({ stage, brief: "a dripper", use_case: "product" });
+      renderOverlay();
+      await userEvent.click(
+        screen.getByRole("button", { name: /Select language model/ })
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Choose brief model" })
+      );
+      expect(useGlobalChatStore.getState().selectedModel?.id).toBe(
+        "brief-model"
+      );
+      if (stage === "idea") {
+        await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+      }
+      jest.mocked(rpcRequest).mockClear();
+      await userEvent.click(
+        screen.getByRole("button", {
+          name: stage === "review" ? "Re-refine" : "Refine the brief"
+        })
+      );
+      await waitFor(() =>
+        expect(rpcRequest).toHaveBeenCalledWith(
+          "generate_text",
+          expect.objectContaining({ model: "brief-model", provider: "openai" })
+        )
+      );
+    }
+  );
   it("opens as the editor when the document has no setup", () => {
     const { container } = renderOverlay();
     expect(container).toBeEmptyDOMElement();
@@ -227,9 +324,9 @@ describe("review step", () => {
     const lighting = screen.getByLabelText("Lighting");
     await userEvent.clear(lighting);
     await userEvent.type(lighting, "hard");
-    expect(
-      useSketchStore.getState().document.setup?.refined?.lighting
-    ).toBe("hard");
+    expect(useSketchStore.getState().document.setup?.refined?.lighting).toBe(
+      "hard"
+    );
   });
 
   // The count is one choice of three, so the row is a radio group and the
@@ -337,7 +434,12 @@ describe("look step", () => {
   it("offers No style as a selectable option and records it", async () => {
     atLook();
     setModels([
-      { type: "image_model", id: "model-1", name: "Model One", provider: "prov" }
+      {
+        type: "image_model",
+        id: "model-1",
+        name: "Model One",
+        provider: "prov"
+      }
     ]);
     renderOverlay();
 
@@ -346,19 +448,36 @@ describe("look step", () => {
     expect(useSketchStore.getState().document.setup).toMatchObject({
       style_entity_id: "no-style"
     });
-    expect(
-      screen.getByRole("radio", { name: /No style/ })
-    ).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: /No style/ })).toHaveAttribute(
+      "aria-checked",
+      "true"
+    );
   });
 
   it("persists the model choice on the document", async () => {
     atLook();
     setModels([
-      { type: "image_model", id: "model-1", name: "Model One", provider: "prov" }
+      {
+        type: "image_model",
+        id: "model-1",
+        name: "Model One",
+        provider: "prov"
+      }
     ]);
     renderOverlay();
 
-    await userEvent.click(screen.getByRole("radio", { name: /Model One/ }));
+    expect(
+      screen.queryByRole("radiogroup", { name: "Image model" })
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Select Image Model" })
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Choose text_to_image model" })
+    );
+    expect(
+      screen.getByRole("button", { name: "Model One" })
+    ).toBeInTheDocument();
     expect(useSketchStore.getState().document.setup).toMatchObject({
       image_provider: "prov",
       image_model: "model-1"

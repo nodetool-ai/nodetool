@@ -33,6 +33,7 @@ import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
 import type { UploadFirstLayerResult } from "../../../hooks/sketch/useUploadFirstLayer";
 import { readEntityIds, readReferences } from "./setupContext";
+import BriefModelSelect from "./BriefModelSelect";
 
 /**
  * Three briefs that read like something a person would type. The storyboard
@@ -152,6 +153,8 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           placeholder="One sentence is enough."
           onChange={handleChange}
         />
+
+        <BriefModelSelect />
 
         {upload.error ? (
           <AlertBanner severity="error" onClose={upload.clearError}>

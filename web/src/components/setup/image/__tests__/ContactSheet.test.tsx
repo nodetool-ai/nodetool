@@ -82,6 +82,7 @@ const seedBatch = (): string[] => {
   return layerIds;
 };
 
+const onOpenCanvas = jest.fn(async (_layerId: string, _animate: boolean) => {});
 const onPick = jest.fn();
 const onMakeMore = jest.fn();
 const onSaveToLibrary = jest.fn(async (_layerId: string) => {});
@@ -89,6 +90,7 @@ const onBackToSettings = jest.fn();
 const onOpenEditor = jest.fn();
 
 beforeEach(() => {
+  onOpenCanvas.mockClear();
   onPick.mockClear();
   onMakeMore.mockClear();
   onSaveToLibrary.mockClear();
@@ -99,6 +101,57 @@ beforeEach(() => {
 });
 
 describe("ContactSheet Pick (criterion 5)", () => {
+  it.each(["draft", "queued", "generating"] as const)(
+    "marks %s previews busy, including regeneration, until the batch settles",
+    (status) => {
+      const layerIds = seedBatch();
+      const generatedBindings = useSketchSessionStore.getState().bindings;
+      act(() =>
+        useSketchSessionStore.setState({
+          bindings: Object.fromEntries(
+            Object.entries(generatedBindings).map(([id, binding], index) => [
+              id,
+              {
+                ...binding,
+                status,
+                currentAssetId: index === 0 ? undefined : binding.currentAssetId
+              }
+            ])
+          )
+        })
+      );
+      render(
+        <ThemeProvider theme={mockTheme}>
+          <ContactSheet
+            layerIds={layerIds}
+            onPick={onPick}
+            onMakeMore={onMakeMore}
+            onBackToSettings={onBackToSettings}
+            onOpenEditor={onOpenEditor}
+            onSaveToLibrary={onSaveToLibrary}
+            onOpenCanvas={onOpenCanvas}
+          />
+        </ThemeProvider>
+      );
+      const previews = screen.getAllByRole("group", {
+        name: /Variation \d preview/
+      });
+      expect(previews).toHaveLength(4);
+      for (const preview of previews) {
+        expect(preview).toHaveAttribute("aria-busy", "true");
+      }
+      expect(
+        screen.getByRole("img", { name: "Variation 2" })
+      ).toBeInTheDocument();
+      act(() =>
+        useSketchSessionStore.setState({ bindings: generatedBindings })
+      );
+      for (const preview of previews) {
+        expect(preview).toHaveAttribute("aria-busy", "false");
+      }
+    }
+  );
+
   it("shows the picked layer, hides the others, and keeps every version", async () => {
     const layerIds = seedBatch();
     render(
@@ -110,11 +163,12 @@ describe("ContactSheet Pick (criterion 5)", () => {
           onBackToSettings={onBackToSettings}
           onOpenEditor={onOpenEditor}
           onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
         />
       </ThemeProvider>
     );
 
-    const picks = screen.getAllByRole("button", { name: "Pick" });
+    const picks = screen.getAllByRole("button", { name: "Sketch editor" });
     expect(picks).toHaveLength(4);
     await userEvent.click(picks[2]);
 
@@ -151,6 +205,7 @@ describe("ContactSheet Pick (criterion 5)", () => {
           onBackToSettings={onBackToSettings}
           onOpenEditor={onOpenEditor}
           onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
         />
       </ThemeProvider>
     );
@@ -161,9 +216,9 @@ describe("ContactSheet Pick (criterion 5)", () => {
     // Nothing was hidden: regenerating is not a choice.
     const document = useSketchStore.getState().document;
     expect(
-      document.layers.filter((layer) => layerIds.includes(layer.id)).every(
-        (layer) => layer.visible
-      )
+      document.layers
+        .filter((layer) => layerIds.includes(layer.id))
+        .every((layer) => layer.visible)
     ).toBe(true);
   });
 
@@ -178,6 +233,7 @@ describe("ContactSheet Pick (criterion 5)", () => {
           onBackToSettings={onBackToSettings}
           onOpenEditor={onOpenEditor}
           onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
         />
       </ThemeProvider>
     );
@@ -186,9 +242,28 @@ describe("ContactSheet Pick (criterion 5)", () => {
     );
     expect(onMakeMore).toHaveBeenCalled();
     await userEvent.click(
-      screen.getByRole("button", { name: "Save to reference library" })
+      screen.getAllByRole("button", { name: "Save to entities" })[3]
     );
     expect(onSaveToLibrary).toHaveBeenCalledWith(layerIds[3]);
+    await userEvent.click(
+      screen.getAllByRole("button", { name: "New node canvas" })[1]
+    );
+    expect(onOpenCanvas).toHaveBeenLastCalledWith(layerIds[1], false);
+    await userEvent.click(
+      screen.getAllByRole("button", { name: "Image to video" })[2]
+    );
+    expect(onOpenCanvas).toHaveBeenLastCalledWith(layerIds[2], true);
+    expect(onPick).not.toHaveBeenCalled();
+    onOpenCanvas.mockRejectedValueOnce(new Error("Network error"));
+    await userEvent.click(
+      screen.getAllByRole("button", { name: "New node canvas" })[0]
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not open that destination"
+    );
+    expect(
+      screen.getAllByRole("button", { name: "New node canvas" })[0]
+    ).toBeEnabled();
   });
 });
 
@@ -225,6 +300,7 @@ describe("a failed batch", () => {
           onBackToSettings={onBackToSettings}
           onOpenEditor={onOpenEditor}
           onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
         />
       </ThemeProvider>
     );
@@ -234,7 +310,9 @@ describe("a failed batch", () => {
     renderSheet(layerIds);
 
     // Every Pick is dead, which is exactly why the exits have to exist.
-    for (const pick of screen.getAllByRole("button", { name: "Pick" })) {
+    for (const pick of screen.getAllByRole("button", {
+      name: "Sketch editor"
+    })) {
       expect(pick).toBeDisabled();
     }
 
@@ -277,6 +355,7 @@ describe("failure reasons", () => {
           onBackToSettings={onBackToSettings}
           onOpenEditor={onOpenEditor}
           onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
         />
       </ThemeProvider>
     );

@@ -12,9 +12,8 @@
  * brief refined here and one refined by the headless `refine_image_brief` are
  * the same request.
  *
- * No model picker: the flow asks the creator what they want a picture of, not
- * which model should read the sentence. The hook names the session's chat
- * model so the step can price the call before it is made (PRD § 6.2); a caller
+ * The flow's language-model picker updates the session's chat model. The hook
+ * names that model so the step can price the call before it is made; a caller
  * that names none — the `ui_sketch_refine_brief` tool — leaves the choice to
  * the server as before.
  */

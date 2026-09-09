@@ -13,11 +13,6 @@
  * - F17 — style and model are persisted with the stage (`lookSelection.ts`),
  *   because both decide what the batch looks like and what it costs.
  *
- * Sample stills are fetched on first use, never shipped (R5) — the same probe
- * the video flow's model tiles use, see `../modelSamples.ts`. A model whose
- * sample has not been published falls back to its name set in the sample box,
- * which is what `PresetTileGrid` does when a preset has no picture.
- *
  * The model list is a query, so the step says which of its four answers it
  * got — loading, failed, no provider connected, nothing compatible — instead
  * of showing an empty grid and a dead button (F14). A remembered model that is
@@ -25,13 +20,14 @@
  * it is replaced.
  */
 
-import React, { Suspense, lazy, useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import { STYLE_DESCRIPTIONS } from "../styleDescriptions";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 import { composeImagePrompt } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 
 import {
   AlertBanner,
+  Box,
   EditorButton,
   FlexColumn,
   FlexRow,
@@ -40,7 +36,7 @@ import {
   Text
 } from "../../ui_primitives";
 import { useSketchStore } from "../../sketch/state/useSketchStore";
-import type { ImageModel } from "../../../stores/ApiTypes";
+import type { ImageModel, ImageModelValue } from "../../../stores/ApiTypes";
 import { useEntities } from "../../../serverState/useEntities";
 import { useStylePresets } from "../../../serverState/useStylePresets";
 import { useImageModelsByProvider } from "../../../hooks/useModelsByProvider";
@@ -49,7 +45,7 @@ import { estimateGenerationCost } from "../../../utils/generationCostEstimate";
 import { useGenerateVariations } from "../../../hooks/sketch/useGenerateVariations";
 import { OptionCardGrid, type OptionCardItem } from "../OptionCardGrid";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
-import { useModelSamples } from "../modelSamples";
+import ImageModelSelect from "../../properties/ImageModelSelect";
 import { SIZE_PRESETS, sizePresetFor } from "./sizes";
 import {
   NO_STYLE_ID,
@@ -58,13 +54,6 @@ import {
   styleChoicePatch
 } from "./lookSelection";
 
-const ImageModelMenuDialog = lazy(
-  () => import("../../model_menu/ImageModelMenuDialog")
-);
-
-/** How many image models the grid offers before it becomes a wall of tiles. */
-const MAX_MODEL_TILES = 12;
-
 /** Which of the model list's answers the step got (F14). */
 export type ModelAvailability =
   | "loading"
@@ -72,10 +61,6 @@ export type ModelAvailability =
   | "no-provider"
   | "no-model"
   | "ready";
-
-/** A tile id is `provider/model`; the model id itself may contain slashes. */
-const tileId = (provider: string, model: string): string =>
-  `${provider}/${model}`;
 
 /** What the creator has picked, and what pressing the button will do with it. */
 export interface LookStepControls {
@@ -307,8 +292,7 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
   const canvas = useSketchStore((state) => state.document.canvas);
   const resizeCanvas = useSketchStore((state) => state.resizeCanvas);
   const { data: presets } = useStylePresets();
-  const [browsing, setBrowsing] = useState(false);
-  const { availability, models, modelMissing, setModel, setStyleChoice } = look;
+  const { availability, modelMissing, setModel, setStyleChoice } = look;
 
   const sizeOptions = useMemo<OptionCardItem[]>(
     () =>
@@ -344,75 +328,14 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
     [presets]
   );
 
-  const offered = useMemo(() => models.slice(0, MAX_MODEL_TILES), [models]);
-  const selectedTileId = look.model ? tileId(look.provider, look.model) : null;
-
-  const sampleIds = useMemo(
-    () => offered.map((entry) => entry.id),
-    [offered]
-  );
-  const samples = useModelSamples(sampleIds, "image");
-
-  const modelTiles = useMemo<PresetTile[]>(() => {
-    const tiles: PresetTile[] = offered.map((entry) => ({
-      id: tileId(entry.provider, entry.id),
-      title: entry.name || entry.id,
-      image: samples[entry.id]
-    }));
-    // A choice made before this grid was cut to twelve — or made against a
-    // provider that has since gone — is still the creator's choice, so it is
-    // on the grid where its selected state can be seen (F14).
-    if (
-      selectedTileId !== null &&
-      !tiles.some((tile) => tile.id === selectedTileId)
-    ) {
-      const outside = models.find(
-        (entry) =>
-          entry.id === look.model && entry.provider === look.provider
-      );
-      const tile: (typeof tiles)[number] = {
-        id: selectedTileId,
-        title: outside?.name || look.model,
-        image: samples[look.model]
-      };
-      if (modelMissing) {
-        tile.disabled = true;
-        tile.disabledReason =
-          "This model is not offered by any connected provider.";
-      }
-      tiles.push(tile);
-    }
-    return tiles;
-  }, [
-    look.model,
-    look.provider,
-    modelMissing,
-    models,
-    offered,
-    samples,
-    selectedTileId
-  ]);
-
   const handleStyle = useCallback(
     (id: string) => setStyleChoice(id),
     [setStyleChoice]
   );
   const handleModel = useCallback(
-    (id: string) => {
-      const separator = id.indexOf("/");
-      setModel(id.slice(0, separator), id.slice(separator + 1));
-    },
+    (chosen: ImageModelValue) => setModel(chosen.provider, chosen.id),
     [setModel]
   );
-  const handleBrowsedModel = useCallback(
-    (chosen: ImageModel) => {
-      setModel(chosen.provider, chosen.id);
-      setBrowsing(false);
-    },
-    [setModel]
-  );
-  const openBrowser = useCallback(() => setBrowsing(true), []);
-  const closeBrowser = useCallback(() => setBrowsing(false), []);
   // The style grid's trailing tile is a real choice, so nothing adds anything.
   const noop = useCallback(() => undefined, []);
 
@@ -459,19 +382,16 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
           <>
             {modelMissing ? (
               <AlertBanner severity="warning">
-                {`${look.model} is not offered by any connected provider. Pick another model, or browse all of them.`}
+                {`${look.model} is not offered by any connected provider. Pick another model.`}
               </AlertBanner>
             ) : null}
-            <PresetTileGrid
-              label="Image model"
-              presets={modelTiles}
-              selectedId={selectedTileId}
-              onSelect={handleModel}
-              onAddOwn={openBrowser}
-              addOwnLabel="All image models"
-              aspectRatio="1/1"
-              reservePreview
-            />
+            <Box sx={{ width: "100%", maxWidth: 320 }}>
+              <ImageModelSelect
+                value={look.model}
+                onChange={handleModel}
+                task="text_to_image"
+              />
+            </Box>
           </>
         ) : (
           <ModelListState
@@ -480,20 +400,6 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
           />
         )}
       </FlexColumn>
-
-      {/* Every configured provider's models, for the choice the twelve tiles
-          do not cover. Loaded when it is asked for, so the step itself stays
-          three pickers (F14). */}
-      {browsing ? (
-        <Suspense fallback={null}>
-          <ImageModelMenuDialog
-            open
-            onClose={closeBrowser}
-            onModelChange={handleBrowsedModel}
-            task="text_to_image"
-          />
-        </Suspense>
-      ) : null}
     </FlexColumn>
   );
 };

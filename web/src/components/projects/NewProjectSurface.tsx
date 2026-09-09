@@ -128,6 +128,21 @@ import {
   VISIBLE_STARTERS
 } from "./projectStarters";
 import { useSkills } from "../../hooks/skills/useSkills";
+import storyboardBackground from "../../assets/guided-flows/storyboard.webp";
+import videoBackground from "../../assets/guided-flows/video.webp";
+import scriptBackground from "../../assets/guided-flows/script.webp";
+import imageBackground from "../../assets/guided-flows/image.webp";
+import workflowBackground from "../../assets/guided-flows/workflow.webp";
+import gameBackground from "../../assets/guided-flows/game.webp";
+
+const ENTRY_BACKGROUNDS: Record<EntryFlowId, string> = {
+  storyboard: storyboardBackground,
+  video: videoBackground,
+  script: scriptBackground,
+  image: imageBackground,
+  workflow: workflowBackground,
+  game: gameBackground
+};
 
 /** Width of the centered column, per the new-project mockup. */
 const COLUMN_WIDTH = 860;
@@ -962,10 +977,14 @@ const NewProjectSurface = () => {
   // The chosen card says what it is doing; the other four are off, because a
   // second flow started over the first would leave an orphan project row.
   const entryOptions = useMemo<readonly OptionCardItem[]>(() => {
+    const cards = ENTRY_CARDS.map((card) => ({
+      ...card,
+      image: ENTRY_BACKGROUNDS[card.id]
+    }));
     if (pendingFlow === null) {
-      return ENTRY_CARDS;
+      return cards;
     }
-    return ENTRY_CARDS.map((card) =>
+    return cards.map((card) =>
       card.id === pendingFlow
         ? {
             ...card,
@@ -1246,6 +1265,31 @@ const NewProjectSurface = () => {
           </FlexColumn>
 
           <FlexColumn
+            gap={SPACING.md}
+            sx={{
+              "& button": { bgcolor: "common.black" },
+              "& button:not([aria-disabled=\"true\"]):hover": {
+                bgcolor: "common.black",
+                borderColor: "primary.main"
+              },
+              "& img": { opacity: 0.6 }
+            }}
+          >
+            <Caption color="muted">Start with a guided flow</Caption>
+            <OptionCardGrid
+              label="Guided creation flows"
+              options={entryOptions}
+              onSelect={handleEntryCard}
+              minColumnWidth={240}
+              variant="media"
+              // These cards route to a flow, they do not pick one of a set:
+              // no pressed state, and each is its own tab stop.
+              mode="navigation"
+            />
+          </FlexColumn>
+
+          <Caption color="muted">Or describe what you want to make</Caption>
+          <FlexColumn
             gap={SPACING.lg}
             sx={{
               bgcolor: "background.paper",
@@ -1352,19 +1396,6 @@ const NewProjectSurface = () => {
                 Start
               </EditorButton>
             </FlexRow>
-          </FlexColumn>
-
-          <FlexColumn gap={SPACING.md}>
-            <Caption color="muted">Or start from a guided flow</Caption>
-            <OptionCardGrid
-              label="Guided creation flows"
-              options={entryOptions}
-              onSelect={handleEntryCard}
-              minColumnWidth={160}
-              // These cards route to a flow, they do not pick one of a set:
-              // no pressed state, and each is its own tab stop.
-              mode="navigation"
-            />
           </FlexColumn>
 
           {starters.length > 0 && (

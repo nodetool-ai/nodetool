@@ -5,6 +5,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../../__mocks__/themeMock";
 
 const createProject = jest.fn(async () => ({
@@ -105,10 +106,13 @@ jest.mock("../../workspace/newDocumentCatalog", () => ({
   }
 }));
 
-// Reached only when the composer holds a local drop, which no test here does.
 const createAsset = jest.fn();
+const getAsset = jest.fn();
 jest.mock("../../../stores/AssetStore", () => ({
-  useAssetStore: { getState: () => ({ createAsset }) }
+  useAssetStore: Object.assign(
+    <T,>(selector: (state: { get: jest.Mock }) => T) => selector({ get: getAsset }),
+    { getState: () => ({ createAsset }) }
+  )
 }));
 
 const createStoryboard = jest.fn(async () => ({
@@ -385,12 +389,19 @@ import { takeProjectFirstTurn } from "../projectAgent";
 import useOnboardingStore from "../../../stores/OnboardingStore";
 import { useProviderOnboardingStore } from "../../../stores/ProviderOnboardingStore";
 
-const renderSurface = () =>
-  render(
+const renderSurface = () => {
+  const client = new QueryClient();
+  return render(
     <ThemeProvider theme={mockTheme}>
       <NewProjectSurface />
-    </ThemeProvider>
+    </ThemeProvider>,
+    {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      )
+    }
   );
+};
 
 beforeEach(() => {
   jest.clearAllMocks();

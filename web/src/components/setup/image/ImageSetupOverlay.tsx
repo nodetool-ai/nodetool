@@ -27,6 +27,11 @@ import { Box, PADDING, ScrollArea, Z_INDEX } from "../../ui_primitives";
 import { useSketchStore } from "../../sketch/state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useSaveEntity } from "../../../serverState/useEntities";
+import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
+import {
+  creationProjectId,
+  useWorkspaceTabsStore
+} from "../../../stores/WorkspaceTabsStore";
 import { SetupFlow } from "../SetupFlow";
 import { ContactSheet } from "./ContactSheet";
 import { useImageSetupFlow } from "./useImageSetupFlow";
@@ -40,6 +45,7 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
   onFinish
 }) => {
   const theme = useTheme();
+  const createWorkflow = useWorkflowManager((state) => state.create);
   const [batch, setBatch] = useState<readonly string[]>([]);
   const [makingMore, setMakingMore] = useState(false);
   const [makeMoreError, setMakeMoreError] = useState<string | null>(null);
@@ -111,6 +117,47 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
     [saveEntity]
   );
 
+  const openCanvas = useCallback(
+    async (layerId: string, animate: boolean) => {
+      const assetId =
+        useSketchSessionStore.getState().bindings[layerId]?.currentAssetId;
+      if (!assetId) throw new Error("That variation has not rendered yet.");
+      const projectId = creationProjectId();
+      const image = {
+        type: "image",
+        asset_id: assetId,
+        uri: `asset://${assetId}`
+      };
+      const name = animate ? "Image to video" : "Image canvas";
+      const workflow = await createWorkflow({
+        name,
+        description: "",
+        tags: [],
+        access: "private",
+        graph: {
+          nodes: [
+            {
+              id: crypto.randomUUID(),
+              type: animate
+                ? "nodetool.video.ImageToVideo"
+                : "nodetool.constant.Image",
+              data: animate ? { image: [image] } : { value: image },
+              ui_properties: { position: { x: 0, y: 0 } }
+            }
+          ],
+          edges: []
+        }
+      });
+      useWorkspaceTabsStore.getState().openTab({
+        type: "workflow",
+        ref: workflow.id,
+        title: name,
+        projectId
+      });
+    },
+    [createWorkflow]
+  );
+
   // Nothing to show once the flow is finished and its batch has been picked
   // from: the editor underneath is the whole surface.
   const covering = batch.length > 0 || config.stage !== "done";
@@ -171,6 +218,7 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
               onBackToSettings={backToSettings}
               onOpenEditor={finish}
               onSaveToLibrary={saveToLibrary}
+              onOpenCanvas={openCanvas}
             />
           </Box>
         ) : (

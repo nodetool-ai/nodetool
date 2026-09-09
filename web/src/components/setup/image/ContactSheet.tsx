@@ -28,6 +28,7 @@ import {
   FlexColumn,
   FlexRow,
   GAP,
+  MagicGenerationFill,
   ResponsiveImage,
   Text
 } from "../../ui_primitives";
@@ -57,6 +58,7 @@ export interface ContactSheetProps {
   onOpenEditor: () => void;
   /** Save a variation to the entity library, so a board can cast it. */
   onSaveToLibrary: (layerId: string) => Promise<void>;
+  onOpenCanvas: (layerId: string, animate: boolean) => Promise<void>;
 }
 
 /**
@@ -105,11 +107,14 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
   makeMoreError = null,
   onBackToSettings,
   onOpenEditor,
-  onSaveToLibrary
+  onSaveToLibrary,
+  onOpenCanvas
 }) => {
   const bindings = useSketchSessionStore((state) => state.bindings);
   const { start } = useDirectGenJob();
-  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [actions, setActions] = useState<
+    Record<string, { state: SaveState; message: string }>
+  >({});
 
   const tiles = useMemo(
     () =>
@@ -166,25 +171,40 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
     [layerIds, onPick]
   );
 
-  // The strip acts on the variation the creator is looking at: the active
-  // layer when it belongs to this batch, otherwise the first one that landed.
-  const activeLayerId = useSketchStore((state) => state.document.activeLayerId);
-  const subject =
-    tiles.find((tile) => tile.layerId === activeLayerId && tile.assetId) ??
-    tiles.find((tile) => tile.assetId);
-
-  const saveToLibrary = useCallback(async () => {
-    if (!subject) {
-      return;
-    }
-    setSaveState("saving");
-    try {
-      await onSaveToLibrary(subject.layerId);
-      setSaveState("saved");
-    } catch {
-      setSaveState("failed");
-    }
-  }, [onSaveToLibrary, subject]);
+  const sendTo = useCallback(
+    async (layerId: string, destination: "entity" | "canvas" | "video") => {
+      setActions((current) => ({
+        ...current,
+        [layerId]: { state: "saving", message: "Opening destination…" }
+      }));
+      try {
+        if (destination === "entity") {
+          await onSaveToLibrary(layerId);
+        } else {
+          await onOpenCanvas(layerId, destination === "video");
+        }
+        setActions((current) => ({
+          ...current,
+          [layerId]: {
+            state: "saved",
+            message:
+              destination === "entity"
+                ? "Saved to entities."
+                : "Opened in a new node canvas."
+          }
+        }));
+      } catch {
+        setActions((current) => ({
+          ...current,
+          [layerId]: {
+            state: "failed",
+            message: "Could not open that destination. Try again."
+          }
+        }));
+      }
+    },
+    [onSaveToLibrary, onOpenCanvas]
+  );
 
   return (
     <FlexColumn gap={GAP.spacious}>
@@ -235,36 +255,50 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
         aria-label="Variations"
         sx={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))",
+          gridTemplateColumns:
+            "repeat(auto-fill, minmax(min(100%, 220px), 1fr))",
           gap: GAP.comfortable
         }}
       >
         {tiles.map((tile) => (
           <FlexColumn key={tile.layerId} gap={GAP.normal}>
-            {tile.assetId ? (
-              <ResponsiveImage
-                locator={`asset://${tile.assetId}`}
-                alt={tile.label}
-                aspectRatio="1/1"
-                fit="contain"
-                borderRadius={BORDER_RADIUS.sm}
-              />
-            ) : (
-              <Box
-                sx={{
-                  aspectRatio: "1/1",
-                  display: "grid",
-                  placeItems: "center",
-                  borderRadius: BORDER_RADIUS.sm,
-                  border: "1px solid",
-                  borderColor: "divider"
-                }}
-              >
-                <Caption color="secondary">
-                  {STATUS_TEXT[tile.status] ?? "Rendering"}
-                </Caption>
-              </Box>
-            )}
+            <Box
+              role="group"
+              aria-label={`${tile.label} preview`}
+              aria-busy={tile.pending}
+              sx={{
+                position: "relative",
+                aspectRatio: "1/1",
+                overflow: "hidden",
+                borderRadius: BORDER_RADIUS.sm
+              }}
+            >
+              {tile.assetId ? (
+                <ResponsiveImage
+                  locator={`asset://${tile.assetId}`}
+                  alt={tile.label}
+                  aspectRatio="1/1"
+                  fit="contain"
+                  borderRadius={BORDER_RADIUS.sm}
+                />
+              ) : (
+                <Box
+                  sx={{
+                    height: "100%",
+                    display: "grid",
+                    placeItems: "center",
+                    borderRadius: BORDER_RADIUS.sm,
+                    border: "1px solid",
+                    borderColor: "divider"
+                  }}
+                >
+                  <Caption color="secondary">
+                    {STATUS_TEXT[tile.status] ?? "Rendering"}
+                  </Caption>
+                </Box>
+              )}
+              {tile.pending ? <MagicGenerationFill /> : null}
+            </Box>
             <Text size="small" component="span">
               {tile.label}
             </Text>
@@ -279,8 +313,26 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
                 disabled={!tile.assetId}
                 onClick={() => pick(tile.layerId)}
               >
-                Pick
+                Sketch editor
               </EditorButton>
+              {(
+                [
+                  ["entity", "Save to entities"],
+                  ["canvas", "New node canvas"],
+                  ["video", "Image to video"]
+                ] as const
+              ).map(([destination, label]) => (
+                <EditorButton
+                  key={destination}
+                  variant="outlined"
+                  disabled={
+                    !tile.assetId || actions[tile.layerId]?.state === "saving"
+                  }
+                  onClick={() => void sendTo(tile.layerId, destination)}
+                >
+                  {label}
+                </EditorButton>
+              ))}
               <EditorButton
                 variant="text"
                 disabled={tile.pending}
@@ -300,6 +352,16 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
                 Download
               </EditorButton>
             </FlexRow>
+            {actions[tile.layerId] ? (
+              <Text
+                size="small"
+                role={
+                  actions[tile.layerId].state === "failed" ? "alert" : "status"
+                }
+              >
+                {actions[tile.layerId].message}
+              </Text>
+            ) : null}
           </FlexColumn>
         ))}
       </Box>
@@ -318,35 +380,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
         <EditorButton variant="text" onClick={onOpenEditor}>
           Open editor
         </EditorButton>
-        {/* The entity library is where a saved picture is cast from; this
-            action writes there and nowhere else, so it says so (F30). */}
-        <EditorButton
-          variant="outlined"
-          disabled={subject === undefined || saveState === "saving"}
-          onClick={() => void saveToLibrary()}
-        >
-          {saveState === "saving" ? "Saving…" : "Save to reference library"}
-        </EditorButton>
       </FlexRow>
-
-      {saveState === "saved" ? (
-        <Text size="small" role="status" aria-live="polite">
-          Saved to your reference library. A storyboard can cast it from there.
-        </Text>
-      ) : null}
-      {saveState === "failed" ? (
-        <AlertBanner
-          severity="error"
-          role="alert"
-          action={
-            <EditorButton variant="text" onClick={() => void saveToLibrary()}>
-              Try again
-            </EditorButton>
-          }
-        >
-          That variation could not be saved to your reference library.
-        </AlertBanner>
-      ) : null}
     </FlexColumn>
   );
 };
