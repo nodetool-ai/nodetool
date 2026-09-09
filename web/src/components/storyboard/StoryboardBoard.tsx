@@ -203,12 +203,21 @@ const captionsByShotId = (
  * the label alone and says why in the tooltip — a bare "—" next to a render
  * button reads as broken.
  */
-const RenderBatchButton: React.FC<{
+interface RenderBatchButtonProps {
   label: string;
   estimate: RenderBatchCostEstimate;
   disabled: boolean;
+  highlighted: boolean;
   onClick: () => void;
-}> = ({ label, estimate, disabled, onClick }) => {
+}
+
+const RenderBatchButton: React.FC<RenderBatchButtonProps> = ({
+  label,
+  estimate,
+  disabled,
+  highlighted,
+  onClick
+}) => {
   const { shotCount, cost, pricedCount, reasons, notes } = estimate;
   const priced = pricedCount > 0 && cost > 0;
   const partial = priced && pricedCount < shotCount;
@@ -248,13 +257,19 @@ const RenderBatchButton: React.FC<{
       }
     >
       {/* A disabled button swallows pointer events, so the tooltip needs a host. */}
-      <Box component="span" sx={{ display: "inline-flex" }}>
-        <EditorButton variant="outlined" onClick={onClick} disabled={disabled}>
+      <FlexRow component="span">
+        <EditorButton
+          variant={highlighted ? "contained" : "outlined"}
+          color="primary"
+          aria-current={highlighted ? "step" : undefined}
+          onClick={onClick}
+          disabled={disabled}
+        >
           {`${label}${shotCount > 0 ? ` (${shotCount})` : ""}${
             priced ? ` · ~${formatUsd(cost)}` : ""
           }`}
         </EditorButton>
-      </Box>
+      </FlexRow>
     </Tooltip>
   );
 };
@@ -505,9 +520,16 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const pendingStills = useMemo(
     () =>
       shots.filter(
-        (s) => !s.keyframe && (s.status === "planned" || s.status === "failed")
+        (s) =>
+          shotRenderMode(s) !== "direct" &&
+          !s.keyframe &&
+          (s.status === "planned" || s.status === "failed")
       ),
     [shots]
+  );
+
+  const hasIncompleteStills = shots.some(
+    (s) => shotRenderMode(s) !== "direct" && !s.keyframe
   );
 
   const pendingClips = useMemo(
@@ -521,6 +543,20 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       ),
     [shots]
   );
+
+  const nextRenderStep = hasIncompleteStills
+    ? pendingStills.length > 0
+      ? "stills"
+      : null
+    : pendingClips.length > 0
+      ? "clips"
+      : null;
+  const stillStepActive = nextRenderStep === "stills";
+  const clipStepActive = nextRenderStep === "clips";
+  const missingNextModel =
+    (stillStepActive && !imageModel?.id) ||
+    (clipStepActive && !videoModel?.id);
+  const settingsVisible = settingsOpen || missingNextModel;
 
   // The toolbar's one-line summary: how big the board is, how it looks, and
   // who is in it — the fields the folded form would otherwise hide.
@@ -649,20 +685,26 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 variant="outlined"
                 startIcon={<TuneIcon fontSize="small" />}
                 onClick={toggleSettings}
-                aria-expanded={settingsOpen}
+                aria-expanded={settingsVisible}
               >
                 Board settings
               </EditorButton>
               <RenderBatchButton
                 label="Render stills"
                 estimate={stillsCost}
-                disabled={pendingStills.length === 0 || !!directing}
+                disabled={
+                  pendingStills.length === 0 || !imageModel?.id || !!directing
+                }
+                highlighted={stillStepActive && !!imageModel?.id}
                 onClick={handleGenerateAllStills}
               />
               <RenderBatchButton
                 label="Render clips"
                 estimate={clipsCost}
-                disabled={pendingClips.length === 0 || !!directing}
+                disabled={
+                  pendingClips.length === 0 || !videoModel?.id || !!directing
+                }
+                highlighted={clipStepActive && !!videoModel?.id}
                 onClick={handleGenerateAllClips}
               />
             </FlexRow>
@@ -680,7 +722,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
         )}
 
         {!readOnly && (
-          <Collapse in={settingsOpen} timeout="auto" unmountOnExit>
+          <Collapse in={settingsVisible} timeout="auto" unmountOnExit>
             <Panel padding={SPACING.xl} sx={{ maxWidth: "1100px" }}>
               <FlexColumn gap={SPACING.xl}>
                 <FormGrid stackBelow={FORM_STACK_BELOW}>
@@ -733,6 +775,11 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                         task={STILL_MODEL_TASKS}
                         onChange={(value) => setImageModel(boardId, value)}
                       />
+                      {stillStepActive && !imageModel?.id && (
+                        <Caption color="warning" role="alert">
+                          Choose a still model before rendering stills.
+                        </Caption>
+                      )}
                       {entitiesNeedEditModel && (
                         <Caption color="warning">
                           Entities carry reference images, but this model only
@@ -746,6 +793,11 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                         task="image_to_video"
                         onChange={(value) => setVideoModel(boardId, value)}
                       />
+                      {clipStepActive && !videoModel?.id && (
+                        <Caption color="warning" role="alert">
+                          Choose a clip model before rendering clips.
+                        </Caption>
+                      )}
                     </FormField>
                     <FormField label="Aspect ratio">
                       <SelectField

@@ -161,8 +161,18 @@ const stub = (name: string) => ({
   default: () => <div data-testid={name} />
 });
 jest.mock("../../properties/LanguageModelSelect", () => stub("lang-model"));
-jest.mock("../../properties/ImageModelSelect", () => stub("image-model"));
-jest.mock("../../properties/VideoModelSelect", () => stub("video-model"));
+jest.mock("../../properties/ImageModelSelect", () => ({
+  __esModule: true,
+  default: () => (
+    <div role="combobox" aria-label="Still model" data-testid="image-model" />
+  )
+}));
+jest.mock("../../properties/VideoModelSelect", () => ({
+  __esModule: true,
+  default: () => (
+    <div role="combobox" aria-label="Clip model" data-testid="video-model" />
+  )
+}));
 // The card's own behaviour has its own suite (ShotCard.test.tsx); this stub
 // keeps the contract the board drives — the shot id hook the keyboard
 // navigation focuses, selection on click, and the drag callbacks.
@@ -261,6 +271,10 @@ beforeEach(() => {
   mockGenre = "";
   mockEntities = [];
   mockPresets = [];
+  boardModels = {
+    imageModel: { id: "fal-ai/flux/schnell", provider: "fal_ai" },
+    videoModel: { id: "pixverse/720p", provider: "fal_ai" }
+  };
 });
 
 const renderBoard = (onDirect: (n: number) => void) =>
@@ -438,9 +452,114 @@ describe("StoryboardBoard toolbar", () => {
     expect(
       screen.getByRole("button", { name: "Render stills (1)" })
     ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Render stills (1)" })
+    ).toHaveAttribute("aria-current", "step");
     expect(screen.getByRole("button", { name: "Render clips" })).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "Assemble timeline" })
+    ).toBeDisabled();
+  });
+
+  it("highlights clip rendering after every shot has a still", () => {
+    mockShots = [
+      {
+        ...makeShot("s1"),
+        status: "keyframe_ready",
+        keyframe: { type: "image", asset_id: "still-1" }
+      }
+    ];
+    renderBoard(jest.fn());
+
+    expect(
+      screen.getByRole("button", { name: "Render clips (1)" })
+    ).toHaveAttribute("aria-current", "step");
+    expect(
+      screen.getByRole("button", { name: "Render stills" })
+    ).not.toHaveAttribute("aria-current");
+  });
+
+  it("treats a URI-backed legacy keyframe as a completed still", () => {
+    mockShots = [
+      {
+        ...makeShot("s1"),
+        status: "keyframe_ready",
+        keyframe: { type: "image", uri: "asset://still-1.png" }
+      }
+    ];
+    renderBoard(jest.fn());
+
+    expect(
+      screen.getByRole("button", { name: "Render clips (1)" })
+    ).toHaveAttribute("aria-current", "step");
+  });
+
+  it("highlights clip rendering for a direct-render shot", () => {
+    mockShots = [{ ...makeShot("s1"), render_mode: "direct" }];
+    renderBoard(jest.fn());
+
+    expect(
+      screen.getByRole("button", { name: "Render clips (1)" })
+    ).toHaveAttribute("aria-current", "step");
+    expect(
+      screen.getByRole("button", { name: "Render stills" })
+    ).toBeDisabled();
+  });
+
+  it("does not advance to clips while another still is rendering", () => {
+    mockShots = [
+      { ...makeShot("s1"), status: "keyframe_generating" },
+      {
+        ...makeShot("s2"),
+        status: "keyframe_ready",
+        keyframe: { type: "image", asset_id: "still-2" }
+      }
+    ];
+    renderBoard(jest.fn());
+
+    expect(
+      screen.getByRole("button", { name: "Render clips (1)" })
+    ).not.toHaveAttribute("aria-current");
+  });
+
+  it("opens the still model picker and asks for a model before rendering", () => {
+    boardModels = { imageModel: null, videoModel: null };
+    mockShots = [makeShot("s1")];
+    renderBoard(jest.fn());
+
+    expect(
+      screen.getByRole("combobox", { name: "Still model" })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Choose a still model before rendering stills."
+    );
+    expect(
+      screen.getByRole("button", { name: "Render stills (1)" })
+    ).toBeDisabled();
+  });
+
+  it("opens the clip model picker and asks for a model before rendering", () => {
+    boardModels = {
+      imageModel: { id: "fal-ai/flux/schnell", provider: "fal_ai" },
+      videoModel: null
+    };
+    mockShots = [
+      {
+        ...makeShot("s1"),
+        status: "keyframe_ready",
+        keyframe: { type: "image", asset_id: "still-1" }
+      }
+    ];
+    renderBoard(jest.fn());
+
+    expect(
+      screen.getByRole("combobox", { name: "Clip model" })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Choose a clip model before rendering clips."
+    );
+    expect(
+      screen.getByRole("button", { name: "Render clips (1)" })
     ).toBeDisabled();
   });
 
