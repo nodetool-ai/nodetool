@@ -23,7 +23,7 @@ individual parts without starting over.
 **[Documentation](https://docs.nodetool.ai/)** · **[MCP setup](#mcp)** ·
 **[Contribute](#contributing)**
 
-![NodeTool: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film](marketing/public/hero-project-poster.webp)
+![NodeTool: one sentence becomes a storyboard, rendered stills and clips, and a cut on the timeline](marketing/public/hero-project-readme.gif)
 
 ## Every model you need, on your own keys
 
