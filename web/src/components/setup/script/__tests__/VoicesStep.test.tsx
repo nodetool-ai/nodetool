@@ -1,8 +1,6 @@
 /**
- * The voices step (PRD § 9.3, criterion 5, first half): a tile plays the
- * speaker's *own* first line in that voice, and it does so with one TTS call
- * per tile rather than one per render. Picking a tile binds the voice through
- * the same handler `ui_script_set_speaker_voice` calls.
+ * The voices step: a dropdown-selected voice plays the speaker's own first
+ * line, each speaker selects independently, and samples stay explicit calls.
  */
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -24,6 +22,7 @@ jest.mock("../useSetupVoices", () => ({
       {
         id: "elevenlabs:eleven_v3:rachel",
         label: "Rachel",
+        modelLabel: "Eleven v3",
         provider: "elevenlabs",
         model: "eleven_v3",
         voice: "rachel"
@@ -31,9 +30,18 @@ jest.mock("../useSetupVoices", () => ({
       {
         id: "elevenlabs:eleven_v3:adam",
         label: "Adam",
+        modelLabel: "Eleven v3",
         provider: "elevenlabs",
         model: "eleven_v3",
         voice: "adam"
+      },
+      {
+        id: "openai:gpt-4o-mini-tts:alloy",
+        label: "Alloy",
+        modelLabel: "GPT-4o mini TTS",
+        provider: "openai",
+        model: "gpt-4o-mini-tts",
+        voice: "alloy"
       }
     ],
     loading: false,
@@ -91,6 +99,9 @@ beforeEach(() => {
   rpcRequest.mockReset();
   rpcRequest.mockResolvedValue({ asset_ids: ["asset-1"] });
   setSpeakerVoice.mockClear();
+  setSpeakerVoice.mockImplementation((speakerId, voice) => {
+    useScriptStore.getState().updateSpeaker(SCRIPT_ID, speakerId, { voice });
+  });
   resetVoiceSamples();
   useScriptStore.setState({ scripts: {}, history: {} } as never);
   seed();
@@ -104,23 +115,35 @@ afterEach(() => {
 });
 
 describe("VoicesStep", () => {
-  // The voices are a mutually exclusive choice, so each row is a radio group
-  // with one tab stop, not a bag of buttons (F26).
-  it("gives every speaker in the cast its own row of voices", () => {
+  it("gives every speaker a TTS model and voice dropdown", () => {
     renderStep();
-    expect(screen.getByRole("radiogroup", { name: "Voices for Host" })).toBeInTheDocument();
-    expect(screen.getByRole("radiogroup", { name: "Voices for Guest" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "TTS model for Host" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Voice for Host" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "TTS model for Guest" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Voice for Guest" })
+    ).toBeInTheDocument();
   });
 
-  it("plays the speaker's own first line in the tile's voice, once", async () => {
+  it("plays the speaker's own first line in the selected voice, once", async () => {
     const user = userEvent.setup();
     renderStep();
 
-    const hostRow = screen.getByRole("radiogroup", { name: "Voices for Host" });
-    const [rachel] = Array.from(
-      hostRow.querySelectorAll("button")
-    ).filter((button) => button.textContent === "Hear Rachel");
-    await user.click(rachel);
+    await user.click(
+      screen.getByRole("combobox", { name: "TTS model for Host" })
+    );
+    await user.click(
+      screen.getByRole("option", { name: "Eleven v3 (elevenlabs)" })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Hear Rachel for Host" })
+    );
 
     expect(rpcRequest).toHaveBeenCalledTimes(1);
     expect(rpcRequest).toHaveBeenCalledWith("generate_media", {
@@ -131,11 +154,8 @@ describe("VoicesStep", () => {
       prompt: HOST_LINE
     });
 
-    // The sample arrived, so the tile is now a player rather than a button —
-    // and no second call was made for it.
-    expect(
-      await screen.findByLabelText("Rachel sample")
-    ).toBeInTheDocument();
+    // The sample arrived as a player, and no second call was made for it.
+    expect(await screen.findByLabelText("Rachel sample")).toBeInTheDocument();
     expect(rpcRequest).toHaveBeenCalledTimes(1);
   });
 
@@ -143,11 +163,15 @@ describe("VoicesStep", () => {
     const user = userEvent.setup();
     renderStep();
 
-    const guestRow = screen.getByRole("radiogroup", { name: "Voices for Guest" });
-    const [firstTile] = Array.from(
-      guestRow.querySelectorAll("button")
-    ).filter((button) => button.textContent === "Hear Rachel");
-    await user.click(firstTile);
+    await user.click(
+      screen.getByRole("combobox", { name: "TTS model for Guest" })
+    );
+    await user.click(
+      screen.getByRole("option", { name: "Eleven v3 (elevenlabs)" })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Hear Rachel for Guest" })
+    );
 
     expect(rpcRequest.mock.calls[0][1]).toMatchObject({ prompt: GUEST_LINE });
   });
@@ -156,16 +180,42 @@ describe("VoicesStep", () => {
     const user = userEvent.setup();
     renderStep();
 
-    const guestRow = screen.getByRole("radiogroup", { name: "Voices for Guest" });
-    await user.click(screen.getAllByRole("radio", { name: "Adam" })[1]);
+    await user.click(
+      screen.getByRole("combobox", { name: "TTS model for Guest" })
+    );
+    await user.click(
+      screen.getByRole("option", { name: "Eleven v3 (elevenlabs)" })
+    );
+    await user.click(screen.getByRole("combobox", { name: "Voice for Guest" }));
+    await user.click(screen.getByRole("option", { name: "Adam" }));
 
-    expect(setSpeakerVoice).toHaveBeenCalledTimes(1);
+    expect(setSpeakerVoice).toHaveBeenCalledTimes(2);
     expect(setSpeakerVoice).toHaveBeenCalledWith("spk_guest", {
       provider: "elevenlabs",
       model: "eleven_v3",
       voice: "adam"
     });
-    expect(guestRow).toBeInTheDocument();
+  });
+
+  it("changes the model before offering that model's voices", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(
+      screen.getByRole("combobox", { name: "TTS model for Host" })
+    );
+    await user.click(
+      screen.getByRole("option", { name: "GPT-4o mini TTS (openai)" })
+    );
+
+    expect(setSpeakerVoice).toHaveBeenCalledWith("spk_host", {
+      provider: "openai",
+      model: "gpt-4o-mini-tts",
+      voice: "alloy"
+    });
+    expect(
+      screen.getByRole("combobox", { name: "Voice for Host" })
+    ).toHaveTextContent("Alloy");
   });
 
   it("writes the pace every speaker is read at, and sends it (F12)", async () => {
@@ -175,13 +225,19 @@ describe("VoicesStep", () => {
     await user.click(screen.getByRole("combobox", { name: "Pace" }));
     await user.click(screen.getByRole("option", { name: "Fast" }));
 
-    expect(useScriptStore.getState().scripts[SCRIPT_ID].setup?.pace).toBe("fast");
-
-    const hostRow = screen.getByRole("radiogroup", { name: "Voices for Host" });
-    const [rachel] = Array.from(hostRow.querySelectorAll("button")).filter(
-      (button) => button.textContent === "Hear Rachel"
+    expect(useScriptStore.getState().scripts[SCRIPT_ID].setup?.pace).toBe(
+      "fast"
     );
-    await user.click(rachel);
+
+    await user.click(
+      screen.getByRole("combobox", { name: "TTS model for Host" })
+    );
+    await user.click(
+      screen.getByRole("option", { name: "Eleven v3 (elevenlabs)" })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Hear Rachel for Host" })
+    );
 
     expect(rpcRequest.mock.calls[0][1]).toMatchObject({ speed: 1.15 });
   });
@@ -192,14 +248,18 @@ describe("VoicesStep", () => {
     useScriptStore.getState().patchLine(SCRIPT_ID, "line_1", { text: long });
     renderStep();
 
-    const hostRow = screen.getByRole("radiogroup", { name: "Voices for Host" });
-    const [rachel] = Array.from(hostRow.querySelectorAll("button")).filter(
-      (button) => button.textContent === "Hear Rachel"
+    await user.click(
+      screen.getByRole("combobox", { name: "TTS model for Host" })
     );
-    await user.click(rachel);
+    await user.click(
+      screen.getByRole("option", { name: "Eleven v3 (elevenlabs)" })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Hear Rachel for Host" })
+    );
 
-    // The lookup keys the same normalized words the call sent, so the tile
-    // becomes a player instead of asking for the sample again.
+    // The lookup keys the same normalized words the call sent, so the player
+    // appears without asking for the sample again.
     expect(await screen.findByLabelText("Rachel sample")).toBeInTheDocument();
     expect(rpcRequest).toHaveBeenCalledTimes(1);
   });
@@ -217,11 +277,8 @@ describe("VoicesStep", () => {
       .addSpeaker(SCRIPT_ID, { id: "spk_extra", name: "Extra", voice: null });
     renderStep();
 
-    const row = screen.getByRole("radiogroup", { name: "Voices for Extra" });
     expect(
-      Array.from(row.querySelectorAll("button")).filter((button) =>
-        button.textContent?.startsWith("Hear ")
-      )
-    ).toHaveLength(0);
+      screen.queryByRole("button", { name: /Hear .* for Extra/ })
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,14 +1,13 @@
 /**
  * Step 3 of the script flow — the voices (PRD § 9.3).
  *
- * One row of voice tiles per speaker in the cast. A tile is heard before it is
- * chosen: pressing `Hear this voice` reads that speaker's own first line in
- * that voice, so the choice is made on the words the creator wrote rather than
- * on a stock sample. Each sample is one TTS call, made when it is asked for and
- * kept for the session (`useVoiceSamples`) — a grid of a dozen voices over four
- * speakers would otherwise bill a dozen calls per render.
+ * One row of TTS model and voice dropdowns per speaker in the cast. The voice
+ * can be heard after it is chosen: pressing `Hear this voice` reads that
+ * speaker's own first line, so the choice is made on the words the creator
+ * wrote rather than on a stock sample. Each sample is one TTS call, made when
+ * it is asked for and kept for the session (`useVoiceSamples`).
  *
- * Picking a tile binds the voice through the same handler
+ * Picking a voice binds it through the same handler
  * `ui_script_set_speaker_voice` calls, so the headless path and this one write
  * the same thing (§ 9.6).
  *
@@ -19,13 +18,14 @@
  * rather than pretending the button applies it (F12).
  */
 
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import type { ScriptPace } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
 import { formatUsd } from "@nodetool-ai/model-pricing";
 
 import {
   AlertBanner,
+  AudioPlayback,
   Caption,
   EditorButton,
   FlexColumn,
@@ -47,8 +47,8 @@ import {
   providerAppliesPace
 } from "../../../hooks/script/scriptPace";
 import { getModelUnitPrice } from "../../../utils/modelUnitPricing";
-import { PresetTileGrid } from "../PresetTileGrid";
-import type { PresetTile } from "../PresetTileGrid";
+import type { BugReportContext } from "../../../utils/bugReportBundle";
+import ReportBugButton from "../../support/ReportBugButton";
 import { useSetupVoices } from "./useSetupVoices";
 import type { SetupVoice } from "./useSetupVoices";
 
@@ -74,7 +74,9 @@ const PACES: ReadonlyArray<{ value: ScriptPace; label: string }> = [
 
 /** The line a speaker's samples read: the first thing they say. */
 const firstLineOf = (
-  sections: ReadonlyArray<{ lines: ReadonlyArray<{ speakerId?: string | null; text: string }> }>,
+  sections: ReadonlyArray<{
+    lines: ReadonlyArray<{ speakerId?: string | null; text: string }>;
+  }>,
   speakerId: string
 ): string => {
   for (const section of sections) {
@@ -120,6 +122,37 @@ const auditionCost = (
     : `about ${formatUsd(low)}–${formatUsd(high)} each`;
 };
 
+interface SetupVoiceModel {
+  id: string;
+  label: string;
+  provider: string;
+  model: string;
+  voices: readonly SetupVoice[];
+}
+
+const voiceModelId = (voice: Pick<SetupVoice, "provider" | "model">): string =>
+  `${voice.provider}:${voice.model}`;
+
+const groupVoiceModels = (voices: readonly SetupVoice[]): SetupVoiceModel[] => {
+  const grouped = new Map<string, SetupVoiceModel>();
+  for (const voice of voices) {
+    const id = voiceModelId(voice);
+    const current = grouped.get(id);
+    if (current) {
+      current.voices = [...current.voices, voice];
+      continue;
+    }
+    grouped.set(id, {
+      id,
+      label: `${voice.modelLabel} (${voice.provider})`,
+      provider: voice.provider,
+      model: voice.model,
+      voices: [voice]
+    });
+  }
+  return [...grouped.values()];
+};
+
 interface SpeakerVoiceRowProps {
   scriptId: string;
   speaker: ScriptSpeaker;
@@ -138,56 +171,92 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
   speed
 }) => {
   const { sampleFor, play, spokenText } = useVoiceSamples(speed);
-
-  const selectedId = voices.find(
+  const models = useMemo(() => groupVoiceModels(voices), [voices]);
+  const selectedVoice = voices.find(
     (voice) =>
       speaker.voice?.model === voice.model &&
       speaker.voice.voice === voice.voice &&
       speaker.voice.provider === voice.provider
-  )?.id;
+  );
+  const selectedModel = models.find(
+    (model) =>
+      speaker.voice?.model === model.model &&
+      speaker.voice.provider === model.provider
+  );
+  const modelOptions = useMemo(
+    () => [
+      { value: "", label: "Choose a model" },
+      ...models.map((model) => ({ value: model.id, label: model.label }))
+    ],
+    [models]
+  );
+  const voiceOptions = useMemo(
+    () => [
+      { value: "", label: "Choose a voice" },
+      ...(selectedModel?.voices.map((voice) => ({
+        value: voice.id,
+        label: voice.label
+      })) ?? [])
+    ],
+    [selectedModel]
+  );
 
-  const select = useCallback(
-    (id: string) => {
-      const picked = voices.find((voice) => voice.id === id);
-      if (!picked) return;
+  const bindVoice = useCallback(
+    (voice: SetupVoice) => {
       getScriptAgentHandler(scriptId).setSpeakerVoice(speaker.id, {
-        provider: picked.provider,
-        model: picked.model,
-        voice: picked.voice
+        provider: voice.provider,
+        model: voice.model,
+        voice: voice.voice
       });
     },
-    [scriptId, speaker.id, voices]
+    [scriptId, speaker.id]
+  );
+
+  const selectModel = useCallback(
+    (id: string) => {
+      const picked = models.find((model) => model.id === id)?.voices[0];
+      if (!picked) return;
+      bindVoice(picked);
+    },
+    [bindVoice, models]
+  );
+
+  const selectVoice = useCallback(
+    (id: string) => {
+      const picked = selectedModel?.voices.find((voice) => voice.id === id);
+      if (!picked) return;
+      bindVoice(picked);
+    },
+    [bindVoice, selectedModel]
   );
 
   const spoken = spokenText(line);
   const hasLine = spoken !== "";
 
-  const tiles: PresetTile[] = voices.map((voice) => {
-    const sample = sampleFor(voice, line);
-    // One line under the title, in the order it matters: what went wrong, then
-    // what this voice will not do with the pace that was asked for.
-    const note =
-      sample.error ??
-      (speed !== undefined && !providerAppliesPace(voice.provider)
-        ? `Reads at its own pace, not ${pace}`
-        : undefined);
-    const tile: PresetTile = { id: voice.id, title: voice.label };
-    // A speaker with nothing to say has nothing to audition, so the tile
-    // offers no audition rather than a button that returns nothing (F13).
-    if (hasLine) {
-      tile.onPlaySample = () => play(voice, line);
-      tile.samplePending = sample.pending;
-    }
-    if (note !== undefined) {
-      tile.description = note;
-    }
-    if (hasLine && sample.assetId !== undefined) {
-      tile.audio = `asset://${sample.assetId}`;
-    }
-    return tile;
-  });
-
-  const cost = hasLine ? auditionCost(voices, spoken.length) : null;
+  const sample = selectedVoice ? sampleFor(selectedVoice, line) : null;
+  const cost =
+    hasLine && selectedVoice
+      ? auditionCost([selectedVoice], spoken.length)
+      : null;
+  const paceNote =
+    selectedVoice &&
+    speed !== undefined &&
+    !providerAppliesPace(selectedVoice.provider)
+      ? `This provider reads at its own pace, not ${pace}.`
+      : null;
+  const sampleErrorContext = useMemo<BugReportContext | null>(
+    () =>
+      sample?.error
+        ? {
+            source: "manual",
+            summary: `Voice sample failed for ${speaker.name}`,
+            errorText: sample.error,
+            provider: selectedVoice?.provider,
+            model: selectedVoice?.model
+          }
+        : null,
+    [sample?.error, selectedVoice?.model, selectedVoice?.provider, speaker.name]
+  );
 
   return (
     <FlexColumn gap={GAP.normal} component="section">
@@ -208,17 +277,67 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
           </Caption>
         ) : null}
       </FlexColumn>
-      <PresetTileGrid
-        label={`Voices for ${speaker.name}`}
-        presets={tiles}
-        selectedId={selectedId ?? null}
-        onSelect={select}
-        onAddOwn={() => openProviderOnboarding()}
-        addOwnLabel="Add a voice provider"
-        aspectRatio="4/1"
-        minColumnWidth={200}
-        reservePreview
-      />
+      <FlexRow gap={GAP.comfortable} wrap align="flex-end">
+        <SelectField
+          label={`TTS model for ${speaker.name}`}
+          value={selectedModel?.id ?? ""}
+          options={modelOptions}
+          onChange={selectModel}
+        />
+        <SelectField
+          label={`Voice for ${speaker.name}`}
+          value={selectedVoice?.id ?? ""}
+          options={voiceOptions}
+          onChange={selectVoice}
+          disabled={!selectedModel}
+        />
+        {hasLine ? (
+          <EditorButton
+            variant="outlined"
+            disabled={!selectedVoice || sample?.pending}
+            aria-label={
+              selectedVoice
+                ? `Hear ${selectedVoice.label} for ${speaker.name}`
+                : `Hear voice for ${speaker.name}`
+            }
+            onClick={() => {
+              if (selectedVoice) void play(selectedVoice, line);
+            }}
+          >
+            {sample?.pending
+              ? "Generating sample"
+              : selectedVoice
+                ? `Hear ${selectedVoice.label}`
+                : "Hear voice"}
+          </EditorButton>
+        ) : null}
+      </FlexRow>
+      {sample?.error && sampleErrorContext ? (
+        <AlertBanner
+          severity="error"
+          action={<ReportBugButton context={sampleErrorContext} />}
+        >
+          {sample.error}
+        </AlertBanner>
+      ) : null}
+      {paceNote ? (
+        <Caption color="secondary" role="status">
+          {paceNote}
+        </Caption>
+      ) : null}
+      {sample?.assetId ? (
+        <AudioPlayback
+          locator={`asset://${sample.assetId}`}
+          label={`${selectedVoice?.label ?? "Voice"} sample`}
+        />
+      ) : null}
+      <EditorButton
+        variant="text"
+        size="small"
+        onClick={() => openProviderOnboarding()}
+      >
+        Add a voice provider
+      </EditorButton>
     </FlexColumn>
   );
 };
@@ -258,7 +377,11 @@ const VoicesStepInternal: React.FC<VoicesStepProps> = ({ scriptId }) => {
         </Text>
       </FlexColumn>
 
-      <FlexColumn gap={GAP.tight} component="section" aria-label="Read settings">
+      <FlexColumn
+        gap={GAP.tight}
+        component="section"
+        aria-label="Read settings"
+      >
         <FlexRow gap={GAP.comfortable} wrap align="flex-end">
           <SelectField
             label="Language"

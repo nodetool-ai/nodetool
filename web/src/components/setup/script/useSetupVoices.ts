@@ -3,9 +3,8 @@
  *
  * Studio shows `STUDIO_VOICES` — one curated model per voice, on the managed
  * `nodetool` provider, so a beginner never picks a provider. The workspace
- * shows what the configured providers actually expose, flattened to one tile
- * per (model, voice): a tile is a voice, not a model, because a voice is what
- * a creator is choosing.
+ * shows what the configured providers actually expose, flattened to one item
+ * per (model, voice), ready for the step's model and voice dropdowns.
  */
 
 import { useCallback, useMemo } from "react";
@@ -16,11 +15,12 @@ import type { TTSModel } from "../../../stores/ApiTypes";
 import { useInStudio } from "../../../studio/StudioContext";
 import { STUDIO_VOICES } from "../../../studio/curatedModels";
 
-/** One tile in a speaker's voice grid. */
+/** One voice option in a speaker's model and voice controls. */
 export interface SetupVoice {
-  /** Unique per tile: the same voice id can exist on two models. */
+  /** Unique per option: the same voice id can exist on two models. */
   id: string;
   label: string;
+  modelLabel: string;
   provider: string;
   model: string;
   voice: string;
@@ -59,6 +59,7 @@ export function useSetupVoices(): SetupVoicesResult {
       return STUDIO_VOICES.map((option) => ({
         id: `${option.modelId}:${option.id}`,
         label: option.label,
+        modelLabel: option.value.name || option.modelId,
         provider: option.value.provider ?? "",
         model: option.modelId,
         voice: option.id
@@ -68,6 +69,7 @@ export function useSetupVoices(): SetupVoicesResult {
       (model.voices ?? []).map((voice) => ({
         id: `${model.provider}:${model.id}:${voice}`,
         label: voice,
+        modelLabel: model.name || model.id,
         provider: String(model.provider),
         model: model.id,
         voice
@@ -89,8 +91,7 @@ export function useSetupVoices(): SetupVoicesResult {
           : "The voice list could not be loaded."
         : null,
     retry,
-    noProvider:
-      !inStudio && !isLoading && !isError && voices.length === 0
+    noProvider: !inStudio && !isLoading && !isError && voices.length === 0
   };
 }
 

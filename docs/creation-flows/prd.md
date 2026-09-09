@@ -871,10 +871,11 @@ to voices` sets stage `voices`.
 ### 9.3 Step 3 — Voices
 
 Heading "Choose the voices". One row per speaker in the cast, each with a
-`PresetTileGrid` of voices: a tile plays a short sample of that voice reading
-the speaker's first line. Studio shows `STUDIO_VOICES`. The workspace shows the
-configured providers' voices. Language and pace selects apply to every
-speaker. Cost from `useVoiceCostEstimate` beside the button.
+TTS model dropdown and a voice dropdown scoped to that model. A sample button
+reads the speaker's first line in the selected voice. Studio shows models and
+voices derived from `STUDIO_VOICES`. The workspace shows the configured
+providers' models and voices. Language and pace selects apply to every speaker.
+Cost from `useVoiceCostEstimate` beside the button.
 
 `Voice your script` sets stage `done`, binds each speaker's voice, runs
 `ui_script_voice_all`, and opens the script editor with lines voicing in
