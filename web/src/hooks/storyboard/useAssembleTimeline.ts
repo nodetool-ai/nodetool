@@ -15,12 +15,16 @@
 
 import { useCallback, useState } from "react";
 import {
+  applyMeasuredShotClipDurations,
   frameSizeForAspect,
   type TimelineClip,
   type TimelineTrack
 } from "@nodetool-ai/timeline";
 import { trpcClient } from "../../trpc/client";
-import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import {
+  useStoryboardStore,
+  type StoryboardBoard
+} from "../../stores/storyboard/StoryboardStore";
 import {
   useWorkspaceTabsStore,
   creationProjectId
@@ -34,6 +38,9 @@ import {
   stampBoardProvenance
 } from "../../lib/assembledSequenceMerge";
 import { newDocumentId } from "../../lib/newDocumentId";
+import { assetLocator } from "../../utils/mediaRef";
+import { probeMediaDurationMs } from "../../utils/probeMediaDuration";
+import { resolveMediaUri } from "../../utils/resolveMediaUri";
 
 export interface AssembleResult {
   sequenceId: string;
@@ -51,6 +58,28 @@ interface UseAssembleTimelineResult {
   error: string | null;
 }
 
+async function boardWithMeasuredClipDurations(
+  board: StoryboardBoard
+): Promise<StoryboardBoard> {
+  const measurements = await Promise.all(
+    board.shots.map(async (shot) => {
+      const clip = shot.clip;
+      const assetId = clip?.asset_id;
+      if (shot.status !== "rendered" || !assetId) return null;
+      const url = await resolveMediaUri(clip.uri || assetLocator(assetId));
+      if (!url) return null;
+      const durationMs = await probeMediaDurationMs(url, "video");
+      return durationMs === null ? null : ([assetId, durationMs / 1000] as const);
+    })
+  );
+  const durations = new Map<string, number>();
+  for (const measurement of measurements) {
+    if (measurement) durations.set(...measurement);
+  }
+  const shots = applyMeasuredShotClipDurations(board.shots, durations);
+  return { ...board, shots };
+}
+
 export const useAssembleTimeline = (): UseAssembleTimelineResult => {
   const [assembling, setAssembling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,26 +90,25 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
       if (!board) {
         throw new Error(`No storyboard board "${boardId}".`);
       }
-      const scriptId = linkedScriptId(board);
-      // A linked script that cannot be read leaves the board assembling the
-      // way an unlinked one does — a deleted script must not break assemble.
-      const script = scriptId ? await loadLinkedScript(scriptId) : null;
-      const doc = buildTimelineDocument(board, script);
-      // The video clips only: a shot also contributes its audio twin, and a
-      // jointly assembled cut stamps the shot keys onto voiceover clips too.
-      const shotClips = doc.clips.filter(
-        (clip) => clip.storyboardShotId && clip.mediaType === "video"
-      );
-      if (shotClips.length === 0) {
-        const message =
-          "No rendered shots to assemble — generate and render clips first.";
-        setError(message);
-        throw new Error(message);
-      }
-
       setError(null);
       setAssembling(true);
       try {
+        const measuredBoard = await boardWithMeasuredClipDurations(board);
+        const scriptId = linkedScriptId(measuredBoard);
+        // A linked script that cannot be read leaves the board assembling the
+        // way an unlinked one does — a deleted script must not break assemble.
+        const script = scriptId ? await loadLinkedScript(scriptId) : null;
+        const doc = buildTimelineDocument(measuredBoard, script);
+        // The video clips only: a shot also contributes its audio twin, and a
+        // jointly assembled cut stamps the shot keys onto voiceover clips too.
+        const shotClips = doc.clips.filter(
+          (clip) => clip.storyboardShotId && clip.mediaType === "video"
+        );
+        if (shotClips.length === 0) {
+          throw new Error(
+            "No rendered shots to assemble — generate and render clips first."
+          );
+        }
         const name = board.title.trim() || "Storyboard cut";
         // The cut's frame follows the board's aspect ratio, so a 9:16 board
         // does not land in a 16:9 sequence.

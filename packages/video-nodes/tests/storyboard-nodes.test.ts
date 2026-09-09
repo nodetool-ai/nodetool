@@ -92,6 +92,21 @@ const renderedClip = (assetId: string) => ({
   duration: 3
 });
 
+function mp4WithDuration(durationMs: number): Uint8Array {
+  const box = (type: string, payload: Uint8Array): Uint8Array => {
+    const out = new Uint8Array(8 + payload.length);
+    new DataView(out.buffer).setUint32(0, out.length);
+    for (let i = 0; i < 4; i++) out[4 + i] = type.charCodeAt(i);
+    out.set(payload, 8);
+    return out;
+  };
+  const header = new Uint8Array(100);
+  const view = new DataView(header.buffer);
+  view.setUint32(12, 1000);
+  view.setUint32(16, durationMs);
+  return box("moov", box("mvhd", header));
+}
+
 const boardDocument = (over: Partial<StoryboardDocument> = {}): StoryboardDocument => ({
   screenplay: null,
   shots: [shot("shot-1", 0), shot("shot-2", 1)],
@@ -635,6 +650,25 @@ const renderedBoard = (over: Partial<StoryboardDocument> = {}) =>
   });
 
 describe("AssembleTimelineNode", () => {
+  it("measures persisted clips before laying out the timeline", async () => {
+    seedBoard(h, "measured", renderedBoard());
+    h.context.resolveAssetBytes = vi.fn(async () => ({
+      bytes: mp4WithDuration(5184),
+      attempts: []
+    }));
+
+    const node = new AssembleTimelineNode();
+    node.assign({ storyboard: writable("measured") });
+    const result = await node.process(h.context);
+
+    const clips = h.sequences.get(result.timeline.id)?.clips ?? [];
+    expect(
+      clips
+        .filter((clip) => clip.storyboardShotId)
+        .map((clip) => clip.durationMs)
+    ).toEqual([5184, 5184, 5184, 5184]);
+  });
+
   it("inherits the template's cut for a copy and keeps its foreign clips", async () => {
     const template = seedBoard(h, "tpl", boardDocument());
     const cut = templateSequence(template.id);

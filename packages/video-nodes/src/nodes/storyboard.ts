@@ -23,7 +23,11 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { isObjectLike, isString } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { loadMediaRefBytes, resolveEntities } from "@nodetool-ai/runtime";
+import {
+  loadMediaRefBytes,
+  probeVideoDurationSeconds,
+  resolveEntities
+} from "@nodetool-ai/runtime";
 import { shotRenderMode } from "@nodetool-ai/protocol";
 import type {
   Entity,
@@ -51,6 +55,7 @@ import {
   type StoryboardRenderHost
 } from "@nodetool-ai/storyboard";
 import {
+  applyMeasuredShotClipDurations,
   buildLinkedTimeline,
   buildStoryboardTimeline,
   cloneTimelineForBoard,
@@ -291,10 +296,9 @@ function resolveModel(
  * model interfaces instead of the model classes — one render path, whether the
  * board is rendered from a graph or from chat.
  *
- * `videoDurationSeconds` is deliberately absent: the MP4 header probe lives in
- * `@nodetool-ai/agents`, which sits above this package. A clip rendered here
- * therefore carries the length it was directed at, and assembly reports it as
- * retimed only when the board itself says so.
+ * `videoDurationSeconds` is absent here because render-time MP4 inspection is
+ * owned by the agent package. AssembleTimeline probes the persisted media
+ * independently, so graph-rendered clips still use their delivered length.
  */
 function renderHost(context: ProcessingContext): StoryboardRenderHost {
   return {
@@ -416,6 +420,27 @@ const clampConcurrency = (value: unknown): number => {
   if (!Number.isFinite(parsed) || parsed < 1) return 1;
   return Math.min(parsed, 8);
 };
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  task: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const workers = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      for (;;) {
+        const index = next++;
+        if (index >= items.length) return;
+        results[index] = await task(items[index]);
+      }
+    }
+  );
+  await Promise.all(workers);
+  return results;
+}
 
 // ---------------------------------------------------------------------------
 // LoadStoryboard
@@ -1144,10 +1169,35 @@ export class AssembleTimelineNode extends BaseNode {
     const doc = row.document;
     const script = await loadLinkedScript(ctx, doc);
     const scriptId = script ? doc.screenplay?.script_id ?? null : null;
+    const signal = ctx.signal ?? new AbortController().signal;
+    const measurements = await mapWithConcurrency(
+      doc.shots,
+      clampConcurrency(undefined),
+      async (shot) => {
+        const clip = shot.clip;
+        const assetId = clip?.asset_id;
+        if (shot.status !== "rendered" || !assetId) return null;
+        try {
+          const bytes = await loadMediaRefBytes(clip, ctx);
+          const seconds = bytes?.length
+            ? await probeVideoDurationSeconds(bytes, signal)
+            : null;
+          return seconds === null ? null : ([assetId, seconds] as const);
+        } catch (error) {
+          if (signal.aborted) throw error;
+          return null;
+        }
+      }
+    );
+    const durations = new Map<string, number>();
+    for (const measurement of measurements) {
+      if (measurement) durations.set(...measurement);
+    }
+    const measuredShots = applyMeasuredShotClipDurations(doc.shots, durations);
     const assembled: AssembledTimeline = script
       ? buildLinkedTimeline({
           boardId: row.id,
-          shots: doc.shots,
+          shots: measuredShots,
           musicPrompt: doc.screenplay?.music_prompt,
           script: {
             scriptId: script.id,
@@ -1157,7 +1207,7 @@ export class AssembleTimelineNode extends BaseNode {
         })
       : buildStoryboardTimeline({
           boardId: row.id,
-          shots: doc.shots,
+          shots: measuredShots,
           narration: doc.screenplay?.narration,
           musicPrompt: doc.screenplay?.music_prompt
         });

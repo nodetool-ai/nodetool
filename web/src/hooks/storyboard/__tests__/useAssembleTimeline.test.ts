@@ -32,6 +32,8 @@ const getQuery = trpcClient.timeline.get.query as jest.Mock;
 const createMutate = trpcClient.timeline.create.mutate as jest.Mock;
 const updateMutate = trpcClient.timeline.update.mutate as jest.Mock;
 const scriptQuery = trpcClient.scripts.get.query as jest.Mock;
+const mediaDurations = new Map<string, number>();
+const createElement = document.createElement.bind(document);
 
 const renderedShot = (id: string, extra: Partial<Shot> = {}): Shot => ({
   type: "shot",
@@ -39,7 +41,11 @@ const renderedShot = (id: string, extra: Partial<Shot> = {}): Shot => ({
   index: 0,
   action: "A lighthouse at dusk",
   status: "rendered",
-  clip: { type: "video", asset_id: `clip-${id}`, uri: `asset://${id}` },
+  clip: {
+    type: "video",
+    asset_id: `clip-${id}`,
+    uri: `https://cdn.test/${id}.mp4`
+  },
   duration_seconds: 30,
   ...extra
 });
@@ -112,6 +118,27 @@ const seedLinkedPair = (boardId: string, scriptId: string): void => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mediaDurations.clear();
+  jest.spyOn(document, "createElement").mockImplementation((tagName, options) => {
+    const element = createElement(tagName, options);
+    if (tagName !== "video") return element;
+    const video = element as HTMLVideoElement;
+    let src = "";
+    Object.defineProperties(video, {
+      duration: { get: () => mediaDurations.get(src) ?? 30 },
+      src: {
+        get: () => src,
+        set: (value: string) => {
+          src = value;
+          queueMicrotask(() =>
+            video.onloadedmetadata?.(new Event("loadedmetadata"))
+          );
+        }
+      }
+    });
+    video.load = jest.fn();
+    return video;
+  });
   useStoryboardStore.setState({ boards: {}, serverRevisions: {} });
   useScriptStore.setState({
     scripts: {},
@@ -121,10 +148,42 @@ beforeEach(() => {
   });
   jest
     .spyOn(useWorkspaceTabsStore.getState(), "openTab")
-    .mockImplementation(() => undefined as never);
+      .mockImplementation(() => undefined as never);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 describe("useAssembleTimeline", () => {
+  it("measures rendered media and uses those durations for the cut", async () => {
+    seedBoard("board-1", {
+      shots: [
+        renderedShot("shot-a", { index: 0, duration_seconds: 2 }),
+        renderedShot("shot-b", { index: 1, duration_seconds: 9 })
+      ]
+    });
+    mediaDurations.set("https://cdn.test/shot-a.mp4", 5.184);
+    mediaDurations.set("https://cdn.test/shot-b.mp4", 3.2);
+    createMutate.mockResolvedValue({ id: "tl-new" });
+    updateMutate.mockResolvedValue({});
+
+    const { result } = renderHook(() => useAssembleTimeline());
+    await act(async () => {
+      await result.current.assemble("board-1");
+    });
+
+    const document = updateMutate.mock.calls[0][0].document;
+    const picture = document.clips.filter(
+      (clip: TimelineClip) => clip.mediaType === "video"
+    );
+    expect(picture.map((clip: TimelineClip) => clip.durationMs)).toEqual([
+      5184,
+      3200
+    ]);
+    expect(picture.map((clip: TimelineClip) => clip.startMs)).toEqual([0, 5184]);
+  });
+
   it("creates a sequence, links the board, and opens the tab", async () => {
     seedBoard("board-1");
     createMutate.mockResolvedValue({ id: "tl-new" });

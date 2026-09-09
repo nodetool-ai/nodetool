@@ -16,10 +16,11 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
-import type {
-  GenerationRequest,
-  JsonSchema,
-  ProcessingContext
+import {
+  mp4DurationSeconds,
+  type GenerationRequest,
+  type JsonSchema,
+  type ProcessingContext
 } from "@nodetool-ai/runtime";
 import type {
   Script,
@@ -74,7 +75,6 @@ import {
 } from "../utils/type-guards.js";
 
 import { resolveProjectId } from "./project-scope.js";
-import { mp4DurationSeconds } from "../utils/video-duration.js";
 /** Shots one call may render, so a stray `targets: "all"` cannot bankrupt a run. */
 const MAX_SHOTS_PER_CALL = 24;
 /** Attempts to land a document write: the first try plus one re-read-and-reapply (ADR 0001). */
@@ -1007,16 +1007,46 @@ const assembleStoryboardTimeline: CapabilityExport = {
       );
     }
 
+    const { loadMediaRefBytes, probeVideoDurationSeconds } =
+      await import("@nodetool-ai/runtime");
+    const { applyMeasuredShotClipDurations } =
+      await import("@nodetool-ai/timeline");
+    const signal = context.signal ?? new AbortController().signal;
+    const measurements = await mapWithConcurrency(
+      doc.shots,
+      clampConcurrency(undefined),
+      async (shot) => {
+        const clip = shot.clip;
+        const assetId = clip?.asset_id;
+        if (shot.status !== "rendered" || !assetId) return null;
+        try {
+          const bytes = await loadMediaRefBytes(clip, context);
+          const seconds = bytes?.length
+            ? await probeVideoDurationSeconds(bytes, signal)
+            : null;
+          return seconds === null ? null : ([assetId, seconds] as const);
+        } catch (error) {
+          if (signal.aborted) throw error;
+          return null;
+        }
+      }
+    );
+    const durations = new Map<string, number>();
+    for (const measurement of measurements) {
+      if (measurement) durations.set(...measurement);
+    }
+    const measuredShots = applyMeasuredShotClipDurations(doc.shots, durations);
+
     const assembled = script
       ? buildLinkedTimeline({
           boardId: row.id,
-          shots: doc.shots,
+          shots: measuredShots,
           musicPrompt: doc.screenplay?.music_prompt,
           script
         })
       : buildStoryboardTimeline({
           boardId: row.id,
-          shots: doc.shots,
+          shots: measuredShots,
           narration: doc.screenplay?.narration,
           musicPrompt: doc.screenplay?.music_prompt
         });

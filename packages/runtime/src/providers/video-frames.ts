@@ -13,6 +13,8 @@
  */
 
 import { importNodeBuiltin } from "@nodetool-ai/config";
+import { withSpan } from "../tracing-helpers.js";
+import { mp4DurationSeconds } from "./video-duration.js";
 
 /** A single sampled frame, JPEG-encoded. */
 export type SampledFrame = {
@@ -170,12 +172,42 @@ async function probeDuration(
     const seconds = Number(stdout.trim().split("\n")[0]);
     return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
   } catch (error) {
+    if (signal?.aborted) throw error;
     // A missing binary is actionable and must reach the caller. A probe that
     // ran and failed (an odd container, no format header) is not: the sample
     // falls back to the ceiling rate below.
     if (error instanceof FrameSamplingUnavailableError) throw error;
     return null;
   }
+}
+
+/** Read a video duration from its bytes without decoding frames. */
+export async function probeVideoDurationSeconds(
+  bytes: Uint8Array,
+  signal: AbortSignal
+): Promise<number | null> {
+  signal.throwIfAborted();
+  const mp4Duration = mp4DurationSeconds(bytes);
+  if (mp4Duration !== null) {
+    signal.throwIfAborted();
+    return mp4Duration;
+  }
+  return withSpan(
+    "media.probe_video_duration",
+    { "media.byte_length": bytes.byteLength },
+    async () => {
+      const { cp, fs, os, path } = await nodeModules();
+      const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-vduration-"));
+      const input = path.join(dir, "input.bin");
+      try {
+        await fs.writeFile(input, bytes, { signal });
+        return await probeDuration(cp, input, signal);
+      } finally {
+        // Cleanup failure must not replace the duration result or probe error.
+        await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+      }
+    }
+  );
 }
 
 /**

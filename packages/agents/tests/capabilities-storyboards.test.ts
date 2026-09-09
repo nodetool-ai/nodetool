@@ -37,6 +37,21 @@ import { Tool } from "../src/tools/base-tool.js";
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
 const MP4 = new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112]);
 
+function mp4WithDuration(durationMs: number): Uint8Array {
+  const box = (type: string, payload: Uint8Array): Uint8Array => {
+    const out = new Uint8Array(8 + payload.length);
+    new DataView(out.buffer).setUint32(0, out.length);
+    for (let i = 0; i < 4; i++) out[4 + i] = type.charCodeAt(i);
+    out.set(payload, 8);
+    return out;
+  };
+  const header = new Uint8Array(100);
+  const view = new DataView(header.buffer);
+  view.setUint32(12, 1000);
+  view.setUint32(16, durationMs);
+  return box("moov", box("mvhd", header));
+}
+
 /** The same fake surface `tests/storyboard-render-tools.test.ts` builds. */
 function ctx(userId = "u1") {
   const created: Array<{ id: string; bytes: Uint8Array }> = [];
@@ -753,6 +768,31 @@ describe("storyboards capability behaviour", () => {
       ["video", 5184],
       ["audio", 5184]
     ]);
+  });
+
+  it("measures the stored clip when its ref has no duration", async () => {
+    const board = await makeBoard([
+      shot({
+        id: "s1",
+        index: 0,
+        status: "rendered",
+        duration_seconds: 1.5,
+        clip: { type: "video", asset_id: "clip-s1" }
+      })
+    ]);
+    const context = ctx();
+    context.resolveAssetBytes = vi.fn(async () => ({
+      bytes: mp4WithDuration(5184)
+    }));
+
+    const assembled = (await run(context).invoke(
+      "assemble_storyboard_timeline",
+      { storyboard_id: board.id }
+    )) as { timeline_id: string; duration_ms: number };
+
+    expect(assembled.duration_ms).toBe(5184);
+    const document = (await sequenceOf(assembled.timeline_id)).toDocument();
+    expect(document.clips.map((clip) => clip.durationMs)).toEqual([5184, 5184]);
   });
 
   it("cuts a linked board against the script's takes", async () => {
