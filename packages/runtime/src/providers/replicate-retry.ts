@@ -13,8 +13,8 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
-import { setTimeout as waitForRetry } from "node:timers/promises";
 import { isFiniteNumber, isRecord, isString } from "@nodetool-ai/protocol";
+import { sleep } from "./http-transport.js";
 
 const log = createLogger("nodetool.runtime.providers.replicate");
 
@@ -101,11 +101,7 @@ export async function withReplicateRetry<T>(
         delayMs: delay,
         retryAfterMs: requested
       });
-      if (signal) {
-        await waitForRetry(delay, undefined, { signal });
-      } else {
-        await new Promise<void>((resolve) => setTimeout(resolve, delay));
-      }
+      await sleep(delay, signal);
     }
   }
 }
