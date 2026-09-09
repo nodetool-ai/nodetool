@@ -185,6 +185,7 @@ describe("provider-registry — extended coverage", () => {
     const imageToVideo = vi.fn(async () => new Uint8Array([2]));
     const provider = new PythonProvider({
       _id: "wangp",
+      _capabilities: ["text_to_audio", "text_to_speech_encoded"],
       _bridge: {
         providerTextToVideo: textToVideo,
         providerImageToVideo: imageToVideo
@@ -257,5 +258,32 @@ describe("provider-registry — extended coverage", () => {
       { text: "hello", model: "qwen3" },
       {}
     );
+  });
+
+  it("uses declared TTS capabilities to select encoded or streaming transport", async () => {
+    const providerTTSEncoded = vi.fn(async () => new Uint8Array([1]));
+    const encoded = new PythonProvider({
+      _id: "wangp",
+      _capabilities: ["text_to_speech_encoded"],
+      _bridge: { providerTTSEncoded }
+    } as any);
+    expect(encoded.supportsStreamingTextToSpeech()).toBe(false);
+    await expect(
+      encoded.textToSpeechEncoded({ text: "hello", model: "qwen3" })
+    ).resolves.toEqual({
+      data: new Uint8Array([1]),
+      mimeType: "audio/mpeg"
+    });
+
+    const streaming = new PythonProvider({
+      _id: "huggingface",
+      _capabilities: ["text_to_speech"],
+      _bridge: { providerTTSEncoded }
+    } as any);
+    expect(streaming.supportsStreamingTextToSpeech()).toBe(true);
+    await expect(
+      streaming.textToSpeechEncoded({ text: "hello", model: "local-tts" })
+    ).resolves.toBeNull();
+    expect(providerTTSEncoded).toHaveBeenCalledTimes(1);
   });
 });

@@ -37,6 +37,8 @@ type PythonProviderOptions = Record<string, unknown> & {
   _bridge: PythonBridgeBase;
   /** Provider id understood by the Python worker when the public id is aliased. */
   _bridgeProviderId?: string;
+  /** Operations advertised by the Python worker for this provider. */
+  _capabilities?: string[];
 };
 
 function parseModelAdapter(value: unknown): ModelAdapterInfo | undefined {
@@ -75,6 +77,8 @@ export class PythonProvider extends BaseProvider {
   private _bridge: PythonBridgeBase;
   private _pythonProviderId: string;
   private _secrets: Record<string, string>;
+  private _supportsStreamingTTS = true;
+  private _supportsEncodedTTS = true;
 
   constructor(
     providerId: string,
@@ -98,11 +102,17 @@ export class PythonProvider extends BaseProvider {
       return;
     }
 
-    const { _id, _bridge, _bridgeProviderId, ...rawSecrets } =
+    const { _id, _bridge, _bridgeProviderId, _capabilities, ...rawSecrets } =
       providerIdOrOptions;
     super(_id);
     this._bridge = _bridge;
     this._pythonProviderId = _bridgeProviderId ?? _id;
+    if (Array.isArray(_capabilities)) {
+      this._supportsStreamingTTS = _capabilities.includes("text_to_speech");
+      this._supportsEncodedTTS = _capabilities.includes(
+        "text_to_speech_encoded"
+      );
+    }
     this._secrets = Object.fromEntries(
       Object.entries(rawSecrets).filter(
         (entry): entry is [string, string] => typeof entry[1] === "string"
@@ -345,9 +355,14 @@ export class PythonProvider extends BaseProvider {
     }
   }
 
+  override supportsStreamingTextToSpeech(): boolean {
+    return this._supportsStreamingTTS;
+  }
+
   async textToSpeechEncoded(
     args: TextToSpeechParams
   ): Promise<EncodedAudioResult | null> {
+    if (!this._supportsEncodedTTS) return null;
     const data = await this._bridge.providerTTSEncoded(
       this._pythonProviderId,
       { ...args },

@@ -30,6 +30,7 @@ describe("registerPythonProviders", () => {
     expect(getRegisteredProvider("huggingface-local")?.kwargs).toMatchObject({
       _id: "huggingface-local",
       _bridgeProviderId: "huggingface",
+      _capabilities: ["text_to_speech"],
       _bridge: bridge
     });
     expect(getRegisteredProvider("huggingface-local")?.metadata).toEqual({

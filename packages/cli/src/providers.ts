@@ -149,7 +149,8 @@ async function ensurePythonProvidersRegistered(): Promise<void> {
         if (listRegisteredProviderIds().includes(info.id)) continue;
         registerProvider(info.id, PythonProvider as never, {
           _bridge: bridge,
-          _id: info.id
+          _id: info.id,
+          _capabilities: info.capabilities
         });
       }
     })().catch((err) => {
