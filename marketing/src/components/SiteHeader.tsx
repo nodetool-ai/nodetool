@@ -96,7 +96,7 @@ document.addEventListener("click",function(e){
   if(hit.getAttribute("data-nav")==="open"){open();}else{close();}
 });
 document.addEventListener("keydown",function(e){if(e.key==="Escape")close();});
-var wide=window.matchMedia("(min-width: 768px)");
+var wide=window.matchMedia("(min-width: 1280px)");
 (wide.addEventListener?wide.addEventListener.bind(wide,"change"):wide.addListener.bind(wide))(function(e){if(e.matches)close();});
 window.__ntNavMenu={open:open,close:close};
 })();`;
@@ -117,12 +117,12 @@ export default function SiteHeader() {
         aria-label="Primary"
       >
         <div className="mx-auto max-w-7xl px-6 lg:px-8 py-2 sm:py-3">
-          <div className="relative flex items-center justify-center gap-6 w-full min-h-[44px] sm:min-h-[56px]">
-            <div className="absolute left-0 flex items-center h-9 sm:h-10">
+          <div className="flex items-center justify-between gap-4 w-full min-h-[44px] sm:min-h-[56px]">
+            <div className="shrink-0 flex items-center h-9 sm:h-10">
               <Wordmark />
             </div>
 
-            <ul className="hidden md:flex items-center gap-1 lg:gap-2 mx-auto rounded-full bg-slate-900/40 ring-1 ring-white/5 px-2 py-1 border border-slate-800/50">
+            <ul className="hidden xl:flex items-center gap-1 rounded-full bg-slate-900/40 ring-1 ring-white/5 px-2 py-1 border border-slate-800/50">
               {NAV.map((item) => {
                 const active = isActive(item);
                 return (
@@ -151,10 +151,10 @@ export default function SiteHeader() {
               })}
             </ul>
 
-            <div className="absolute right-0 flex items-center gap-2 h-full">
+            <div className="shrink-0 flex items-center gap-2 h-full">
               <button
                 type="button"
-                className="md:hidden rounded-md p-1.5 text-slate-300 hover:bg-slate-800/60 transition-colors focus-ring"
+                className="xl:hidden rounded-md p-1.5 text-slate-300 hover:bg-slate-800/60 transition-colors focus-ring"
                 data-nav="open"
                 aria-expanded={false}
                 aria-label="Open menu"

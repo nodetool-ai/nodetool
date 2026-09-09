@@ -13,53 +13,33 @@ export default function NodeToolHero() {
         <div className="absolute top-1/2 -right-20 h-[20rem] w-[20rem] rounded-full bg-amber-500/10 blur-[120px]" />
       </div>
 
-      <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-10">
-        {/* Left: copy */}
-        <div className="hero-rise lg:col-span-5">
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+        <div className="hero-rise lg:col-span-12">
           <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-300">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
             Agents build. You edit.
           </span>
 
-          {/*
-           * background-clip: text paints the gradient only inside the span's
-           * box, so anything outside it renders transparent rather than
-           * overflowing visibly. That made two things disappear: with
-           * whitespace-nowrap the headline is wider than the 5/12 column at
-           * every lg width, so the tail of the line vanished, and at
-           * leading-[1.05] the descender of "agent" was cut. Hence: no nowrap,
-           * looser leading, and bottom padding on the gradient line.
-           */}
           <h1
             id="hero-title"
-            className="mt-5 text-balance text-[clamp(2rem,7.5vw,3.25rem)] font-bold leading-[1.1] tracking-tight text-white lg:text-[clamp(2.25rem,3.6vw,3.25rem)]"
+            className="mt-4 text-balance text-4xl font-bold leading-tight tracking-tight text-slate-50 sm:text-5xl lg:text-6xl"
           >
-            <span className="block">Open-source</span>
-            <span className="block bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text pb-[0.12em] text-transparent">
+            <span>Open-source</span>{" "}
+            <span className="bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text pb-1 text-transparent">
               creative AI workspace
             </span>
           </h1>
+        </div>
 
-          <p className="mt-5 max-w-lg text-lg leading-relaxed text-slate-300">
+        <div className="hero-rise lg:col-span-5">
+          <p className="max-w-lg text-lg leading-relaxed text-slate-300">
             Create and edit images, video, audio, and text with agents that work
             alongside you. Describe what you want, let the agent build it, then
             take over whenever you like. Refine a shot, try a different voice, or
             rework the cut, yourself or with the agent.
           </p>
 
-          <p className="mt-4 max-w-lg leading-relaxed text-slate-400">
-            You get an editable project, not just a finished file. Your
-            workflows, assets, and edits stay together, so you can inspect how
-            something was made and change individual parts without starting
-            over.
-          </p>
-
-          <p className="mt-4 max-w-lg leading-relaxed text-slate-400">
-            Run local models or connect cloud providers with your own API keys.
-            Choose your models and pay providers directly.
-          </p>
-
-          <div className="mt-7 flex">
+          <div className="mt-6 flex">
             <SmartDownloadButton
               icon={<Download className="h-5 w-5" />}
               classNameOverride="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:shadow-blue-900/60"
@@ -72,7 +52,7 @@ export default function NodeToolHero() {
             Free and open source, AGPL-3.0. macOS, Windows, and Linux.
           </p>
 
-          <ul className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-300">
+          <ul className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-slate-300">
             <li className="flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5 text-fuchsia-400" />
               Script, storyboard, sketch, timeline, 3D
@@ -104,6 +84,19 @@ export default function NodeToolHero() {
               caption="One sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film. Recorded in the app — open it full screen to read the panels."
             />
           </div>
+        </div>
+        <div className="grid gap-6 border-t border-slate-800 pt-6 sm:grid-cols-2 lg:col-span-12">
+          <p className="max-w-xl text-sm leading-relaxed text-slate-400">
+            You get an editable project, not just a finished file. Your
+            workflows, assets, and edits stay together, so you can inspect how
+            something was made and change individual parts without starting
+            over.
+          </p>
+
+          <p className="max-w-xl text-sm leading-relaxed text-slate-400">
+            Run local models or connect cloud providers with your own API keys.
+            Choose your models and pay providers directly.
+          </p>
         </div>
       </div>
     </div>
