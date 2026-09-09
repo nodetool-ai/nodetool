@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   registerProvider,
   getProvider,
@@ -178,5 +178,38 @@ describe("provider-registry — extended coverage", () => {
       })
     ]);
     expect(calls).toEqual(["huggingface"]);
+  });
+
+  it("routes video generation through the Python bridge", async () => {
+    const textToVideo = vi.fn(async () => new Uint8Array([1]));
+    const imageToVideo = vi.fn(async () => new Uint8Array([2]));
+    const provider = new PythonProvider({
+      _id: "wangp",
+      _bridge: {
+        providerTextToVideo: textToVideo,
+        providerImageToVideo: imageToVideo
+      }
+    } as any);
+    const model = { id: "wan-model", name: "Wan", provider: "wangp" } as const;
+
+    await expect(
+      provider.textToVideo({ model, prompt: "ocean" })
+    ).resolves.toEqual(new Uint8Array([1]));
+    await expect(
+      provider.imageToVideo([new Uint8Array([9])], { model, prompt: "move" })
+    ).resolves.toEqual(new Uint8Array([2]));
+    expect(textToVideo).toHaveBeenCalledWith(
+      "wangp",
+      { model: "wan-model", prompt: "ocean" },
+      {},
+      undefined
+    );
+    expect(imageToVideo).toHaveBeenCalledWith(
+      "wangp",
+      new Uint8Array([9]),
+      { model: "wan-model", prompt: "move" },
+      {},
+      undefined
+    );
   });
 });

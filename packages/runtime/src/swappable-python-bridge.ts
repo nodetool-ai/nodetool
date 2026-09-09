@@ -237,7 +237,42 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
     params: Record<string, unknown>,
     secrets?: Record<string, string>
   ): Promise<Uint8Array> {
-    return this._target.providerImageToImage(providerId, image, params, secrets);
+    return this._target.providerImageToImage(
+      providerId,
+      image,
+      params,
+      secrets
+    );
+  }
+
+  providerTextToVideo(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
+    return this._target.providerTextToVideo(
+      providerId,
+      params,
+      secrets,
+      signal
+    );
+  }
+
+  providerImageToVideo(
+    providerId: string,
+    image: Uint8Array,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
+    return this._target.providerImageToVideo(
+      providerId,
+      image,
+      params,
+      secrets,
+      signal
+    );
   }
 
   providerASR(
@@ -346,7 +381,13 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
     onEvent?: (event: BlenderEvent) => void,
     requestId?: string
   ): Promise<BlenderExecuteResult> {
-    return this._target.blenderExecute(job, inputs, options, onEvent, requestId);
+    return this._target.blenderExecute(
+      job,
+      inputs,
+      options,
+      onEvent,
+      requestId
+    );
   }
 
   cancelBlenderExecute(requestId: string): void {
