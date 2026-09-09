@@ -424,15 +424,25 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         addTrack(trackType);
         const newTrack = useTimelineStore.getState().tracks.slice(-1)[0];
         if (!newTrack) return;
+        const dropMode = uiStoreApi.getState().dropMode;
         // A video on a new video track also gets a linked audio clip
         // (extracted from the video), matching the per-lane drop path.
         if (mediaType === "video") {
-          void importVideoWithAudio(asset, newTrack.id, startMs);
+          void importVideoWithAudio(asset, newTrack.id, startMs, dropMode);
         } else {
-          addImportedClip(asset, newTrack.id, startMs);
+          const clipId = addImportedClip(asset, newTrack.id, startMs);
+          docStore.getState().resolveDrop(new Set([clipId]), dropMode);
         }
       },
-      [isAssetDrag, msPerPx, addTrack, addImportedClip, importVideoWithAudio]
+      [
+        isAssetDrag,
+        msPerPx,
+        addTrack,
+        addImportedClip,
+        importVideoWithAudio,
+        docStore,
+        uiStoreApi
+      ]
     );
 
     // Total scrollable width from the real content extent, with a trailing pad

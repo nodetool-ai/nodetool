@@ -309,11 +309,12 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       // Video dropped on a video track: also create a linked audio clip from
       // the video's audio track. Everything else imports as a single clip.
+      const dropMode = useTimelineUIStore.getState().dropMode;
       if (mediaType === "video" && track.type === "video") {
-        void importVideoWithAudio(asset, track.id, startMs);
+        void importVideoWithAudio(asset, track.id, startMs, dropMode);
       } else {
         const newId = addImportedClip(asset, track.id, startMs);
-        resolveDropInStore(new Set([newId]), useTimelineUIStore.getState().dropMode);
+        resolveDropInStore(new Set([newId]), dropMode);
       }
     },
     [

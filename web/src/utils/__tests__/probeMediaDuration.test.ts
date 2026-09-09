@@ -15,6 +15,7 @@ function fakeEl(duration: number): HTMLVideoElement {
 }
 
 afterEach(() => {
+  jest.useRealTimers();
   jest.restoreAllMocks();
 });
 
@@ -51,6 +52,17 @@ describe("probeMediaDurationMs", () => {
 
     const p = probeMediaDurationMs("blob:x", "audio");
     el.onerror?.(new Event("error"));
+
+    await expect(p).resolves.toBeNull();
+  });
+
+  it("resolves to null when metadata loading stalls", async () => {
+    jest.useFakeTimers();
+    const el = fakeEl(0);
+    jest.spyOn(document, "createElement").mockReturnValue(el);
+
+    const p = probeMediaDurationMs("blob:x", "video");
+    jest.advanceTimersByTime(5_000);
 
     await expect(p).resolves.toBeNull();
   });

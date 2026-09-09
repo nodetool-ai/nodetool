@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { makeClip } from "@nodetool-ai/timeline";
 import { createTimelineStore } from "../../../stores/timeline/TimelineStore";
 import type { Asset } from "../../../stores/ApiTypes";
 import { importVideoWithAudio } from "../useVideoAudioImport";
@@ -197,5 +198,105 @@ describe("importVideoWithAudio", () => {
     expect(
       store.getState().clips.find((c) => c.mediaType === "audio")?.status
     ).toBe("failed");
+  });
+
+  it("applies overwrite mode when a video asset is dropped on an occupied track", async () => {
+    probeMock.mockResolvedValue(5000);
+    restFetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ has_audio: false })
+    });
+    const store = createTimelineStore();
+    store.getState().addTrack("video", "Video 1");
+    const videoTrackId = store.getState().tracks[0].id;
+    const existing = makeClip({
+      trackId: videoTrackId,
+      name: "existing",
+      mediaType: "video",
+      startMs: 0,
+      durationMs: 10_000,
+      status: "generated"
+    });
+    store.getState().addClip(existing);
+
+    await importVideoWithAudio(
+      store,
+      makeVideoAsset({ duration: null }),
+      videoTrackId,
+      2000,
+      "overwrite"
+    );
+
+    const existingFragments = store
+      .getState()
+      .clips.filter((clip) => clip.name === existing.name)
+      .map((clip) => [clip.startMs, clip.durationMs]);
+    expect(existingFragments).toEqual([
+      [0, 2000],
+      [7000, 3000]
+    ]);
+  });
+
+  it("applies insert mode when a video asset is dropped before another clip", async () => {
+    probeMock.mockResolvedValue(30_000);
+    restFetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ has_audio: false })
+    });
+    const store = createTimelineStore();
+    store.getState().addTrack("video", "Video 1");
+    const videoTrackId = store.getState().tracks[0].id;
+    const existing = makeClip({
+      trackId: videoTrackId,
+      name: "existing",
+      mediaType: "video",
+      startMs: 8000,
+      durationMs: 1000,
+      status: "generated"
+    });
+    store.getState().addClip(existing);
+
+    await importVideoWithAudio(
+      store,
+      makeVideoAsset({ duration: null }),
+      videoTrackId,
+      2000,
+      "insert"
+    );
+
+    expect(
+      store.getState().clips.find((clip) => clip.id === existing.id)?.startMs
+    ).toBe(38_000);
+  });
+
+  it("keeps existing clips in place when a video asset uses overlap mode", async () => {
+    restFetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ has_audio: false })
+    });
+    const store = createTimelineStore();
+    store.getState().addTrack("video", "Video 1");
+    const videoTrackId = store.getState().tracks[0].id;
+    const existing = makeClip({
+      trackId: videoTrackId,
+      name: "existing",
+      mediaType: "video",
+      startMs: 3000,
+      durationMs: 1000,
+      status: "generated"
+    });
+    store.getState().addClip(existing);
+
+    await importVideoWithAudio(
+      store,
+      makeVideoAsset(),
+      videoTrackId,
+      2000,
+      "overlap"
+    );
+
+    expect(
+      store.getState().clips.find((clip) => clip.id === existing.id)?.startMs
+    ).toBe(3000);
   });
 });

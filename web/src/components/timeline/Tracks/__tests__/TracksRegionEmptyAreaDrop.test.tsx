@@ -9,14 +9,26 @@
  */
 import { stub } from "../../../../test-utils/doubles";
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  createEvent,
+  fireEvent,
+  render,
+  screen
+} from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { TracksRegion } from "../TracksRegion";
-import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
+import {
+  createTimelineInstance,
+  TimelineProvider,
+  type TimelineInstance
+} from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 import type { Asset } from "../../../../stores/ApiTypes";
+import { makeClip } from "@nodetool-ai/timeline";
 
 /** The slice of `Response` the video-audio import path reads back. */
 type AudioExtractionResponse = {
@@ -64,10 +76,10 @@ function dataTransferFor(asset: Asset): DataTransfer {
   });
 }
 
-const renderRegion = () =>
+const renderRegion = (instance?: TimelineInstance) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <TimelineProvider>
+      <TimelineProvider instance={instance}>
         <TracksRegion heightPx={400} />
       </TimelineProvider>
     </ThemeProvider>
@@ -82,6 +94,7 @@ describe("TracksRegion empty-area drop", () => {
     });
     act(() => {
       useTimelineStore.getState().reset();
+      useTimelineUIStore.setState({ dropMode: "overwrite" });
     });
   });
 
@@ -130,5 +143,39 @@ describe("TracksRegion empty-area drop", () => {
     const audioClips = clips.filter((c) => c.mediaType === "audio");
     expect(audioClips).toHaveLength(1);
     expect(audioClips[0].linkId).toBeUndefined();
+  });
+
+  it("applies insert mode when an asset is dropped below the existing tracks", async () => {
+    restFetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ has_audio: false })
+    });
+    const instance = createTimelineInstance();
+    instance.doc.getState().addTrack("video", "Existing");
+    const existingTrackId = instance.doc.getState().tracks[0].id;
+    const existing = makeClip({
+      trackId: existingTrackId,
+      mediaType: "video",
+      startMs: 3000,
+      durationMs: 1000,
+      status: "generated"
+    });
+    instance.doc.getState().addClip(existing);
+    instance.ui.setState({ dropMode: "insert", msPerPx: 10 });
+    renderRegion(instance);
+
+    await act(async () => {
+      const dropArea = screen.getByTestId("tracks-drop-area");
+      const dropEvent = createEvent.drop(dropArea, {
+        dataTransfer: dataTransferFor(makeAsset())
+      });
+      Object.defineProperty(dropEvent, "clientX", { value: 0 });
+      fireEvent(dropArea, dropEvent);
+    });
+
+    expect(
+      instance.doc.getState().clips.find((clip) => clip.id === existing.id)
+        ?.startMs
+    ).toBe(8000);
   });
 });
