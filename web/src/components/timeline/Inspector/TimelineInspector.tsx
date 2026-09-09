@@ -116,6 +116,7 @@ export const TimelineInspector: React.FC = memo(() => {
   // Persisted fold state — closed by default, remembered across selections
   // and reloads via localStorage.
   const [mediaOpen, setMediaOpen] = usePersistedFold("media");
+  const [groupOpen, setGroupOpen] = usePersistedFold("group");
   const [timingOpen, setTimingOpen] = usePersistedFold("timing");
   // Shared with ClipAdjustments's own Render section — same persisted key,
   // so the fold state agrees whichever branch is showing it.
@@ -400,6 +401,7 @@ export const TimelineInspector: React.FC = memo(() => {
   }
 
   if (!clip) return null;
+  const isMidi = clip.mediaType === "midi";
 
   // A group draws nothing, so the media/speed panel would be all blanks.
   if (clip.mediaType === "group") {
@@ -549,44 +551,80 @@ export const TimelineInspector: React.FC = memo(() => {
         <ClipModel3DSection clip={clip} model3dStyle={model3dStyle} />
       )}
 
-      {clip.mediaType === "midi" && <ClipMidiSection clip={clip} />}
+      {isMidi && <ClipMidiSection clip={clip} />}
 
-      <CollapsibleSection
-        title={
-          <InspectorSectionTitle
-            title="Media"
-            icon={<PermMediaOutlinedIcon />}
-          />
-        }
-        open={mediaOpen}
-        onToggle={setMediaOpen}
-        unmountOnExit
-      >
-        <FlexColumn css={sectionContentStyles(theme)}>
-          <InspectorRow label="Type">
-            <InspectorStaticValue value={clip.mediaType} />
-          </InspectorRow>
-          <InspectorRow label="Asset">
-            <InspectorStaticValue value={clip.currentAssetId ?? "—"} />
-          </InspectorRow>
-          <InspectorRow label="Parent">
-            <InspectorSelect
-              label="Parent group"
-              value={clip.parentId ?? NO_PARENT}
-              options={parentOptions}
-              onChange={handleParentChange}
-              grow
+      {!isMidi && (
+        <CollapsibleSection
+          title={
+            <InspectorSectionTitle
+              title="Media"
+              icon={<PermMediaOutlinedIcon />}
             />
-          </InspectorRow>
-          {clip.parentId !== undefined && (
-            <Button size="small" variant="text" onClick={handleUngroup}>
-              Ungroup
-            </Button>
-          )}
-        </FlexColumn>
-      </CollapsibleSection>
+          }
+          open={mediaOpen}
+          onToggle={setMediaOpen}
+          unmountOnExit
+        >
+          <FlexColumn css={sectionContentStyles(theme)}>
+            <InspectorRow label="Type">
+              <InspectorStaticValue value={clip.mediaType} />
+            </InspectorRow>
+            <InspectorRow label="Asset">
+              <InspectorStaticValue value={clip.currentAssetId ?? "—"} />
+            </InspectorRow>
+            <InspectorRow label="Parent">
+              <InspectorSelect
+                label="Parent group"
+                value={clip.parentId ?? NO_PARENT}
+                options={parentOptions}
+                onChange={handleParentChange}
+                grow
+              />
+            </InspectorRow>
+            {clip.parentId !== undefined && (
+              <Button size="small" variant="text" onClick={handleUngroup}>
+                Ungroup
+              </Button>
+            )}
+          </FlexColumn>
+        </CollapsibleSection>
+      )}
 
-      <InspectorDivider />
+      {isMidi &&
+        (parentOptions.length > 1 || clip.parentId !== undefined) && (
+          <CollapsibleSection
+            title={
+              <InspectorSectionTitle
+                title="Group"
+                icon={<FolderOutlinedIcon />}
+              />
+            }
+            open={groupOpen}
+            onToggle={setGroupOpen}
+            unmountOnExit
+          >
+            <FlexColumn css={sectionContentStyles(theme)}>
+              <InspectorRow label="Parent">
+                <InspectorSelect
+                  label="Parent group"
+                  value={clip.parentId ?? NO_PARENT}
+                  options={parentOptions}
+                  onChange={handleParentChange}
+                  grow
+                />
+              </InspectorRow>
+              {clip.parentId !== undefined && (
+                <Button size="small" variant="text" onClick={handleUngroup}>
+                  Ungroup
+                </Button>
+              )}
+            </FlexColumn>
+          </CollapsibleSection>
+        )}
+
+      {(!isMidi ||
+        parentOptions.length > 1 ||
+        clip.parentId !== undefined) && <InspectorDivider />}
 
       <CollapsibleSection
         title={
@@ -617,20 +655,24 @@ export const TimelineInspector: React.FC = memo(() => {
               ariaLabel="Duration in seconds"
             />
           </InspectorRow>
-          <InspectorRow label="Speed">
-            <InspectorPillInput
-              value={(clip.speedMultiplier ?? 1).toFixed(2)}
-              unit="×"
-              scrub={SCRUB_SPEED}
-              onCommit={handleSpeedCommit}
-              ariaLabel="Playback speed"
-            />
-          </InspectorRow>
-          <InspectorToggleRow
-            label="Hidden"
-            checked={!!clip.hidden}
-            onChange={handleHiddenChange}
-          />
+          {!isMidi && (
+            <>
+              <InspectorRow label="Speed">
+                <InspectorPillInput
+                  value={(clip.speedMultiplier ?? 1).toFixed(2)}
+                  unit="×"
+                  scrub={SCRUB_SPEED}
+                  onCommit={handleSpeedCommit}
+                  ariaLabel="Playback speed"
+                />
+              </InspectorRow>
+              <InspectorToggleRow
+                label="Hidden"
+                checked={!!clip.hidden}
+                onChange={handleHiddenChange}
+              />
+            </>
+          )}
         </FlexColumn>
       </CollapsibleSection>
 
@@ -638,13 +680,13 @@ export const TimelineInspector: React.FC = memo(() => {
 
       <ClipAdjustments clip={clip} />
 
-      <ClipTimeRemapSection clip={clip} />
+      {!isMidi && <ClipTimeRemapSection clip={clip} />}
 
       <ClipCompositionInfo clip={clip} />
 
-      <ClipAnimations clip={clip} />
+      {!isMidi && <ClipAnimations clip={clip} />}
 
-      <ClipKeyframes clip={clip} />
+      {!isMidi && <ClipKeyframes clip={clip} />}
 
       <ClipAudioDrive key={clip.id} clip={clip} />
     </Panel>

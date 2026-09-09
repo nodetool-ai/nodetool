@@ -1,12 +1,20 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { installGlobal } from "../../../../test-utils/doubles";
+import { act, render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
+
+installGlobal("AudioContext", class AudioContext {});
 
 jest.mock("../PreviewCompositor", () => ({
   PreviewCompositor: () =>
     React.createElement("div", { "data-testid": "preview-compositor" })
 }));
+
+const mockScheduleClips = jest.fn().mockResolvedValue(undefined);
+const mockAddClips = jest.fn().mockResolvedValue(undefined);
+const mockStopClips = jest.fn();
 
 jest.mock("../AudioGraph", () => {
   return {
@@ -18,7 +26,9 @@ jest.mock("../AudioGraph", () => {
       suspend = jest.fn();
       resume = jest.fn();
       playFrom = jest.fn();
-      scheduleClips = jest.fn();
+      scheduleClips = mockScheduleClips;
+      addClips = mockAddClips;
+      stopClips = mockStopClips;
       scheduleClipsAt = jest.fn();
       seek = jest.fn();
       setMasterVolume = jest.fn();
@@ -28,7 +38,11 @@ jest.mock("../AudioGraph", () => {
         resume: jest.fn().mockResolvedValue(undefined),
         suspend: jest.fn().mockResolvedValue(undefined),
         currentTime: 0,
-        state: "suspended" as const
+        state: "suspended" as const,
+        sampleRate: 48_000,
+        createBuffer: (_channels: number, length: number) => ({
+          getChannelData: () => new Float32Array(length)
+        })
       });
     }
   };
@@ -39,6 +53,7 @@ const mockPause = jest.fn();
 const mockStop = jest.fn();
 const mockSetCurrentTimeMs = jest.fn();
 const mockSeek = jest.fn();
+const mockSetRate = jest.fn();
 const mockSetTimeMs = jest.fn();
 const mockSubscribeTime = jest.fn(() => () => {});
 
@@ -46,6 +61,12 @@ let mockCurrentTimeMs = 0;
 let mockIsPlaying = false;
 let mockDurationMs = 60_000;
 let mockClips: unknown[] = [];
+const mockTimelineListeners = new Set<() => void>();
+
+function setMockClips(clips: unknown[]) {
+  mockClips = clips;
+  for (const listener of mockTimelineListeners) listener();
+}
 
 jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
   const getState = () => ({
@@ -56,6 +77,8 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
     stop: mockStop,
     setCurrentTimeMs: mockSetCurrentTimeMs,
     seek: mockSeek,
+    setRate: mockSetRate,
+    rate: 1,
     seekNonce: 0,
     setTimeMs: mockSetTimeMs,
     getTimeMs: () => mockCurrentTimeMs,
@@ -89,7 +112,13 @@ jest.mock("../../../../stores/timeline/TimelineStore", () => {
   useTimelineStore.getState = getState;
   return {
     useTimelineStore,
-    useTimelineStoreApi: () => ({ getState })
+    useTimelineStoreApi: () => ({
+      getState,
+      subscribe: (listener: () => void) => {
+        mockTimelineListeners.add(listener);
+        return () => mockTimelineListeners.delete(listener);
+      }
+    })
   };
 });
 
@@ -132,12 +161,19 @@ const renderPreview = (props = {}) =>
   );
 
 describe("PreviewArea", () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockScheduleClips.mockResolvedValue(undefined);
+    mockAddClips.mockResolvedValue(undefined);
     mockCurrentTimeMs = 0;
     mockIsPlaying = false;
     mockDurationMs = 60_000;
     mockClips = [];
+    mockTimelineListeners.clear();
     mockMatteViewEnabled = false;
     mockSelectedClipIds = new Set<string>();
   });
@@ -287,6 +323,205 @@ describe("PreviewArea", () => {
         screen.getByRole("button", { name: "Next clip boundary" })
       );
       expect(mockSetCurrentTimeMs).toHaveBeenCalledWith(10_000);
+    });
+
+    it("refreshes a playing MIDI clip after mix controls change", async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      const midiClip = {
+        id: "midi-1",
+        trackId: "midi-track",
+        name: "MIDI",
+        mediaType: "midi",
+        sourceType: "imported",
+        status: "generated",
+        startMs: 0,
+        durationMs: 10_000,
+        notes: [
+          {
+            id: "n1",
+            startTick: 0,
+            durationTicks: 960,
+            pitch: 60,
+            velocity: 100
+          }
+        ]
+      };
+      mockClips = [midiClip];
+      renderPreview();
+
+      await user.click(screen.getByRole("button", { name: "Play" }));
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(mockScheduleClips).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        setMockClips([{ ...midiClip, volumeDb: -6 }]);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(mockStopClips).toHaveBeenLastCalledWith(["midi-1"]);
+      expect(mockAddClips).toHaveBeenCalledTimes(1);
+
+      mockStopClips.mockClear();
+      mockAddClips.mockClear();
+      await act(async () => {
+        setMockClips([{ ...midiClip, volumeDb: -6, muted: true }]);
+        await Promise.resolve();
+      });
+      expect(mockStopClips).toHaveBeenCalledWith(["midi-1"]);
+      expect(mockAddClips).not.toHaveBeenCalled();
+    });
+
+    it("schedules MIDI immediately when it is unmuted during playback", async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      const midiClip = {
+        id: "midi-muted",
+        trackId: "midi-track",
+        name: "Muted MIDI",
+        mediaType: "midi",
+        sourceType: "imported",
+        startMs: 0,
+        durationMs: 10_000,
+        muted: true,
+        notes: [
+          {
+            id: "n1",
+            startTick: 0,
+            durationTicks: 960,
+            pitch: 60,
+            velocity: 100
+          }
+        ]
+      };
+      mockClips = [midiClip];
+      renderPreview();
+
+      await user.click(screen.getByRole("button", { name: "Play" }));
+      expect(mockScheduleClips).not.toHaveBeenCalled();
+
+      await act(async () => {
+        setMockClips([{ ...midiClip, muted: false }]);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(mockAddClips).toHaveBeenCalledTimes(1);
+    });
+
+    it("serializes rapid MIDI refreshes so the newest mix is installed last", async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      const midiClip = {
+        id: "midi-rapid",
+        trackId: "midi-track",
+        name: "MIDI",
+        mediaType: "midi",
+        sourceType: "imported",
+        startMs: 0,
+        durationMs: 10_000,
+        notes: [
+          {
+            id: "n1",
+            startTick: 0,
+            durationTicks: 960,
+            pitch: 60,
+            velocity: 100
+          }
+        ]
+      };
+      mockClips = [midiClip];
+      renderPreview();
+      await user.click(screen.getByRole("button", { name: "Play" }));
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      let finishFirstRefresh!: () => void;
+      mockAddClips.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            finishFirstRefresh = resolve;
+          })
+      );
+
+      await act(async () => {
+        setMockClips([{ ...midiClip, volumeDb: -3 }]);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(mockAddClips).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        setMockClips([{ ...midiClip, volumeDb: -9 }]);
+        await Promise.resolve();
+      });
+      expect(mockAddClips).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        finishFirstRefresh();
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(mockAddClips).toHaveBeenCalledTimes(2);
+      expect(mockAddClips.mock.calls[1][0][0].clip.volumeDb).toBe(-9);
+    });
+
+    it("reconciles MIDI edits made while initial scheduling is pending", async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      const midiClip = {
+        id: "midi-starting",
+        trackId: "midi-track",
+        name: "MIDI",
+        mediaType: "midi",
+        sourceType: "imported",
+        startMs: 0,
+        durationMs: 10_000,
+        notes: [
+          {
+            id: "n1",
+            startTick: 0,
+            durationTicks: 960,
+            pitch: 60,
+            velocity: 100
+          }
+        ]
+      };
+      let finishInitialSchedule!: () => void;
+      mockScheduleClips.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            finishInitialSchedule = resolve;
+          })
+      );
+      mockClips = [midiClip];
+      renderPreview();
+
+      await user.click(screen.getByRole("button", { name: "Play" }));
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(mockScheduleClips).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        setMockClips([{ ...midiClip, volumeDb: -12 }]);
+        finishInitialSchedule();
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(mockStopClips).toHaveBeenCalledWith(["midi-starting"]);
+      expect(mockAddClips).toHaveBeenCalledTimes(1);
+      expect(mockAddClips.mock.calls[0][0][0].clip.volumeDb).toBe(-12);
     });
   });
 
