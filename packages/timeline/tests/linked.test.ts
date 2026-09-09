@@ -201,6 +201,8 @@ describe("buildLinkedTimeline", () => {
     expect(fromLinked?.name).toBe(fromScript.name);
     expect(fromLinked?.prompt).toBe(fromScript.prompt);
     expect(fromLinked?.speaker).toBe("Ada");
+    expect(fromLinked?.provider).toBe("elevenlabs");
+    expect(fromLinked?.model).toBe("v3");
     expect(fromLinked?.voice).toBe("rachel");
     expect(fromLinked?.caption).toEqual(fromScript.caption);
     expect(fromLinked?.currentAssetId).toBe(fromScript.currentAssetId);
@@ -513,11 +515,13 @@ describe("unlinked assembly is unchanged", () => {
         startMs: 0,
         durationMs: 1000,
         mediaType: "audio",
-        sourceType: "imported",
+        sourceType: "generated",
         bindingKind: "text-to-audio",
         status: "generated",
         currentAssetId: "asset-a",
         prompt: "text of a",
+        provider: "elevenlabs",
+        model: "v3",
         voice: "rachel",
         speaker: "Ada",
         caption: { words: [{ word: "a", startMs: 0, endMs: 1000 }] },
@@ -531,11 +535,13 @@ describe("unlinked assembly is unchanged", () => {
         startMs: 1250,
         durationMs: 2000,
         mediaType: "audio",
-        sourceType: "imported",
+        sourceType: "generated",
         bindingKind: "text-to-audio",
         status: "generated",
         currentAssetId: "asset-c",
         prompt: "text of c",
+        provider: "elevenlabs",
+        model: "v3",
         voice: "rachel",
         speaker: "Ada",
         caption: { words: [{ word: "c", startMs: 0, endMs: 2000 }] },

@@ -6,6 +6,7 @@ import { useAssembleScriptTimeline } from "../useAssembleScriptTimeline";
 import { useScriptStore, type ScriptTake } from "../../../stores/script/ScriptStore";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import { trpcClient } from "../../../trpc/client";
+import { buildTranscriptDoc } from "../../../stores/timeline/transcriptOps";
 
 jest.mock("../../../trpc/client", () => ({
   trpcClient: {
@@ -61,7 +62,7 @@ beforeEach(() => {
 });
 
 describe("useAssembleScriptTimeline", () => {
-  it("creates a sequence, links the script, and opens the tab", async () => {
+  it("creates a sequence and preserves text without word timings", async () => {
     seedVoicedScript("script-1", null);
     createMutate.mockResolvedValue({ id: "tl-new" });
     updateMutate.mockResolvedValue({});
@@ -78,6 +79,10 @@ describe("useAssembleScriptTimeline", () => {
     expect(useScriptStore.getState().getScript("script-1")?.timelineId).toBe(
       "tl-new"
     );
+    const document = updateMutate.mock.calls[0][0].document;
+    expect(buildTranscriptDoc(document.clips).segments).toEqual([
+      expect.objectContaining({ draftText: "hi" })
+    ]);
     expect(getQuery).not.toHaveBeenCalled();
   });
 
@@ -172,7 +177,7 @@ describe("useAssembleScriptTimeline", () => {
     );
   });
 
-  it("cuts the linked storyboard's shots in with the words", async () => {
+  it("cuts linked shots in and preserves text without word timings", async () => {
     seedVoicedScript("script-1", null);
     useScriptStore.getState().setStoryboardLink("script-1", "board-1");
     boardQuery.mockResolvedValue({
@@ -218,6 +223,9 @@ describe("useAssembleScriptTimeline", () => {
     expect(voice).toHaveLength(1);
     expect(voice[0].storyboardShotId).toBe("shot-a");
     expect(voice[0].storyboardBoardId).toBe("board-1");
+    expect(buildTranscriptDoc(doc.clips).segments).toEqual([
+      expect.objectContaining({ draftText: "hi" })
+    ]);
   });
 
   it("assembles voiceover-only when the linked storyboard is gone", async () => {

@@ -110,6 +110,7 @@ export function buildScriptTimeline(
     const durationMs =
       take.durationMs > 0 ? take.durationMs : PLACEHOLDER_LINE_MS;
     const words = takeCaptionWords(take);
+    const voice = effectiveVoice(line, input.cast);
     clips.push(
       makeClip({
         trackId: track.id,
@@ -117,12 +118,17 @@ export function buildScriptTimeline(
         startMs: cursorMs,
         durationMs,
         mediaType: "audio",
-        sourceType: "imported",
+        // This is authored TTS, even though its audio asset already exists.
+        // Providers without word timings need the generated-clip prompt
+        // fallback so the transcript panel and script lane still show text.
+        sourceType: "generated",
         bindingKind: "text-to-audio",
         status: "generated",
         currentAssetId: take.assetId,
         prompt: line.text,
-        voice: effectiveVoice(line, input.cast)?.voice,
+        provider: voice?.provider,
+        model: voice?.model,
+        voice: voice?.voice,
         speaker: speakerName(line.speakerId),
         caption: words.length ? { words } : undefined,
         scriptId: input.scriptId,

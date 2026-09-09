@@ -146,6 +146,7 @@ export function buildLinkedTimeline(
       }
       const words = takeCaptionWords(take);
       const pauseMs = Math.max(0, line.pauseAfterMs ?? 0);
+      const voice = effectiveVoice(line, input.script.cast);
       clips.push(
         makeClip({
           trackId: voiceTrack.id,
@@ -153,12 +154,16 @@ export function buildLinkedTimeline(
           startMs: shotStartMs + offsetMs,
           durationMs: lineMs - pauseMs,
           mediaType: "audio",
-          sourceType: "imported",
+          // Keep authored TTS identifiable as generated when the take has no
+          // word timings, so transcript surfaces fall back to its prompt.
+          sourceType: "generated",
           bindingKind: "text-to-audio",
           status: "generated",
           currentAssetId: take.assetId,
           prompt: line.text,
-          voice: effectiveVoice(line, input.script.cast)?.voice,
+          provider: voice?.provider,
+          model: voice?.model,
+          voice: voice?.voice,
           speaker: speakerName(line.speakerId),
           caption: words.length ? { words } : undefined,
           scriptId: input.script.scriptId,
