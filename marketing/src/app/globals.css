@@ -539,14 +539,14 @@
 /*
  * The mobile menu is CSS state, not React state: the header ships an inline
  * script that toggles `data-nav-open` on <html> while the page is still
- * parsing, so a tap works long before hydration. Below `md` only — the panel
+ * parsing, so a tap works long before hydration. Below `xl` only — the panel
  * duplicates the desktop nav.
  */
 .site-nav-overlay {
   display: none;
 }
 
-@media (max-width: 767.98px) {
+@media (max-width: 1279.98px) {
   html[data-nav-open] .site-nav-overlay {
     display: block;
   }
