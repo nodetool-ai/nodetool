@@ -329,12 +329,16 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
      *  still need scheduling. */
     const scheduledClipIdsRef = useRef<Set<string>>(new Set());
 
-    /**
-     * The render key of every midi clip scheduled this session, so an edit to
-     * its notes, its track's instrument or the tempo can be spotted while
-     * playing. Cleared with the rest of the session.
-     */
+    /** The render and mix key of every midi clip scheduled this session, so
+     * note, instrument, tempo, mute, volume, and fade edits are heard while
+     * playing. Cleared with the rest of the session. */
     const scheduledMidiKeysRef = useRef<Map<string, string>>(new Map());
+    /** True once the current forward-playback session has started its clock,
+     * including sessions that began with every sound clip muted. */
+    const audioSessionActiveRef = useRef(false);
+    /** Serializes timer and edit-driven top-ups. A later MIDI edit must run
+     * after an in-flight render so the newest source is always installed last. */
+    const topUpQueueRef = useRef<Promise<void>>(Promise.resolve());
     /** Windowed-audio top-up interval id — started in handlePlay, cleared
      *  with the rest of the session. */
     const topUpIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
@@ -365,10 +369,12 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
      *  every path that stops or restarts audio — pause, stop, the
      *  end-of-timeline auto-pause, seek, and the top of handlePlay itself. */
     const stopAudioSession = useCallback(() => {
+      audioSessionActiveRef.current = false;
       clearTopUpInterval();
       clearSeekDebounce();
       scheduledClipIdsRef.current.clear();
       scheduledMidiKeysRef.current.clear();
+      topUpQueueRef.current = Promise.resolve();
     }, [clearTopUpInterval, clearSeekDebounce]);
 
     useEffect(() => {
@@ -423,17 +429,24 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       [getAsset, timelineApi]
     );
 
-    /** The key `clip`'s current render answers to, or null when it is not midi. */
-    const midiKeyOf = useCallback(
+    /** The key `clip`'s scheduled sound answers to, or null when not MIDI. */
+    const midiScheduleKeyOf = useCallback(
       (clip: TimelineClip): string | null => {
         if (clip.mediaType !== "midi") return null;
         const state = timelineApi.getState();
-        return midiRenderKey({
+        const renderKey = midiRenderKey({
           clip,
           bpm: resolveTempo(state).bpm,
           instrument: instrumentForTrack(state.tracks, clip.trackId),
           sampleRate: graphRef.current.context?.sampleRate ?? 48_000
         });
+        return [
+          renderKey,
+          clip.muted === true ? 1 : 0,
+          clip.volumeDb ?? 0,
+          clip.fadeInMs ?? 0,
+          clip.fadeOutMs ?? 0
+        ].join(":");
       },
       [timelineApi]
     );
@@ -464,18 +477,24 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             !scheduledClipIdsRef.current.has(c.id)
         );
 
-        // A midi clip already scheduled whose render key moved (its notes, its
-        // track's instrument, or the tempo changed) is stopped and re-added at
-        // the live position, so the edit is heard rather than waiting for the
-        // next play.
-        const restaleMidiClips = clipsNow.filter((c) => {
+        // A MIDI clip already scheduled whose render or mix key changed is
+        // stopped. Audible clips are re-added at the live position; muted or
+        // finished clips are forgotten so unmuting can schedule them again.
+        const changedMidiClips = clipsNow.filter((c) => {
           if (!scheduledClipIdsRef.current.has(c.id)) return false;
-          if (!isPendingAudioClip(c, liveMs)) return false;
-          const key = midiKeyOf(c);
+          const key = midiScheduleKeyOf(c);
           return key !== null && key !== scheduledMidiKeysRef.current.get(c.id);
         });
-        if (restaleMidiClips.length > 0) {
-          graph.stopClips(restaleMidiClips.map((c) => c.id));
+        if (changedMidiClips.length > 0) {
+          graph.stopClips(changedMidiClips.map((c) => c.id));
+        }
+        const restaleMidiClips = changedMidiClips.filter((c) =>
+          isPendingAudioClip(c, liveMs)
+        );
+        for (const c of changedMidiClips) {
+          if (restaleMidiClips.includes(c)) continue;
+          scheduledClipIdsRef.current.delete(c.id);
+          scheduledMidiKeysRef.current.delete(c.id);
         }
 
         const pending = [...newlyEnteredClips, ...restaleMidiClips];
@@ -485,7 +504,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         // the 5 s interval) can't attempt the same clip twice.
         for (const c of pending) {
           scheduledClipIdsRef.current.add(c.id);
-          const key = midiKeyOf(c);
+          const key = midiScheduleKeyOf(c);
           if (key !== null) scheduledMidiKeysRef.current.set(c.id, key);
         }
 
@@ -508,7 +527,54 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           playbackApi.getState().rate
         );
       },
-      [getTimeMs, midiKeyOf, playbackApi, resolveScheduledClip, timelineApi]
+      [
+        getTimeMs,
+        midiScheduleKeyOf,
+        playbackApi,
+        resolveScheduledClip,
+        timelineApi
+      ]
+    );
+
+    const queueTopUpAudio = useCallback(
+      (isStale: () => boolean) => {
+        topUpQueueRef.current = topUpQueueRef.current
+          .catch(() => undefined)
+          .then(() => topUpAudio(isStale));
+      },
+      [topUpAudio]
+    );
+
+    const startAudioSession = useCallback(
+      (isStale: () => boolean) => {
+        audioSessionActiveRef.current = true;
+        // Reconcile once after asynchronous initial rendering/scheduling. A
+        // clip edit made while handlePlay was awaiting those steps otherwise
+        // would leave the just-installed source stale until the timer fired.
+        queueTopUpAudio(isStale);
+        topUpIntervalRef.current = setInterval(() => {
+          queueTopUpAudio(isStale);
+        }, AUDIO_TOPUP_INTERVAL_MS);
+      },
+      [queueTopUpAudio]
+    );
+
+    // A timer keeps the lookahead window populated, but edits to a sounding
+    // MIDI clip must be audible immediately. Timeline subscriptions run as
+    // soon as the clip changes, so stop/re-render its source without waiting
+    // for the next five-second top-up tick.
+    useEffect(
+      () =>
+        timelineApi.subscribe(() => {
+          if (!audioSessionActiveRef.current) return;
+          const generation = playGenRef.current;
+          queueTopUpAudio(
+            () =>
+              playGenRef.current !== generation ||
+              !audioSessionActiveRef.current
+          );
+        }),
+      [queueTopUpAudio, timelineApi]
     );
 
     /** The rate the running clock was started with; the rate-change restart
@@ -578,6 +644,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         // autoplay-policy round trip for silence.
         graph.stopAll();
         clock.start(startMs, globalRate, null, endMs || Infinity, clockOptions);
+        if (globalRate >= 0) startAudioSession(isStale);
         return;
       }
 
@@ -611,25 +678,22 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
       for (const { clip } of validClips) {
         scheduledClipIdsRef.current.add(clip.id);
-        const key = midiKeyOf(clip);
+        const key = midiScheduleKeyOf(clip);
         if (key !== null) scheduledMidiKeysRef.current.set(clip.id, key);
       }
 
       clock.start(startMs, globalRate, ctx, endMs || Infinity, clockOptions);
-
-      topUpIntervalRef.current = setInterval(() => {
-        void topUpAudio(isStale);
-      }, AUDIO_TOPUP_INTERVAL_MS);
+      startAudioSession(isStale);
     }, [
       play,
       tracks,
       contentEndMs,
       fps,
-      midiKeyOf,
+      midiScheduleKeyOf,
       resolveScheduledClip,
       setCurrentTimeMs,
       stopAudioSession,
-      topUpAudio,
+      startAudioSession,
       playbackApi,
       timelineApi
     ]);

@@ -1,5 +1,9 @@
 import { useCallback } from "react";
-import { makeClip, createTimeOrderedUuid } from "@nodetool-ai/timeline";
+import {
+  makeClip,
+  createTimeOrderedUuid,
+  type DropMode
+} from "@nodetool-ai/timeline";
 import type { Asset } from "../../stores/ApiTypes";
 import {
   useTimelineStoreApi,
@@ -31,11 +35,23 @@ export async function importVideoWithAudio(
   store: TimelineStoreApi,
   asset: Asset,
   videoTrackId: string,
-  startMs: number
+  startMs: number,
+  dropMode: DropMode = "overlap"
 ): Promise<void> {
   const linkId = createTimeOrderedUuid();
 
-  const videoClip = { ...assetToClip(asset, videoTrackId, startMs), linkId };
+  let videoClip = { ...assetToClip(asset, videoTrackId, startMs), linkId };
+
+  // Resolve the real video span before applying overwrite/insert. Uploaded
+  // assets often omit duration, and resolving against the fallback length
+  // would trim or ripple the existing timeline by the wrong amount.
+  const sourceUrl = getAssetUrl(asset);
+  if (asset.duration == null && sourceUrl) {
+    const realMs = await probeMediaDurationMs(sourceUrl, "video");
+    if (realMs && realMs > 0) {
+      videoClip = { ...videoClip, durationMs: realMs };
+    }
+  }
 
   // Place the extracted audio on an audio track that is free at the drop
   // position. If every existing audio track already has a clip overlapping
@@ -62,30 +78,11 @@ export async function importVideoWithAudio(
   });
 
   store.getState().addClips([videoClip, audioClip]);
-
-  // Imported assets often have no server-side `duration` (the upload path does
-  // not probe media), so assetToClip falls back to a placeholder length. Read
-  // the real duration from the media and correct the video clip — and the
-  // still-pending audio placeholder — so the clip matches the actual video.
-  // Runs concurrently with extraction; awaited in `finally`.
-  const sourceUrl = getAssetUrl(asset);
-  const durationProbe =
-    asset.duration == null && sourceUrl
-      ? probeMediaDurationMs(sourceUrl, "video").then((realMs) => {
-          if (!realMs || realMs <= 0) {
-            return;
-          }
-          store.getState().patchClip(videoClip.id, { durationMs: realMs });
-          // Keep the placeholder audio aligned, but don't clobber the exact
-          // WAV duration once extraction has filled the clip in.
-          const audio = store
-            .getState()
-            .clips.find((c) => c.id === audioClip.id);
-          if (audio && !audio.currentAssetId) {
-            store.getState().patchClip(audioClip.id, { durationMs: realMs });
-          }
-        })
-      : Promise.resolve();
+  // The audio track was chosen to be free across this span. Resolve the video
+  // mover only so a placeholder that is later removed cannot split or
+  // overwrite unrelated audio clips. Its link still protects the placeholder
+  // from the global insert shift.
+  store.getState().resolveDrop(new Set([videoClip.id]), dropMode);
 
   // Abort the request if it hangs so the audio clip doesn't sit in
   // "generating" forever; the abort surfaces as a rejection in the catch.
@@ -133,8 +130,6 @@ export async function importVideoWithAudio(
   } catch {
     clearTimeout(timeout);
     store.getState().patchClip(audioClip.id, { status: "failed" });
-  } finally {
-    await durationProbe;
   }
 }
 
@@ -142,8 +137,12 @@ export async function importVideoWithAudio(
 export function useVideoAudioImport() {
   const store = useTimelineStoreApi();
   return useCallback(
-    (asset: Asset, videoTrackId: string, startMs: number) =>
-      importVideoWithAudio(store, asset, videoTrackId, startMs),
+    (
+      asset: Asset,
+      videoTrackId: string,
+      startMs: number,
+      dropMode: DropMode = "overlap"
+    ) => importVideoWithAudio(store, asset, videoTrackId, startMs, dropMode),
     [store]
   );
 }

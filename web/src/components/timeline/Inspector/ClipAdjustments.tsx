@@ -2,14 +2,10 @@
 /**
  * ClipAdjustments
  *
- * The visual / playback adjustment sections shared by every clip inspector,
- * imported and generated alike: Render (opacity / blend, or audio volume +
- * fades), Transform, Color, Blur, Effects, Mask, Matte, and Transition. These
- * all operate on plain `TimelineClip` fields (`opacity`, `transform`,
- * `effects`, `mask`, `matte`, `transitionIn`)
- * that the compositor applies regardless of how the clip was produced, so a
- * generated clip can be colour-graded and transformed exactly like an imported
- * one.
+ * Playback adjustments shared by imported and generated clips. Audio and MIDI
+ * clips get Audio controls because both travel through AudioGraph. Clips that
+ * draw pixels get Render, Transform, Color, Blur, Effects, Mask, Matte, and
+ * Transition controls because those fields are applied by the compositor.
  *
  * Section fold state is persisted (shared keys with the rest of the inspector)
  * so a panel stays open/closed across selections.
@@ -24,6 +20,7 @@ import BlurOnOutlinedIcon from "@mui/icons-material/BlurOnOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import OpenWithOutlinedIcon from "@mui/icons-material/OpenWithOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
+import VolumeUpOutlinedIcon from "@mui/icons-material/VolumeUpOutlined";
 
 import type {
   BlendMode,
@@ -49,7 +46,8 @@ import {
   InspectorRow,
   InspectorSectionTitle,
   InspectorSelect,
-  InspectorSliderRow
+  InspectorSliderRow,
+  InspectorToggleRow
 } from "./InspectorPrimitives";
 import { parseSeconds } from "./InspectorPrimitives.helpers";
 import { ClipEffectsList } from "./ClipEffectsList";
@@ -120,8 +118,8 @@ interface ClipAdjustmentsProps {
 }
 
 /**
- * Render / Transform / Color / Blur sections for a single clip, followed by the
- * Effects, Mask, Matte and Transition sections those fields feed into.
+ * Audio controls for audio and midi clips. Visual clips instead get Render,
+ * Transform, Color, Blur, Effects, Mask, Matte and Transition sections.
  * Leads with an {@link InspectorDivider}; the caller supplies the trailing one.
  */
 export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
@@ -134,7 +132,9 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
     const [colorOpen, setColorOpen] = usePersistedFold("color");
     const [blurOpen, setBlurOpen] = usePersistedFold("blur");
 
-    const isAudio = clip.mediaType === "audio";
+    const isSounding =
+      clip.mediaType === "audio" || clip.mediaType === "midi";
+    const isMidi = clip.mediaType === "midi";
     const isOverlay = clip.mediaType === "overlay";
 
     // Latest-clip ref: lets the handlers below stay referentially stable
@@ -169,6 +169,10 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
     );
     const handleVolumeChange = useCallback(
       (value: number) => patchClip(clip.id, { volumeDb: value }),
+      [clip.id, patchClip]
+    );
+    const handleMutedChange = useCallback(
+      (next: boolean) => patchClip(clip.id, { muted: next }),
       [clip.id, patchClip]
     );
     const handleFadeInCommit = useCallback(
@@ -396,8 +400,10 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="Render"
-              icon={<LayersOutlinedIcon />}
+              title={isSounding ? "Audio" : "Render"}
+              icon={
+                isSounding ? <VolumeUpOutlinedIcon /> : <LayersOutlinedIcon />
+              }
             />
           }
           open={renderOpen}
@@ -405,7 +411,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
           unmountOnExit
         >
           <FlexColumn css={sectionContentStyles(theme)}>
-            {!isAudio && (
+            {!isSounding && (
               <InspectorSliderRow
                 label="Opacity"
                 min={0}
@@ -416,7 +422,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                 onChange={handleOpacityChange}
               />
             )}
-            {isOverlay && !isAudio && (
+            {isOverlay && !isSounding && (
               <InspectorRow label="Blend">
                 <InspectorSelect
                   label="Blend mode"
@@ -426,8 +432,15 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                 />
               </InspectorRow>
             )}
-            {isAudio && (
+            {isSounding && (
               <>
+                {isMidi && (
+                  <InspectorToggleRow
+                    label="Mute"
+                    checked={!!clip.muted}
+                    onChange={handleMutedChange}
+                  />
+                )}
                 <InspectorSliderRow
                   label="Volume"
                   min={-60}
@@ -461,7 +474,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
           </FlexColumn>
         </CollapsibleSection>
 
-        {!isAudio && (
+        {!isSounding && (
           <>
             <InspectorDivider />
             <CollapsibleSection
@@ -560,7 +573,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
           </>
         )}
 
-        {!isAudio && (
+        {!isSounding && (
           <>
             <InspectorDivider />
             <CollapsibleSection
@@ -676,7 +689,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
           </>
         )}
 
-        {!isAudio && (
+        {!isSounding && (
           <>
             <InspectorDivider />
             <CollapsibleSection
@@ -714,7 +727,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
           </>
         )}
 
-        {!isAudio && (
+        {!isSounding && (
           <>
             <ClipEffectsList clip={clip} />
             <ClipMaskMatte clip={clip} />

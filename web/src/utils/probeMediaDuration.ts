@@ -22,12 +22,16 @@ export function probeMediaDurationMs(
 
     const el = document.createElement(kind);
     let settled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const finish = (value: number | null) => {
       if (settled) {
         return;
       }
       settled = true;
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
       el.removeAttribute("src");
       try {
         el.load();
@@ -37,6 +41,7 @@ export function probeMediaDurationMs(
       resolve(value);
     };
 
+    timeoutId = setTimeout(() => finish(null), 5_000);
     el.preload = "metadata";
     el.onloadedmetadata = () => {
       const seconds = el.duration;

@@ -1,7 +1,6 @@
 /**
  * The inspector's MIDI section — the note edits a user reaches without the
- * agent. Each control writes the clip through one store action, so the
- * assertions read the document rather than the DOM.
+ * agent.
  */
 
 import { act, render, screen } from "@testing-library/react";
@@ -9,7 +8,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { makeTrack } from "@nodetool-ai/timeline";
+import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { TimelineInspector } from "../TimelineInspector";
@@ -63,6 +62,99 @@ beforeEach(() => {
 });
 
 describe("ClipMidiSection", () => {
+  it("shows only sections that affect a midi clip", () => {
+    renderInspector();
+    seedMidiClip();
+
+    expect(screen.getByText(/^MIDI$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Timing$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Audio$/)).toBeInTheDocument();
+
+    for (const title of [
+      "Media",
+      "Group",
+      "Render",
+      "Transform",
+      "Color",
+      "Blur",
+      "Effects",
+      "Mask",
+      "Matte",
+      "Transition",
+      "Time remap",
+      "Animate",
+      "Keyframes"
+    ]) {
+      expect(screen.queryByText(title)).toBeNull();
+    }
+  });
+
+  it("mutes and mixes a midi clip", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    seedMidiClip();
+
+    await user.click(screen.getByRole("button", { name: /^timing$/i }));
+    expect(
+      screen.queryByRole("textbox", { name: /playback speed/i })
+    ).toBeNull();
+    expect(screen.queryByText(/^Hidden$/)).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: /^audio$/i }));
+    const mute = screen.getByRole("switch", { name: /^mute$/i });
+    await user.click(mute);
+    expect(mute).toBeChecked();
+
+    const volume = screen.getByRole("slider", { name: /^volume$/i });
+    await user.tab();
+    expect(volume).toHaveFocus();
+    await user.keyboard("{ArrowUp}");
+    expect(volume).toHaveAttribute("aria-valuenow", "0.5");
+
+    const fadeIn = screen.getByRole("textbox", {
+      name: /fade in \(seconds\)/i
+    });
+    await user.clear(fadeIn);
+    await user.type(fadeIn, "0.25");
+    await user.tab();
+    expect(fadeIn).toHaveValue("0.25");
+  });
+
+  it("offers group membership only when a group exists", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    seedMidiClip();
+    const groupTrack = makeTrack({ type: "overlay", name: "Groups" });
+    const group = makeClip({
+      trackId: groupTrack.id,
+      name: "Rhythm section",
+      mediaType: "group",
+      sourceType: "imported",
+      startMs: 0,
+      durationMs: 4000
+    });
+
+    act(() => {
+      const state = useTimelineStore.getState();
+      useTimelineStore.setState({
+        tracks: [...state.tracks, groupTrack],
+        clips: [...state.clips, group]
+      });
+    });
+
+    await user.click(screen.getByRole("button", { name: /^group$/i }));
+    await user.click(
+      screen.getByRole("combobox", { name: /parent group/i })
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Rhythm section" })
+    );
+
+    expect(
+      screen.getByRole("combobox", { name: /parent group/i })
+    ).toHaveTextContent("Rhythm section");
+  });
+
   it("shows only for a midi clip", async () => {
     const user = userEvent.setup();
     renderInspector();
