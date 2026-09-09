@@ -2706,6 +2706,32 @@ export const config: ModuleConfig = {
         "Rapid prototyping"
       ]
     },
+    "openai/gpt-image-2.5/flare/text-to-image": {
+      className: "GptImage25FlareTextToImage",
+      docstring: "OpenAI GPT Image 2.5 Flare text-to-image generation.",
+      tags: ["generation", "text-to-image", "txt2img", "openai", "gpt-image"],
+      fieldOverrides: { image_size: { acceptsObject: true } },
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "openai/gpt-image-2.5/sunburst/text-to-image": {
+      className: "GptImage25SunburstTextToImage",
+      docstring: "OpenAI GPT Image 2.5 Sunburst text-to-image generation.",
+      tags: ["generation", "text-to-image", "txt2img", "openai", "gpt-image"],
+      fieldOverrides: { image_size: { acceptsObject: true } },
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
     "imagineart/imagineart-2.0-preview/text-to-image": {
       className: "ImagineartImagineart20PreviewTextToImage",
       docstring: "ImagineArt 2.0 Preview text-to-image.",

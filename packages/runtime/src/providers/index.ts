@@ -153,6 +153,7 @@ export { GeminiProvider };
 export { LlamaProvider };
 export { NodeLlamaCppProvider };
 export { OpenAIProvider };
+export { snapToGptImage2Size } from "./gpt-image-size.js";
 export { CodexProvider };
 export { OllamaProvider };
 export { GroqProvider };

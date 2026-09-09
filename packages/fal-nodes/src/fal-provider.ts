@@ -11,6 +11,7 @@ import {
   falUpload,
   imageToDataUrl
 } from "./fal-base.js";
+import { snapToGptImage2Size } from "@nodetool-ai/runtime";
 
 // ---------------------------------------------------------------------------
 // Model catalogue
@@ -20,6 +21,22 @@ interface FalImageModel {
   id: string;
   name: string;
 }
+
+export type GptImageQuality =
+  | "auto"
+  | "low"
+  | "medium"
+  | "high"
+  | "xhigh"
+  | "max";
+
+const GPT_IMAGE_25_EDIT_ENDPOINTS: Readonly<Record<string, string>> = {
+  "openai/gpt-image-2.5/flare/text-to-image": "openai/gpt-image-2.5/flare/edit",
+  "openai/gpt-image-2.5/sunburst/text-to-image":
+    "openai/gpt-image-2.5/sunburst/edit",
+  "openai/gpt-image-2.5/flare/edit": "openai/gpt-image-2.5/flare/edit",
+  "openai/gpt-image-2.5/sunburst/edit": "openai/gpt-image-2.5/sunburst/edit"
+};
 
 /** All FAL AI image models available through the provider. */
 export const FAL_IMAGE_MODELS: readonly FalImageModel[] = [
@@ -72,6 +89,14 @@ export const FAL_IMAGE_MODELS: readonly FalImageModel[] = [
   // Other Recent Models
   { id: "reve/2.1/text-to-image", name: "Reve 2.1" },
   { id: "openai/gpt-image-2", name: "GPT Image 2" },
+  {
+    id: "openai/gpt-image-2.5/flare/text-to-image",
+    name: "GPT Image 2.5 Flare"
+  },
+  {
+    id: "openai/gpt-image-2.5/sunburst/text-to-image",
+    name: "GPT Image 2.5 Sunburst"
+  },
   {
     id: "xai/grok-imagine-image/quality/text-to-image",
     name: "Grok Imagine Image"
@@ -149,6 +174,7 @@ export interface TextToImageParams {
   guidanceScale?: number;
   numInferenceSteps?: number;
   safetyCheck?: boolean;
+  quality?: GptImageQuality;
 }
 
 export interface ImageToImageParams {
@@ -165,6 +191,7 @@ export interface ImageToImageParams {
   targetWidth?: number;
   targetHeight?: number;
   seed?: number;
+  quality?: GptImageQuality;
 }
 
 export interface TextToSpeechParams {
@@ -266,11 +293,15 @@ export class FalProvider {
     if (params.numInferenceSteps != null)
       args.num_inference_steps = params.numInferenceSteps;
     if (params.width && params.height) {
-      args.image_size = { width: params.width, height: params.height };
+      const size = params.model.startsWith("openai/gpt-image-2.5/")
+        ? snapToGptImage2Size(params.width, params.height)
+        : [params.width, params.height];
+      if (size) args.image_size = { width: size[0], height: size[1] };
     }
     if (params.seed != null && params.seed !== -1) args.seed = params.seed;
     if (params.safetyCheck != null)
       args.enable_safety_checker = params.safetyCheck;
+    if (params.quality) args.quality = params.quality;
 
     try {
       this.totalRequests++;
@@ -297,11 +328,16 @@ export class FalProvider {
     const b64 = Buffer.from(params.imageBytes).toString("base64");
     const imageDataUri = `data:image/png;base64,${b64}`;
 
+    const editEndpoint = GPT_IMAGE_25_EDIT_ENDPOINTS[params.model];
     const args: Record<string, unknown> = {
       prompt: params.prompt,
-      image_url: imageDataUri,
       output_format: "png"
     };
+    if (editEndpoint) {
+      args.image_urls = [imageDataUri];
+    } else {
+      args.image_url = imageDataUri;
+    }
 
     if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
     if (params.guidanceScale != null)
@@ -310,16 +346,21 @@ export class FalProvider {
       args.num_inference_steps = params.numInferenceSteps;
     if (params.strength != null) args.strength = params.strength;
     if (params.targetWidth && params.targetHeight) {
-      args.image_size = {
-        width: params.targetWidth,
-        height: params.targetHeight
-      };
+      const size = editEndpoint
+        ? snapToGptImage2Size(params.targetWidth, params.targetHeight)
+        : [params.targetWidth, params.targetHeight];
+      if (size) args.image_size = { width: size[0], height: size[1] };
     }
     if (params.seed != null && params.seed !== -1) args.seed = params.seed;
+    if (params.quality) args.quality = params.quality;
 
     try {
       this.totalRequests++;
-      const result = await falSubmit(this.apiKey, params.model, args);
+      const result = await falSubmit(
+        this.apiKey,
+        editEndpoint ?? params.model,
+        args
+      );
       this.totalImages++;
       const imageUrl = extractImageUrl(result);
       return downloadBytes(imageUrl);

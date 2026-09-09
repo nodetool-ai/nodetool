@@ -396,8 +396,7 @@ describe("useTimelineAgentBridge midi", () => {
   it("names the preset a track's voice matches, and drops it once edited", () => {
     seedMidi();
     const handler = getTimelineAgentHandler(SEQ_ID);
-    // A new midi track gets DEFAULT_MIDI_INSTRUMENT, which is the saw lead.
-    expect(handler.getSnapshot().tracks[0].presetId).toBe("saw-lead");
+    expect(handler.getSnapshot().tracks[0].presetId).toBe("wt1-prime-lead");
 
     handler.setTrackInstrument("Bass", {
       type: "subtractive",
