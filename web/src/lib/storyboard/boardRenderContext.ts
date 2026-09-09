@@ -12,7 +12,8 @@
  * which style entity wins.
  */
 
-import type { BoardRenderContext, Entity } from "@nodetool-ai/protocol";
+import { entitiesForShot } from "@nodetool-ai/protocol";
+import type { BoardRenderContext, Entity, Shot } from "@nodetool-ai/protocol";
 
 /** The parts of a board this reads. Structural, so a partial board fits. */
 export interface RenderContextSource {
@@ -51,15 +52,36 @@ const styleEntityId = (
   return null;
 };
 
+const imageAssetId = (image: NonNullable<Entity["reference_images"]>[number]): string | undefined => {
+  if (typeof image.asset_id === "string" && image.asset_id.length > 0) {
+    return image.asset_id;
+  }
+  if (typeof image.uri !== "string" || !image.uri.startsWith("asset://")) {
+    return undefined;
+  }
+  const locator = image.uri.slice("asset://".length);
+  const extension = locator.lastIndexOf(".");
+  return extension > 0 ? locator.slice(0, extension) : locator || undefined;
+};
+
 /** Project a board and the resolved entity library onto the render inputs. */
 export const boardRenderContext = (
   board: RenderContextSource | undefined | null,
-  entities: readonly Entity[]
-): BoardRenderContext => ({
-  aspect_ratio: board?.aspectRatio ?? "16:9",
-  image_model: board?.imageModel?.id ?? "",
-  video_model: board?.videoModel?.id ?? "",
-  style_entity_id: styleEntityId(board?.entityIds, entities),
-  style: board?.style ?? "",
-  scenes: board?.screenplay?.scenes ?? null
-});
+  entities: readonly Entity[],
+  shot?: Shot
+): BoardRenderContext => {
+  const byId = new Map(entities.map((entity) => [entity.id, entity]));
+  const boardEntities = (board?.entityIds ?? []).flatMap((id) => byId.get(id) ?? []);
+  const selected = shot ? entitiesForShot(shot, boardEntities) : boardEntities;
+  return {
+    aspect_ratio: board?.aspectRatio ?? "16:9",
+    image_model: board?.imageModel?.id ?? "",
+    video_model: board?.videoModel?.id ?? "",
+    style_entity_id: styleEntityId(board?.entityIds, entities),
+    style: board?.style ?? "",
+    scenes: board?.screenplay?.scenes ?? null,
+    reference_asset_ids: selected
+      .flatMap((entity) => (entity.reference_images ?? []).map(imageAssetId))
+      .filter((id): id is string => typeof id === "string" && id.length > 0)
+  };
+};

@@ -91,10 +91,10 @@ describe("applyEntityReferences", () => {
   it("does not touch the image list on imageToVideo (text-only)", () => {
     const frame = new Uint8Array([7]);
     const args = applyEntityReferences("imageToVideo", [
-      [frame],
+      frame,
       { model, prompt: "pan left", entities: [harbor] }
     ]);
-    expect(args[0]).toEqual([frame]);
+    expect(args[0]).toEqual(frame);
     expect((args[1] as { prompt: string }).prompt).toContain(
       "Consistency references:"
     );

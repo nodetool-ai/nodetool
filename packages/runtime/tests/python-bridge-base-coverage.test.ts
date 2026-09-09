@@ -721,6 +721,7 @@ describe("PythonBridgeBase — provider RPCs", () => {
     await expect(p).resolves.toBe(output);
   });
 
+
   it("providerTextToAudio returns the encoded audio blob", async () => {
     const output = new Uint8Array([4, 5, 6]);
     const p = bridge.providerTextToAudio("wangp", {

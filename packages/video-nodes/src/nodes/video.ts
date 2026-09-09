@@ -512,7 +512,7 @@ export class ImageToVideoNode extends BaseNode {
     default: [],
     title: "Images",
     description:
-      "Input image(s) to animate. The first image is the primary frame; additional images are used as references by providers that support multi-image input."
+      "Input image(s) to animate. Only the first non-empty image is used as the start frame. Use Reference To Video for reference media."
   })
   declare image: ImageRef[];
 
@@ -621,9 +621,17 @@ export class ImageToVideoNode extends BaseNode {
       images = [overrides.image as ImageRefLike];
     }
 
-    const bytesList = (
-      await Promise.all(images.map((img) => imageBytesAsync(img, context)))
-    ).filter((b) => b.length > 0);
+    let image: Uint8Array = new Uint8Array();
+    for (const candidate of images) {
+      const bytes = await imageBytesAsync(candidate, context);
+      if (bytes.length > 0) {
+        image = bytes;
+        break;
+      }
+    }
+    if (image.length === 0) {
+      throw new Error("A non-empty input image is required for Image To Video.");
+    }
     const { providerId, modelId } = modelConfig(this.serialize());
     if (!canUseProvider(context, providerId, modelId)) {
       throw new Error("No provider available for image-to-video generation.");
@@ -634,7 +642,7 @@ export class ImageToVideoNode extends BaseNode {
       capability: "image_to_video",
       model: modelId,
       params: {
-        images: bytesList,
+        image,
         prompt,
         negative_prompt: this.negative_prompt,
         entities: await resolveEntities(this.entities, context),
@@ -645,6 +653,117 @@ export class ImageToVideoNode extends BaseNode {
       }
     }),
       "Image To Video"
+    );
+    return { output: videoRef(output) };
+  }
+}
+
+/** Output handles ReferenceToVideoNode.process() emits. */
+type ReferenceToVideoNodeOutputs = {
+  output: VideoRef;
+};
+
+export class ReferenceToVideoNode extends BaseNode {
+  static readonly nodeType = "nodetool.video.ReferenceToVideo";
+  static readonly body = "content_card";
+  static readonly title = "Reference To Video";
+  static readonly description =
+    "Generate video using ordered image and video references for identity, style, scene, motion, or audio conditioning.\n    video, reference-to-video, r2v, generation, ai";
+  static readonly metadataOutputTypes = { output: "video" };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["reference_images", "reference_videos", "prompt"];
+  static readonly autoSaveAsset = true;
+
+  @prop({
+    type: "list[image]",
+    default: [],
+    title: "Reference Images",
+    description: "Ordered identity, style, subject, or scene image references."
+  })
+  declare reference_images: ImageRef[];
+
+  @prop({
+    type: "list[video]",
+    default: [],
+    title: "Reference Videos",
+    description: "Ordered motion, scene, edit, or soundtrack video references."
+  })
+  declare reference_videos: VideoRef[];
+
+  @prop({
+    type: "video_model",
+    default: {
+      type: "video_model",
+      provider: "",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The reference-to-video model to use"
+  })
+  declare model: VideoModelRef;
+
+  @prop({ type: "str", default: "", title: "Prompt", description: "Describe the video using image 1, image 2, video 1, and video 2 numbering in list order." })
+  declare prompt: string;
+
+  @prop({ type: "bool", default: false, title: "Use Reference Video Audio", description: "Use audio tracks carried by reference videos where supported." })
+  declare use_reference_video_audio: boolean;
+
+  @prop({ type: "str", default: "", title: "Negative Prompt", description: "Text prompt describing what to avoid in the video" })
+  declare negative_prompt: string;
+
+  @prop({ type: "list[entity]", default: [], title: "Entities", description: "Consistency entities whose descriptors are injected into the prompt" })
+  declare entities: Entity[];
+
+  @prop({ type: "str", default: "16:9", title: "Aspect Ratio", description: "Aspect ratio for the video", values: VIDEO_ASPECT_RATIO_VALUES, json_schema_extra: { type: "media_aspect_ratio_video" } })
+  declare aspect_ratio: string;
+
+  @prop({ type: "str", default: "1080p", title: "Resolution", description: "Video resolution", values: VIDEO_RESOLUTION_VALUES, json_schema_extra: { type: "media_resolution_video" } })
+  declare resolution: string;
+
+  @prop({ type: "int", default: 5, title: "Duration", description: "Video duration in seconds", values: VIDEO_DURATION_VALUES, json_schema_extra: { type: "media_duration" } })
+  declare duration: number;
+
+  @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use provider default)", min: 0, max: 7200 })
+  declare timeout_seconds: number;
+
+  async process(context?: ProcessingContext): Promise<ReferenceToVideoNodeOutputs> {
+    const images = normalizeImageList(this.reference_images);
+    const videos = normalizeVideoList(this.reference_videos);
+    const [imageBytes, videoBytes] = await Promise.all([
+      Promise.all(images.map((image) => imageBytesAsync(image, context))),
+      Promise.all(videos.map((video) => videoBytesAsync(video, context)))
+    ]);
+    const referenceImages = imageBytes.filter((bytes) => bytes.length > 0);
+    const referenceVideos = videoBytes.filter((bytes) => bytes.length > 0);
+    if (referenceImages.length === 0 && referenceVideos.length === 0) {
+      throw new Error("Reference To Video requires at least one reference image or video.");
+    }
+    const { providerId, modelId } = modelConfig(this.serialize());
+    if (!canUseProvider(context, providerId, modelId)) {
+      throw new Error("No provider available for reference-to-video generation.");
+    }
+    const output = coerceProviderBytes(
+      await context.runProviderPrediction({
+        provider: providerId,
+        capability: "reference_to_video",
+        model: modelId,
+        params: {
+          reference_images: referenceImages,
+          reference_videos: referenceVideos,
+          prompt: String(this.prompt ?? ""),
+          use_reference_video_audio: this.use_reference_video_audio,
+          negative_prompt: this.negative_prompt,
+          entities: await resolveEntities(this.entities, context),
+          duration_seconds: Number(this.duration ?? 0) || undefined,
+          aspect_ratio: this.aspect_ratio,
+          resolution: this.resolution,
+          timeout_seconds: Number(this.timeout_seconds ?? 0) || undefined
+        }
+      }),
+      "Reference To Video"
     );
     return { output: videoRef(output) };
   }
@@ -3100,6 +3219,7 @@ export class LipSyncNode extends BaseNode {
 export const VIDEO_NODES = [
   TextToVideoNode,
   ImageToVideoNode,
+  ReferenceToVideoNode,
   LoadVideoFileNode,
   SaveVideoFileVideoNode,
   LoadVideoAssetsNode,

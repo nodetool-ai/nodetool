@@ -107,6 +107,7 @@ const ModelProperty = (props: PropertyProps) => {
     const videoTaskByNode = {
       "nodetool.video.TextToVideo": "text_to_video",
       "nodetool.video.ImageToVideo": "image_to_video",
+      "nodetool.video.ReferenceToVideo": "reference_to_video",
       "nodetool.video.VideoToVideo": "video_to_video",
       "nodetool.video.LipSync": "lip_sync"
     } as const;

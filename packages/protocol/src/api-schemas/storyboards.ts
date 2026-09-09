@@ -37,8 +37,8 @@ export const storyboardShot = z
     /** Linked line texts as last projected, joined "\n" — drift only. */
     script_text_snapshot: z.string().optional(),
     duration_source: z.enum(["audio", "manual"]).optional(),
-    /** Animate the shot's still, or generate the clip straight from text. */
-    render_mode: z.enum(["keyframe", "direct"]).optional(),
+    /** Animate a still, generate from text, or use entity reference images. */
+    render_mode: z.enum(["keyframe", "direct", "reference"]).optional(),
     /** The scene this shot belongs to. Absent on legacy, unscened shots. */
     scene_id: z.string().optional()
   })

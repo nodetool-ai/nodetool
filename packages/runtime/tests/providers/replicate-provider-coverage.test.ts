@@ -229,7 +229,7 @@ describe("ReplicateProvider coverage", () => {
   it("imageToVideo feeds image input and optional params", async () => {
     const runMock = vi.fn().mockResolvedValue(fakeFileOutput(IMG));
     const provider = createProvider({ run: runMock });
-    const bytes = await provider.imageToVideo([IMG], {
+    const bytes = await provider.imageToVideo(IMG, {
       model: { id: "owner/unknown-i2v", name: "I2V", provider: "replicate" },
       prompt: "animate",
       negativePrompt: "static",

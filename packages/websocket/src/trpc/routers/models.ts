@@ -980,7 +980,8 @@ const KIND_TO_MODALITY = {
   text_to_music: "music",
   speech_to_text: "asr",
   text_to_video: "video",
-  image_to_video: "video"
+  image_to_video: "video",
+  reference_to_video: "video"
 } satisfies Record<ModelSearchKind, RecommendedUnifiedModel["modality"]>;
 
 async function collectProviderModelsForKind(
@@ -1043,7 +1044,8 @@ async function collectProviderModelsForKind(
             return;
           }
           case "text_to_video":
-          case "image_to_video": {
+          case "image_to_video":
+          case "reference_to_video": {
             const models = await instance.getAvailableVideoModels();
             for (const m of models) {
               if (m.supportedTasks && !m.supportedTasks.includes(kind))

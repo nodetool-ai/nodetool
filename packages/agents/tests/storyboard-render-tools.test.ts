@@ -327,7 +327,7 @@ describe("storyboard render tools", () => {
       ops: [{ op: "update_shot", target: "s1", render_mode: "sideways" }]
     })) as { failed: number; ops: Array<{ error?: string }> };
     expect(rejected.failed).toBe(1);
-    expect(rejected.ops[0].error).toContain('"keyframe" or "direct"');
+    expect(rejected.ops[0].error).toContain('"keyframe", "direct", or "reference"');
   });
 
   it("revises a clip in place, keeping the previous take as a version", async () => {

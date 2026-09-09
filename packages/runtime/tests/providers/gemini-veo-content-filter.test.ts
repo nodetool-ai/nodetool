@@ -56,7 +56,7 @@ describe("Veo content-filter refusals", () => {
     });
 
     const error = await provider
-      .imageToVideo([IMAGE], { model: MODEL, prompt: "a lighthouse in a storm" })
+      .imageToVideo(IMAGE, { model: MODEL, prompt: "a lighthouse in a storm" })
       .catch((err: unknown) => err);
 
     expect(isContentFilterRefusalError(error)).toBe(true);

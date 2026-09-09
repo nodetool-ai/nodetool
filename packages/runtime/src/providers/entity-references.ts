@@ -42,6 +42,7 @@ const PARAMS_INDEX: Record<string, number> = {
   inpaintImages: 1,
   textToVideo: 0,
   imageToVideo: 1,
+  referenceToVideo: 1,
   videoToVideo: 1
 };
 

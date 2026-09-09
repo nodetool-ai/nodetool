@@ -29,6 +29,7 @@ import type {
 import {
   clipPrompt,
   directClipPrompt,
+  entitiesForShot,
   injectEntities,
   keyframePrompt,
   sceneForShot,
@@ -41,7 +42,6 @@ import {
   useStoryboardStore,
   type StoryboardBoard
 } from "../../stores/storyboard/StoryboardStore";
-import { entitiesForShot } from "../../stores/storyboard/shotEntities";
 import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
 import { useEntities } from "../../serverState/useEntities";
 import { useImageModelsByProvider } from "../useModelsByProvider";
@@ -144,8 +144,12 @@ export const useGenerateShot = (): UseGenerateShotResult => {
    * so the first match is the board's style.
    */
   const renderContext = useCallback(
-    (board: StoryboardBoard | undefined): BoardRenderContext =>
-      boardRenderContext(board, allEntities ?? []),
+    (board: StoryboardBoard | undefined, shot?: Shot): BoardRenderContext =>
+      boardRenderContext(
+        board,
+        allEntities ?? [],
+        shot
+      ),
     [allEntities]
   );
 
@@ -258,7 +262,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         shot,
         "keyframe",
         data,
-        renderContext(board)
+        renderContext(board, shot)
       );
     },
     [startDirectGeneration, boardEntities, imageModels, renderContext]
@@ -267,9 +271,10 @@ export const useGenerateShot = (): UseGenerateShotResult => {
   const generateClip = useCallback(
     async (boardId: string, shot: Shot): Promise<void> => {
       const board = useStoryboardStore.getState().getBoard(boardId);
-      const isDirect = shotRenderMode(shot) === "direct";
+      const renderMode = shotRenderMode(shot);
+      const isDirect = renderMode === "direct";
       let sourceAssetId: string | undefined;
-      if (!isDirect) {
+      if (renderMode === "keyframe") {
         if (!shot.keyframe) {
           throw new Error(
             "Shot has no keyframe to animate. Generate a still first, or set its render mode to direct."
@@ -289,21 +294,28 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         board?.screenplay?.script_id,
         shot
       );
-      const prompt = isDirect
+      const prompt = isDirect || renderMode === "reference"
         ? directClipPrompt(shot, {
             scene: sceneForShot(shot, board?.screenplay?.scenes),
             style: board?.style ?? ""
           })
         : clipPrompt(shot);
+      const entities = entitiesForShot(shot, boardEntities(board?.entityIds));
       const data: Record<string, unknown> = {
         mode: "video",
-        prompt: `${prompt}${entityTokenSuffix(
-          entitiesForShot(shot, boardEntities(board?.entityIds))
-        )}`,
+        prompt: `${prompt}${entityTokenSuffix(entities)}`,
         aspect_ratio: aspectRatio,
         resolution: CLIP_RESOLUTION,
         variations: 1
       };
+      if (renderMode === "reference") {
+        const referenceImages = entities.flatMap((entity) => entity.reference_images ?? []);
+        if (referenceImages.length === 0) {
+          throw new Error("Reference mode requires at least one entity reference image.");
+        }
+        data.reference_images = referenceImages;
+        data.capability = "reference_to_video";
+      }
       if (sourceAssetId) {
         data.source_asset_id = sourceAssetId;
       }
@@ -319,7 +331,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         shot,
         "clip",
         data,
-        renderContext(board)
+        renderContext(board, shot)
       );
     },
     [startDirectGeneration, boardEntities, renderContext]

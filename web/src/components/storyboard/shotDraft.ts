@@ -10,7 +10,7 @@
  * decided in one testable place rather than inside the dialog's callbacks.
  */
 
-import type { Scene, Shot, ShotDurationSource } from "@nodetool-ai/protocol";
+import type { Scene, Shot, ShotDurationSource, ShotRenderMode } from "@nodetool-ai/protocol";
 
 /** The dialog's editable state. Every value is a string so an empty field and
  * an unset field are the same thing to the form. */
@@ -41,6 +41,7 @@ export interface ShotDraft {
   lens: string;
   /** Notes → `notes`. */
   notes: string;
+  renderMode: ShotRenderMode;
 }
 
 /** The draft a freshly opened dialog starts from. */
@@ -58,7 +59,8 @@ export const draftFromShot = (shot: Shot, scene: Scene | null): ShotDraft => ({
   movement: shot.camera?.movement ?? "",
   equipment: shot.camera?.equipment ?? "",
   lens: shot.camera?.lens ?? "",
-  notes: shot.notes ?? ""
+  notes: shot.notes ?? "",
+  renderMode: shot.render_mode ?? "keyframe"
 });
 
 /** Whether the creator has changed anything since the dialog opened. */
@@ -159,7 +161,8 @@ export const shotPatchFromDraft = (draft: ShotDraft): Partial<Shot> => {
     notes: orUndefined(draft.notes),
     duration_seconds: seconds ?? undefined,
     duration_source: draft.durationSource,
-    camera: hasCamera ? camera : undefined
+    camera: hasCamera ? camera : undefined,
+    render_mode: draft.renderMode
   };
 };
 

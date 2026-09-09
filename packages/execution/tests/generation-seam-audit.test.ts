@@ -40,6 +40,7 @@ const MEDIA_METHODS = [
   "textToMusic",
   "textToVideo",
   "imageToVideo",
+  "referenceToVideo",
   "videoToVideo",
   "lipSync",
   "textTo3D",

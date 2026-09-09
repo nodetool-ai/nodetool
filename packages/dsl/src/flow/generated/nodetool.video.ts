@@ -46,6 +46,29 @@ export function imageToVideo(inputs: ImageToVideoInputs): Promise<ImageToVideoOu
   return callNode<ImageToVideoOutputs>("nodetool.video.ImageToVideo", inputs);
 }
 
+// Reference To Video — nodetool.video.ReferenceToVideo
+export type ReferenceToVideoInputs = {
+  reference_images?: ImageRef[];
+  reference_videos?: VideoRef[];
+  model?: unknown;
+  prompt?: string;
+  use_reference_video_audio?: boolean;
+  negative_prompt?: string;
+  entities?: Entity[];
+  aspect_ratio?: string;
+  resolution?: string;
+  duration?: number;
+  timeout_seconds?: number;
+};
+
+export interface ReferenceToVideoOutputs {
+  output: VideoRef;
+}
+
+export function referenceToVideo(inputs: ReferenceToVideoInputs): Promise<ReferenceToVideoOutputs> {
+  return callNode<ReferenceToVideoOutputs>("nodetool.video.ReferenceToVideo", inputs);
+}
+
 // Load Video File — nodetool.video.LoadVideoFile
 export type LoadVideoFileInputs = {
   path?: string;

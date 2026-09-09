@@ -9,6 +9,7 @@ export const QUICK_ACTION_NODE_TYPES = [
   "nodetool.image.Vectorize",
   "nodetool.video.TextToVideo",
   "nodetool.video.ImageToVideo",
+  "nodetool.video.ReferenceToVideo",
   "nodetool.video.VideoToVideo",
   "nodetool.video.LipSync",
   "nodetool.audio.TextToSpeech",

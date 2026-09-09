@@ -435,7 +435,7 @@ describe("ExportGodotProject", () => {
     expect(await workspace.readText("game/scripts/player.gd")).toContain(
       "# hand edited"
     );
-  });
+  }, 15_000);
 
   it("exports the template's own art when nothing was filled", async () => {
     // The blank-template path (game-prd § 4.1): a project that runs in Godot

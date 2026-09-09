@@ -197,7 +197,7 @@ describe("provider-registry — extended coverage", () => {
       provider.textToVideo({ model, prompt: "ocean" })
     ).resolves.toEqual(new Uint8Array([1]));
     await expect(
-      provider.imageToVideo([new Uint8Array([9])], { model, prompt: "move" })
+      provider.imageToVideo(new Uint8Array([9]), { model, prompt: "move" })
     ).resolves.toEqual(new Uint8Array([2]));
     expect(textToVideo).toHaveBeenCalledWith(
       "wangp",

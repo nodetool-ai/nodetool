@@ -284,7 +284,7 @@ describe("BaseProvider – default method behaviors", () => {
 
   it("imageToVideo() throws 'does not support'", async () => {
     await expect(
-      provider.imageToVideo([new Uint8Array()], {
+      provider.imageToVideo(new Uint8Array(), {
         model: { id: "m", name: "m", provider: "test" },
         prompt: "test"
       })
@@ -320,6 +320,16 @@ describe("BaseProvider – getCapabilities", () => {
     // Music override must not imply TTS / video.
     expect(caps).not.toContain("text_to_speech");
     expect(caps).not.toContain("text_to_video");
+  });
+
+  it("advertises reference_to_video only when the method is overridden", () => {
+    class ReferenceProvider extends TestProvider {
+      override async referenceToVideo() {
+        return new Uint8Array();
+      }
+    }
+    expect(new TestProvider().getCapabilities()).not.toContain("reference_to_video");
+    expect(new ReferenceProvider().getCapabilities()).toContain("reference_to_video");
   });
 
   it("honors an explicit capability declaration (override seam)", () => {

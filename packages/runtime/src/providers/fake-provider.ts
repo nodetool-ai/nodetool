@@ -380,7 +380,7 @@ export class FakeProvider extends BaseProvider {
   }
 
   override async imageToVideo(
-    _images: Uint8Array[],
+    _image: Uint8Array,
     _params: ImageToVideoParams
   ): Promise<Uint8Array> {
     this.callCount++;

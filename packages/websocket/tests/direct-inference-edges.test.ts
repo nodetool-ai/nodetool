@@ -544,7 +544,7 @@ describe("runDirectMediaGeneration", () => {
   it("routes video without a source through textToVideo and with one through imageToVideo", async () => {
     const sourceId = await createStoredAsset("1", "image/png", PNG_1x1);
     const calls: string[] = [];
-    let i2vInput: Uint8Array[] = [];
+    let i2vInput = new Uint8Array();
     const mp4 = new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112]);
     const provider = asProvider({
       getTotalCost: () => 0,
@@ -552,9 +552,9 @@ describe("runDirectMediaGeneration", () => {
         calls.push(`t2v:${params.durationSeconds}`);
         return mp4;
       },
-      async imageToVideo(images: Uint8Array[]) {
+      async imageToVideo(image: Uint8Array) {
         calls.push("i2v");
-        i2vInput = images;
+        i2vInput = image;
         return mp4;
       }
     });
@@ -567,12 +567,57 @@ describe("runDirectMediaGeneration", () => {
       mediaReq({ mode: "video", sourceAssetId: sourceId })
     );
     expect(calls).toEqual(["t2v:5", "i2v"]);
-    expect(i2vInput).toHaveLength(1);
-    expect(Array.from(i2vInput[0])).toEqual(Array.from(PNG_1x1));
+    expect(Array.from(i2vInput)).toEqual(Array.from(PNG_1x1));
     for (const { asset_ids } of [plain, fromImage]) {
       const row = await Asset.find("1", asset_ids[0]);
       expect(row?.content_type).toBe("video/mp4");
     }
+  });
+
+  it("routes ordered owned reference images without requiring a keyframe", async () => {
+    const first = await createStoredAsset("1", "image/png", new Uint8Array([1, 2]));
+    const second = await createStoredAsset("1", "image/png", new Uint8Array([3, 4]));
+    let seen: Uint8Array[] | null = null;
+    const provider = asProvider({
+      getTotalCost: () => 0,
+      async referenceToVideo(inputs: { images: Uint8Array[] }) {
+        seen = inputs.images;
+        return new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112]);
+      }
+    });
+    const { handler } = makeHandler(provider);
+    const result = await handler.runDirectMediaGeneration(
+      mediaReq({
+        mode: "video",
+        capability: "reference_to_video",
+        referenceImages: [
+          { type: "image", asset_id: first },
+          { type: "image", asset_id: second }
+        ]
+      })
+    );
+    expect(seen?.map((bytes) => bytes[0])).toEqual([1, 3]);
+    expect(result.asset_ids).toHaveLength(1);
+  });
+
+  it("rejects a reference image owned by another user", async () => {
+    const foreign = await createStoredAsset("2", "image/png", PNG_1x1);
+    const provider = asProvider({
+      getTotalCost: () => 0,
+      async referenceToVideo() {
+        throw new Error("provider must not be called");
+      }
+    });
+    const { handler } = makeHandler(provider);
+    await expect(
+      handler.runDirectMediaGeneration(
+        mediaReq({
+          mode: "video",
+          capability: "reference_to_video",
+          referenceImages: [{ type: "image", asset_id: foreign }]
+        })
+      )
+    ).rejects.toThrow(/not found|empty/);
   });
 
   it("routes video_edit through videoToVideo with the request's parameters", async () => {

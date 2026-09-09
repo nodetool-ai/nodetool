@@ -6,6 +6,9 @@ function textToVideo(inputs) {
 function imageToVideo(inputs) {
   return createNode("nodetool.video.ImageToVideo", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
+function referenceToVideo(inputs) {
+  return createNode("nodetool.video.ReferenceToVideo", inputs, { outputNames: ["output"], defaultOutput: "output" });
+}
 function loadVideoFile(inputs) {
   return createNode("nodetool.video.LoadVideoFile", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
@@ -112,6 +115,7 @@ export {
   loadVideoAssets,
   loadVideoFile,
   overlay,
+  referenceToVideo,
   resize,
   reverse,
   rotate,

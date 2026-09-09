@@ -339,6 +339,7 @@ describe("spend rollup", () => {
   it("routes a row by capability, then by node type, then to pipeline", () => {
     expect(spendCategory(row({ metadata: { capability: "text_to_image" } }))).toBe("stills");
     expect(spendCategory(row({ metadata: { capability: "image_to_video" } }))).toBe("clips");
+    expect(spendCategory(row({ metadata: { capability: "reference_to_video" } }))).toBe("clips");
     expect(spendCategory(row({ metadata: { capability: "text_to_speech" } }))).toBe("voice");
     // An unpriced generation records its capability as the billing unit.
     expect(spendCategory(row({ billing_unit: "lip_sync" }))).toBe("clips");

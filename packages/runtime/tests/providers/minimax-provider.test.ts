@@ -333,11 +333,9 @@ describe("MinimaxProvider", () => {
       name: "Subject",
       provider: "minimax"
     };
-    await provider.imageToVideo([new Uint8Array([1, 2, 3])], {
+    await provider.referenceToVideo({ images: [new Uint8Array([1, 2, 3])], videos: [] }, {
       model,
       prompt: "wave",
-      durationSeconds: 10,
-      resolution: "1080p"
     });
     const body = JSON.parse(
       (mockFetch.mock.calls[0][1] as { body: string }).body

@@ -327,6 +327,7 @@ const CAPABILITY_CATEGORY: Record<string, SpendCategory> = {
   vectorize_image: "stills",
   text_to_video: "clips",
   image_to_video: "clips",
+  reference_to_video: "clips",
   video_to_video: "clips",
   lip_sync: "clips",
   text_to_speech: "voice",

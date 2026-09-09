@@ -53,6 +53,8 @@ export interface BoardRenderContext {
   style: string;
   /** The screenplay's scenes, so a shot's lighting can be found. */
   scenes?: readonly Scene[] | null;
+  /** Ordered entity reference image asset ids for reference-mode clips. */
+  reference_asset_ids?: readonly string[];
 }
 
 /** A {@link RenderInputs} before it is stamped — what the comparison reads. */
@@ -113,11 +115,15 @@ export function currentRenderInputs(
     aspect_ratio: board.aspect_ratio,
     style_entity_id: board.style_entity_id
   };
+  if (kind === "clip") draft.render_mode = shotRenderMode(shot);
   // A keyframe-mode clip animates the selected still, so which still that was
   // is one of its inputs: re-picking a take makes the clip stale. A direct clip
   // has no source.
   if (kind === "clip" && shotRenderMode(shot) === "keyframe") {
     draft.source_version_id = versionId(shot.keyframe);
+  }
+  if (kind === "clip" && shotRenderMode(shot) === "reference") {
+    draft.reference_asset_ids = [...(board.reference_asset_ids ?? [])];
   }
   return draft;
 }
@@ -163,6 +169,9 @@ function renderInputsMatchDraft(
     recorded.model === current.model &&
     recorded.aspect_ratio === current.aspect_ratio &&
     recorded.style_entity_id === current.style_entity_id &&
+    recorded.render_mode === current.render_mode &&
+    JSON.stringify(recorded.reference_asset_ids ?? []) ===
+      JSON.stringify(current.reference_asset_ids ?? []) &&
     recorded.source_version_id === current.source_version_id
   );
 }

@@ -24,6 +24,7 @@ import type {
   BoardRenderContext,
   ClipVersion,
   Entity,
+  ImageRef,
   KeyframeVersion,
   RenderInputsDraft,
   Shot
@@ -53,7 +54,9 @@ export interface ShotRenderPlan {
   model: { provider: string; model: string };
   aspectRatio: string;
   /** How a clip is produced. Always `"keyframe"` on a stills plan. */
-  mode: "keyframe" | "direct";
+  mode: "keyframe" | "direct" | "reference";
+  /** Ordered entity reference images to pass to reference_to_video. */
+  referenceImages: ImageRef[];
   /** Clip length, when the shot or its linked lines fix one. */
   durationSeconds?: number;
   /** The still a keyframe-mode clip animates. Null when there is none. */
@@ -64,6 +67,18 @@ export interface ShotRenderPlan {
   fresh: boolean;
 }
 
+function imageAssetId(image: ImageRef): string | undefined {
+  if (typeof image.asset_id === "string" && image.asset_id.length > 0) {
+    return image.asset_id;
+  }
+  if (typeof image.uri !== "string" || !image.uri.startsWith("asset://")) {
+    return undefined;
+  }
+  const locator = image.uri.slice("asset://".length);
+  const extension = locator.lastIndexOf(".");
+  return extension > 0 ? locator.slice(0, extension) : locator || undefined;
+}
+
 /** Per-call overrides. Each one is recorded, so a render made against something
  * other than the board's own settings reads stale against the board. */
 export interface ShotRenderPlanOptions {
@@ -72,7 +87,7 @@ export interface ShotRenderPlanOptions {
   style?: string;
   aspectRatio?: string;
   /** Forces every shot's clip mode for this call only. */
-  mode?: "keyframe" | "direct";
+  mode?: "keyframe" | "direct" | "reference";
   /** Linked script lines, so a clip is rendered long enough to hold its voiceover. */
   scriptLines?: Map<string, ScriptLine>;
 }
@@ -100,7 +115,11 @@ export function boardRenderContext(
       [...(doc.entityIds ?? [])].reverse().find((id) => styleIds.has(id)) ??
       null,
     style: doc.style,
-    scenes: doc.screenplay?.scenes ?? null
+    scenes: doc.screenplay?.scenes ?? null,
+    reference_asset_ids: entities
+      .filter((entity) => (doc.entityIds ?? []).includes(entity.id))
+      .flatMap((entity) => (entity.reference_images ?? []).map(imageAssetId))
+      .filter((id): id is string => typeof id === "string" && id.length > 0)
   };
 }
 
@@ -184,10 +203,17 @@ export function planShotRenders(
     const prompt =
       kind === "keyframe"
         ? keyframePrompt(shot, context)
-        : mode === "direct"
+        : mode === "direct" || mode === "reference"
           ? directClipPrompt(shot, context)
           : clipPrompt(shot);
     const applied = entitiesForShot(shot, [...entities]);
+    const shotReferenceAssetIds = applied.flatMap((entity) =>
+      (entity.reference_images ?? [])
+        .map(imageAssetId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+    );
+    const shotBoard = { ...board, reference_asset_ids: shotReferenceAssetIds };
+    const shotRendered = { ...rendered, reference_asset_ids: shotReferenceAssetIds };
     const version: KeyframeVersion | ClipVersion | null | undefined =
       kind === "keyframe" ? shot.keyframe : shot.clip;
     const plan: ShotRenderPlan = {
@@ -196,15 +222,28 @@ export function planShotRenders(
       kind,
       prompt,
       entities: applied.map(wireEntity),
-      referenceAssetIds: applied
-        .map((e) => e.reference_images?.[0]?.asset_id)
-        .filter((id): id is string => !!id),
+      referenceAssetIds: applied.flatMap((e) =>
+        (e.reference_images ?? [])
+          .map(imageAssetId)
+          .filter((id): id is string => typeof id === "string" && id.length > 0)
+      ),
       model,
       aspectRatio,
       mode: kind === "keyframe" ? "keyframe" : mode,
+      referenceImages:
+        mode === "reference"
+          ? applied.flatMap((entity) => entity.reference_images ?? [])
+          : [],
       sourceKeyframe: shot.keyframe ?? null,
-      renderInputs: currentRenderInputs(shot, rendered, kind),
-      fresh: !isVersionStale(version, shot, board)
+      renderInputs:
+        kind === "clip"
+          ? currentRenderInputs(
+              { ...shot, render_mode: mode },
+              shotRendered,
+              kind
+            )
+          : currentRenderInputs(shot, shotRendered, kind),
+      fresh: !isVersionStale(version, shot, shotBoard)
     };
     if (shot.slug !== undefined) plan.slug = shot.slug;
     if (kind === "clip") {

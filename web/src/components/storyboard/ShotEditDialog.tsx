@@ -504,6 +504,26 @@ const ShotEditDialogInner: React.FC<ShotEditDialogProps> = ({
               />
             </FlexColumn>
           </Box>
+          <Box sx={{ flex: "1 1 12rem", minWidth: 0 }}>
+            <FlexColumn gap={SPACING.xs}>
+              <Label sx={{ color: "text.secondary" }}>Render mode</Label>
+              <SelectField
+                size="small"
+                label="Render mode"
+                hideLabel
+                disabled={readOnly}
+                value={draft.renderMode}
+                onChange={(value) =>
+                  setDraft({ ...draft, renderMode: value as "keyframe" | "direct" | "reference" })
+                }
+                options={[
+                  { value: "keyframe", label: "Keyframe" },
+                  { value: "direct", label: "Direct" },
+                  { value: "reference", label: "Reference" }
+                ]}
+              />
+            </FlexColumn>
+          </Box>
           <Box sx={{ flex: "1 1 16rem", minWidth: 0 }}>
             <FlexColumn gap={SPACING.xs}>
               <Label sx={{ color: "text.secondary" }}>Lighting</Label>

@@ -11,11 +11,97 @@ import {
   loadTTSModels,
   loadVideoModels
 } from "../../src/providers/manifest-models.js";
+import {
+  buildVideoModels,
+  getModelReferenceInputs,
+  validateReferenceInputs,
+  inferVideoTasks
+} from "../../src/providers/manifest-models.js";
 
 const FAL_PKG = "@nodetool-ai/fal-nodes";
 const FAL_MANIFEST = "fal-manifest.json";
 const KIE_PKG = "@nodetool-ai/kie-nodes";
 const KIE_MANIFEST = "kie-manifest.json";
+
+describe("reference-to-video discovery and validation", () => {
+  it("discovers shipped reference endpoints with generic media fields", () => {
+    const fal = loadVideoModels(FAL_PKG, FAL_MANIFEST, "fal_ai").find((m) => m.id === "fal-ai/veo3.1/reference-to-video");
+    const kie = loadVideoModels(KIE_PKG, KIE_MANIFEST, "kie").find((m) => m.id === "kling-3.0-omni/reference-to-video");
+    expect(fal?.supportedTasks).toContain("reference_to_video");
+    expect(kie?.supportedTasks).toContain("reference_to_video");
+  });
+
+  it("classifies reference names before image-to-video", () => {
+    expect(inferVideoTasks("Reference To Video", "model")).toEqual(["reference_to_video"]);
+    expect(inferVideoTasks("", "ref-to-video-model")).toEqual(["reference_to_video"]);
+  });
+
+  it("does not assume generic media arrays are identity references", () => {
+    const models = buildVideoModels([
+      { endpointId: "ambiguous", className: "Video Generator", outputType: "video", inputFields: [
+        { name: "images", apiParamName: "image_urls", propType: "list[image]" },
+        { name: "videos", apiParamName: "video_urls", propType: "list[video]" }
+      ] }
+    ], "test");
+    expect(models[0]?.supportedTasks).not.toContain("reference_to_video");
+  });
+
+  it("preserves start-frame catalogs and omits unsupported structured reference endpoints", () => {
+    const kie = loadVideoModels(KIE_PKG, KIE_MANIFEST, "kie");
+    expect(kie.find((m) => m.id === "kling-2.6/image-to-video")?.supportedTasks).toEqual(["image_to_video"]);
+    expect(kie.find((m) => m.id === "pixverse-v6/reference-to-video")).toBeUndefined();
+    const fal = loadVideoModels(FAL_PKG, FAL_MANIFEST, "fal_ai");
+    expect(fal.find((m) => m.id === "fal-ai/pika/v2.2/pikaframes")?.supportedTasks).not.toContain("reference_to_video");
+    const fields = getModelReferenceInputs(FAL_PKG, FAL_MANIFEST, "alibaba/wan-3.0-prime/reference-to-video");
+    expect(fields.map((field) => field.apiName).sort()).toEqual(["reference_image_urls", "reference_video_urls"]);
+  });
+
+  it("uses only matching media kinds in malformed generated fields", () => {
+    const fields = getModelReferenceInputs(FAL_PKG, FAL_MANIFEST, "wan/v2.6/reference-to-video/flash");
+    expect(fields).toEqual([expect.objectContaining({ kind: "image", apiName: "image_urls", isList: true })]);
+  });
+
+  it("rejects ambiguous reference fields instead of dropping or duplicating inputs", () => {
+    expect(() => validateReferenceInputs("test", "model", { images: [new Uint8Array([1])], videos: [] }, [
+      { kind: "image", name: "reference_images", apiName: "reference_images", isList: true },
+      { kind: "image", name: "subject_images", apiName: "subject_images", isList: true }
+    ])).toThrow("ambiguous reference image");
+  });
+
+  it("keeps video editing models with required sources out of reference generation", () => {
+    const models = loadVideoModels("@nodetool-ai/replicate-nodes", "replicate-manifest.json", "replicate");
+    for (const id of ["runwayml/gen4-aleph", "decart/lucy-edit-2", "wan-video/wan-2.7-videoedit"]) {
+      expect(models.find((model) => model.id === id)?.supportedTasks).toEqual(["video_to_video"]);
+    }
+  });
+
+  it("keeps explicit tasks authoritative and protects required reference video", () => {
+    const models = buildVideoModels([
+      { endpointId: "explicit", outputType: "video", supportedTasks: ["image_to_video", "reference_to_video"], fields: [{ name: "reference_videos", type: "list[video]", required: true }] },
+      { endpointId: "required", outputType: "video", className: "Video Generator", fields: [{ name: "reference_videos", type: "list[video]", required: true }] }
+    ], "test");
+    expect(models.find((m) => m.id === "explicit")?.supportedTasks).toEqual(["image_to_video", "reference_to_video"]);
+    expect(models.find((m) => m.id === "required")?.supportedTasks).toEqual(["reference_to_video"]);
+  });
+
+  it("validates empty, unsupported, required, and bounded references", () => {
+    const fields = getModelReferenceInputs("test", "manifest", "missing");
+    expect(fields).toEqual([]);
+    expect(() => validateReferenceInputs("test", "m", { images: [], videos: [] }, [{ kind: "video", name: "reference_videos", apiName: "reference_videos", isList: true, required: true }])).toThrow("at least one");
+    expect(() => validateReferenceInputs("test", "m", { images: [], videos: [new Uint8Array([1])] }, [{ kind: "video", name: "reference_videos", apiName: "reference_videos", isList: true, required: true }])).not.toThrow();
+    expect(() => validateReferenceInputs("test", "m", { images: [new Uint8Array([1]), new Uint8Array([2])], videos: [] }, [{ kind: "image", name: "reference_image", apiName: "reference_image", isList: true, max: 1 }])).toThrow("at most 1");
+  });
+
+  it("treats required wrapped image and video fields as one mixed requirement", () => {
+    const fields = [
+      { kind: "image" as const, name: "reference_images", apiName: "reference_images", isList: true, required: true, wrapInto: "refers" },
+      { kind: "video" as const, name: "reference_videos", apiName: "reference_videos", isList: true, required: true, wrapInto: "refers", min: 2 }
+    ];
+    expect(() => validateReferenceInputs("kie", "h3", { images: [new Uint8Array([1])], videos: [] }, fields)).not.toThrow();
+    expect(() => validateReferenceInputs("kie", "h3", { images: [], videos: [new Uint8Array([1])] }, fields)).not.toThrow();
+    expect(() => validateReferenceInputs("kie", "h3", { images: [], videos: [] }, fields)).toThrow("at least one");
+  });
+});
 
 describe("manifest-models task inference (FAL manifest)", () => {
   const images = loadImageModels(FAL_PKG, FAL_MANIFEST, "fal_ai");

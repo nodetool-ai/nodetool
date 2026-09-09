@@ -97,6 +97,31 @@ describe("withReplicateRetry", () => {
     expect(run).toHaveBeenCalledTimes(2);
   });
 
+  it("returns a successful retry with a live cancellation signal", async () => {
+    const run = vi
+      .fn()
+      .mockRejectedValueOnce(rateLimitError())
+      .mockResolvedValue("ok");
+    const controller = new AbortController();
+    const result = withReplicateRetry("relight", run, controller.signal);
+
+    await vi.advanceTimersByTimeAsync(20_000);
+    await expect(result).resolves.toBe("ok");
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops after cancellation during a rate-limit wait", async () => {
+    const run = vi.fn().mockRejectedValue(rateLimitError());
+    const controller = new AbortController();
+    const result = withReplicateRetry("relight", run, controller.signal);
+
+    await Promise.resolve();
+    controller.abort();
+    await expect(result).rejects.toBe(controller.signal.reason);
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("waits wider than the ~5s the server quotes", async () => {
     const run = vi
       .fn()

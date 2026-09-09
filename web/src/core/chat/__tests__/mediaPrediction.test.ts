@@ -8,6 +8,7 @@ describe("mediaPrediction", () => {
   it("accepts generation capabilities and rejects judge/chat calls", () => {
     expect(isMediaPredictionCapability("text_to_image")).toBe(true);
     expect(isMediaPredictionCapability("text_to_video")).toBe(true);
+    expect(isMediaPredictionCapability("reference_to_video")).toBe(true);
     expect(isMediaPredictionCapability("text_to_speech")).toBe(true);
     expect(isMediaPredictionCapability("generate_messages")).toBe(false);
     expect(isMediaPredictionCapability("generate_embedding")).toBe(false);
@@ -17,6 +18,7 @@ describe("mediaPrediction", () => {
   it("labels image, video, and audio separately", () => {
     expect(mediaPredictionLabel("text_to_image")).toBe("Generating image");
     expect(mediaPredictionLabel("image_to_video")).toBe("Generating video");
+    expect(mediaPredictionLabel("reference_to_video")).toBe("Generating video");
     expect(mediaPredictionLabel("text_to_speech")).toBe("Generating audio");
   });
 

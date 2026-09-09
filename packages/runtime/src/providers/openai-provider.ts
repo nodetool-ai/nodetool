@@ -2316,10 +2316,9 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async imageToVideo(
-    images: Uint8Array[],
+    image: Uint8Array,
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
-    const image = images[0];
     if (!image || image.length === 0) {
       throw new Error("The input image cannot be empty.");
     }

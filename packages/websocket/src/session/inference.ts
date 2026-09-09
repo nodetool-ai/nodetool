@@ -36,7 +36,7 @@ import { admitSpend, releaseSpend, reserveSpend } from "../credit-gate.js";
 import { retrieveAssetBytes } from "../lib/asset-paths.js";
 import { resolveImageSize } from "../lib/media-size.js";
 import { getAssetAdapter } from "../lib/storage.js";
-import { isFiniteNumber, isString } from "../lib/wire-values.js";
+import { isFiniteNumber, isRecord, isString } from "../lib/wire-values.js";
 import type { ClientSession } from "./client-session.js";
 import {
   createGenerationRun,
@@ -73,6 +73,8 @@ export interface DirectMediaGenerationRequest {
    * a frame that was already delivered to a dead socket.
    */
   requestId?: string;
+  capability?: "reference_to_video";
+  referenceImages?: unknown[];
 }
 
 /**
@@ -663,7 +665,46 @@ export class DirectInferenceHandler {
         duration_seconds: req.durationSeconds ?? null
       };
       let generated: GenerationResult<Uint8Array>;
-      if (req.sourceAssetId) {
+      if (req.capability === "reference_to_video") {
+        const refs = req.referenceImages ?? [];
+        if (refs.length === 0) {
+          throw new Error("reference_to_video requires at least one reference image");
+        }
+        const referenceImages: Uint8Array[] = [];
+        for (const ref of refs) {
+          if (!isRecord(ref)) throw new Error("reference_to_video requires reference image objects");
+          const assetId = isString(ref.asset_id)
+            ? ref.asset_id
+            : isString(ref.uri) && ref.uri.startsWith("asset://")
+              ? ref.uri.slice("asset://".length).split(".")[0]
+              : "";
+          if (!assetId) throw new Error("reference_to_video reference image is missing an asset id");
+          const asset = await Asset.find(userId, assetId);
+          if (!asset) throw new Error(`Reference image asset ${assetId} was not found`);
+          if (!asset.content_type.startsWith("image/")) {
+            throw new Error(`Reference image asset ${assetId} is not an image`);
+          }
+          const bytes = await retrieveAssetBytes(getAssetAdapter(), userId, asset.id, asset.content_type);
+          if (!bytes || bytes.length === 0) throw new Error(`Reference image asset ${assetId} is empty`);
+          referenceImages.push(bytes);
+        }
+        generated = await generate(
+          "reference_to_video",
+          { ...videoParams, reference_images: referenceImages },
+          { mime: "video/mp4" },
+          (abort) => provider.referenceToVideo(
+            { images: referenceImages, videos: [] },
+            {
+              model: videoModel,
+              prompt,
+              durationSeconds: req.durationSeconds ?? null,
+              aspectRatio: req.aspectRatio ?? null,
+              resolution: req.resolution ?? null,
+              signal: abort
+            }
+          )
+        );
+      } else if (req.sourceAssetId) {
         // A source image turns the request into image-to-video: the image is
         // the frame the animation starts from.
         const sourceBytes = await retrieveSourceAssetBytes(
@@ -682,7 +723,7 @@ export class DirectInferenceHandler {
           { ...videoParams, images: [sourceBytes] },
           { mime: "video/mp4" },
           (abort) =>
-            provider.imageToVideo([sourceBytes], { ...i2vParams, signal: abort })
+            provider.imageToVideo(sourceBytes, { ...i2vParams, signal: abort })
         );
       } else {
         const params: TextToVideoParams = {

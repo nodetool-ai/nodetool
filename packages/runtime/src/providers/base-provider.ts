@@ -6,6 +6,8 @@ import type {
   ImageToImageParams,
   InpaintingParams,
   ImageToVideoParams,
+  ReferenceToVideoInputs,
+  ReferenceToVideoParams,
   LanguageModel,
   LipSyncParams,
   Message,
@@ -199,6 +201,7 @@ export type ProviderCapability =
   | "vectorize_image"
   | "text_to_video"
   | "image_to_video"
+  | "reference_to_video"
   | "video_to_video"
   | "lip_sync"
   | "text_to_speech"
@@ -236,6 +239,11 @@ export function providerCapabilities(
     BaseProvider.prototype.getAvailableVideoModels
   ) {
     capabilities.push("text_to_video", "image_to_video");
+  }
+  if (
+    instance.referenceToVideo !== BaseProvider.prototype.referenceToVideo
+  ) {
+    capabilities.push("reference_to_video");
   }
   // The remaining task types don't have their own model-discovery method —
   // they reuse Image/VideoModel (advertised via each model's `supportedTasks`).
@@ -524,11 +532,15 @@ export abstract class BaseProvider {
               model: extractModelId(args)
             });
             if (!alreadyActive) {
+              const failureArgs =
+                name === "referenceToVideo"
+                  ? [referenceVideoDiagnostics(args)]
+                  : args;
               this.recordCallFailure({
                 model: extractModelId(args),
                 operation: name,
-                request: peekLastRequest(),
-                nodetoolArgs: args,
+                request: name === "referenceToVideo" ? undefined : peekLastRequest(),
+                nodetoolArgs: failureArgs,
                 error: err,
                 startedAt
               });
@@ -1787,14 +1799,21 @@ export abstract class BaseProvider {
   }
 
   /**
-   * Animate one or more source images into a video. Single-frame providers
-   * use `images[0]`; providers with multi-reference support may use more.
+   * Animate a single source image into a video. Reference media uses
+   * {@link referenceToVideo} so the input role remains explicit.
    */
   async imageToVideo(
-    _images: Uint8Array[],
+    _image: Uint8Array,
     _params: ImageToVideoParams
   ): Promise<Uint8Array> {
     throw new Error(`${this.provider} does not support imageToVideo`);
+  }
+
+  async referenceToVideo(
+    _inputs: ReferenceToVideoInputs,
+    _params: ReferenceToVideoParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support referenceToVideo`);
   }
 
   /** Restyle / edit an existing video, guided by a prompt. */
@@ -2015,6 +2034,27 @@ type ModalityResult = Awaited<
   ReturnType<BaseProvider[(typeof MODALITY_PROMISE_METHODS)[number]]>
 >;
 
+function referenceVideoDiagnostics(args: unknown[]): Record<string, unknown> {
+  const inputs = args[0];
+  const params = args[1];
+  const media = isRecord(inputs) ? inputs : {};
+  const listBytes = (value: unknown): number =>
+    Array.isArray(value)
+      ? value.reduce(
+          (total, item) =>
+            total + (item instanceof Uint8Array ? item.byteLength : 0),
+          0
+        )
+      : 0;
+  return {
+    image_count: Array.isArray(media.images) ? media.images.length : 0,
+    video_count: Array.isArray(media.videos) ? media.videos.length : 0,
+    image_bytes: listBytes(media.images),
+    video_bytes: listBytes(media.videos),
+    model: extractModelId([params])
+  };
+}
+
 const MODALITY_PROMISE_METHODS = [
   "textToImage",
   "textToImages",
@@ -2032,6 +2072,7 @@ const MODALITY_PROMISE_METHODS = [
   "automaticSpeechRecognition",
   "textToVideo",
   "imageToVideo",
+  "referenceToVideo",
   "videoToVideo",
   "lipSync",
   "textTo3D",

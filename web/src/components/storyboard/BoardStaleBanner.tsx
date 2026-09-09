@@ -17,7 +17,7 @@
  */
 
 import { memo, useCallback, useMemo } from "react";
-import { staleClipShots, staleKeyframeShots } from "@nodetool-ai/protocol";
+import { isVersionStale } from "@nodetool-ai/protocol";
 
 import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
 import { useBoard } from "../../stores/storyboard/StoryboardStore";
@@ -76,17 +76,28 @@ const BoardStaleBannerImpl = ({
   const { data: allEntities } = useEntities();
   const { generateKeyframe } = useGenerateShot();
 
-  const context = useMemo(
-    () => boardRenderContext(board, allEntities ?? []),
+  const stale = useMemo(
+    () => board.shots.map((shot) => ({
+      shot,
+      context: boardRenderContext(
+        board,
+        allEntities ?? [],
+        shot
+      )
+    })),
     [board, allEntities]
   );
   const staleStills = useMemo(
-    () => staleKeyframeShots(board.shots, context),
-    [board.shots, context]
+    () => stale
+      .filter(({ shot, context }) => isVersionStale(shot.keyframe, shot, context))
+      .map(({ shot }) => shot),
+    [stale]
   );
   const staleClips = useMemo(
-    () => staleClipShots(board.shots, context),
-    [board.shots, context]
+    () => stale
+      .filter(({ shot, context }) => isVersionStale(shot.clip, shot, context))
+      .map(({ shot }) => shot),
+    [stale]
   );
 
   // One shot that cannot start records the reason on itself and is toasted, so

@@ -226,6 +226,7 @@ export {
 export {
   TextToVideoNode,
   ImageToVideoNode,
+  ReferenceToVideoNode,
   LoadVideoFileNode,
   SaveVideoFileVideoNode,
   LoadVideoAssetsNode,

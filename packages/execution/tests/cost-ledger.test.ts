@@ -87,6 +87,7 @@ describe("isUnitBilledCapability", () => {
   it("covers generation and excludes the token-billed capabilities", () => {
     expect(isUnitBilledCapability("text_to_image")).toBe(true);
     expect(isUnitBilledCapability("image_to_video")).toBe(true);
+    expect(isUnitBilledCapability("reference_to_video")).toBe(true);
     expect(isUnitBilledCapability("text_to_speech")).toBe(true);
     // Chat and embeddings are accounted for in tokens by BaseProvider.
     expect(isUnitBilledCapability("generate_message")).toBe(false);

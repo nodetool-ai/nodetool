@@ -21,6 +21,45 @@ describe("FalProvider", () => {
     vi.clearAllMocks();
   });
 
+  it("maps ordered reference image URLs and rejects unsupported input before upload", async () => {
+    const upload = vi.fn(async (blob: Blob) => `https://fal.test/${blob.type}-${upload.mock.calls.length}`);
+    const subscribe = vi.fn().mockResolvedValue({ data: { video: { url: "https://fal.test/out.mp4" } } });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => new Uint8Array([1, 2]).buffer, headers: new Headers() }));
+    const p = createProvider();
+    (p as unknown as { _client: unknown })._client = { subscribe, storage: { upload } };
+    await p.referenceToVideo({ images: [new Uint8Array([0x89, 0x50, 0x4e, 0x47]), new Uint8Array([0x89, 0x50, 0x4e, 0x47])], videos: [] }, { model: { id: "fal-ai/veo3.1/reference-to-video", name: "veo", provider: "fal_ai" }, prompt: "keep subject" });
+    expect(upload).toHaveBeenCalledTimes(2);
+    expect(subscribe.mock.calls[0]?.[1].input.image_urls).toHaveLength(2);
+    await expect(p.referenceToVideo({ images: [], videos: [] }, { model: { id: "fal-ai/veo3.1/reference-to-video", name: "veo", provider: "fal_ai" }, prompt: "x" })).rejects.toThrow("at least one");
+    expect(upload).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
+  });
+
+  it("does not upload or submit a pre-aborted reference request", async () => {
+    const upload = vi.fn();
+    const subscribe = vi.fn();
+    const p = createProvider();
+    (p as unknown as { _client: unknown })._client = { subscribe, storage: { upload } };
+    const controller = new AbortController();
+    controller.abort();
+    await expect(p.referenceToVideo({ images: [new Uint8Array([1])], videos: [] }, { model: { id: "fal-ai/veo3.1/reference-to-video", name: "veo", provider: "fal_ai" }, prompt: "x", signal: controller.signal })).rejects.toThrow();
+    expect(upload).not.toHaveBeenCalled();
+    expect(subscribe).not.toHaveBeenCalled();
+  });
+
+  it("passes the combined timeout signal to submission and output download", async () => {
+    const subscribe = vi.fn().mockResolvedValue({ data: { video: { url: "https://fal.test/out.mp4" } } });
+    const upload = vi.fn().mockResolvedValue("https://fal.test/ref.png");
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, headers: new Headers(), arrayBuffer: async () => new Uint8Array([1]).buffer });
+    vi.stubGlobal("fetch", fetchMock);
+    const p = createProvider();
+    (p as unknown as { _client: unknown })._client = { subscribe, storage: { upload } };
+    await p.referenceToVideo({ images: [new Uint8Array([1])], videos: [] }, { model: { id: "fal-ai/veo3.1/reference-to-video", name: "veo", provider: "fal_ai" }, prompt: "x", timeoutSeconds: 5 });
+    expect(subscribe.mock.calls[0]?.[1].abortSignal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock.mock.calls.at(-1)?.[1]).toEqual(expect.objectContaining({ signal: subscribe.mock.calls[0]?.[1].abortSignal }));
+    vi.unstubAllGlobals();
+  });
+
   // --- Construction ---
 
   // --- getAvailableImageModels ---
@@ -386,7 +425,7 @@ describe("FalProvider", () => {
       storage: { upload: uploadMock }
     };
 
-    await p.imageToVideo([new Uint8Array([1, 2, 3, 4])], {
+    await p.imageToVideo(new Uint8Array([1, 2, 3, 4]), {
       prompt: "animate",
       model: {
         id: "fal-ai/luma-dream-machine/image-to-video",

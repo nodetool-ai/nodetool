@@ -31,21 +31,25 @@ import type {
   TTSModel,
   VideoModel
 } from "./types.js";
+import type { ReferenceToVideoInputs, ReferenceToVideoParams } from "./types.js";
 import {
   loadVideoModels,
   loadImageModels,
   loadMusicModels,
   loadTTSModels,
   getModelImageInputs,
+  getModelReferenceInputs,
   getModelInputFields,
   getManifestNodeMeta,
   selectPrimaryImageInput,
   selectMaskImageInput,
   type ModelInputField
 } from "./manifest-models.js";
+import { validateReferenceInputs } from "./manifest-models.js";
 import { registerWebhookWait } from "./kie-webhook-registry.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { detectImageMime, extForImageMime } from "./image-mime.js";
+import { sniffMediaMime } from "./media-mime.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 import {
@@ -59,6 +63,12 @@ import {
 } from "./responses-api.js";
 
 const log = createLogger("nodetool.runtime.providers.kie");
+
+function combineSignals(signal: AbortSignal | undefined, timeout: AbortSignal | undefined): AbortSignal | undefined {
+  if (!signal) return timeout;
+  if (!timeout) return signal;
+  return AbortSignal.any([signal, timeout]);
+}
 
 const KIE_API_BASE = "https://api.kie.ai";
 const KIE_UPLOAD_URL =
@@ -496,6 +506,27 @@ async function uploadImageBytes(
   if (!downloadUrl) {
     throw new Error(`No downloadUrl in Kie upload response`);
   }
+  return downloadUrl;
+}
+
+async function uploadMediaBytes(
+  apiKey: string,
+  bytes: Uint8Array,
+  signal: AbortSignal | undefined,
+  kind: "image" | "video"
+): Promise<string> {
+  const mime = sniffMediaMime(bytes, kind === "image" ? "image/png" : "video/mp4");
+  const ext = kind === "image" ? (extForImageMime(mime) ?? "png") : "mp4";
+  const fileName = `upload-${Date.now()}.${ext}`;
+  const form = new FormData();
+  form.append("file", new Blob([new Uint8Array(bytes)], { type: mime }), fileName);
+  form.append("uploadPath", kind === "image" ? "images/user-uploads" : "videos/user-uploads");
+  form.append("fileName", fileName);
+  const res = await fetch(KIE_UPLOAD_URL, { method: "POST", headers: { Authorization: `Bearer ${apiKey}` }, body: form, signal });
+  const data = await parseKieJson(res, "upload");
+  if (!res.ok || !data.success) throw new Error(`Kie upload failed: ${res.status} ${JSON.stringify(data)}`);
+  const downloadUrl = (data.data as Record<string, unknown>)?.downloadUrl;
+  if (typeof downloadUrl !== "string" || !downloadUrl) throw new Error("No downloadUrl in Kie upload response");
   return downloadUrl;
 }
 
@@ -1410,12 +1441,17 @@ export class KieProvider extends BaseProvider {
    * whether the frame goes to a single field (`image_url`) or a list.
    */
   override async imageToVideo(
-    images: Uint8Array[],
+    image: Uint8Array,
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
+    const selected = loadVideoModels(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, "kie")
+      .find((model) => model.id === params.model.id);
+    if (selected && !selected.supportedTasks?.includes("image_to_video")) {
+      throw new Error(`Kie model ${params.model.id} does not support image_to_video`);
+    }
     const apiKey = this.requireApiKey();
     const signal = this.timeoutSignal(params.timeoutSeconds);
-    const imageUrls = await this.uploadImages(apiKey, images, signal);
+    const imageUrls = await this.uploadImages(apiKey, [image], signal);
     if (imageUrls.length === 0) {
       throw new Error("The input image is empty.");
     }
@@ -1438,6 +1474,51 @@ export class KieProvider extends BaseProvider {
     );
     const taskId = await submitTaskWithWebhook(apiKey, modelId, input, signal);
     await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts, signal);
+    return downloadResultBytes(apiKey, taskId, signal);
+  }
+
+  override async referenceToVideo(inputs: ReferenceToVideoInputs, params: ReferenceToVideoParams): Promise<Uint8Array> {
+    const images = inputs.images.filter((b) => b.length > 0);
+    const videos = inputs.videos.filter((b) => b.length > 0);
+    if (images.length === 0 && videos.length === 0) throw new Error("reference_to_video requires at least one reference image or video");
+    const apiKey = this.requireApiKey();
+    const signal = combineSignals(params.signal, this.timeoutSignal(params.timeoutSeconds));
+    if (params.useReferenceVideoAudio === true && videos.length === 0) throw new Error(`Kie model ${params.model.id} requires a reference video when audio is enabled`);
+    if (!(loadVideoModels(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, "kie").find((m) => m.id === params.model.id)?.supportedTasks?.includes("reference_to_video") ?? false)) throw new Error(`Kie model ${params.model.id} does not support reference_to_video`);
+    const referenceFields = getModelReferenceInputs(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, params.model.id);
+    // H3's generated minimum describes clip duration (2 seconds), not video count.
+    if (params.model.id === "minimax-h3/reference-to-video") {
+      for (const field of referenceFields) {
+        if (field.kind === "video") delete field.min;
+      }
+    }
+    validateReferenceInputs("Kie", params.model.id, inputs, referenceFields);
+    const imageField = referenceFields.find((f) => f.kind === "image");
+    const videoField = referenceFields.find((f) => f.kind === "video");
+    const fieldsForModel = getModelInputFields(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, params.model.id);
+    if (params.useReferenceVideoAudio === true && !fieldsForModel.some((field) => field.name === "use_reference_video_audio")) {
+      throw new Error(`Kie model ${params.model.id} does not support reference video audio`);
+    }
+    signal?.throwIfAborted();
+    const [imageUrls, videoUrls] = await Promise.all([
+      Promise.all(images.map((b) => uploadMediaBytes(apiKey, b, signal, "image"))),
+      Promise.all(videos.map((b) => uploadMediaBytes(apiKey, b, signal, "video")))
+    ]);
+    const input: Record<string, unknown> = {};
+    if (imageField && imageUrls.length > 0) input[imageField.apiName] = imageField.isList ? imageUrls : imageUrls[0];
+    if (videoField && videoUrls.length > 0) input[videoField.apiName] = videoField.isList ? videoUrls : videoUrls[0];
+    if (params.prompt) input.prompt = params.prompt;
+    if (params.negativePrompt && fieldsForModel.some((f) => f.name === "negative_prompt")) input.negative_prompt = params.negativePrompt;
+    this.applyEditOptions(input, fieldsForModel, params);
+    if (params.useReferenceVideoAudio === true) {
+      input.use_reference_video_audio = true;
+    }
+    this.applyVideoDuration(input, fieldsForModel, params);
+    this.applyRequiredDefaults(input, fieldsForModel);
+    this.assertRequiredTextFields(input, fieldsForModel, params.model.id);
+    const taskId = await submitTaskWithWebhook(apiKey, params.model.id, input, signal);
+    const polling = this.pollConfig(params.model.id, params.timeoutSeconds);
+    await waitForCompletion(apiKey, taskId, polling.pollInterval, polling.maxAttempts, signal);
     return downloadResultBytes(apiKey, taskId, signal);
   }
 

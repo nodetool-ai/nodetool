@@ -12,7 +12,7 @@
  */
 
 import { stampRenderInputs } from "@nodetool-ai/protocol";
-import type { ClipVersion, KeyframeVersion, Shot } from "@nodetool-ai/protocol";
+import type { ClipVersion, ImageRef, KeyframeVersion, Shot } from "@nodetool-ai/protocol";
 import type { StoryboardDocument } from "../document.js";
 import type { ShotRenderPlan } from "../render-plan.js";
 
@@ -21,7 +21,7 @@ export interface RenderGenerationRequest {
   /** Minted by the caller of `runGeneration`, so a background caller has it early. */
   id: string;
   provider: string;
-  capability: "text_to_image" | "image_to_video" | "text_to_video";
+  capability: "text_to_image" | "image_to_video" | "reference_to_video" | "text_to_video";
   model: string;
   params: Record<string, unknown>;
   /** Save the result as an asset: the board can only reference persisted media. */
@@ -57,7 +57,7 @@ export interface StoryboardRenderHost {
     shotId: string;
   }): Promise<StoryboardSnapshot | null>;
   /** Read a stored still back as bytes — the seed a keyframe-mode clip animates. */
-  loadMedia?(ref: KeyframeVersion): Promise<Uint8Array | null>;
+  loadMedia?(ref: KeyframeVersion | ImageRef): Promise<Uint8Array | null>;
   /**
    * The real length of a rendered clip. A video model quantizes the duration it
    * was asked for, and assembly lays down what the ref says.
@@ -80,7 +80,7 @@ export interface ShotRenderOutcome {
   index: number;
   slug?: string;
   kind: "keyframe" | "clip";
-  mode: "keyframe" | "direct";
+  mode: "keyframe" | "direct" | "reference";
   ok: boolean;
   assetId?: string;
   assetUri?: string;
@@ -166,9 +166,11 @@ const isError = (value: unknown): value is { error: string } =>
 const capabilityFor = (plan: ShotRenderPlan): RenderGenerationRequest["capability"] =>
   plan.kind === "keyframe"
     ? "text_to_image"
-    : plan.mode === "direct"
-      ? "text_to_video"
-      : "image_to_video";
+    : plan.mode === "reference"
+      ? "reference_to_video"
+      : plan.mode === "direct"
+        ? "text_to_video"
+        : "image_to_video";
 
 /**
  * Render every plan and write each result onto its shot.
@@ -220,7 +222,22 @@ export async function renderShots(
             error: "The shot's still could not be read back from storage."
           };
         }
+        params["image"] = seed;
+        // Keep the historical serialized shape for callers that inspect the
+        // generation request. It contains exactly the one selected start frame.
         params["images"] = [seed];
+      }
+      if (capability === "reference_to_video" && !host.loadMedia) {
+        return { ...base, error: "Entity reference images cannot be read from storage." };
+      }
+      if (capability === "reference_to_video" && host.loadMedia) {
+        const references = await Promise.all(
+          plan.referenceImages.map((reference) => host.loadMedia?.(reference))
+        );
+        if (references.some((value) => !(value instanceof Uint8Array) || value.length === 0)) {
+          return { ...base, error: "A storyboard entity reference image could not be read from storage." };
+        }
+        params["reference_images"] = references;
       }
       const generationId = newId();
       const persist: RenderGenerationRequest["persist"] =

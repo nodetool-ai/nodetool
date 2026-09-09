@@ -340,7 +340,7 @@ describe("generate_media RPC (entity mentions)", () => {
 describe("generate_media RPC (video modes)", () => {
   let ws: MockWebSocket;
   const t2vCalls: TextToVideoParams[] = [];
-  const i2vCalls: Array<{ images: Uint8Array[]; params: ImageToVideoParams }> =
+  const i2vCalls: Array<{ image: Uint8Array; params: ImageToVideoParams }> =
     [];
   const v2vCalls: Array<{ video: Uint8Array; params: ImageToVideoParams & { strength?: number | null } }> =
     [];
@@ -364,10 +364,10 @@ describe("generate_media RPC (video modes)", () => {
         return new Uint8Array([0x00, 0x00, 0x00, 0x18]);
       },
       async imageToVideo(
-        images: Uint8Array[],
+        image: Uint8Array,
         params: ImageToVideoParams
       ): Promise<Uint8Array> {
-        i2vCalls.push({ images, params });
+        i2vCalls.push({ image, params });
         return new Uint8Array([0x00, 0x00, 0x00, 0x18]);
       },
       async videoToVideo(
@@ -414,7 +414,7 @@ describe("generate_media RPC (video modes)", () => {
     expect(out.error).toBeUndefined();
     expect(t2vCalls).toHaveLength(0);
     expect(i2vCalls).toHaveLength(1);
-    expect(i2vCalls[0].images).toEqual([REF_BYTES["srcv-1"]]);
+    expect(i2vCalls[0].image).toEqual(REF_BYTES["srcv-1"]);
     expect(i2vCalls[0].params.prompt).toBe("slow push in");
     expect(i2vCalls[0].params.durationSeconds).toBe(5);
     expect(i2vCalls[0].params.aspectRatio).toBe("16:9");

@@ -45,6 +45,7 @@ describe("draftFromShot", () => {
     );
 
     expect(draft).toEqual({
+      renderMode: "keyframe",
       slug: "Opening",
       sceneId: null,
       lighting: "hard key",
@@ -155,6 +156,14 @@ describe("withDurationSourceToggled", () => {
 });
 
 describe("shotPatchFromDraft", () => {
+  it("persists reference mode as a shot change", () => {
+    const original = draftFromShot(shot(), null);
+    const draft = { ...original, renderMode: "reference" as const };
+    expect(hasShotFieldChanges(draft, original)).toBe(true);
+    expect(shotPatchFromDraft(draft).render_mode).toBe("reference");
+    expect(draftFromShot(shot({ render_mode: "reference" }), null).renderMode).toBe("reference");
+  });
+
   it("maps every column onto its field", () => {
     const draft = {
       ...draftFromShot(shot(), null),
@@ -171,6 +180,7 @@ describe("shotPatchFromDraft", () => {
     };
 
     expect(shotPatchFromDraft(draft)).toEqual({
+      render_mode: "keyframe",
       slug: "Opening",
       action: "A lighthouse at dawn",
       dialogue: "We are open.",

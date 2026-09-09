@@ -124,11 +124,12 @@ export const RENDER_CLIPS_SCHEMA: JsonSchema = {
     },
     mode: {
       type: "string",
-      enum: ["keyframe", "direct"],
+      enum: ["keyframe", "direct", "reference"],
       description:
         "Override how the selected shots render, for this call only. " +
         "'keyframe' animates each shot's still (image_to_video); 'direct' " +
-        "generates from the prompt with no still (text_to_video). Defaults " +
+        "generates from the prompt with no still (text_to_video); 'reference' " +
+        "uses entity reference images (reference_to_video). Defaults " +
         "to each shot's own render_mode, which defaults to 'keyframe'. Set " +
         "the shot's render_mode with edit_storyboard to make it stick."
     },
@@ -338,7 +339,8 @@ export const renderStoryboardClipsSpec: CapabilitySpec = {
     "directly — no workflow is created or run. A shot renders the way its " +
     "render_mode says: 'keyframe' (the default) animates its selected still " +
     "with image_to_video, 'direct' generates from the prompt with " +
-    "text_to_video and needs no still. Pass `mode` to override both for this " +
+    "text_to_video and needs no still; 'reference' uses entity reference images " +
+    "with reference_to_video. Pass `mode` to override for this " +
     "call. Each clip is saved as an asset and attached to its shot (previous " +
     "takes are kept as versions), leaving the shot 'rendered' and ready for " +
     "assemble_storyboard_timeline. Omit `targets` to render every shot that " +
@@ -346,7 +348,7 @@ export const renderStoryboardClipsSpec: CapabilitySpec = {
     "shot's generation already has its picture and is skipped. " +
     "A keyframe-mode shot with no " +
     "still is reported, not rendered — run render_storyboard_stills first, or " +
-    "set its render_mode to 'direct'. This is the expensive step.",
+    "set its render_mode to 'direct' or 'reference'. This is the expensive step.",
   inputSchema: RENDER_CLIPS_SCHEMA,
   category: "write",
   userMessage: (params) => {

@@ -17,6 +17,7 @@ export const SUPPORTED_CAPABILITIES = [
   "segment_image",
   "text_to_video",
   "image_to_video",
+  "reference_to_video",
   "text_to_speech",
   "text_to_music",
   "automatic_speech_recognition",

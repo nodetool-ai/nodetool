@@ -28,6 +28,7 @@
 
 import { OpenAICompatProvider } from "./openai-compat-provider.js";
 import { bytesToImageDataUri } from "./image-mime.js";
+import { sniffMediaMime } from "./media-mime.js";
 import type { OpenAICompatProviderOptions } from "./openai-compat-provider.js";
 import { createLogger } from "@nodetool-ai/config";
 import { isBoolean, isNumber } from "@nodetool-ai/protocol";
@@ -41,6 +42,8 @@ import {
 import {
   getManifestNodeMeta,
   getModelInputFields,
+  getModelReferenceInputs,
+  validateReferenceInputs,
   loadImageModels,
   loadManifest,
   loadVideoModels
@@ -54,6 +57,7 @@ import type {
   TextToVideoParams,
   VideoModel
 } from "./types.js";
+import type { ReferenceToVideoInputs, ReferenceToVideoParams } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.atlascloud");
 
@@ -604,38 +608,28 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
   }
 
   override async imageToVideo(
-    images: Uint8Array[],
+    image: Uint8Array,
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
-    const image = images[0];
     if (!image || image.length === 0) {
       throw new Error("image must not be empty");
     }
+    const model = (await this.getAvailableVideoModels()).find((item) => item.id === params.model.id);
+    if (!model?.supportedTasks?.includes("image_to_video")) {
+      throw new Error(`AtlasCloud model ${params.model.id} does not support image_to_video`);
+    }
     const info = this.resolveModel(params.model.id, "video");
     const input = mapVideoParams(info, params);
-    // Each endpoint family names its input image differently: Seedance uses
-    // `image` (singular), Grok Imagine Video `image_url`, the edit endpoints
-    // `images`, and reference-to-video `reference_images`. First match wins.
     const dataUri = bytesToImageDataUri(image);
-    const imageField = ["image", "image_url", "images", "reference_images"].find(
+    const imageField = ["first_frame_image", "start_image", "image", "image_url", "images", "image_urls"].find(
       (name) => info.fields.has(name)
     );
-    if (imageField) {
-      // Wan 3.0 / MiniMax H3 take one mixed `refers` array of `{url, type}`
-      // objects; the manifest splits it into typed inputs that name it.
-      const wrapInto = info.fields.get(imageField)?.wrapInto;
-      if (wrapInto) {
-        input[wrapInto] = [{ url: dataUri, type: "image" }];
-      } else if (imageField === "images" || imageField === "reference_images") {
-        input[imageField] = [dataUri];
-      } else {
-        input[imageField] = dataUri;
-      }
-    } else {
-      throw new Error(
-        `AtlasCloud model ${params.model.id} does not accept an input image (try the Seedance image-to-video variant)`
-      );
+    if (!imageField) {
+      throw new Error(`AtlasCloud model ${params.model.id} does not declare a start image field`);
     }
+    input[imageField] = info.fields.get(imageField)?.type.startsWith("list[")
+      ? [dataUri]
+      : dataUri;
     return this.runJob(
       "video",
       params.model.id,
@@ -643,5 +637,48 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       input,
       runJobOptions(params)
     );
+  }
+
+  override async referenceToVideo(
+    inputs: ReferenceToVideoInputs,
+    params: ReferenceToVideoParams
+  ): Promise<Uint8Array> {
+    const modelId = params.model.id;
+    const model = (await this.getAvailableVideoModels()).find((item) => item.id === modelId);
+    if (!model?.supportedTasks?.includes("reference_to_video")) {
+      throw new Error(`AtlasCloud model ${modelId} does not support reference_to_video`);
+    }
+    const fields = getModelReferenceInputs(ATLASCLOUD_MANIFEST_PKG, ATLASCLOUD_MANIFEST_PATH, modelId);
+    const references = {
+      images: inputs.images.filter((bytes) => bytes.length > 0),
+      videos: inputs.videos.filter((bytes) => bytes.length > 0)
+    };
+    validateReferenceInputs("AtlasCloud", modelId, references, fields);
+    const info = this.resolveModel(modelId, "video");
+    const audioField = info.fields.get("use_reference_video_audio");
+    if (params.useReferenceVideoAudio === true && (!audioField || references.videos.length === 0)) {
+      throw new Error(`AtlasCloud model ${modelId} does not support reference video audio for these inputs`);
+    }
+    const input = mapVideoParams(info, params);
+    const groups = new Map<string, Array<{ url: string; type: "image" | "video" }>>();
+    for (const field of fields) {
+      const buffers = field.kind === "image" ? references.images : references.videos;
+      if (buffers.length === 0) continue;
+      const urls = buffers.map((bytes) => field.kind === "image"
+        ? bytesToImageDataUri(bytes)
+        : `data:${sniffMediaMime(bytes, "video/mp4")};base64,${Buffer.from(bytes).toString("base64")}`);
+      if (field.wrapInto) {
+        const group = groups.get(field.wrapInto) ?? [];
+        group.push(...urls.map((url) => ({ url, type: field.kind })));
+        groups.set(field.wrapInto, group);
+      } else {
+        input[field.apiName] = field.isList ? urls : urls[0];
+      }
+    }
+    for (const [name, values] of groups) input[name] = values;
+    if (audioField && params.useReferenceVideoAudio != null) {
+      input.use_reference_video_audio = params.useReferenceVideoAudio;
+    }
+    return this.runJob("video", modelId, info, input, runJobOptions(params));
   }
 }
