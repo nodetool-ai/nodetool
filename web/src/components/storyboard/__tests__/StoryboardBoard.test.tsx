@@ -445,6 +445,42 @@ describe("StoryboardBoard toolbar", () => {
     expect(screen.getByText("0 shots")).toBeInTheDocument();
   });
 
+  it("closes board settings from the settings panel", async () => {
+    mockShots = [makeShot("s1")];
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    await user.click(screen.getByRole("button", { name: /Board settings/ }));
+    await user.click(
+      screen.getByRole("button", { name: "Close board settings" })
+    );
+
+    expect(
+      screen.queryByRole("combobox", { name: "Still model" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Board settings" })
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("lets the user close settings after a missing model reveals them", async () => {
+    boardModels = { imageModel: null, videoModel: null };
+    mockShots = [makeShot("s1")];
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Choose a still model before rendering stills."
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Close board settings" })
+    );
+
+    expect(
+      screen.queryByRole("combobox", { name: "Still model" })
+    ).not.toBeInTheDocument();
+  });
+
   it("renders the render actions on the toolbar", () => {
     mockShots = [makeShot("s1")];
     renderBoard(jest.fn());

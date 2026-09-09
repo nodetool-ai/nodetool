@@ -37,6 +37,7 @@ import {
   Box,
   Card,
   Caption,
+  CloseButton,
   Collapse,
   Dialog,
   Divider,
@@ -50,6 +51,7 @@ import {
   LoadingSpinner,
   Panel,
   ScrollArea,
+  SectionHeader,
   SelectField,
   Skeleton,
   Text,
@@ -347,6 +349,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     () => setSettingsOpen((open) => !open),
     []
   );
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  const settingsPanelId = `storyboard-board-settings-${boardId}`;
 
   // The inspector docks under the grid, so on a board of more than a row or
   // two it opens below the fold. A selection the user makes here scrolls it
@@ -553,10 +557,19 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       : null;
   const stillStepActive = nextRenderStep === "stills";
   const clipStepActive = nextRenderStep === "clips";
-  const missingNextModel =
-    (stillStepActive && !imageModel?.id) ||
-    (clipStepActive && !videoModel?.id);
-  const settingsVisible = settingsOpen || missingNextModel;
+  const missingModelStep = stillStepActive
+    ? imageModel?.id
+      ? null
+      : "stills"
+    : clipStepActive && !videoModel?.id
+      ? "clips"
+      : null;
+  useEffect(() => {
+    if (missingModelStep) {
+      setSettingsOpen(true);
+    }
+  }, [missingModelStep]);
+  const settingsVisible = settingsOpen;
 
   // The toolbar's one-line summary: how big the board is, how it looks, and
   // who is in it — the fields the folded form would otherwise hide.
@@ -682,10 +695,11 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 Change Style
               </EditorButton>
               <EditorButton
-                variant="outlined"
+                variant={settingsVisible ? "contained" : "outlined"}
                 startIcon={<TuneIcon fontSize="small" />}
                 onClick={toggleSettings}
                 aria-expanded={settingsVisible}
+                aria-controls={settingsPanelId}
               >
                 Board settings
               </EditorButton>
@@ -723,8 +737,22 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
 
         {!readOnly && (
           <Collapse in={settingsVisible} timeout="auto" unmountOnExit>
-            <Panel padding={SPACING.xl} sx={{ maxWidth: "1100px" }}>
+            <Panel
+              id={settingsPanelId}
+              padding={SPACING.xl}
+              sx={{ maxWidth: "1100px" }}
+            >
               <FlexColumn gap={SPACING.xl}>
+                <SectionHeader
+                  title="Board settings"
+                  size="small"
+                  action={
+                    <CloseButton
+                      tooltip="Close board settings"
+                      onClick={closeSettings}
+                    />
+                  }
+                />
                 <FormGrid stackBelow={FORM_STACK_BELOW}>
                   <FormSection label="Screenplay">
                     <FormField label="Title">
