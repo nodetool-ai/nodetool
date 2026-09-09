@@ -248,6 +248,14 @@ describe("TimelineEditor", () => {
       expect(screen.getByText("Tracks")).toBeInTheDocument();
     });
 
+    it("lets the preview fill the middle row when no transcript is present", () => {
+      renderEditor();
+
+      expect(screen.getByTestId("preview-area").parentElement).toHaveStyle({
+        flex: "1 1 55%"
+      });
+    });
+
     it("offers an Assistant tab alongside the Inspector", () => {
       renderEditor();
 

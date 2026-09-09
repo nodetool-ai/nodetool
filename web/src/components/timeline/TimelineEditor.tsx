@@ -249,7 +249,7 @@ const PreviewRegion: React.FC<{
       sx={
         fullWidth
           ? { flex: "1 1 auto", minWidth: 0, minHeight: 0, borderRight: "none" }
-          : { flex: "0 1 55%", minWidth: 0, minHeight: 0, width: 0 }
+          : { flex: "1 1 55%", minWidth: 0, minHeight: 0, width: 0 }
       }
     >
       {isLoading ? (
