@@ -26,6 +26,6 @@
     "@vitejs/plugin-react": "4.7.0",
     "typescript": "5.9.3",
     "vite": "6.4.3",
-    "vitest": "1.6.1"
+    "vitest": "4.1.11"
   }
 }
