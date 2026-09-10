@@ -99,29 +99,27 @@ describe("OverlayAudioNode — uses a/b properties (not audio_a/audio_b)", () =>
   it("overlays two audio inputs via inputs.a and inputs.b", async () => {
     const node = new OverlayAudioNode();
     node.assign({
-      a: audioRef([10, 20, 30]),
-      b: audioRef([5, 25, 15])
+      a: wavRef([100, 200, 300]),
+      b: wavRef([50, 250, 150])
     });
     const result = await node.process();
     const output = result.output as { data: string };
     const bytes = Buffer.from(output.data, "base64");
-    // OverlayAudioNode takes max of each sample
-    expect(bytes[0]).toBe(10);
-    expect(bytes[1]).toBe(25);
-    expect(bytes[2]).toBe(30);
+    expect(samplesOf(bytes)).toEqual([150, 450, 450]);
   });
 
   it("does NOT read from old audio_a / audio_b properties", async () => {
     const node = new OverlayAudioNode();
     node.assign({
-      audio_a: audioRef([99]),
-      audio_b: audioRef([99])
+      a: wavRef([100]),
+      b: wavRef([200]),
+      audio_a: wavRef([9000]),
+      audio_b: wavRef([9000])
     });
     const result = await node.process();
-    // Without a/b, both inputs are empty → output should be empty
     const output = result.output as { data: string };
     const bytes = Buffer.from(output.data, "base64");
-    expect(bytes.length).toBe(0);
+    expect(samplesOf(bytes)).toEqual([300]);
   });
 });
 
