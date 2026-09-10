@@ -34,6 +34,8 @@ export interface MediaGenerationRequest {
   strength?: number | null;
   num_inference_steps?: number | null;
   source_asset_id?: string | null;
+  /** Keep the first reference video's audio (reference_to_video). */
+  use_reference_video_audio?: boolean | null;
   extras?: Record<string, unknown> | null;
 }
 
@@ -53,6 +55,7 @@ export type MediaMode =
   | "image_edit"
   | "video"
   | "image_to_video"
+  | "reference_to_video"
   | "audio"
   | "audio_to_video"
   | "retake"
@@ -189,18 +192,31 @@ interface ImageToVideoGenerationParams {
   numInferenceSteps: number;
 }
 
+interface ReferenceToVideoGenerationParams {
+  model: VideoModelSelection | null;
+  resolution: VideoResolution;
+  aspectRatio: string;
+  duration: number;
+  /** Keep the audio of the first reference video instead of synthesizing. */
+  useReferenceVideoAudio: boolean;
+}
+
 interface MediaGenerationState {
   mode: MediaMode;
   image: ImageGenerationParams;
   imageEdit: ImageEditParams;
   video: VideoGenerationParams;
   imageToVideo: ImageToVideoGenerationParams;
+  referenceToVideo: ReferenceToVideoGenerationParams;
   audio: AudioGenerationParams;
   setMode: (mode: MediaMode) => void;
   setImageParams: (params: Partial<ImageGenerationParams>) => void;
   setImageEditParams: (params: Partial<ImageEditParams>) => void;
   setVideoParams: (params: Partial<VideoGenerationParams>) => void;
   setImageToVideoParams: (params: Partial<ImageToVideoGenerationParams>) => void;
+  setReferenceToVideoParams: (
+    params: Partial<ReferenceToVideoGenerationParams>
+  ) => void;
   setAudioParams: (params: Partial<AudioGenerationParams>) => void;
 }
 
@@ -242,6 +258,14 @@ const DEFAULT_IMAGE_TO_VIDEO_PARAMS: ImageToVideoGenerationParams = {
   numInferenceSteps: 30
 };
 
+const DEFAULT_REFERENCE_TO_VIDEO_PARAMS: ReferenceToVideoGenerationParams = {
+  model: null,
+  resolution: "1080p",
+  aspectRatio: "16:9",
+  duration: 5,
+  useReferenceVideoAudio: false
+};
+
 const useMediaGenerationStore = create<MediaGenerationState>()(
   persist(
     (set) => ({
@@ -250,6 +274,7 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
       imageEdit: DEFAULT_IMAGE_EDIT_PARAMS,
       video: DEFAULT_VIDEO_PARAMS,
       imageToVideo: DEFAULT_IMAGE_TO_VIDEO_PARAMS,
+      referenceToVideo: DEFAULT_REFERENCE_TO_VIDEO_PARAMS,
       audio: DEFAULT_AUDIO_PARAMS,
       setMode: (mode) => set({ mode }),
       setImageParams: (params) =>
@@ -262,16 +287,20 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
         set((state) => ({
           imageToVideo: { ...state.imageToVideo, ...params }
         })),
+      setReferenceToVideoParams: (params) =>
+        set((state) => ({
+          referenceToVideo: { ...state.referenceToVideo, ...params }
+        })),
       setAudioParams: (params) =>
         set((state) => ({ audio: { ...state.audio, ...params } }))
     }),
     {
       name: "nodetool-media-generation",
-      version: 2,
+      version: 3,
       migrate: (persistedState, version) => {
-        const state = (persistedState ?? {}) as Partial<MediaGenerationState>;
+        let state = (persistedState ?? {}) as Partial<MediaGenerationState>;
         if (version < 2) {
-          return {
+          state = {
             ...state,
             audio: { ...DEFAULT_AUDIO_PARAMS, ...(state.audio ?? {}) },
             imageEdit: {
@@ -282,7 +311,16 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
               ...DEFAULT_IMAGE_TO_VIDEO_PARAMS,
               ...(state.imageToVideo ?? {})
             }
-          } as MediaGenerationState;
+          };
+        }
+        if (version < 3) {
+          state = {
+            ...state,
+            referenceToVideo: {
+              ...DEFAULT_REFERENCE_TO_VIDEO_PARAMS,
+              ...(state.referenceToVideo ?? {})
+            }
+          };
         }
         return state as MediaGenerationState;
       }

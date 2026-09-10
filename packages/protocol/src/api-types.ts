@@ -612,6 +612,7 @@ export type MediaGenerationMode =
   | "image_edit"
   | "video"
   | "image_to_video"
+  | "reference_to_video"
   | "audio"
   | "audio_to_video"
   | "retake"
@@ -648,6 +649,12 @@ export interface MediaGenerationRequest {
   num_inference_steps?: number | null;
   /** Source image asset id (image_edit / image_to_video). */
   source_asset_id?: string | null;
+  /**
+   * Keep the audio of the first reference *video* instead of whatever the
+   * model would synthesize (reference_to_video). Only some models take it;
+   * the provider rejects the request when the selected one does not.
+   */
+  use_reference_video_audio?: boolean | null;
   /** Extra provider-specific params. */
   extras?: Record<string, unknown> | null;
 }

@@ -373,6 +373,16 @@ export interface ChatTurnDeps {
     mediaGeneration: Record<string, unknown>,
     userId: string
   ) => Promise<Uint8Array | null>;
+  /**
+   * Every image and video the user attached, for the reference-to-video mode
+   * — which takes a set of references rather than the one source image
+   * {@link resolveSourceImageBytes} returns.
+   */
+  resolveReferenceMediaBytes: (
+    data: Record<string, unknown>,
+    mediaGeneration: Record<string, unknown>,
+    userId: string
+  ) => Promise<{ images: Uint8Array[]; videos: Uint8Array[] }>;
 }
 
 /**
@@ -3035,6 +3045,124 @@ export class ChatTurnHandler {
                 asset_id: assetId,
                 format: "mp4",
                 duration: duration
+              }
+            }
+          ],
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        // Re-check: cancellation may have landed while the asset was persisting.
+        if (cancelled()) return;
+        await this.saveMessageToDb(assistantMsgData);
+        await this.session.send(assistantMsgData);
+        return;
+      }
+
+      if (mode === "reference_to_video") {
+        // The whole set of attachments conditions one clip, so every image
+        // and video on the message reaches the provider — plus the reference
+        // images of any `@`-mentioned entity, which is the same kind of input
+        // arriving by a different route.
+        const references = await this.deps.resolveReferenceMediaBytes(
+          data,
+          mediaGeneration,
+          userId
+        );
+        const referenceImages = [...references.images, ...entityImageBytes];
+        const referenceVideos = references.videos;
+        if (referenceImages.length === 0 && referenceVideos.length === 0) {
+          await this.session.send({
+            type: "error",
+            message:
+              "Reference to video needs at least one reference — attach an image or a video first",
+            thread_id: threadId
+          });
+          return;
+        }
+
+        const aspectRatio = isString(mediaGeneration.aspect_ratio)
+          ? (mediaGeneration.aspect_ratio as string)
+          : null;
+        const resolution = isString(mediaGeneration.resolution)
+          ? (mediaGeneration.resolution as string)
+          : null;
+        const duration = isNumber(mediaGeneration.duration)
+          ? (mediaGeneration.duration as number)
+          : null;
+        // Only some models take it, and a model that does not rejects the
+        // request rather than silently dropping the audio, so the flag is
+        // forwarded only when the composer set it.
+        const useReferenceVideoAudio =
+          typeof mediaGeneration.use_reference_video_audio === "boolean"
+            ? (mediaGeneration.use_reference_video_audio as boolean)
+            : undefined;
+        const r2vModel: ProviderVideoModel = {
+          id: modelId,
+          name: modelId,
+          provider: providerId
+        };
+
+        await this.session.send({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        const generated = await generate(
+          "reference_to_video",
+          {
+            prompt: expandedPrompt,
+            aspect_ratio: aspectRatio,
+            resolution,
+            duration_seconds: duration,
+            reference_images: referenceImages,
+            reference_videos: referenceVideos,
+            use_reference_video_audio: useReferenceVideoAudio
+          },
+          { mime: "video/mp4" },
+          (abort) =>
+            provider.referenceToVideo(
+              { images: referenceImages, videos: referenceVideos },
+              {
+                model: r2vModel,
+                prompt: expandedPrompt,
+                aspectRatio,
+                resolution,
+                durationSeconds: duration,
+                useReferenceVideoAudio,
+                signal: abort
+              }
+            )
+        );
+        if (cancelled()) return;
+        const assetId =
+          seamAssetId(generated) ??
+          (await storeMediaAsset(generated.output, "video/mp4", "mp4"));
+
+        await this.session.send({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          done: true
+        });
+
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: [
+            {
+              type: "video",
+              video: {
+                type: "video",
+                asset_id: assetId,
+                format: "mp4",
+                duration
               }
             }
           ],

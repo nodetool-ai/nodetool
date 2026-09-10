@@ -171,6 +171,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const imageEditParams = useMediaGenerationStore((s) => s.imageEdit);
   const videoParams = useMediaGenerationStore((s) => s.video);
   const imageToVideoParams = useMediaGenerationStore((s) => s.imageToVideo);
+  const referenceToVideoParams = useMediaGenerationStore(
+    (s) => s.referenceToVideo
+  );
   const audioParams = useMediaGenerationStore((s) => s.audio);
 
   // Language-model selection from chat store (used in chat mode & forwarded
@@ -390,6 +393,21 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         num_inference_steps: imageToVideoParams.numInferenceSteps
       };
     }
+    if (mode === "reference_to_video") {
+      return {
+        mode: "reference_to_video",
+        provider: referenceToVideoParams.model?.provider ?? null,
+        model: referenceToVideoParams.model?.id ?? null,
+        aspect_ratio: referenceToVideoParams.aspectRatio,
+        resolution: referenceToVideoParams.resolution,
+        duration: referenceToVideoParams.duration,
+        // Only sent when on: a model that cannot take it rejects the request,
+        // so an off toggle must not state anything.
+        use_reference_video_audio: referenceToVideoParams.useReferenceVideoAudio
+          ? true
+          : null
+      };
+    }
     if (mode === "audio") {
       return {
         mode: "audio",
@@ -407,6 +425,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     imageEditParams,
     videoParams,
     imageToVideoParams,
+    referenceToVideoParams,
     audioParams
   ]);
 
@@ -445,6 +464,11 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         ? "Describe the animation…"
         : "Describe how the dropped image should animate…";
     }
+    if (mode === "reference_to_video") {
+      return isMobile
+        ? "Describe the shot…"
+        : "Describe the shot — the attached images and videos are the references…";
+    }
     if (mode === "audio") {
       return "Type the text you want spoken…";
     }
@@ -475,6 +499,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     mode === "image_edit" ||
     mode === "video" ||
     mode === "image_to_video" ||
+    mode === "reference_to_video" ||
     mode === "audio";
 
   const chatModel = selectedModel ?? languageModel;
@@ -498,6 +523,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "image_to_video") {
       return { model: imageToVideoParams.model, label: "image to video" };
     }
+    if (mode === "reference_to_video") {
+      return {
+        model: referenceToVideoParams.model,
+        label: "reference to video"
+      };
+    }
     if (mode === "audio") {
       return { model: audioParams.model, label: "speech" };
     }
@@ -509,6 +540,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     imageEditParams.model,
     videoParams.model,
     imageToVideoParams.model,
+    referenceToVideoParams.model,
     audioParams.model
   ]);
 

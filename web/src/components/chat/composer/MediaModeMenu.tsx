@@ -7,6 +7,7 @@ import ImageIcon from "@mui/icons-material/Image";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import MovieIcon from "@mui/icons-material/Movie";
 import MovieFilterIcon from "@mui/icons-material/MovieFilter";
+import BurstModeIcon from "@mui/icons-material/BurstMode";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import ReplayIcon from "@mui/icons-material/Replay";
@@ -71,6 +72,13 @@ const MODES: ModeItem[] = [
     id: "image_to_video",
     label: "Animate Image",
     icon: <MovieFilterIcon fontSize="small" />,
+    enabled: true
+  },
+  {
+    id: "reference_to_video",
+    label: "Reference to Video",
+    description: "several references, one shot",
+    icon: <BurstModeIcon fontSize="small" />,
     enabled: true
   },
   {

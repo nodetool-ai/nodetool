@@ -60,9 +60,16 @@ The same composer generates more than text. Click the mode chip to switch betwee
 | **Edit Images** | Image-to-image edits on a dropped image |
 | **Generate Videos** | Text-to-video |
 | **Animate Image** | Turn a still image into a clip |
+| **Reference to Video** | One clip from several attached images and videos — a character plus a garment, a product plus a location, a clip whose motion the new shot follows |
 | **Generate Speech** | Text-to-speech with a voice picker |
 
 Each mode swaps in its own controls — resolution, aspect ratio, duration, voice — and attaches them to the message so the server routes to the right provider call.
+
+Reference to Video takes every image and video on the message, plus the
+reference image of any `@`-mentioned entity, so the prompt describes the action
+and the camera rather than the subjects. Its audio chip chooses between what the
+model scores and the first reference video's own track; only some models accept
+the second, and one that does not rejects the request.
 
 ---
 

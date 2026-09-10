@@ -10,6 +10,8 @@ import React, { useMemo } from "react";
 import AppsIcon from "@mui/icons-material/Apps";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
+import BurstModeIcon from "@mui/icons-material/BurstMode";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import DisplaySettingsIcon from "@mui/icons-material/Tv";
@@ -76,6 +78,22 @@ const AUDIO_FORMAT_OPTIONS: MediaOption<AudioFormat>[] = AUDIO_FORMATS.map(
 
 const { strengthOptions: STRENGTH_OPTIONS, stepsOptions: STEPS_OPTIONS } =
   buildImageEditOptions();
+
+/** Whether the first reference video's own audio survives into the result. */
+const REFERENCE_AUDIO_OPTIONS: MediaOption<string>[] = [
+  {
+    id: "off",
+    label: "Model audio",
+    description: "let the model score the clip",
+    icon: <VolumeUpIcon fontSize="small" />
+  },
+  {
+    id: "on",
+    label: "Reference audio",
+    description: "keep the reference video's track",
+    icon: <VolumeUpIcon fontSize="small" />
+  }
+];
 
 interface ModeChipsProps {
   mode: MediaMode;
@@ -365,6 +383,71 @@ function ImageToVideoModeChips({ openModelPickerRef }: ClusterProps) {
   );
 }
 
+function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
+  const params = useMediaGenerationStore((s) => s.referenceToVideo);
+  const setParams = useMediaGenerationStore((s) => s.setReferenceToVideoParams);
+  const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
+  const { durationOptions, resolutionOptions, aspectOptions } = useMemo(
+    () => buildVideoModelOptions(params.model),
+    [params.model]
+  );
+
+  return (
+    <>
+      <ModelChip
+        openRef={openModelPickerRef}
+        icon={<BurstModeIcon fontSize="small" />}
+        label={params.model?.name || "Select Reference Model"}
+        picker={{
+          kind: "video",
+          task: "reference_to_video",
+          onPick: (model) => {
+            setParams(videoModelPatch(model, params));
+            addRecentModel(recentModelEntry(model));
+          }
+        }}
+      />
+      <OptionChip
+        menu="option"
+        icon={<AccessTimeIcon fontSize="small" />}
+        label={`${params.duration} Sec`}
+        header="Clip Duration"
+        value={params.duration}
+        options={durationOptions}
+        onChange={(duration) => setParams({ duration })}
+      />
+      <OptionChip
+        menu="option"
+        icon={<DisplaySettingsIcon fontSize="small" />}
+        label={params.resolution}
+        header="Video Resolution"
+        value={params.resolution}
+        options={resolutionOptions}
+        onChange={(resolution) => setParams({ resolution })}
+      />
+      <OptionChip
+        menu="aspect"
+        icon={<AspectRatioIcon fontSize="small" />}
+        label={params.aspectRatio}
+        value={params.aspectRatio}
+        options={aspectOptions}
+        onChange={(aspectRatio) => setParams({ aspectRatio })}
+      />
+      <OptionChip
+        menu="option"
+        icon={<VolumeUpIcon fontSize="small" />}
+        label={params.useReferenceVideoAudio ? "Reference audio" : "Model audio"}
+        header="Audio Source"
+        value={params.useReferenceVideoAudio ? "on" : "off"}
+        options={REFERENCE_AUDIO_OPTIONS}
+        onChange={(value) =>
+          setParams({ useReferenceVideoAudio: value === "on" })
+        }
+      />
+    </>
+  );
+}
+
 function AudioModeChips({ openModelPickerRef }: ClusterProps) {
   const params = useMediaGenerationStore((s) => s.audio);
   const setParams = useMediaGenerationStore((s) => s.setAudioParams);
@@ -442,6 +525,11 @@ export function ModeChips({ mode, openModelPickerRef }: ModeChipsProps) {
   }
   if (mode === "image_to_video") {
     return <ImageToVideoModeChips openModelPickerRef={openModelPickerRef} />;
+  }
+  if (mode === "reference_to_video") {
+    return (
+      <ReferenceToVideoModeChips openModelPickerRef={openModelPickerRef} />
+    );
   }
   if (mode === "audio") {
     return <AudioModeChips openModelPickerRef={openModelPickerRef} />;

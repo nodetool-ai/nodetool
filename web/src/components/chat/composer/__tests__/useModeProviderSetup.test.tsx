@@ -37,6 +37,7 @@ describe("capabilityForMode", () => {
     expect(capabilityForMode("image_edit")).toBe("text_to_image");
     expect(capabilityForMode("video")).toBe("text_to_video");
     expect(capabilityForMode("image_to_video")).toBe("text_to_video");
+    expect(capabilityForMode("reference_to_video")).toBe("text_to_video");
     expect(capabilityForMode("audio")).toBe("text_to_speech");
   });
 
@@ -54,6 +55,7 @@ describe("capabilityForMode", () => {
       "image_edit",
       "video",
       "image_to_video",
+      "reference_to_video",
       "audio"
     ] as const) {
       expect(setupReasonForMode(mode)).toEqual(expect.any(String));
