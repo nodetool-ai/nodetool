@@ -10,7 +10,7 @@
  * nothing migrates into one.
  */
 
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import {
   DBModel,
   ModelChangeEvent,
@@ -128,28 +128,24 @@ export class Project extends DBModel {
     // Restore the legacy project.thread_id association before claiming
     // remaining threads for Personal.
     await executeRaw(
-      sql.raw(
-        `UPDATE nodetool_threads SET project_id = (` +
-          `SELECT p.id FROM projects p WHERE p.thread_id = nodetool_threads.id ` +
-          `AND p.user_id = nodetool_threads.user_id) ` +
-          `WHERE user_id = '${owner}' AND EXISTS (` +
-          `SELECT 1 FROM projects p WHERE p.thread_id = nodetool_threads.id ` +
-          `AND p.user_id = nodetool_threads.user_id) RETURNING id`
-      )
+      `UPDATE nodetool_threads SET project_id = (` +
+        `SELECT p.id FROM projects p WHERE p.thread_id = nodetool_threads.id ` +
+        `AND p.user_id = nodetool_threads.user_id) ` +
+        `WHERE user_id = '${owner}' AND EXISTS (` +
+        `SELECT 1 FROM projects p WHERE p.thread_id = nodetool_threads.id ` +
+        `AND p.user_id = nodetool_threads.user_id) RETURNING id`
     );
     // Runs created from an already-assigned workflow inherit that ownership.
     // Jobs without a project column were otherwise indistinguishable from
     // genuinely unassigned runs.
     await executeRaw(
-      sql.raw(
-        `UPDATE nodetool_jobs SET project_id = (` +
-          `SELECT w.project_id FROM nodetool_workflows w ` +
-          `WHERE w.id = nodetool_jobs.workflow_id AND w.user_id = nodetool_jobs.user_id) ` +
-          `WHERE user_id = '${owner}' AND (project_id IS NULL OR project_id = '' ` +
-          `OR project_id = 'default') AND EXISTS (` +
-          `SELECT 1 FROM nodetool_workflows w WHERE w.id = nodetool_jobs.workflow_id ` +
-          `AND w.user_id = nodetool_jobs.user_id AND w.project_id <> 'default') RETURNING id`
-      )
+      `UPDATE nodetool_jobs SET project_id = (` +
+        `SELECT w.project_id FROM nodetool_workflows w ` +
+        `WHERE w.id = nodetool_jobs.workflow_id AND w.user_id = nodetool_jobs.user_id) ` +
+        `WHERE user_id = '${owner}' AND (project_id IS NULL OR project_id = '' ` +
+        `OR project_id = 'default') AND EXISTS (` +
+        `SELECT 1 FROM nodetool_workflows w WHERE w.id = nodetool_jobs.workflow_id ` +
+        `AND w.user_id = nodetool_jobs.user_id AND w.project_id <> 'default') RETURNING id`
     );
     const tables = [
       "storyboards", "scripts", "timeline_sequences", "image_documents",
@@ -159,11 +155,9 @@ export class Project extends DBModel {
     ];
     for (const table of tables) {
       const result = await executeRaw(
-        sql.raw(
-          `UPDATE ${table} SET project_id = '${target}' ` +
-            `WHERE user_id = '${owner}' AND ` +
-            `(project_id IS NULL OR project_id = '' OR project_id = 'default') RETURNING id`
-        )
+        `UPDATE ${table} SET project_id = '${target}' ` +
+          `WHERE user_id = '${owner}' AND ` +
+          `(project_id IS NULL OR project_id = '' OR project_id = 'default') RETURNING id`
       );
       migrated += result.rows.length;
     }
@@ -172,13 +166,11 @@ export class Project extends DBModel {
     let dangling = 0;
     for (const table of tables) {
       const result = await executeRaw(
-        sql.raw(
-          `SELECT COUNT(*) AS count FROM ${table} r ` +
-            `WHERE r.user_id = '${owner}' AND r.project_id IS NOT NULL ` +
-            `AND r.project_id <> 'default' AND r.project_id <> '${target}' ` +
-            `AND NOT EXISTS (SELECT 1 FROM projects p ` +
-            `WHERE p.id = r.project_id AND p.user_id = r.user_id)`
-        )
+        `SELECT COUNT(*) AS count FROM ${table} r ` +
+          `WHERE r.user_id = '${owner}' AND r.project_id IS NOT NULL ` +
+          `AND r.project_id <> 'default' AND r.project_id <> '${target}' ` +
+          `AND NOT EXISTS (SELECT 1 FROM projects p ` +
+          `WHERE p.id = r.project_id AND p.user_id = r.user_id)`
       );
       const rows = result.rows;
       const count = (rows[0] as { count?: unknown } | undefined)?.count;
