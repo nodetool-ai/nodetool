@@ -268,13 +268,17 @@ export class Workflow extends DBModel {
       access?: AccessLevel;
       runMode?: WorkflowRunMode | string;
       tag?: string;
+      projectId?: string;
       startKey?: string;
     } = {}
   ): Promise<[Workflow[], string]> {
-    const { limit = 50, access, runMode, tag, startKey } = opts;
+    const { limit = 50, access, runMode, tag, projectId, startKey } = opts;
     const db = getDb();
 
     const conditions = [eq(workflows.user_id, userId)];
+    if (projectId !== undefined) {
+      conditions.push(eq(workflows.project_id, projectId));
+    }
     if (access) conditions.push(eq(workflows.access, access));
     if (runMode) {
       conditions.push(eq(workflows.run_mode, runMode));
@@ -336,11 +340,14 @@ export class Workflow extends DBModel {
    */
   static async paginateSummaries(
     userId: string,
-    opts: { limit?: number; startKey?: string } = {}
+    opts: { limit?: number; projectId?: string; startKey?: string } = {}
   ): Promise<[WorkflowSummary[], string]> {
-    const { limit = 50, startKey } = opts;
+    const { limit = 50, projectId, startKey } = opts;
     const db = getDb();
     const conditions = [eq(workflows.user_id, userId)];
+    if (projectId !== undefined) {
+      conditions.push(eq(workflows.project_id, projectId));
+    }
 
     if (startKey) {
       const [cursor] = await db
@@ -444,14 +451,17 @@ export class Workflow extends DBModel {
 
   static async paginateTools(
     userId: string,
-    opts: { limit?: number; startKey?: string } = {}
+    opts: { limit?: number; projectId?: string; startKey?: string } = {}
   ): Promise<[Workflow[], string]> {
-    const { limit = 50, startKey } = opts;
+    const { limit = 50, projectId, startKey } = opts;
     const db = getDb();
     const conditions = [
       eq(workflows.user_id, userId),
       eq(workflows.run_mode, "tool")
     ];
+    if (projectId !== undefined) {
+      conditions.push(eq(workflows.project_id, projectId));
+    }
     if (startKey) {
       const cursor = await Workflow.get<Workflow>(startKey);
       if (cursor && cursor.user_id === userId) {

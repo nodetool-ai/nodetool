@@ -241,6 +241,32 @@ describe("workspace router", () => {
       expect(result.id).toBe("new-ws");
     });
 
+    it("forwards project ownership when provided", async () => {
+      (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(true);
+      (stat as ReturnType<typeof vi.fn>).mockResolvedValue({
+        isDirectory: () => true
+      });
+      (access as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+      (Workspace.create as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeWorkspace({ id: "project-ws" })
+      );
+
+      const caller = createCaller(makeCtx());
+      await caller.workspace.create({
+        name: "Project workspace",
+        path: "/home/user/project-ws",
+        project_id: "project-1"
+      });
+
+      expect(Workspace.create).toHaveBeenCalledWith({
+        user_id: "user-1",
+        name: "Project workspace",
+        path: "/home/user/project-ws",
+        is_default: false,
+        project_id: "project-1"
+      });
+    });
+
     it("unsets other defaults when is_default is true", async () => {
       (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(true);
       (stat as ReturnType<typeof vi.fn>).mockResolvedValue({

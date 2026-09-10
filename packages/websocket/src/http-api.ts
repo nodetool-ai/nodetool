@@ -502,6 +502,7 @@ async function parseBody<S extends z.ZodType>(
 export function toWorkflowResponse(workflow: Workflow) {
   return {
     id: workflow.id,
+    project_id: workflow.project_id,
     access: workflow.access,
     created_at: workflow.created_at,
     updated_at: workflow.updated_at,
@@ -1271,11 +1272,13 @@ export async function handleWorkflowsRoot(
   if (request.method === "GET") {
     const limit = parseLimit(url, 100);
     const runMode = url.searchParams.get("run_mode")?.trim() ?? undefined;
+    const projectId = url.searchParams.get("project_id")?.trim() || undefined;
     const startKey = url.searchParams.get("cursor")?.trim() || undefined;
     // columns is Python-specific (column selection) and is ignored here.
     const [workflows, cursor] = await Workflow.paginate(userId, {
       limit,
       runMode,
+      projectId,
       startKey
     });
     return jsonResponse({
@@ -1408,6 +1411,7 @@ export function toJobResponse(job: Job) {
   return {
     id: job.id,
     user_id: job.user_id,
+    project_id: job.project_id,
     job_type: "workflow",
     status: job.status,
     workflow_id: job.workflow_id,

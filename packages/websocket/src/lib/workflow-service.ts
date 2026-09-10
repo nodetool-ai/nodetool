@@ -58,6 +58,7 @@ export interface WorkflowGraphInput {
 /** The fields both writers accept. Absent means "leave alone" on update. */
 export interface WorkflowWriteInput {
   name?: string;
+  project_id?: string;
   tool_name?: string | null;
   package_name?: string | null;
   path?: string | null;
@@ -141,6 +142,7 @@ function createRow(
     settings: input.settings ?? null,
     run_mode: input.run_mode ?? "workflow",
     workspace_id: input.workspace_id ?? null,
+    project_id: input.project_id ?? "default",
     html_app: input.html_app ?? null,
     app_doc: appDoc
   };

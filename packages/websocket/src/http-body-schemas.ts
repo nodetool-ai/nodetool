@@ -116,6 +116,7 @@ export const workflowsExportBundleBodySchema = z.object({
 /** `POST /api/workflows` and `PUT /api/workflows/:id` */
 export const workflowRequestBodySchema = z.object({
   name: lenientString(),
+  project_id: unchecked<string>(),
   tool_name: unchecked<string | null>(),
   package_name: unchecked<string | null>(),
   path: unchecked<string | null>(),

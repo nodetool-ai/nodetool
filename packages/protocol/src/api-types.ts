@@ -432,6 +432,7 @@ export interface WorkflowGraph {
 export interface Workflow {
   id: string;
   user_id?: string;
+  project_id?: string;
   name: string;
   tool_name?: string | null;
   description: string;
@@ -470,6 +471,7 @@ export interface WorkflowList {
 
 export interface WorkflowRequest {
   name: string;
+  project_id?: string;
   tool_name?: string | null;
   package_name?: string | null;
   path?: string | null;
@@ -510,6 +512,7 @@ export interface WorkflowToolList {
 export interface Thread {
   id: string;
   user_id: string;
+  project_id?: string;
   /** Workflow this conversation belongs to, or null for global chat. */
   workflow_id?: string | null;
   title: string | null;
@@ -526,6 +529,7 @@ export interface ThreadList {
 export interface ThreadCreateRequest {
   title?: string;
   workflow_id?: string | null;
+  project_id?: string;
 }
 
 export interface ThreadUpdateRequest {
@@ -955,6 +959,7 @@ export interface Graph {
 export interface JobResponse {
   id: string;
   user_id: string;
+  project_id?: string;
   job_type: string;
   workflow_id: string;
   status: string | null;
@@ -982,6 +987,7 @@ export interface RunJobRequest {
   job_type?: string;
   execution_strategy?: string;
   workflow_id: string;
+  project_id?: string | null;
   user_id?: string;
   auth_token?: string;
   api_url?: string | null;
@@ -1595,6 +1601,7 @@ export interface CollectionCreate {
 export interface WorkspaceResponse {
   id: string;
   user_id: string;
+  project_id?: string;
   name: string;
   path: string;
   is_default?: boolean;
@@ -1612,6 +1619,7 @@ export interface WorkspaceListResponse {
 export interface WorkspaceCreateRequest {
   name: string;
   description?: string;
+  project_id?: string;
 }
 
 export interface WorkspaceUpdateRequest {
