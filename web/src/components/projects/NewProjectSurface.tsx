@@ -59,6 +59,7 @@ import { useFileHandling } from "../chat/hooks/useFileHandling";
 import { useTextareaAssetMention } from "../chat/composer/useTextareaAssetMention";
 import { useTextareaSkillMention } from "../chat/composer/useTextareaSkillMention";
 import { assetToUri } from "../node_types/editing/promptComposer/promptTokens";
+import { assetIdFromLocator } from "../../utils/mediaRef";
 import { useEntities } from "../../serverState/useEntities";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -99,6 +100,7 @@ import VideoSetupHost from "../setup/video/VideoSetupHost";
 import ScriptSetupHost from "../setup/script/ScriptSetupHost";
 import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
 import GameSetupHost from "../setup/game/GameSetupHost";
+import EntitySetupHost from "../setup/entity/EntitySetupHost";
 import { newVideoSetupDocument } from "../setup/video/useVideoSetupFlow";
 import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
 import { startImageFlow } from "../setup/image/startImageFlow";
@@ -136,6 +138,7 @@ import workflowBackground from "../../assets/guided-flows/workflow.webp";
 import gameBackground from "../../assets/guided-flows/game.webp";
 
 const ENTRY_BACKGROUNDS: Record<EntryFlowId, string> = {
+  entity: imageBackground,
   storyboard: storyboardBackground,
   video: videoBackground,
   script: scriptBackground,
@@ -177,10 +180,11 @@ interface SubmenuAnchor {
  * away rather than hosting a step here.
  */
 interface SetupTarget {
-  kind: "storyboard" | "video" | "script" | "workflow" | "game";
+  kind: "entity" | "storyboard" | "video" | "script" | "workflow" | "game";
   id: string;
   projectId: string;
   name: string;
+  initialAssetId?: string;
 }
 
 /** Which tab a finished flow opens. */
@@ -238,6 +242,9 @@ const uploadComposerReferences = async (
 
 /** Drop the draft document an entry card made. */
 const deleteSetupDocument = async (target: SetupTarget): Promise<void> => {
+  if (target.kind === "entity") {
+    return;
+  }
   if (target.kind === "storyboard") {
     await trpcClient.storyboards.delete.mutate({ id: target.id });
     return;
@@ -294,7 +301,7 @@ const NewProjectSurface = () => {
   const [submenu, setSubmenu] = useState<SubmenuAnchor | null>(null);
   const [starting, setStarting] = useState(false);
   // The card that was clicked, while its documents are being made. Set, and
-  // that card says so while the other four are off (PRD § 6.1: one click
+  // that card says so while the other cards are off (PRD § 6.1: one click
   // creates the row and the document, so a second one has nothing to add).
   const [pendingFlow, setPendingFlow] = useState<EntryFlowId | null>(null);
   // The board an entry card created. Set, and this surface is the flow.
@@ -593,7 +600,7 @@ const NewProjectSurface = () => {
    * Say what the composer holds that the chosen flow has no field for.
    *
    * PRD § 6.1 carries the typed prompt into step 1 and promises nothing else.
-   * The five documents hold different amounts of the rest, so the caller says
+   * The flow targets hold different amounts of the rest, so the caller says
    * what its flow took. Naming what stays behind beats dropping it without a
    * word.
    */
@@ -938,18 +945,65 @@ const NewProjectSurface = () => {
     starting
   ]);
 
+  const startEntityFlow = useCallback(async () => {
+    if (starting) {
+      return;
+    }
+    const text = prompt.trim();
+    const name =
+      text.length > 0 ? projectNameFromPrompt(text, null) : "New entity";
+    setStarting(true);
+    try {
+      const references = await uploadComposerReferences(droppedFiles);
+      const initialAssetId = assetIdFromLocator(
+        references.find((reference) => reference.type.startsWith("image/"))?.uri
+      );
+      const project = await createProject.mutateAsync({
+        name,
+        kind: "entity"
+      });
+      noteUncarriedContext("entity", {
+        entities: false,
+        references: initialAssetId !== undefined
+      });
+      const target: SetupTarget = {
+        kind: "entity",
+        id: project.id,
+        projectId: project.id,
+        name
+      };
+      if (initialAssetId) {
+        target.initialAssetId = initialAssetId;
+      }
+      applySetupTarget(target);
+    } catch (error) {
+      reportEntryFailure("entity flow", error);
+    } finally {
+      setStarting(false);
+    }
+  }, [
+    applySetupTarget,
+    createProject,
+    droppedFiles,
+    noteUncarriedContext,
+    prompt,
+    reportEntryFailure,
+    starting
+  ]);
+
   const handleEntryCard = useCallback(
     (id: string) => {
       if (pendingFlow !== null || starting) {
         return;
       }
-      // Through the card list, so the id that reaches the starters is one of
-      // the five and no cast is needed to say so.
+      // Through the card list, so the id that reaches the starters is a known
+      // flow and no cast is needed to say so.
       const card = ENTRY_CARDS.find((entry) => entry.id === id);
       if (!card) {
         return;
       }
       const starters: Record<EntryFlowId, () => Promise<void>> = {
+        entity: startEntityFlow,
         storyboard: startStoryboardFlow,
         video: startVideoFlow,
         script: startScriptFlow,
@@ -964,6 +1018,7 @@ const NewProjectSurface = () => {
     },
     [
       pendingFlow,
+      startEntityFlow,
       startGameFlow,
       startImageProject,
       startScriptFlow,
@@ -974,7 +1029,7 @@ const NewProjectSurface = () => {
     ]
   );
 
-  // The chosen card says what it is doing; the other four are off, because a
+  // The chosen card says what it is doing; the other cards are off, because a
   // second flow started over the first would leave an orphan project row.
   const entryOptions = useMemo<readonly OptionCardItem[]>(() => {
     const cards = ENTRY_CARDS.map((card) => ({
@@ -1011,7 +1066,7 @@ const NewProjectSurface = () => {
   const handleSetupFinished = useCallback(
     (result?: BuildFromPlanResult | BuildGameResult | null) => {
       const target = setupTargetRef.current;
-      if (!target) {
+      if (!target || target.kind === "entity") {
         return;
       }
       const failures = result ? buildFailures(result) : [];
@@ -1033,6 +1088,11 @@ const NewProjectSurface = () => {
     },
     [addNotification, closeTab, openTab]
   );
+
+  const handleEntityFinished = useCallback(() => {
+    openPageTab("entities");
+    closeTab(tabId("project-new", PROJECT_NEW_REF));
+  }, [closeTab]);
 
   /**
    * "Change flow" on step 1 — the shell asks first, this runs on confirm.
@@ -1199,6 +1259,27 @@ const NewProjectSurface = () => {
 
   // An entry card was clicked: this tab is the flow now (PRD § 6.1).
   if (setupTarget) {
+    if (setupTarget.kind === "entity") {
+      if (setupTarget.initialAssetId) {
+        return (
+          <EntitySetupHost
+            projectId={setupTarget.projectId}
+            initialDescriptor={prompt.trim()}
+            initialAssetId={setupTarget.initialAssetId}
+            onFinish={handleEntityFinished}
+            onChangeFlow={handleChangeFlow}
+          />
+        );
+      }
+      return (
+        <EntitySetupHost
+          projectId={setupTarget.projectId}
+          initialDescriptor={prompt.trim()}
+          onFinish={handleEntityFinished}
+          onChangeFlow={handleChangeFlow}
+        />
+      );
+    }
     if (setupTarget.kind === "video") {
       return (
         <VideoSetupHost

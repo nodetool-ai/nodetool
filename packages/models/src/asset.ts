@@ -6,7 +6,12 @@
 
 import { eq, and, or, like, desc, isNull, lt, inArray } from "drizzle-orm";
 import { isSystemEntityMetadata } from "@nodetool-ai/protocol";
-import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import {
+  DBModel,
+  ModelChangeEvent,
+  ModelObserver,
+  createTimeOrderedUuid
+} from "./base-model.js";
 import { getDb } from "./db.js";
 import { assets } from "./schema/assets.js";
 
@@ -56,6 +61,32 @@ export class Asset extends DBModel {
     this.project_id ??= "default";
     this.created_at ??= now;
     this.updated_at ??= now;
+  }
+
+  /** Save only while the persisted metadata still matches the caller's read. */
+  async saveIfMetadataMatches(
+    expectedMetadata: Record<string, unknown> | null
+  ): Promise<boolean> {
+    this.beforeSave();
+    const condition = expectedMetadata
+      ? eq(assets.metadata, expectedMetadata)
+      : isNull(assets.metadata);
+    const updated = await getDb()
+      .update(assets)
+      .set(this.toRow())
+      .where(
+        and(
+          eq(assets.id, this.id),
+          eq(assets.user_id, this.user_id),
+          condition
+        )
+      )
+      .returning({ id: assets.id });
+    if (updated.length === 0) {
+      return false;
+    }
+    ModelObserver.notify(this, ModelChangeEvent.UPDATED);
+    return true;
   }
 
   override beforeSave(): void {

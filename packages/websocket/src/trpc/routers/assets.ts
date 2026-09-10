@@ -414,6 +414,13 @@ export const assetsRouter = router({
       }
       if (input.size !== undefined) asset.size = input.size;
 
+      if (input.expected_metadata !== undefined && input.data != null) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          "Conditional metadata updates cannot replace asset data"
+        );
+      }
+
       if (input.data != null) {
         const buf =
           input.data_encoding === "base64"
@@ -436,7 +443,16 @@ export const assetsRouter = router({
         );
       }
 
-      await asset.save();
+      const saved =
+        input.expected_metadata !== undefined
+          ? await asset.saveIfMetadataMatches(input.expected_metadata)
+          : await asset.save();
+      if (saved === false) {
+        throwApiError(
+          ApiErrorCode.ALREADY_EXISTS,
+          "Asset metadata changed. Reload it and try again."
+        );
+      }
       return toAssetResponse(asset);
     }),
 

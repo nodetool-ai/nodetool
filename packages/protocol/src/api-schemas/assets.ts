@@ -129,6 +129,8 @@ export const updateInput = z.object({
   content_type: z.string().optional(),
   parent_id: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  /** Reject the update if metadata changed since the caller read the asset. */
+  expected_metadata: z.record(z.string(), z.unknown()).nullable().optional(),
   sketch_document_id: z.string().nullable().optional(),
   timeline_id: z.string().nullable().optional(),
   size: z.number().optional(),

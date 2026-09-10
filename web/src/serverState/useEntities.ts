@@ -149,6 +149,8 @@ export function useEntities(): UseQueryResult<Entity[], Error> {
 interface SaveEntityInput {
   /** The existing image asset to tag as an entity's reference. */
   assetId: string;
+  /** Refuse to replace an existing entity marker. */
+  createOnly?: boolean;
   /**
    * File the entity under this project. Omitted leaves its membership alone,
    * so editing an entity never moves it. `"default"` takes it out of every
@@ -180,6 +182,9 @@ export function useSaveEntity(): UseMutationResult<
   return useMutation({
     mutationFn: async (input: SaveEntityInput): Promise<Entity | null> => {
       const asset = await trpcClient.assets.get.query({ id: input.assetId });
+      if (input.createOnly && readEntityMarker(asset.metadata)) {
+        throw new Error("That image is already used by another entity.");
+      }
       const marker: EntityMarker = {
         kind: input.kind,
         name: input.name,
@@ -196,6 +201,7 @@ export function useSaveEntity(): UseMutationResult<
       };
       const updated = await trpcClient.assets.update.mutate({
         id: input.assetId,
+        expected_metadata: asset.metadata ?? null,
         metadata: {
           ...(asset.metadata ?? {}),
           [ENTITY_METADATA_KEY]: marker

@@ -22,16 +22,18 @@ import { trpcClient } from "../../trpc/client";
 import ImageRefPreview from "../node/ImageRefPreview";
 
 interface EntityAssetPickerDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onPick: (assetId: string) => void;
+  readonly open: boolean;
+  readonly onClose: () => void;
+  readonly onPick: (assetId: string) => void;
   /** Dialog heading. Defaults to the "tag a new entity" wording. */
-  title?: string;
+  readonly title?: string;
   /** When given, only these asset ids are offered — e.g. entities already tagged. */
-  assetIds?: readonly string[];
+  readonly assetIds?: readonly string[];
+  /** Asset ids to hide, such as images already serving as entities. */
+  readonly excludedAssetIds?: readonly string[];
   /** Shown when nothing matches, so a filtered picker can say why. */
-  emptyTitle?: string;
-  emptyDescription?: string;
+  readonly emptyTitle?: string;
+  readonly emptyDescription?: string;
 }
 
 const EntityAssetPickerDialogInternal: React.FC<
@@ -42,11 +44,13 @@ const EntityAssetPickerDialogInternal: React.FC<
   onPick,
   title = "Pick a reference image",
   assetIds,
+  excludedAssetIds,
   emptyTitle = "No images",
   emptyDescription = "Generate or upload an image first."
 }) => {
   const theme = useTheme();
   const allowed = assetIds ? new Set(assetIds) : null;
+  const excluded = excludedAssetIds ? new Set(excludedAssetIds) : null;
   const { data, isLoading } = useQuery({
     queryKey: ["entity-asset-picker"],
     queryFn: async (): Promise<Asset[]> => {
@@ -62,9 +66,11 @@ const EntityAssetPickerDialogInternal: React.FC<
     staleTime: 30_000
   });
 
-  const assets = allowed
-    ? data?.filter((asset) => allowed.has(asset.id))
-    : data;
+  const assets = data?.filter(
+    (asset) =>
+      (allowed === null || allowed.has(asset.id)) &&
+      (excluded === null || !excluded.has(asset.id))
+  );
 
   return (
     <Dialog open={open} onClose={onClose} title={title}>

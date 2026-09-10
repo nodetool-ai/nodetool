@@ -1,19 +1,20 @@
 /**
  * The creation-flow entry cards (PRD § 6.1) — one list, two hosts.
  *
- * The New Project surface shows all six, Studio shows three (D24 and D30:
+ * The New Project surface shows all seven, Studio shows three (D24 and D30:
  * Image, Workflow and Game are workspace flows). The promise line on each card
  * is PRD § 6.1 and game-prd Appendix A verbatim, kept here so both hosts say
- * the same thing.
+ * the same thing. Entity is the library-oriented addition to that set.
  *
  * `disabled` with a `disabledReason` naming the phase is how a card waits for
- * its flow to be built. All six are live now; the field stays on the type for
+ * its flow to be built. All seven are live now; the field stays on the type for
  * the next one.
  */
 
 import type { OptionCardItem } from "./OptionCardGrid";
 
 export type EntryFlowId =
+  | "entity"
   | "storyboard"
   | "video"
   | "script"
@@ -26,6 +27,11 @@ export interface EntryCard extends OptionCardItem {
 }
 
 export const ENTRY_CARDS: readonly EntryCard[] = [
+  {
+    id: "entity",
+    title: "Entity",
+    description: "Create a reusable character, place, style, or prop."
+  },
   {
     id: "storyboard",
     title: "Storyboard",

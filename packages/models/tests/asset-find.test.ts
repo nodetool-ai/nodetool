@@ -39,6 +39,28 @@ describe("Asset.find", () => {
     const found = await Asset.find("u1", "nonexistent-id");
     expect(found).toBeNull();
   });
+
+  it("allows only one writer to replace the same metadata snapshot", async () => {
+    const asset = await Asset.create<Asset>({
+      user_id: "u1",
+      name: "reference.png",
+      content_type: "image/png",
+      metadata: {}
+    });
+    const first = await Asset.find("u1", asset.id);
+    const second = await Asset.find("u1", asset.id);
+    expect(first).not.toBeNull();
+    expect(second).not.toBeNull();
+
+    first!.metadata = { nodetool_entity: { name: "First" } };
+    second!.metadata = { nodetool_entity: { name: "Second" } };
+
+    await expect(first!.saveIfMetadataMatches({})).resolves.toBe(true);
+    await expect(second!.saveIfMetadataMatches({})).resolves.toBe(false);
+    await expect(Asset.find("u1", asset.id)).resolves.toMatchObject({
+      metadata: { nodetool_entity: { name: "First" } }
+    });
+  });
 });
 
 describe("Asset.paginate – additional filters", () => {

@@ -13,7 +13,8 @@ jest.mock("../../../../hooks/storyboard/useStoryboards", () => ({
 }));
 jest.mock("../../../../hooks/useResolvedMediaUri");
 jest.mock("../../../../serverState/useEntities", () => ({
-  useEntities: () => ({ data: [], isLoading: false })
+  useEntities: () => ({ data: [], isLoading: false }),
+  useSaveEntity: () => ({ mutateAsync: jest.fn() })
 }));
 jest.mock("../../../entities/EntityAssetPickerDialog", () => () => null);
 jest.mock("../../../entities/EntityEditorDialog", () => () => null);
@@ -48,6 +49,10 @@ jest.mock("../../../../hooks/useModelsByProvider", () => ({
   __esModule: true,
   useLanguageModelsByProvider: () => ({
     models: [{ id: "catalog-model", provider: "openai", name: "Catalog" }],
+    isLoading: false
+  }),
+  useImageModelsByProvider: () => ({
+    models: [],
     isLoading: false
   })
 }));

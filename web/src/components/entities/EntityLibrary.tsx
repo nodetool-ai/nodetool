@@ -6,6 +6,7 @@
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import type { Entity } from "@nodetool-ai/protocol";
 import {
   Text,
@@ -22,29 +23,22 @@ import {
   useEntities,
   useDeleteEntity
 } from "../../serverState/useEntities";
-import EntityAssetPickerDialog from "./EntityAssetPickerDialog";
 import EntityCard from "./EntityCard";
 import EntityEditorDialog from "./EntityEditorDialog";
+import EntitySetupHost from "../setup/entity/EntitySetupHost";
 
 const EntityLibraryInternal: React.FC = () => {
   const { data: entities, isLoading } = useEntities();
   const deleteEntity = useDeleteEntity();
 
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorAssetId, setEditorAssetId] = useState<string | null>(null);
   const [editingEntity, setEditingEntity] = useState<Entity | undefined>(
     undefined
   );
 
-  const handleAdd = useCallback(() => setPickerOpen(true), []);
-
-  const handlePick = useCallback((assetId: string) => {
-    setPickerOpen(false);
-    setEditorAssetId(assetId);
-    setEditingEntity(undefined);
-    setEditorOpen(true);
-  }, []);
+  const handleAdd = useCallback(() => setCreating(true), []);
 
   const handleEdit = useCallback((entity: Entity) => {
     setEditorAssetId(entity.id);
@@ -92,6 +86,22 @@ const EntityLibraryInternal: React.FC = () => {
     );
   }, [isLoading, entities, handleAdd, handleEdit, handleRemove]);
 
+  if (creating) {
+    return (
+      <FlexColumn fullWidth fullHeight>
+        <EditorButton
+          variant="text"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => setCreating(false)}
+          sx={{ alignSelf: "flex-start", ml: SPACING.xl, mt: SPACING.md }}
+        >
+          Back to entities
+        </EditorButton>
+        <EntitySetupHost onFinish={() => setCreating(false)} />
+      </FlexColumn>
+    );
+  }
+
   return (
     <FlexColumn gap={SPACING.md} sx={{ p: 2, width: "100%" }}>
       <FlexRow align="center" justify="space-between">
@@ -109,12 +119,6 @@ const EntityLibraryInternal: React.FC = () => {
       </FlexRow>
 
       {content}
-
-      <EntityAssetPickerDialog
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onPick={handlePick}
-      />
 
       {editorAssetId && (
         <EntityEditorDialog

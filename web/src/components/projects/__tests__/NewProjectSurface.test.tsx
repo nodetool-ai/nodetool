@@ -125,7 +125,7 @@ jest.mock("../../../hooks/storyboard/useStoryboards", () => ({
   useCreateStoryboard: () => ({ mutateAsync: createStoryboard })
 }));
 
-// The other four flows' creates. Each card makes its document before the
+// The other document flows' creates. Each card makes its document before the
 // surface becomes the flow, so the surface renders these hooks on every mount.
 const createTimeline = jest.fn(async () => ({ id: "seq-1" }));
 const seedTimelineDetail = jest.fn();
@@ -202,6 +202,12 @@ jest.mock("../../setup/game/GameSetupHost", () => ({
   __esModule: true,
   default: ({ workflowId }: { workflowId: string }) => (
     <div data-testid="setup-flow">{workflowId}</div>
+  )
+}));
+jest.mock("../../setup/entity/EntitySetupHost", () => ({
+  __esModule: true,
+  default: ({ initialDescriptor }: { initialDescriptor: string }) => (
+    <div data-testid="setup-flow">entity:{initialDescriptor}</div>
   )
 }));
 jest.mock("../../setup/script/ScriptSetupHost", () => ({
@@ -866,15 +872,16 @@ describe("NewProjectSurface", () => {
     expect(openProject).not.toHaveBeenCalled();
   });
 
-  // All six flows are built, so no card names a phase any more. The check
+  // All seven flows are built, so no card names a phase any more. The check
   // that matters now is that each one starts its own document kind rather than
   // falling through to the project agent (D2).
-  it("offers all six flows, none of them disabled", () => {
+  it("offers all seven flows, none of them disabled", () => {
     renderSurface();
     const cards = screen.getByRole("group", {
       name: "Guided creation flows"
     });
     for (const title of [
+      "Entity",
       "Storyboard",
       "Video",
       "Script",
@@ -909,6 +916,7 @@ describe("NewProjectSurface", () => {
   });
 
   it.each([
+    ["Entity", () => createProject],
     ["Video", () => createTimeline],
     ["Script", () => createScript],
     ["Image", () => startImageFlowMock],
@@ -926,6 +934,31 @@ describe("NewProjectSurface", () => {
     );
 
     await waitFor(() => expect(mock()).toHaveBeenCalledTimes(1));
+  });
+
+  it("starts the entity flow with the project prompt as its descriptor", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+    await user.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A red fox in a blue coat"
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /^Entity Create a reusable character/
+      })
+    );
+
+    await waitFor(() =>
+      expect(createProject).toHaveBeenCalledWith({
+        name: "A red fox in a blue coat",
+        kind: "entity"
+      })
+    );
+    expect(await screen.findByTestId("setup-flow")).toHaveTextContent(
+      "entity:A red fox in a blue coat"
+    );
   });
 
   // The Game flow's document is a workflow too (game-prd D25), so the card is
@@ -989,7 +1022,7 @@ describe("NewProjectSurface", () => {
 
   // BUG: every card stayed visually live while `starting` made its handler a
   // no-op, so a second click looked accepted and did nothing.
-  it("marks the chosen card busy and turns the other four off", async () => {
+  it("marks the chosen card busy and turns the other cards off", async () => {
     const user = userEvent.setup();
     type NewProject = Awaited<ReturnType<typeof createProject>>;
     let release: (project: NewProject) => void = () => {};
