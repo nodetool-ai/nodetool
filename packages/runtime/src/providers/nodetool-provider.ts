@@ -198,7 +198,7 @@ export class NodetoolProvider extends BaseProvider {
       id: def.id,
       name: def.name,
       provider: "nodetool",
-      supported_tasks: def.tasks ?? []
+      supportedTasks: def.tasks ?? []
     }));
   }
 

@@ -19,4 +19,14 @@ describe("requiredVideoTasksForShots", () => {
   it("does not require a task for an empty board", () => {
     expect(requiredVideoTasksForShots([])).toEqual([]);
   });
+
+  it("ignores covered shots because they reuse another shot's clip", () => {
+    expect(requiredVideoTasksForShots([
+      { render_mode: "direct" },
+      {
+        render_mode: "keyframe",
+        covered_by: { shot_id: "owner", start_seconds: 0 }
+      }
+    ])).toEqual(["text_to_video"]);
+  });
 });
