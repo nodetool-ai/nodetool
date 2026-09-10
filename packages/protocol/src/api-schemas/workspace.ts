@@ -50,6 +50,7 @@ export type GetInput = z.infer<typeof getInput>;
 export const createInput = z.object({
   name: z.string().min(1),
   path: z.string().min(1),
+  project_id: z.string().optional(),
   is_default: z.boolean().default(false)
 });
 export type CreateInput = z.infer<typeof createInput>;

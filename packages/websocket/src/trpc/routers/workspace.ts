@@ -211,7 +211,9 @@ export const workspaceRouter = router({
         name: input.name,
         path: input.path,
         is_default: input.is_default,
-        project_id: input.project_id
+        ...(input.project_id === undefined
+          ? {}
+          : { project_id: input.project_id })
       })) as Workspace;
 
       return toWorkspaceResponse(ws);
