@@ -17,19 +17,28 @@ import {
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
-import { getDb } from "./db.js";
+import { executeRaw, getDb } from "./db.js";
 import { projects } from "./schema/projects.js";
 import { reassignProjectDocuments } from "./project-membership.js";
 import { Thread } from "./thread.js";
 
 /** The bucket documents land in when no project is active. */
 export const LOOSE_PROJECT_ID = "default";
+export const PERSONAL_PROJECT_KIND = "personal";
+export const PERSONAL_PROJECT_NAME = "Personal";
+
+export interface PersonalMigrationReport {
+  project: Project;
+  migrated: number;
+  dangling: number;
+}
 
 export interface ProjectResponse {
   id: string;
   name: string;
   /** Free text — "spot", "trailer", "report". Not an enum on purpose. */
   kind: string;
+  isPersonal: boolean;
   /** The conversation that builds it, or null while nobody has asked for one. */
   threadId: string | null;
   createdAt: string;
@@ -67,6 +76,7 @@ export class Project extends DBModel {
       id: this.id,
       name: this.name,
       kind: this.kind,
+      isPersonal: this.kind === PERSONAL_PROJECT_KIND,
       threadId: this.thread_id,
       createdAt: this.created_at,
       updatedAt: this.updated_at
@@ -75,6 +85,98 @@ export class Project extends DBModel {
 
   static async findById(id: string): Promise<Project | null> {
     return Project.get<Project>(id);
+  }
+
+  static async ensurePersonal(userId: string): Promise<Project> {
+    const db = getDb();
+    const existing = await db
+      .select()
+      .from(projects)
+      .where(
+        and(eq(projects.user_id, userId), eq(projects.kind, PERSONAL_PROJECT_KIND))
+      )
+      .orderBy(projects.created_at)
+      .limit(1);
+    if (existing[0]) return new Project(existing[0]);
+
+    const created = await Project.insertNew({
+      id: `personal:${userId}`,
+      user_id: userId,
+      name: PERSONAL_PROJECT_NAME,
+      kind: PERSONAL_PROJECT_KIND
+    });
+    if (created) return created;
+
+    const resolved = await db
+      .select()
+      .from(projects)
+      .where(
+        and(eq(projects.user_id, userId), eq(projects.kind, PERSONAL_PROJECT_KIND))
+      )
+      .orderBy(projects.created_at)
+      .limit(1);
+    if (!resolved[0]) throw new Error("Unable to resolve Personal project");
+    return new Project(resolved[0]);
+  }
+
+  /** Claim only loose legacy rows. Explicit project ids are never rewritten. */
+  static async migrateToPersonal(userId: string): Promise<PersonalMigrationReport> {
+    const personal = await Project.ensurePersonal(userId);
+    const owner = userId.replace(/'/g, "''");
+    const target = personal.id.replace(/'/g, "''");
+    let migrated = 0;
+    // Restore the legacy project.thread_id association before claiming
+    // remaining threads for Personal.
+    await executeRaw(
+      `UPDATE nodetool_threads SET project_id = (` +
+        `SELECT p.id FROM projects p WHERE p.thread_id = nodetool_threads.id ` +
+        `AND p.user_id = nodetool_threads.user_id) ` +
+        `WHERE user_id = '${owner}' AND EXISTS (` +
+        `SELECT 1 FROM projects p WHERE p.thread_id = nodetool_threads.id ` +
+        `AND p.user_id = nodetool_threads.user_id) RETURNING id`
+    );
+    // Runs created from an already-assigned workflow inherit that ownership.
+    // Jobs without a project column were otherwise indistinguishable from
+    // genuinely unassigned runs.
+    await executeRaw(
+      `UPDATE nodetool_jobs SET project_id = (` +
+        `SELECT w.project_id FROM nodetool_workflows w ` +
+        `WHERE w.id = nodetool_jobs.workflow_id AND w.user_id = nodetool_jobs.user_id) ` +
+        `WHERE user_id = '${owner}' AND (project_id IS NULL OR project_id = '' ` +
+        `OR project_id = 'default') AND EXISTS (` +
+        `SELECT 1 FROM nodetool_workflows w WHERE w.id = nodetool_jobs.workflow_id ` +
+        `AND w.user_id = nodetool_jobs.user_id AND w.project_id <> 'default') RETURNING id`
+    );
+    const tables = [
+      "storyboards", "scripts", "timeline_sequences", "image_documents",
+      "applications", "js_scripts", "nodetool_assets", "nodetool_workflows",
+      "nodetool_threads", "nodetool_jobs", "nodetool_workspaces",
+      "nodetool_predictions"
+    ];
+    for (const table of tables) {
+      const result = await executeRaw(
+        `UPDATE ${table} SET project_id = '${target}' ` +
+          `WHERE user_id = '${owner}' AND ` +
+          `(project_id IS NULL OR project_id = '' OR project_id = 'default') RETURNING id`
+      );
+      migrated += result.rows.length;
+    }
+    // Dangling non-default ids are intentionally left in place. They need a
+    // repair decision, and moving them would hide a broken legacy reference.
+    let dangling = 0;
+    for (const table of tables) {
+      const result = await executeRaw(
+        `SELECT COUNT(*) AS count FROM ${table} r ` +
+          `WHERE r.user_id = '${owner}' AND r.project_id IS NOT NULL ` +
+          `AND r.project_id <> 'default' AND r.project_id <> '${target}' ` +
+          `AND NOT EXISTS (SELECT 1 FROM projects p ` +
+          `WHERE p.id = r.project_id AND p.user_id = r.user_id)`
+      );
+      const rows = result.rows;
+      const count = (rows[0] as { count?: unknown } | undefined)?.count;
+      dangling += Number(count ?? 0);
+    }
+    return { project: personal, migrated, dangling };
   }
 
   static async findOwned(userId: string, id: string): Promise<Project | null> {
@@ -158,6 +260,7 @@ export class Project extends DBModel {
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
     const row = await Project.findOwned(userId, id);
     if (!row) return false;
+    if (row.kind === PERSONAL_PROJECT_KIND) return false;
     await reassignProjectDocuments(userId, id, LOOSE_PROJECT_ID);
     await row.delete();
     return true;
@@ -182,7 +285,8 @@ export class Project extends DBModel {
 
     const thread = await Thread.create<Thread>({
       user_id: userId,
-      title: project.name
+      title: project.name,
+      project_id: project.id
     });
     const db = getDb();
     const rows = await db
@@ -210,6 +314,18 @@ export class Project extends DBModel {
     id: string,
     fields: Partial<{ name: string; kind: string; thread_id: string }>
   ): Promise<Project | null> {
+    const existing = await Project.findOwned(userId, id);
+    if (!existing) return null;
+    // Personal is a permanent account space. Keep its marker immutable, and
+    // do not let a named project be converted into the reserved kind.
+    if (
+      fields.kind !== undefined &&
+      fields.kind !== existing.kind &&
+      (existing.kind === PERSONAL_PROJECT_KIND ||
+        fields.kind === PERSONAL_PROJECT_KIND)
+    ) {
+      return null;
+    }
     const db = getDb();
     const rows = await db
       .update(projects)

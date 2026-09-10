@@ -21,6 +21,7 @@ export const workflows = sqliteTable(
     path: text("path"),
     run_mode: text("run_mode"),
     workspace_id: text("workspace_id"),
+    project_id: text("project_id").notNull().default("default"),
     html_app: text("html_app"),
     app_doc: jsonText<Record<string, unknown>>()("app_doc"),
     receive_clipboard: integer("receive_clipboard", { mode: "boolean" }),
@@ -30,6 +31,7 @@ export const workflows = sqliteTable(
   },
   (table) => [
     index("idx_workflows_user_id").on(table.user_id),
+    index("idx_workflows_user_project").on(table.user_id, table.project_id),
     index("idx_workflows_access").on(table.access)
   ]
 );

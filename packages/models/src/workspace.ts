@@ -24,6 +24,7 @@ export class Workspace extends DBModel {
   declare user_id: string;
   declare name: string;
   declare path: string;
+  declare project_id: string;
   declare is_default: boolean;
   declare created_at: string;
   declare updated_at: string;
@@ -32,6 +33,7 @@ export class Workspace extends DBModel {
     super(data);
     const now = new Date().toISOString();
     this.id ??= createTimeOrderedUuid();
+    this.project_id ??= "default";
     // Handle raw integer booleans from legacy data. The column is declared
     // `boolean`, so the legacy integer only shows through a widened read.
     const rawIsDefault: unknown = this.is_default;

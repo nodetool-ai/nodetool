@@ -9,6 +9,7 @@ export const projectResponse = z.object({
   id: z.string(),
   name: z.string(),
   kind: z.string(),
+  isPersonal: z.boolean().default(false),
   /** The conversation that builds it, or null while nobody has asked for one. */
   threadId: z.string().nullable(),
   createdAt: z.string(),

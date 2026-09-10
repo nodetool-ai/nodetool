@@ -3354,6 +3354,51 @@ export const migrations: MigrationDef[] = [
       // The column stays: dropping one is unsafe across dialects and versions,
       // and its value is a bucket id nothing else reads.
     }
+  },
+
+  // ── Add ownership to legacy resource containers ────────────────────
+  // `default` is a compatibility value. Authenticated startup resolves a
+  // user's Personal project and moves only rows carrying that value.
+  {
+    version: "20260910_000000",
+    name: "add_project_ownership_to_legacy_resources",
+    createsTables: [],
+    modifiesTables: [
+      "nodetool_workflows",
+      "nodetool_threads",
+      "nodetool_jobs",
+      "nodetool_workspaces"
+    ],
+    async up(db) {
+      const tables = [
+        "nodetool_workflows",
+        "nodetool_threads",
+        "nodetool_jobs",
+        "nodetool_workspaces"
+      ];
+      for (const table of tables) {
+        if (!(await db.tableExists(table))) continue;
+        if (!(await db.columnExists(table, "project_id"))) {
+          await db.execute(
+            `ALTER TABLE ${table} ADD COLUMN project_id TEXT NOT NULL DEFAULT 'default'`
+          );
+        }
+        await db.execute(
+          `CREATE INDEX IF NOT EXISTS idx_${table.replace("nodetool_", "")}_user_project ` +
+            `ON ${table} (user_id, project_id)`
+        );
+      }
+    },
+    async down(db) {
+      for (const index of [
+        "workflows_user_project",
+        "threads_user_project",
+        "jobs_user_project",
+        "workspaces_user_project"
+      ]) {
+        await db.execute(`DROP INDEX IF EXISTS idx_${index}`);
+      }
+    }
   }
 ];
 

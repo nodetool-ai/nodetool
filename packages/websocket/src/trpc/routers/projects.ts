@@ -22,6 +22,7 @@
 import { z } from "zod";
 import {
   LOOSE_PROJECT_ID,
+  PERSONAL_PROJECT_KIND,
   Project,
   listProjectDocuments,
   moveDocumentToProject,
@@ -45,6 +46,10 @@ const idInput = z.object({ id: z.string() });
 const updateInput = patchProjectInput.and(z.object({ id: z.string() }));
 const okOutput = z.object({ ok: z.literal(true) });
 
+async function prepareUser(userId: string): Promise<void> {
+  await Project.migrateToPersonal(userId);
+}
+
 async function loadOwned(userId: string, id: string): Promise<Project> {
   const project = await Project.findOwned(userId, id);
   if (!project) throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
@@ -56,6 +61,7 @@ export const projectsRouter = router({
     .input(listInput)
     .output(z.array(projectResponse))
     .query(async ({ ctx }) => {
+      await prepareUser(ctx.userId);
       const items = await Project.listByUser(ctx.userId);
       return items.map((item) => item.toResponse());
     }),
@@ -69,6 +75,7 @@ export const projectsRouter = router({
     .input(listInput)
     .output(z.array(projectDetail))
     .query(async ({ ctx }) => {
+      await prepareUser(ctx.userId);
       const projects = await Project.listByUser(ctx.userId);
       return Promise.all(
         projects.map(async (project) => {
@@ -88,6 +95,7 @@ export const projectsRouter = router({
     .input(idInput)
     .output(projectDetail)
     .query(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
       const project = await loadOwned(ctx.userId, input.id);
       const summary = await summarizeProject(ctx.userId, project.id);
       return projectDetail.parse({
@@ -103,6 +111,7 @@ export const projectsRouter = router({
     .input(idInput)
     .output(z.array(projectDocumentRef))
     .query(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
       await loadOwned(ctx.userId, input.id);
       return listProjectDocuments(ctx.userId, input.id);
     }),
@@ -115,7 +124,10 @@ export const projectsRouter = router({
   unassigned: protectedProcedure
     .input(listInput)
     .output(z.array(projectDocumentRef))
-    .query(({ ctx }) => listProjectDocuments(ctx.userId, LOOSE_PROJECT_ID)),
+    .query(async ({ ctx }) => {
+      await prepareUser(ctx.userId);
+      return listProjectDocuments(ctx.userId, LOOSE_PROJECT_ID);
+    }),
 
   /**
    * The project's agent thread, created on first ask. A mutation rather than a
@@ -126,6 +138,7 @@ export const projectsRouter = router({
     .input(idInput)
     .output(z.object({ threadId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
       await loadOwned(ctx.userId, input.id);
       const threadId = await Project.ensureThread(ctx.userId, input.id);
       if (!threadId) throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
@@ -136,6 +149,7 @@ export const projectsRouter = router({
     .input(createProjectInput)
     .output(projectResponse)
     .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
       // The insert never rewrites an existing row: the primary key is
       // install-global, so an upsert here could hand one user's project to
       // another. A conflict is re-read instead — the caller's own id answers
@@ -170,6 +184,7 @@ export const projectsRouter = router({
     .input(updateInput)
     .output(projectResponse)
     .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
       await loadOwned(ctx.userId, input.id);
       const fields: { name?: string; kind?: string } = {};
       if (input.name !== undefined) fields.name = input.name;
@@ -183,6 +198,11 @@ export const projectsRouter = router({
     .input(idInput)
     .output(okOutput)
     .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      const target = await Project.findOwned(ctx.userId, input.id);
+      if (target?.kind === PERSONAL_PROJECT_KIND) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Personal cannot be deleted");
+      }
       await loadOwned(ctx.userId, input.id);
       await Project.deleteOwned(ctx.userId, input.id);
       return { ok: true as const };
@@ -197,6 +217,7 @@ export const projectsRouter = router({
     .input(assignDocumentInput)
     .output(okOutput)
     .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
       if (input.projectId !== LOOSE_PROJECT_ID) {
         await loadOwned(ctx.userId, input.projectId);
       }

@@ -14,6 +14,7 @@ export const jobs = sqliteTable(
     user_id: text("user_id").notNull(),
     job_type: text("job_type").notNull().default(""),
     workflow_id: text("workflow_id").notNull(),
+    project_id: text("project_id").notNull().default("default"),
     status: text("status").notNull().default("scheduled"),
     name: text("name").default(""),
     graph: jsonText<Record<string, unknown>>()("graph"),
@@ -45,6 +46,7 @@ export const jobs = sqliteTable(
     index("idx_jobs_updated_at").on(table.updated_at),
     index("idx_jobs_worker_id").on(table.worker_id),
     index("idx_jobs_heartbeat_at").on(table.heartbeat_at),
-    index("idx_jobs_recovery").on(table.status, table.heartbeat_at)
+    index("idx_jobs_recovery").on(table.status, table.heartbeat_at),
+    index("idx_jobs_user_project").on(table.user_id, table.project_id)
   ]
 );

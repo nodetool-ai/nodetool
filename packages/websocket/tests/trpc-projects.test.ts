@@ -62,9 +62,9 @@ describe("projects router", () => {
     });
     expect(created.name).toBe("Aurora Launch Spot");
 
-    expect((await caller().projects.list({})).map((p) => p.id)).toEqual([
-      created.id
-    ]);
+    expect((await caller().projects.list({})).map((p) => p.id)).toEqual(
+      expect.arrayContaining([created.id, "personal:user-1"])
+    );
 
     const renamed = await caller().projects.update({
       id: created.id,
@@ -74,7 +74,9 @@ describe("projects router", () => {
     expect(renamed.kind).toBe("spot");
 
     await caller().projects.delete({ id: created.id });
-    expect(await caller().projects.list({})).toEqual([]);
+    expect((await caller().projects.list({})).map((p) => p.id)).toEqual([
+      "personal:user-1"
+    ]);
   });
 
   it("hides another user's project behind not-found", async () => {
@@ -104,7 +106,9 @@ describe("projects router", () => {
       caller().projects.create({ id: "   ", name: "Whitespace" })
     ).rejects.toThrow();
     // Nothing was written under the reserved id.
-    expect(await caller().projects.list({})).toEqual([]);
+    expect((await caller().projects.list({})).map((p) => p.id)).toEqual([
+      "personal:user-1"
+    ]);
 
     const theirs = await caller("user-2").projects.create({
       id: "shared-id",
@@ -119,7 +123,9 @@ describe("projects router", () => {
     expect(
       (await caller("user-2").projects.get({ id: theirs.id })).project.name
     ).toBe("Theirs");
-    expect(await caller().projects.list({})).toEqual([]);
+    expect((await caller().projects.list({})).map((p) => p.id)).toEqual([
+      "personal:user-1"
+    ]);
   });
 
   it("answers a repeated create of the caller's own id with the same project", async () => {
@@ -143,7 +149,7 @@ describe("projects router", () => {
     expect(
       (await caller().projects.create({ id: "padded", name: "Again" })).id
     ).toBe("padded");
-    expect(await caller().projects.list({})).toHaveLength(1);
+    expect(await caller().projects.list({})).toHaveLength(2);
   });
 
   it("moves a deleted project's documents back into the loose bucket", async () => {
@@ -162,7 +168,9 @@ describe("projects router", () => {
     await caller().projects.delete({ id: project.id });
 
     expect(
-      (await caller().projects.unassigned({})).map((d) => d.ref).sort()
+      (await caller().projects.documents({ id: "personal:user-1" }))
+        .map((d) => d.ref)
+        .sort()
     ).toEqual([board.id, script.id].sort());
   });
 
@@ -249,7 +257,8 @@ describe("projects router", () => {
     const summaries = await caller().projects.summaries({});
     expect(summaries.map((s) => s.project.name).sort()).toEqual([
       "Aurora",
-      "Meridian"
+      "Meridian",
+      "Personal"
     ]);
     const auroraSummary = summaries.find((s) => s.project.id === aurora.id);
     expect(auroraSummary?.documents.map((d) => d.name)).toEqual(["Board"]);
@@ -263,9 +272,7 @@ describe("projects router", () => {
     });
     await Script.create<Script>({ user_id: "user-2", name: "Theirs" });
 
-    expect((await caller().projects.unassigned({})).map((d) => d.ref)).toEqual([
-      loose.id
-    ]);
+    expect(await caller().projects.unassigned({})).toEqual([]);
 
     await caller().projects.assignDocument({
       projectId: project.id,
@@ -282,9 +289,7 @@ describe("projects router", () => {
       type: "script",
       ref: loose.id
     });
-    expect((await caller().projects.unassigned({})).map((d) => d.ref)).toEqual([
-      loose.id
-    ]);
+    expect(await caller().projects.unassigned({})).toEqual([]);
   });
 
   it("refuses a move into a project the caller does not own, and of a document they do not own", async () => {
