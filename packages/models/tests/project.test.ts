@@ -108,6 +108,28 @@ describe("Project model", () => {
     expect(updated!.updated_at > "2020-01-01T00:00:00.000Z").toBe(true);
   });
 
+  it("keeps Personal permanently personal", async () => {
+    const personal = await Project.ensurePersonal("u1");
+    expect(
+      await Project.updateOwned("u1", personal.id, { kind: "campaign" })
+    ).toBeNull();
+    expect((await Project.findById(personal.id))?.kind).toBe(
+      PERSONAL_PROJECT_KIND
+    );
+
+    const named = await Project.create<Project>({
+      user_id: "u1",
+      name: "Campaign",
+      kind: "campaign"
+    });
+    expect(
+      await Project.updateOwned("u1", named.id, {
+        kind: PERSONAL_PROJECT_KIND
+      })
+    ).toBeNull();
+    expect((await Project.findById(named.id))?.kind).toBe("campaign");
+  });
+
   it("deletes the project and moves its documents back to the loose bucket", async () => {
     const project = await Project.create<Project>({ user_id: "u1", name: "Aurora" });
     const board = await Storyboard.create<Storyboard>({

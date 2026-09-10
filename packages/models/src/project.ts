@@ -314,6 +314,18 @@ export class Project extends DBModel {
     id: string,
     fields: Partial<{ name: string; kind: string; thread_id: string }>
   ): Promise<Project | null> {
+    const existing = await Project.findOwned(userId, id);
+    if (!existing) return null;
+    // Personal is a permanent account space. Keep its marker immutable, and
+    // do not let a named project be converted into the reserved kind.
+    if (
+      fields.kind !== undefined &&
+      fields.kind !== existing.kind &&
+      (existing.kind === PERSONAL_PROJECT_KIND ||
+        fields.kind === PERSONAL_PROJECT_KIND)
+    ) {
+      return null;
+    }
     const db = getDb();
     const rows = await db
       .update(projects)
