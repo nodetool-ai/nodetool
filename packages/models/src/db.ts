@@ -208,6 +208,16 @@ export function getRawDb(): Database.Database {
   return _sqlite;
 }
 
+/** Execute dynamic SQL against the active database connection. */
+export async function executeRaw(sql: string): Promise<{ rows: unknown[] }> {
+  if (_dbType === "postgres") {
+    if (!_pgClient) throw new Error("PostgreSQL database not initialized.");
+    return { rows: await _pgClient.unsafe(sql) };
+  }
+  if (!_sqlite) throw new Error("SQLite database not initialized.");
+  return { rows: _sqlite.prepare(sql).all() as unknown[] };
+}
+
 /**
  * Verify the database connection is alive with a lightweight query.
  * Dialect-aware: runs `select 1` over the active client. Throws if the

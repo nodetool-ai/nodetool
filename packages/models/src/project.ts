@@ -17,7 +17,7 @@ import {
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
-import { getDb } from "./db.js";
+import { executeRaw, getDb } from "./db.js";
 import { projects } from "./schema/projects.js";
 import { reassignProjectDocuments } from "./project-membership.js";
 import { Thread } from "./thread.js";
@@ -122,26 +122,25 @@ export class Project extends DBModel {
   /** Claim only loose legacy rows. Explicit project ids are never rewritten. */
   static async migrateToPersonal(userId: string): Promise<PersonalMigrationReport> {
     const personal = await Project.ensurePersonal(userId);
-    const db = getDb();
     const owner = userId.replace(/'/g, "''");
     const target = personal.id.replace(/'/g, "''");
     let migrated = 0;
     // Restore the legacy project.thread_id association before claiming
     // remaining threads for Personal.
-    await db.execute(
+    await executeRaw(
       sql.raw(
         `UPDATE nodetool_threads SET project_id = (` +
           `SELECT p.id FROM projects p WHERE p.thread_id = nodetool_threads.id ` +
           `AND p.user_id = nodetool_threads.user_id) ` +
           `WHERE user_id = '${owner}' AND EXISTS (` +
           `SELECT 1 FROM projects p WHERE p.thread_id = nodetool_threads.id ` +
-          `AND p.user_id = nodetool_threads.user_id)`
+          `AND p.user_id = nodetool_threads.user_id) RETURNING id`
       )
     );
     // Runs created from an already-assigned workflow inherit that ownership.
     // Jobs without a project column were otherwise indistinguishable from
     // genuinely unassigned runs.
-    await db.execute(
+    await executeRaw(
       sql.raw(
         `UPDATE nodetool_jobs SET project_id = (` +
           `SELECT w.project_id FROM nodetool_workflows w ` +
@@ -149,7 +148,7 @@ export class Project extends DBModel {
           `WHERE user_id = '${owner}' AND (project_id IS NULL OR project_id = '' ` +
           `OR project_id = 'default') AND EXISTS (` +
           `SELECT 1 FROM nodetool_workflows w WHERE w.id = nodetool_jobs.workflow_id ` +
-          `AND w.user_id = nodetool_jobs.user_id AND w.project_id <> 'default')`
+          `AND w.user_id = nodetool_jobs.user_id AND w.project_id <> 'default') RETURNING id`
       )
     );
     const tables = [
@@ -159,21 +158,20 @@ export class Project extends DBModel {
       "nodetool_predictions"
     ];
     for (const table of tables) {
-      const result = await db.execute(
+      const result = await executeRaw(
         sql.raw(
           `UPDATE ${table} SET project_id = '${target}' ` +
             `WHERE user_id = '${owner}' AND ` +
-            `(project_id IS NULL OR project_id = '' OR project_id = 'default')`
+            `(project_id IS NULL OR project_id = '' OR project_id = 'default') RETURNING id`
         )
       );
-      const changes = (result as { changes?: unknown }).changes;
-      if (typeof changes === "number") migrated += changes;
+      migrated += result.rows.length;
     }
     // Dangling non-default ids are intentionally left in place. They need a
     // repair decision, and moving them would hide a broken legacy reference.
     let dangling = 0;
     for (const table of tables) {
-      const result = await db.execute(
+      const result = await executeRaw(
         sql.raw(
           `SELECT COUNT(*) AS count FROM ${table} r ` +
             `WHERE r.user_id = '${owner}' AND r.project_id IS NOT NULL ` +
@@ -182,9 +180,7 @@ export class Project extends DBModel {
             `WHERE p.id = r.project_id AND p.user_id = r.user_id)`
         )
       );
-      const rows = Array.isArray(result)
-        ? result
-        : ((result as { rows?: unknown[] }).rows ?? []);
+      const rows = result.rows;
       const count = (rows[0] as { count?: unknown } | undefined)?.count;
       dangling += Number(count ?? 0);
     }
