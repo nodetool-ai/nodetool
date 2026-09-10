@@ -206,15 +206,16 @@ export const workspaceRouter = router({
         await Workspace.unsetOtherDefaults(ctx.userId);
       }
 
-      const ws = (await Workspace.create({
+      const workspaceInput: Record<string, unknown> = {
         user_id: ctx.userId,
         name: input.name,
         path: input.path,
-        is_default: input.is_default,
-        ...(input.project_id === undefined
-          ? {}
-          : { project_id: input.project_id })
-      })) as Workspace;
+        is_default: input.is_default
+      };
+      if (input.project_id !== undefined) {
+        workspaceInput.project_id = input.project_id;
+      }
+      const ws = (await Workspace.create(workspaceInput)) as Workspace;
 
       return toWorkspaceResponse(ws);
     }),
