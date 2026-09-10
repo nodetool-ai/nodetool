@@ -23,7 +23,12 @@ const tab = (
 });
 
 const reset = (tabs: WorkspaceTab[] = [], activeTabId: string | null = null) => {
-  useWorkspaceTabsStore.setState({ tabs, activeTabId, activeProjectId: null });
+  useWorkspaceTabsStore.setState({
+    tabs,
+    activeTabId,
+    activeProjectId: null,
+    projectSessions: {}
+  });
 };
 
 beforeEach(() => {
