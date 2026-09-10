@@ -1,13 +1,13 @@
 ---
 title: "NodeTool"
-description: "Open-source creative AI workspace."
+description: "Open-source agent-first creative workspace."
 canonical: https://nodetool.ai/
 markdown: https://nodetool.ai/index.md
 product: NodeTool
 ---
 # NodeTool
 
-NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Every editor is exposed to [agents](https://nodetool.ai/agents.md) as tools: an agent can build the workflow, run it, and repair what fails. The canvas connects image, video, audio, language, agent, and data models on a node-based graph.
+NodeTool is an open-source agent-first creative workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Every editor is exposed to [agents](https://nodetool.ai/agents.md) as tools: an agent can build the workflow, run it, and repair what fails. The canvas connects image, video, audio, language, agent, and data models on a node-based graph.
 
 ## Editions
 

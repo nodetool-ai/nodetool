@@ -85,7 +85,7 @@ const seeds: FaqSeed[] = [
     slug: "what-is-nodetool",
     question: "What is NodeTool?",
     answerMd:
-      "NodeTool is an open-source creative AI workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Use supported local models or connect cloud providers with your own keys.",
+      "NodeTool is an open-source agent-first creative workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Use supported local models or connect cloud providers with your own keys.",
     category: "general",
     relatedRoute: "/",
     surfaces: ["landing", "agents", "comparison"],
@@ -306,7 +306,7 @@ export function faqForSurface(surface: FaqSurface): FaqEntry[] {
 export const faqPageEntries: PageEntry[] = [
   {
     route: FAQ_BASE,
-    title: "NodeTool FAQ — open creative AI workspace",
+    title: "NodeTool FAQ — agent-first creative workspace",
     description:
       "Answers about NodeTool: pricing with your own keys, Studio compared with Cloud, supported models, comparisons, and a short glossary.",
     priority: 0.6,

@@ -26,7 +26,7 @@ export default function NodeToolHero() {
           >
             <span>Open-source</span>{" "}
             <span className="bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text pb-1 text-transparent">
-              creative AI workspace
+              agent-first creative workspace
             </span>
           </h1>
         </div>

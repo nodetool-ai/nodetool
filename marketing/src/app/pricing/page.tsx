@@ -29,7 +29,7 @@ const offers = {
   "@type": "Product",
   name: "NodeTool",
   description:
-    "The open creative AI workspace. Studio on the desktop is free, and Cloud is free while it is in alpha. In both you bring your own API keys.",
+    "The agent-first creative workspace. Studio on the desktop is free, and Cloud is free while it is in alpha. In both you bring your own API keys.",
   brand: { "@type": "Brand", name: "NodeTool" },
   offers: [
     {

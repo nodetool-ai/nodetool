@@ -1,11 +1,11 @@
 ---
 layout: home
-description: "Open-source creative AI workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together."
+description: "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together."
 ---
 
 <section class="home-hero">
   <p class="eyebrow">NodeTool documentation</p>
-  <h1>Open-source creative AI workspace</h1>
+  <h1>Open-source agent-first creative workspace</h1>
   <p class="lead">
     Create and edit images, video, audio, and text with agents that work alongside
     you. Let them build and revise workflows, then inspect and edit the results

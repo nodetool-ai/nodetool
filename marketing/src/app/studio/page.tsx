@@ -179,7 +179,7 @@ export default function StudioPage() {
                   Open-source
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-300 pb-[0.12em]">
-                    creative AI workspace
+                    agent-first creative workspace
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">

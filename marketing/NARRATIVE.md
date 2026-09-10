@@ -32,7 +32,7 @@ NodeTool can make.
 
 ## Positioning line
 
-**Open-source creative AI workspace**
+**Open-source agent-first creative workspace**
 
 Create and edit images, video, audio, and text with agents that work alongside
 you. Let them build and revise workflows, then inspect and edit the results

@@ -4,7 +4,7 @@ title: "Why NodeTool: Comparisons vs ComfyUI, n8n & More"
 description: "Why NodeTool exists, what makes it unique, and how it compares to ComfyUI, Dify, Flowise, Langflow, n8n, and Figma Weave (formerly Weavy)."
 ---
 
-> NodeTool is the open-source creative AI workspace. It combines every major model, lets you use your own API keys, and puts everything on one simple canvas.
+> NodeTool is the open-source agent-first creative workspace. It combines every major model, lets you use your own API keys, and puts everything on one simple canvas.
 
 Just tell the built-in AI agent what you want to make. It will automatically build a workflow for you using image, video, audio, and text models working together. After it's built, you can easily change it yourself. You can use your own API keys, or run everything locally on your computer. It is completely open source (AGPL-3.0).
 
@@ -50,7 +50,7 @@ Read our full guides on how NodeTool compares to other tools:
 
 | Feature                        | NodeTool                                        | Figma Weave (formerly Weavy) | ComfyUI                                  |
 | ------------------------------ | ----------------------------------------------- | ---------------------------- | ---------------------------------------- |
-| **Category**                   | Open creative AI workspace                      | Closed SaaS creative canvas  | Image-focused node editor                |
+| **Category**                   | Agent-first creative workspace                      | Closed SaaS creative canvas  | Image-focused node editor                |
 | **License**                    | AGPL-3.0 (open source)                          | Proprietary SaaS             | GPL-3.0 (open source)                    |
 | **Runs on your machine**       | ✅ Mac, Windows, Linux desktop                  | ❌ Browser-only, hosted      | ✅ Local-first                           |
 | **Bring your own keys (BYOK)** | ✅ Use your own API keys for all providers      | ❌ Credits only, extra fees  | ⚠️ Hard to use cloud APIs                |
