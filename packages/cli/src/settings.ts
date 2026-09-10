@@ -33,6 +33,7 @@ export const ALWAYS_ENABLED_TOOLS: readonly string[] = [
   "edit_image",
   "generate_video",
   "animate_image",
+  "generate_video_from_references",
   "generate_speech",
   "transcribe_audio",
   "read_media_bytes"

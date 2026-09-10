@@ -1,7 +1,8 @@
 /**
  * handleMediaGenerationMessage: the image / video / audio / image_edit /
- * image_to_video routes a `chat_message` with a `media_generation` payload
- * takes, their refusal branches, cancellation, and the provider-failure catch.
+ * image_to_video / reference_to_video routes a `chat_message` with a
+ * `media_generation` payload takes, their refusal branches, cancellation, and
+ * the provider-failure catch.
  *
  * Assets are written through the real file storage adapter into a temp
  * directory (ASSET_FOLDER), so no module is mocked.
@@ -486,5 +487,110 @@ describe("audio generation", () => {
     expect((block.audio as Record<string, unknown>).mimeType).toBe(
       "audio/pcm"
     );
+  });
+});
+
+describe("reference_to_video", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+
+  it("refuses a turn with no reference attached", async () => {
+    const harness = makeChatTurnHarness({
+      session: { resolveProvider: async () => fakeProvider({}) }
+    });
+    await harness.handler.handleChatMessage(
+      mediaTurn("t-media-r2v-empty", {
+        mode: "reference_to_video",
+        provider: "mock",
+        model: "vid-1"
+      })
+    );
+    const [err] = harness.session.messagesOfType("error");
+    expect(String(err.message)).toContain("at least one reference");
+    expect(assistantFrames(harness)).toHaveLength(0);
+  });
+
+  it("passes every attached image and video, plus entity references", async () => {
+    const imageA = new Uint8Array([1, 1, 1]);
+    const imageB = new Uint8Array([2, 2, 2]);
+    const clip = new Uint8Array([3, 3, 3]);
+    const entityImage = new Uint8Array([4, 4, 4]);
+    let inputs: { images: Uint8Array[]; videos: Uint8Array[] } | null = null;
+    let params: Record<string, unknown> | null = null;
+    const harness = makeChatTurnHarness({
+      session: {
+        resolveProvider: async () =>
+          fakeProvider({
+            referenceToVideo: async (i, p) => {
+              inputs = i as { images: Uint8Array[]; videos: Uint8Array[] };
+              params = p as Record<string, unknown>;
+              return PNG;
+            },
+            textToVideo: async () => {
+              throw new Error("must not fall back to text-to-video");
+            }
+          })
+      },
+      deps: {
+        resolveReferenceMediaBytes: async () => ({
+          images: [imageA, imageB],
+          videos: [clip]
+        }),
+        resolveEntityReferenceImages: async () => [entityImage]
+      }
+    });
+    await harness.handler.handleChatMessage(
+      mediaTurn("t-media-r2v", {
+        mode: "reference_to_video",
+        provider: "mock",
+        model: "vid-1",
+        duration: 6,
+        aspect_ratio: "9:16",
+        use_reference_video_audio: true
+      })
+    );
+    expect(inputs).toEqual({
+      images: [imageA, imageB, entityImage],
+      videos: [clip]
+    });
+    expect(params?.durationSeconds).toBe(6);
+    expect(params?.aspectRatio).toBe("9:16");
+    expect(params?.useReferenceVideoAudio).toBe(true);
+    const [assistant] = assistantFrames(harness);
+    const [block] = assistant.content as Array<Record<string, unknown>>;
+    expect(block.type).toBe("video");
+    expect((block.video as Record<string, unknown>).duration).toBe(6);
+  });
+
+  it("states nothing about reference audio when the composer left it off", async () => {
+    let params: Record<string, unknown> | null = null;
+    const harness = makeChatTurnHarness({
+      session: {
+        resolveProvider: async () =>
+          fakeProvider({
+            referenceToVideo: async (_i, p) => {
+              params = p as Record<string, unknown>;
+              return PNG;
+            }
+          })
+      },
+      deps: {
+        resolveReferenceMediaBytes: async () => ({
+          images: [],
+          videos: [new Uint8Array([7, 7])]
+        })
+      }
+    });
+    await harness.handler.handleChatMessage(
+      mediaTurn("t-media-r2v-audio-off", {
+        mode: "reference_to_video",
+        provider: "mock",
+        model: "vid-1",
+        use_reference_video_audio: null
+      })
+    );
+    expect(params?.useReferenceVideoAudio).toBeUndefined();
+    expect(assistantFrames(harness)).toHaveLength(1);
   });
 });

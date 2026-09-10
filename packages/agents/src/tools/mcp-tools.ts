@@ -168,8 +168,9 @@ export interface GetAllMcpToolsOptions {
    * - `find_model` — pick a `{provider, model_id}` for any capability.
    * - `list_models` — browse everything the configured providers offer.
    * - `generate_image` / `edit_image` / `generate_video` / `animate_image` /
-   *   `generate_speech` / `transcribe_audio` / `embed_text` — direct
-   *   provider-backed media generation tools usable from any agent loop.
+   *   `generate_video_from_references` / `generate_speech` /
+   *   `transcribe_audio` / `embed_text` — direct provider-backed media
+   *   generation tools usable from any agent loop.
    *
    * Independent of `registry`: the multi-task planner doesn't need a
    * registry but still benefits from these tools.

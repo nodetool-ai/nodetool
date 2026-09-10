@@ -227,6 +227,50 @@ export const ANIMATE_IMAGE_SCHEMA: JsonSchema = {
   required: ["provider", "model", "input_file"]
 };
 
+export const VIDEO_FROM_REFERENCES_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    background: {
+      type: "boolean" as const,
+      description:
+        "Return at once with a generation_id while the provider works; collect the result with await_generation. At most 16 open per run.",
+      default: false
+    },
+    provider: { type: "string" as const },
+    model: { type: "string" as const },
+    reference_files: {
+      type: "array" as const,
+      items: { type: "string" as const },
+      description:
+        "The references that condition the clip — workspace-relative paths or asset:// URIs. Images and videos may be mixed; each is routed by its own type. At least one is required."
+    },
+    output_file: {
+      type: "string" as const,
+      description: "Optional workspace-relative path to also write the result."
+    },
+    prompt: {
+      type: "string" as const,
+      description:
+        "What happens in the shot. The references say who and what is in it, so describe the action and the camera rather than re-describing the subject."
+    },
+    use_reference_video_audio: {
+      type: "boolean" as const,
+      description:
+        "Keep the audio of the first reference video instead of what the model would synthesize. Only some models accept it; one that does not rejects the call."
+    },
+    negative_prompt: { type: "string" as const },
+    num_frames: { type: "number" as const },
+    duration_seconds: {
+      type: "number" as const,
+      description:
+        "Requested clip length. Models honour this loosely, clamp it to the lengths they support, and some ignore it — measure the result with analyze_video before cutting to it."
+    },
+    aspect_ratio: { type: "string" as const },
+    resolution: { type: "string" as const }
+  },
+  required: ["provider", "model", "reference_files"]
+};
+
 export const GENERATE_SPEECH_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
@@ -520,6 +564,22 @@ export const animateImageSpec: CapabilitySpec = {
     `Animating image with ${String(params["provider"])}:${String(params["model"])}`
 };
 
+export const videoFromReferencesSpec: CapabilitySpec = {
+  name: "generate_video_from_references",
+  description:
+    "Generate a video conditioned on a set of reference images and/or videos, " +
+    "using a provider+model selected via find_model " +
+    "(capability=reference_to_video). Reach for this instead of animate_image " +
+    "when more than one reference defines the shot — a character sheet plus a " +
+    "garment, a product plus a location, a clip whose motion the new shot " +
+    "should follow. `prompt` then describes the action and the camera, not the " +
+    "subjects. Result is saved as an asset.",
+  inputSchema: VIDEO_FROM_REFERENCES_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Generating video from references with ${String(params["provider"])}:${String(params["model"])}`
+};
+
 export const generateSpeechSpec: CapabilitySpec = {
   name: "generate_speech",
   description:
@@ -783,6 +843,7 @@ export const mediaSpecs: readonly CapabilitySpec[] = [
   segmentImageSpec,
   generateVideoSpec,
   animateImageSpec,
+  videoFromReferencesSpec,
   generateSpeechSpec,
   generateMusicSpec,
   transcribeAudioSpec,

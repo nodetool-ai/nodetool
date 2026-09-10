@@ -197,6 +197,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "edit_image",
   "generate_video",
   "animate_image",
+  "generate_video_from_references",
   "generate_speech",
   "generate_music",
   "transcribe_audio",

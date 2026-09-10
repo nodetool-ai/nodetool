@@ -120,7 +120,9 @@ const TOOL_ENABLED_PLANNING_SECTIONS = `
   generate_embedding) and pass the resulting \`provider\` + \`model\` to the
   generation tool.
 - Generation tools: \`generate_image\`, \`edit_image\`, \`generate_video\`,
-  \`animate_image\`, \`generate_speech\`, \`transcribe_audio\`, \`embed_text\`.
+  \`animate_image\`, \`generate_video_from_references\` (several image/video
+  references condition one clip), \`generate_speech\`, \`transcribe_audio\`,
+  \`embed_text\`.
 - These tools save outputs as ASSETS automatically — the result includes
   \`asset_id\` and \`asset_uri\` ("asset://<id>.<ext>"). Reference those in
   later steps and in the final response so the chat UI can show them.

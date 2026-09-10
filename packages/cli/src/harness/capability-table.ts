@@ -419,6 +419,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "generate_video_from_references",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "dea82ea56a14",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+    ],
+  },
+  {
     name: "generate_speech",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",

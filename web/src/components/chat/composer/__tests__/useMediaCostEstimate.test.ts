@@ -33,7 +33,30 @@ const setImage = (patch: Parameters<
     useMediaGenerationStore.getState().setImageParams(patch);
   });
 
+const setReferenceToVideo = (patch: Parameters<
+  ReturnType<typeof useMediaGenerationStore.getState>["setReferenceToVideoParams"]
+>[0]) =>
+  act(() => {
+    useMediaGenerationStore.getState().setReferenceToVideoParams(patch);
+  });
+
 describe("useMediaCostEstimate", () => {
+  it("prices a reference-to-video clip off its own duration and rung", () => {
+    setReferenceToVideo({
+      model: VIDEO_MODEL,
+      duration: 5,
+      resolution: "720p"
+    });
+    const { result, rerender } = renderHook(() =>
+      useMediaCostEstimate("reference_to_video")
+    );
+    expect(result.current?.total).toBeCloseTo(0.5, 10);
+
+    setReferenceToVideo({ duration: 10 });
+    rerender();
+    expect(result.current?.total).toBeCloseTo(1, 10);
+  });
+
   it("returns nothing while no model is picked", () => {
     setVideo({ model: null });
     const { result } = renderHook(() => useMediaCostEstimate("video"));

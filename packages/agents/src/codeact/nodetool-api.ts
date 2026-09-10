@@ -51,6 +51,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "edit_image",
     "generate_video",
     "animate_image",
+    "generate_video_from_references",
     "generate_speech",
     "generate_music",
     "transcribe_audio",
@@ -880,6 +881,13 @@ const nodetool = (() => {
         __need("animate_image")(
           __merge(opts, __merge(__model(model), { input_file: inputFile }))
         ),
+      videoFromReferences: (referenceFiles, model, opts) =>
+        __need("generate_video_from_references")(
+          __merge(
+            opts,
+            __merge(__model(model), { reference_files: referenceFiles })
+          )
+        ),
       speak: (text, model, opts) =>
         __need("generate_speech")(
           __merge(opts, __merge(__model(model), { text: text }))
@@ -1591,7 +1599,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`generateImage(prompt, model, {width, height, output_file})\`,
   \`editImage(inputFile, prompt, model, {reference_files})\`,
   \`generateVideo(prompt, model)\`,
-  \`animateImage(inputFile, model)\`, \`speak(text, model, {voice})\`,
+  \`animateImage(inputFile, model)\`,
+  \`videoFromReferences(referenceFiles, model, {prompt})\` — one clip from several
+  image/video references, when more than one reference defines the shot,
+  \`speak(text, model, {voice})\`,
   \`generateMusic(prompt, model, {lyrics, duration_seconds})\`,
   \`transcribe(inputFile, model)\`, \`embed(text, model)\`. Results are saved as
   assets (\`asset://\` URI); pass \`output_file\` for a workspace copy too.

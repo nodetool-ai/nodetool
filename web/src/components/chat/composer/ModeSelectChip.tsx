@@ -8,6 +8,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ImageIcon from "@mui/icons-material/Image";
+import BurstModeIcon from "@mui/icons-material/BurstMode";
 import MovieFilterIcon from "@mui/icons-material/MovieFilter";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import VideocamIcon from "@mui/icons-material/Videocam";
@@ -28,6 +29,9 @@ export function modeIconFor(mode: MediaMode): React.ReactNode {
   }
   if (mode === "image_to_video") {
     return <MovieFilterIcon fontSize="small" />;
+  }
+  if (mode === "reference_to_video") {
+    return <BurstModeIcon fontSize="small" />;
   }
   if (mode === "audio") {
     return <RecordVoiceOverIcon fontSize="small" />;
@@ -50,6 +54,9 @@ export function modeLabelFor(mode: MediaMode): string {
   }
   if (mode === "image_to_video") {
     return "Image→Video";
+  }
+  if (mode === "reference_to_video") {
+    return "Refs→Video";
   }
   if (mode === "audio") {
     return "Speech";

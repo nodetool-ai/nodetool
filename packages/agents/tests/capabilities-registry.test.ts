@@ -132,6 +132,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   generate_speech: "write",
   generate_music: "write",
   generate_video: "write",
+  generate_video_from_references: "write",
   get_apify_actor: "read",
   get_apify_actor_schema: "read",
   get_apify_dataset_items: "read",

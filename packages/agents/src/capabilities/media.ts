@@ -57,7 +57,7 @@ import {
   assertResolvedHostAllowed
 } from "../network-guard.js";
 import { encodeBase64 as encodeMediaBase64 } from "../sandbox-bytes.js";
-import { imagePixelSize } from "../sandbox-media.js";
+import { imagePixelSize, sniffImageFormat } from "../sandbox-media.js";
 import {
   DEFAULT_MIME,
   MAX_MEDIA_REF_BYTES,
@@ -95,6 +95,7 @@ import {
   segmentImageSpec,
   generateVideoSpec,
   animateImageSpec,
+  videoFromReferencesSpec,
   generateSpeechSpec,
   generateMusicSpec,
   transcribeAudioSpec,
@@ -734,6 +735,133 @@ const animateImage: CapabilityExport = {
       namePrefix: "animated-video",
       mime: "video/mp4",
       params: { image, prompt: params["prompt"], ...shape }
+    });
+  }
+};
+
+/** Extensions that state a reference's kind without reading its bytes. */
+const IMAGE_EXTENSIONS = new Set([
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "bmp",
+  "webp",
+  "avif",
+  "heic",
+  "heif",
+  "tif",
+  "tiff"
+]);
+const VIDEO_EXTENSIONS = new Set([
+  "mp4",
+  "m4v",
+  "mov",
+  "webm",
+  "mkv",
+  "avi",
+  "mpeg",
+  "mpg",
+  "wmv"
+]);
+
+/**
+ * Whether a reference is an image or a video. The provider takes the two in
+ * separate lists — a video handed over as an image is rejected with an opaque
+ * provider error — so the kind has to be settled here.
+ *
+ * The extension decides when it says anything, because it is what the caller
+ * stated. Otherwise the bytes do: the image sniffer first (it owns the
+ * `ftyp`-based AVIF/HEIC cases), then the three video containers. A reference
+ * neither names nor looks like either is null, and the call refuses it rather
+ * than guessing.
+ */
+export function classifyReferenceMedia(
+  file: string,
+  bytes: Uint8Array
+): "image" | "video" | null {
+  const dot = file.lastIndexOf(".");
+  const ext = dot > -1 ? file.slice(dot + 1).toLowerCase() : "";
+  if (IMAGE_EXTENSIONS.has(ext)) return "image";
+  if (VIDEO_EXTENSIONS.has(ext)) return "video";
+  if (sniffImageFormat(bytes) !== "unknown") return "image";
+  const at = (i: number): number => bytes[i] ?? -1;
+  const tag = (offset: number, text: string): boolean =>
+    [...text].every((ch, i) => at(offset + i) === ch.charCodeAt(0));
+  if (tag(4, "ftyp")) return "video";
+  // Matroska / WebM EBML header.
+  if (at(0) === 0x1a && at(1) === 0x45 && at(2) === 0xdf && at(3) === 0xa3) {
+    return "video";
+  }
+  if (tag(0, "RIFF") && tag(8, "AVI ")) return "video";
+  return null;
+}
+
+const videoFromReferences: CapabilityExport = {
+  spec: videoFromReferencesSpec,
+  impl: async (run, params) => {
+    const context = run.context;
+    const m = parseModelArgs(params);
+    if ("error" in m) return m;
+    const referenceFiles = params["reference_files"];
+    if (!Array.isArray(referenceFiles)) {
+      return { error: "reference_files must be an array of strings" };
+    }
+    const files = referenceFiles.filter(isNonEmptyString);
+    if (files.length === 0) {
+      return { error: "reference_files must name at least one reference" };
+    }
+    const images: Uint8Array[] = [];
+    const videos: Uint8Array[] = [];
+    for (const file of files) {
+      let bytes: Uint8Array;
+      try {
+        bytes = await readWorkspaceOrAssetFile(context, file);
+      } catch (e) {
+        return predictionError("reference_to_video", m, e);
+      }
+      const kind = classifyReferenceMedia(file, bytes);
+      if (kind === null) {
+        return {
+          error: `${file} is neither an image nor a video — reference_to_video takes only those`
+        };
+      }
+      (kind === "image" ? images : videos).push(bytes);
+    }
+    const useReferenceVideoAudio = aliased(
+      params,
+      "use_reference_video_audio",
+      "useReferenceVideoAudio"
+    );
+    if (useReferenceVideoAudio === true && videos.length === 0) {
+      return {
+        error:
+          "use_reference_video_audio needs a reference video to take the audio from"
+      };
+    }
+    const shape = videoShapeParams(params);
+    // Same reasoning as animate_image: a vertical reference rendered at the
+    // provider's default lands 16:9 and the crop is found at the cut. The
+    // first image reference states the intended shape when the call does not.
+    if (shape.aspect_ratio === undefined && images.length > 0) {
+      const size = imagePixelSize(images[0]!);
+      const derived = size ? nearestAspectRatio(size.width, size.height) : null;
+      if (derived) shape.aspect_ratio = derived;
+    }
+    return runMediaGeneration(run, params, {
+      capability: "reference_to_video",
+      m,
+      type: "video",
+      namePrefix: "reference-video",
+      mime: "video/mp4",
+      params: {
+        reference_images: images,
+        reference_videos: videos,
+        prompt: params["prompt"],
+        negative_prompt: aliased(params, "negative_prompt", "negativePrompt"),
+        use_reference_video_audio: useReferenceVideoAudio,
+        ...shape
+      }
     });
   }
 };
@@ -2385,6 +2513,7 @@ export const MEDIA_CAPABILITIES: readonly CapabilityExport[] = [
   segmentImage,
   generateVideo,
   animateImage,
+  videoFromReferences,
   generateSpeech,
   generateMusic,
   transcribeAudio,
@@ -2410,6 +2539,7 @@ export {
   segmentImage,
   generateVideo,
   animateImage,
+  videoFromReferences,
   generateSpeech,
   generateMusic,
   transcribeAudio,

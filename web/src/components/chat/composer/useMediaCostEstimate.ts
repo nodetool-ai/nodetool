@@ -57,6 +57,7 @@ export function useMediaCostEstimate(mode: MediaMode): MediaCostEstimate | null 
   const imageEdit = useMediaGenerationStore((s) => s.imageEdit);
   const video = useMediaGenerationStore((s) => s.video);
   const imageToVideo = useMediaGenerationStore((s) => s.imageToVideo);
+  const referenceToVideo = useMediaGenerationStore((s) => s.referenceToVideo);
   const audio = useMediaGenerationStore((s) => s.audio);
 
   return useMemo(() => {
@@ -108,6 +109,16 @@ export function useMediaCostEstimate(mode: MediaMode): MediaCostEstimate | null 
           quantity: 1
         };
       }
+      if (mode === "reference_to_video") {
+        return {
+          model: referenceToVideo.model,
+          params: {
+            resolution: referenceToVideo.resolution,
+            seconds: referenceToVideo.duration
+          },
+          quantity: 1
+        };
+      }
       if (mode === "audio") {
         return { model: audio.model, params: {}, quantity: 1 };
       }
@@ -136,7 +147,7 @@ export function useMediaCostEstimate(mode: MediaMode): MediaCostEstimate | null 
       assumptions: price.assumptions,
       warnings: price.warnings
     };
-  }, [mode, image, imageEdit, video, imageToVideo, audio]);
+  }, [mode, image, imageEdit, video, imageToVideo, referenceToVideo, audio]);
 }
 
 export default useMediaCostEstimate;

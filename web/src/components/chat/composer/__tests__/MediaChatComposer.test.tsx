@@ -89,6 +89,7 @@ const MEDIA_DEFAULTS = (() => {
     imageEdit: s.imageEdit,
     video: s.video,
     imageToVideo: s.imageToVideo,
+    referenceToVideo: s.referenceToVideo,
     audio: s.audio
   };
 })();
@@ -313,5 +314,74 @@ describe("MediaChatComposer", () => {
       provider: "fal_ai",
       model: "flux"
     });
+  });
+
+  it("sends reference-to-video with the shot params, and the audio flag only when on", async () => {
+    const user = userEvent.setup();
+    const onSendMessage = jest.fn();
+    const setMode = (useReferenceVideoAudio: boolean) =>
+      useMediaGenerationStore.setState({
+        mode: "reference_to_video",
+        referenceToVideo: {
+          ...MEDIA_DEFAULTS.referenceToVideo,
+          model: {
+            type: "video_model",
+            id: "minimax/h3/reference-to-video",
+            provider: "fal_ai",
+            name: "Minimax H3"
+          },
+          duration: 6,
+          resolution: "1080p",
+          aspectRatio: "9:16",
+          useReferenceVideoAudio
+        }
+      });
+
+    setMode(false);
+    const off = renderComposer(onSendMessage);
+    await user.click(promptBox());
+    await user.keyboard("she walks into frame");
+    await user.click(screen.getByRole("button", { name: "Generate" }));
+
+    expect(onSendMessage.mock.calls[0][2]).toEqual({
+      mode: "reference_to_video",
+      provider: "fal_ai",
+      model: "minimax/h3/reference-to-video",
+      aspect_ratio: "9:16",
+      resolution: "1080p",
+      duration: 6,
+      // A model that cannot take reference audio rejects the request, so an
+      // off toggle must state nothing rather than `false`.
+      use_reference_video_audio: null
+    });
+    off.unmount();
+
+    onSendMessage.mockClear();
+    setMode(true);
+    renderComposer(onSendMessage);
+    await user.click(promptBox());
+    await user.keyboard("she walks into frame");
+    await user.click(screen.getByRole("button", { name: "Generate" }));
+
+    expect(onSendMessage.mock.calls[0][2]).toMatchObject({
+      use_reference_video_audio: true
+    });
+  });
+
+  it("opens the video picker instead of sending when no reference model is picked", async () => {
+    const user = userEvent.setup();
+    const onSendMessage = jest.fn();
+    useMediaGenerationStore.setState({
+      mode: "reference_to_video",
+      referenceToVideo: { ...MEDIA_DEFAULTS.referenceToVideo, model: null }
+    });
+    renderComposer(onSendMessage);
+
+    await user.click(promptBox());
+    await user.keyboard("she walks into frame");
+    await user.click(screen.getByRole("button", { name: "Generate" }));
+
+    expect(onSendMessage).not.toHaveBeenCalled();
+    expect(screen.getByTestId("video-model-dialog")).toBeInTheDocument();
   });
 });

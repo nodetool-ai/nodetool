@@ -39,6 +39,8 @@ import {
   scoreImageAdherence,
   transcribeAudio,
   understandVideo,
+  videoFromReferences,
+  classifyReferenceMedia,
   ffmpeg,
   ytDlp
 } from "../src/capabilities/media.js";
@@ -87,6 +89,7 @@ describe("the media capability module", () => {
       "segment_image",
       "generate_video",
       "animate_image",
+      "generate_video_from_references",
       "generate_speech",
       "generate_music",
       "transcribe_audio",
@@ -115,6 +118,10 @@ describe("wire identity: a Tool built from the spec", () => {
     [editImage, toolForCapabilityName("edit_image")],
     [generateVideo, toolForCapabilityName("generate_video")],
     [animateImage, toolForCapabilityName("animate_image")],
+    [
+      videoFromReferences,
+      toolForCapabilityName("generate_video_from_references")
+    ],
     [generateSpeech, toolForCapabilityName("generate_speech")],
     [transcribeAudio, toolForCapabilityName("transcribe_audio")],
     [embedText, toolForCapabilityName("embed_text")],
@@ -900,5 +907,126 @@ describe("animate_image takes its shape from the still", () => {
       input_file: "still.bin"
     });
     expect(sentParams(context)["aspect_ratio"]).toBeUndefined();
+  });
+});
+
+/**
+ * reference_to_video takes two lists — images and videos — and a provider
+ * rejects a video handed over as an image with an opaque error, so the split
+ * is the contract worth pinning.
+ */
+describe("generate_video_from_references", () => {
+  /** A PNG header, and an MP4 `ftyp` box. Nothing decodes either. */
+  const PNG = new Uint8Array([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
+  ]);
+  const MP4 = new Uint8Array([
+    0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d
+  ]);
+
+  function contextFor(files: Record<string, Uint8Array>): ProcessingContext {
+    return withGenerationSeam({
+      userId: "user-1",
+      runProviderPrediction: vi.fn(async () => new Uint8Array([1, 2, 3])),
+      workspace: {
+        localDir: null,
+        write: async () => {},
+        read: async (path: string) => {
+          const bytes = files[path];
+          if (!bytes) throw new Error(`no such file: ${path}`);
+          return bytes;
+        },
+        key: (p: string) => p
+      }
+    }) as unknown as ProcessingContext;
+  }
+
+  const sentParams = (context: ProcessingContext): Record<string, unknown> =>
+    (
+      (
+        context.runProviderPrediction as unknown as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0] as Record<string, unknown>
+    )["params"] as Record<string, unknown>;
+
+  const sentCapability = (context: ProcessingContext): unknown =>
+    (
+      (
+        context.runProviderPrediction as unknown as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0] as Record<string, unknown>
+    )["capability"];
+
+  it("routes each reference into the list its own kind belongs in", async () => {
+    const context = contextFor({ "hero.png": PNG, "motion.mp4": MP4 });
+    await asTool(videoFromReferences).process(context, {
+      provider: "fal_ai",
+      model: "minimax/h3/reference-to-video",
+      reference_files: ["hero.png", "motion.mp4"],
+      prompt: "she walks into frame",
+      duration_seconds: 6
+    });
+    expect(sentCapability(context)).toBe("reference_to_video");
+    const params = sentParams(context);
+    expect(params["reference_images"]).toEqual([PNG]);
+    expect(params["reference_videos"]).toEqual([MP4]);
+    expect(params["duration_seconds"]).toBe(6);
+  });
+
+  it("classifies by content when the path carries no extension", () => {
+    expect(classifyReferenceMedia("hero.png", PNG)).toBe("image");
+    expect(classifyReferenceMedia("clip.mov", MP4)).toBe("video");
+    // No extension: the bytes decide.
+    expect(classifyReferenceMedia("hero", PNG)).toBe("image");
+    expect(classifyReferenceMedia("clip", MP4)).toBe("video");
+    // Neither, so the call has to refuse rather than guess.
+    expect(classifyReferenceMedia("notes.txt", new Uint8Array([1, 2, 3]))).toBeNull();
+  });
+
+  it("refuses a reference that is neither an image nor a video", async () => {
+    const context = contextFor({ "notes.bin": new Uint8Array([1, 2, 3]) });
+    const result = (await asTool(videoFromReferences).process(context, {
+      provider: "fal_ai",
+      model: "minimax/h3/reference-to-video",
+      reference_files: ["notes.bin"]
+    })) as Record<string, unknown>;
+    expect(String(result["error"])).toContain("notes.bin");
+    expect(context.runProviderPrediction).not.toHaveBeenCalled();
+  });
+
+  it("refuses an empty reference list", async () => {
+    const context = contextFor({});
+    const result = (await asTool(videoFromReferences).process(context, {
+      provider: "fal_ai",
+      model: "minimax/h3/reference-to-video",
+      reference_files: []
+    })) as Record<string, unknown>;
+    expect(String(result["error"])).toContain("at least one reference");
+    expect(context.runProviderPrediction).not.toHaveBeenCalled();
+  });
+
+  it("refuses reference audio when no reference video was given", async () => {
+    const context = contextFor({ "hero.png": PNG });
+    const result = (await asTool(videoFromReferences).process(context, {
+      provider: "fal_ai",
+      model: "minimax/h3/reference-to-video",
+      reference_files: ["hero.png"],
+      use_reference_video_audio: true
+    })) as Record<string, unknown>;
+    expect(String(result["error"])).toContain("reference video");
+    expect(context.runProviderPrediction).not.toHaveBeenCalled();
+  });
+
+  it("takes its aspect from the first image reference when none is named", async () => {
+    const vertical = new Uint8Array(33);
+    vertical.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+    vertical.set([0x49, 0x48, 0x44, 0x52], 12);
+    new DataView(vertical.buffer).setUint32(16, 720, false);
+    new DataView(vertical.buffer).setUint32(20, 1280, false);
+    const context = contextFor({ "hero.png": vertical });
+    await asTool(videoFromReferences).process(context, {
+      provider: "fal_ai",
+      model: "minimax/h3/reference-to-video",
+      reference_files: ["hero.png"]
+    });
+    expect(sentParams(context)["aspect_ratio"]).toBe("9:16");
   });
 });

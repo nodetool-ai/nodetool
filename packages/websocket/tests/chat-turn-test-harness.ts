@@ -135,6 +135,7 @@ export function makeChatTurnHarness(
     entityRefResolver: () => ({ getAssetInfo: async () => null }),
     resolveEntityReferenceImages: async () => [],
     resolveSourceImageBytes: async () => null,
+    resolveReferenceMediaBytes: async () => ({ images: [], videos: [] }),
     ...overrides.deps
   };
   const handler = new ChatTurnHandler(session, deps);
@@ -158,6 +159,7 @@ export interface FakeProviderShape {
   imageToImages?: (...args: unknown[]) => Promise<Uint8Array[]>;
   textToVideo?: (...args: unknown[]) => Promise<Uint8Array>;
   imageToVideo?: (...args: unknown[]) => Promise<Uint8Array>;
+  referenceToVideo?: (...args: unknown[]) => Promise<Uint8Array>;
   textToSpeechEncoded?: (
     ...args: unknown[]
   ) => Promise<{ data: Uint8Array; mimeType: string } | null>;

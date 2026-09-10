@@ -601,7 +601,9 @@ export class WebSocketClientSession implements ClientSession {
       entityRefResolver,
       resolveEntityReferenceImages,
       resolveSourceImageBytes: (data, mediaGeneration, userId) =>
-        this.resolveSourceImageBytes(data, mediaGeneration, userId)
+        this.resolveSourceImageBytes(data, mediaGeneration, userId),
+      resolveReferenceMediaBytes: (data, mediaGeneration, userId) =>
+        this.resolveReferenceMediaBytes(data, mediaGeneration, userId)
     });
     this.commands = new CommandRouter({
       session: this,
@@ -1077,6 +1079,112 @@ export class WebSocketClientSession implements ClientSession {
   }
 
   /**
+   * Bytes behind one media content block, whatever form the client used to
+   * name them: a stored `asset_id`, an `asset://<id>.<ext>` uri written by the
+   * `@`-mention picker, an inline `data:` uri, an http(s) url, or a bare
+   * base64 `data` field. Returns null when none of them resolves.
+   */
+  private async resolveMediaRefBytes(
+    ref: Record<string, unknown>,
+    userId: string
+  ): Promise<Uint8Array | null> {
+    const assetId = isString(ref.asset_id) ? (ref.asset_id as string) : null;
+    if (assetId) {
+      const bytes = await this.loadAssetBytes(userId, assetId);
+      if (bytes && bytes.length > 0) return bytes;
+    }
+    const uri = isString(ref.uri) ? (ref.uri as string) : null;
+    if (uri) {
+      if (uri.startsWith("asset://")) {
+        // `@`-mentioned or library-dragged asset: `asset://<id>.<ext>`.
+        const withoutScheme = uri.slice("asset://".length);
+        const dotIdx = withoutScheme.lastIndexOf(".");
+        const mentionedId =
+          dotIdx > -1 ? withoutScheme.slice(0, dotIdx) : withoutScheme;
+        const bytes = await this.loadAssetBytes(userId, mentionedId);
+        if (bytes && bytes.length > 0) return bytes;
+      } else if (uri.startsWith("data:")) {
+        const commaIdx = uri.indexOf(",");
+        if (commaIdx > -1) {
+          const b64 = uri.slice(commaIdx + 1);
+          try {
+            return new Uint8Array(Buffer.from(b64, "base64"));
+          } catch {
+            /* fall through to the `data` field below */
+          }
+        }
+      } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
+        // A chat client picked this uri, so the media-ref egress policy
+        // decides — including on every redirect hop, which the predicate
+        // this replaced never saw.
+        try {
+          const resp = await fetchExternalMedia(uri);
+          if (resp.ok) {
+            return new Uint8Array(await resp.arrayBuffer());
+          }
+        } catch (err) {
+          log.warn("resolveMediaRefBytes: fetch failed", {
+            uri,
+            error: err instanceof Error ? err.message : String(err)
+          });
+        }
+      }
+    }
+    const data64 = isString(ref.data) ? (ref.data as string) : null;
+    if (data64) {
+      try {
+        return new Uint8Array(Buffer.from(data64, "base64"));
+      } catch {
+        /* ignore */
+      }
+    }
+    return null;
+  }
+
+  /** One asset's bytes, or null when it is gone or unreadable. */
+  private async loadAssetBytes(
+    userId: string,
+    assetId: string
+  ): Promise<Uint8Array | null> {
+    if (!assetId) return null;
+    try {
+      const asset = await Asset.find(userId, assetId);
+      if (!asset) return null;
+      return await retrieveAssetBytes(
+        getAssetAdapter(),
+        userId,
+        assetId,
+        asset.content_type
+      );
+    } catch (err) {
+      log.warn("loadAssetBytes: asset load failed", {
+        assetId,
+        error: err instanceof Error ? err.message : String(err)
+      });
+      return null;
+    }
+  }
+
+  /** The inner ref record of every `image_url` / `video` block on a message. */
+  private mediaRefsOnMessage(
+    data: Record<string, unknown>,
+    blockType: "image_url" | "video"
+  ): Array<Record<string, unknown>> {
+    const content = data.content;
+    if (!Array.isArray(content)) return [];
+    const field = blockType === "image_url" ? "image" : "video";
+    const refs: Array<Record<string, unknown>> = [];
+    for (const c of content) {
+      if (!isObjectLike(c)) continue;
+      const block = c as Record<string, unknown>;
+      if (block.type !== blockType) continue;
+      const ref = block[field];
+      refs.push(isObjectLike(ref) ? (ref as Record<string, unknown>) : {});
+    }
+    return refs;
+  }
+
+  /**
    * Resolve the source image bytes for image-edit / image-to-video calls.
    * Searches in priority order:
    *   1. `media_generation.source_asset_id`  → load from Asset storage
@@ -1089,98 +1197,54 @@ export class WebSocketClientSession implements ClientSession {
     mediaGeneration: Record<string, unknown>,
     userId: string
   ): Promise<Uint8Array | null> {
-    const tryLoadAsset = async (
-      assetId: string
-    ): Promise<Uint8Array | null> => {
-      if (!assetId) return null;
-      try {
-        const asset = await Asset.find(userId, assetId);
-        if (!asset) return null;
-        return await retrieveAssetBytes(
-          getAssetAdapter(),
-          userId,
-          assetId,
-          asset.content_type
-        );
-      } catch (err) {
-        log.warn("resolveSourceImageBytes: asset load failed", {
-          assetId,
-          error: err instanceof Error ? err.message : String(err)
-        });
-        return null;
-      }
-    };
-
     const explicitId = isString(mediaGeneration.source_asset_id)
       ? (mediaGeneration.source_asset_id as string)
       : null;
     if (explicitId) {
-      const fromAsset = await tryLoadAsset(explicitId);
+      const fromAsset = await this.loadAssetBytes(userId, explicitId);
       if (fromAsset && fromAsset.length > 0) return fromAsset;
     }
-
-    const content = data.content;
-    if (Array.isArray(content)) {
-      for (const c of content) {
-        if (!isObjectLike(c)) continue;
-        const block = c as Record<string, unknown>;
-        if (block.type !== "image_url") continue;
-        const image = (block.image ?? {}) as Record<string, unknown>;
-        const assetId = isString(image.asset_id)
-          ? (image.asset_id as string)
-          : null;
-        if (assetId) {
-          const bytes = await tryLoadAsset(assetId);
-          if (bytes && bytes.length > 0) return bytes;
-        }
-        const uri = isString(image.uri) ? (image.uri as string) : null;
-        if (uri) {
-          if (uri.startsWith("asset://")) {
-            // `@`-mentioned or library-dragged asset: `asset://<id>.<ext>`.
-            const withoutScheme = uri.slice("asset://".length);
-            const dotIdx = withoutScheme.lastIndexOf(".");
-            const mentionedId =
-              dotIdx > -1 ? withoutScheme.slice(0, dotIdx) : withoutScheme;
-            const bytes = await tryLoadAsset(mentionedId);
-            if (bytes && bytes.length > 0) return bytes;
-          } else if (uri.startsWith("data:")) {
-            const commaIdx = uri.indexOf(",");
-            if (commaIdx > -1) {
-              const b64 = uri.slice(commaIdx + 1);
-              try {
-                return new Uint8Array(Buffer.from(b64, "base64"));
-              } catch {
-                /* fall through */
-              }
-            }
-          } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
-            // A chat client picked this uri, so the media-ref egress policy
-            // decides — including on every redirect hop, which the predicate
-            // this replaced never saw.
-            try {
-              const resp = await fetchExternalMedia(uri);
-              if (resp.ok) {
-                return new Uint8Array(await resp.arrayBuffer());
-              }
-            } catch (err) {
-              log.warn("resolveSourceImageBytes: fetch failed", {
-                uri,
-                error: err instanceof Error ? err.message : String(err)
-              });
-            }
-          }
-        }
-        const data64 = isString(image.data) ? (image.data as string) : null;
-        if (data64) {
-          try {
-            return new Uint8Array(Buffer.from(data64, "base64"));
-          } catch {
-            /* ignore */
-          }
-        }
-      }
+    for (const ref of this.mediaRefsOnMessage(data, "image_url")) {
+      const bytes = await this.resolveMediaRefBytes(ref, userId);
+      if (bytes && bytes.length > 0) return bytes;
     }
     return null;
+  }
+
+  /**
+   * Every reference the user attached, for reference-to-video: *all* the
+   * image and video blocks on the message rather than the first one, because
+   * the whole point of the mode is that several references describe one shot
+   * (a character, a garment, a location). `source_asset_id` joins the images
+   * so a surface that names one explicitly still reaches the model. A block
+   * whose bytes do not resolve drops rather than failing the turn — the
+   * caller refuses only when nothing at all resolved.
+   */
+  private async resolveReferenceMediaBytes(
+    data: Record<string, unknown>,
+    mediaGeneration: Record<string, unknown>,
+    userId: string
+  ): Promise<{ images: Uint8Array[]; videos: Uint8Array[] }> {
+    const collect = async (
+      blockType: "image_url" | "video"
+    ): Promise<Uint8Array[]> => {
+      const out: Uint8Array[] = [];
+      for (const ref of this.mediaRefsOnMessage(data, blockType)) {
+        const bytes = await this.resolveMediaRefBytes(ref, userId);
+        if (bytes && bytes.length > 0) out.push(bytes);
+      }
+      return out;
+    };
+    const images = await collect("image_url");
+    const videos = await collect("video");
+    const explicitId = isString(mediaGeneration.source_asset_id)
+      ? (mediaGeneration.source_asset_id as string)
+      : null;
+    if (explicitId) {
+      const bytes = await this.loadAssetBytes(userId, explicitId);
+      if (bytes && bytes.length > 0) images.unshift(bytes);
+    }
+    return { images, videos };
   }
 
   async handleCommand(
