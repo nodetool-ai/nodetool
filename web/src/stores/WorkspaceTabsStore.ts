@@ -447,23 +447,9 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             state.activeTabId,
             id
           );
-          const closedSession = closed
-            ? sessionFor(state.projectSessions, closed.projectId)
-            : null;
-          const sessionNextActiveTabId = closedSession?.tabIds.find(
-            (tabId) =>
-              tabId !== id &&
-              tabs.some(
-                (tab) => tab.id === tabId && tab.projectId === closed?.projectId
-              )
-          );
-          const nextActiveTabId =
-            state.activeTabId === id && sessionNextActiveTabId
-              ? sessionNextActiveTabId
-              : globalNextActiveTabId;
           return {
             tabs: gatherProjectTabs(tabs, activeProjectId),
-            activeTabId: nextActiveTabId,
+            activeTabId: globalNextActiveTabId,
             activeProjectId,
             projectSessions: closed
               ? updateSession(state.projectSessions, closed.projectId, (session) => ({
