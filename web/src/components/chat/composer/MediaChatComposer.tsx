@@ -174,6 +174,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const referenceToVideoParams = useMediaGenerationStore(
     (s) => s.referenceToVideo
   );
+  const musicParams = useMediaGenerationStore((s) => s.music);
   const audioParams = useMediaGenerationStore((s) => s.audio);
 
   // Language-model selection from chat store (used in chat mode & forwarded
@@ -408,6 +409,14 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           : null
       };
     }
+    if (mode === "music") {
+      return {
+        mode,
+        provider: musicParams.model?.provider ?? null,
+        model: musicParams.model?.id ?? null,
+        duration: musicParams.duration
+      };
+    }
     if (mode === "audio") {
       return {
         mode: "audio",
@@ -426,7 +435,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     videoParams,
     imageToVideoParams,
     referenceToVideoParams,
-    audioParams
+    audioParams,
+    musicParams
   ]);
 
   const { queuedMessage, sendMessage, cancelQueued, sendQueuedNow } =
@@ -472,6 +482,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "audio") {
       return "Type the text you want spoken…";
     }
+    if (mode === "music") return "Describe the music you want to generate…";
     if (mode === "audio_to_video") {
       return "Describe a scene synced to audio…";
     }
@@ -500,7 +511,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     mode === "video" ||
     mode === "image_to_video" ||
     mode === "reference_to_video" ||
-    mode === "audio";
+    mode === "audio" ||
+    mode === "music";
 
   const chatModel = selectedModel ?? languageModel;
 
@@ -532,6 +544,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "audio") {
       return { model: audioParams.model, label: "speech" };
     }
+    if (mode === "music") return { model: musicParams.model, label: "music" };
     return null;
   }, [
     mode,
@@ -541,7 +554,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     videoParams.model,
     imageToVideoParams.model,
     referenceToVideoParams.model,
-    audioParams.model
+    audioParams.model,
+    musicParams.model
   ]);
 
   // A send with no model picked can only fail on the server, so the composer

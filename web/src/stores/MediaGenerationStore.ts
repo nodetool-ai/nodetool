@@ -9,7 +9,12 @@
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { ImageModelValue, Message, TTSModelValue } from "./ApiTypes";
+import type {
+  ImageModelValue,
+  Message,
+  MusicModelValue,
+  TTSModelValue
+} from "./ApiTypes";
 
 /**
  * Media-generation request metadata that can be attached to outgoing chat
@@ -57,6 +62,7 @@ export type MediaMode =
   | "image_to_video"
   | "reference_to_video"
   | "audio"
+  | "music"
   | "audio_to_video"
   | "retake"
   | "extend"
@@ -104,6 +110,7 @@ export const VIDEO_RESOLUTIONS: VideoResolution[] = [
   "1440p",
   "4K"
 ];
+export const MUSIC_DURATIONS = [15, 30, 60, 120];
 export const VIDEO_DURATIONS: number[] = [2, 3, 4, 5, 6, 8, 10, 12, 15];
 export const IMAGE_VARIATIONS: number[] = [1, 2, 4, 6, 8];
 
@@ -168,6 +175,11 @@ interface VideoGenerationParams {
   duration: number;
 }
 
+interface MusicGenerationParams {
+  model: MusicModelValue | null;
+  duration: number;
+}
+
 interface AudioGenerationParams {
   model: TTSModelValue | null;
   voice: string;
@@ -209,6 +221,8 @@ interface MediaGenerationState {
   imageToVideo: ImageToVideoGenerationParams;
   referenceToVideo: ReferenceToVideoGenerationParams;
   audio: AudioGenerationParams;
+  music: MusicGenerationParams;
+  setMusicParams: (params: Partial<MusicGenerationParams>) => void;
   setMode: (mode: MediaMode) => void;
   setImageParams: (params: Partial<ImageGenerationParams>) => void;
   setImageEditParams: (params: Partial<ImageEditParams>) => void;
@@ -276,6 +290,9 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
       imageToVideo: DEFAULT_IMAGE_TO_VIDEO_PARAMS,
       referenceToVideo: DEFAULT_REFERENCE_TO_VIDEO_PARAMS,
       audio: DEFAULT_AUDIO_PARAMS,
+      music: { model: null, duration: 30 },
+      setMusicParams: (params) =>
+        set((state) => ({ music: { ...state.music, ...params } })),
       setMode: (mode) => set({ mode }),
       setImageParams: (params) =>
         set((state) => ({ image: { ...state.image, ...params } })),

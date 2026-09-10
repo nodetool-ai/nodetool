@@ -28,10 +28,12 @@ import CostEstimateLine from "../../costs/CostEstimateLine";
 import { generationCostLine } from "../../costs/costLine";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import VideoModelSelect from "../../properties/VideoModelSelect";
+import MusicModelSelect from "../../properties/MusicModelSelect";
 import TTSModelSelect from "../../properties/TTSModelSelect";
 import type {
   ImageModelValue,
-  TTSModelValue
+  TTSModelValue,
+  MusicModelValue
 } from "../../../stores/ApiTypes";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
@@ -59,6 +61,7 @@ import {
 import { useMediaOptions } from "../../../hooks/useModelsByProvider";
 
 import {
+  SPACING,
   Caption,
   CollapsibleSection,
   EditorButton,
@@ -89,7 +92,7 @@ interface DirectGenClipPanelProps {
 
 const sectionStyles = (theme: Theme) =>
   css({
-    padding: theme.spacing(1)
+    padding: theme.spacing(SPACING.sm)
   });
 
 const panelSx = {
@@ -140,12 +143,14 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
     canGenerate
   } = useGenerateClip(clipId);
 
-  const kind: "image" | "video" | "audio" =
+  const kind: "image" | "video" | "audio" | "music" =
     clip?.bindingKind === "text-to-video"
       ? "video"
-      : clip?.bindingKind === "text-to-audio"
-        ? "audio"
-        : "image";
+      : clip?.bindingKind === "text-to-music"
+        ? "music"
+        : clip?.bindingKind === "text-to-audio"
+          ? "audio"
+          : "image";
   const isImageToImage = clip?.bindingKind === "image-to-image";
 
   // What pressing Generate spends, at the model and settings picked above.
@@ -156,7 +161,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
   // Audio clips have no size/duration options, so their query stays disabled.
   const mediaOptions = useMediaOptions({
     provider: clip?.provider,
-    model: kind === "audio" ? null : clip?.model,
+    model: kind === "audio" || kind === "music" ? null : clip?.model,
     task: kind === "video" ? "video" : "image"
   });
 
@@ -273,6 +278,13 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
     [clipId, setClipDirectGenModel]
   );
 
+  const handleMusicModelChange = useCallback(
+    (v: MusicModelValue) => {
+      setClipDirectGenModel(clipId, v.provider, v.id);
+    },
+    [clipId, setClipDirectGenModel]
+  );
+
   const handleTTSModelChange = useCallback(
     (v: TTSModelValue) => {
       const nextVoice =
@@ -352,9 +364,11 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
   const promptPlaceholder =
     kind === "video"
       ? "Describe the video…"
-      : kind === "audio"
-        ? "Type text to speak…"
-        : "Describe the image…";
+      : kind === "music"
+        ? "Describe the music…"
+        : kind === "audio"
+          ? "Type text to speak…"
+          : "Describe the image…";
 
   const generateLabel = clip.currentAssetId ? "Regenerate" : "Generate";
 
@@ -372,7 +386,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
           }
           defaultOpen
         >
-          <FlexColumn gap={1} css={sectionStyles(theme)}>
+          <FlexColumn gap={SPACING.sm} css={sectionStyles(theme)}>
             {kind === "image" && (
               <ToggleGroup
                 exclusive
@@ -405,18 +419,32 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                 task="text_to_video"
                 onChange={handleVideoModelChange}
               />
+            ) : kind === "music" ? (
+              <MusicModelSelect
+                value={
+                  clip.model
+                    ? {
+                        type: "music_model",
+                        id: clip.model,
+                        name: clip.model,
+                        provider: clip.provider ?? ""
+                      }
+                    : ""
+                }
+                onChange={handleMusicModelChange}
+              />
             ) : kind === "audio" ? (
               <TTSModelSelect
                 value={
                   clip.model
-                    ? ({
+                    ? {
                         type: "tts_model",
                         id: clip.model,
                         provider: clip.provider ?? "",
                         name: clip.model,
                         voices: clip.voice ? [clip.voice] : [],
                         selected_voice: clip.voice ?? ""
-                      })
+                      }
                     : ""
                 }
                 onChange={handleTTSModelChange}

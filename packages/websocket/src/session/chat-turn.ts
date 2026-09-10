@@ -17,7 +17,8 @@ import {
 import { storeAssetWithThumbnail } from "../lib/thumbnail.js";
 import {
   createGenerationRun,
-  generateSpeechBytes
+  generateSpeechBytes,
+  generateMusicBytes
 } from "./media-generation.js";
 import {
   attachRunCostLedger,
@@ -3179,7 +3180,7 @@ export class ChatTurnHandler {
         return;
       }
 
-      if (mode === "audio") {
+      if (mode === "audio" || mode === "music") {
         const voice = isString(mediaGeneration.voice)
           ? (mediaGeneration.voice as string)
           : undefined;
@@ -3210,30 +3211,50 @@ export class ChatTurnHandler {
           done: false
         });
 
+        const durationSeconds = isNumber(mediaGeneration.duration)
+          ? mediaGeneration.duration
+          : undefined;
         const audioGenerationId = randomUUID();
         let assetId: string | undefined;
         let audioMimeType: string | undefined;
         await generate(
-          "text_to_speech",
-          {
-            text: expandedPrompt,
-            voice,
-            speed,
-            audio_format: requestedFormat
-          },
-          null,
-          async () => {
-            const speech = await generateSpeechBytes(
-              provider,
-              {
+          mode === "music" ? "text_to_music" : "text_to_speech",
+          mode === "music"
+            ? { prompt: expandedPrompt, duration_seconds: durationSeconds }
+            : {
                 text: expandedPrompt,
-                model: modelId,
                 voice,
                 speed,
-                audioFormat: requestedFormat
+                audio_format: requestedFormat
               },
-              cancelled
-            );
+          null,
+          async () => {
+            const speech =
+              mode === "music"
+                ? await generateMusicBytes(
+                    provider,
+                    {
+                      model: {
+                        id: modelId,
+                        name: modelId,
+                        provider: providerId
+                      },
+                      prompt: expandedPrompt,
+                      durationSeconds
+                    },
+                    cancelled
+                  )
+                : await generateSpeechBytes(
+                    provider,
+                    {
+                      text: expandedPrompt,
+                      model: modelId,
+                      voice,
+                      speed,
+                      audioFormat: requestedFormat
+                    },
+                    cancelled
+                  );
             if (!speech) return null;
             assetId = await storeMediaAsset(
               speech.bytes,

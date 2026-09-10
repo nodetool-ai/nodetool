@@ -7,7 +7,7 @@
  * Assets are written through the real file storage adapter into a temp
  * directory (ASSET_FOLDER), so no module is mocked.
  */
-import { describe, it, expect, beforeEach, beforeAll } from "vitest";
+import { describe, it, expect, beforeEach, beforeAll, vi } from "vitest";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -484,9 +484,70 @@ describe("audio generation", () => {
     );
     const [assistant] = assistantFrames(harness);
     const [block] = assistant.content as Array<Record<string, unknown>>;
-    expect((block.audio as Record<string, unknown>).mimeType).toBe(
-      "audio/pcm"
+    expect((block.audio as Record<string, unknown>).mimeType).toBe("audio/pcm");
+  });
+});
+
+describe("music generation", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+  it("sends a music prompt to the provider and returns native audio", async () => {
+    const textToMusic = vi.fn(async () => ({
+      data: new Uint8Array([1, 2, 3, 4]),
+      mimeType: "audio/mpeg"
+    }));
+    const harness = makeChatTurnHarness({
+      session: { resolveProvider: async () => fakeProvider({ textToMusic }) }
+    });
+    await harness.handler.handleChatMessage(
+      mediaTurn(
+        "t-music",
+        { mode: "music", provider: "mock", model: "music-1", duration: 60 },
+        "Warm ambient piano"
+      )
     );
+    expect(harness.session.messagesOfType("error")).toHaveLength(0);
+    expect(textToMusic).toHaveBeenCalledWith({
+      model: { id: "music-1", name: "music-1", provider: "mock" },
+      prompt: "Warm ambient piano",
+      durationSeconds: 60
+    });
+    expect(assistantFrames(harness)).toHaveLength(1);
+    expect(assistantFrames(harness)[0].content).toEqual([
+      expect.objectContaining({
+        type: "audio",
+        audio: expect.objectContaining({
+          type: "audio",
+          mimeType: "audio/mpeg",
+          asset_id: expect.any(String)
+        })
+      })
+    ]);
+  });
+  it("reports empty music output without sending an audio reply", async () => {
+    const harness = makeChatTurnHarness({
+      session: {
+        resolveProvider: async () =>
+          fakeProvider({
+            textToMusic: async () => ({
+              data: new Uint8Array(),
+              mimeType: "audio/mpeg"
+            })
+          })
+      }
+    });
+    await harness.handler.handleChatMessage(
+      mediaTurn("t-music-empty", {
+        mode: "music",
+        provider: "mock",
+        model: "music-1"
+      })
+    );
+    expect(harness.session.messagesOfType("error")[0].message).toBe(
+      "Generation failed: Provider returned no audio data"
+    );
+    expect(assistantFrames(harness)).toHaveLength(0);
   });
 });
 

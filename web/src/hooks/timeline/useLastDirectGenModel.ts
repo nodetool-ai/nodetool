@@ -27,17 +27,16 @@ interface LastDirectGenModel {
   voice: string | undefined;
 }
 
-export type DirectGenMediaKind = "image" | "video" | "audio";
+export type DirectGenMediaKind = "image" | "video" | "audio" | "music";
 
 const matchesKind = (
   bindingKind: string | undefined,
   kind: DirectGenMediaKind
 ): boolean => {
   if (kind === "video") return bindingKind === "text-to-video";
+  if (kind === "music") return bindingKind === "text-to-music";
   if (kind === "audio") return bindingKind === "text-to-audio";
-  return (
-    bindingKind === "text-to-image" || bindingKind === "image-to-image"
-  );
+  return bindingKind === "text-to-image" || bindingKind === "image-to-image";
 };
 
 export const useLastDirectGenModel = (

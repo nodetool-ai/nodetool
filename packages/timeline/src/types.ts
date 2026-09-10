@@ -487,6 +487,7 @@ export interface TrackChromaKeyEffect {
  *     param overrides. `sourceClipId` is the input clip for i2i.
  *   - `"text-to-video"`: calls the runner's `generate_media` RPC with a video
  *     model + prompt. Returns a single `video/mp4` asset.
+ *   - `"text-to-music"`: generates music as an audio asset.
  *   - `"text-to-audio"`: calls the runner's `generate_media` RPC with a TTS
  *     model + voice + prompt text. Returns a single audio asset (wav/mp3/...).
  *
@@ -498,7 +499,8 @@ export type ClipBindingKind =
   | "text-to-image"
   | "image-to-image"
   | "text-to-video"
-  | "text-to-audio";
+  | "text-to-audio"
+  | "text-to-music";
 
 /**
  * What a clip draws. Two members carry no media of their own:

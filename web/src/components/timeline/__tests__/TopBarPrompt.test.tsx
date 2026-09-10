@@ -4,7 +4,12 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
-import type { Asset, TTSModel, VideoModel } from "../../../stores/ApiTypes";
+import type {
+  Asset,
+  MusicModel,
+  TTSModel,
+  VideoModel
+} from "../../../stores/ApiTypes";
 
 const mockSend = jest.fn(async (_frame: unknown) => {});
 const mockReplies = new Map<string, (message: unknown) => void>();
@@ -22,6 +27,29 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
 jest.mock("../../../lib/websocket/lookupGenerations", () => ({
   isSettled: (status: string) => status !== "running",
   lookupGenerations: jest.fn(async () => new Map())
+}));
+jest.mock("../../model_menu/MusicModelMenuDialog", () => ({
+  __esModule: true,
+  default: ({
+    open,
+    onModelChange
+  }: {
+    open: boolean;
+    onModelChange: (model: MusicModel) => void;
+  }) =>
+    open ? (
+      <button
+        onClick={() =>
+          onModelChange({
+            id: "music-1",
+            provider: "fal_ai",
+            name: "Test music"
+          } as MusicModel)
+        }
+      >
+        Pick music model
+      </button>
+    ) : null
 }));
 jest.mock("../../model_menu/TTSModelMenuDialog", () => ({
   __esModule: true,
@@ -90,7 +118,7 @@ function renderPrompt(compact = false) {
 
 async function chooseSpeech() {
   await userEvent.click(screen.getByRole("button", { name: "Video" }));
-  expect(screen.getAllByRole("menuitemradio")).toHaveLength(2);
+  expect(screen.getAllByRole("menuitemradio")).toHaveLength(3);
   await userEvent.click(
     screen.getByRole("menuitemradio", { name: "Generate Speech" })
   );
@@ -118,6 +146,80 @@ afterEach(() => {
 });
 
 describe("TopBarPrompt", () => {
+  it.each([false, true])(
+    "generates music on an audio track and fits the result (compact=%s)",
+    async (compact) => {
+      renderPrompt(compact);
+      act(() => instance.playback.getState().setTimeMs(2500));
+      await userEvent.click(screen.getByRole("button", { name: "Video" }));
+      await userEvent.click(
+        screen.getByRole("menuitemradio", { name: "Generate Music" })
+      );
+      await userEvent.type(
+        screen.getByRole("textbox", { name: "Quick text-to-music prompt" }),
+        "Warm ambient piano"
+      );
+      expect(
+        screen.getByRole("button", { name: "Generate music" })
+      ).toBeDisabled();
+      await userEvent.click(
+        screen.getByRole("button", { name: "Select Music Model" })
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Pick music model" })
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "30 Sec" })
+      );
+      await userEvent.click(screen.getByText("60 Sec"));
+      await userEvent.click(
+        screen.getByRole("button", { name: "Generate music" })
+      );
+      const clip = instance.doc.getState().clips[0];
+      expect(clip).toMatchObject({
+        mediaType: "audio",
+        bindingKind: "text-to-music",
+        startMs: 2500,
+        durationMs: 60000,
+        model: "music-1",
+        provider: "fal_ai",
+        status: "generating"
+      });
+      expect(useLastModelStore.getState().byKind.music).toMatchObject({
+        model: "music-1"
+      });
+      expect(useLastModelStore.getState().byKind.audio).toBeUndefined();
+      const frame = mockSend.mock.calls[0][0] as {
+        request_id: string;
+        data: Record<string, unknown>;
+      };
+      expect(frame.data).toMatchObject({
+        mode: "music",
+        prompt: "Warm ambient piano",
+        duration: 60,
+        model: "music-1"
+      });
+      expect(frame.data.voice).toBeUndefined();
+      expect(frame.data.aspect_ratio).toBeUndefined();
+      jest
+        .spyOn(useAssetStore.getState(), "get")
+        .mockResolvedValue({ id: "music-asset", duration: 58.5 } as Asset);
+      act(() =>
+        mockReplies.get(frame.request_id)?.({
+          type: "rpc_response",
+          result: { asset_ids: ["music-asset"] }
+        })
+      );
+      await waitFor(() =>
+        expect(instance.doc.getState().clips[0]).toMatchObject({
+          status: "generated",
+          currentAssetId: "music-asset",
+          durationMs: 58500
+        })
+      );
+    }
+  );
+
   it.each([false, true])(
     "generates speech at the playhead and fits its duration (compact=%s)",
     async (compact) => {

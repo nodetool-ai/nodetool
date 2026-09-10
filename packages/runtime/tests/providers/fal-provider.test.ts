@@ -640,6 +640,46 @@ describe("FalProvider — music", () => {
     ).toBe(true);
   });
 
+  it("sends ElevenLabs Music duration in milliseconds", async () => {
+    const subscribe = vi.fn().mockResolvedValue({
+      data: { audio: { url: "https://fal.ai/song.mp3" } }
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: async () => new Uint8Array([0xff, 0xfb]).buffer
+      })
+    );
+    try {
+      const { createFalClient } = await import("@fal-ai/client");
+      vi.mocked(createFalClient).mockReturnValueOnce({
+        subscribe
+      } as ReturnType<typeof createFalClient>);
+      await createProvider().textToMusic({
+        model: {
+          id: "fal-ai/elevenlabs/music",
+          name: "ElevenLabs Music",
+          provider: "fal_ai"
+        },
+        prompt: "Warm ambient piano",
+        durationSeconds: 60
+      });
+      expect(subscribe).toHaveBeenCalledWith(
+        "fal-ai/elevenlabs/music",
+        expect.objectContaining({
+          input: expect.objectContaining({
+            prompt: "Warm ambient piano",
+            music_length_ms: 60000
+          })
+        })
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("textToMusic subscribes with the prompt and downloads the audio", async () => {
     const subscribeMock = vi.fn().mockResolvedValue({
       data: { audio: { url: "https://fal.ai/song.mp3" } }

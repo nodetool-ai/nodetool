@@ -3,6 +3,7 @@ import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import ImageIcon from "@mui/icons-material/Image";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import MovieIcon from "@mui/icons-material/Movie";
@@ -88,6 +89,12 @@ const MODES: ModeItem[] = [
     id: "audio",
     label: "Generate Speech",
     icon: <RecordVoiceOverIcon fontSize="small" />,
+    enabled: true
+  },
+  {
+    id: "music",
+    label: "Generate Music",
+    icon: <AudiotrackIcon fontSize="small" />,
     enabled: true
   },
   {

@@ -719,6 +719,7 @@ export const clipBindingKind = z.enum([
   "text-to-image",
   "image-to-image",
   "text-to-video",
+  "text-to-music",
   "text-to-audio"
 ]);
 export type ClipBindingKind = z.infer<typeof clipBindingKind>;

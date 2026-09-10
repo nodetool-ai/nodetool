@@ -10,7 +10,7 @@ import useMediaGenerationStore from "../../../../stores/MediaGenerationStore";
 import useGlobalChatStore from "../../../../stores/GlobalChatStore";
 import { useChatDraftStore } from "../../../../stores/ChatDraftStore";
 import { useProvidersByCapability } from "../../../../hooks/useProviders";
-import type { MessageContent } from "../../../../stores/ApiTypes";
+import type { MessageContent, MusicModel } from "../../../../stores/ApiTypes";
 
 // The provider query decides whether the composer refuses a send and shows the
 // setup banner instead. Every mode here has a provider. The rest of the module
@@ -61,6 +61,29 @@ jest.mock("../../../model_menu/VideoModelMenuDialog", () => ({
   default: ({ open }: { open: boolean }) =>
     open ? <div data-testid="video-model-dialog" /> : null
 }));
+jest.mock("../../../model_menu/MusicModelMenuDialog", () => ({
+  __esModule: true,
+  default: ({
+    open,
+    onModelChange
+  }: {
+    open: boolean;
+    onModelChange: (model: MusicModel) => void;
+  }) =>
+    open ? (
+      <button
+        onClick={() =>
+          onModelChange({
+            id: "music-1",
+            name: "Test music",
+            provider: "fal_ai"
+          } as MusicModel)
+        }
+      >
+        Pick music model
+      </button>
+    ) : null
+}));
 jest.mock("../../../model_menu/TTSModelMenuDialog", () => ({
   __esModule: true,
   default: ({ open }: { open: boolean }) =>
@@ -90,6 +113,7 @@ const MEDIA_DEFAULTS = (() => {
     video: s.video,
     imageToVideo: s.imageToVideo,
     referenceToVideo: s.referenceToVideo,
+    music: s.music,
     audio: s.audio
   };
 })();
@@ -284,6 +308,36 @@ describe("MediaChatComposer", () => {
 
     expect(onSendMessage).not.toHaveBeenCalled();
     expect(screen.getByTestId("image-model-dialog")).toBeInTheDocument();
+  });
+
+  it("selects music, gates on its own model, and sends the requested duration", async () => {
+    const user = userEvent.setup();
+    const onSendMessage = jest.fn();
+    renderComposer(onSendMessage);
+    await user.click(screen.getByRole("button", { name: "Chat" }));
+    await user.click(
+      screen.getByRole("menuitemradio", { name: "Generate Music" })
+    );
+    expect(mockUseProvidersByCapability).toHaveBeenLastCalledWith(
+      "text_to_music"
+    );
+    await user.type(promptBox(), "Warm ambient piano{Enter}");
+    expect(onSendMessage).not.toHaveBeenCalled();
+    expect(promptBox()).toHaveValue("Warm ambient piano");
+    await user.click(screen.getByRole("button", { name: "Pick music model" }));
+    await user.click(
+      screen.getByRole("button", { name: "30 Sec" })
+    );
+    await user.click(screen.getByText("60 Sec"));
+    await user.click(screen.getByRole("button", { name: "Generate" }));
+    expect(onSendMessage).toHaveBeenCalledTimes(1);
+    expect(onSendMessage.mock.calls[0][2]).toEqual({
+      mode: "music",
+      provider: "fal_ai",
+      model: "music-1",
+      duration: 60
+    });
+    expect(promptBox()).toHaveValue("");
   });
 
   it("sends the media generation payload once a model is picked", async () => {

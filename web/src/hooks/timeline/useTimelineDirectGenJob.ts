@@ -182,7 +182,11 @@ export function landDirectGen(
     patch.outPointMs = undefined;
   }
   store.patchClip(clipId, patch);
-  if (current.bindingKind === "text-to-audio" && !current.locked) {
+  if (
+    (current.bindingKind === "text-to-audio" ||
+      current.bindingKind === "text-to-music") &&
+    !current.locked
+  ) {
     void fitGeneratedAudio(timeline, current, first);
   }
 }
@@ -370,7 +374,8 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         kind !== "text-to-image" &&
         kind !== "image-to-image" &&
         kind !== "text-to-video" &&
-        kind !== "text-to-audio"
+        kind !== "text-to-audio" &&
+        kind !== "text-to-music"
       ) {
         return null;
       }
@@ -437,11 +442,11 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
       // them through when set. Video additionally derives its requested duration
       // from the clip's timeline length (width & height are ignored for video).
       const framingParams: FramingParams = {};
-      if (kind !== "text-to-audio") {
+      if (kind !== "text-to-audio" && kind !== "text-to-music") {
         framingParams.aspect_ratio = clip.aspectRatio;
         framingParams.resolution = clip.resolution;
       }
-      if (kind === "text-to-video") {
+      if (kind === "text-to-video" || kind === "text-to-music") {
         framingParams.duration = clip.durationMs
           ? Math.round(clip.durationMs / 1000)
           : undefined;
@@ -459,7 +464,9 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
                   ? "image_edit"
                   : kind === "text-to-video"
                     ? "video"
-                    : "audio",
+                    : kind === "text-to-music"
+                      ? "music"
+                      : "audio",
             provider: clip.provider,
             model: clip.model,
             prompt,

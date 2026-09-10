@@ -909,3 +909,36 @@ describe("generate_media RPC (parameter passthrough)", () => {
     await runner.disconnect();
   });
 });
+
+describe("music generation RPC", () => {
+  it("calls textToMusic with the selected model and duration", async () => {
+    const ws = new MockWebSocket();
+    const textToMusic = vi.fn(async () => ({
+      data: new Uint8Array([1, 2, 3]),
+      mimeType: "audio/mpeg"
+    }));
+    const runner = await makeRunner(ws, () => ({ textToMusic }) as never);
+    try {
+      const out = await runOne(ws, runner, {
+        command: "generate_media",
+        request_id: "music-request",
+        data: {
+          mode: "music",
+          provider: "fake",
+          model: "music-1",
+          prompt: "Warm ambient piano",
+          duration: 60
+        }
+      });
+      expect(out.error).toBeUndefined();
+      expect(out.result).toEqual({ asset_ids: ["asset-1"] });
+      expect(textToMusic).toHaveBeenCalledWith({
+        model: { id: "music-1", name: "music-1", provider: "fake" },
+        prompt: "Warm ambient piano",
+        durationSeconds: 60
+      });
+    } finally {
+      await runner.disconnect();
+    }
+  });
+});

@@ -1,4 +1,4 @@
-/** Quick video or speech generation at the timeline playhead. */
+/** Quick video, speech, or music generation at the timeline playhead. */
 
 import React, {
   memo,
@@ -10,6 +10,9 @@ import React, {
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import AudiotrackIcon from "@mui/icons-material/Audiotrack";
+import ModelChip from "../chat/composer/ModelChip";
+import { MUSIC_DURATIONS } from "../../stores/MediaGenerationStore";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import MovieIcon from "@mui/icons-material/Movie";
@@ -54,7 +57,7 @@ import type {
   VideoModelSelection,
   VideoResolution
 } from "../../stores/MediaGenerationStore";
-import type { TTSModel, VideoModel } from "../../stores/ApiTypes";
+import type { MusicModel, TTSModel, VideoModel } from "../../stores/ApiTypes";
 import { useInStudio } from "../../studio/StudioContext";
 import {
   forTasks,
@@ -63,7 +66,7 @@ import {
   STUDIO_VOICE
 } from "../../studio/curatedModels";
 
-const GENERATION_MODES = ["video", "audio"] as const;
+const GENERATION_MODES = ["video", "audio", "music"] as const;
 type GenerationMode = (typeof GENERATION_MODES)[number];
 
 interface AudioSelection {
@@ -83,6 +86,18 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
   const playback = useTimelinePlaybackStoreApi();
   const [mode, setMode] = useState<GenerationMode>("video");
   const [audioSelection, setAudioSelection] = useState<AudioSelection>();
+  const [musicSelection, setMusicSelection] = useState<MusicModel>();
+  const [musicDuration, setMusicDuration] = useState(30);
+  const lastMusicModel = useLastDirectGenModel("music");
+  const musicModel =
+    musicSelection ??
+    (lastMusicModel.model && lastMusicModel.provider
+      ? {
+          id: lastMusicModel.model,
+          name: lastMusicModel.model,
+          provider: lastMusicModel.provider
+        }
+      : undefined);
   const lastAudioModel = useLastDirectGenModel("audio");
   const studioVoice =
     STUDIO_VOICES.find(
@@ -166,8 +181,20 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
   const selectClip = useTimelineUIStore((s) => s.selectClip);
   const directGen = useTimelineDirectGenJob();
 
-  const model = mode === "audio" ? audio?.model : selectedModel;
-  const bindingKind = mode === "audio" ? "text-to-audio" : "text-to-video";
+  const model =
+    mode === "music"
+      ? musicModel
+      : mode === "audio"
+        ? audio?.model
+        : selectedModel;
+  const mediaType = mode === "video" ? "video" : "audio";
+  const generationDuration = mode === "music" ? musicDuration : duration;
+  const bindingKind =
+    mode === "music"
+      ? "text-to-music"
+      : mode === "audio"
+        ? "text-to-audio"
+        : "text-to-video";
   const canSubmit = prompt.trim().length > 0 && !!model?.id && !busy;
 
   const handleSubmit = useCallback(async () => {
@@ -177,18 +204,18 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     setError(null);
     const tracks = timeline
       .getState()
-      .tracks.filter((track) => track.type === mode);
+      .tracks.filter((track) => track.type === mediaType);
     if (tracks.length === 0) {
       timeline
         .getState()
-        .addTrack(mode, mode === "audio" ? "Audio" : "Video");
+        .addTrack(mediaType, mediaType === "audio" ? "Audio" : "Video");
     }
     const trackId = timeline
       .getState()
-      .tracks.find((track) => track.type === mode && !track.locked)?.id;
+      .tracks.find((track) => track.type === mediaType && !track.locked)?.id;
     if (!trackId) {
       setError(
-        `Unlock ${mode === "audio" ? "an audio" : "a video"} track first.`
+        `Unlock ${mediaType === "audio" ? "an audio" : "a video"} track first.`
       );
       return;
     }
@@ -198,8 +225,8 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
       const clipOptions: Parameters<typeof addDirectGenClip>[0] = {
         trackId,
         startMs,
-        durationMs: duration * 1000,
-        mediaType: mode,
+        durationMs: generationDuration * 1000,
+        mediaType,
         bindingKind,
         prompt: prompt.trim(),
         provider: model.provider,
@@ -208,7 +235,7 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
       if (mode === "video") {
         clipOptions.aspectRatio = aspect;
         clipOptions.resolution = resolution;
-      } else if (audio?.voice) {
+      } else if (mode === "audio" && audio?.voice) {
         clipOptions.voice = audio.voice;
       }
       const clipId = addDirectGenClip(clipOptions);
@@ -226,13 +253,14 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     prompt,
     model,
     mode,
+    mediaType,
     bindingKind,
     audio?.voice,
     timeline,
     playback,
     aspect,
     resolution,
-    duration,
+    generationDuration,
     selectClip,
     directGen
   ]);
@@ -281,11 +309,13 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
       onChange={(e) => setPrompt(e.target.value)}
       onKeyDown={handleKeyDown}
       placeholder={
-        mode === "audio"
-          ? "Enter text to speak…"
-          : compact
-            ? "Generate a video…"
-            : "Generate a video at the playhead…"
+        mode === "music"
+          ? "Describe the music you want to generate…"
+          : mode === "audio"
+            ? "Enter text to speak…"
+            : compact
+              ? "Generate a video…"
+              : "Generate a video at the playhead…"
       }
       compact
       fullWidth
@@ -329,7 +359,7 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     model: model?.id,
     resolution,
     aspectRatio: aspect,
-    durationMs: duration * 1000
+    durationMs: generationDuration * 1000
   });
 
   const costLine = (
@@ -355,7 +385,7 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
       data-testid="topbar-generate"
       // Icon-only on phones: the label costs ~70px the prompt needs, and the
       // sparkle plus the field's placeholder already say what it does.
-      aria-label={mode === "audio" ? "Generate audio" : "Generate video"}
+      aria-label={`Generate ${mode}`}
       // Native tooltip still fires on a disabled button: say why it is off.
       title={
         canSubmit ? undefined : "Type a prompt and pick a model to generate"
@@ -527,13 +557,38 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     </>
   );
 
+  const musicSettingChips = (
+    <>
+      <ModelChip
+        icon={<AudiotrackIcon fontSize="small" />}
+        label={musicModel?.name || "Select Music Model"}
+        picker={{ kind: "music", onPick: setMusicSelection }}
+      />
+      <OptionChip
+        menu="option"
+        icon={<AccessTimeIcon fontSize="small" />}
+        label={`${musicDuration} Sec`}
+        header="Target Duration"
+        title={`Target duration: ${musicDuration} seconds. The model may adjust or ignore this.`}
+        value={musicDuration}
+        options={MUSIC_DURATIONS.map((id) => ({ id, label: `${id} Sec` }))}
+        onChange={setMusicDuration}
+      />
+    </>
+  );
+
   const settingChips = (
     <>
       <ModeSelectChip
         mode={mode}
         modes={GENERATION_MODES}
         onChange={(nextMode) => {
-          if (nextMode !== "video" && nextMode !== "audio") return;
+          if (
+            nextMode !== "video" &&
+            nextMode !== "audio" &&
+            nextMode !== "music"
+          )
+            return;
           setMode(nextMode);
           setVideoModelOpen(false);
           setAudioModelOpen(false);
@@ -543,7 +598,11 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
           setError(null);
         }}
       />
-      {mode === "audio" ? audioSettingChips : videoSettingChips}
+      {mode === "music"
+        ? musicSettingChips
+        : mode === "audio"
+          ? audioSettingChips
+          : videoSettingChips}
     </>
   );
 

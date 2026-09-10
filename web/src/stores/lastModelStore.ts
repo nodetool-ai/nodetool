@@ -11,7 +11,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type ModelKind = "image" | "video" | "audio";
+export type ModelKind = "image" | "video" | "audio" | "music";
 
 interface RememberedModel {
   provider?: string;
@@ -72,6 +72,8 @@ export function modelKindForBinding(
   switch (bindingKind) {
     case "text-to-video":
       return "video";
+    case "text-to-music":
+      return "music";
     case "text-to-audio":
       return "audio";
     case "text-to-image":
