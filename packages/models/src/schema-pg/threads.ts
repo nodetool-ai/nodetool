@@ -9,12 +9,14 @@ export const threads = pgTable(
     // threads (e.g. the global chat). Lets the node editor scope its thread
     // list to the open workflow.
     workflow_id: text("workflow_id"),
+    project_id: text("project_id").notNull().default("default"),
     title: text("title").notNull().default(""),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },
   (table) => [
     index("idx_threads_user_id").on(table.user_id),
-    index("idx_threads_user_workflow").on(table.user_id, table.workflow_id)
+    index("idx_threads_user_workflow").on(table.user_id, table.workflow_id),
+    index("idx_threads_user_project").on(table.user_id, table.project_id)
   ]
 );

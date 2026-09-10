@@ -15,6 +15,7 @@ export class Thread extends DBModel {
   declare id: string;
   declare user_id: string;
   declare workflow_id: string | null;
+  declare project_id: string;
   declare title: string;
   declare created_at: string;
   declare updated_at: string;
@@ -24,6 +25,7 @@ export class Thread extends DBModel {
     const now = new Date().toISOString();
     this.id ??= createTimeOrderedUuid();
     this.workflow_id ??= null;
+    this.project_id ??= "default";
     this.title ??= "";
     this.created_at ??= now;
     this.updated_at ??= now;

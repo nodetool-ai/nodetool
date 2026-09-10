@@ -26,6 +26,7 @@ export class Job extends DBModel {
   declare user_id: string;
   declare job_type: string;
   declare workflow_id: string;
+  declare project_id: string;
   declare status: JobStatus;
   declare name: string;
   declare graph: Record<string, unknown> | null;
@@ -61,6 +62,7 @@ export class Job extends DBModel {
     this.id ??= createTimeOrderedUuid();
     this.job_type ??= "";
     this.status ??= "scheduled";
+    this.project_id ??= "default";
     this.retry_count ??= 0;
     this.max_retries ??= 3;
     this.version ??= 0;

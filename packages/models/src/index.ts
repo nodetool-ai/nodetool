@@ -255,8 +255,13 @@ export type {
   ReserveInput
 } from "./application-budget.js";
 export { ApplicationDeployment } from "./application-deployment.js";
-export { Project, LOOSE_PROJECT_ID } from "./project.js";
-export type { ProjectResponse } from "./project.js";
+export {
+  Project,
+  LOOSE_PROJECT_ID,
+  PERSONAL_PROJECT_KIND,
+  PERSONAL_PROJECT_NAME
+} from "./project.js";
+export type { PersonalMigrationReport, ProjectResponse } from "./project.js";
 export {
   listProjectDocuments,
   listProjectEntities,

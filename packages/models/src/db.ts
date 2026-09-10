@@ -424,6 +424,7 @@ export function getCreateSchemaSql(): string {
       "path" text,
       "run_mode" text,
       "workspace_id" text,
+      "project_id" text NOT NULL DEFAULT 'default',
       "html_app" text,
       "app_doc" text,
       "receive_clipboard" integer,
@@ -433,12 +434,14 @@ export function getCreateSchemaSql(): string {
     );
     CREATE INDEX IF NOT EXISTS "idx_workflows_user_id" ON "nodetool_workflows" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_workflows_access" ON "nodetool_workflows" ("access");
+    CREATE INDEX IF NOT EXISTS "idx_workflows_user_project" ON "nodetool_workflows" ("user_id", "project_id");
 
     CREATE TABLE IF NOT EXISTS "nodetool_jobs" (
       "id" text PRIMARY KEY NOT NULL,
       "user_id" text NOT NULL,
       "job_type" text NOT NULL DEFAULT '',
       "workflow_id" text NOT NULL,
+      "project_id" text NOT NULL DEFAULT 'default',
       "status" text NOT NULL DEFAULT 'scheduled',
       "name" text DEFAULT '',
       "graph" text,
@@ -468,6 +471,7 @@ export function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_jobs_worker_id" ON "nodetool_jobs" ("worker_id");
     CREATE INDEX IF NOT EXISTS "idx_jobs_heartbeat_at" ON "nodetool_jobs" ("heartbeat_at");
     CREATE INDEX IF NOT EXISTS "idx_jobs_recovery" ON "nodetool_jobs" ("status", "heartbeat_at");
+    CREATE INDEX IF NOT EXISTS "idx_jobs_user_project" ON "nodetool_jobs" ("user_id", "project_id");
 
     CREATE TABLE IF NOT EXISTS "nodetool_messages" (
       "id" text PRIMARY KEY NOT NULL,
@@ -502,12 +506,14 @@ export function getCreateSchemaSql(): string {
       "id" text PRIMARY KEY NOT NULL,
       "user_id" text NOT NULL,
       "workflow_id" text,
+      "project_id" text NOT NULL DEFAULT 'default',
       "title" text NOT NULL DEFAULT '',
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
     CREATE INDEX IF NOT EXISTS "idx_threads_user_id" ON "nodetool_threads" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_threads_user_workflow" ON "nodetool_threads" ("user_id", "workflow_id");
+    CREATE INDEX IF NOT EXISTS "idx_threads_user_project" ON "nodetool_threads" ("user_id", "project_id");
 
     CREATE TABLE IF NOT EXISTS "nodetool_assets" (
       "id" text PRIMARY KEY NOT NULL,
@@ -548,11 +554,13 @@ export function getCreateSchemaSql(): string {
       "user_id" text NOT NULL,
       "name" text NOT NULL DEFAULT '',
       "path" text NOT NULL DEFAULT '',
+      "project_id" text NOT NULL DEFAULT 'default',
       "is_default" integer DEFAULT 0,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
     CREATE INDEX IF NOT EXISTS "idx_workspaces_user_id" ON "nodetool_workspaces" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_workspaces_user_project" ON "nodetool_workspaces" ("user_id", "project_id");
 
     CREATE TABLE IF NOT EXISTS "nodetool_workflow_versions" (
       "id" text PRIMARY KEY NOT NULL,

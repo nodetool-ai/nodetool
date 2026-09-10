@@ -9,7 +9,11 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { initTestDb } from "../src/db.js";
-import { Project } from "../src/project.js";
+import {
+  PERSONAL_PROJECT_KIND,
+  PERSONAL_PROJECT_NAME,
+  Project
+} from "../src/project.js";
 import {
   listProjectDocuments,
   listProjectEntities,
@@ -159,6 +163,45 @@ describe("Project model", () => {
     expect(row?.user_id).toBe("u1");
     expect(row?.name).toBe("Mine");
     expect(row?.id).toBe(mine.id);
+  });
+
+  it("migrates loose resources to one Personal project and is restartable", async () => {
+    const assigned = await Project.create<Project>({
+      id: "assigned",
+      user_id: "u1",
+      name: "Assigned"
+    });
+    const loose = await Script.create<Script>({
+      user_id: "u1",
+      project_id: LOOSE_PROJECT_ID,
+      name: "Loose"
+    });
+    const kept = await Script.create<Script>({
+      user_id: "u1",
+      project_id: assigned.id,
+      name: "Kept"
+    });
+    await Script.create<Script>({
+      user_id: "u1",
+      project_id: "missing-project",
+      name: "Dangling"
+    });
+
+    const first = await Project.migrateToPersonal("u1");
+    const second = await Project.migrateToPersonal("u1");
+    expect(first.project.name).toBe(PERSONAL_PROJECT_NAME);
+    expect(first.project.kind).toBe(PERSONAL_PROJECT_KIND);
+    expect(second.project.id).toBe(first.project.id);
+    expect(first.dangling).toBe(1);
+    expect((await Script.findById(loose.id))?.project_id).toBe(first.project.id);
+    expect((await Script.findById(kept.id))?.project_id).toBe(assigned.id);
+    expect(await Project.listByUser("empty")).toEqual([]);
+  });
+
+  it("does not allow Personal to be deleted", async () => {
+    const personal = await Project.ensurePersonal("u1");
+    expect(await Project.deleteOwned("u1", personal.id)).toBe(false);
+    expect(await Project.findById(personal.id)).not.toBeNull();
   });
 });
 

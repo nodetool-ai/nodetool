@@ -17,6 +17,8 @@ import { z } from "zod";
 import {
   Asset,
   ImageDocument,
+  LOOSE_PROJECT_ID,
+  Project,
   Storyboard,
   TimelineSequence
 } from "@nodetool-ai/models";
@@ -173,12 +175,12 @@ function documentProvider(
  * metadata, and there is no revision to conflict on.
  */
 const assetProvider: ResourceProvider = {
-  async list(userId, _projectId, limit) {
-    const [assets] = await Asset.paginate(userId, { limit });
+  async list(userId, projectId, limit) {
+    const [assets] = await Asset.paginate(userId, { projectId, limit });
     return assets.map((asset) => ({
       ref: { kind: "asset" as const, id: asset.id },
       name: asset.name,
-      projectId: null,
+      projectId: asset.project_id,
       contentType: asset.content_type,
       updatedAt: asset.updated_at
     }));
@@ -189,7 +191,7 @@ const assetProvider: ResourceProvider = {
     return {
       ref: { kind: "asset", id: asset.id },
       name: asset.name,
-      projectId: null,
+      projectId: asset.project_id,
       contentType: asset.content_type,
       updatedAt: asset.updated_at,
       document: asset.metadata ?? {}
@@ -210,7 +212,7 @@ const assetProvider: ResourceProvider = {
     return {
       ref: { kind: "asset", id: asset.id },
       name: asset.name,
-      projectId: null,
+      projectId: asset.project_id,
       contentType: asset.content_type,
       updatedAt: asset.updated_at,
       document: asset.metadata ?? {}
@@ -237,7 +239,7 @@ const providers = {
   )
 } satisfies Record<ResourceKind, ResourceProvider>;
 
-const notFound = (kind: ResourceKind): never =>
+const notFound = (kind: string): never =>
   throwApiError(ApiErrorCode.NOT_FOUND, `${kind} resource not found`);
 
 const conflict = (kind: ResourceKind): never =>
@@ -246,13 +248,28 @@ const conflict = (kind: ResourceKind): never =>
     `${kind} resource was modified since it was read (optimistic concurrency conflict)`
   );
 
+async function resolveProjectScope(
+  userId: string,
+  projectId: string
+): Promise<string> {
+  await Project.migrateToPersonal(userId);
+  if (projectId === LOOSE_PROJECT_ID) {
+    return (await Project.ensurePersonal(userId)).id;
+  }
+  if (!(await Project.findOwned(userId, projectId))) return notFound("project");
+  return projectId;
+}
+
 export const resourcesRouter = router({
   list: protectedProcedure
     .input(listResourcesInput)
     .output(z.array(resourceSummary))
-    .query(({ ctx, input }) =>
-      providers[input.kind].list(ctx.userId, input.projectId, input.limit)
-    ),
+    .query(async ({ ctx, input }) => {
+      const projectId = input.projectId
+        ? await resolveProjectScope(ctx.userId, input.projectId)
+        : undefined;
+      return providers[input.kind].list(ctx.userId, projectId, input.limit);
+    }),
 
   read: protectedProcedure
     .input(readResourceInput)
@@ -268,9 +285,10 @@ export const resourcesRouter = router({
   create: protectedProcedure
     .input(createResourceInput)
     .output(resourceDetail)
-    .mutation(({ ctx, input }) =>
-      providers[input.kind].create(ctx.userId, input.name, input.projectId)
-    ),
+    .mutation(async ({ ctx, input }) => {
+      const projectId = await resolveProjectScope(ctx.userId, input.projectId);
+      return providers[input.kind].create(ctx.userId, input.name, projectId);
+    }),
 
   update: protectedProcedure
     .input(updateResourceInput)

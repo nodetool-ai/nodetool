@@ -86,6 +86,7 @@ export class Workflow extends DBModel {
   declare path: string | null;
   declare run_mode: string | null;
   declare workspace_id: string | null;
+  declare project_id: string;
   declare html_app: string | null;
   declare app_doc: Record<string, unknown> | null;
   declare receive_clipboard: boolean | null;
@@ -109,6 +110,7 @@ export class Workflow extends DBModel {
     this.path ??= null;
     this.run_mode ??= "workflow";
     this.workspace_id ??= null;
+    this.project_id ??= "default";
     this.html_app ??= null;
     this.app_doc ??= null;
     this.access ??= "private";
