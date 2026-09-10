@@ -208,6 +208,132 @@ describe("VastProvider.provision", () => {
     const searchBody = JSON.parse((searchInit as RequestInit).body as string);
     expect(searchBody.q.disk_space).toEqual({ gte: 250 });
   });
+
+  it("constrains the offer search by the requested GPU count and vCPU floor", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ offers: [{ id: 555, gpu_name: "RTX 4090" }] })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ success: true, new_contract: 9001 })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ instances: readyInstance() })
+    );
+
+    const provider = new VastProvider(API_KEY);
+    await provider.provision(baseSpec({ gpuCount: 4, vcpu: 32 }));
+
+    const [, searchInit] = mockFetch.mock.calls[0];
+    const searchBody = JSON.parse((searchInit as RequestInit).body as string);
+    // Without these the cheapest offer is a single-GPU box and the spec's
+    // gpuCount/vcpu are silently dropped.
+    expect(searchBody.q.num_gpus).toEqual({ gte: 4 });
+    expect(searchBody.q.cpu_cores_effective).toEqual({ gte: 32 });
+  });
+
+  it("omits the GPU-count and vCPU filters when the spec does not ask for them", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ offers: [{ id: 555, gpu_name: "RTX 4090" }] })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ success: true, new_contract: 9001 })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ instances: readyInstance() })
+    );
+
+    const provider = new VastProvider(API_KEY);
+    await provider.provision(baseSpec());
+
+    const [, searchInit] = mockFetch.mock.calls[0];
+    const searchBody = JSON.parse((searchInit as RequestInit).body as string);
+    expect(searchBody.q.num_gpus).toBeUndefined();
+    expect(searchBody.q.cpu_cores_effective).toBeUndefined();
+  });
+
+  it("publishes the worker port as a Docker flag in env, not as entrypoint args", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ offers: [{ id: 555, gpu_name: "RTX 4090" }] })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ success: true, new_contract: 9001 })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ instances: readyInstance() })
+    );
+
+    const provider = new VastProvider(API_KEY);
+    await provider.provision(baseSpec());
+
+    const [, launchInit] = mockFetch.mock.calls[1];
+    const launchBody = JSON.parse((launchInit as RequestInit).body as string);
+    // Vast reads `-p` mappings out of env; `args` reaches the image entrypoint
+    // and would leave 7777 unpublished, so the attach URL could never resolve.
+    expect(launchBody.env["-p 7777:7777"]).toBe("1");
+    expect(launchBody.args).toBeUndefined();
+    expect(launchBody.runtype).toBe("args");
+  });
+
+  it("labels the instance with the profile name", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ offers: [{ id: 555, gpu_name: "RTX 4090" }] })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ success: true, new_contract: 9001 })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ instances: readyInstance() })
+    );
+
+    const provider = new VastProvider(API_KEY);
+    await provider.provision(baseSpec({ name: "sdxl-worker" }));
+
+    const [, launchInit] = mockFetch.mock.calls[1];
+    const launchBody = JSON.parse((launchInit as RequestInit).body as string);
+    expect(launchBody.label).toBe("sdxl-worker");
+  });
+
+  it("passes an ssh public key as PUBLIC_KEY and publishes port 22", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ offers: [{ id: 555, gpu_name: "RTX 4090" }] })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ success: true, new_contract: 9001 })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ instances: readyInstance() })
+    );
+
+    const provider = new VastProvider(API_KEY);
+    await provider.provision(
+      baseSpec({ sshPublicKey: "  ssh-ed25519 AAAAC3Nz key  " })
+    );
+
+    const [, launchInit] = mockFetch.mock.calls[1];
+    const launchBody = JSON.parse((launchInit as RequestInit).body as string);
+    expect(launchBody.env.PUBLIC_KEY).toBe("ssh-ed25519 AAAAC3Nz key");
+    expect(launchBody.env["-p 22:22"]).toBe("1");
+  });
+
+  it("leaves port 22 unpublished when the spec carries no ssh key", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ offers: [{ id: 555, gpu_name: "RTX 4090" }] })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ success: true, new_contract: 9001 })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ instances: readyInstance() })
+    );
+
+    const provider = new VastProvider(API_KEY);
+    await provider.provision(baseSpec());
+
+    const [, launchInit] = mockFetch.mock.calls[1];
+    const launchBody = JSON.parse((launchInit as RequestInit).body as string);
+    expect(launchBody.env.PUBLIC_KEY).toBeUndefined();
+    expect(launchBody.env["-p 22:22"]).toBeUndefined();
+  });
 });
 
 describe("VastProvider.status", () => {
