@@ -3539,6 +3539,8 @@ export class ChatTurnHandler {
       : this.deps.defaults.provider;
     const model = isString(data.model) ? data.model : this.deps.defaults.model;
     const userId = this.session.requireUserId();
+    const chatProjectId =
+      (await Project.findByThread(userId, threadId))?.id ?? undefined;
     const jobId = randomUUID();
 
     log.info("Workflow message", { threadId, workflowId, jobId });
