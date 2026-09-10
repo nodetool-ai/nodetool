@@ -113,7 +113,8 @@ import type {
   BlenderEvent,
   BlenderExecuteOptions,
   BlenderExecuteResult,
-  PythonBridge
+  PythonBridge,
+  ReferenceToVideoInputs
 } from "./python-bridge-types.js";
 import {
   comfyStatusInfoSchema,
@@ -1152,6 +1153,56 @@ export abstract class PythonBridgeBase
       {
         provider: providerId,
         image,
+        params,
+        secrets: secrets ?? {}
+      },
+      signal
+    );
+    return result.blobs.video;
+  }
+
+  async providerReferenceToVideo(
+    providerId: string,
+    inputs: ReferenceToVideoInputs,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
+    const { images, videos } = inputs;
+    if (
+      !Array.isArray(images) ||
+      !Array.isArray(videos) ||
+      (images.length === 0 && videos.length === 0)
+    ) {
+      throw new Error(
+        "reference_to_video requires at least one reference image or video"
+      );
+    }
+    if (
+      [...images, ...videos].some((bytes) => !(bytes instanceof Uint8Array))
+    ) {
+      throw new Error(
+        "reference_to_video reference media must be binary buffers"
+      );
+    }
+    if ([...images, ...videos].some((bytes) => bytes.byteLength === 0)) {
+      throw new Error("reference_to_video reference media must be non-empty");
+    }
+    const totalBytes = [...images, ...videos].reduce(
+      (total, bytes) => total + bytes.byteLength,
+      0
+    );
+    if (totalBytes > 192 * 1024 * 1024) {
+      throw new Error(
+        `reference_to_video reference media is ${totalBytes} bytes, exceeding the 201326592 byte limit`
+      );
+    }
+    const result = await this._providerBlobCall(
+      "provider.reference_to_video",
+      {
+        provider: providerId,
+        reference_images: images,
+        reference_videos: videos,
         params,
         secrets: secrets ?? {}
       },

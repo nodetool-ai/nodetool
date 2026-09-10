@@ -214,6 +214,110 @@ describe("provider-registry — extended coverage", () => {
     );
   });
 
+  it("gates reference video on worker capability and model support", async () => {
+    const oldWorkerModels = vi.fn(async () => [
+      {
+        id: "misreported",
+        name: "Misreported",
+        supported_tasks: ["image_to_video", "reference_to_video"]
+      }
+    ]);
+    const oldWorker = new PythonProvider({
+      _id: "wangp-old",
+      _bridge: { getProviderModels: oldWorkerModels }
+    } as any);
+    expect(oldWorker.getCapabilities()).not.toContain("reference_to_video");
+    await expect(oldWorker.getAvailableVideoModels()).resolves.toEqual([
+      expect.objectContaining({
+        supportedTasks: ["image_to_video"],
+        provider: "wangp-old"
+      })
+    ]);
+    await expect(
+      oldWorker.referenceToVideo(
+        { images: [new Uint8Array([1])], videos: [] },
+        {
+          model: {
+            id: "misreported",
+            name: "Misreported",
+            provider: "wangp-old"
+          }
+        }
+      )
+    ).rejects.toThrow("does not support referenceToVideo");
+
+    const referenceToVideo = vi.fn(async () => new Uint8Array([9]));
+    const models = vi.fn(async () => [
+      {
+        id: "start-only",
+        name: "Start only",
+        supportedTasks: ["image_to_video"]
+      },
+      {
+        id: "reference-model",
+        name: "Reference",
+        supportedTasks: ["reference_to_video"]
+      }
+    ]);
+    const worker = new PythonProvider({
+      _id: "wangp",
+      _capabilities: ["reference_to_video"],
+      _bridge: {
+        getProviderModels: models,
+        providerReferenceToVideo: referenceToVideo
+      },
+      API_KEY: "secret"
+    } as any);
+    expect(worker.getCapabilities()).toContain("reference_to_video");
+    await expect(
+      worker.referenceToVideo(
+        {
+          images: [new Uint8Array([1]), new Uint8Array([2])],
+          videos: [new Uint8Array([3])]
+        },
+        {
+          model: { id: "start-only", name: "Start only", provider: "wangp" },
+          prompt: "reject"
+        }
+      )
+    ).rejects.toThrow("start-only does not support reference_to_video");
+    expect(referenceToVideo).not.toHaveBeenCalled();
+
+    const signal = new AbortController().signal;
+    await expect(
+      worker.referenceToVideo(
+        {
+          images: [new Uint8Array([1]), new Uint8Array([2])],
+          videos: [new Uint8Array([3])]
+        },
+        {
+          model: {
+            id: "reference-model",
+            name: "Reference",
+            provider: "wangp"
+          },
+          prompt: "forward",
+          useReferenceVideoAudio: true,
+          signal
+        }
+      )
+    ).resolves.toEqual(new Uint8Array([9]));
+    expect(referenceToVideo).toHaveBeenCalledWith(
+      "wangp",
+      {
+        images: [new Uint8Array([1]), new Uint8Array([2])],
+        videos: [new Uint8Array([3])]
+      },
+      {
+        model: "reference-model",
+        prompt: "forward",
+        useReferenceVideoAudio: true
+      },
+      { API_KEY: "secret" },
+      signal
+    );
+  });
+
   it("discovers music and routes encoded audio through the Python bridge", async () => {
     const wav = new Uint8Array([
       0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45

@@ -46,7 +46,7 @@
  *   3. Update `MIN_NODETOOL_CORE_VERSION` to that new release.
  */
 
-export const BRIDGE_PROTOCOL_VERSION = 5;
+export const BRIDGE_PROTOCOL_VERSION = 6;
 
 /**
  * Hard floor: the JS runtime rejects (at `discover`) any worker reporting a
