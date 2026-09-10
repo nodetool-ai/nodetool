@@ -12,6 +12,7 @@ interface SelectableModel {
   id: string;
   name: string;
   provider: Provider;
+  supported_tasks?: string[];
 }
 
 interface ModelSelection<T extends string> {
@@ -19,6 +20,7 @@ interface ModelSelection<T extends string> {
   id: string;
   provider: Provider;
   name: string;
+  supported_tasks?: string[];
 }
 
 interface ModelSelectMenu {
@@ -53,7 +55,8 @@ const useModelSelectMenu = <T extends string>(
         type: modelType,
         id: model.id,
         provider: model.provider,
-        name: model.name || ""
+        name: model.name || "",
+        supported_tasks: model.supported_tasks
       });
       addRecent({
         provider: model.provider || "",

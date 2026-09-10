@@ -4,7 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc } from "../../lib/trpc";
 import {
   useLanguageModelsByProvider,
-  useImageModelsByProvider
+  useImageModelsByProvider,
+  useVideoModelsByProvider
 } from "../useModelsByProvider";
 
 // Mock both the providers list (used internally to fan-out to per-provider
@@ -14,7 +15,8 @@ jest.mock("../../lib/trpc", () => ({
     models: {
       providers: { query: jest.fn() },
       llmByProvider: { query: jest.fn() },
-      imageByProvider: { query: jest.fn() }
+      imageByProvider: { query: jest.fn() },
+      videoByProvider: { query: jest.fn() }
     }
   }
 }));
@@ -28,12 +30,18 @@ jest.mock("../useProviders", () => ({
     providers: [{ provider: "fal_ai", capabilities: ["text_to_image"] }],
     isLoading: false,
     error: null
+  }),
+  useVideoProviders: () => ({
+    providers: [{ provider: "fal_ai", capabilities: ["text_to_video"] }],
+    isLoading: false,
+    error: null
   })
 }));
 
 const providersQuery = jest.mocked(trpc.models.providers.query);
 const llmByProviderQuery = jest.mocked(trpc.models.llmByProvider.query);
 const imageByProviderQuery = jest.mocked(trpc.models.imageByProvider.query);
+const videoByProviderQuery = jest.mocked(trpc.models.videoByProvider.query);
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = new QueryClient({
@@ -106,6 +114,42 @@ describe("useLanguageModelsByProvider — requireToolSupport filter", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.models.map((m) => m.id)).toEqual(["explicit-null"]);
+  });
+});
+
+describe("useVideoModelsByProvider — task intersection", () => {
+  it.each([
+    ["image_to_video", "text_to_video", "reference_to_video"],
+    ["image_to_video", "text_to_video"]
+  ])("requires every requested task: %j", async (...tasks) => {
+    videoByProviderQuery.mockResolvedValue([
+      {
+        id: "all",
+        name: "All",
+        provider: "fal_ai",
+        supported_tasks: [
+          "image_to_video",
+          "text_to_video",
+          "reference_to_video"
+        ]
+      },
+      {
+        id: "text",
+        name: "Text",
+        provider: "fal_ai",
+        supported_tasks: ["text_to_video"]
+      },
+      { id: "unknown", name: "Unknown", provider: "fal_ai" }
+    ]);
+    const { result } = renderHook(
+      () =>
+        useVideoModelsByProvider({
+          task: tasks as ("image_to_video" | "text_to_video" | "reference_to_video")[]
+        }),
+      { wrapper: wrapper() }
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.models.map((model) => model.id)).toEqual(["all"]);
   });
 });
 

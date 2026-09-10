@@ -75,6 +75,8 @@ export interface DirectMediaGenerationRequest {
   requestId?: string;
   capability?: "reference_to_video";
   referenceImages?: unknown[];
+  referenceVideos?: unknown[];
+  useReferenceVideoAudio?: boolean;
 }
 
 /**
@@ -241,6 +243,40 @@ export async function retrieveSourceAssetBytes(
     throw new Error(`Source asset bytes not found: ${assetId}`);
   }
   return bytes;
+}
+
+async function resolveReferenceAssets(
+  userId: string,
+  refs: readonly unknown[],
+  kind: "image" | "video"
+): Promise<Uint8Array[]> {
+  const resolved: Uint8Array[] = [];
+  for (const ref of refs) {
+    if (!isRecord(ref) || (ref.type !== undefined && ref.type !== kind)) {
+      throw new Error(`reference_to_video requires reference ${kind} objects`);
+    }
+    const assetId = isString(ref.asset_id) && ref.asset_id.length > 0
+      ? ref.asset_id
+      : isString(ref.uri) && ref.uri.startsWith("asset://")
+        ? ref.uri.slice("asset://".length).split(".")[0]
+        : "";
+    if (!assetId) {
+      throw new Error(`reference_to_video reference ${kind} is missing an asset id`);
+    }
+    const asset = await Asset.find(userId, assetId);
+    if (!asset) throw new Error(`Reference ${kind} asset ${assetId} was not found`);
+    if (!asset.content_type.startsWith(`${kind}/`)) {
+      throw new Error(`Reference ${kind} asset ${assetId} is not ${kind === "image" ? "an image" : "a video"}`);
+    }
+    const bytes = await retrieveAssetBytes(
+      getAssetAdapter(), userId, asset.id, asset.content_type
+    );
+    if (!bytes || bytes.length === 0) {
+      throw new Error(`Reference ${kind} asset ${assetId} is empty`);
+    }
+    resolved.push(bytes);
+  }
+  return resolved;
 }
 
 /**
@@ -506,6 +542,22 @@ export class DirectInferenceHandler {
     if (!req.prompt || !req.prompt.trim()) {
       throw new Error("prompt is required");
     }
+    if (req.capability === "reference_to_video") {
+      if (req.mode !== "video") {
+        throw new Error("reference_to_video requires video mode");
+      }
+      if (req.sourceAssetId) {
+        throw new Error("reference_to_video uses reference_images and reference_videos, not source_asset_id");
+      }
+      if (!req.referenceImages?.length && !req.referenceVideos?.length) {
+        throw new Error("reference_to_video requires at least one reference image or video");
+      }
+      if (req.useReferenceVideoAudio && !req.referenceVideos?.length) {
+        throw new Error("Reference video audio requires at least one reference video");
+      }
+    } else if (req.referenceImages?.length || req.referenceVideos?.length || req.useReferenceVideoAudio !== undefined) {
+      throw new Error("Reference inputs require the reference_to_video capability");
+    }
     const userId = this.session.requireUserId();
     const provider = await this.session.resolveProvider(req.provider, userId);
     if (req.provider !== "nodetool") {
@@ -666,40 +718,26 @@ export class DirectInferenceHandler {
       };
       let generated: GenerationResult<Uint8Array>;
       if (req.capability === "reference_to_video") {
-        const refs = req.referenceImages ?? [];
-        if (refs.length === 0) {
-          throw new Error("reference_to_video requires at least one reference image");
-        }
-        const referenceImages: Uint8Array[] = [];
-        for (const ref of refs) {
-          if (!isRecord(ref)) throw new Error("reference_to_video requires reference image objects");
-          const assetId = isString(ref.asset_id)
-            ? ref.asset_id
-            : isString(ref.uri) && ref.uri.startsWith("asset://")
-              ? ref.uri.slice("asset://".length).split(".")[0]
-              : "";
-          if (!assetId) throw new Error("reference_to_video reference image is missing an asset id");
-          const asset = await Asset.find(userId, assetId);
-          if (!asset) throw new Error(`Reference image asset ${assetId} was not found`);
-          if (!asset.content_type.startsWith("image/")) {
-            throw new Error(`Reference image asset ${assetId} is not an image`);
-          }
-          const bytes = await retrieveAssetBytes(getAssetAdapter(), userId, asset.id, asset.content_type);
-          if (!bytes || bytes.length === 0) throw new Error(`Reference image asset ${assetId} is empty`);
-          referenceImages.push(bytes);
-        }
+        const referenceImages = await resolveReferenceAssets(userId, req.referenceImages ?? [], "image");
+        const referenceVideos = await resolveReferenceAssets(userId, req.referenceVideos ?? [], "video");
         generated = await generate(
           "reference_to_video",
-          { ...videoParams, reference_images: referenceImages },
+          {
+            ...videoParams,
+            reference_images: referenceImages,
+            reference_videos: referenceVideos,
+            use_reference_video_audio: req.useReferenceVideoAudio
+          },
           { mime: "video/mp4" },
           (abort) => provider.referenceToVideo(
-            { images: referenceImages, videos: [] },
+            { images: referenceImages, videos: referenceVideos },
             {
               model: videoModel,
               prompt,
               durationSeconds: req.durationSeconds ?? null,
               aspectRatio: req.aspectRatio ?? null,
               resolution: req.resolution ?? null,
+              useReferenceVideoAudio: req.useReferenceVideoAudio,
               signal: abort
             }
           )

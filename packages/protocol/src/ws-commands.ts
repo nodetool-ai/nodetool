@@ -196,6 +196,19 @@ export const generateMediaDataSchema = z
     provider: z.string().optional(),
     model: z.string().optional(),
     prompt: z.string().optional(),
+    capability: z.literal("reference_to_video").optional(),
+    /** Ordered, owned assets with distinct image-reference and video-reference roles. */
+    reference_images: z.array(z.object({
+      type: z.literal("image").optional(),
+      asset_id: z.string().nullable().optional(),
+      uri: z.string().optional()
+    })).optional(),
+    reference_videos: z.array(z.object({
+      type: z.literal("video").optional(),
+      asset_id: z.string().nullable().optional(),
+      uri: z.string().optional()
+    })).optional(),
+    use_reference_video_audio: z.boolean().optional(),
     /** Required for "image_edit" and "inpaint". Bytes are loaded server-side. */
     source_asset_id: z.string().optional(),
     /** The region to repaint, for "inpaint". */

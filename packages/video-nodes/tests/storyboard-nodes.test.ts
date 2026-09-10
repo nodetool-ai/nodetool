@@ -11,6 +11,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createFakeContext,
+  type BaseProvider,
   type ProcessingContext,
   type ProcessingContextModelInterfaces
 } from "@nodetool-ai/runtime";
@@ -118,7 +119,12 @@ const boardDocument = (over: Partial<StoryboardDocument> = {}): StoryboardDocume
   genre: "",
   directorModel: null,
   imageModel: { type: "image_model", provider: "fal_ai", id: "flux" },
-  videoModel: { type: "video_model", provider: "fal_ai", id: "kling" },
+  videoModel: {
+    type: "video_model",
+    provider: "fal_ai",
+    id: "kling",
+    supported_tasks: ["image_to_video", "text_to_video", "reference_to_video"]
+  },
   ...over
 });
 
@@ -146,6 +152,8 @@ interface Harness {
   scripts: Map<string, ScriptRow>;
   entities: Map<string, Entity>;
   generations: Array<{ capability: string; model: string }>;
+  generationRequests: Array<{ capability: string; params: Record<string, unknown> }>;
+  videoModels: Map<string, { id: string; name: string; provider: string; supportedTasks: string[] }>;
   getStoryboard: ReturnType<typeof vi.fn>;
   /**
    * Wire the board listing a `reuse_existing` recast falls back to, windowed
@@ -175,6 +183,27 @@ function harness(): Harness {
     [RIVAL.id, RIVAL]
   ]);
   const generations: Array<{ capability: string; model: string }> = [];
+  const generationRequests: Array<{ capability: string; params: Record<string, unknown> }> = [];
+  const videoModels = new Map([
+    [
+      "kling",
+      {
+        id: "kling",
+        name: "Kling",
+        provider: "fal_ai",
+        supportedTasks: ["image_to_video", "text_to_video", "reference_to_video"]
+      }
+    ],
+    [
+      "text-only",
+      {
+        id: "text-only",
+        name: "Text only",
+        provider: "fal_ai",
+        supportedTasks: ["text_to_video"]
+      }
+    ]
+  ]);
   let created = 0;
   const stamp = (): string => new Date(Date.now() + ++created).toISOString();
 
@@ -218,6 +247,12 @@ function harness(): Harness {
     }
   };
   context.setModelInterfaces(interfaces);
+  // Generation is recorded by runGeneration, so discovery is the only provider method used here.
+  vi.spyOn(context, "getProvider").mockImplementation(async () =>
+    ({
+      getAvailableVideoModels: async () => [...videoModels.values()]
+    }) as unknown as BaseProvider
+  );
 
   const listing: Pick<ProcessingContextModelInterfaces, "listStoryboards"> = {
     listStoryboards: async ({ projectId }) =>
@@ -232,6 +267,10 @@ function harness(): Harness {
     generations.push({
       capability: String(request.capability),
       model: String(request.model)
+    });
+    generationRequests.push({
+      capability: String(request.capability),
+      params: request.params
     });
     const assetId = `asset-${generations.length}`;
     return {
@@ -252,6 +291,8 @@ function harness(): Harness {
     scripts,
     entities,
     generations,
+    generationRequests,
+    videoModels,
     getStoryboard,
     withBoardListing: () => {
       context.setModelInterfaces({ ...interfaces, ...listing });
@@ -490,12 +531,151 @@ describe("RenderStillsNode", () => {
 });
 
 describe("RenderClipsNode", () => {
+  it("dispatches all three mixed modes through their matching capabilities", async () => {
+    h.entities.set("ent-hero", {
+      ...HERO,
+      reference_images: [{ type: "image", asset_id: null, uri: "data:image/png;base64,AQID" }]
+    });
+    const doc = boardDocument({
+      videoModel: { type: "video_model", provider: "fal_ai", id: "kling" },
+      shots: [
+        shot("shot-1", 0, {
+          keyframe: { type: "image", asset_id: null, uri: "data:image/png;base64,AQID" }
+        }),
+        shot("shot-2", 1, { render_mode: "direct" }),
+        shot("shot-3", 2, { render_mode: "reference", entity_ids: ["ent-hero"] })
+      ]
+    });
+    seedBoard(h, "tpl", doc);
+    const node = new RenderClipsNode();
+    node.assign({ storyboard: writable("tpl") });
+    const result = await node.process(h.context);
+    expect(result.rendered).toEqual(["shot-1", "shot-2", "shot-3"]);
+    expect(h.generationRequests.map((request) => request.capability)).toEqual([
+      "image_to_video",
+      "text_to_video",
+      "reference_to_video"
+    ]);
+    expect(h.generationRequests[0].params.images).toBeDefined();
+    expect(h.generationRequests[2].params.reference_images).toBeDefined();
+  });
+
+  it("does not trust saved all-task metadata over incompatible discovery", async () => {
+    const doc = boardDocument({
+      videoModel: {
+        type: "video_model",
+        provider: "fal_ai",
+        id: "text-only",
+        supported_tasks: ["image_to_video", "text_to_video", "reference_to_video"]
+      },
+      shots: [
+        shot("shot-1", 0, { render_mode: "direct" }),
+        shot("shot-2", 1, { render_mode: "reference" })
+      ]
+    });
+    seedBoard(h, "tpl", doc);
+    const node = new RenderClipsNode();
+    node.assign({ storyboard: writable("tpl") });
+    await expect(node.process(h.context)).rejects.toThrow(/does not support every/);
+    expect(h.generationRequests).toHaveLength(0);
+  });
+
+  it("uses discovered metadata when the board has no saved task list", async () => {
+    const doc = boardDocument({
+      videoModel: { type: "video_model", provider: "fal_ai", id: "kling" },
+      shots: [
+        shot("shot-1", 0, { render_mode: "direct" }),
+        shot("shot-2", 1, { render_mode: "reference" })
+      ]
+    });
+    seedBoard(h, "tpl", doc);
+    const node = new RenderClipsNode();
+    node.assign({ storyboard: writable("tpl") });
+    const result = await node.process(h.context);
+    expect(result.rendered).toEqual(["shot-1", "shot-2"]);
+    expect(h.generations).toHaveLength(2);
+  });
+
+  it("refuses mixed rendering when provider discovery fails", async () => {
+    seedBoard(h, "tpl", boardDocument({
+      shots: [
+        shot("shot-1", 0, { render_mode: "direct" }),
+        shot("shot-2", 1, { render_mode: "reference" })
+      ]
+    }));
+    vi.mocked(h.context.getProvider).mockRejectedValue(new Error("Discovery unavailable"));
+    const node = new RenderClipsNode();
+    node.assign({ storyboard: writable("tpl") });
+    await expect(node.process(h.context)).rejects.toThrow(/Could not verify/);
+    expect(h.generations).toHaveLength(0);
+  });
+
+  it("preserves single-mode generation with a legacy provider without discovery", async () => {
+    seedBoard(h, "tpl", boardDocument({
+      videoModel: { type: "video_model", provider: "fal_ai", id: "legacy" },
+      shots: [shot("shot-1", 0, { render_mode: "direct" })]
+    }));
+    vi.mocked(h.context.getProvider).mockRejectedValue(new Error("Discovery unavailable"));
+    const node = new RenderClipsNode();
+    node.assign({ storyboard: writable("tpl") });
+    expect((await node.process(h.context)).rendered).toEqual(["shot-1"]);
+    expect(h.generations).toEqual([{ capability: "text_to_video", model: "legacy" }]);
+  });
+
+  it("rejects an unknown model on a mixed board before submission", async () => {
+    const doc = boardDocument({
+      videoModel: { type: "video_model", provider: "fal_ai", id: "missing" },
+      shots: [
+        shot("shot-1", 0, { render_mode: "direct" }),
+        shot("shot-2", 1, { render_mode: "reference" })
+      ]
+    });
+    seedBoard(h, "tpl", doc);
+    const node = new RenderClipsNode();
+    node.assign({ storyboard: writable("tpl") });
+    await expect(node.process(h.context)).rejects.toThrow(/Could not verify/);
+    expect(h.generations).toHaveLength(0);
+  });
+
+  it("rejects a selected model that cannot serve every shot mode before spending", async () => {
+    const doc = boardDocument({
+      videoModel: {
+        type: "video_model",
+        provider: "fal_ai",
+        id: "text-only",
+        supported_tasks: ["text_to_video"]
+      },
+      shots: [
+        shot("shot-1", 0, {
+          render_mode: "keyframe",
+          keyframe: {
+            type: "image",
+            asset_id: "still",
+            uri: "asset://still"
+          }
+        }),
+        shot("shot-2", 1, { render_mode: "direct" }),
+        shot("shot-3", 2, { render_mode: "reference" })
+      ]
+    });
+    seedBoard(h, "tpl", doc);
+    const node = new RenderClipsNode();
+    node.assign({ storyboard: writable("tpl") });
+
+    await expect(node.process(h.context)).rejects.toThrow(
+      /does not support every shot mode/
+    );
+    expect(h.generations).toHaveLength(0);
+  });
   it("skips a keyframe-mode shot with no selected still", async () => {
     const doc = boardDocument({
-      shots: [
-        shot("shot-1", 0),
-        shot("shot-2", 1, { render_mode: "direct" })
-      ]
+      videoModel: {
+        type: "video_model",
+        provider: "fal_ai",
+        id: "kling",
+        supported_tasks: ["image_to_video", "text_to_video", "reference_to_video"]
+      },
+      shots: [shot("shot-1", 0), shot("shot-2", 1, { render_mode: "direct" })]
     });
     seedBoard(h, "tpl", doc);
     const node = new RenderClipsNode();

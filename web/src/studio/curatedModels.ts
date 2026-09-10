@@ -41,7 +41,8 @@ const toVideoModel = (def: NodetoolModelDef): VideoModelValue => ({
   type: "video_model",
   id: def.id,
   provider,
-  name: def.name
+  name: def.name,
+  supported_tasks: def.tasks
 });
 
 const toTTSModel = (def: NodetoolModelDef, voice?: string): TTSModelValue => ({
@@ -100,6 +101,16 @@ export const forTasks = <T>(
   const wanted = task ? (Array.isArray(task) ? task : [task]) : [];
   if (wanted.length === 0) return list;
   return list.filter((option) => wanted.some((t) => option.tasks.includes(t)));
+};
+
+/** Curated options that support every requested task. */
+export const forAllTasks = <T>(
+  list: CuratedOption<T>[],
+  task?: string | string[]
+): CuratedOption<T>[] => {
+  const wanted = task ? (Array.isArray(task) ? task : [task]) : [];
+  if (wanted.length === 0) return list;
+  return list.filter((option) => wanted.every((t) => option.tasks.includes(t)));
 };
 
 /** Renders storyboard keyframe stills, cheapest first. */

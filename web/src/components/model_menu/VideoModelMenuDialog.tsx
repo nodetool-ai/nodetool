@@ -13,7 +13,7 @@ interface VideoModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: VideoModel) => void;
-  task?: VideoModelTask;
+  task?: VideoModelTask | VideoModelTask[];
   anchorEl?: HTMLElement | null;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];

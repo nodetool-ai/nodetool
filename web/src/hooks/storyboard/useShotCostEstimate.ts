@@ -58,7 +58,7 @@ export function useShotCostEstimate(
   const videoModel = useBoardVideoModel(boardId);
   const duration = useShotDuration(boardId, shot);
   const seconds = duration.seconds ?? shot.duration_seconds;
-  const rendersStill = shotRenderMode(shot) !== "direct";
+  const rendersStill = shotRenderMode(shot) === "keyframe";
 
   return useMemo(() => {
     const notes: string[] = [];

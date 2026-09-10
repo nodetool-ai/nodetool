@@ -26,6 +26,9 @@ describe("NodetoolProvider", () => {
     const videos = await provider.getAvailableVideoModels();
     expect(images.map((m) => m.id)).toContain("nodetool/flux-schnell");
     expect(videos.map((m) => m.id)).toContain("nodetool/kling-standard");
+    expect(
+      videos.find((m) => m.id === "nodetool/kling-standard")?.supportedTasks
+    ).toEqual(expect.arrayContaining(["text_to_video", "image_to_video"]));
     for (const model of [...images, ...videos]) {
       expect(model.provider).toBe("nodetool");
     }

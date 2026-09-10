@@ -33,6 +33,7 @@ import {
   injectEntities,
   keyframePrompt,
   sceneForShot,
+  requiredVideoTasksForShots,
   shotRenderMode
 } from "@nodetool-ai/protocol";
 import {
@@ -44,7 +45,10 @@ import {
 } from "../../stores/storyboard/StoryboardStore";
 import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
 import { useEntities } from "../../serverState/useEntities";
-import { useImageModelsByProvider } from "../useModelsByProvider";
+import {
+  useImageModelsByProvider,
+  useVideoModelsByProvider
+} from "../useModelsByProvider";
 import {
   PENDING_JOB_TTL_MS,
   subscribeDirectShotJob,
@@ -121,6 +125,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
   // Model catalog, for checking whether the still model can take entity
   // reference images (image_to_image support).
   const { models: imageModels } = useImageModelsByProvider();
+  const { models: videoModels } = useVideoModelsByProvider();
 
   const boardEntities = useCallback(
     (entityIds: string[] | undefined): Entity[] => {
@@ -271,6 +276,17 @@ export const useGenerateShot = (): UseGenerateShotResult => {
   const generateClip = useCallback(
     async (boardId: string, shot: Shot): Promise<void> => {
       const board = useStoryboardStore.getState().getBoard(boardId);
+      const requiredTasks = requiredVideoTasksForShots(board?.shots ?? [shot]);
+      const selectedModel = videoModels.find((model) =>
+        model.id === board?.videoModel?.id && model.provider === board.videoModel.provider
+      );
+      const supportedTasks = selectedModel?.supported_tasks;
+      if ((requiredTasks.length > 1 && !supportedTasks?.length) ||
+          (supportedTasks?.length && requiredTasks.some((task) => !supportedTasks.includes(task)))) {
+        const message = "Choose a clip model that supports every shot mode on this board before rendering.";
+        recordStartFailure(shot.id, boardId, "clip", message);
+        throw new Error(message);
+      }
       const renderMode = shotRenderMode(shot);
       const isDirect = renderMode === "direct";
       let sourceAssetId: string | undefined;
@@ -334,7 +350,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         renderContext(board, shot)
       );
     },
-    [startDirectGeneration, boardEntities, renderContext]
+    [startDirectGeneration, boardEntities, renderContext, videoModels, recordStartFailure]
   );
 
   const generateRevisedClip = useCallback(

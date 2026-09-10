@@ -8,7 +8,11 @@ import { useProviderOnboardingStore } from "../../stores/ProviderOnboardingStore
 import ImageModelSelect from "../../components/properties/ImageModelSelect";
 import VideoModelSelect from "../../components/properties/VideoModelSelect";
 import { StudioProvider } from "../StudioContext";
-import { STUDIO_STILL_MODELS, STUDIO_CLIP_MODELS } from "../curatedModels";
+import {
+  STUDIO_STILL_MODELS,
+  STUDIO_CLIP_MODELS,
+  forAllTasks
+} from "../curatedModels";
 
 jest.mock("../../hooks/useProviders");
 
@@ -61,6 +65,18 @@ describe("Studio curated model pickers", () => {
     spendableModels = null;
     useProviderOnboardingStore.setState({ open: false });
     jest.mocked(useProviders).mockReturnValue({ providers: [{ provider: "nodetool", capabilities: ["text_to_image", "text_to_video", "text_to_speech"], access: "remote_api", display_name: "NodeTool" }], isLoading: false, isFetching: false, error: null });
+  });
+
+  it("filters curated models by every requested task", () => {
+    const base = STUDIO_CLIP_MODELS[0];
+    const models = [
+      { ...base, id: "all", tasks: ["image_to_video", "text_to_video", "reference_to_video"] },
+      { ...base, id: "direct", tasks: ["text_to_video"] },
+      { ...base, id: "reference", tasks: ["reference_to_video"] }
+    ];
+    expect(forAllTasks(models, ["image_to_video", "text_to_video", "reference_to_video"]))
+      .toEqual([models[0]]);
+    expect(forAllTasks(models, [])).toEqual(models);
   });
 
   it("offers only the curated stills, and the full browser outside Studio", async () => {

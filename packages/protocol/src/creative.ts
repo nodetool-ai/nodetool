@@ -514,6 +514,29 @@ export const shotRenderMode = (
     ? shot.render_mode
     : "keyframe";
 
+/** The provider tasks a board's clip model must support for its shot modes. */
+export function requiredVideoTasksForShots(
+  shots: readonly Pick<Shot, "render_mode" | "covered_by">[]
+): ("image_to_video" | "text_to_video" | "reference_to_video")[] {
+  const tasks = new Set<
+    "image_to_video" | "text_to_video" | "reference_to_video"
+  >();
+  for (const shot of shots) {
+    if (shot.covered_by) {
+      continue;
+    }
+    const mode = shotRenderMode(shot);
+    tasks.add(
+      mode === "reference"
+        ? "reference_to_video"
+        : mode === "direct"
+          ? "text_to_video"
+          : "image_to_video"
+    );
+  }
+  return [...tasks];
+}
+
 /**
  * A scene: the set of shots sharing its id. Those shots are contiguous in
  * `shot.index`, which is the one global order — so a scene needs no index, its
