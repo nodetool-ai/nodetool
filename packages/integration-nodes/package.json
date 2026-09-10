@@ -30,7 +30,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.2",
-    "vitest": "^4.1.2"
+    "vitest": "^5.0.0"
   },
   "exports": {
     ".": {
