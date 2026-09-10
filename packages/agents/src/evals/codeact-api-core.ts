@@ -241,7 +241,7 @@ const MODEL_CATALOG: readonly ModelEntry[] = [
     provider: "fal_ai",
     model_id: "fal-ai/ltx-video",
     type: "video",
-    capabilities: ["text_to_video", "image_to_video"]
+    capabilities: ["text_to_video", "image_to_video", "reference_to_video"]
   },
   {
     provider: "openai",
@@ -1197,6 +1197,48 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
         );
         return {
           asset_uri: asset.uri,
+          provider: model.provider,
+          model: model.model_id
+        };
+      }
+    ),
+    tool(
+      "generate_video_from_references",
+      "Generate a video conditioned on a set of image/video references.",
+      { provider: s, model: s, reference_files: { type: "array" }, prompt: s },
+      (params) => {
+        const model = world.model(
+          params["provider"],
+          params["model"],
+          "reference_to_video"
+        );
+        const files = Array.isArray(params["reference_files"])
+          ? params["reference_files"]
+          : [];
+        if (files.length === 0) {
+          throw new Error(
+            "reference_files must name at least one image or video reference."
+          );
+        }
+        // Every reference contributes to the clip, so the saved content carries
+        // all of them plus the prompt — that is what the adherence checks read.
+        const sources = files.map((file) => world.asset(file));
+        const prompt = str(params["prompt"]);
+        const content = [
+          ...sources.map((a) => a.prompt ?? a.content),
+          prompt
+        ]
+          .filter((part) => part.length > 0)
+          .join(" ");
+        const asset = world.saveAsset(
+          `reference-clip-${str(world.assets.size + 1)}`,
+          content,
+          "video/mp4",
+          content
+        );
+        return {
+          asset_uri: asset.uri,
+          asset_id: asset.id,
           provider: model.provider,
           model: model.model_id
         };
