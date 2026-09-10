@@ -837,6 +837,7 @@ export class CommandRouter {
       return this.runRpc(command, requestId, () => {
         const references = referenceMediaDataSchema.parse(data);
         return inference.runDirectMediaGeneration({
+      const projectId = isString(data.project_id) ? data.project_id : undefined;
           mode,
           provider,
           model,
@@ -859,6 +860,7 @@ export class CommandRouter {
           referenceImages: references.reference_images,
           referenceVideos: references.reference_videos,
           useReferenceVideoAudio: references.use_reference_video_audio,
+          projectId,
           requestId
         });
       });

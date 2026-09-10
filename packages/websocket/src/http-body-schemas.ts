@@ -82,7 +82,8 @@ export const workflowRunBodySchema = z.object({
   interactive: unchecked<boolean>(),
   max_decisions: lenientNumber(),
   max_retries_per_node: lenientNumber(),
-  decision_timeout_ms: lenientNumber()
+  decision_timeout_ms: lenientNumber(),
+  project_id: lenientString()
 });
 
 /** `POST /api/debug/sessions/:id/verdict` */
