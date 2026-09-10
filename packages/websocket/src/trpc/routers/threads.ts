@@ -39,6 +39,7 @@ function toThreadResponse(thread: ThreadModel): ThreadResponse {
   return {
     id: thread.id,
     user_id: thread.user_id,
+    project_id: thread.project_id,
     workflow_id: thread.workflow_id ?? null,
     title: thread.title,
     created_at: thread.created_at,
@@ -97,6 +98,7 @@ export const threadsRouter = router({
         startKey: input.cursor,
         reverse: input.reverse
       };
+      if (input.project_id !== undefined) page.projectId = input.project_id;
       if (input.workflow_id !== undefined) {
         page.workflowId = input.workflow_id;
       }

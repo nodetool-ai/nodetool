@@ -30,6 +30,7 @@ function toJobResponse(job: JobModel, includeOutputs: boolean): JobResponse {
   return {
     id: job.id,
     user_id: job.user_id,
+    project_id: job.project_id,
     job_type: "workflow" as const,
     status: job.status,
     name: job.name ?? null,
@@ -45,6 +46,7 @@ function toJobResponse(job: JobModel, includeOutputs: boolean): JobResponse {
 function toBackgroundJobResponse(job: JobModel): BackgroundJobResponse {
   return {
     job_id: job.id,
+    project_id: job.project_id,
     status: job.status,
     workflow_id: job.workflow_id,
     created_at: job.started_at ?? null,
@@ -130,11 +132,13 @@ export const jobsRouter = router({
     .input(listInput)
     .output(listOutput)
     .query(async ({ ctx, input }) => {
-      const [jobs, nextStartKey] = await Job.paginate(ctx.userId, {
+      const page: Parameters<typeof Job.paginate>[1] = {
         limit: input.limit,
         workflowId: input.workflow_id,
         startKey: input.start_key
-      });
+      };
+      if (input.project_id !== undefined) page.projectId = input.project_id;
+      const [jobs, nextStartKey] = await Job.paginate(ctx.userId, page);
       return {
         jobs: jobs.map((j) => toJobResponse(j, input.include_outputs)),
         next_start_key: nextStartKey || null

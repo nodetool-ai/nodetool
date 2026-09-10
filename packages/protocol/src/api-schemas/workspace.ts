@@ -5,6 +5,7 @@ import { z } from "zod";
 export const workspaceResponse = z.object({
   id: z.string(),
   user_id: z.string(),
+  project_id: z.string().optional(),
   name: z.string(),
   path: z.string(),
   is_default: z.boolean(),
@@ -18,7 +19,8 @@ export type WorkspaceResponse = z.infer<typeof workspaceResponse>;
 
 // ── list (GET /api/workspaces) ───────────────────────────────────
 export const listInput = z.object({
-  limit: z.number().int().min(1).max(500).default(50)
+  limit: z.number().int().min(1).max(500).default(50),
+  project_id: z.string().optional()
 });
 export type ListInput = z.infer<typeof listInput>;
 

@@ -7,6 +7,7 @@ import { z } from "zod";
 export const jobResponse = z.object({
   id: z.string(),
   user_id: z.string(),
+  project_id: z.string().optional(),
   job_type: z.literal("workflow"),
   status: z.string(),
   name: z.string().nullable(),
@@ -24,6 +25,7 @@ export type JobResponse = z.infer<typeof jobResponse>;
 // `/running/all` and the cancel endpoint response.
 export const backgroundJobResponse = z.object({
   job_id: z.string(),
+  project_id: z.string().optional(),
   status: z.string(),
   workflow_id: z.string(),
   created_at: z.string().nullable(),
@@ -36,6 +38,7 @@ export type BackgroundJobResponse = z.infer<typeof backgroundJobResponse>;
 export const listInput = z.object({
   limit: z.number().int().min(1).max(500).default(100),
   workflow_id: z.string().optional(),
+  project_id: z.string().optional(),
   include_outputs: z.boolean().default(false),
   // Cursor from a previous response's next_start_key. Without this the returned
   // cursor could never be submitted, so pagination past the first page was

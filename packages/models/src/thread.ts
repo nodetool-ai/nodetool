@@ -55,13 +55,17 @@ export class Thread extends DBModel {
       startKey?: string;
       reverse?: boolean;
       workflowId?: string;
+      projectId?: string;
     } = {}
   ): Promise<[Thread[], string]> {
-    const { limit = 50, reverse = true, workflowId, startKey } = opts;
+    const { limit = 50, reverse = true, workflowId, projectId, startKey } = opts;
     const db = getDb();
     const conditions = [eq(threads.user_id, userId)];
     if (workflowId !== undefined) {
       conditions.push(eq(threads.workflow_id, workflowId));
+    }
+    if (projectId !== undefined) {
+      conditions.push(eq(threads.project_id, projectId));
     }
     // Seek past the cursor row so following `next` advances the page. Without
     // this the same first page was returned forever while still advertising a
