@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Score a Silent Clip",
   "tool_name": null,
-  "description": "Give a clip a soundtrack. Describe the mood, Stable Audio on fal.ai writes a bed to match the clip's length, and the mix is laid under the original audio. Cheaper than the video templates — one audio generation per run.",
+  "description": "Generate a soundtrack to match your clip. Trim the music to the video length, normalise the volume, and add gentle fades before mixing.",
   "tags": [
     "video",
     "audio",
@@ -21,11 +21,7 @@
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
           "headline": "Score a Silent Clip",
-          "comment": [
-            "Put a soundtrack under a clip.\n\n",
-            "Set duration to match your clip: a bed shorter than the video leaves silence at the tail.\n\n",
-            "mix stays on so the original audio survives underneath. Turn it off to replace the track outright."
-          ]
+          "comment": "Generate a soundtrack to match your clip. Trim the music to the video length, normalise the volume, and add gentle fades before mixing."
         },
         "ui_properties": {
           "position": {
@@ -45,7 +41,10 @@
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+          },
           "description": "The clip to score"
         },
         "ui_properties": {
@@ -66,7 +65,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "mood",
-          "value": "Warm analogue synth bed, slow pulse, hopeful but restrained, no drums",
+          "value": "Soft jazz guitar and brushed drums for a quiet coffee shop, instrumental",
           "description": "The mood of the score"
         },
         "ui_properties": {
@@ -98,8 +97,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 380
+            "x": 700,
+            "y": 400
           },
           "zIndex": 0,
           "width": 280,
@@ -118,13 +117,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 760,
-            "y": 300
+            "x": 2450,
+            "y": 240
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "4  Lay it under"
+          "title": "Mix the soundtrack"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -137,13 +136,94 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1120,
-            "y": 320
+            "x": 2800,
+            "y": 240
           },
           "zIndex": 0,
           "width": 240,
           "selectable": true,
-          "title": "5  Scored clip"
+          "title": "Scored clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "level",
+        "type": "nodetool.audio.Normalize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1400,
+            "y": 400
+          },
+          "width": 300,
+          "title": "Even out volume"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fade-in",
+        "type": "nodetool.audio.FadeIn",
+        "data": {
+          "duration": 0.3
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1750,
+            "y": 400
+          },
+          "width": 300,
+          "title": "Soften the start"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fade-out",
+        "type": "nodetool.audio.FadeOut",
+        "data": {
+          "duration": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2100,
+            "y": 400
+          },
+          "width": 300,
+          "title": "Soften the ending"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "clip-info",
+        "type": "nodetool.video.GetVideoInfo",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 350,
+            "y": 240
+          },
+          "width": 300,
+          "title": "Measure the clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "trim-score",
+        "type": "nodetool.audio.Trim",
+        "data": {
+          "start": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1050,
+            "y": 400
+          },
+          "width": 300,
+          "title": "Fit music to the clip"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -165,18 +245,67 @@
         "targetHandle": "video"
       },
       {
-        "id": "e3",
-        "source": "score",
-        "sourceHandle": "audio",
-        "target": "mix",
-        "targetHandle": "audio"
-      },
-      {
         "id": "e4",
         "source": "mix",
         "sourceHandle": "output",
         "target": "output-scored",
         "targetHandle": "value"
+      },
+      {
+        "id": "score-level-audio",
+        "source": "score",
+        "sourceHandle": "audio",
+        "target": "trim-score",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "level-fade-in-audio",
+        "source": "level",
+        "sourceHandle": "output",
+        "target": "fade-in",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "fade-in-fade-out-audio",
+        "source": "fade-in",
+        "sourceHandle": "output",
+        "target": "fade-out",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "fade-out",
+        "sourceHandle": "output",
+        "target": "mix",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "in-video-clip-info-video",
+        "source": "in-video",
+        "sourceHandle": "output",
+        "target": "clip-info",
+        "targetHandle": "video"
+      },
+      {
+        "id": "clip-info-trim-score-end",
+        "source": "clip-info",
+        "sourceHandle": "duration",
+        "target": "trim-score",
+        "targetHandle": "end"
+      },
+      {
+        "id": "clip-info-score-duration",
+        "source": "clip-info",
+        "sourceHandle": "duration",
+        "target": "score",
+        "targetHandle": "duration"
+      },
+      {
+        "id": "trim-score-level-audio",
+        "source": "trim-score",
+        "sourceHandle": "output",
+        "target": "level",
+        "targetHandle": "audio"
       }
     ]
   },
@@ -199,11 +328,15 @@
           "uri",
           "type"
         ],
-        "label": ""
+        "label": "",
+        "default": {
+          "type": "video",
+          "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+        }
       },
       "mood": {
         "type": "string",
-        "default": "Warm analogue synth bed, slow pulse, hopeful but restrained, no drums",
+        "default": "Soft jazz guitar and brushed drums for a quiet coffee shop, instrumental",
         "label": ""
       }
     },

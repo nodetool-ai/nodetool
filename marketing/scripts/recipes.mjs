@@ -31,7 +31,7 @@ export const recipePresentation = [
       video: "viral-video-ad-engine.mp4",
       poster: "viral-video-ad-engine-poster.webp",
       caption:
-        "One product photo and one line of copy, run through the whole chain: four hook lines with a thumbnail each, then the hero loop cut to 1080x1920. The fourth thumbnail went off-brief and is shown as it came back.",
+        "One product photo becomes four hooks with thumbnails and a 1080×1920 ad loop. The fourth thumbnail missed the brief and is shown unedited.",
     },
   },
   {
@@ -42,7 +42,7 @@ export const recipePresentation = [
       poster: "multilingual-video-dubber-poster.webp",
       hasAudio: true,
       caption:
-        "The same take, before and after the lip-sync step, with the Spanish the translator produced. The presenter is generated too — the recipe assumes you bring your own footage, and this render had none to bring.",
+        "Before and after Spanish lip-sync. This sample uses a generated presenter. Use your own footage for the recipe.",
     },
   },
   {
@@ -52,7 +52,7 @@ export const recipePresentation = [
       video: "ecommerce-sku-visual-factory.mp4",
       poster: "ecommerce-sku-visual-factory-poster.webp",
       caption:
-        "One generated packshot carried through the whole chain: cutout on a real alpha channel, placed on a concrete plinth, relit for winter sun, spun into a turntable clip, and mastered at 4096px. The product is the same object in all six.",
+        "One generated packshot becomes a transparent cutout, studio scene, winter relight, turntable clip, and 4096px master.",
     },
   },
   {
@@ -63,7 +63,7 @@ export const recipePresentation = [
       poster: "storyboard-to-trailer-poster.webp",
       hasAudio: true,
       caption:
-        "One logline — a lighthouse keeper finds a message in a bottle dated forty years from now — through steps three and four: five shots directed, rendered, animated, cut, and scored. The first two steps produce documents, so they are not in the picture; the style bible holding these five together is written in step three.",
+        "A lighthouse keeper finds a message dated forty years from now. Steps three and four turn that logline into this five-shot teaser with a score. Planning documents from steps one and two are not shown.",
     },
   },
 ];

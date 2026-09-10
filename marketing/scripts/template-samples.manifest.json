@@ -1,0 +1,80 @@
+{
+  "cutout": {
+    "models": {
+      "bg": {
+        "provider": "replicate",
+        "id": "bria/remove-background"
+      }
+    },
+    "sha256": {
+      "cutout.webp": "a359296103fee41ecdd8fbb0fe1ac00b356044c54a92283da148cd4e88f2b863"
+    }
+  },
+  "print": {
+    "models": {
+      "up": {
+        "provider": "replicate",
+        "id": "recraft-ai/recraft-crisp-upscale"
+      }
+    },
+    "sha256": {
+      "print.webp": "e1fa6276b9c69be26178f161d70a40abfee8d2680b6c73a3366dea4705ff0057"
+    }
+  },
+  "backdrop": {
+    "models": {
+      "bg": {
+        "provider": "replicate",
+        "id": "bria/remove-background"
+      },
+      "comp": {
+        "provider": "replicate",
+        "id": "google/nano-banana"
+      }
+    },
+    "sha256": {
+      "backdrop.webp": "4c58f9fbf0a796d944d6b03efcabdf3ab1ffb57beaaa4c61c812e4a48c33bdc0"
+    }
+  },
+  "revoice": {
+    "models": {
+      "ag": {
+        "provider": "openrouter",
+        "id": "openai/gpt-5-mini"
+      },
+      "tts": {
+        "provider": "replicate",
+        "id": "inworld/realtime-tts-1.5-max"
+      }
+    },
+    "sha256": {
+      "revoice.mp3": "5da10e2190061135b8698a364bf967763a78744797be3b7255c775b6469433c4"
+    }
+  },
+  "scored": {
+    "models": {
+      "score": {
+        "provider": "kie",
+        "id": "generate-music"
+      }
+    },
+    "sha256": {
+      "scored.mp4": "a0ad8831940dc41b2b1085eed6e3af7ef69f145d385ab1f6bad52b6c4ba879ea"
+    }
+  },
+  "spokesperson": {
+    "models": {
+      "speech": {
+        "provider": "replicate",
+        "id": "inworld/realtime-tts-1.5-max"
+      },
+      "sync": {
+        "provider": "replicate",
+        "id": "sync/lipsync-2"
+      }
+    },
+    "sha256": {
+      "spokesperson.mp4": "be8fc23f53df4f3e9db78a7ac63243fcb980f6ea96b84040d9fc003836acfc94"
+    }
+  }
+}

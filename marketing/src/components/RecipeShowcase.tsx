@@ -47,20 +47,17 @@ export default function RecipeShowcase() {
         <div className="scroll-fade mb-14 max-w-2xl">
           <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">
             <span className="h-px w-8 bg-amber-300/60" />
-            The jobs
+            Recipes
           </div>
           <h2
             id="jobs-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            How teams are using NodeTool.
+            Make your next campaign here.
           </h2>
           <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-            Four jobs that run every week, each a real run against live models:
-            what you end up holding, who it is for, the models the chain calls,
-            and every workflow in it already installed with Studio. Opening a
-            chain and reading every graph in it needs no key and no account.
-            Running it bills the providers you chose, at their list prices.
+            Video ads, product visuals, dubbed clips, and trailers. Start with
+            an editable recipe, bring your brief, and reuse it for the next job.
           </p>
         </div>
 
@@ -105,20 +102,20 @@ export default function RecipeShowcase() {
                   {fidelity && (
                     <p className="mt-4 text-xs text-slate-500">
                       {fidelity.changed.length === 0
-                        ? "The picture above is this chain run exactly as Studio ships it."
-                        : `The picture above is this chain run for real, with ${fidelity.changed.length} of ${fidelity.total} models reached another way — the recipe page names which, and why.`}
+                        ? "Sample uses the included models."
+                        : `Sample uses ${fidelity.changed.length} model ${fidelity.changed.length === 1 ? "change" : "changes"}. See recipe for details.`}
                     </p>
                   )}
 
                   <p className="mt-2 text-xs text-slate-500">
                     {recipe.keys.length === 1
-                      ? "One provider key to run it. None to read it."
-                      : `${recipe.keys.length} provider keys to run the whole chain. None to read it.`}
+                      ? "Run with one provider key."
+                      : `Run with ${recipe.keys.length} provider keys.`}
                   </p>
 
                   <div className="mt-5">
                     <div className="text-xs text-slate-500">
-                      Calls {joinNames(providers)}, on your keys, at list price
+                      {joinNames(providers)} at provider rates
                     </div>
                     <ul className="mt-2 flex flex-wrap gap-1.5">
                       {models.map((model) => (
@@ -137,7 +134,7 @@ export default function RecipeShowcase() {
                       href={recipe.route}
                       className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-300 transition-colors hover:text-amber-200 focus-ring"
                     >
-                      Read the recipe
+                      Get the recipe
                       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </a>
                   </div>
@@ -148,7 +145,7 @@ export default function RecipeShowcase() {
         </div>
 
         <p className="mt-8 text-sm text-slate-500">
-          Every recipe is built from the workflows that ship with Studio.{" "}
+          Included in Studio.{" "}
           <a
             href="/recipes"
             className="text-blue-300 underline decoration-blue-300/40 underline-offset-2 hover:text-blue-200"
@@ -160,7 +157,7 @@ export default function RecipeShowcase() {
             href="/use-cases"
             className="text-blue-300 underline decoration-blue-300/40 underline-offset-2 hover:text-blue-200"
           >
-            Single-surface demos
+            Explore use cases
           </a>
         </p>
       </div>

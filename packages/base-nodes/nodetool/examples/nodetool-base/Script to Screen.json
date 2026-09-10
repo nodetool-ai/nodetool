@@ -499,7 +499,8 @@
           },
           "instructions": "The context is a film direction document. Extract three fields:\n- narration: the full NARRATION section verbatim, as one block of plain text with no headings.\n- music_prompt: the MUSIC line as a single music-generation prompt (genre, mood, instrumentation, tempo). Instrumental only \u2014 state 'instrumental, no vocals'.\n- style_frame_prompt: one text-to-image prompt for a single 16:9 master style frame that establishes the film's world: the main character (exact descriptor from CHARACTERS), the key location, and the STYLE BIBLE's palette and light. No text, no titles, no watermark.",
           "context": "",
-          "max_tokens": 4096
+          "max_tokens": 4096,
+          "system_prompt": "Return only a valid JSON object with the requested fields. Do not wrap it in Markdown or add commentary."
         },
         "ui_properties": {
           "position": {
@@ -647,8 +648,8 @@
           "model": {
             "type": "image_model",
             "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "id": "fal-ai/nano-banana/edit",
+            "name": "Nano Banana",
             "path": null,
             "supported_tasks": []
           },
@@ -670,7 +671,8 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_outputs": {},
+        "sync_mode": "on_all"
       },
       {
         "id": "storyboard_collect",

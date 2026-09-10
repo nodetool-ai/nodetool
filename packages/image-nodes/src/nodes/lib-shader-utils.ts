@@ -384,7 +384,7 @@ export async function runRecipeNode(
       width: dims.width,
       height: dims.height,
       format: "rgba8unorm",
-      usage: OUTPUT_USAGE
+      usage: OUTPUT_USAGE | COMPUTE_OUTPUT_USAGE
     });
 
     const encoder = device.createCommandEncoder({

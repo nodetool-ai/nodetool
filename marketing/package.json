@@ -57,17 +57,20 @@
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7",
+    "three": "^0.185.1",
     "uuid": "^14.0.0",
     "wavesurfer.js": "^7.9.1",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.19.4",
     "@playwright/test": "^1.49.0",
     "@types/lodash": "^4.17.15",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/slate-html-serializer": "^0.6.8",
+    "@types/three": "^0.185.4",
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
     "eslint-config-next": "^15.5.15",
@@ -75,7 +78,6 @@
     "tailwindcss": "^3.3.0",
     "tsx": "^4.0.0",
     "typescript": "^5",
-    "@opennextjs/cloudflare": "^1.19.4",
     "wrangler": "^4.106.0"
   }
 }

@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "slug": "ecommerce-sku-visual-factory",
-  "name": "E-commerce SKU Visual Factory",
-  "outcome": "One packshot per SKU becomes the whole channel set: cutout, studio scene, seasonal relight, turntable clip, print master, and the listing copy.",
-  "audience": "Catalogue and marketplace teams with more SKUs than shoot days.",
+  "name": "One Packshot. A Full Product Set.",
+  "outcome": "Create studio shots, seasonal lighting, a turntable clip, and listing copy from one product photo. Upscale your chosen image for print.",
+  "audience": "E-commerce and marketplace teams.",
   "summary": [
-    "Every step after the first one starts from the cutout, so the product itself is never regenerated. That is the constraint that matters in a catalogue: the customer is buying the object in the photograph, and a model that redraws it has sold them something else.",
-    "Run the chain once per SKU. The upscale sits at the end on purpose — one call for the asset you actually print, rather than paying print resolution on every draft."
+    "Start with a clean cutout, then build the assets for your product page and campaign. Reuse the recipe across your catalogue.",
+    "Review the web images first. Upscale only the approved shot to avoid paying for print resolution on every draft."
   ],
   "caveats": [
-    "Background removal is a model, not a matte artist. Hair, mesh, glassware, and anything transparent need a look before they go live.",
-    "Relighting changes light, not colour management. A brand colour that has to match a printed swatch still needs a proofing step.",
-    "The listing copy is written from one photograph. It does not know your stock, sizing, or compliance wording."
+    "Check cutout edges, especially on glass, mesh, and transparent materials.",
+    "Review generated scenes and motion for changes to product details. Proof brand colours before printing.",
+    "Add verified sizing, stock details, and required disclosures to the listing copy. The model only sees the photo."
   ],
   "hero": "Put a Product on a Studio Backdrop",
   "apps": [
@@ -27,33 +27,33 @@
   "steps": [
     {
       "example": "Cut a Product Out of Its Background",
-      "role": "Isolate the product once",
-      "handoff": "In: the packshot. Out: the product on a real alpha channel rather than a white matte, so the edge survives compositing onto anything later."
+      "role": "Remove the background",
+      "handoff": "Create a product cutout with a transparent background."
     },
     {
       "example": "Put a Product on a Studio Backdrop",
-      "role": "Place it in a described setting",
-      "handoff": "In: the cutout and a scene description. Out: the product in that scene. An edit model told to change only the surroundings, rather than a strength setting on image-to-image, is what keeps the product unchanged."
+      "role": "Set the scene",
+      "handoff": "Add a scene description to place your cutout on a new backdrop."
     },
     {
       "example": "Relight a Product for a Seasonal Campaign",
-      "role": "Change the season without a reshoot",
-      "handoff": "In: the placed shot. Out: the same geometry and materials under different light. Relighting moves where the light comes from and nothing else."
+      "role": "Change the lighting",
+      "handoff": "Relight the product shot for a seasonal campaign."
     },
     {
       "example": "Spin a Packshot into a Turntable Clip",
-      "role": "Give the product page motion",
-      "handoff": "In: the still. Out: a short clip with a camera move. Image-to-video keeps the product identical, which a text-to-video model would not."
+      "role": "Add a turntable clip",
+      "handoff": "Animate the still with a short camera move around the product."
     },
     {
       "example": "Take a Product Shot to Print Resolution",
-      "role": "Upscale only the keeper",
-      "handoff": "In: the approved web asset. Out: a print-resolution master. One call at the end of the pipeline instead of print resolution on every draft."
+      "role": "Prepare for print",
+      "handoff": "Upscale the approved image to create your print master."
     },
     {
       "example": "Write a Listing from the Product Photo",
-      "role": "Write the copy from the photograph",
-      "handoff": "In: the image itself, not a description of it. Out: marketplace copy that catches finish, proportion, and what the thing sits next to — details a spec sheet leaves out."
+      "role": "Draft the listing",
+      "handoff": "Generate marketplace copy from the product photo, including visible materials and finish."
     }
   ]
 }

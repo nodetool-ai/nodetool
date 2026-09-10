@@ -54,8 +54,7 @@ export default async function RecipePage({
   const entry = getEntry(slug);
   if (!entry) notFound();
 
-  // The cheapest way into a chain: the first step that calls exactly one
-  // provider. Someone evaluating the recipe can run that alone.
+  // Offer a first run that needs only one provider key.
   const firstSingleKeyStep = entry.steps
     .map((step, index) => ({
       index,
@@ -126,15 +125,11 @@ export default async function RecipePage({
           <section className="relative py-10">
             <div className="mx-auto max-w-6xl px-6 lg:px-8">
               <h2 className="mb-2 text-2xl font-bold tracking-tight md:text-3xl">
-                What it produced
+                See the result
               </h2>
               <p className="mb-6 max-w-3xl text-sm leading-relaxed text-slate-500">
-                Not a mockup. The chain below was run end to end and this came
-                back. The list under the caption is every model that ran: green
-                where it is the model the workflow names, reached through
-                whichever provider this render held a key for, blue where a
-                better one was chosen deliberately, and amber where a different
-                model had to stand in — each with the reason.
+                Generated with this recipe. Sample details and model changes
+                are listed below.
               </p>
               <RecipeSampleFigure sample={entry.sample} name={entry.name} />
             </div>
@@ -161,26 +156,21 @@ export default async function RecipePage({
             <div className="mb-6 flex items-center gap-3">
               <KeyRound className="h-6 w-6 text-amber-400" />
               <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
-                Keys this chain needs
+                Bring your API keys
               </h2>
             </div>
             <p className="mb-4 max-w-2xl text-sm leading-relaxed text-slate-400">
-              Read out of the workflows themselves, so this list is what the
-              graphs actually call. You bring the keys and pay each provider
-              directly — NodeTool takes no cut and adds no markup.
+              These providers run the models in this recipe. Use your own keys
+              and pay provider rates, with no NodeTool markup.
             </p>
             <p className="mb-6 max-w-2xl text-sm leading-relaxed text-slate-400">
-              You need none of them to look. Opening every graph in the chain
-              and reading what each node is set to costs nothing and connects to
-              nothing.
+              Browse and edit workflows for free. Add keys when you want to run.
               {firstSingleKeyStep && (
                 <>
                   {" "}
-                  When you do want to run something, step{" "}
-                  {String(firstSingleKeyStep.index + 1).padStart(2, "0")} is the
-                  cheapest way in: it calls{" "}
-                  {providerDisplay(firstSingleKeyStep.provider).name} and
-                  nothing else.
+                  Try step {String(firstSingleKeyStep.index + 1).padStart(2, "0")}
+                  {" "}with just a {providerDisplay(firstSingleKeyStep.provider).name}
+                  {" "}key.
                 </>
               )}
             </p>
@@ -214,7 +204,7 @@ export default async function RecipePage({
         <section id="the-chain" className="relative scroll-mt-28 py-12">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <h2 className="mb-8 text-2xl font-bold tracking-tight md:text-3xl">
-              The chain, in order
+              Make it step by step
             </h2>
             <ol className="space-y-5">
               {entry.steps.map((step, i) => (
@@ -296,7 +286,7 @@ export default async function RecipePage({
             <div className="mb-6 flex items-center gap-3">
               <AlertTriangle className="h-6 w-6 text-slate-500" />
               <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
-                What it does not do
+                Before you publish
               </h2>
             </div>
             <ul className="max-w-3xl space-y-4">
@@ -322,15 +312,15 @@ export default async function RecipePage({
               {[
                 {
                   title: "Install Studio",
-                  body: "The desktop app is free and runs on your own machine. No account, no sign-in, and no key is needed to open a workflow.",
+                  body: "Download the free desktop app. No account needed to get started.",
                 },
                 {
-                  title: "Open it from Examples",
-                  body: `This recipe ships inside Studio. Open Examples, find ${entry.name} under Recipes, and add all ${entry.workflowCount} workflows to your library in one click.`,
+                  title: "Pick your recipe",
+                  body: `Find ${entry.name} in Examples → Recipes. Add its ${entry.workflowCount} workflows to your library.`,
                 },
                 {
-                  title: "Add your keys and work down the chain",
-                  body: "Paste each key above into Settings. Studio keeps them in your OS keychain and sends them only to that provider. Each step takes what the one before it produced, so you can stop and change your mind at any point.",
+                  title: "Add keys and run",
+                  body: "Add your provider keys in Settings. Follow the steps above, review each result, and adjust as you go.",
                 },
               ].map((step, i) => (
                 <li
@@ -350,14 +340,14 @@ export default async function RecipePage({
               ))}
             </ol>
             <p className="mt-6 max-w-2xl text-sm leading-relaxed text-slate-500">
-              Prefer a file? The same chain is packed as{" "}
+              Or download the{" "}
               <a
                 href={entry.bundle}
                 className="text-slate-300 underline decoration-slate-600 underline-offset-2 hover:text-amber-300"
               >
-                one <code className="font-mono">.nodetool</code> bundle
+                recipe bundle
               </a>
-              , which imports from the command menu.
+              {" "}and import it from the command menu.
             </p>
           </div>
         </section>

@@ -5,6 +5,7 @@ import { ArrowRight, Package } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import { recipeEntries } from "@/data/recipes";
 import { providerDisplay } from "@/data/providerDisplay";
 
@@ -13,7 +14,7 @@ const BASE_URL = "https://nodetool.ai";
 export const metadata: Metadata = {
   title: "AI Workflow Recipes — NodeTool",
   description:
-    "Multi-step NodeTool recipes for ad production, video dubbing, product catalogues, and trailers. Each one is the workflows to run, in order, and each ships inside Studio.",
+    "Make video ads, dub presenter clips, build product visuals, and cut trailers. Start with editable recipes included in NodeTool Studio.",
   alternates: { canonical: `${BASE_URL}/recipes` },
 };
 
@@ -42,13 +43,12 @@ export default function RecipesHub() {
               Recipes
             </div>
             <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
-              The whole job, not one node
+              Pick a recipe. Make it yours.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
-              A template shows you a graph. A recipe gives you the finished job:
-              which workflows to run, in what order, what each one hands the
-              next, and where the money goes. Every recipe ships inside Studio,
-              on the Examples page.
+              Make your next ad, product shoot, or trailer with workflows
+              you can reuse. See the results, follow the steps, and adapt
+              the recipe to your brief.
             </p>
           </div>
         </section>
@@ -111,20 +111,15 @@ export default function RecipesHub() {
           <div className="mx-auto max-w-3xl px-6 text-center">
             <Package className="mx-auto h-8 w-8 text-amber-400" />
             <h2 className="mt-5 text-3xl font-bold tracking-tight md:text-4xl">
-              Every recipe is already installed
+              Get the recipes. Start creating.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-400">
-              Studio ships these chains with its examples: open Examples, pick a
-              recipe, and add its workflows to your library in one click,
-              editable node by node. Nothing to download or import.
+              Open Examples in Studio, pick a recipe, and add it to your
+              library. Every workflow is included and editable.
             </p>
-            <a
-              href="/templates"
-              className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:border-white/25 hover:bg-white/5"
-            >
-              Browse all templates
-              <ArrowRight className="h-4 w-4" />
-            </a>
+            <SmartDownloadButton
+              classNameOverride="mt-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:border-white/25 hover:bg-white/5"
+            />
           </div>
         </section>
       </div>

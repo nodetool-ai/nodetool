@@ -34,25 +34,25 @@ export const recipeEntries: RecipeEntry[] = [
       "webm": "/recipes/samples/viral-video-ad-engine.webm",
       "poster": "/recipes/samples/viral-video-ad-engine-poster.webp",
       "hasAudio": false,
-      "caption": "One product photo and one line of copy, run through the whole chain: four hook lines with a thumbnail each, then the hero loop cut to 1080x1920. The fourth thumbnail went off-brief and is shown as it came back."
+      "caption": "One product photo becomes four hooks with thumbnails and a 1080×1920 ad loop. The fourth thumbnail missed the brief and is shown unedited."
     },
     "route": "/recipes/viral-video-ad-engine",
-    "title": "Viral Video Ad Engine — NodeTool Recipe",
-    "description": "A vertical product ad, plus the hook lines and thumbnails to test it against.",
+    "title": "Product Photo to Video Ad — NodeTool Recipe",
+    "description": "Turn a product photo into a vertical video ad, with hooks and thumbnails for your next test.",
     "priority": 0.8,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "viral-video-ad-engine",
-    "name": "Viral Video Ad Engine",
-    "outcome": "A vertical product ad, plus the hook lines and thumbnails to test it against.",
-    "audience": "Performance and social teams shipping several ad variants a week.",
+    "name": "Product Photo to Video Ad",
+    "outcome": "Turn a product photo into a vertical video ad, with hooks and thumbnails for your next test.",
+    "audience": "Paid social and performance marketing teams.",
     "summary": [
-      "Four workflows, ordered cheapest first. The copy and the hook set are text and fast images, so you can throw most of them away; only the last two steps touch a video model, and by then you have already chosen the line and the frame.",
-      "That order is the whole point. Deciding register and hook after paying for footage is how an ad budget disappears into renders nobody posts."
+      "Choose your message before you render the video. Compare copy and thumbnails, then animate the product shot you want to use.",
+      "Run the recipe again for your next offer. Edit the brief, keep the workflow."
     ],
     "caveats": [
-      "The vertical step rescales rather than crops, so frame the loop with room to lose or add a crop node ahead of it.",
-      "Nothing here measures performance. The recipe produces variants to test; the testing happens in your ad platform."
+      "The vertical step resizes without cropping. Add a crop step first to avoid stretching the image.",
+      "Test the variants in your ad platform. This recipe does not measure performance."
     ],
     "heroThumbnail": "/templates/hook-and-thumbnail-factory.jpg",
     "bundle": "/recipes/viral-video-ad-engine.nodetool",
@@ -77,8 +77,8 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "ad-copy-in-three-registers",
         "name": "Ad Copy in Three Registers",
         "route": "/templates/ad-copy-in-three-registers",
-        "role": "Settle the register before anything renders",
-        "handoff": "In: the offer in a sentence. Out: the same offer written plain, playful and premium. One text call, so the argument about tone costs cents instead of a render queue.",
+        "role": "Find your tone",
+        "handoff": "Turn one offer into plain, playful, and premium ad copy.",
         "thumbnail": "/templates/ad-copy-in-three-registers.jpg",
         "nodeCount": 3,
         "models": [
@@ -93,8 +93,8 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "hook-and-thumbnail-factory",
         "name": "Hook & Thumbnail Factory",
         "route": "/templates/hook-and-thumbnail-factory",
-        "role": "Fan the winning line into a test set",
-        "handoff": "In: the video topic. Out: a stream of hook lines, each with its own color-graded thumbnail. The fan-out is the useful part — one hook stream drives the whole gallery in a single run.",
+        "role": "Build your test set",
+        "handoff": "Generate hooks and a thumbnail for each from your video topic.",
         "thumbnail": "/templates/hook-and-thumbnail-factory.jpg",
         "nodeCount": 12,
         "models": [
@@ -113,8 +113,8 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "ad-loop-from-a-product-photo",
         "name": "Ad Loop from a Product Photo",
         "route": "/templates/ad-loop-from-a-product-photo",
-        "role": "Put the product in motion",
-        "handoff": "In: the product photo. Out: a short hero loop. A prompt node writes the motion brief, the image-to-video model animates the still, and a speed pass slows it. This is the step that costs real money.",
+        "role": "Animate the product",
+        "handoff": "Turn your product photo into a short, slowed-down video loop.",
         "thumbnail": "/templates/ad-loop-from-a-product-photo.jpg",
         "nodeCount": 6,
         "models": [
@@ -129,8 +129,8 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "cut-a-landscape-clip-for-vertical",
         "name": "Cut a Landscape Clip for Vertical",
         "route": "/templates/cut-a-landscape-clip-for-vertical",
-        "role": "Cut it to the frame the channel wants",
-        "handoff": "In: the 16:9 loop. Out: a 1080×1920 file. Runs through ffmpeg on your own machine — no key, no per-run charge.",
+        "role": "Go vertical",
+        "handoff": "Resize the loop to 1080×1920. This step runs locally with no provider charge.",
         "thumbnail": "/templates/cut-a-landscape-clip-for-vertical.jpg",
         "nodeCount": 3,
         "models": [],
@@ -177,31 +177,31 @@ export const recipeEntries: RecipeEntry[] = [
       "webm": "/recipes/samples/multilingual-video-dubber.webm",
       "poster": "/recipes/samples/multilingual-video-dubber-poster.webp",
       "hasAudio": true,
-      "caption": "The same take, before and after the lip-sync step, with the Spanish the translator produced. The presenter is generated too — the recipe assumes you bring your own footage, and this render had none to bring."
+      "caption": "Before and after Spanish lip-sync. This sample uses a generated presenter. Use your own footage for the recipe."
     },
     "route": "/recipes/multilingual-video-dubber",
-    "title": "Multilingual Video Dubber — NodeTool Recipe",
-    "description": "One presenter clip, spoken in a second language, with a lip-synced cut, subtitles, and a back-translation to check it.",
+    "title": "Dub Your Video for a New Market — NodeTool Recipe",
+    "description": "Translate your presenter clip into another language, with a new voice, lip-sync, and subtitle text.",
     "priority": 0.8,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "multilingual-video-dubber",
-    "name": "Multilingual Video Dubber",
-    "outcome": "One presenter clip, spoken in a second language, with a lip-synced cut, subtitles, and a back-translation to check it.",
-    "audience": "Anyone re-releasing a recorded talk, demo, or ad into another market.",
+    "name": "Dub Your Video for a New Market",
+    "outcome": "Translate your presenter clip into another language, with a new voice, lip-sync, and subtitle text.",
+    "audience": "Teams localising demos, talks, and video ads.",
     "summary": [
-      "The spine is transcribe, translate, revoice. What makes it usable outside the languages your team reads is the third step: a back-translation printed next to the localised line, so the person approving the cut can see what was actually said.",
-      "The last two steps are a fork, not a sequence. A voice-over cut ends at the revoiced audio; an on-camera cut carries on into lip-sync so the presenter's mouth matches the new delivery."
+      "Keep the footage. Change the language. Transcribe your clip, translate the script, and generate a new voice track.",
+      "Review key messages with back-translations. Use the audio for a voice-over, or create a lip-synced presenter cut."
     ],
     "caveats": [
-      "Lip-sync redrives the mouth. It does not change gesture, gaze, or anything a presenter does with their hands, so a take with heavy pointing at on-screen text will still read as dubbed.",
-      "Timing is not stretched to match the original. A language that runs longer than the source will run longer in the cut.",
-      "The back-translation is a check on meaning, not on register. A native reviewer is still the last word before a paid campaign."
+      "Lip-sync changes mouth movements. Gestures and on-screen text stay in the original language.",
+      "Translated speech may run longer than the source. Timing is not matched automatically.",
+      "Have a native speaker review tone and meaning before publishing."
     ],
     "heroThumbnail": "/templates/ai-spokesperson.jpg",
     "bundle": "/recipes/multilingual-video-dubber.nodetool",
     "workflowCount": 5,
-    "nodeCount": 21,
+    "nodeCount": 27,
     "keys": [
       {
         "provider": "openai",
@@ -221,8 +221,8 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "transcribe-a-clip",
         "name": "Transcribe a Clip",
         "route": "/templates/transcribe-a-clip",
-        "role": "Get the script back out of the footage",
-        "handoff": "In: the source clip. Out: the spoken words as text. The audio is extracted on your machine and only the audio is sent to a speech-to-text model.",
+        "role": "Transcribe your clip",
+        "handoff": "Extract the spoken words as text. Only the audio goes to the transcription model.",
         "thumbnail": "/templates/transcribe-a-clip.jpg",
         "nodeCount": 4,
         "models": [
@@ -237,10 +237,10 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "localise-a-script-and-revoice-it",
         "name": "Localise a Script and Revoice It",
         "route": "/templates/localise-a-script-and-revoice-it",
-        "role": "Translate and voice in one pass",
-        "handoff": "In: the transcript and a target language. Out: audio in that language. A translated document still leaves the recording to do, which is why this step ends in sound rather than text.",
+        "role": "Translate and revoice",
+        "handoff": "Choose a target language and turn the transcript into a new voice track.",
         "thumbnail": "/templates/localise-a-script-and-revoice-it.jpg",
-        "nodeCount": 4,
+        "nodeCount": 7,
         "models": [
           {
             "provider": "openai",
@@ -257,8 +257,8 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "one-tagline-six-markets",
         "name": "One Tagline, Six Markets",
         "route": "/templates/one-tagline-six-markets",
-        "role": "Read back what you just shipped",
-        "handoff": "In: the lines that carry the message — the claim, the offer, the call to action. Out: each one in six languages with a back-translation beside it. This is the review gate for a language nobody in the room speaks.",
+        "role": "Check your key messages",
+        "handoff": "Translate key lines into six languages, with back-translations for review.",
         "thumbnail": "/templates/one-tagline-six-markets.jpg",
         "nodeCount": 3,
         "models": [
@@ -273,10 +273,10 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "ai-spokesperson",
         "name": "AI Spokesperson",
         "route": "/templates/ai-spokesperson",
-        "role": "Make the mouth match, for an on-camera cut",
-        "handoff": "In: the presenter clip and the translated script — the script, not the audio from step two, because this workflow voices the line itself before it redrives the mouth. Out: a take that looks recorded in the new language.",
+        "role": "Sync the presenter",
+        "handoff": "Add the presenter clip and translated script. This step generates its own voice track and matches the mouth movements.",
         "thumbnail": "/templates/ai-spokesperson.jpg",
-        "nodeCount": 5,
+        "nodeCount": 8,
         "models": [
           {
             "provider": "replicate",
@@ -293,8 +293,8 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "subtitle-text-from-a-recording",
         "name": "Subtitle Text from a Recording",
         "route": "/templates/subtitle-text-from-a-recording",
-        "role": "Ship the version people read",
-        "handoff": "In: the localised audio. Out: transcript broken into subtitle-length lines. The line-length rule is what separates a subtitle file from a wall of text.",
+        "role": "Create subtitle text",
+        "handoff": "Turn the localised audio into text split into subtitle-length lines.",
         "thumbnail": "/templates/subtitle-text-from-a-recording.jpg",
         "nodeCount": 5,
         "models": [
@@ -356,31 +356,31 @@ export const recipeEntries: RecipeEntry[] = [
       "webm": "/recipes/samples/ecommerce-sku-visual-factory.webm",
       "poster": "/recipes/samples/ecommerce-sku-visual-factory-poster.webp",
       "hasAudio": false,
-      "caption": "One generated packshot carried through the whole chain: cutout on a real alpha channel, placed on a concrete plinth, relit for winter sun, spun into a turntable clip, and mastered at 4096px. The product is the same object in all six."
+      "caption": "One generated packshot becomes a transparent cutout, studio scene, winter relight, turntable clip, and 4096px master."
     },
     "route": "/recipes/ecommerce-sku-visual-factory",
-    "title": "E-commerce SKU Visual Factory — NodeTool Recipe",
-    "description": "One packshot per SKU becomes the whole channel set: cutout, studio scene, seasonal relight, turntable clip, print master, and the listing copy.",
+    "title": "One Packshot. A Full Product Set. — NodeTool Recipe",
+    "description": "Create studio shots, seasonal lighting, a turntable clip, and listing copy from one product photo. Upscale your chosen image for print.",
     "priority": 0.8,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "ecommerce-sku-visual-factory",
-    "name": "E-commerce SKU Visual Factory",
-    "outcome": "One packshot per SKU becomes the whole channel set: cutout, studio scene, seasonal relight, turntable clip, print master, and the listing copy.",
-    "audience": "Catalogue and marketplace teams with more SKUs than shoot days.",
+    "name": "One Packshot. A Full Product Set.",
+    "outcome": "Create studio shots, seasonal lighting, a turntable clip, and listing copy from one product photo. Upscale your chosen image for print.",
+    "audience": "E-commerce and marketplace teams.",
     "summary": [
-      "Every step after the first one starts from the cutout, so the product itself is never regenerated. That is the constraint that matters in a catalogue: the customer is buying the object in the photograph, and a model that redraws it has sold them something else.",
-      "Run the chain once per SKU. The upscale sits at the end on purpose — one call for the asset you actually print, rather than paying print resolution on every draft."
+      "Start with a clean cutout, then build the assets for your product page and campaign. Reuse the recipe across your catalogue.",
+      "Review the web images first. Upscale only the approved shot to avoid paying for print resolution on every draft."
     ],
     "caveats": [
-      "Background removal is a model, not a matte artist. Hair, mesh, glassware, and anything transparent need a look before they go live.",
-      "Relighting changes light, not colour management. A brand colour that has to match a printed swatch still needs a proofing step.",
-      "The listing copy is written from one photograph. It does not know your stock, sizing, or compliance wording."
+      "Check cutout edges, especially on glass, mesh, and transparent materials.",
+      "Review generated scenes and motion for changes to product details. Proof brand colours before printing.",
+      "Add verified sizing, stock details, and required disclosures to the listing copy. The model only sees the photo."
     ],
     "heroThumbnail": "/templates/put-a-product-on-a-studio-backdrop.jpg",
     "bundle": "/recipes/ecommerce-sku-visual-factory.nodetool",
     "workflowCount": 6,
-    "nodeCount": 19,
+    "nodeCount": 29,
     "keys": [
       {
         "provider": "fal_ai",
@@ -396,10 +396,10 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "cut-a-product-out-of-its-background",
         "name": "Cut a Product Out of Its Background",
         "route": "/templates/cut-a-product-out-of-its-background",
-        "role": "Isolate the product once",
-        "handoff": "In: the packshot. Out: the product on a real alpha channel rather than a white matte, so the edge survives compositing onto anything later.",
+        "role": "Remove the background",
+        "handoff": "Create a product cutout with a transparent background.",
         "thumbnail": "/templates/cut-a-product-out-of-its-background.jpg",
-        "nodeCount": 3,
+        "nodeCount": 7,
         "models": [
           {
             "provider": "fal_ai",
@@ -412,10 +412,10 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "put-a-product-on-a-studio-backdrop",
         "name": "Put a Product on a Studio Backdrop",
         "route": "/templates/put-a-product-on-a-studio-backdrop",
-        "role": "Place it in a described setting",
-        "handoff": "In: the cutout and a scene description. Out: the product in that scene. An edit model told to change only the surroundings, rather than a strength setting on image-to-image, is what keeps the product unchanged.",
+        "role": "Set the scene",
+        "handoff": "Add a scene description to place your cutout on a new backdrop.",
         "thumbnail": "/templates/put-a-product-on-a-studio-backdrop.jpg",
-        "nodeCount": 4,
+        "nodeCount": 7,
         "models": [
           {
             "provider": "fal_ai",
@@ -432,8 +432,8 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "relight-a-product-for-a-seasonal-campaign",
         "name": "Relight a Product for a Seasonal Campaign",
         "route": "/templates/relight-a-product-for-a-seasonal-campaign",
-        "role": "Change the season without a reshoot",
-        "handoff": "In: the placed shot. Out: the same geometry and materials under different light. Relighting moves where the light comes from and nothing else.",
+        "role": "Change the lighting",
+        "handoff": "Relight the product shot for a seasonal campaign.",
         "thumbnail": "/templates/relight-a-product-for-a-seasonal-campaign.jpg",
         "nodeCount": 3,
         "models": [
@@ -448,8 +448,8 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "spin-a-packshot-into-a-turntable-clip",
         "name": "Spin a Packshot into a Turntable Clip",
         "route": "/templates/spin-a-packshot-into-a-turntable-clip",
-        "role": "Give the product page motion",
-        "handoff": "In: the still. Out: a short clip with a camera move. Image-to-video keeps the product identical, which a text-to-video model would not.",
+        "role": "Add a turntable clip",
+        "handoff": "Animate the still with a short camera move around the product.",
         "thumbnail": "/templates/spin-a-packshot-into-a-turntable-clip.jpg",
         "nodeCount": 3,
         "models": [
@@ -464,10 +464,10 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "take-a-product-shot-to-print-resolution",
         "name": "Take a Product Shot to Print Resolution",
         "route": "/templates/take-a-product-shot-to-print-resolution",
-        "role": "Upscale only the keeper",
-        "handoff": "In: the approved web asset. Out: a print-resolution master. One call at the end of the pipeline instead of print resolution on every draft.",
+        "role": "Prepare for print",
+        "handoff": "Upscale the approved image to create your print master.",
         "thumbnail": "/templates/take-a-product-shot-to-print-resolution.jpg",
-        "nodeCount": 3,
+        "nodeCount": 6,
         "models": [
           {
             "provider": "fal_ai",
@@ -480,8 +480,8 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "write-a-listing-from-the-product-photo",
         "name": "Write a Listing from the Product Photo",
         "route": "/templates/write-a-listing-from-the-product-photo",
-        "role": "Write the copy from the photograph",
-        "handoff": "In: the image itself, not a description of it. Out: marketplace copy that catches finish, proportion, and what the thing sits next to — details a spec sheet leaves out.",
+        "role": "Draft the listing",
+        "handoff": "Generate marketplace copy from the product photo, including visible materials and finish.",
         "thumbnail": "/templates/write-a-listing-from-the-product-photo.jpg",
         "nodeCount": 3,
         "models": [
@@ -527,30 +527,30 @@ export const recipeEntries: RecipeEntry[] = [
       "webm": "/recipes/samples/storyboard-to-trailer.webm",
       "poster": "/recipes/samples/storyboard-to-trailer-poster.webp",
       "hasAudio": true,
-      "caption": "One logline — a lighthouse keeper finds a message in a bottle dated forty years from now — through steps three and four: five shots directed, rendered, animated, cut, and scored. The first two steps produce documents, so they are not in the picture; the style bible holding these five together is written in step three."
+      "caption": "A lighthouse keeper finds a message dated forty years from now. Steps three and four turn that logline into this five-shot teaser with a score. Planning documents from steps one and two are not shown."
     },
     "route": "/recipes/storyboard-to-trailer",
-    "title": "Storyboard to Trailer — NodeTool Recipe",
-    "description": "A logline becomes a beat sheet, a numbered shot list, a cut teaser, and a score under it.",
+    "title": "Turn Your Story into a Trailer — NodeTool Recipe",
+    "description": "Take a film idea from beat sheet to shot list to a cut teaser with a score.",
     "priority": 0.8,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "storyboard-to-trailer",
-    "name": "Storyboard to Trailer",
-    "outcome": "A logline becomes a beat sheet, a numbered shot list, a cut teaser, and a score under it.",
-    "audience": "Directors, agencies, and anyone pitching a film that does not exist yet.",
+    "name": "Turn Your Story into a Trailer",
+    "outcome": "Take a film idea from beat sheet to shot list to a cut teaser with a score.",
+    "audience": "Directors and agencies pitching film concepts.",
     "summary": [
-      "The two text steps come first because they are the ones you will rewrite. A beat sheet and a shot list are cheap to redo and expensive to skip — prose cannot be iterated over by a generation pipeline, numbered shots can.",
-      "Only the third step spends. It runs each shot through a video model metered per second, which is why the two documents in front of it are worth arguing over first."
+      "Make the pitch watchable. Plan the story in text, then generate and assemble the footage.",
+      "Settle the direction before paying for video renders. Add a score to the cut, or choose the timeline workflow to keep editing individual shots."
     ],
     "caveats": [
-      "Steps three and four both hold their own storyboard. Rewriting the beat sheet does not reach back into a teaser you already rendered — re-run the chain.",
-      "Continuity across shots comes from a shared style bible, not from a persistent character model. Faces drift over a long cut."
+      "The trailer generator builds its own storyboard from your logline. Earlier planning documents do not update a rendered cut automatically.",
+      "A shared style guide helps shots match, but faces can drift between shots. Review continuity before sharing."
     ],
     "heroThumbnail": "/templates/movie-trailer-generator.jpg",
     "bundle": "/recipes/storyboard-to-trailer.nodetool",
     "workflowCount": 4,
-    "nodeCount": 21,
+    "nodeCount": 26,
     "keys": [
       {
         "provider": "openai",
@@ -574,8 +574,8 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "trailer-beats-from-a-premise",
         "name": "Trailer Beats from a Premise",
         "route": "/templates/trailer-beats-from-a-premise",
-        "role": "Write the structure before buying footage",
-        "handoff": "In: the premise. Out: hook, escalation, turn, title card. The shape a trailer needs, settled while it still costs one text call to change.",
+        "role": "Plan the beats",
+        "handoff": "Turn your premise into a hook, escalation, turning point, and title card.",
         "thumbnail": "/templates/trailer-beats-from-a-premise.jpg",
         "nodeCount": 3,
         "models": [
@@ -590,8 +590,8 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "shot-list-from-a-synopsis",
         "name": "Shot List from a Synopsis",
         "route": "/templates/shot-list-from-a-synopsis",
-        "role": "Turn prose into something a pipeline can walk",
-        "handoff": "In: the synopsis. Out: numbered shots with framing and duration. This is the document the next step iterates over.",
+        "role": "Plan the shots",
+        "handoff": "Turn your synopsis into numbered shots with framing and duration.",
         "thumbnail": "/templates/shot-list-from-a-synopsis.jpg",
         "nodeCount": 3,
         "models": [
@@ -606,8 +606,8 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "movie-trailer-generator",
         "name": "Movie Trailer Generator",
         "route": "/templates/movie-trailer-generator",
-        "role": "Film it and cut it",
-        "handoff": "In: the logline. Out: a cut teaser. A Director node writes the storyboard and one style bible, each shot becomes an image prompt, and the frames are rendered, animated, and assembled. The per-second video model is the expensive step.",
+        "role": "Render the trailer",
+        "handoff": "Turn a logline into a storyboard, generate and animate the frames, then assemble the teaser.",
         "thumbnail": "/templates/movie-trailer-generator.jpg",
         "nodeCount": 10,
         "models": [
@@ -628,18 +628,18 @@ export const recipeEntries: RecipeEntry[] = [
           "template": "directed-film-to-timeline",
           "name": "Directed Film to Timeline",
           "route": "/templates/directed-film-to-timeline",
-          "label": "Swap this step to keep editing",
-          "why": "The same director-to-shots chain, ending on the timeline as an editable sequence rather than a finished file. Re-roll one shot or re-cut the ending without running the chain again."
+          "label": "Keep editing on the timeline",
+          "why": "Get an editable sequence. Regenerate a shot or change the cut without rerunning the whole workflow."
         }
       },
       {
         "template": "score-a-silent-clip",
         "name": "Score a Silent Clip",
         "route": "/templates/score-a-silent-clip",
-        "role": "Put music under it",
-        "handoff": "In: the cut and a mood. Out: a bed written to the clip's own length, mixed under the original audio. One audio generation per run.",
+        "role": "Add the score",
+        "handoff": "Generate music to fit the clip and your chosen mood, then mix it with the original audio.",
         "thumbnail": "/templates/score-a-silent-clip.jpg",
-        "nodeCount": 5,
+        "nodeCount": 10,
         "models": [
           {
             "provider": "fal_ai",

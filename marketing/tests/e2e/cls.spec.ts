@@ -8,7 +8,7 @@ const CLS_BUDGET = 0.1;
 
 // Pages this gate guards. The homepage is the one Google flagged (0.58); add
 // more paths here once each has been audited and reserves its media space.
-const ROUTES = ["/"];
+const ROUTES = ["/", "/templates/movie-posters"];
 
 // layout-shift entries aren't in the DOM lib.
 interface LayoutShiftEntry extends PerformanceEntry {
@@ -23,6 +23,33 @@ declare global {
 }
 
 test.describe("Cumulative Layout Shift budget", () => {
+  test("template samples reserve space before the image loads", async ({ page }) => {
+    let releaseImage!: () => void;
+    const imageReady = new Promise<void>((resolve) => { releaseImage = resolve; });
+    await page.route("**/templates/samples/movie-posters.webp", async (route) => {
+      await imageReady;
+      await route.continue();
+    });
+
+    try {
+      await page.goto("/templates/movie-posters", { waitUntil: "domcontentloaded" });
+      const image = page.locator("figure img");
+      const before = await image.boundingBox();
+      expect(before).not.toBeNull();
+      expect(before!.width).toBeGreaterThan(400);
+      expect(before!.height).toBeGreaterThan(600);
+      expect(await image.evaluate((element: HTMLImageElement) => element.complete)).toBe(false);
+
+      releaseImage();
+      await image.evaluate((element: HTMLImageElement) => element.decode());
+      const after = await image.boundingBox();
+      expect(after!.width).toBeCloseTo(before!.width, 0);
+      expect(after!.height).toBeCloseTo(before!.height, 0);
+    } finally {
+      releaseImage();
+    }
+  });
+
   for (const path of ROUTES) {
     test(`${path} stays under ${CLS_BUDGET} CLS through a full scroll`, async ({
       page,

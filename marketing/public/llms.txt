@@ -75,7 +75,7 @@
 ## Recipes
 
 - [Recipes hub](https://nodetool.ai/recipes): multi-step jobs: the workflows to run, in order, as one downloadable bundle.
-- [Viral Video Ad Engine](https://nodetool.ai/recipes/viral-video-ad-engine): A vertical product ad, plus the hook lines and thumbnails to test it against.
-- [Multilingual Video Dubber](https://nodetool.ai/recipes/multilingual-video-dubber): One presenter clip, spoken in a second language, with a lip-synced cut, subtitles, and a back-translation to check it.
-- [E-commerce SKU Visual Factory](https://nodetool.ai/recipes/ecommerce-sku-visual-factory): One packshot per SKU becomes the whole channel set: cutout, studio scene, seasonal relight, turntable clip, print master, and the listing copy.
-- [Storyboard to Trailer](https://nodetool.ai/recipes/storyboard-to-trailer): A logline becomes a beat sheet, a numbered shot list, a cut teaser, and a score under it.
+- [Product Photo to Video Ad](https://nodetool.ai/recipes/viral-video-ad-engine): Turn a product photo into a vertical video ad, with hooks and thumbnails for your next test.
+- [Dub Your Video for a New Market](https://nodetool.ai/recipes/multilingual-video-dubber): Translate your presenter clip into another language, with a new voice, lip-sync, and subtitle text.
+- [One Packshot. A Full Product Set.](https://nodetool.ai/recipes/ecommerce-sku-visual-factory): Create studio shots, seasonal lighting, a turntable clip, and listing copy from one product photo. Upscale your chosen image for print.
+- [Turn Your Story into a Trailer](https://nodetool.ai/recipes/storyboard-to-trailer): Take a film idea from beat sheet to shot list to a cut teaser with a score.

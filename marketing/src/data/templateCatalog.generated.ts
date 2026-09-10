@@ -34,7 +34,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "a-poster-in-portrait",
         "name": "A Poster in Portrait",
-        "description": "A 3:4 print-oriented frame. Generating at the final aspect ratio avoids the crop that otherwise loses whichever edge the composition needed.",
+        "description": "Generate a 3:4 portrait poster from a prompt. Change the subject, colors, and style to make your own.",
         "tags": [
           "image"
         ]
@@ -166,7 +166,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "cut-a-product-out-of-its-background",
         "name": "Cut a Product Out of Its Background",
-        "description": "The first step of every catalogue pipeline: isolate the product so it can sit on any background the channel requires. Bria returns a real alpha channel rather than a white matte, so the edge survives compositing.",
+        "description": "Remove the background and adjust edge softness without blurring the product. Set edge softness to 0 to keep the original cutout.",
         "tags": [
           "image"
         ]
@@ -366,7 +366,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "put-a-product-on-a-studio-backdrop",
         "name": "Put a Product on a Studio Backdrop",
-        "description": "Cut the product out, then place it in a described setting. The placement step is an instruction-following edit model rather than strength-based image-to-image: a strength value cannot say \"keep this object, change everything else\", and any setting high enough to build the backdrop also redraws the product — the thing a customer is actually buying.",
+        "description": "Remove the background, soften the cutout edge, and place the product in a new studio scene.",
         "tags": [
           "image"
         ]
@@ -415,7 +415,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "take-a-product-shot-to-print-resolution",
         "name": "Take a Product Shot to Print Resolution",
-        "description": "Web assets are rarely big enough for print. Upscaling at the end of the pipeline costs one call, where shooting or generating everything at print size costs it on every draft.",
+        "description": "Upscale the approved product photo, then sharpen fine detail with an adjustable, light finishing pass. Set sharpness to 0 to disable it.",
         "tags": [
           "image"
         ]
@@ -489,7 +489,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "ai-spokesperson",
         "name": "AI Spokesperson",
-        "description": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
+        "description": "Turn a script into speech, normalise the volume, and soften the audio edges before syncing it to your presenter clip.",
         "tags": [
           "video",
           "audio",
@@ -632,7 +632,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "music-video-visualizer",
         "name": "Music Video Visualizer",
-        "description": "Turn any song into a mood-matched music video. Whisper transcribes the lyrics, an LLM creative director reads the emotional arc, writes one image prompt per frame, FLUX renders every frame, and they are stitched back to your original audio. Differentiator: a full transcribe → analyze → fan-out → render → reassemble media pipeline in a single graph — no chat box can do this. Cost note: generates one image per frame (default 8) plus a Whisper transcription, so a run costs several fal-ai calls.",
+        "description": "Turn a track into a sequence of AI visuals. Read the lyrics, generate matching scenes, fit each frame to 720p, and time the sequence to the audio.",
         "tags": [
           "video",
           "audio",
@@ -727,7 +727,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "score-a-silent-clip",
         "name": "Score a Silent Clip",
-        "description": "Give a clip a soundtrack. Describe the mood, Stable Audio on fal.ai writes a bed to match the clip's length, and the mix is laid under the original audio. Cheaper than the video templates — one audio generation per run.",
+        "description": "Generate a soundtrack to match your clip. Trim the music to the video length, normalise the volume, and add gentle fades before mixing.",
         "tags": [
           "video",
           "audio",
@@ -941,7 +941,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "localise-a-script-and-revoice-it",
         "name": "Localise a Script and Revoice It",
-        "description": "Translation and voice in one pass. The output is audio in the target language, which is what a localised cut actually needs — a translated document still leaves the recording to do.",
+        "description": "Translate a script into Spanish, generate speech, and even out the volume. Short fades soften the start and end without changing the timing.",
         "tags": [
           "text",
           "audio"
@@ -985,7 +985,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "narration-with-a-music-bed",
         "name": "Narration with a Music Bed",
-        "description": "Voice at full level, music at 0.35 underneath, mixed rather than replaced. The ratio is the entire craft of the thing.",
+        "description": "Voice a script over a quiet music bed. Match the music to the voiceover and fade the start and finish.",
         "tags": [
           "audio"
         ]
@@ -1031,7 +1031,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "put-a-voice-over-a-music-bed",
         "name": "Put a Voice Over a Music Bed",
-        "description": "Generate a bed, synthesise a voice, and lay one over the other. Overlay mixes both signals rather than replacing one with the other.",
+        "description": "Voice a script over a quiet music bed. Match the music to the voiceover and fade the start and finish.",
         "tags": [
           "audio"
         ]
@@ -1644,7 +1644,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "pull-a-field-out-of-json-text",
         "name": "Pull a Field out of JSON Text",
-        "description": "Model output often arrives as JSON inside a string. ExtractJSON reaches into it by path so you do not have to parse it by hand downstream.",
+        "description": "Read a value from JSON text using a dotted path. This example extracts the name Ada.",
         "tags": [
           "text",
           "data"

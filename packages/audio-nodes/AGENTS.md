@@ -8,14 +8,13 @@
 
 - **Never slice, trim, fade, concat, overlay, or measure audio on encoded
   container bytes.** Doing so corrupts the 44-byte WAV header into the signal.
-  Decode WAV → operate on PCM sample frames → re-encode. Keep a raw-byte fallback
-  for non-WAV input.
+  Decode → operate on PCM sample frames → re-encode. Reject undecodable input.
 - **Time-valued props are *seconds*, never byte offsets.** Convert with
   `frame = round(seconds * sampleRate)`. (Slice/Trim once treated seconds as byte
   counts and used the broken `if (end < 0) end = data.length` sentinel — see the
   bounds rules in [packages/AGENTS.md](../AGENTS.md#indices-bounds-and-numeric-guards).)
-- **Joining/overlaying two clips is only valid when their `sampleRate` and
-  `numChannels` match — assert it** before mixing in sample space.
+- **Align `sampleRate` and `numChannels` before joining or overlaying clips.**
+  Reject mismatched inputs when conversion is unavailable.
 - **`CreateSilence` must emit a real WAV** (`encodeWav(new Float32Array(frames), sampleRate, 1)`),
   not `new Uint8Array(length)` zero bytes with `duration` as a byte count.
 

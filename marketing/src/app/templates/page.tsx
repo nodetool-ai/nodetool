@@ -1,4 +1,5 @@
 import React from "react";
+import { templateSamples } from "@/data/templateSamples";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Boxes, Download } from "lucide-react";
@@ -158,9 +159,9 @@ export default function TemplatesHub() {
                     href={t.route}
                     className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 transition-colors hover:border-white/25"
                   >
-                    {t.thumbnail ? (
+                    {templateSamples[t.slug]?.image || templateSamples[t.slug]?.poster || t.thumbnail ? (
                       <Image
-                        src={t.thumbnail}
+                        src={templateSamples[t.slug]?.image || templateSamples[t.slug]?.poster || t.thumbnail!}
                         alt=""
                         width={640}
                         height={360}
