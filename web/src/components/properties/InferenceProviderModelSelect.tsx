@@ -1,3 +1,5 @@
+import { useModelProviderSetup } from "../../hooks/useModelProviderSetup";
+import useSelect from "../../hooks/nodes/useSelect";
 import { Text, FlexColumn } from "../ui_primitives";
 import { InferenceProvider, InferenceProviderModelValue } from "../../stores/ApiTypes";
 import { memo, useCallback, useMemo, useState } from "react";
@@ -45,7 +47,8 @@ const providerOptions = [
     { label: "Replicate", value: "replicate" },
     { label: "Sambanova", value: "sambanova" },
     { label: "Together", value: "together" },
-    { label: "Z.AI", value: "zai-org" }
+    { label: "Z.AI", value: "zai-org" },
+    { label: "Add providers…", value: "__add_providers" }
 ];
 
 const InferenceProviderModelSelect = ({
@@ -53,6 +56,15 @@ const InferenceProviderModelSelect = ({
   onChange,
   value: rawValue
 }: PropertyProps) => {
+    const [providerOpen, setProviderOpen] = useState(false);
+    const [modelOpen, setModelOpen] = useState(false);
+    const closeSelect = useSelect((s) => s.close);
+    const { openSetup } = useModelProviderSetup({
+      open: providerOpen || modelOpen,
+      onClose: closeSelect,
+      providerIds: ["huggingface"],
+      highlightSecretKey: "HF_TOKEN"
+    });
     const value = rawValue as { provider: InferenceProvider; model_id: string };
     const [provider, setProvider] = useState<InferenceProvider>(value.provider);
     const pipelineTag = useMemo(() => {
@@ -97,21 +109,23 @@ const InferenceProviderModelSelect = ({
     });
 
     const handleChangeProvider = useCallback((selectedValue: string) => {
+        if (selectedValue === "__add_providers") { openSetup(); return; }
         setProvider(selectedValue);
         onChange({
             type: property.type.type as InferenceProviderModelValue["type"],
             provider: selectedValue,
             model_id: ""
         });
-    }, [onChange, property.type]);
+    }, [onChange, property.type, openSetup]);
 
     const handleChangeModel = useCallback((selectedValue: string) => {
+        if (selectedValue === "__add_providers") { openSetup(); return; }
         onChange({
             type: property.type.type as InferenceProviderModelValue["type"],
             model_id: selectedValue,
             provider: provider
         });
-    }, [onChange, property.type, provider]);
+    }, [onChange, property.type, provider, openSetup]);
 
     const modelOptions = useMemo(() => {
         if (!models) {return [];}
@@ -128,6 +142,7 @@ const InferenceProviderModelSelect = ({
                     Provider
                 </Text>
                 <Select
+                    onOpenChange={setProviderOpen}
                     options={providerOptions}
                     value={value.provider}
                     onChange={handleChangeProvider}
@@ -141,7 +156,8 @@ const InferenceProviderModelSelect = ({
                         Model
                     </Text>
                     <Select
-                        options={modelOptions}
+                        onOpenChange={setModelOpen}
+                        options={[...modelOptions, { value: "__add_providers", label: "Add providers…" }]}
                         value={value.model_id}
                         onChange={handleChangeModel}
                         placeholder={

@@ -1,6 +1,7 @@
 import type { OnboardingCapability } from "../../stores/ProviderOnboardingStore";
 import { isElectron, isLocalhost } from "../../lib/env";
 
+import meshyIcon from "../../icons/providers/meshy-color.svg";
 import openaiIcon from "../../icons/providers/openai.svg";
 import anthropicIcon from "../../icons/providers/anthropic.svg";
 import geminiColorIcon from "../../icons/providers/gemini-color.svg";
@@ -56,6 +57,13 @@ export interface OnboardingProvider {
  * because they're the easiest to connect (no key to copy).
  */
 export const ONBOARDING_PROVIDERS: OnboardingProvider[] = [
+  {
+    id: "meshy", name: "Meshy", secretKey: "MESHY_API_KEY", icon: meshyIcon,
+    tagline: "Generate 3D models from text or images.",
+    capabilities: ["text_to_3d", "image_to_3d"],
+    keyUrl: "https://docs.meshy.ai/", pricingUrl: "https://www.meshy.ai/pricing",
+    costHint: "Usage is billed to your Meshy account."
+  },
   {
     id: "openai",
     name: "OpenAI",
@@ -221,7 +229,9 @@ export const CAPABILITY_LABELS = {
   automatic_speech_recognition: "speech-to-text",
   text_to_music: "music generation",
   text_to_video: "video generation",
-  generate_embedding: "embeddings"
+  generate_embedding: "embeddings",
+  text_to_3d: "3D generation",
+  image_to_3d: "3D generation from images"
 } satisfies Record<OnboardingCapability, string>;
 
 /**
@@ -243,7 +253,11 @@ export const providersForCapability = (
   const matches = capability
     ? available.filter((p) => p.capabilities.includes(capability))
     : available;
-  return [...matches].sort(
+  return matches.map((provider) =>
+    provider.id === "openai" && capability && capability !== "generate_message"
+      ? { ...provider, oauth: undefined }
+      : provider
+  ).sort(
     (a, b) => Number(b.recommended ?? false) - Number(a.recommended ?? false)
   );
 };

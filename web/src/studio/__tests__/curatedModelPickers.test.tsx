@@ -3,10 +3,14 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../__mocks__/themeMock";
+import { useProviders } from "../../hooks/useProviders";
+import { useProviderOnboardingStore } from "../../stores/ProviderOnboardingStore";
 import ImageModelSelect from "../../components/properties/ImageModelSelect";
 import VideoModelSelect from "../../components/properties/VideoModelSelect";
 import { StudioProvider } from "../StudioContext";
 import { STUDIO_STILL_MODELS, STUDIO_CLIP_MODELS } from "../curatedModels";
+
+jest.mock("../../hooks/useProviders");
 
 jest.mock("../../components/model_menu/ImageModelMenuDialog", () => ({
   __esModule: true,
@@ -55,6 +59,8 @@ const inWorkspace = (ui: React.ReactElement) =>
 describe("Studio curated model pickers", () => {
   beforeEach(() => {
     spendableModels = null;
+    useProviderOnboardingStore.setState({ open: false });
+    jest.mocked(useProviders).mockReturnValue({ providers: [{ provider: "nodetool", capabilities: ["text_to_image", "text_to_video", "text_to_speech"], access: "remote_api", display_name: "NodeTool" }], isLoading: false, isFetching: false, error: null });
   });
 
   it("offers only the curated stills, and the full browser outside Studio", async () => {
@@ -66,9 +72,9 @@ describe("Studio curated model pickers", () => {
 
     await user.click(screen.getByRole("combobox"));
     const options = screen.getAllByRole("option");
-    expect(options).toHaveLength(STUDIO_STILL_MODELS.length);
+    expect(options).toHaveLength(STUDIO_STILL_MODELS.length + 1);
 
-    await user.click(options[options.length - 1]);
+    await user.click(options[options.length - 2]);
     expect(onChange).toHaveBeenCalledWith(
       STUDIO_STILL_MODELS[STUDIO_STILL_MODELS.length - 1].value
     );
@@ -85,7 +91,7 @@ describe("Studio curated model pickers", () => {
       option.tasks.includes("image_to_image")
     );
     expect(editable.length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("option")).toHaveLength(editable.length);
+    expect(screen.getAllByRole("option")).toHaveLength(editable.length + 1);
   });
 
   it("offers only the curated clips", async () => {
@@ -96,8 +102,24 @@ describe("Studio curated model pickers", () => {
 
     await user.click(screen.getByRole("combobox"));
     expect(screen.getAllByRole("option")).toHaveLength(
-      STUDIO_CLIP_MODELS.length
+      STUDIO_CLIP_MODELS.length + 1
     );
+  });
+
+  it("opens task-specific setup from the add-providers option", async () => {
+    inStudio(<ImageModelSelect value={STUDIO_STILL_MODELS[0].id} onChange={jest.fn()} />);
+    await userEvent.click(screen.getByRole("combobox"));
+    await userEvent.click(screen.getByRole("option", { name: "Add providers…" }));
+    expect(useProviderOnboardingStore.getState()).toMatchObject({ open: true, capability: "text_to_image" });
+    expect(screen.getByRole("combobox")).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("opens setup automatically when no image provider is configured", async () => {
+    jest.mocked(useProviders).mockReturnValue({ providers: [], isLoading: false, isFetching: false, error: null });
+    inStudio(<ImageModelSelect value="" onChange={jest.fn()} />);
+    expect(useProviderOnboardingStore.getState().open).toBe(false);
+    await userEvent.click(screen.getByRole("combobox"));
+    expect(useProviderOnboardingStore.getState()).toMatchObject({ open: true, capability: "text_to_image" });
   });
 
   it("keeps the full model browser outside the Studio shell", () => {
@@ -119,7 +141,7 @@ describe("Studio curated model pickers", () => {
 
     await user.click(screen.getByRole("combobox"));
     const options = screen.getAllByRole("option");
-    expect(options).toHaveLength(1);
+    expect(options).toHaveLength(2);
     expect(options[0]).toHaveTextContent(STUDIO_STILL_MODELS[0].label);
   });
 

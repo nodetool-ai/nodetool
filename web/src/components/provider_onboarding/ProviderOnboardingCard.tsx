@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState, useId } from "react";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import LoginIcon from "@mui/icons-material/Login";
@@ -10,8 +10,6 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import {
   Box,
   Caption,
-  Card,
-  Chip,
   EditorButton,
   FlexColumn,
   FlexRow,
@@ -20,7 +18,8 @@ import {
   TextInput,
   BORDER_RADIUS,
   MOTION,
-  SPACING
+  SPACING,
+  reducedMotion
 } from "../ui_primitives";
 import { useOAuthConnection } from "../../hooks/useOAuthConnection";
 import { OAuthManualCompletionDialog } from "../oauth/OAuthManualCompletionDialog";
@@ -48,6 +47,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
   defaultExpanded = false
 }) => {
   const theme = useTheme();
+  const keyFieldId = useId();
   const oauth = useOAuthConnection(provider.oauth ?? null);
   const updateSecret = useSecretsStore((s) => s.updateSecret);
   const validateSecret = useSecretsStore((s) => s.validateSecret);
@@ -94,7 +94,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
    */
   const handleSaveKey = useCallback(async () => {
     const trimmed = keyValue.trim();
-    if (!trimmed) {
+    if (!trimmed || saving) {
       return;
     }
     setSaving(true);
@@ -119,12 +119,12 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [keyValue, validateSecret, persistKey, provider]);
+  }, [keyValue, validateSecret, persistKey, provider, saving]);
 
   /** Store a key the provider rejected — the user's call, not ours. */
   const handleSaveAnyway = useCallback(async () => {
     const trimmed = keyValue.trim();
-    if (!trimmed) {
+    if (!trimmed || saving) {
       return;
     }
     setSaving(true);
@@ -140,25 +140,21 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [keyValue, persistKey]);
+  }, [keyValue, persistKey, saving]);
 
   return (
-    <Card
-      variant="outlined"
-      padding="compact"
+    <FlexColumn
+      component="article"
+      aria-label={provider.name}
       sx={{
-        borderRadius: BORDER_RADIUS.lg,
-        border: `1px solid ${
-          isConnected
-            ? `rgba(${theme.vars.palette.success.mainChannel} / 0.5)`
-            : theme.vars.palette.divider
-        }`,
-        backgroundColor: theme.vars.palette.background.paper,
-        transition: `${MOTION.border}, ${MOTION.background}`
+        p: SPACING.xl,
+        borderBottom: `1px solid ${theme.vars.palette.divider}`,
+        "&:last-child": { borderBottom: 0 },
+        backgroundColor: theme.vars.palette.background.paper
       }}
     >
       <FlexColumn gap={SPACING.sm}>
-        <FlexRow align="center" gap={SPACING.sm}>
+        <FlexRow align="center" gap={SPACING.lg} wrap>
           {/* Icon */}
           <FlexRow
             align="center"
@@ -188,46 +184,28 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
           </FlexRow>
 
           {/* Info */}
-          <FlexColumn sx={{ flex: 1, minWidth: 0 }} gap={SPACING.micro}>
+          <FlexColumn sx={{ flex: "1 1 180px", minWidth: 0 }} gap={SPACING.micro}>
             <FlexRow align="center" gap={SPACING.xs}>
-              <Text size="small" weight={600}>
+              <Text>
                 {provider.name}
               </Text>
-              {provider.oauth && !isConnected && (
-                <Chip
-                  label="1-click sign-in"
-                  compact
-                  variant="outlined"
-                  color="primary"
-                  sx={{ height: 18, fontWeight: 600 }}
-                />
-              )}
-              {provider.freeTier && !isConnected && (
-                <Chip
-                  label={provider.freeTier}
-                  compact
-                  variant="outlined"
-                  color="success"
-                  sx={{ height: 18, fontWeight: 600 }}
-                />
-              )}
             </FlexRow>
-            <Caption sx={{ opacity: 0.7, lineHeight: 1.4 }}>
+            <Caption size="small" sx={{ lineHeight: 1.5 }}>
               {provider.tagline}
             </Caption>
           </FlexColumn>
 
           {/* Actions */}
-          <FlexRow align="center" gap={SPACING.micro} sx={{ flexShrink: 0 }}>
+          <FlexRow align="center" gap={SPACING.md} wrap sx={{ marginLeft: "auto" }}>
             {isConnected ? (
               <FlexRow align="center" gap={SPACING.micro}>
                 <CheckCircleRoundedIcon
                   sx={{
-                    fontSize: 18,
+                    fontSize: "1.2em",
                     color: theme.vars.palette.success.main
                   }}
                 />
-                <Caption size="small" color="success" sx={{ fontWeight: 600 }}>
+                <Caption size="small">
                   Connected
                 </Caption>
               </FlexRow>
@@ -240,7 +218,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                     size="small"
                     startIcon={
                       oauth.isConnecting ? undefined : (
-                        <LoginIcon sx={{ fontSize: 14 }} />
+                        <LoginIcon sx={{ fontSize: "1.2em" }} />
                       )
                     }
                     onClick={oauth.connect}
@@ -252,22 +230,25 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                 {!provider.oauthOnly && (
                   <EditorButton
                     density="compact"
-                    variant={provider.oauth ? "outlined" : "contained"}
+                    variant="outlined"
                     size="small"
                     startIcon={
                       provider.oauth ? undefined : (
-                        <KeyRoundedIcon sx={{ fontSize: 14 }} />
+                        <KeyRoundedIcon sx={{ fontSize: "1.2em" }} />
                       )
                     }
                     endIcon={
                       <ExpandMoreRoundedIcon
                         sx={{
-                          fontSize: 16,
+                          fontSize: "1.2em",
                           transition: MOTION.transform,
+                          ...reducedMotion({ transition: MOTION.none }),
                           transform: expanded ? "rotate(180deg)" : "none"
                         }}
                       />
                     }
+                    aria-expanded={expanded}
+                    aria-controls={expanded ? keyFieldId : undefined}
                     onClick={() => setExpanded((v) => !v)}
                   >
                     {provider.oauth ? "Use API key" : "Add API key"}
@@ -280,10 +261,11 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
 
         {/* Inline API-key entry */}
         {expanded && !isConnected && !provider.oauthOnly && (
-          <FlexColumn gap={SPACING.xs} className="nodrag nowheel">
+          <FlexColumn id={keyFieldId} gap={SPACING.md} className="nodrag nowheel" sx={{ pt: SPACING.lg }}>
             <FlexRow gap={SPACING.xs} align="center">
               <TextInput
                 size="small"
+                label={`${provider.name} API key`}
                 type="password"
                 placeholder={`Paste your ${provider.name} API key`}
                 value={keyValue}
@@ -316,20 +298,20 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                 density="compact"
                 variant="text"
                 size="small"
-                endIcon={<OpenInNewIcon sx={{ fontSize: 13 }} />}
+                endIcon={<OpenInNewIcon sx={{ fontSize: "1.2em" }} />}
                 onClick={() =>
                   window.open(provider.keyUrl, "_blank", "noopener,noreferrer")
                 }
               >
                 Get a {provider.name} key
               </EditorButton>
-              <Caption size="smaller" sx={{ opacity: 0.6 }}>
+              <Caption size="smaller" >
                 {provider.costHint}
               </Caption>
             </FlexRow>
             {rejected && (
               <FlexRow align="center" gap={SPACING.xs} wrap>
-                <Caption size="small" color="error" sx={{ flex: 1 }}>
+                <Caption role="alert" size="small" color="error" sx={{ flex: 1 }}>
                   {rejected}
                 </Caption>
                 <EditorButton
@@ -344,7 +326,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
               </FlexRow>
             )}
             {saveError && (
-              <Caption size="small" color="error">
+              <Caption role="alert" size="small" color="error">
                 {saveError}
               </Caption>
             )}
@@ -358,7 +340,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
         onSubmit={oauth.submitManualCode}
         onCancel={oauth.cancelManual}
       />
-    </Card>
+    </FlexColumn>
   );
 };
 

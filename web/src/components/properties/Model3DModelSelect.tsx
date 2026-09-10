@@ -1,3 +1,4 @@
+import { useModelProviderSetup } from "../../hooks/useModelProviderSetup";
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "../../utils/isEqual";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
@@ -119,6 +120,12 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
     setAnchorEl(null);
   }, []);
 
+  const { openSetup } = useModelProviderSetup({
+    open: !!anchorEl,
+    onClose: handleClose,
+    capability: task ?? "text_to_3d"
+  });
+
   const handleModelSelect = useCallback(
     (model: Model3DModel) => {
       const modelToPass = {
@@ -178,7 +185,7 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
           <React.Fragment key={provider}>
             {index > 0 && <Divider />}
             <EditorMenuItem disabled sx={{ opacity: 1 }}>
-              <Caption color="secondary" sx={{ fontWeight: 600 }}>
+              <Caption color="secondary" >
                 {provider}
               </Caption>
             </EditorMenuItem>
@@ -192,6 +199,7 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
             ))}
           </React.Fragment>
         ))}
+        <EditorMenuItem onClick={openSetup}>Add providers</EditorMenuItem>
       </EditorMenu>
     </>
   );

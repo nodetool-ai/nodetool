@@ -49,6 +49,8 @@ const invalidateProviderDependentCaches = (): void => {
   queryClient.invalidateQueries({ queryKey: ["tts-models"] });
   queryClient.invalidateQueries({ queryKey: ["asr-models"] });
   queryClient.invalidateQueries({ queryKey: ["video-models"] });
+  queryClient.invalidateQueries({ queryKey: ["music-models"] });
+  queryClient.invalidateQueries({ queryKey: ["3d-models"] });
 };
 
 const useSecretsStore = create<SecretsStore>((set, get) => ({
