@@ -2,6 +2,9 @@ import Image from "next/image";
 import type { TemplateSample } from "@/data/templateSamples";
 
 export default function TemplateSampleFigure({ sample }: { sample: TemplateSample }) {
+  const imageWidth = sample.imageWidth ?? 1280;
+  const imageHeight = sample.imageHeight ?? 1020;
+
   return (
     <figure>
       {sample.inputText && (
@@ -11,7 +14,10 @@ export default function TemplateSampleFigure({ sample }: { sample: TemplateSampl
         </div>
       )}
       {sample.image && (
-        <div className={sample.inputImage ? "grid gap-4 md:grid-cols-2" : "mx-auto w-fit max-w-full"}>
+        <div
+          className={sample.inputImage ? "grid gap-4 md:grid-cols-2" : "mx-auto max-w-full"}
+          style={sample.inputImage ? undefined : { width: Math.min(imageWidth, (imageWidth / imageHeight) * 640) }}
+        >
           {[
             { src: sample.inputImage, label: "Input photo" },
             { src: sample.image, label: "Result" },
@@ -22,9 +28,9 @@ export default function TemplateSampleFigure({ sample }: { sample: TemplateSampl
                 <Image
                   src={src}
                   alt={label === "Input photo" ? label : sample.caption || "Workflow result"}
-                  width={label === "Input photo" ? 1024 : sample.imageWidth ?? 1280}
-                  height={label === "Input photo" ? 816 : sample.imageHeight ?? 1020}
-                  className={sample.inputImage ? "aspect-[5/4] w-full object-contain" : "mx-auto h-auto max-h-[640px] w-auto max-w-full object-contain"}
+                  width={label === "Input photo" ? 1024 : imageWidth}
+                  height={label === "Input photo" ? 816 : imageHeight}
+                  className={sample.inputImage ? "aspect-[5/4] w-full object-contain" : "h-auto w-full object-contain"}
                 />
               </div>
             </div>
