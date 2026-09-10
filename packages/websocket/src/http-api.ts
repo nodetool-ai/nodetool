@@ -638,6 +638,7 @@ export async function handleWorkflowRun(
     // cold-start bootstrap failure must not turn that into a 500.
     environment: () => getWorkflowRuntimeEnvironment(options),
     params: body?.params ?? {},
+    projectId: body?.project_id ?? null,
     background: body?.background ?? false,
     interactive: body?.interactive === true,
     // The server's own import site, so a test that mocks it still governs.
@@ -1179,6 +1180,8 @@ export async function handleWorkflowImportBundle(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+  let projectId =
+    new URL(request.url).searchParams.get("project_id") ?? "default";
 
   let zipBytes: Uint8Array | null = null;
   const contentType = request.headers.get("content-type") ?? "";
@@ -1186,6 +1189,10 @@ export async function handleWorkflowImportBundle(
     try {
       const fd = await request.formData();
       const file = fd.get("file") as File | null;
+      const formProjectId = fd.get("project_id");
+      if (typeof formProjectId === "string" && formProjectId) {
+        projectId = formProjectId;
+      }
       if (file) {
         zipBytes = new Uint8Array(await file.arrayBuffer());
       }
@@ -1201,6 +1208,13 @@ export async function handleWorkflowImportBundle(
   if (!zipBytes) {
     return errorResponse(400, "A .nodetool bundle file is required");
   }
+  if (projectId !== "default") {
+    try {
+      await Project.requireOwned(userId, projectId);
+    } catch {
+      return errorResponse(400, "Project not found");
+    }
+  }
 
   let result: Awaited<ReturnType<typeof importWorkflowBundle>>;
   try {
@@ -1211,6 +1225,7 @@ export async function handleWorkflowImportBundle(
           name: fileName,
           content_type: assetType,
           parent_id: userId,
+          project_id: projectId,
           size: bytes.byteLength
         })) as Asset;
         const storedName = getAssetFileName(asset.id, asset.content_type);
@@ -1623,6 +1638,7 @@ export async function handleExtractAudio(
     content_type: "audio/wav",
     parent_id: source.id,
     workflow_id: source.workflow_id ?? null,
+    project_id: source.project_id,
     node_id: null,
     job_id: null,
     metadata: null,

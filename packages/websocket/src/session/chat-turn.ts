@@ -602,6 +602,8 @@ export class ChatTurnHandler {
         const asset = new Asset({
           user_id: userId,
           workflow_id: workflowId ?? null,
+          project_id:
+            (await Project.findByThread(userId, threadId))?.id ?? "default",
           name: `image_${Date.now()}`,
           content_type: mimeType,
           // Home — see the chat media generation path.
@@ -2731,6 +2733,7 @@ export class ChatTurnHandler {
     const threadId = isString(data.thread_id) ? data.thread_id : "";
     const workflowId = isString(data.workflow_id) ? data.workflow_id : null;
     const userId = this.session.requireUserId();
+    const projectId = (await Project.findByThread(userId, threadId))?.id ?? null;
     const mode = String(mediaGeneration.mode ?? "");
     // The media composer's own selection first; a client without a separate
     // media picker (mobile) sends only the message-level one. The built-in
@@ -2825,6 +2828,7 @@ export class ChatTurnHandler {
       origin: { surface: "chat", thread_id: threadId || null },
       threadId,
       workflowId: workflowId ?? null,
+      projectId,
       assetNamePrefix: mode,
       signal
     });

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { createLogger } from "@nodetool-ai/config";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
-import { Asset, Prediction } from "@nodetool-ai/models";
+import { Asset, Prediction, Project } from "@nodetool-ai/models";
 import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
 import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
 import {
@@ -75,6 +75,8 @@ export interface DirectMediaGenerationRequest {
   requestId?: string;
   capability?: "reference_to_video";
   referenceImages?: unknown[];
+  /** Project captured when the request was accepted. */
+  projectId?: string | null;
 }
 
 /**
@@ -507,6 +509,9 @@ export class DirectInferenceHandler {
       throw new Error("prompt is required");
     }
     const userId = this.session.requireUserId();
+    if (req.projectId && req.projectId !== "default") {
+      await Project.requireOwned(userId, req.projectId);
+    }
     const provider = await this.session.resolveProvider(req.provider, userId);
     if (req.provider !== "nodetool") {
       // BYOK: the user's own keys, never metered.
@@ -608,6 +613,7 @@ export class DirectInferenceHandler {
       provider,
       origin: { surface: "rpc", request_id: req.requestId ?? null },
       workflowId: null,
+      projectId: req.projectId ?? null,
       assetNamePrefix: req.mode,
       // The row names the RPC mode the way it always did.
       nodeType: () => `direct.${req.mode}`,
