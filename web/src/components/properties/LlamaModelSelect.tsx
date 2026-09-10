@@ -1,3 +1,4 @@
+import { useModelProviderSetup } from "../../hooks/useModelProviderSetup";
 import React, { useState, useCallback, useMemo, useRef, memo } from "react";
 import isEqual from "../../utils/isEqual";
 
@@ -56,6 +57,13 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
   const handleClose = useCallback(() => {
     setAnchorEl(null);
   }, []);
+
+  const { openSetup } = useModelProviderSetup({
+    open: !!anchorEl,
+    onClose: handleClose,
+    capability: "generate_message",
+    providerIds: ["ollama"]
+  });
 
   const handleModelSelect = useCallback(
     (repoId: string) => {
@@ -164,6 +172,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
             </EditorMenuItem>
           ))
         )}
+        <EditorMenuItem onClick={openSetup}>Add providers</EditorMenuItem>
       </EditorMenu>
     </>
   );

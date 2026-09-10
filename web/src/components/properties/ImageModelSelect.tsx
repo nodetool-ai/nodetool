@@ -129,6 +129,7 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
   if (inStudio) {
     return (
       <CuratedModelSelect
+        capability="text_to_image"
         label="Image model"
         options={forTasks(STUDIO_STILL_MODELS, task)}
         value={value}

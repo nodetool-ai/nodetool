@@ -95,6 +95,7 @@ function HuggingFaceModelMenuDialog({
 
   return (
     <ModelMenuDialogBase<ImageModel>
+      setupProviderIds={["huggingface", "huggingface-local"]}
       open={open}
       anchorEl={anchorEl}
       onClose={onClose}

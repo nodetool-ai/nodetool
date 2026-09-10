@@ -92,9 +92,10 @@ describe("ProviderOnboardingDialog", () => {
 
   it("leads with a Claude and OpenAI sign-in", () => {
     renderDialog();
-    const heading = screen.getByText(/sign in — fastest way to start/i);
+    const heading = screen.getByText(/sign in with your account/i);
     expect(heading).toBeInTheDocument();
-    expect(screen.getByText(/one click with .*openai.*claude/i)).toBeInTheDocument();
+    expect(screen.getByText("OpenAI")).toBeInTheDocument();
+    expect(screen.getByText("Claude")).toBeInTheDocument();
     expect(
       screen.getAllByRole("button", { name: /^sign in$/i }).length
     ).toBeGreaterThanOrEqual(2);

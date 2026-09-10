@@ -25,7 +25,6 @@ import {
   FlexRow,
   Text,
   Caption,
-  Tooltip,
   EditorButton,
   Dialog,
   TextInput,
@@ -36,6 +35,7 @@ import {
   CollapsibleSection,
   BORDER_RADIUS,
   MOTION,
+  reducedMotion,
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
@@ -67,7 +67,10 @@ const getParentProviderMeta = (key: string): ProviderMeta | undefined => {
   return meta;
 };
 
-const areAllFieldsConfigured = (meta: ProviderMeta, configuredKeys: Set<string>): boolean => {
+const areAllFieldsConfigured = (
+  meta: ProviderMeta,
+  configuredKeys: Set<string>
+): boolean => {
   if (!meta.fields) {
     return configuredKeys.has(meta.key);
   }
@@ -133,7 +136,7 @@ export const ProviderCard = memo(function ProviderCard({
     return !providers.some((p) => credentialedProviderIds.has(p.provider));
   }, [credentialedProviderIds, providers, providersLoading]);
 
-  const statusTone = isUnavailable ? "warning" : isConnected ? "success" : "error";
+  const statusTone = isUnavailable ? "warning" : "secondary";
   const statusLabel = isUnavailable
     ? "Unavailable"
     : isConnected
@@ -163,123 +166,103 @@ export const ProviderCard = memo(function ProviderCard({
   }, [validateSecret, meta.key]);
 
   return (
-    <Card
-      variant="outlined"
-      padding="compact"
+    <FlexColumn
+      component="article"
+      aria-label={meta.name}
+      gap={SPACING.lg}
       sx={{
-        display: "flex",
-        // Stack on mobile (<sm) so the status band + action buttons drop below
-        // the icon/info instead of overflowing the narrow row. Pure CSS
-        // breakpoints keep this a layout concern with no per-card matchMedia.
-        flexDirection: { xs: "column", sm: "row" },
-        alignItems: { xs: "stretch", sm: "center" },
-        gap: theme.spacing(3),
-        borderRadius: BORDER_RADIUS.lg,
-        border: `1px solid ${theme.vars.palette.divider}`,
-        backgroundColor: theme.vars.palette.background.paper,
-        transition: `${MOTION.border}, ${MOTION.background}`,
-        "&:hover": {
-          borderColor: theme.vars.palette.grey[700],
-          backgroundColor: theme.vars.palette.action.hover
-        }
+        padding: SPACING.xl,
+        borderBottom: `1px solid ${theme.vars.palette.divider}`,
+        "&:last-child": { borderBottom: 0 }
       }}
     >
-      {/* Icon + info stay a row even when the card stacks on mobile. */}
-      <FlexRow align="center" gap={3} sx={{ flex: 1, minWidth: 0 }}>
-      {/* Icon */}
-      <FlexRow
-        align="center"
-        justify="center"
-        sx={{
-          width: PROVIDER_ICON_CHIP_PX,
-          height: PROVIDER_ICON_CHIP_PX,
-          minWidth: PROVIDER_ICON_CHIP_PX,
-          borderRadius: BORDER_RADIUS.lg,
-          backgroundColor: theme.vars.palette.background.default,
-          overflow: "hidden"
-        }}
-      >
-        {meta.icon ? (
-          <Box
-            component="img"
-            src={meta.icon}
-            alt={meta.name}
-            sx={{
-              width: PROVIDER_ICON_GLYPH_PX,
-              height: PROVIDER_ICON_GLYPH_PX,
-              objectFit: "contain",
-              ...(meta.mono && theme.applyStyles("dark", {
-                filter: "invert(1)"
-              }))
-            }}
-          />
-        ) : (
-          <Text size="big" weight={600}>
-            {meta.name.charAt(0)}
-          </Text>
-        )}
-      </FlexRow>
-
-      {/* Info */}
-      <FlexColumn sx={{ flex: 1, minWidth: 0, gap: getSpacingPx(SPACING.micro), justifyContent: "center" }}>
-        <FlexRow align="center" gap={0.5}>
-          <Text size="small" weight={600}>
-            {meta.name}
-          </Text>
-          {meta.tag && (
-            <Chip
-              label={meta.tag}
-              compact
-              variant="outlined"
-              color="primary"
+      <FlexRow align="flex-start" gap={SPACING.lg} sx={{ minWidth: 0 }}>
+        <FlexRow
+          align="center"
+          justify="center"
+          sx={{
+            width: PROVIDER_ICON_CHIP_PX,
+            height: PROVIDER_ICON_CHIP_PX,
+            minWidth: PROVIDER_ICON_CHIP_PX,
+            borderRadius: BORDER_RADIUS.lg,
+            backgroundColor: theme.vars.palette.background.default,
+            overflow: "hidden"
+          }}
+        >
+          {meta.icon ? (
+            <Box
+              component="img"
+              src={meta.icon}
+              alt=""
               sx={{
-                height: 18,
-                fontWeight: 600,
-                borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.4)`
+                width: PROVIDER_ICON_GLYPH_PX,
+                height: PROVIDER_ICON_GLYPH_PX,
+                objectFit: "contain",
+                ...(meta.mono &&
+                  theme.applyStyles("dark", {
+                    filter: "invert(1)"
+                  }))
               }}
             />
+          ) : (
+            <Text size="big" weight={600}>
+              {meta.name.charAt(0)}
+            </Text>
           )}
         </FlexRow>
-        <Caption sx={{ opacity: 0.55, lineHeight: 1.4 }}>
-          {meta.description}
-        </Caption>
-        {meta.note && (
-          <Caption
-            size="smaller"
-            sx={{
-              opacity: 0.45,
-              lineHeight: 1.4
-            }}
-          >
-            {meta.note}
+
+        <FlexColumn
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            gap: getSpacingPx(SPACING.micro),
+            justifyContent: "center"
+          }}
+        >
+          <FlexRow align="center" gap={SPACING.md} wrap>
+            <Text>{meta.name}</Text>
+            {meta.tag && (
+              <Chip
+                label={meta.tag}
+                compact
+                variant="outlined"
+                color="primary"
+                sx={{
+                  height: 18,
+                  borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.4)`
+                }}
+              />
+            )}
+          </FlexRow>
+          <Caption size="small" sx={{ lineHeight: 1.5 }}>
+            {meta.description}
           </Caption>
-        )}
-      </FlexColumn>
+          {meta.note && (
+            <Caption
+              size="smaller"
+              sx={{
+                lineHeight: 1.4
+              }}
+            >
+              {meta.note}
+            </Caption>
+          )}
+        </FlexColumn>
       </FlexRow>
 
-      {/* Status + Actions — one vertically centered band. On mobile it drops
-          below the icon/info and spreads full width, letting the action
-          buttons wrap instead of overflowing. */}
       <FlexRow
-        align="center"
-        gap={3}
-        sx={{
-          flexShrink: 0,
-          flexWrap: "wrap",
-          justifyContent: { xs: "space-between", sm: "flex-start" }
-        }}
+        align="flex-start"
+        gap={SPACING.lg}
+        wrap
+        sx={{ justifyContent: "space-between" }}
       >
-        <FlexColumn
-          gap={1}
-          sx={{ alignItems: { xs: "flex-start", sm: "flex-end" } }}
-        >
+        <FlexColumn gap={1} sx={{ minWidth: 0, flex: "1 1 160px" }}>
           <FlexRow
             align="center"
-            gap={1}
+            gap={SPACING.md}
+            wrap
             sx={{
-              padding: theme.spacing(0.5, 2),
-              borderRadius: BORDER_RADIUS.pill,
-              backgroundColor: `rgba(${theme.vars.palette[statusTone].mainChannel} / 0.1)`
+              minHeight: 28
             }}
           >
             <span
@@ -287,7 +270,11 @@ export const ProviderCard = memo(function ProviderCard({
                 width: STATUS_DOT_PX,
                 height: STATUS_DOT_PX,
                 borderRadius: BORDER_RADIUS.circle,
-                backgroundColor: theme.vars.palette[statusTone].main,
+                backgroundColor:
+                  isConnected || isUnavailable
+                    ? theme.vars.palette[isUnavailable ? "warning" : "success"]
+                        .main
+                    : theme.vars.palette.text.secondary,
                 display: "inline-block"
               }}
             />
@@ -295,29 +282,30 @@ export const ProviderCard = memo(function ProviderCard({
               size="smaller"
               color={statusTone}
               sx={{
-                fontWeight: 500,
                 lineHeight: 1.6,
                 whiteSpace: "nowrap"
               }}
             >
               {statusLabel}
             </Caption>
+            {hasKey && !isUnavailable && secret.updated_at && (
+              <Caption size="smaller" sx={{ whiteSpace: "nowrap" }}>
+                Updated {new Date(secret.updated_at).toLocaleDateString()}
+              </Caption>
+            )}
           </FlexRow>
           {oauth.isConnected && !meta.oauthOnly && (
             <FlexRow
               align="center"
               gap={1}
               sx={{
-                padding: theme.spacing(0.5, 2),
-                borderRadius: BORDER_RADIUS.pill,
-                backgroundColor: `rgba(${theme.vars.palette.success.mainChannel} / 0.1)`
+                minWidth: 0
               }}
             >
               <Caption
                 size="smaller"
-                color="success"
+                color="secondary"
                 sx={{
-                  fontWeight: 500,
                   lineHeight: 1.6,
                   whiteSpace: "nowrap"
                 }}
@@ -333,17 +321,11 @@ export const ProviderCard = memo(function ProviderCard({
               sx={{
                 lineHeight: 1.5,
                 maxWidth: 280,
-                textAlign: { xs: "left", sm: "right" }
+                overflowWrap: "anywhere"
               }}
             >
               {hasKey ? "Key stored" : "Signed in"}, but this server does not
               offer {meta.name}. Its models stay out of the model menu.
-            </Caption>
-          )}
-          {hasKey && !isUnavailable && secret.updated_at && (
-            <Caption size="smaller" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
-              Last used{" "}
-              {new Date(secret.updated_at).toLocaleDateString()}
             </Caption>
           )}
           {testResult && (
@@ -359,59 +341,59 @@ export const ProviderCard = memo(function ProviderCard({
               sx={{
                 lineHeight: 1.5,
                 maxWidth: 280,
-                textAlign: { xs: "left", sm: "right" }
+                overflowWrap: "anywhere"
               }}
             >
               {testResult.message}
             </Caption>
           )}
-          {!isConnected && (
-            <Caption size="smaller" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
-              {meta.oauthOnly
-                ? "Sign in to get started."
-                : "Add your API key to get started."}
-            </Caption>
-          )}
         </FlexColumn>
 
-        <FlexRow align="center" gap={0.5} sx={{ flexWrap: "wrap" }}>
+        <FlexRow
+          align="center"
+          gap={SPACING.md}
+          wrap
+          sx={{ justifyContent: "flex-end" }}
+        >
           <EditorButton
             density="compact"
             variant="text"
             size="small"
-            endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
-            onClick={() => window.open(meta.docsUrl, "_blank", "noopener,noreferrer")}
+            endIcon={<OpenInNewIcon sx={{ fontSize: "1.2em" }} />}
+            onClick={() =>
+              window.open(meta.docsUrl, "_blank", "noopener,noreferrer")
+            }
           >
             Docs
           </EditorButton>
 
           {meta.oauth &&
-            (oauth.isConnected
-              ? oauth.canDisconnect && (
-                  <EditorButton
-                    density="compact"
-                    variant="text"
-                    size="small"
-                    startIcon={<LinkOffIcon sx={{ fontSize: 14 }} />}
-                    onClick={oauth.disconnect}
-                  >
-                    Disconnect
-                  </EditorButton>
-                )
-              : (
-                  <EditorButton
-                    density="compact"
-                    variant="outlined"
-                    size="small"
-                    startIcon={<LoginIcon sx={{ fontSize: 14 }} />}
-                    onClick={oauth.connect}
-                    disabled={oauth.isConnecting}
-                  >
-                    {oauth.isConnecting
-                      ? "Connecting…"
-                      : `Sign in with ${meta.name}`}
-                  </EditorButton>
-                ))}
+            (oauth.isConnected ? (
+              oauth.canDisconnect && (
+                <EditorButton
+                  density="compact"
+                  variant="text"
+                  size="small"
+                  startIcon={<LinkOffIcon sx={{ fontSize: "1.2em" }} />}
+                  onClick={oauth.disconnect}
+                >
+                  Disconnect
+                </EditorButton>
+              )
+            ) : (
+              <EditorButton
+                density="compact"
+                variant="outlined"
+                size="small"
+                startIcon={<LoginIcon sx={{ fontSize: "1.2em" }} />}
+                onClick={oauth.connect}
+                disabled={oauth.isConnecting}
+              >
+                {oauth.isConnecting
+                  ? "Connecting…"
+                  : `Sign in with ${meta.name}`}
+              </EditorButton>
+            ))}
 
           {meta.oauthOnly ? null : hasKey ? (
             <>
@@ -432,20 +414,19 @@ export const ProviderCard = memo(function ProviderCard({
               >
                 Manage
               </EditorButton>
-              <Tooltip title="Delete key">
-                <ToolbarIconButton
-                  icon={<DeleteIcon fontSize="small" />}
-                  size="small"
-                  color="error"
-                  onClick={handleDelete}
-                  aria-label={`Delete ${meta.name} API key`}
-                />
-              </Tooltip>
+              <ToolbarIconButton
+                tooltip="Delete key"
+                icon={<DeleteIcon fontSize="small" />}
+                size="small"
+                color="error"
+                onClick={handleDelete}
+                aria-label={`Delete ${meta.name} API key`}
+              />
             </>
           ) : (
             <EditorButton
               density="compact"
-              variant="contained"
+              variant="outlined"
               size="small"
               onClick={handleConnect}
             >
@@ -461,178 +442,20 @@ export const ProviderCard = memo(function ProviderCard({
         onSubmit={oauth.submitManualCode}
         onCancel={oauth.cancelManual}
       />
-    </Card>
+    </FlexColumn>
   );
 });
 
-/* ------------------------------------------------------------------ */
-//  Hero — provider logo wall
-/* ------------------------------------------------------------------ */
-
-// A curated row of recognizable provider logos, shown at the top of the page
-// to make the empty/first-run state feel alive. Purely decorative; the name,
-// icon and mono flag come from the catalog entry so they cannot drift from the
-// card below.
-const HERO_LOGO_KEYS = [
-  "OPENAI_API_KEY",
-  "ANTHROPIC_API_KEY",
-  "GEMINI_API_KEY",
-  "MISTRAL_API_KEY",
-  "GROQ_API_KEY",
-  "HF_TOKEN",
-  "XAI_API_KEY",
-  "DEEPSEEK_API_KEY",
-  "COHERE_API_KEY",
-  "FAL_API_KEY",
-  "REPLICATE_API_TOKEN",
-  "ELEVENLABS_API_KEY"
-];
-
-const HERO_LOGOS: Array<{ name: string; icon: string; mono?: boolean }> =
-  HERO_LOGO_KEYS.flatMap((key) => {
-    const meta = getProviderMeta(key);
-    return meta?.icon
-      ? [{ name: meta.name, icon: meta.icon, mono: meta.mono }]
-      : [];
-  });
-
-const ProviderHero = memo(function ProviderHero({ theme }: { theme: Theme }) {
+const ProviderHero = memo(function ProviderHero() {
   return (
-    <Card
-      variant="outlined"
-      padding="comfortable"
-      sx={{
-        borderRadius: BORDER_RADIUS.xl,
-        border: `1px solid ${theme.vars.palette.divider}`,
-        background: `linear-gradient(135deg, rgba(${theme.vars.palette.primary.mainChannel} / 0.1) 0%, rgba(${theme.vars.palette.primary.mainChannel} / 0.02) 45%, ${theme.vars.palette.background.paper} 100%)`,
-        overflow: "hidden"
-      }}
-    >
-      <FlexColumn gap={2}>
-        <Text size="big" weight={600}>
-          Models &amp; Providers
-        </Text>
-        <Caption sx={{ opacity: 0.65, lineHeight: 1.5, maxWidth: 520 }}>
-          Connect the AI providers you want to use. NodeTool unlocks their
-          language, image, video, audio, and embedding models across the editor
-          and your workflows.
-        </Caption>
-        <FlexRow gap={1.5} sx={{ flexWrap: "wrap", marginTop: theme.spacing(1) }}>
-          {HERO_LOGOS.map((logo) => (
-            <Tooltip key={logo.name} title={logo.name}>
-              <FlexRow
-                align="center"
-                justify="center"
-                sx={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: BORDER_RADIUS.lg,
-                  border: `1px solid ${theme.vars.palette.divider}`,
-                  backgroundColor: theme.vars.palette.background.paper,
-                  transition: `${MOTION.transform}, ${MOTION.border}`,
-                  "&:hover": {
-                    transform: "translateY(-2px)",
-                    borderColor: theme.vars.palette.primary.main
-                  }
-                }}
-              >
-                <Box
-                  component="img"
-                  src={logo.icon}
-                  alt={logo.name}
-                  sx={{
-                    width: 22,
-                    height: 22,
-                    objectFit: "contain",
-                    ...(logo.mono &&
-                      theme.applyStyles("dark", { filter: "invert(1)" }))
-                  }}
-                />
-              </FlexRow>
-            </Tooltip>
-          ))}
-        </FlexRow>
-      </FlexColumn>
-    </Card>
-  );
-});
-
-/* ------------------------------------------------------------------ */
-//  Get Started banner
-/* ------------------------------------------------------------------ */
-
-const GetStartedBanner = memo(function GetStartedBanner({
-  theme
-}: {
-  theme: Theme;
-}) {
-  return (
-    <Card
-      variant="outlined"
-      padding="comfortable"
-      sx={{
-        borderRadius: BORDER_RADIUS.xl,
-        border: `1px solid ${theme.vars.palette.divider}`,
-        backgroundColor: theme.vars.palette.background.paper,
-        marginBottom: theme.spacing(6)
-      }}
-    >
-      <FlexRow justify="space-between" align="flex-start" gap={2} wrap>
-        <FlexColumn sx={{ maxWidth: 280 }}>
-          <Text size="normal" weight={600} sx={{ marginBottom: theme.spacing(1) }}>
-            Get started
-          </Text>
-          <Caption sx={{ opacity: 0.6, lineHeight: 1.5 }}>
-            Connect a provider to unlock powerful models and features.
-          </Caption>
-        </FlexColumn>
-
-        <FlexRow gap={2} align="flex-start" sx={{ flexWrap: "wrap" }}>
-          {[
-            {
-              num: 1,
-              title: "Choose a provider",
-              desc: "Select the provider you want to use."
-            },
-            {
-              num: 2,
-              title: "Add your API key",
-              desc: "Paste your key securely and test the connection."
-            },
-            {
-              num: 3,
-              title: "Start building",
-              desc: "Use models in the editor and build workflows."
-            }
-          ].map((step) => (
-            <FlexRow key={step.num} align="flex-start" gap={1}>
-              <FlexRow
-                align="center"
-                justify="center"
-                sx={{
-                  width: 28,
-                  height: 28,
-                  minWidth: 28,
-                  borderRadius: BORDER_RADIUS.circle,
-                  border: `1px solid ${theme.vars.palette.divider}`,
-                  fontSize: theme.fontSizeSmall,
-                  fontWeight: 600,
-                  color: theme.vars.palette.text.secondary
-                }}
-              >
-                {step.num}
-              </FlexRow>
-              <FlexColumn sx={{ maxWidth: 160 }}>
-                <Text size="smaller" weight={600}>{step.title}</Text>
-                <Caption sx={{ opacity: 0.5, lineHeight: 1.4, fontSize: theme.fontSizeSmaller }}>
-                  {step.desc}
-                </Caption>
-              </FlexColumn>
-            </FlexRow>
-          ))}
-        </FlexRow>
-      </FlexRow>
-    </Card>
+    <FlexColumn gap={SPACING.md}>
+      <Text component="h2" size="big">
+        Models &amp; Providers
+      </Text>
+      <Text color="secondary" sx={{ maxWidth: "65ch" }}>
+        Connect your accounts or add API keys to use models in your workflows.
+      </Text>
+    </FlexColumn>
   );
 });
 
@@ -650,18 +473,18 @@ const SectionTitle = memo(function SectionTitle({
   theme: Theme;
 }) {
   return (
-    <FlexRow align="center" gap={0.75} sx={{ marginBottom: theme.spacing(3) }}>
-      <Text size="normal" weight={600}>
+    <FlexRow
+      align="center"
+      gap={SPACING.md}
+      sx={{ marginBottom: theme.spacing(3) }}
+    >
+      <Text component="h3" size="big">
         {title}
       </Text>
       <Caption
         size="small"
         sx={{
-          opacity: 0.5,
-          fontWeight: 600,
-          backgroundColor: theme.vars.palette.action.selected,
-          padding: theme.spacing(0.5, 2),
-          borderRadius: BORDER_RADIUS.sm
+          fontVariantNumeric: "tabular-nums"
         }}
       >
         {count}
@@ -674,11 +497,8 @@ const SectionTitle = memo(function SectionTitle({
 //  Constants
 /* ------------------------------------------------------------------ */
 
-// Provider card icon sizing. 48px chip + 28px glyph + 18px status dot keep the
-// row visually balanced; previously these were bare numbers sprinkled across
-// the JSX.
-const PROVIDER_ICON_CHIP_PX = 48;
-const PROVIDER_ICON_GLYPH_PX = 28;
+const PROVIDER_ICON_CHIP_PX = 40;
+const PROVIDER_ICON_GLYPH_PX = 24;
 const STATUS_DOT_PX = 6;
 
 const SECTION_ORDER = ["popular", "language", "media", "gateways", "search", "compute", "advanced"] as const;
@@ -947,13 +767,8 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
   }, [connected, configuredBySection, unconfiguredBySection]);
 
   return (
-    <FlexColumn sx={{ gap: "1.5rem" }}>
-      <ProviderHero theme={theme} />
-
-      {/* Show the onboarding banner only until the user connects their first
-          provider — once anything is configured, the Connected Providers
-          section above makes the banner redundant. */}
-      {connected.length === 0 && <GetStartedBanner theme={theme} />}
+    <FlexColumn gap={SPACING.xxl}>
+      <ProviderHero />
 
       {/* Google Workspace has no API key — access rides on the Google login.
           Renders nothing when the backend does not offer the integration. */}
@@ -974,7 +789,14 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
             count={connected.length}
             theme={theme}
           />
-          <FlexColumn sx={{ gap: theme.spacing(2) }}>
+          <FlexColumn
+            sx={{
+              border: `1px solid ${theme.vars.palette.divider}`,
+              borderRadius: BORDER_RADIUS.lg,
+              backgroundColor: theme.vars.palette.background.paper,
+              overflow: "hidden"
+            }}
+          >
             {connected.map(({ secret, meta }) => (
               <ProviderCard
                 key={meta.key}
@@ -1019,7 +841,14 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
               count={allInSection.length}
               theme={theme}
             />
-            <FlexColumn sx={{ gap: theme.spacing(2) }}>
+            <FlexColumn
+              sx={{
+                border: `1px solid ${theme.vars.palette.divider}`,
+                borderRadius: BORDER_RADIUS.lg,
+                backgroundColor: theme.vars.palette.background.paper,
+                overflow: "hidden"
+              }}
+            >
               {allInSection.map(({ secret, meta }) => (
                 <ProviderCard
                   key={meta.key}
@@ -1048,7 +877,14 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
               open={forceAdvancedOpen || advancedOpen}
               onToggle={setAdvancedOpen}
             >
-              <FlexColumn sx={{ gap: theme.spacing(2) }}>
+              <FlexColumn
+                sx={{
+                  border: `1px solid ${theme.vars.palette.divider}`,
+                  borderRadius: BORDER_RADIUS.lg,
+                  backgroundColor: theme.vars.palette.background.paper,
+                  overflow: "hidden"
+                }}
+              >
                 {allInSection.map(({ secret, meta }) => (
                   <ProviderCard
                     key={meta.key}
@@ -1070,81 +906,92 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
       <CustomProvidersSection />
 
       {/* Edit / Connect dialog */}
-      {editingSecret && (() => {
-        const meta = getParentProviderMeta(editingSecret.key);
-        const isMultiField = !!meta?.fields && meta.fields.length > 0;
-        const allFieldsFilled = isMultiField && meta?.fields
-          ? meta.fields.every((f) => formValues[f.key])
-          : formValue;
+      {editingSecret &&
+        (() => {
+          const meta = getParentProviderMeta(editingSecret.key);
+          const isMultiField = !!meta?.fields && meta.fields.length > 0;
+          const allFieldsFilled =
+            isMultiField && meta?.fields
+              ? meta.fields.every((f) => formValues[f.key])
+              : formValue;
 
-        return (
-          <Dialog
-            open={dialogOpen}
-            onClose={handleCloseDialog}
-            fullWidth
-            title={
-              <FlexRow align="center" gap={1}>
-                <LockIcon sx={{ color: "var(--palette-primary-main)", fontSize: 20 }} />
-                <Text size="normal" weight={600}>
-                  {editingSecret?.is_configured ? "Update" : "Connect"}{" "}
-                  {meta?.name || editingSecret.key}
-                </Text>
-              </FlexRow>
-            }
-            onConfirm={handleSave}
-            onCancel={handleCloseDialog}
-            confirmText={editingSecret?.is_configured ? "Update" : "Connect"}
-            cancelText="Cancel"
-            confirmDisabled={!allFieldsFilled}
-          >
-            <FlexColumn sx={{ marginTop: theme.spacing(4), gap: theme.spacing(3) }}>
-              {isMultiField ? (
-                <>
-                  {meta?.fields?.map((field) => (
+          return (
+            <Dialog
+              open={dialogOpen}
+              onClose={handleCloseDialog}
+              fullWidth
+              title={
+                <FlexRow align="center" gap={1}>
+                  <LockIcon
+                    sx={{
+                      color: "var(--palette-primary-main)",
+                      fontSize: "1.2em"
+                    }}
+                  />
+                  <Text size="big">
+                    {editingSecret?.is_configured ? "Update" : "Connect"}{" "}
+                    {meta?.name || editingSecret.key}
+                  </Text>
+                </FlexRow>
+              }
+              onConfirm={handleSave}
+              onCancel={handleCloseDialog}
+              confirmText={editingSecret?.is_configured ? "Update" : "Connect"}
+              cancelText="Cancel"
+              confirmDisabled={!allFieldsFilled}
+            >
+              <FlexColumn
+                sx={{ marginTop: theme.spacing(4), gap: theme.spacing(3) }}
+              >
+                {isMultiField ? (
+                  <>
+                    {meta?.fields?.map((field) => (
+                      <TextInput
+                        key={field.key}
+                        label={field.label}
+                        type={field.secret ? "password" : "text"}
+                        value={formValues[field.key] || ""}
+                        onChange={(e) =>
+                          setFormValues((prev) => ({
+                            ...prev,
+                            [field.key]: e.target.value
+                          }))
+                        }
+                        fullWidth
+                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                        autoFocus={field.key === meta.fields?.[0]?.key}
+                        variant="outlined"
+                        size="small"
+                      />
+                    ))}
+                    <Caption sx={{}}>
+                      All fields will be encrypted and stored securely. Never
+                      share them publicly.
+                    </Caption>
+                  </>
+                ) : (
+                  <>
                     <TextInput
-                      key={field.key}
-                      label={field.label}
-                      type={field.secret ? "password" : "text"}
-                      value={formValues[field.key] || ""}
-                      onChange={(e) =>
-                        setFormValues((prev) => ({
-                          ...prev,
-                          [field.key]: e.target.value
-                        }))
-                      }
+                      label="API Key"
+                      type="password"
+                      value={formValue}
+                      onChange={(e) => setFormValue(e.target.value)}
                       fullWidth
-                      placeholder={`Enter ${field.label.toLowerCase()}`}
-                      autoFocus={field.key === meta.fields?.[0]?.key}
+                      placeholder="Paste your API key here"
+                      autoFocus
                       variant="outlined"
                       size="small"
                     />
-                  ))}
-                  <Caption sx={{ opacity: 0.6 }}>
-                    All fields will be encrypted and stored securely. Never share them publicly.
-                  </Caption>
-                </>
-              ) : (
-                <>
-                  <TextInput
-                    label="API Key"
-                    type="password"
-                    value={formValue}
-                    onChange={(e) => setFormValue(e.target.value)}
-                    fullWidth
-                    placeholder="Paste your API key here"
-                    autoFocus
-                    variant="outlined"
-                    size="small"
-                  />
-                  <Caption sx={{ opacity: 0.6 }}>
-                    Your key will be encrypted and stored securely. Never share it publicly.
-                  </Caption>
-                </>
-              )}
-            </FlexColumn>
-          </Dialog>
-        );
-      })()}
+                    <Caption sx={{}}>
+                      Your key will be encrypted and stored securely. Never
+                      share it publicly.
+                    </Caption>
+                  </>
+                )}
+              </FlexColumn>
+            </Dialog>
+          );
+        })()}
 
       {/* Delete confirmation */}
       <ConfirmDialog
@@ -1179,24 +1026,25 @@ export const SecurityNotice = memo(function SecurityNotice() {
       <FlexRow align="flex-start" gap={1}>
         <ShieldIcon
           sx={{
-            fontSize: 18,
+            fontSize: "1.2em",
             color: theme.vars.palette.success.main,
             marginTop: theme.spacing(0.5),
             flexShrink: 0
           }}
         />
         <FlexColumn sx={{ minWidth: 0 }}>
-          <Text size="smaller" weight={600}>
-            Your secrets are safe
-          </Text>
-          <Caption size="smaller" sx={{ opacity: 0.6, lineHeight: 1.4, marginTop: theme.spacing(0.5) }}>
+          <Text size="small">Your secrets are safe</Text>
+          <Caption
+            size="smaller"
+            sx={{ lineHeight: 1.4, marginTop: theme.spacing(0.5) }}
+          >
             All API keys are encrypted in the database and never exposed.
           </Caption>
           <EditorButton
             density="compact"
             variant="text"
             size="small"
-            endIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />}
+            endIcon={<OpenInNewIcon sx={{ fontSize: "1.2em" }} />}
             onClick={() =>
               window.open(
                 "https://github.com/nodetool-ai/nodetool/blob/main/docs/security.md",
@@ -1223,19 +1071,19 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
 
   const quickLinks = [
     {
-      icon: <ModelTrainingIcon sx={{ fontSize: 18 }} />,
+      icon: <ModelTrainingIcon sx={{ fontSize: "1.2em" }} />,
       title: "Supported Models",
       subtitle: "See models by provider",
       href: docsLink("providers")
     },
     {
-      icon: <MenuBookIcon sx={{ fontSize: 18 }} />,
+      icon: <MenuBookIcon sx={{ fontSize: "1.2em" }} />,
       title: "API Documentation",
       subtitle: "Provider guides & links",
       href: docsUrl("providers")
     },
     {
-      icon: <HelpOutlineIcon sx={{ fontSize: 18 }} />,
+      icon: <HelpOutlineIcon sx={{ fontSize: "1.2em" }} />,
       title: "Troubleshooting",
       subtitle: "Common issues & fixes",
       href: docsLink("troubleshooting")
@@ -1262,7 +1110,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
           border: `1px solid ${theme.vars.palette.divider}`
         }}
       >
-        <Text size="small" weight={600} sx={{ marginBottom: theme.spacing(3) }}>
+        <Text size="small" sx={{ marginBottom: theme.spacing(3) }}>
           Quick Links
         </Text>
         <FlexColumn sx={{ gap: theme.spacing(0.5) }}>
@@ -1270,12 +1118,13 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
             <FlexRow
               key={link.title}
               align="center"
-              gap={0.75}
+              gap={SPACING.md}
               sx={{
                 padding: theme.spacing(2, 2),
                 borderRadius: BORDER_RADIUS.md,
                 cursor: "pointer",
                 transition: MOTION.background,
+                ...reducedMotion({ transition: MOTION.none }),
                 "&:hover": {
                   backgroundColor: theme.vars.palette.action.hover
                 }
@@ -1293,7 +1142,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
                 justify="center"
                 sx={{
                   color: theme.vars.palette.primary.main,
-                  fontSize: 18,
+                  fontSize: "1.2em",
                   width: 22,
                   flexShrink: 0
                 }}
@@ -1301,15 +1150,16 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
                 {link.icon}
               </FlexRow>
               <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
-                <Text size="smaller" weight={500}>{link.title}</Text>
-                <Caption sx={{ opacity: 0.5, fontSize: theme.fontSizeSmaller, lineHeight: 1.3 }}>
+                <Text size="small">{link.title}</Text>
+                <Caption
+                  sx={{ fontSize: theme.fontSizeSmaller, lineHeight: 1.3 }}
+                >
                   {link.subtitle}
                 </Caption>
               </FlexColumn>
               <Text
                 sx={{
                   color: theme.vars.palette.text.secondary,
-                  fontSize: 16,
                   flexShrink: 0,
                   marginLeft: theme.spacing(1)
                 }}
@@ -1333,13 +1183,11 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
       >
         <FlexRow align="center" gap={1} sx={{ marginBottom: theme.spacing(2) }}>
           <CardGiftcardIcon
-            sx={{ color: theme.vars.palette.primary.main, fontSize: 20 }}
+            sx={{ color: theme.vars.palette.primary.main, fontSize: "1.2em" }}
           />
-          <Text size="small" weight={600}>
-            Need API credits?
-          </Text>
+          <Text size="small">Need API credits?</Text>
         </FlexRow>
-        <Caption sx={{ opacity: 0.6, lineHeight: 1.5, marginBottom: theme.spacing(3) }}>
+        <Caption sx={{ lineHeight: 1.5, marginBottom: theme.spacing(3) }}>
           Get free credits and offers from our partner providers.
         </Caption>
         <EditorButton
@@ -1347,7 +1195,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
           variant="outlined"
           size="small"
           fullWidth
-          endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
+          endIcon={<OpenInNewIcon sx={{ fontSize: "1.2em" }} />}
           onClick={() =>
             window.open(
               "https://openrouter.ai/",

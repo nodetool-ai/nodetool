@@ -58,6 +58,7 @@ function TransformersJsModelMenuDialog({
 
   return (
     <ModelMenuDialogBase<ImageModel>
+      setupProviderIds={["transformers_js"]}
       open={open}
       anchorEl={anchorEl}
       onClose={onClose}

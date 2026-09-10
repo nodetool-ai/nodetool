@@ -170,6 +170,7 @@ export const useOAuthConnection = (
     if (isConnected) {
       setIsConnecting(false);
       setManualPrompt(null);
+      void queryClient.invalidateQueries({ queryKey: ["providers"] });
       addNotification({
         content: `Successfully connected to ${config.label}`,
         type: "success",
@@ -183,7 +184,7 @@ export const useOAuthConnection = (
         alert: true
       });
     }
-  }, [isConnecting, isConnected, isError, addNotification, config]);
+  }, [isConnecting, isConnected, isError, addNotification, config, queryClient]);
 
   const connect = useCallback(async () => {
     if (!provider || !config) {
@@ -298,6 +299,7 @@ export const useOAuthConnection = (
         throw new Error("Failed to disconnect");
       }
       await queryClient.invalidateQueries({ queryKey: tokenQueryKey });
+      await queryClient.invalidateQueries({ queryKey: ["providers"] });
       addNotification({
         content: `Disconnected from ${config.label}`,
         type: "success",

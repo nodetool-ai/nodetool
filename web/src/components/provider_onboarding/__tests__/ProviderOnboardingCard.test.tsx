@@ -82,7 +82,7 @@ describe("ProviderOnboardingCard", () => {
   it("shows a one-click sign-in for an OAuth provider", () => {
     renderCard(openai);
     expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
-    expect(screen.getByText(/1-click sign-in/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /use api key/i })).toHaveAttribute("aria-expanded", "false");
   });
 
   it("starts an OAuth flow when sign-in is clicked", async () => {

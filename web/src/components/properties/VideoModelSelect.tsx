@@ -50,6 +50,7 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   if (inStudio) {
     return (
       <CuratedModelSelect
+        capability="text_to_video"
         label="Video model"
         options={forTasks(STUDIO_CLIP_MODELS, task)}
         value={value}

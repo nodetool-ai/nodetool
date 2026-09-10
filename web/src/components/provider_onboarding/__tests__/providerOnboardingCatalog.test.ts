@@ -77,3 +77,18 @@ describe("providerOnboardingCatalog", () => {
     expect(ONBOARDING_PROVIDERS.some((p) => p.oauth === "claude")).toBe(true);
   });
 });
+
+it("offers API keys, not chat-only OpenAI OAuth, for media tasks", () => {
+  for (const capability of ["text_to_image", "text_to_speech", "generate_embedding"] as const) {
+    const openai = providersForCapability(capability).find((provider) => provider.id === "openai");
+    expect(openai).toBeDefined();
+    expect(openai?.oauth).toBeUndefined();
+  }
+  expect(providersForCapability("generate_message").find((provider) => provider.id === "openai")?.oauth).toBe("openai");
+});
+
+it("offers a connectable provider for both 3D tasks", () => {
+  for (const capability of ["text_to_3d", "image_to_3d"] as const) {
+    expect(providersForCapability(capability).some((provider) => provider.secretKey === "MESHY_API_KEY")).toBe(true);
+  }
+});

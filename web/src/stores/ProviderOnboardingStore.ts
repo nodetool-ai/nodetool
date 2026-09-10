@@ -13,7 +13,9 @@ export type OnboardingCapability =
   | "automatic_speech_recognition"
   | "text_to_music"
   | "text_to_video"
-  | "generate_embedding";
+  | "generate_embedding"
+  | "text_to_3d"
+  | "image_to_3d";
 
 interface OpenOptions {
   /** Feature the user was blocked on — filters and orders the provider list. */

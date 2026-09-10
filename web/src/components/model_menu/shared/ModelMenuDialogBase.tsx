@@ -18,8 +18,13 @@ import {
   List,
   ListItemButton,
   Popover,
-  Text
+  Text,
+  EditorButton,
+  SPACING
 } from "../../ui_primitives";
+import { capabilityForModelType, useModelProviderSetup } from "../../../hooks/useModelProviderSetup";
+import type { OnboardingCapability } from "../../../stores/ProviderOnboardingStore";
+import AddIcon from "@mui/icons-material/Add";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import CloseIcon from "@mui/icons-material/Close";
@@ -85,6 +90,8 @@ interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
    * ModelPreferencesStore. Omitted for pickers without a default modality.
    */
   modelType?: string;
+  setupCapability?: OnboardingCapability;
+  setupProviderIds?: readonly string[];
 }
 
 interface QuickViewButtonProps {
@@ -163,7 +170,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   storeHook,
   recommendedModels = [],
   modelPacks = [],
-  modelType
+  modelType,
+  setupCapability,
+  setupProviderIds
 }: ModelMenuBaseProps<TModel>) {
   const {
     models,
@@ -175,6 +184,13 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     refetch
   } = modelData;
 
+  const { openSetup } = useModelProviderSetup({
+    open,
+    onClose,
+    capability: setupCapability ?? capabilityForModelType(modelType),
+    providerIds: setupProviderIds ?? modelData.providers,
+    isLoading: isLoading || isFetching
+  });
   const isError = !!fetchedError;
   const theme = useTheme();
   // Below `sm` the 600x560 popover no longer fits, so the menu takes over the
@@ -751,7 +767,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             <Tooltip
               title={
                 <Box sx={{ maxWidth: 300 }}>
-                  <Caption sx={{ fontWeight: 600 }}>
+                  <Caption size="small">
                     Failed to load models from:
                   </Caption>
                   {providerErrors.map((pe) => (
@@ -767,7 +783,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             >
               <FlexRow gap={0.5} align="center" sx={{ cursor: "help" }}>
                 <WarningAmberIcon
-                  sx={{ fontSize: 16, color: "warning.main" }}
+                  sx={{ fontSize: "1.2em", color: "warning.main" }}
                 />
                 <Caption sx={{ color: "warning.main" }}>
                   {providerErrors.length} provider
@@ -780,6 +796,12 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       </Collapse>
 
       {body}
+      <FlexRow justify="space-between" align="center" sx={{ px: SPACING.lg, py: SPACING.md, flexShrink: 0, borderTop: `1px solid ${theme.vars.palette.divider}` }}>
+        <Caption>Missing a provider?</Caption>
+        <EditorButton variant="text" size="small" startIcon={<AddIcon />} onClick={openSetup}>
+          Add providers
+        </EditorButton>
+      </FlexRow>
     </Popover>
   );
 }

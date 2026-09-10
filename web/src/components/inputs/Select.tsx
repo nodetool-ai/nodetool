@@ -36,6 +36,7 @@ interface SelectProps {
    * Value differs from default — shows visual indicator (right border)
    */
   changed?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const ChevronIcon = ({ className }: { className?: string }) => (
@@ -64,7 +65,8 @@ const Select: React.FC<SelectProps> = ({
   placeholder,
   label,
   tabIndex,
-  changed
+  changed,
+  onOpenChange
 }) => {
   const theme = useTheme();
   const selectRef = useRef<HTMLDivElement>(null);
@@ -74,6 +76,9 @@ const Select: React.FC<SelectProps> = ({
   const { open, close, activeSelect, searchQuery, setSearchQuery } =
     useSelect();
   const id = useId();
+  useEffect(() => {
+    onOpenChange?.(activeSelect === id);
+  }, [activeSelect, id, onOpenChange]);
 
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [dropdownPosition, setDropdownPosition] = useState<{

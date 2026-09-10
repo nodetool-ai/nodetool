@@ -52,6 +52,9 @@ export interface SelectFieldProps {
   className?: string;
   /** Hide the label entirely (nothing rendered; the control keeps an aria-label) */
   hideLabel?: boolean;
+  open?: boolean;
+  onOpen?: () => void;
+  onClose?: () => void;
 }
 
 /**
@@ -106,7 +109,10 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
       size = "medium",
       variant = "outlined",
       className,
-      hideLabel = false
+      hideLabel = false,
+      open,
+      onOpen,
+      onClose
     },
     ref
   ) {
@@ -165,6 +171,9 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
             inputProps={
               !showLabel && label ? { "aria-label": label } : undefined
             }
+            open={open}
+            onOpen={onOpen}
+            onClose={onClose}
             value={value}
             onChange={handleChange}
             variant={variant}

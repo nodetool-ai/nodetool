@@ -173,6 +173,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
   if (inStudio) {
     return (
       <CuratedModelSelect
+        capability="text_to_speech"
         label="Voice"
         options={STUDIO_VOICES}
         value={selectedVoice}
