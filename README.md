@@ -7,7 +7,7 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 [![Powered by Atlas Cloud](https://www.atlascloud.ai/oss-program/powered-by-atlas-cloud.svg)](https://www.atlascloud.ai/?ref=PW9AD2)
 
-**Open-source creative AI workspace**
+**Agent-first creative workspace**
 
 Create and edit images, video, audio, and text with agents that work alongside
 you. Describe what you want, let the agent build it, then take over whenever you
