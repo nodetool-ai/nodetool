@@ -4,6 +4,7 @@ import {
   Prediction
 } from "@nodetool-ai/models";
 import type { RpcErrorPayload, WebSocketMode } from "@nodetool-ai/protocol";
+import { generateMediaDataSchema } from "@nodetool-ai/protocol";
 import { isSdkV1RetryableError } from "@nodetool-ai/protocol/api-schemas/sdk-v1.js";
 
 import {
@@ -35,6 +36,12 @@ import type {
 import type { RunJobRequest } from "./job-execution.js";
 
 const log = createLogger("nodetool.websocket.runner");
+const referenceMediaDataSchema = generateMediaDataSchema.pick({
+  capability: true,
+  reference_images: true,
+  reference_videos: true,
+  use_reference_video_audio: true
+});
 
 /** Highest `job_seq` a resubscribing client claims to already hold. */
 function resumeLastSeq(data: Record<string, unknown>): number {
@@ -827,10 +834,9 @@ export class CommandRouter {
       const audioFormat = isString(data.audio_format)
         ? (data.audio_format as string)
         : undefined;
-      const capability = data.capability === "reference_to_video" ? "reference_to_video" : undefined;
-      const referenceImages = Array.isArray(data.reference_images) ? data.reference_images : undefined;
-      return this.runRpc(command, requestId, () =>
-        inference.runDirectMediaGeneration({
+      return this.runRpc(command, requestId, () => {
+        const references = referenceMediaDataSchema.parse(data);
+        return inference.runDirectMediaGeneration({
           mode,
           provider,
           model,
@@ -849,11 +855,13 @@ export class CommandRouter {
           voice,
           speed,
           audioFormat,
-          capability,
-          referenceImages,
+          capability: references.capability,
+          referenceImages: references.reference_images,
+          referenceVideos: references.reference_videos,
+          useReferenceVideoAudio: references.use_reference_video_audio,
           requestId
-        })
-      );
+        });
+      });
     },
 
     transcribe_audio: async ({ command, data, requestId }) => {

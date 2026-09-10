@@ -219,6 +219,32 @@ describe("useShotCostEstimate", () => {
     expect(result.current?.cost).toBeCloseTo(0.2, 10);
   });
 
+  it("charges a reference shot for the clip only", () => {
+    mockPrice.mockReturnValue({
+      unit_price: 0.2,
+      billing_unit: "seconds",
+      currency: "USD",
+      source: "bundle"
+    });
+    act(() => {
+      useStoryboardStore.getState().setVideoModel(BOARD, {
+        type: "video_model",
+        id: "vid/model",
+        provider: "fal_ai" as never,
+        name: "Video"
+      });
+    });
+
+    const { result } = renderHook(() =>
+      useShotCostEstimate(BOARD, { ...shot, render_mode: "reference" })
+    );
+
+    expect(result.current.steps).toEqual([
+      expect.objectContaining({ label: "Clip" })
+    ]);
+    expect(result.current.cost).toBeCloseTo(0.2, 10);
+  });
+
   it("carries the catalog's assumptions and warnings into the notes", () => {
     mockPrice.mockReturnValue({
       unit_price: 0.2,

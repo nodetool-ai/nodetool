@@ -27,7 +27,7 @@ import React, {
   useRef,
   useState
 } from "react";
-import { shotRenderMode } from "@nodetool-ai/protocol";
+import { shotRenderMode, requiredVideoTasksForShots } from "@nodetool-ai/protocol";
 import type { Shot } from "@nodetool-ai/protocol";
 import AddIcon from "@mui/icons-material/Add";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -558,11 +558,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       : null;
   const stillStepActive = nextRenderStep === "stills";
   const clipStepActive = nextRenderStep === "clips";
-  const clipModelTask = shots.some((shot) => shotRenderMode(shot) === "reference")
-    ? "reference_to_video"
-    : shots.some((shot) => shotRenderMode(shot) === "direct")
-      ? "text_to_video"
-      : "image_to_video";
+  const clipModelTask = requiredVideoTasksForShots(shots);
   const missingModelStep = stillStepActive
     ? imageModel?.id
       ? null

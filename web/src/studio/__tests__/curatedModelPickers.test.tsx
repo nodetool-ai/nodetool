@@ -6,7 +6,11 @@ import mockTheme from "../../__mocks__/themeMock";
 import ImageModelSelect from "../../components/properties/ImageModelSelect";
 import VideoModelSelect from "../../components/properties/VideoModelSelect";
 import { StudioProvider } from "../StudioContext";
-import { STUDIO_STILL_MODELS, STUDIO_CLIP_MODELS } from "../curatedModels";
+import {
+  STUDIO_STILL_MODELS,
+  STUDIO_CLIP_MODELS,
+  forAllTasks
+} from "../curatedModels";
 
 jest.mock("../../components/model_menu/ImageModelMenuDialog", () => ({
   __esModule: true,
@@ -55,6 +59,18 @@ const inWorkspace = (ui: React.ReactElement) =>
 describe("Studio curated model pickers", () => {
   beforeEach(() => {
     spendableModels = null;
+  });
+
+  it("filters curated models by every requested task", () => {
+    const base = STUDIO_CLIP_MODELS[0];
+    const models = [
+      { ...base, id: "all", tasks: ["image_to_video", "text_to_video", "reference_to_video"] },
+      { ...base, id: "direct", tasks: ["text_to_video"] },
+      { ...base, id: "reference", tasks: ["reference_to_video"] }
+    ];
+    expect(forAllTasks(models, ["image_to_video", "text_to_video", "reference_to_video"]))
+      .toEqual([models[0]]);
+    expect(forAllTasks(models, [])).toEqual(models);
   });
 
   it("offers only the curated stills, and the full browser outside Studio", async () => {

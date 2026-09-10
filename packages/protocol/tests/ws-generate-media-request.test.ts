@@ -60,4 +60,35 @@ describe("generate_media request payload", () => {
     const parsed = generateMediaDataSchema.safeParse({ mode: "hologram" });
     expect(parsed.success).toBe(false);
   });
+
+  it("accepts ordered image and video references with guide audio", () => {
+    const frame: GenerateMediaRequest = {
+      mode: "video",
+      capability: "reference_to_video",
+      reference_images: [
+        { type: "image", asset_id: "image-2" },
+        { type: "image", uri: "asset://image-1.png" }
+      ],
+      reference_videos: [
+        { type: "video", asset_id: "video-2" },
+        { type: "video", uri: "asset://video-1.mov" }
+      ],
+      use_reference_video_audio: true
+    };
+    expect(generateMediaDataSchema.parse(frame)).toEqual(frame);
+  });
+
+  it.each([
+    { reference_images: "image-1" },
+    { reference_videos: "video-1" },
+    { reference_images: [{ type: "video", asset_id: "video-1" }] },
+    { reference_videos: [{ type: "image", asset_id: "image-1" }] },
+    { reference_videos: [null] },
+    { use_reference_video_audio: "false" },
+    { capability: "reference_to_image" }
+  ])("rejects malformed reference input %j", (input) => {
+    expect(
+      generateMediaDataSchema.safeParse({ mode: "video", ...input }).success
+    ).toBe(false);
+  });
 });

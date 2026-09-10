@@ -453,7 +453,9 @@ export const useMusicModelsByProvider = (): ModelsByProviderResult<MusicModel> =
  * Hook to fetch video models from all providers that support video generation.
  * Queries each provider in parallel for better performance.
  */
-export const useVideoModelsByProvider = (opts?: { task?: VideoModelTask }): ModelsByProviderResult<VideoModel> => {
+export const useVideoModelsByProvider = (opts?: {
+  task?: VideoModelTask | VideoModelTask[];
+}): ModelsByProviderResult<VideoModel> => {
   const { providers, isLoading: providersLoading } = useVideoProviders();
 
   const fetchModels = useCallback(
@@ -470,16 +472,20 @@ export const useVideoModelsByProvider = (opts?: { task?: VideoModelTask }): Mode
     fetchModels
   );
 
-  const videoTask = opts?.task;
-  const allModels = useMemo(
-    () =>
-      videoTask
-        ? aggregated.models.filter((m) =>
-            modelMatchesTask(m.supported_tasks, videoTask)
-          )
-        : aggregated.models,
-    [aggregated.models, videoTask]
-  );
+  const allModels = useMemo(() => {
+    const videoTask = opts?.task;
+    const videoTasks = Array.isArray(videoTask)
+      ? videoTask
+      : videoTask
+        ? [videoTask]
+        : [];
+    return videoTasks.length > 0
+      ? aggregated.models.filter((m) =>
+          (videoTasks.length === 1 || !!m.supported_tasks?.length) &&
+          videoTasks.every((task) => modelMatchesTask(m.supported_tasks, task))
+        )
+      : aggregated.models;
+  }, [aggregated.models, opts?.task]);
 
   const providerNames = useMemo(
     () => providers.map((p) => p.provider),

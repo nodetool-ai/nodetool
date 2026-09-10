@@ -22,6 +22,10 @@ const FAL_PKG = "@nodetool-ai/fal-nodes";
 const FAL_MANIFEST = "fal-manifest.json";
 const KIE_PKG = "@nodetool-ai/kie-nodes";
 const KIE_MANIFEST = "kie-manifest.json";
+const REPLICATE_PKG = "@nodetool-ai/replicate-nodes";
+const REPLICATE_MANIFEST = "replicate-manifest.json";
+const ATLAS_PKG = "@nodetool-ai/atlascloud-nodes";
+const ATLAS_MANIFEST = "atlascloud-manifest.json";
 
 describe("reference-to-video discovery and validation", () => {
   it("discovers shipped reference endpoints with generic media fields", () => {
@@ -56,6 +60,47 @@ describe("reference-to-video discovery and validation", () => {
     expect(fields.map((field) => field.apiName).sort()).toEqual(["reference_image_urls", "reference_video_urls"]);
   });
 
+  it("distinguishes Sora's optional first frame from role-specific references", () => {
+    const models = loadVideoModels(REPLICATE_PKG, REPLICATE_MANIFEST, "replicate");
+    expect(models.find((m) => m.id === "openai/sora-2")?.supportedTasks).toEqual([
+      "text_to_video",
+      "image_to_video"
+    ]);
+  });
+
+  it.each([
+    "google/veo-3.1",
+    "bytedance/seedance-1-lite",
+    "bytedance/seedance-2.0",
+    "bytedance/seedance-2.5"
+  ])("retains text and start-frame generation with optional references for %s", (id) => {
+    const models = loadVideoModels(REPLICATE_PKG, REPLICATE_MANIFEST, "replicate");
+    expect(models.find((model) => model.id === id)?.supportedTasks).toEqual([
+      "text_to_video", "image_to_video", "reference_to_video"
+    ]);
+  });
+
+  it("preserves distinct Wan 3.0 text, start-frame, and reference endpoints", () => {
+    const models = loadVideoModels(ATLAS_PKG, ATLAS_MANIFEST, "atlascloud");
+    for (const task of ["text_to_video", "image_to_video", "reference_to_video"]) {
+      const id = `alibaba/wan-3.0/${task.replaceAll("_", "-")}`;
+      expect(models.find((model) => model.id === id)?.supportedTasks).toEqual([task]);
+    }
+  });
+
+  it("keeps dedicated Veo, Seedance, and Wan reference endpoints reference-only", () => {
+    const models = loadVideoModels(ATLAS_PKG, ATLAS_MANIFEST, "atlascloud");
+    for (const id of [
+      "google/veo3.1/reference-to-video",
+      "bytedance/seedance-2.5/reference-to-video",
+      "alibaba/wan-3.0/reference-to-video"
+    ]) {
+      expect(models.find((m) => m.id === id)?.supportedTasks).toEqual([
+        "reference_to_video"
+      ]);
+    }
+  });
+
   it("uses only matching media kinds in malformed generated fields", () => {
     const fields = getModelReferenceInputs(FAL_PKG, FAL_MANIFEST, "wan/v2.6/reference-to-video/flash");
     expect(fields).toEqual([expect.objectContaining({ kind: "image", apiName: "image_urls", isList: true })]);
@@ -82,6 +127,31 @@ describe("reference-to-video discovery and validation", () => {
     ], "test");
     expect(models.find((m) => m.id === "explicit")?.supportedTasks).toEqual(["image_to_video", "reference_to_video"]);
     expect(models.find((m) => m.id === "required")?.supportedTasks).toEqual(["reference_to_video"]);
+  });
+
+  it("adds optional reference inputs without dropping text or image generation", () => {
+    const models = buildVideoModels([
+      {
+        endpointId: "optional-text",
+        className: "Optional Text to Video",
+        outputType: "video",
+        fields: [{ name: "reference_images", type: "list[image]" }]
+      },
+      {
+        endpointId: "optional-image",
+        className: "Optional Image to Video",
+        outputType: "video",
+        fields: [{ name: "reference_images", type: "list[image]" }]
+      }
+    ], "test");
+    expect(models.find((m) => m.id === "optional-text")?.supportedTasks).toEqual([
+      "text_to_video",
+      "reference_to_video"
+    ]);
+    expect(models.find((m) => m.id === "optional-image")?.supportedTasks).toEqual([
+      "image_to_video",
+      "reference_to_video"
+    ]);
   });
 
   it("validates empty, unsupported, required, and bounded references", () => {

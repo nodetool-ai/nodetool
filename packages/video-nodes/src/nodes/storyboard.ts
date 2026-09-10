@@ -28,7 +28,7 @@ import {
   probeVideoDurationSeconds,
   resolveEntities
 } from "@nodetool-ai/runtime";
-import { shotRenderMode } from "@nodetool-ai/protocol";
+import { shotRenderMode, requiredVideoTasksForShots } from "@nodetool-ai/protocol";
 import type {
   Entity,
   ImageRef,
@@ -94,6 +94,7 @@ interface ModelSelectionLike {
   type?: string;
   provider?: string;
   id?: string;
+  supported_tasks?: string[];
 }
 
 interface StoryboardRefLike {
@@ -266,7 +267,7 @@ function resolveModel(
   override: ModelSelectionLike | undefined,
   kind: "still" | "clip",
   capability: string
-): ModelChoice {
+): ModelChoice & { supportedTasks?: string[] } {
   const provider =
     override?.provider && override.provider !== "empty"
       ? override.provider
@@ -286,7 +287,16 @@ function resolveModel(
       } input (find_model with capability=${capability} lists the choices).`
     );
   }
-  return { provider, model };
+  return {
+    provider,
+    model,
+    supportedTasks:
+      override?.id && override.id !== ""
+        ? override.supported_tasks
+        : Array.isArray(boardModel?.["supported_tasks"])
+          ? boardModel["supported_tasks"].filter(isString)
+          : undefined
+  };
 }
 
 /**
@@ -1042,6 +1052,34 @@ export class RenderClipsNode extends BaseNode {
         ? "text_to_video"
         : "image_to_video"
     );
+    const requiredTasks = requiredVideoTasksForShots(doc.shots);
+    let supportedTasks = model.supportedTasks;
+    try {
+      const provider = await ctx.getProvider(model.provider);
+      const discovered = await provider.getAvailableVideoModels();
+      supportedTasks = discovered.find((entry) => entry.id === model.model)?.supportedTasks;
+    } catch (error) {
+      if (requiredTasks.length > 1) {
+        throw new Error(
+          `Could not verify video model ${model.provider}/${model.model} against the storyboard's mixed shot modes before rendering.`,
+          { cause: error }
+        );
+      }
+      // Single-mode legacy providers may not implement model discovery.
+    }
+    if (requiredTasks.length > 1 && !supportedTasks?.length) {
+      throw new Error(
+        `Could not verify video model ${model.provider}/${model.model} against the storyboard's mixed shot modes before rendering.`
+      );
+    }
+    if (
+      supportedTasks &&
+      requiredTasks.some((task) => !supportedTasks.includes(task))
+    ) {
+      throw new Error(
+        `Video model ${model.provider}/${model.model} does not support every shot mode on this storyboard. Required capabilities: ${requiredTasks.join(", ")}.`
+      );
+    }
     const entities = await loadBoardEntities(ctx, doc);
     const targets = asTargets(this.targets);
     // A linked board times its shots from the words they cover, so a clip is

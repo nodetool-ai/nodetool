@@ -382,6 +382,7 @@ export interface VideoModelValue {
   id: string;
   provider: Provider;
   name: string;
+  supported_tasks?: string[];
 }
 
 export interface TTSModelValue {

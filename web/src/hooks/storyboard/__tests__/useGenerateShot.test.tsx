@@ -21,11 +21,13 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
 // these arrays per scenario.
 const mockEntities: unknown[] = [];
 const mockImageModels: Array<{ id: string; supported_tasks?: string[] }> = [];
+const mockVideoModels: Array<{ id: string; provider: string; supported_tasks?: string[] }> = [];
 jest.mock("../../../serverState/useEntities", () => ({
   useEntities: () => ({ data: mockEntities })
 }));
 jest.mock("../../useModelsByProvider", () => ({
-  useImageModelsByProvider: () => ({ models: mockImageModels })
+  useImageModelsByProvider: () => ({ models: mockImageModels }),
+  useVideoModelsByProvider: () => ({ models: mockVideoModels })
 }));
 // The clip render reads the linked script to time the shot; this stands in for
 // the tRPC round trip.
@@ -69,10 +71,59 @@ beforeEach(() => {
   send.mockResolvedValue(undefined);
   mockEntities.length = 0;
   mockImageModels.length = 0;
+  mockVideoModels.length = 0;
   __resetStartingShotsForTests();
   useStoryboardGenerationStore.getState().clear(shot.id);
   useStoryboardStore.getState().ensureBoard(BOARD);
   useStoryboardStore.getState().upsertShot(BOARD, shot);
+});
+
+describe("mixed-mode clip generation", () => {
+  const boardId = "mixed-modes";
+  const videoModel = { type: "video_model" as const, id: "mixed-model", provider: "fal_ai" as const, name: "Mixed" };
+  const shots: Shot[] = [
+    { ...shot, id: "mixed-keyframe", render_mode: "keyframe", keyframe: { type: "image", asset_id: "start" } },
+    { ...shot, id: "mixed-direct", render_mode: "direct" },
+    { ...shot, id: "mixed-reference", render_mode: "reference" }
+  ];
+
+  beforeEach(() => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(boardId);
+    store.setVideoModel(boardId, videoModel);
+    store.setEntityIds(boardId, [location.id]);
+    mockEntities.push(location);
+    for (const value of shots) {
+      store.upsertShot(boardId, value);
+      useStoryboardGenerationStore.getState().clear(value.id);
+    }
+  });
+
+  it.each([undefined, ["reference_to_video"], ["text_to_video", "image_to_video"]])(
+    "refuses the whole mixed board before sending any shot with tasks %j", async (supported_tasks) => {
+      mockVideoModels.push({ id: videoModel.id, provider: videoModel.provider, supported_tasks });
+      const { result } = renderHook(() => useGenerateShot());
+      await act(async () => {
+        for (const value of shots) {
+          await expect(result.current.generateClip(boardId, value)).rejects.toThrow("every shot mode");
+        }
+      });
+      expect(send).not.toHaveBeenCalled();
+    }
+  );
+
+  it("sends each shot through its own task when the model supports all three", async () => {
+    mockVideoModels.push({ id: videoModel.id, provider: videoModel.provider, supported_tasks: ["text_to_video", "image_to_video", "reference_to_video"] });
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      for (const value of shots) await result.current.generateClip(boardId, value);
+    });
+    expect(send).toHaveBeenCalledTimes(3);
+    expect(send.mock.calls[0][0].data).toMatchObject({ source_asset_id: "start" });
+    expect(send.mock.calls[1][0].data.source_asset_id).toBeUndefined();
+    expect(send.mock.calls[1][0].data.capability).toBeUndefined();
+    expect(send.mock.calls[2][0].data).toMatchObject({ capability: "reference_to_video", reference_images: location.reference_images });
+  });
 });
 
 it("starts exactly one generation for concurrent generateKeyframe calls", async () => {

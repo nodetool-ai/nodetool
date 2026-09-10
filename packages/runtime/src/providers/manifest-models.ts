@@ -562,12 +562,20 @@ export function buildVideoModels(
     const declared = explicitTasks(n);
     const inferred = inferVideoTasks(name, id);
     const referenceInputs = manifestEntryReferenceInputs(n);
+    let tasks = declared ?? narrowTasksByRequiredInputs(inferred, n, "video");
     if (!declared && referenceInputs.length > 0 &&
-        !hasRequiredSourceMedia(n) && !inferred.includes("video_to_video")) {
-      inferred.splice(0, inferred.length, "reference_to_video");
+        !hasRequiredSourceMedia(n) && !tasks.includes("video_to_video")) {
+      const dedicatedReference = inferred.includes("reference_to_video");
+      const requiredReference = referenceInputs.some((field) => field.required === true);
+      if (dedicatedReference || requiredReference) {
+        tasks = ["reference_to_video"];
+      } else if (!tasks.includes("reference_to_video")) {
+        tasks = [...tasks, "reference_to_video"];
+      }
     }
-    const tasks = (declared ?? narrowTasksByRequiredInputs(inferred, n, "video"))
-      .filter((task) => task !== "reference_to_video" || referenceInputs.length > 0);
+    tasks = tasks.filter(
+      (task) => task !== "reference_to_video" || referenceInputs.length > 0
+    );
     if (tasks.length === 0) continue;
 
     const existing = seen.get(id);
@@ -685,6 +693,10 @@ function manifestEntryReferenceInputs(entry: ManifestNode): ModelMediaInput[] {
     inferVideoTasks(nodeName(entry), nodeId(entry)).includes("reference_to_video");
   return manifestEntryMediaInputs(entry).filter((field) => {
     const names = [field.name, field.apiName];
+    // Sora calls its optional first-frame input `input_reference`. It is the
+    // single start image used by image_to_video, not a role-specific reference
+    // array and must not opt the model into reference_to_video.
+    if (names.some((name) => /^input_reference$/i.test(name))) return false;
     if (field.kind === "image" && /video/i.test(field.apiName)) return false;
     if (field.kind === "video" && /image/i.test(field.apiName)) return false;
     if (names.some((name) => /reference|refers|subject/i.test(name))) return true;
