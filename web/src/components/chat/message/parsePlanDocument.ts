@@ -121,8 +121,14 @@ export const parsePlanDocument = (
       : record["executed"] === true
         ? true
         : null;
+  let parallelizableCount = 0;
+  for (let i = 0; i < tasks.length; i++) {
+    if (tasks[i].dependsOn.length === 0) {
+      parallelizableCount++;
+    }
+  }
   const parallelizable = isFiniteNumber(record["parallelizable"])
     ? record["parallelizable"]
-    : tasks.filter((task) => task.dependsOn.length === 0).length;
+    : parallelizableCount;
   return { title, tasks, executed, parallelizable };
 };
