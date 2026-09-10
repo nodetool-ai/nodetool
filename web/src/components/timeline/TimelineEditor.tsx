@@ -56,6 +56,7 @@ import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import { TopBar } from "./TopBar";
+import { TopBarPrompt } from "./TopBarPrompt";
 import { BottomStatusBar } from "./BottomStatusBar";
 import { PlayheadReadout } from "./PlayheadReadout";
 import { useTimelineCostEstimate } from "../../hooks/timeline/useTimelineCostEstimate";
@@ -516,6 +517,22 @@ const TimelineEditorBody: React.FC<
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useTimelineIsMobile();
+  const composerRef = useRef<HTMLDivElement>(null);
+  const [compactComposer, setCompactComposer] = useState(false);
+  useEffect(() => {
+    const element = composerRef.current;
+    if (!element) return;
+    const update = () => {
+      if (element.clientWidth > 0) {
+        setCompactComposer(element.clientWidth < 800);
+      }
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
 
   // Phone panel sheet (Inspector / Assistant / History / Script).
   const [panelSheetOpen, setPanelSheetOpen] = useState(false);
@@ -877,6 +894,20 @@ const TimelineEditorBody: React.FC<
           createSequenceErrorMessage={createErrorMessage}
           fullWidth={isMobile}
         />
+      </FlexRow>
+
+      <FlexRow
+        ref={composerRef}
+        fullWidth
+        sx={{
+          flexShrink: 0,
+          px: SPACING.md,
+          py: SPACING.sm,
+          backgroundColor: theme.vars.palette.background.paper,
+          borderBottom: `1px solid ${theme.vars.palette.divider}`
+        }}
+      >
+        <TopBarPrompt compact={isMobile || compactComposer} />
       </FlexRow>
 
       {/* ── Horizontal drag handle (pointer + keyboard resizable) ─── */}
