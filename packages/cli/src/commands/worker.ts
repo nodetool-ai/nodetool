@@ -31,7 +31,7 @@ import { getDefaultDbPath } from "@nodetool-ai/config";
 import { registerWorkerModelsCommands } from "./worker-models.js";
 import { printTable, asJson } from "./output.js";
 
-const SUPPORTED_TARGETS = ["runpod", "vast"] as const;
+const SUPPORTED_TARGETS = ["runpod", "vast", "verda"] as const;
 type SupportedTarget = (typeof SUPPORTED_TARGETS)[number];
 const TOKEN_POLICIES = ["generate", "fixed"] as const satisfies readonly TokenPolicy[];
 

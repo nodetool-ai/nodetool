@@ -66,7 +66,7 @@ describe("WorkerProfilesDialog", () => {
   });
 
   it("warns when the selected provider's API key is unavailable", async () => {
-    setup({ profiles: [], apiKeyStatus: { runpod: false, vast: false } });
+    setup({ profiles: [], apiKeyStatus: { runpod: false, vast: false, verda: false } });
 
     expect(screen.getByText(/No RUNPOD_API_KEY configured/i)).toBeInTheDocument();
 
@@ -77,7 +77,7 @@ describe("WorkerProfilesDialog", () => {
   });
 
   it("does not warn when the provider key is available (e.g. via env)", () => {
-    setup({ profiles: [], apiKeyStatus: { runpod: true, vast: true } });
+    setup({ profiles: [], apiKeyStatus: { runpod: true, vast: true, verda: true } });
     expect(screen.queryByText(/configured/i)).not.toBeInTheDocument();
   });
 

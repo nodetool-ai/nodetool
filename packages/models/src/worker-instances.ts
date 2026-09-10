@@ -20,7 +20,7 @@ import { createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workerInstances } from "./schema/workers.js";
 
-export type WorkerTarget = "runpod" | "vast";
+export type WorkerTarget = "runpod" | "vast" | "verda";
 
 /**
  * Salt for worker-token encryption. Worker tokens are not user-scoped (the

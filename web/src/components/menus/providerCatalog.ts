@@ -454,6 +454,20 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://docs.vast.ai/"
   },
   {
+    key: "VERDA_CLIENT_ID",
+    name: "Verda",
+    description: "Cloud API client id for renting GPU instances as workers.",
+    section: "compute",
+    docsUrl: "https://docs.verda.com/welcome-to-verda/api-credentials/"
+  },
+  {
+    key: "VERDA_CLIENT_SECRET",
+    name: "Verda (secret)",
+    description: "Cloud API client secret, paired with the Verda client id.",
+    section: "compute",
+    docsUrl: "https://docs.verda.com/welcome-to-verda/api-credentials/"
+  },
+  {
     key: "LLAMA_API_KEY",
     providerId: PROVIDER_IDS.LLAMA_CPP,
     name: "llama.cpp",
