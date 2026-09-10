@@ -55,6 +55,10 @@ export const CREATE_WORKFLOW_SCHEMA: JsonSchema = {
       type: "string",
       enum: ["private", "public"],
       default: "private"
+    },
+    project_id: {
+      type: "string",
+      description: "Project to own the workflow. Defaults to this agent run's project."
     }
   },
   required: ["name", "graph"]

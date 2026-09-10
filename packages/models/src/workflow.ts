@@ -63,6 +63,7 @@ export type WorkflowUpdateFields = Partial<{
   path: string | null;
   run_mode: string | null;
   workspace_id: string | null;
+  project_id: string;
   html_app: string | null;
   app_doc: Record<string, unknown> | null;
   receive_clipboard: boolean | null;
@@ -268,14 +269,16 @@ export class Workflow extends DBModel {
       access?: AccessLevel;
       runMode?: WorkflowRunMode | string;
       tag?: string;
+      projectId?: string;
       startKey?: string;
     } = {}
   ): Promise<[Workflow[], string]> {
-    const { limit = 50, access, runMode, tag, startKey } = opts;
+    const { limit = 50, access, runMode, tag, projectId, startKey } = opts;
     const db = getDb();
 
     const conditions = [eq(workflows.user_id, userId)];
     if (access) conditions.push(eq(workflows.access, access));
+    if (projectId) conditions.push(eq(workflows.project_id, projectId));
     if (runMode) {
       conditions.push(eq(workflows.run_mode, runMode));
     } else {

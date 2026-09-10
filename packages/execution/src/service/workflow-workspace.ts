@@ -104,7 +104,10 @@ export async function resolveWorkflowWorkspace(
       const workflow = await Workflow.find(userId, workflowId);
       if (workflow?.workspace_id) {
         const row = await WorkspaceRow.find(userId, workflow.workspace_id);
-        if (row?.isAccessible()) {
+        if (
+          row?.isAccessible() &&
+          row.project_id === workflow.project_id
+        ) {
           const workspace = workspaceFromRow(row);
           if (workspace) return workspace;
         }
@@ -172,6 +175,7 @@ export function usesCloudWorkspaces(): boolean {
 export function buildWorkspaceExecutionContext(opts: {
   jobId: string;
   workflowId?: string | null;
+  projectId?: string | null;
   userId: string;
   workspace: Workspace | null;
   /** Overrides the per-user DB lookup (tests, a host with its own store). */
@@ -187,6 +191,7 @@ export function buildWorkspaceExecutionContext(opts: {
   const context = new ProcessingContext({
     jobId: opts.jobId,
     workflowId: opts.workflowId ?? null,
+    projectId: opts.projectId ?? null,
     userId: opts.userId,
     workspace: opts.workspace,
     storage: opts.storage ?? null,

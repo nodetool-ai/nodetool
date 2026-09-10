@@ -18,6 +18,7 @@ export interface CreateAssetArgs {
   userId: string;
   workflowId?: string | null;
   jobId?: string | null;
+  projectId?: string | null;
   nodeId?: string | null;
   name: string;
   contentType: string;
@@ -35,6 +36,7 @@ export async function createAssetModelInterface(
     workflow_id: args.workflowId ?? null,
     node_id: args.nodeId ?? null,
     job_id: args.jobId ?? null,
+    project_id: args.projectId ?? "default",
     name: args.name,
     content_type: normalizeAssetContentType(args.contentType, args.name),
     // No explicit parent means the user's home folder — the same default the

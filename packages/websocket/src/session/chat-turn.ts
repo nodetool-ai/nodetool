@@ -1009,6 +1009,7 @@ export class ChatTurnHandler {
     const context = createRuntimeContext({
       jobId,
       workflowId: null,
+      projectId,
       userId,
       workspace: this.session.workspaceResolver
         ? await this.session.workspaceResolver(null, userId)
@@ -1647,6 +1648,7 @@ export class ChatTurnHandler {
       jobId: randomUUID(),
       workflowId,
       threadId: threadId || null,
+      projectId: chatProjectId,
       userId,
       workspace: chatWorkspace,
       authToken: this.deps.authToken()
@@ -3503,6 +3505,7 @@ export class ChatTurnHandler {
       const context = createRuntimeContext({
         jobId,
         workflowId,
+        projectId: chatProjectId,
         userId,
         workspace,
         assetOutputMode: this.session.mode === "text" ? "data_uri" : "temp_url"

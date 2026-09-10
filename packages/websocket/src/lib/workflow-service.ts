@@ -13,7 +13,7 @@
  * it would reject saves the UI makes today.
  */
 
-import { Workflow, WorkflowCollaborator } from "@nodetool-ai/models";
+import { Project, Workflow, WorkflowCollaborator } from "@nodetool-ai/models";
 import type { Workflow as WorkflowModel } from "@nodetool-ai/models";
 import { createLogger } from "@nodetool-ai/config";
 import { ApiErrorCode } from "../error-codes.js";
@@ -70,6 +70,7 @@ export interface WorkflowWriteInput {
   settings?: Record<string, unknown> | null;
   run_mode?: string | null;
   workspace_id?: string | null;
+  project_id?: string;
   html_app?: string | null;
   app_doc?: Record<string, unknown> | null;
   expected_updated_at?: string;
@@ -141,6 +142,7 @@ function createRow(
     settings: input.settings ?? null,
     run_mode: input.run_mode ?? "workflow",
     workspace_id: input.workspace_id ?? null,
+    project_id: input.project_id ?? "default",
     html_app: input.html_app ?? null,
     app_doc: appDoc
   };
@@ -159,6 +161,9 @@ export async function createWorkflow(
   input: WorkflowWriteInput,
   seed?: ExampleSeed
 ): Promise<WorkflowModel> {
+  if (input.project_id !== undefined && input.project_id !== "default") {
+    await Project.requireOwned(userId, input.project_id);
+  }
   let graph = input.graph ?? null;
   let appDoc = input.app_doc ?? null;
 
@@ -205,6 +210,16 @@ export async function updateWorkflow(
       if (grant?.role !== "editor") notFound();
     }
 
+    if (
+      input.project_id !== undefined &&
+      input.project_id !== existing.project_id
+    ) {
+      if (!isOwner) notFound();
+      if (input.project_id !== "default") {
+        await Project.requireOwned(userId, input.project_id);
+      }
+    }
+
     const fields: Parameters<typeof Workflow.updateFieldsIfUnchanged>[2] = {
       name: input.name,
       tool_name: input.tool_name ?? null,
@@ -224,6 +239,9 @@ export async function updateWorkflow(
     }
     if (input.workspace_id !== undefined) {
       fields.workspace_id = input.workspace_id ?? null;
+    }
+    if (isOwner && input.project_id !== undefined) {
+      fields.project_id = input.project_id;
     }
     if (input.html_app !== undefined) fields.html_app = input.html_app ?? null;
     if (input.app_doc !== undefined) fields.app_doc = input.app_doc;
@@ -247,6 +265,10 @@ export async function updateWorkflow(
   // An `expected_updated_at` names a row the caller believes it read, so a
   // missing row is a conflict, not an upsert.
   if (input.expected_updated_at) notFound();
+
+  if (input.project_id !== undefined && input.project_id !== "default") {
+    await Project.requireOwned(userId, input.project_id);
+  }
 
   const workflow = (await createRow(
     userId,
