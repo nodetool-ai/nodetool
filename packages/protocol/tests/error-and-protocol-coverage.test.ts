@@ -79,7 +79,7 @@ describe("error-helpers.isTRPCErrorWithCode", () => {
 
 describe("bridge-protocol constants", () => {
   it("BRIDGE_PROTOCOL_VERSION is the current speaking version", () => {
-    expect(BRIDGE_PROTOCOL_VERSION).toBe(5);
+    expect(BRIDGE_PROTOCOL_VERSION).toBe(6);
   });
 
   it("MIN_BRIDGE_PROTOCOL_VERSION is the hard floor at 1", () => {

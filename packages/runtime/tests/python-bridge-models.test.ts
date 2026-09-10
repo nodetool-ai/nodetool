@@ -19,8 +19,8 @@ import {
 import type { ModelDownloadUpdate } from "../src/python-bridge-types.js";
 
 describe("bridge protocol version", () => {
-  it("is 5 (chunked result blobs)", () => {
-    expect(BRIDGE_PROTOCOL_VERSION).toBe(5);
+  it("is 6 (reference-to-video bridge calls)", () => {
+    expect(BRIDGE_PROTOCOL_VERSION).toBe(6);
   });
 });
 

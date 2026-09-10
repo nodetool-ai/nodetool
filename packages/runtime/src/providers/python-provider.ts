@@ -25,6 +25,8 @@ import type {
   TextToSpeechParams,
   TextToVideoParams,
   ImageToVideoParams,
+  ReferenceToVideoInputs,
+  ReferenceToVideoParams,
   TextToMusicParams,
   EncodedAudioResult
 } from "./types.js";
@@ -79,6 +81,7 @@ export class PythonProvider extends BaseProvider {
   private _secrets: Record<string, string>;
   private _supportsStreamingTTS = true;
   private _supportsEncodedTTS = true;
+  private _workerCapabilities = new Set<string>();
 
   constructor(
     providerId: string,
@@ -99,19 +102,26 @@ export class PythonProvider extends BaseProvider {
       this._bridge = bridge;
       this._pythonProviderId = providerIdOrOptions;
       this._secrets = secrets;
+      this.referenceToVideo = BaseProvider.prototype.referenceToVideo;
       return;
     }
 
     const { _id, _bridge, _bridgeProviderId, _capabilities, ...rawSecrets } =
       providerIdOrOptions;
     super(_id);
+    const wrappedReferenceToVideo = this.referenceToVideo;
     this._bridge = _bridge;
     this._pythonProviderId = _bridgeProviderId ?? _id;
+    this.referenceToVideo = BaseProvider.prototype.referenceToVideo;
     if (Array.isArray(_capabilities)) {
+      this._workerCapabilities = new Set(_capabilities.map(String));
       this._supportsStreamingTTS = _capabilities.includes("text_to_speech");
       this._supportsEncodedTTS = _capabilities.includes(
         "text_to_speech_encoded"
       );
+      if (this._workerCapabilities.has("reference_to_video")) {
+        this.referenceToVideo = wrappedReferenceToVideo;
+      }
     }
     this._secrets = Object.fromEntries(
       Object.entries(rawSecrets).filter(
@@ -187,10 +197,25 @@ export class PythonProvider extends BaseProvider {
     // The public provider id may be an alias (notably `huggingface-local`) so
     // selections route back through this bridge adapter instead of colliding
     // with a built-in remote provider that uses the worker's original id.
-    return models.map((model) => ({
-      ...model,
-      provider: this.provider
-    }));
+    return models.map((model) => {
+      const supportedTasks = Array.isArray(model.supportedTasks)
+        ? model.supportedTasks.map(String)
+        : Array.isArray(model.supported_tasks)
+          ? model.supported_tasks.map(String)
+          : undefined;
+      const normalizedModel: Record<string, unknown> = {
+        ...model,
+        provider: this.provider
+      };
+      if (modelType === "video" && supportedTasks) {
+        normalizedModel.supportedTasks = this._workerCapabilities.has(
+          "reference_to_video"
+        )
+          ? supportedTasks
+          : supportedTasks.filter((task) => task !== "reference_to_video");
+      }
+      return normalizedModel;
+    });
   }
 
   // ── Chat completion ───────────────────────────────────────────────
@@ -321,6 +346,47 @@ export class PythonProvider extends BaseProvider {
     return this._bridge.providerImageToVideo(
       this._pythonProviderId,
       image,
+      { ...wireParams, model: params.model.id },
+      this._secrets,
+      signal
+    );
+  }
+
+  async referenceToVideo(
+    inputs: ReferenceToVideoInputs,
+    params: ReferenceToVideoParams
+  ): Promise<Uint8Array> {
+    if (!this._workerCapabilities.has("reference_to_video")) {
+      throw new Error("Python worker does not support reference_to_video");
+    }
+    if (
+      Array.isArray(params.model.supportedTasks) &&
+      !params.model.supportedTasks.includes("reference_to_video")
+    ) {
+      throw new Error(
+        `Video model ${params.model.id} does not support reference_to_video`
+      );
+    }
+    if (!Array.isArray(params.model.supportedTasks)) {
+      const models = await this._getModels("video");
+      const model = models.find(
+        (candidate) =>
+          isRecord(candidate) && String(candidate.id ?? "") === params.model.id
+      );
+      if (
+        !isRecord(model) ||
+        !Array.isArray(model.supportedTasks) ||
+        !model.supportedTasks.includes("reference_to_video")
+      ) {
+        throw new Error(
+          `Video model ${params.model.id} does not support reference_to_video`
+        );
+      }
+    }
+    const { signal, ...wireParams } = params;
+    return this._bridge.providerReferenceToVideo(
+      this._pythonProviderId,
+      inputs,
       { ...wireParams, model: params.model.id },
       this._secrets,
       signal

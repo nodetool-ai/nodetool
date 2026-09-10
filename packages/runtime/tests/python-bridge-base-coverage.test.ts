@@ -721,6 +721,95 @@ describe("PythonBridgeBase — provider RPCs", () => {
     await expect(p).resolves.toBe(output);
   });
 
+  it("providerReferenceToVideo preserves ordered media and protocol fields", async () => {
+    const images = [new Uint8Array([1]), new Uint8Array([2])];
+    const videos = [new Uint8Array([3]), new Uint8Array([4])];
+    const output = new Uint8Array([9, 8]);
+    const p = bridge.providerReferenceToVideo(
+      "wangp",
+      { images, videos },
+      { model: "ref-1", prompt: "keep identity", aspect_ratio: "16:9" },
+      { TOKEN: "secret" }
+    );
+    const frame = bridge.sent.find(
+      (f) => f.type === "provider.reference_to_video"
+    )!;
+    expect(frame.data).toEqual({
+      provider: "wangp",
+      reference_images: images,
+      reference_videos: videos,
+      params: { model: "ref-1", prompt: "keep identity", aspect_ratio: "16:9" },
+      secrets: { TOKEN: "secret" },
+      blob_transfer: "chunked-v1"
+    });
+    bridge.handle({
+      type: "progress",
+      request_id: frame.request_id,
+      data: { progress: 0.5, message: "uploading" }
+    });
+    reply("provider.reference_to_video", { blobs: { video: output } });
+    await expect(p).resolves.toBe(output);
+  });
+
+  it("rejects invalid reference media and over-limit payloads before sending", async () => {
+    await expect(
+      bridge.providerReferenceToVideo("wangp", { images: [], videos: [] }, {})
+    ).rejects.toThrow(/at least one/);
+    await expect(
+      bridge.providerReferenceToVideo(
+        "wangp",
+        { images: [new Uint8Array([1]), new Uint8Array()], videos: [] },
+        {}
+      )
+    ).rejects.toThrow(/non-empty/);
+    expect(
+      bridge.sent.some((f) => f.type === "provider.reference_to_video")
+    ).toBe(false);
+    await expect(
+      bridge.providerReferenceToVideo(
+        "wangp",
+        { images: [new Uint8Array(192 * 1024 * 1024 + 1)], videos: [] },
+        {}
+      )
+    ).rejects.toThrow(/201326592/);
+    expect(
+      bridge.sent.some((f) => f.type === "provider.reference_to_video")
+    ).toBe(false);
+  });
+
+  it("accepts the exact reference media size limit", async () => {
+    const exactLimit = new Uint8Array(192 * 1024 * 1024);
+    const p = bridge.providerReferenceToVideo(
+      "wangp",
+      { images: [exactLimit], videos: [] },
+      { model: "ref-limit" }
+    );
+    const frame = bridge.sent.find(
+      (f) => f.type === "provider.reference_to_video"
+    )!;
+    expect(frame.data.reference_images[0]).toBe(exactLimit);
+    reply("provider.reference_to_video", {
+      blobs: { video: new Uint8Array([7]) }
+    });
+    await expect(p).resolves.toEqual(new Uint8Array([7]));
+  });
+
+  it("does not send a pre-aborted reference request", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      bridge.providerReferenceToVideo(
+        "wangp",
+        { images: [new Uint8Array([1])], videos: [] },
+        {},
+        {},
+        controller.signal
+      )
+    ).rejects.toThrow(/cancelled/);
+    expect(
+      bridge.sent.some((f) => f.type === "provider.reference_to_video")
+    ).toBe(false);
+  });
 
   it("providerTextToAudio returns the encoded audio blob", async () => {
     const output = new Uint8Array([4, 5, 6]);

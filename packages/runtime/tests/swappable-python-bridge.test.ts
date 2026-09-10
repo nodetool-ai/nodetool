@@ -93,6 +93,9 @@ class FakeBridge extends EventEmitter {
   providerImageToVideo(): Promise<Uint8Array> {
     return Promise.resolve(new Uint8Array());
   }
+  providerReferenceToVideo(): Promise<Uint8Array> {
+    return Promise.resolve(new Uint8Array());
+  }
   providerTextToAudio(): Promise<Uint8Array> {
     return Promise.resolve(new Uint8Array());
   }
@@ -207,6 +210,33 @@ describe("SwappableBridge", () => {
     const audio: Uint8Array[] = [];
     for await (const a of swap.providerTTS("hf", "hi", "m")) audio.push(a);
     expect(audio).toEqual([new Uint8Array([1, 2, 3])]);
+  });
+
+  it("delegates reference video inputs and call metadata", async () => {
+    const target = makeFake();
+    const referenceToVideo = vi.spyOn(target, "providerReferenceToVideo");
+    const swap = new SwappableBridge(target);
+    const inputs = {
+      images: [new Uint8Array([1]), new Uint8Array([2])],
+      videos: [new Uint8Array([3]), new Uint8Array([4])]
+    };
+    const signal = new AbortController().signal;
+
+    await swap.providerReferenceToVideo(
+      "wangp",
+      inputs,
+      { model: "reference-model", prompt: "keep order" },
+      { TOKEN: "secret" },
+      signal
+    );
+
+    expect(referenceToVideo).toHaveBeenCalledWith(
+      "wangp",
+      inputs,
+      { model: "reference-model", prompt: "keep order" },
+      { TOKEN: "secret" },
+      signal
+    );
   });
 
   it("routes calls to the new target after swap", async () => {

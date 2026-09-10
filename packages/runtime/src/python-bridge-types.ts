@@ -2,6 +2,8 @@ import { EventEmitter } from "node:events";
 import { z } from "zod";
 
 import type { ASRResult } from "./providers/types.js";
+import type { ReferenceToVideoInputs } from "./providers/types.js";
+export type { ReferenceToVideoInputs } from "./providers/types.js";
 
 interface NodeMetadataProperty {
   name: string;
@@ -586,6 +588,13 @@ export interface PythonBridge extends EventEmitter {
   providerImageToVideo(
     providerId: string,
     image: Uint8Array,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
+  ): Promise<Uint8Array>;
+  providerReferenceToVideo(
+    providerId: string,
+    inputs: ReferenceToVideoInputs,
     params: Record<string, unknown>,
     secrets?: Record<string, string>,
     signal?: AbortSignal

@@ -278,6 +278,22 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
     );
   }
 
+  providerReferenceToVideo(
+    providerId: string,
+    inputs: import("./providers/types.js").ReferenceToVideoInputs,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
+    return this._target.providerReferenceToVideo(
+      providerId,
+      inputs,
+      params,
+      secrets,
+      signal
+    );
+  }
+
   providerTextToAudio(
     providerId: string,
     params: Record<string, unknown>,
