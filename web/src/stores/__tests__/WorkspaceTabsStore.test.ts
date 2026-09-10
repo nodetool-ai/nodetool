@@ -125,10 +125,11 @@ describe("closeTab", () => {
 });
 
 describe("closing the last tab of a project", () => {
-  it("leaves the project, so a new document does not land in it unseen", () => {
+  it("keeps the project selected for the empty-tab state", () => {
     useWorkspaceTabsStore.getState().openProject({ id: "p1", name: "Aurora" });
     useWorkspaceTabsStore.getState().closeTab("project:p1");
-    expect(useWorkspaceTabsStore.getState().activeProjectId).toBeNull();
+    expect(useWorkspaceTabsStore.getState().activeProjectId).toBe("p1");
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBeNull();
   });
 
   it("keeps the project while another of its tabs is still open", () => {
@@ -269,7 +270,7 @@ describe("openProject", () => {
     });
   });
 
-  it("gathers a stray tab of the project that is not in the documents list", () => {
+  it("drops a project tab that is no longer in the documents list", () => {
     reset([
       { ...tab("storyboard", "stray"), projectId: "p1" },
       tab("workflow", "a"),
@@ -283,13 +284,11 @@ describe("openProject", () => {
     });
 
     const state = useWorkspaceTabsStore.getState();
-    const grouped = state.tabs.filter((t) => t.projectId === "p1");
-    const first = state.tabs.findIndex((t) => t.projectId === "p1");
-    // The group is one contiguous run: stray included, nothing interleaved.
-    expect(
-      state.tabs.slice(first, first + grouped.length).map((t) => t.projectId)
-    ).toEqual(grouped.map(() => "p1"));
-    expect(grouped.map((t) => t.id)).toContain("storyboard:stray");
+    expect(state.tabs.map((t) => t.id)).toEqual([
+      "workflow:a",
+      "project:p1",
+      "storyboard:b1"
+    ]);
   });
 
   it("places the group where its first member already sat", () => {
@@ -307,6 +306,69 @@ describe("openProject", () => {
       "storyboard:b1",
       "text:c"
     ]);
+  });
+
+  it("restores each project's active tab and order independently", () => {
+    const store = useWorkspaceTabsStore.getState();
+    store.openProject({
+      id: "p1",
+      name: "One",
+      documents: [{ type: "text", ref: "one", title: "One doc" }]
+    });
+    store.setActiveTab("text:one");
+    store.openProject({
+      id: "p2",
+      name: "Two",
+      documents: [{ type: "text", ref: "two", title: "Two doc" }]
+    });
+    store.setActiveTab("text:two");
+
+    store.openProject({ id: "p1", name: "One" });
+
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.activeProjectId).toBe("p1");
+    expect(state.activeTabId).toBe("text:one");
+    expect(state.projectSessions.p1.tabIds).toEqual([
+      "project:p1",
+      "text:one"
+    ]);
+    expect(state.projectSessions.p2.activeTabId).toBe("text:two");
+    expect(state.tabs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "text:one" }),
+        expect.objectContaining({ id: "text:two" })
+      ])
+    );
+  });
+
+  it("restores the selected chat and drops unavailable documents only in that project", () => {
+    const store = useWorkspaceTabsStore.getState();
+    store.openProject({
+      id: "p1",
+      name: "One",
+      documents: [
+        { type: "chat", ref: "chat-one", title: "Chat" },
+        { type: "text", ref: "gone", title: "Gone" }
+      ]
+    });
+    store.setActiveTab("chat:chat-one");
+    store.openProject({
+      id: "p2",
+      name: "Two",
+      documents: [{ type: "text", ref: "kept", title: "Kept" }]
+    });
+
+    store.openProject({
+      id: "p1",
+      name: "One",
+      documents: [{ type: "chat", ref: "chat-one", title: "Chat" }]
+    });
+
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.activeTabId).toBe("chat:chat-one");
+    expect(state.projectSessions.p1.selectedChatThreadId).toBe("chat-one");
+    expect(state.tabs.some((tab) => tab.id === "text:gone")).toBe(false);
+    expect(state.tabs.some((tab) => tab.id === "text:kept")).toBe(true);
   });
 });
 
@@ -329,6 +391,32 @@ describe("rehydration", () => {
     const state = useWorkspaceTabsStore.getState();
     expect(state.activeProjectId).toBeNull();
     expect(creationProjectId()).toBe(LOOSE_PROJECT_ID);
+  });
+
+  it("migrates the shared tab list into independent project sessions", async () => {
+    localStorage.setItem(
+      "workspace-tabs-storage",
+      JSON.stringify({
+        state: {
+          tabs: [
+            { ...tab("text", "personal") },
+            { ...tab("text", "project-doc"), projectId: "p1" }
+          ],
+          activeTabId: "text:project-doc",
+          activeProjectId: "p1"
+        },
+        version: 1
+      })
+    );
+
+    await useWorkspaceTabsStore.persist.rehydrate();
+
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.projectSessions.default.tabIds).toEqual(["text:personal"]);
+    expect(state.projectSessions.p1).toMatchObject({
+      tabIds: ["text:project-doc"],
+      activeTabId: "text:project-doc"
+    });
   });
 });
 

@@ -112,6 +112,9 @@ const WorkspaceShell = () => {
     [theme, isDragging]
   );
   const tabs = useWorkspaceTabsStore((state) => state.tabs);
+  const activeProjectId = useWorkspaceTabsStore(
+    (state) => state.activeProjectId
+  );
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
   const setCurrentWorkflowId = useWorkflowManager(
@@ -127,6 +130,13 @@ const WorkspaceShell = () => {
   const activeTab = useMemo(
     () => tabs.find((tab) => tab.id === activeTabId) ?? null,
     [tabs, activeTabId]
+  );
+  const visibleTabs = useMemo(
+    () =>
+      activeProjectId
+        ? tabs.filter((tab) => tab.projectId === activeProjectId)
+        : tabs.filter((tab) => tab.projectId === undefined),
+    [activeProjectId, tabs]
   );
 
   // The left rail (PanelLeft) is position:fixed, so its open drawer normally
@@ -185,7 +195,7 @@ const WorkspaceShell = () => {
             className="workspace-content"
             style={{ marginLeft: contentMarginLeft }}
           >
-            {tabs.length === 0 && (
+            {visibleTabs.length === 0 && (
               <div className="workspace-empty">
                 <Suspense fallback={null}>
                   <NewProjectSurface />

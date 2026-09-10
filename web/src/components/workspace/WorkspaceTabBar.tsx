@@ -319,6 +319,13 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const activeProjectId = useWorkspaceTabsStore(
     (state) => state.activeProjectId
   );
+  const visibleTabs = useMemo(
+    () =>
+      activeProjectId
+        ? tabs.filter((tab) => tab.projectId === activeProjectId)
+        : tabs.filter((tab) => tab.projectId === undefined),
+    [activeProjectId, tabs]
+  );
 
   const activeTab = useMemo(
     () => tabs.find((tab) => tab.id === activeTabId) ?? null,
@@ -328,11 +335,11 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   // The store keeps its tabs in render order — the open project's tabs are one
   // contiguous run behind the scope chip — so the bar renders `tabs` as they
   // come and a tab's index on screen is its index in the store.
-  const firstGroupedTabId = tabs.find(
+  const firstGroupedTabId = visibleTabs.find(
     (tab) => tab.projectId === activeProjectId
   )?.id;
   const groupName =
-    tabs.find((tab) => tab.type === "project" && tab.ref === activeProjectId)
+    visibleTabs.find((tab) => tab.type === "project" && tab.ref === activeProjectId)
       ?.title ?? "Project";
 
   const newTabButtonRef = useRef<HTMLButtonElement>(null);
@@ -628,7 +635,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
       </button>
       {isMobile ? (
         <MobileDocumentSelector
-          tabs={tabs}
+          tabs={visibleTabs}
           activeTabId={activeTabId}
           typeColor={TYPE_COLOR}
           typeGlyph={TYPE_GLYPH}
@@ -638,7 +645,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         />
       ) : (
         <div className="tabs">
-          {tabs.map((tab) => (
+          {visibleTabs.map((tab) => (
             <Fragment key={tab.id}>
               {tab.id === firstGroupedTabId && activeProjectId && (
                 <ProjectScopeChip

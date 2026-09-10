@@ -97,6 +97,15 @@ export interface OpenProjectInput {
   documents?: readonly ProjectTabDocument[];
 }
 
+export interface ProjectSession {
+  /** The tabs shown by this project, in tab-bar order. */
+  tabIds: string[];
+  /** The document restored when this project is selected again. */
+  activeTabId: string | null;
+  /** The last chat selected from this project's session. */
+  selectedChatThreadId: string | null;
+}
+
 interface WorkspaceTabsState {
   /**
    * The tabs, in the order the bar renders them: the active project's tabs are
@@ -109,6 +118,8 @@ interface WorkspaceTabsState {
    * a creation then lands in the loose bucket ({@link LOOSE_PROJECT_ID}).
    */
   activeProjectId: string | null;
+  /** Independent navigation state for each project, including Personal. */
+  projectSessions: Record<string, ProjectSession>;
 
   /**
    * Open a document tab. If a tab for the same `(type, ref)` already
@@ -150,6 +161,48 @@ export const tabId = (type: WorkspaceTabType, ref: string): string =>
 /** A tab's project, with the loose bucket read as no project. */
 const projectOf = (projectId: string | undefined): string | undefined =>
   projectId && projectId !== LOOSE_PROJECT_ID ? projectId : undefined;
+
+const sessionKey = (projectId: string | undefined): string =>
+  projectId ?? LOOSE_PROJECT_ID;
+
+const emptySession = (): ProjectSession => ({
+  tabIds: [],
+  activeTabId: null,
+  selectedChatThreadId: null
+});
+
+const sessionFor = (
+  sessions: Record<string, ProjectSession>,
+  projectId: string | undefined
+): ProjectSession => sessions[sessionKey(projectId)] ?? emptySession();
+
+const sessionFromTabs = (
+  tabs: WorkspaceTab[],
+  activeTabId: string | null
+): Record<string, ProjectSession> => {
+  const sessions: Record<string, ProjectSession> = {};
+  for (const tab of tabs) {
+    const key = sessionKey(tab.projectId);
+    const session = sessions[key] ?? emptySession();
+    sessions[key] = { ...session, tabIds: [...session.tabIds, tab.id] };
+  }
+  for (const [key, session] of Object.entries(sessions)) {
+    const active = session.tabIds.includes(activeTabId ?? "")
+      ? activeTabId
+      : session.tabIds[0] ?? null;
+    sessions[key] = { ...session, activeTabId: active };
+  }
+  return sessions;
+};
+
+const updateSession = (
+  sessions: Record<string, ProjectSession>,
+  projectId: string | undefined,
+  update: (session: ProjectSession) => ProjectSession
+): Record<string, ProjectSession> => {
+  const key = sessionKey(projectId);
+  return { ...sessions, [key]: update(sessionFor(sessions, projectId)) };
+};
 
 /**
  * The active project, unless closing tabs left none of it open. A project
@@ -299,28 +352,61 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
     (set, get) => ({
       ...seedTabsFromLegacy(),
       activeProjectId: null,
+      projectSessions: {},
 
       openTab: ({ type, ref, mode, title, projectId }) => {
         const id = tabId(type, ref);
-        const project = projectOf(projectId);
         const existing = get().tabs.find((t) => t.id === id);
+        const project =
+          projectId === undefined ? existing?.projectId : projectOf(projectId);
         if (existing) {
-          set((state) => ({
-            activeTabId: id,
-            tabs: gatherProjectTabs(
-              state.tabs.map((t) =>
-                t.id === id
-                  ? {
-                      ...t,
-                      mode: mode ?? t.mode,
-                      title: title ?? t.title,
-                      projectId: projectId === undefined ? t.projectId : project
-                    }
-                  : t
-              ),
-              state.activeProjectId
-            )
-          }));
+          set((state) => {
+            const movedBetweenProjects = existing.projectId !== project;
+            let projectSessions = updateSession(
+              state.projectSessions,
+              project,
+              (session) => ({
+                ...session,
+                tabIds: session.tabIds.includes(id)
+                  ? session.tabIds
+                  : [...session.tabIds, id],
+                activeTabId: id,
+                selectedChatThreadId:
+                  type === "chat" ? ref : session.selectedChatThreadId
+              })
+            );
+            if (movedBetweenProjects) {
+              projectSessions = updateSession(
+                projectSessions,
+                existing.projectId,
+                (session) => ({
+                  ...session,
+                  tabIds: session.tabIds.filter((tabId) => tabId !== id),
+                  activeTabId:
+                    session.activeTabId === id
+                      ? session.tabIds.find((tabId) => tabId !== id) ?? null
+                      : session.activeTabId
+                })
+              );
+            }
+            return {
+              activeTabId: id,
+              projectSessions,
+              tabs: gatherProjectTabs(
+                state.tabs.map((t) =>
+                  t.id === id
+                    ? {
+                        ...t,
+                        mode: mode ?? t.mode,
+                        title: title ?? t.title,
+                        projectId: projectId === undefined ? t.projectId : project
+                      }
+                    : t
+                ),
+                state.activeProjectId
+              )
+            };
+          });
           return id;
         }
         const tab: WorkspaceTab = {
@@ -335,7 +421,18 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
         }
         set((state) => ({
           tabs: gatherProjectTabs([...state.tabs, tab], state.activeProjectId),
-          activeTabId: id
+          activeTabId: id,
+          projectSessions: updateSession(
+            state.projectSessions,
+            project,
+            (session) => ({
+              ...session,
+              tabIds: [...session.tabIds, id],
+              activeTabId: id,
+              selectedChatThreadId:
+                type === "chat" ? ref : session.selectedChatThreadId
+            })
+          )
         }));
         return id;
       },
@@ -343,21 +440,79 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
       closeTab: (id) =>
         set((state) => {
           const tabs = state.tabs.filter((t) => t.id !== id);
-          const activeProjectId = stillOpen(tabs, state.activeProjectId);
+          const closed = state.tabs.find((tab) => tab.id === id);
+          const activeProjectId = state.activeProjectId;
+          const globalNextActiveTabId = nextActiveAfterClose(
+            state.tabs,
+            state.activeTabId,
+            id
+          );
+          const closedSession = closed
+            ? sessionFor(state.projectSessions, closed.projectId)
+            : null;
+          const sessionNextActiveTabId = closedSession?.tabIds.find(
+            (tabId) =>
+              tabId !== id &&
+              tabs.some(
+                (tab) => tab.id === tabId && tab.projectId === closed?.projectId
+              )
+          );
+          const nextActiveTabId =
+            state.activeTabId === id && sessionNextActiveTabId
+              ? sessionNextActiveTabId
+              : globalNextActiveTabId;
           return {
             tabs: gatherProjectTabs(tabs, activeProjectId),
-            activeTabId: nextActiveAfterClose(state.tabs, state.activeTabId, id),
-            activeProjectId
+            activeTabId: nextActiveTabId,
+            activeProjectId,
+            projectSessions: closed
+              ? updateSession(state.projectSessions, closed.projectId, (session) => ({
+                  ...session,
+                  tabIds: session.tabIds.filter((tabId) => tabId !== id),
+                  activeTabId:
+                    session.activeTabId === id
+                      ? session.tabIds.find((tabId) =>
+                          tabId !== id &&
+                          tabs.some(
+                            (tab) =>
+                              tab.id === tabId &&
+                              tab.projectId === closed.projectId
+                          )
+                        ) ?? null
+                      : session.activeTabId,
+                  selectedChatThreadId:
+                    session.selectedChatThreadId === closed.ref &&
+                    closed.type === "chat"
+                      ? null
+                      : session.selectedChatThreadId
+                }))
+              : state.projectSessions
           };
         }),
 
       closeOthers: (id) =>
         set((state) => {
           const kept = state.tabs.filter((t) => t.id === id);
+          const keptTab = kept[0];
+          const projectSessions: Record<string, ProjectSession> = {};
+          for (const key of Object.keys(state.projectSessions)) {
+            const session = state.projectSessions[key];
+            projectSessions[key] = {
+              ...session,
+              tabIds: session.tabIds.filter((tabId) => tabId === id),
+              activeTabId: session.tabIds.includes(id) ? id : null,
+              selectedChatThreadId:
+                keptTab?.type === "chat" &&
+                keptTab.ref === session.selectedChatThreadId
+                  ? session.selectedChatThreadId
+                  : null
+            };
+          }
           return {
             tabs: kept,
             activeTabId: kept.length > 0 ? id : null,
-            activeProjectId: stillOpen(kept, state.activeProjectId)
+            activeProjectId: stillOpen(kept, state.activeProjectId),
+            projectSessions
           };
         }),
 
@@ -366,11 +521,22 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
       // does not close the group the user is working in.
       setActiveTab: (id) =>
         set((state) => {
-          const project = state.tabs.find((t) => t.id === id)?.projectId;
+          const tab = state.tabs.find((t) => t.id === id);
+          const project = tab?.projectId;
           const activeProjectId = project ?? state.activeProjectId;
           return {
             activeTabId: id,
             activeProjectId,
+            projectSessions: updateSession(
+              state.projectSessions,
+              project,
+              (session) => ({
+                ...session,
+                activeTabId: id,
+                selectedChatThreadId:
+                  tab?.type === "chat" ? tab.ref : session.selectedChatThreadId
+              })
+            ),
             tabs: gatherProjectTabs(state.tabs, activeProjectId)
           };
         }),
@@ -408,11 +574,22 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             return state;
           }
           const tabs = [...state.tabs];
-          const [moved] = tabs.splice(from, 1);
-          tabs.splice(clampIndex(toIndex, tabs.length + 1), 0, moved);
+          const [movedTab] = tabs.splice(from, 1);
+          tabs.splice(clampIndex(toIndex, tabs.length + 1), 0, movedTab);
           // A drop that would break the group is pulled back to the nearest
           // order that keeps it contiguous — the bar can show no other.
-          return { tabs: gatherProjectTabs(tabs, state.activeProjectId) };
+          const moved = state.tabs[from];
+          const sessionTabIds = tabs
+            .filter((tab) => tab.projectId === moved.projectId)
+            .map((tab) => tab.id);
+          return {
+            tabs: gatherProjectTabs(tabs, state.activeProjectId),
+            projectSessions: updateSession(
+              state.projectSessions,
+              moved.projectId,
+              (session) => ({ ...session, tabIds: sessionTabIds })
+            )
+          };
         }),
 
       getActiveTab: () => {
@@ -421,13 +598,29 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
       },
 
       setActiveProjectId: (projectId) =>
-        set((state) => ({
-          activeProjectId: projectId,
-          tabs: gatherProjectTabs(state.tabs, projectId)
-        })),
-
-      openProject: ({ id, name, documents = [] }) =>
         set((state) => {
+          const session = sessionFor(state.projectSessions, projectId ?? undefined);
+          const fallbackTab = state.tabs.find((tab) =>
+            projectId
+              ? tab.projectId === projectId
+              : tab.projectId === undefined
+          );
+          return {
+            activeProjectId: projectId,
+            activeTabId:
+              session.activeTabId ?? fallbackTab?.id ?? state.activeTabId,
+            tabs: gatherProjectTabs(state.tabs, projectId)
+          };
+        }),
+
+      openProject: ({ id, name, documents }) =>
+        set((state) => {
+          const previous = sessionFor(state.projectSessions, id);
+          const hasSession = Object.prototype.hasOwnProperty.call(
+            state.projectSessions,
+            id
+          );
+          const hasOpenTabs = previous.tabIds.length > 0;
           const overview: WorkspaceTab = {
             id: tabId("project", id),
             type: "project",
@@ -436,9 +629,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             title: name,
             projectId: id
           };
-          const wanted: WorkspaceTab[] = [
-            overview,
-            ...documents.map((doc) => {
+          const documentTabs: WorkspaceTab[] = (documents ?? []).map((doc) => {
               const existing = state.tabs.find(
                 (t) => t.id === tabId(doc.type, doc.ref)
               );
@@ -450,24 +641,80 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
                 title: doc.title,
                 projectId: id
               } satisfies WorkspaceTab;
-            })
-          ];
-          const wantedIds = new Set(wanted.map((t) => t.id));
-          const others = state.tabs.filter((t) => !wantedIds.has(t.id));
+            });
+          const available = new Map(
+            documentTabs.map((tab) => [tab.id, tab] as const)
+          );
+          const owned = new Map(
+            state.tabs
+              .filter((tab) => tab.projectId === id)
+              .map((tab) => [tab.id, tab] as const)
+          );
+          const wantedIds = new Set([
+            overview.id,
+            ...documentTabs.map((tab) => tab.id)
+          ]);
+          const restored = hasSession
+            ? previous.tabIds
+                .map((tabId) =>
+                    tabId === overview.id
+                      ? overview
+                    : available.get(tabId) ??
+                      (documents === undefined ? owned.get(tabId) : undefined)
+                )
+                .filter((tab): tab is WorkspaceTab => tab !== undefined)
+            : [overview, ...documentTabs];
+          const restoredIds = new Set(restored.map((tab) => tab.id));
+          const finalProjectTabs = hasSession
+            ? [
+                ...restored,
+                ...(hasOpenTabs
+                  ? documentTabs.filter((tab) => !restoredIds.has(tab.id))
+                  : [])
+              ]
+            : [overview, ...documentTabs];
+          const finalIds = new Set(finalProjectTabs.map((tab) => tab.id));
+          const others = state.tabs.filter(
+            (t) => t.projectId !== id && !finalIds.has(t.id)
+          );
           // The group lands where its first member already sat, so opening a
           // project the user has tabs from does not reshuffle the bar.
-          const at = state.tabs.findIndex((t) => wantedIds.has(t.id));
+          const at = state.tabs.findIndex(
+            (t) => finalIds.has(t.id)
+          );
           const head = at === -1 ? others.length : Math.min(at, others.length);
+          const activeTabId = hasSession
+            ? previous.activeTabId && finalIds.has(previous.activeTabId)
+              ? previous.activeTabId
+              : null
+            : overview.id;
           return {
-            // Gather again: a tab already carrying this project id but absent
-            // from `documents` (deleted server-side, past the per-type cap)
-            // sits in `others` and would otherwise split the group.
             tabs: gatherProjectTabs(
-              [...others.slice(0, head), ...wanted, ...others.slice(head)],
+              [
+                ...others.slice(0, head),
+                ...finalProjectTabs,
+                ...others.slice(head)
+              ],
               id
             ),
-            activeTabId: overview.id,
-            activeProjectId: id
+            activeTabId,
+            activeProjectId: id,
+            projectSessions: {
+              ...state.projectSessions,
+              [id]: {
+                tabIds: finalProjectTabs.map((tab) => tab.id),
+                activeTabId,
+                selectedChatThreadId:
+                  previous.selectedChatThreadId &&
+                  finalProjectTabs.some(
+                    (tab) =>
+                      tab.type === "chat" &&
+                      tab.ref === previous.selectedChatThreadId
+                  )
+                    ? previous.selectedChatThreadId
+                    : null
+              }
+            }
           };
         }),
 
@@ -483,22 +730,26 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           const neighbour = tabs[at] ?? tabs[at - 1] ?? tabs[tabs.length - 1];
           const activeProjectId =
             state.activeProjectId === projectId ? null : state.activeProjectId;
+          const projectSessions = { ...state.projectSessions };
+          delete projectSessions[projectId];
           return {
             tabs: gatherProjectTabs(tabs, activeProjectId),
             activeTabId: activeStillOpen
               ? state.activeTabId
               : (neighbour?.id ?? null),
-            activeProjectId
+            activeProjectId,
+            projectSessions
           };
         })
     }),
     {
       name: "workspace-tabs-storage",
-      version: 1,
+      version: 2,
       partialize: (state) => ({
         tabs: state.tabs,
         activeTabId: state.activeTabId,
-        activeProjectId: state.activeProjectId
+        activeProjectId: state.activeProjectId,
+        projectSessions: state.projectSessions
       }),
       // State persisted before the store kept its tabs gathered (or edited by
       // hand) is canonicalized on the way in, so the invariant holds from the
@@ -510,17 +761,40 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           ...current,
           ...(persisted as Partial<WorkspaceTabsState> | undefined)
         };
-        // A persisted active project whose tabs are all gone must not keep
-        // catching new documents invisibly.
-        const activeProjectId = stillOpen(
-          merged.tabs ?? [],
-          merged.activeProjectId ?? null
-        );
+        const projectSessions =
+          merged.projectSessions && Object.keys(merged.projectSessions).length > 0
+            ? merged.projectSessions
+            : sessionFromTabs(merged.tabs ?? [], merged.activeTabId ?? null);
+        // An explicitly selected project remains selected after its last tab
+        // is closed, so a new document still belongs to that project.
+        const persistedProjectId = merged.activeProjectId ?? null;
+        const activeProjectId =
+          persistedProjectId &&
+          Object.prototype.hasOwnProperty.call(
+            projectSessions,
+            persistedProjectId
+          )
+            ? persistedProjectId
+            : stillOpen(merged.tabs ?? [], persistedProjectId);
         return {
           ...merged,
+          projectSessions,
           activeProjectId,
           tabs: gatherProjectTabs(merged.tabs ?? [], activeProjectId)
         };
+      },
+      migrate: (persisted, version) => {
+        const state = persisted as Partial<WorkspaceTabsState>;
+        if (version < 2 || !state.projectSessions) {
+          return {
+            ...state,
+            projectSessions: sessionFromTabs(
+              state.tabs ?? [],
+              state.activeTabId ?? null
+            )
+          };
+        }
+        return state;
       }
     }
   )
