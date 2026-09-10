@@ -22,7 +22,7 @@ change.
 
 - **Mission.** Give creators and developers control over multi-modal AI
   orchestration without platform lock-in, credit markups, or lost context.
-- **Primary tagline.** Open-source creative AI workspace.
+- **Primary tagline.** Open-source agent-first creative workspace.
 - **Intro.** Create and edit images, video, audio, and text with agents that
   work alongside you. Let them build and revise workflows, then inspect and
   edit the results yourself. Your project keeps the brief, assets, and edits

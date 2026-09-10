@@ -12,7 +12,7 @@ Secondary tracks (each with its own surface, not the homepage's first voice): de
 
 ## Product Purpose
 
-NodeTool is an **open creative AI workspace**: one canvas where every major model from every major provider is a node, called with the user's own API keys (BYOK). Users pay providers directly — no credits, no markup, no curated roster — and when a new model ships they swap one node and they're on it the same day. It's open source and runs anywhere (local-first or self-hosted).
+NodeTool is an **agent-first creative workspace**: one canvas where every major model from every major provider is a node, called with the user's own API keys (BYOK). Users pay providers directly — no credits, no markup, no curated roster — and when a new model ships they swap one node and they're on it the same day. It's open source and runs anywhere (local-first or self-hosted).
 
 Success looks like a creator downloading it, wiring their first multi-model workflow within minutes, and feeling the difference from credit-gated competitors: this one is fast, capable, and theirs.
 

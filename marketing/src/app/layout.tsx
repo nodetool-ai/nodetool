@@ -22,16 +22,16 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NodeTool | Open-source creative AI workspace",
+  title: "NodeTool | Open-source agent-first creative workspace",
   description:
-    "Open-source creative AI workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
+    "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/",
   },
   keywords: [
     "agent-first creative workspace",
-    "creative AI workspace",
+    "agent-first creative workspace",
     "open source creative AI",
     "agents that build workflows",
     "MCP creative tools",
@@ -57,15 +57,15 @@ export const metadata: Metadata = {
     other: [{ rel: "manifest", url: "/site.webmanifest" }],
   },
   openGraph: {
-    title: "NodeTool | Open-source creative AI workspace",
+    title: "NodeTool | Open-source agent-first creative workspace",
     description:
-      "Open-source creative AI workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
+      "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
     url: "https://nodetool.ai",
     siteName: "NodeTool",
     images: [
       {
         url: "/preview.png",
-        alt: "NodeTool | Open-source creative AI workspace",
+        alt: "NodeTool | Open-source agent-first creative workspace",
       },
     ],
     locale: "en_US",
@@ -73,9 +73,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "NodeTool | Open-source creative AI workspace",
+    title: "NodeTool | Open-source agent-first creative workspace",
     description:
-      "Open-source creative AI workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
+      "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
     images: ["/preview.png"],
   },
 };

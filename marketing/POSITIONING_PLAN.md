@@ -44,12 +44,12 @@ production combined with programmable, deterministic workflow automation**.
 
 ### Category anchor and pitch
 
-- **Category:** the open-source creative AI workspace.
+- **Category:** the open-source agent-first creative workspace.
 - **Elevator pitch:** NodeTool is the open-source platform where creative
   teams, developers, and marketers orchestrate generative AI models,
   deterministic media editors (timelines, sketches, scripts, 3D), and web
   automations into reproducible workflows and standalone mini-apps.
-- **Primary headline:** *"Open-source creative AI workspace."*
+- **Primary headline:** *"Open-source agent-first creative workspace."*
 
 Audience-specific taglines:
 
@@ -191,7 +191,7 @@ Comparison-page punchlines:
 The order below is the one [NARRATIVE.md § Order of the page](NARRATIVE.md#order-of-the-page)
 pins; that file wins when the two drift.
 
-1. **Hero** — "Open-source creative AI workspace" + the project
+1. **Hero** — "Open-source agent-first creative workspace" + the project
    reel + download CTA. The subhead carries the project-not-render claim.
 2. **The enemy** — the closed AI studio, once, briefly: their models, their
    credits, their locked project.
@@ -213,7 +213,7 @@ pins; that file wins when the two drift.
 ### Hero section
 
 - **Badge:** `Open Source (AGPL-3.0) · Local-First · BYOK Direct Pricing`
-- **Headline:** **Open-source creative AI workspace**
+- **Headline:** **Open-source agent-first creative workspace**
   ([NARRATIVE.md](NARRATIVE.md) pins the line, and the homepage H1 carries it.
   Keep "agent-first" in supporting explanations.)
 - **Subhead:** Create and edit images, video, audio, and text with agents that
@@ -225,7 +225,7 @@ pins; that file wins when the two drift.
   builds storyboard, casts voices, places clips on the timeline → finished
   video playback with captions.
 
-Rationale: "Creative AI workspace" names the category. Explain agent-first
+Rationale: "Agent-First creative workspace" names the category. Explain agent-first
 through editable workflows and persistent project context. Use the same
 category in titles, metadata, and schema, per NARRATIVE.md.
 

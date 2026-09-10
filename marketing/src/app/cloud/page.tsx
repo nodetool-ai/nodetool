@@ -181,7 +181,7 @@ export default function CloudPage() {
                   Open-source
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300 pb-[0.12em]">
-                    creative AI workspace
+                    agent-first creative workspace
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">

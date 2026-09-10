@@ -325,7 +325,7 @@ Five gaps stand out:
   See §4.0.
 
 The existing meta setup is solid: `layout.tsx` already ships title/description/OG/Twitter tags and
-a keyword list (creative AI workspace, BYOK AI canvas, ComfyUI alternative, Weavy alternative,
+a keyword list (agent-first creative workspace, BYOK AI canvas, ComfyUI alternative, Weavy alternative,
 node-based AI canvas). `robots.txt` and `sitemap.ts` both exist. The problem is page count and
 content depth, not technical hygiene.
 

@@ -1,9 +1,9 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
-const TITLE = "NodeTool Studio | Open-source creative AI workspace";
+const TITLE = "NodeTool Studio | Open-source agent-first creative workspace";
 const DESCRIPTION =
-  "Open-source creative AI workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together. Studio runs on macOS, Windows, and Linux. Use supported local models or your own provider keys.";
+  "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together. Studio runs on macOS, Windows, and Linux. Use supported local models or your own provider keys.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -54,7 +54,7 @@ export default function StudioLayout({
           "@type": "SoftwareApplication",
           name: "NodeTool Studio",
           description:
-            "Open-source creative AI workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together. Studio runs on macOS, Windows, and Linux. Use supported local models or your own provider keys.",
+            "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together. Studio runs on macOS, Windows, and Linux. Use supported local models or your own provider keys.",
           applicationCategory: "MultimediaApplication",
           operatingSystem: "macOS, Windows, Linux",
           url: "https://nodetool.ai/studio",

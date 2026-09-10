@@ -22,7 +22,7 @@ export default async function Image({
   const image = template?.thumbnail
     ? template.thumbnail.replace(/^\//, "")
     : "screen_canvas.png";
-  return ogImage(entry?.headline ?? "NodeTool", entry?.description ?? "The open creative AI workspace.", {
+  return ogImage(entry?.headline ?? "NodeTool", entry?.description ?? "The agent-first creative workspace.", {
     image,
     accent: entry?.accent ?? "blue",
     eyebrow: "AI Task",

@@ -8,7 +8,7 @@ import { breadcrumbSchema, faqPageSchema } from "@/lib/jsonld";
 import { faqByCategory, faqEntries } from "@/data/faqEntries";
 
 export const metadata: Metadata = {
-  title: "NodeTool FAQ — the open creative AI workspace",
+  title: "NodeTool FAQ — the agent-first creative workspace",
   description:
     "Answers about NodeTool: how pricing with your own API keys works, Studio compared with Cloud, which models are supported, how it compares with other tools, and a short glossary of common terms.",
   alternates: { canonical: "/faq" },
@@ -60,7 +60,7 @@ export default function FaqHubPage() {
             Frequently asked questions
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            NodeTool is the open-source creative AI workspace: one
+            NodeTool is the open-source agent-first creative workspace: one
             canvas for image, video, audio, and text, where every editor is a
             tool an agent can drive. You bring your own API keys and pay each
             provider directly. Studio runs on your machine; Cloud runs the same
