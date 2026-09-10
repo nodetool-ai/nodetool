@@ -26,6 +26,9 @@ const VAST_API_BASE_URL = "https://console.vast.ai/api/v0";
 /** Internal port the worker serves on. */
 const WORKER_PORT = 7777;
 
+/** Internal sshd port, published only when the spec carries a public key. */
+const SSH_PORT = 22;
+
 type HttpMethod = "GET" | "PUT" | "DELETE";
 
 /** A Vast.ai instance as returned by the API (fields we read). */
@@ -181,8 +184,9 @@ export class VastProvider implements WorkerProvider {
 
   /**
    * Search the marketplace for the cheapest rentable offer matching the spec's
-   * GPU. Returns the offer id plus its `dph_total` (total dollars-per-hour), the
-   * estimated cost the cost guard records on the instance.
+   * GPU, GPU count and vCPU floor. Returns the offer id plus its `dph_total`
+   * (total dollars-per-hour), the estimated cost the cost guard records on the
+   * instance.
    */
   private async findOffer(
     spec: WorkerSpec
@@ -199,6 +203,14 @@ export class VastProvider implements WorkerProvider {
     };
     if (spec.gpu) {
       query.gpu_name = { eq: spec.gpu };
+    }
+    // A multi-GPU request must constrain the search: the cheapest offer is a
+    // single-GPU machine, so without this the launch silently under-delivers.
+    if (spec.gpuCount !== undefined) {
+      query.num_gpus = { gte: spec.gpuCount };
+    }
+    if (spec.vcpu !== undefined) {
+      query.cpu_cores_effective = { gte: spec.vcpu };
     }
     const res = await vastApi(this.apiKey, "bundles/", "PUT", {
       q: query,
@@ -222,14 +234,30 @@ export class VastProvider implements WorkerProvider {
     if (spec.token) env.NODETOOL_WORKER_TOKEN = spec.token;
     // Cache HF models on the instance disk so they survive a stop/resume.
     env.HF_HOME = WORKER_HF_HOME;
+    // Vast takes port mappings as Docker flags *inside* `env`, keyed by the
+    // flag with a dummy value — `args` goes to the image entrypoint instead and
+    // would never publish the port. Map the worker port out for the ws attach.
+    env[`-p ${WORKER_PORT}:${WORKER_PORT}`] = "1";
+
+    const sshKey = spec.sshPublicKey?.trim();
+    if (sshKey) {
+      // Same contract as RunPod: the key is an *image* convention — the worker
+      // entrypoint installs PUBLIC_KEY and starts sshd — so it carries over to
+      // Vast unchanged. Vast's account-level keys only apply to its own `ssh`
+      // runtypes, and we run the image's entrypoint (`args`).
+      env.PUBLIC_KEY = sshKey;
+      env[`-p ${SSH_PORT}:${SSH_PORT}`] = "1";
+    }
 
     const res = await vastApi(this.apiKey, `asks/${offerId}/`, "PUT", {
       image: spec.image,
+      // Names the instance in the Vast console, so a rented worker can be
+      // matched to its profile by hand during a reconcile.
+      label: spec.name,
       disk: spec.disk ?? DEFAULT_VOLUME_GB,
       env,
-      // Map the worker's internal port out for the direct ws:// attach.
+      // Run the image's own entrypoint (the worker), not Vast's ssh/jupyter.
       runtype: "args",
-      args: ["-p", `${WORKER_PORT}:${WORKER_PORT}`],
     });
     // The launch response is `{success, new_contract}` per the Vast HTTP API
     // (https://console.vast.ai/api/v0). On failure it carries `error`/`message`
