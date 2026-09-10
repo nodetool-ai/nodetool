@@ -439,6 +439,7 @@ export interface AssetCreateParamsLike {
   userId: string;
   workflowId: string | null;
   jobId: string;
+  projectId?: string | null;
   name: string;
   contentType: string;
   content: Uint8Array;
@@ -1061,6 +1062,8 @@ export class ProcessingContext {
    * object storage and has no path.
    */
   readonly workspace: Workspace | null;
+  /** Project captured when this run started. */
+  readonly projectId: string | null;
   /**
    * Unified, structured agent memory. The single source of truth for results
    * shared between agents, tasks, steps and tools. Keys use the namespaces
@@ -1141,6 +1144,7 @@ export class ProcessingContext {
   constructor(opts: {
     jobId: string;
     workflowId?: string | null;
+    projectId?: string | null;
     threadId?: string | null;
     userId?: string;
     workspaceDir?: string | null;
@@ -1192,6 +1196,7 @@ export class ProcessingContext {
   }) {
     this.jobId = opts.jobId;
     this.workflowId = opts.workflowId ?? null;
+    this.projectId = opts.projectId ?? null;
     this.threadId = opts.threadId ?? null;
     this.userId = opts.userId ?? "default";
     this.workspace = resolveWorkspaceOption(opts);
@@ -1251,6 +1256,7 @@ export class ProcessingContext {
   }): ProcessingContext {
     const next = new ProcessingContext({
       jobId: this.jobId,
+      projectId: this.projectId,
       workflowId: this.workflowId,
       threadId: this.threadId,
       userId: this.userId,
@@ -2008,6 +2014,7 @@ export class ProcessingContext {
       userId: this.userId,
       workflowId: this.workflowId,
       jobId: this.jobId,
+      projectId: this.projectId,
       name: args.name,
       contentType: args.contentType,
       content,

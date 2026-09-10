@@ -131,6 +131,8 @@ export interface RunJobRequest {
    * its rows just carry no operation.
    */
   operation_id?: string | null;
+  /** Project captured when the run was accepted. */
+  project_id?: string | null;
 }
 
 export interface RunJobExecutionOptions {
@@ -1318,6 +1320,22 @@ export class JobExecutionManager {
     );
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
+    let projectId = req.project_id ?? null;
+    if (workflowId) {
+      const workflow = await Workflow.find(userId, workflowId);
+      if (workflow) {
+        if (projectId !== null && projectId !== workflow.project_id) {
+          await this.emitBeforeRunFailure(
+            jobId,
+            workflowId,
+            new Error("Workflow is owned by another project"),
+            true
+          );
+          return;
+        }
+        projectId = workflow.project_id;
+      }
+    }
     const executionOptions = resolveRunJobExecutionOptions(
       req.execution_options,
       req.require_terminal_result === true
@@ -1371,6 +1389,7 @@ export class JobExecutionManager {
     const context = createRuntimeContext({
       jobId,
       workflowId,
+      projectId,
       userId,
       workspace,
       assetOutputMode: this.session.mode === "text" ? "data_uri" : "temp_url",
@@ -1447,6 +1466,7 @@ export class JobExecutionManager {
             started_at: new Date().toISOString(),
             params: req.params ?? {},
             graph,
+            project_id: projectId ?? "default",
             runner_instance: instanceId
           });
         }
@@ -1492,6 +1512,7 @@ export class JobExecutionManager {
       workflowId,
       context,
       params: req.params ?? {},
+      projectId,
       validateNode: this.session.validateNode
     };
     if (supervisor) {

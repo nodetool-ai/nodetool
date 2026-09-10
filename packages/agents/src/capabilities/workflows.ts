@@ -117,6 +117,7 @@ import {
   MAX_VERSION_LIMIT
 } from "./workflows.specs.js";
 import { isNumber, isObjectLike, isString } from "../utils/type-guards.js";
+import { resolveProjectId } from "./project-scope.js";
 
 /** The run environment this run can execute a workflow in, or null. */
 function runEnvironmentOf(run: CapabilityRun) {
@@ -129,7 +130,8 @@ async function listUserWorkflows(
 ): Promise<unknown> {
   const { Workflow } = await import("@nodetool-ai/models");
   const [workflows, next] = await Workflow.paginate(userIdOf(run.context), {
-    limit
+    limit,
+    projectId: run.projectId
   });
   return lightWorkflowList({
     workflows: workflows.map((w) => workflowRecord(w)),
@@ -195,6 +197,9 @@ const getWorkflow: CapabilityExport = {
     const workflowId = String(params["workflow_id"]);
     const workflow = await Workflow.find(userIdOf(run.context), workflowId);
     if (!workflow) return { error: `Workflow ${workflowId} was not found.` };
+    if (run.projectId !== undefined && workflow.project_id !== run.projectId) {
+      return { error: `Workflow ${workflowId} was not found.` };
+    }
     return workflowRecord(workflow);
   }
 };
@@ -202,7 +207,14 @@ const getWorkflow: CapabilityExport = {
 const createWorkflow: CapabilityExport = {
   spec: createWorkflowSpec,
   impl: async (run, params) => {
-    const { Workflow } = await import("@nodetool-ai/models");
+    const { Project, Workflow } = await import("@nodetool-ai/models");
+    const projectId = resolveProjectId(run, params);
+    if (
+      projectId !== "default" &&
+      !(await Project.findOwned(userIdOf(run.context), projectId))
+    ) {
+      return { error: "Project not found." };
+    }
     // Declare before normalizing, so the handle is on the node the editor,
     // the validator and every later run read. Without a registry this is the
     // identity function and the graph is stored exactly as it arrived.
@@ -230,7 +242,8 @@ const createWorkflow: CapabilityExport = {
       tags: Array.isArray(params["tags"]) ? (params["tags"] as string[]) : [],
       access: params["access"] === "public" ? "public" : "private",
       graph: graph as WorkflowRow["graph"],
-      run_mode: "workflow"
+      run_mode: "workflow",
+      project_id: projectId
     })) as WorkflowRow;
     return workflowRecord(created);
   }
@@ -251,6 +264,9 @@ async function findOwnedWorkflow(
   const { Workflow } = await import("@nodetool-ai/models");
   const wf = (await Workflow.get(id)) as WorkflowRow | null;
   if (!wf || wf.user_id !== userIdOf(run.context)) return null;
+  if (run.projectId !== undefined && wf.project_id !== run.projectId) {
+    return null;
+  }
   return wf;
 }
 

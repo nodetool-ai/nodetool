@@ -63,6 +63,7 @@ export type WorkflowUpdateFields = Partial<{
   path: string | null;
   run_mode: string | null;
   workspace_id: string | null;
+  project_id: string;
   html_app: string | null;
   app_doc: Record<string, unknown> | null;
   receive_clipboard: boolean | null;
@@ -280,6 +281,7 @@ export class Workflow extends DBModel {
       conditions.push(eq(workflows.project_id, projectId));
     }
     if (access) conditions.push(eq(workflows.access, access));
+    if (projectId) conditions.push(eq(workflows.project_id, projectId));
     if (runMode) {
       conditions.push(eq(workflows.run_mode, runMode));
     } else {

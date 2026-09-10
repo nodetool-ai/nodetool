@@ -263,6 +263,7 @@ function toWorkflowResponse(workflow: WorkflowModel): WorkflowResponse {
     path: workflow.path ?? null,
     run_mode: workflow.run_mode ?? null,
     workspace_id: workflow.workspace_id ?? null,
+    project_id: workflow.project_id,
     required_providers: null,
     required_models: null,
     html_app: workflow.html_app ?? null,

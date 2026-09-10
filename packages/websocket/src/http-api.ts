@@ -26,7 +26,8 @@ import {
   Workflow,
   WorkflowCollaborator,
   Job,
-  Asset
+  Asset,
+  Project
 } from "@nodetool-ai/models";
 import {
   loadPythonPackageMetadata,
@@ -425,6 +426,7 @@ export interface WorkflowRequestBody {
   settings?: Record<string, unknown> | null;
   run_mode?: string | null;
   workspace_id?: string | null;
+  project_id?: string;
   html_app?: string | null;
   app_doc?: Record<string, unknown> | null;
   expected_updated_at?: string;
@@ -520,6 +522,7 @@ export function toWorkflowResponse(workflow: Workflow) {
     path: workflow.path,
     run_mode: workflow.run_mode,
     workspace_id: workflow.workspace_id,
+    project_id: workflow.project_id,
     required_providers: null,
     required_models: null,
     html_app: workflow.html_app,
@@ -1415,6 +1418,7 @@ export function toJobResponse(job: Job) {
     job_type: "workflow",
     status: job.status,
     workflow_id: job.workflow_id,
+    project_id: job.project_id,
     started_at: job.started_at ?? null,
     finished_at: job.finished_at ?? null,
     error: job.error ?? null,
@@ -1489,6 +1493,14 @@ export async function handleAssetsRoot(
 
     const metadata: Record<string, unknown> = body.metadata ?? {};
 
+    if (body.project_id && body.project_id !== "default") {
+      try {
+        await Project.requireOwned(userId, body.project_id);
+      } catch {
+        return errorResponse(400, "Project not found");
+      }
+    }
+
     const assetContentType = normalizeAssetContentType(
       body.content_type,
       body.name
@@ -1504,6 +1516,7 @@ export async function handleAssetsRoot(
       job_id: body.job_id ?? null,
       metadata:
         Object.keys(metadata).length > 0 ? metadata : (body.metadata ?? null),
+      project_id: body.project_id ?? "default",
       size: fileSize ?? body.size ?? null
     })) as Asset;
 

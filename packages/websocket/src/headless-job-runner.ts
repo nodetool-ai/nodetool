@@ -154,7 +154,8 @@ export async function startHeadlessJob(
     name: options.jobName ?? workflow.name ?? "",
     started_at: new Date().toISOString(),
     params,
-    graph: { ...graph }
+    graph: { ...graph },
+    project_id: workflow.project_id
   };
   if (options.jobId !== undefined) {
     jobFields.id = options.jobId;
@@ -221,6 +222,7 @@ export async function startHeadlessJob(
     jobId: job.id,
     workflowId,
     params,
+    projectId: job.project_id,
     triggerEvent: options.triggerEvent ?? null,
     context
   };
