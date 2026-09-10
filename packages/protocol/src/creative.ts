@@ -632,6 +632,37 @@ export function entitiesForShot(shot: Shot, boardEntities: Entity[]): Entity[] {
   });
 }
 
+/**
+ * The board's cast, widened to hold every entity its shots reference.
+ *
+ * A shot's `entity_ids` is a selection out of the board's cast:
+ * {@link entitiesForShot} filters the board's entities by it, so an id cast on
+ * a shot but never on the board resolves to nothing — the chip is on the shot,
+ * the entity is not in the board's library, and the prompt is not seasoned with
+ * it. Agents writing shots hit this routinely. Reconciling on read keeps the
+ * two in step: board cast first, in order, then each shot's unseen ids in shot
+ * order.
+ *
+ * Returns `entityIds` itself when nothing is missing, so a caller can compare
+ * by identity and skip a write.
+ */
+export function boardEntityIdsWithShots(
+  entityIds: readonly string[],
+  shots: readonly Shot[]
+): readonly string[] {
+  const seen = new Set(entityIds);
+  const added: string[] = [];
+  for (const shot of shots) {
+    for (const id of shot.entity_ids ?? []) {
+      if (!seen.has(id)) {
+        seen.add(id);
+        added.push(id);
+      }
+    }
+  }
+  return added.length === 0 ? entityIds : [...entityIds, ...added];
+}
+
 // ---------------------------------------------------------------------------
 // Cost governance
 // ---------------------------------------------------------------------------

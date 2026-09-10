@@ -26,6 +26,7 @@ import type {
   ShotStatus,
   VideoRef
 } from "@nodetool-ai/protocol";
+import { boardEntityIdsWithShots } from "@nodetool-ai/protocol";
 import {
   pushHistory,
   undoHistory,
@@ -639,10 +640,14 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
   loadBoard: (id, board, options) =>
     set((state) => {
       const prev = state.boards[id];
+      const merged = { ...emptyBoard(id), ...board };
       const next = {
-        ...emptyBoard(id),
-        ...board,
+        ...merged,
         id,
+        // A shot can carry an entity the board was never cast with — agents
+        // write shots one at a time and forget the board. Widen the cast on
+        // load so the chips, the pickers and the prompts agree.
+        entityIds: [...boardEntityIdsWithShots(merged.entityIds, merged.shots)],
         shots: board.shots.map((s) =>
           s.status === "keyframe_generating"
             ? { ...s, status: "planned" as const }
@@ -739,7 +744,12 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         // The screenplay's cast becomes the board's cast: `entityIds` is what
         // seasons every shot prompt, and a screenplay that names entities the
         // board does not carry would generate them out.
-        entityIds: screenplay.entity_ids ?? board.entityIds,
+        entityIds: [
+          ...boardEntityIdsWithShots(
+            screenplay.entity_ids ?? board.entityIds,
+            shots
+          )
+        ],
         // An explicit `brief` wins. A logline fills an empty brief only — the
         // editor directs *from* the brief, so a returned logline must never
         // overwrite what the user wrote.

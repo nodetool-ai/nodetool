@@ -1,4 +1,5 @@
 import { eq, desc, and, sql } from "drizzle-orm";
+import { boardEntityIdsWithShots } from "@nodetool-ai/protocol";
 import type { Screenplay, Shot } from "@nodetool-ai/protocol";
 import type { StoryboardSetupStage } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import {
@@ -122,6 +123,10 @@ export class Storyboard extends DBModel {
     doc.entityIds ??= [];
     doc.setupStage ??= "done";
     doc.genre ??= "";
+    // A shot can name an entity the board was never cast with — agents write
+    // shots one at a time and forget the board. Reconcile on read so the cast
+    // holds everything the shots reference.
+    doc.entityIds = [...boardEntityIdsWithShots(doc.entityIds, doc.shots ?? [])];
     return doc;
   }
 
