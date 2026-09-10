@@ -79,6 +79,7 @@ export function modeLabelFor(mode: MediaMode): string {
 interface ModeSelectChipProps {
   mode: MediaMode;
   onChange: (mode: MediaMode) => void;
+  modes?: readonly MediaMode[];
   /** Icon plus chevron only: the mode reads from its icon, and the label
    *  costs room the model and workspace chips need on one line. */
   compact?: boolean;
@@ -87,6 +88,7 @@ interface ModeSelectChipProps {
 export function ModeSelectChip({
   mode,
   onChange,
+  modes,
   compact = false
 }: ModeSelectChipProps) {
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
@@ -109,6 +111,7 @@ export function ModeSelectChip({
         onClose={close}
         value={mode}
         onChange={onChange}
+        modes={modes}
       />
     </>
   );

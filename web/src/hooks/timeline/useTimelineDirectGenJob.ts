@@ -29,6 +29,9 @@ import {
   lookupGenerations
 } from "../../lib/websocket/lookupGenerations";
 import { watchGeneration } from "../../lib/websocket/generationWatch";
+import { useAssetStore } from "../../stores/AssetStore";
+import { getAssetUrl } from "../../utils/assetHelpers";
+import { probeMediaDurationMs } from "../../utils/probeMediaDuration";
 
 interface DirectGenRpcResponse extends WebSocketMessage {
   type: "rpc_response";
@@ -59,6 +62,43 @@ const clearInFlight = (clipId: string): void => {
 
 function fail(timeline: TimelineStoreApi, clipId: string): void {
   timeline.getState().patchClip(clipId, { status: "failed" });
+}
+
+async function fitGeneratedAudio(
+  timeline: TimelineStoreApi,
+  clip: TimelineClip,
+  assetId: string
+): Promise<void> {
+  try {
+    const asset = await useAssetStore.getState().get(assetId);
+    const url = getAssetUrl(asset);
+    const durationMs =
+      asset.duration && asset.duration > 0
+        ? Math.round(asset.duration * 1000)
+        : url
+          ? await probeMediaDurationMs(url, "audio")
+          : null;
+    const current = timeline
+      .getState()
+      .clips.find((item) => item.id === clip.id);
+    // A late probe must not undo a trim, lock, or subsequent generation.
+    if (
+      durationMs &&
+      current &&
+      !current.locked &&
+      current.currentAssetId === assetId &&
+      current.status === "generated" &&
+      (current.speedMultiplier ?? 1) === 1 &&
+      !current.timeRemap &&
+      current.durationMs === clip.durationMs &&
+      current.inPointMs === undefined &&
+      current.outPointMs === undefined
+    ) {
+      timeline.getState().patchClip(clip.id, { durationMs });
+    }
+  } catch {
+    // Keep the generated asset and editable placeholder length if metadata is unavailable.
+  }
 }
 
 /** One request's outcome, however it was learned. */
@@ -142,6 +182,9 @@ export function landDirectGen(
     patch.outPointMs = undefined;
   }
   store.patchClip(clipId, patch);
+  if (current.bindingKind === "text-to-audio" && !current.locked) {
+    void fitGeneratedAudio(timeline, current, first);
+  }
 }
 
 /**
