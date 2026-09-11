@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 
 import { trpc } from "../../trpc/client";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -43,7 +43,8 @@ const CopyProjectDocumentAction = ({
     }
   });
   const destinations = projects.filter((project) => project.id !== sourceProjectId);
-  const showDialog = () => {
+  const showDialog = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
     setDestinationProjectId(destinations[0]?.id ?? "");
     setOpen(true);
   };

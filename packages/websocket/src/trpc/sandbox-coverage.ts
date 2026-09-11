@@ -636,6 +636,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "between projects; both the document and the project are the " +
       "caller's own rows."
   },
+  "projects.copyDocument": {
+    gap:
+      "Copies a document and its owned dependency closure into another " +
+      "project. The caller owns both sides, but no sandbox capability " +
+      "yet exposes the operation-wide reference remapping contract."
+  },
   "projects.create": {
     gap:
       "A project groups documents that already carry its id, and a run " +
