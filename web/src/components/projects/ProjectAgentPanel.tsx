@@ -91,7 +91,7 @@ const ProjectAgentPanel = ({
     return thread && (thread.project_id ?? "default") === projectId
       ? selectedChatCandidate
       : null;
-  );
+  });
   const setSelectedChatThread = useWorkspaceTabsStore(
     (state) => state.setSelectedChatThread
   );
@@ -111,7 +111,8 @@ const ProjectAgentPanel = ({
       loadMessages: state.loadMessages,
       sendMessage: state.sendMessage,
       trySendMessage: state.trySendMessage,
-      stopGeneration: state.stopGeneration
+      stopGeneration: state.stopGeneration,
+      createNewThread: state.createNewThread
     }))
   );
   const messages = useGlobalChatStore((state) =>
