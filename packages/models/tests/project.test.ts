@@ -181,23 +181,18 @@ describe("Project model", () => {
 
     expect(await Project.deleteOwned("u1", project.id)).toBe(true);
     expect(await Project.findById(project.id)).toBeNull();
-    for (const [model, id] of [
-      [Storyboard, board.id],
-      [Script, script.id],
-      [TimelineSequence, cut.id],
-      [ImageDocument, sketch.id],
-      [Application, app.id],
-      [JsScript, jsScript.id],
-      [Asset, asset.id],
-      [Workflow, workflow.id],
-      [Thread, thread.id],
-      [Job, job.id],
-      [Workspace, workspace.id],
-      [Prediction, prediction.id]
-    ] as const) {
-      const row = await model.findById(id);
-      expect(row).toBeNull();
-    }
+    expect(await Storyboard.findById(board.id)).toBeNull();
+    expect(await Script.findById(script.id)).toBeNull();
+    expect(await TimelineSequence.findById(cut.id)).toBeNull();
+    expect(await ImageDocument.findById(sketch.id)).toBeNull();
+    expect(await Application.findById(app.id)).toBeNull();
+    expect(await JsScript.findById(jsScript.id)).toBeNull();
+    expect(await Asset.find("u1", asset.id)).toBeNull();
+    expect(await Workflow.find("u1", workflow.id)).toBeNull();
+    expect(await Thread.find("u1", thread.id)).toBeNull();
+    expect(await Job.find("u1", job.id)).toBeNull();
+    expect(await Workspace.find("u1", workspace.id)).toBeNull();
+    expect(await Prediction.find(prediction.id)).toBeNull();
     expect(await listProjectDocuments("u1", LOOSE_PROJECT_ID)).toEqual([]);
     expect((await Script.findById(theirs.id))?.project_id).toBe(project.id);
     await expect(

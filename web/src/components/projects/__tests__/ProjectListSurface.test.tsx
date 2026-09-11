@@ -52,6 +52,7 @@ const openNewProject = jest.fn();
 
 jest.mock("../../../hooks/useProjects", () => ({
   useProjectSummaries: () => summaries,
+  useArchivedProjects: () => ({ data: [], isPending: false }),
   useUnassignedDocuments: () => unassigned,
   useAssignDocument: () => ({ mutate: assignDocument }),
   useOpenProject: () => openProject,

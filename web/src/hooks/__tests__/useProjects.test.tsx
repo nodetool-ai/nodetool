@@ -157,6 +157,7 @@ describe("useInvalidateProjects", () => {
   it("invalidates projects.get so an open overview tab does not go stale", () => {
     const invalidate = {
       list: { invalidate: jest.fn() },
+      archived: { invalidate: jest.fn() },
       summaries: { invalidate: jest.fn() },
       unassigned: { invalidate: jest.fn() },
       get: { invalidate: jest.fn() }
@@ -169,6 +170,7 @@ describe("useInvalidateProjects", () => {
     });
 
     expect(invalidate.list.invalidate).toHaveBeenCalledTimes(1);
+    expect(invalidate.archived.invalidate).toHaveBeenCalledTimes(1);
     expect(invalidate.summaries.invalidate).toHaveBeenCalledTimes(1);
     expect(invalidate.unassigned.invalidate).toHaveBeenCalledTimes(1);
     expect(invalidate.get.invalidate).toHaveBeenCalledTimes(1);

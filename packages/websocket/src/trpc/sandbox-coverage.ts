@@ -636,6 +636,16 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "between projects; both the document and the project are the " +
       "caller's own rows."
   },
+  "projects.archive": {
+    gap:
+      "Project lifecycle management is not exposed through a sandbox " +
+      "capability yet. Archiving only changes the project's visibility."
+  },
+  "projects.archived": {
+    gap:
+      "Lists archived project metadata. Sandbox capabilities do not expose " +
+      "project lifecycle management yet."
+  },
   "projects.copyDocument": {
     gap:
       "Copies a document and its owned dependency closure into another " +
@@ -674,6 +684,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
     gap:
       "Same grouping surface as `projects.create`. The whole list of " +
       "rollups `projects.get` returns one at a time."
+  },
+  "projects.restore": {
+    gap:
+      "Project lifecycle management is not exposed through a sandbox " +
+      "capability yet. Restoring changes a project's visibility."
   },
   "projects.thread": {
     gap:
