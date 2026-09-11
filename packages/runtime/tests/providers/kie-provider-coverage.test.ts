@@ -201,6 +201,10 @@ describe("KieProvider — metadata", () => {
     expect(models.map((m) => m.id)).toContain("claude-opus-5");
     expect(models.map((m) => m.id)).toContain("grok-4-5");
     expect(models.map((m) => m.id)).toContain("gemini-3-6-flash");
+    expect(models.map((m) => m.id)).toContain("gpt-6-astra");
+    expect(models.map((m) => m.id)).toContain("grok-4-6");
+    expect(models.map((m) => m.id)).toContain("gemini-3-7-flash");
+    expect(models.map((m) => m.id)).toContain("gemini-3-8-flash");
   });
 
   it("reports tool support only for known chat models", async () => {
@@ -543,7 +547,7 @@ describe("KieProvider — textToMusic (Suno)", () => {
       prompt: "a calm piano tune",
       customMode: false,
       instrumental: false,
-      model: "V4",
+      model: "V6",
       callBackUrl: "https://nodetool.ai/kie-callback"
     });
   });
@@ -561,7 +565,7 @@ describe("KieProvider — textToMusic (Suno)", () => {
       prompt: "la la la",
       style: "jazzy, upbeat",
       instrumental: false,
-      model: "V4"
+      model: "V6"
     });
   });
 
@@ -575,7 +579,7 @@ describe("KieProvider — textToMusic (Suno)", () => {
     expect(submitUrls[0]).toContain("/api/v1/generate/sounds");
     expect(submitted[0]).toMatchObject({
       prompt: "rain on a window",
-      model: "V5"
+      model: "V6"
     });
   });
 
