@@ -330,6 +330,21 @@ export class ChatTurnRegistry {
     return count;
   }
 
+  /** Abort local turns whose conversation is being deleted with its project. */
+  abortThreads(userId: string, threadIds: ReadonlySet<string>): number {
+    let count = 0;
+    for (const session of this.sessions.values()) {
+      if (
+        session.userId !== userId ||
+        session.status !== "running" ||
+        !threadIds.has(session.threadId)
+      ) continue;
+      session.abort("stop");
+      count += 1;
+    }
+    return count;
+  }
+
   /**
    * Resolve true once no turn is running, false when `timeoutMs` elapses
    * first. A turn is running until its handler has settled, which is what

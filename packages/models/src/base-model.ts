@@ -8,9 +8,10 @@
 import { randomUUID } from "node:crypto";
 import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
-import { Column, eq, getTableColumns, like, Table } from "drizzle-orm";
+import { and, Column, eq, getTableColumns, like, Table } from "drizzle-orm";
 import { isShortResourceId } from "@nodetool-ai/protocol";
 import { getDb } from "./db.js";
+import { projects } from "./schema/projects.js";
 
 const log = createLogger("nodetool.models");
 
@@ -226,6 +227,25 @@ export abstract class DBModel {
     const db = getDb();
     const table = ctor.table;
     const row = this.toRow();
+    const projectId = row["project_id"];
+    const userId = row["user_id"];
+    // A project deletion keeps a tombstone precisely so an in-flight job or a
+    // delayed provider callback cannot write a project member back after its
+    // content was purged. Unknown legacy ids remain writable for migration.
+    if (
+      typeof projectId === "string" &&
+      projectId !== "default" &&
+      typeof userId === "string"
+    ) {
+      const [project] = await db
+        .select({ deletedAt: projects.deleted_at })
+        .from(projects)
+        .where(and(eq(projects.id, projectId), eq(projects.user_id, userId)))
+        .limit(1);
+      if (project?.deletedAt) {
+        throw new Error("Project has been deleted");
+      }
+    }
     const pkCol = getTableColumn(table, ctor.primaryKey);
 
     await db

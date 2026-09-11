@@ -79,6 +79,33 @@ describe("projects router", () => {
     ]);
   });
 
+  it("archives projects outside the normal list and restores them", async () => {
+    const project = await caller().projects.create({ name: "Aurora" });
+    const archived = await caller().projects.archive({ id: project.id });
+    expect(archived.archivedAt).toEqual(expect.any(String));
+    expect((await caller().projects.list({})).map((item) => item.id)).not.toContain(
+      project.id
+    );
+    expect((await caller().projects.archived({})).map((item) => item.id)).toContain(
+      project.id
+    );
+
+    const restored = await caller().projects.restore({ id: project.id });
+    expect(restored.archivedAt).toBeNull();
+    expect((await caller().projects.list({})).map((item) => item.id)).toContain(
+      project.id
+    );
+  });
+
+  it("makes deletion idempotent and refuses Personal", async () => {
+    const project = await caller().projects.create({ name: "Aurora" });
+    await expect(caller().projects.delete({ id: project.id })).resolves.toEqual({ ok: true });
+    await expect(caller().projects.delete({ id: project.id })).resolves.toEqual({ ok: true });
+    await expect(
+      caller().projects.delete({ id: "personal:user-1" })
+    ).rejects.toThrow(/Personal cannot be deleted/i);
+  });
+
   it("hides another user's project behind not-found", async () => {
     const theirs = await caller("user-2").projects.create({
       name: "Theirs",
@@ -152,7 +179,7 @@ describe("projects router", () => {
     expect(await caller().projects.list({})).toHaveLength(2);
   });
 
-  it("moves a deleted project's documents back into the loose bucket", async () => {
+  it("deletes a project's documents rather than returning them to Personal", async () => {
     const project = await caller().projects.create({ name: "Aurora" });
     const board = await Storyboard.create<Storyboard>({
       user_id: "user-1",
@@ -167,11 +194,8 @@ describe("projects router", () => {
 
     await caller().projects.delete({ id: project.id });
 
-    expect(
-      (await caller().projects.documents({ id: "personal:user-1" }))
-        .map((d) => d.ref)
-        .sort()
-    ).toEqual([board.id, script.id].sort());
+    expect(await Storyboard.findById(board.id)).toBeNull();
+    expect(await Script.findById(script.id)).toBeNull();
   });
 
   it("returns each document with its status and the project's spend", async () => {

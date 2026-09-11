@@ -23,6 +23,7 @@ import {
   type ProjectDetail
 } from "./projectStatus";
 import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
+import ProjectLifecycleActions from "./ProjectLifecycleActions";
 
 const MEDIA_HEIGHT = 176;
 
@@ -127,6 +128,7 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
           </Caption>
         </FlexRow>
         <Caption color="secondary">{projectStatusLine(documents)}</Caption>
+        <ProjectLifecycleActions project={project} />
         <FlexRow align="center" gap={SPACING.md}>
           <FlexRow gap={SPACING.sm} aria-hidden>
             {documents.map((doc) => (

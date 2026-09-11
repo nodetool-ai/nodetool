@@ -10,7 +10,7 @@
  * nothing migrates into one.
  */
 
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, notInArray } from "drizzle-orm";
 import {
   DBModel,
   ModelChangeEvent,
@@ -19,7 +19,7 @@ import {
 } from "./base-model.js";
 import { executeRaw, getDb } from "./db.js";
 import { projects } from "./schema/projects.js";
-import { reassignProjectDocuments } from "./project-membership.js";
+import { jobs } from "./schema/jobs.js";
 import { Thread } from "./thread.js";
 
 /** The bucket documents land in when no project is active. */
@@ -47,6 +47,7 @@ export interface ProjectResponse {
   /** Free text — "spot", "trailer", "report". Not an enum on purpose. */
   kind: string;
   isPersonal: boolean;
+  archivedAt: string | null;
   /** The conversation that builds it, or null while nobody has asked for one. */
   threadId: string | null;
   createdAt: string;
@@ -60,6 +61,8 @@ export class Project extends DBModel {
   declare user_id: string;
   declare name: string;
   declare kind: string;
+  declare archived_at: string | null;
+  declare deleted_at: string | null;
   declare thread_id: string | null;
   declare created_at: string;
   declare updated_at: string;
@@ -71,6 +74,8 @@ export class Project extends DBModel {
     this.name ??= "Untitled project";
     this.kind ??= "";
     this.thread_id ??= null;
+    this.archived_at ??= null;
+    this.deleted_at ??= null;
     this.created_at ??= now;
     this.updated_at ??= now;
   }
@@ -85,6 +90,7 @@ export class Project extends DBModel {
       name: this.name,
       kind: this.kind,
       isPersonal: this.kind === PERSONAL_PROJECT_KIND,
+      archivedAt: this.archived_at,
       threadId: this.thread_id,
       createdAt: this.created_at,
       updatedAt: this.updated_at
@@ -92,7 +98,8 @@ export class Project extends DBModel {
   }
 
   static async findById(id: string): Promise<Project | null> {
-    return Project.get<Project>(id);
+    const project = await Project.get<Project>(id);
+    return project?.deleted_at ? null : project;
   }
 
   static async ensurePersonal(userId: string): Promise<Project> {
@@ -223,12 +230,22 @@ export class Project extends DBModel {
     return row ? new Project(row as Record<string, unknown>) : null;
   }
 
-  static async listByUser(userId: string, limit = 100): Promise<Project[]> {
+  static async listByUser(
+    userId: string,
+    limit = 100,
+    archived = false
+  ): Promise<Project[]> {
     const db = getDb();
     const rows = await db
       .select()
       .from(projects)
-      .where(eq(projects.user_id, userId))
+      .where(
+        and(
+          eq(projects.user_id, userId),
+          isNull(projects.deleted_at),
+          archived ? isNotNull(projects.archived_at) : isNull(projects.archived_at)
+        )
+      )
       .orderBy(desc(projects.updated_at))
       .limit(limit);
     return rows.map((r: Record<string, unknown>) => new Project(r));
@@ -253,6 +270,8 @@ export class Project extends DBModel {
         user_id: project.user_id,
         name: project.name,
         kind: project.kind,
+        archived_at: project.archived_at,
+        deleted_at: project.deleted_at,
         thread_id: project.thread_id,
         created_at: project.created_at,
         updated_at: project.updated_at
@@ -268,21 +287,60 @@ export class Project extends DBModel {
     return created;
   }
 
-  /**
-   * Delete a project the caller owns, moving its documents back into the loose
-   * bucket first. Leaving them pointing at a dead id loses them: the loose
-   * listing filters on {@link LOOSE_PROJECT_ID}, so an orphan appears in no
-   * project and in no unassigned list. Ledger rows keep the dead id — they are
-   * history, not something a user opens. Missing and not-yours answer the same,
-   * so a caller cannot probe ids.
-   */
+  /** Delete all project-owned rows and leave a tombstone for late run writes. */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
-    const row = await Project.findOwned(userId, id);
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(projects)
+      .where(and(eq(projects.id, id), eq(projects.user_id, userId)))
+      .limit(1);
+    const row = rows[0] ? new Project(rows[0]) : null;
     if (!row) return false;
     if (row.kind === PERSONAL_PROJECT_KIND) return false;
-    await reassignProjectDocuments(userId, id, LOOSE_PROJECT_ID);
-    await row.delete();
+    if (row.deleted_at) return true;
+
+    const now = new Date().toISOString();
+    // Mark active jobs first. Their runner observes cancellation, and the
+    // tombstone below blocks a delayed output from creating another member.
+    await db
+      .update(jobs)
+      .set({ status: "cancelled", finished_at: now, updated_at: now })
+      .where(
+        and(
+          eq(jobs.user_id, userId),
+          eq(jobs.project_id, id),
+          notInArray(jobs.status, ["completed", "failed", "cancelled"])
+        )
+      );
+
+    const owner = userId.replace(/'/g, "''");
+    const project = id.replace(/'/g, "''");
+    // This mirrors the complete ownership inventory. Global credentials,
+    // templates, and copies in other projects carry no matching project id.
+    for (const table of [
+      "storyboards", "scripts", "timeline_sequences", "image_documents",
+      "applications", "js_scripts", "nodetool_assets", "nodetool_workflows",
+      "nodetool_threads", "nodetool_jobs", "nodetool_workspaces",
+      "nodetool_predictions"
+    ]) {
+      await executeRaw(
+        `DELETE FROM ${table} WHERE user_id = '${owner}' AND project_id = '${project}' RETURNING id`
+      );
+    }
+    await db
+      .update(projects)
+      .set({ deleted_at: now, archived_at: null, updated_at: now })
+      .where(and(eq(projects.id, id), eq(projects.user_id, userId)));
     return true;
+  }
+
+  static async archiveOwned(userId: string, id: string): Promise<Project | null> {
+    return Project.updateOwned(userId, id, { archived_at: new Date().toISOString() });
+  }
+
+  static async restoreOwned(userId: string, id: string): Promise<Project | null> {
+    return Project.updateOwned(userId, id, { archived_at: null });
   }
 
   /**
@@ -331,7 +389,7 @@ export class Project extends DBModel {
   static async updateOwned(
     userId: string,
     id: string,
-    fields: Partial<{ name: string; kind: string; thread_id: string }>
+    fields: Partial<{ name: string; kind: string; thread_id: string; archived_at: string | null }>
   ): Promise<Project | null> {
     const existing = await Project.findOwned(userId, id);
     if (!existing) return null;
