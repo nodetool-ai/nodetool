@@ -69,9 +69,12 @@ const storyboardDoc = (shots: Shot[]): StoryboardDocument => ({
 });
 
 /** A document row in project `p1`, for the tables that all carry the column. */
-const doc = (userId: string): Record<string, unknown> => ({
+const doc = (
+  userId: string,
+  projectId = "p1"
+): Record<string, unknown> => ({
   user_id: userId,
-  project_id: "p1",
+  project_id: projectId,
   name: "Doc"
 });
 
@@ -154,9 +157,9 @@ describe("Project model", () => {
       project_id: project.id,
       name: "Cut"
     });
-    const sketch = await ImageDocument.create<ImageDocument>(doc("u1"));
-    const app = await Application.create<Application>(doc("u1"));
-    const jsScript = await JsScript.create<JsScript>(doc("u1"));
+    const sketch = await ImageDocument.create<ImageDocument>(doc("u1", project.id));
+    const app = await Application.create<Application>(doc("u1", project.id));
+    const jsScript = await JsScript.create<JsScript>(doc("u1", project.id));
     const asset = await Asset.create<Asset>({ user_id: "u1", project_id: project.id });
     const workflow = await Workflow.create<Workflow>({ user_id: "u1", project_id: project.id });
     const thread = await Thread.create<Thread>({ user_id: "u1", project_id: project.id });
