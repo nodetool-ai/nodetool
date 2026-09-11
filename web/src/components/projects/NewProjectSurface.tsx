@@ -1331,17 +1331,28 @@ const NewProjectSurface = () => {
     <ScrollArea fullHeight>
       <FlexColumn align="center" sx={{ minHeight: "100%", px: SPACING.xl }}>
         <FlexColumn
-          gap={SPACING.xl}
+          gap={SPACING.xxl}
           sx={{ width: "100%", maxWidth: `${COLUMN_WIDTH}px`, pt: SPACING.xxxl }}
         >
+          {/* The getting-started steps read as a thin bar above the page rather
+              than a block wedged between the composer and the footer. */}
+          {showOnboarding && (
+            <GettingStartedChecklist
+              hasConfiguredProvider={hasConfiguredProvider}
+              onConnectProvider={handleConnectProvider}
+              onOpenTemplates={handleOpenTemplates}
+              onCreateWorkflow={() => void handleCreateNewWorkflow()}
+            />
+          )}
+
           <FlexColumn gap={SPACING.md} align="center">
             <Text size="big">What do you want to make?</Text>
             <Caption
               color="secondary"
               sx={{ maxWidth: "560px", textAlign: "center" }}
             >
-              An agent plans the documents — a board, a script, a cut — and
-              builds them while you watch. Everything it makes stays editable.
+              An agent plans the documents and builds them while you watch.
+              Everything it makes stays editable.
             </Caption>
           </FlexColumn>
 
@@ -1369,10 +1380,15 @@ const NewProjectSurface = () => {
             />
           </FlexColumn>
 
+          {/* The composer sits below the cards, not above them: its `/` and `@`
+              menus open upward from the box's top edge
+              (`useTextareaSkillMention`), so it needs the page above it as
+              headroom. */}
           <Caption color="muted">Or describe what you want to make</Caption>
           <FlexColumn
             gap={SPACING.lg}
             sx={{
+              mt: -SPACING.lg,
               bgcolor: "background.paper",
               border: "1px solid",
               borderColor: "primary.main",
@@ -1480,7 +1496,7 @@ const NewProjectSurface = () => {
           </FlexColumn>
 
           {starters.length > 0 && (
-            <FlexColumn gap={SPACING.md} align="center">
+            <FlexColumn gap={SPACING.md} align="center" sx={{ mt: -SPACING.lg }}>
               <FlexRow
                 justify="center"
                 gap={SPACING.sm}
@@ -1543,48 +1559,24 @@ const NewProjectSurface = () => {
             </FlexColumn>
           )}
 
-          {showOnboarding && (
-            <Box sx={{ pt: SPACING.lg }}>
-              <GettingStartedChecklist
-                hasConfiguredProvider={hasConfiguredProvider}
-                onConnectProvider={handleConnectProvider}
-                onOpenTemplates={handleOpenTemplates}
-                onCreateWorkflow={() => void handleCreateNewWorkflow()}
-              />
-            </Box>
-          )}
-
-          <FlexRow justify="center" align="center" gap={SPACING.md}>
-            <Caption color="muted">Not sure where to begin?</Caption>
-            <EditorButton
-              variant="outlined"
-              density="compact"
-              onClick={handleOpenTemplates}
-            >
-              Browse examples
-            </EditorButton>
-            <EditorButton
-              variant="outlined"
-              density="compact"
-              onClick={handleOpenTutorials}
-            >
-              Tutorials
-            </EditorButton>
-          </FlexRow>
         </FlexColumn>
 
         <Box sx={{ flex: 1, minHeight: SPACING.xxxl }} />
 
+        {/* One quiet footer: the blank documents and the two places to go when
+            nothing above fits, rather than two rows competing for the same
+            "where else can I start" question. */}
         <FlexColumn
           gap={SPACING.md}
           sx={{
             width: "100%",
             maxWidth: `${COLUMN_WIDTH}px`,
+            pt: SPACING.xxl,
             pb: SPACING.xxl
           }}
         >
           <Divider />
-          <FlexRow align="baseline" gap={SPACING.md}>
+          <FlexRow align="baseline" gap={SPACING.md} wrap>
             <Caption
               color="muted"
               sx={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
@@ -1594,6 +1586,21 @@ const NewProjectSurface = () => {
             <Caption color="muted">
               — opens as a loose tab, outside any project
             </Caption>
+            <Box sx={{ flex: 1 }} />
+            <EditorButton
+              variant="text"
+              density="compact"
+              onClick={handleOpenTemplates}
+            >
+              Browse examples
+            </EditorButton>
+            <EditorButton
+              variant="text"
+              density="compact"
+              onClick={handleOpenTutorials}
+            >
+              Tutorials
+            </EditorButton>
           </FlexRow>
           <Box
             sx={{
