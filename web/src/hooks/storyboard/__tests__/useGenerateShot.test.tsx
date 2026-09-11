@@ -21,7 +21,11 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
 // these arrays per scenario.
 const mockEntities: unknown[] = [];
 const mockImageModels: Array<{ id: string; supported_tasks?: string[] }> = [];
-const mockVideoModels: Array<{ id: string; provider: string; supported_tasks?: string[] }> = [];
+const mockVideoModels: Array<{
+  id: string;
+  provider: string;
+  supported_tasks?: string[];
+}> = [];
 jest.mock("../../../serverState/useEntities", () => ({
   useEntities: () => ({ data: mockEntities })
 }));
@@ -34,10 +38,15 @@ jest.mock("../../useModelsByProvider", () => ({
 const scriptQuery = jest.fn();
 jest.mock("../../../trpc/client", () => ({
   trpc: {},
-  trpcClient: { scripts: { get: { query: (input: { id: string }) => scriptQuery(input) } } }
+  trpcClient: {
+    scripts: { get: { query: (input: { id: string }) => scriptQuery(input) } }
+  }
 }));
 
-import { useGenerateShot, __resetStartingShotsForTests } from "../useGenerateShot";
+import {
+  useGenerateShot,
+  __resetStartingShotsForTests
+} from "../useGenerateShot";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useStoryboardGenerationStore } from "../../../stores/storyboard/StoryboardGenerationStore";
 import {
@@ -80,9 +89,19 @@ beforeEach(() => {
 
 describe("mixed-mode clip generation", () => {
   const boardId = "mixed-modes";
-  const videoModel = { type: "video_model" as const, id: "mixed-model", provider: "fal_ai" as const, name: "Mixed" };
+  const videoModel = {
+    type: "video_model" as const,
+    id: "mixed-model",
+    provider: "fal_ai" as const,
+    name: "Mixed"
+  };
   const shots: Shot[] = [
-    { ...shot, id: "mixed-keyframe", render_mode: "keyframe", keyframe: { type: "image", asset_id: "start" } },
+    {
+      ...shot,
+      id: "mixed-keyframe",
+      render_mode: "keyframe",
+      keyframe: { type: "image", asset_id: "start" }
+    },
     { ...shot, id: "mixed-direct", render_mode: "direct" },
     { ...shot, id: "mixed-reference", render_mode: "reference" }
   ];
@@ -99,31 +118,94 @@ describe("mixed-mode clip generation", () => {
     }
   });
 
-  it.each([undefined, ["reference_to_video"], ["text_to_video", "image_to_video"]])(
-    "refuses the whole mixed board before sending any shot with tasks %j", async (supported_tasks) => {
-      mockVideoModels.push({ id: videoModel.id, provider: videoModel.provider, supported_tasks });
-      const { result } = renderHook(() => useGenerateShot());
-      await act(async () => {
-        for (const value of shots) {
-          await expect(result.current.generateClip(boardId, value)).rejects.toThrow("every shot mode");
-        }
-      });
-      expect(send).not.toHaveBeenCalled();
-    }
-  );
-
-  it("sends each shot through its own task when the model supports all three", async () => {
-    mockVideoModels.push({ id: videoModel.id, provider: videoModel.provider, supported_tasks: ["text_to_video", "image_to_video", "reference_to_video"] });
+  it("uses and stores a different compatible model for each shot mode", async () => {
+    const models = {
+      keyframe: {
+        id: "image-video",
+        provider: "atlascloud",
+        name: "Image video"
+      },
+      direct: { id: "text-video", provider: "atlascloud", name: "Text video" },
+      reference: {
+        id: "reference-video",
+        provider: "atlascloud",
+        name: "Reference video"
+      }
+    } as const;
+    mockVideoModels.push(
+      { ...models.keyframe, supported_tasks: ["image_to_video"] },
+      { ...models.direct, supported_tasks: ["text_to_video"] },
+      { ...models.reference, supported_tasks: ["reference_to_video"] }
+    );
     const { result } = renderHook(() => useGenerateShot());
     await act(async () => {
-      for (const value of shots) await result.current.generateClip(boardId, value);
+      await result.current.generateClip(boardId, shots[0], models.keyframe);
+      await result.current.generateClip(boardId, shots[1], models.direct);
+      await result.current.generateClip(boardId, shots[2], models.reference);
     });
     expect(send).toHaveBeenCalledTimes(3);
-    expect(send.mock.calls[0][0].data).toMatchObject({ source_asset_id: "start" });
-    expect(send.mock.calls[1][0].data.source_asset_id).toBeUndefined();
-    expect(send.mock.calls[1][0].data.capability).toBeUndefined();
-    expect(send.mock.calls[2][0].data).toMatchObject({ capability: "reference_to_video", reference_images: location.reference_images });
+    expect(send.mock.calls[0][0].data).toMatchObject({
+      model: "image-video",
+      source_asset_id: "start"
+    });
+    expect(send.mock.calls[1][0].data).toMatchObject({ model: "text-video" });
+    expect(send.mock.calls[2][0].data).toMatchObject({
+      model: "reference-video",
+      capability: "reference_to_video"
+    });
+
+    const stored = useStoryboardStore.getState().getBoard(boardId)?.shots;
+    expect(stored?.[0].clip_model).toEqual(models.keyframe);
+    expect(stored?.[1].clip_model).toEqual(models.direct);
+    expect(stored?.[2].clip_model).toEqual(models.reference);
   });
+});
+
+it("reuses the model remembered on a shot when regenerating", async () => {
+  const model = {
+    id: "atlas/still-v1",
+    provider: "atlascloud" as const,
+    name: "Atlas Still"
+  };
+  const { result } = renderHook(() => useGenerateShot());
+
+  await act(async () => {
+    await result.current.generateKeyframe(BOARD, shot, model);
+  });
+  useStoryboardGenerationStore.getState().clear(shot.id);
+  const remembered = useStoryboardStore
+    .getState()
+    .getBoard(BOARD)
+    ?.shots.find((value) => value.id === shot.id);
+
+  await act(async () => {
+    await result.current.generateKeyframe(BOARD, remembered ?? shot);
+  });
+
+  expect(send).toHaveBeenCalledTimes(2);
+  expect(send.mock.calls[1][0].data).toMatchObject({
+    provider: "atlascloud",
+    model: "atlas/still-v1"
+  });
+});
+
+it("rejects a remembered clip model that is no longer in the catalog", async () => {
+  const unavailable: Shot = {
+    ...shot,
+    render_mode: "direct",
+    clip_model: {
+      id: "atlas/removed",
+      provider: "atlascloud",
+      name: "Removed Atlas model"
+    }
+  };
+  useStoryboardStore.getState().upsertShot(BOARD, unavailable);
+  const { result } = renderHook(() => useGenerateShot());
+
+  await expect(
+    act(() => result.current.generateClip(BOARD, unavailable))
+  ).rejects.toThrow("is no longer available");
+  expect(send).not.toHaveBeenCalled();
 });
 
 it("starts exactly one generation for concurrent generateKeyframe calls", async () => {
@@ -326,6 +408,12 @@ describe("clip generation on a script-linked board", () => {
     useStoryboardGenerationStore.getState().clear(linkedShot.id);
     shotToSeed = linkedShot;
     mockEntities.length = 0;
+    mockVideoModels.length = 0;
+    mockVideoModels.push({
+      id: "vid-1",
+      provider: "vprov",
+      supported_tasks: ["image_to_video", "text_to_video"]
+    });
   });
 
   const videoModel = {
@@ -416,17 +504,17 @@ describe("a start that fails", () => {
     const { result } = renderHook(() => useGenerateShot());
 
     await act(async () => {
-      await expect(result.current.generateKeyframe(BOARD, shot)).rejects.toThrow(
-        "No image model configured"
-      );
+      await expect(
+        result.current.generateKeyframe(BOARD, shot)
+      ).rejects.toThrow("No image model configured");
     });
 
     const job = useStoryboardGenerationStore.getState().shotJobs[shot.id];
     expect(job?.status).toBe("failed");
     expect(job?.errorMessage).toBe("No image model configured");
-    expect(
-      useStoryboardStore.getState().getBoard(BOARD)?.shots[0].status
-    ).toBe("failed");
+    expect(useStoryboardStore.getState().getBoard(BOARD)?.shots[0].status).toBe(
+      "failed"
+    );
   });
 
   it("records a reason when a clip's request fails to send", async () => {
@@ -551,7 +639,9 @@ describe("prompts come from the shared shot-prompt module", () => {
     await act(async () => {
       await result.current.generateClip(boardId, direct);
     });
-    expect(promptSent()).toBe(directClipPrompt(direct, { scene, style: STYLE }));
+    expect(promptSent()).toBe(
+      directClipPrompt(direct, { scene, style: STYLE })
+    );
   });
 });
 

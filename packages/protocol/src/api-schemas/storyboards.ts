@@ -20,6 +20,12 @@ const mediaRef = z
   })
   .passthrough();
 
+const shotModelRef = z.object({
+  id: z.string(),
+  provider: z.string(),
+  name: z.string().optional()
+});
+
 export const storyboardShot = z
   .object({
     type: z.literal("shot"),
@@ -32,6 +38,8 @@ export const storyboardShot = z
     duration_seconds: z.number().optional(),
     keyframe: mediaRef.nullable().optional(),
     clip: mediaRef.nullable().optional(),
+    still_model: shotModelRef.optional(),
+    clip_model: shotModelRef.optional(),
     /** Ordered ids of the linked script's lines this shot covers. */
     script_line_ids: z.array(z.string()).optional(),
     /** Linked line texts as last projected, joined "\n" — drift only. */

@@ -1,4 +1,8 @@
-import { currentRenderInputs, isVersionStale, stampRenderInputs } from "@nodetool-ai/protocol";
+import {
+  currentRenderInputs,
+  isVersionStale,
+  stampRenderInputs
+} from "@nodetool-ai/protocol";
 import type { Entity, Shot } from "@nodetool-ai/protocol";
 
 import { boardRenderContext } from "../boardRenderContext";
@@ -40,6 +44,23 @@ describe("boardRenderContext", () => {
     });
   });
 
+  it("uses the shot's remembered models ahead of board defaults", () => {
+    const shot: Shot = {
+      type: "shot",
+      id: "shot-models",
+      index: 0,
+      action: "A model-aware shot",
+      status: "planned",
+      still_model: { id: "shot/still", provider: "atlascloud" },
+      clip_model: { id: "shot/clip", provider: "atlascloud" }
+    };
+
+    expect(boardRenderContext(BOARD, LIBRARY, shot)).toMatchObject({
+      image_model: "shot/still",
+      video_model: "shot/clip"
+    });
+  });
+
   it("ignores entities that are not styles", () => {
     const board = { ...BOARD, entityIds: ["char-1", "loc-1"] };
     expect(boardRenderContext(board, LIBRARY).style_entity_id).toBeNull();
@@ -78,19 +99,57 @@ describe("boardRenderContext", () => {
   });
 
   it("matches generation selection and order, and marks changed references stale", () => {
-    const shot: Shot = { type: "shot", id: "shot", index: 0, action: "char-1 walks", status: "planned", render_mode: "reference" };
+    const shot: Shot = {
+      type: "shot",
+      id: "shot",
+      index: 0,
+      action: "char-1 walks",
+      status: "planned",
+      render_mode: "reference"
+    };
     const library: Entity[] = [
-      { ...entity("outside", "style"), reference_images: [{ type: "image", asset_id: "outside" }] },
-      { ...entity("style-a", "style"), reference_images: [{ type: "image", asset_id: "style" }] },
-      { ...entity("char-1", "character"), reference_images: [{ type: "image", asset_id: "character" }] }
+      {
+        ...entity("outside", "style"),
+        reference_images: [{ type: "image", asset_id: "outside" }]
+      },
+      {
+        ...entity("style-a", "style"),
+        reference_images: [{ type: "image", asset_id: "style" }]
+      },
+      {
+        ...entity("char-1", "character"),
+        reference_images: [{ type: "image", asset_id: "character" }]
+      }
     ];
     const context = boardRenderContext(BOARD, library, shot);
     expect(context.reference_asset_ids).toEqual(["character", "style"]);
-    const clip = { type: "video" as const, asset_id: "clip", render_inputs: stampRenderInputs(currentRenderInputs(shot, context, "clip")) };
+    const clip = {
+      type: "video" as const,
+      asset_id: "clip",
+      render_inputs: stampRenderInputs(
+        currentRenderInputs(shot, context, "clip")
+      )
+    };
     expect(isVersionStale(clip, shot, context)).toBe(false);
-    const changed = library.map((entry) => entry.id === "char-1" ? { ...entry, reference_images: [{ type: "image" as const, asset_id: "new-character" }] } : entry);
-    expect(isVersionStale(clip, shot, boardRenderContext(BOARD, changed, shot))).toBe(true);
-    expect(boardRenderContext(BOARD, library, { ...shot, entity_ids: ["style-a", "char-1"] }).reference_asset_ids).toEqual(["character", "style"]);
+    const changed = library.map((entry) =>
+      entry.id === "char-1"
+        ? {
+            ...entry,
+            reference_images: [
+              { type: "image" as const, asset_id: "new-character" }
+            ]
+          }
+        : entry
+    );
+    expect(
+      isVersionStale(clip, shot, boardRenderContext(BOARD, changed, shot))
+    ).toBe(true);
+    expect(
+      boardRenderContext(BOARD, library, {
+        ...shot,
+        entity_ids: ["style-a", "char-1"]
+      }).reference_asset_ids
+    ).toEqual(["character", "style"]);
   });
 
   it("falls back to 16:9 and empty models for a board that has none", () => {

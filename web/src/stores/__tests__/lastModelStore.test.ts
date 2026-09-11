@@ -3,13 +3,14 @@ import { act } from "@testing-library/react";
 import {
   useLastModelStore,
   modelKindForBinding,
-  getRememberedModel
+  getRememberedModel,
+  getRememberedModelForTask
 } from "../lastModelStore";
 
 describe("lastModelStore", () => {
   beforeEach(() => {
     act(() => {
-      useLastModelStore.setState({ byKind: {} });
+      useLastModelStore.setState({ byKind: {}, byTask: {} });
     });
   });
 
@@ -53,7 +54,11 @@ describe("lastModelStore", () => {
         });
       });
       const stored = useLastModelStore.getState().byKind.image;
-      expect(stored).toEqual({ provider: "fal", model: "flux", voice: undefined });
+      expect(stored).toEqual({
+        provider: "fal",
+        model: "flux",
+        voice: undefined
+      });
     });
 
     it("no-ops when provider is missing", () => {
@@ -127,6 +132,29 @@ describe("lastModelStore", () => {
         model: "flux",
         voice: undefined
       });
+    });
+  });
+
+  describe("task-specific memory", () => {
+    it("remembers separate models for separate video tasks", () => {
+      act(() => {
+        const store = useLastModelStore.getState();
+        store.rememberForTask("video", "image_to_video", {
+          provider: "atlascloud",
+          model: "image-model"
+        });
+        store.rememberForTask("video", "text_to_video", {
+          provider: "atlascloud",
+          model: "text-model"
+        });
+      });
+
+      expect(getRememberedModelForTask("video", "image_to_video")?.model).toBe(
+        "image-model"
+      );
+      expect(getRememberedModelForTask("video", "text_to_video")?.model).toBe(
+        "text-model"
+      );
     });
   });
 });

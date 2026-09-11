@@ -31,8 +31,11 @@ import React, {
   useRef,
   useState
 } from "react";
-import { shotRenderMode, requiredVideoTasksForShots } from "@nodetool-ai/protocol";
-import type { Shot } from "@nodetool-ai/protocol";
+import {
+  shotRenderMode,
+  requiredVideoTasksForShots
+} from "@nodetool-ai/protocol";
+import type { Shot, ShotModelRef } from "@nodetool-ai/protocol";
 import AddIcon from "@mui/icons-material/Add";
 import TuneIcon from "@mui/icons-material/Tune";
 
@@ -76,7 +79,14 @@ import {
 } from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import { useStoryboardShotFocus } from "../../hooks/storyboard/useStoryboardShotFocus";
-import type { ImageModelTask } from "../../hooks/useModelsByProvider";
+import {
+  useImageModelsByProvider,
+  useVideoModelsByProvider,
+  type ImageModelTask,
+  type VideoModelTask
+} from "../../hooks/useModelsByProvider";
+import { modelMatchesTask } from "../../hooks/modelTaskMatching";
+import type { ImageModelValue, VideoModelValue } from "../../stores/ApiTypes";
 import LanguageModelSelect from "../properties/LanguageModelSelect";
 import { useInStudio } from "../../studio/StudioContext";
 import ImageModelSelect from "../properties/ImageModelSelect";
@@ -108,6 +118,10 @@ import ShotInspector from "./ShotInspector";
 import StoryboardEntitiesField from "./StoryboardEntitiesField";
 import { sceneDropTarget } from "./sceneDrop";
 import { isShotNavigationKey, navigateShots } from "./shotOrder";
+import {
+  getRememberedModel,
+  getRememberedModelForTask
+} from "../../stores/lastModelStore";
 
 // The preview mounts the timeline compositor; keep it out of the board bundle.
 const LazyStoryboardPreview = React.lazy(() => import("./StoryboardPreview"));
@@ -137,6 +151,38 @@ const SHOT_COUNT_OPTIONS = [3, 4, 5, 6, 8, 10, 12].map((n) => ({
 // Stills can come from a plain generator or an editing model; the latter can
 // take entity reference images, so the picker offers both.
 const STILL_MODEL_TASKS: ImageModelTask[] = ["text_to_image", "image_to_image"];
+
+const clipTaskForShot = (shot: Shot): VideoModelTask => {
+  const mode = shotRenderMode(shot);
+  return mode === "reference"
+    ? "reference_to_video"
+    : mode === "direct"
+      ? "text_to_video"
+      : "image_to_video";
+};
+
+const CLIP_TASK_LABELS: Record<VideoModelTask, string> = {
+  image_to_video: "Animate stills",
+  text_to_video: "Generate from prompts",
+  reference_to_video: "Use entity references",
+  video_to_video: "Revise clips",
+  lip_sync: "Lip sync"
+};
+
+const imageValue = (model: ShotModelRef): ImageModelValue => ({
+  type: "image_model",
+  id: model.id,
+  provider: model.provider,
+  name: model.name ?? model.id,
+  path: ""
+});
+
+const videoValue = (model: ShotModelRef): VideoModelValue => ({
+  type: "video_model",
+  id: model.id,
+  provider: model.provider,
+  name: model.name ?? model.id
+});
 
 // The model pickers are custom buttons, not InputBase controls; hold them at
 // the shared form-control height. Scoped to the picker's own class so no
@@ -290,6 +336,37 @@ const RenderBatchButton: React.FC<RenderBatchButtonProps> = ({
   );
 };
 
+const RenderCostSummary: React.FC<{
+  estimate: RenderBatchCostEstimate;
+}> = ({ estimate }) => {
+  const { shotCount, cost, pricedCount, reasons, notes } = estimate;
+  const priced = pricedCount > 0 && cost > 0;
+  return (
+    <FlexColumn gap={SPACING.micro}>
+      <Text size="small">
+        {priced
+          ? `Estimated cost: about ${formatUsd(cost)}${
+              pricedCount < shotCount
+                ? ` (${pricedCount} of ${shotCount} shots priced)`
+                : ""
+            }`
+          : "Select a priced model to see the batch estimate."}
+      </Text>
+      {reasons.map((reason) => (
+        <Caption key={reason} color="secondary">
+          {reason}
+        </Caption>
+      ))}
+      {priced &&
+        notes.map((note) => (
+          <Caption key={note} color="secondary">
+            {note}
+          </Caption>
+        ))}
+    </FlexColumn>
+  );
+};
+
 const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   boardId,
   readOnly,
@@ -347,6 +424,17 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const [styleOpen, setStyleOpen] = useState(false);
   const openStyle = useCallback(() => setStyleOpen(true), []);
   const closeStyle = useCallback(() => setStyleOpen(false), []);
+  const [renderDialog, setRenderDialog] = useState<"stills" | "clips" | null>(
+    null
+  );
+  const [stillSelection, setStillSelection] = useState<ImageModelValue | null>(
+    null
+  );
+  const [clipSelections, setClipSelections] = useState<
+    Partial<Record<VideoModelTask, VideoModelValue>>
+  >({});
+  const { models: imageModels } = useImageModelsByProvider();
+  const { models: videoModels } = useVideoModelsByProvider();
 
   // Which shot's editor is open, and which cell it opened on. The board holds
   // this rather than the card, because the panel is a row of this grid: a card
@@ -587,7 +675,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     () =>
       shots.filter(
         (s) =>
-          (!!s.keyframe || shotRenderMode(s) === "direct" || shotRenderMode(s) === "reference") &&
+          (!!s.keyframe ||
+            shotRenderMode(s) === "direct" ||
+            shotRenderMode(s) === "reference") &&
           !s.clip &&
           s.status !== "keyframe_generating" &&
           s.status !== "clip_generating"
@@ -604,19 +694,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       : null;
   const stillStepActive = nextRenderStep === "stills";
   const clipStepActive = nextRenderStep === "clips";
-  const clipModelTask = requiredVideoTasksForShots(shots);
-  const missingModelStep = stillStepActive
-    ? imageModel?.id
-      ? null
-      : "stills"
-    : clipStepActive && !videoModel?.id
-      ? "clips"
-      : null;
-  useEffect(() => {
-    if (missingModelStep) {
-      setSettingsOpen(true);
-    }
-  }, [missingModelStep]);
+  const clipModelTasks = requiredVideoTasksForShots(pendingClips);
   const settingsVisible = settingsOpen;
 
   // The toolbar's one-line summary: how big the board is, how it looks, and
@@ -633,7 +711,15 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
         allEntities ?? [],
         shot
       ),
-    [aspectRatio, style, entityIds, imageModel, videoModel, screenplay, allEntities]
+    [
+      aspectRatio,
+      style,
+      entityIds,
+      imageModel,
+      videoModel,
+      screenplay,
+      allEntities
+    ]
   );
   const summary = useMemo(() => {
     const entityNames = (allEntities ?? [])
@@ -650,26 +736,171 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   }, [shots.length, style, entityIds, allEntities]);
 
   const { generateKeyframe, generateClip } = useGenerateShot();
+  const resolveImageModel = useCallback(
+    (value: ShotModelRef | null | undefined): ImageModelValue | null => {
+      if (!value) {
+        return null;
+      }
+      const model = imageModels.find(
+        (candidate) =>
+          candidate.id === value.id && candidate.provider === value.provider
+      );
+      return model ? imageValue(model) : null;
+    },
+    [imageModels]
+  );
+  const findRememberedImageModel = useCallback((): ImageModelValue | null => {
+    const remembered = getRememberedModel("image");
+    if (!remembered?.model || !remembered.provider) {
+      return null;
+    }
+    return resolveImageModel({
+      id: remembered.model,
+      provider: remembered.provider
+    });
+  }, [resolveImageModel]);
+
+  const resolveVideoModel = useCallback(
+    (
+      value: ShotModelRef | null | undefined,
+      task: VideoModelTask
+    ): VideoModelValue | null => {
+      if (!value) {
+        return null;
+      }
+      const model = videoModels.find(
+        (candidate) =>
+          candidate.id === value.id &&
+          candidate.provider === value.provider &&
+          modelMatchesTask(candidate.supported_tasks, task)
+      );
+      return model ? videoValue(model) : null;
+    },
+    [videoModels]
+  );
+
+  const findRememberedVideoModel = useCallback(
+    (task: VideoModelTask): VideoModelValue | null => {
+      const remembered =
+        getRememberedModelForTask("video", task) ?? getRememberedModel("video");
+      if (!remembered?.model || !remembered.provider) {
+        return null;
+      }
+      return resolveVideoModel(
+        { id: remembered.model, provider: remembered.provider },
+        task
+      );
+    },
+    [resolveVideoModel]
+  );
+
+  const defaultStillSelection = useMemo(
+    () =>
+      findRememberedImageModel() ??
+      [...shots]
+        .reverse()
+        .map((shot) => resolveImageModel(shot.still_model))
+        .find((model): model is ImageModelValue => model !== null) ??
+      resolveImageModel(imageModel),
+    [findRememberedImageModel, shots, resolveImageModel, imageModel]
+  );
+
+  const defaultClipSelections = useMemo(() => {
+    const selections: Partial<Record<VideoModelTask, VideoModelValue>> = {};
+    for (const task of clipModelTasks) {
+      const shotModel = [...shots]
+        .reverse()
+        .filter((shot) => clipTaskForShot(shot) === task)
+        .map((shot) => resolveVideoModel(shot.clip_model, task))
+        .find((model): model is VideoModelValue => model !== null);
+      const selected =
+        findRememberedVideoModel(task) ??
+        shotModel ??
+        resolveVideoModel(videoModel, task);
+      if (selected) {
+        selections[task] = selected;
+      }
+    }
+    return selections;
+  }, [
+    clipModelTasks,
+    shots,
+    findRememberedVideoModel,
+    resolveVideoModel,
+    videoModel
+  ]);
+
+  const openStillRenderDialog = useCallback(() => {
+    setStillSelection(defaultStillSelection);
+    setRenderDialog("stills");
+  }, [defaultStillSelection]);
+
+  const openClipRenderDialog = useCallback(() => {
+    setClipSelections(defaultClipSelections);
+    setRenderDialog("clips");
+  }, [defaultClipSelections]);
+
   // A shot that cannot start records the reason on itself (its card shows it,
   // and it is toasted), so one failure must not stop the rest of the batch.
   const handleGenerateAllStills = useCallback(() => {
+    if (!stillSelection) {
+      return;
+    }
+    setImageModel(boardId, stillSelection);
+    setRenderDialog(null);
     for (const shot of pendingStills) {
-      void generateKeyframe(boardId, shot).catch(() => undefined);
+      void generateKeyframe(boardId, shot, stillSelection).catch(
+        () => undefined
+      );
     }
-  }, [pendingStills, generateKeyframe, boardId]);
+  }, [pendingStills, generateKeyframe, boardId, stillSelection, setImageModel]);
   const handleGenerateAllClips = useCallback(() => {
-    for (const shot of pendingClips) {
-      void generateClip(boardId, shot).catch(() => undefined);
+    if (clipModelTasks.some((task) => !clipSelections[task])) {
+      return;
     }
-  }, [pendingClips, generateClip, boardId]);
+    const lastModel = clipSelections[clipModelTasks.at(-1) as VideoModelTask];
+    if (lastModel) {
+      setVideoModel(boardId, lastModel);
+    }
+    setRenderDialog(null);
+    for (const shot of pendingClips) {
+      const model = clipSelections[clipTaskForShot(shot)];
+      void generateClip(boardId, shot, model).catch(() => undefined);
+    }
+  }, [
+    pendingClips,
+    generateClip,
+    boardId,
+    clipModelTasks,
+    clipSelections,
+    setVideoModel
+  ]);
 
   // What each batch button is about to spend, over exactly the shots it loops.
+  const effectiveStillSelection =
+    renderDialog === "stills" ? stillSelection : defaultStillSelection;
+  const stillModelForShot = useCallback(
+    () => effectiveStillSelection,
+    [effectiveStillSelection]
+  );
+  const effectiveClipSelections =
+    renderDialog === "clips" ? clipSelections : defaultClipSelections;
+  const clipModelForShot = useCallback(
+    (shot: Shot) => effectiveClipSelections[clipTaskForShot(shot)] ?? null,
+    [effectiveClipSelections]
+  );
   const stillsCost = useRenderBatchCostEstimate(
     boardId,
     pendingStills,
-    "still"
+    "still",
+    stillModelForShot
   );
-  const clipsCost = useRenderBatchCostEstimate(boardId, pendingClips, "clip");
+  const clipsCost = useRenderBatchCostEstimate(
+    boardId,
+    pendingClips,
+    "clip",
+    clipModelForShot
+  );
 
   // The archive is packed server-side from the saved board, so a download
   // shows what the server holds — the local edits an in-flight save has not
@@ -760,20 +991,16 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               <RenderBatchButton
                 label="Render stills"
                 estimate={stillsCost}
-                disabled={
-                  pendingStills.length === 0 || !imageModel?.id || !!directing
-                }
-                highlighted={stillStepActive && !!imageModel?.id}
-                onClick={handleGenerateAllStills}
+                disabled={pendingStills.length === 0 || !!directing}
+                highlighted={stillStepActive}
+                onClick={openStillRenderDialog}
               />
               <RenderBatchButton
                 label="Render clips"
                 estimate={clipsCost}
-                disabled={
-                  pendingClips.length === 0 || !videoModel?.id || !!directing
-                }
-                highlighted={clipStepActive && !!videoModel?.id}
-                onClick={handleGenerateAllClips}
+                disabled={pendingClips.length === 0 || !!directing}
+                highlighted={clipStepActive}
+                onClick={openClipRenderDialog}
               />
             </FlexRow>
           )}
@@ -851,33 +1078,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                         />
                       </FormField>
                     )}
-                    <FormField label="Still model" sx={modelFieldSx}>
-                      <ImageModelSelect
-                        value={imageModel?.id ?? ""}
-                        task={STILL_MODEL_TASKS}
-                        onChange={(value) => setImageModel(boardId, value)}
-                      />
-                      {stillStepActive && !imageModel?.id && (
-                        <Caption color="warning" role="alert">
-                          Choose a still model before rendering stills.
-                        </Caption>
-                      )}
-                      {entityIds.length > 0 && (
-                        <EntityStillModelWarning modelId={imageModel?.id} />
-                      )}
-                    </FormField>
-                    <FormField label="Clip model" sx={modelFieldSx}>
-                      <VideoModelSelect
-                        value={videoModel?.id ?? ""}
-                        task={clipModelTask}
-                        onChange={(value) => setVideoModel(boardId, value)}
-                      />
-                      {clipStepActive && !videoModel?.id && (
-                        <Caption color="warning" role="alert">
-                          Choose a clip model before rendering clips.
-                        </Caption>
-                      )}
-                    </FormField>
                     <FormField label="Aspect ratio">
                       <SelectField
                         label="Aspect ratio"
@@ -931,6 +1131,76 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             </Panel>
           </Collapse>
         )}
+
+        <Dialog
+          open={renderDialog === "stills"}
+          onClose={() => setRenderDialog(null)}
+          title="Render stills"
+          onConfirm={handleGenerateAllStills}
+          confirmText={`Render stills${
+            stillsCost.pricedCount > 0 && stillsCost.cost > 0
+              ? ` · ~${formatUsd(stillsCost.cost)}`
+              : ""
+          }`}
+          confirmDisabled={!stillSelection}
+        >
+          <FlexColumn gap={SPACING.md}>
+            <Caption color="secondary">
+              Pick the model for this batch. The choice is remembered on every
+              shot for one-click regeneration.
+            </Caption>
+            <FormField label="Still model" sx={modelFieldSx}>
+              <ImageModelSelect
+                value={stillSelection?.id ?? ""}
+                task={STILL_MODEL_TASKS}
+                onChange={setStillSelection}
+              />
+              {entityIds.length > 0 && (
+                <EntityStillModelWarning modelId={stillSelection?.id} />
+              )}
+            </FormField>
+            <RenderCostSummary estimate={stillsCost} />
+          </FlexColumn>
+        </Dialog>
+
+        <Dialog
+          open={renderDialog === "clips"}
+          onClose={() => setRenderDialog(null)}
+          title="Render clips"
+          onConfirm={handleGenerateAllClips}
+          confirmText={`Render clips${
+            clipsCost.pricedCount > 0 && clipsCost.cost > 0
+              ? ` · ~${formatUsd(clipsCost.cost)}`
+              : ""
+          }`}
+          confirmDisabled={clipModelTasks.some((task) => !clipSelections[task])}
+        >
+          <FlexColumn gap={SPACING.md}>
+            <Caption color="secondary">
+              Pick a model for each kind of clip in this batch. Each shot keeps
+              its choice for fast re-renders.
+            </Caption>
+            {clipModelTasks.map((task) => (
+              <FormField
+                key={task}
+                label={CLIP_TASK_LABELS[task]}
+                sx={modelFieldSx}
+              >
+                <VideoModelSelect
+                  value={clipSelections[task]?.id ?? ""}
+                  task={task}
+                  onChange={(value) =>
+                    setClipSelections((current) => ({
+                      ...current,
+                      [task]: value
+                    }))
+                  }
+                />
+              </FormField>
+            ))}
+            <RenderCostSummary estimate={clipsCost} />
+          </FlexColumn>
+        </Dialog>
 
         <Dialog
           open={confirmRedirect}

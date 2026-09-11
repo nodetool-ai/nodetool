@@ -2,8 +2,8 @@
  * useShotCostEstimate
  *
  * What rendering one shot costs, priced the way `render_storyboard_stills` and
- * `render_storyboard_clips` bill it: the board's image model for the shot's
- * still and the board's video model for its clip, both through
+ * `render_storyboard_clips` bill it: the shot's remembered image/video models,
+ * falling back to the board's legacy defaults, both through
  * `getModelUnitPrice`, at the same resolution rungs the render sends
  * (`STILL_RESOLUTION`, `CLIP_RESOLUTION`) and with the shot's effective
  * duration multiplying a per-second clip model. A `direct` shot skips the
@@ -32,7 +32,7 @@ import { priceRenderStep, type ShotCostStep } from "./shotCostPricing";
 export interface ShotCostEstimate {
   /** The whole-shot cost in USD: every priced step below, summed. */
   cost: number;
-  /** "live" priced off the board's current model selection; "stored" is the last render's own figure. */
+  /** "live" uses the current shot/default model; "stored" is the last render's figure. */
   source: "live" | "stored";
   /** The steps, in render order. Empty when the figure is stored. */
   steps: ShotCostStep[];
@@ -66,7 +66,7 @@ export function useShotCostEstimate(
       rendersStill
         ? priceRenderStep(
             "Still",
-            imageModel,
+            shot.still_model ?? imageModel,
             "still model",
             STILL_RESOLUTION,
             undefined,
@@ -75,7 +75,7 @@ export function useShotCostEstimate(
         : null,
       priceRenderStep(
         "Clip",
-        videoModel,
+        shot.clip_model ?? videoModel,
         "clip model",
         CLIP_RESOLUTION,
         seconds,
@@ -95,10 +95,15 @@ export function useShotCostEstimate(
       };
     }
     if (shot.cost_estimate != null) {
-      return { cost: shot.cost_estimate, source: "stored", steps: [], notes: [] };
+      return {
+        cost: shot.cost_estimate,
+        source: "stored",
+        steps: [],
+        notes: []
+      };
     }
     return { cost: 0, source: "live", steps, notes: [] };
-  }, [imageModel, videoModel, rendersStill, seconds, shot.cost_estimate]);
+  }, [imageModel, videoModel, rendersStill, seconds, shot]);
 }
 
 export default useShotCostEstimate;

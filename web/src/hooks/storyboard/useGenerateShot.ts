@@ -7,8 +7,8 @@
  *   - `generateKeyframe(boardId, shot)` — mode `image`, prompt from the shot
  *     action + board style. Entity mentions travel as `entity://<id>` tokens
  *     the server expands at generation time (name inline, descriptor block,
- *     reference image routed into the provider inputs); when the board's still
- *     model cannot edit, descriptors are seasoned client-side instead.
+ *     reference image routed into the provider inputs); when the selected
+ *     still model cannot edit, descriptors are seasoned client-side instead.
  *   - `generateClip(boardId, shot)` — mode `video` with the shot's keyframe as
  *     `source_asset_id` (image-to-video), timed to the linked script's takes.
  *   - `generateRevisedClip(boardId, shot, instruction)` — mode `video_edit`
@@ -24,7 +24,8 @@ import { useCallback } from "react";
 import type {
   BoardRenderContext,
   Entity,
-  Shot
+  Shot,
+  ShotModelRef
 } from "@nodetool-ai/protocol";
 import {
   clipPromptFor,
@@ -32,12 +33,9 @@ import {
   injectEntities,
   keyframePrompt,
   sceneForShot,
-  requiredVideoTasksForShots,
   shotRenderMode
 } from "@nodetool-ai/protocol";
-import {
-  globalWebSocketManager
-} from "../../lib/websocket/GlobalWebSocketManager";
+import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import {
   useStoryboardStore,
   type StoryboardBoard
@@ -48,6 +46,7 @@ import {
   useImageModelsByProvider,
   useVideoModelsByProvider
 } from "../useModelsByProvider";
+import { modelMatchesTask } from "../modelTaskMatching";
 import {
   PENDING_JOB_TTL_MS,
   subscribeDirectShotJob,
@@ -58,6 +57,7 @@ import {
 import { fetchShotDurationSeconds } from "./useShotDuration";
 import { CLIP_RESOLUTION, STILL_RESOLUTION } from "./renderSpec";
 import { getErrorMessage } from "../../utils/errorHandling";
+import { useLastModelStore } from "../../stores/lastModelStore";
 
 /**
  * Shots with a start in flight, before `registerJob` marks them active in the
@@ -103,8 +103,16 @@ const hasReferenceImage = (entities: Entity[]): boolean =>
   entities.some((e) => (e.reference_images?.length ?? 0) > 0);
 
 interface UseGenerateShotResult {
-  generateKeyframe: (boardId: string, shot: Shot) => Promise<void>;
-  generateClip: (boardId: string, shot: Shot) => Promise<void>;
+  generateKeyframe: (
+    boardId: string,
+    shot: Shot,
+    model?: ShotModelRef
+  ) => Promise<void>;
+  generateClip: (
+    boardId: string,
+    shot: Shot,
+    model?: ShotModelRef
+  ) => Promise<void>;
   generateRevisedClip: (
     boardId: string,
     shot: Shot,
@@ -121,7 +129,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
   );
   // Library entities; a board's `entityIds` picks which ones season prompts.
   const { data: allEntities } = useEntities();
-  // Model catalog, for checking whether the still model can take entity
+  // Model catalogs, for checking whether the selected model can take entity
   // reference images (image_to_image support).
   const { models: imageModels } = useImageModelsByProvider();
   const { models: videoModels } = useVideoModelsByProvider();
@@ -149,11 +157,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
    */
   const renderContext = useCallback(
     (board: StoryboardBoard | undefined, shot?: Shot): BoardRenderContext =>
-      boardRenderContext(
-        board,
-        allEntities ?? [],
-        shot
-      ),
+      boardRenderContext(board, allEntities ?? [], shot),
     [allEntities]
   );
 
@@ -223,8 +227,13 @@ export const useGenerateShot = (): UseGenerateShotResult => {
   );
 
   const generateKeyframe = useCallback(
-    async (boardId: string, shot: Shot): Promise<void> => {
+    async (
+      boardId: string,
+      shot: Shot,
+      modelOverride?: ShotModelRef
+    ): Promise<void> => {
       const board = useStoryboardStore.getState().getBoard(boardId);
+      const model = modelOverride ?? shot.still_model ?? board?.imageModel;
       const style = board?.style ?? "";
       const aspectRatio = board?.aspectRatio ?? "16:9";
       const entities = entitiesForShot(shot, boardEntities(board?.entityIds));
@@ -233,8 +242,8 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       // board's still model can edit — the server expands them into prompt
       // text and routes the reference images into the provider call.
       // Otherwise season descriptors client-side only.
-      const stillModel = board?.imageModel?.id
-        ? imageModels.find((m) => m.id === board.imageModel?.id)
+      const stillModel = model?.id
+        ? imageModels.find((candidate) => candidate.id === model.id)
         : undefined;
       const useEditModel =
         hasReferenceImage(entities) &&
@@ -257,36 +266,61 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         resolution: STILL_RESOLUTION,
         variations: 1
       };
-      if (board?.imageModel) {
-        data.provider = board.imageModel.provider;
-        data.model = board.imageModel.id;
+      if (model) {
+        data.provider = model.provider;
+        data.model = model.id;
+        useStoryboardStore
+          .getState()
+          .updateShot(boardId, shot.id, { still_model: model });
+        useLastModelStore.getState().remember("image", {
+          provider: model.provider,
+          model: model.id
+        });
       }
+      const renderShot = model ? { ...shot, still_model: model } : shot;
       await startDirectGeneration(
         boardId,
-        shot,
+        renderShot,
         "keyframe",
         data,
-        renderContext(board, shot)
+        renderContext(board, renderShot)
       );
     },
     [startDirectGeneration, boardEntities, imageModels, renderContext]
   );
 
   const generateClip = useCallback(
-    async (boardId: string, shot: Shot): Promise<void> => {
+    async (
+      boardId: string,
+      shot: Shot,
+      modelOverride?: ShotModelRef
+    ): Promise<void> => {
       const board = useStoryboardStore.getState().getBoard(boardId);
-      const requiredTasks = requiredVideoTasksForShots(board?.shots ?? [shot]);
-      const selectedModel = videoModels.find((model) =>
-        model.id === board?.videoModel?.id && model.provider === board.videoModel.provider
+      const model = modelOverride ?? shot.clip_model ?? board?.videoModel;
+      const renderMode = shotRenderMode(shot);
+      const requiredTask =
+        renderMode === "reference"
+          ? "reference_to_video"
+          : renderMode === "direct"
+            ? "text_to_video"
+            : "image_to_video";
+      const selectedModel = videoModels.find(
+        (candidate) =>
+          candidate.id === model?.id && candidate.provider === model.provider
       );
-      const supportedTasks = selectedModel?.supported_tasks;
-      if ((requiredTasks.length > 1 && !supportedTasks?.length) ||
-          (supportedTasks?.length && requiredTasks.some((task) => !supportedTasks.includes(task)))) {
-        const message = "Choose a clip model that supports every shot mode on this board before rendering.";
+      if (model && !selectedModel) {
+        const message = `The remembered clip model ${model.name ?? model.id} is no longer available. Choose another model.`;
         recordStartFailure(shot.id, boardId, "clip", message);
         throw new Error(message);
       }
-      const renderMode = shotRenderMode(shot);
+      if (
+        selectedModel &&
+        !modelMatchesTask(selectedModel.supported_tasks, requiredTask)
+      ) {
+        const message = `Choose a clip model that supports ${requiredTask.replaceAll("_", " ")} for this shot.`;
+        recordStartFailure(shot.id, boardId, "clip", message);
+        throw new Error(message);
+      }
       let sourceAssetId: string | undefined;
       if (renderMode === "keyframe") {
         if (!shot.keyframe) {
@@ -325,9 +359,13 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         variations: 1
       };
       if (renderMode === "reference") {
-        const referenceImages = entities.flatMap((entity) => entity.reference_images ?? []);
+        const referenceImages = entities.flatMap(
+          (entity) => entity.reference_images ?? []
+        );
         if (referenceImages.length === 0) {
-          throw new Error("Reference mode requires at least one entity reference image.");
+          throw new Error(
+            "Reference mode requires at least one entity reference image."
+          );
         }
         data.reference_images = referenceImages;
         data.capability = "reference_to_video";
@@ -338,19 +376,37 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       if (durationSeconds !== undefined) {
         data.duration = durationSeconds;
       }
-      if (board?.videoModel) {
-        data.provider = board.videoModel.provider;
-        data.model = board.videoModel.id;
+      if (model) {
+        data.provider = model.provider;
+        data.model = model.id;
+        useStoryboardStore
+          .getState()
+          .updateShot(boardId, shot.id, { clip_model: model });
+        useLastModelStore.getState().remember("video", {
+          provider: model.provider,
+          model: model.id
+        });
+        useLastModelStore.getState().rememberForTask("video", requiredTask, {
+          provider: model.provider,
+          model: model.id
+        });
       }
+      const renderShot = model ? { ...shot, clip_model: model } : shot;
       await startDirectGeneration(
         boardId,
-        shot,
+        renderShot,
         "clip",
         data,
-        renderContext(board, shot)
+        renderContext(board, renderShot)
       );
     },
-    [startDirectGeneration, boardEntities, renderContext, videoModels, recordStartFailure]
+    [
+      startDirectGeneration,
+      boardEntities,
+      renderContext,
+      videoModels,
+      recordStartFailure
+    ]
   );
 
   const generateRevisedClip = useCallback(
@@ -374,9 +430,10 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         prompt,
         source_asset_id: sourceAssetId
       };
-      if (board?.videoModel) {
-        data.provider = board.videoModel.provider;
-        data.model = board.videoModel.id;
+      const model = shot.clip_model ?? board?.videoModel;
+      if (model) {
+        data.provider = model.provider;
+        data.model = model.id;
       }
       // No render record: a revision renders the instruction over an existing
       // clip, not the shot's composed prompt, so there is nothing a later
