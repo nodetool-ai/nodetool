@@ -45,6 +45,7 @@ const summary = (
       id: `p-${kind}-${totalUsd}`,
       name: kind,
       kind,
+      isPersonal: false,
       threadId: null,
       createdAt: "",
       updatedAt: ""
