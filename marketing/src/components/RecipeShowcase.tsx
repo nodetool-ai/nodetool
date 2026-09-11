@@ -1,165 +1,40 @@
-import React from "react";
-import Image from "next/image";
 import { ArrowRight } from "lucide-react";
-import { recipeEntries, sampleFidelity, type RecipeEntry } from "../data/recipes";
-import { PROVIDER_DISPLAY } from "../data/providerDisplay";
-
-/**
- * The jobs on the homepage: the four recipes, because each is a job with a
- * buyer, a real run against live models, and a chain that ships inside Studio.
- * The demo use cases stay on /use-cases.
- *
- * A card names the models the shipped chain calls and says "at provider list
- * prices". It never carries a dollar figure: no recorded run has produced one
- * yet, and an estimate that turns out wrong costs more than no number
- * (NARRATIVE.md § Jobs, not demos).
- */
-
-function providersOf(recipe: RecipeEntry): string[] {
-  const ids = new Set<string>();
-  for (const step of recipe.steps) {
-    for (const model of step.models) ids.add(model.provider);
-  }
-  return [...ids].map((id) => PROVIDER_DISPLAY[id]?.name ?? id);
-}
-
-function modelsOf(recipe: RecipeEntry): string[] {
-  const ids = new Set<string>();
-  for (const step of recipe.steps) {
-    for (const model of step.models) ids.add(model.model);
-  }
-  return [...ids];
-}
-
-function joinNames(names: string[]): string {
-  if (names.length <= 1) return names.join("");
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-}
+import { recipeEntries } from "@/data/recipes";
+import RecipeCard from "./RecipeCard";
 
 export default function RecipeShowcase() {
   return (
     <section
       id="jobs"
       aria-labelledby="jobs-title"
-      className="relative py-24 overflow-clip-safe"
+      className="relative overflow-clip-safe py-24"
     >
-      <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="scroll-fade mb-14 max-w-2xl">
-          <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">
-            <span className="h-px w-8 bg-amber-300/60" />
-            Recipes
-          </div>
+      <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="mb-12 max-w-2xl">
+          <p className="text-sm font-medium text-amber-300">Guided recipes</p>
           <h2
             id="jobs-title"
-            className="text-3xl md:text-5xl font-bold tracking-tight text-white"
+            className="mt-4 text-3xl font-semibold tracking-tight text-slate-100 md:text-5xl"
           >
-            Make your next campaign here.
+            A clear next step for what you want to make.
           </h2>
-          <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-            Video ads, product visuals, dubbed clips, and trailers. Start with
-            an editable recipe, bring your brief, and reuse it for the next job.
+          <p className="mt-4 text-lg leading-relaxed text-slate-300">
+            Start an ad, a catalogue, a translated video, or a story. Follow the
+            guided setup, review the result, and make it yours in the editor.
           </p>
         </div>
-
         <div className="grid gap-6 lg:grid-cols-2">
-          {recipeEntries.map((recipe) => {
-            const image = recipe.sample?.image ?? recipe.heroThumbnail;
-            const providers = providersOf(recipe);
-            const models = modelsOf(recipe);
-            const fidelity = recipe.sample
-              ? sampleFidelity(recipe.sample)
-              : null;
-            return (
-              <article
-                key={recipe.slug}
-                className="scroll-fade group relative flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-900/40 backdrop-blur-sm transition-colors hover:border-amber-500/40"
-              >
-                {image && (
-                  <a href={recipe.route} className="block bg-slate-950">
-                    <Image
-                      src={image}
-                      alt={`Output from running the ${recipe.name} recipe`}
-                      width={1280}
-                      height={720}
-                      // A sample sheet is not 16:9; contain it rather than
-                      // cropping a row of the run off the card.
-                      className="aspect-video w-full object-contain"
-                    />
-                  </a>
-                )}
-                <div className="flex flex-1 flex-col p-6 lg:p-8">
-                  <div className="text-sm text-slate-500">
-                    For {recipe.audience.charAt(0).toLowerCase()}
-                    {recipe.audience.slice(1).replace(/\.$/, "")}
-                  </div>
-                  <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                    {recipe.name}
-                  </h3>
-                  <p className="mt-3 text-slate-400 leading-relaxed">
-                    {recipe.outcome}
-                  </p>
-
-                  {fidelity && (
-                    <p className="mt-4 text-xs text-slate-500">
-                      {fidelity.changed.length === 0
-                        ? "Sample uses the included models."
-                        : `Sample uses ${fidelity.changed.length} model ${fidelity.changed.length === 1 ? "change" : "changes"}. See recipe for details.`}
-                    </p>
-                  )}
-
-                  <p className="mt-2 text-xs text-slate-500">
-                    {recipe.keys.length === 1
-                      ? "Run with one provider key."
-                      : `Run with ${recipe.keys.length} provider keys.`}
-                  </p>
-
-                  <div className="mt-5">
-                    <div className="text-xs text-slate-500">
-                      {joinNames(providers)} at provider rates
-                    </div>
-                    <ul className="mt-2 flex flex-wrap gap-1.5">
-                      {models.map((model) => (
-                        <li
-                          key={model}
-                          className="rounded-md border border-white/10 bg-slate-950/60 px-2 py-0.5 font-mono text-[11px] text-slate-300"
-                        >
-                          {model}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="mt-6 flex flex-wrap items-center gap-4">
-                    <a
-                      href={recipe.route}
-                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-300 transition-colors hover:text-amber-200 focus-ring"
-                    >
-                      Get the recipe
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </a>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+          {recipeEntries.map((recipe) => (
+            <RecipeCard key={recipe.slug} recipe={recipe} />
+          ))}
         </div>
-
-        <p className="mt-8 text-sm text-slate-500">
-          Included in Studio.{" "}
-          <a
-            href="/recipes"
-            className="text-blue-300 underline decoration-blue-300/40 underline-offset-2 hover:text-blue-200"
-          >
-            All recipes
-          </a>
-          {" · "}
-          <a
-            href="/use-cases"
-            className="text-blue-300 underline decoration-blue-300/40 underline-offset-2 hover:text-blue-200"
-          >
-            Explore use cases
-          </a>
-        </p>
+        <a
+          href="/recipes"
+          className="focus-ring mt-8 inline-flex items-center gap-2 rounded text-sm font-medium text-amber-300 hover:text-amber-200"
+        >
+          Explore all recipes{" "}
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </a>
       </div>
     </section>
   );

@@ -216,7 +216,7 @@ export default function Home() {
             page). Ownership rides in the same headline: your own keys. */}
         <ModelSupportSection reducedMotion={reducedMotion} />
 
-        {/* Then proof: four recipes, each a real run with its bundle */}
+        {/* Guided recipes with editable steps and example media */}
         <RecipeShowcase />
 
         {/* What one of those runs leaves behind: an executable, editable

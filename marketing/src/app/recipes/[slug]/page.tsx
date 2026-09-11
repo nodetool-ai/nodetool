@@ -1,35 +1,33 @@
-import React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, Download, KeyRound, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
-import RecipeSampleFigure from "@/components/RecipeSampleFigure";
-import { SmartDownloadButton } from "@/app/SmartDownloadButton";
-import { recipeEntries, type RecipeEntry } from "@/data/recipes";
-import { providerDisplay } from "@/data/providerDisplay";
+import RecipeProductionRun from "@/components/RecipeProductionRun";
+import RecipeGuide from "@/components/RecipeGuide";
+import RecipeCard from "@/components/RecipeCard";
+import { recipeEntries } from "@/data/recipes";
 
 const BASE_URL = "https://nodetool.ai";
+const APP_URL = "https://app.nodetool.ai/workspace";
+
+interface RecipePageProps {
+  params: Promise<{ slug: string }>;
+}
 
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return recipeEntries.map((r) => ({ slug: r.slug }));
-}
-
-function getEntry(slug: string): RecipeEntry | undefined {
-  return recipeEntries.find((r) => r.slug === slug);
+  return recipeEntries.map((recipe) => ({ slug: recipe.slug }));
 }
 
 export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+  params
+}: RecipePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const entry = getEntry(slug);
+  const entry = recipeEntries.find((recipe) => recipe.slug === slug);
   if (!entry) return {};
   const url = `${BASE_URL}${entry.route}`;
   return {
@@ -40,357 +38,161 @@ export async function generateMetadata({
       title: entry.title,
       description: entry.description,
       url,
-      type: "article",
-    },
+      type: "article"
+    }
   };
 }
 
-export default async function RecipePage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function RecipePage({ params }: RecipePageProps) {
   const { slug } = await params;
-  const entry = getEntry(slug);
+  const entry = recipeEntries.find((recipe) => recipe.slug === slug);
   if (!entry) notFound();
-
-  // Offer a first run that needs only one provider key.
-  const firstSingleKeyStep = entry.steps
-    .map((step, index) => ({
-      index,
-      providers: [...new Set(step.models.map((m) => m.provider))],
-    }))
-    .filter((s) => s.providers.length === 1)
-    .map((s) => ({ index: s.index, provider: s.providers[0] }))[0];
-
+  const preview = entry.guide.steps.find(
+    (step) => step.stage === "Entities" || step.stage === "Voices"
+  )?.image;
+  const hero = preview ?? entry.productionRun?.hero;
   const howToLd = {
     "@context": "https://schema.org",
     "@type": "HowTo",
     name: entry.name,
     description: entry.outcome,
-    supply: entry.keys.map((k) => ({
+    tool: { "@type": "HowToTool", name: `NodeTool ${entry.guide.entry}` },
+    supply: entry.guide.inputs.map((name) => ({
       "@type": "HowToSupply",
-      name: `${providerDisplay(k.provider).name} API key`,
+      name
     })),
-    step: entry.steps.map((step, i) => ({
+    step: entry.guide.steps.map((step, index) => ({
       "@type": "HowToStep",
-      position: i + 1,
-      name: step.name,
-      text: step.handoff,
-      url: `${BASE_URL}${step.route}`,
-    })),
+      position: index + 1,
+      name: step.title,
+      text: `${step.description} ${step.action}.`,
+      url: `${BASE_URL}${entry.route}#guided-flow`,
+      ...(step.image ? { image: `${BASE_URL}${step.image.src}` } : {})
+    }))
   };
-
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#040408] text-white">
+    <main className="overflow-clip-safe relative min-h-screen bg-slate-950 text-slate-100">
       <SiteHeader />
       <JsonLd data={howToLd} />
-
       <div className="relative pt-28">
-        {/* Hero */}
-        <section className="relative pt-10 pb-12">
+        <section className="pt-10 pb-12">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <a
               href="/recipes"
-              className="inline-flex items-center gap-1.5 text-sm text-slate-400 transition-colors hover:text-white"
+              className="focus-ring inline-flex items-center gap-2 rounded text-sm text-slate-400 hover:text-slate-100"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               All recipes
             </a>
-            <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-300">
-              Recipe
-              <span className="text-amber-500/60">·</span>
-              {entry.workflowCount} workflows
-            </div>
-            <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
-              {entry.name}
-            </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
-              {entry.outcome}
-            </p>
-            <p className="mt-3 max-w-2xl text-sm text-slate-500">
-              For: {entry.audience}
-            </p>
-            <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-              <SmartDownloadButton
-                icon={<Download className="h-5 w-5" />}
-                classNameOverride="inline-flex items-center justify-center gap-2 rounded-full bg-amber-500 px-8 py-3.5 text-sm font-semibold text-slate-950 shadow-[0_10px_30px_-10px_rgba(245,158,11,0.6)] transition-all hover:bg-amber-400"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* What it actually produced */}
-        {entry.sample && (
-          <section className="relative py-10">
-            <div className="mx-auto max-w-6xl px-6 lg:px-8">
-              <h2 className="mb-2 text-2xl font-bold tracking-tight md:text-3xl">
-                See the result
-              </h2>
-              <p className="mb-6 max-w-3xl text-sm leading-relaxed text-slate-500">
-                Generated with this recipe. Sample details and model changes
-                are listed below.
-              </p>
-              <RecipeSampleFigure sample={entry.sample} name={entry.name} />
-            </div>
-          </section>
-        )}
-
-        {/* Why this order */}
-        <section className="relative py-12">
-          <div className="mx-auto max-w-6xl px-6 lg:px-8">
-            {entry.summary.map((paragraph) => (
-              <p
-                key={paragraph}
-                className="mb-5 max-w-3xl text-lg leading-relaxed text-slate-300 last:mb-0"
-              >
-                {paragraph}
-              </p>
-            ))}
-          </div>
-        </section>
-
-        {/* What you need */}
-        <section className="relative py-12">
-          <div className="mx-auto max-w-6xl px-6 lg:px-8">
-            <div className="mb-6 flex items-center gap-3">
-              <KeyRound className="h-6 w-6 text-amber-400" />
-              <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
-                Bring your API keys
-              </h2>
-            </div>
-            <p className="mb-4 max-w-2xl text-sm leading-relaxed text-slate-400">
-              These providers run the models in this recipe. Use your own keys
-              and pay provider rates, with no NodeTool markup.
-            </p>
-            <p className="mb-6 max-w-2xl text-sm leading-relaxed text-slate-400">
-              Browse and edit workflows for free. Add keys when you want to run.
-              {firstSingleKeyStep && (
-                <>
-                  {" "}
-                  Try step {String(firstSingleKeyStep.index + 1).padStart(2, "0")}
-                  {" "}with just a {providerDisplay(firstSingleKeyStep.provider).name}
-                  {" "}key.
-                </>
-              )}
-            </p>
-            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {entry.keys.map((key) => {
-                const display = providerDisplay(key.provider);
-                return (
-                  <li
-                    key={key.env}
-                    className="rounded-xl border border-white/10 bg-slate-900/40 px-4 py-3"
-                  >
-                    <a
-                      href={display.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-white hover:text-amber-300"
-                    >
-                      {display.name}
-                    </a>
-                    <div className="mt-1 font-mono text-xs text-slate-500">
-                      {key.env}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </section>
-
-        {/* The chain */}
-        <section id="the-chain" className="relative scroll-mt-28 py-12">
-          <div className="mx-auto max-w-6xl px-6 lg:px-8">
-            <h2 className="mb-8 text-2xl font-bold tracking-tight md:text-3xl">
-              Make it step by step
-            </h2>
-            <ol className="space-y-5">
-              {entry.steps.map((step, i) => (
-                <li
-                  key={step.template}
-                  className="grid gap-6 rounded-2xl border border-white/10 bg-slate-900/40 p-6 md:grid-cols-[240px_1fr]"
-                >
-                  {step.thumbnail ? (
-                    <Image
-                      src={step.thumbnail}
-                      alt={`Card art for the ${step.name} template`}
-                      width={640}
-                      height={360}
-                      className="aspect-video w-full rounded-xl object-cover"
-                    />
-                  ) : (
-                    <div className="aspect-video w-full rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60" />
-                  )}
-                  <div className="min-w-0">
-                    <div className="font-mono text-sm text-amber-400">
-                      {String(i + 1).padStart(2, "0")}
-                    </div>
-                    <h3 className="mt-2 text-lg font-semibold text-white">
-                      {step.role}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                      {step.handoff}
-                    </p>
-                    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-                      {step.models.length > 0 ? (
-                        step.models.map((model) => (
-                          <span
-                            key={`${model.provider}:${model.model}`}
-                            className="rounded-md border border-white/10 bg-slate-950/60 px-2 py-1 font-mono text-slate-400"
-                          >
-                            {model.model}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 font-medium text-emerald-300">
-                          Runs locally — no key, no per-run cost
-                        </span>
-                      )}
-                    </div>
-                    <a
-                      href={step.route}
-                      className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-300 transition-colors hover:text-amber-300"
-                    >
-                      {step.name} — see the graph
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </a>
-                    {step.alternative && (
-                      <div className="mt-4 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
-                          {step.alternative.label}
-                        </div>
-                        <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                          {step.alternative.why}
-                        </p>
-                        <a
-                          href={step.alternative.route}
-                          className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-300 transition-colors hover:text-emerald-200"
-                        >
-                          {step.alternative.name} — see the graph
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
-        {/* Caveats */}
-        <section className="relative py-12">
-          <div className="mx-auto max-w-6xl px-6 lg:px-8">
-            <div className="mb-6 flex items-center gap-3">
-              <AlertTriangle className="h-6 w-6 text-slate-500" />
-              <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
-                Before you publish
-              </h2>
-            </div>
-            <ul className="max-w-3xl space-y-4">
-              {entry.caveats.map((caveat) => (
-                <li
-                  key={caveat}
-                  className="rounded-xl border border-white/10 bg-slate-900/40 px-5 py-4 text-sm leading-relaxed text-slate-400"
-                >
-                  {caveat}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        {/* How to run */}
-        <section id="how-to-run" className="relative scroll-mt-28 py-12">
-          <div className="mx-auto max-w-6xl px-6 lg:px-8">
-            <h2 className="mb-8 text-2xl font-bold tracking-tight md:text-3xl">
-              Running it
-            </h2>
-            <ol className="grid gap-5 sm:grid-cols-3">
-              {[
-                {
-                  title: "Install Studio",
-                  body: "Download the free desktop app. No account needed to get started.",
-                },
-                {
-                  title: "Pick your recipe",
-                  body: `Find ${entry.name} in Examples → Recipes. Add its ${entry.workflowCount} workflows to your library.`,
-                },
-                {
-                  title: "Add keys and run",
-                  body: "Add your provider keys in Settings. Follow the steps above, review each result, and adjust as you go.",
-                },
-              ].map((step, i) => (
-                <li
-                  key={step.title}
-                  className="rounded-2xl border border-white/10 bg-slate-900/40 p-6"
-                >
-                  <div className="font-mono text-sm text-amber-400">
-                    {String(i + 1).padStart(2, "0")}
-                  </div>
-                  <h3 className="mt-3 text-base font-semibold text-white">
-                    {step.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                    {step.body}
-                  </p>
-                </li>
-              ))}
-            </ol>
-            <p className="mt-6 max-w-2xl text-sm leading-relaxed text-slate-500">
-              Or download the{" "}
-              <a
-                href={entry.bundle}
-                className="text-slate-300 underline decoration-slate-600 underline-offset-2 hover:text-amber-300"
-              >
-                recipe bundle
-              </a>
-              {" "}and import it from the command menu.
-            </p>
-          </div>
-        </section>
-
-        {/* Other recipes */}
-        <section className="relative py-12">
-          <div className="mx-auto max-w-6xl px-6 lg:px-8">
-            <h2 className="mb-6 text-2xl font-bold tracking-tight md:text-3xl">
-              Other recipes
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {recipeEntries
-                .filter((r) => r.slug !== entry.slug)
-                .map((r) => (
+            <div className="mt-8 grid items-center gap-10 lg:grid-cols-[0.85fr_1.15fr]">
+              <div>
+                <p className="text-sm font-medium text-amber-300">
+                  {entry.guide.entry} guided flow
+                </p>
+                <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
+                  {entry.name}
+                </h1>
+                <p className="mt-5 text-lg leading-relaxed text-slate-300">
+                  {entry.outcome}
+                </p>
+                <p className="mt-4 text-sm text-slate-400">
+                  For {entry.audience.charAt(0).toLowerCase()}
+                  {entry.audience.slice(1)}
+                </p>
+                <div className="mt-8 flex flex-wrap items-center gap-4">
                   <a
-                    key={r.slug}
-                    href={r.route}
-                    className="group overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 transition-colors hover:border-amber-500/40"
+                    href={APP_URL}
+                    className="focus-ring inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-amber-300"
                   >
-                    {(r.sample?.image ?? r.heroThumbnail) && (
-                      <Image
-                        src={r.sample?.image ?? r.heroThumbnail!}
-                        alt=""
-                        width={640}
-                        height={360}
-                        className="aspect-video w-full bg-slate-950 object-contain"
-                      />
-                    )}
-                    <div className="p-4">
-                      <div className="font-semibold text-white group-hover:text-amber-300">
-                        {r.name}
-                      </div>
-                      <p className="mt-1 text-sm leading-relaxed text-slate-500">
-                        {r.outcome}
-                      </p>
-                    </div>
+                    Open NodeTool{" "}
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </a>
+                  <a
+                    href="#guided-flow"
+                    className="focus-ring rounded px-2 py-3 text-sm font-medium text-slate-200 hover:text-amber-300"
+                  >
+                    See every step
+                  </a>
+                </div>
+                <p className="mt-4 text-sm text-slate-400">
+                  Create a project, then choose {entry.guide.entry}.
+                </p>
+              </div>
+              {hero && (
+                <figure className="min-w-0">
+                  <Image
+                    src={hero.src}
+                    alt={hero.alt}
+                    width={preview ? (preview.width ?? 3200) : 1600}
+                    height={preview ? (preview.height ?? 2000) : 900}
+                    quality={90}
+                    sizes="(min-width: 1024px) 640px, 100vw"
+                    priority
+                    className="h-auto w-full rounded-xl border border-white/15 bg-slate-950"
+                  />
+                  <figcaption className="mt-3 text-sm leading-relaxed text-slate-400">
+                    {preview
+                      ? preview.caption
+                      : "Three opening compositions from the example product ad."}
+                  </figcaption>
+                </figure>
+              )}
+            </div>
+          </div>
+        </section>
+        <RecipeGuide guide={entry.guide} />
+        {entry.productionRun && (
+          <RecipeProductionRun run={entry.productionRun} />
+        )}
+        <section className="py-16">
+          <div className="mx-auto max-w-6xl px-6 lg:px-8">
+            <div className="flex flex-col justify-between gap-6 border-y border-white/10 py-8 md:flex-row md:items-center">
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight">
+                  Start with your own{" "}
+                  {entry.guide.entry === "Script" ? "script" : "idea"}
+                </h2>
+                <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-300">
+                  Open NodeTool and choose {entry.guide.entry}. The guide takes
+                  you through the setup, and the editors let you keep refining
+                  each part.
+                </p>
+              </div>
+              <a
+                href={APP_URL}
+                className="focus-ring inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-amber-300"
+              >
+                Open NodeTool{" "}
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </a>
+            </div>
+            <p className="mt-4 text-sm text-slate-400">
+              Prefer the desktop app?{" "}
+              <a
+                href="/download"
+                className="focus-ring rounded text-slate-200 underline underline-offset-4 hover:text-amber-300"
+              >
+                Download NodeTool
+              </a>
+              .
+            </p>
+          </div>
+        </section>
+        <section className="pb-20">
+          <div className="mx-auto max-w-6xl px-6 lg:px-8">
+            <h2 className="mb-6 text-2xl font-semibold tracking-tight">
+              Try another recipe
+            </h2>
+            <div className="grid gap-6 md:grid-cols-3">
+              {recipeEntries
+                .filter((recipe) => recipe.slug !== entry.slug)
+                .map((recipe) => (
+                  <RecipeCard key={recipe.slug} recipe={recipe} />
                 ))}
             </div>
           </div>
         </section>
       </div>
-
       <SiteFooter />
     </main>
   );

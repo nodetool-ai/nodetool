@@ -1,0 +1,328 @@
+{
+  "schemaVersion": 1,
+  "status": "partial",
+  "note": "AD-C0 through AD-C11 were captured from the live UI at 1600x1000 with a 2x device pixel ratio, producing lossless 3200x2000 PNG files. The guided-flow walkthrough remains pending.",
+  "projectId": "default",
+  "projectName": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+  "documentIds": [
+    "af795795297f43bf9e66d0318f422c83",
+    "58f7b179a7d74d989a650f52a3ce8ff5",
+    "c487fa64f3504e1abf56b3408603db46",
+    "5f1a06467b01420591e2d3c4d31d6fea",
+    "ecaf4b138411428e83d8071bc2a7cdcb",
+    "58d280ee969c41448fcb09b6891ee0ab",
+    "c80736b7dff447d4bb21789f95a438ea"
+  ],
+  "captures": [
+    {
+      "captureId": "AD-C0",
+      "recipeActionId": "AD-C0",
+      "visibleScreenLabel": "New project",
+      "projectId": "default",
+      "documentIds": [],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/ad-c0.png",
+      "editedPath": null,
+      "chronologicalOrder": 0,
+      "timeCompression": false,
+      "redaction": null,
+      "status": "captured",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000",
+      "rawSha256": "6899ee213ecff850957d2df0ab85d7e390b2513634a0e5c1e447aa0e2fd0ba21"
+    },
+    {
+      "captureId": "AD-C1",
+      "recipeActionId": "AD-C1",
+      "visibleScreenLabel": "Idea",
+      "projectId": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "documentIds": [
+        "af795795297f43bf9e66d0318f422c83"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/ad-c1.png",
+      "editedPath": null,
+      "chronologicalOrder": 1,
+      "timeCompression": false,
+      "redaction": null,
+      "status": "captured",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000",
+      "rawSha256": "69d80900ed992be13cd7c763797686274e6311297c25391982753c9464e8ec6b"
+    },
+    {
+      "captureId": "AD-C2",
+      "recipeActionId": "AD-C2",
+      "visibleScreenLabel": "Story selection",
+      "projectId": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "documentIds": [
+        "af795795297f43bf9e66d0318f422c83"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/ad-c2.png",
+      "editedPath": null,
+      "chronologicalOrder": 2,
+      "timeCompression": false,
+      "redaction": null,
+      "status": "captured",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000",
+      "rawSha256": "120cdedd5acdeb5073a1de4dcbaa113633d08925e56fba15963cc1cf02c04700"
+    },
+    {
+      "captureId": "AD-C3",
+      "recipeActionId": "AD-C3",
+      "visibleScreenLabel": "Story review",
+      "projectId": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "documentIds": [
+        "af795795297f43bf9e66d0318f422c83"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/ad-c3.png",
+      "editedPath": null,
+      "chronologicalOrder": 3,
+      "timeCompression": false,
+      "redaction": null,
+      "status": "captured",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000",
+      "rawSha256": "8f46678fa3121f3a6bebced61dc2aae686a777a269f7670f1c48c9bf509c86b1"
+    },
+    {
+      "captureId": "AD-C4",
+      "recipeActionId": "AD-C4",
+      "visibleScreenLabel": "Entities",
+      "projectId": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "documentIds": [
+        "af795795297f43bf9e66d0318f422c83"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/ad-c4.png",
+      "editedPath": null,
+      "chronologicalOrder": 4,
+      "timeCompression": false,
+      "redaction": null,
+      "status": "captured",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000",
+      "rawSha256": "9205fd4373faee0b6878a4d138a47a3b16b75dda4f3b3506b0db8b3e0f2c7870"
+    },
+    {
+      "captureId": "AD-C5",
+      "recipeActionId": "AD-C5",
+      "visibleScreenLabel": "Look",
+      "projectId": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "documentIds": [
+        "af795795297f43bf9e66d0318f422c83"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/ad-c5.png",
+      "editedPath": null,
+      "chronologicalOrder": 5,
+      "timeCompression": false,
+      "redaction": null,
+      "status": "captured",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000",
+      "rawSha256": "816a181b3c6a0b8a10b5aadd80d1b40ded89b050c66c90bd0f3d72e7322e44f3"
+    },
+    {
+      "captureId": "AD-C6",
+      "recipeActionId": "AD-C6",
+      "visibleScreenLabel": "Storyboard stills",
+      "projectId": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "documentIds": [
+        "af795795297f43bf9e66d0318f422c83"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/ad-c6.png",
+      "editedPath": null,
+      "chronologicalOrder": 6,
+      "timeCompression": false,
+      "redaction": null,
+      "status": "captured",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000",
+      "rawSha256": "6d6ac61e5d379c7392cd16fe053e0af2d53644d4eedd13cbada49cc7ead6fd28"
+    },
+    {
+      "captureId": "AD-C7",
+      "recipeActionId": "AD-C7",
+      "visibleScreenLabel": "Script editor",
+      "projectId": "default",
+      "documentIds": [
+        "58f7b179a7d74d989a650f52a3ce8ff5"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/ad-c7.png",
+      "editedPath": null,
+      "chronologicalOrder": 7,
+      "timeCompression": false,
+      "redaction": null,
+      "status": "captured",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000",
+      "rawSha256": "24f14000c099cb77abd5248c88343fc33499b761a663edd942989ad6ba8fdf72"
+    },
+    {
+      "captureId": "AD-C8",
+      "recipeActionId": "AD-C8",
+      "visibleScreenLabel": "Storyboard clips",
+      "projectId": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "documentIds": [
+        "af795795297f43bf9e66d0318f422c83"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/ad-c8.png",
+      "editedPath": null,
+      "chronologicalOrder": 8,
+      "timeCompression": false,
+      "redaction": null,
+      "status": "captured",
+      "note": "Direct FAL clips are timeline assets, not storyboard-attached clips.",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000",
+      "rawSha256": "da85520d354db919bcde573abe133d3a120ca4ab769f26ba01b2c4bbf756486a"
+    },
+    {
+      "captureId": "AD-C9",
+      "recipeActionId": "AD-C9",
+      "visibleScreenLabel": "Timeline",
+      "projectId": "default",
+      "documentIds": [
+        "ecaf4b138411428e83d8071bc2a7cdcb"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/ad-c9.png",
+      "editedPath": null,
+      "chronologicalOrder": 9,
+      "timeCompression": false,
+      "redaction": null,
+      "status": "captured",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000",
+      "rawSha256": "3d7841325b0b026e04cf37968aa237d0eae719dad36da544886a189c4ff1617c"
+    },
+    {
+      "captureId": "AD-C10",
+      "recipeActionId": "AD-C10",
+      "visibleScreenLabel": "Agent/editor continuation",
+      "projectId": "default",
+      "documentIds": [
+        "58d280ee969c41448fcb09b6891ee0ab"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/ad-c10.png",
+      "editedPath": null,
+      "chronologicalOrder": 10,
+      "timeCompression": false,
+      "redaction": null,
+      "status": "captured",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000",
+      "rawSha256": "f75415f9b8c1c6b077e430c9bcf69bb71332174aa27eda6477b039e5092b41a3"
+    },
+    {
+      "captureId": "AD-C11",
+      "recipeActionId": "AD-C11",
+      "visibleScreenLabel": "Finished work",
+      "projectId": "default",
+      "documentIds": [
+        "c80736b7dff447d4bb21789f95a438ea"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/ad-c11.png",
+      "editedPath": null,
+      "chronologicalOrder": 11,
+      "timeCompression": false,
+      "redaction": null,
+      "status": "captured",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000",
+      "rawSha256": "e009580ed71c2b8ce26a7f8f484587eef4a3feb60687cbbde703da82bf638de5"
+    }
+  ],
+  "walkthrough": {
+    "status": "pending-exclusive-browser",
+    "captureMode": "live-ui-capture",
+    "rawPath": "captures/raw/ad-guided-flow-raw.mp4",
+    "editedPath": "captures/walkthrough/ad-guided-flow.mp4",
+    "webmPath": "captures/walkthrough/ad-guided-flow.webm",
+    "vttPath": "captures/walkthrough/ad-guided-flow.vtt",
+    "posterPath": "captures/walkthrough/poster.webp",
+    "timeCompression": true,
+    "redaction": null
+  }
+}

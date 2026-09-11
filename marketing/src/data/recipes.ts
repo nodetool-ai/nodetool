@@ -1,16 +1,14 @@
 /**
  * Recipe page-data contract, consumed by the `/recipes/*` routes.
  *
- * A recipe is a named outcome plus the ordered shipped example workflows that
- * reach it. Studio ships the same chains on its Examples page, and the site
- * also packs each as one `.nodetool` bundle. Where a template page answers
- * "what does this graph do", a recipe answers "what do I run, in what order,
- * and what does it cost me".
+ * A recipe pairs an outcome with guided setup, editor steps, and real media.
+ * Legacy workflow metadata remains available for related templates and exports.
  *
  * `recipeEntries.generated.ts` is written by
  * `marketing/scripts/generate-recipes.mjs` from the recipe manifests the app
  * ships (`packages/base-nodes/nodetool/examples/recipes/`), the site-only
- * presentation in `marketing/scripts/recipes.mjs`, and the shipped examples
+ * presentation in `marketing/scripts/recipes.mjs`, guided steps in
+ * `marketing/scripts/recipe-guides.mjs`, and the shipped examples
  * themselves. Do not edit the generated file by hand — run
  * `npm run gen:recipes`.
  */
@@ -98,17 +96,70 @@ export interface RecipeSampleModel {
   why: string;
 }
 
+export interface RecipeProductionMedia {
+  src: string;
+  alt: string;
+  caption?: string;
+  width?: number;
+  height?: number;
+}
+
+export interface RecipeGuideStep {
+  id: string;
+  phase:
+    | "Prepare"
+    | "Guided setup"
+    | "Storyboard"
+    | "Script"
+    | "Finish"
+    | "Continue";
+  stage: string;
+  title: string;
+  description: string;
+  action: string;
+  image?: RecipeProductionMedia;
+}
+
+export interface RecipeGuide {
+  entry: "Storyboard" | "Script";
+  stages: string[];
+  introduction: string;
+  inputs: string[];
+  brief: string;
+  note: string;
+  steps: RecipeGuideStep[];
+}
+
+/** Verified output and evidence from the latest documented recipe run. */
+export interface RecipeProductionRun {
+  runId: string;
+  status: "partial" | "accepted";
+  statusLabel: string;
+  summary: string;
+  provider: string;
+  hero: RecipeProductionMedia;
+  ogImage: string;
+  proof: RecipeProductionMedia | null;
+  video: {
+    mp4: string;
+    webm: string | null;
+    poster: string;
+    hasAudio: boolean;
+    caption: string;
+  } | null;
+  supportedClaims: string[];
+  limitations: string[];
+}
+
 export interface RecipeEntry extends PageEntry {
   sample: RecipeSample | null;
+  productionRun: RecipeProductionRun | null;
+  guide: RecipeGuide;
   slug: string;
   name: string;
   /** One sentence: what you end up holding. */
   outcome: string;
   audience: string;
-  /** Intro paragraphs. */
-  summary: string[];
-  /** What the recipe does not do, stated plainly. */
-  caveats: string[];
   heroThumbnail: string | null;
   /** Public path to the `.nodetool` bundle. */
   bundle: string;
@@ -141,14 +192,16 @@ export function sampleFidelity(sample: RecipeSample): SampleFidelity {
   return {
     total: sample.producedBy.length,
     asShipped: sample.producedBy.length - changed.length,
-    changed,
+    changed
   };
 }
 
 /** A step's card art, falling back to the template entry if one is missing. */
 export function stepThumbnail(step: RecipeStep): string | null {
   if (step.thumbnail) return step.thumbnail;
-  return templateEntries.find((t) => t.slug === step.template)?.thumbnail ?? null;
+  return (
+    templateEntries.find((t) => t.slug === step.template)?.thumbnail ?? null
+  );
 }
 
 /**
@@ -157,7 +210,7 @@ export function stepThumbnail(step: RecipeStep): string | null {
  */
 export function recipesUsingTemplate(
   templateSlug: string,
-  all: RecipeEntry[],
+  all: RecipeEntry[]
 ): RecipeEntry[] {
   return all.filter((r) => r.steps.some((s) => s.template === templateSlug));
 }

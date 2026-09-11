@@ -1,7 +1,7 @@
 import { ogImage, ogSize, ogContentType } from "@/lib/og";
 import { recipeEntries } from "@/data/recipes";
 
-export const alt = "NodeTool AI workflow recipe";
+export const alt = "NodeTool guided AI recipe";
 export const size = ogSize;
 export const contentType = ogContentType;
 
@@ -12,20 +12,25 @@ export function generateStaticParams() {
 }
 
 export default async function Image({
-  params,
+  params
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
   const entry = recipeEntries.find((r) => r.slug === slug);
-  const name = entry?.name ?? "AI Workflow Recipe";
+  const name = entry?.name ?? "Guided AI recipe";
   // Prefer the recipe's own run over the step's template illustration; og
   // reads from public/, so strip the leading slash.
-  const art = entry?.sample?.image ?? entry?.heroThumbnail;
-  const image = art ? art.replace(/^\//, "") : "screen_canvas.png";
+  const art =
+    entry?.productionRun?.ogImage ??
+    entry?.sample?.image ??
+    entry?.heroThumbnail;
+  const image = art ? art.replace(/^\//, "") : "screen_storyboard.png";
   return ogImage(
     name,
-    entry ? `${entry.workflowCount} workflows, in order` : "NodeTool recipe",
-    { image, accent: "amber", eyebrow: "Recipe" },
+    entry
+      ? `${entry.guide.entry}: ${entry.guide.stages.join(" → ")}`
+      : "NodeTool guided recipe",
+    { image, accent: "amber", eyebrow: "Recipe" }
   );
 }

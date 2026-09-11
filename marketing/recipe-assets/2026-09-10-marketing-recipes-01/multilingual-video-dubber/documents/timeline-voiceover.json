@@ -1,0 +1,1 @@
+{"type":"timeline","name":"D2 Spanish voiceover","duration":22.625,"fps":24,"video":{"path":"sources/source-en.mp4","audioMuted":true},"audio":{"path":"masters/voice-es.wav","lineIds":["DU-L1","DU-L2","DU-L3"]},"captions":{"path":"web/dub-es.srt","editable":true}}

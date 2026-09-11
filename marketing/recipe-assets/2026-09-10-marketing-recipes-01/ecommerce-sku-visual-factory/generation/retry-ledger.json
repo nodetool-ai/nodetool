@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "37f950b8-021d-42af-8fac-acde6e4569a8",
+      "kind": "reference-conditioned-still",
+      "shotCode": "SKU-S1",
+      "provider": "fal_ai",
+      "model": "fal-ai/bytedance/seedream/v4.5/edit",
+      "attempt": 2,
+      "defect": "Attempt 1 invented visible MOVA-like lettering/branding on the body; branding is forbidden.",
+      "changedInstruction": "LOCK the accepted source cup exactly, especially completely blank unbranded muted-olive body, low flat charcoal lid, and exactly one small RECTANGULAR drinking opening near the FRONT rim in the same orientation. CHANGE only background/light/camera: seamless warm-light-gray studio sweep, centered upright, slightly elevated three-quarter front, premium softbox, delicate rim, grounding shadow. REMOVE AND FORBID every letter, word, logo, badge, symbol, embossing, decal, marking, handle, seam, accessory. Entire cup visible in 1:1 square. Do not alter proportions, lid profile, rectangular opening, or olive color.",
+      "prompt": "LOCK the accepted source cup exactly, especially completely blank unbranded muted-olive body, low flat charcoal lid, and exactly one small RECTANGULAR drinking opening near the FRONT rim in the same orientation. CHANGE only background/light/camera: seamless warm-light-gray studio sweep, centered upright, slightly elevated three-quarter front, premium softbox, delicate rim, grounding shadow. REMOVE AND FORBID every letter, word, logo, badge, symbol, embossing, decal, marking, handle, seam, accessory. Entire cup visible in 1:1 square. Do not alter proportions, lid profile, rectangular opening, or olive color.",
+      "parents": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "referenceAssetIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "generationId": "cb71b055-e1ac-4778-b597-d1d05fc74640",
+      "outputAssetUri": "asset://a2b82855da9a4b0db5eeb23efbad0d44.jpg",
+      "actualCost": null,
+      "currency": null,
+      "status": "pending-inspection"
+    },
+    {
+      "id": "c3fc677c-b46a-45af-9880-33b46ca884af",
+      "kind": "reference-conditioned-still",
+      "shotCode": "SKU-S2",
+      "provider": "fal_ai",
+      "model": "fal-ai/bytedance/seedream/v4.5/edit",
+      "attempt": 2,
+      "defect": "Attempt 1 changed the accepted rectangular drinking opening into an oval/slot-like opening and drifted the lid profile.",
+      "changedInstruction": "LOCK the accepted source cup exactly: blank muted-olive tapered body, low-profile FLAT charcoal lid, exactly one small sharply RECTANGULAR drinking opening near the FRONT rim with the same size and orientation as the reference. CHANGE only setting/light: upright on pale stone ledge, restrained snowy evergreen background, cool diffuse winter daylight, subtle warm rim. Product clean, dry, dominant and unobstructed. 1:1 square. No text, letters, logos, handles, steam, liquid, snow on cup, oval opening, rounded slot, extra lid parts, duplicate lid, or geometry changes.",
+      "prompt": "LOCK the accepted source cup exactly: blank muted-olive tapered body, low-profile FLAT charcoal lid, exactly one small sharply RECTANGULAR drinking opening near the FRONT rim with the same size and orientation as the reference. CHANGE only setting/light: upright on pale stone ledge, restrained snowy evergreen background, cool diffuse winter daylight, subtle warm rim. Product clean, dry, dominant and unobstructed. 1:1 square. No text, letters, logos, handles, steam, liquid, snow on cup, oval opening, rounded slot, extra lid parts, duplicate lid, or geometry changes.",
+      "parents": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "referenceAssetIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "generationId": "f666601d-6d79-4d10-84af-c9b82f4034ee",
+      "outputAssetUri": "asset://16d2d9cf1eb8431e903dc7abb4c26d78.jpg",
+      "actualCost": null,
+      "currency": null,
+      "status": "pending-inspection"
+    },
+    {
+      "id": "066375d0-a894-44e1-941b-ad2b38cf0888",
+      "kind": "upscale",
+      "shotCode": "SKU-S1",
+      "provider": "fal_ai",
+      "model": "clarityai/crystal-upscaler",
+      "attempt": 2,
+      "defect": "Dependent SKU-S1 attempt 1 was rejected for invented branding; previous upscale invalidated.",
+      "prompt": "Faithfully upscale this exact accepted unbranded studio product photograph to print-detail resolution. Preserve every visible product and scene feature: blank muted-olive tapered body, flat charcoal lid, one rectangular front-rim opening, exact proportions, framing, colors, lighting, background and shadow. Add no text, logo, mark, handle, ridge, object, texture invention, or edge change. High-frequency detail restoration only.",
+      "parents": [
+        "asset://a2b82855da9a4b0db5eeb23efbad0d44.jpg"
+      ],
+      "outputAssetUri": "asset://2912815fcb4f42208248e4998370f8a8.png",
+      "deliveryPath": "marketing/recipe-assets/2026-09-10-marketing-recipes-01/ecommerce-sku-visual-factory/masters/studio-hero-print-4096.png",
+      "actualCost": null,
+      "currency": null,
+      "status": "pending-inspection",
+      "label": "upscaled"
+    }
+  ]
+}

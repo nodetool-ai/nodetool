@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "3b95fdd8e581466382eca86de61cfb1c",
+  "name": "Olive Travel Cup — Catalogue Triptych",
+  "brief": "Create three square catalogue images of Olive Travel Cup: a clean studio hero on a pale stone plinth, a winter-light version in the same setting, and an uncluttered three-quarter product view for a short motion clip. Use the product reference I will select in Entities. Keep its geometry, olive body and charcoal lid consistent. No people, logos, lettering, invented features, or dialogue.",
+  "style": "Studio photography on an 85mm at f/8, large softbox key with a white bounce fill, seamless sweep background, crisp specular highlights, neutral colour balance, no grain.",
+  "aspectRatio": "1:1",
+  "imageModel": {"provider":"fal_ai","id":"fal-ai/flux-2-max/edit","name":"Flux2Max Edit"},
+  "videoModel": {"provider":"fal_ai","id":"fal-ai/bytedance/seedance/v1/lite/image-to-video","name":"Bytedance Seedance V1Lite Image To Video"},
+  "entityIds": ["382922e1ca1543468d59f0af5575350e","cf65f1891e9c154d03ce0b842562bbf1"],
+  "projectId": null,
+  "projectName": "Marketing recipes / ecommerce-sku-visual-factory / 2026-09-10-marketing-recipes-01",
+  "projectNameStatus": "unverified-headlessly",
+  "shots": [
+    {"id":"shot-0","index":0,"slug":"Studio Hero","durationSeconds":4,"status":"keyframe_ready","hasKeyframe":true,"hasClip":false},
+    {"id":"shot-1","index":1,"slug":"Winter-Light Catalogue","durationSeconds":4,"status":"keyframe_ready","hasKeyframe":true,"hasClip":false},
+    {"id":"shot-2","index":2,"slug":"Three-Quarter Motion View","durationSeconds":6,"status":"rendered","hasKeyframe":true,"hasClip":true}
+  ],
+  "exportedFrom": "get_storyboard",
+  "deliveryTakeMapping": {
+    "shot-0":"selects/studio-hero.png",
+    "shot-1":"selects/winter-scene.png",
+    "shot-2":"selects/motion-hero.png",
+    "attachmentStatus":"unsupported-direct-operation"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "inspected_at": "2026-09-10T16:18:54.913Z",
+  "project_id": "efe9670e9d0b482fb2204089e4f32570",
+  "storyboard_id": "1420c5e4701a4269ba362c384813c2ec",
+  "total_files": 21,
+  "root_entries": [
+    "captures",
+    "documents",
+    "generation",
+    "sources"
+  ],
+  "candidates": [
+    {
+      "path": "documents/brief.md",
+      "size": 1119,
+      "text": "# The Next Tide\n\nA 40-second mystery trailer. A lighthouse keeper finds a message in a bottle dated forty years in the future, written in her own handwriting.\n\nSix shots: establish the coast, discover the bottle, examine the letter, watch the keeper's reaction, return to the lighthouse beam, end close on her recognition. Blue-hour sea light and a warm practical lamp inside. One keeper, one lighthouse. Quiet, restrained, photographic.\n\nVoiceover:\n\n1. The tide brought it in.\n2. The date is forty years from now.\n3. And the handwriting is mine.\n\nNo generated on-screen text. The editable timeline title is `THE NEXT TIDE`.\n\n## Look\n\nRestrained photographic coastal mystery at blue hour. Cold blue-gray sea and sky, weathered stone, damp surfaces with believable reflections, warm amber practical light only in the keeper's room. Natural skin detail, moderate contrast, fine film grain, no fantasy glow, no exaggerated teal-orange grade. Camera movements are slow and deliberate. No generated lettering, titles, logos or subtitles. Lighthouse architecture, keeper identity and wardrobe remain consistent across shots.\n"
+    },
+    {
+      "path": "documents/entities.json",
+      "size": 878,
+      "text": "{\n  \"schemaVersion\": 1,\n  \"projectId\": \"efe9670e9d0b482fb2204089e4f32570\",\n  \"entities\": [\n    {\"stableId\":\"TR-E1\",\"id\":\"354c2523e0ad4f4188c37e02b681c5b3\",\"name\":\"Elin\",\"kind\":\"character\",\"sourcePath\":\"sources/entities/elin.jpg\",\"shotAssignments\":[\"TR-S2\",\"TR-S4\",\"TR-S6\"]},\n    {\"stableId\":\"TR-E2\",\"id\":\"59b681b2d64440f6ad248228b52d7760\",\"name\":\"North Point Lighthouse\",\"kind\":\"location\",\"sourcePath\":\"sources/entities/lighthouse.jpg\",\"shotAssignments\":[\"TR-S1\",\"TR-S2\",\"TR-S5\"]},\n    {\"stableId\":\"TR-E3\",\"id\":\"a483c10754b34d9dad84f43b68b3a0a0\",\"name\":\"Keeper's Room\",\"kind\":\"location\",\"sourcePath\":\"sources/entities/keepers-room.jpg\",\"shotAssignments\":[\"TR-S3\",\"TR-S4\",\"TR-S6\"]},\n    {\"stableId\":\"TR-E4\",\"id\":\"ecb13190ffb245ceabd6eff2bd64076e\",\"name\":\"Message Bottle\",\"kind\":\"prop\",\"sourcePath\":\"sources/entities/message-bottle.jpg\",\"shotAssignments\":[\"TR-S2\",\"TR-S3\"]}\n  ]\n}\n"
+    },
+    {
+      "path": "documents/voiceover.txt",
+      "size": 179,
+      "text": "TR-L1 | 7.000-10.000 | Elin | The tide brought it in.\nTR-L2 | 14.000-18.000 | Elin | The date is forty years from now.\nTR-L3 | 33.000-37.000 | Elin | And the handwriting is mine.\n"
+    },
+    {
+      "path": "generation/generation-ledger.json",
+      "size": 3402,
+      "text": "{\n  \"schemaVersion\": 1,\n  \"runId\": \"2026-09-10-marketing-recipes-01\",\n  \"recipeSlug\": \"storyboard-to-trailer\",\n  \"mediaProviderConstraint\": \"fal_ai\",\n  \"languageModelDiscovery\": {\n    \"provider\": \"codex\",\n    \"selectedModel\": \"gpt-5.6-sol\",\n    \"availableModelIds\": [\"gpt-6-astra\", \"gpt-5.6\", \"gpt-5.6-sol\", \"gpt-5.6-terra\", \"gpt-5.6-luna\", \"gpt-5.5\", \"gpt-5.5-pro\", \"gpt-5.4\", \"gpt-5.4-pro\", \"gpt-5.4-mini\", \"gpt-5.4-nano\", \"gpt-5\", \"gpt-5-mini\", \"gpt-5-nano\", \"gpt-reserve\", \"gpt-5.3-codex-spark\", \"codex-auto-review\"]\n  },\n  \"generationCalls\": [\n    {\n      \"stableId\": \"TR-GEN-E1\",\n      \"generationId\": \"0b4c114d-8a25-4b80-a88c-ff2d06e92f33\",\n      \"tool\": \"nodetool generate\",\n      \"provider\": \"fal_ai\",\n      \"model\": \"fal-ai/bytedance/seedream/v4.5/text-to-image\",\n      \"capability\": \"text_to_image\",\n      \"promptFile\": \"documents/entity-descriptors.md#tr-e1-elin\",\n      \"settings\": {\"requestedAspectRatio\":\"16:9\",\"requestedWidth\":1536,\"requestedHeight\":864},\n      \"outputAssetIds\": [\"354c2523e0ad4f4188c37e02b681c5b3\"],\n      \"outputPaths\": [\"sources/entities/elin.jpg\"],\n      \"actualWidth\": 4096,\n      \"actualHeight\": 2304,\n      \"attempt\": 1,\n      \"actualCost\": 0.04,\n      \"currency\": \"USD\",\n      \"review\": \"accepted\"\n    },\n    {\n      \"stableId\": \"TR-GEN-E2\",\n      \"generationId\": \"b63c9f91-c22e-4720-9934-07487af3c7a2\",\n      \"tool\": \"nodetool generate\",\n      \"provider\": \"fal_ai\",\n      \"model\": \"fal-ai/bytedance/seedream/v4.5/text-to-image\",\n      \"capability\": \"text_to_image\",\n      \"promptFile\": \"documents/entity-descriptors.md#tr-e2-north-point-lighthouse\",\n      \"settings\": {\"requestedAspectRatio\":\"16:9\",\"requestedWidth\":1536,\"requestedHeight\":864},\n      \"outputAssetIds\": [\"59b681b2d64440f6ad248228b52d7760\"],\n      \"outputPaths\": [\"sources/entities/lighthouse.jpg\"],\n      \"actualWidth\": 4096,\n      \"actualHeight\": 2304,\n      \"attempt\": 1,\n      \"actualCost\": 0.04,\n      \"currency\": \"USD\",\n      \"review\": \"accepted\"\n    },\n    {\n      \"stableId\": \"TR-GEN-E3\",\n      \"generationId\": \"c989d068-1ade-4afa-bef7-8f87f41187a5\",\n      \"tool\": \"nodetool generate\",\n      \"provider\": \"fal_ai\",\n      \"model\": \"fal-ai/bytedance/seedream/v4.5/text-to-image\",\n      \"capability\": \"text_to_image\",\n      \"promptFile\": \"documents/entity-descriptors.md#tr-e3-keepers-room\",\n      \"settings\": {\"requestedAspectRatio\":\"16:9\",\"requestedWidth\":1536,\"requestedHeight\":864},\n      \"outputAssetIds\": [\"a483c10754b34d9dad84f43b68b3a0a0\"],\n      \"outputPaths\": [\"sources/entities/keepers-room.jpg\"],\n      \"actualWidth\": 4096,\n      \"actualHeight\": 2304,\n      \"attempt\": 1,\n      \"actualCost\": 0.04,\n      \"currency\": \"USD\",\n      \"review\": \"accepted\"\n    },\n    {\n      \"stableId\": \"TR-GEN-E4\",\n      \"generationId\": \"8ac15a2a-7c20-4a73-8e11-73112d30ef06\",\n      \"tool\": \"nodetool generate\",\n      \"provider\": \"fal_ai\",\n      \"model\": \"fal-ai/bytedance/seedream/v4.5/text-to-image\",\n      \"capability\": \"text_to_image\",\n      \"promptFile\": \"documents/entity-descriptors.md#tr-e4-message-bottle\",\n      \"settings\": {\"requestedAspectRatio\":\"16:9\",\"requestedWidth\":1536,\"requestedHeight\":864},\n      \"outputAssetIds\": [\"ecb13190ffb245ceabd6eff2bd64076e\"],\n      \"outputPaths\": [\"sources/entities/message-bottle.jpg\"],\n      \"actualWidth\": 4096,\n      \"actualHeight\": 2304,\n      \"attempt\": 1,\n      \"actualCost\": 0.04,\n      \"currency\": \"USD\",\n      \"review\": \"accepted\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

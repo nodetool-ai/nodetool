@@ -1,0 +1,2631 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-09-10-marketing-recipes-01",
+  "recipeSlug": "viral-video-ad-engine",
+  "status": "partial",
+  "documents": [
+    {
+      "role": "production-board",
+      "documentType": "storyboard",
+      "serverId": "af795795297f43bf9e66d0318f422c83",
+      "projectId": "default",
+      "projectName": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "exportPath": "documents/production-board.json",
+      "sha256": "056cf97e0797ab7b1f6774f6dca634b79751bf29da2b059806d21f22e2f4e0ea",
+      "linkedDocumentIds": [
+        "58f7b179a7d74d989a650f52a3ce8ff5"
+      ]
+    },
+    {
+      "role": "script-a",
+      "documentType": "script",
+      "serverId": "58f7b179a7d74d989a650f52a3ce8ff5",
+      "projectId": "default",
+      "projectName": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "exportPath": "documents/script-a.json",
+      "sha256": "e1e4573f8dfe0792437e1943857e86f13698ade5f074594bf7abaa42ef913836",
+      "linkedDocumentIds": [
+        "af795795297f43bf9e66d0318f422c83",
+        "ecaf4b138411428e83d8071bc2a7cdcb"
+      ]
+    },
+    {
+      "role": "script-b",
+      "documentType": "script",
+      "serverId": "c487fa64f3504e1abf56b3408603db46",
+      "projectId": "default",
+      "projectName": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "exportPath": "documents/script-b.json",
+      "sha256": "5910bd151059fedb2e322b3b4a05f8bce3c1fae963524a050ea08d82815c5daa",
+      "linkedDocumentIds": [
+        "58d280ee969c41448fcb09b6891ee0ab"
+      ]
+    },
+    {
+      "role": "script-c",
+      "documentType": "script",
+      "serverId": "5f1a06467b01420591e2d3c4d31d6fea",
+      "projectId": "default",
+      "projectName": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "exportPath": "documents/script-c.json",
+      "sha256": "321385afc69ebeb7fd01b69a6c0f1ef54b19061ca947afa001d27d74347f2a05",
+      "linkedDocumentIds": [
+        "c80736b7dff447d4bb21789f95a438ea"
+      ]
+    },
+    {
+      "role": "timeline-a",
+      "documentType": "timeline",
+      "serverId": "ecaf4b138411428e83d8071bc2a7cdcb",
+      "projectId": "default",
+      "projectName": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "exportPath": "documents/timeline-a.json",
+      "sha256": "d424e875ec339c7a406ab1ef954b71e235e318f01f786493ba457b1a5c3948c0",
+      "linkedDocumentIds": [
+        "58f7b179a7d74d989a650f52a3ce8ff5",
+        "af795795297f43bf9e66d0318f422c83"
+      ]
+    },
+    {
+      "role": "timeline-b",
+      "documentType": "timeline",
+      "serverId": "58d280ee969c41448fcb09b6891ee0ab",
+      "projectId": "default",
+      "projectName": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "exportPath": "documents/timeline-b.json",
+      "sha256": "fab2e731ec4635c2d49563b42caa734b4da7f4436df9fa733ff3be8baa356196",
+      "linkedDocumentIds": [
+        "c487fa64f3504e1abf56b3408603db46",
+        "af795795297f43bf9e66d0318f422c83"
+      ]
+    },
+    {
+      "role": "timeline-c",
+      "documentType": "timeline",
+      "serverId": "c80736b7dff447d4bb21789f95a438ea",
+      "projectId": "default",
+      "projectName": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+      "exportPath": "documents/timeline-c.json",
+      "sha256": "2711329b59134d6cef19010ec7be2e8d9a36c092b02b5621d7734b352568a12b",
+      "linkedDocumentIds": [
+        "5f1a06467b01420591e2d3c4d31d6fea",
+        "af795795297f43bf9e66d0318f422c83"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "stableId": "D1-capture-log-json",
+      "role": "capture-log.json",
+      "relativePath": "capture-log.json",
+      "sha256": "b809391aa2a7f712a80bc02a4d8ef122e8aba8ee177a4fc8e2e0d1e5229fdbed",
+      "mimeType": "application/json",
+      "bytes": 10507,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-in-nodetool",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-documents-ad-copy-md",
+      "role": "documents",
+      "relativePath": "documents/ad-copy.md",
+      "sha256": "bada6617951a3ef72c0fb06ccc4d668ac5e1234c20c93eae9377a5a922ba93e4",
+      "mimeType": "text/markdown",
+      "bytes": 573,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": "c80736b7dff447d4bb21789f95a438ea",
+      "shotOrLineIds": null,
+      "provenance": "generated-in-nodetool",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-documents-production-board-json",
+      "role": "documents",
+      "relativePath": "documents/production-board.json",
+      "sha256": "056cf97e0797ab7b1f6774f6dca634b79751bf29da2b059806d21f22e2f4e0ea",
+      "mimeType": "application/json",
+      "bytes": 9667,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-in-nodetool",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-documents-script-a-json",
+      "role": "documents",
+      "relativePath": "documents/script-a.json",
+      "sha256": "e1e4573f8dfe0792437e1943857e86f13698ade5f074594bf7abaa42ef913836",
+      "mimeType": "application/json",
+      "bytes": 1128,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-in-nodetool",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-documents-script-b-json",
+      "role": "documents",
+      "relativePath": "documents/script-b.json",
+      "sha256": "5910bd151059fedb2e322b3b4a05f8bce3c1fae963524a050ea08d82815c5daa",
+      "mimeType": "application/json",
+      "bytes": 1108,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-in-nodetool",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-documents-script-c-json",
+      "role": "documents",
+      "relativePath": "documents/script-c.json",
+      "sha256": "321385afc69ebeb7fd01b69a6c0f1ef54b19061ca947afa001d27d74347f2a05",
+      "mimeType": "application/json",
+      "bytes": 1109,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-in-nodetool",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-documents-timeline-a-json",
+      "role": "documents",
+      "relativePath": "documents/timeline-a.json",
+      "sha256": "d424e875ec339c7a406ab1ef954b71e235e318f01f786493ba457b1a5c3948c0",
+      "mimeType": "application/json",
+      "bytes": 6033,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-in-nodetool",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-documents-timeline-b-json",
+      "role": "documents",
+      "relativePath": "documents/timeline-b.json",
+      "sha256": "fab2e731ec4635c2d49563b42caa734b4da7f4436df9fa733ff3be8baa356196",
+      "mimeType": "application/json",
+      "bytes": 6033,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-in-nodetool",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-documents-timeline-c-json",
+      "role": "documents",
+      "relativePath": "documents/timeline-c.json",
+      "sha256": "2711329b59134d6cef19010ec7be2e8d9a36c092b02b5621d7734b352568a12b",
+      "mimeType": "application/json",
+      "bytes": 6033,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-in-nodetool",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-evidence-ffprobe-json",
+      "role": "evidence",
+      "relativePath": "evidence/ffprobe.json",
+      "sha256": "c7bf8aa8d527591c63e9ef57459ecc81eea1186878cc0e0f0aa4e1b7ba1c8308",
+      "mimeType": "application/json",
+      "bytes": 91061,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-evidence-product-consistency-webp",
+      "role": "evidence",
+      "relativePath": "evidence/product-consistency.webp",
+      "sha256": "cfdd41baabdbb0cc99f910e1a27801da52607d9a3f95d25e783cad16ed437726",
+      "mimeType": "image/webp",
+      "bytes": 70134,
+      "width": 1600,
+      "height": 800,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-evidence-sha256-txt",
+      "role": "evidence",
+      "relativePath": "evidence/sha256.txt",
+      "sha256": "2b525a4b7c7c0d1971a3f5846b0365ebf8baec16f2196f32a1f3303b3618ab17",
+      "mimeType": "text/plain",
+      "bytes": 7081,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-evidence-variant-reuse-json",
+      "role": "evidence",
+      "relativePath": "evidence/variant-reuse.json",
+      "sha256": "6d847f35783e900dd21a8eae3eebaeec625345e5974b77ca66e8da8525f59722",
+      "mimeType": "application/json",
+      "bytes": 857,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-generation-ad-s1a-clip-original-mp4",
+      "role": "generation",
+      "relativePath": "generation/ad-s1a-clip-original.mp4",
+      "sha256": "340e69bc8907f929cc40b8ee5fdbba7f98796cb8974d1baed16f9ba15529dd6f",
+      "mimeType": "video/mp4",
+      "bytes": 5063559,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "97ad5c454b594241a866c3be4373c630"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1A"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s1a-original-jpg",
+      "role": "generation",
+      "relativePath": "generation/ad-s1a-original.jpg",
+      "sha256": "8b69fee4856bf885f67ff3532e949e7ac9251b2cbcd1fc75bca6ce4e30f71e64",
+      "mimeType": "image/jpeg",
+      "bytes": 597231,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1A"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s1b-clip-original-mp4",
+      "role": "generation",
+      "relativePath": "generation/ad-s1b-clip-original.mp4",
+      "sha256": "2e4c297073c5f76e70f28941cc59a3c00820142328a8d7ed6d1228ddab66dfad",
+      "mimeType": "video/mp4",
+      "bytes": 5634869,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "12a46edf3f604b678c5b4ace6bb415f9"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1B"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s1b-original-jpg",
+      "role": "generation",
+      "relativePath": "generation/ad-s1b-original.jpg",
+      "sha256": "5b6483122a6f56fb4de113926f4d847dab40002aa71e49d68a5d6f8ae1e9a30a",
+      "mimeType": "image/jpeg",
+      "bytes": 575065,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1B"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s1c-clip-original-mp4",
+      "role": "generation",
+      "relativePath": "generation/ad-s1c-clip-original.mp4",
+      "sha256": "75a1f850dd4312026958bd626bee2dab679ea34d8b57cb3d65a1e79a357dd622",
+      "mimeType": "video/mp4",
+      "bytes": 6580640,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "e2e452f34214499f80e7d6d5fbd6b1fd"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1C"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s1c-original-jpg",
+      "role": "generation",
+      "relativePath": "generation/ad-s1c-original.jpg",
+      "sha256": "8304c284eaf9194fd13b2ad599c9537c5fa51ee3787f78561c27c1da5f6ccd42",
+      "mimeType": "image/jpeg",
+      "bytes": 620712,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1C"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s1c-retry-1-clip-original-mp4",
+      "role": "generation",
+      "relativePath": "generation/ad-s1c-retry-1-clip-original.mp4",
+      "sha256": "e9770b4c89e31c4ab707bffb20a123105c1ba3c414e09f1d9679ed5de1eafdff",
+      "mimeType": "video/mp4",
+      "bytes": 6570424,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "b33d24ef33da499197d62af85c95edc2"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1C"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s1c-retry-1-original-jpg",
+      "role": "generation",
+      "relativePath": "generation/ad-s1c-retry-1-original.jpg",
+      "sha256": "15d9364a8d1dd06e3fd44c3de3d485ec072cba552ddfb81cfcc251e0d7cd1da2",
+      "mimeType": "image/jpeg",
+      "bytes": 574078,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1C"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s2-clip-original-mp4",
+      "role": "generation",
+      "relativePath": "generation/ad-s2-clip-original.mp4",
+      "sha256": "ce15a05d1d1d33e2a8dc849d080686b2de4261e4a510b1737e89c630d3cb269c",
+      "mimeType": "video/mp4",
+      "bytes": 5586503,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "11a5b5aa101747a19feb223a12e3d8d9"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S2"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s2-original-jpg",
+      "role": "generation",
+      "relativePath": "generation/ad-s2-original.jpg",
+      "sha256": "996c5d51438c9b2e42125c399b54b38ad12d11febe8649eaec810da6b9ea599f",
+      "mimeType": "image/jpeg",
+      "bytes": 536220,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S2"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s3-clip-original-mp4",
+      "role": "generation",
+      "relativePath": "generation/ad-s3-clip-original.mp4",
+      "sha256": "40dea89464656de03c272079fdda12c62c1b15debac3cac178aa5da4c4e51865",
+      "mimeType": "video/mp4",
+      "bytes": 6199692,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "cfe6efc8a35b4636b04a4e7b9a2fa3e3"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S3"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s3-original-jpg",
+      "role": "generation",
+      "relativePath": "generation/ad-s3-original.jpg",
+      "sha256": "142724e551f7f2c7d5a0ec93c2999003d31bd43f687065ec29d9154a32d76d12",
+      "mimeType": "image/jpeg",
+      "bytes": 589250,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S3"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s4-clip-original-mp4",
+      "role": "generation",
+      "relativePath": "generation/ad-s4-clip-original.mp4",
+      "sha256": "168c37983b279fffb07e044811b0ab684e3d771ba2de4ca97ae760a6ad7515b2",
+      "mimeType": "video/mp4",
+      "bytes": 4990197,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "aea2a5bf7ed745379fe564bbb804f4f3"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S4"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s4-original-jpg",
+      "role": "generation",
+      "relativePath": "generation/ad-s4-original.jpg",
+      "sha256": "52e3b18807f1965cda735cfa8e8ff1115561da27964b4e87e821d10cec5d1975",
+      "mimeType": "image/jpeg",
+      "bytes": 564603,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S4"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s4-retry-1-clip-original-mp4",
+      "role": "generation",
+      "relativePath": "generation/ad-s4-retry-1-clip-original.mp4",
+      "sha256": "d82529afe12625caa08013946c300147f16d10a82ceba3b65f9ba4955c380c52",
+      "mimeType": "video/mp4",
+      "bytes": 6136008,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "aaeb7dceaabe46eabd65309c8d0f5de1"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S4"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-generation-ad-s4-retry-1-original-jpg",
+      "role": "generation",
+      "relativePath": "generation/ad-s4-retry-1-original.jpg",
+      "sha256": "1e578c825163fad6237b81dd690d99c2789ed8825f0c78bbe4fcf7482253d998",
+      "mimeType": "image/jpeg",
+      "bytes": 612297,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S4"
+      ],
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-handoff-md",
+      "role": "handoff.md",
+      "relativePath": "handoff.md",
+      "sha256": "052c26da1145d71a70642f7b49087e4b9ec11a46553f022af5e49e3226205e19",
+      "mimeType": "text/markdown",
+      "bytes": 3236,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-in-nodetool",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-masters-ad-a-captioned-mp4",
+      "role": "masters",
+      "relativePath": "masters/ad-a-captioned.mp4",
+      "sha256": "7dfe094cd740ba0e462541a75896516d750adf14b3ac7c815fb40a59da4ab84e",
+      "mimeType": "video/mp4",
+      "bytes": 5972887,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 15,
+      "fps": 30,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "6417ad9304c9469eaf38929cc3d37cd6",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "189f8e05afec4e0ba5a9c0afc40d5fd2",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "ecaf4b138411428e83d8071bc2a7cdcb",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-masters-ad-a-clean-mp4",
+      "role": "masters",
+      "relativePath": "masters/ad-a-clean.mp4",
+      "sha256": "bec232e424387f34403500767fed43c4c8e69e395bc96389b5ab33753f0812eb",
+      "mimeType": "video/mp4",
+      "bytes": 5751685,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 15,
+      "fps": 30,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "6417ad9304c9469eaf38929cc3d37cd6",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "189f8e05afec4e0ba5a9c0afc40d5fd2",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "ecaf4b138411428e83d8071bc2a7cdcb",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-masters-ad-b-captioned-mp4",
+      "role": "masters",
+      "relativePath": "masters/ad-b-captioned.mp4",
+      "sha256": "cc11f4f4ee877df269f13d19b2e2cc868dff6998a2f972ab9c966e28c52c0b71",
+      "mimeType": "video/mp4",
+      "bytes": 6066275,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 15,
+      "fps": 30,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "4676695df4774947b2f964a85ebb6a19",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "d4a67b2fa36c453d85ed8acbdf789e1f",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "58d280ee969c41448fcb09b6891ee0ab",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-masters-ad-b-clean-mp4",
+      "role": "masters",
+      "relativePath": "masters/ad-b-clean.mp4",
+      "sha256": "d5737476a4af819546a59ffae9651bc18cfc532bac21db0347e36388765bc562",
+      "mimeType": "video/mp4",
+      "bytes": 5841757,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 15,
+      "fps": 30,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "4676695df4774947b2f964a85ebb6a19",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "d4a67b2fa36c453d85ed8acbdf789e1f",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "58d280ee969c41448fcb09b6891ee0ab",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-masters-ad-c-captioned-mp4",
+      "role": "masters",
+      "relativePath": "masters/ad-c-captioned.mp4",
+      "sha256": "d8a01eadd5b26742fe62bf10a5125ce1ffe6bdae5275a8cc507df92f7da40a73",
+      "mimeType": "video/mp4",
+      "bytes": 6194431,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 15,
+      "fps": 30,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "6766c8ae46b94aca8f93b7f218ba99a9",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "a7083f34b1f74387b15dc52ef488cca8",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "c80736b7dff447d4bb21789f95a438ea",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-masters-ad-c-clean-mp4",
+      "role": "masters",
+      "relativePath": "masters/ad-c-clean.mp4",
+      "sha256": "ad08bf7a4d2816cf6ee1011d74389cbab5ae96ace72726a7601bf6cbe2cb3a00",
+      "mimeType": "video/mp4",
+      "bytes": 5944192,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 15,
+      "fps": 30,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "6766c8ae46b94aca8f93b7f218ba99a9",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "a7083f34b1f74387b15dc52ef488cca8",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "c80736b7dff447d4bb21789f95a438ea",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-qa-md",
+      "role": "qa.md",
+      "relativePath": "qa.md",
+      "sha256": "6a380a41809b62c116cd42f18870a8418e1f6d98717a8ad8e64901dd761cc3a6",
+      "mimeType": "text/markdown",
+      "bytes": 2210,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-in-nodetool",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-selects-ad-s1a-clip-mp4",
+      "role": "selects",
+      "relativePath": "selects/ad-s1a-clip.mp4",
+      "sha256": "340e69bc8907f929cc40b8ee5fdbba7f98796cb8974d1baed16f9ba15529dd6f",
+      "mimeType": "video/mp4",
+      "bytes": 5063559,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "6417ad9304c9469eaf38929cc3d37cd6"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1A"
+      ],
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-selects-ad-s1a-png",
+      "role": "selects",
+      "relativePath": "selects/ad-s1a.png",
+      "sha256": "5f95a436b5e9aaf0cab8faccb11fbf3daa3bbb2f983013b38ef3dfd0444a0a70",
+      "mimeType": "image/png",
+      "bytes": 1972622,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "97ad5c454b594241a866c3be4373c630"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1A"
+      ],
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-selects-ad-s1b-clip-mp4",
+      "role": "selects",
+      "relativePath": "selects/ad-s1b-clip.mp4",
+      "sha256": "2e4c297073c5f76e70f28941cc59a3c00820142328a8d7ed6d1228ddab66dfad",
+      "mimeType": "video/mp4",
+      "bytes": 5634869,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "4676695df4774947b2f964a85ebb6a19"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1B"
+      ],
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-selects-ad-s1b-png",
+      "role": "selects",
+      "relativePath": "selects/ad-s1b.png",
+      "sha256": "f677cd9e2b907cda56684320b4422df2cfe7ee6e0639779cb767e49e805b46e9",
+      "mimeType": "image/png",
+      "bytes": 1963626,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "12a46edf3f604b678c5b4ace6bb415f9"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1B"
+      ],
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-selects-ad-s1c-clip-mp4",
+      "role": "selects",
+      "relativePath": "selects/ad-s1c-clip.mp4",
+      "sha256": "e9770b4c89e31c4ab707bffb20a123105c1ba3c414e09f1d9679ed5de1eafdff",
+      "mimeType": "video/mp4",
+      "bytes": 6570424,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "6766c8ae46b94aca8f93b7f218ba99a9"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1C"
+      ],
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-selects-ad-s1c-png",
+      "role": "selects",
+      "relativePath": "selects/ad-s1c.png",
+      "sha256": "c2879a0261cab0ca463246584041eead0aa097d43b0388b197795be94b6f65a0",
+      "mimeType": "image/png",
+      "bytes": 1922633,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "b33d24ef33da499197d62af85c95edc2"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S1C"
+      ],
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-selects-ad-s2-clip-mp4",
+      "role": "selects",
+      "relativePath": "selects/ad-s2-clip.mp4",
+      "sha256": "ce15a05d1d1d33e2a8dc849d080686b2de4261e4a510b1737e89c630d3cb269c",
+      "mimeType": "video/mp4",
+      "bytes": 5586503,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "c52bae64a4634aea81786c7e04bb802f"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S2"
+      ],
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-selects-ad-s2-png",
+      "role": "selects",
+      "relativePath": "selects/ad-s2.png",
+      "sha256": "7e24eeb7b3a0e771d6bc7e7b3d0b4d10e49bbf1658d2cde15219b941e92397e1",
+      "mimeType": "image/png",
+      "bytes": 1798299,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "11a5b5aa101747a19feb223a12e3d8d9"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S2"
+      ],
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-selects-ad-s3-clip-mp4",
+      "role": "selects",
+      "relativePath": "selects/ad-s3-clip.mp4",
+      "sha256": "40dea89464656de03c272079fdda12c62c1b15debac3cac178aa5da4c4e51865",
+      "mimeType": "video/mp4",
+      "bytes": 6199692,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "56373aa8fb5c4472a66abbec798c5f81"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S3"
+      ],
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-selects-ad-s3-png",
+      "role": "selects",
+      "relativePath": "selects/ad-s3.png",
+      "sha256": "a9f18a0ab26a8d9e1c624f5a998e37b576dcc005d9f4c1aec293dbd235442b13",
+      "mimeType": "image/png",
+      "bytes": 1965768,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "cfe6efc8a35b4636b04a4e7b9a2fa3e3"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S3"
+      ],
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-selects-ad-s4-clip-mp4",
+      "role": "selects",
+      "relativePath": "selects/ad-s4-clip.mp4",
+      "sha256": "d82529afe12625caa08013946c300147f16d10a82ceba3b65f9ba4955c380c52",
+      "mimeType": "video/mp4",
+      "bytes": 6136008,
+      "width": 1920,
+      "height": 1920,
+      "durationSeconds": 5.166667,
+      "fps": 24,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "4c0fb8f4afb94d9d8825eaeb60170fd0"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S4"
+      ],
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-selects-ad-s4-png",
+      "role": "selects",
+      "relativePath": "selects/ad-s4.png",
+      "sha256": "2dd6b97beea75ad3a92de440cb2ce49882e2717d8c516c8f56b475b9123c0705",
+      "mimeType": "image/png",
+      "bytes": 2059905,
+      "width": 2048,
+      "height": 2048,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "aaeb7dceaabe46eabd65309c8d0f5de1"
+      ],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [
+        "AD-S4"
+      ],
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-voice-original-hook-a-mp3",
+      "role": "voice",
+      "relativePath": "voice/original/hook_a.mp3",
+      "sha256": "9f59d3bdcfb0446d96165db5dfa0d85e9de497d8e7c75dd675e2adc66e5c6f85",
+      "mimeType": "audio/mpeg",
+      "bytes": 10700,
+      "width": null,
+      "height": null,
+      "durationSeconds": 2.56,
+      "fps": null,
+      "hasAudio": true,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-voice-original-hook-b-mp3",
+      "role": "voice",
+      "relativePath": "voice/original/hook_b.mp3",
+      "sha256": "2092a7d1cdced47d894e51a1815b46c704af2548a52a4539c880ff710e356cbc",
+      "mimeType": "audio/mpeg",
+      "bytes": 13100,
+      "width": null,
+      "height": null,
+      "durationSeconds": 3.16,
+      "fps": null,
+      "hasAudio": true,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-voice-original-hook-c-mp3",
+      "role": "voice",
+      "relativePath": "voice/original/hook_c.mp3",
+      "sha256": "cbadbe7f8a8dac6dd4638a8ea7354e87a0a454fb422324b70c10cac51057fef7",
+      "mimeType": "audio/mpeg",
+      "bytes": 12140,
+      "width": null,
+      "height": null,
+      "durationSeconds": 2.92,
+      "fps": null,
+      "hasAudio": true,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-voice-original-shared-1-mp3",
+      "role": "voice",
+      "relativePath": "voice/original/shared_1.mp3",
+      "sha256": "31c60481989a25ac34b9257991be79af42a5b168e3bf12d68744f44118056ace",
+      "mimeType": "audio/mpeg",
+      "bytes": 7148,
+      "width": null,
+      "height": null,
+      "durationSeconds": 1.68,
+      "fps": null,
+      "hasAudio": true,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-voice-original-shared-2-mp3",
+      "role": "voice",
+      "relativePath": "voice/original/shared_2.mp3",
+      "sha256": "99e465968504b8ac34f742eee4238c57b6a6dd4d4685022d2b89b30814a70a53",
+      "mimeType": "audio/mpeg",
+      "bytes": 9452,
+      "width": null,
+      "height": null,
+      "durationSeconds": 2.24,
+      "fps": null,
+      "hasAudio": true,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-voice-original-shared-3-mp3",
+      "role": "voice",
+      "relativePath": "voice/original/shared_3.mp3",
+      "sha256": "111aafb74f113183cee8d8548c65c3af1eb5c26beeeefc6c3a53751e3042b246",
+      "mimeType": "audio/mpeg",
+      "bytes": 6188,
+      "width": null,
+      "height": null,
+      "durationSeconds": 1.44,
+      "fps": null,
+      "hasAudio": true,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "generated-source",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-voice-stems-hook-a-48k-wav",
+      "role": "voice",
+      "relativePath": "voice/stems/hook_a_48k.wav",
+      "sha256": "d125bcb8ec537db055b8354cb0b11c5bce8379c61f6ac39f1863708045becff9",
+      "mimeType": "audio/wav",
+      "bytes": 245838,
+      "width": null,
+      "height": null,
+      "durationSeconds": 2.56,
+      "fps": null,
+      "hasAudio": true,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-voice-stems-hook-b-48k-wav",
+      "role": "voice",
+      "relativePath": "voice/stems/hook_b_48k.wav",
+      "sha256": "4c2ca9c526affa792859f1e9895c6043dee8c619016dbc0cd6258796e67830b1",
+      "mimeType": "audio/wav",
+      "bytes": 303438,
+      "width": null,
+      "height": null,
+      "durationSeconds": 3.16,
+      "fps": null,
+      "hasAudio": true,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-voice-stems-hook-c-48k-wav",
+      "role": "voice",
+      "relativePath": "voice/stems/hook_c_48k.wav",
+      "sha256": "e4242e6d00fb6836b79184dc49334e94ed7a562ce398624a22f88adf29096e64",
+      "mimeType": "audio/wav",
+      "bytes": 280398,
+      "width": null,
+      "height": null,
+      "durationSeconds": 2.92,
+      "fps": null,
+      "hasAudio": true,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-voice-stems-shared-1-48k-wav",
+      "role": "voice",
+      "relativePath": "voice/stems/shared_1_48k.wav",
+      "sha256": "8c4ea6693aedcc603b431952e1b9be7fe6edeea219238379f7d205ced9c4bc0f",
+      "mimeType": "audio/wav",
+      "bytes": 161358,
+      "width": null,
+      "height": null,
+      "durationSeconds": 1.68,
+      "fps": null,
+      "hasAudio": true,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-voice-stems-shared-2-48k-wav",
+      "role": "voice",
+      "relativePath": "voice/stems/shared_2_48k.wav",
+      "sha256": "b722f06cf1c79353601ac6395ca5c4ea89c1e12bd364af12fd80ff19b3ab8919",
+      "mimeType": "audio/wav",
+      "bytes": 215118,
+      "width": null,
+      "height": null,
+      "durationSeconds": 2.24,
+      "fps": null,
+      "hasAudio": true,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-voice-stems-shared-3-48k-wav",
+      "role": "voice",
+      "relativePath": "voice/stems/shared_3_48k.wav",
+      "sha256": "a2ba2648d8258fa9058e74e1999dbe4e772d987ddf59a41d467385c9e2108ab3",
+      "mimeType": "audio/wav",
+      "bytes": 138318,
+      "width": null,
+      "height": null,
+      "durationSeconds": 1.44,
+      "fps": null,
+      "hasAudio": true,
+      "alphaStatus": null,
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-ad-a-poster-webp",
+      "role": "web",
+      "relativePath": "web/ad-a-poster.webp",
+      "sha256": "ffad403c8035421e37676f8c93fcd2cd766ec733943517e641fb95bf84647428",
+      "mimeType": "image/webp",
+      "bytes": 65170,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "6417ad9304c9469eaf38929cc3d37cd6",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "189f8e05afec4e0ba5a9c0afc40d5fd2",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "ecaf4b138411428e83d8071bc2a7cdcb",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-ad-a-mp4",
+      "role": "web",
+      "relativePath": "web/ad-a.mp4",
+      "sha256": "8d7cb288a7ae7ec6ce967144db4822efb3b0207877073b253f6d295d108d9a14",
+      "mimeType": "video/mp4",
+      "bytes": 3729599,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 15.018,
+      "fps": 30,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "6417ad9304c9469eaf38929cc3d37cd6",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "189f8e05afec4e0ba5a9c0afc40d5fd2",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "ecaf4b138411428e83d8071bc2a7cdcb",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-ad-a-vtt",
+      "role": "web",
+      "relativePath": "web/ad-a.vtt",
+      "sha256": "3b401c12fa34ee4f992fb154dc232ebcf093b8e0fc84e4bf5b3e73181b5c44b2",
+      "mimeType": "text/vtt",
+      "bytes": 220,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [
+        "6417ad9304c9469eaf38929cc3d37cd6",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "189f8e05afec4e0ba5a9c0afc40d5fd2",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "ecaf4b138411428e83d8071bc2a7cdcb",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-ad-a-webm",
+      "role": "web",
+      "relativePath": "web/ad-a.webm",
+      "sha256": "829e98f14e880d4185bd27e4dd8517e6c00cd5c52c190b6e99fa61ce68d741b4",
+      "mimeType": "video/webm",
+      "bytes": 1120408,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 15.026,
+      "fps": 30,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "6417ad9304c9469eaf38929cc3d37cd6",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "189f8e05afec4e0ba5a9c0afc40d5fd2",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "ecaf4b138411428e83d8071bc2a7cdcb",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-ad-b-poster-webp",
+      "role": "web",
+      "relativePath": "web/ad-b-poster.webp",
+      "sha256": "ffad403c8035421e37676f8c93fcd2cd766ec733943517e641fb95bf84647428",
+      "mimeType": "image/webp",
+      "bytes": 65170,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "4676695df4774947b2f964a85ebb6a19",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "d4a67b2fa36c453d85ed8acbdf789e1f",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "58d280ee969c41448fcb09b6891ee0ab",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-ad-b-mp4",
+      "role": "web",
+      "relativePath": "web/ad-b.mp4",
+      "sha256": "4d80e791e9c2e11327b517b836ad8d29ed0853e76d0c4b8b79f40f906218a6c2",
+      "mimeType": "video/mp4",
+      "bytes": 3807101,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 15.018,
+      "fps": 30,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "4676695df4774947b2f964a85ebb6a19",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "d4a67b2fa36c453d85ed8acbdf789e1f",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "58d280ee969c41448fcb09b6891ee0ab",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-ad-b-vtt",
+      "role": "web",
+      "relativePath": "web/ad-b.vtt",
+      "sha256": "d4a71b0cbea397645d72025bdf789a1cdaacb815b2e6f076468ce8efc19c760c",
+      "mimeType": "text/vtt",
+      "bytes": 215,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [
+        "4676695df4774947b2f964a85ebb6a19",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "d4a67b2fa36c453d85ed8acbdf789e1f",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "58d280ee969c41448fcb09b6891ee0ab",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-ad-b-webm",
+      "role": "web",
+      "relativePath": "web/ad-b.webm",
+      "sha256": "e1871e7d3721a4762cbe3d2cb8af5001aac6d6c1d0bcfa5c99e146415e0a5280",
+      "mimeType": "video/webm",
+      "bytes": 1148070,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 15.026,
+      "fps": 30,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "4676695df4774947b2f964a85ebb6a19",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "d4a67b2fa36c453d85ed8acbdf789e1f",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "58d280ee969c41448fcb09b6891ee0ab",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-ad-c-poster-webp",
+      "role": "web",
+      "relativePath": "web/ad-c-poster.webp",
+      "sha256": "ffad403c8035421e37676f8c93fcd2cd766ec733943517e641fb95bf84647428",
+      "mimeType": "image/webp",
+      "bytes": 65170,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "6766c8ae46b94aca8f93b7f218ba99a9",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "a7083f34b1f74387b15dc52ef488cca8",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "c80736b7dff447d4bb21789f95a438ea",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-ad-c-mp4",
+      "role": "web",
+      "relativePath": "web/ad-c.mp4",
+      "sha256": "c1024b3dfe938ff8cacef19c12365c9275b4033d210e49359b195ce3dfb1dbfd",
+      "mimeType": "video/mp4",
+      "bytes": 3879486,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 15.018,
+      "fps": 30,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "6766c8ae46b94aca8f93b7f218ba99a9",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "a7083f34b1f74387b15dc52ef488cca8",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "c80736b7dff447d4bb21789f95a438ea",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-ad-c-vtt",
+      "role": "web",
+      "relativePath": "web/ad-c.vtt",
+      "sha256": "8e923403219541d8e6840259952541fcc4c80449a8a658d82c347bd2db0d445b",
+      "mimeType": "text/vtt",
+      "bytes": 216,
+      "width": null,
+      "height": null,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": null,
+      "alphaStatus": null,
+      "sourceIds": [
+        "6766c8ae46b94aca8f93b7f218ba99a9",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "a7083f34b1f74387b15dc52ef488cca8",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "c80736b7dff447d4bb21789f95a438ea",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-ad-c-webm",
+      "role": "web",
+      "relativePath": "web/ad-c.webm",
+      "sha256": "bd44afcc6bd4d0c50024f4f8cc435044768506cba7346ffa2b8ea5879adf04b4",
+      "mimeType": "video/webm",
+      "bytes": 1190395,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 15.026,
+      "fps": 30,
+      "hasAudio": true,
+      "alphaStatus": "none",
+      "sourceIds": [
+        "6766c8ae46b94aca8f93b7f218ba99a9",
+        "c52bae64a4634aea81786c7e04bb802f",
+        "56373aa8fb5c4472a66abbec798c5f81",
+        "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "a7083f34b1f74387b15dc52ef488cca8",
+        "70faf487d76145a8861320aa1bf8296e",
+        "00e4538ee63a4321a6d79d962576d4c6",
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "producingDocument": "c80736b7dff447d4bb21789f95a438ea",
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-hooks-contact-sheet-webp",
+      "role": "web",
+      "relativePath": "web/hooks-contact-sheet.webp",
+      "sha256": "74cc04cc855265c2795f8eca32f23ccd51e47cf925f470b98fcfcf3e4c5e1323",
+      "mimeType": "image/webp",
+      "bytes": 44426,
+      "width": 1080,
+      "height": 640,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-recipe-card-webp",
+      "role": "web",
+      "relativePath": "web/recipe-card.webp",
+      "sha256": "d70702e580d2fe09b438dc881bd2b172218e17ba61c628fed38b624c780d6acc",
+      "mimeType": "image/webp",
+      "bytes": 62946,
+      "width": 1600,
+      "height": 900,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-social-preview-webp",
+      "role": "web",
+      "relativePath": "web/social-preview.webp",
+      "sha256": "b610b05228bd0fed8e76ba614d30420b5a4b0cc7badb018ce22ad5386e2f7d0d",
+      "mimeType": "image/webp",
+      "bytes": 41484,
+      "width": 1200,
+      "height": 630,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-thumbnail-a-webp",
+      "role": "web",
+      "relativePath": "web/thumbnail-a.webp",
+      "sha256": "8ae2d6e60d9e514982795220178cdd39fcb301bebae164f7eda01a28fda92d72",
+      "mimeType": "image/webp",
+      "bytes": 77182,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-thumbnail-b-webp",
+      "role": "web",
+      "relativePath": "web/thumbnail-b.webp",
+      "sha256": "1bde2c9fcde43755fbd0a372afbaeee3997b21901d7b004867ef87b73199b5fa",
+      "mimeType": "image/webp",
+      "bytes": 74898,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-web-thumbnail-c-webp",
+      "role": "web",
+      "relativePath": "web/thumbnail-c.webp",
+      "sha256": "5e4a97b54872766e298b7912a680b18fb4aa869b833f4a695900696144f7f4da",
+      "mimeType": "image/webp",
+      "bytes": 69606,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": null,
+      "shotOrLineIds": null,
+      "provenance": "derived",
+      "transformation": "Selected copy, deterministic conversion, assembly, encode, probe, or evidence export; see role and sourceIds."
+    },
+    {
+      "stableId": "D1-ad-c0",
+      "role": "guided-flow-capture",
+      "relativePath": "captures/raw/ad-c0.png",
+      "sha256": "6899ee213ecff850957d2df0ab85d7e390b2513634a0e5c1e447aa0e2fd0ba21",
+      "mimeType": "image/png",
+      "bytes": 1265529,
+      "width": 3200,
+      "height": 2000,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [],
+      "provenance": "playwright-cli-live-ui",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-ad-c1",
+      "role": "guided-flow-capture",
+      "relativePath": "captures/raw/ad-c1.png",
+      "sha256": "69d80900ed992be13cd7c763797686274e6311297c25391982753c9464e8ec6b",
+      "mimeType": "image/png",
+      "bytes": 262640,
+      "width": 3200,
+      "height": 2000,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [],
+      "provenance": "playwright-cli-live-ui",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-ad-c2",
+      "role": "guided-flow-capture",
+      "relativePath": "captures/raw/ad-c2.png",
+      "sha256": "120cdedd5acdeb5073a1de4dcbaa113633d08925e56fba15963cc1cf02c04700",
+      "mimeType": "image/png",
+      "bytes": 1356719,
+      "width": 3200,
+      "height": 2000,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [],
+      "provenance": "playwright-cli-live-ui",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-ad-c3",
+      "role": "guided-flow-capture",
+      "relativePath": "captures/raw/ad-c3.png",
+      "sha256": "8f46678fa3121f3a6bebced61dc2aae686a777a269f7670f1c48c9bf509c86b1",
+      "mimeType": "image/png",
+      "bytes": 274445,
+      "width": 3200,
+      "height": 2000,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [],
+      "provenance": "playwright-cli-live-ui",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-ad-c4",
+      "role": "guided-flow-capture",
+      "relativePath": "captures/raw/ad-c4.png",
+      "sha256": "9205fd4373faee0b6878a4d138a47a3b16b75dda4f3b3506b0db8b3e0f2c7870",
+      "mimeType": "image/png",
+      "bytes": 584469,
+      "width": 3200,
+      "height": 2000,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [],
+      "provenance": "playwright-cli-live-ui",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-ad-c5",
+      "role": "guided-flow-capture",
+      "relativePath": "captures/raw/ad-c5.png",
+      "sha256": "816a181b3c6a0b8a10b5aadd80d1b40ded89b050c66c90bd0f3d72e7322e44f3",
+      "mimeType": "image/png",
+      "bytes": 1192393,
+      "width": 3200,
+      "height": 2000,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [],
+      "provenance": "playwright-cli-live-ui",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-ad-c6",
+      "role": "guided-flow-capture",
+      "relativePath": "captures/raw/ad-c6.png",
+      "sha256": "6d6ac61e5d379c7392cd16fe053e0af2d53644d4eedd13cbada49cc7ead6fd28",
+      "mimeType": "image/png",
+      "bytes": 1635929,
+      "width": 3200,
+      "height": 2000,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [],
+      "provenance": "playwright-cli-live-ui",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-ad-c7",
+      "role": "guided-flow-capture",
+      "relativePath": "captures/raw/ad-c7.png",
+      "sha256": "24f14000c099cb77abd5248c88343fc33499b761a663edd942989ad6ba8fdf72",
+      "mimeType": "image/png",
+      "bytes": 149655,
+      "width": 3200,
+      "height": 2000,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": "58f7b179a7d74d989a650f52a3ce8ff5",
+      "shotOrLineIds": [],
+      "provenance": "playwright-cli-live-ui",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-ad-c8",
+      "role": "guided-flow-capture",
+      "relativePath": "captures/raw/ad-c8.png",
+      "sha256": "da85520d354db919bcde573abe133d3a120ca4ab769f26ba01b2c4bbf756486a",
+      "mimeType": "image/png",
+      "bytes": 1768440,
+      "width": 3200,
+      "height": 2000,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": "af795795297f43bf9e66d0318f422c83",
+      "shotOrLineIds": [],
+      "provenance": "playwright-cli-live-ui",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-ad-c9",
+      "role": "guided-flow-capture",
+      "relativePath": "captures/raw/ad-c9.png",
+      "sha256": "3d7841325b0b026e04cf37968aa237d0eae719dad36da544886a189c4ff1617c",
+      "mimeType": "image/png",
+      "bytes": 685616,
+      "width": 3200,
+      "height": 2000,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": "ecaf4b138411428e83d8071bc2a7cdcb",
+      "shotOrLineIds": [],
+      "provenance": "playwright-cli-live-ui",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-ad-c10",
+      "role": "guided-flow-capture",
+      "relativePath": "captures/raw/ad-c10.png",
+      "sha256": "f75415f9b8c1c6b077e430c9bcf69bb71332174aa27eda6477b039e5092b41a3",
+      "mimeType": "image/png",
+      "bytes": 663140,
+      "width": 3200,
+      "height": 2000,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": "58d280ee969c41448fcb09b6891ee0ab",
+      "shotOrLineIds": [],
+      "provenance": "playwright-cli-live-ui",
+      "transformation": null
+    },
+    {
+      "stableId": "D1-ad-c11",
+      "role": "guided-flow-capture",
+      "relativePath": "captures/raw/ad-c11.png",
+      "sha256": "e009580ed71c2b8ce26a7f8f484587eef4a3feb60687cbbde703da82bf638de5",
+      "mimeType": "image/png",
+      "bytes": 643373,
+      "width": 3200,
+      "height": 2000,
+      "durationSeconds": null,
+      "fps": null,
+      "hasAudio": false,
+      "alphaStatus": "none",
+      "sourceIds": [],
+      "producingDocument": "c80736b7dff447d4bb21789f95a438ea",
+      "shotOrLineIds": [],
+      "provenance": "playwright-cli-live-ui",
+      "transformation": null
+    }
+  ],
+  "generationCalls": [
+    {
+      "callJobId": "a6dc0ff3-7fe6-4a40-9833-1639fdbeec37",
+      "generationId": "e5e66230-8354-4f69-9d3b-ea7d94c1369b",
+      "toolName": "edit_image",
+      "provider": "fal_ai",
+      "model": "fal-ai/bytedance/seedream/v4.5/edit",
+      "inputAssetIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "promptFile": "documents/production-board.json",
+      "generationSettings": {},
+      "outputIds": [
+        "97ad5c454b594241a866c3be4373c630"
+      ],
+      "shotOrLineId": "AD-S1A",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "a6dc0ff3-7fe6-4a40-9833-1639fdbeec37",
+      "generationId": "011db4af-27a1-4054-8fb4-6ffc42688067",
+      "toolName": "edit_image",
+      "provider": "fal_ai",
+      "model": "fal-ai/bytedance/seedream/v4.5/edit",
+      "inputAssetIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "promptFile": "documents/production-board.json",
+      "generationSettings": {},
+      "outputIds": [
+        "11a5b5aa101747a19feb223a12e3d8d9"
+      ],
+      "shotOrLineId": "AD-S2",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "a6dc0ff3-7fe6-4a40-9833-1639fdbeec37",
+      "generationId": "71d7260b-f726-4b1c-87cf-deee8aea1494",
+      "toolName": "edit_image",
+      "provider": "fal_ai",
+      "model": "fal-ai/bytedance/seedream/v4.5/edit",
+      "inputAssetIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "promptFile": "documents/production-board.json",
+      "generationSettings": {},
+      "outputIds": [
+        "cfe6efc8a35b4636b04a4e7b9a2fa3e3"
+      ],
+      "shotOrLineId": "AD-S3",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "a6dc0ff3-7fe6-4a40-9833-1639fdbeec37",
+      "generationId": "e255ccbe-5de0-4ac2-8102-6c9ee931cabc",
+      "toolName": "edit_image",
+      "provider": "fal_ai",
+      "model": "fal-ai/bytedance/seedream/v4.5/edit",
+      "inputAssetIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "promptFile": "documents/production-board.json",
+      "generationSettings": {},
+      "outputIds": [
+        "aea2a5bf7ed745379fe564bbb804f4f3"
+      ],
+      "shotOrLineId": "AD-S4",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "a6dc0ff3-7fe6-4a40-9833-1639fdbeec37",
+      "generationId": "88751d36-bc8b-44ef-8b23-84a0f2fd5310",
+      "toolName": "edit_image",
+      "provider": "fal_ai",
+      "model": "fal-ai/bytedance/seedream/v4.5/edit",
+      "inputAssetIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "promptFile": "documents/production-board.json",
+      "generationSettings": {},
+      "outputIds": [
+        "12a46edf3f604b678c5b4ace6bb415f9"
+      ],
+      "shotOrLineId": "AD-S1B",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "a6dc0ff3-7fe6-4a40-9833-1639fdbeec37",
+      "generationId": "e1e422d6-a8f0-46c0-a30e-06ed45de09f0",
+      "toolName": "edit_image",
+      "provider": "fal_ai",
+      "model": "fal-ai/bytedance/seedream/v4.5/edit",
+      "inputAssetIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "promptFile": "documents/production-board.json",
+      "generationSettings": {},
+      "outputIds": [
+        "e2e452f34214499f80e7d6d5fbd6b1fd"
+      ],
+      "shotOrLineId": "AD-S1C",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "a6dc0ff3-7fe6-4a40-9833-1639fdbeec37",
+      "generationId": "fac33966-9ba0-4b0e-b282-c49f71de6604",
+      "toolName": "animate_image",
+      "provider": "fal_ai",
+      "model": "minimax/h3/image-to-video",
+      "inputAssetIds": [
+        "97ad5c454b594241a866c3be4373c630"
+      ],
+      "promptFile": "documents/production-board.json",
+      "generationSettings": {
+        "aspect_ratio": "1:1"
+      },
+      "outputIds": [
+        "6417ad9304c9469eaf38929cc3d37cd6"
+      ],
+      "shotOrLineId": "AD-S1A",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "a6dc0ff3-7fe6-4a40-9833-1639fdbeec37",
+      "generationId": "5e7735bf-f417-4709-90c1-dc81a910f554",
+      "toolName": "animate_image",
+      "provider": "fal_ai",
+      "model": "minimax/h3/image-to-video",
+      "inputAssetIds": [
+        "11a5b5aa101747a19feb223a12e3d8d9"
+      ],
+      "promptFile": "documents/production-board.json",
+      "generationSettings": {
+        "aspect_ratio": "1:1"
+      },
+      "outputIds": [
+        "c52bae64a4634aea81786c7e04bb802f"
+      ],
+      "shotOrLineId": "AD-S2",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "a6dc0ff3-7fe6-4a40-9833-1639fdbeec37",
+      "generationId": "c66d9668-6bc3-480a-a265-82de00091a02",
+      "toolName": "animate_image",
+      "provider": "fal_ai",
+      "model": "minimax/h3/image-to-video",
+      "inputAssetIds": [
+        "cfe6efc8a35b4636b04a4e7b9a2fa3e3"
+      ],
+      "promptFile": "documents/production-board.json",
+      "generationSettings": {
+        "aspect_ratio": "1:1"
+      },
+      "outputIds": [
+        "56373aa8fb5c4472a66abbec798c5f81"
+      ],
+      "shotOrLineId": "AD-S3",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "a6dc0ff3-7fe6-4a40-9833-1639fdbeec37",
+      "generationId": "ecb2904f-d2e1-48a2-8bea-74ff5ec650fb",
+      "toolName": "animate_image",
+      "provider": "fal_ai",
+      "model": "minimax/h3/image-to-video",
+      "inputAssetIds": [
+        "aea2a5bf7ed745379fe564bbb804f4f3"
+      ],
+      "promptFile": "documents/production-board.json",
+      "generationSettings": {
+        "aspect_ratio": "1:1"
+      },
+      "outputIds": [
+        "ee65d76644bc498fbdeb144ceb8e9710"
+      ],
+      "shotOrLineId": "AD-S4",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "a6dc0ff3-7fe6-4a40-9833-1639fdbeec37",
+      "generationId": "62fc3f51-775b-43fa-978e-3cecd4c37821",
+      "toolName": "animate_image",
+      "provider": "fal_ai",
+      "model": "minimax/h3/image-to-video",
+      "inputAssetIds": [
+        "12a46edf3f604b678c5b4ace6bb415f9"
+      ],
+      "promptFile": "documents/production-board.json",
+      "generationSettings": {
+        "aspect_ratio": "1:1"
+      },
+      "outputIds": [
+        "4676695df4774947b2f964a85ebb6a19"
+      ],
+      "shotOrLineId": "AD-S1B",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "a6dc0ff3-7fe6-4a40-9833-1639fdbeec37",
+      "generationId": "fd127a69-2cc7-41ab-ac90-bd5e9ad967b4",
+      "toolName": "animate_image",
+      "provider": "fal_ai",
+      "model": "minimax/h3/image-to-video",
+      "inputAssetIds": [
+        "e2e452f34214499f80e7d6d5fbd6b1fd"
+      ],
+      "promptFile": "documents/production-board.json",
+      "generationSettings": {
+        "aspect_ratio": "1:1"
+      },
+      "outputIds": [
+        "bf9df475b96049a2a4b5d33c183669c1"
+      ],
+      "shotOrLineId": "AD-S1C",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "904f08c8-c491-4235-b073-f9dd96139257",
+      "generationId": "6957d92f-bf60-4e34-bf14-a559f713ca08",
+      "toolName": "edit_image",
+      "provider": "fal_ai",
+      "model": "fal-ai/bytedance/seedream/v4.5/edit",
+      "inputAssetIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "promptFile": "documents/executor-objective-7.md",
+      "generationSettings": {},
+      "outputIds": [
+        "aaeb7dceaabe46eabd65309c8d0f5de1"
+      ],
+      "shotOrLineId": "AD-S4",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 2,
+      "failureReason": null
+    },
+    {
+      "callJobId": "904f08c8-c491-4235-b073-f9dd96139257",
+      "generationId": "4411198a-6ab4-4628-acde-b0e9a6e2fd4b",
+      "toolName": "edit_image",
+      "provider": "fal_ai",
+      "model": "fal-ai/bytedance/seedream/v4.5/edit",
+      "inputAssetIds": [
+        "382922e1ca1543468d59f0af5575350e"
+      ],
+      "promptFile": "documents/executor-objective-7.md",
+      "generationSettings": {},
+      "outputIds": [
+        "b33d24ef33da499197d62af85c95edc2"
+      ],
+      "shotOrLineId": "AD-S1C",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 2,
+      "failureReason": null
+    },
+    {
+      "callJobId": "c79e3b38-b78d-462f-87eb-72d53762146e",
+      "generationId": "9de197ce-0662-4787-b2ca-4380737f49e4",
+      "toolName": "animate_image",
+      "provider": "fal_ai",
+      "model": "minimax/h3/image-to-video",
+      "inputAssetIds": [
+        "aaeb7dceaabe46eabd65309c8d0f5de1"
+      ],
+      "promptFile": "documents/executor-objective-8.md",
+      "generationSettings": {
+        "aspect_ratio": "1:1"
+      },
+      "outputIds": [
+        "4c0fb8f4afb94d9d8825eaeb60170fd0"
+      ],
+      "shotOrLineId": "AD-S4",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 2,
+      "failureReason": null
+    },
+    {
+      "callJobId": "c79e3b38-b78d-462f-87eb-72d53762146e",
+      "generationId": "f9dfda27-60e2-4896-8183-65d92fdfa0ea",
+      "toolName": "animate_image",
+      "provider": "fal_ai",
+      "model": "minimax/h3/image-to-video",
+      "inputAssetIds": [
+        "b33d24ef33da499197d62af85c95edc2"
+      ],
+      "promptFile": "documents/executor-objective-8.md",
+      "generationSettings": {
+        "aspect_ratio": "1:1"
+      },
+      "outputIds": [
+        "6766c8ae46b94aca8f93b7f218ba99a9"
+      ],
+      "shotOrLineId": "AD-S1C",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 2,
+      "failureReason": null
+    },
+    {
+      "callJobId": "e8757ea4-21c1-41db-8b2b-38605a09b482",
+      "generationId": "ea33e0e1-4b99-408d-8d52-dd04a1e25dae",
+      "toolName": "generate_speech",
+      "provider": "fal_ai",
+      "model": "fal-ai/gemini-3.1-flash-tts",
+      "inputAssetIds": [],
+      "promptFile": "documents/ad-copy.md",
+      "generationSettings": {
+        "text": "Make a little room for your morning.",
+        "voice": "Charon",
+        "audioFormat": "mp3"
+      },
+      "outputIds": [
+        "189f8e05afec4e0ba5a9c0afc40d5fd2"
+      ],
+      "shotOrLineId": "AD-L1-A",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "e8757ea4-21c1-41db-8b2b-38605a09b482",
+      "generationId": "ff51dfa7-f503-44fc-82a0-ae4a06e9c2c7",
+      "toolName": "generate_speech",
+      "provider": "fal_ai",
+      "model": "fal-ai/gemini-3.1-flash-tts",
+      "inputAssetIds": [],
+      "promptFile": "documents/ad-copy.md",
+      "generationSettings": {
+        "text": "Your morning, before the noise.",
+        "voice": "Charon",
+        "audioFormat": "mp3"
+      },
+      "outputIds": [
+        "d4a67b2fa36c453d85ed8acbdf789e1f"
+      ],
+      "shotOrLineId": "AD-L1-B",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "e8757ea4-21c1-41db-8b2b-38605a09b482",
+      "generationId": "89cd0ff8-1b7f-490b-86dc-64385708c1c3",
+      "toolName": "generate_speech",
+      "provider": "fal_ai",
+      "model": "fal-ai/gemini-3.1-flash-tts",
+      "inputAssetIds": [],
+      "promptFile": "documents/ad-copy.md",
+      "generationSettings": {
+        "text": "A quieter start looks like this.",
+        "voice": "Charon",
+        "audioFormat": "mp3"
+      },
+      "outputIds": [
+        "a7083f34b1f74387b15dc52ef488cca8"
+      ],
+      "shotOrLineId": "AD-L1-C",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "e8757ea4-21c1-41db-8b2b-38605a09b482",
+      "generationId": "b2bb6547-c9dc-4384-a3b9-6b9146ac9599",
+      "toolName": "generate_speech",
+      "provider": "fal_ai",
+      "model": "fal-ai/gemini-3.1-flash-tts",
+      "inputAssetIds": [],
+      "promptFile": "documents/ad-copy.md",
+      "generationSettings": {
+        "text": "A warm cup.",
+        "voice": "Charon",
+        "audioFormat": "mp3"
+      },
+      "outputIds": [
+        "70faf487d76145a8861320aa1bf8296e"
+      ],
+      "shotOrLineId": "AD-L2",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "e8757ea4-21c1-41db-8b2b-38605a09b482",
+      "generationId": "30e2cc0e-b0cf-4245-abab-28e761620b85",
+      "toolName": "generate_speech",
+      "provider": "fal_ai",
+      "model": "fal-ai/gemini-3.1-flash-tts",
+      "inputAssetIds": [],
+      "promptFile": "documents/ad-copy.md",
+      "generationSettings": {
+        "text": "A moment to yourself.",
+        "voice": "Charon",
+        "audioFormat": "mp3"
+      },
+      "outputIds": [
+        "00e4538ee63a4321a6d79d962576d4c6"
+      ],
+      "shotOrLineId": "AD-L3",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callJobId": "e8757ea4-21c1-41db-8b2b-38605a09b482",
+      "generationId": "da9ddf3c-3366-4389-bb26-97b7e9aa0590",
+      "toolName": "generate_speech",
+      "provider": "fal_ai",
+      "model": "fal-ai/gemini-3.1-flash-tts",
+      "inputAssetIds": [],
+      "promptFile": "documents/ad-copy.md",
+      "generationSettings": {
+        "text": "Take it with you.",
+        "voice": "Charon",
+        "audioFormat": "mp3"
+      },
+      "outputIds": [
+        "fa37af2c8f3346cf928b3657bc7db268"
+      ],
+      "shotOrLineId": "AD-L4",
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    }
+  ],
+  "blockedItems": [
+    {
+      "requiredAssetId": "AD-A14",
+      "attemptedOperation": "Guided-flow walkthrough recording",
+      "observedLimitation": "No walkthrough file was produced.",
+      "availablePartialResult": "Playable finished ads and reopenable document IDs are ready.",
+      "exactNextAction": "Record and edit the 35–60 second walkthrough plus WebM, VTT, and poster."
+    }
+  ],
+  "supportedClaims": [
+    {
+      "wording": "Create three editable 15-second product-ad variants with different openings and shared remaining footage.",
+      "evidenceIds": [
+        "timeline-a",
+        "timeline-b",
+        "timeline-c",
+        "evidence/variant-reuse.json"
+      ],
+      "limitation": "Describes this local production run, not generation speed or performance.",
+      "safeToUse": true
+    },
+    {
+      "wording": "The ads use the same accepted Olive Travel Cup reference across all six shots.",
+      "evidenceIds": [
+        "evidence/product-consistency.webp",
+        "production-board"
+      ],
+      "limitation": "Fictional unbranded demonstration product.",
+      "safeToUse": true
+    },
+    {
+      "wording": "FAL generated the stills, motion clips, and voice used in this package through NodeTool.",
+      "evidenceIds": [
+        "e5e66230-8354-4f69-9d3b-ea7d94c1369b",
+        "011db4af-27a1-4054-8fb4-6ffc42688067",
+        "71d7260b-f726-4b1c-87cf-deee8aea1494",
+        "e255ccbe-5de0-4ac2-8102-6c9ee931cabc",
+        "88751d36-bc8b-44ef-8b23-84a0f2fd5310",
+        "e1e422d6-a8f0-46c0-a30e-06ed45de09f0",
+        "fac33966-9ba0-4b0e-b282-c49f71de6604",
+        "5e7735bf-f417-4709-90c1-dc81a910f554",
+        "c66d9668-6bc3-480a-a265-82de00091a02",
+        "ecb2904f-d2e1-48a2-8bea-74ff5ec650fb",
+        "62fc3f51-775b-43fa-978e-3cecd4c37821",
+        "fd127a69-2cc7-41ab-ac90-bd5e9ad967b4",
+        "6957d92f-bf60-4e34-bf14-a559f713ca08",
+        "4411198a-6ab4-4628-acde-b0e9a6e2fd4b",
+        "9de197ce-0662-4787-b2ca-4380737f49e4",
+        "f9dfda27-60e2-4896-8183-65d92fdfa0ea",
+        "ea33e0e1-4b99-408d-8d52-dd04a1e25dae",
+        "ff51dfa7-f503-44fc-82a0-ae4a06e9c2c7",
+        "89cd0ff8-1b7f-490b-86dc-64385708c1c3",
+        "b2bb6547-c9dc-4384-a3b9-6b9146ac9599",
+        "30e2cc0e-b0cf-4245-abab-28e761620b85",
+        "da9ddf3c-3366-4389-bb26-97b7e9aa0590"
+      ],
+      "limitation": "Actual provider cost was unavailable and remains null.",
+      "safeToUse": true
+    }
+  ]
+}

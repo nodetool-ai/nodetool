@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-09-10-marketing-recipes-01",
+  "verifiedAtUtc": "2026-09-10T18:36:48Z",
+  "overallStatus": "partial",
+  "checks": {
+    "manifestRequiredFields": "pass",
+    "manifestReferencedPathsHashesAndBytes": "pass",
+    "documentExportPathsAndHashes": "pass",
+    "jsonParse": "pass",
+    "falOnlyRecordedMediaProviders": "pass",
+    "mediaDecodeExitStatus": "pass-with-opus-warnings",
+    "marketingPageScopeBoundary": "pass",
+    "allRequiredDeliverables": "fail"
+  },
+  "counts": {
+    "manifestAssets": 241,
+    "manifestDocuments": 36,
+    "generationCalls": 53,
+    "decodedMediaAssets": 183,
+    "decodeFailures": 0,
+    "opusPacketHeaderWarnings": 7
+  },
+  "recipes": {
+    "viral-video-ad-engine": {
+      "status": "partial",
+      "completed": "FAL stills, clips, speech, three valid editable 15-second timelines, masters, web encodes and evidence",
+      "missing": "AD-C0 through AD-C11 live captures and AD-A14 walkthrough"
+    },
+    "multilingual-video-dubber": {
+      "status": "partial",
+      "completed": "FAL source, ASR, Spanish scripts and takes, voiceover and lip-sync masters, web derivatives, seven live Script captures",
+      "missing": "DU-C0 through DU-C2, DU-C10, DU-C11, raw lossless captures, step WebP derivatives, DU-A16 walkthrough, verified project/document IDs and human full-playback acceptance"
+    },
+    "ecommerce-sku-visual-factory": {
+      "status": "partial",
+      "completed": "shared product, true-alpha cutout, three stills, motion, 4096px upscale, listing copy, SKU-C0 through SKU-C10 and walkthrough",
+      "missing": "verified project identity/rename, direct attachment of accepted delivery takes, true-PNG target-resolution captures and constant-30-fps walkthrough"
+    },
+    "storyboard-to-trailer": {
+      "status": "partial",
+      "completed": "real Storyboard setup through six selected server-side stills, four entities, reviewed screenplay, three FAL voice takes and TR-C0 through TR-C6 captures",
+      "missing": "durable selected still/script/board exports, six clips, score, timeline, masters, delivery derivatives, TR-C7 through TR-C11, walkthrough and finishing evidence"
+    }
+  },
+  "warnings": [
+    "Seven VP9/Opus WebM files decode with exit status 0 but emit an Opus packet-header warning in ffmpeg 8.0.",
+    "Several native capture files have .png names but contain JPEG bitstreams; manifests record their observed MIME type.",
+    "No package is accepted or ready-for-review; all remain partial under MASTERPLAN M12."
+  ],
+  "marketingPagesBuiltOrPublished": false
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-09-10-marketing-recipes-01",
+  "revision": "olive-travel-cup-r1-382922e1ca15",
+  "immutable": true,
+  "entity": {
+    "type": "entity",
+    "id": "382922e1ca1543468d59f0af5575350e",
+    "kind": "prop",
+    "name": "Olive Travel Cup",
+    "descriptor": "Unbranded travel cup with a smooth matte muted-olive cylindrical body that narrows subtly toward the base, and a low-profile flat charcoal lid with one small rectangular drinking opening near the front rim. No handle, lettering, logo, measurement marks, badges, patterns, decorative ridges, or accessories. Preserve the accepted reference's body proportions, lid profile, opening orientation, muted-olive color, charcoal finish, and clean straight geometry.",
+    "description": "Fictional unbranded demonstration product. Accepted shared visual reference for marketing recipe run 2026-09-10-marketing-recipes-01.",
+    "tags": ["marketing-recipes", "2026-09-10-marketing-recipes-01", "shared-product", "immutable-r1"],
+    "project_id": "default",
+    "voice_id": null,
+    "lora": null,
+    "palette": null,
+    "reference_images": [{
+      "type": "image",
+      "asset_id": "382922e1ca1543468d59f0af5575350e",
+      "uri": "asset://382922e1ca1543468d59f0af5575350e.png",
+      "durablePath": "product-reference.png",
+      "sha256": "3c79447005b53b0101c114faac7fccf5c6cc09556a169fcce225038ef4db9dbd"
+    }],
+    "created_at": "2026-09-10T15:51:46.652Z"
+  },
+  "sourceAssetId": "382922e1ca1543468d59f0af5575350e"
+}

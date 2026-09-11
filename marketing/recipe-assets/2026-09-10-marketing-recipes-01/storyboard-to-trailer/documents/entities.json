@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "projectId": "efe9670e9d0b482fb2204089e4f32570",
+  "entities": [
+    {"stableId":"TR-E1","id":"354c2523e0ad4f4188c37e02b681c5b3","name":"Elin","kind":"character","sourcePath":"sources/entities/elin.jpg","shotAssignments":["TR-S2","TR-S4","TR-S6"]},
+    {"stableId":"TR-E2","id":"59b681b2d64440f6ad248228b52d7760","name":"North Point Lighthouse","kind":"location","sourcePath":"sources/entities/lighthouse.jpg","shotAssignments":["TR-S1","TR-S2","TR-S5"]},
+    {"stableId":"TR-E3","id":"a483c10754b34d9dad84f43b68b3a0a0","name":"Keeper's Room","kind":"location","sourcePath":"sources/entities/keepers-room.jpg","shotAssignments":["TR-S3","TR-S4","TR-S6"]},
+    {"stableId":"TR-E4","id":"ecb13190ffb245ceabd6eff2bd64076e","name":"Message Bottle","kind":"prop","sourcePath":"sources/entities/message-bottle.jpg","shotAssignments":["TR-S2","TR-S3"]}
+  ]
+}

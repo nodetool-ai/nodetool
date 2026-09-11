@@ -1,0 +1,999 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-09-10-marketing-recipes-01",
+  "recipeSlug": "storyboard-to-trailer",
+  "status": "partial",
+  "documents": [
+    {
+      "role": "project",
+      "documentType": "project",
+      "serverId": "efe9670e9d0b482fb2204089e4f32570",
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": null,
+      "sha256": null,
+      "linkedDocumentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ]
+    },
+    {
+      "role": "production-board",
+      "documentType": "storyboard",
+      "serverId": "1420c5e4701a4269ba362c384813c2ec",
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": null,
+      "sha256": null,
+      "linkedDocumentIds": [
+        "2c8e71acd4ec4deaacec2cfb12c218a6"
+      ]
+    },
+    {
+      "role": "storyboard-linked-script",
+      "documentType": "script",
+      "serverId": "2c8e71acd4ec4deaacec2cfb12c218a6",
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": null,
+      "sha256": null,
+      "linkedDocumentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ]
+    },
+    {
+      "role": "voiced-script",
+      "documentType": "script",
+      "serverId": "69f547a6ec254068b417d6891c346530",
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": null,
+      "sha256": null,
+      "linkedDocumentIds": []
+    },
+    {
+      "role": "brief",
+      "documentType": "markdown",
+      "serverId": null,
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": "documents/brief.md",
+      "sha256": "cadb0de47282ada1f2fcfe806df65648583ea2fd978ca152201f458f4ff51754",
+      "linkedDocumentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ]
+    },
+    {
+      "role": "entity-export",
+      "documentType": "json",
+      "serverId": null,
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": "documents/entities.json",
+      "sha256": "1c3deb02e4bfad75d35cbf0b15ee432022e75b94c91c6cc1cb5cb3418a9f4098",
+      "linkedDocumentIds": [
+        "354c2523e0ad4f4188c37e02b681c5b3",
+        "59b681b2d64440f6ad248228b52d7760",
+        "a483c10754b34d9dad84f43b68b3a0a0",
+        "ecb13190ffb245ceabd6eff2bd64076e"
+      ]
+    },
+    {
+      "role": "entity-descriptors",
+      "documentType": "markdown",
+      "serverId": null,
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": "documents/entity-descriptors.md",
+      "sha256": "06a10e33c67fae92fa8d8c6e6d5099a1aa2ac8c8ef4fbba57503f45b03486cfd",
+      "linkedDocumentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ]
+    },
+    {
+      "role": "reviewed-screenplay",
+      "documentType": "json",
+      "serverId": null,
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": "documents/screenplay-reviewed.json",
+      "sha256": "7f2f4defdc92286682944a18fd71a948d4bc2dfc1a9a66387eae5304999520d6",
+      "linkedDocumentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ]
+    },
+    {
+      "role": "shot-line-map",
+      "documentType": "json",
+      "serverId": null,
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": "documents/shot-line-map.json",
+      "sha256": "8b29296391207e7843a972be6414188351f4404fd9e6c880fd04166c3148232d",
+      "linkedDocumentIds": [
+        "69f547a6ec254068b417d6891c346530",
+        "1420c5e4701a4269ba362c384813c2ec"
+      ]
+    },
+    {
+      "role": "voiceover-copy",
+      "documentType": "text",
+      "serverId": null,
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": "documents/voiceover.txt",
+      "sha256": "344485de6f3affb842f9c0229d830115751390ff89eab4a59f95e5cf9a304f3a",
+      "linkedDocumentIds": [
+        "69f547a6ec254068b417d6891c346530"
+      ]
+    },
+    {
+      "role": "inspection-record",
+      "documentType": "json",
+      "serverId": null,
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": "inspection-efe9670e9d0b482fb2204089e4f32570.json",
+      "sha256": "353b5af876504f3c368ccfe46206d7000e1ce330f8f10fb9c4c9646b90409bc3",
+      "linkedDocumentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ]
+    },
+    {
+      "role": "capture-log",
+      "documentType": "json",
+      "serverId": null,
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": "capture-log.json",
+      "sha256": "930f01898a168cdebd0c9860f0256a99fe85dc4d103976d1531f2c7584415441",
+      "linkedDocumentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ]
+    },
+    {
+      "role": "generation-ledger",
+      "documentType": "json",
+      "serverId": null,
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": "generation/generation-ledger.json",
+      "sha256": "74515341b4e5ebbd44bb78bdafd278d958e9e2c7f986184e2bf0802f30c3c113",
+      "linkedDocumentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ]
+    },
+    {
+      "role": "qa",
+      "documentType": "markdown",
+      "serverId": null,
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": "qa.md",
+      "sha256": "dc552490f3c4eca50599d01d0d81c7606ec5c932098771f976b7b3a6026891ee",
+      "linkedDocumentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ]
+    },
+    {
+      "role": "handoff",
+      "documentType": "markdown",
+      "serverId": null,
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "exportPath": "handoff.md",
+      "sha256": "4164c73f8174c91cdd68dda6015e74ee0784bb147affdc23b32f3ffc1a37c77a",
+      "linkedDocumentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "id": "TR-E1-SOURCE",
+      "role": "character-reference",
+      "path": "sources/entities/elin.jpg",
+      "sha256": "2acf5db46762d4166d8633c4bc2290fc8f4dec53d94928b68d8c04919cc7daa6",
+      "mimeType": "image/jpeg",
+      "width": 4096,
+      "height": 2304,
+      "duration": null,
+      "fps": null,
+      "bytes": 1479556,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [],
+      "producingDocumentId": "354c2523e0ad4f4188c37e02b681c5b3",
+      "shotIds": [
+        "TR-S2",
+        "TR-S4",
+        "TR-S6"
+      ],
+      "lineIds": [],
+      "provenance": {
+        "type": "generated-in-nodetool",
+        "provider": "fal",
+        "model": "fal-ai/bytedance/seedream/v4.5/text-to-image"
+      }
+    },
+    {
+      "id": "TR-E2-SOURCE",
+      "role": "location-reference",
+      "path": "sources/entities/lighthouse.jpg",
+      "sha256": "12a02d45a5f03bbfb8c0135d4bd0a3dd067894e920511ef5668c7587f2d0f1df",
+      "mimeType": "image/jpeg",
+      "width": 4096,
+      "height": 2304,
+      "duration": null,
+      "fps": null,
+      "bytes": 1725253,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [],
+      "producingDocumentId": "59b681b2d64440f6ad248228b52d7760",
+      "shotIds": [
+        "TR-S1",
+        "TR-S2",
+        "TR-S5"
+      ],
+      "lineIds": [],
+      "provenance": {
+        "type": "generated-in-nodetool",
+        "provider": "fal",
+        "model": "fal-ai/bytedance/seedream/v4.5/text-to-image"
+      }
+    },
+    {
+      "id": "TR-E3-SOURCE",
+      "role": "location-reference",
+      "path": "sources/entities/keepers-room.jpg",
+      "sha256": "e0219211898210271bb0bd201bc725c8babac55f4b0f2a545b546da55486d1e8",
+      "mimeType": "image/jpeg",
+      "width": 4096,
+      "height": 2304,
+      "duration": null,
+      "fps": null,
+      "bytes": 2091935,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [],
+      "producingDocumentId": "a483c10754b34d9dad84f43b68b3a0a0",
+      "shotIds": [
+        "TR-S3",
+        "TR-S4",
+        "TR-S6"
+      ],
+      "lineIds": [],
+      "provenance": {
+        "type": "generated-in-nodetool",
+        "provider": "fal",
+        "model": "fal-ai/bytedance/seedream/v4.5/text-to-image"
+      }
+    },
+    {
+      "id": "TR-E4-SOURCE",
+      "role": "prop-reference",
+      "path": "sources/entities/message-bottle.jpg",
+      "sha256": "28fe3d99d58f0ce48c15a35d256b03f6e70252440895c635a94499f923c89cfe",
+      "mimeType": "image/jpeg",
+      "width": 4096,
+      "height": 2304,
+      "duration": null,
+      "fps": null,
+      "bytes": 1175269,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [],
+      "producingDocumentId": "ecb13190ffb245ceabd6eff2bd64076e",
+      "shotIds": [
+        "TR-S2",
+        "TR-S3"
+      ],
+      "lineIds": [],
+      "provenance": {
+        "type": "generated-in-nodetool",
+        "provider": "fal",
+        "model": "fal-ai/bytedance/seedream/v4.5/text-to-image"
+      }
+    },
+    {
+      "id": "TR-C0",
+      "role": "guided-flow-capture",
+      "path": "captures/raw/tr-c0.png",
+      "sha256": "88e30688d6d2c8393a671945608664f6f16565b41039b1e1629509accf76f4de",
+      "mimeType": "image/jpeg",
+      "width": 1045,
+      "height": 768,
+      "duration": null,
+      "fps": null,
+      "bytes": 117020,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [
+        "efe9670e9d0b482fb2204089e4f32570"
+      ],
+      "producingDocumentId": "1420c5e4701a4269ba362c384813c2ec",
+      "shotIds": [],
+      "lineIds": [],
+      "provenance": {
+        "type": "live-ui-capture"
+      }
+    },
+    {
+      "id": "TR-C1",
+      "role": "guided-flow-capture",
+      "path": "captures/raw/tr-c1.png",
+      "sha256": "66a52976b18632fd6fa9c50058cd44d276561f4050a32393669a51dae4ba6d96",
+      "mimeType": "image/png",
+      "width": 3200,
+      "height": 2000,
+      "duration": null,
+      "fps": null,
+      "bytes": 298220,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [
+        "efe9670e9d0b482fb2204089e4f32570"
+      ],
+      "producingDocumentId": "1420c5e4701a4269ba362c384813c2ec",
+      "shotIds": [],
+      "lineIds": [],
+      "provenance": "playwright-cli-live-ui"
+    },
+    {
+      "id": "TR-C2",
+      "role": "guided-flow-capture",
+      "path": "captures/raw/tr-c2.png",
+      "sha256": "b393f78a3532a1c2f44eacb088da705442d593a412186de35e25e70e563a7371",
+      "mimeType": "image/png",
+      "width": 3200,
+      "height": 2000,
+      "duration": null,
+      "fps": null,
+      "bytes": 1328783,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [
+        "efe9670e9d0b482fb2204089e4f32570"
+      ],
+      "producingDocumentId": "1420c5e4701a4269ba362c384813c2ec",
+      "shotIds": [],
+      "lineIds": [],
+      "provenance": "playwright-cli-live-ui"
+    },
+    {
+      "id": "TR-C3-DRAFT",
+      "role": "guided-flow-support-capture",
+      "path": "captures/raw/tr-c3-draft.png",
+      "sha256": "898b2ddd84f4f5c7a60ccc83ace2397e229ddc79eadc7f711e0b36c893536721",
+      "mimeType": "image/jpeg",
+      "width": 1045,
+      "height": 768,
+      "duration": null,
+      "fps": null,
+      "bytes": 110681,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "producingDocumentId": "1420c5e4701a4269ba362c384813c2ec",
+      "shotIds": [
+        "TR-S1",
+        "TR-S2",
+        "TR-S3",
+        "TR-S4",
+        "TR-S5",
+        "TR-S6"
+      ],
+      "lineIds": [],
+      "provenance": {
+        "type": "live-ui-capture"
+      }
+    },
+    {
+      "id": "TR-C3",
+      "role": "guided-flow-capture",
+      "path": "captures/raw/tr-c3.png",
+      "sha256": "d1dfee3c926f1a58cc78fbf32ba9a2945222344d5af07d53c16594f40c6fc980",
+      "mimeType": "image/png",
+      "width": 3200,
+      "height": 2000,
+      "duration": null,
+      "fps": null,
+      "bytes": 300075,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "producingDocumentId": "1420c5e4701a4269ba362c384813c2ec",
+      "shotIds": [
+        "TR-S1",
+        "TR-S2",
+        "TR-S3",
+        "TR-S4",
+        "TR-S5",
+        "TR-S6"
+      ],
+      "lineIds": [],
+      "provenance": "playwright-cli-live-ui"
+    },
+    {
+      "id": "TR-C3-LOWER",
+      "role": "guided-flow-support-capture",
+      "path": "captures/raw/tr-c3-reviewed-lower.png",
+      "sha256": "77f6b35346273171bf4418e4fad0d47e169c8e295d7f73b40d7f2d8e57eb4d51",
+      "mimeType": "image/jpeg",
+      "width": 1045,
+      "height": 768,
+      "duration": null,
+      "fps": null,
+      "bytes": 126789,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "producingDocumentId": "1420c5e4701a4269ba362c384813c2ec",
+      "shotIds": [
+        "TR-S1",
+        "TR-S2",
+        "TR-S3",
+        "TR-S4",
+        "TR-S5",
+        "TR-S6"
+      ],
+      "lineIds": [],
+      "provenance": {
+        "type": "live-ui-capture"
+      }
+    },
+    {
+      "id": "TR-C4",
+      "role": "guided-flow-capture",
+      "path": "captures/raw/tr-c4.png",
+      "sha256": "958eef8bd21d7948c66e8387859282e0718c287114c042fed7bb6ac94d5bc1f6",
+      "mimeType": "image/png",
+      "width": 3200,
+      "height": 2000,
+      "duration": null,
+      "fps": null,
+      "bytes": 596936,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [
+        "354c2523e0ad4f4188c37e02b681c5b3",
+        "59b681b2d64440f6ad248228b52d7760",
+        "a483c10754b34d9dad84f43b68b3a0a0",
+        "ecb13190ffb245ceabd6eff2bd64076e"
+      ],
+      "producingDocumentId": "1420c5e4701a4269ba362c384813c2ec",
+      "shotIds": [
+        "TR-S1",
+        "TR-S2",
+        "TR-S3",
+        "TR-S4",
+        "TR-S5",
+        "TR-S6"
+      ],
+      "lineIds": [],
+      "provenance": "playwright-cli-live-ui"
+    },
+    {
+      "id": "TR-C5",
+      "role": "guided-flow-capture",
+      "path": "captures/raw/tr-c5.png",
+      "sha256": "8fce9901c26ee8a3a1044ce610e97e68b7ea1b18377a78233cafd36b97471851",
+      "mimeType": "image/png",
+      "width": 3200,
+      "height": 2000,
+      "duration": null,
+      "fps": null,
+      "bytes": 1101575,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "producingDocumentId": "1420c5e4701a4269ba362c384813c2ec",
+      "shotIds": [],
+      "lineIds": [],
+      "provenance": "playwright-cli-live-ui"
+    },
+    {
+      "id": "TR-C6",
+      "role": "guided-flow-capture",
+      "path": "captures/raw/tr-c6.png",
+      "sha256": "9c9da4d0704c1a7154d20c20bf13c99d1032410b2d654f8400cff81eb94be3e0",
+      "mimeType": "image/png",
+      "width": 3200,
+      "height": 2000,
+      "duration": null,
+      "fps": null,
+      "bytes": 1998663,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "producingDocumentId": "1420c5e4701a4269ba362c384813c2ec",
+      "shotIds": [
+        "TR-S1",
+        "TR-S2",
+        "TR-S3",
+        "TR-S4",
+        "TR-S5",
+        "TR-S6"
+      ],
+      "lineIds": [],
+      "provenance": "playwright-cli-live-ui"
+    },
+    {
+      "id": "TR-SUPPORT-NATIVE-INITIAL",
+      "role": "support-capture",
+      "path": "captures/raw/native-initial.png",
+      "sha256": "0ff886a72a8e622337078f8b83785df97aedf12cb9cba68fb208db9c21b42305",
+      "mimeType": "image/jpeg",
+      "width": 121,
+      "height": 148,
+      "duration": null,
+      "fps": null,
+      "bytes": 9304,
+      "hasAudio": false,
+      "alpha": false,
+      "sourceIds": [],
+      "producingDocumentId": null,
+      "shotIds": [],
+      "lineIds": [],
+      "provenance": {
+        "type": "live-ui-capture"
+      }
+    }
+  ],
+  "generationCalls": [
+    {
+      "callId": "0b4c114d-8a25-4b80-a88c-ff2d06e92f33",
+      "jobId": null,
+      "toolName": "generate_image",
+      "provider": "fal",
+      "model": "fal-ai/bytedance/seedream/v4.5/text-to-image",
+      "inputAssetIds": [],
+      "promptFile": "documents/entity-descriptors.md",
+      "settings": {
+        "aspectRatio": "16:9"
+      },
+      "outputIds": [
+        "354c2523e0ad4f4188c37e02b681c5b3"
+      ],
+      "actualCost": 0.04,
+      "currency": "USD",
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callId": "b63c9f91-c22e-4720-9934-07487af3c7a2",
+      "jobId": null,
+      "toolName": "generate_image",
+      "provider": "fal",
+      "model": "fal-ai/bytedance/seedream/v4.5/text-to-image",
+      "inputAssetIds": [],
+      "promptFile": "documents/entity-descriptors.md",
+      "settings": {
+        "aspectRatio": "16:9"
+      },
+      "outputIds": [
+        "59b681b2d64440f6ad248228b52d7760"
+      ],
+      "actualCost": 0.04,
+      "currency": "USD",
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callId": "c989d068-1ade-4afa-bef7-8f87f41187a5",
+      "jobId": null,
+      "toolName": "generate_image",
+      "provider": "fal",
+      "model": "fal-ai/bytedance/seedream/v4.5/text-to-image",
+      "inputAssetIds": [],
+      "promptFile": "documents/entity-descriptors.md",
+      "settings": {
+        "aspectRatio": "16:9"
+      },
+      "outputIds": [
+        "a483c10754b34d9dad84f43b68b3a0a0"
+      ],
+      "actualCost": 0.04,
+      "currency": "USD",
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callId": "8ac15a2a-7c20-4a73-8e11-73112d30ef06",
+      "jobId": null,
+      "toolName": "generate_image",
+      "provider": "fal",
+      "model": "fal-ai/bytedance/seedream/v4.5/text-to-image",
+      "inputAssetIds": [],
+      "promptFile": "documents/entity-descriptors.md",
+      "settings": {
+        "aspectRatio": "16:9"
+      },
+      "outputIds": [
+        "ecb13190ffb245ceabd6eff2bd64076e"
+      ],
+      "actualCost": 0.04,
+      "currency": "USD",
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "voice_script_lines",
+      "provider": "fal",
+      "model": "fal-ai/kokoro",
+      "inputAssetIds": [],
+      "promptFile": "documents/voiceover.txt",
+      "settings": {
+        "voice": "af_sarah",
+        "lineId": "TR-L1"
+      },
+      "outputIds": [
+        "ff9d48e935224c7b83a62521ade9a362"
+      ],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "voice_script_lines",
+      "provider": "fal",
+      "model": "fal-ai/kokoro",
+      "inputAssetIds": [],
+      "promptFile": "documents/voiceover.txt",
+      "settings": {
+        "voice": "af_sarah",
+        "lineId": "TR-L2"
+      },
+      "outputIds": [
+        "dd027f95956e4eaca17ec856454c865f"
+      ],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "voice_script_lines",
+      "provider": "fal",
+      "model": "fal-ai/kokoro",
+      "inputAssetIds": [],
+      "promptFile": "documents/voiceover.txt",
+      "settings": {
+        "voice": "af_sarah",
+        "lineId": "TR-L3"
+      },
+      "outputIds": [
+        "e2cd177694fa48beb28bbbb47b438e01"
+      ],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": null
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "render_storyboard_clips",
+      "provider": "fal",
+      "model": "fal-ai/kling-video/v3/pro/image-to-video",
+      "inputAssetIds": [
+        "5bb892c8451b4112a11050f7c48828c7"
+      ],
+      "promptFile": "documents/screenplay-reviewed.json",
+      "settings": {
+        "shotId": "TR-S1",
+        "resolution": "1080p"
+      },
+      "outputIds": [],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": "Selected still could not be read back from storage; no provider job was created."
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "render_storyboard_clips",
+      "provider": "fal",
+      "model": "fal-ai/kling-video/v3/pro/image-to-video",
+      "inputAssetIds": [
+        "ed876f13175b4036b0761867dfc28510"
+      ],
+      "promptFile": "documents/screenplay-reviewed.json",
+      "settings": {
+        "shotId": "TR-S2",
+        "resolution": "1080p"
+      },
+      "outputIds": [],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": "Selected still could not be read back from storage; no provider job was created."
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "render_storyboard_clips",
+      "provider": "fal",
+      "model": "fal-ai/kling-video/v3/pro/image-to-video",
+      "inputAssetIds": [
+        "cc15921bb5d14b8d8d373b3a9270808b"
+      ],
+      "promptFile": "documents/screenplay-reviewed.json",
+      "settings": {
+        "shotId": "TR-S3",
+        "resolution": "1080p"
+      },
+      "outputIds": [],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": "Selected still could not be read back from storage; no provider job was created."
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "render_storyboard_clips",
+      "provider": "fal",
+      "model": "fal-ai/kling-video/v3/pro/image-to-video",
+      "inputAssetIds": [
+        "7767987341fb42a08f647bb365db71bc"
+      ],
+      "promptFile": "documents/screenplay-reviewed.json",
+      "settings": {
+        "shotId": "TR-S4",
+        "resolution": "1080p"
+      },
+      "outputIds": [],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": "Selected still could not be read back from storage; no provider job was created."
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "render_storyboard_clips",
+      "provider": "fal",
+      "model": "fal-ai/kling-video/v3/pro/image-to-video",
+      "inputAssetIds": [
+        "8fbf4c79c7f147ebb15760da3fc75718"
+      ],
+      "promptFile": "documents/screenplay-reviewed.json",
+      "settings": {
+        "shotId": "TR-S5",
+        "resolution": "1080p"
+      },
+      "outputIds": [],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": "Selected still could not be read back from storage; no provider job was created."
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "render_storyboard_clips",
+      "provider": "fal",
+      "model": "fal-ai/kling-video/v3/pro/image-to-video",
+      "inputAssetIds": [
+        "9d43f48a661745adad74902f7ccc3d77"
+      ],
+      "promptFile": "documents/screenplay-reviewed.json",
+      "settings": {
+        "shotId": "TR-S6",
+        "resolution": "1080p"
+      },
+      "outputIds": [],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": "Selected still could not be read back from storage; no provider job was created."
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "render_storyboard_clips",
+      "provider": "fal",
+      "model": "fal-ai/kling-video/v3/pro/image-to-video",
+      "inputAssetIds": [
+        "84964523369a46129d4f03519b53300c"
+      ],
+      "promptFile": "documents/screenplay-reviewed.json",
+      "settings": {
+        "shotId": "TR-S1",
+        "resolution": "1080p",
+        "recovery": "exact-byte reimport"
+      },
+      "outputIds": [],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 2,
+      "failureReason": "Renderer still rejected the repaired selected keyframe before provider submission; no provider job was created."
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "render_storyboard_clips",
+      "provider": "fal",
+      "model": "fal-ai/kling-video/v3/pro/image-to-video",
+      "inputAssetIds": [
+        "f616fa0ddd3542c38c48c5caf91c5bc0"
+      ],
+      "promptFile": "documents/screenplay-reviewed.json",
+      "settings": {
+        "shotId": "TR-S2",
+        "resolution": "1080p",
+        "recovery": "exact-byte reimport"
+      },
+      "outputIds": [],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 2,
+      "failureReason": "Renderer still rejected the repaired selected keyframe before provider submission; no provider job was created."
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "render_storyboard_clips",
+      "provider": "fal",
+      "model": "fal-ai/kling-video/v3/pro/image-to-video",
+      "inputAssetIds": [
+        "c77d52a608b144db969d26f5fc29a8bb"
+      ],
+      "promptFile": "documents/screenplay-reviewed.json",
+      "settings": {
+        "shotId": "TR-S3",
+        "resolution": "1080p",
+        "recovery": "exact-byte reimport"
+      },
+      "outputIds": [],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 2,
+      "failureReason": "Renderer still rejected the repaired selected keyframe before provider submission; no provider job was created."
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "render_storyboard_clips",
+      "provider": "fal",
+      "model": "fal-ai/kling-video/v3/pro/image-to-video",
+      "inputAssetIds": [
+        "9255e1466ad1428e82e9e180c44e3cd2"
+      ],
+      "promptFile": "documents/screenplay-reviewed.json",
+      "settings": {
+        "shotId": "TR-S4",
+        "resolution": "1080p",
+        "recovery": "exact-byte reimport"
+      },
+      "outputIds": [],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 2,
+      "failureReason": "Renderer still rejected the repaired selected keyframe before provider submission; no provider job was created."
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "render_storyboard_clips",
+      "provider": "fal",
+      "model": "fal-ai/kling-video/v3/pro/image-to-video",
+      "inputAssetIds": [
+        "ec85bd3ec03a468391da2d70637b2886"
+      ],
+      "promptFile": "documents/screenplay-reviewed.json",
+      "settings": {
+        "shotId": "TR-S5",
+        "resolution": "1080p",
+        "recovery": "exact-byte reimport"
+      },
+      "outputIds": [],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 2,
+      "failureReason": "Renderer still rejected the repaired selected keyframe before provider submission; no provider job was created."
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "render_storyboard_clips",
+      "provider": "fal",
+      "model": "fal-ai/kling-video/v3/pro/image-to-video",
+      "inputAssetIds": [
+        "e5cd97d4c44f487f81bc5c74557933d5"
+      ],
+      "promptFile": "documents/screenplay-reviewed.json",
+      "settings": {
+        "shotId": "TR-S6",
+        "resolution": "1080p",
+        "recovery": "exact-byte reimport"
+      },
+      "outputIds": [],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 2,
+      "failureReason": "Renderer still rejected the repaired selected keyframe before provider submission; no provider job was created."
+    },
+    {
+      "callId": null,
+      "jobId": null,
+      "toolName": "generate_music",
+      "provider": "fal",
+      "model": "beatoven/music-generation",
+      "inputAssetIds": [],
+      "promptFile": null,
+      "settings": {
+        "brief": "TR7 original score brief"
+      },
+      "outputIds": [],
+      "actualCost": null,
+      "currency": null,
+      "attemptNumber": 1,
+      "failureReason": "Request remained unresolved for more than five minutes; no durable generation or cost record was found. The recovery run reconciled available records but crashed before another music submission."
+    }
+  ],
+  "blockedItems": [
+    {
+      "requiredAssetId": "TR-A3-TR-A5",
+      "attemptedOperation": "Export production-board documents and selected stills",
+      "observedLimitation": "The canonical documents and selected/repaired keyframes remain server-side; no truthful local board/script export or six selected still files were produced.",
+      "availablePartialResult": "Reviewed screenplay and entity planning exports exist locally; the canonical board remains reopenable by ID.",
+      "exactNextAction": "Export the canonical storyboard, linked/voiced script, and repaired selected keyframes to the required local paths."
+    },
+    {
+      "requiredAssetId": "TR-A6",
+      "attemptedOperation": "Two attempts per shot with fal-ai/kling-video/v3/pro/image-to-video, including exact-byte reimports",
+      "observedLimitation": "The headless renderer rejected every original and repaired selected keyframe before provider submission. No clip generation IDs, outputs, or spend records exist.",
+      "availablePartialResult": "Six repaired selected keyframes remain on the canonical board and are readable through direct asset access.",
+      "exactNextAction": "Fix the renderer/storage URI mismatch, validate one repaired keyframe through the render path, then render only the six missing clips."
+    },
+    {
+      "requiredAssetId": "TR-A7",
+      "attemptedOperation": "Three FAL Kokoro voice lines and one FAL Beatoven score request",
+      "observedLimitation": "Voice takes exist only server-side. The Beatoven request is unresolved with no durable job/output/cost record; the recovery agent crashed before a second music submission.",
+      "availablePartialResult": "Three accepted voice asset IDs and measured durations exist.",
+      "exactNextAction": "Export the three voice takes, reconcile provider-side Beatoven state, then submit one score recovery only if the original did not complete."
+    },
+    {
+      "requiredAssetId": "TR-A8-TR-A14",
+      "attemptedOperation": "Timeline assembly, exact 40-second masters, web encodes, posters and proof derivatives",
+      "observedLimitation": "No clips or score exist, so assembly/export was not valid.",
+      "availablePartialResult": "Brief, reviewed screenplay, entity sources, voice copy and real setup captures are retained.",
+      "exactNextAction": "After clips and score exist, assemble at 24 fps, add editable title and separate voice/music tracks, validate 40 seconds, export and probe every derivative."
+    },
+    {
+      "requiredAssetId": "TR-A15-TR-A17",
+      "attemptedOperation": "Finishing captures, walkthrough and complete evidence",
+      "observedLimitation": "TR-C7 through TR-C11, walkthrough files, continuity review, timeline validation, media probes and mix measurement are missing.",
+      "availablePartialResult": "Raw guided-flow captures TR-C0 through TR-C6 and a verified capture log exist.",
+      "exactNextAction": "Capture C7-C11 from the finished documents, edit the 45-60 second walkthrough, and complete all media/continuity/audio evidence."
+    }
+  ],
+  "supportedClaims": [
+    {
+      "wording": "The Storyboard flow created a six-shot mystery board with reusable character, location, and prop references.",
+      "evidenceIds": [
+        "1420c5e4701a4269ba362c384813c2ec",
+        "TR-C0",
+        "TR-C1",
+        "TR-C2",
+        "TR-C3",
+        "TR-C4",
+        "TR-C5",
+        "TR-C6"
+      ],
+      "limitation": "Supports setup and still-board workflow only; recipe-page captures TR-C1 through TR-C6 are lossless 3200x2000 PNGs, and the finished trailer does not exist.",
+      "safeToUse": true
+    },
+    {
+      "wording": "The Next Tide is a completed 40-second trailer with generated motion, voice, score, and editable timeline.",
+      "evidenceIds": [],
+      "limitation": "False for this partial package: clips, score, timeline, masters, derivatives and finishing captures are absent.",
+      "safeToUse": false
+    }
+  ]
+}

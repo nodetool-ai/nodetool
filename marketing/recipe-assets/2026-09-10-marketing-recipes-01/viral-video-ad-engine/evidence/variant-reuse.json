@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "sharedVisuals": {
+    "AD-S2": "c52bae64a4634aea81786c7e04bb802f",
+    "AD-S3": "56373aa8fb5c4472a66abbec798c5f81",
+    "AD-S4": "4c0fb8f4afb94d9d8825eaeb60170fd0"
+  },
+  "openings": {
+    "A": "6417ad9304c9469eaf38929cc3d37cd6",
+    "B": "4676695df4774947b2f964a85ebb6a19",
+    "C": "6766c8ae46b94aca8f93b7f218ba99a9"
+  },
+  "sharedVoiceTakes": {
+    "AD-L2": "70faf487d76145a8861320aa1bf8296e",
+    "AD-L3": "00e4538ee63a4321a6d79d962576d4c6",
+    "AD-L4": "fa37af2c8f3346cf928b3657bc7db268"
+  },
+  "hookVoiceTakes": {
+    "A": "189f8e05afec4e0ba5a9c0afc40d5fd2",
+    "B": "d4a67b2fa36c453d85ed8acbdf789e1f",
+    "C": "a7083f34b1f74387b15dc52ef488cca8"
+  },
+  "proof": "All three delivery masters use the same local source files for AD-S2, AD-S3, AD-S4 and AD-L2 through AD-L4. Only the opening picture and hook take differ."
+}

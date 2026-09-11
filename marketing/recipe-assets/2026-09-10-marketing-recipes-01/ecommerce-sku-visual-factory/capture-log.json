@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "status": "complete",
+  "captureMode": "real-guided-flow",
+  "storyboardId": "3b95fdd8e581466382eca86de61cfb1c",
+  "viewport": {
+    "width": 1600,
+    "height": 1000,
+    "pixelRatio": 2
+  },
+  "captures": [
+    {
+      "id": "SKU-C0",
+      "screen": "Source preparation",
+      "order": 0,
+      "path": "captures/steps/sku-c0.png",
+      "sha256": "18b1d18a6bb113e01834343346a7a12dd53d7189cfb35f5ddbafc98e4d281b64",
+      "dimensions": "1045x768"
+    },
+    {
+      "id": "SKU-C1",
+      "screen": "Storyboard / Idea",
+      "order": 1,
+      "path": "captures/steps/sku-c1.png",
+      "sha256": "9fa654e49652b6669913ade82de2a787fd404e33e7e5037a4d6b36a1ea21cba3",
+      "dimensions": "3200x2000",
+      "captureMode": "playwright-cli-live-ui",
+      "mimeType": "image/png"
+    },
+    {
+      "id": "SKU-C2",
+      "screen": "Story choices / Commercial / 3 shots",
+      "order": 2,
+      "path": "captures/steps/sku-c2.png",
+      "sha256": "3f08832df27fca2e7d0239e8cb2360f3b8e4f13dfd635a85eaa5a410d7580eb2",
+      "dimensions": "3200x2000",
+      "captureMode": "playwright-cli-live-ui",
+      "mimeType": "image/png"
+    },
+    {
+      "id": "SKU-C3",
+      "screen": "Story review",
+      "order": 3,
+      "path": "captures/steps/sku-c3.png",
+      "sha256": "403fde112ea3cda3590751a88853ba6489ae49483e3c16941b300fad2a57e360",
+      "dimensions": "3200x2000",
+      "captureMode": "playwright-cli-live-ui",
+      "mimeType": "image/png"
+    },
+    {
+      "id": "SKU-C4",
+      "screen": "Entities / Olive Travel Cup assigned",
+      "order": 4,
+      "path": "captures/steps/sku-c4.png",
+      "sha256": "883ebe28f485906be88e44d17b83d816797bf53874353a6b6ae3e4ea2e3a269c",
+      "dimensions": "3200x2000",
+      "captureMode": "playwright-cli-live-ui",
+      "mimeType": "image/png"
+    },
+    {
+      "id": "SKU-C5",
+      "screen": "Look / 1:1 / Photo / Commercial / FAL Flux2Max Edit",
+      "order": 5,
+      "path": "captures/steps/sku-c5.png",
+      "sha256": "9e94c1cb687a66265bf8c45ae5e051cc4112e78bac459ef7ac7706782a492648",
+      "dimensions": "3200x2000",
+      "captureMode": "playwright-cli-live-ui",
+      "mimeType": "image/png"
+    },
+    {
+      "id": "SKU-C6",
+      "screen": "Board / three rendered stills",
+      "order": 6,
+      "path": "captures/steps/sku-c6.png",
+      "sha256": "fe2e1f1a86ba999ce8ff44f10acccb4d4bbe8426d09ed24154a70aa31cd0a2ad",
+      "dimensions": "3200x2000",
+      "captureMode": "playwright-cli-live-ui",
+      "mimeType": "image/png"
+    },
+    {
+      "id": "SKU-C7",
+      "screen": "Shot inspector / motion hero",
+      "order": 7,
+      "path": "captures/steps/sku-c7.png",
+      "sha256": "de0044bdf02fbab3b82528ecfcc57b9d329606c1f7fcf599b4cfa1cdd551d9fa",
+      "dimensions": "3200x2000",
+      "captureMode": "playwright-cli-live-ui",
+      "mimeType": "image/png"
+    },
+    {
+      "id": "SKU-C8",
+      "screen": "Upscale / measured result",
+      "order": 8,
+      "path": "captures/steps/sku-c8.png",
+      "sha256": "070a82d38fc55d50b18e3bc22c67907cd278635ed72617223374b86c238bf0db",
+      "dimensions": "1045x768"
+    },
+    {
+      "id": "SKU-C9",
+      "screen": "Listing copy / unknowns",
+      "order": 9,
+      "path": "captures/steps/sku-c9.png",
+      "sha256": "ca5dca6b89358b70d5a46fc596a6d2631d2d3d227da50289bc8a170a7c442555",
+      "dimensions": "1045x768"
+    },
+    {
+      "id": "SKU-C10",
+      "screen": "Board export / organized outputs",
+      "order": 10,
+      "path": "captures/steps/sku-c10.png",
+      "sha256": "b11aff95c02757390dd18cd9e746e733cf8de5941fb559f02454c533fc3b96e8",
+      "dimensions": "370x182"
+    }
+  ],
+  "walkthrough": {
+    "durationSeconds": 48,
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "hasAudio": false,
+    "timeCompressed": true,
+    "mp4": {
+      "path": "captures/walkthrough/catalogue-guided-flow.mp4",
+      "codec": "h264",
+      "sha256": "2815cc2111d80ed83b1656269a7fc1a4709e907b98ed5fd3ab02cb1604fb1c50"
+    },
+    "webm": {
+      "path": "captures/walkthrough/catalogue-guided-flow.webm",
+      "codec": "vp9",
+      "sha256": "fdacf71748b78cdc4fdf837eb1abf304b09cfb6aca4e3bb007ba8a33b20646fa"
+    },
+    "captions": {
+      "path": "captures/walkthrough/catalogue-guided-flow.vtt",
+      "sha256": "01e568913c02b7e26f0b8a598210301e09cb1b9cd70cc50094a007f93026f6d9"
+    },
+    "poster": {
+      "path": "captures/walkthrough/poster.webp",
+      "dimensions": "1280x720",
+      "sha256": "e60f13fb60b381d7897a05c311c22eb95ec5bf087eb14589b31c037b8b046d4b"
+    }
+  },
+  "notes": [
+    "Guide screenshots were recaptured from the live UI at 1600x1000 with a 2x device pixel ratio, producing lossless 3200x2000 PNG files.",
+    "The walkthrough compresses generation waits and is accurately captioned."
+  ]
+}

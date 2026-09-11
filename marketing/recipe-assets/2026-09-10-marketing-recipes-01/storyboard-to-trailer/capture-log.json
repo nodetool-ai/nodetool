@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-09-10-marketing-recipes-01",
+  "recipeSlug": "storyboard-to-trailer",
+  "captures": [
+    {
+      "captureId": "TR-C0",
+      "recipeActionId": "TR-G3",
+      "visibleScreenLabel": "New project / Storyboard entry",
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "documentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1045,
+        "height": 768,
+        "devicePixelRatio": null
+      },
+      "captureMode": "native-app-live",
+      "rawPath": "captures/raw/tr-c0.png",
+      "editedPath": null,
+      "order": 1,
+      "timeCompressed": false,
+      "redaction": null,
+      "rawSha256": "88e30688d6d2c8393a671945608664f6f16565b41039b1e1629509accf76f4de"
+    },
+    {
+      "captureId": "TR-C1",
+      "recipeActionId": "TR-G3",
+      "visibleScreenLabel": "Idea",
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "documentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/tr-c1.png",
+      "editedPath": null,
+      "order": 2,
+      "timeCompressed": false,
+      "redaction": null,
+      "rawSha256": "66a52976b18632fd6fa9c50058cd44d276561f4050a32393669a51dae4ba6d96",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000"
+    },
+    {
+      "captureId": "TR-C2",
+      "recipeActionId": "TR-G3",
+      "visibleScreenLabel": "Story selection: Mystery, 6 shots",
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "documentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/tr-c2.png",
+      "editedPath": null,
+      "order": 3,
+      "timeCompressed": false,
+      "redaction": null,
+      "rawSha256": "b393f78a3532a1c2f44eacb088da705442d593a412186de35e25e70e563a7371",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000"
+    },
+    {
+      "captureId": "TR-C3-DRAFT",
+      "recipeActionId": "TR-G3",
+      "visibleScreenLabel": "Story review: Director draft",
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "documentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1045,
+        "height": 768,
+        "devicePixelRatio": null
+      },
+      "captureMode": "native-app-live",
+      "rawPath": "captures/raw/tr-c3-draft.png",
+      "editedPath": null,
+      "order": 4,
+      "timeCompressed": false,
+      "redaction": null,
+      "rawSha256": "898b2ddd84f4f5c7a60ccc83ace2397e229ddc79eadc7f711e0b36c893536721"
+    },
+    {
+      "captureId": "TR-C3",
+      "recipeActionId": "TR-G3",
+      "visibleScreenLabel": "Story review: reviewed six-shot plan",
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "documentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/tr-c3.png",
+      "editedPath": null,
+      "order": 5,
+      "timeCompressed": false,
+      "redaction": null,
+      "rawSha256": "d1dfee3c926f1a58cc78fbf32ba9a2945222344d5af07d53c16594f40c6fc980",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000"
+    },
+    {
+      "captureId": "TR-C3-LOWER",
+      "recipeActionId": "TR-G3",
+      "visibleScreenLabel": "Story review: lower shot fields",
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "documentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1045,
+        "height": 768,
+        "devicePixelRatio": null
+      },
+      "captureMode": "native-app-live",
+      "rawPath": "captures/raw/tr-c3-reviewed-lower.png",
+      "editedPath": null,
+      "order": 6,
+      "timeCompressed": false,
+      "redaction": null,
+      "rawSha256": "77f6b35346273171bf4418e4fad0d47e169c8e295d7f73b40d7f2d8e57eb4d51"
+    },
+    {
+      "captureId": "TR-C4",
+      "recipeActionId": "TR-G3",
+      "visibleScreenLabel": "Entities and per-shot assignments",
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "documentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/tr-c4.png",
+      "editedPath": null,
+      "order": 7,
+      "timeCompressed": false,
+      "redaction": null,
+      "rawSha256": "958eef8bd21d7948c66e8387859282e0718c287114c042fed7bb6ac94d5bc1f6",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000"
+    },
+    {
+      "captureId": "TR-C5",
+      "recipeActionId": "TR-G4",
+      "visibleScreenLabel": "Look: 16:9, cinematic FAL still model",
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "documentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/tr-c5.png",
+      "editedPath": null,
+      "order": 8,
+      "timeCompressed": false,
+      "redaction": null,
+      "rawSha256": "8fce9901c26ee8a3a1044ce610e97e68b7ea1b18377a78233cafd36b97471851",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000"
+    },
+    {
+      "captureId": "TR-C6",
+      "recipeActionId": "TR-G4",
+      "visibleScreenLabel": "Storyboard: six loaded stills",
+      "projectId": "efe9670e9d0b482fb2204089e4f32570",
+      "documentIds": [
+        "1420c5e4701a4269ba362c384813c2ec"
+      ],
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "devicePixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": "captures/raw/tr-c6.png",
+      "editedPath": null,
+      "order": 9,
+      "timeCompressed": true,
+      "redaction": null,
+      "rawSha256": "9c9da4d0704c1a7154d20c20bf13c99d1032410b2d654f8400cff81eb94be3e0",
+      "mimeType": "image/png",
+      "dimensions": "3200x2000"
+    }
+  ],
+  "supportCaptures": [
+    {
+      "captureId": "TR-SUPPORT-NATIVE-INITIAL",
+      "rawPath": "captures/raw/native-initial.png",
+      "rawSha256": "0ff886a72a8e622337078f8b83785df97aedf12cb9cba68fb208db9c21b42305",
+      "viewport": {
+        "width": 121,
+        "height": 148,
+        "devicePixelRatio": null
+      },
+      "captureMode": "native-app-live",
+      "note": "Initial native-window state; not a recipe-step capture."
+    }
+  ],
+  "missingCaptureIds": [
+    "TR-C7",
+    "TR-C8",
+    "TR-C9",
+    "TR-C10",
+    "TR-C11"
+  ],
+  "notes": [
+    "Guide screenshots were recaptured from the live UI at 1600x1000 with a 2x device pixel ratio, producing lossless 3200x2000 PNG files.",
+    "Guide screenshots were recaptured from the live UI at 1600x1000 with a 2x device pixel ratio, producing lossless 3200x2000 PNG files.",
+    "App revision and device pixel ratio were not recorded and remain null.",
+    "Raw captures are preserved without edits.",
+    "TR-C6 omits the generation wait and is therefore time-compressed."
+  ]
+}
