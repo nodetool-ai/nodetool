@@ -1,5 +1,7 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
+import { trpc } from "../../trpc/client";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import {
   Caption,
   Dialog,
@@ -8,7 +10,6 @@ import {
   SelectField,
   SPACING
 } from "../ui_primitives";
-import { trpc } from "../../trpc/client";
 import type { ProjectDocument } from "./projectStatus";
 
 interface CopyProjectDocumentActionProps {
@@ -27,30 +28,36 @@ const CopyProjectDocumentAction = ({
     { staleTime: 30_000 }
   );
   const utils = trpc.useUtils();
+  const addNotification = useNotificationStore((state) => state.addNotification);
+  // A project summary carries server-derived status, spend, and thumbnails;
+  // the copy response intentionally does not invent them, so an optimistic
+  // card would be incomplete. Refetching supplies the authoritative summary.
   const copy = trpc.projects.copyDocument.useMutation({
     onSuccess: () => {
       setOpen(false);
       void utils.projects.get.invalidate();
       void utils.projects.summaries.invalidate();
+    },
+    onError: (error) => {
+      addNotification({ type: "error", alert: true, content: error.message });
     }
   });
   const destinations = projects.filter((project) => project.id !== sourceProjectId);
-
-  const showDialog = useCallback(() => {
+  const showDialog = () => {
     setDestinationProjectId(destinations[0]?.id ?? "");
     setOpen(true);
-  }, [destinations]);
-  const closeDialog = useCallback(() => {
+  };
+  const closeDialog = () => {
     if (!copy.isPending) setOpen(false);
-  }, [copy.isPending]);
-  const confirmCopy = useCallback(() => {
+  };
+  const confirmCopy = () => {
     if (!destinationProjectId) return;
     copy.mutate({
       type: document.type,
       ref: document.ref,
       destinationProjectId
     });
-  }, [copy, destinationProjectId, document.ref, document.type]);
+  };
 
   return (
     <>
@@ -87,7 +94,6 @@ const CopyProjectDocumentAction = ({
             }))}
             disabled={destinations.length === 0 || copy.isPending}
           />
-          {copy.error && <Caption color="error">{copy.error.message}</Caption>}
         </FlexColumn>
       </Dialog>
     </>

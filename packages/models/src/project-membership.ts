@@ -66,10 +66,24 @@ const REFERENCE_KEYS: Readonly<Record<string, ProjectMemberType>> = {
   asset_id: "entity",
   assetIds: "entity",
   asset_ids: "entity",
+  currentAssetId: "entity",
+  current_asset_id: "entity",
+  waveformAssetId: "entity",
+  waveform_asset_id: "entity",
   thumbnailAssetId: "entity",
   thumbnail_asset_id: "entity",
   referenceAssetId: "entity",
-  reference_asset_id: "entity"
+  reference_asset_id: "entity",
+  referenceAssetIds: "entity",
+  reference_asset_ids: "entity",
+  locationId: "entity",
+  location_id: "entity",
+  styleEntityId: "entity",
+  style_entity_id: "entity",
+  sourceAssetId: "entity",
+  source_asset_id: "entity",
+  maskAssetId: "entity",
+  mask_asset_id: "entity"
 };
 
 function matchesReference(value: unknown, id: string): boolean {

@@ -61,6 +61,10 @@ const ASSET_KEYS = new Set([
   "asset_id",
   "assetids",
   "asset_ids",
+  "currentassetid",
+  "current_asset_id",
+  "waveformassetid",
+  "waveform_asset_id",
   "entityid",
   "entity_id",
   "entityids",
@@ -69,6 +73,12 @@ const ASSET_KEYS = new Set([
   "thumbnail_asset_id",
   "referenceassetid",
   "reference_asset_id",
+  "referenceassetids",
+  "reference_asset_ids",
+  "locationid",
+  "location_id",
+  "styleentityid",
+  "style_entity_id",
   "sourceassetid",
   "source_asset_id",
   "maskassetid",
@@ -96,14 +106,32 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function assetIdFromLocator(locator: string): string | null {
+  if (!locator.startsWith("asset://")) return null;
+  const rest = locator.slice("asset://".length).split(/[?#]/)[0];
+  const last = rest.includes("/") ? rest.slice(rest.lastIndexOf("/") + 1) : rest;
+  const id = last.replace(/\.[^.]+$/, "");
+  return id || null;
+}
+
+function remapAssetLocator(
+  locator: string,
+  ids: ReadonlyMap<string, string>
+): string {
+  const assetId = assetIdFromLocator(locator);
+  const copiedId = assetId ? ids.get(assetId) : undefined;
+  if (!copiedId) return locator;
+  const prefix = locator.slice(0, locator.lastIndexOf(assetId));
+  return `${prefix}${copiedId}${locator.slice(prefix.length + assetId.length)}`;
+}
+
 function addRef(
   value: unknown,
-  target: Set<string>,
-  kind: "asset" | "document"
+  target: Set<string>
 ): void {
   if (typeof value === "string" && value.length > 0) target.add(value);
   if (Array.isArray(value)) {
-    for (const item of value) addRef(item, target, kind);
+    for (const item of value) addRef(item, target);
   }
 }
 
@@ -116,32 +144,44 @@ interface References {
 function findReferences(value: unknown): References {
   const assetIds = new Set<string>();
   const documents: Array<{ type: ProjectDocumentType; id: string }> = [];
-  const pending: unknown[] = [value];
+  const pending: Array<{ value: unknown; path: string[] }> = [
+    { value, path: [] }
+  ];
   while (pending.length > 0) {
     const current = pending.pop();
-    if (typeof current === "string") {
-      if (current.startsWith("asset://")) assetIds.add(current.slice(8));
+    if (!current) continue;
+    if (typeof current.value === "string") {
+      const assetId = assetIdFromLocator(current.value);
+      if (assetId) assetIds.add(assetId);
       continue;
     }
-    if (Array.isArray(current)) {
-      pending.push(...current);
+    if (Array.isArray(current.value)) {
+      pending.push(
+        ...current.value.map((item) => ({ value: item, path: current.path }))
+      );
       continue;
     }
-    if (!isRecord(current)) continue;
-    for (const [key, child] of Object.entries(current)) {
-      if (WORKFLOW_KEYS.has(key) && child != null && child !== "") {
+    if (!isRecord(current.value)) continue;
+    for (const [key, child] of Object.entries(current.value)) {
+      const normalizedKey = key.toLowerCase();
+      if (
+        WORKFLOW_KEYS.has(normalizedKey) &&
+        current.path.at(-1) !== "source" &&
+        child != null &&
+        child !== ""
+      ) {
         throw new ProjectCopyError(
           `Unsupported workflow dependency at ${key}. Copy the workflow separately first.`
         );
       }
-      if (ASSET_KEYS.has(key)) addRef(child, assetIds, "asset");
-      const documentType = DOCUMENT_KEYS[key];
+      if (ASSET_KEYS.has(normalizedKey)) addRef(child, assetIds);
+      const documentType = DOCUMENT_KEYS[normalizedKey];
       if (documentType) {
         const ids = new Set<string>();
-        addRef(child, ids, "document");
+        addRef(child, ids);
         for (const id of ids) documents.push({ type: documentType, id });
       }
-      pending.push(child);
+      pending.push({ value: child, path: [...current.path, key] });
     }
   }
   return { assetIds, documents };
@@ -152,10 +192,7 @@ function cloneAndRemap(
   ids: ReadonlyMap<string, string>
 ): unknown {
   if (typeof value === "string") {
-    if (value.startsWith("asset://")) {
-      const copied = ids.get(value.slice(8));
-      return copied ? `asset://${copied}` : value;
-    }
+    if (value.startsWith("asset://")) return remapAssetLocator(value, ids);
     return ids.get(value) ?? value;
   }
   if (Array.isArray(value)) return value.map((item) => cloneAndRemap(item, ids));
@@ -163,6 +200,16 @@ function cloneAndRemap(
   return Object.fromEntries(
     Object.entries(value).map(([key, child]) => [key, cloneAndRemap(child, ids)])
   );
+}
+
+function cloneMetadata(
+  metadata: Record<string, unknown> | null,
+  ids: ReadonlyMap<string, string>
+): Record<string, unknown> | null {
+  const copied = cloneAndRemap(metadata, ids);
+  if (copied === null) return null;
+  if (!isRecord(copied)) throw new ProjectCopyError("Asset metadata was invalid");
+  return copied;
 }
 
 async function loadDocument(
@@ -345,21 +392,40 @@ export async function copyProjectDocument(args: {
   }
 
   const preparedAssets = new Map<string, PreparedAsset>();
+  const discoveredAssetIds = new Set(assetsToVisit);
   while (assetsToVisit.length > 0) {
-    const assetId = assetsToVisit.pop();
-    if (!assetId || assetIds.has(assetId)) continue;
-    const source = await Asset.find(args.userId, assetId);
-    if (!source) throw new ProjectCopyError(`Asset dependency ${assetId} is unavailable`);
-    assetIds.set(assetId, createTimeOrderedUuid());
-    const metadataRefs = findReferences(source.metadata);
-    assetsToVisit.push(...metadataRefs.assetIds);
-    const bytes = source.isFolder
-      ? null
-      : await retrieveAssetBytes(args.storage, source.user_id, source.id, source.content_type);
-    if (!source.isFolder && !bytes) {
-      throw new ProjectCopyError(`Asset dependency ${assetId} has no stored media`);
+    const batch = assetsToVisit.splice(-900);
+    const sourcesById = new Map(
+      (await Asset.findMany(args.userId, batch)).map((asset) => [asset.id, asset])
+    );
+    for (const assetId of batch) {
+      const source = sourcesById.get(assetId);
+      if (!source) {
+        throw new ProjectCopyError(`Asset dependency ${assetId} is unavailable`);
+      }
+      assetIds.set(assetId, createTimeOrderedUuid());
+      const metadataRefs = findReferences(source.metadata);
+      for (const dependencyId of metadataRefs.assetIds) {
+        if (!discoveredAssetIds.has(dependencyId)) {
+          discoveredAssetIds.add(dependencyId);
+          assetsToVisit.push(dependencyId);
+        }
+      }
+      const bytes = source.isFolder
+        ? null
+        : await retrieveAssetBytes(
+            args.storage,
+            source.user_id,
+            source.id,
+            source.content_type
+          );
+      if (!source.isFolder && !bytes) {
+        throw new ProjectCopyError(
+          `Asset dependency ${assetId} has no stored media`
+        );
+      }
+      preparedAssets.set(assetId, { source, bytes });
     }
-    preparedAssets.set(assetId, { source, bytes });
   }
 
   const ids = new Map<string, string>(assetIds);
@@ -385,7 +451,7 @@ export async function copyProjectDocument(args: {
 
     const db = getDb();
     const writes = (tx: DbTransaction) => {
-      const statements = [];
+      const statements: Array<{ run: () => void }> = [];
       const now = new Date().toISOString();
       for (const [sourceId, prepared] of preparedAssets) {
         const destinationId = assetIds.get(sourceId);
@@ -400,7 +466,7 @@ export async function copyProjectDocument(args: {
             content_type: prepared.source.content_type,
             size: prepared.bytes?.byteLength ?? prepared.source.size,
             duration: prepared.source.duration,
-            metadata: cloneAndRemap(prepared.source.metadata, ids) as Record<string, unknown> | null,
+            metadata: cloneMetadata(prepared.source.metadata, ids),
             sketch_document_id: null,
             workflow_id: null,
             node_id: null,
@@ -431,7 +497,7 @@ export async function copyProjectDocument(args: {
     if (getDbType() === "sqlite") {
       db.transaction((tx: DbTransaction): void => {
         for (const statement of writes(tx)) {
-          (statement as { run: () => void }).run();
+          statement.run();
         }
       });
     } else {

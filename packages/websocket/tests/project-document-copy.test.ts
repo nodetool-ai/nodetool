@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   Asset,
+  emptyScriptDocument,
+  Script,
   Storyboard,
+  TimelineSequence,
   initTestDb,
   type StoryboardDocument
 } from "@nodetool-ai/models";
@@ -94,9 +97,18 @@ describe("copyProjectDocument", () => {
     ]);
     const copiedAsset = await Asset.find(userId, copiedEntityId ?? "");
     expect(copiedAsset?.project_id).toBe(destinationProjectId);
+    if (!copiedAsset) throw new Error("Copied asset was not persisted");
+    copiedAsset.name = "Destination reference";
+    await copiedAsset.save();
+    expect((await Asset.find(userId, reference.id))?.name).toBe("Reference");
+    await storage.delete(
+      getAssetStorageKey(userId, reference.id, reference.content_type)
+    );
+    await reference.delete();
+    await board.delete();
     expect(
       await storage.retrieve(
-        getAssetStorageKey(userId, copiedEntityId ?? "", "image/png")
+        getAssetStorageKey(userId, copiedAsset.id, "image/png")
       )
     ).toEqual(new Uint8Array([1, 2, 3]));
   });
@@ -122,6 +134,111 @@ describe("copyProjectDocument", () => {
       })
     ).rejects.toBeInstanceOf(ProjectCopyError);
     expect((await Storyboard.listByProject(destinationProjectId, userId)).length).toBe(0);
+  });
+
+  it("rewrites an extension-bearing asset locator without requiring a second asset", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const reference = await saveAsset(storage, {
+      content: new Uint8Array([4, 5, 6])
+    });
+    const document = storyboardDocument("");
+    document.shots = [
+      {
+        type: "shot",
+        id: "shot-1",
+        index: 0,
+        action: "show the reference",
+        status: "draft",
+        keyframe: { type: "image", uri: `asset://${reference.id}.png` }
+      }
+    ];
+    const board = new Storyboard({
+      user_id: userId,
+      project_id: sourceProjectId,
+      name: "URI board",
+      document: JSON.stringify(document)
+    });
+    await board.save();
+
+    const copied = await copyProjectDocument({
+      userId,
+      type: "storyboard",
+      id: board.id,
+      destinationProjectId,
+      storage
+    });
+
+    const copiedBoard = await Storyboard.findById(copied.id);
+    const keyframe = copiedBoard?.toDocument().shots[0]?.keyframe;
+    expect(keyframe?.uri).toBeDefined();
+    expect(keyframe?.uri).not.toBe(`asset://${reference.id}.png`);
+    expect(copied.copiedAssets).toBe(1);
+  });
+
+  it("rejects unsupported workflow bindings before it copies anything", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const document = {
+      ...storyboardDocument(""),
+      workflowId: "workflow-1"
+    };
+    const board = new Storyboard({
+      user_id: userId,
+      project_id: sourceProjectId,
+      name: "Workflow board",
+      document: JSON.stringify(document)
+    });
+    await board.save();
+
+    await expect(
+      copyProjectDocument({
+        userId,
+        type: "storyboard",
+        id: board.id,
+        destinationProjectId,
+        storage
+      })
+    ).rejects.toBeInstanceOf(ProjectCopyError);
+    expect((await Storyboard.listByProject(destinationProjectId, userId)).length).toBe(0);
+  });
+
+  it("copies linked document cycles once and remaps both directions", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const script = new Script({
+      user_id: userId,
+      project_id: sourceProjectId,
+      name: "Script",
+      document: JSON.stringify(emptyScriptDocument())
+    });
+    await script.save();
+    const timeline = new TimelineSequence({
+      user_id: userId,
+      project_id: sourceProjectId,
+      name: "Timeline",
+      document: JSON.stringify({
+        tracks: [],
+        clips: [],
+        markers: [],
+        scriptId: script.id
+      })
+    });
+    await timeline.save();
+    script.timeline_id = timeline.id;
+    await script.save();
+
+    const copied = await copyProjectDocument({
+      userId,
+      type: "script",
+      id: script.id,
+      destinationProjectId,
+      storage
+    });
+
+    expect(copied.copiedDocuments).toBe(2);
+    const copiedScript = await Script.findById(copied.id);
+    const copiedTimeline = await TimelineSequence.findById(
+      copiedScript?.timeline_id ?? ""
+    );
+    expect(copiedTimeline?.toDocument()).toMatchObject({ scriptId: copied.id });
   });
 
   it("traverses a large asset dependency graph without duplicate copies", async () => {
