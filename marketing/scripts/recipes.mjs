@@ -51,7 +51,7 @@ export const recipePresentation = [
       statusLabel: "English and Spanish example",
       summary:
         "A synthetic English presenter was translated, revoiced in Spanish, and prepared as editable line-level takes.",
-      provider: "Media generated with FAL through NodeTool",
+      provider: "Media generated with FAL and Replicate through NodeTool",
       hero: {
         src: `${runRoot}/multilingual-video-dubber/recipe-card.webp`,
         alt: "Synthetic presenter with English and Spanish versions of the same short script."
@@ -73,7 +73,7 @@ export const recipePresentation = [
       },
       supportedClaims: [
         "The captured Script flow preserved three approved Spanish lines through setup.",
-        "FAL Seed Speech felipe_es produced the male Spanish voice used in the comparison video.",
+        "Inworld Realtime TTS 2 with the female Ashley voice produced the Spanish track used in the comparison video.",
         "Line 2 was redirected and revoiced before three clips were sent to an editable 16.3-second timeline."
       ],
       limitations: [

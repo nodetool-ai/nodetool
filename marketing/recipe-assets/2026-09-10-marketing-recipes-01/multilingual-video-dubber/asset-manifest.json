@@ -25,7 +25,7 @@
       "serverId": null,
       "projectId": null,
       "exportPath": "documents/line-map.json",
-      "sha256": "b66d0807f67155126175b620e8e2e3b315b8a3a9c3451e74d56c249a9dee2ed1",
+      "sha256": "443c5ff2ab37b5f29789a41586550967573157810302fc90c5eaed09cefa685f",
       "linkedDocumentIds": []
     },
     {
@@ -43,7 +43,7 @@
       "serverId": null,
       "projectId": null,
       "exportPath": "documents/script-es.json",
-      "sha256": "f25346e62dbb26ba35f1683cc55e5246da71a414c83235d655f0bba2fb033606",
+      "sha256": "e3874e5419c8304cc172d23f77f81a68cb78ff83049370288a4b9e34650924bc",
       "linkedDocumentIds": []
     },
     {
@@ -52,7 +52,7 @@
       "serverId": null,
       "projectId": null,
       "exportPath": "documents/source-en.srt",
-      "sha256": "9bea53b5776ea7d3fa129fe29167bd12432379852bcc7f6c00ded9c875bfc5b3",
+      "sha256": "5e59592c5ad4cba193b2180bc7e400dbc8e0e3a8046df674ad60c87e72a70253",
       "linkedDocumentIds": []
     },
     {
@@ -97,7 +97,7 @@
       "serverId": null,
       "projectId": null,
       "exportPath": "documents/translation-review.md",
-      "sha256": "12f28b34f0a7a9dc248fd9ead121c0a97de175dc42400042512134b1b460d9a7",
+      "sha256": "89a01d9dd2677e81e6574e0e21fbdfb20788ae377789234ffc1a8027ae811cae",
       "linkedDocumentIds": []
     }
   ],
@@ -146,9 +146,9 @@
       "id": "DU-F003",
       "role": "documents/line-map.json",
       "relativePath": "documents/line-map.json",
-      "sha256": "b66d0807f67155126175b620e8e2e3b315b8a3a9c3451e74d56c249a9dee2ed1",
+      "sha256": "443c5ff2ab37b5f29789a41586550967573157810302fc90c5eaed09cefa685f",
       "mimeType": "application/json",
-      "bytes": 450,
+      "bytes": 447,
       "provenance": "derived",
       "sourceIds": [
         "DU-F004",
@@ -191,9 +191,9 @@
       "id": "DU-F005",
       "role": "documents/script-es.json",
       "relativePath": "documents/script-es.json",
-      "sha256": "f25346e62dbb26ba35f1683cc55e5246da71a414c83235d655f0bba2fb033606",
+      "sha256": "e3874e5419c8304cc172d23f77f81a68cb78ff83049370288a4b9e34650924bc",
       "mimeType": "application/json",
-      "bytes": 601,
+      "bytes": 582,
       "provenance": "derived",
       "sourceIds": [
         "DU-F008"
@@ -311,7 +311,7 @@
       "id": "DU-F011",
       "role": "documents/translation-review.md",
       "relativePath": "documents/translation-review.md",
-      "sha256": "12f28b34f0a7a9dc248fd9ead121c0a97de175dc42400042512134b1b460d9a7",
+      "sha256": "89a01d9dd2677e81e6574e0e21fbdfb20788ae377789234ffc1a8027ae811cae",
       "mimeType": "text/plain",
       "bytes": 1495,
       "provenance": "derived",
@@ -332,9 +332,9 @@
       "id": "DU-F012",
       "role": "evidence/language-review.md",
       "relativePath": "evidence/language-review.md",
-      "sha256": "5c8a5f4b545024c91e60c397b85d38626996d72030a0defee9b338861fcfefb2",
+      "sha256": "89077f9bb6aabbdd5d99d93f07d3fc4beb4b41064ef86e846f9b01d9cdc6600e",
       "mimeType": "text/plain",
-      "bytes": 414,
+      "bytes": 528,
       "provenance": "derived",
       "sourceIds": [
         "DU-F011",
@@ -352,9 +352,9 @@
       "id": "DU-F013",
       "role": "evidence/lipsync-review.md",
       "relativePath": "evidence/lipsync-review.md",
-      "sha256": "7400382b2c912d182c337dcfb98f306e93894133a06dd50d908a4ecd04a32175",
+      "sha256": "d66280d32a7158cd0b093d2fce0c63b1f69a72dc09fad6c655d329df69809de8",
       "mimeType": "text/plain",
-      "bytes": 452,
+      "bytes": 480,
       "provenance": "derived",
       "sourceIds": [
         "DU-F038"
@@ -371,9 +371,9 @@
       "id": "DU-F014",
       "role": "evidence/loudness-lipsync.txt",
       "relativePath": "evidence/loudness-lipsync.txt",
-      "sha256": "c8dc7e42c8efba0afedd6fe1e7d6e3c5184a4c938dcfd457015ddb30ebd7081d",
+      "sha256": "b4160838ce03d8236be37aebab344449edcbe493bb75c5e82974a6fc043f5f41",
       "mimeType": "text/plain",
-      "bytes": 37664,
+      "bytes": 37592,
       "provenance": "derived",
       "sourceIds": [
         "DU-F038"
@@ -390,9 +390,9 @@
       "id": "DU-F015",
       "role": "evidence/probe-lipsync.json",
       "relativePath": "evidence/probe-lipsync.json",
-      "sha256": "e8d38bef269a7cdb33a4ef8f7650675d899a3bb2f0aef09f99a61029ec6c6bcf",
+      "sha256": "ea06f16773e0593ee0378ea29d7495f3952246365074122189dbb6599a833e8b",
       "mimeType": "application/json",
-      "bytes": 4521,
+      "bytes": 4522,
       "provenance": "derived",
       "sourceIds": [
         "DU-F038"
@@ -428,7 +428,7 @@
       "id": "DU-F017",
       "role": "evidence/probe-voiceover.json",
       "relativePath": "evidence/probe-voiceover.json",
-      "sha256": "c2b4673738d91f07622935ec314b60495a3afbf5c8df14e88695663867a5ae76",
+      "sha256": "c53a22fe063499fe9a4384ecbc0c366e1eb3d69782d9d0de56e321c8c85feabe",
       "mimeType": "application/json",
       "bytes": 4523,
       "provenance": "derived",
@@ -447,7 +447,7 @@
       "id": "DU-F018",
       "role": "evidence/sha256.txt",
       "relativePath": "evidence/sha256.txt",
-      "sha256": "693209edc049524a13081244db5220b359261abdcbe743e724ac213bfb4c0e9a",
+      "sha256": "0bd57fe83e8017c29983c8df4583fa475d29cf42ebf54236e7a27cdd79f69bf3",
       "mimeType": "text/plain",
       "bytes": 11531,
       "provenance": "derived",
@@ -487,9 +487,9 @@
       "id": "DU-F020",
       "role": "evidence/timing-report.json",
       "relativePath": "evidence/timing-report.json",
-      "sha256": "1f10cf1a1580b64aae130b0bf5410e8e6e45eab35a6905fe2967f17a8d77d047",
+      "sha256": "761ee5e35b15a53fa1bb9c03610810ffa45144329d8adba0d27179725c076f5c",
       "mimeType": "application/json",
-      "bytes": 378,
+      "bytes": 375,
       "provenance": "derived",
       "sourceIds": [
         "DU-F051",
@@ -510,130 +510,133 @@
       "id": "DU-F021",
       "role": "generation/dub-es-lipsync-line1-padded.mp4",
       "relativePath": "generation/dub-es-lipsync-line1-padded.mp4",
-      "sha256": "f0e45ad3640defc21afe0cb82ca9d0b6a4f7a1211ad76d68dbe01ebe61a09f71",
+      "sha256": "375cbecd9a4b3a3fe3e4ae8359b45bf5ac771038daae3a735103beac5c1efbcc",
       "mimeType": "video/mp4",
-      "bytes": 2052547,
+      "bytes": 4358523,
       "width": 1920,
       "height": 1088,
       "duration": 9,
       "fps": "24/1",
       "hasAudio": true,
-      "provenance": "generated-in-nodetool",
+      "provenance": "derived",
       "sourceIds": [
-        "DU-F022"
+        "DU-F038"
       ],
       "producingDocumentId": null,
       "shotOrLineIds": [
         "DU-L1"
-      ]
+      ],
+      "transformation": "Cut the DU-L1 source window from the full Spanish lip-sync master."
     },
     {
       "id": "DU-F022",
       "role": "generation/dub-es-lipsync-line1.mp4",
       "relativePath": "generation/dub-es-lipsync-line1.mp4",
-      "sha256": "659fe1831dcb0de9c64d85753fdb5d5412ae94a73dd53115b2355baa0caab9a1",
+      "sha256": "294d9b3747a6f2ff4462b9c51e80f44ae7f42d09bca0489b05e536a95686355a",
       "mimeType": "video/mp4",
-      "bytes": 18785364,
+      "bytes": 4013358,
       "width": 1920,
       "height": 1088,
-      "duration": 8.5,
+      "duration": 8.25,
       "fps": "24/1",
       "hasAudio": true,
-      "provenance": "generated-in-nodetool",
+      "provenance": "derived",
       "sourceIds": [
-        "DU-F032",
-        "DU-F042"
+        "DU-F038"
       ],
       "producingDocumentId": null,
       "shotOrLineIds": [
         "DU-L1"
-      ]
+      ],
+      "transformation": "Cut the DU-L1 speech interval from the full Spanish lip-sync master."
     },
     {
       "id": "DU-F023",
       "role": "generation/dub-es-lipsync-line2-padded.mp4",
       "relativePath": "generation/dub-es-lipsync-line2-padded.mp4",
-      "sha256": "fb3910f332d743fd47d8b4e339ece3363c816d4fa00ae82dca5ab955ed369c78",
+      "sha256": "bad6090df8481900c76a5b49d94d239493d013f93b38391e29f8ed37e9a1515a",
       "mimeType": "video/mp4",
-      "bytes": 1167367,
+      "bytes": 2966649,
       "width": 1920,
       "height": 1088,
       "duration": 6.5,
       "fps": "24/1",
       "hasAudio": true,
-      "provenance": "generated-in-nodetool",
+      "provenance": "derived",
       "sourceIds": [
-        "DU-F024"
+        "DU-F038"
       ],
       "producingDocumentId": null,
       "shotOrLineIds": [
         "DU-L2"
-      ]
+      ],
+      "transformation": "Cut the DU-L2 source window from the full Spanish lip-sync master."
     },
     {
       "id": "DU-F024",
       "role": "generation/dub-es-lipsync-line2.mp4",
       "relativePath": "generation/dub-es-lipsync-line2.mp4",
-      "sha256": "02a767ffda54bce3944540450a45f80b7a5d0e3370de9a09e4c9955f4a428c49",
+      "sha256": "7523b8f79891631b73fc21a09446f652b376e6c0ca0d703eb8a1030194625c19",
       "mimeType": "video/mp4",
-      "bytes": 10280301,
+      "bytes": 2240981,
       "width": 1920,
       "height": 1088,
-      "duration": 5,
+      "duration": 5.041667,
       "fps": "24/1",
       "hasAudio": true,
-      "provenance": "generated-in-nodetool",
+      "provenance": "derived",
       "sourceIds": [
-        "DU-F033",
-        "DU-F043"
+        "DU-F038"
       ],
       "producingDocumentId": null,
       "shotOrLineIds": [
         "DU-L2"
-      ]
+      ],
+      "transformation": "Cut the DU-L2 speech interval from the full Spanish lip-sync master."
     },
     {
       "id": "DU-F025",
       "role": "generation/dub-es-lipsync-line3-padded.mp4",
       "relativePath": "generation/dub-es-lipsync-line3-padded.mp4",
-      "sha256": "23d06597f1aa7688f27a44dfaa6217845f7a1764e2532ffc3d71914517f109bd",
+      "sha256": "8a06245cca6e48ae3b638371cdc8076e0e72805e0cf6123555751b67a1bbcec3",
       "mimeType": "video/mp4",
-      "bytes": 1521368,
+      "bytes": 3343748,
       "width": 1920,
       "height": 1088,
       "duration": 7.125,
       "fps": "24/1",
       "hasAudio": true,
-      "provenance": "generated-in-nodetool",
+      "provenance": "derived",
       "sourceIds": [
-        "DU-F026"
+        "DU-F038"
       ],
       "producingDocumentId": null,
       "shotOrLineIds": [
         "DU-L3"
-      ]
+      ],
+      "transformation": "Cut the DU-L3 source window from the full Spanish lip-sync master."
     },
     {
       "id": "DU-F026",
       "role": "generation/dub-es-lipsync-line3.mp4",
       "relativePath": "generation/dub-es-lipsync-line3.mp4",
-      "sha256": "3fd6957433d8a3bd493010a3fb304aea6e2c5257f39ab64e47bde373b61873be",
+      "sha256": "b1f937096223d05135e676093a01b766e67876544382440f4166cc4126300224",
       "mimeType": "video/mp4",
-      "bytes": 14429601,
+      "bytes": 3010556,
       "width": 1920,
       "height": 1088,
-      "duration": 6.875,
+      "duration": 6.375,
       "fps": "24/1",
       "hasAudio": true,
-      "provenance": "generated-in-nodetool",
+      "provenance": "derived",
       "sourceIds": [
-        "DU-F034",
-        "DU-F044"
+        "DU-F038"
       ],
       "producingDocumentId": null,
       "shotOrLineIds": [
         "DU-L3"
-      ]
+      ],
+      "transformation": "Cut the DU-L3 speech interval from the full Spanish lip-sync master."
     },
     {
       "id": "DU-F027",
@@ -809,9 +812,9 @@
       "id": "DU-F035",
       "role": "generation/source-ledger.json",
       "relativePath": "generation/source-ledger.json",
-      "sha256": "23481707939ec3b1e1a4e6504e5268c52ad68c77e57093227222f6eb81146e26",
+      "sha256": "8ff9e8c7a990ca20caac193e127758786f585515d8787fa32517540ba4bed52f",
       "mimeType": "application/json",
-      "bytes": 1301,
+      "bytes": 1766,
       "provenance": "generated-in-nodetool",
       "sourceIds": [
         "DU-F027",
@@ -832,9 +835,9 @@
       "id": "DU-F036",
       "role": "handoff.md",
       "relativePath": "handoff.md",
-      "sha256": "008b07a1c639989eeb3efddd95b7d93fecdba1e957e9346f6979224fdf1f640a",
+      "sha256": "ceba7cef2e6a875b71aa0d20cfcf194b0660ea971730eba0e9f4d7cb322c419e",
       "mimeType": "text/plain",
-      "bytes": 3431,
+      "bytes": 3456,
       "provenance": "derived",
       "sourceIds": [
         "DU-F038",
@@ -857,12 +860,12 @@
       "id": "DU-F037",
       "role": "masters/dub-es-lipsync-captioned.mp4",
       "relativePath": "masters/dub-es-lipsync-captioned.mp4",
-      "sha256": "e852ab021fd175e8cd03933945b529790034be862df8dc34b41d601e54a2088f",
+      "sha256": "2e95ff4ce666b888838cac398d7f91e7876f859b9fcc71e2c62f31f91cb2adae",
       "mimeType": "video/mp4",
-      "bytes": 7196126,
+      "bytes": 9779518,
       "width": 1920,
       "height": 1088,
-      "duration": 22.7,
+      "duration": 22.625,
       "fps": "24/1",
       "hasAudio": true,
       "provenance": "derived",
@@ -882,19 +885,17 @@
       "id": "DU-F038",
       "role": "masters/dub-es-lipsync-clean.mp4",
       "relativePath": "masters/dub-es-lipsync-clean.mp4",
-      "sha256": "6247c5a10903f41a4452205c8cc3c0f0b9c37b7e5bf916f0c1d2008e7dbdfe06",
+      "sha256": "d4c1039e88ff92bcbed193462bf47993e7fe7d50071845e0ccbc33bfa89ca6a6",
       "mimeType": "video/mp4",
-      "bytes": 4982133,
+      "bytes": 16973834,
       "width": 1920,
       "height": 1088,
-      "duration": 22.7,
+      "duration": 22.625,
       "fps": "24/1",
       "hasAudio": true,
-      "provenance": "derived",
+      "provenance": "generated-in-nodetool",
       "sourceIds": [
-        "DU-F021",
-        "DU-F023",
-        "DU-F025",
+        "DU-F050",
         "DU-F045"
       ],
       "producingDocumentId": null,
@@ -903,18 +904,18 @@
         "DU-L2",
         "DU-L3"
       ],
-      "transformation": "Concatenated padded per-line lip-sync outputs and retained the accepted Spanish speech track."
+      "transformation": "Processed the full source picture with the accepted female Spanish voice stem using Sync Lipsync 2 through Replicate."
     },
     {
       "id": "DU-F039",
       "role": "masters/dub-es-voiceover-captioned.mp4",
       "relativePath": "masters/dub-es-voiceover-captioned.mp4",
-      "sha256": "c5cb20c521a9d637fe9c68021abcfa209b8ab7665910364dc9af128412b51162",
+      "sha256": "a02418d7c8f16194b7c9f7de89a5bdd0015461911e2a600e5728797759112cca",
       "mimeType": "video/mp4",
-      "bytes": 8139818,
+      "bytes": 7363495,
       "width": 1920,
       "height": 1088,
-      "duration": 22.55,
+      "duration": 22.625,
       "fps": "24/1",
       "hasAudio": true,
       "provenance": "derived",
@@ -934,12 +935,12 @@
       "id": "DU-F040",
       "role": "masters/dub-es-voiceover-clean.mp4",
       "relativePath": "masters/dub-es-voiceover-clean.mp4",
-      "sha256": "1fcc43c57363c9b48a590b7d78145d9566cf8f23997443eb7ac798187511d3ea",
+      "sha256": "c9b9a8218219c6a858ea05961bae9a3ea43f80642899b463bfa0a7586b7b9c37",
       "mimeType": "video/mp4",
-      "bytes": 5589734,
+      "bytes": 5440301,
       "width": 1920,
       "height": 1088,
-      "duration": 22.55,
+      "duration": 22.625,
       "fps": "24/1",
       "hasAudio": true,
       "provenance": "derived",
@@ -959,12 +960,12 @@
       "id": "DU-F041",
       "role": "masters/language-comparison.mp4",
       "relativePath": "masters/language-comparison.mp4",
-      "sha256": "e8d90ba2f60741e757d93a9ead7e3c2947c13ed8e33725d814ced5a7a0d9fea1",
+      "sha256": "d343dd693545f58235b35a9d8e6beec11630944e16511909eecd63a9d8b0eb34",
       "mimeType": "video/mp4",
-      "bytes": 15894199,
+      "bytes": 16911547,
       "width": 1920,
       "height": 1088,
-      "duration": 45.331,
+      "duration": 45.238,
       "fps": "24/1",
       "hasAudio": true,
       "provenance": "derived",
@@ -984,12 +985,12 @@
       "id": "DU-F042",
       "role": "masters/voice-es/du-l1.mp3",
       "relativePath": "masters/voice-es/du-l1.mp3",
-      "sha256": "df9dbfbae1dbf0e038005b114a40d21386957f8721da0a5b2cedd5f41645ea7f",
+      "sha256": "9dcd58e528180c3a8d2c15d65253c0526eb549afe0c961eb95d2de5e86f1acf3",
       "mimeType": "audio/mpeg",
-      "bytes": 135981,
+      "bytes": 132524,
       "width": null,
       "height": null,
-      "duration": 8.496,
+      "duration": 8.22,
       "fps": null,
       "hasAudio": true,
       "provenance": "generated-in-nodetool",
@@ -1005,12 +1006,12 @@
       "id": "DU-F043",
       "role": "masters/voice-es/du-l2.mp3",
       "relativePath": "masters/voice-es/du-l2.mp3",
-      "sha256": "cd7e773a5390d4586b7d1645a7d755668dcae266bac7f8eb81aeec756d5c688e",
+      "sha256": "5c8256cbec715845c0faeae17af1efd537453e693397ef20f5703d25e05772ab",
       "mimeType": "audio/mpeg",
-      "bytes": 79533,
+      "bytes": 81452,
       "width": null,
       "height": null,
-      "duration": 4.968,
+      "duration": 5.04,
       "fps": null,
       "hasAudio": true,
       "provenance": "generated-in-nodetool",
@@ -1026,12 +1027,12 @@
       "id": "DU-F044",
       "role": "masters/voice-es/du-l3.mp3",
       "relativePath": "masters/voice-es/du-l3.mp3",
-      "sha256": "d18c2548c7fff1f9bf3430f5f9ddfbcf78093af330cc6353beffc9b96f9e6157",
+      "sha256": "73e530a9243b1d2394ccd9d9ff9e6be7231d15e65ac38da732e682255541230e",
       "mimeType": "audio/mpeg",
-      "bytes": 109869,
+      "bytes": 102572,
       "width": null,
       "height": null,
-      "duration": 6.864,
+      "duration": 6.34,
       "fps": null,
       "hasAudio": true,
       "provenance": "generated-in-nodetool",
@@ -1047,12 +1048,12 @@
       "id": "DU-F045",
       "role": "masters/voice-es.wav",
       "relativePath": "masters/voice-es.wav",
-      "sha256": "1dbddab007e319e3a3d7f53eb6f0583c83e2a246bc8e9be06877624b8fbeb428",
+      "sha256": "190af19a421cee3142cc61acc8ea7f4999446f87525d799febe0d1760fc6f734",
       "mimeType": "audio/wav",
-      "bytes": 2164878,
+      "bytes": 2172078,
       "width": null,
       "height": null,
-      "duration": 22.55,
+      "duration": 22.625,
       "fps": null,
       "hasAudio": true,
       "provenance": "derived",
@@ -1088,9 +1089,9 @@
       "id": "DU-F047",
       "role": "qa.md",
       "relativePath": "qa.md",
-      "sha256": "9ec9ae51eee5276b253681ca5a504005a18839561c3ced643a040db30f5ca390",
+      "sha256": "c52138957b7c5d1ff850db11161421dc2eed17159bc4ba94f4a7a168d6c7de4a",
       "mimeType": "text/plain",
-      "bytes": 2932,
+      "bytes": 2975,
       "provenance": "derived",
       "sourceIds": [
         "DU-F001",
@@ -1187,9 +1188,9 @@
       "id": "DU-F052",
       "role": "web/dub-es-lipsync-poster.webp",
       "relativePath": "web/dub-es-lipsync-poster.webp",
-      "sha256": "d615521747e34e1623256ce13ed8958d2a9069896d8128b32793e28ccd6e3f4c",
+      "sha256": "faf2822316fab709a3ab30388fc0c21e9a190771d6632910e9e1ad8c7d7a04bb",
       "mimeType": "image/webp",
-      "bytes": 108666,
+      "bytes": 96434,
       "provenance": "derived",
       "sourceIds": [
         "DU-F038"
@@ -1206,12 +1207,12 @@
       "id": "DU-F053",
       "role": "web/dub-es-lipsync.mp4",
       "relativePath": "web/dub-es-lipsync.mp4",
-      "sha256": "e852ab021fd175e8cd03933945b529790034be862df8dc34b41d601e54a2088f",
+      "sha256": "2e95ff4ce666b888838cac398d7f91e7876f859b9fcc71e2c62f31f91cb2adae",
       "mimeType": "video/mp4",
-      "bytes": 7196126,
+      "bytes": 9779518,
       "width": 1920,
       "height": 1088,
-      "duration": 22.7,
+      "duration": 22.625,
       "fps": "24/1",
       "hasAudio": true,
       "provenance": "derived",
@@ -1230,12 +1231,12 @@
       "id": "DU-F054",
       "role": "web/dub-es-lipsync.webm",
       "relativePath": "web/dub-es-lipsync.webm",
-      "sha256": "6d9b8e42606b352c4df1a1faf62919c86e76fb41f136fcb588afbfdbf66327cd",
+      "sha256": "6cc23023780609d353c4d44e1f8b590bbe0967b8ec7ee310ca9080657e371af9",
       "mimeType": "video/webm",
-      "bytes": 2673362,
+      "bytes": 2521373,
       "width": 1920,
       "height": 1088,
-      "duration": 22.714,
+      "duration": 22.642,
       "fps": "24/1",
       "hasAudio": true,
       "provenance": "derived",
@@ -1254,9 +1255,9 @@
       "id": "DU-F055",
       "role": "web/dub-es-voiceover-poster.webp",
       "relativePath": "web/dub-es-voiceover-poster.webp",
-      "sha256": "050e0f166519172b117ada747f10964331f21aeb75e280d35f83db0372fc278b",
+      "sha256": "528d2ffe2fc15094fa17c1b60aaf0f68175467b82fc6598ecc9a79c1e3e7ca6c",
       "mimeType": "image/webp",
-      "bytes": 118698,
+      "bytes": 97856,
       "provenance": "derived",
       "sourceIds": [
         "DU-F040"
@@ -1273,12 +1274,12 @@
       "id": "DU-F056",
       "role": "web/dub-es-voiceover.mp4",
       "relativePath": "web/dub-es-voiceover.mp4",
-      "sha256": "c5cb20c521a9d637fe9c68021abcfa209b8ab7665910364dc9af128412b51162",
+      "sha256": "a02418d7c8f16194b7c9f7de89a5bdd0015461911e2a600e5728797759112cca",
       "mimeType": "video/mp4",
-      "bytes": 8139818,
+      "bytes": 7363495,
       "width": 1920,
       "height": 1088,
-      "duration": 22.55,
+      "duration": 22.625,
       "fps": "24/1",
       "hasAudio": true,
       "provenance": "derived",
@@ -1297,12 +1298,12 @@
       "id": "DU-F057",
       "role": "web/dub-es-voiceover.webm",
       "relativePath": "web/dub-es-voiceover.webm",
-      "sha256": "8cb4be3b95131e23febb3af7759e0c8aa73373c1814c8c491a4ead05be278de0",
+      "sha256": "312a8a4a532c304ccd38920773d408eb3c608d4c0db28a645738e912f9f74743",
       "mimeType": "video/webm",
-      "bytes": 3012952,
+      "bytes": 2446247,
       "width": 1920,
       "height": 1088,
-      "duration": 22.578,
+      "duration": 22.642,
       "fps": "24/1",
       "hasAudio": true,
       "provenance": "derived",
@@ -1321,7 +1322,7 @@
       "id": "DU-F058",
       "role": "web/dub-es.srt",
       "relativePath": "web/dub-es.srt",
-      "sha256": "63798dee6e3fea3e79058dba79c62e274fc96133fc490e7e54afbae63b27810c",
+      "sha256": "bda6fd885edde82c57fcc87e66c394fe44206756e8d30b1bc623ca9cf41a01d0",
       "mimeType": "text/plain",
       "bytes": 367,
       "provenance": "derived",
@@ -1341,7 +1342,7 @@
       "id": "DU-F059",
       "role": "web/dub-es.vtt",
       "relativePath": "web/dub-es.vtt",
-      "sha256": "61094b46dc344a943ddf611b08178233b2bd9ca24388ea54519c5567396671ef",
+      "sha256": "14afba46e8c85e4f3a092bb5afda47cbfd4cdc4aba2738a22fb078cb160db008",
       "mimeType": "text/vtt",
       "bytes": 369,
       "provenance": "derived",
@@ -1360,12 +1361,12 @@
       "id": "DU-F060",
       "role": "web/language-comparison.mp4",
       "relativePath": "web/language-comparison.mp4",
-      "sha256": "e8d90ba2f60741e757d93a9ead7e3c2947c13ed8e33725d814ced5a7a0d9fea1",
+      "sha256": "d343dd693545f58235b35a9d8e6beec11630944e16511909eecd63a9d8b0eb34",
       "mimeType": "video/mp4",
-      "bytes": 15894199,
+      "bytes": 16911547,
       "width": 1920,
       "height": 1088,
-      "duration": 45.331,
+      "duration": 45.238,
       "fps": "24/1",
       "hasAudio": true,
       "provenance": "derived",
@@ -1384,12 +1385,12 @@
       "id": "DU-F061",
       "role": "web/language-comparison.webm",
       "relativePath": "web/language-comparison.webm",
-      "sha256": "da5ca0eb598f74abfb5397216acff068eeb495420fe1f910f12ea6616c4fb30e",
+      "sha256": "e492e637883a670b531aaaa7296f22736f6ddc0c72cb0226efcc36aff50b9f65",
       "mimeType": "video/webm",
-      "bytes": 5366819,
+      "bytes": 4703297,
       "width": 1920,
       "height": 1088,
-      "duration": 45.349,
+      "duration": 45.256,
       "fps": "24/1",
       "hasAudio": true,
       "provenance": "derived",
@@ -1408,9 +1409,9 @@
       "id": "DU-F062",
       "role": "web/poster.webp",
       "relativePath": "web/poster.webp",
-      "sha256": "d8cb2855d5210aedecd9eab5567710ef9f7608b57e1ddae1fad460ee95c614ea",
+      "sha256": "18c3bba2157c1c54eed25173c645046110915c03638684f7ce334be6fa4221c2",
       "mimeType": "image/webp",
-      "bytes": 115036,
+      "bytes": 99490,
       "provenance": "derived",
       "sourceIds": [
         "DU-F041"
@@ -1743,23 +1744,16 @@
       "promptFile": null,
       "settings": {
         "voices": [
-          "dacey_en",
-          "felipe_es"
+          "dacey_en"
         ],
         "retained": false,
-        "note": "Voice IDs are retained in source provenance and the Spanish script export; remaining provider settings were not retained.",
+        "note": "The English voice ID is retained in source provenance; remaining provider settings were not retained.",
         "outputVoiceMap": {
-          "DU-F030": "dacey_en",
-          "DU-F042": "felipe_es",
-          "DU-F043": "felipe_es",
-          "DU-F044": "felipe_es"
+          "DU-F030": "dacey_en"
         }
       },
       "outputIds": [
-        "DU-F030",
-        "DU-F042",
-        "DU-F043",
-        "DU-F044"
+        "DU-F030"
       ],
       "actualCost": null,
       "currency": null,
@@ -1804,15 +1798,12 @@
         "DU-F030",
         "DU-F032",
         "DU-F033",
-        "DU-F034",
-        "DU-F042",
-        "DU-F043",
-        "DU-F044"
+        "DU-F034"
       ],
       "promptFile": null,
       "settings": {
         "retained": false,
-        "note": "This aggregate ledger record covers six completed per-line invocations. The input pairing is preserved below; remaining provider settings were not retained.",
+        "note": "This aggregate ledger record covers three completed English per-line invocations. The input pairing is preserved below; remaining provider settings were not retained.",
         "operations": [
           {
             "stage": "English source lip sync",
@@ -1846,49 +1837,13 @@
               "DU-F030"
             ],
             "outputId": "DU-F034"
-          },
-          {
-            "stage": "Spanish target lip sync",
-            "shotOrLineIds": [
-              "DU-L1"
-            ],
-            "inputAssetIds": [
-              "DU-F032",
-              "DU-F042"
-            ],
-            "outputId": "DU-F022"
-          },
-          {
-            "stage": "Spanish target lip sync",
-            "shotOrLineIds": [
-              "DU-L2"
-            ],
-            "inputAssetIds": [
-              "DU-F033",
-              "DU-F043"
-            ],
-            "outputId": "DU-F024"
-          },
-          {
-            "stage": "Spanish target lip sync",
-            "shotOrLineIds": [
-              "DU-L3"
-            ],
-            "inputAssetIds": [
-              "DU-F034",
-              "DU-F044"
-            ],
-            "outputId": "DU-F026"
           }
         ]
       },
       "outputIds": [
         "DU-F032",
         "DU-F033",
-        "DU-F034",
-        "DU-F022",
-        "DU-F024",
-        "DU-F026"
+        "DU-F034"
       ],
       "actualCost": null,
       "currency": null,
@@ -1900,23 +1855,80 @@
       "id": "DU-GEN-005",
       "callId": null,
       "jobId": null,
-      "toolName": "fal.speech_to_text.ElevenLabsSpeechToText",
-      "provider": "fal_ai",
-      "model": "fal-ai/elevenlabs/speech-to-text",
+      "toolName": "replicate.audio.transcribe.GPT4o_Mini_Transcribe",
+      "provider": "replicate",
+      "model": "openai/gpt-4o-mini-transcribe",
       "inputAssetIds": [
-        "DU-F050",
-        "DU-F042",
-        "DU-F043",
-        "DU-F044"
+        "DU-F045"
       ],
       "promptFile": null,
       "settings": {
         "retained": false,
-        "note": "Raw provider transcripts were not retained as standalone assets; reviewed transcription and language results are retained in the listed outputs."
+        "language": "es",
+        "temperature": 0,
+        "note": "The provider transcript was checked against the approved target and matched every spoken word; the review result is retained in the listed output."
       },
       "outputIds": [
-        "DU-F007",
         "DU-F012"
+      ],
+      "actualCost": null,
+      "currency": null,
+      "costNote": "Node CLI returned no cost fields.",
+      "attempt": 1,
+      "failureReason": null
+    },
+    {
+      "id": "DU-GEN-006",
+      "callId": null,
+      "jobId": null,
+      "toolName": "replicate.audio.speech.Inworld_Realtime_TTS_2",
+      "provider": "replicate",
+      "model": "inworld/realtime-tts-2",
+      "inputAssetIds": [
+        "DU-F005"
+      ],
+      "promptFile": null,
+      "settings": {
+        "voice": "Ashley",
+        "language": "es",
+        "audioFormat": "wav",
+        "sampleRate": 48000,
+        "speakingRate": 1,
+        "temperature": 0.8,
+        "textNormalization": "auto",
+        "direction": "speak warmly and naturally in Latin American Spanish"
+      },
+      "outputIds": [
+        "DU-F042",
+        "DU-F043",
+        "DU-F044"
+      ],
+      "actualCost": null,
+      "currency": null,
+      "costNote": "Node CLI returned no cost fields.",
+      "attempt": 1,
+      "failureReason": null
+    },
+    {
+      "id": "DU-GEN-007",
+      "callId": null,
+      "jobId": null,
+      "toolName": "replicate.video.generate.Lipsync_2",
+      "provider": "replicate",
+      "model": "sync/lipsync-2",
+      "inputAssetIds": [
+        "DU-F050",
+        "DU-F045"
+      ],
+      "promptFile": null,
+      "settings": {
+        "activeSpeaker": false,
+        "syncMode": "cut_off",
+        "temperature": 0.5,
+        "note": "The provider processed the full source once; the line-level and padded files were cut from the resulting clean master."
+      },
+      "outputIds": [
+        "DU-F038"
       ],
       "actualCost": null,
       "currency": null,
@@ -1972,7 +1984,7 @@
       "safeToUse": true
     },
     {
-      "wording": "The same synthetic presenter footage was finished with Spanish voiceover and FAL lip sync.",
+      "wording": "The same synthetic presenter footage was finished with the female Inworld Ashley Spanish voice and Sync lip sync through Replicate.",
       "evidenceIds": [
         "evidence/source-provenance.json",
         "masters/dub-es-lipsync-clean.mp4"

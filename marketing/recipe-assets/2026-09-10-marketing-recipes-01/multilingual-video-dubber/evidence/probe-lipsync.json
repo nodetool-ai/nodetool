@@ -32,10 +32,10 @@
             "start_time": "0.000000",
             "duration_ts": 278016,
             "duration": "22.625000",
-            "bit_rate": "1574952",
+            "bit_rate": "5876370",
             "bits_per_raw_sample": "8",
             "nb_frames": "543",
-            "extradata_size": 49,
+            "extradata_size": 48,
             "disposition": {
                 "default": 1,
                 "dub": 0,
@@ -61,7 +61,7 @@
                 "language": "und",
                 "handler_name": "VideoHandler",
                 "vendor_id": "[0][0][0][0]",
-                "encoder": "Lavc62.11.100 libx264"
+                "encoder": "Lavc61.19.101 libx264"
             }
         },
         {
@@ -73,7 +73,7 @@
             "codec_tag_string": "mp4a",
             "codec_tag": "0x6134706d",
             "sample_fmt": "fltp",
-            "sample_rate": "96000",
+            "sample_rate": "48000",
             "channels": 1,
             "channel_layout": "mono",
             "bits_per_sample": 0,
@@ -81,13 +81,13 @@
             "id": "0x2",
             "r_frame_rate": "0/0",
             "avg_frame_rate": "0/0",
-            "time_base": "1/96000",
+            "time_base": "1/48000",
             "start_pts": 0,
             "start_time": "0.000000",
-            "duration_ts": 2179200,
-            "duration": "22.700000",
-            "bit_rate": "178203",
-            "nb_frames": "2123",
+            "duration_ts": 1086000,
+            "duration": "22.625000",
+            "bit_rate": "119244",
+            "nb_frames": "1062",
             "extradata_size": 5,
             "disposition": {
                 "default": 1,
@@ -125,9 +125,9 @@
         "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
         "format_long_name": "QuickTime / MOV",
         "start_time": "0.000000",
-        "duration": "22.700000",
-        "size": "4982133",
-        "bit_rate": "1755817",
+        "duration": "22.625000",
+        "size": "16973834",
+        "bit_rate": "6001797",
         "probe_score": 100,
         "tags": {
             "major_brand": "isom",

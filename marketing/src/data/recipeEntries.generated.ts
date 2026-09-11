@@ -312,7 +312,7 @@ export const recipeEntries: RecipeEntry[] = [
       "status": "partial",
       "statusLabel": "English and Spanish example",
       "summary": "A synthetic English presenter was translated, revoiced in Spanish, and prepared as editable line-level takes.",
-      "provider": "Media generated with FAL through NodeTool",
+      "provider": "Media generated with FAL and Replicate through NodeTool",
       "hero": {
         "src": "/recipes/runs/2026-09-10-marketing-recipes-01/multilingual-video-dubber/recipe-card.webp",
         "alt": "Synthetic presenter with English and Spanish versions of the same short script."
@@ -332,7 +332,7 @@ export const recipeEntries: RecipeEntry[] = [
       },
       "supportedClaims": [
         "The captured Script flow preserved three approved Spanish lines through setup.",
-        "FAL Seed Speech felipe_es produced the male Spanish voice used in the comparison video.",
+        "Inworld Realtime TTS 2 with the female Ashley voice produced the Spanish track used in the comparison video.",
         "Line 2 was redirected and revoiced before three clips were sent to an editable 16.3-second timeline."
       ],
       "limitations": [
@@ -355,7 +355,7 @@ export const recipeEntries: RecipeEntry[] = [
         "A voice provider for the target language"
       ],
       "brief": "Empieza con una breve descripción. Revisa el texto, elige una voz y escucha el resultado antes de exportarlo.\n\nSi necesitas cambiar una frase, edítala y vuelve a grabarla.\n\nTu guion sigue siendo editable, así que la siguiente versión parte del trabajo que ya tienes.",
-      "note": "The screenshots show a Spanish Script session using Kokoro ef_dora. The comparison video was produced separately with felipe_es. Choosing a language in Voices does not translate the script.",
+      "note": "The screenshots show a Spanish Script session using Kokoro ef_dora. The comparison video was produced separately with the female Inworld Ashley voice. Choosing a language in Voices does not translate the script.",
       "steps": [
         {
           "id": "translation",

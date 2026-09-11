@@ -203,7 +203,7 @@ export const recipeGuides = {
       ],
       brief:
         "Empieza con una breve descripción. Revisa el texto, elige una voz y escucha el resultado antes de exportarlo.\n\nSi necesitas cambiar una frase, edítala y vuelve a grabarla.\n\nTu guion sigue siendo editable, así que la siguiente versión parte del trabajo que ya tienes.",
-      note: "The screenshots show a Spanish Script session using Kokoro ef_dora. The comparison video was produced separately with felipe_es. Choosing a language in Voices does not translate the script.",
+      note: "The screenshots show a Spanish Script session using Kokoro ef_dora. The comparison video was produced separately with the female Inworld Ashley voice. Choosing a language in Voices does not translate the script.",
       steps: [
         {
           id: "translation",

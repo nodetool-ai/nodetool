@@ -10,7 +10,7 @@ Caption: “Synthetic presenter footage created for this demonstration. The Span
 
 Alt text: “Synthetic presenter in a muted-blue shirt speaking the same short script in English and Spanish.”
 
-The source consists of three straight-cut sentence segments at 0.000, 9.000, 15.500 and 22.625 seconds. The Spanish timeline uses the same picture segments and `felipe_es`, an `es-mx`-capable FAL voice. Human/native-speaker approval is not recorded.
+The source consists of three straight-cut sentence segments at 0.000, 9.000, 15.500 and 22.625 seconds. The Spanish delivery uses the same picture and the female `Ashley` voice from Inworld Realtime TTS 2 through Replicate. Human/native-speaker approval is not recorded.
 
 ## Captured native Script flow
 
@@ -24,7 +24,7 @@ Use these screenshots in order:
 6. `captures/steps/du-c8.png`: line 2 after its direction was revised and it was revoiced to Takes (2); SRT was exported in this action, though the still does not show an export confirmation dialog.
 7. `captures/steps/du-c9.png`: the editable three-clip Voiceover timeline at `00:00:16:08` (about 16.3 seconds at the shown 24 fps).
 
-These captures document a real native Script session. They do not establish that the separately produced `felipe_es` delivery files were exported from that session: the captured voice is Kokoro Spanish `ef_dora`, and the captured timeline is 16.3 seconds. Keep those two provenance chains distinct.
+These captures document a real native Script session. They do not establish that the separately produced female `Ashley` delivery files were exported from that session: the captured voice is Kokoro Spanish `ef_dora`, and the captured timeline is 16.3 seconds. Keep those two provenance chains distinct.
 
 DU-C3 through DU-C8 were recaptured from the live NodeTool UI through Playwright at a 1600×1000 viewport and 2× device pixel ratio. They are lossless 3200×2000 PNGs. DU-C9 remains the supplied 1045×768 JPEG bitstream under its legacy `.png` path because it is not used by the recipe page.
 
