@@ -530,6 +530,7 @@ export const EntitiesStep = ({ boardId }: EntitiesStepProps) => {
                                 {entity.reference_images?.[0] ? (
                                   <ResponsiveImage
                                     locator={entity.reference_images[0]}
+                                    preferThumbnail
                                     alt=""
                                     aspectRatio="1/1"
                                     borderRadius={BORDER_RADIUS.sm}

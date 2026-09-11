@@ -87,6 +87,7 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
           <ResponsiveImage
             key={still.asset_id ?? still.uri ?? index}
             locator={still}
+            preferThumbnail
             alt=""
             fit="cover"
             sx={{

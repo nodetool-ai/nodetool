@@ -71,6 +71,7 @@ const StillStrip = ({ document }: { document: ProjectDocument }) => (
         <ResponsiveImage
           key={still.asset_id ?? still.uri ?? index}
           locator={still}
+          preferThumbnail
           alt=""
           fit="cover"
           sx={{ width: "100%", height: "100%" }}

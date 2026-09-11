@@ -22,7 +22,7 @@ import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import { parseResourceUri, type ResourceKind, type ResourceUri } from "@nodetool-ai/protocol";
 
 import { BORDER_RADIUS, Chip, SPACING, TYPOGRAPHY, getSpacingPx } from "../../ui_primitives";
-import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
+import { useResolvedThumbnailUri } from "../../../hooks/useResolvedMediaUri";
 import { canOpenResource, openResource } from "../../../lib/chat/openResource";
 
 interface ResourceChipProps {
@@ -83,7 +83,7 @@ const THUMBNAIL_SIZE = 18;
 
 const ResourceChip: React.FC<ResourceChipProps> = ({ uri, label }) => {
   const ref = useMemo(() => parseResourceUri(uri), [uri]);
-  const thumbnail = useResolvedMediaUri(thumbnailLocatorFor(ref));
+  const thumbnail = useResolvedThumbnailUri(thumbnailLocatorFor(ref));
 
   if (!ref) {
     return <>{label}</>;

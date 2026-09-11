@@ -276,6 +276,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
               {tile.assetId ? (
                 <ResponsiveImage
                   locator={`asset://${tile.assetId}`}
+                  preferThumbnail
                   alt={tile.label}
                   aspectRatio="1/1"
                   fit="contain"

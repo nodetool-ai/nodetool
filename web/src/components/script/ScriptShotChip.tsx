@@ -59,6 +59,7 @@ const ScriptShotChipInner = ({ shot, onOpen }: ScriptShotChipProps) => {
         {uri ? (
           <ResponsiveImage
             locator={shot.keyframe}
+            preferThumbnail
             alt=""
             fit="cover"
             sx={{ width: "100%", height: "100%" }}

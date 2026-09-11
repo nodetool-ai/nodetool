@@ -182,6 +182,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                   >
                     <ResponsiveImage
                       locator={reference.uri}
+                      preferThumbnail
                       alt={reference.name}
                       aspectRatio="1/1"
                       fit="cover"

@@ -289,6 +289,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                   <ResponsiveImage
                     key={reference.uri}
                     locator={reference.uri}
+                    preferThumbnail
                     alt={reference.name ?? "Reference image"}
                     fit="cover"
                     borderRadius={BORDER_RADIUS.sm}

@@ -231,6 +231,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                 {stillThumbSrcs[i] ? (
                   <ResponsiveImage
                     locator={still}
+                    preferThumbnail
                     alt=""
                     fit="cover"
                     sx={{ width: "100%", height: "100%" }}
