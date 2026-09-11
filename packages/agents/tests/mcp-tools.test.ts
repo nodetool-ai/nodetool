@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import { ACTIVE_MODEL_CONTEXT_KEY } from "@nodetool-ai/runtime";
-import { Asset, Job, Workflow, initTestDb } from "@nodetool-ai/models";
+import { Asset, Job, Project, Workflow, initTestDb } from "@nodetool-ai/models";
 import {
   debugSessions,
   InteractiveEscalationHandle
@@ -458,6 +458,21 @@ describe("create_workflow", () => {
     const stored = await Workflow.find(USER, String(result.id));
     expect(stored?.user_id).toBe(USER);
     expect(stored?.access).toBe("private");
+  });
+
+  it("persists the workflow under the requested project", async () => {
+    const project = await Project.create<Project>({
+      user_id: USER,
+      name: "Project workflow"
+    });
+    const result = (await tool.process(ctx, {
+      name: "Project WF",
+      project_id: project.id,
+      graph: { nodes: [], edges: [] }
+    })) as Record<string, unknown>;
+
+    const stored = await Workflow.find(USER, String(result.id));
+    expect(stored?.project_id).toBe(project.id);
   });
 
   it("normalizes an agent-friendly keyed graph", async () => {
