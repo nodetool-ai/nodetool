@@ -1,0 +1,49 @@
+{
+  "id": "58f7b179a7d74d989a650f52a3ce8ff5",
+  "project_id": "default",
+  "name": "D1 Olive Cup — delivery scripts",
+  "document": {
+    "cast": [
+      {
+        "id": "speaker_1",
+        "name": "Narrator",
+        "voice": null
+      }
+    ],
+    "sections": [
+      {
+        "id": "section_1",
+        "lines": [
+          {
+            "id": "line_1",
+            "speakerId": "speaker_1",
+            "text": "Make a little room for your morning.",
+            "takes": []
+          },
+          {
+            "id": "line_2",
+            "speakerId": "speaker_1",
+            "text": "A warm cup.",
+            "takes": []
+          },
+          {
+            "id": "line_3",
+            "speakerId": "speaker_1",
+            "text": "A moment to yourself.",
+            "takes": []
+          },
+          {
+            "id": "line_4",
+            "speakerId": "speaker_1",
+            "text": "Take it with you.",
+            "takes": []
+          }
+        ]
+      }
+    ]
+  },
+  "storyboard_id": null,
+  "timeline_id": null,
+  "created_at": "2026-09-10T16:52:33.452Z",
+  "updated_at": "2026-09-10T16:52:56.652Z"
+}

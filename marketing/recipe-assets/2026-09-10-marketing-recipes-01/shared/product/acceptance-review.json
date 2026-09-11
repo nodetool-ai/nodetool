@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-09-10-marketing-recipes-01",
+  "revision": "olive-travel-cup-r1-382922e1ca15",
+  "reviewedAssetId": "382922e1ca1543468d59f0af5575350e",
+  "reviewedPath": "product-reference.png",
+  "reviewMethod": "full-resolution visual inspection with view_image",
+  "reviewer": "D3 Sol agent",
+  "status": "accepted-for-shared-use",
+  "userAcceptanceRecorded": false,
+  "attempts": 1,
+  "retries": 0,
+  "checks": [
+    {"criterion": "one object only", "result": "pass", "evidence": "Exactly one cup is centered in frame; no accessories or duplicate objects."},
+    {"criterion": "one lid", "result": "pass", "evidence": "One low-profile flat charcoal lid is visibly seated on the cup."},
+    {"criterion": "one opening", "result": "pass", "evidence": "One small rectangular drinking opening is visible near the front rim; no second opening is present."},
+    {"criterion": "clean body and consistent taper", "result": "pass", "evidence": "Smooth matte muted-olive cylindrical body narrows subtly and consistently toward the base; silhouette is straight and coherent."},
+    {"criterion": "prohibited marks and features absent", "result": "pass", "evidence": "No handle, logo, lettering, measurement marks, badges, patterns, decorative ridges, or extra accessories are visible."},
+    {"criterion": "whole product visible", "result": "pass", "evidence": "Entire lid and base are visible with clear margins on a plain light-gray studio background."},
+    {"criterion": "commercial reference quality", "result": "pass", "evidence": "Soft even lighting, clean product edges, photographic realism, and a small natural contact shadow are present."}
+  ],
+  "defects": [],
+  "retryDecision": "No retry: the initial fal_ai result passed every SKU-R2 defect criterion.",
+  "limitations": [
+    "Actual provider output is 1024x768 despite the requested 2048x2048 setting; recorded as observed rather than claimed as native 2048.",
+    "Acceptance is D3 production acceptance; coordinator/user acceptance remains pending.",
+    "No technical product specifications are inferred from appearance."
+  ]
+}

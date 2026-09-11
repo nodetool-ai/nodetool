@@ -1,0 +1,219 @@
+{
+  "id": "af795795297f43bf9e66d0318f422c83",
+  "project_id": "Marketing recipes / viral-video-ad-engine / 2026-09-10-marketing-recipes-01",
+  "name": "D1 Viral Video Ad Engine — Olive Travel Cup",
+  "document": {
+    "screenplay": null,
+    "shots": [
+      {
+        "type": "shot",
+        "id": "shot_1_mtvrgcu9",
+        "index": 0,
+        "action": "Medium three-quarter view of Olive Travel Cup on a pale stone kitchen worktop. A soft rectangular window shadow falls behind it. Entire lid and base visible, cup on right third, clear space on left for a short caption.",
+        "status": "failed",
+        "slug": "AD-S1A",
+        "camera": "",
+        "motion": "Slow 5 cm push toward the cup. Window light remains steady. The cup and lid do not move or change.",
+        "notes": "Immutable product revision olive-travel-cup-r1-382922e1ca15. Preserve exact muted-olive body, charcoal lid, proportions and opening orientation. No logo, text, handle, extra features or redesign.",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "render_mode": "keyframe",
+        "entity_ids": [
+          "382922e1ca1543468d59f0af5575350e"
+        ],
+        "keyframe": {
+          "type": "image",
+          "asset_id": "97ad5c454b594241a866c3be4373c630",
+          "uri": "asset://97ad5c454b594241a866c3be4373c630"
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "asset_id": "97ad5c454b594241a866c3be4373c630",
+            "uri": "asset://97ad5c454b594241a866c3be4373c630"
+          }
+        ]
+      },
+      {
+        "type": "shot",
+        "id": "shot_2_mtvrgcu9",
+        "index": 1,
+        "action": "Close product detail of Olive Travel Cup's charcoal lid meeting the olive body. Both the rectangular drinking opening and matte finish remain recognizable. Shallow depth of field, no invented handle or seam.",
+        "status": "failed",
+        "slug": "AD-S2",
+        "camera": "",
+        "motion": "Gentle rack focus from the lid edge to the front of the cup. No rotation, lid movement, steam burst, or liquid.",
+        "notes": "Immutable product revision olive-travel-cup-r1-382922e1ca15. Preserve exact muted-olive body, charcoal lid, proportions and opening orientation. No logo, text, handle, extra features or redesign.",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "render_mode": "keyframe",
+        "entity_ids": [
+          "382922e1ca1543468d59f0af5575350e"
+        ],
+        "keyframe": {
+          "type": "image",
+          "asset_id": "11a5b5aa101747a19feb223a12e3d8d9",
+          "uri": "asset://11a5b5aa101747a19feb223a12e3d8d9"
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "asset_id": "11a5b5aa101747a19feb223a12e3d8d9",
+            "uri": "asset://11a5b5aa101747a19feb223a12e3d8d9"
+          }
+        ]
+      },
+      {
+        "type": "shot",
+        "id": "shot_3_mtvrgcu9",
+        "index": 2,
+        "action": "Olive Travel Cup on the worktop beside a closed plain cream paperback. Cup fully visible. The book has no readable text and is smaller in visual emphasis. Warm diagonal light leads to the product.",
+        "status": "failed",
+        "slug": "AD-S3",
+        "camera": "",
+        "motion": "Slow 8 cm lateral slide. The cup and book remain stationary, with stable perspective and contact shadows.",
+        "notes": "Immutable product revision olive-travel-cup-r1-382922e1ca15. Preserve exact muted-olive body, charcoal lid, proportions and opening orientation. No logo, text, handle, extra features or redesign.",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "render_mode": "keyframe",
+        "entity_ids": [
+          "382922e1ca1543468d59f0af5575350e"
+        ],
+        "keyframe": {
+          "type": "image",
+          "asset_id": "cfe6efc8a35b4636b04a4e7b9a2fa3e3",
+          "uri": "asset://cfe6efc8a35b4636b04a4e7b9a2fa3e3"
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "asset_id": "cfe6efc8a35b4636b04a4e7b9a2fa3e3",
+            "uri": "asset://cfe6efc8a35b4636b04a4e7b9a2fa3e3"
+          }
+        ]
+      },
+      {
+        "type": "shot",
+        "id": "shot_4_mtvrgcu9",
+        "index": 3,
+        "action": "Front three-quarter hero view of Olive Travel Cup on pale stone. Cup below center with uncluttered space above. The lid opening faces the same direction as the reference.",
+        "status": "failed",
+        "slug": "AD-S4",
+        "camera": "",
+        "motion": "Very small push for the first two seconds, then a stable hold. No object transformation or background movement.",
+        "notes": "Immutable product revision olive-travel-cup-r1-382922e1ca15. Preserve exact muted-olive body, charcoal lid, proportions and opening orientation. No logo, text, handle, extra features or redesign.",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "render_mode": "keyframe",
+        "entity_ids": [
+          "382922e1ca1543468d59f0af5575350e"
+        ],
+        "keyframe": {
+          "type": "image",
+          "asset_id": "aaeb7dceaabe46eabd65309c8d0f5de1",
+          "uri": "asset://aaeb7dceaabe46eabd65309c8d0f5de1"
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "asset_id": "aea2a5bf7ed745379fe564bbb804f4f3",
+            "uri": "asset://aea2a5bf7ed745379fe564bbb804f4f3"
+          },
+          {
+            "type": "image",
+            "asset_id": "aaeb7dceaabe46eabd65309c8d0f5de1",
+            "uri": "asset://aaeb7dceaabe46eabd65309c8d0f5de1"
+          }
+        ]
+      },
+      {
+        "type": "shot",
+        "id": "shot_5_mtvrgcu9",
+        "index": 4,
+        "action": "Olive Travel Cup on the same surface with its long soft shadow leading into frame. Wider composition than AD-S1A, entire object visible, same window direction.",
+        "status": "failed",
+        "slug": "AD-S1B",
+        "camera": "",
+        "motion": "Camera holds while a subtle exposure-stable highlight shifts along the background. The product does not move.",
+        "notes": "Immutable product revision olive-travel-cup-r1-382922e1ca15. Preserve exact muted-olive body, charcoal lid, proportions and opening orientation. No logo, text, handle, extra features or redesign.",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "render_mode": "keyframe",
+        "entity_ids": [
+          "382922e1ca1543468d59f0af5575350e"
+        ],
+        "keyframe": {
+          "type": "image",
+          "asset_id": "12a46edf3f604b678c5b4ace6bb415f9",
+          "uri": "asset://12a46edf3f604b678c5b4ace6bb415f9"
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "asset_id": "12a46edf3f604b678c5b4ace6bb415f9",
+            "uri": "asset://12a46edf3f604b678c5b4ace6bb415f9"
+          }
+        ]
+      },
+      {
+        "type": "shot",
+        "id": "shot_6_mtvrgcu9",
+        "index": 5,
+        "action": "Close view from slightly above Olive Travel Cup showing the charcoal lid and the upper olive body. Space below for the short hook caption. Same geometry and finish as the reference.",
+        "status": "failed",
+        "slug": "AD-S1C",
+        "camera": "",
+        "motion": "Slow 10-degree camera arc. The lid opening remains fixed on the product. No full orbit or newly invented backside detail.",
+        "notes": "Immutable product revision olive-travel-cup-r1-382922e1ca15. Preserve exact muted-olive body, charcoal lid, proportions and opening orientation. No logo, text, handle, extra features or redesign.",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "render_mode": "keyframe",
+        "entity_ids": [
+          "382922e1ca1543468d59f0af5575350e"
+        ],
+        "keyframe": {
+          "type": "image",
+          "asset_id": "b33d24ef33da499197d62af85c95edc2",
+          "uri": "asset://b33d24ef33da499197d62af85c95edc2"
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "asset_id": "e2e452f34214499f80e7d6d5fbd6b1fd",
+            "uri": "asset://e2e452f34214499f80e7d6d5fbd6b1fd"
+          },
+          {
+            "type": "image",
+            "asset_id": "b33d24ef33da499197d62af85c95edc2",
+            "uri": "asset://b33d24ef33da499197d62af85c95edc2"
+          }
+        ]
+      }
+    ],
+    "brief": "15-second portrait product commercial for the Olive Travel Cup in a quiet morning kitchen.",
+    "style": "Photographic product commercial in a quiet morning kitchen. Soft warm daylight from a window on the left, pale limestone and warm off-white surfaces, gentle shadow falloff, accurate muted-olive and charcoal colors, restrained contrast, clean product edges. The Olive Travel Cup keeps its reference geometry and finish in every shot. No on-screen type, logo, lettering, watermark, or extra product decoration. Camera and light move gently. The product stays still.",
+    "entityIds": [
+      "382922e1ca1543468d59f0af5575350e"
+    ],
+    "aspectRatio": "9:16",
+    "setupStage": "done",
+    "genre": "",
+    "directorModel": null,
+    "imageModel": {
+      "type": "image_model",
+      "provider": "fal_ai",
+      "id": "fal-ai/bytedance/seedream/v4.5/edit",
+      "name": "Bytedance Seedream V45Edit"
+    },
+    "videoModel": {
+      "type": "video_model",
+      "provider": "fal_ai",
+      "id": "minimax/h3/image-to-video",
+      "name": "Minimax H3Image To Video"
+    }
+  },
+  "timeline_id": null,
+  "created_at": "2026-09-10T16:46:53.324Z",
+  "updated_at": "2026-09-10T17:46:21.540Z",
+  "revision": 31
+}

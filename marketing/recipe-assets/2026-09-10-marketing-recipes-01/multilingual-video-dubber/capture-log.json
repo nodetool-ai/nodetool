@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "captures": [
+    {
+      "captureId": "DU-C3",
+      "recipeActionId": "DU-C3",
+      "visibleScreenLabel": "Script · 1. Idea · What's the script about?",
+      "projectId": "fb871f84c5744f07a8f49fb613a59902",
+      "documentId": "229cbcbc8172462fa3b6d220d5a60956",
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "pixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": null,
+      "editedPath": "captures/steps/du-c3.png",
+      "order": 1,
+      "timeCompression": "none",
+      "redaction": "none",
+      "sha256": "fdcb40ba951f5e8e925e509d6b0b13a7a5a71f225e6b03e1543168a75820c84a",
+      "mimeType": "image/png",
+      "notes": "The imported-words panel shows the three accepted Spanish lines kept word for word. The exact NodeTool project name, project ID, script ID, and app revision were not captured.",
+      "dimensions": "3200x2000"
+    },
+    {
+      "captureId": "DU-C4",
+      "recipeActionId": "DU-C4",
+      "visibleScreenLabel": "Script · 2. Format",
+      "projectId": "fb871f84c5744f07a8f49fb613a59902",
+      "documentId": "229cbcbc8172462fa3b6d220d5a60956",
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "pixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": null,
+      "editedPath": "captures/steps/du-c4.png",
+      "order": 2,
+      "timeCompression": "none",
+      "redaction": "none",
+      "sha256": "5f6e27190d8fbcd21c6b39a230ce522ac199ef3f7767a62130834739129ec5e0",
+      "mimeType": "image/png",
+      "notes": "Voiceover narration is selected with a custom 23-second target and the GPT-5.6-Sol codex writer model. The screen states that three existing lines will be prepared while keeping the imported words.",
+      "dimensions": "3200x2000"
+    },
+    {
+      "captureId": "DU-C5",
+      "recipeActionId": "DU-C5",
+      "visibleScreenLabel": "Script · 2. Format · Review · Read it through",
+      "projectId": "fb871f84c5744f07a8f49fb613a59902",
+      "documentId": "229cbcbc8172462fa3b6d220d5a60956",
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "pixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": null,
+      "editedPath": "captures/steps/du-c5.png",
+      "order": 3,
+      "timeCompression": "none",
+      "redaction": "none",
+      "sha256": "39dc0c1edac96de9c19baedefc91cddd566be910b311c00829eec6dabe41d581",
+      "mimeType": "image/png",
+      "notes": "The format review shows all 44 accepted Spanish words in three Narrator lines before continuing to voices. No project or document ID is visible.",
+      "dimensions": "3200x2000"
+    },
+    {
+      "captureId": "DU-C6",
+      "recipeActionId": "DU-C6",
+      "visibleScreenLabel": "Script · 3. Voices · Choose the voices",
+      "projectId": "fb871f84c5744f07a8f49fb613a59902",
+      "documentId": "229cbcbc8172462fa3b6d220d5a60956",
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "pixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": null,
+      "editedPath": "captures/steps/du-c6.png",
+      "order": 4,
+      "timeCompression": "none",
+      "redaction": "none",
+      "sha256": "6fbff8d6cc9c4ed52948237984fb1453eedf6928f582392b243f71752e992303",
+      "mimeType": "image/png",
+      "notes": "The visible configuration is Spanish, Normal pace, Kokoro Spanish (fal_ai), voice ef_dora. A six-second audition asset is loaded for target words, but human listening is not evidenced by the still.",
+      "dimensions": "3200x2000"
+    },
+    {
+      "captureId": "DU-C7",
+      "recipeActionId": "DU-C7",
+      "visibleScreenLabel": "Script editor · Open · Voiced 3 lines",
+      "projectId": "fb871f84c5744f07a8f49fb613a59902",
+      "documentId": "229cbcbc8172462fa3b6d220d5a60956",
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "pixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": null,
+      "editedPath": "captures/steps/du-c7.png",
+      "order": 5,
+      "timeCompression": "none",
+      "redaction": "none",
+      "sha256": "87452ce8c472d4ce8ec90590f84c949bb12596d9c4a40da5d5690cda23e99e8f",
+      "mimeType": "image/png",
+      "notes": "The editor reports Voiced 3 lines and a 16.3-second script. The Cast panel shows Kokoro Spanish and ef_dora; all three accepted Spanish lines remain editable.",
+      "dimensions": "3200x2000"
+    },
+    {
+      "captureId": "DU-C8",
+      "recipeActionId": "DU-C8",
+      "visibleScreenLabel": "Script editor · line 2 voice controls",
+      "projectId": "fb871f84c5744f07a8f49fb613a59902",
+      "documentId": "229cbcbc8172462fa3b6d220d5a60956",
+      "appRevision": null,
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "pixelRatio": 2
+      },
+      "captureMode": "playwright-cli-live-ui",
+      "rawPath": null,
+      "editedPath": "captures/steps/du-c8.png",
+      "order": 6,
+      "timeCompression": "none",
+      "redaction": "none",
+      "sha256": "a64c65a88bd2720340f18e42b4c35b70842ac33022cc66738adbe5505e4addd2",
+      "mimeType": "image/png",
+      "notes": "Line 2 keeps the accepted words while its direction is revised to Natural, directo y cálido. The session revoiced the line to Takes (2) and exported SRT; the still records the post-revoice editor state, not an export confirmation dialog.",
+      "dimensions": "3200x2000"
+    },
+    {
+      "captureId": "DU-C9",
+      "recipeActionId": "DU-C9",
+      "visibleScreenLabel": "Timeline editor · Transcript and Voiceover",
+      "projectId": null,
+      "documentId": null,
+      "appRevision": null,
+      "viewport": {
+        "width": 1045,
+        "height": 768,
+        "pixelRatio": null
+      },
+      "captureMode": "live-ui-capture",
+      "rawPath": null,
+      "editedPath": "captures/steps/du-c9.png",
+      "order": 7,
+      "timeCompression": "none",
+      "redaction": "none",
+      "sha256": "17d896ddf6c459c412dd6e748c9c187a56ceeff179e9487dccc52695127dfb5c",
+      "mimeType": "image/jpeg",
+      "notes": "The native timeline contains the three editable voiced line clips and displays 00:00:16:08, approximately 16.3 seconds at the shown 24 fps. The preview failed with Unable to play media and displays No media at 0s, so successful playback is not verified."
+    }
+  ],
+  "blocked": [
+    {
+      "ids": [
+        "DU-C0",
+        "DU-C1",
+        "DU-C2"
+      ],
+      "reason": "Source playback, transcript review, and translation review captures were not supplied.",
+      "nextAction": "Capture the English source playback, corrected transcript, and source/Spanish/back-translation review in the real workflow."
+    },
+    {
+      "ids": [
+        "DU-C10",
+        "DU-C11"
+      ],
+      "reason": "The separate lip-sync operation and labeled comparison playback were not captured.",
+      "nextAction": "Capture the real lip-sync finishing operation and a labeled English/Spanish comparison playback."
+    },
+    {
+      "ids": [
+        "DU-A16"
+      ],
+      "reason": "The 45–60-second guided walkthrough was not produced.",
+      "nextAction": "Produce the walkthrough only after all required capture stages and successful playback are available."
+    },
+    {
+      "ids": [
+        "DU-C6",
+        "DU-C9"
+      ],
+      "reason": "Human audition/timeline playback is not recorded, and the native timeline preview returned Unable to play media.",
+      "nextAction": "Resolve the preview error, play the audition and full timeline, and record human audio/visual acceptance."
+    },
+    {
+      "ids": [
+        "DU-A5",
+        "DU-A9"
+      ],
+      "reason": "The exact required project rename and the project, script, and timeline IDs were not verified.",
+      "nextAction": "Rename or confirm the project as Marketing recipes / multilingual-video-dubber / 2026-09-10-marketing-recipes-01 and record the persistent IDs and app revision."
+    }
+  ],
+  "formatException": "DU-C3 through DU-C8 were recaptured as lossless 3200x2000 PNGs. DU-C9 remains a 1045x768 JPEG bitstream under its legacy .png path and is not published on the recipe page."
+}

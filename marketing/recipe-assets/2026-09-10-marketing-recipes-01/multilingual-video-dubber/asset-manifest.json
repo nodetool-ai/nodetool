@@ -1,0 +1,1984 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-09-10-marketing-recipes-01",
+  "recipeSlug": "multilingual-video-dubber",
+  "status": "partial",
+  "fieldNotes": {
+    "producingDocumentId": "All asset producingDocumentId values are null because the exact persistent NodeTool project, script, and timeline IDs were not verified; this remains a blocker below.",
+    "generationCallIds": "Provider call/job IDs were not returned or retained, so callId and jobId are null. DU-GEN identifiers are local manifest record IDs only.",
+    "generationCosts": "The Node CLI returned no cost fields, so actualCost amount and currency remain null.",
+    "promptFiles": "No standalone prompt files were retained for these calls; promptFile is null and the limitation is recorded in each call's settings."
+  },
+  "documents": [
+    {
+      "role": "documents/back-translation.md",
+      "documentType": "md",
+      "serverId": null,
+      "projectId": null,
+      "exportPath": "documents/back-translation.md",
+      "sha256": "a8bc4f41ad9b3e62ef6c60df0201cce87d51ed103263bfc276589a28cd5a15f0",
+      "linkedDocumentIds": []
+    },
+    {
+      "role": "documents/line-map.json",
+      "documentType": "json",
+      "serverId": null,
+      "projectId": null,
+      "exportPath": "documents/line-map.json",
+      "sha256": "b66d0807f67155126175b620e8e2e3b315b8a3a9c3451e74d56c249a9dee2ed1",
+      "linkedDocumentIds": []
+    },
+    {
+      "role": "documents/script-en.json",
+      "documentType": "json",
+      "serverId": null,
+      "projectId": null,
+      "exportPath": "documents/script-en.json",
+      "sha256": "f9c8b34d1deba231cee9c2ac499d58f24209df830bb56657924ebcfe300120f9",
+      "linkedDocumentIds": []
+    },
+    {
+      "role": "documents/script-es.json",
+      "documentType": "json",
+      "serverId": null,
+      "projectId": null,
+      "exportPath": "documents/script-es.json",
+      "sha256": "f25346e62dbb26ba35f1683cc55e5246da71a414c83235d655f0bba2fb033606",
+      "linkedDocumentIds": []
+    },
+    {
+      "role": "documents/source-en.srt",
+      "documentType": "srt",
+      "serverId": null,
+      "projectId": null,
+      "exportPath": "documents/source-en.srt",
+      "sha256": "9bea53b5776ea7d3fa129fe29167bd12432379852bcc7f6c00ded9c875bfc5b3",
+      "linkedDocumentIds": []
+    },
+    {
+      "role": "documents/source-transcript.md",
+      "documentType": "md",
+      "serverId": null,
+      "projectId": null,
+      "exportPath": "documents/source-transcript.md",
+      "sha256": "5ba5609584866870ba0ca88e4a8c937bef3d4bacf6987c404c644681abc67943",
+      "linkedDocumentIds": []
+    },
+    {
+      "role": "documents/target-es.txt",
+      "documentType": "txt",
+      "serverId": null,
+      "projectId": null,
+      "exportPath": "documents/target-es.txt",
+      "sha256": "282a56537911b455e0785287fa9becb7aeb0dbcd6b591c3c78128cb069cce35c",
+      "linkedDocumentIds": []
+    },
+    {
+      "role": "documents/timeline-lipsync.json",
+      "documentType": "json",
+      "serverId": null,
+      "projectId": null,
+      "exportPath": "documents/timeline-lipsync.json",
+      "sha256": "bac725e748fc4e6f39cef481ba2315d7f2ea724916c8d48eea4ef25bc841790b",
+      "linkedDocumentIds": []
+    },
+    {
+      "role": "documents/timeline-voiceover.json",
+      "documentType": "json",
+      "serverId": null,
+      "projectId": null,
+      "exportPath": "documents/timeline-voiceover.json",
+      "sha256": "36077d95f72a0774c2f21bfb52c8bb0003af850100c0ea5d55df970af32557f3",
+      "linkedDocumentIds": []
+    },
+    {
+      "role": "documents/translation-review.md",
+      "documentType": "md",
+      "serverId": null,
+      "projectId": null,
+      "exportPath": "documents/translation-review.md",
+      "sha256": "12f28b34f0a7a9dc248fd9ead121c0a97de175dc42400042512134b1b460d9a7",
+      "linkedDocumentIds": []
+    }
+  ],
+  "assets": [
+    {
+      "id": "DU-F001",
+      "role": "capture-log.json",
+      "relativePath": "capture-log.json",
+      "sha256": "8b54db1c0a113a92e36c02b3e15be6824f46f3a555296bd6b949d823d3a3b74d",
+      "mimeType": "application/json",
+      "bytes": 8321,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F070",
+        "DU-F071",
+        "DU-F072",
+        "DU-F073",
+        "DU-F074",
+        "DU-F075",
+        "DU-F076"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [],
+      "transformation": "Manual metadata inventory and verification of the seven live UI captures."
+    },
+    {
+      "id": "DU-F002",
+      "role": "documents/back-translation.md",
+      "relativePath": "documents/back-translation.md",
+      "sha256": "a8bc4f41ad9b3e62ef6c60df0201cce87d51ed103263bfc276589a28cd5a15f0",
+      "mimeType": "text/plain",
+      "bytes": 517,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F008"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Independent English back-translation from the accepted Spanish target."
+    },
+    {
+      "id": "DU-F003",
+      "role": "documents/line-map.json",
+      "relativePath": "documents/line-map.json",
+      "sha256": "b66d0807f67155126175b620e8e2e3b315b8a3a9c3451e74d56c249a9dee2ed1",
+      "mimeType": "application/json",
+      "bytes": 450,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F004",
+        "DU-F005",
+        "DU-F032",
+        "DU-F033",
+        "DU-F034",
+        "DU-F042",
+        "DU-F043",
+        "DU-F044"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Stable DU line mapping assembled from source/target scripts and selected media takes."
+    },
+    {
+      "id": "DU-F004",
+      "role": "documents/script-en.json",
+      "relativePath": "documents/script-en.json",
+      "sha256": "f9c8b34d1deba231cee9c2ac499d58f24209df830bb56657924ebcfe300120f9",
+      "mimeType": "application/json",
+      "bytes": 469,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F007"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Structured editable English script exported from the reviewed source transcript."
+    },
+    {
+      "id": "DU-F005",
+      "role": "documents/script-es.json",
+      "relativePath": "documents/script-es.json",
+      "sha256": "f25346e62dbb26ba35f1683cc55e5246da71a414c83235d655f0bba2fb033606",
+      "mimeType": "application/json",
+      "bytes": 601,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F008"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Structured editable Spanish script exported from the frozen accepted translation."
+    },
+    {
+      "id": "DU-F006",
+      "role": "documents/source-en.srt",
+      "relativePath": "documents/source-en.srt",
+      "sha256": "5e59592c5ad4cba193b2180bc7e400dbc8e0e3a8046df674ad60c87e72a70253",
+      "mimeType": "text/plain",
+      "bytes": 337,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F007",
+        "DU-F050"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "SRT cue document authored from the reviewed source transcript and measured source audio."
+    },
+    {
+      "id": "DU-F007",
+      "role": "documents/source-transcript.md",
+      "relativePath": "documents/source-transcript.md",
+      "sha256": "5ba5609584866870ba0ca88e4a8c937bef3d4bacf6987c404c644681abc67943",
+      "mimeType": "text/plain",
+      "bytes": 1057,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F050"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Machine transcription of extracted source audio followed by an agent correction pass."
+    },
+    {
+      "id": "DU-F008",
+      "role": "documents/target-es.txt",
+      "relativePath": "documents/target-es.txt",
+      "sha256": "282a56537911b455e0785287fa9becb7aeb0dbcd6b591c3c78128cb069cce35c",
+      "mimeType": "text/plain",
+      "bytes": 269,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F007"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Accepted Spanish translation frozen after agent meaning review of the source transcript."
+    },
+    {
+      "id": "DU-F009",
+      "role": "documents/timeline-lipsync.json",
+      "relativePath": "documents/timeline-lipsync.json",
+      "sha256": "bac725e748fc4e6f39cef481ba2315d7f2ea724916c8d48eea4ef25bc841790b",
+      "mimeType": "application/json",
+      "bytes": 399,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F022",
+        "DU-F024",
+        "DU-F026",
+        "DU-F058"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Editable lip-sync timeline description assembled from selected per-line lip-sync outputs and target captions."
+    },
+    {
+      "id": "DU-F010",
+      "role": "documents/timeline-voiceover.json",
+      "relativePath": "documents/timeline-voiceover.json",
+      "sha256": "36077d95f72a0774c2f21bfb52c8bb0003af850100c0ea5d55df970af32557f3",
+      "mimeType": "application/json",
+      "bytes": 265,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F051",
+        "DU-F045",
+        "DU-F058"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Editable voiceover timeline description assembled from the source picture, aligned Spanish stem, and target captions."
+    },
+    {
+      "id": "DU-F011",
+      "role": "documents/translation-review.md",
+      "relativePath": "documents/translation-review.md",
+      "sha256": "12f28b34f0a7a9dc248fd9ead121c0a97de175dc42400042512134b1b460d9a7",
+      "mimeType": "text/plain",
+      "bytes": 1495,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F007",
+        "DU-F008",
+        "DU-F002"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Source/Spanish/back-translation comparison table with agent review notes."
+    },
+    {
+      "id": "DU-F012",
+      "role": "evidence/language-review.md",
+      "relativePath": "evidence/language-review.md",
+      "sha256": "5c8a5f4b545024c91e60c397b85d38626996d72030a0defee9b338861fcfefb2",
+      "mimeType": "text/plain",
+      "bytes": 414,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F011",
+        "DU-F005"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Agent language-review summary derived from the translation review and target script."
+    },
+    {
+      "id": "DU-F013",
+      "role": "evidence/lipsync-review.md",
+      "relativePath": "evidence/lipsync-review.md",
+      "sha256": "7400382b2c912d182c337dcfb98f306e93894133a06dd50d908a4ecd04a32175",
+      "mimeType": "text/plain",
+      "bytes": 452,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F038"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Automated lip-sync result review summary; full human viewing remains pending."
+    },
+    {
+      "id": "DU-F014",
+      "role": "evidence/loudness-lipsync.txt",
+      "relativePath": "evidence/loudness-lipsync.txt",
+      "sha256": "c8dc7e42c8efba0afedd6fe1e7d6e3c5184a4c938dcfd457015ddb30ebd7081d",
+      "mimeType": "text/plain",
+      "bytes": 37664,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F038"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "FFmpeg loudness analysis of the selected lip-sync master."
+    },
+    {
+      "id": "DU-F015",
+      "role": "evidence/probe-lipsync.json",
+      "relativePath": "evidence/probe-lipsync.json",
+      "sha256": "e8d38bef269a7cdb33a4ef8f7650675d899a3bb2f0aef09f99a61029ec6c6bcf",
+      "mimeType": "application/json",
+      "bytes": 4521,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F038"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "FFprobe JSON probe of the selected lip-sync master."
+    },
+    {
+      "id": "DU-F016",
+      "role": "evidence/probe-source-en.json",
+      "relativePath": "evidence/probe-source-en.json",
+      "sha256": "afd3116259a357c9109f16cdc493d15a105d2b083f4d5a780850b755269431f4",
+      "mimeType": "application/json",
+      "bytes": 4510,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F051"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "FFprobe JSON probe of the accepted English source."
+    },
+    {
+      "id": "DU-F017",
+      "role": "evidence/probe-voiceover.json",
+      "relativePath": "evidence/probe-voiceover.json",
+      "sha256": "c2b4673738d91f07622935ec314b60495a3afbf5c8df14e88695663867a5ae76",
+      "mimeType": "application/json",
+      "bytes": 4523,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F040"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "FFprobe JSON probe of the Spanish voiceover master."
+    },
+    {
+      "id": "DU-F018",
+      "role": "evidence/sha256.txt",
+      "relativePath": "evidence/sha256.txt",
+      "sha256": "693209edc049524a13081244db5220b359261abdcbe743e724ac213bfb4c0e9a",
+      "mimeType": "text/plain",
+      "bytes": 11531,
+      "provenance": "derived",
+      "sourceIds": [],
+      "producingDocumentId": null,
+      "shotOrLineIds": [],
+      "transformation": "SHA-256 ledger regenerated after excluding mutable and self-referential package records.",
+      "sourceNote": "This aggregate ledger names its parent files directly; duplicating every ledger path as an asset ID would create a second mutable inventory."
+    },
+    {
+      "id": "DU-F019",
+      "role": "evidence/source-provenance.json",
+      "relativePath": "evidence/source-provenance.json",
+      "sha256": "1b9573f0e9db5853f3d2acd9db10576cf90d27892c59022b38828fbfaa030bad",
+      "mimeType": "application/json",
+      "bytes": 546,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F049",
+        "DU-F027",
+        "DU-F028",
+        "DU-F030",
+        "DU-F032",
+        "DU-F033",
+        "DU-F034",
+        "DU-F051"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Synthetic-source provenance ledger assembled from the retained generation chain."
+    },
+    {
+      "id": "DU-F020",
+      "role": "evidence/timing-report.json",
+      "relativePath": "evidence/timing-report.json",
+      "sha256": "1f10cf1a1580b64aae130b0bf5410e8e6e45eab35a6905fe2967f17a8d77d047",
+      "mimeType": "application/json",
+      "bytes": 378,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F051",
+        "DU-F042",
+        "DU-F043",
+        "DU-F044",
+        "DU-F058"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Timing report assembled from measured source duration, target line takes, and final subtitle cues."
+    },
+    {
+      "id": "DU-F021",
+      "role": "generation/dub-es-lipsync-line1-padded.mp4",
+      "relativePath": "generation/dub-es-lipsync-line1-padded.mp4",
+      "sha256": "f0e45ad3640defc21afe0cb82ca9d0b6a4f7a1211ad76d68dbe01ebe61a09f71",
+      "mimeType": "video/mp4",
+      "bytes": 2052547,
+      "width": 1920,
+      "height": 1088,
+      "duration": 9,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F022"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1"
+      ]
+    },
+    {
+      "id": "DU-F022",
+      "role": "generation/dub-es-lipsync-line1.mp4",
+      "relativePath": "generation/dub-es-lipsync-line1.mp4",
+      "sha256": "659fe1831dcb0de9c64d85753fdb5d5412ae94a73dd53115b2355baa0caab9a1",
+      "mimeType": "video/mp4",
+      "bytes": 18785364,
+      "width": 1920,
+      "height": 1088,
+      "duration": 8.5,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F032",
+        "DU-F042"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1"
+      ]
+    },
+    {
+      "id": "DU-F023",
+      "role": "generation/dub-es-lipsync-line2-padded.mp4",
+      "relativePath": "generation/dub-es-lipsync-line2-padded.mp4",
+      "sha256": "fb3910f332d743fd47d8b4e339ece3363c816d4fa00ae82dca5ab955ed369c78",
+      "mimeType": "video/mp4",
+      "bytes": 1167367,
+      "width": 1920,
+      "height": 1088,
+      "duration": 6.5,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F024"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L2"
+      ]
+    },
+    {
+      "id": "DU-F024",
+      "role": "generation/dub-es-lipsync-line2.mp4",
+      "relativePath": "generation/dub-es-lipsync-line2.mp4",
+      "sha256": "02a767ffda54bce3944540450a45f80b7a5d0e3370de9a09e4c9955f4a428c49",
+      "mimeType": "video/mp4",
+      "bytes": 10280301,
+      "width": 1920,
+      "height": 1088,
+      "duration": 5,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F033",
+        "DU-F043"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L2"
+      ]
+    },
+    {
+      "id": "DU-F025",
+      "role": "generation/dub-es-lipsync-line3-padded.mp4",
+      "relativePath": "generation/dub-es-lipsync-line3-padded.mp4",
+      "sha256": "23d06597f1aa7688f27a44dfaa6217845f7a1764e2532ffc3d71914517f109bd",
+      "mimeType": "video/mp4",
+      "bytes": 1521368,
+      "width": 1920,
+      "height": 1088,
+      "duration": 7.125,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F026"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L3"
+      ]
+    },
+    {
+      "id": "DU-F026",
+      "role": "generation/dub-es-lipsync-line3.mp4",
+      "relativePath": "generation/dub-es-lipsync-line3.mp4",
+      "sha256": "3fd6957433d8a3bd493010a3fb304aea6e2c5257f39ab64e47bde373b61873be",
+      "mimeType": "video/mp4",
+      "bytes": 14429601,
+      "width": 1920,
+      "height": 1088,
+      "duration": 6.875,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F034",
+        "DU-F044"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L3"
+      ]
+    },
+    {
+      "id": "DU-F027",
+      "role": "generation/presenter-motion-01.mp4",
+      "relativePath": "generation/presenter-motion-01.mp4",
+      "sha256": "ebb6480bd5a80982f0cb5fab6cb302fde8b31bf3c2fcf0bac5cec556211e67c4",
+      "mimeType": "video/mp4",
+      "bytes": 13860824,
+      "width": 1920,
+      "height": 1088,
+      "duration": 12.041667,
+      "fps": "24/1",
+      "hasAudio": false,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F049"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": []
+    },
+    {
+      "id": "DU-F028",
+      "role": "generation/presenter-motion-02.mp4",
+      "relativePath": "generation/presenter-motion-02.mp4",
+      "sha256": "30211e420f9e0e3bf5831d7d05475070e90bf0e2c10f0ce563879c4da73aaf98",
+      "mimeType": "video/mp4",
+      "bytes": 14307541,
+      "width": 1920,
+      "height": 1088,
+      "duration": 12.041667,
+      "fps": "24/1",
+      "hasAudio": false,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F049"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": []
+    },
+    {
+      "id": "DU-F029",
+      "role": "generation/presenter-motion-24s.mp4",
+      "relativePath": "generation/presenter-motion-24s.mp4",
+      "sha256": "fe35888839f42859f528628d1c3e624bf49b29d31412bc9d1afd70c1c1027463",
+      "mimeType": "video/mp4",
+      "bytes": 8128986,
+      "width": 1920,
+      "height": 1088,
+      "duration": 23.166667,
+      "fps": "24/1",
+      "hasAudio": false,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F027",
+        "DU-F028"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": []
+    },
+    {
+      "id": "DU-F030",
+      "role": "generation/source-en-audio-original-v2.mp3",
+      "relativePath": "generation/source-en-audio-original-v2.mp3",
+      "sha256": "caf28fc974f3fd4eeb29ec968774b709935cd39fb4b096116ffafb58b202ea9b",
+      "mimeType": "audio/mpeg",
+      "bytes": 370221,
+      "width": null,
+      "height": null,
+      "duration": 23.136,
+      "fps": null,
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F004"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ]
+    },
+    {
+      "id": "DU-F031",
+      "role": "generation/source-en-audio-original.mp3",
+      "relativePath": "generation/source-en-audio-original.mp3",
+      "sha256": "9dc0c881df28eb85b29348cdc4db77438115b7d3ea80b2cdd071091722089117",
+      "mimeType": "audio/mpeg",
+      "bytes": 235053,
+      "width": null,
+      "height": null,
+      "duration": 14.688,
+      "fps": null,
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F004"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ]
+    },
+    {
+      "id": "DU-F032",
+      "role": "generation/source-en-line1.mp4",
+      "relativePath": "generation/source-en-line1.mp4",
+      "sha256": "7e66ed9c53ac32c6f59f6c40ad36303ede58598f9b84c19b28e4d8b580d48725",
+      "mimeType": "video/mp4",
+      "bytes": 19881129,
+      "width": 1920,
+      "height": 1088,
+      "duration": 9,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F029",
+        "DU-F030"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1"
+      ]
+    },
+    {
+      "id": "DU-F033",
+      "role": "generation/source-en-line2.mp4",
+      "relativePath": "generation/source-en-line2.mp4",
+      "sha256": "b2b5f8582f880157e9de85e729dc5a5e04e4b00c321e6edda31fa12ad01f08a1",
+      "mimeType": "video/mp4",
+      "bytes": 14535518,
+      "width": 1920,
+      "height": 1088,
+      "duration": 6.5,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F029",
+        "DU-F030"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L2"
+      ]
+    },
+    {
+      "id": "DU-F034",
+      "role": "generation/source-en-line3.mp4",
+      "relativePath": "generation/source-en-line3.mp4",
+      "sha256": "463b98fa13959599e6eeb0ad4bc46af2b4794fe539c5fa4ab94d1eb0e38106e4",
+      "mimeType": "video/mp4",
+      "bytes": 15909695,
+      "width": 1920,
+      "height": 1088,
+      "duration": 7.125,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F029",
+        "DU-F030"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L3"
+      ]
+    },
+    {
+      "id": "DU-F035",
+      "role": "generation/source-ledger.json",
+      "relativePath": "generation/source-ledger.json",
+      "sha256": "23481707939ec3b1e1a4e6504e5268c52ad68c77e57093227222f6eb81146e26",
+      "mimeType": "application/json",
+      "bytes": 1301,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F027",
+        "DU-F028",
+        "DU-F030",
+        "DU-F032",
+        "DU-F033",
+        "DU-F034",
+        "DU-F042",
+        "DU-F043",
+        "DU-F044",
+        "DU-F049"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": []
+    },
+    {
+      "id": "DU-F036",
+      "role": "handoff.md",
+      "relativePath": "handoff.md",
+      "sha256": "008b07a1c639989eeb3efddd95b7d93fecdba1e957e9346f6979224fdf1f640a",
+      "mimeType": "text/plain",
+      "bytes": 3431,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F038",
+        "DU-F040",
+        "DU-F041",
+        "DU-F051",
+        "DU-F070",
+        "DU-F071",
+        "DU-F072",
+        "DU-F073",
+        "DU-F074",
+        "DU-F075",
+        "DU-F076"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [],
+      "transformation": "Human-authored package handoff from selected masters, source media, and capture evidence."
+    },
+    {
+      "id": "DU-F037",
+      "role": "masters/dub-es-lipsync-captioned.mp4",
+      "relativePath": "masters/dub-es-lipsync-captioned.mp4",
+      "sha256": "e852ab021fd175e8cd03933945b529790034be862df8dc34b41d601e54a2088f",
+      "mimeType": "video/mp4",
+      "bytes": 7196126,
+      "width": 1920,
+      "height": 1088,
+      "duration": 22.7,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F038",
+        "DU-F058"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Burned final Spanish subtitles into the clean lip-sync master."
+    },
+    {
+      "id": "DU-F038",
+      "role": "masters/dub-es-lipsync-clean.mp4",
+      "relativePath": "masters/dub-es-lipsync-clean.mp4",
+      "sha256": "6247c5a10903f41a4452205c8cc3c0f0b9c37b7e5bf916f0c1d2008e7dbdfe06",
+      "mimeType": "video/mp4",
+      "bytes": 4982133,
+      "width": 1920,
+      "height": 1088,
+      "duration": 22.7,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F021",
+        "DU-F023",
+        "DU-F025",
+        "DU-F045"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Concatenated padded per-line lip-sync outputs and retained the accepted Spanish speech track."
+    },
+    {
+      "id": "DU-F039",
+      "role": "masters/dub-es-voiceover-captioned.mp4",
+      "relativePath": "masters/dub-es-voiceover-captioned.mp4",
+      "sha256": "c5cb20c521a9d637fe9c68021abcfa209b8ab7665910364dc9af128412b51162",
+      "mimeType": "video/mp4",
+      "bytes": 8139818,
+      "width": 1920,
+      "height": 1088,
+      "duration": 22.55,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F040",
+        "DU-F058"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Burned final Spanish subtitles into the clean voiceover master."
+    },
+    {
+      "id": "DU-F040",
+      "role": "masters/dub-es-voiceover-clean.mp4",
+      "relativePath": "masters/dub-es-voiceover-clean.mp4",
+      "sha256": "1fcc43c57363c9b48a590b7d78145d9566cf8f23997443eb7ac798187511d3ea",
+      "mimeType": "video/mp4",
+      "bytes": 5589734,
+      "width": 1920,
+      "height": 1088,
+      "duration": 22.55,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F051",
+        "DU-F045"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Kept the source picture, muted its English speech, and aligned the assembled Spanish voice stem."
+    },
+    {
+      "id": "DU-F041",
+      "role": "masters/language-comparison.mp4",
+      "relativePath": "masters/language-comparison.mp4",
+      "sha256": "e8d90ba2f60741e757d93a9ead7e3c2947c13ed8e33725d814ced5a7a0d9fea1",
+      "mimeType": "video/mp4",
+      "bytes": 15894199,
+      "width": 1920,
+      "height": 1088,
+      "duration": 45.331,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F051",
+        "DU-F038"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Composed a labeled sequential English-source and Spanish-lip-sync comparison with non-competing speech."
+    },
+    {
+      "id": "DU-F042",
+      "role": "masters/voice-es/du-l1.mp3",
+      "relativePath": "masters/voice-es/du-l1.mp3",
+      "sha256": "df9dbfbae1dbf0e038005b114a40d21386957f8721da0a5b2cedd5f41645ea7f",
+      "mimeType": "audio/mpeg",
+      "bytes": 135981,
+      "width": null,
+      "height": null,
+      "duration": 8.496,
+      "fps": null,
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F005"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1"
+      ]
+    },
+    {
+      "id": "DU-F043",
+      "role": "masters/voice-es/du-l2.mp3",
+      "relativePath": "masters/voice-es/du-l2.mp3",
+      "sha256": "cd7e773a5390d4586b7d1645a7d755668dcae266bac7f8eb81aeec756d5c688e",
+      "mimeType": "audio/mpeg",
+      "bytes": 79533,
+      "width": null,
+      "height": null,
+      "duration": 4.968,
+      "fps": null,
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F005"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L2"
+      ]
+    },
+    {
+      "id": "DU-F044",
+      "role": "masters/voice-es/du-l3.mp3",
+      "relativePath": "masters/voice-es/du-l3.mp3",
+      "sha256": "d18c2548c7fff1f9bf3430f5f9ddfbcf78093af330cc6353beffc9b96f9e6157",
+      "mimeType": "audio/mpeg",
+      "bytes": 109869,
+      "width": null,
+      "height": null,
+      "duration": 6.864,
+      "fps": null,
+      "hasAudio": true,
+      "provenance": "generated-in-nodetool",
+      "sourceIds": [
+        "DU-F005"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L3"
+      ]
+    },
+    {
+      "id": "DU-F045",
+      "role": "masters/voice-es.wav",
+      "relativePath": "masters/voice-es.wav",
+      "sha256": "1dbddab007e319e3a3d7f53eb6f0583c83e2a246bc8e9be06877624b8fbeb428",
+      "mimeType": "audio/wav",
+      "bytes": 2164878,
+      "width": null,
+      "height": null,
+      "duration": 22.55,
+      "fps": null,
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F042",
+        "DU-F043",
+        "DU-F044"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Assembled the three Spanish line takes into a 48 kHz editable voice stem with measured pauses."
+    },
+    {
+      "id": "DU-F046",
+      "role": "presenter/demo-presenter-reference.png",
+      "relativePath": "presenter/demo-presenter-reference.png",
+      "sha256": "ea9af461718b3ef895a582b6c620468521b3a1027294375bc1084c62a59769d1",
+      "mimeType": "image/png",
+      "bytes": 1080429,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F049"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [],
+      "transformation": "Copied the generated presenter reference to the presenter working directory."
+    },
+    {
+      "id": "DU-F047",
+      "role": "qa.md",
+      "relativePath": "qa.md",
+      "sha256": "9ec9ae51eee5276b253681ca5a504005a18839561c3ced643a040db30f5ca390",
+      "mimeType": "text/plain",
+      "bytes": 2932,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F001",
+        "DU-F011",
+        "DU-F012",
+        "DU-F013",
+        "DU-F014",
+        "DU-F015",
+        "DU-F016",
+        "DU-F017",
+        "DU-F019",
+        "DU-F020"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [],
+      "transformation": "Human-authored QA summary from retained review, probe, timing, and capture evidence."
+    },
+    {
+      "id": "DU-F048",
+      "role": "sources/presenter-entity.json",
+      "relativePath": "sources/presenter-entity.json",
+      "sha256": "04dc20d63e6fdb8088cf8f79ef63c3a6509b13d0cf894b183af3099fa066bbfe",
+      "mimeType": "application/json",
+      "bytes": 309,
+      "provenance": "generated-source",
+      "sourceIds": [
+        "DU-F049"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": []
+    },
+    {
+      "id": "DU-F049",
+      "role": "sources/presenter-reference.png",
+      "relativePath": "sources/presenter-reference.png",
+      "sha256": "ea9af461718b3ef895a582b6c620468521b3a1027294375bc1084c62a59769d1",
+      "mimeType": "image/png",
+      "bytes": 1080429,
+      "provenance": "generated-source",
+      "sourceIds": [],
+      "producingDocumentId": null,
+      "shotOrLineIds": [],
+      "sourceNote": "Direct text-to-image generation had no input asset; its prompt was not retained as a package file."
+    },
+    {
+      "id": "DU-F050",
+      "role": "sources/source-en-audio.wav",
+      "relativePath": "sources/source-en-audio.wav",
+      "sha256": "e36c877a0701a2495c88dec4789af0bef15123326bae404ee9bc2ed354718cf9",
+      "mimeType": "audio/wav",
+      "bytes": 2170958,
+      "width": null,
+      "height": null,
+      "duration": 22.613333,
+      "fps": null,
+      "hasAudio": true,
+      "provenance": "generated-source",
+      "sourceIds": [
+        "DU-F051"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ]
+    },
+    {
+      "id": "DU-F051",
+      "role": "sources/source-en.mp4",
+      "relativePath": "sources/source-en.mp4",
+      "sha256": "259276d164f81f30857834accd0497472001849e7dfa1f54668d23f2ef2bdc51",
+      "mimeType": "video/mp4",
+      "bytes": 5536901,
+      "width": 1920,
+      "height": 1088,
+      "duration": 22.625,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "generated-source",
+      "sourceIds": [
+        "DU-F032",
+        "DU-F033",
+        "DU-F034"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ]
+    },
+    {
+      "id": "DU-F052",
+      "role": "web/dub-es-lipsync-poster.webp",
+      "relativePath": "web/dub-es-lipsync-poster.webp",
+      "sha256": "d615521747e34e1623256ce13ed8958d2a9069896d8128b32793e28ccd6e3f4c",
+      "mimeType": "image/webp",
+      "bytes": 108666,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F038"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Selected and encoded a poster frame from the clean lip-sync master."
+    },
+    {
+      "id": "DU-F053",
+      "role": "web/dub-es-lipsync.mp4",
+      "relativePath": "web/dub-es-lipsync.mp4",
+      "sha256": "e852ab021fd175e8cd03933945b529790034be862df8dc34b41d601e54a2088f",
+      "mimeType": "video/mp4",
+      "bytes": 7196126,
+      "width": 1920,
+      "height": 1088,
+      "duration": 22.7,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F038"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "H.264 web delivery encode of the clean lip-sync master."
+    },
+    {
+      "id": "DU-F054",
+      "role": "web/dub-es-lipsync.webm",
+      "relativePath": "web/dub-es-lipsync.webm",
+      "sha256": "6d9b8e42606b352c4df1a1faf62919c86e76fb41f136fcb588afbfdbf66327cd",
+      "mimeType": "video/webm",
+      "bytes": 2673362,
+      "width": 1920,
+      "height": 1088,
+      "duration": 22.714,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F038"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "VP9 WebM delivery encode of the clean lip-sync master."
+    },
+    {
+      "id": "DU-F055",
+      "role": "web/dub-es-voiceover-poster.webp",
+      "relativePath": "web/dub-es-voiceover-poster.webp",
+      "sha256": "050e0f166519172b117ada747f10964331f21aeb75e280d35f83db0372fc278b",
+      "mimeType": "image/webp",
+      "bytes": 118698,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F040"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Selected and encoded a poster frame from the clean voiceover master."
+    },
+    {
+      "id": "DU-F056",
+      "role": "web/dub-es-voiceover.mp4",
+      "relativePath": "web/dub-es-voiceover.mp4",
+      "sha256": "c5cb20c521a9d637fe9c68021abcfa209b8ab7665910364dc9af128412b51162",
+      "mimeType": "video/mp4",
+      "bytes": 8139818,
+      "width": 1920,
+      "height": 1088,
+      "duration": 22.55,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F040"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "H.264 web delivery encode of the clean voiceover master."
+    },
+    {
+      "id": "DU-F057",
+      "role": "web/dub-es-voiceover.webm",
+      "relativePath": "web/dub-es-voiceover.webm",
+      "sha256": "8cb4be3b95131e23febb3af7759e0c8aa73373c1814c8c491a4ead05be278de0",
+      "mimeType": "video/webm",
+      "bytes": 3012952,
+      "width": 1920,
+      "height": 1088,
+      "duration": 22.578,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F040"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "VP9 WebM delivery encode of the clean voiceover master."
+    },
+    {
+      "id": "DU-F058",
+      "role": "web/dub-es.srt",
+      "relativePath": "web/dub-es.srt",
+      "sha256": "63798dee6e3fea3e79058dba79c62e274fc96133fc490e7e54afbae63b27810c",
+      "mimeType": "text/plain",
+      "bytes": 367,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F005",
+        "DU-F020"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Final Spanish SRT authored from the accepted target wording and measured target delivery timing."
+    },
+    {
+      "id": "DU-F059",
+      "role": "web/dub-es.vtt",
+      "relativePath": "web/dub-es.vtt",
+      "sha256": "61094b46dc344a943ddf611b08178233b2bd9ca24388ea54519c5567396671ef",
+      "mimeType": "text/vtt",
+      "bytes": 369,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F058"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Converted the final Spanish SRT cues to WebVTT."
+    },
+    {
+      "id": "DU-F060",
+      "role": "web/language-comparison.mp4",
+      "relativePath": "web/language-comparison.mp4",
+      "sha256": "e8d90ba2f60741e757d93a9ead7e3c2947c13ed8e33725d814ced5a7a0d9fea1",
+      "mimeType": "video/mp4",
+      "bytes": 15894199,
+      "width": 1920,
+      "height": 1088,
+      "duration": 45.331,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F041"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "H.264 web delivery encode of the language-comparison master."
+    },
+    {
+      "id": "DU-F061",
+      "role": "web/language-comparison.webm",
+      "relativePath": "web/language-comparison.webm",
+      "sha256": "da5ca0eb598f74abfb5397216acff068eeb495420fe1f910f12ea6616c4fb30e",
+      "mimeType": "video/webm",
+      "bytes": 5366819,
+      "width": 1920,
+      "height": 1088,
+      "duration": 45.349,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F041"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "VP9 WebM delivery encode of the language-comparison master."
+    },
+    {
+      "id": "DU-F062",
+      "role": "web/poster.webp",
+      "relativePath": "web/poster.webp",
+      "sha256": "d8cb2855d5210aedecd9eab5567710ef9f7608b57e1ddae1fad460ee95c614ea",
+      "mimeType": "image/webp",
+      "bytes": 115036,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F041"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Selected and encoded a poster frame from the language-comparison master."
+    },
+    {
+      "id": "DU-F063",
+      "role": "web/recipe-card.webp",
+      "relativePath": "web/recipe-card.webp",
+      "sha256": "0ff64d4d8b6a9e7d78e739f182aa4dfd8402d1055414d4c7a4e0794624dda942",
+      "mimeType": "image/webp",
+      "bytes": 106088,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F038"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Composed the recipe-card still from the accepted lip-sync result."
+    },
+    {
+      "id": "DU-F064",
+      "role": "web/social-preview.webp",
+      "relativePath": "web/social-preview.webp",
+      "sha256": "542f47857649ee9242dd19c84ef82b8f39ac6932d61c18f769d448474650afc2",
+      "mimeType": "image/webp",
+      "bytes": 74196,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F038",
+        "DU-F041"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Composed the social preview from the accepted lip-sync and comparison results."
+    },
+    {
+      "id": "DU-F065",
+      "role": "web/source-en-poster.webp",
+      "relativePath": "web/source-en-poster.webp",
+      "sha256": "c914ead0f8d1a13d485b77902427669171789fbde71f7663e364c1ed054deeac",
+      "mimeType": "image/webp",
+      "bytes": 69122,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F051"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Selected and encoded a poster frame from the accepted English source."
+    },
+    {
+      "id": "DU-F066",
+      "role": "web/source-en.mp4",
+      "relativePath": "web/source-en.mp4",
+      "sha256": "259276d164f81f30857834accd0497472001849e7dfa1f54668d23f2ef2bdc51",
+      "mimeType": "video/mp4",
+      "bytes": 5536901,
+      "width": 1920,
+      "height": 1088,
+      "duration": 22.625,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F051"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "H.264 web delivery encode of the accepted English source."
+    },
+    {
+      "id": "DU-F067",
+      "role": "web/source-en.vtt",
+      "relativePath": "web/source-en.vtt",
+      "sha256": "9abb9d08d55527248fc6e422f17ccdfc510748ff06f11726b1afc9a721685cac",
+      "mimeType": "text/vtt",
+      "bytes": 339,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F006"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Converted the reviewed English source SRT cues to WebVTT."
+    },
+    {
+      "id": "DU-F068",
+      "role": "web/source-en.webm",
+      "relativePath": "web/source-en.webm",
+      "sha256": "d8c343cf886881184699ebc81a84b3ed109bd75e514d7c19546fe3e8516952c0",
+      "mimeType": "video/webm",
+      "bytes": 2618841,
+      "width": 1920,
+      "height": 1088,
+      "duration": 22.625,
+      "fps": "24/1",
+      "hasAudio": true,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F051"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "VP9 WebM delivery encode of the accepted English source."
+    },
+    {
+      "id": "DU-F069",
+      "role": "web/translation-review.webp",
+      "relativePath": "web/translation-review.webp",
+      "sha256": "fdf1030497aab68f60195dee9ac66193b2ef306c4f55cb2ad4beee5a31621a39",
+      "mimeType": "image/webp",
+      "bytes": 32940,
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F011"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Rendered a legible still excerpt from the translation review document."
+    },
+    {
+      "id": "DU-F070",
+      "role": "captures/steps/du-c3.png",
+      "relativePath": "captures/steps/du-c3.png",
+      "sha256": "fdcb40ba951f5e8e925e509d6b0b13a7a5a71f225e6b03e1543168a75820c84a",
+      "mimeType": "image/png",
+      "bytes": 258678,
+      "width": 3200,
+      "height": 2000,
+      "hasAlpha": false,
+      "provenance": "playwright-cli-live-ui",
+      "sourceIds": [],
+      "producingDocumentId": "229cbcbc8172462fa3b6d220d5a60956",
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "sourceNote": "The persistent source document ID was not captured, so no source asset ID can be asserted."
+    },
+    {
+      "id": "DU-F071",
+      "role": "captures/steps/du-c4.png",
+      "relativePath": "captures/steps/du-c4.png",
+      "sha256": "5f6e27190d8fbcd21c6b39a230ce522ac199ef3f7767a62130834739129ec5e0",
+      "mimeType": "image/png",
+      "bytes": 1071060,
+      "width": 3200,
+      "height": 2000,
+      "hasAlpha": false,
+      "provenance": "playwright-cli-live-ui",
+      "sourceIds": [],
+      "producingDocumentId": "229cbcbc8172462fa3b6d220d5a60956",
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "sourceNote": "The persistent source document ID was not captured, so no source asset ID can be asserted."
+    },
+    {
+      "id": "DU-F072",
+      "role": "captures/steps/du-c5.png",
+      "relativePath": "captures/steps/du-c5.png",
+      "sha256": "39dc0c1edac96de9c19baedefc91cddd566be910b311c00829eec6dabe41d581",
+      "mimeType": "image/png",
+      "bytes": 253369,
+      "width": 3200,
+      "height": 2000,
+      "hasAlpha": false,
+      "provenance": "playwright-cli-live-ui",
+      "sourceIds": [],
+      "producingDocumentId": "229cbcbc8172462fa3b6d220d5a60956",
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "sourceNote": "The persistent source document ID was not captured, so no source asset ID can be asserted."
+    },
+    {
+      "id": "DU-F073",
+      "role": "captures/steps/du-c6.png",
+      "relativePath": "captures/steps/du-c6.png",
+      "sha256": "6fbff8d6cc9c4ed52948237984fb1453eedf6928f582392b243f71752e992303",
+      "mimeType": "image/png",
+      "bytes": 167020,
+      "width": 3200,
+      "height": 2000,
+      "hasAlpha": false,
+      "provenance": "playwright-cli-live-ui",
+      "sourceIds": [],
+      "producingDocumentId": "229cbcbc8172462fa3b6d220d5a60956",
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "sourceNote": "The persistent source document ID was not captured, so no source asset ID can be asserted."
+    },
+    {
+      "id": "DU-F074",
+      "role": "captures/steps/du-c7.png",
+      "relativePath": "captures/steps/du-c7.png",
+      "sha256": "87452ce8c472d4ce8ec90590f84c949bb12596d9c4a40da5d5690cda23e99e8f",
+      "mimeType": "image/png",
+      "bytes": 217817,
+      "width": 3200,
+      "height": 2000,
+      "hasAlpha": false,
+      "provenance": "playwright-cli-live-ui",
+      "sourceIds": [],
+      "producingDocumentId": "229cbcbc8172462fa3b6d220d5a60956",
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "sourceNote": "The persistent source document ID was not captured, so no source asset ID can be asserted."
+    },
+    {
+      "id": "DU-F075",
+      "role": "captures/steps/du-c8.png",
+      "relativePath": "captures/steps/du-c8.png",
+      "sha256": "a64c65a88bd2720340f18e42b4c35b70842ac33022cc66738adbe5505e4addd2",
+      "mimeType": "image/png",
+      "bytes": 224053,
+      "width": 3200,
+      "height": 2000,
+      "hasAlpha": false,
+      "provenance": "playwright-cli-live-ui",
+      "sourceIds": [],
+      "producingDocumentId": "229cbcbc8172462fa3b6d220d5a60956",
+      "shotOrLineIds": [
+        "DU-L2"
+      ],
+      "sourceNote": "The persistent source document ID was not captured, so no source asset ID can be asserted."
+    },
+    {
+      "id": "DU-F076",
+      "role": "captures/steps/du-c9.png",
+      "relativePath": "captures/steps/du-c9.png",
+      "sha256": "17d896ddf6c459c412dd6e748c9c187a56ceeff179e9487dccc52695127dfb5c",
+      "mimeType": "image/jpeg",
+      "bytes": 106375,
+      "width": 1045,
+      "height": 768,
+      "hasAlpha": false,
+      "provenance": "live-ui-capture",
+      "sourceIds": [],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "sourceNote": "The persistent source document ID was not captured, so no source asset ID can be asserted."
+    }
+  ],
+  "generationCalls": [
+    {
+      "id": "DU-GEN-001",
+      "callId": null,
+      "jobId": null,
+      "toolName": "generate_image",
+      "provider": "fal_ai",
+      "model": "fal-ai/flux-2-max",
+      "inputAssetIds": [],
+      "promptFile": null,
+      "settings": {
+        "retained": false,
+        "note": "The text prompt and provider settings were not retained as a package file."
+      },
+      "outputIds": [
+        "DU-F049"
+      ],
+      "actualCost": null,
+      "currency": null,
+      "costNote": "Node CLI returned no cost fields.",
+      "attempt": 1,
+      "failureReason": null
+    },
+    {
+      "id": "DU-GEN-002",
+      "callId": null,
+      "jobId": null,
+      "toolName": "fal.text_to_speech.BytedanceSeedSpeechTtsV2",
+      "provider": "fal_ai",
+      "model": "fal-ai/bytedance/seed-speech/tts/v2",
+      "inputAssetIds": [
+        "DU-F004",
+        "DU-F005"
+      ],
+      "promptFile": null,
+      "settings": {
+        "voices": [
+          "dacey_en",
+          "felipe_es"
+        ],
+        "retained": false,
+        "note": "Voice IDs are retained in source provenance and the Spanish script export; remaining provider settings were not retained.",
+        "outputVoiceMap": {
+          "DU-F030": "dacey_en",
+          "DU-F042": "felipe_es",
+          "DU-F043": "felipe_es",
+          "DU-F044": "felipe_es"
+        }
+      },
+      "outputIds": [
+        "DU-F030",
+        "DU-F042",
+        "DU-F043",
+        "DU-F044"
+      ],
+      "actualCost": null,
+      "currency": null,
+      "costNote": "Node CLI returned no cost fields.",
+      "attempt": 1,
+      "failureReason": null
+    },
+    {
+      "id": "DU-GEN-003",
+      "callId": null,
+      "jobId": null,
+      "toolName": "fal.image_to_video.SeeDanceV1ProFastImageToVideo",
+      "provider": "fal_ai",
+      "model": "fal-ai/bytedance/seedance/v1/pro/fast/image-to-video",
+      "inputAssetIds": [
+        "DU-F049"
+      ],
+      "promptFile": null,
+      "settings": {
+        "retained": false,
+        "note": "Motion prompt and provider settings were not retained as a package file."
+      },
+      "outputIds": [
+        "DU-F027",
+        "DU-F028"
+      ],
+      "actualCost": null,
+      "currency": null,
+      "costNote": "Node CLI returned no cost fields.",
+      "attempt": 1,
+      "failureReason": null
+    },
+    {
+      "id": "DU-GEN-004",
+      "callId": null,
+      "jobId": null,
+      "toolName": "fal.video_to_video.SyncLipsyncV3",
+      "provider": "fal_ai",
+      "model": "fal-ai/sync-lipsync/v3",
+      "inputAssetIds": [
+        "DU-F029",
+        "DU-F030",
+        "DU-F032",
+        "DU-F033",
+        "DU-F034",
+        "DU-F042",
+        "DU-F043",
+        "DU-F044"
+      ],
+      "promptFile": null,
+      "settings": {
+        "retained": false,
+        "note": "This aggregate ledger record covers six completed per-line invocations. The input pairing is preserved below; remaining provider settings were not retained.",
+        "operations": [
+          {
+            "stage": "English source lip sync",
+            "shotOrLineIds": [
+              "DU-L1"
+            ],
+            "inputAssetIds": [
+              "DU-F029",
+              "DU-F030"
+            ],
+            "outputId": "DU-F032"
+          },
+          {
+            "stage": "English source lip sync",
+            "shotOrLineIds": [
+              "DU-L2"
+            ],
+            "inputAssetIds": [
+              "DU-F029",
+              "DU-F030"
+            ],
+            "outputId": "DU-F033"
+          },
+          {
+            "stage": "English source lip sync",
+            "shotOrLineIds": [
+              "DU-L3"
+            ],
+            "inputAssetIds": [
+              "DU-F029",
+              "DU-F030"
+            ],
+            "outputId": "DU-F034"
+          },
+          {
+            "stage": "Spanish target lip sync",
+            "shotOrLineIds": [
+              "DU-L1"
+            ],
+            "inputAssetIds": [
+              "DU-F032",
+              "DU-F042"
+            ],
+            "outputId": "DU-F022"
+          },
+          {
+            "stage": "Spanish target lip sync",
+            "shotOrLineIds": [
+              "DU-L2"
+            ],
+            "inputAssetIds": [
+              "DU-F033",
+              "DU-F043"
+            ],
+            "outputId": "DU-F024"
+          },
+          {
+            "stage": "Spanish target lip sync",
+            "shotOrLineIds": [
+              "DU-L3"
+            ],
+            "inputAssetIds": [
+              "DU-F034",
+              "DU-F044"
+            ],
+            "outputId": "DU-F026"
+          }
+        ]
+      },
+      "outputIds": [
+        "DU-F032",
+        "DU-F033",
+        "DU-F034",
+        "DU-F022",
+        "DU-F024",
+        "DU-F026"
+      ],
+      "actualCost": null,
+      "currency": null,
+      "costNote": "Node CLI returned no cost fields.",
+      "attempt": 1,
+      "failureReason": null
+    },
+    {
+      "id": "DU-GEN-005",
+      "callId": null,
+      "jobId": null,
+      "toolName": "fal.speech_to_text.ElevenLabsSpeechToText",
+      "provider": "fal_ai",
+      "model": "fal-ai/elevenlabs/speech-to-text",
+      "inputAssetIds": [
+        "DU-F050",
+        "DU-F042",
+        "DU-F043",
+        "DU-F044"
+      ],
+      "promptFile": null,
+      "settings": {
+        "retained": false,
+        "note": "Raw provider transcripts were not retained as standalone assets; reviewed transcription and language results are retained in the listed outputs."
+      },
+      "outputIds": [
+        "DU-F007",
+        "DU-F012"
+      ],
+      "actualCost": null,
+      "currency": null,
+      "costNote": "Node CLI returned no cost fields.",
+      "attempt": 1,
+      "failureReason": null
+    }
+  ],
+  "blockedItems": [
+    {
+      "requiredAssetId": "DU-A15/DU-A16",
+      "attemptedOperation": "Real Script guided-flow capture",
+      "observedLimitation": "DU-C3 through DU-C9 are captured; DU-C0, DU-C1, DU-C2, DU-C10, DU-C11, lossless raw captures, and the walkthrough remain missing",
+      "availablePartialResult": "Seven live Script/timeline captures plus all independent generated media and delivery encodes",
+      "nextAction": "Capture DU-C0, DU-C1, DU-C2, DU-C10, and DU-C11, preserve lossless raw originals, then edit DU-A16"
+    },
+    {
+      "requiredAssetId": "DU-A5/DU-A9 project name and IDs",
+      "attemptedOperation": "Verify the required named reopenable NodeTool project and persistent document IDs",
+      "observedLimitation": "The captures do not verify the exact project rename, project ID, script ID, timeline ID, or app revision",
+      "availablePartialResult": "Durable editable JSON exports and captured live Script/timeline state",
+      "nextAction": "Rename or confirm Marketing recipes / multilingual-video-dubber / 2026-09-10-marketing-recipes-01 and record all persistent IDs"
+    },
+    {
+      "requiredAssetId": "DU-C6/DU-C9 human playback acceptance",
+      "attemptedOperation": "Audition the selected Spanish voice and play the native timeline",
+      "observedLimitation": "Human playback is not recorded; the native timeline preview returned Unable to play media",
+      "availablePartialResult": "Loaded six-second ef_dora audition, three voiced lines, and an editable 16.3-second three-clip timeline",
+      "nextAction": "Resolve the native preview error, play the audition and full timeline, then record human audio/visual acceptance"
+    }
+  ],
+  "supportedClaims": [
+    {
+      "wording": "The captured Script flow preserved the three approved Spanish lines through setup, configured Spanish with FAL Kokoro ef_dora, and created editable line-level voice takes.",
+      "evidenceIds": [
+        "documents/translation-review.md",
+        "captures/steps/du-c3.png",
+        "captures/steps/du-c5.png",
+        "captures/steps/du-c6.png",
+        "captures/steps/du-c7.png"
+      ],
+      "limitation": "Human audition playback, exact persistent IDs, and app revision are not verified",
+      "safeToUse": true
+    },
+    {
+      "wording": "The captured session revised line 2's direction, revoiced it to a second take, exported SRT, and sent three editable voice clips to a 16.3-second timeline.",
+      "evidenceIds": [
+        "captures/steps/du-c8.png",
+        "captures/steps/du-c9.png",
+        "capture-log.json"
+      ],
+      "limitation": "The SRT export confirmation is not visible in the still, and native timeline playback failed with Unable to play media",
+      "safeToUse": true
+    },
+    {
+      "wording": "The same synthetic presenter footage was finished with Spanish voiceover and FAL lip sync.",
+      "evidenceIds": [
+        "evidence/source-provenance.json",
+        "masters/dub-es-lipsync-clean.mp4"
+      ],
+      "limitation": "Human visual acceptance pending",
+      "safeToUse": false
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "id": "5f1a06467b01420591e2d3c4d31d6fea",
+  "project_id": "default",
+  "name": "D1 Olive Cup — C",
+  "document": {
+    "cast": [
+      {
+        "id": "speaker_1",
+        "name": "Narrator",
+        "voice": null
+      }
+    ],
+    "sections": [
+      {
+        "id": "section_1",
+        "lines": [
+          {
+            "id": "line_1",
+            "speakerId": "speaker_1",
+            "text": "A quieter start looks like this.",
+            "takes": []
+          },
+          {
+            "id": "line_2",
+            "speakerId": "speaker_1",
+            "text": "A warm cup.",
+            "takes": []
+          },
+          {
+            "id": "line_3",
+            "speakerId": "speaker_1",
+            "text": "A moment to yourself.",
+            "takes": []
+          },
+          {
+            "id": "line_4",
+            "speakerId": "speaker_1",
+            "text": "Take it with you.",
+            "takes": []
+          }
+        ]
+      }
+    ]
+  },
+  "storyboard_id": null,
+  "timeline_id": null,
+  "created_at": "2026-09-10T16:52:56.645Z",
+  "updated_at": "2026-09-10T16:52:56.655Z"
+}

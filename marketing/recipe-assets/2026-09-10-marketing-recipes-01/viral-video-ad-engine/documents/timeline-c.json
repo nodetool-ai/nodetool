@@ -1,0 +1,226 @@
+{
+  "id": "c80736b7dff447d4bb21789f95a438ea",
+  "project_id": "default",
+  "name": "D1 Olive Travel Cup — C — 15.000s portrait",
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "duration_ms": 15000,
+  "document": {
+    "id": "c80736b7dff447d4bb21789f95a438ea",
+    "projectId": "default",
+    "name": "D1 Olive Travel Cup — C — 15.000s portrait",
+    "durationMs": 15000,
+    "tracks": [
+      {
+        "id": "track_1",
+        "name": "Video 1",
+        "type": "video",
+        "index": 0,
+        "visible": true,
+        "locked": false
+      },
+      {
+        "id": "tl-c-voice-track",
+        "name": "Voice",
+        "type": "audio",
+        "index": 1,
+        "visible": true,
+        "locked": false
+      },
+      {
+        "id": "tl-c-end-card-track",
+        "name": "End card",
+        "type": "overlay",
+        "index": 2,
+        "visible": true,
+        "locked": false
+      }
+    ],
+    "clips": [
+      {
+        "id": "tl-c-existing-01",
+        "trackId": "track_1",
+        "name": "AD-S1C",
+        "startMs": 0,
+        "durationMs": 3000,
+        "mediaType": "video",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "currentAssetId": "6766c8ae46b94aca8f93b7f218ba99a9",
+        "inPointMs": 0,
+        "outPointMs": 3000
+      },
+      {
+        "id": "tl-c-existing-02",
+        "trackId": "track_1",
+        "name": "AD-S2",
+        "startMs": 3000,
+        "durationMs": 4000,
+        "mediaType": "video",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "currentAssetId": "c52bae64a4634aea81786c7e04bb802f",
+        "inPointMs": 0,
+        "outPointMs": 4000
+      },
+      {
+        "id": "tl-c-existing-03",
+        "trackId": "track_1",
+        "name": "AD-S3",
+        "startMs": 7000,
+        "durationMs": 4000,
+        "mediaType": "video",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "currentAssetId": "56373aa8fb5c4472a66abbec798c5f81",
+        "inPointMs": 0,
+        "outPointMs": 4000
+      },
+      {
+        "id": "tl-c-existing-04",
+        "trackId": "track_1",
+        "name": "AD-S4",
+        "startMs": 11000,
+        "durationMs": 4000,
+        "mediaType": "video",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "currentAssetId": "4c0fb8f4afb94d9d8825eaeb60170fd0",
+        "inPointMs": 0,
+        "outPointMs": 4000
+      },
+      {
+        "id": "tl-c-voice-l1",
+        "trackId": "tl-c-voice-track",
+        "name": "AD-L1 C",
+        "mediaType": "audio",
+        "startMs": 0,
+        "durationMs": 2920,
+        "inPointMs": 0,
+        "outPointMs": 2920,
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "currentAssetId": "a7083f34b1f74387b15dc52ef488cca8",
+        "volumeDb": 0,
+        "scriptId": "5f1a06467b01420591e2d3c4d31d6fea",
+        "scriptLineId": "AD-L1"
+      },
+      {
+        "id": "tl-c-voice-l2",
+        "trackId": "tl-c-voice-track",
+        "name": "AD-L2",
+        "mediaType": "audio",
+        "startMs": 3200,
+        "durationMs": 1680,
+        "inPointMs": 0,
+        "outPointMs": 1680,
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "currentAssetId": "70faf487d76145a8861320aa1bf8296e",
+        "volumeDb": 0,
+        "scriptId": "5f1a06467b01420591e2d3c4d31d6fea",
+        "scriptLineId": "AD-L2"
+      },
+      {
+        "id": "tl-c-voice-l3",
+        "trackId": "tl-c-voice-track",
+        "name": "AD-L3",
+        "mediaType": "audio",
+        "startMs": 7000,
+        "durationMs": 2240,
+        "inPointMs": 0,
+        "outPointMs": 2240,
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "currentAssetId": "00e4538ee63a4321a6d79d962576d4c6",
+        "volumeDb": 0,
+        "scriptId": "5f1a06467b01420591e2d3c4d31d6fea",
+        "scriptLineId": "AD-L3"
+      },
+      {
+        "id": "tl-c-voice-l4",
+        "trackId": "tl-c-voice-track",
+        "name": "AD-L4",
+        "mediaType": "audio",
+        "startMs": 11000,
+        "durationMs": 1440,
+        "inPointMs": 0,
+        "outPointMs": 1440,
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "currentAssetId": "fa37af2c8f3346cf928b3657bc7db268",
+        "volumeDb": 0,
+        "scriptId": "5f1a06467b01420591e2d3c4d31d6fea",
+        "scriptLineId": "AD-L4"
+      },
+      {
+        "id": "tl-c-end-card",
+        "trackId": "tl-c-end-card-track",
+        "name": "Take it with you.",
+        "mediaType": "text",
+        "startMs": 11000,
+        "durationMs": 4000,
+        "inPointMs": 0,
+        "outPointMs": 4000,
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "text": "Take it with you.",
+        "style": {
+          "fontFamily": "Inter",
+          "fontSizePx": 74,
+          "fontWeight": 600,
+          "color": "#FFFFFF",
+          "align": "center",
+          "maxWidthFrac": 0.72,
+          "shadow": {
+            "color": "#00000099",
+            "blurPx": 14,
+            "offsetX": 0,
+            "offsetY": 4
+          }
+        },
+        "transform": {
+          "position": {
+            "x": 0,
+            "y": -480
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "anchor": {
+            "x": 0.5,
+            "y": 0.5
+          }
+        }
+      }
+    ],
+    "markers": [],
+    "transcript": [],
+    "createdAt": "2026-09-10T17:04:21.582Z",
+    "updatedAt": "2026-09-10T18:04:11.229Z"
+  },
+  "created_at": "2026-09-10T17:04:21.582Z",
+  "updated_at": "2026-09-10T18:05:07.663Z",
+  "revision": 10
+}

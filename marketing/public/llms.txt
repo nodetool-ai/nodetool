@@ -74,8 +74,8 @@
 
 ## Recipes
 
-- [Recipes hub](https://nodetool.ai/recipes): multi-step jobs: the workflows to run, in order, as one downloadable bundle.
-- [Product Photo to Video Ad](https://nodetool.ai/recipes/viral-video-ad-engine): Turn a product photo into a vertical video ad, with hooks and thumbnails for your next test.
-- [Dub Your Video for a New Market](https://nodetool.ai/recipes/multilingual-video-dubber): Translate your presenter clip into another language, with a new voice, lip-sync, and subtitle text.
-- [One Packshot. A Full Product Set.](https://nodetool.ai/recipes/ecommerce-sku-visual-factory): Create studio shots, seasonal lighting, a turntable clip, and listing copy from one product photo. Upscale your chosen image for print.
-- [Turn Your Story into a Trailer](https://nodetool.ai/recipes/storyboard-to-trailer): Take a film idea from beat sheet to shot list to a cut teaser with a score.
+- [Recipes hub](https://nodetool.ai/recipes): step-by-step recipes using guided Storyboard and Script setup, with real UI captures and example media.
+- [Product ad variants](https://nodetool.ai/recipes/viral-video-ad-engine): One product, three openings. Build a short ad in a storyboard, then reuse its shots and voice across different cuts.
+- [Multilingual video](https://nodetool.ai/recipes/multilingual-video-dubber): Review a translation, choose a voice, and edit the delivery line by line. Finish with a new-language voiceover or a separate lip-sync pass.
+- [Product catalogue assets](https://nodetool.ai/recipes/ecommerce-sku-visual-factory): Turn one product reference into a coordinated set of studio images, seasonal scenes, and a short motion clip.
+- [Storyboard to trailer](https://nodetool.ai/recipes/storyboard-to-trailer): Turn a story idea into a six-shot storyboard, then develop its voice, motion, and edit in the same workspace.

@@ -306,13 +306,11 @@ export default async function TemplatePage({
                 Part of a bigger job
               </h2>
               <p className="mb-6 max-w-2xl text-sm leading-relaxed text-slate-400">
-                A recipe chains this workflow with the ones around it and ships
-                the whole set as a single file.
+                Explore a related recipe with guided setup and editable
+                storyboards or scripts.
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 {recipes.map((recipe) => {
-                  const position =
-                    recipe.steps.findIndex((s) => s.template === entry.slug) + 1;
                   return (
                     <a
                       key={recipe.slug}
@@ -320,7 +318,7 @@ export default async function TemplatePage({
                       className="group rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 transition-colors hover:border-amber-500/45"
                     >
                       <div className="text-xs font-semibold uppercase tracking-wide text-amber-400/80">
-                        Step {position} of {recipe.workflowCount}
+                        {recipe.guide.entry} guided flow
                       </div>
                       <div className="mt-2 text-lg font-semibold text-white group-hover:text-amber-300">
                         {recipe.name}

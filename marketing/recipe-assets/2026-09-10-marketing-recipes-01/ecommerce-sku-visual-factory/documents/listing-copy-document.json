@@ -1,0 +1,49 @@
+{
+  "documentType": "NodeTool editable script used as mounted editable text surface",
+  "documentId": "1addfd92cb294279abe6b8523f735e50",
+  "document": {
+    "id": "1addfd92cb294279abe6b8523f735e50",
+    "name": "Olive Travel Cup — Factual Listing Copy",
+    "storyboard_id": null,
+    "storyboard_link": {
+      "linked": false,
+      "storyboard_id": null,
+      "orphan_line_ids": [],
+      "drifted_shot_ids": [],
+      "shot_id_by_line_id": {},
+      "issues": []
+    },
+    "cast": [
+      {
+        "id": "speaker_1",
+        "name": "Listing Document",
+        "voice": null,
+        "entityId": null
+      }
+    ],
+    "lines": [
+      {
+        "id": "line_1",
+        "index": 0,
+        "speaker_id": "speaker_1",
+        "text": "# Product Facts\n\n## Confirmed visual facts\n- Fictional, unbranded travel cup.\n- Smooth muted-olive body that narrows subtly toward the base.\n- Low-profile flat charcoal lid.\n- One small rectangular drinking opening near the front rim.\n- No handle and no visible lettering or logo.\n\n## Merchant input required / unknown\nCapacity, materials, insulation, leak resistance, compatibility, dimensions, weight, certifications, price, warranty, and availability are unknown and must be supplied before publication.\n",
+        "voice": null,
+        "status": "no_voice",
+        "take_count": 0,
+        "shot_id": null,
+        "orphaned": false
+      },
+      {
+        "id": "line_2",
+        "index": 1,
+        "speaker_id": "speaker_1",
+        "text": "# Listing Copy\n\n## Title\nMuted-Olive Unbranded Travel Cup\n\n## Description\nA fictional unbranded travel cup presented with a smooth muted-olive body, a low-profile flat charcoal lid, and one small rectangular drinking opening near the front rim. Its clean, handle-free silhouette and blank exterior support restrained catalogue presentation without implying unverified performance claims.\n\n## Visual features\n- Smooth muted-olive body with a subtle taper toward the base.\n- Flat charcoal lid with one small rectangular front-rim opening.\n- Handle-free, unbranded exterior with no visible lettering.\n\n## Merchant input required / unknown facts\nCapacity, materials, insulation, leak resistance, compatibility, dimensions, weight, certifications, price, warranty, and availability are unknown. Confirm these facts before publishing.\n",
+        "voice": null,
+        "status": "no_voice",
+        "take_count": 0,
+        "shot_id": null,
+        "orphaned": false
+      }
+    ]
+  }
+}

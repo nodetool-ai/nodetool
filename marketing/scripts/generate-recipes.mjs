@@ -1,24 +1,8 @@
-// Generates marketing/src/data/recipeEntries.generated.ts and the downloadable
-// .nodetool bundles in marketing/public/recipes/ from the recipe manifests the
-// app ships (packages/base-nodes/nodetool/examples/recipes/*.recipe.json) plus
-// the site-only presentation in scripts/recipes.mjs.
-//
-// Regenerate: npm run gen:recipes        Verify: npm run gen:recipes -- --check
-//
-// The generated module is checked in, so the site builds without this script.
-// What the script adds is that a recipe cannot outlive its ingredients: every
-// step is resolved against the shipped example workflows, and a name that stops
-// resolving throws here rather than shipping a page whose bundle is short a
-// workflow. The models and API keys each recipe lists are read out of the
-// graphs, never written by hand.
-//
-// The manifests are the app's: the same files the Examples page reads to offer
-// each chain, so the page and the product describe one list of workflows.
-//
-// The .nodetool bundles are NOT deterministic — packWorkflowsBundle stamps a
-// created_at and the running NodeTool version into the manifest — so --check
-// asserts that each bundle exists and holds the right workflows, and compares
-// bytes only for the generated TypeScript.
+// Generates guided recipe pages and copies their real UI captures to public/.
+// The shipped workflow manifests remain the source for legacy bundle exports
+// and related template links, not the instructions shown on the recipe pages.
+// Regenerate: npm run gen:recipes (add --bundles to repack legacy workflows)
+// Verify: npm run gen:recipes -- --check
 
 import fs from "node:fs";
 import path from "node:path";
@@ -36,15 +20,15 @@ const MARKETING = path.resolve(__dirname, "..");
 const REPO_ROOT = path.resolve(MARKETING, "..");
 const EXAMPLES_DIR = path.join(
   REPO_ROOT,
-  "packages/base-nodes/nodetool/examples/nodetool-base",
+  "packages/base-nodes/nodetool/examples/nodetool-base"
 );
 const RECIPES_DIR = path.join(
   REPO_ROOT,
-  "packages/base-nodes/nodetool/examples/recipes",
+  "packages/base-nodes/nodetool/examples/recipes"
 );
 const TEMPLATE_ENTRIES = path.join(
   MARKETING,
-  "src/data/templateEntries.generated.ts",
+  "src/data/templateEntries.generated.ts"
 );
 const BUNDLE_DIR = path.join(MARKETING, "public/recipes");
 const SAMPLE_DIR = path.join(MARKETING, "public/recipes/samples");
@@ -52,6 +36,8 @@ const RENDER_MANIFEST = path.join(__dirname, "recipe-samples.manifest.json");
 const OUT_FILE = path.join(MARKETING, "src/data/recipeEntries.generated.ts");
 
 const CHECK = process.argv.includes("--check");
+const PACK_BUNDLES =
+  process.argv.includes("--bundles") && !process.argv.includes("--data-only");
 
 const RECIPE_SUFFIX = ".recipe.json";
 
@@ -61,7 +47,7 @@ const RECIPE_SUFFIX = ".recipe.json";
  * file `cliVersion()` reads in packages/cli/src/nodetool.ts.
  */
 const NODETOOL_VERSION = JSON.parse(
-  fs.readFileSync(path.join(REPO_ROOT, "packages/cli/package.json"), "utf8"),
+  fs.readFileSync(path.join(REPO_ROOT, "packages/cli/package.json"), "utf8")
 ).version;
 
 /** Runtime provider id to the env var NodeTool reads for BYOK. */
@@ -76,7 +62,7 @@ const PROVIDER_ENV = {
   huggingface: "HF_TOKEN",
   together: "TOGETHER_API_KEY",
   atlascloud: "ATLASCLOUD_API_KEY",
-  topaz: "TOPAZ_API_KEY",
+  topaz: "TOPAZ_API_KEY"
 };
 
 function fail(message) {
@@ -141,7 +127,7 @@ function buildSample(spec) {
     if (!fs.existsSync(path.join(SAMPLE_DIR, file))) {
       fail(
         `recipe "${spec.slug}" names sample file ${file}, which is not in ` +
-          `public/recipes/samples/`,
+          `public/recipes/samples/`
       );
     }
   }
@@ -156,7 +142,7 @@ function buildSample(spec) {
     fail(
       `recipe "${spec.slug}" has a sample but no entry in ` +
         `scripts/recipe-samples.manifest.json — run ` +
-        `\`node scripts/render-recipe-samples.mjs --only ${spec.slug}\``,
+        `\`node scripts/render-recipe-samples.mjs --only ${spec.slug}\``
     );
   }
   const at = (file) => (file ? `/recipes/samples/${file}` : null);
@@ -164,11 +150,84 @@ function buildSample(spec) {
     producedBy: rendered.producedBy,
     image: at(spec.sample.image),
     video: at(spec.sample.video),
-    webm: spec.sample.video ? at(spec.sample.video.replace(/\.mp4$/, ".webm")) : null,
+    webm: spec.sample.video
+      ? at(spec.sample.video.replace(/\.mp4$/, ".webm"))
+      : null,
     poster: at(spec.sample.poster),
     hasAudio: spec.sample.hasAudio === true,
-    caption: spec.sample.caption,
+    caption: spec.sample.caption
   };
+}
+
+/** Resolve the current production proof, failing if any public asset is absent. */
+function buildProductionRun(spec) {
+  const run = spec.productionRun;
+  if (!run) return null;
+  const paths = [
+    run.hero.src,
+    run.ogImage,
+    run.proof?.src,
+    run.video?.mp4,
+    run.video?.webm,
+    run.video?.poster
+  ].filter(Boolean);
+  for (const publicPath of paths) {
+    const file = path.join(MARKETING, "public", publicPath.replace(/^\//, ""));
+    if (!fs.existsSync(file)) {
+      fail(
+        `recipe "${spec.slug}" names production asset ${publicPath}, which is missing`
+      );
+    }
+  }
+  return run;
+}
+
+/** Publish supplied captures without altering the pixels or inventing UI. */
+function buildGuide(spec) {
+  const guide = spec.guide;
+  if (!guide?.steps?.length || !guide.stages?.length) {
+    fail(`recipe "${spec.slug}" needs guided UI instructions`);
+  }
+  const ids = new Set();
+  const steps = guide.steps.map((step) => {
+    if (!step.id || ids.has(step.id)) {
+      fail(`recipe "${spec.slug}" has a missing or duplicate guide step id`);
+    }
+    ids.add(step.id);
+    if (!step.image) return step;
+    const { source, ...image } = step.image;
+    const destination = path.join(MARKETING, "public", image.src);
+    if (source && fs.existsSync(path.join(MARKETING, source))) {
+      const bytes = fs.readFileSync(path.join(MARKETING, source));
+      if (CHECK) {
+        if (
+          !fs.existsSync(destination) ||
+          !bytes.equals(fs.readFileSync(destination))
+        ) {
+          fail(
+            `recipe "${spec.slug}" capture ${image.src} is missing or stale`
+          );
+        }
+      } else {
+        fs.mkdirSync(path.dirname(destination), { recursive: true });
+        fs.writeFileSync(destination, bytes);
+      }
+    }
+    if (!fs.existsSync(destination)) {
+      fail(`recipe "${spec.slug}" is missing guide image ${image.src}`);
+    }
+    const bytes = fs.readFileSync(destination);
+    if (
+      path.extname(destination) === ".png" &&
+      !bytes
+        .subarray(0, 8)
+        .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+    ) {
+      fail(`recipe "${spec.slug}" guide image ${image.src} is not a PNG`);
+    }
+    return { ...step, image };
+  });
+  return { ...guide, steps };
 }
 
 /**
@@ -182,7 +241,7 @@ function buildAlternative(spec, step, byExampleName) {
   if (!entry) {
     fail(
       `recipe "${spec.slug}" step "${step.example}" offers alternative ` +
-        `"${step.alternative.example}", which resolves to no shipped example.`,
+        `"${step.alternative.example}", which resolves to no shipped example.`
     );
   }
   return {
@@ -190,7 +249,7 @@ function buildAlternative(spec, step, byExampleName) {
     name: entry.name,
     route: entry.route,
     label: step.alternative.label,
-    why: step.alternative.why,
+    why: step.alternative.why
   };
 }
 
@@ -202,7 +261,7 @@ function buildRecipe(spec, byExampleName) {
       fail(
         `recipe "${spec.slug}" step "${step.example}" resolves to no shipped ` +
           "example. Run `npm run gen:templates` first; if the example was " +
-          `renamed, update ${path.relative(REPO_ROOT, RECIPES_DIR)}/${spec.slug}.recipe.json.`,
+          `renamed, update ${path.relative(REPO_ROOT, RECIPES_DIR)}/${spec.slug}.recipe.json.`
       );
     }
     const file = path.join(EXAMPLES_DIR, `${entry.name}.json`);
@@ -222,8 +281,8 @@ function buildRecipe(spec, byExampleName) {
         thumbnail: entry.thumbnail,
         nodeCount: entry.nodeCount,
         models: modelRefs(graph),
-        alternative: buildAlternative(spec, step, byExampleName),
-      },
+        alternative: buildAlternative(spec, step, byExampleName)
+      }
     };
   });
 
@@ -232,13 +291,13 @@ function buildRecipe(spec, byExampleName) {
   }
 
   const providers = [
-    ...new Set(steps.flatMap((s) => s.step.models.map((m) => m.provider))),
+    ...new Set(steps.flatMap((s) => s.step.models.map((m) => m.provider)))
   ];
   const unknown = providers.filter((p) => !PROVIDER_ENV[p]);
   if (unknown.length > 0) {
     fail(
       `recipe "${spec.slug}" uses provider(s) ${unknown.join(", ")} with no ` +
-        "entry in PROVIDER_ENV — add the BYOK env var name.",
+        "entry in PROVIDER_ENV — add the BYOK env var name."
     );
   }
 
@@ -246,8 +305,10 @@ function buildRecipe(spec, byExampleName) {
     files: steps.map((s) => s.file),
     record: {
       sample: buildSample(spec),
+      productionRun: buildProductionRun(spec),
+      guide: buildGuide(spec),
       route: `/recipes/${spec.slug}`,
-      title: `${spec.name} — NodeTool Recipe`,
+      title: `${spec.name} | NodeTool guided recipe`,
       description: spec.outcome,
       priority: 0.8,
       changeFrequency: "monthly",
@@ -256,16 +317,14 @@ function buildRecipe(spec, byExampleName) {
       name: spec.name,
       outcome: spec.outcome,
       audience: spec.audience,
-      summary: spec.summary,
-      caveats: spec.caveats,
       heroThumbnail: steps.find((s) => s.entry.name === spec.hero).step
         .thumbnail,
       bundle: `/recipes/${spec.slug}.nodetool`,
       workflowCount: steps.length,
       nodeCount: steps.reduce((n, s) => n + s.step.nodeCount, 0),
       keys: providers.map((id) => ({ provider: id, env: PROVIDER_ENV[id] })),
-      steps: steps.map((s) => s.step),
-    },
+      steps: steps.map((s) => s.step)
+    }
   };
 }
 
@@ -282,7 +341,7 @@ async function fetchAssetBytes(ref) {
     "packages/base-nodes/nodetool",
     "assets",
     match[1],
-    match[2],
+    match[2]
   );
   if (!fs.existsSync(file)) return null;
   return new Uint8Array(fs.readFileSync(file));
@@ -292,12 +351,15 @@ async function fetchAssetBytes(ref) {
 function bundledWorkflow(file) {
   const raw = JSON.parse(fs.readFileSync(file, "utf8"));
   return {
-    name: typeof raw.name === "string" ? raw.name : path.basename(file, ".json"),
+    name:
+      typeof raw.name === "string" ? raw.name : path.basename(file, ".json"),
     description: typeof raw.description === "string" ? raw.description : "",
-    tags: Array.isArray(raw.tags) ? raw.tags.filter((t) => typeof t === "string") : [],
+    tags: Array.isArray(raw.tags)
+      ? raw.tags.filter((t) => typeof t === "string")
+      : [],
     run_mode: raw.run_mode ?? null,
     settings: raw.settings ?? null,
-    graph: raw.graph ?? raw,
+    graph: raw.graph ?? raw
   };
 }
 
@@ -307,7 +369,7 @@ async function packBundle(slug, files) {
   const { bytes, manifest, skipped } = await packWorkflowsBundle({
     workflows: files.map(bundledWorkflow),
     fetchAssetBytes,
-    nodetoolVersion: NODETOOL_VERSION,
+    nodetoolVersion: NODETOOL_VERSION
   });
   for (const ref of skipped) {
     console.warn(`  warning: ${slug} could not embed ${ref} (left as a ref)`);
@@ -319,7 +381,7 @@ async function packBundle(slug, files) {
 /** Names of the workflows inside an existing bundle, for --check. */
 function bundledWorkflowNames(file) {
   const manifest = execFileSync("unzip", ["-p", file, "manifest.json"], {
-    encoding: "utf8",
+    encoding: "utf8"
   });
   return JSON.parse(manifest).workflows.map((w) => w.name);
 }
@@ -328,9 +390,8 @@ function render(records) {
   return `// AUTO-GENERATED by marketing/scripts/generate-recipes.mjs — do not edit by hand.
 // Regenerate: npm run gen:recipes
 //
-// Editorial content (the prose) lives in marketing/scripts/recipes.mjs. Every
-// other field here — models, keys, node counts, card art — is read out of the
-// shipped example workflows each step names.
+// Guided UI instructions: scripts/recipe-guides.mjs. Examples: scripts/recipes.mjs.
+// Legacy workflow metadata supports bundle exports and template cross-links.
 import type { RecipeEntry } from "./recipes";
 
 export const recipeEntries: RecipeEntry[] = ${JSON.stringify(records, null, 2)};
@@ -339,8 +400,8 @@ export const recipeEntries: RecipeEntry[] = ${JSON.stringify(records, null, 2)};
 
 /**
  * The shipped manifests, in page order: the order scripts/recipes.mjs lists,
- * then anything else on disk by slug. Each carries the site-only sample block
- * for its slug, so a manifest that ships without one still gets a page.
+ * then anything else on disk by slug. Presentation supplies the guided UI
+ * instructions and example media; buildGuide rejects recipes without a guide.
  */
 function readManifests() {
   let files;
@@ -355,29 +416,37 @@ function readManifests() {
   const bySlug = new Map();
   for (const file of files) {
     const manifest = JSON.parse(
-      fs.readFileSync(path.join(RECIPES_DIR, file), "utf8"),
+      fs.readFileSync(path.join(RECIPES_DIR, file), "utf8")
     );
     const slug = file.slice(0, -RECIPE_SUFFIX.length);
     if (manifest.slug !== slug) {
-      fail(`${file} declares slug "${manifest.slug}" — rename one or the other`);
+      fail(
+        `${file} declares slug "${manifest.slug}" — rename one or the other`
+      );
     }
     bySlug.set(slug, manifest);
   }
 
   const ordered = [];
-  for (const { slug, sample } of recipePresentation) {
+  for (const presentation of recipePresentation) {
+    const { slug, sample, productionRun } = presentation;
     const manifest = bySlug.get(slug);
     if (!manifest) {
       fail(
         `scripts/recipes.mjs lists "${slug}", which has no manifest in ` +
-          `${path.relative(REPO_ROOT, RECIPES_DIR)}`,
+          `${path.relative(REPO_ROOT, RECIPES_DIR)}`
       );
     }
-    ordered.push({ ...manifest, sample: sample ?? null });
+    ordered.push({
+      ...manifest,
+      ...presentation,
+      sample: sample ?? null,
+      productionRun: productionRun ?? null
+    });
     bySlug.delete(slug);
   }
   for (const manifest of bySlug.values()) {
-    ordered.push({ ...manifest, sample: null });
+    ordered.push({ ...manifest, sample: null, productionRun: null });
   }
   return ordered;
 }
@@ -395,14 +464,14 @@ async function main() {
       : "";
     if (current !== source) {
       fail(
-        `${path.relative(REPO_ROOT, OUT_FILE)} is stale — run \`npm run gen:recipes\``,
+        `${path.relative(REPO_ROOT, OUT_FILE)} is stale — run \`npm run gen:recipes\``
       );
     }
-    for (const { record, files } of built) {
+    for (const { record, files } of PACK_BUNDLES ? built : []) {
       const bundle = path.join(BUNDLE_DIR, `${record.slug}.nodetool`);
       if (!fs.existsSync(bundle)) {
         fail(
-          `missing bundle ${path.relative(REPO_ROOT, bundle)} — run \`npm run gen:recipes\``,
+          `missing bundle ${path.relative(REPO_ROOT, bundle)} — run \`npm run gen:recipes -- --bundles\``
         );
       }
       const want = files.map((f) => path.basename(f, ".json"));
@@ -410,7 +479,7 @@ async function main() {
       if (want.join("|") !== have.join("|")) {
         fail(
           `${record.slug}.nodetool holds [${have.join(", ")}] but the recipe ` +
-            `names [${want.join(", ")}] — run \`npm run gen:recipes\``,
+            `names [${want.join(", ")}] — run \`npm run gen:recipes -- --bundles\``
         );
       }
     }
@@ -418,17 +487,19 @@ async function main() {
     return;
   }
 
-  fs.mkdirSync(BUNDLE_DIR, { recursive: true });
-  for (const { record, files } of built) {
-    const manifest = await packBundle(record.slug, files);
-    console.log(
-      `  ${record.slug}.nodetool — ${manifest.workflows.length} workflows, ` +
-        `${manifest.assets.length} assets`,
-    );
+  if (PACK_BUNDLES) {
+    fs.mkdirSync(BUNDLE_DIR, { recursive: true });
+    for (const { record, files } of built) {
+      const manifest = await packBundle(record.slug, files);
+      console.log(
+        `  ${record.slug}.nodetool — ${manifest.workflows.length} workflows, ` +
+          `${manifest.assets.length} assets`
+      );
+    }
   }
   fs.writeFileSync(OUT_FILE, source);
   console.log(
-    `generate-recipes: wrote ${built.length} recipes to ${path.relative(REPO_ROOT, OUT_FILE)}`,
+    `generate-recipes: wrote ${built.length} recipes to ${path.relative(REPO_ROOT, OUT_FILE)}`
   );
 }
 

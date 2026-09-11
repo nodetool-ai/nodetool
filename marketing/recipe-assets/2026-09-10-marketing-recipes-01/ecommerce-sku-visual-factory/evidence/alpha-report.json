@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "width": 1024,
+  "height": 768,
+  "mode": "RGBA",
+  "cutoutAssetId": "735cd19c8b1e46ab824a7589cf8af0fd",
+  "meaningfulAlpha": true,
+  "inspection": {
+    "transparentCorners": true,
+    "opaqueInterior": true,
+    "partiallyTransparentEdges": true,
+    "backgrounds": [
+      "light gray",
+      "charcoal",
+      "saturated magenta"
+    ],
+    "findings": "Viewed true transparency; lid corners and rectangular opening retained; no baked checkerboard or white matte; no obvious olive halo at review scale."
+  }
+}

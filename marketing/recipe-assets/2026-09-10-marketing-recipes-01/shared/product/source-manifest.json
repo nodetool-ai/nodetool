@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-09-10-marketing-recipes-01",
+  "package": "D3 shared product",
+  "status": "accepted-for-shared-use",
+  "revision": "olive-travel-cup-r1-382922e1ca15",
+  "immutable": true,
+  "immutablePolicy": "Do not replace product-reference.png or product-reference.webp in place. A changed accepted reference requires a new revision and new filenames/package notice.",
+  "origin": "generated-source",
+  "synthetic": true,
+  "provider": "fal_ai",
+  "model": "fal-ai/flux-2-max",
+  "modelDiscovery": {"capability": "text_to_image", "providerHint": "fal_ai", "connected": true},
+  "promptPath": "product-prompt.txt",
+  "generation": {
+    "generationId": "e1cdcb77-54a4-48e1-b085-704ad49cac55",
+    "tool": "nodetool.media.generateImage",
+    "requestedSettings": {"width": 2048, "height": 2048},
+    "observedOutput": {"width": 1024, "height": 768, "mimeType": "image/png", "bytes": 456584},
+    "inputAssetIds": [],
+    "outputAssetIds": ["382922e1ca1543468d59f0af5575350e"],
+    "attempt": 1,
+    "failureReason": null,
+    "actualCost": null,
+    "currency": null,
+    "costNote": "Generation result and available tools did not expose actual provider cost; null is recorded rather than zero."
+  },
+  "generationHistory": [{
+    "attempt": 1,
+    "generationId": "e1cdcb77-54a4-48e1-b085-704ad49cac55",
+    "provider": "fal_ai",
+    "model": "fal-ai/flux-2-max",
+    "promptPath": "product-prompt.txt",
+    "assetId": "382922e1ca1543468d59f0af5575350e",
+    "path": "product-reference.png",
+    "result": "accepted",
+    "defect": null,
+    "actualCost": null,
+    "currency": null
+  }],
+  "assets": [
+    {
+      "role": "accepted-provider-original",
+      "path": "product-reference.png",
+      "assetId": "382922e1ca1543468d59f0af5575350e",
+      "assetUri": "asset://382922e1ca1543468d59f0af5575350e.png",
+      "mimeType": "image/png",
+      "width": 1024,
+      "height": 768,
+      "bytes": 456584,
+      "sha256": "3c79447005b53b0101c114faac7fccf5c6cc09556a169fcce225038ef4db9dbd",
+      "provenance": "generated-source"
+    },
+    {
+      "role": "viewable-webp-derivative",
+      "path": "product-reference.webp",
+      "assetId": "b5838c18c93845cea5f857df0f432d66",
+      "assetUri": "asset://b5838c18c93845cea5f857df0f432d66.webp",
+      "mimeType": "image/webp",
+      "width": 1024,
+      "height": 768,
+      "bytes": 296044,
+      "sha256": "e240bf5aa6b82fcbfcbd8021ab170673187c4531387bf9a598829655d49433f6",
+      "provenance": "derived",
+      "parents": ["382922e1ca1543468d59f0af5575350e"],
+      "transformation": "WebP conversion at quality 92; dimensions preserved"
+    }
+  ],
+  "entity": {
+    "id": "382922e1ca1543468d59f0af5575350e",
+    "name": "Olive Travel Cup",
+    "kind": "prop",
+    "metadataPath": "product-entity.json",
+    "descriptorPath": "product-descriptor.txt"
+  },
+  "review": {
+    "status": "accepted-for-shared-use",
+    "evidencePath": "acceptance-review.json",
+    "selectedTakeId": "382922e1ca1543468d59f0af5575350e",
+    "userAcceptanceRecorded": false
+  },
+  "requiredFiles": {
+    "product-reference.png": "present",
+    "product-reference.webp": "present",
+    "product-entity.json": "present",
+    "product-descriptor.txt": "present",
+    "source-manifest.json": "present",
+    "product-cutout.png": "deferred-per-plan"
+  }
+}

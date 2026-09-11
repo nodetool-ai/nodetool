@@ -215,7 +215,7 @@ function recipesSection() {
     link(
       "Recipes hub",
       "/recipes",
-      "multi-step jobs: the workflows to run, in order, as one downloadable bundle."
+      "step-by-step recipes using guided Storyboard and Script setup, with real UI captures and example media."
     ),
   ];
   for (const recipe of recipeEntries) {

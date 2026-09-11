@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "storyboardId": null,
+  "scriptId": null,
+  "links": [
+    {"shotId": "TR-S2", "lineId": "TR-L1", "targetStartSeconds": 7, "targetEndSeconds": 10},
+    {"shotId": "TR-S3", "lineId": "TR-L2", "targetStartSeconds": 14, "targetEndSeconds": 18},
+    {"shotId": "TR-S6", "lineId": "TR-L3", "targetStartSeconds": 33, "targetEndSeconds": 37}
+  ]
+}

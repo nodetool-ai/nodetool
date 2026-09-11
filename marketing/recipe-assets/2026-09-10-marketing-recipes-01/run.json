@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-09-10-marketing-recipes-01",
+  "repositoryCommit": "0e9ec2eb470afdb535f76829755eab057806b868",
+  "app": {
+    "version": "0.7.0-rc.40",
+    "edition": "local web",
+    "apiBaseUrl": "http://localhost:7777",
+    "healthChecked": true
+  },
+  "nodeToolProjectHost": "local",
+  "assignedAgents": {
+    "coordinator": "/root",
+    "D1": "/root/d1_viral_ad and /root/d1_finalize — gpt-5.6-sol",
+    "D2": "/root/d2_dubber and /root/d2_reconcile — gpt-5.6-sol",
+    "D3": "/root/d3_catalogue — gpt-5.6-sol",
+    "D4": "/root/d4_trailer — gpt-5.6-sol",
+    "audit": "/root/manifest_audit — gpt-5.6-sol"
+  },
+  "executionAuthorization": {
+    "instruction": "Execute all four linked recipe plans and stop before building or publishing marketing pages.",
+    "productionAuthorized": true,
+    "providerSpendAuthorized": true,
+    "spendingEnvelopeUsd": null,
+    "note": "The user authorized complete execution but did not state a numeric spending envelope. Actual tracked cost must be recorded; unknown cost must remain null.",
+    "mediaProviderDirective": "Use fal_ai for all media generation.",
+    "agentProviderDirective": "Use codex with gpt-5.6-sol."
+  },
+  "tooling": {
+    "directStoryboardToolsExposedToCoordinator": false,
+    "nodeToolAgentCliAvailable": true,
+    "nodeToolBrowserAvailable": true,
+    "ffmpeg": "/opt/homebrew/bin/ffmpeg",
+    "ffprobe": "/opt/homebrew/bin/ffprobe"
+  },
+  "readyProductionModels": [
+    {"provider": "openai", "id": "gpt-image-2", "capability": "image"},
+    {"provider": "openai", "id": "sora-2", "capability": "video"},
+    {"provider": "openai", "id": "tts-1", "capability": "speech"},
+    {"provider": "openai", "id": "whisper-1", "capability": "transcription"},
+    {"provider": "minimax", "id": "music-2.6", "capability": "music"},
+    {"provider": "replicate", "id": "meta/musicgen", "capability": "music"},
+    {"provider": "huggingface-local", "id": "hexgrad/Kokoro-82M", "capability": "speech"},
+    {"provider": "huggingface-local", "id": "Systran/faster-whisper-large-v3", "capability": "transcription"}
+  ],
+  "browserLease": {
+    "owner": "/root coordinator",
+    "purpose": "Exclusive native NodeTool guided-flow capture; sub-agents were denied browser/CUA access",
+    "handoffOrder": ["D4", "D3", "D2", "D1"]
+  },
+  "sharedProductRevision": {
+    "revision": "olive-travel-cup-r1-382922e1ca15",
+    "assetId": "382922e1ca1543468d59f0af5575350e",
+    "sha256": "3c79447005b53b0101c114faac7fccf5c6cc09556a169fcce225038ef4db9dbd",
+    "provider": "fal_ai",
+    "model": "fal-ai/flux-2-max",
+    "status": "accepted"
+  },
+  "status": "complete-with-partial-packages",
+  "verification": {
+    "completedAtUtc": "2026-09-10T18:36:48Z",
+    "report": "VERIFICATION.md",
+    "machineRecord": "verification.json",
+    "marketingPagesBuiltOrPublished": false
+  }
+}
