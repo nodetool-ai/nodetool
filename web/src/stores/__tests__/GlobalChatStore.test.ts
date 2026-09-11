@@ -349,6 +349,7 @@ describe("GlobalChatStore", () => {
         data: {
           ...msg,
           workflow_id: null,
+          project_id: "default",
           thread_id: threadId,
           model: "gpt-5.4-mini",
           provider: "openai",
@@ -1202,6 +1203,7 @@ describe("GlobalChatStore", () => {
         data: {
           ...message,
           workflow_id: "test-workflow",
+          project_id: "default",
           thread_id: threadId,
           model: "gpt-5.4-mini",
           provider: "openai",

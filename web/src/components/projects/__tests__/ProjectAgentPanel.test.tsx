@@ -5,6 +5,7 @@
  */
 import { render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
+import { MemoryRouter } from "react-router-dom";
 import mockTheme from "../../../__mocks__/themeMock";
 
 const ensureThread = jest.fn(async () => ({ threadId: "t1" }));
@@ -79,7 +80,9 @@ import {
 
 const panel = (threadId: string | null) => (
   <ThemeProvider theme={mockTheme}>
-    <ProjectAgentPanel projectId="p1" projectName="Aurora" threadId={threadId} />
+    <MemoryRouter>
+      <ProjectAgentPanel projectId="p1" projectName="Aurora" threadId={threadId} />
+    </MemoryRouter>
   </ThemeProvider>
 );
 
