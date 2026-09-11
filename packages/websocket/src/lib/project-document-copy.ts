@@ -230,13 +230,14 @@ function directReferences(source: DocumentSource): References {
   return found;
 }
 
-function valuesForDocument(
+function insertCopiedDocument(
+  tx: DbTransaction,
   source: DocumentSource,
   destinationId: string,
   destinationProjectId: string,
-  ids: ReadonlyMap<string, string>
-): { table: unknown; values: Record<string, unknown> } {
-  const now = new Date().toISOString();
+  ids: ReadonlyMap<string, string>,
+  now: string
+) {
   const document = JSON.stringify(cloneAndRemap(documentPayload(source), ids));
   const base = {
     id: destinationId,
@@ -249,20 +250,18 @@ function valuesForDocument(
   };
   switch (source.type) {
     case "storyboard":
-      return {
-        table: storyboards,
-        values: {
+      return tx.insert(storyboards).values(
+        {
           ...base,
           timeline_id: source.row.timeline_id
             ? ids.get(source.row.timeline_id) ?? null
             : null,
           revision: 0
         }
-      };
+      );
     case "script":
-      return {
-        table: scripts,
-        values: {
+      return tx.insert(scripts).values(
+        {
           ...base,
           timeline_id: source.row.timeline_id
             ? ids.get(source.row.timeline_id) ?? null
@@ -271,11 +270,10 @@ function valuesForDocument(
             ? ids.get(source.row.storyboard_id) ?? null
             : null
         }
-      };
+      );
     case "timeline":
-      return {
-        table: timelineSequences,
-        values: {
+      return tx.insert(timelineSequences).values(
+        {
           ...base,
           workflow_id: null,
           fps: source.row.fps,
@@ -284,11 +282,10 @@ function valuesForDocument(
           duration_ms: source.row.duration_ms,
           revision: 0
         }
-      };
+      );
     case "sketch":
-      return {
-        table: imageDocuments,
-        values: {
+      return tx.insert(imageDocuments).values(
+        {
           ...base,
           workflow_id: null,
           width: source.row.width,
@@ -299,14 +296,13 @@ function valuesForDocument(
             : null,
           revision: 0
         }
-      };
+      );
     case "application":
-      return {
-        table: applications,
-        values: { ...base, description: source.row.description }
-      };
+      return tx
+        .insert(applications)
+        .values({ ...base, description: source.row.description });
     case "jsscript":
-      return { table: jsScripts, values: base };
+      return tx.insert(jsScripts).values(base);
   }
 }
 
@@ -419,9 +415,15 @@ export async function copyProjectDocument(args: {
       for (const [sourceKey, source] of sources) {
         const destinationId = documentIds.get(sourceKey);
         if (!destinationId) throw new ProjectCopyError("Document map was incomplete");
-        const row = valuesForDocument(source, destinationId, args.destinationProjectId, ids);
         statements.push(
-          tx.insert(row.table as typeof storyboards).values(row.values as never)
+          insertCopiedDocument(
+            tx,
+            source,
+            destinationId,
+            args.destinationProjectId,
+            ids,
+            now
+          )
         );
       }
       return statements;

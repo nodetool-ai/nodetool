@@ -24,6 +24,7 @@ import {
   LOOSE_PROJECT_ID,
   PERSONAL_PROJECT_KIND,
   Project,
+  hasProjectDocumentDependents,
   listProjectDocuments,
   moveDocumentToProject,
   summarizeProject
@@ -224,6 +225,14 @@ export const projectsRouter = router({
       await prepareUser(ctx.userId);
       if (input.projectId !== LOOSE_PROJECT_ID) {
         await loadOwned(ctx.userId, input.projectId);
+      }
+      if (
+        await hasProjectDocumentDependents(ctx.userId, input.type, input.ref)
+      ) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          "Cannot move a referenced document or entity. Copy it into the destination project instead."
+        );
       }
       const moved = await moveDocumentToProject(
         ctx.userId,
