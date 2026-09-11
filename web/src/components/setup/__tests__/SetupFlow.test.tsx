@@ -69,6 +69,69 @@ const renderFlow = (
 };
 
 describe("SetupFlow", () => {
+  it("advances on Cmd+Enter from inside the step body", async () => {
+    const user = userEvent.setup();
+    const onAdvance = jest.fn();
+    const { onStageChange } = renderFlow({
+      stage: "genre",
+      steps: steps.map((entry) =>
+        entry.stage === "genre"
+          ? {
+              ...entry,
+              onAdvance,
+              render: () => <input aria-label="Genre" />
+            }
+          : entry
+      )
+    });
+
+    await user.click(screen.getByRole("textbox", { name: "Genre" }));
+    await user.keyboard("{Meta>}{Enter}{/Meta}");
+
+    await waitFor(() => expect(onAdvance).toHaveBeenCalledTimes(1));
+    expect(onStageChange).toHaveBeenCalledWith("review");
+  });
+
+  it("ignores Cmd+Enter while the step blocks the primary action", async () => {
+    const user = userEvent.setup();
+    const onAdvance = jest.fn();
+    const { onStageChange } = renderFlow({
+      stage: "genre",
+      steps: steps.map((entry) =>
+        entry.stage === "genre"
+          ? {
+              ...entry,
+              onAdvance,
+              canAdvance: false,
+              blockedReason: "Pick a genre",
+              render: () => <input aria-label="Genre" />
+            }
+          : entry
+      )
+    });
+
+    await user.click(screen.getByRole("textbox", { name: "Genre" }));
+    await user.keyboard("{Control>}{Enter}{/Control}");
+
+    expect(onAdvance).not.toHaveBeenCalled();
+    expect(onStageChange).not.toHaveBeenCalled();
+  });
+
+  it("describes the disabled primary button with the reason it is off", () => {
+    renderFlow({
+      stage: "genre",
+      steps: steps.map((entry) =>
+        entry.stage === "genre"
+          ? { ...entry, canAdvance: false, blockedReason: "Pick a genre" }
+          : entry
+      )
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Review your screenplay" })
+    ).toHaveAccessibleDescription("Pick a genre");
+  });
+
   it("takes its stepper labels from the config, one entry per label", () => {
     renderFlow();
 
