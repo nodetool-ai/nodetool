@@ -337,6 +337,17 @@ export class JobRunRegistry {
     return running.length;
   }
 
+  /** Cancel this process's runs that belong to a project being deleted. */
+  cancelJobs(userId: string, jobIds: ReadonlySet<string>): number {
+    let count = 0;
+    for (const session of this.runningSessions()) {
+      if (session.userId !== userId || !jobIds.has(session.jobId)) continue;
+      session.cancel();
+      count += 1;
+    }
+    return count;
+  }
+
   /**
    * Resolve true once no run is executing, false when `timeoutMs` elapses
    * first. A run is executing until its terminal `job_update` has been

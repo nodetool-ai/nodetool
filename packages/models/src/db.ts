@@ -1001,12 +1001,15 @@ export function getCreateSchemaSql(): string {
       "user_id" text NOT NULL,
       "name" text NOT NULL,
       "kind" text NOT NULL DEFAULT '',
+      "archived_at" text,
+      "deleted_at" text,
       "thread_id" text,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
     CREATE INDEX IF NOT EXISTS "idx_project_user" ON "projects" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_project_updated" ON "projects" ("updated_at");
+    CREATE INDEX IF NOT EXISTS "idx_project_lifecycle" ON "projects" ("user_id", "archived_at", "deleted_at");
 
     CREATE TABLE IF NOT EXISTS "scripts" (
       "id" text PRIMARY KEY NOT NULL,

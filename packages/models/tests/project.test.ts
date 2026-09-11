@@ -36,12 +36,15 @@ import { Application } from "../src/application.js";
 import { Asset } from "../src/asset.js";
 import { ImageDocument } from "../src/image-document.js";
 import { JsScript } from "../src/js-script.js";
+import { Job } from "../src/job.js";
 import { LOOSE_PROJECT_ID } from "../src/project.js";
 import { Prediction } from "../src/prediction.js";
 import { Thread } from "../src/thread.js";
 import { Script, type ScriptDocument } from "../src/script.js";
 import { Storyboard, type StoryboardDocument } from "../src/storyboard.js";
 import { TimelineSequence } from "../src/timeline-sequence.js";
+import { Workflow } from "../src/workflow.js";
+import { Workspace } from "../src/workspace.js";
 import type { Shot } from "@nodetool-ai/protocol";
 
 const shot = (id: string, over: Partial<Shot> = {}): Shot => ({
@@ -130,7 +133,7 @@ describe("Project model", () => {
     expect((await Project.findById(named.id))?.kind).toBe("campaign");
   });
 
-  it("deletes the project and moves its documents back to the loose bucket", async () => {
+  it("deletes every owned resource and leaves a write-blocking tombstone", async () => {
     const project = await Project.create<Project>({ user_id: "u1", name: "Aurora" });
     const board = await Storyboard.create<Storyboard>({
       user_id: "u1",
@@ -147,6 +150,15 @@ describe("Project model", () => {
       project_id: project.id,
       name: "Cut"
     });
+    const sketch = await ImageDocument.create<ImageDocument>(doc("u1"));
+    const app = await Application.create<Application>(doc("u1"));
+    const jsScript = await JsScript.create<JsScript>(doc("u1"));
+    const asset = await Asset.create<Asset>({ user_id: "u1", project_id: project.id });
+    const workflow = await Workflow.create<Workflow>({ user_id: "u1", project_id: project.id });
+    const thread = await Thread.create<Thread>({ user_id: "u1", project_id: project.id });
+    const job = await Job.create<Job>({ user_id: "u1", workflow_id: workflow.id, project_id: project.id });
+    const workspace = await Workspace.create<Workspace>({ user_id: "u1", project_id: project.id });
+    const prediction = await Prediction.create<Prediction>({ user_id: "u1", project_id: project.id });
     // Another user's document in the same (impossible but cheap to assert) id
     // must not be touched by the sweep.
     const theirs = await Script.create<Script>({
@@ -160,16 +172,28 @@ describe("Project model", () => {
     for (const [model, id] of [
       [Storyboard, board.id],
       [Script, script.id],
-      [TimelineSequence, cut.id]
+      [TimelineSequence, cut.id],
+      [ImageDocument, sketch.id],
+      [Application, app.id],
+      [JsScript, jsScript.id],
+      [Asset, asset.id],
+      [Workflow, workflow.id],
+      [Thread, thread.id],
+      [Job, job.id],
+      [Workspace, workspace.id],
+      [Prediction, prediction.id]
     ] as const) {
       const row = await model.findById(id);
-      expect(row?.project_id).toBe(LOOSE_PROJECT_ID);
+      expect(row).toBeNull();
     }
-    // The loose listing is what the UI reads them back from.
-    expect(
-      (await listProjectDocuments("u1", LOOSE_PROJECT_ID)).map((d) => d.name)
-    ).toEqual(expect.arrayContaining(["Board", "VO", "Cut"]));
+    expect(await listProjectDocuments("u1", LOOSE_PROJECT_ID)).toEqual([]);
     expect((await Script.findById(theirs.id))?.project_id).toBe(project.id);
+    await expect(
+      Script.create<Script>({ user_id: "u1", project_id: project.id, name: "Late" })
+    ).rejects.toThrow("Project has been deleted");
+    job.markCompleted();
+    await expect(job.save()).rejects.toThrow("Project has been deleted");
+    expect(await Project.deleteOwned("u1", project.id)).toBe(true);
   });
 
   it("insertNew refuses to rewrite an id that already exists", async () => {
@@ -852,7 +876,7 @@ describe("project entities", () => {
     );
   });
 
-  it("releases a deleted project's entities into the loose bucket", async () => {
+  it("deletes a deleted project's entities", async () => {
     const project = await Project.create<Project>({
       user_id: "u1",
       name: "Aurora"
@@ -860,8 +884,6 @@ describe("project entities", () => {
     const entity = await entityAsset("u1", "Ada", { project_id: project.id });
 
     expect(await Project.deleteOwned("u1", project.id)).toBe(true);
-    expect((await Asset.find("u1", entity.id))?.project_id).toBe(
-      LOOSE_PROJECT_ID
-    );
+    expect(await Asset.find("u1", entity.id)).toBeNull();
   });
 });

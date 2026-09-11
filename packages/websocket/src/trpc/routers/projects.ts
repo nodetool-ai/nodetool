@@ -24,6 +24,9 @@ import {
   LOOSE_PROJECT_ID,
   PERSONAL_PROJECT_KIND,
   Project,
+  Asset,
+  Job,
+  Thread,
   hasProjectDocumentDependents,
   listProjectDocuments,
   moveDocumentToProject,
@@ -45,11 +48,42 @@ import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { getAssetAdapter } from "../../lib/storage.js";
 import { copyProjectDocument, ProjectCopyError } from "../../lib/project-document-copy.js";
+import { assetKeyCandidates } from "@nodetool-ai/storage";
+import { assetFileNameCandidates } from "../../lib/asset-paths.js";
+import { thumbnailKey } from "../../lib/thumbnail.js";
+import { jobRunRegistry } from "../../job-run-registry.js";
+import { chatTurnRegistry } from "../../chat-turn-registry.js";
 
 const listInput = z.object({});
 const idInput = z.object({ id: z.string() });
 const updateInput = patchProjectInput.and(z.object({ id: z.string() }));
 const okOutput = z.object({ ok: z.literal(true) });
+
+/** Stored asset bytes are project content too; database deletion alone leaks them. */
+async function deleteProjectAssetObjects(userId: string, projectId: string): Promise<void> {
+  const [assets] = await Asset.paginate(userId, { projectId, limit: 10_000 });
+  const storage = getAssetAdapter();
+  await Promise.all(
+    assets.filter((asset) => asset.content_type !== "folder").flatMap((asset) =>
+      [
+        ...assetFileNameCandidates(asset.id, asset.content_type),
+        thumbnailKey(asset.id)
+      ].flatMap((fileName) =>
+        assetKeyCandidates(asset.user_id, fileName).map(async (key) => {
+          const uri = storage.uriForKey(key);
+          if (await storage.exists(uri)) await storage.delete(uri);
+        })
+      )
+    ).map(async (task) => {
+      try {
+        await task;
+      } catch {
+        // The row tombstone remains the write barrier; object cleanup retries
+        // through normal storage retention if a backend is temporarily down.
+      }
+    })
+  );
+}
 
 async function prepareUser(userId: string): Promise<void> {
   await Project.migrateToPersonal(userId);
@@ -68,6 +102,16 @@ export const projectsRouter = router({
     .query(async ({ ctx }) => {
       await prepareUser(ctx.userId);
       const items = await Project.listByUser(ctx.userId);
+      return items.map((item) => item.toResponse());
+    }),
+
+  /** Archived projects stay discoverable in project management, not the selector. */
+  archived: protectedProcedure
+    .input(listInput)
+    .output(z.array(projectResponse))
+    .query(async ({ ctx }) => {
+      await prepareUser(ctx.userId);
+      const items = await Project.listByUser(ctx.userId, 100, true);
       return items.map((item) => item.toResponse());
     }),
 
@@ -199,6 +243,26 @@ export const projectsRouter = router({
       return projectResponse.parse(updated.toResponse());
     }),
 
+  archive: protectedProcedure
+    .input(idInput)
+    .output(projectResponse)
+    .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      const archived = await Project.archiveOwned(ctx.userId, input.id);
+      if (!archived) throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+      return projectResponse.parse(archived.toResponse());
+    }),
+
+  restore: protectedProcedure
+    .input(idInput)
+    .output(projectResponse)
+    .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      const restored = await Project.restoreOwned(ctx.userId, input.id);
+      if (!restored) throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+      return projectResponse.parse(restored.toResponse());
+    }),
+
   delete: protectedProcedure
     .input(idInput)
     .output(okOutput)
@@ -208,8 +272,22 @@ export const projectsRouter = router({
       if (target?.kind === PERSONAL_PROJECT_KIND) {
         throwApiError(ApiErrorCode.INVALID_INPUT, "Personal cannot be deleted");
       }
-      await loadOwned(ctx.userId, input.id);
-      await Project.deleteOwned(ctx.userId, input.id);
+      // Object cleanup happens before rows disappear. Repeated deletes are
+      // successful: the tombstone already guarantees no project content.
+      if (target) {
+        const [[jobs], [threads]] = await Promise.all([
+          Job.paginate(ctx.userId, { projectId: input.id, limit: 10_000 }),
+          Thread.paginate(ctx.userId, { projectId: input.id, limit: 10_000 })
+        ]);
+        jobRunRegistry.cancelJobs(ctx.userId, new Set(jobs.map((job) => job.id)));
+        chatTurnRegistry.abortThreads(
+          ctx.userId,
+          new Set(threads.map((thread) => thread.id))
+        );
+        await deleteProjectAssetObjects(ctx.userId, input.id);
+      }
+      const deleted = await Project.deleteOwned(ctx.userId, input.id);
+      if (!deleted) await loadOwned(ctx.userId, input.id);
       return { ok: true as const };
     }),
 

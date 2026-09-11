@@ -36,6 +36,10 @@ export const useOpenNewProjectTab = () => {
 export const useProjects = () =>
   trpc.projects.list.useQuery({}, { staleTime: 30_000 });
 
+/** Archived projects are deliberately separate from the normal selector list. */
+export const useArchivedProjects = () =>
+  trpc.projects.archived.useQuery({}, { staleTime: 30_000 });
+
 /** Every project with the status and spend its card shows. */
 export const useProjectSummaries = () =>
   trpc.projects.summaries.useQuery({}, { staleTime: 15_000 });
@@ -48,6 +52,7 @@ export const useInvalidateProjects = () => {
   const utils = trpc.useUtils();
   return useCallback(() => {
     void utils.projects.list.invalidate();
+    void utils.projects.archived.invalidate();
     void utils.projects.summaries.invalidate();
     void utils.projects.unassigned.invalidate();
     // Every id — an open overview tab has no refetch trigger of its own, so a
@@ -64,6 +69,27 @@ export const useCreateProject = () => {
 export const useAssignDocument = () => {
   const invalidate = useInvalidateProjects();
   return trpc.projects.assignDocument.useMutation({ onSuccess: invalidate });
+};
+
+export const useArchiveProject = () => {
+  const invalidate = useInvalidateProjects();
+  return trpc.projects.archive.useMutation({ onSuccess: invalidate });
+};
+
+export const useRestoreProject = () => {
+  const invalidate = useInvalidateProjects();
+  return trpc.projects.restore.useMutation({ onSuccess: invalidate });
+};
+
+export const useDeleteProject = () => {
+  const invalidate = useInvalidateProjects();
+  const closeProject = useWorkspaceTabsStore((state) => state.closeProject);
+  return trpc.projects.delete.useMutation({
+    onSuccess: (_result, variables) => {
+      closeProject(variables.id);
+      invalidate();
+    }
+  });
 };
 
 /**
