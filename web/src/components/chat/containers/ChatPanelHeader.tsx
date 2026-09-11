@@ -36,6 +36,8 @@ interface ChatPanelHeaderProps {
   docsTopic?: DocsTopic;
   /** Name the help icon's tooltip uses. */
   docsLabel?: string;
+  /** Limit the conversation picker to one project's threads. */
+  projectId?: string;
 }
 
 /**
@@ -49,7 +51,8 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
   threadId,
   title,
   docsTopic = "agents",
-  docsLabel = "Chat & agents"
+  docsLabel = "Chat & agents",
+  projectId
 }) => {
   const navigate = useNavigate();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
@@ -82,17 +85,23 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
   const threadsWithMessages: Record<string, ThreadInfo> = useMemo(() => {
     if (!threads) return {};
     return Object.fromEntries(
-      Object.entries(threads).map(([id, thread]) => [
-        id,
-        {
-          id: thread.id,
-          title: thread.title ?? undefined,
-          updatedAt: thread.updated_at,
-          messages: messageCache[id] || []
-        }
-      ])
+      Object.entries(threads)
+        .filter(
+          ([, thread]) =>
+            projectId === undefined ||
+            (thread.project_id ?? "default") === projectId
+        )
+        .map(([id, thread]) => [
+          id,
+          {
+            id: thread.id,
+            title: thread.title ?? undefined,
+            updatedAt: thread.updated_at,
+            messages: messageCache[id] || []
+          }
+        ])
     );
-  }, [threads, messageCache]);
+  }, [threads, messageCache, projectId]);
 
   const handleSelectThread = useCallback(
     (id: string) => {
