@@ -14,6 +14,7 @@ import React, {
   Suspense,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState
@@ -106,6 +107,7 @@ export function SetupFlow<Stage extends string>({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmingChange, setConfirmingChange] = useState(false);
+  const blockedReasonId = useId();
 
   const currentIndex = steps.findIndex((step) => step.stage === stage);
   const entries = useMemo(() => stepperEntries(steps), [steps]);
@@ -229,6 +231,26 @@ export function SetupFlow<Stage extends string>({
     }
   }, [currentIndex, isCurrent, onStageChange, step, steps]);
 
+  const pending = busy || step?.pending === true;
+  const blocked = step?.canAdvance === false;
+
+  // The primary action from the keyboard. Every step's body is a text field or
+  // a picker, and a plain Enter belongs to whatever has focus — a line break in
+  // a brief, a choice in a grid — so the modifier carries the step instead.
+  const handleShortcut = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) {
+        return;
+      }
+      if (blocked || pending) {
+        return;
+      }
+      event.preventDefault();
+      void handlePrimary();
+    },
+    [blocked, handlePrimary, pending]
+  );
+
   // A stage outside the flow (a finished document) belongs to the editor, not
   // to this shell.
   if (!step) {
@@ -239,12 +261,11 @@ export function SetupFlow<Stage extends string>({
     (best, entry, index) => (entry.firstIndex <= currentIndex ? index : best),
     0
   );
-  const pending = busy || step.pending === true;
-  const blocked = step.canAdvance === false;
 
   return (
     <FlexColumn
       data-setup-flow
+      onKeyDown={handleShortcut}
       fullWidth
       fullHeight
       gap={GAP.spacious}
@@ -437,7 +458,9 @@ export function SetupFlow<Stage extends string>({
               announce
             />
           ) : blocked && step.blockedReason ? (
-            <Caption color="secondary">{step.blockedReason}</Caption>
+            <Caption color="secondary" id={blockedReasonId}>
+              {step.blockedReason}
+            </Caption>
           ) : step.primaryDetail ? (
             <Text size="normal">{step.primaryDetail}</Text>
           ) : null}
@@ -446,6 +469,13 @@ export function SetupFlow<Stage extends string>({
             size="large"
             onClick={handlePrimary}
             disabled={blocked || pending}
+            // The reason a dead button is dead is beside it, where a mouse can
+            // read it; the description says it to a screen reader too.
+            aria-describedby={
+              blocked && step.blockedReason ? blockedReasonId : undefined
+            }
+            aria-keyshortcuts="Meta+Enter Control+Enter"
+            title={`${error ? "Try again" : step.primaryLabel} (\u2318\u21A9 or Ctrl+\u21A9)`}
             sx={{
               fontSize: FONT_SIZE_SANS.body,
               paddingX: SPACING.xxl
