@@ -1,7 +1,6 @@
 /**
- * tRPC hooks for projects, plus the one action that spans the store and the
- * server: opening a project restores its documents as tabs, and only the
- * server knows which documents those are.
+ * tRPC hooks for projects, plus session restoration across the persisted tab
+ * store and server-side resource ownership checks.
  */
 
 import { useCallback } from "react";
@@ -10,7 +9,9 @@ import { trpc, trpcClient } from "../trpc/client";
 import {
   PROJECT_NEW_REF,
   useWorkspaceTabsStore,
-  type ProjectTabDocument
+  type ProjectTabDocument,
+  type WorkspaceTab,
+  type WorkspaceTabType
 } from "../stores/WorkspaceTabsStore";
 import { useNotificationStore } from "../stores/NotificationStore";
 
@@ -36,6 +37,10 @@ export const useOpenNewProjectTab = () => {
 export const useProjects = () =>
   trpc.projects.list.useQuery({}, { staleTime: 30_000 });
 
+/** Archived projects are deliberately separate from the normal selector list. */
+export const useArchivedProjects = () =>
+  trpc.projects.archived.useQuery({}, { staleTime: 30_000 });
+
 /** Every project with the status and spend its card shows. */
 export const useProjectSummaries = () =>
   trpc.projects.summaries.useQuery({}, { staleTime: 15_000 });
@@ -48,6 +53,7 @@ export const useInvalidateProjects = () => {
   const utils = trpc.useUtils();
   return useCallback(() => {
     void utils.projects.list.invalidate();
+    void utils.projects.archived.invalidate();
     void utils.projects.summaries.invalidate();
     void utils.projects.unassigned.invalidate();
     // Every id — an open overview tab has no refetch trigger of its own, so a
@@ -66,6 +72,27 @@ export const useAssignDocument = () => {
   return trpc.projects.assignDocument.useMutation({ onSuccess: invalidate });
 };
 
+export const useArchiveProject = () => {
+  const invalidate = useInvalidateProjects();
+  return trpc.projects.archive.useMutation({ onSuccess: invalidate });
+};
+
+export const useRestoreProject = () => {
+  const invalidate = useInvalidateProjects();
+  return trpc.projects.restore.useMutation({ onSuccess: invalidate });
+};
+
+export const useDeleteProject = () => {
+  const invalidate = useInvalidateProjects();
+  const closeProject = useWorkspaceTabsStore((state) => state.closeProject);
+  return trpc.projects.delete.useMutation({
+    onSuccess: (_result, variables) => {
+      closeProject(variables.id);
+      invalidate();
+    }
+  });
+};
+
 /**
  * Most recently *requested* project id, shared across every `useOpenProject`
  * instance. Two components (the list surface, the scope chip) each mount
@@ -75,10 +102,39 @@ export const useAssignDocument = () => {
  */
 let latestRequestedId: string | null = null;
 
+type RestorableTabType = Exclude<
+  WorkspaceTabType,
+  "skill" | "page" | "project-list" | "project" | "project-new"
+>;
+
+const isRestorableType = (
+  type: WorkspaceTabType
+): type is RestorableTabType => {
+  switch (type) {
+    case "workflow":
+    case "image":
+    case "svg":
+    case "sketch":
+    case "timeline":
+    case "storyboard":
+    case "script":
+    case "jsscript":
+    case "audio":
+    case "text":
+    case "model3d":
+    case "application":
+    case "chat":
+    case "workspace-file":
+      return true;
+    default:
+      return false;
+  }
+};
+
 /**
- * Open a project as a tab group: its overview plus one tab per document it
- * holds. The documents are fetched rather than read from a query cache so a
- * project opened from anywhere restores the same set.
+ * Open a project from its persisted session. The server's document inventory
+ * is not a navigation session: using it here reopened deliberately closed
+ * documents and discarded tab types the inventory does not contain.
  *
  * The fetch is async, so two calls can be in flight together (a fast double
  * click, or A then B before A resolves) — including across two separately
@@ -101,29 +157,33 @@ export const useOpenProject = () => {
   return useCallback(
     async (project: { id: string; name: string }): Promise<boolean> => {
       latestRequestedId = project.id;
+      const state = useWorkspaceTabsStore.getState();
+      const session = state.projectSessions[project.id];
+      const savedTabs = session
+        ? session.tabIds
+            .map((id) => state.tabs.find((tab) => tab.id === id))
+            .filter(
+              (tab): tab is WorkspaceTab & { type: RestorableTabType } =>
+                tab !== undefined && isRestorableType(tab.type)
+            )
+            .map((tab) => ({
+              type: tab.type,
+              ref: tab.ref,
+              title: tab.title
+            }))
+        : [];
       try {
-        const documents = await trpcClient.projects.documents.query({
-          id: project.id
-        });
-        if (latestRequestedId !== project.id) {
-          return false;
-        }
-        openProject({
-          id: project.id,
-          name: project.name,
-          documents: documents.map(
-            (doc): ProjectTabDocument => ({
-              type: doc.type,
-              ref: doc.ref,
-              title: doc.name
+        const documents: ProjectTabDocument[] | undefined = session
+          ? await trpcClient.projects.restoreTabs.query({
+              id: project.id,
+              tabs: savedTabs
             })
-          )
-        });
+          : undefined;
+        if (latestRequestedId !== project.id) return false;
+        openProject({ ...project, documents });
         return true;
       } catch (error) {
-        if (latestRequestedId !== project.id) {
-          return false;
-        }
+        if (latestRequestedId !== project.id) return false;
         addNotification({
           type: "error",
           alert: true,
@@ -134,6 +194,6 @@ export const useOpenProject = () => {
         return false;
       }
     },
-    [openProject, addNotification]
+    [addNotification, openProject]
   );
 };

@@ -54,14 +54,16 @@ export interface DocumentBackend<Doc = unknown> {
 }
 
 /** The `resources.*` envelope: token is the row's numeric revision. */
-function resourcesBackend(kind: ResourceDocumentKind): DocumentBackend {
+function resourcesBackend(
+  kind: ResourceDocumentKind,
+  projectId: string | undefined
+): DocumentBackend {
   return {
     writable: true,
     list: async (limit) => {
-      const summaries = await createMobileTRPCClient().resources.list.query({
-        kind,
-        limit,
-      });
+      const summaries = await createMobileTRPCClient().resources.list.query(
+        projectId === undefined ? { kind, limit } : { kind, limit, projectId }
+      );
       return summaries.map((summary) => ({
         id: summary.ref.id,
         name: summary.name,
@@ -72,7 +74,7 @@ function resourcesBackend(kind: ResourceDocumentKind): DocumentBackend {
       const detail = await createMobileTRPCClient().resources.create.mutate({
         kind,
         name,
-        projectId: 'default',
+        projectId: projectId ?? 'default',
       });
       return {
         id: detail.ref.id,
@@ -125,11 +127,13 @@ function resourcesBackend(kind: ResourceDocumentKind): DocumentBackend {
 }
 
 /** The `scripts.*` router: token is `updated_at`, sent back as `baseUpdatedAt`. */
-function scriptsBackend(): DocumentBackend {
+function scriptsBackend(projectId: string | undefined): DocumentBackend {
   return {
     writable: true,
     list: async () => {
-      const scripts = await createMobileTRPCClient().scripts.list.query({});
+      const scripts = await createMobileTRPCClient().scripts.list.query(
+        projectId === undefined ? {} : { projectId }
+      );
       return scripts.map((script) => ({
         id: script.id,
         name: script.name,
@@ -140,7 +144,7 @@ function scriptsBackend(): DocumentBackend {
     create: async (name) => {
       const script = await createMobileTRPCClient().scripts.create.mutate({
         name,
-        projectId: 'default',
+        projectId: projectId ?? 'default',
       });
       return {
         id: script.id,
@@ -186,14 +190,16 @@ function scriptsBackend(): DocumentBackend {
  * The `jsScripts.*` router: same `baseUpdatedAt` scheme as `scripts.*`, and a
  * different table again — a JS script is a body with declared ports, not lines.
  */
-function jsScriptsBackend(): DocumentBackend {
+function jsScriptsBackend(projectId: string | undefined): DocumentBackend {
   const portSummary = (inputs: number, outputs: number): string =>
     `${inputs} in · ${outputs} out`;
 
   return {
     writable: true,
     list: async () => {
-      const scripts = await createMobileTRPCClient().jsScripts.list.query({});
+      const scripts = await createMobileTRPCClient().jsScripts.list.query(
+        projectId === undefined ? {} : { projectId }
+      );
       return scripts.map((script) => ({
         id: script.id,
         name: script.name,
@@ -204,7 +210,7 @@ function jsScriptsBackend(): DocumentBackend {
     create: async (name) => {
       const script = await createMobileTRPCClient().jsScripts.create.mutate({
         name,
-        projectId: 'default',
+        projectId: projectId ?? 'default',
       });
       return {
         id: script.id,
@@ -249,13 +255,20 @@ function jsScriptsBackend(): DocumentBackend {
 }
 
 const backends = {
-  timeline: resourcesBackend('timeline'),
-  storyboard: resourcesBackend('storyboard'),
-  sketch: resourcesBackend('sketch'),
-  script: scriptsBackend(),
-  jsscript: jsScriptsBackend(),
-} satisfies Record<DocumentKind, DocumentBackend>;
+  timeline: (projectId?: string) => resourcesBackend('timeline', projectId),
+  storyboard: (projectId?: string) => resourcesBackend('storyboard', projectId),
+  sketch: (projectId?: string) => resourcesBackend('sketch', projectId),
+  script: (projectId?: string) => scriptsBackend(projectId),
+  jsscript: (projectId?: string) => jsScriptsBackend(projectId),
+} satisfies Record<DocumentKind, (projectId?: string) => DocumentBackend>;
 
-export function documentBackend<Doc>(kind: DocumentKind): DocumentBackend<Doc> {
-  return backends[kind] as DocumentBackend<Doc>;
+/**
+ * Supplying a scope keeps list and creation requests in that project. Existing
+ * mobile callers remain unscoped until mobile gains its own project selector.
+ */
+export function documentBackend<Doc>(
+  kind: DocumentKind,
+  projectId?: string
+): DocumentBackend<Doc> {
+  return backends[kind](projectId) as DocumentBackend<Doc>;
 }

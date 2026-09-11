@@ -5,7 +5,10 @@ import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  isGlobalWorkspaceTab,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkspaceMenuShortcuts } from "../../hooks/useWorkspaceMenuShortcuts";
@@ -19,6 +22,7 @@ import WorkspaceTabBar from "./WorkspaceTabBar";
 import TabContent from "./TabContent";
 import WorkspaceTabLayer from "./WorkspaceTabLayer";
 import ProjectSelector from "../projects/ProjectSelector";
+import { WorkspaceHeaderActionsProvider } from "./WorkspaceHeaderActionsContext";
 
 import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
 
@@ -129,8 +133,16 @@ const WorkspaceShell = () => {
   useWorkspaceMenuShortcuts();
 
   const activeTab = useMemo(
-    () => tabs.find((tab) => tab.id === activeTabId) ?? null,
-    [tabs, activeTabId]
+    () =>
+      tabs.find(
+        (tab) =>
+          tab.id === activeTabId &&
+          (isGlobalWorkspaceTab(tab) ||
+            (activeProjectId
+              ? tab.projectId === activeProjectId
+              : tab.projectId === undefined))
+      ) ?? null,
+    [activeProjectId, tabs, activeTabId]
   );
   const visibleTabs = useMemo(
     () =>
@@ -179,54 +191,61 @@ const WorkspaceShell = () => {
     activeTab?.type === "workflow" && activeTab.mode === "edit";
 
   return (
-    <div css={shellStyles} className="workspace-shell">
-      {/* The guided game/workflow flows build their graphs through the same
+    <WorkspaceHeaderActionsProvider>
+      <div css={shellStyles} className="workspace-shell">
+        {/* The guided game/workflow flows build their graphs through the same
           `ui_*` tools an agent drives, from tabs (e.g. New Project) where the
           editor chrome — and its own sync — is not mounted. Without this the
           build fails with "Frontend tool runtime state is not initialized". */}
-      <FrontendToolRuntimeSync />
-      <ProjectSelector />
-      <WorkspaceTabBar />
-      <div className="workspace-main">
-        <Suspense fallback={null}>
-          <PanelLeft />
-        </Suspense>
-
-        <div className="workspace-center">
-          <div
-            className="workspace-content"
-            style={{ marginLeft: contentMarginLeft }}
-          >
-            {visibleTabs.length === 0 && (
-              <div className="workspace-empty">
-                <Suspense fallback={null}>
-                  <NewProjectSurface />
-                </Suspense>
-              </div>
-            )}
-            {tabs.map((tab) => {
-              const isActive = tab.id === activeTabId;
-              return (
-                <WorkspaceTabLayer key={tab.id} active={isActive}>
-                  <TabContent tab={tab} active={isActive} />
-                </WorkspaceTabLayer>
-              );
-            })}
-          </div>
-        </div>
-
-        <Suspense fallback={null}>
-          <PanelBottom />
-        </Suspense>
-
-        {showWorkflowEditChrome && (
+        <FrontendToolRuntimeSync />
+        <ProjectSelector />
+        <WorkspaceTabBar />
+        <div className="workspace-main">
           <Suspense fallback={null}>
-            <PanelRight />
-            <Alert />
+            <PanelLeft />
           </Suspense>
-        )}
+
+          <div className="workspace-center">
+            <div
+              className="workspace-content"
+              style={{ marginLeft: contentMarginLeft }}
+            >
+              {visibleTabs.length === 0 && (
+                <div className="workspace-empty">
+                  <Suspense fallback={null}>
+                    <NewProjectSurface />
+                  </Suspense>
+                </div>
+              )}
+              {tabs.map((tab) => {
+                const isActive =
+                  tab.id === activeTabId &&
+                  (isGlobalWorkspaceTab(tab) ||
+                    (activeProjectId
+                      ? tab.projectId === activeProjectId
+                      : tab.projectId === undefined));
+                return (
+                  <WorkspaceTabLayer key={tab.id} active={isActive}>
+                    <TabContent tab={tab} active={isActive} />
+                  </WorkspaceTabLayer>
+                );
+              })}
+            </div>
+          </div>
+
+          <Suspense fallback={null}>
+            <PanelBottom />
+          </Suspense>
+
+          {showWorkflowEditChrome && (
+            <Suspense fallback={null}>
+              <PanelRight />
+              <Alert />
+            </Suspense>
+          )}
+        </div>
       </div>
-    </div>
+    </WorkspaceHeaderActionsProvider>
   );
 };
 

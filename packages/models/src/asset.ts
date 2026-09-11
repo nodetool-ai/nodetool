@@ -75,11 +75,7 @@ export class Asset extends DBModel {
       .update(assets)
       .set(this.toRow())
       .where(
-        and(
-          eq(assets.id, this.id),
-          eq(assets.user_id, this.user_id),
-          condition
-        )
+        and(eq(assets.id, this.id), eq(assets.user_id, this.user_id), condition)
       )
       .returning({ id: assets.id });
     if (updated.length === 0) {
@@ -301,6 +297,18 @@ export class Asset extends DBModel {
     return [items, cursor];
   }
 
+  static async listByProject(
+    userId: string,
+    projectId: string
+  ): Promise<Asset[]> {
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(assets)
+      .where(and(eq(assets.user_id, userId), eq(assets.project_id, projectId)));
+    return rows.map((row) => new Asset(row));
+  }
+
   /** Get children of a folder. */
   static async getChildren(
     userId: string,
@@ -480,7 +488,10 @@ export class Asset extends DBModel {
     projectId?: string
   ): Promise<{ assets: Record<string, unknown>[] }> {
     const folder = await Asset.find(userId, folderId);
-    if (!folder || (projectId !== undefined && folder.project_id !== projectId)) {
+    if (
+      !folder ||
+      (projectId !== undefined && folder.project_id !== projectId)
+    ) {
       return { assets: [] };
     }
 

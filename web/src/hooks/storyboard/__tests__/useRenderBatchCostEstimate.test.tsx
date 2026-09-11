@@ -121,6 +121,33 @@ describe("useRenderBatchCostEstimate", () => {
     expect(result.current.pricedCount).toBe(3);
   });
 
+  it("prices remembered shot models instead of the board fallback", () => {
+    mockPrice.mockImplementation((model: { id: string }) => ({
+      unit_price: model.id === "atlas/direct" ? 0.2 : 0.1,
+      billing_unit: "video",
+      currency: "USD",
+      source: "bundle"
+    }));
+    selectClipModel();
+    const perShot = [
+      {
+        ...shots[0],
+        clip_model: { id: "atlas/direct", provider: "atlascloud" }
+      },
+      shots[1]
+    ];
+
+    const { result } = renderHook(() =>
+      useRenderBatchCostEstimate(BOARD, perShot, "clip")
+    );
+
+    expect(mockPrice).toHaveBeenCalledWith(
+      { id: "atlas/direct", provider: "atlascloud" },
+      expect.objectContaining({ resolution: CLIP_RESOLUTION })
+    );
+    expect(result.current.cost).toBeCloseTo(0.3, 9);
+  });
+
   it("says why a batch has no figure instead of quoting zero", () => {
     const { result } = renderHook(() =>
       useRenderBatchCostEstimate(BOARD, shots, "clip")
@@ -139,15 +166,16 @@ describe("useRenderBatchCostEstimate", () => {
   });
 
   it("counts only the shots that priced when the catalog answers for some", () => {
-    mockPrice.mockImplementation((_model: unknown, params: { seconds?: number }) =>
-      params.seconds === 6
-        ? null
-        : {
-            unit_price: 0.5,
-            billing_unit: "video",
-            currency: "USD",
-            source: "bundle"
-          }
+    mockPrice.mockImplementation(
+      (_model: unknown, params: { seconds?: number }) =>
+        params.seconds === 6
+          ? null
+          : {
+              unit_price: 0.5,
+              billing_unit: "video",
+              currency: "USD",
+              source: "bundle"
+            }
     );
     selectClipModel();
 

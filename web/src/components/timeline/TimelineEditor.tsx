@@ -3,7 +3,7 @@
  * TimelineEditor — top-level page shell for the timeline route.
  *
  * Layout (top → bottom):
- *   TopBar (48 px)
+ *   Workspace tab row (document actions)
  *   ─── resizable split ─────────────────────────
  *   FlexRow: PreviewArea (55 %) | InspectorArea (45 %)
  *   ─── horizontal drag handle (pointer + keyboard resizable) ────
@@ -103,6 +103,7 @@ import { useTimelineSave } from "../../hooks/timeline/useTimelineSave";
 import { useTimelineExport } from "../../hooks/timeline/useTimelineExport";
 import { useTimelineIsMobile } from "../../hooks/timeline/useTimelineIsMobile";
 import { ensureBundledFontsLoaded } from "./preview/fontLoading";
+import { useWorkspaceHeaderActions } from "../workspace/WorkspaceHeaderActionsContext";
 
 // The `@font-face` rules for the bundled corpus, pointing at the same files
 // the server rasterizer registers (D8). Imported by the editor rather than
@@ -508,9 +509,10 @@ interface TimelineEditorProps {
   active?: boolean;
 }
 
-const TimelineEditorBody: React.FC<
-  Omit<TimelineEditorProps, "active">
-> = memo(({ sequenceId: sequenceIdProp }) => {
+const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
+  sequenceId: sequenceIdProp,
+  active = true
+}) => {
   const { sequenceId: sequenceIdParam } = useParams<{ sequenceId: string }>();
   const sequenceId = sequenceIdProp ?? sequenceIdParam;
   const [searchParams] = useSearchParams();
@@ -813,6 +815,55 @@ const TimelineEditorBody: React.FC<
       ? createTimeline.error.message || "Could not create sequence."
       : null;
 
+  const headerActions = useMemo(
+    () => (
+      <TopBar
+        onExportVideo={sequenceUnavailable ? undefined : handleExportVideo}
+        isExporting={isExporting}
+        onExportBundle={sequenceUnavailable ? undefined : handleExportBundle}
+        isExportingBundle={isExportingBundle}
+        onSave={sequenceUnavailable ? undefined : handleSave}
+        isSaving={isSaving}
+        onSaveToAssets={sequenceUnavailable ? undefined : handleSaveToAssets}
+        onOpenSettings={sequenceUnavailable ? undefined : handleOpenSettings}
+        activitySlot={activitySlot}
+      />
+    ),
+    [
+      activitySlot,
+      handleExportBundle,
+      handleExportVideo,
+      handleOpenSettings,
+      handleSave,
+      handleSaveToAssets,
+      isExporting,
+      isExportingBundle,
+      isSaving,
+      sequenceUnavailable
+    ]
+  );
+  const workspaceHeader = useWorkspaceHeaderActions();
+  const registerHeaderActions = workspaceHeader?.registerActions;
+  const unregisterHeaderActions = workspaceHeader?.unregisterActions;
+  useEffect(() => {
+    if (
+      !active ||
+      !registerHeaderActions ||
+      !unregisterHeaderActions ||
+      !sequenceId
+    ) {
+      return;
+    }
+    registerHeaderActions(sequenceId, headerActions);
+    return () => unregisterHeaderActions(sequenceId);
+  }, [
+    active,
+    headerActions,
+    registerHeaderActions,
+    sequenceId,
+    unregisterHeaderActions
+  ]);
+
   // Export dialog action button — memoized so re-renders unrelated to export
   // state (e.g. the tracks-resize drag) don't allocate a fresh element that
   // would defeat Dialog's memo.
@@ -844,18 +895,7 @@ const TimelineEditorBody: React.FC<
   return (
     <SelectFieldDensityContext.Provider value="compact">
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
-      {/* ── Top bar ───────────────────────────────────────────────── */}
-      <TopBar
-        onExportVideo={sequenceUnavailable ? undefined : handleExportVideo}
-        isExporting={isExporting}
-        onExportBundle={sequenceUnavailable ? undefined : handleExportBundle}
-        isExportingBundle={isExportingBundle}
-        onSave={sequenceUnavailable ? undefined : handleSave}
-        isSaving={isSaving}
-        onSaveToAssets={sequenceUnavailable ? undefined : handleSaveToAssets}
-        onOpenSettings={sequenceUnavailable ? undefined : handleOpenSettings}
-        activitySlot={activitySlot}
-      />
+      {!workspaceHeader && headerActions}
       {conflictBanner}
       {/* The guided video flow's landing strip: progress, retries and next
        *  steps. Renders nothing on a sequence that never went through it. */}
@@ -1025,7 +1065,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
   ...bodyProps
 }) => (
   <TimelineProvider active={active}>
-    <TimelineEditorBody {...bodyProps} />
+    <TimelineEditorBody {...bodyProps} active={active} />
   </TimelineProvider>
 );
 

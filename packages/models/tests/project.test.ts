@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { initTestDb } from "../src/db.js";
+import { executeRaw, initTestDb } from "../src/db.js";
 import {
   PERSONAL_PROJECT_KIND,
   PERSONAL_PROJECT_NAME,
@@ -36,12 +36,17 @@ import { Application } from "../src/application.js";
 import { Asset } from "../src/asset.js";
 import { ImageDocument } from "../src/image-document.js";
 import { JsScript } from "../src/js-script.js";
+import { Job } from "../src/job.js";
+import { Memory } from "../src/memory.js";
+import { Message } from "../src/message.js";
 import { LOOSE_PROJECT_ID } from "../src/project.js";
 import { Prediction } from "../src/prediction.js";
 import { Thread } from "../src/thread.js";
 import { Script, type ScriptDocument } from "../src/script.js";
 import { Storyboard, type StoryboardDocument } from "../src/storyboard.js";
 import { TimelineSequence } from "../src/timeline-sequence.js";
+import { Workflow } from "../src/workflow.js";
+import { Workspace } from "../src/workspace.js";
 import type { Shot } from "@nodetool-ai/protocol";
 
 const shot = (id: string, over: Partial<Shot> = {}): Shot => ({
@@ -66,31 +71,87 @@ const storyboardDoc = (shots: Shot[]): StoryboardDocument => ({
 });
 
 /** A document row in project `p1`, for the tables that all carry the column. */
-const doc = (userId: string): Record<string, unknown> => ({
+const doc = (userId: string, projectId = "p1"): Record<string, unknown> => ({
   user_id: userId,
-  project_id: "p1",
+  project_id: projectId,
   name: "Doc"
 });
 
+const initProjectFixtures = async (): Promise<void> => {
+  initTestDb({ strictProjects: true });
+  await Project.create<Project>({ id: "p1", user_id: "u1", name: "One" });
+  await Project.create<Project>({ id: "p2", user_id: "u1", name: "Two" });
+  await Project.create<Project>({
+    id: "u2-p1",
+    user_id: "u2",
+    name: "Theirs"
+  });
+};
+
 describe("Project model", () => {
-  beforeEach(() => initTestDb());
+  beforeEach(() => initTestDb({ strictProjects: true }));
 
   it("creates with defaults and lists by user", async () => {
-    await Project.create<Project>({ user_id: "u1", name: "Aurora", kind: "spot" });
+    await Project.create<Project>({
+      user_id: "u1",
+      name: "Aurora",
+      kind: "spot"
+    });
     await Project.create<Project>({ user_id: "u2", name: "Someone else's" });
 
     const mine = await Project.listByUser("u1");
     expect(mine).toHaveLength(1);
-    expect(mine[0].toResponse()).toMatchObject({ name: "Aurora", kind: "spot" });
+    expect(mine[0].toResponse()).toMatchObject({
+      name: "Aurora",
+      kind: "spot",
+      archivedAt: null
+    });
   });
 
   it("answers not-found the same for a missing project and another user's", async () => {
-    const other = await Project.create<Project>({ user_id: "u2", name: "Theirs" });
+    const other = await Project.create<Project>({
+      user_id: "u2",
+      name: "Theirs"
+    });
     expect(await Project.findOwned("u1", other.id)).toBeNull();
     expect(await Project.findOwned("u1", "no-such-id")).toBeNull();
     expect(await Project.deleteOwned("u1", other.id)).toBe(false);
-    expect(await Project.updateOwned("u1", other.id, { name: "Mine now" })).toBeNull();
+    expect(
+      await Project.updateOwned("u1", other.id, { name: "Mine now" })
+    ).toBeNull();
     expect((await Project.findById(other.id))?.name).toBe("Theirs");
+  });
+
+  it("rejects writes to missing and foreign-owned projects", async () => {
+    await expect(
+      Script.create<Script>({
+        user_id: "u1",
+        project_id: "missing",
+        name: "Bad"
+      })
+    ).rejects.toThrow("Project not found");
+    const other = await Project.create<Project>({
+      user_id: "u2",
+      name: "Theirs"
+    });
+    await expect(
+      Script.create<Script>({
+        user_id: "u1",
+        project_id: other.id,
+        name: "Bad"
+      })
+    ).rejects.toThrow("Project not found");
+  });
+
+  it("resolves ownership from every thread row, not only the legacy project pointer", async () => {
+    const project = await Project.create<Project>({ user_id: "u1", name: "A" });
+    const thread = await Thread.create<Thread>({
+      user_id: "u1",
+      project_id: project.id,
+      title: "Second conversation"
+    });
+
+    expect((await Project.findByThread("u1", thread.id))?.id).toBe(project.id);
   });
 
   it("updates name and kind and moves updated_at forward", async () => {
@@ -130,8 +191,11 @@ describe("Project model", () => {
     expect((await Project.findById(named.id))?.kind).toBe("campaign");
   });
 
-  it("deletes the project and moves its documents back to the loose bucket", async () => {
-    const project = await Project.create<Project>({ user_id: "u1", name: "Aurora" });
+  it("deletes every owned resource and leaves a write-blocking tombstone", async () => {
+    const project = await Project.create<Project>({
+      user_id: "u1",
+      name: "Aurora"
+    });
     const board = await Storyboard.create<Storyboard>({
       user_id: "u1",
       project_id: project.id,
@@ -147,29 +211,113 @@ describe("Project model", () => {
       project_id: project.id,
       name: "Cut"
     });
+    const sketch = await ImageDocument.create<ImageDocument>(
+      doc("u1", project.id)
+    );
+    const app = await Application.create<Application>(doc("u1", project.id));
+    const jsScript = await JsScript.create<JsScript>(doc("u1", project.id));
+    const asset = await Asset.create<Asset>({
+      user_id: "u1",
+      project_id: project.id
+    });
+    const workflow = await Workflow.create<Workflow>({
+      user_id: "u1",
+      project_id: project.id
+    });
+    const thread = await Thread.create<Thread>({
+      user_id: "u1",
+      project_id: project.id
+    });
+    const message = await Message.create<Message>({
+      user_id: "u1",
+      thread_id: thread.id,
+      role: "user",
+      content: "hello"
+    });
+    const memory = await Memory.create<Memory>({
+      user_id: "u1",
+      thread_id: thread.id,
+      content: "remember"
+    });
+    const job = await Job.create<Job>({
+      user_id: "u1",
+      workflow_id: workflow.id,
+      project_id: project.id
+    });
+    const workspace = await Workspace.create<Workspace>({
+      user_id: "u1",
+      project_id: project.id,
+      name: "Project workspace",
+      path: "/tmp/project-workspace"
+    });
+    const prediction = await Prediction.create<Prediction>({
+      user_id: "u1",
+      project_id: project.id
+    });
     // Another user's document in the same (impossible but cheap to assert) id
     // must not be touched by the sweep.
     const theirs = await Script.create<Script>({
       user_id: "u2",
-      project_id: project.id,
+      project_id: "default",
       name: "Theirs"
     });
 
     expect(await Project.deleteOwned("u1", project.id)).toBe(true);
     expect(await Project.findById(project.id)).toBeNull();
-    for (const [model, id] of [
-      [Storyboard, board.id],
-      [Script, script.id],
-      [TimelineSequence, cut.id]
-    ] as const) {
-      const row = await model.findById(id);
-      expect(row?.project_id).toBe(LOOSE_PROJECT_ID);
-    }
-    // The loose listing is what the UI reads them back from.
-    expect(
-      (await listProjectDocuments("u1", LOOSE_PROJECT_ID)).map((d) => d.name)
-    ).toEqual(expect.arrayContaining(["Board", "VO", "Cut"]));
-    expect((await Script.findById(theirs.id))?.project_id).toBe(project.id);
+    expect(await Storyboard.findById(board.id)).toBeNull();
+    expect(await Script.findById(script.id)).toBeNull();
+    expect(await TimelineSequence.findById(cut.id)).toBeNull();
+    expect(await ImageDocument.findById(sketch.id)).toBeNull();
+    expect(await Application.findById(app.id)).toBeNull();
+    expect(await JsScript.findById(jsScript.id)).toBeNull();
+    expect(await Asset.find("u1", asset.id)).toBeNull();
+    expect(await Workflow.find("u1", workflow.id)).toBeNull();
+    expect(await Thread.find("u1", thread.id)).toBeNull();
+    expect(await Message.find(message.id)).toBeNull();
+    expect(await Memory.find("u1", memory.id)).toBeNull();
+    expect(await Job.find("u1", job.id)).toBeNull();
+    expect(await Workspace.find("u1", workspace.id)).toBeNull();
+    expect(await Prediction.find(prediction.id)).toBeNull();
+    expect(await listProjectDocuments("u1", LOOSE_PROJECT_ID)).toEqual([]);
+    expect((await Script.findById(theirs.id))?.project_id).toBe("default");
+    await expect(
+      Script.create<Script>({
+        user_id: "u1",
+        project_id: project.id,
+        name: "Late"
+      })
+    ).rejects.toThrow("Project has been deleted");
+    job.markCompleted();
+    await expect(job.save()).rejects.toThrow("Project has been deleted");
+    expect(await Project.deleteOwned("u1", project.id)).toBe(true);
+  });
+
+  it("keeps a project's completed output separate from another project's upload", async () => {
+    const projectA = await Project.create<Project>({
+      user_id: "u1",
+      name: "A"
+    });
+    const projectB = await Project.create<Project>({
+      user_id: "u1",
+      name: "B"
+    });
+    const output = await Prediction.create<Prediction>({
+      user_id: "u1",
+      project_id: projectA.id
+    });
+    const upload = await Asset.create<Asset>({
+      user_id: "u1",
+      project_id: projectB.id,
+      name: "B upload"
+    });
+
+    const [storedOutput, storedUpload] = await Promise.all([
+      Prediction.find(output.id),
+      Asset.find("u1", upload.id)
+    ]);
+    expect(storedOutput?.project_id).toBe(projectA.id);
+    expect(storedUpload?.project_id).toBe(projectB.id);
+    expect(storedOutput?.project_id).not.toBe(storedUpload?.project_id);
   });
 
   it("insertNew refuses to rewrite an id that already exists", async () => {
@@ -179,7 +327,11 @@ describe("Project model", () => {
       name: "Mine"
     });
     expect(
-      await Project.insertNew({ id: "shared-id", user_id: "u2", name: "Theirs" })
+      await Project.insertNew({
+        id: "shared-id",
+        user_id: "u2",
+        name: "Theirs"
+      })
     ).toBeNull();
     const row = await Project.findById("shared-id");
     expect(row?.user_id).toBe("u1");
@@ -203,11 +355,11 @@ describe("Project model", () => {
       project_id: assigned.id,
       name: "Kept"
     });
-    await Script.create<Script>({
-      user_id: "u1",
-      project_id: "missing-project",
-      name: "Dangling"
-    });
+    const now = new Date().toISOString();
+    await executeRaw(
+      `INSERT INTO scripts (id, user_id, project_id, name, document, created_at, updated_at) ` +
+        `VALUES ('dangling', 'u1', 'missing-project', 'Dangling', '{"cast":[],"sections":[]}', '${now}', '${now}') RETURNING id`
+    );
 
     const first = await Project.migrateToPersonal("u1");
     const second = await Project.migrateToPersonal("u1");
@@ -215,7 +367,9 @@ describe("Project model", () => {
     expect(first.project.kind).toBe(PERSONAL_PROJECT_KIND);
     expect(second.project.id).toBe(first.project.id);
     expect(first.dangling).toBe(1);
-    expect((await Script.findById(loose.id))?.project_id).toBe(first.project.id);
+    expect((await Script.findById(loose.id))?.project_id).toBe(
+      first.project.id
+    );
     expect((await Script.findById(kept.id))?.project_id).toBe(assigned.id);
     expect(await Project.listByUser("empty")).toEqual([]);
   });
@@ -266,7 +420,7 @@ describe("Project model", () => {
 });
 
 describe("reassignProjectDocuments", () => {
-  beforeEach(() => initTestDb());
+  beforeEach(initProjectFixtures);
 
   it("moves every document kind out of a project, scoped to its owner", async () => {
     const mine = {
@@ -277,22 +431,36 @@ describe("reassignProjectDocuments", () => {
       application: await Application.create<Application>(doc("u1")),
       jsScript: await JsScript.create<JsScript>(doc("u1"))
     };
-    const theirs = await Script.create<Script>(doc("u2"));
+    const theirs = await Script.create<Script>(doc("u2", "u2-p1"));
 
-    expect(await reassignProjectDocuments("u1", "p1", LOOSE_PROJECT_ID)).toBe(6);
+    expect(await reassignProjectDocuments("u1", "p1", LOOSE_PROJECT_ID)).toBe(
+      6
+    );
 
-    expect((await Storyboard.findById(mine.storyboard.id))?.project_id).toBe(LOOSE_PROJECT_ID);
-    expect((await Script.findById(mine.script.id))?.project_id).toBe(LOOSE_PROJECT_ID);
-    expect((await TimelineSequence.findById(mine.timeline.id))?.project_id).toBe(LOOSE_PROJECT_ID);
-    expect((await ImageDocument.findById(mine.sketch.id))?.project_id).toBe(LOOSE_PROJECT_ID);
-    expect((await Application.findById(mine.application.id))?.project_id).toBe(LOOSE_PROJECT_ID);
-    expect((await JsScript.findById(mine.jsScript.id))?.project_id).toBe(LOOSE_PROJECT_ID);
-    expect((await Script.findById(theirs.id))?.project_id).toBe("p1");
+    expect((await Storyboard.findById(mine.storyboard.id))?.project_id).toBe(
+      LOOSE_PROJECT_ID
+    );
+    expect((await Script.findById(mine.script.id))?.project_id).toBe(
+      LOOSE_PROJECT_ID
+    );
+    expect(
+      (await TimelineSequence.findById(mine.timeline.id))?.project_id
+    ).toBe(LOOSE_PROJECT_ID);
+    expect((await ImageDocument.findById(mine.sketch.id))?.project_id).toBe(
+      LOOSE_PROJECT_ID
+    );
+    expect((await Application.findById(mine.application.id))?.project_id).toBe(
+      LOOSE_PROJECT_ID
+    );
+    expect((await JsScript.findById(mine.jsScript.id))?.project_id).toBe(
+      LOOSE_PROJECT_ID
+    );
+    expect((await Script.findById(theirs.id))?.project_id).toBe("u2-p1");
   });
 });
 
 describe("Project.ensureThread", () => {
-  beforeEach(() => initTestDb());
+  beforeEach(() => initTestDb({ strictProjects: true }));
 
   it("creates the thread once and answers with the same id after", async () => {
     const project = await Project.create<Project>({
@@ -321,7 +489,7 @@ describe("Project.ensureThread", () => {
 });
 
 describe("project documents", () => {
-  beforeEach(() => initTestDb());
+  beforeEach(initProjectFixtures);
 
   it("gathers every table that carries the project id, newest first", async () => {
     // Saves stamp their own `updated_at`, so the order is creation order —
@@ -345,8 +513,16 @@ describe("project documents", () => {
       name: "VO"
     });
     // Another project and another user must not leak in.
-    await Script.create<Script>({ user_id: "u1", project_id: "p2", name: "Other" });
-    await Script.create<Script>({ user_id: "u2", project_id: "p1", name: "Theirs" });
+    await Script.create<Script>({
+      user_id: "u1",
+      project_id: "p2",
+      name: "Other"
+    });
+    await Script.create<Script>({
+      user_id: "u2",
+      project_id: "u2-p1",
+      name: "Theirs"
+    });
 
     const docs = await listProjectDocuments("u1", "p1");
     expect(docs.map((d) => [d.type, d.name])).toEqual([
@@ -361,12 +537,20 @@ describe("document status", () => {
   it("counts a board's shots, stills and clips", () => {
     const status = storyboardStatus(
       storyboardDoc([
-        shot("a", { keyframe: { type: "image", uri: "asset://1" }, clip: { type: "video", uri: "asset://2" } }),
+        shot("a", {
+          keyframe: { type: "image", uri: "asset://1" },
+          clip: { type: "video", uri: "asset://2" }
+        }),
         shot("b", { keyframe: { type: "image", uri: "asset://3" } }),
         shot("c")
       ])
     );
-    expect(status).toEqual({ kind: "storyboard", shots: 3, stills: 2, clips: 1 });
+    expect(status).toEqual({
+      kind: "storyboard",
+      shots: 3,
+      stills: 2,
+      clips: 1
+    });
   });
 
   it("separates a voiced line from one whose take drifted", () => {
@@ -440,16 +624,34 @@ describe("spend rollup", () => {
   });
 
   it("routes a row by capability, then by node type, then to pipeline", () => {
-    expect(spendCategory(row({ metadata: { capability: "text_to_image" } }))).toBe("stills");
-    expect(spendCategory(row({ metadata: { capability: "image_to_video" } }))).toBe("clips");
-    expect(spendCategory(row({ metadata: { capability: "reference_to_video" } }))).toBe("clips");
-    expect(spendCategory(row({ metadata: { capability: "text_to_speech" } }))).toBe("voice");
+    expect(
+      spendCategory(row({ metadata: { capability: "text_to_image" } }))
+    ).toBe("stills");
+    expect(
+      spendCategory(row({ metadata: { capability: "image_to_video" } }))
+    ).toBe("clips");
+    expect(
+      spendCategory(row({ metadata: { capability: "reference_to_video" } }))
+    ).toBe("clips");
+    expect(
+      spendCategory(row({ metadata: { capability: "text_to_speech" } }))
+    ).toBe("voice");
     // An unpriced generation records its capability as the billing unit.
     expect(spendCategory(row({ billing_unit: "lip_sync" }))).toBe("clips");
     // A node-reported charge naming no capability is read off the node type.
-    expect(spendCategory(row({ node_type: "fal.video.Kling", billing_unit: "seconds" }))).toBe("clips");
-    expect(spendCategory(row({ node_type: "fal.image.Flux", billing_unit: "megapixels" }))).toBe("stills");
-    expect(spendCategory(row({ node_type: "nodetool.agents.Agent" }))).toBe("pipeline");
+    expect(
+      spendCategory(
+        row({ node_type: "fal.video.Kling", billing_unit: "seconds" })
+      )
+    ).toBe("clips");
+    expect(
+      spendCategory(
+        row({ node_type: "fal.image.Flux", billing_unit: "megapixels" })
+      )
+    ).toBe("stills");
+    expect(spendCategory(row({ node_type: "nodetool.agents.Agent" }))).toBe(
+      "pipeline"
+    );
   });
 
   it("counts an unpriced row instead of summing it as zero", () => {
@@ -472,7 +674,7 @@ describe("spend rollup", () => {
 });
 
 describe("summarizeProject", () => {
-  beforeEach(() => initTestDb());
+  beforeEach(initProjectFixtures);
 
   it("attaches each document's status and its share of the ledger", async () => {
     const board = await Storyboard.create<Storyboard>({
@@ -521,7 +723,7 @@ describe("summarizeProject", () => {
 });
 
 describe("rollup limits", () => {
-  beforeEach(() => initTestDb());
+  beforeEach(initProjectFixtures);
 
   it(
     "sums ledger rows past the old 1000-row read, and says it is complete",
@@ -682,7 +884,9 @@ describe("document previews", () => {
   it("keeps a preview line's state in step with the status counts", () => {
     const doc: ScriptDocument = {
       cast: [],
-      sections: [{ id: "sec", lines: [{ id: "l1", text: "no voice", takes: [] }] }]
+      sections: [
+        { id: "sec", lines: [{ id: "l1", text: "no voice", takes: [] }] }
+      ]
     };
     expect(scriptPreview(doc).lines[0].state).toBe("draft");
     expect(scriptPreview(doc).lines[0].speaker).toBe("");
@@ -711,14 +915,18 @@ describe("document previews", () => {
             { startMs: 5_000, durationMs: 3_000 }
           ]
         },
-        { type: "audio", name: "A1", clips: [{ startMs: 0, durationMs: 8_000 }] }
+        {
+          type: "audio",
+          name: "A1",
+          clips: [{ startMs: 0, durationMs: 8_000 }]
+        }
       ]
     });
   });
 });
 
 describe("moveDocumentToProject", () => {
-  beforeEach(() => initTestDb());
+  beforeEach(initProjectFixtures);
 
   it("moves a document in and back out without touching updated_at", async () => {
     const board = await Storyboard.create<Storyboard>({
@@ -727,9 +935,9 @@ describe("moveDocumentToProject", () => {
     });
     expect(board.project_id).toBe(LOOSE_PROJECT_ID);
 
-    expect(await moveDocumentToProject("u1", "storyboard", board.id, "p1")).toBe(
-      true
-    );
+    expect(
+      await moveDocumentToProject("u1", "storyboard", board.id, "p1")
+    ).toBe(true);
     const moved = await Storyboard.findById(board.id);
     expect(moved?.project_id).toBe("p1");
     // A move is not an edit: an open editor's compare-and-swap save must
@@ -737,7 +945,12 @@ describe("moveDocumentToProject", () => {
     expect(moved?.updated_at).toBe(board.updated_at);
 
     expect(
-      await moveDocumentToProject("u1", "storyboard", board.id, LOOSE_PROJECT_ID)
+      await moveDocumentToProject(
+        "u1",
+        "storyboard",
+        board.id,
+        LOOSE_PROJECT_ID
+      )
     ).toBe(true);
     expect((await Storyboard.findById(board.id))?.project_id).toBe(
       LOOSE_PROJECT_ID
@@ -745,21 +958,24 @@ describe("moveDocumentToProject", () => {
   });
 
   it("refuses another user's document and an id that does not exist", async () => {
-    const theirs = await Script.create<Script>({ user_id: "u2", name: "Theirs" });
+    const theirs = await Script.create<Script>({
+      user_id: "u2",
+      name: "Theirs"
+    });
     expect(await moveDocumentToProject("u1", "script", theirs.id, "p1")).toBe(
       false
     );
     expect((await Script.findById(theirs.id))?.project_id).toBe(
       LOOSE_PROJECT_ID
     );
-    expect(await moveDocumentToProject("u1", "script", "no-such-id", "p1")).toBe(
-      false
-    );
+    expect(
+      await moveDocumentToProject("u1", "script", "no-such-id", "p1")
+    ).toBe(false);
   });
 });
 
 describe("project entities", () => {
-  beforeEach(() => initTestDb());
+  beforeEach(initProjectFixtures);
 
   /** An entity is an image asset carrying the marker under this key. */
   const entityAsset = (
@@ -786,7 +1002,7 @@ describe("project entities", () => {
     const mine = await entityAsset("u1", "Ada", { project_id: "p1" });
     await entityAsset("u1", "Loose");
     await entityAsset("u1", "Elsewhere", { project_id: "p2" });
-    await entityAsset("u2", "Theirs", { project_id: "p1" });
+    await entityAsset("u2", "Theirs", { project_id: "u2-p1" });
     // An untagged image in the project is not an entity.
     await Asset.create<Asset>({
       user_id: "u1",
@@ -852,7 +1068,7 @@ describe("project entities", () => {
     );
   });
 
-  it("releases a deleted project's entities into the loose bucket", async () => {
+  it("deletes a deleted project's entities", async () => {
     const project = await Project.create<Project>({
       user_id: "u1",
       name: "Aurora"
@@ -860,8 +1076,6 @@ describe("project entities", () => {
     const entity = await entityAsset("u1", "Ada", { project_id: project.id });
 
     expect(await Project.deleteOwned("u1", project.id)).toBe(true);
-    expect((await Asset.find("u1", entity.id))?.project_id).toBe(
-      LOOSE_PROJECT_ID
-    );
+    expect(await Asset.find("u1", entity.id)).toBeNull();
   });
 });

@@ -6,13 +6,19 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtemp, writeFile, access, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   initTestDb,
   LOOSE_PROJECT_ID,
   ModelObserver,
   Prediction,
   Script,
-  Storyboard
+  Storyboard,
+  Thread,
+  Workflow,
+  Workspace
 } from "@nodetool-ai/models";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
@@ -46,9 +52,9 @@ describe("projects router", () => {
     );
     // The project carries it, so the overview can open the thread without
     // asking for it again.
-    expect((await caller().projects.get({ id: project.id })).project.threadId).toBe(
-      threadId
-    );
+    expect(
+      (await caller().projects.get({ id: project.id })).project.threadId
+    ).toBe(threadId);
 
     await expect(
       caller("user-2").projects.thread({ id: project.id })
@@ -79,6 +85,119 @@ describe("projects router", () => {
     ]);
   });
 
+  it("validates saved tabs with their project-owned resource lookup", async () => {
+    const project = await caller().projects.create({ name: "Aurora" });
+    const other = await caller().projects.create({ name: "Other" });
+    const workflow = await Workflow.create<Workflow>({
+      user_id: "user-1",
+      project_id: project.id,
+      name: "Flow"
+    });
+    const chat = await Thread.create<Thread>({
+      user_id: "user-1",
+      project_id: project.id,
+      title: "Chat"
+    });
+    const foreign = await Workflow.create<Workflow>({
+      user_id: "user-1",
+      project_id: other.id,
+      name: "Other flow"
+    });
+    const directory = await mkdtemp(join(tmpdir(), "nodetool-tab-restore-"));
+    await writeFile(join(directory, "kept.txt"), "kept");
+    const workspace = await Workspace.create<Workspace>({
+      user_id: "user-1",
+      project_id: project.id,
+      name: "Files",
+      path: directory
+    });
+
+    try {
+      await expect(
+        caller().projects.restoreTabs({
+          id: project.id,
+          tabs: [
+            { type: "workflow", ref: workflow.id, title: "Flow" },
+            { type: "chat", ref: chat.id, title: "Chat" },
+            {
+              type: "workspace-file",
+              ref: `${workspace.id}::kept.txt`,
+              title: "Kept"
+            },
+            {
+              type: "workspace-file",
+              ref: `${workspace.id}::missing.txt`,
+              title: "Missing file"
+            },
+            { type: "workflow", ref: foreign.id, title: "Other flow" },
+            { type: "workflow", ref: "missing", title: "Missing" }
+          ]
+        })
+      ).resolves.toEqual([
+        { type: "workflow", ref: workflow.id, title: "Flow" },
+        { type: "chat", ref: chat.id, title: "Chat" },
+        {
+          type: "workspace-file",
+          ref: `${workspace.id}::kept.txt`,
+          title: "Kept"
+        }
+      ]);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("removes files from project workspaces", async () => {
+    const project = await caller().projects.create({ name: "Aurora" });
+    const directory = await mkdtemp(join(tmpdir(), "nodetool-project-delete-"));
+    const file = join(directory, "draft.txt");
+    await writeFile(file, "draft");
+    await Workspace.create<Workspace>({
+      user_id: "user-1",
+      project_id: project.id,
+      name: "Project files",
+      path: directory
+    });
+
+    try {
+      await caller().projects.delete({ id: project.id });
+      await expect(access(file)).rejects.toThrow();
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("archives projects outside the normal list and restores them", async () => {
+    const project = await caller().projects.create({ name: "Aurora" });
+    const archived = await caller().projects.archive({ id: project.id });
+    expect(archived.archivedAt).toEqual(expect.any(String));
+    expect(
+      (await caller().projects.list({})).map((item) => item.id)
+    ).not.toContain(project.id);
+    expect(
+      (await caller().projects.archived({})).map((item) => item.id)
+    ).toContain(project.id);
+
+    const restored = await caller().projects.restore({ id: project.id });
+    expect(restored.archivedAt).toBeNull();
+    expect((await caller().projects.list({})).map((item) => item.id)).toContain(
+      project.id
+    );
+  });
+
+  it("makes deletion idempotent and refuses Personal", async () => {
+    const project = await caller().projects.create({ name: "Aurora" });
+    await expect(caller().projects.delete({ id: project.id })).resolves.toEqual(
+      { ok: true }
+    );
+    await expect(caller().projects.delete({ id: project.id })).resolves.toEqual(
+      { ok: true }
+    );
+    await expect(
+      caller().projects.delete({ id: "personal:user-1" })
+    ).rejects.toThrow(/Personal cannot be deleted/i);
+  });
+
   it("hides another user's project behind not-found", async () => {
     const theirs = await caller("user-2").projects.create({
       name: "Theirs",
@@ -90,9 +209,9 @@ describe("projects router", () => {
     await expect(
       caller().projects.update({ id: theirs.id, name: "Mine" })
     ).rejects.toThrow(/not found/i);
-    await expect(
-      caller().projects.delete({ id: theirs.id })
-    ).rejects.toThrow(/not found/i);
+    await expect(caller().projects.delete({ id: theirs.id })).rejects.toThrow(
+      /not found/i
+    );
   });
 
   it("refuses a reserved, blank or already-taken id", async () => {
@@ -129,8 +248,14 @@ describe("projects router", () => {
   });
 
   it("answers a repeated create of the caller's own id with the same project", async () => {
-    const first = await caller().projects.create({ id: "mine", name: "Aurora" });
-    const again = await caller().projects.create({ id: "mine", name: "Ignored" });
+    const first = await caller().projects.create({
+      id: "mine",
+      name: "Aurora"
+    });
+    const again = await caller().projects.create({
+      id: "mine",
+      name: "Ignored"
+    });
     // The repeat's name is discarded: a create is not a rename.
     expect(again).toEqual(first);
     expect(again.name).toBe("Aurora");
@@ -152,7 +277,7 @@ describe("projects router", () => {
     expect(await caller().projects.list({})).toHaveLength(2);
   });
 
-  it("moves a deleted project's documents back into the loose bucket", async () => {
+  it("deletes a project's documents rather than returning them to Personal", async () => {
     const project = await caller().projects.create({ name: "Aurora" });
     const board = await Storyboard.create<Storyboard>({
       user_id: "user-1",
@@ -167,15 +292,15 @@ describe("projects router", () => {
 
     await caller().projects.delete({ id: project.id });
 
-    expect(
-      (await caller().projects.documents({ id: "personal:user-1" }))
-        .map((d) => d.ref)
-        .sort()
-    ).toEqual([board.id, script.id].sort());
+    expect(await Storyboard.findById(board.id)).toBeNull();
+    expect(await Script.findById(script.id)).toBeNull();
   });
 
   it("returns each document with its status and the project's spend", async () => {
-    const project = await caller().projects.create({ name: "Aurora", kind: "spot" });
+    const project = await caller().projects.create({
+      name: "Aurora",
+      kind: "spot"
+    });
     const board = await Storyboard.create<Storyboard>({
       user_id: "user-1",
       project_id: project.id,
@@ -265,7 +390,10 @@ describe("projects router", () => {
   });
 
   it("lists the documents in no project, and moves one in and back out", async () => {
-    const project = await caller().projects.create({ name: "Aurora", kind: "" });
+    const project = await caller().projects.create({
+      name: "Aurora",
+      kind: ""
+    });
     const loose = await Script.create<Script>({
       user_id: "user-1",
       name: "Scratch VO"
@@ -297,7 +425,10 @@ describe("projects router", () => {
       name: "Theirs",
       kind: ""
     });
-    const mine = await Script.create<Script>({ user_id: "user-1", name: "Mine" });
+    const mine = await Script.create<Script>({
+      user_id: "user-1",
+      name: "Mine"
+    });
     await expect(
       caller().projects.assignDocument({
         projectId: theirs.id,
@@ -306,7 +437,10 @@ describe("projects router", () => {
       })
     ).rejects.toThrow(/not found/i);
 
-    const project = await caller().projects.create({ name: "Aurora", kind: "" });
+    const project = await caller().projects.create({
+      name: "Aurora",
+      kind: ""
+    });
     const notMine = await Script.create<Script>({
       user_id: "user-2",
       name: "Theirs"

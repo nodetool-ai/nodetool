@@ -7,16 +7,20 @@
  */
 import { renderHook, act } from "@testing-library/react";
 
-const documentsQuery = jest.fn();
+const restoreTabsQuery = jest.fn();
 const openProject = jest.fn();
 const addNotification = jest.fn();
 const useUtils = jest.fn();
+const workspaceState: {
+  tabs: Array<{ id: string; type: "script"; ref: string; title: string }>;
+  projectSessions: Record<string, { tabIds: string[] }>;
+} = { tabs: [], projectSessions: {} };
 
 jest.mock("../../trpc/client", () => ({
   trpcClient: {
     projects: {
-      documents: {
-        query: (...args: unknown[]) => documentsQuery(...args)
+      restoreTabs: {
+        query: (...args: unknown[]) => restoreTabsQuery(...args)
       }
     }
   },
@@ -26,8 +30,11 @@ jest.mock("../../trpc/client", () => ({
 }));
 
 jest.mock("../../stores/WorkspaceTabsStore", () => ({
-  useWorkspaceTabsStore: <T,>(selector: (s: { openProject: jest.Mock }) => T) =>
-    selector({ openProject }),
+  useWorkspaceTabsStore: Object.assign(
+    <T,>(selector: (s: { openProject: jest.Mock }) => T) =>
+      selector({ openProject }),
+    { getState: () => workspaceState }
+  ),
   PROJECT_NEW_REF: "new"
 }));
 
@@ -39,13 +46,14 @@ jest.mock("../../stores/NotificationStore", () => ({
 
 import { useOpenProject, useInvalidateProjects } from "../useProjects";
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  workspaceState.tabs = [];
+  workspaceState.projectSessions = {};
+});
 
 describe("useOpenProject", () => {
-  it("opens the project once its documents resolve", async () => {
-    documentsQuery.mockResolvedValue([
-      { type: "script", ref: "s1", name: "Draft" }
-    ]);
+  it("opens only the overview when there is no saved session", async () => {
     const { result } = renderHook(() => useOpenProject());
 
     let opened: boolean | undefined;
@@ -56,15 +64,20 @@ describe("useOpenProject", () => {
     expect(openProject).toHaveBeenCalledWith({
       id: "p1",
       name: "Aurora",
-      documents: [{ type: "script", ref: "s1", title: "Draft" }]
+      documents: undefined
     });
+    expect(restoreTabsQuery).not.toHaveBeenCalled();
     expect(addNotification).not.toHaveBeenCalled();
     // Callers that staged something for the project read this.
     expect(opened).toBe(true);
   });
 
   it("reports a failed fetch instead of silently never opening", async () => {
-    documentsQuery.mockRejectedValue(new Error("network down"));
+    workspaceState.tabs = [
+      { id: "script:s1", type: "script", ref: "s1", title: "Draft" }
+    ];
+    workspaceState.projectSessions = { p1: { tabIds: ["script:s1"] } };
+    restoreTabsQuery.mockRejectedValue(new Error("network down"));
     const { result } = renderHook(() => useOpenProject());
 
     let opened: boolean | undefined;
@@ -87,9 +100,17 @@ describe("useOpenProject", () => {
     const pendingA = new Promise((resolve) => {
       resolveA = resolve;
     });
-    documentsQuery.mockImplementationOnce(() => pendingA);
-    documentsQuery.mockImplementationOnce(() =>
-      Promise.resolve([{ type: "script", ref: "s2", name: "B doc" }])
+    workspaceState.tabs = [
+      { id: "script:s1", type: "script", ref: "s1", title: "A doc" },
+      { id: "script:s2", type: "script", ref: "s2", title: "B doc" }
+    ];
+    workspaceState.projectSessions = {
+      a: { tabIds: ["script:s1"] },
+      b: { tabIds: ["script:s2"] }
+    };
+    restoreTabsQuery.mockImplementationOnce(() => pendingA);
+    restoreTabsQuery.mockImplementationOnce(() =>
+      Promise.resolve([{ type: "script", ref: "s2", title: "B doc" }])
     );
 
     const { result } = renderHook(() => useOpenProject());
@@ -124,9 +145,17 @@ describe("useOpenProject", () => {
     const pendingA = new Promise((resolve) => {
       resolveA = resolve;
     });
-    documentsQuery.mockImplementationOnce(() => pendingA);
-    documentsQuery.mockImplementationOnce(() =>
-      Promise.resolve([{ type: "script", ref: "s2", name: "B doc" }])
+    workspaceState.tabs = [
+      { id: "script:s1", type: "script", ref: "s1", title: "A doc" },
+      { id: "script:s2", type: "script", ref: "s2", title: "B doc" }
+    ];
+    workspaceState.projectSessions = {
+      a: { tabIds: ["script:s1"] },
+      b: { tabIds: ["script:s2"] }
+    };
+    restoreTabsQuery.mockImplementationOnce(() => pendingA);
+    restoreTabsQuery.mockImplementationOnce(() =>
+      Promise.resolve([{ type: "script", ref: "s2", title: "B doc" }])
     );
 
     const instanceA = renderHook(() => useOpenProject());
@@ -157,6 +186,7 @@ describe("useInvalidateProjects", () => {
   it("invalidates projects.get so an open overview tab does not go stale", () => {
     const invalidate = {
       list: { invalidate: jest.fn() },
+      archived: { invalidate: jest.fn() },
       summaries: { invalidate: jest.fn() },
       unassigned: { invalidate: jest.fn() },
       get: { invalidate: jest.fn() }
@@ -169,6 +199,7 @@ describe("useInvalidateProjects", () => {
     });
 
     expect(invalidate.list.invalidate).toHaveBeenCalledTimes(1);
+    expect(invalidate.archived.invalidate).toHaveBeenCalledTimes(1);
     expect(invalidate.summaries.invalidate).toHaveBeenCalledTimes(1);
     expect(invalidate.unassigned.invalidate).toHaveBeenCalledTimes(1);
     expect(invalidate.get.invalidate).toHaveBeenCalledTimes(1);

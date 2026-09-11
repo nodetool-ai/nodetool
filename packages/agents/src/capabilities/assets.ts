@@ -68,6 +68,7 @@ import {
   isRecord,
   isString
 } from "../utils/type-guards.js";
+import { resolveProjectId } from "./project-scope.js";
 
 // ---------------------------------------------------------------------------
 // Shared projections
@@ -129,8 +130,51 @@ function resolveLimit(raw: unknown): number {
 /** The paging/filter bag `Asset.paginate` and `searchAssetsGlobal` take. */
 interface AssetQueryOptions {
   contentType?: string;
+  projectId?: string;
   limit: number;
 }
+
+async function findRunAsset(
+  run: Parameters<CapabilityImpl>[0],
+  assetId: string
+): Promise<AssetRow | null> {
+  const { Asset } = await import("@nodetool-ai/models");
+  const asset = await Asset.find(userIdOf(run.context), assetId);
+  return asset?.project_id === resolveProjectId(run, {}) ? asset : null;
+}
+
+function assetIdFromReference(value: string): string | null {
+  let path: string;
+  if (value.startsWith("asset://")) {
+    path = value.slice("asset://".length);
+  } else if (value.startsWith("/api/storage/")) {
+    path = value.slice("/api/storage/".length);
+  } else if (/^(?:memory|file|s3|supabase):\/\//.test(value)) {
+    path = value.slice(value.indexOf("://") + 3);
+  } else if (!value.includes("://") && !value.startsWith("/api/")) {
+    path = value;
+  } else {
+    return null;
+  }
+  const withoutQuery = path.split(/[?#]/)[0] ?? "";
+  const base = withoutQuery.slice(withoutQuery.lastIndexOf("/") + 1);
+  return base.replace(/_thumb(?=\.[^.]+$)/, "").replace(/\.[^.]+$/, "") || null;
+}
+
+const scopedAssetStorageKey = (
+  run: Parameters<CapabilityImpl>[0],
+  name: string
+): string => `projects/${resolveProjectId(run, {})}/assets/${name}`;
+
+const requiresStoredAssetOwnership = (value: string): boolean =>
+  value.startsWith("asset://") ||
+  value.startsWith("/api/storage/") ||
+  /^(?:memory|file|s3|supabase):\/\//.test(value);
+
+const isRunProjectStorageReference = (
+  run: Parameters<CapabilityImpl>[0],
+  value: string
+): boolean => value.includes(`projects/${resolveProjectId(run, {})}/`);
 
 /** What `read_asset` answers with when it found the bytes. */
 interface ReadAssetResult {
@@ -170,6 +214,7 @@ const listAssets: CapabilityExport = {
     const contentType = params["content_type"] as string | undefined;
     const limit = Number(params["limit"] ?? 100);
     const userId = userIdOf(run.context);
+    const projectId = resolveProjectId(run, {});
 
     // Package assets are files shipped with a node package, not database rows;
     // they stay on the REST route that serves them.
@@ -187,7 +232,7 @@ const listAssets: CapabilityExport = {
 
     const { Asset } = await import("@nodetool-ai/models");
     if (query) {
-      const search: AssetQueryOptions = { limit };
+      const search: AssetQueryOptions = { limit, projectId };
       if (contentType) search.contentType = contentType;
       const [assets, next] = await Asset.searchAssetsGlobal(
         userId,
@@ -197,7 +242,7 @@ const listAssets: CapabilityExport = {
       return { assets: assets.map(assetRecord), next: next || null };
     }
 
-    const page: AssetQueryOptions = { limit };
+    const page: AssetQueryOptions = { limit, projectId };
     if (contentType) page.contentType = contentType;
     const [assets, next] = await Asset.paginate(userId, page);
     return { assets: assets.map(assetRecord), next: next || null };
@@ -211,9 +256,8 @@ const listAssets: CapabilityExport = {
 const getAsset: CapabilityExport = {
   spec: getAssetSpec,
   impl: async (run, params) => {
-    const { Asset } = await import("@nodetool-ai/models");
     const assetId = String(params["asset_id"]);
-    const asset = await Asset.find(userIdOf(run.context), assetId);
+    const asset = await findRunAsset(run, assetId);
     return asset
       ? assetRecord(asset)
       : { error: `Asset ${assetId} was not found.` };
@@ -232,13 +276,13 @@ const MAX_SOURCE_BYTES = 100 * 1024 * 1024;
 async function readSourceBytes(
   context: ProcessingContext,
   source: string
-): Promise<
-  { bytes: Uint8Array; contentType?: string } | { error: string }
-> {
+): Promise<{ bytes: Uint8Array; contentType?: string } | { error: string }> {
   if (source.startsWith("http://") || source.startsWith("https://")) {
     const response = await safeFetch(source);
     if (!response.ok) {
-      return { error: `Fetching ${source} failed with HTTP ${response.status}.` };
+      return {
+        error: `Fetching ${source} failed with HTTP ${response.status}.`
+      };
     }
     const declared = Number(response.headers.get("content-length") ?? "");
     if (Number.isFinite(declared) && declared > MAX_SOURCE_BYTES) {
@@ -257,9 +301,7 @@ async function readSourceBytes(
     }
     const header = response.headers.get("content-type");
     const contentType = header?.split(";")[0]?.trim();
-    return contentType
-      ? { bytes, contentType }
-      : { bytes };
+    return contentType ? { bytes, contentType } : { bytes };
   }
   let bytes: Uint8Array | null = null;
   try {
@@ -345,7 +387,20 @@ const saveAsset: CapabilityExport = {
         // The bytes already exist somewhere the host can read — copy them
         // here instead of having the caller read them to base64 and pass
         // them back, which is what a model does when this path is missing.
-        const fetched = await readSourceBytes(context, source.trim());
+        const sourceRef = source.trim();
+        if (
+          requiresStoredAssetOwnership(sourceRef) &&
+          !isRunProjectStorageReference(run, sourceRef)
+        ) {
+          const sourceAssetId = assetIdFromReference(sourceRef);
+          if (!sourceAssetId || !(await findRunAsset(run, sourceAssetId))) {
+            return {
+              success: false,
+              error: "Source not found in this project."
+            };
+          }
+        }
+        const fetched = await readSourceBytes(context, sourceRef);
         if ("error" in fetched) {
           return { success: false, error: fetched.error };
         }
@@ -390,17 +445,6 @@ const saveAsset: CapabilityExport = {
           content: data
         })) as { id?: string };
         if (asset && isString(asset.id)) {
-          // createAsset persists under a DB-generated id, so a name-keyed
-          // read_asset("<name>") would never find it. Mirror the bytes under
-          // the `assets/<name>` storage key too (best-effort) so the reader's
-          // name-based lookup resolves what this tool saved.
-          if (context.storage) {
-            try {
-              await context.storage.store(`assets/${name}`, data, mime);
-            } catch {
-              // Non-fatal: the asset is still saved via createAsset.
-            }
-          }
           // With the extension: a chat embed of `asset://<id>` alone has no
           // way to tell a video from an image and renders it as one, which
           // is how a saved mp4 came back as a broken image. `generate_*`
@@ -426,7 +470,7 @@ const saveAsset: CapabilityExport = {
             "No storage adapter or createAsset interface available — cannot persist asset"
         };
       }
-      const key = `assets/${name}`;
+      const key = scopedAssetStorageKey(run, name);
       const uri = await context.storage.store(key, data, mime);
       return {
         success: true,
@@ -465,11 +509,11 @@ const readAsset: CapabilityExport = {
       let data: Uint8Array | null = null;
       let matchedUri: string | null = null;
 
-      // The legacy shape: a bare file name stored under `assets/<name>`. Tried
-      // first so a name that means a storage key keeps meaning one.
+      // Storage-only hosts keep their fallback files under the run's project,
+      // so a filename can never cross a project boundary.
       const looksLikeUri = name.includes("://") || name.startsWith("/api/");
       if (!looksLikeUri && context.storage) {
-        const key = `assets/${name}`;
+        const key = scopedAssetStorageKey(run, name);
         for (const uri of [`memory://${key}`, `file://${key}`, `s3://${key}`]) {
           const result = await context.storage.retrieve(uri);
           if (result) {
@@ -493,6 +537,14 @@ const readAsset: CapabilityExport = {
           ? { uri: name }
           : { uri: `asset://${name}`, asset_id: name };
         try {
+          const assetId = assetIdFromReference(name);
+          if (
+            assetId &&
+            !isRunProjectStorageReference(run, name) &&
+            !(await findRunAsset(run, assetId))
+          ) {
+            throw new Error(`Asset ${assetId} was not found`);
+          }
           data = await loadMediaRefBytes(ref, context);
           if (data) matchedUri = name;
         } catch {
@@ -565,7 +617,10 @@ const assetSearch: CapabilityExport = {
 
     try {
       const { Asset } = await import("@nodetool-ai/models");
-      const search: AssetQueryOptions = { limit };
+      const search: AssetQueryOptions = {
+        limit,
+        projectId: resolveProjectId(run, {})
+      };
       if (contentType) search.contentType = contentType;
       const [rows] = await Asset.searchAssetsGlobal(userId, query, search);
       const assets = rows
@@ -599,7 +654,10 @@ const assetList: CapabilityExport = {
       // `searchAssetsGlobal` with an empty query orders by created_at DESC and
       // supports a content_type prefix — exactly a "recent assets" listing.
       const { Asset } = await import("@nodetool-ai/models");
-      const recent: AssetQueryOptions = { limit };
+      const recent: AssetQueryOptions = {
+        limit,
+        projectId: resolveProjectId(run, {})
+      };
       if (contentType) recent.contentType = contentType;
       const [rows] = await Asset.searchAssetsGlobal(userId, "", recent);
       const assets = rows
@@ -627,8 +685,7 @@ const listImagesImpl: CapabilityImpl = async (run, params) => {
     Number.isFinite(limitParam) && limitParam > 0
       ? Math.min(Math.floor(limitParam), 100)
       : DEFAULT_LIST_LIMIT;
-  const query =
-    isString(params["query"]) ? params["query"].trim() : "";
+  const query = isString(params["query"]) ? params["query"].trim() : "";
 
   try {
     // searchAssetsGlobal does a content_type prefix match, so "image/"
@@ -636,14 +693,13 @@ const listImagesImpl: CapabilityImpl = async (run, params) => {
     const { Asset } = await import("@nodetool-ai/models");
     const [rows] = await Asset.searchAssetsGlobal(userId, query, {
       contentType: "image/",
+      projectId: resolveProjectId(run, {}),
       limit
     });
 
     const images = rows
       .filter(
-        (a) =>
-          isString(a.content_type) &&
-          a.content_type.startsWith("image/")
+        (a) => isString(a.content_type) && a.content_type.startsWith("image/")
       )
       .slice(0, limit)
       .map((a) => {
@@ -653,10 +709,8 @@ const listImagesImpl: CapabilityImpl = async (run, params) => {
           name: a.name,
           content_type: a.content_type,
           size: a.size ?? null,
-          width:
-            isNumber(metadata["width"]) ? metadata["width"] : null,
-          height:
-            isNumber(metadata["height"]) ? metadata["height"] : null
+          width: isNumber(metadata["width"]) ? metadata["width"] : null,
+          height: isNumber(metadata["height"]) ? metadata["height"] : null
         };
       });
 
@@ -739,13 +793,14 @@ function parseRegion(value: unknown): ImageRegion | undefined {
  * look at the image.
  */
 async function storeViewedImage(
+  run: Parameters<CapabilityImpl>[0],
   context: ProcessingContext,
   bytes: Uint8Array,
   mimeType: string
 ): Promise<string | null> {
   if (!context.storage) return null;
   const ext = MIME_TO_EXT[mimeType] ?? "png";
-  const key = `view-${crypto.randomUUID()}.${ext}`;
+  const key = scopedAssetStorageKey(run, `view-${crypto.randomUUID()}.${ext}`);
   try {
     await context.storage.store(key, bytes, mimeType);
     return `/api/storage/${key}`;
@@ -778,6 +833,16 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
   // carrying it.
   let sourceRef: string | undefined;
 
+  if (
+    requiresStoredAssetOwnership(imageId) &&
+    !isRunProjectStorageReference(run, imageId)
+  ) {
+    const assetId = assetIdFromReference(imageId);
+    if (!assetId || !(await findRunAsset(run, assetId))) {
+      return { error: `Asset ${assetId ?? imageId} was not found.` };
+    }
+  }
+
   if (imageId.startsWith("data:")) {
     const parsed = parseDataUri(imageId);
     if (!parsed) return { error: "Malformed data: URI for image_id" };
@@ -803,6 +868,14 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
     passthroughUri = imageId;
   } else {
     try {
+      const assetId = assetIdFromReference(imageId);
+      if (
+        assetId &&
+        !requiresStoredAssetOwnership(imageId) &&
+        !(await findRunAsset(run, assetId))
+      ) {
+        return { error: `Asset ${assetId} was not found.` };
+      }
       const { bytes } = await context.resolveAssetBytes(imageId);
       if (bytes && bytes.length > 0) {
         sourceBytes = bytes;
@@ -896,7 +969,7 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
       // 44KB screenshot PNG re-encoded to >1MB) for no gain.
       outUri =
         sourceRef ??
-        (await storeViewedImage(context, sourceBytes, sourceMime)) ??
+        (await storeViewedImage(run, context, sourceBytes, sourceMime)) ??
         `data:${sourceMime};base64,${Buffer.from(sourceBytes).toString("base64")}`;
       outMime = sourceMime;
     } else {
@@ -913,7 +986,7 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
             ? sourceMime
             : prepared.mimeType;
         outUri =
-          (await storeViewedImage(context, prepared.data, outMime)) ??
+          (await storeViewedImage(run, context, prepared.data, outMime)) ??
           `data:${outMime};base64,${Buffer.from(prepared.data).toString("base64")}`;
         width = prepared.width;
         height = prepared.height;
@@ -921,7 +994,7 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
         // Codec failed unexpectedly: ship the original bytes uncropped.
         outUri =
           sourceRef ??
-          (await storeViewedImage(context, sourceBytes, sourceMime)) ??
+          (await storeViewedImage(run, context, sourceBytes, sourceMime)) ??
           `data:${sourceMime};base64,${Buffer.from(sourceBytes).toString("base64")}`;
         notes.push(
           `Could not crop/resize (${e instanceof Error ? e.message : String(e)}); showing full image.`
@@ -934,8 +1007,9 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
     );
   }
 
-  const question =
-    isString(params["question"]) ? params["question"].trim() : "";
+  const question = isString(params["question"])
+    ? params["question"].trim()
+    : "";
   const dims = width && height ? ` (${width}×${height})` : "";
   const regionNote = region
     ? ` region ${region.x},${region.y} ${region.width}×${region.height}`
@@ -977,10 +1051,9 @@ const viewImage: CapabilityExport = {
 const updateAsset: CapabilityExport = {
   spec: updateAssetSpec,
   impl: async (run, params) => {
-    const { Asset } = await import("@nodetool-ai/models");
     const userId = userIdOf(run.context);
     const assetId = String(params["asset_id"]);
-    const asset = await Asset.find(userId, assetId);
+    const asset = await findRunAsset(run, assetId);
     if (!asset) return { error: `Asset ${assetId} was not found.` };
 
     let touched = false;
@@ -989,6 +1062,13 @@ const updateAsset: CapabilityExport = {
       touched = true;
     }
     if (isString(params["parent_id"]) && params["parent_id"]) {
+      if (
+        params["parent_id"] !== userId &&
+        !(await findRunAsset(run, params["parent_id"]))
+      ) {
+        return { error: "Parent folder not found" };
+      }
+      const { Asset } = await import("@nodetool-ai/models");
       const problem = await Asset.validateParent(
         userId,
         asset,

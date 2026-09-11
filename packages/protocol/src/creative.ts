@@ -17,7 +17,7 @@
 
 import { z } from "zod";
 
-import type { ImageRef, VideoRef } from "./api-types.js";
+import type { ImageRef, Provider, VideoRef } from "./api-types.js";
 import { ENTITY_METADATA_KEY } from "./style-presets.js";
 
 // ---------------------------------------------------------------------------
@@ -364,6 +364,13 @@ export type VersionRef<T> = T & { render_inputs?: RenderInputs };
 export type KeyframeVersion = VersionRef<ImageRef>;
 export type ClipVersion = VersionRef<VideoRef>;
 
+/** A render model remembered on one shot for fast re-renders. */
+export interface ShotModelRef {
+  id: string;
+  provider: Provider;
+  name?: string;
+}
+
 /**
  * Field-by-field equality of two render records, ignoring `recorded_at` — a
  * timestamp is not an input, and every re-render would otherwise read as
@@ -419,6 +426,10 @@ export interface Shot {
   clip?: ClipVersion | null;
   /** Every rendered take for this shot, oldest first. `clip` is one of them. */
   clip_versions?: ClipVersion[];
+  /** Model used for this shot's latest still render. */
+  still_model?: ShotModelRef;
+  /** Model used for this shot's latest clip render. */
+  clip_model?: ShotModelRef;
   status: ShotStatus;
   /** Estimated cost to render this shot's clip, for the gate. */
   cost_estimate?: number | null;

@@ -3399,6 +3399,31 @@ export const migrations: MigrationDef[] = [
         await db.execute(`DROP INDEX IF EXISTS idx_${index}`);
       }
     }
+  },
+
+  // ── Project lifecycle ───────────────────────────────────────────────
+  // Deletion is a tombstone rather than a row removal. It makes late writes
+  // from a cancelled job reject instead of recreating a dead project's data.
+  {
+    version: "20260911_000000",
+    name: "add_project_lifecycle",
+    createsTables: [],
+    modifiesTables: ["projects"],
+    async up(db) {
+      if (!(await db.tableExists("projects"))) return;
+      if (!(await db.columnExists("projects", "archived_at"))) {
+        await db.execute("ALTER TABLE projects ADD COLUMN archived_at TEXT");
+      }
+      if (!(await db.columnExists("projects", "deleted_at"))) {
+        await db.execute("ALTER TABLE projects ADD COLUMN deleted_at TEXT");
+      }
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_project_lifecycle ON projects (user_id, archived_at, deleted_at)"
+      );
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_project_lifecycle");
+    }
   }
 ];
 

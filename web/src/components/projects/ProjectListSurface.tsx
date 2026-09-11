@@ -23,12 +23,14 @@ import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
 import {
   useAssignDocument,
+  useArchivedProjects,
   useOpenNewProjectTab,
   useOpenProject,
   useProjectSummaries,
   useUnassignedDocuments
 } from "../../hooks/useProjects";
 import ProjectCard from "./ProjectCard";
+import ProjectLifecycleActions from "./ProjectLifecycleActions";
 import { PROJECT_COLOR } from "./projectIdentity";
 import type { ProjectDetail } from "./projectStatus";
 
@@ -82,6 +84,7 @@ const ProjectListSurface = () => {
   const [search, setSearch] = useState("");
 
   const summaries = useProjectSummaries();
+  const archived = useArchivedProjects();
   const unassigned = useUnassignedDocuments();
   const assignDocument = useAssignDocument();
   const openProject = useOpenProject();
@@ -286,6 +289,20 @@ const ProjectListSurface = () => {
             ))}
           </FlexRow>
         </Box>
+      )}
+      {(archived.data?.length ?? 0) > 0 && (
+        <FlexColumn gap={SPACING.md} sx={{ px: SPACING.xxl, pb: SPACING.xl }}>
+          <Divider />
+          <Caption color="muted" sx={{ textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            Archived projects
+          </Caption>
+          {archived.data?.map((project) => (
+            <FlexRow key={project.id} align="center" gap={SPACING.md}>
+              <Label sx={{ flex: 1 }}>{project.name}</Label>
+              <ProjectLifecycleActions project={project} />
+            </FlexRow>
+          ))}
+        </FlexColumn>
       )}
     </FlexColumn>
   );

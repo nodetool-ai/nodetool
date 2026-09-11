@@ -2,18 +2,15 @@
  * ShotCard
  *
  * One cell of the storyboard's shot grid. The card carries only what reads at
- * a glance: the rendered clip or selected still, shot number and length,
- * status, and render progress. The description lives in the inspector opened
- * by selecting the card.
+ * a glance: the rendered clip or selected still, status, and render progress.
+ * The description lives in the inspector opened by selecting the card.
  *
  * Two rows of controls sit on top of that: {@link ShotHoverToolbar} on the
- * still (drag grip, fullscreen, download, duplicate, delete) and the action
+ * media (drag grip, fullscreen, download, duplicate, delete) and the action
  * footer (Edit, Iterate, Regenerate, Upload). Both swallow their clicks, so
  * reaching for an action never also selects the card.
- *
- * `Edit` and the dialogue icon both ask the board to open the shot's editor
- * directly under this card ({@link ShotEditPanel}); the icon opens it on the
- * dialogue cell (PRD § 7.5).
+ * `Edit` asks the board to open the shot's editor directly under this card
+ * ({@link ShotEditPanel}).
  */
 
 import React, { memo, useCallback, useState } from "react";
@@ -25,8 +22,6 @@ import type {
   VideoRef
 } from "@nodetool-ai/protocol";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
-import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 
 import {
   Box,
@@ -45,8 +40,8 @@ import {
   VideoPlayer,
   BORDER_RADIUS,
   SPACING,
-  TYPOGRAPHY,
-  MOTION
+  MOTION,
+  reducedMotion
 } from "../ui_primitives";
 import ShotHoverToolbar from "./ShotHoverToolbar";
 import ShotMediaViewer from "./ShotMediaViewer";
@@ -55,7 +50,6 @@ import { downloadResolvedMedia, shotDownloadName } from "./shotMediaDownload";
 import { useStoryboardGenerationStore } from "../../stores/storyboard/StoryboardGenerationStore";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
-import { useShotDuration } from "../../hooks/storyboard/useShotDuration";
 import {
   useResolvedMedia,
   useResolvedMediaUri
@@ -109,27 +103,11 @@ const mediaSx = {
   aspectRatio: "16 / 9",
   overflow: "hidden",
   bgcolor: "c_overlay_subtle",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
   "& img": {
     width: "100%",
     height: "100%",
     objectFit: "cover"
   }
-} as const;
-
-/** The `SH 01 · 3s` label, on a scrim so it reads over any still. */
-const shotLabelSx = {
-  position: "absolute",
-  left: SPACING.md,
-  top: SPACING.md,
-  px: SPACING.sm,
-  py: SPACING.micro,
-  borderRadius: BORDER_RADIUS.xs,
-  bgcolor: "c_scrim_soft",
-  color: "text.secondary",
-  ...TYPOGRAPHY.mono.caption
 } as const;
 
 /**
@@ -145,9 +123,6 @@ const footerButtonSx = { minWidth: 0, px: SPACING.xs } as const;
 
 /** The render bar sits on the thumbnail's bottom edge, 3px per the design. */
 const RENDER_BAR_HEIGHT = 3;
-
-const shotNumber = (shot: Shot): string =>
-  `SH ${String(shot.index + 1).padStart(2, "0")}`;
 
 const ShotCardInner: React.FC<ShotCardProps> = ({
   boardId,
@@ -198,9 +173,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const uploadAsset = useAssetUpload((state) => state.uploadAsset);
 
   const failed = shot.status === "failed";
-  const hasDialogue = (shot.dialogue ?? "").trim().length > 0;
   const isGenerating = isShotGenerating(shot);
-  const duration = useShotDuration(boardId, shot);
   // Whether there is a clip to show at all: the player itself resolves the
   // `asset://` locator, but the card renders the keyframe when it cannot.
   const clipUri = useResolvedMediaUri(shot.clip);
@@ -282,11 +255,6 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     () => onEdit?.(shot.id, "fields"),
     [onEdit, shot.id]
   );
-  const handleEditDialogue = useCallback(
-    () => onEdit?.(shot.id, "dialogue"),
-    [onEdit, shot.id]
-  );
-
   const handleRegenerate = useCallback(() => {
     void generateKeyframe(boardId, shot).catch(() => undefined);
   }, [generateKeyframe, boardId, shot]);
@@ -383,7 +351,8 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         position: "relative",
         "& .shot-card-actions, & .controls": {
           opacity: 0,
-          transition: MOTION.opacity
+          transition: MOTION.opacity,
+          ...reducedMotion({ transition: MOTION.none })
         },
         "&:hover .shot-card-actions, &:focus-within .shot-card-actions, &:hover .controls, &:focus-within .controls": {
           opacity: 1,
@@ -409,7 +378,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         cursor: draggable ? "grab" : undefined
       }}
     >
-      <Box
+      <FlexColumn
+        align="center"
+        justify="center"
         sx={{
           ...mediaSx,
           aspectRatio: (shotRenderContext?.aspect_ratio ?? "16:9").replace(
@@ -443,11 +414,6 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             No still yet
           </Caption>
         )}
-        <Box sx={shotLabelSx}>
-          {duration.seconds != null
-            ? `${shotNumber(shot)} · ${duration.seconds}s`
-            : shotNumber(shot)}
-        </Box>
         <ShotHoverToolbar
           showDragHandle={draggable}
           onFullscreen={
@@ -486,7 +452,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             />
           </Box>
         )}
-      </Box>
+      </FlexColumn>
 
       {failed && (
         <FlexRow
@@ -523,11 +489,11 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           className="shot-card-actions"
           sx={{
             position: "absolute",
-            bottom: SPACING.sm,
-            left: SPACING.sm,
-            right: SPACING.sm,
+            bottom: SPACING.xs,
+            left: SPACING.xs,
+            right: SPACING.xs,
             p: SPACING.xs,
-            bgcolor: "background.paper",
+            bgcolor: "c_scrim",
             borderRadius: BORDER_RADIUS.sm
           }}
         >
@@ -562,23 +528,6 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             accept="image/*"
             multiple={false}
           />
-          <Box sx={{ flex: 1 }} />
-          {onEdit && (
-            <ToolbarIconButton
-              icon={
-                hasDialogue ? (
-                  <ChatBubbleIcon sx={{ fontSize: "1em" }} />
-                ) : (
-                  <ChatBubbleOutlineIcon sx={{ fontSize: "1em" }} />
-                )
-              }
-              tooltip={hasDialogue ? "Edit the dialogue" : "Add dialogue"}
-              ariaLabel={hasDialogue ? "Edit dialogue" : "Add dialogue"}
-              data-testid="shot-dialogue-icon"
-              data-filled={hasDialogue ? "true" : undefined}
-              onClick={handleEditDialogue}
-            />
-          )}
         </FlexRow>
       )}
 

@@ -24,6 +24,17 @@ import {
   LOOSE_PROJECT_ID,
   PERSONAL_PROJECT_KIND,
   Project,
+  Asset,
+  Job,
+  Thread,
+  Workspace,
+  Workflow,
+  Storyboard,
+  Script,
+  TimelineSequence,
+  ImageDocument,
+  Application,
+  JsScript,
   hasProjectDocumentDependents,
   listProjectDocuments,
   moveDocumentToProject,
@@ -44,12 +55,133 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { getAssetAdapter } from "../../lib/storage.js";
-import { copyProjectDocument, ProjectCopyError } from "../../lib/project-document-copy.js";
+import {
+  copyProjectDocument,
+  ProjectCopyError
+} from "../../lib/project-document-copy.js";
+import { assetKeyCandidates } from "@nodetool-ai/storage";
+import { assetFileNameCandidates } from "../../lib/asset-paths.js";
+import { thumbnailKey } from "../../lib/thumbnail.js";
+import { jobRunRegistry } from "../../job-run-registry.js";
+import { chatTurnRegistry } from "../../chat-turn-registry.js";
+import { workspaceFromRow } from "../../lib/workflow-workspace.js";
 
 const listInput = z.object({});
 const idInput = z.object({ id: z.string() });
 const updateInput = patchProjectInput.and(z.object({ id: z.string() }));
 const okOutput = z.object({ ok: z.literal(true) });
+const restorableTab = z.object({
+  type: z.enum([
+    "workflow",
+    "image",
+    "svg",
+    "sketch",
+    "timeline",
+    "storyboard",
+    "script",
+    "jsscript",
+    "audio",
+    "text",
+    "model3d",
+    "application",
+    "chat",
+    "workspace-file"
+  ]),
+  ref: z.string(),
+  title: z.string()
+});
+
+async function isOwnedRestorableTab(
+  userId: string,
+  projectId: string,
+  tab: z.infer<typeof restorableTab>
+): Promise<boolean> {
+  let row: { user_id: string; project_id: string } | null = null;
+  switch (tab.type) {
+    case "workflow":
+      row = await Workflow.find(userId, tab.ref);
+      break;
+    case "image":
+    case "svg":
+    case "audio":
+    case "text":
+    case "model3d":
+      row = await Asset.find(userId, tab.ref);
+      break;
+    case "sketch":
+      row = await ImageDocument.findById(tab.ref);
+      break;
+    case "timeline":
+      row = await TimelineSequence.findById(tab.ref);
+      break;
+    case "storyboard":
+      row = await Storyboard.findById(tab.ref);
+      break;
+    case "script":
+      row = await Script.findById(tab.ref);
+      break;
+    case "jsscript":
+      row = await JsScript.findById(tab.ref);
+      break;
+    case "application":
+      row = await Application.findById(tab.ref);
+      break;
+    case "chat":
+      row = await Thread.find(userId, tab.ref);
+      break;
+    case "workspace-file": {
+      const separator = tab.ref.indexOf("::");
+      const workspaceId = separator === -1 ? "" : tab.ref.slice(0, separator);
+      const path = separator === -1 ? "" : tab.ref.slice(separator + 2);
+      const workspace = workspaceId
+        ? await Workspace.find(userId, workspaceId)
+        : null;
+      if (
+        !workspace ||
+        workspace.project_id !== projectId ||
+        path.length === 0
+      ) {
+        return false;
+      }
+      try {
+        return (await workspaceFromRow(workspace)?.stat(path)) != null;
+      } catch {
+        return false;
+      }
+    }
+  }
+  return row?.user_id === userId && row.project_id === projectId;
+}
+
+/** Stored asset bytes are project content too; database deletion alone leaks them. */
+async function deleteProjectAssetObjects(
+  assets: readonly Asset[]
+): Promise<void> {
+  const storage = getAssetAdapter();
+  await Promise.all(
+    assets
+      .filter((asset) => asset.content_type !== "folder")
+      .flatMap((asset) =>
+        [
+          ...assetFileNameCandidates(asset.id, asset.content_type),
+          thumbnailKey(asset.id)
+        ].flatMap((fileName) =>
+          assetKeyCandidates(asset.user_id, fileName).map(async (key) => {
+            const uri = storage.uriForKey(key);
+            if (await storage.exists(uri)) await storage.delete(uri);
+          })
+        )
+      )
+  );
+}
+
+async function deleteProjectWorkspaceFiles(
+  workspaces: readonly Workspace[]
+): Promise<void> {
+  await Promise.all(
+    workspaces.map(async (row) => workspaceFromRow(row)?.deleteAll(""))
+  );
+}
 
 async function prepareUser(userId: string): Promise<void> {
   await Project.migrateToPersonal(userId);
@@ -68,6 +200,16 @@ export const projectsRouter = router({
     .query(async ({ ctx }) => {
       await prepareUser(ctx.userId);
       const items = await Project.listByUser(ctx.userId);
+      return items.map((item) => item.toResponse());
+    }),
+
+  /** Archived projects stay discoverable in project management, not the selector. */
+  archived: protectedProcedure
+    .input(listInput)
+    .output(z.array(projectResponse))
+    .query(async ({ ctx }) => {
+      await prepareUser(ctx.userId);
+      const items = await Project.listByUser(ctx.userId, 100, true);
       return items.map((item) => item.toResponse());
     }),
 
@@ -119,6 +261,21 @@ export const projectsRouter = router({
       await prepareUser(ctx.userId);
       await loadOwned(ctx.userId, input.id);
       return listProjectDocuments(ctx.userId, input.id);
+    }),
+
+  restoreTabs: protectedProcedure
+    .input(z.object({ id: z.string(), tabs: z.array(restorableTab) }))
+    .output(z.array(restorableTab))
+    .query(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      await loadOwned(ctx.userId, input.id);
+      const valid = await Promise.all(
+        input.tabs.map(async (tab) => ({
+          tab,
+          owned: await isOwnedRestorableTab(ctx.userId, input.id, tab)
+        }))
+      );
+      return valid.filter((item) => item.owned).map((item) => item.tab);
     }),
 
   /**
@@ -199,17 +356,59 @@ export const projectsRouter = router({
       return projectResponse.parse(updated.toResponse());
     }),
 
+  archive: protectedProcedure
+    .input(idInput)
+    .output(projectResponse)
+    .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      const archived = await Project.archiveOwned(ctx.userId, input.id);
+      if (!archived) throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+      return projectResponse.parse(archived.toResponse());
+    }),
+
+  restore: protectedProcedure
+    .input(idInput)
+    .output(projectResponse)
+    .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      const restored = await Project.restoreOwned(ctx.userId, input.id);
+      if (!restored) throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+      return projectResponse.parse(restored.toResponse());
+    }),
+
   delete: protectedProcedure
     .input(idInput)
     .output(okOutput)
     .mutation(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      const target = await Project.findOwned(ctx.userId, input.id);
+      const target = await Project.findOwnedIncludingDeleted(
+        ctx.userId,
+        input.id
+      );
+      if (!target) await loadOwned(ctx.userId, input.id);
       if (target?.kind === PERSONAL_PROJECT_KIND) {
         throwApiError(ApiErrorCode.INVALID_INPUT, "Personal cannot be deleted");
       }
-      await loadOwned(ctx.userId, input.id);
-      await Project.deleteOwned(ctx.userId, input.id);
+      await Project.tombstoneOwned(ctx.userId, input.id);
+      const [jobs, threads, assets, workspaces] = await Promise.all([
+        Job.listByProject(ctx.userId, input.id),
+        Thread.listByProject(ctx.userId, input.id),
+        Asset.listByProject(ctx.userId, input.id),
+        Workspace.listByProject(ctx.userId, input.id)
+      ]);
+      jobRunRegistry.cancelJobs(ctx.userId, new Set(jobs.map((job) => job.id)));
+      chatTurnRegistry.abortThreads(
+        ctx.userId,
+        new Set(threads.map((thread) => thread.id))
+      );
+      // Keep the rows behind the tombstone until external cleanup succeeds.
+      // A failed request can then be retried with every object identifier intact.
+      await Promise.all([
+        deleteProjectAssetObjects(assets),
+        deleteProjectWorkspaceFiles(workspaces)
+      ]);
+      const deleted = await Project.deleteOwned(ctx.userId, input.id);
+      if (!deleted) await loadOwned(ctx.userId, input.id);
       return { ok: true as const };
     }),
 

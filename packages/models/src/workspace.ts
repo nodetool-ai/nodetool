@@ -83,7 +83,9 @@ export class Workspace extends DBModel {
     const [row] = await db
       .select()
       .from(workspaces)
-      .where(and(eq(workspaces.user_id, userId), eq(workspaces.id, workspaceId)))
+      .where(
+        and(eq(workspaces.user_id, userId), eq(workspaces.id, workspaceId))
+      )
       .limit(1);
     return row ? new Workspace(row) : null;
   }
@@ -111,12 +113,31 @@ export class Workspace extends DBModel {
     return [items, cursor];
   }
 
+  static async listByProject(
+    userId: string,
+    projectId: string
+  ): Promise<Workspace[]> {
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(workspaces)
+      .where(
+        and(
+          eq(workspaces.user_id, userId),
+          eq(workspaces.project_id, projectId)
+        )
+      );
+    return rows.map((row) => new Workspace(row));
+  }
+
   static async getDefault(userId: string): Promise<Workspace | null> {
     const db = getDb();
     const [row] = await db
       .select()
       .from(workspaces)
-      .where(and(eq(workspaces.user_id, userId), eq(workspaces.is_default, true)))
+      .where(
+        and(eq(workspaces.user_id, userId), eq(workspaces.is_default, true))
+      )
       .limit(1);
     return row ? new Workspace(row) : null;
   }

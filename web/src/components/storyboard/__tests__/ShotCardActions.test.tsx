@@ -1,6 +1,6 @@
 /**
  * The card's own actions against the real storyboard store — criteria 11 and
- * 15: duplicate, delete, download, the dialogue icon, and an upload that adds
+ * 15: duplicate, delete, download, and an upload that adds
  * a still without replacing the one already selected.
  */
 import React from "react";
@@ -201,31 +201,6 @@ describe("ShotCard hover toolbar (criterion 11)", () => {
 });
 
 describe("ShotCard edit affordances", () => {
-  it("fills the dialogue icon only for a shot that has dialogue", () => {
-    const { unmount } = renderCard(seedShot({ dialogue: "Keep it lit." }));
-    expect(screen.getByTestId("shot-dialogue-icon")).toHaveAttribute(
-      "data-filled",
-      "true"
-    );
-    unmount();
-
-    renderCard(seedShot({ dialogue: "" }));
-    expect(screen.getByTestId("shot-dialogue-icon")).not.toHaveAttribute(
-      "data-filled"
-    );
-  });
-
-  // The editor opens under the card, which is the board's grid, so both
-  // affordances ask the board and name the cell to open on.
-  it("asks for the dialogue cell from the dialogue icon, without selecting the card", async () => {
-    const onSelect = jest.fn();
-    renderCard(seedShot({ dialogue: "Keep it lit." }), { onSelect });
-
-    await userEvent.click(screen.getByTestId("shot-dialogue-icon"));
-    expect(onEdit).toHaveBeenCalledWith("shot-1", "dialogue");
-    expect(onSelect).not.toHaveBeenCalled();
-  });
-
   it("asks for the fields from Edit, without selecting the card", async () => {
     const onSelect = jest.fn();
     renderCard(seedShot(), { onSelect });
@@ -235,12 +210,18 @@ describe("ShotCard edit affordances", () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it("hides both when the board offers no editor", () => {
+  it("hides Edit when the board offers no editor", () => {
     renderCard(seedShot({ dialogue: "Keep it lit." }), { onEdit: undefined });
     expect(
       screen.queryByRole("button", { name: "Edit" })
     ).not.toBeInTheDocument();
-    expect(screen.queryByTestId("shot-dialogue-icon")).not.toBeInTheDocument();
+  });
+
+  it("does not show a separate dialogue button", () => {
+    renderCard(seedShot({ dialogue: "Keep it lit." }));
+    expect(
+      screen.queryByRole("button", { name: "Edit dialogue" })
+    ).not.toBeInTheDocument();
   });
 
   it("keeps the scene and shot caption as the card title", () => {

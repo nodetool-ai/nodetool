@@ -279,6 +279,57 @@ describe("setup stage and genre", () => {
   });
 });
 
+describe("per-shot render models", () => {
+  const legacyDocument = {
+    screenplay: null,
+    shots: [
+      {
+        type: "shot",
+        id: "shot-1",
+        index: 0,
+        action: "A lighthouse at dawn",
+        status: "planned"
+      }
+    ],
+    brief: "A keeper's last night",
+    style: "noir",
+    entityIds: [],
+    aspectRatio: "16:9",
+    directorModel: null,
+    imageModel: null,
+    videoModel: null
+  };
+
+  it("preserves model refs and still accepts legacy shots without them", () => {
+    const withModels = storyboardDocument.parse({
+      ...legacyDocument,
+      shots: [
+        {
+          ...legacyDocument.shots[0],
+          still_model: {
+            id: "atlas/still",
+            provider: "atlascloud",
+            name: "Atlas Still"
+          },
+          clip_model: {
+            id: "atlas/clip",
+            provider: "atlascloud",
+            name: "Atlas Clip"
+          }
+        }
+      ]
+    });
+
+    expect(withModels.shots[0]).toMatchObject({
+      still_model: { id: "atlas/still", provider: "atlascloud" },
+      clip_model: { id: "atlas/clip", provider: "atlascloud" }
+    });
+    expect(storyboardDocument.parse(legacyDocument).shots[0].still_model).toBe(
+      undefined
+    );
+  });
+});
+
 describe("scenes", () => {
   /** A screenplay saved before scenes existed. */
   const legacyScreenplay = {

@@ -23,6 +23,7 @@ import {
   useVideoProviders
 } from "./useProviders";
 import { useActiveWorker } from "./useWorkers";
+import { modelMatchesTask } from "./modelTaskMatching";
 
 /**
  * Collection of React Query hooks that bridge the UI to backend model endpoints.
@@ -252,33 +253,6 @@ export type VideoModelTask =
  * exclusive, so filtering is strict: only models that explicitly declare the
  * task qualify. A model with no tasks never matches a specialized picker.
  */
-const STRICT_MODEL_TASKS = new Set<string>([
-  "inpainting",
-  "outpaint",
-  "upscale",
-  "remove_background",
-  "relight",
-  "vectorize",
-  "segment",
-  "video_to_video",
-  "upscale_video",
-  "interpolate_video",
-  "outpaint_video",
-  "reference_to_video",
-  "lip_sync"
-]);
-
-const modelMatchesTask = (
-  supportedTasks: string[] | null | undefined,
-  task: string
-): boolean => {
-  if (!supportedTasks || supportedTasks.length === 0) {
-    // No tasks declared — strict tasks never match, generation tasks pass through
-    return !STRICT_MODEL_TASKS.has(task);
-  }
-  return supportedTasks.includes(task);
-};
-
 export const useImageModelsByProvider = (opts?: { task?: ImageModelTask | ImageModelTask[] }): ModelsByProviderResult<ImageModel> => {
   const { providers, isLoading: providersLoading, error: providersError } = useImageModelProviders();
 

@@ -1,185 +1,62 @@
 # NodeTool — Agent Rules
 
-Visual AI workflow platform. TypeScript monorepo with React frontend, Electron
-desktop app, and Node.js backend.
+Visual AI workflow platform. TypeScript monorepo with a React frontend,
+Electron desktop app, and Node.js backend.
 
-This file is the single source of truth for agents working in this repository:
-architecture, commands, harnesses, and linter-like rules. `CLAUDE.md` is a macro
-that points here — never put content there.
+Read [Development Standards](docs/DEVELOPMENT_STANDARDS.md) for canonical
+engineering rules and targets, then the linked `AGENTS.md` files for the areas
+you touch. This file adds repository-wide operating instructions. Keep detailed
+architecture and command references in their linked docs. When condensing a
+rule, retain a relative Markdown link to its canonical page or section. Verify
+file targets and heading anchors when changing links.
 
-Every directory with an `AGENTS.md` carries a sibling `CLAUDE.md` holding the
-single line `@AGENTS.md`, and every `AGENTS.md` is reachable by link from this
-one (directly, or through `packages/AGENTS.md` for a per-package overlay).
-`npm run check:agents-docs` enforces all of it: a new `AGENTS.md` needs its
-`CLAUDE.md` and a navigation entry in the same PR.
+Every `AGENTS.md` must have a sibling `CLAUDE.md` containing only `@AGENTS.md`
+and be reachable by Markdown links from this file, directly or through another
+`AGENTS.md`. Put instructions in `AGENTS.md`, never `CLAUDE.md`. Run
+`npm run check:agents-docs` after changing these files.
 
-> When the architecture, commands, or rules below drift from the codebase,
-> update this file in the same PR. **No stats and nothing ephemeral**: no
-> counts of packages, nodes, tools or lint findings, no dates, no eval scores,
-> no "currently"/"today"/"as of" status. Those are stale the day after they are
-> written and an agent cannot tell a stale number from a true one. Point at the
-> command that measures instead.
+Update guidance in the same PR when code changes invalidate it. Do not record
+package/node/tool counts, lint totals, dates, eval scores, or temporary status.
+Link to the command that measures them. Read exact versions from `.nvmrc` and
+package manifests.
 
-> **Canonical standards live in [docs/DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md).**
-> That document is the single source of truth for enforceable rules and
-> aspirational targets across TypeScript, React, Zustand, MUI, TanStack Query,
-> ReactFlow, Fastify, Drizzle, Zod, Electron security, accessibility,
-> performance, security, observability, error handling, git/PR hygiene, and
-> dependency management. The rules in this file are the area-specific overlay —
-> read both.
+## Communication & Scope
 
-## Communication Style
+- Use plain, specific language and unambiguous domain terms. State each fact
+  once, match detail to the task, and challenge incorrect assumptions with reasons.
+- Put the essential result in the final response, which the user sees first.
+  Report completed work briefly, with evidence.
+- Avoid analogies, filler, unearned praise, decorative headings, emoji,
+  motivational language, semicolons, fragments, and excessive em dashes.
+  Do not use “load-bearing”, “worth stating plainly”, “here's the honest truth”,
+  “the real tension”, or “carry the argument”.
+- Use headings and numbered lists when they improve navigation. For three or
+  more findings, decisions, options, risks, questions, or actions, label each
+  with `F1`, `D1`, `O1`, `R1`, `Q1`, or `A1` respectively. Preserve codes across
+  the conversation. Omit codes for short answers.
+- Deliver the requested scope. Do not add unrelated cleanup, refactoring,
+  documentation, features, or abstractions for hypothetical requirements.
+  Required migrations in touched files still apply.
+- Never claim completion without evidence or add a co-author to a commit.
 
-You and I maintain a no-bs, clear concise, actionable relationship.
-Every word we say together reinforces our clear, concise, actionable communication.
-We're here to solve problems and create value, and our communication reflects that.
-Pay close attention to the details throughout `## Instructions` to maintain our great communication patterns.
-Why? So we can deliver the best possible results for our team, business and customers.
+Expand these aliases only when given as a standalone instruction:
 
-## Instructions
+| Alias | Instruction |
+|---|---|
+| `scr` | Simplify, compress, and repeat your response. |
+| `eli` | Explain this like I'm 18. Simplify your language. Shorten your response. |
+| `foc` | Boil the response down to the most important thing to focus on. |
+| `ref` | Rewrite your response with reference points. |
 
-### 1. Positive Patterns and Negative Patterns
-
-Replicate the `#### Positive Patterns` as behavioral references. Avoid the `#### negative Patterns`.
-
-#### Positive Patterns
-
-- I always see the last thing you write first. Place the most important information there.
-- Use plain, specific language.
-- State each fact once.
-- Match the level of detail to the level of task and request.
-- Challenge incorrect assumptions directly and explain why.
-- Optimize for clarity and engineering value, not quotability.
-- Use the simplest domain terminology that compresses information.
-- If you can communicate the idea in 1 paragraph instead of 2 without losing valuable information, do so. Same idea for 1 sentence vs 2 sentences.
-- Don't use overloaded terms that could mean more than one thing. Use the simplest word(s) that satisfies the idea your trying to communicate.
-
-#### Negative Patterns
-
-- Avoid words, and phrases in this list:
-    - "load-bearing"
-    - "worth stating plainly"
-    - "here's the honest truth"
-    - "the real tension"
-    - "carry the argument"
-- Avoid analogies. Discuss what's right in front of us.
-- Do not over use em dashes or dash chaining.
-- Do not flatter, praise, validate, or agree without reason.
-- Do not use decorative headings, emoji, or motivate language.
-- Avoid semicolons, fragments, and non-standard punctuation.
-- Do not repeat yourself. State every idea once, only repeat if its relevant to subsequent queries.
-
-### 2. Reference Points
-
-We use reference points to communicate quickly with each other.
-
-- Use numbered lists and markdown headings when the improve navigation.
-- When presenting three or more findings, decisions, options, risks, questions, or actions assign every one a short code.
-    - Use `D1`, `D2`, `DN` for decisions.
-    - Use `O1`, ... for options.
-    - Use `F1`, ... for findings.
-    - Use `R1`, ... for risks.
-    - Use `Q1`, ... for questions.
-    - Use `A1`, ... for actions.
-    - Invent new references for sections we don't have.
-    - Preserve the same codes throughout the conversation.
-    - Do not create codes for short simple answers.
-
-### 3. Hard Operational Boundaries
-
-In addition to clearly communicating. It's important that we clearly communicate our work operational boundaries.
-
-- Deliver only what was requested at the intended scope.
-- Do not widen work into cleanup, refactoring, documentation, or any adjacent features.
-- Do not speculate on abstractions for future requirements.
-- Do not claim completion without evidence.
-- Never add a co-author to a commit message.
-- For completed work, concisely restate it but do not overload with response detail.
-
-### 4. Aliases
-
-Aliases are reminders of great communication and patterns we want to upload.
-When you see these exact aliases, expand them and act as if their expansions were given to you directly.
-If these are referenced in a longer string, they are not aliases, do not expand.
-
-scr = `Simplify, compress, and repeat your response.`
-eli = `Explain this like I'm 18. Simplify your language. Shorten your response.`
-foc = `Focus on what matters most here. Whats the true signal? Whats the true value? Boil your response down into the most important thing we need to focus on.`
-ref = `Rewrite your responses with reference points`
-
-### Examples
-
-Here are concrete examples of how we DO and DO NOT communicate together. 
-Replicate how we DO communicate together and avoid how we DO NOT communicate together.
-
-#### Simple Investigation
-User: `Is legacy-config.json still referenced?`
-
-To do:
-```text
-No. The only match is the file itself.
-```
-
-Not to do:
-```text
-Great question. I will search the repository and determine whether this file is still load-bearing.
-After a comprehensive review, the answer is no. I can also remove it and inspect adjacent files if you would like.
-```
-
-#### Engineering Recommendation
-User: `Should we add redis to this system`
-
-To do:
-```text
-Do not add Redis here. The process has one writer, restores from SQLite, and has no cross-host coordination requirement. 
-
-Redis adds a failure domain without solving a current constraint.
-```
-
-Not to do:
-```text
-You are absolutely right that Redis could help. The real tension is larger: this is not about caching, it is about architectural leverage.
-```
-
-#### Summarizing a blog
-User: `Summarize the blog: <>`
-
-To do:
-```text
-The whole essay rests on one idea: safety comes from balance of power, not from alignment technology. Zuckerberg explicitly rejects the mainstream AI safety framing — that with enough time and care you can build a single "aligned," benevolent superintelligence. 
-
-His counterargument is that humanity isn't a monoculture; any singular superintelligence would have to prioritize some people's values over others, so "there is no such thing as a singular benevolent superintelligence.".
-
-The safe path, in his view, is the same one liberal democracies use: give everyone power so competing interests naturally check each other.
-```
-
-Not to do:
-```text
-Here's a breakdown of Mark Zuckerberg's "The Future is for
-Everyone" (Aug 10, 2026) — Meta's superintelligence manifesto.
-
-The core thesis
-
-Three claims form the spine of the whole piece:
-
-1. Individual empowerment is the source of prosperity — progress
-comes from the Wright brothers, Faraday, Jobs in a garage; not
-from institutions.
-2. Invention, not automation, is superintelligence's purpose — a
-person can only ask so many questions per day, but the number
-of things AI can invent for you is unbounded.
-3. Balance of power is the foundation of safety — not alignment,
-not caution. Distribution.
-
-Everything else in the document is downstream of these.
-```
-
+All prose follows [Writing Style](docs/WRITING_STYLE.md). Fix violations you
+pass when editing Markdown. User-facing copy also follows [Brand & Verbal
+Guidelines](docs/BRAND.md).
 
 ## Quick Navigation
 
-- **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** — **Canonical standards for the whole repo (MUST READ).**
-- **[Design System](docs/DESIGN.md)** — **Design token rules: SPACING, TYPOGRAPHY, BORDER_RADIUS, MOTION, Z_INDEX (MUST READ for any UI work).**
-- **[UI Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** — Primitives-first policy, decision tree, migration rules (MUST READ for frontend work)
+- **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** — Required for all work.
+- **[Design System](docs/DESIGN.md)** — Required for UI work.
+- **[UI Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** — Required for frontend work.
 - **[Harness-First Engineering](docs/HARNESS_FIRST.md)** — The doctrine: every surface headlessly drivable, the registry, `nodetool harness audit`
 - **[Agent Harnesses & Tooling](#agent-harnesses--tooling)** — Validate, debug, run, single-node, browser, deploy, trace (the tools that close the build→verify loop)
 - **[Harness Reference](docs/harnesses.md)** — Every harness and agent tool surface in full: flags, what it simulates, the design behind it. CLI flags: [docs/cli.md](docs/cli.md)
@@ -200,568 +77,312 @@ Everything else in the document is downstream of these.
 - **[Writing Style](docs/WRITING_STYLE.md)** — Anti-slop prose rules and the forbidden-expressions list for all docs and Markdown
 - **[Brand & Verbal Guidelines](docs/BRAND.md)** — Positioning, voice, messaging pillars, and product lexicon for anything user-facing
 
----
+
+### Standards by Task
+
+Use these sections for the detailed rules summarized below.
+
+| Task | Canonical sections |
+|---|---|
+| Language and runtime | [TypeScript](docs/DEVELOPMENT_STANDARDS.md#1-typescript), [ES modules](docs/DEVELOPMENT_STANDARDS.md#2-es-modules--node-runtime), [error handling](docs/DEVELOPMENT_STANDARDS.md#18-error-handling) |
+| Components and state | [React](docs/DEVELOPMENT_STANDARDS.md#3-react), [Zustand](docs/DEVELOPMENT_STANDARDS.md#4-zustand), [TanStack Query](docs/DEVELOPMENT_STANDARDS.md#6-tanstack-query-v5), [ReactFlow](docs/DEVELOPMENT_STANDARDS.md#7-reactflow-12) |
+| UI quality | [MUI and primitives](docs/DEVELOPMENT_STANDARDS.md#5-mui-v7--emotion--ui-primitives), [accessibility](docs/DEVELOPMENT_STANDARDS.md#14-accessibility-a11y), [performance](docs/DEVELOPMENT_STANDARDS.md#15-performance) |
+| API and persistence | [Fastify](docs/DEVELOPMENT_STANDARDS.md#9-fastify-http--websocket-server), [Drizzle](docs/DEVELOPMENT_STANDARDS.md#10-drizzle-orm), [Zod](docs/DEVELOPMENT_STANDARDS.md#11-zod-validation), [WebSocket protocol](docs/DEVELOPMENT_STANDARDS.md#13-websocket-protocol) |
+| Verification and diagnostics | [testing](docs/DEVELOPMENT_STANDARDS.md#8-testing), [observability](docs/DEVELOPMENT_STANDARDS.md#17-observability), [enforcement](docs/DEVELOPMENT_STANDARDS.md#22-enforcement) |
+| Security boundaries | [application security](docs/DEVELOPMENT_STANDARDS.md#16-security), [Electron security](docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security) |
+| Delivering changes | [documentation and comments](docs/DEVELOPMENT_STANDARDS.md#19-documentation--comments), [commits and PRs](docs/DEVELOPMENT_STANDARDS.md#20-git-commits-prs), [dependencies](docs/DEVELOPMENT_STANDARDS.md#21-dependencies--versions) |
 
 ## Architecture
 
-```
-packages/           # npm workspace packages (TypeScript backend)
-  protocol/         # Shared message types — base dependency for everything
-  config/           # Configuration loading, logging
-  security/         # Secret storage, encryption
-  auth/             # Authentication middleware
-  storage/          # File storage (local, S3)
-  models/           # SQLite data models (Drizzle ORM)
-  node-sdk/         # BaseNode class, NodeRegistry, type system
-  runtime/          # ProcessingContext, LLM providers, message queue, Workspace
-  kernel/           # Workflow graph, Actor runtime, WorkflowRunner
-  agents/           # Planning agent system (TaskPlanner → TaskExecutor → CodeActExecutor)
-  chat/             # Chat message processing, token counting
-  base-nodes/       # Shell re-exporting the domain node packages (core-nodes,
-                    # text-nodes, llm-nodes, image-nodes, …) as ALL_BASE_NODES
-  browser/          # One real Chrome page over CDP: the action loop, media
-                    # capture, upload, and the Chrome-extension relay that
-                    # reaches the user's own signed-in browser
-  websocket/        # Fastify HTTP + WebSocket server (main API, port 7777)
-  cli/              # nodetool CLI
-  vectorstore/      # SQLite-vec for RAG
-  app-runtime/      # Mini-app document, bindings, instance state, streaming fold
-                    # (shared by web, the CLI `app debug` harness, and mobile)
-  model-pricing/    # Unit price for a selected FAL/kie/GenSpend model (web + runner)
-  model3d/          # glTF scene document: read/write, primitive geometry, the
-                    # editor's scene ops, validation (web + model3d capabilities)
-  sandbox-compiler/ # Compiles a pack's npm dependency into a guest module
-                    # (esbuild bundle, scope-aware scan, QuickJS admission probe)
-  sandbox-packs/    # Shipped library packs — config-only manifest + SKILL.md each,
-                    # NOT workspaces: installed and imported by the guest only
-  ...
+Use this map to select an area overlay. Package dependencies are declared in
+workspace manifests. Build in dependency order with `npm run build:packages`.
 
-web/                # React 19 + Vite + MUI + Zustand + ReactFlow
-electron/           # Electron 39 desktop app
-mobile/             # React Native / Expo (documents open one-per-screen, no tabs;
-                    # edits come through the chat agent's ui_* tools —
-                    # see mobile/ARCHITECTURE.md § Documents)
-demo/               # Remotion harness for product-demo videos (replays recorded
-                    # graph-UI "casts"; see demo/README.md and web/src/demo/)
-```
+| Area | Location |
+|---|---|
+| Shared messages and schemas | `packages/protocol/` |
+| Configuration, secrets, auth, storage, persistence | `packages/{config,security,auth,storage,models}/` |
+| Node definitions and registry | `packages/node-sdk/`, domain node packages, `packages/base-nodes/` re-exports |
+| Providers, processing context, workspace | `packages/runtime/` |
+| Workflow graph and actor execution | `packages/kernel/` |
+| Planning and execution agents, chat | `packages/agents/`, `packages/chat/` |
+| HTTP/WebSocket API, CLI, browser automation | `packages/{websocket,cli,browser}/` |
+| Shared app state, pricing, 3D documents, RAG | `packages/{app-runtime,model-pricing,model3d,vectorstore}/` |
+| QuickJS dependency compiler and guest-only packs | `packages/sandbox-compiler/`, `packages/sandbox-packs/` (packs are not workspaces) |
+| Web, desktop, mobile | `web/`, `electron/`, `mobile/` |
+| Product-demo recordings | `demo/`, `web/src/demo/` ([guide](demo/README.md)) |
 
-### Package Dependency Order
+### Cross-Package Rules
 
-```
-protocol → config → security → auth → storage
-                             ↓
-                          runtime → kernel → node-sdk → base-nodes
-                                          ↓
-                                       models → agents → chat
-                                                         ↓
-                                                      websocket ← cli
-```
+- Use ESM and `@nodetool-ai/<package>` imports across packages. Never import
+  from `dist/` in source. Relative imports need `.js` in compiled output.
+- Access run files through `context.workspace`: `read`, `write`, `list`, `stat`,
+  `copy`, `move`, `delete` with workspace-relative paths. Do not branch on local
+  versus cloud storage. `workspace.localDir` is null for virtual workspaces.
+  Host binaries stage files through `materialize`/`absorb` and `scratchDir`.
+  Nodes holding live files must require a local workspace. `context.workspaceDir`
+  is deprecated.
+- Workflow WebSocket messages use MsgPack and existing serialization helpers.
+  REST uses JSON. Frontend connections use `GlobalWebSocketManager`, never new
+  `WebSocket` instances. Frontend tools use the `ui_` prefix.
+- LLM providers live in `packages/runtime/src/providers/`. Python nodes connect
+  lazily through `PythonStdioBridge` using length-prefixed MsgPack over stdio.
 
-### Key Patterns
+### Frontend Rules
 
-- **State management**: Zustand stores (web/src/stores/), React Context wraps Zustand, TanStack Query for server state
-- **UI Primitives (MANDATORY)**: All frontend UI must use primitives from `web/src/components/ui_primitives/`. **Never import raw MUI components** (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) outside of `ui_primitives/` or `editor_ui/`. See the **[Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** for the decision tree, migration rules, and the full primitive catalog. When touching any file, migrate raw MUI usage to primitives.
-- **Media rendering (MANDATORY)**: `asset://<id>` is a stored identifier, not a URL — the bytes live under `<user_id>/<asset_id>.<ext>` and, on the cloud backends, behind a signed URL only the server can mint. Never set `src`/`poster` from a locator. Render stored media through `ResponsiveImage`, `VideoPlayer`, or `AudioPlayback` with a `locator` prop; those primitives resolve it. Their `src` prop takes a `ResolvedMediaUrl`, minted only by `utils/resolveMediaUri.ts` and `hooks/useResolvedMediaUri.ts`, so a raw string does not typecheck. The lint rule `design-tokens/no-unresolved-media-src` rejects a locator literal in a JSX url attribute; the rendering surfaces are inventoried in `web/src/__tests__/mediaResolutionBoundary.test.ts`.
-- **Design tokens (MANDATORY)**: See **[docs/DESIGN.md](docs/DESIGN.md)** for the token systems — `SPACING` (4px grid), `TYPOGRAPHY` (4-size scale), `BORDER_RADIUS`, `MOTION`, `Z_INDEX`. **Never** hardcode border radii (`4`, `10`, `18px`), transition strings (`"all 200ms ease"`), font sizes (`"14px"`, `"0.85rem"`), or off-grid spacing (`5px`, `10px`, `13px`). Use the named constants from `ui_primitives`. When touching any UI file, fix violations in the same PR.
-- **Styling**: MUI v7 + `sx` prop for one-off, `styled()` for reusable. Theme values only, no hardcoded colors/spacing. Prefer `FlexRow`/`FlexColumn` over `Box sx={{ display: "flex" }}` when the shorthand props (`gap`, `align`, `justify`) reduce verbosity; use `Box` directly when you have significant additional `sx` overrides anyway.
-- **Node graph**: ReactFlow 12. Nodes extend `BaseNode` from `@nodetool-ai/node-sdk`.
-- **Workspace access goes through an interface, never a path**: a run's files live behind `context.workspace` (`Workspace` in `@nodetool-ai/runtime`) — `read`/`write`/`list`/`stat`/`copy`/`move`/`delete` over workspace-relative paths. A local install backs it with a folder, a cloud deployment with a key prefix in the asset bucket (`NODETOOL_WORKSPACE_STORAGE`), and no caller branches on which. `workspace.localDir` is null on a virtual workspace and is only for code that genuinely needs a real directory: a host binary stages through `materialize`/`absorb` + `scratchDir`, and the nodes that hold a live file (`lib.sqlite`) say they need a local workspace instead of silently losing writes. `context.workspaceDir` survives as the derived local path and is deprecated.
-- **LLM providers**: All in `packages/runtime/src/providers/` — Anthropic, OpenAI, Gemini, Ollama, Mistral, Groq, Claude Agent SDK
-- **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), TaskExecutor/ParallelTaskExecutor (walk the DAG), CodeActExecutor (sandboxed-JavaScript action loop for one step)
-- **Workflow execution**: Actor-model in `packages/kernel/` — DAG-based, message-passing between node actors
-- **Python bridge**: `PythonStdioBridge` in `packages/runtime/` — spawns `python -m nodetool.worker --stdio`, communicates via length-prefixed msgpack over stdin/stdout. Lazy-connected on first workflow with Python nodes.
-- **Serialization**: MsgPack for WebSocket messages, JSON for REST API
-- **ES Modules**: All packages use `"type": "module"`. Imports need `.js` extension in compiled output.
+Read [Design System](docs/DESIGN.md) and [Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)
+before UI work. Use [Standards by Task](#standards-by-task) for React, state,
+accessibility, and performance rules.
 
----
+- Use `web/src/components/ui_primitives/`. Raw MUI components are allowed only
+  in `ui_primitives/` and `editor_ui/`. Create a primitive if none fits.
+  Migrate raw MUI usage and fix design-token violations in every UI file touched.
+- Use `sx` for one-off styles. Define reusable `styled()` primitives only inside
+  `ui_primitives/`. Prefer `FlexRow`/`FlexColumn` for flex layout. Use `Box` when
+  significant additional `sx` overrides are needed.
+- Use theme colors and named `SPACING`/`GAP`/`PADDING`, typography,
+  `BORDER_RADIUS`, `MOTION`, and `Z_INDEX` tokens. No raw size, color, radius,
+  transition, or z-index values. Font weights are `400`, `500`, or `600`.
+- Render stored media through `ResponsiveImage`, `VideoPlayer`, or
+  `AudioPlayback` with a `locator` prop. `asset://<id>` and media refs are
+  identifiers, never `src`/`poster` URLs. The `src` prop accepts a
+  `ResolvedMediaUrl` from `utils/resolveMediaUri.ts` or
+  `hooks/useResolvedMediaUri.ts`. The boundary is checked by
+  `design-tokens/no-unresolved-media-src` and
+  `web/src/__tests__/mediaResolutionBoundary.test.ts`. See the
+  [media resolution boundary](web/src/components/ui_primitives/STRATEGY.md#media-resolution-is-the-rendering-boundary).
+- Zustand holds client state, delivered through typed context hooks and read
+  with selectors. TanStack Query holds server state. Follow the central
+  standards for effects, memoization, and mutation invalidation.
+
+### File & Naming Conventions
+
+Components, store files, types, and interfaces use PascalCase. Hooks use
+camelCase with a `use` prefix and descriptive names. Utilities use camelCase.
+Constants use UPPER_SNAKE_CASE. Tests use the source name plus `.test.ts(x)`
+in the area's existing test directory (`__tests__/` or package `tests/`).
+Give custom hooks explicit return types. Use braces for control statements
+and `Array.isArray()` to identify arrays.
+
+Import order: React/core libraries, third-party libraries, stores/contexts,
+components, utilities/types, then styles.
 
 ## Prerequisites
 
-- **Node.js 22.22.1** (required — see `.nvmrc`). Matches Electron 39's embedded Node (22.22.1). The one source-built native module (`better-sqlite3`) is rebuilt against the Node ABI by the root `postinstall` hook (`electron/scripts/rebuild-native.mjs`), which runs after `npm install`/`npm ci` finishes reifying the tree.
-- Use `nvm use` to activate the correct version.
-- If you see `NODE_MODULE_VERSION` errors, run `npm run rebuild:native`.
-- **Fresh checkout or missing `node_modules`**: if `npm run typecheck`/`lint`/`test` fail with module-resolution errors (`Cannot find module`, `Cannot find type definition file`) on files you didn't touch, run `npm install` first — don't spend a cycle proving the failure predates your change. Re-run the checks after install before investigating further.
-- Python 3.11+ with conda is optional — needed only for Python nodes.
-
-### First-time setup
-
-`start.sh` does all of it, then starts the server:
-
 ```bash
-./start.sh           # API on :7777   (full | web | check | doctor)
+nvm use                 # Required Node version from .nvmrc
+npm install             # Install workspace dependencies
+npm run build:packages  # Build backend packages in dependency order
 ```
 
-Or by hand:
+`./start.sh` performs setup and starts the API on port 7777 (`full`, `web`,
+`check`, `doctor` modes). Python 3.11+ with conda is optional for Python nodes.
+Claude Code web setup and slash commands are in [.claude/README.md](.claude/README.md).
 
-```bash
-nvm use                 # Reads .nvmrc, activates Node 22.22.1
-npm install             # Install all workspace dependencies
-npm run build:packages  # Build backend packages
-```
-
-In Claude Code **web** sessions, `.claude/hooks/session-start.sh` installs
-dependencies before the session starts, so `npm run typecheck`/`lint`/`test`
-work immediately. Slash commands: `/serve`, `/verify`, `/onboard`. See
-[.claude/README.md](.claude/README.md).
-
-Locked-down containers (`npm install` fails in postinstall) and machines
-without a Vulkan driver ("No WebGPU adapter available") each need one extra
-step: [docs/dev-environment.md](docs/dev-environment.md).
+- On missing-module/type-definition failures in untouched files, install
+  dependencies first, then rerun checks before investigating further.
+- The root `postinstall` rebuilds `better-sqlite3` after npm finishes reifying
+  dependencies. Keep the rebuild there, not in the Electron workspace hook.
+  For `NODE_MODULE_VERSION` failures, run `npm run rebuild:native`.
+- For sandbox/proxy download failures, use `npm install --ignore-scripts` only
+  for lint/typecheck work. See [Dev Environment](docs/dev-environment.md).
+- “No WebGPU adapter available (Node/Dawn)” requires a Vulkan ICD such as
+  lavapipe. Do not skip the test. Follow the
+  [headless WebGPU setup](docs/dev-environment.md#webgpu-on-a-headless-machine).
+- `mobile/` has a separate dependency tree and is not a root workspace. Use
+  `npm --prefix mobile …`, never `--workspace=mobile`. Build protocol before
+  mobile typecheck. Its `@nodetool-ai/app-runtime` source mapping must agree
+  across `mobile/metro.config.js`, `tsconfig.json`, and `jest.config.js`.
+- Node packages using decorators and loading from `dist/` (`base-nodes`,
+  `node-sdk`, `fal-nodes`, `replicate-nodes`, `elevenlabs-nodes`) need
+  `npm run build:packages` after edits and before `npm run dev`.
 
 ## Build, Lint & Test Commands
 
-### All Packages
+Run from the repository root unless noted. Use [package.json](package.json) for
+the full script list and [testing standards](docs/DEVELOPMENT_STANDARDS.md#8-testing)
+for test design.
 
-Run these from the repo root. After **any** code change, `npm run check` (or the
-checks it wraps) must pass.
-
-```bash
-npm install              # Install all dependencies (web, electron, mobile)
-npm run build            # Build all packages
-npm run typecheck        # Type check web, electron, and mobile
-npm run lint             # Lint packages/*/src, web/src, electron, mobile/src
-npm run lint:fix         # Auto-fix linting issues
-npm run lint:anti-slop   # anti-slop backlog rules — report-only, not part of `lint`
-npm run test             # Run web, electron, and mobile tests
-npm run test:affected    # Only the suites that depend on changed code
-npm run check            # Workspace/lockfile/boundary checks, build:packages,
-                         # typecheck, lint, test:packages, test
-```
-
-The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
-runs through two configs: `.oxlintrc.anti-slop.json` is the **backlog**
-(`npm run lint:anti-slop`, not on the CI path) and
-`.oxlintrc.anti-slop-enforced.json` holds every (rule, tree) pair already at
-zero, inside `npm run lint` so it cannot come back. The override blocks are
-generated (`lint:anti-slop:count|targets|write|check`), never hand-edited, and
-a count never goes in a doc. How to work a rule down, and why some are
-stalled: [tools/oxlint/anti-slop/README.md § Working the backlog](tools/oxlint/anti-slop/README.md#working-the-backlog).
-
-### Backend Packages
-
-```bash
-npm run build:packages                          # Build all in dependency order
-npm run test:packages                           # Test all packages
-npm run test --workspace=packages/<name>        # Test single package
-npm run test:watch --workspace=packages/<name>  # Watch mode for single package
-```
-
-### Web, Electron, Dev Servers
-
-```bash
-cd web && npm start|build|typecheck|lint|test|run test:e2e   # e2e needs the backend
-cd electron && npm start|build|typecheck|lint|test
-npm run dev                 # Backend (tsx --watch) + web Vite server
-npm run dev:server          # Backend only (port 7777)
-npm run electron:dev        # Electron against Vite server (requires conda env)
-```
+| Task | Command |
+|---|---|
+| Backend and Vite development servers | `npm run dev` |
+| Backend only, port 7777 | `npm run dev:server` |
+| Electron against Vite, with conda environment | `npm run electron:dev` |
+| Build all / backend packages | `npm run build` / `npm run build:packages` |
+| Test one backend package | `npm run test --workspace=packages/<name>` |
+| Watch one backend package | `npm run test:watch --workspace=packages/<name>` |
+| Inspect affected test selection | `npm run test:affected -- --dry-run` |
+| Full aggregate check, when explicitly needed | `npm run check` |
 
 ### Mandatory Post-Change Verification
 
-After **any** code change, run these four — and only these four:
+After any code change, run these four checks. All must pass before declaring
+completion:
 
 ```bash
-npm run test:affected # Only the suites that depend on what changed
-npm run typecheck     # Type check web, electron, and mobile
-npm run lint          # Lint packages/*/src, web/src, electron, mobile/src
-npm run dev:nodetool -- harness gate --base origin/main # Only the harness selfchecks this diff demands
+npm run test:affected
+npm run typecheck
+npm run lint
+npm run dev:nodetool -- harness gate --base origin/main
 ```
 
-All four must pass before the task is complete. Do not reach for the full
-`npm run test` + `npm run test:packages` pass instead: it is minutes of wall
-clock on a two-file change, and CI runs it on the PR anyway.
+Use these for routine verification. Do not substitute the full `npm run test`
+and `npm run test:packages` suites. Run additional checks only when a documented
+trigger below applies or the diff crosses a dependency the selection misses.
+For documentation-only changes, check affected links and run
+`npm run check:agents-docs` when agent instructions change.
 
-`harness gate` reads the same diff and maps it onto the harness registry
-(`packages/cli/src/harness/registry.ts`): a change under `packages/kernel/`
-runs the Ring 0 reliability journeys, a change under `packages/agents/src/app-build/`
-runs the app-build harness's deterministic cases, and so on — see
-[docs/HARNESS_FIRST.md](docs/HARNESS_FIRST.md). `--dry-run` prints the plan
-without running anything, so a diff that maps to nothing costs nothing.
+`test:affected` selects from commits since the merge-base with `origin/main`
+plus working-tree changes. Backend tests run through Turbo with dependency
+builds. App-only changes select related Jest tests. Changes to app dependencies
+select the app's whole suite. Unmapped non-documentation changes select all
+suites. Use `-- --base <ref>` to change the base or pass file paths to inspect
+selection. If you change `buildPlan` in `scripts/test-affected.mjs`, update
+`scripts/__tests__/test-affected.test.mjs`.
 
-`npm run test:affected` maps the diff — committed since the merge-base with
-`origin/main`, plus the working tree — onto workspaces with the same
-`computeAffected` behind `nodetool affected`, then runs:
-
-- the affected backend packages through `turbo run test`, so their dependencies
-  still build (`test` dependsOn `^build`);
-- `jest --findRelatedTests` in web/electron/mobile when only that app's own
-  files changed — the tests that actually import them;
-- an app's whole suite when a package it depends on changed. Jest's dependency
-  graph stops at the workspace root, so a change inside
-  `node_modules/@nodetool-ai/*` is invisible to `--findRelatedTests`;
-- everything, when a changed file belongs to no workspace and is not
-  documentation (root configs, `scripts/`, the lockfile).
-
-```bash
-npm run test:affected                              # the current diff
-npm run test:affected -- --dry-run                 # print the plan, run nothing
-npm run test:affected -- --base <ref>              # diff against another ref
-npm run test:affected -- packages/kernel/src/x.ts  # ask what a given file selects
-npm run test:affected -- --all                     # the full pass, when you want it
-```
-
-The selection rules are `buildPlan` in `scripts/test-affected.mjs`, pinned by
-`scripts/__tests__/test-affected.test.mjs` (run by `npm run test:packages`) —
-a mis-selection is silent, so changing a rule means changing that test.
-
-`lint` passing is not `test` passing: a change to `packages/websocket` that was
-linted and never tested broke two route suites, and CI found it rather than the
-author. And selection is only as good as the declared dependency graph — when a
-change crosses a seam the graph does not record (a fixture read from another
-package, a generated file), run the suites you know it reaches by hand.
+`harness gate` selects selfchecks through
+`packages/cli/src/harness/registry.ts`. Add `--dry-run` to inspect its plan.
+See [gate selection](docs/HARNESS_FIRST.md#the-gate) and
+[CLI flags](docs/cli.md#nodetool-harness-gate-files). Run known affected
+suites directly when a shared fixture or generated file creates an undeclared
+dependency. Passing lint does not prove tests pass.
 
 ### Claims, Checks, and Measurements
 
-Verification failures in this repo are rarely "forgot to run the tests". They
-are green signals that were never earned. Four rules, each paid for:
+See [Harness-First rules](docs/HARNESS_FIRST.md#the-rules) for reproduction and
+verification requirements.
 
-**Prove a new check can fail.** Invert the condition once and watch it go red,
-then restore. `nodetool validate` returned ✅ on a workflow whose model id was
-`totally-not-a-real-model-xyz` — it had never checked ids at all, and only a
-deliberately-bogus input revealed it. A check that has only ever been green is
-indistinguishable from one that examines nothing. For an audit that scans
-files, also assert it *found* something, so it cannot pass by matching nothing.
-This is rule 7's sibling in [docs/HARNESS_FIRST.md](docs/HARNESS_FIRST.md).
-
-**Reproduce before you enforce.** Rule 5 requires a bug *fix* to ship a
-reproduction; the same applies to a new *rule*. A validator check was written
-from a log warning plus code reading, shipped as an error, and would have failed
-the examples gate on six shipped workflows — until three reproductions of its
-own criterion passed cleanly and the feature was reverted. Until you have
-watched the failure, report it; do not enforce it.
-
-**"I checked" means you enumerated.** Not one plausible file, and never a
-comment — a comment is a hypothesis about code, not the code. Claims that
-`validateGraph` was ungated in CI, and that six call sites were safe, were both
-made from a sample and both wrong in method. To assert "all X do Y", produce the
-list; if that is too expensive, scope the claim to what you actually read.
-
-**Distrust the measurement before the conclusion.** `pgrep -f` matches the
-shell command that contains the pattern, so a probe can report a dead process as
-running. `cmd | head && echo ok` prints `ok` on failure, because `head` exits 0 —
-capture the exit code of the command you care about. When a result is surprising,
-re-measure with a different tool before believing it.
-
-Two mechanical traps worth naming: after a programmatic edit, byte-count the
-file for stray control characters (a `\u0000` written as the byte it denotes
-got a `.ts` file staged as **binary**), and if the code walks a graph or list,
-run it once on a large input — an `edges.some()` inside a node loop is O(n·m)
-and passed every hand-written fixture before timing out on the 20 000-node
-chain in CI.
+- Prove a new check fails on deliberately invalid input, then restore it.
+  File audits must also assert that they inspected something.
+- Reproduce bugs before fixing them and ship the reproduction. Reproduce a
+  proposed rule's failure before enforcing it. Until then, report the concern.
+- Claims about “all” call sites or files require enumeration. Scope conclusions
+  to what you inspected. Comments are hypotheses, not evidence of behavior.
+- Capture the exit status of the command being measured. A successful pipe to
+  `head` does not prove its producer succeeded. `pgrep -f` can match its own
+  calling shell. Recheck surprising results with an independent measurement.
+- After programmatic edits, check bytes for stray control characters. Exercise
+  graph/list algorithms on large inputs to catch accidental quadratic work.
 
 ## Common Pitfalls
 
-- **base-nodes, node-sdk, fal-nodes, replicate-nodes, elevenlabs-nodes** use decorators and load from `dist/`. After changing these, run `npm run build:packages` before `npm run dev`.
-- **Package build order matters**. Use `npm run build:packages` which builds in dependency order, not `npm run build` on individual packages that have unbuilt dependencies.
-- **Deploy = the GHCR image, self-contained**. The prod server runs on **Fly.io** (`fly.toml`, app `nodetool`, https://nodetool.fly.dev / https://api.nodetool.ai). The deploy unit is the GHCR image built by `.github/workflows/docker.yml`; `web/dist` and workflow examples are baked into it (no host bind-mount), so backend and frontend changes ship together. A push to `main` builds the image and then rolls it out through `.github/workflows/fly-deploy.yml` and `scripts/fly-rolling-deploy.sh`, one machine at a time, draining each before it is replaced — the whole pipeline, the machine-state gotchas it depends on, and what to do when it stops half way are in [docs/fly-production-deploy.md](docs/fly-production-deploy.md). Because `docker.yml` runs only after a merge, the Quality Gate carries a `docker` leg that builds the image on the PR, boots it, and loads the app in a browser (`scripts/docker-smoke.mjs`) — run it locally against any server with `node scripts/docker-smoke.mjs http://localhost:7777`. The container needs `--network host`: in `local` auth mode the server trusts only loopback *inside* the container, so behind a published port every API call answers 401.
-- **Self-hosting** (outside Fly) uses `docker-compose.yml` (reference compose) or the `packages/deploy` tooling. The old self-hosted `deploy.sh`/`npm run redeploy` box was decommissioned once Fly took over.
-- **Packaged Electron backend flattens file paths**. esbuild bundles the backend into one `server.mjs`, so anything resolved relative to `import.meta.url` (provider `*-manifest.json`, examples, `package://` assets) lives elsewhere in the packaged app than in dev. Data files a package loads at runtime must be declared in `PACKAGE_RUNTIME_ASSETS` (`packages/config/src/package-asset-registry.ts`) and loaded via `loadPackageAssetJson` from `@nodetool-ai/config` — the registry drives staging (`scripts/bundle-backend.mjs`) and artifact verification (`scripts/verify-backend-bundle.mjs`), and unregistered loads throw in dev. See [electron/src/AGENTS.md § Packaged file layout](electron/src/AGENTS.md).
-- **The packaged backend only resolves what `bundle-backend.mjs` stages, in a flat `_modules/`**. One version per package name wins, so a dependency npm hoisted for an older major can take the slot a newer one needs — invisible in dev, fatal in the artifact. `npm run backend:smoke` stages the bundle and boots `server.mjs` against `/health`; run it after touching `scripts/bundle-backend.mjs`, a native dependency, or anything the backend loads lazily. CI runs it as the Quality Gate `bundle` leg and again per-OS in `release.yaml`.
-- **Price catalogs are generated — never hand-edit them.** FAL/kie come from `packages/fal-codegen`; `packages/model-pricing/src/generated/genspend-pricing.json` covers every other provider and comes from the GenSpend catalog, refreshed by the nightly `GenSpend Pricing Sync` workflow (`npm run sync:genspend` locally after `build:packages`, `npm run sync:genspend:check` to see whether it is stale). The sync matches GenSpend models against the models each provider enumerates in NodeTool, so it never emits an id NodeTool doesn't ship; unmatched models are reported, and `scripts/genspend/aliases.json` is where a maintainer pins or blocks one. The job opens a PR when a price moved — a number that gates a run's budget gets reviewed, not auto-merged. See [packages/model-pricing/README.md](packages/model-pricing/README.md).
-- **Generated provider metadata has a drift gate.** The FAL and KIE generators normally read live schemas and live pricing, so their output is not reproducible. `npm run generate:fal:check` / `generate:kie:check` run the same generators in fixture mode — only the schema fixtures checked in under `packages/{fal,kie}-codegen/fixtures/`, no network, no pricing, no timestamps — into a temporary directory, and diff the outputs the generator manifest declares against `fixtures/expected/`. Any difference exits non-zero, as does a check that compared nothing. Refresh an intended change with `node scripts/provider-codegen-check.mjs --provider <fal|kie> --write`. `.github/workflows/provider-codegen.yml` runs both on every diff touching a codegen package. Live refresh stays `npm run generate:fal` / `generate:kie`.
-- **WebSocket messages use MsgPack**, not JSON. Use the existing serialization helpers.
-- **Don't create new WebSocket instances** — use `GlobalWebSocketManager` singleton.
-- **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`. The one shared package mobile compiles from **source** (no build) is `@nodetool-ai/app-runtime`, wired in `mobile/metro.config.js`, `tsconfig.json` and `jest.config.js` — all three must agree.
-- **`mobile/` is intentionally NOT a root workspace** (it has its own Expo/React Native dependency tree that must not be hoisted). Its scripts use `npm --prefix mobile …`, not `npm --workspace=mobile …` — the latter will fail. Do not "standardize" these to `--workspace`.
-- **`npm install` fails in sandboxed/proxied environments** (`keytar` headers, `electron` and `onnxruntime-node` binary downloads; one failed postinstall rolls back the whole tree). `npm install --ignore-scripts` for lint/typecheck-only work. Details: [docs/dev-environment.md](docs/dev-environment.md).
-- **"No WebGPU adapter available (Node/Dawn)" is a missing driver, not a broken test.** Shader-backed image nodes need a Vulkan ICD; CI installs `mesa-vulkan-drivers` (lavapipe) and the same test passes there. Do not skip a test over it. Setup with and without root: [docs/dev-environment.md](docs/dev-environment.md#webgpu-on-a-headless-machine).
-- **The `better-sqlite3` rebuild runs from the root `postinstall`, not the electron workspace's.** That one fired mid-reify and raced npm's renames of node-gyp's deps (intermittent `Cannot find module 'tinyglobby'`). A clean `npm ci` is the whole install; `npm run rebuild:native` forces a rebuild.
-- **Claude Agent Provider in nested sessions (e.g. Claude Code web)**: The SDK spawns the bundled native `claude` binary as a subprocess. In environments like Claude Code on the web (`claude.ai/code`), you must: (1) strip all `CLAUDE_CODE_*` / `CLAUDE_SESSION_*` / `CLAUDE_ENABLE_*` / `CLAUDE_AFTER_*` / `CLAUDE_AUTO_*` env vars — not just `CLAUDECODE`; (2) run as a non-root user — the SDK refuses `--dangerously-skip-permissions` when uid=0; (3) keep `ANTHROPIC_BASE_URL` and `HTTP_PROXY`/`HTTPS_PROXY` vars for API routing. See `docs/AGENTS.md` § Claude Agent SDK for full details.
-- **ES Modules everywhere**: all packages use `"type": "module"`. Compiled imports need `.js` extensions.
-- **Never import from `dist/`**: use `@nodetool-ai/<package>` workspace references in source code.
+### Deployment & Packaging
 
----
+- Production ships a self-contained GHCR image to Fly.io. Backend, `web/dist`,
+  and workflow examples deploy together through `.github/workflows/docker.yml`,
+  `fly-deploy.yml`, and `scripts/fly-rolling-deploy.sh`. Follow the
+  [production deploy guide](docs/fly-production-deploy.md). Self-hosting uses
+  `docker-compose.yml` or `packages/deploy`, not the retired `deploy.sh`. See
+  [deployment commands](docs/cli.md#nodetool-deploy).
+- `node scripts/docker-smoke.mjs http://localhost:7777` checks a running image's
+  app. Local auth trusts loopback inside the container, so this smoke setup
+  needs `--network host`.
+- The packaged Electron backend flattens paths into `server.mjs`. Register
+  runtime data in `PACKAGE_RUNTIME_ASSETS`
+  (`packages/config/src/package-asset-registry.ts`) and load JSON via
+  `loadPackageAssetJson` from `@nodetool-ai/config`, not paths relative to
+  `import.meta.url`. See [packaged file layout](electron/src/AGENTS.md#packaged-file-layout).
+- Bundling stages one version per package name in flat `_modules/`, so hoisted
+  version conflicts can appear only in the artifact. Run `npm run backend:smoke`
+  after changing `scripts/bundle-backend.mjs`, native dependencies, or lazy
+  backend loads.
+
+### Generated Files
+
+- Never hand-edit price catalogs. Use `npm run generate:fal`,
+  `npm run generate:kie`, or `npm run sync:genspend` (after `build:packages`).
+  Check GenSpend drift with `npm run sync:genspend:check`. Pin or block matches
+  in `scripts/genspend/aliases.json`. Price changes require review, not
+  auto-merge. See [model-pricing](packages/model-pricing/README.md).
+- Provider codegen drift checks use checked-in fixtures without live schema,
+  pricing, or timestamp inputs: `npm run generate:fal:check` and
+  `npm run generate:kie:check`. Refresh intended fixture output with
+  `node scripts/provider-codegen-check.mjs --provider <fal|kie> --write`.
+  The gate must compare output and fail on differences or an empty comparison.
+  See [FAL codegen](packages/fal-codegen/README.md) and
+  [KIE codegen](packages/kie-codegen/README.md).
+- Anti-slop override blocks are generated. Do not hand-edit them. The backlog
+  config is report-only (`npm run lint:anti-slop`), while enforced rules run
+  inside `npm run lint`. Use `lint:anti-slop:count`, `:targets`, `:write`, and
+  `:check`. See [Working the backlog](tools/oxlint/anti-slop/README.md#working-the-backlog).
+
+### Nested Claude Agent Sessions
+
+The Claude Agent SDK spawns a native `claude` subprocess. In nested sessions,
+strip `CLAUDECODE` and `CLAUDE_CODE_*`, `CLAUDE_SESSION_*`, `CLAUDE_ENABLE_*`,
+`CLAUDE_AFTER_*`, `CLAUDE_AUTO_*` variables. Run as a non-root user because the
+SDK refuses `--dangerously-skip-permissions` at uid 0. Preserve
+`ANTHROPIC_BASE_URL`, `HTTP_PROXY`, and `HTTPS_PROXY` for routing. See
+[Claude Agent SDK](docs/AGENTS.md#claude-agent-sdk).
 
 ## Agent Harnesses & Tooling
 
-The repo ships harnesses built for the agent edit→verify loop: check a workflow
-before running it, run it and read everything it emitted, run a single node in
-isolation, drive the real browser, deploy, and trace token/cost. Reach for these
-before hand-rolling a script. Every CLI command runs from source with
-`npm run dev:nodetool -- <cmd>` (no build) or from `dist` with
-`npm run nodetool -- <cmd>` after `npm run build:packages`. The full flag
-reference is [docs/harnesses.md](docs/harnesses.md) plus [docs/cli.md](docs/cli.md).
+Prefer existing harnesses to custom scripts. Read the relevant entry in
+[Harness Reference](docs/harnesses.md) before first use in a session. Full flags
+are in [CLI Reference](docs/cli.md).
 
-| Need | CLI harness | Agent/MCP tool | Speed |
-|---|---|---|---|
-| Static pre-flight (unknown nodes, missing props, bad edges) — **run this first** | `nodetool validate <id\|file.json\|file.ts>` | `validate_workflow` (inline `graph` or `workflow_id`) | < 1 s, no DB for file targets |
-| Run a workflow end-to-end and read every message/log/output/error | `nodetool debug <id\|file>` (server surface, default) | `debug_workflow` (status + outputs + errors + job logs + graph in one call) | seconds |
-| Build a mini app from a prompt and verify it end to end | `nodetool app build "<prompt>" -p <provider> -m <model>` | `create_app` + `edit_app` (the `ui_app_*` steps), graded with `debug_app` | minutes |
-| Real-browser surface (Playwright + Chromium canvas), trace, per-stage shots | `nodetool debug <id> --browser --trace --stages` | — | tens of seconds (opt-in) |
-| Tight edit→verify loop on a file target | `nodetool debug file.ts --watch` (prints a verdict **diff** per save) | — | per-save |
-| Run one node in isolation with a prop bag | `nodetool node run <type> --props '{…}' [--no-secrets]` | — | sub-second hermetic |
-| Run a workflow (id, JSON, or DSL `.ts`) | `nodetool run <file>` / `nodetool workflows run <id> [--params …]` | `run_workflow`, `start_background_job` | varies |
-| Map changed files → minimal workspaces to rebuild/test | `nodetool affected [--base main]` | — | instant |
-| Run only the suites that depend on changed code (the pre-commit test pass) | `npm run test:affected [-- --dry-run]` | — | seconds–minutes |
-| Run the harness selfchecks this diff demands | `nodetool harness gate [--base main] [--strict]` | — | seconds–minutes |
-| Ask whether the product let an agent finish a real job, and keep the transcript | `nodetool jtbd run` / `jtbd optimize` | — | minutes |
-| Check that every agent capability names a check | `nodetool harness capabilities`; `npm run capabilities:check` | — | seconds |
-| Check a provider's live response against the decoder that reads it | `npm run probe:providers` (nightly; offline half runs on every provider diff) | — | seconds |
-| Author/inspect a graph against the live registry | — | `create_workflow`, `search_nodes`, `list_nodes`, `get_node_info`, `get_example_workflow`, `export_workflow_digraph` | — |
-| Check a script↔storyboard link (extract, scaffold, joint assemble) | no command of its own — the pure-function suites the `script-storyboard-link` harness entry names, run by `harness gate` on diffs touching either surface | `get_storyboard`, `get_script` (link state, drift, orphans), `validate_timeline` on the assembled output | seconds |
-| Re-run an approved storyboard, script, timeline or entity from a graph | `npm run fixtures:graph-resources` — seeds a scratch install and runs the four shipped examples on the fake provider | `create_storyboard`, `get_storyboard`, `list_entities`, `get_script`, `validate_timeline` on what the graph wrote | minutes |
-| Build or fix a 3D scene with no editor open | no command of its own — the `capability-suites` selfcheck the `model3d` harness entry names | `list_model3ds`, `create_model3d`, `get_model3d`, `edit_model3d`, `validate_model3d` | sub-second |
-| Fill a Godot template with generated sprites, tiles and audio, export the project, and run it headless | no command of its own — the `capability-suites` selfcheck the `godot` harness entry names; real Godot runs when `GODOT_BIN` is set | `list_game_templates`, `export_godot_project`, `verify_godot_project`; the `nodetool.game.*` nodes fill slots | seconds; Godot import and smoke tens of seconds |
-| Take one sentence to a running Godot project — design, slot-filling graph, export | no command of its own — the suites the `game-flow` harness entry names, run by `harness gate` on diffs touching the flow | `ui_game_set_setup`, `ui_game_design`, `ui_game_update_design`, `ui_game_build`; the graph ends in `nodetool.game.ExportGodotProject` | seconds to build, the run as long as its models take |
-| Season a prompt with the entity library | no command of its own — the `capability-suites` selfcheck the `entities` harness entry names | `list_entities`, `get_entity`, `apply_entities` | sub-second |
-| Measure a clip instead of watching it — duration, loudness, frequency content, motion, cuts | no command of its own — the `capability-suites` selfcheck the `agent-capabilities` harness entry names | `analyze_audio`, `analyze_audio_spectrum`, `detect_audio_events`, `analyze_video`, `detect_video_scenes` | seconds, no ffmpeg |
-| See what a timeline looks like at a timecode — tracks layered, animations mid-flight, transitions part way, text drawn | no command of its own — the `capability-suites` selfcheck the `agent-capabilities` harness entry names | `preview_timeline_frame` (composited frames + per-layer opacity/z-order/wipe), then `view_image` | seconds, no GPU or browser |
-| Jobs & assets | `nodetool jobs …` / `nodetool assets …` | `list_jobs`, `get_job`, `get_job_logs`, `list_assets`, `get_asset` | — |
-| What a media generation cost, where its asset is, whether it is still running | `nodetool generations list\|get\|await\|cancel\|reconcile\|sweep` | `list_generations`, `get_generation`, `await_generation`, `cancel_generation`, `reconcile_generation`; `background: true` on the generation capabilities | instant |
-| Agent/chat REPL (one unified agent loop, no mode to select) | `nodetool-chat` (`npm run dev:chat`) | — | — |
-| Deploy + remote ops (Docker/SSH/RunPod/GCP/Supabase) | `nodetool deploy <init\|plan\|apply\|status\|logs\|destroy>`; `deploy workflows <sync\|run>`, `deploy database`, `deploy collections` | — | — |
-| Trace tokens/cost/timing (OTel span tree) | `--trace-file <f.jsonl>` / `--trace-stdout pretty\|json` on any CLI run | — | — |
+Run CLI commands from source with `npm run dev:nodetool -- <command>`, or from
+built output with `npm run nodetool -- <command>` after `build:packages`.
+When inside an in-product agent context, prefer the available agent/MCP tools
+from `packages/agents/src/tools/mcp-tools.ts` over shell commands.
 
-The **agent/MCP tools** above are the `@nodetool-ai/agents` MCP tools
-(`packages/agents/src/tools/mcp-tools.ts`), exposed to in-product agents and over
-the websocket MCP server — use them instead of shelling out when you are already
-inside an agent context.
+| Need | Command or tool |
+|---|---|
+| [Validate a graph before running it](docs/harnesses.md#nodetool-validate-static-workflow-check) | `nodetool validate <id\|file.json\|file.ts>` / `validate_workflow` |
+| [Isolate a node](docs/harnesses.md#nodetool-node-run-single-node-harness) | `nodetool node run <type> --props '{…}' [--no-secrets]` |
+| [Run and inspect a workflow](docs/harnesses.md#nodetool-debug-workflow-debug-harness) | `nodetool debug <id\|file>` / `debug_workflow` |
+| [Recheck a file on save](docs/harnesses.md#nodetool-debug-workflow-debug-harness) | `nodetool debug file.ts --watch` |
+| [Inspect a browser-specific failure](docs/harnesses.md#nodetool-debug-workflow-debug-harness) | `nodetool debug <id> --browser --trace --stages` |
+| [Build and verify a mini app](docs/harnesses.md#nodetool-app-build-mini-app-build-harness) | `nodetool app build "<prompt>" -p <provider> -m <model>` / `debug_app` |
+| [Execute a workflow](docs/harnesses.md#nodetool-run-dsl-workflows) | `nodetool run <file>` / `run_workflow` / `start_background_job` |
+| [Inspect changed workspaces](docs/harnesses.md#nodetool-affected-changed-file--workspace-mapping) | `nodetool affected` |
+| [Check capability coverage](docs/harnesses.md#nodetool-harness-registry-coverage-audit-and-the-gate) | `nodetool harness capabilities` / `npm run capabilities:check` |
+| [Probe provider contracts](docs/harnesses.md#npm-run-probeproviders-provider-contract-probes) | `npm run probe:providers` |
+| [Measure agent task completion](docs/harnesses.md#nodetool-jtbd-jobs-to-be-done--the-optimization-loop) | `nodetool jtbd run` / `jtbd optimize` |
+| [Run shipped resource fixtures](docs/harnesses.md#graph-resource-fixtures) | `npm run fixtures:graph-resources` |
+| [Inspect generation status, cost, and assets](docs/harnesses.md#nodetool-generations) | `nodetool generations list\|get\|await\|cancel\|reconcile\|sweep` |
 
-**Browser workflow harness.** The in-browser graph harness runs whole workflows
-against the real backend and renders the actual ReactFlow canvas, recording IO,
-traces, and screenshots — see [In-Browser Workflow Harness](#in-browser-workflow-harness)
-below and [web/src/e2e_runner/README.md](web/src/e2e_runner/README.md). The same
-surface backs `nodetool debug --browser` and `web`'s `npm run test:debug-harness`.
+Other task references:
 
-**Suggested loop:** `validate` (cheap, catches structural bugs) → `node run` to
-isolate a suspect node → `debug` to run the whole graph and read messages →
-`debug --browser` only when a bug is browser-specific → `--trace` when chasing
-token/cost/latency.
+| Task | Documentation |
+|---|---|
+| Graph authoring, jobs, assets | [Workflows](docs/harnesses.md#nodetool-workflows), [jobs](docs/harnesses.md#nodetool-jobs), [assets](docs/harnesses.md#nodetool-assets) |
+| Scripts and storyboards | [Script/storyboard link design](docs/script-storyboard-link/design.md), [script voicing](docs/harnesses.md#script-voicing-tools-no-workflow-no-browser), [storyboard rendering](docs/harnesses.md#storyboard-render-tools-no-workflow-no-browser) |
+| 3D scenes and games | [3D tools](docs/harnesses.md#3d-scene-tools-no-editor-no-browser), [Godot pipeline](docs/harnesses.md#godot-game-pipeline-templates-slot-nodes-project-export), [game flow](docs/harnesses.md#game-flow-guided-build-design-graph-export) |
+| Entities and media | [Entity library](docs/harnesses.md#entity-library-tools-no-browser), [media analysis](docs/harnesses.md#media-analysis-tools-no-model-no-ffmpeg), [timeline previews](docs/harnesses.md#nodetool-timeline-validate--debug-timeline-harness) |
+| Chat and remote deployment | [Chat](docs/harnesses.md#nodetool-chat), [deployment and workers](docs/cli.md#deployment-and-workers) |
 
-Every harness above has a full entry — flags, what it simulates and what it
-does not, the design behind it — in [docs/harnesses.md](docs/harnesses.md),
-and the CLI flag reference is [docs/cli.md](docs/cli.md). Read the entry
-before driving a harness you have not used in this session.
-
-## Observing Agent Execution
-
-Every run emits an OpenTelemetry span tree (`workflow.run` → `node.process` →
-`agent.execute` → `agent.plan`/`agent.step` → `llm.chat`/`llm.stream`) with
-tokens and `gen_ai.usage.cost_usd` on every LLM span. Sinks: `--trace-file
-<f.jsonl>` / `--trace-stdout pretty|json` on any CLI run, or the
-`NODETOOL_TRACE_*` / OTLP env vars. Span hierarchy, JSONL schema, and sinks:
-[docs/harnesses.md § Observing Agent Execution](docs/harnesses.md#observing-agent-execution).
-
----
-
-## TypeScript Rules
-
-> Full standards: [DEVELOPMENT_STANDARDS §1 TypeScript](docs/DEVELOPMENT_STANDARDS.md#1-typescript).
-
-- Use TypeScript for all new code. Never use `any` — prefer `unknown` + narrowing or proper generics.
-- Use `const` by default, `let` when reassignment is needed. Never use `var`.
-- Use strict equality (`===` / `!==`). Exception: `== null` for null/undefined checks.
-- Always use curly braces for control statements.
-- Use `Array.isArray()` to check for arrays, not `typeof`.
-- Throw `Error` objects, not strings.
-- Always add comments for intentionally empty catch blocks.
-- No `// @ts-ignore` — use `// @ts-expect-error <reason>`.
-- No `enum` in new code — use `as const` objects + `keyof typeof` unions.
-- Prefer discriminated unions over optional fields with implicit invariants.
-- Validate untrusted input with Zod at the boundary — see [DEVELOPMENT_STANDARDS §11](docs/DEVELOPMENT_STANDARDS.md#11-zod-validation).
-- All inter-package imports use `@nodetool-ai/<package>`. Never import from `dist/`.
-- Frontend tools are prefixed `ui_` (e.g. `ui_add_node`).
-
-## React Rules
-
-- Use functional components only. No class components.
-- Always define a TypeScript interface for component props.
-- Never mutate state directly. Use immutable patterns.
-- Don't use inline functions in JSX when passed to memoized child components.
-- Test behavior, not implementation details.
-
-### Hooks
-
-| Hook | Use When | Do Not Use When |
-|------|----------|-----------------|
-| `useEffect` | Side effects (network, subscriptions, timers, DOM) | Deriving data from props/state |
-| `useMemo` | Expensive computation, referential stability | Cheap computation |
-| `useCallback` | Passing to memoized children, dependency of effect/memo | Function used only locally |
-| `React.memo` | Pure component, stable props, renders often, expensive | Props change every render |
-
-**Never** add these "just in case." If performance is fine, do nothing.
-
-### Custom Hooks
-
-- Always prefix with `use`.
-- Use descriptive names: `useWorkflowActions` not `useActions`.
-- Include all dependencies in `useEffect`, `useCallback`, `useMemo` arrays.
-- Provide TypeScript types for all return values.
-
-## Zustand Rules
-
-- Keep stores focused on a single domain.
-- Use selectors to prevent unnecessary re-renders: `useStore(state => state.value)`.
-- Use shallow equality for object selections.
-- Define actions within the store alongside state.
-- Use `persist` middleware for settings stored in localStorage.
-
-## MUI / Styling Rules
-
-- **MANDATORY: Use UI primitives from `web/src/components/ui_primitives/` for all frontend UI.** Never import raw MUI components (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, `Skeleton`, `Tabs`, `Drawer`, `Breadcrumbs`, `Select`, `Switch`, `TextField`) directly in component files. These are only allowed inside `ui_primitives/` and `editor_ui/` where the primitives are defined.
-- See the **[Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** for the full decision tree, migration rules, and the available primitives.
-- When touching any component file, **opportunistically migrate** raw MUI usage to primitives.
-- Replace `display: "flex"` / `flexDirection` patterns with `FlexRow` / `FlexColumn` layout primitives.
-- Replace `<Typography>` with `Text`, `Label`, or `Caption` primitives.
-- Replace `<CircularProgress>` with `LoadingSpinner`. Replace `<Tooltip>` with `Tooltip` primitive.
-- Use `sx` prop for one-off styles on primitives. Use `styled()` only inside `ui_primitives/` for defining new primitives.
-- Use theme values for spacing, colors, and typography — never hardcode hex colors or pixel values.
-- Prefer composition over deep prop drilling.
-- If no primitive exists for your use case, **create a new primitive** in `ui_primitives/` rather than using raw MUI.
-- Render stored media (`asset://`, a `*Ref`) with `ResponsiveImage` / `VideoPlayer` / `AudioPlayback` and a `locator` prop — never a raw `<img>`/`<video>`/`<audio>` whose `src` is a locator. See [STRATEGY.md § Media](web/src/components/ui_primitives/STRATEGY.md).
-
-### Design Token Rules (see [docs/DESIGN.md](docs/DESIGN.md) for full reference)
-
-Every style value that falls into one of the categories below must use the corresponding token — never hardcode.
-
-| Category | Forbidden | Use instead |
-|---|---|---|
-| Spacing / gap / padding | `5px`, `10px`, `13px`, `0.25` theme units | `SPACING.*` / `GAP.*` / `PADDING.*` |
-| Font size | `"14px"`, `"0.85rem"`, any raw px/rem | `var(--fontSize*)` or `<Text>`/`<Label>`/`<Caption>` |
-| Font weight | `700`, `"bold"`, `300` | `400`, `500`, or `600` only |
-| Border radius | `4`, `10`, `18`, `"var(--rounded-*)"` | `BORDER_RADIUS.xs/sm/md/lg/xl/xxl/pill/circle` |
-| Transitions | `"all 200ms ease"`, raw timing strings | `MOTION.all/border/background/…` |
-| Z-index | `9999`, `1000`, arbitrary integers | `Z_INDEX.dropdown/modal/tooltip/…` |
-
-## TanStack Query Rules
-
-- Use hierarchical query keys: `['workflows', workflowId]`.
-- Set appropriate `staleTime` based on data volatility.
-- Use `enabled` option for conditional queries.
-- Use optimistic updates for mutations where appropriate.
-- Always invalidate related queries after successful mutations.
-
-## File & Naming Conventions
-
-- **Components**: PascalCase (`MyComponent.tsx`)
-- **Hooks**: camelCase with `use` prefix (`useMyHook.ts`)
-- **Stores**: PascalCase file, camelCase `use` prefix for hook (`useMyStore`)
-- **Utilities**: camelCase (`formatDate.ts`)
-- **Constants**: UPPER_SNAKE_CASE (`MAX_NODES`)
-- **Types/Interfaces**: PascalCase (`NodeData`)
-- **Tests**: Same as source + `.test.ts(x)`, placed in `__tests__/` directories
-
-## Import Order
-
-1. React and core libraries
-2. Third-party libraries (MUI, TanStack Query, etc.)
-3. Internal stores and contexts
-4. Internal components
-5. Internal utilities and types
-6. Styles
-
-## Testing Rules
-
-- Tests live in `__tests__/` directories. Vitest for `packages/`, Jest for `web/` and `electron/`.
-- Use React Testing Library queries (`getByRole`, `getByLabelText`).
-- Use `userEvent` for interactions, not `fireEvent`.
-- Use `waitFor` for async assertions.
-- Mock external dependencies and API calls.
-- Test user-facing behavior, not implementation details.
-- Keep tests independent and isolated.
-
-## E2E Testing Setup
-
-E2E tests require the TypeScript backend and Node.js frontend. For comprehensive E2E testing documentation, see **[web/TESTING.md](web/TESTING.md)**.
-
-```bash
-# Build the backend packages first (one time)
-npm run build:packages
-
-# Install and run
-cd web
-npm install
-npx playwright install chromium
-npm run test:e2e           # Automatically starts servers
-
-# Manual setup for debugging
-# Terminal 1: PORT=7777 HOST=127.0.0.1 node packages/websocket/dist/server.js
-# Terminal 2: cd web && npm start
-# Terminal 3: cd web && npx playwright test
-```
+Selfcheck mappings live in the [harness registry](packages/cli/src/harness/registry.ts).
 
 ### In-Browser Workflow Harness
 
-A browser-based graph harness that runs whole workflows against the **real** backend and renders the actual ReactFlow canvas per workflow, recording IO, traces, and screenshots into a self-contained HTML report. Frontend lives in `web/src/e2e_runner/`, backend in `packages/websocket/src/e2e-server.ts`. See **[web/src/e2e_runner/README.md](web/src/e2e_runner/README.md)**.
+The real-backend graph harness records canvas rendering, IO, traces, and
+screenshots. From `web/`, use `npm run test:e2e-runner` or
+`npm run test:e2e-runner:headed`. It also backs `nodetool debug --browser` and
+`npm run test:debug-harness`. See [runner guide](web/src/e2e_runner/README.md).
 
-```bash
-cd web
-npm run test:e2e-runner          # headless: boots backend + Vite, runs the suite
-npm run test:e2e-runner:headed   # watch it run in a browser
-```
+For web E2E, build backend packages, then run `npx playwright install chromium`
+and `npm run test:e2e` from `web/`. Playwright starts the servers. See
+[Testing](web/TESTING.md). Electron main-process tests use Jest in
+`electron/src/__tests__/` (`npm test` from `electron/`), with no Playwright suite.
 
-### Electron Tests
+## Observing Agent Execution
 
-The Electron workspace has no Playwright suite — the main process is covered by
-Jest tests in `electron/src/__tests__/`.
-
-```bash
-cd electron
-npm test
-```
-
-See **[electron/src/AGENTS.md](electron/src/AGENTS.md)** for Electron-specific testing.
+Runs emit an OpenTelemetry span tree with token usage and
+`gen_ai.usage.cost_usd` on LLM spans. Use `--trace-file <f.jsonl>` or
+`--trace-stdout pretty|json` on CLI runs, or `NODETOOL_TRACE_*` / OTLP variables.
+See [span hierarchy and sinks](docs/harnesses.md#observing-agent-execution).
 
 ## Security
 
-> Full standards: [DEVELOPMENT_STANDARDS §16 Security](docs/DEVELOPMENT_STANDARDS.md#16-security) and [§12 Electron Security](docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security).
+Follow [Security](docs/DEVELOPMENT_STANDARDS.md#16-security) and
+[Electron Security](docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security).
 
-- Use `DOMPurify.sanitize()` for user input rendered as HTML.
-- Never use `dangerouslySetInnerHTML` with unsanitized input.
-- Use `contextBridge` for Electron IPC — never expose `nodeIntegration`.
-- Validate all IPC inputs with Zod before acting on them.
-- No `eval`, `new Function`, or `setTimeout` with string arguments.
-- Secrets never appear in code, logs, or error messages.
-- Any outbound fetch of a URL somebody else chose — a media ref, a provider's
-  result body, a model's answer — goes through `safeFetch` (or
-  `fetchExternalMedia` for media refs) from `@nodetool-ai/runtime`, never a bare
-  `fetch`. A predicate can refuse the first URL; only the protected fetch
-  re-checks each redirect hop. Every such surface is inventoried in
-  [docs/url-egress-inventory.md](docs/url-egress-inventory.md) and audited by
-  `packages/runtime/tests/url-egress-audit.test.ts`, which fails on a new
-  unclassified `fetch(url)` anywhere under `packages/*/src`.
-- `npm audit` must pass — high/critical advisories block merge unless waived with rationale.
-- Code scanning runs GitHub's **default setup**, configured in repo settings. A
-  `.github/codeql/*.yml` config file is inert: only advanced setup reads one,
-  and that needs a workflow passing `config-file:` to
-  `github/codeql-action/init`, which this repo does not have. So there is no
-  per-query or per-path exclusion to reach for — suppress a false positive by
-  dismissing it in the Security UI, and pin the premise that makes it false in a
-  test (as `packages/models/tests/access-token.test.ts` does) so it fails when
-  it stops holding.
-
-## Accessibility, Performance, Observability
-
-These three areas have full sections in the central standards doc:
-
-- **[Accessibility (§14)](docs/DEVELOPMENT_STANDARDS.md#14-accessibility-a11y)** — WCAG 2.2 AA target, semantic HTML, keyboard parity, focus management.
-- **[Performance (§15)](docs/DEVELOPMENT_STANDARDS.md#15-performance)** — Bundle and runtime budgets, lazy loading, virtualization.
-- **[Observability (§17)](docs/DEVELOPMENT_STANDARDS.md#17-observability)** — OpenTelemetry spans, structured logs, semantic conventions.
-
-## Git, Commits, Pull Requests
-
-> Full standards: [DEVELOPMENT_STANDARDS §20](docs/DEVELOPMENT_STANDARDS.md#20-git-commits-prs).
-
-- Conventional commits: `feat(scope):`, `fix(scope):`, etc. Subject ≤ 72 chars, imperative mood.
-- One concept per commit. Body explains WHY, not WHAT.
-- Never `--no-verify`. Never rewrite published history.
-- PRs are small (target <400 LOC), self-reviewed, and CI-green before review.
-
-## Writing & Docs
-
-> Full guide: [docs/WRITING_STYLE.md](docs/WRITING_STYLE.md). Brand voice and messaging: [docs/BRAND.md](docs/BRAND.md). Comment/README rules: [DEVELOPMENT_STANDARDS §19](docs/DEVELOPMENT_STANDARDS.md#19-documentation--comments).
-
-- Write prose — docs, READMEs, this file, PR descriptions, comments — concise and concrete. Cut any sentence that survives deletion without losing meaning.
-- **No AI slop.** Forbidden: `leverage`, `utilize`, `seamless`, `robust`, `powerful`, `comprehensive`, `cutting-edge`, `unlock`, `empower`, `streamline`, `it's worth noting`, `dive into`, rule-of-three padding, "it's not just X, it's Y", emoji decoration, and the rest of the [forbidden list](docs/WRITING_STYLE.md#forbidden-expressions).
-- Bold-label bullets must add information beyond the label. Claims are concrete: numbers, names, paths — not adjectives.
-- **User-facing copy also follows [docs/BRAND.md](docs/BRAND.md).** Lead with the outcome, not the node graph. Never `credits`/`tokens` for billing (say `provider rates`, `at cost`), never `chatbot` for the agent, never `powered by AI` where a model name fits. Full lexicon: [BRAND.md § Lexicon](docs/BRAND.md#5-lexicon).
-- When you edit a Markdown file, fix slop you pass in the same change. For code, use the `unslop` skill.
-
-## Technologies
-
-Exact versions live in each `package.json` and in `.nvmrc` — read them there.
-Node 22.22.1 is the one pin stated in prose, because it is a hard constraint
-(see [Prerequisites](#prerequisites)). Backend: Node, TypeScript, ES Modules,
-Vitest. Web: React, Vite, MUI v7, Zustand, ReactFlow, TanStack Query, React
-Router, Jest, Playwright. Electron: Electron, React, Vite. Mobile: React
-Native / Expo ([mobile/README.md](mobile/README.md)).
+- Outbound fetches of URLs chosen by callers, providers, or models must use
+  `safeFetch` or `fetchExternalMedia` from `@nodetool-ai/runtime`. A predicate
+  checking the initial URL does not validate redirects. Maintain the
+  [URL Egress Inventory](docs/url-egress-inventory.md). Its audit is
+  `packages/runtime/tests/url-egress-audit.test.ts`.
+- Code scanning uses GitHub default setup. `.github/codeql/*.yml` does not
+  configure it. Dismiss false positives in the Security UI and test the premise
+  that makes them false, as in `packages/models/tests/access-token.test.ts`.
+  Custom exclusions require advanced setup with an explicit `config-file:`.

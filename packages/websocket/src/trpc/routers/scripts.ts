@@ -13,7 +13,12 @@
  */
 
 import { z } from "zod";
-import { Script, countScriptLines, emptyScriptDocument } from "@nodetool-ai/models";
+import {
+  Project,
+  Script,
+  countScriptLines,
+  emptyScriptDocument
+} from "@nodetool-ai/models";
 import {
   createScriptInput,
   patchScriptInput,
@@ -85,6 +90,16 @@ export const scriptsRouter = router({
     .input(createScriptInput)
     .output(scriptResponse)
     .mutation(async ({ ctx, input }) => {
+      const personal = await Project.migrateToPersonal(ctx.userId);
+      const projectId =
+        !input.projectId || input.projectId === "default"
+          ? personal.project.id
+          : input.projectId;
+      if (projectId !== personal.project.id) {
+        const project = await Project.findOwned(ctx.userId, projectId);
+        if (!project)
+          throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+      }
       if (input.id) {
         const existing = await Script.findById(input.id);
         if (existing) {
@@ -97,7 +112,7 @@ export const scriptsRouter = router({
       const script = new Script({
         id: input.id,
         user_id: ctx.userId,
-        project_id: input.projectId,
+        project_id: projectId,
         name: input.name,
         document: JSON.stringify(input.document ?? emptyScriptDocument())
       });
@@ -124,8 +139,7 @@ export const scriptsRouter = router({
       if (input.name !== undefined) fields.name = input.name;
       if (input.document !== undefined)
         fields.document = JSON.stringify(input.document);
-      if (input.timelineId !== undefined)
-        fields.timeline_id = input.timelineId;
+      if (input.timelineId !== undefined) fields.timeline_id = input.timelineId;
       if (input.storyboardId !== undefined)
         fields.storyboard_id = input.storyboardId;
 

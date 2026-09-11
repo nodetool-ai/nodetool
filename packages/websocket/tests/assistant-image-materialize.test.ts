@@ -17,12 +17,15 @@ vi.mock("../src/lib/thumbnail.js", () => ({
 }));
 
 let assetSeq = 0;
+let latestAssetProps: Record<string, unknown> | null = null;
 vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
   class FakeAsset {
     id = `asset-${++assetSeq}`;
     size = 0;
-    constructor(public readonly props: Record<string, unknown>) {}
+    constructor(public readonly props: Record<string, unknown>) {
+      latestAssetProps = props;
+    }
     async save(): Promise<void> {}
   }
   return { ...actual, Asset: FakeAsset };
@@ -33,6 +36,7 @@ describe("materializeAssistantImageContent", () => {
 
   beforeEach(() => {
     assetSeq = 0;
+    latestAssetProps = null;
     storeMock.mockClear();
     runner = new WebSocketClientSession({
       resolveExecutor: () => ({
@@ -53,7 +57,12 @@ describe("materializeAssistantImageContent", () => {
       }
     ];
 
-    const out = await runner.chat.materializeAssistantImageContent(content, "user-9", "wf-1");
+    const out = await runner.chat.materializeAssistantImageContent(
+      content,
+      "user-9",
+      "wf-1",
+      "project-a"
+    );
 
     expect(storeMock).toHaveBeenCalledTimes(1);
     expect(out[0]).toEqual({ type: "text", text: "Here is your image" });
@@ -63,6 +72,7 @@ describe("materializeAssistantImageContent", () => {
     });
     // The raw base64 must not survive into the persisted block.
     expect(JSON.stringify(out)).not.toContain(b64);
+    expect(latestAssetProps).toMatchObject({ project_id: "project-a" });
   });
 
   it("leaves already-referenced and non-image blocks untouched", async () => {
@@ -78,7 +88,11 @@ describe("materializeAssistantImageContent", () => {
       }
     ];
 
-    const out = await runner.chat.materializeAssistantImageContent(content, "user-9", null);
+    const out = await runner.chat.materializeAssistantImageContent(
+      content,
+      "user-9",
+      null
+    );
 
     expect(storeMock).not.toHaveBeenCalled();
     expect(out).toEqual(content);
@@ -102,7 +116,11 @@ describe("materializeAssistantImageContent", () => {
       }
     ];
 
-    const out = await runner.chat.materializeAssistantImageContent(content, "user-9", "wf-1");
+    const out = await runner.chat.materializeAssistantImageContent(
+      content,
+      "user-9",
+      "wf-1"
+    );
 
     // The failed block degrades to a text notice; the sibling image and the
     // assistant text still make it through, and no base64 leaks.
@@ -128,7 +146,11 @@ describe("materializeAssistantImageContent", () => {
       }
     ];
 
-    const out = await runner.chat.materializeAssistantImageContent(content, "user-9", "wf-2");
+    const out = await runner.chat.materializeAssistantImageContent(
+      content,
+      "user-9",
+      "wf-2"
+    );
 
     expect(storeMock).toHaveBeenCalledTimes(1);
     expect(out[0]).toEqual({

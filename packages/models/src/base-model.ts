@@ -8,9 +8,16 @@
 import { randomUUID } from "node:crypto";
 import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
-import { Column, eq, getTableColumns, like, Table } from "drizzle-orm";
+import { and, Column, eq, getTableColumns, like, Table } from "drizzle-orm";
 import { isShortResourceId } from "@nodetool-ai/protocol";
-import { getDb } from "./db.js";
+import {
+  allowLegacyProjectWritesForTests,
+  forUpdate,
+  getDb,
+  getDbType,
+  type DbTransaction
+} from "./db.js";
+import { projects } from "./schema/projects.js";
 
 const log = createLogger("nodetool.models");
 
@@ -124,7 +131,9 @@ export type DrizzleTable = any;
 // Drizzle's official column accessor. Returns undefined for objects that are
 // not real Drizzle tables (e.g. legacy/test doubles), in which case callers
 // fall back to enumerable keys.
-function drizzleColumns(table: DrizzleTable): Record<string, Column> | undefined {
+function drizzleColumns(
+  table: DrizzleTable
+): Record<string, Column> | undefined {
   return getTableColumns(table as Table) as Record<string, Column> | undefined;
 }
 
@@ -226,19 +235,61 @@ export abstract class DBModel {
     const db = getDb();
     const table = ctor.table;
     const row = this.toRow();
+    const projectId = row["project_id"];
+    const userId = row["user_id"];
+    // Every normal write names either the legacy loose bucket or a live project
+    // owned by the same user. Migration code uses direct SQL for the legacy
+    // dangling rows it repairs, so the ordinary save path never needs to admit
+    // an unknown or foreign project id.
+    const guardProject =
+      typeof projectId === "string" &&
+      projectId !== "default" &&
+      typeof userId === "string" &&
+      !allowLegacyProjectWritesForTests();
     const pkCol = getTableColumn(table, ctor.primaryKey);
+    const upsert = (tx: DbTransaction) =>
+      tx
+        .insert(table)
+        .values(row)
+        .onConflictDoUpdate({
+          target: pkCol as Parameters<
+            ReturnType<
+              ReturnType<typeof db.insert>["values"]
+            >["onConflictDoUpdate"]
+          >[0]["target"],
+          set: row
+        });
+    const projectQuery = (tx: DbTransaction) =>
+      tx
+        .select({ deletedAt: projects.deleted_at })
+        .from(projects)
+        .where(
+          and(
+            eq(projects.id, projectId as string),
+            eq(projects.user_id, userId as string)
+          )
+        )
+        .limit(1);
 
-    await db
-      .insert(table)
-      .values(row)
-      .onConflictDoUpdate({
-        // pkCol is a generic Column; the SQLite builder's conflict target
-        // wants an IndexColumn, which it is at runtime.
-        target: pkCol as Parameters<
-          ReturnType<ReturnType<typeof db.insert>["values"]>["onConflictDoUpdate"]
-        >[0]["target"],
-        set: row
+    if (getDbType() === "sqlite") {
+      db.transaction((tx: DbTransaction): void => {
+        if (guardProject) {
+          const project = projectQuery(tx).all()[0];
+          if (!project) throw new Error("Project not found");
+          if (project.deletedAt) throw new Error("Project has been deleted");
+        }
+        upsert(tx).run();
       });
+    } else {
+      await db.transaction(async (tx: DbTransaction): Promise<void> => {
+        if (guardProject) {
+          const [project] = await forUpdate(projectQuery(tx));
+          if (!project) throw new Error("Project not found");
+          if (project.deletedAt) throw new Error("Project has been deleted");
+        }
+        await upsert(tx);
+      });
+    }
 
     ModelObserver.notify(this, ModelChangeEvent.UPDATED);
     return this;

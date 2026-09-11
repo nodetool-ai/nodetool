@@ -4,6 +4,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import type { Entity, Scene, Shot } from "@nodetool-ai/protocol";
 import { isVersionStale } from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
+import { useLastModelStore } from "../../../stores/lastModelStore";
 
 jest.mock("../../../hooks/useResolvedMediaUri");
 
@@ -34,6 +35,8 @@ const mockInsertShot = jest.fn();
 const mockMoveShot = jest.fn();
 const mockSetSetup = jest.fn();
 const mockSetStylePreset = jest.fn();
+const mockSetImageModel = jest.fn();
+const mockSetVideoModel = jest.fn();
 jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
   useBoard: () => ({
     title: "My film",
@@ -82,8 +85,8 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
       setStyle: jest.fn(),
       setAspectRatio: jest.fn(),
       setDirectorModel: jest.fn(),
-      setImageModel: jest.fn(),
-      setVideoModel: jest.fn(),
+      setImageModel: mockSetImageModel,
+      setVideoModel: mockSetVideoModel,
       undo: jest.fn(),
       redo: jest.fn(),
       selectShot: mockSelectShot,
@@ -124,6 +127,10 @@ jest.mock("../ScriptLinkControl", () => ({
 
 const mockGenerateKeyframe = jest.fn(async () => undefined);
 const mockGenerateClip = jest.fn(async () => undefined);
+let mockImageSelection = {
+  id: "fal-ai/flux/schnell",
+  provider: "fal_ai"
+};
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
     generateKeyframe: mockGenerateKeyframe,
@@ -132,7 +139,34 @@ jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
 }));
 
 jest.mock("../../../hooks/useModelsByProvider", () => ({
-  useImageModelsByProvider: () => ({ models: [] })
+  useImageModelsByProvider: () => ({
+    models: [
+      {
+        id: "fal-ai/flux/schnell",
+        provider: "fal_ai",
+        name: "Flux Schnell"
+      },
+      {
+        id: "fal-ai/flux/premium",
+        provider: "fal_ai",
+        name: "Flux Premium"
+      }
+    ]
+  }),
+  useVideoModelsByProvider: () => ({
+    models: [
+      {
+        id: "pixverse/720p",
+        provider: "fal_ai",
+        supported_tasks: ["image_to_video"]
+      },
+      {
+        id: "atlas/direct-v1",
+        provider: "atlascloud",
+        supported_tasks: ["text_to_video"]
+      }
+    ]
+  })
 }));
 
 // The toolbar's summary line names the board's entities, and the style dialog
@@ -163,14 +197,35 @@ const stub = (name: string) => ({
 jest.mock("../../properties/LanguageModelSelect", () => stub("lang-model"));
 jest.mock("../../properties/ImageModelSelect", () => ({
   __esModule: true,
-  default: () => (
-    <div role="combobox" aria-label="Still model" data-testid="image-model" />
+  default: ({ onChange }: { onChange: (value: unknown) => void }) => (
+    <button
+      aria-label="Still model"
+      onClick={() => onChange(mockImageSelection)}
+    >
+      Still model
+    </button>
   )
 }));
 jest.mock("../../properties/VideoModelSelect", () => ({
   __esModule: true,
-  default: () => (
-    <div role="combobox" aria-label="Clip model" data-testid="video-model" />
+  default: ({
+    onChange,
+    task
+  }: {
+    onChange: (value: unknown) => void;
+    task: string;
+  }) => (
+    <button
+      aria-label={`Clip model for ${task}`}
+      onClick={() =>
+        onChange({
+          id: task === "text_to_video" ? "atlas/direct-v1" : "pixverse/720p",
+          provider: task === "text_to_video" ? "atlascloud" : "fal_ai"
+        })
+      }
+    >
+      Clip model
+    </button>
   )
 }));
 // The card's own behaviour has its own suite (ShotCard.test.tsx); this stub
@@ -314,6 +369,15 @@ beforeEach(() => {
     imageModel: { id: "fal-ai/flux/schnell", provider: "fal_ai" },
     videoModel: { id: "pixverse/720p", provider: "fal_ai" }
   };
+  mockSetImageModel.mockClear();
+  mockSetVideoModel.mockClear();
+  mockGenerateKeyframe.mockClear();
+  mockGenerateClip.mockClear();
+  mockImageSelection = {
+    id: "fal-ai/flux/schnell",
+    provider: "fal_ai"
+  };
+  useLastModelStore.setState({ byKind: {}, byTask: {} });
 });
 
 const renderBoard = (onDirect: (n: number) => void) =>
@@ -424,12 +488,14 @@ describe("StoryboardBoard preview", () => {
 });
 
 describe("StoryboardBoard model fields", () => {
-  it("offers still and clip models but no screenplay model in Studio", () => {
+  it("keeps all model pickers out of settings in Studio", () => {
     mockShots = [];
     renderBoardInStudio();
 
-    expect(screen.getByTestId("image-model")).toBeInTheDocument();
-    expect(screen.getByTestId("video-model")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Still model" })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Clip model")).not.toBeInTheDocument();
     expect(screen.queryByTestId("lang-model")).not.toBeInTheDocument();
   });
 
@@ -502,22 +568,18 @@ describe("StoryboardBoard toolbar", () => {
     ).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("lets the user close settings after a missing model reveals them", async () => {
+  it("does not put render model pickers in board settings", async () => {
     boardModels = { imageModel: null, videoModel: null };
     mockShots = [makeShot("s1")];
     const user = userEvent.setup();
     renderBoard(jest.fn());
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Choose a still model before rendering stills."
-    );
-    await user.click(
-      screen.getByRole("button", { name: "Close board settings" })
-    );
+    await user.click(screen.getByRole("button", { name: /Board settings/ }));
 
     expect(
-      screen.queryByRole("combobox", { name: "Still model" })
+      screen.queryByRole("button", { name: "Still model" })
     ).not.toBeInTheDocument();
+    expect(screen.queryByText("Clip model")).not.toBeInTheDocument();
   });
 
   it("renders the render actions on the toolbar", () => {
@@ -597,23 +659,45 @@ describe("StoryboardBoard toolbar", () => {
     ).not.toHaveAttribute("aria-current");
   });
 
-  it("opens the still model picker and asks for a model before rendering", () => {
+  it("asks for a still model when rendering, then renders with that choice", async () => {
     boardModels = { imageModel: null, videoModel: null };
     mockShots = [makeShot("s1")];
+    const user = userEvent.setup();
     renderBoard(jest.fn());
 
     expect(
-      screen.getByRole("combobox", { name: "Still model" })
-    ).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Choose a still model before rendering stills."
-    );
+      screen.queryByRole("button", { name: "Still model" })
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Render stills (1)" }));
     expect(
-      screen.getByRole("button", { name: "Render stills (1)" })
-    ).toBeDisabled();
+      screen.getByRole("dialog", { name: /Render stills/ })
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Still model" }));
+    await user.click(screen.getByRole("button", { name: "Render stills" }));
+
+    expect(mockGenerateKeyframe).toHaveBeenCalledWith(
+      "board-1",
+      mockShots[0],
+      expect.objectContaining({ id: "fal-ai/flux/schnell" })
+    );
   });
 
-  it("opens the clip model picker and asks for a model before rendering", () => {
+  it("prefills the last still model so a repeat batch only needs confirmation", async () => {
+    mockShots = [makeShot("s1")];
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    await user.click(screen.getByRole("button", { name: "Render stills (1)" }));
+    await user.click(screen.getByRole("button", { name: "Render stills" }));
+
+    expect(mockGenerateKeyframe).toHaveBeenCalledWith(
+      "board-1",
+      mockShots[0],
+      expect.objectContaining(boardModels.imageModel as Record<string, unknown>)
+    );
+  });
+
+  it("asks for separate clip models when pending shots need different tasks", async () => {
     boardModels = {
       imageModel: { id: "fal-ai/flux/schnell", provider: "fal_ai" },
       videoModel: null
@@ -623,19 +707,117 @@ describe("StoryboardBoard toolbar", () => {
         ...makeShot("s1"),
         status: "keyframe_ready",
         keyframe: { type: "image", asset_id: "still-1" }
-      }
+      },
+      { ...makeShot("s2"), render_mode: "direct" }
     ];
+    const user = userEvent.setup();
     renderBoard(jest.fn());
 
+    await user.click(screen.getByRole("button", { name: "Render clips (2)" }));
     expect(
-      screen.getByRole("combobox", { name: "Clip model" })
+      screen.getByRole("dialog", { name: /Render clips/ })
     ).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Choose a clip model before rendering clips."
+    await user.click(
+      screen.getByRole("button", { name: "Clip model for image_to_video" })
     );
+    await user.click(
+      screen.getByRole("button", { name: "Clip model for text_to_video" })
+    );
+    await user.click(screen.getByRole("button", { name: "Render clips" }));
+
+    expect(mockGenerateClip).toHaveBeenNthCalledWith(
+      1,
+      "board-1",
+      mockShots[0],
+      expect.objectContaining({ id: "pixverse/720p" })
+    );
+    expect(mockGenerateClip).toHaveBeenNthCalledWith(
+      2,
+      "board-1",
+      mockShots[1],
+      expect.objectContaining({ id: "atlas/direct-v1" })
+    );
+  });
+
+  it("does not prefill a remembered clip model after the shot mode changes", async () => {
+    boardModels = { imageModel: null, videoModel: null };
+    mockShots = [
+      {
+        ...makeShot("s1"),
+        render_mode: "direct",
+        clip_model: { id: "pixverse/720p", provider: "fal_ai" }
+      }
+    ];
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    await user.click(screen.getByRole("button", { name: "Render clips (1)" }));
+
+    expect(screen.getByRole("button", { name: "Render clips" })).toBeDisabled();
+  });
+
+  it("remembers separate model choices for each clip task", async () => {
+    boardModels = { imageModel: null, videoModel: null };
+    mockShots = [
+      {
+        ...makeShot("s1"),
+        status: "keyframe_ready",
+        keyframe: { type: "image", asset_id: "still-1" }
+      },
+      { ...makeShot("s2"), render_mode: "direct" }
+    ];
+    useLastModelStore.getState().rememberForTask("video", "image_to_video", {
+      provider: "fal_ai",
+      model: "pixverse/720p"
+    });
+    useLastModelStore.getState().rememberForTask("video", "text_to_video", {
+      provider: "atlascloud",
+      model: "atlas/direct-v1"
+    });
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    await user.click(screen.getByRole("button", { name: "Render clips (2)" }));
+    await user.click(screen.getByRole("button", { name: "Render clips" }));
+
+    expect(mockGenerateClip).toHaveBeenNthCalledWith(
+      1,
+      "board-1",
+      mockShots[0],
+      expect.objectContaining({ id: "pixverse/720p" })
+    );
+    expect(mockGenerateClip).toHaveBeenNthCalledWith(
+      2,
+      "board-1",
+      mockShots[1],
+      expect.objectContaining({ id: "atlas/direct-v1" })
+    );
+  });
+
+  it("updates the confirmation price when the batch model changes", async () => {
+    mockShots = [makeShot("s1"), makeShot("s2")];
+    mockImageSelection = {
+      id: "fal-ai/flux/premium",
+      provider: "fal_ai"
+    };
+    mockPrice.mockImplementation((model: unknown) => ({
+      unit_price:
+        (model as { id?: string }).id === "fal-ai/flux/premium" ? 1 : 0.01,
+      billing_unit: "images",
+      currency: "USD",
+      source: "bundle"
+    }));
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    await user.click(
+      screen.getByRole("button", { name: "Render stills (2) · ~$0.02" })
+    );
+    await user.click(screen.getByRole("button", { name: "Still model" }));
+
     expect(
-      screen.getByRole("button", { name: "Render clips (1)" })
-    ).toBeDisabled();
+      screen.getByRole("button", { name: "Render stills · ~$2" })
+    ).toBeEnabled();
   });
 
   it("puts each batch's price on its own button", () => {
@@ -824,9 +1006,7 @@ describe("StoryboardBoard scene headers", () => {
     const headings = screen.getAllByRole("heading", { level: 3 });
     expect(headings).toHaveLength(1);
     expect(headings[0]).toHaveTextContent("Scene 1");
-    expect(
-      screen.queryByText(/INT\.|EXT\./)
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/INT\.|EXT\./)).not.toBeInTheDocument();
   });
 
   it("groups the cards under one header per scene, in derived order", () => {
@@ -879,7 +1059,9 @@ describe("StoryboardBoard insert point", () => {
     renderBoard(jest.fn());
 
     await user.click(
-      screen.getByRole("button", { name: "Insert a shot after Scene 1 | Shot 1" })
+      screen.getByRole("button", {
+        name: "Insert a shot after Scene 1 | Shot 1"
+      })
     );
 
     expect(mockInsertShot).toHaveBeenCalledWith("board-1", "s1");

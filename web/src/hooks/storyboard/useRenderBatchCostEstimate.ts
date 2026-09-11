@@ -8,9 +8,8 @@
  *
  * Priced through the same `priceRenderStep` the inspector uses, so a shot
  * cannot be quoted one figure in the inspector and another in the toolbar.
- * Stills are identical across shots — one model, one rung — while a clip's
- * price moves with each shot's effective duration, so clips are priced shot by
- * shot and summed.
+ * A shot's remembered model wins over the board's legacy default. Clips are
+ * also priced at each shot's effective duration, then the batch is summed.
  *
  * The shots come from the caller, and they are exactly the ones the button
  * loops over: the estimate is what that click costs, not what an ideal render
@@ -18,16 +17,13 @@
  */
 
 import { useMemo } from "react";
-import type { Shot } from "@nodetool-ai/protocol";
+import type { Shot, ShotModelRef } from "@nodetool-ai/protocol";
 import { effectiveShotDuration } from "@nodetool-ai/timeline";
 
 import { CLIP_RESOLUTION, STILL_RESOLUTION } from "./renderSpec";
 import { priceRenderStep } from "./shotCostPricing";
 import { useBoardScriptLines } from "./useShotDuration";
-import {
-  useBoardImageModel,
-  useBoardVideoModel
-} from "./useShotCostEstimate";
+import { useBoardImageModel, useBoardVideoModel } from "./useShotCostEstimate";
 
 /** Which of the two render passes a batch is. */
 export type RenderStep = "still" | "clip";
@@ -56,7 +52,8 @@ const EMPTY: RenderBatchCostEstimate = {
 export function useRenderBatchCostEstimate(
   boardId: string,
   shots: Shot[],
-  step: RenderStep
+  step: RenderStep,
+  modelForShot?: (shot: Shot) => ShotModelRef | null
 ): RenderBatchCostEstimate {
   const imageModel = useBoardImageModel(boardId);
   const videoModel = useBoardVideoModel(boardId);
@@ -76,7 +73,6 @@ export function useRenderBatchCostEstimate(
     // What the step is, decided once: only the duration varies per shot.
     const isStill = step === "still";
     const label = isStill ? "Still" : "Clip";
-    const model = isStill ? imageModel : videoModel;
     const pickerLabel = isStill ? "still model" : "clip model";
     const resolution = isStill ? STILL_RESOLUTION : CLIP_RESOLUTION;
 
@@ -87,6 +83,11 @@ export function useRenderBatchCostEstimate(
         ? undefined
         : (effectiveShotDuration(shot, linesById).seconds ??
           shot.duration_seconds);
+      const model = modelForShot
+        ? modelForShot(shot)
+        : isStill
+          ? (shot.still_model ?? imageModel)
+          : (shot.clip_model ?? videoModel);
       const priced = priceRenderStep(
         label,
         model,
@@ -112,7 +113,7 @@ export function useRenderBatchCostEstimate(
       reasons: Array.from(new Set(reasons)),
       notes: Array.from(new Set(notes))
     };
-  }, [shots, step, imageModel, videoModel, linesById]);
+  }, [shots, step, imageModel, videoModel, linesById, modelForShot]);
 }
 
 export default useRenderBatchCostEstimate;

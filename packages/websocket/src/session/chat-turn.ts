@@ -88,7 +88,11 @@ import type {
   ProcessingMessage
 } from "@nodetool-ai/protocol";
 import type { UiContext } from "@nodetool-ai/protocol";
-import { Tool, compactAssetUris, compactResourceIds } from "@nodetool-ai/agents";
+import {
+  Tool,
+  compactAssetUris,
+  compactResourceIds
+} from "@nodetool-ai/agents";
 import {
   createChatCodeActSession,
   createSandboxClock,
@@ -589,7 +593,7 @@ export class ChatTurnHandler {
     content: MessageContent[],
     userId: string,
     workflowId: string | null,
-    threadId: string | null = null
+    projectId = "default"
   ): Promise<Array<Record<string, unknown>>> {
     const out: Array<Record<string, unknown>> = [];
     for (const block of content) {
@@ -620,10 +624,7 @@ export class ChatTurnHandler {
         const asset = new Asset({
           user_id: userId,
           workflow_id: workflowId ?? null,
-          project_id:
-            (threadId
-              ? (await Project.findByThread(userId, threadId))?.id
-              : null) ?? "default",
+          project_id: projectId,
           name: `image_${Date.now()}`,
           content_type: mimeType,
           // Home — see the chat media generation path.
@@ -1577,7 +1578,9 @@ export class ChatTurnHandler {
       // mode the turn started in — `liveMode` covers a mid-turn switch for the
       // gate, not for which tools were offered.
       if (permissionMode === "plan") {
-        serverTools.unshift(toolForCapabilityName("create_plan", delegationRun));
+        serverTools.unshift(
+          toolForCapabilityName("create_plan", delegationRun)
+        );
       }
 
       // The other half: `execute_plan` runs a plan the user has already seen,
@@ -1861,10 +1864,7 @@ export class ChatTurnHandler {
     // generated for reuse. This thread's in full, the rest as a count it can
     // search. Deterministic and always-on.
     if (threadId) {
-      const memoryBlock = await this.buildMemoryBlock(
-        userId,
-        threadId
-      );
+      const memoryBlock = await this.buildMemoryBlock(userId, threadId);
       if (memoryBlock) volatileContext.push(memoryBlock);
     }
 
@@ -2042,7 +2042,7 @@ export class ChatTurnHandler {
             m.content,
             userId,
             workflowId,
-            threadId
+            chatProjectId ?? "default"
           );
           persistedContent = materialized;
           if (echo) {
@@ -2755,7 +2755,8 @@ export class ChatTurnHandler {
     const threadId = isString(data.thread_id) ? data.thread_id : "";
     const workflowId = isString(data.workflow_id) ? data.workflow_id : null;
     const userId = this.session.requireUserId();
-    const projectId = (await Project.findByThread(userId, threadId))?.id ?? null;
+    const projectId =
+      (await Project.findByThread(userId, threadId))?.id ?? null;
     const mode = String(mediaGeneration.mode ?? "");
     // The media composer's own selection first; a client without a separate
     // media picker (mobile) sends only the message-level one. The built-in
@@ -2921,10 +2922,18 @@ export class ChatTurnHandler {
               )
             : await generate(
                 "text_to_image",
-                { prompt: expandedPrompt, width, height, num_images: variations },
+                {
+                  prompt: expandedPrompt,
+                  width,
+                  height,
+                  num_images: variations
+                },
                 {},
                 (abort) =>
-                  provider.textToImages({ ...params, signal: abort }, variations)
+                  provider.textToImages(
+                    { ...params, signal: abort },
+                    variations
+                  )
               );
         if (cancelled()) return;
         const imageContents: Array<Record<string, unknown>> = [];

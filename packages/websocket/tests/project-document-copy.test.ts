@@ -5,6 +5,7 @@ import {
   Script,
   Storyboard,
   TimelineSequence,
+  Project,
   initTestDb,
   type StoryboardDocument
 } from "@nodetool-ai/models";
@@ -62,7 +63,19 @@ async function saveAsset(
 }
 
 describe("copyProjectDocument", () => {
-  beforeEach(() => initTestDb());
+  beforeEach(async () => {
+    initTestDb();
+    await Project.create<Project>({
+      id: sourceProjectId,
+      user_id: userId,
+      name: "Source"
+    });
+    await Project.create<Project>({
+      id: destinationProjectId,
+      user_id: userId,
+      name: "Destination"
+    });
+  });
 
   it("copies repeated entity references once and gives the destination independent bytes", async () => {
     const storage = new InMemoryStorageAdapter();
@@ -110,7 +123,9 @@ describe("copyProjectDocument", () => {
     await board.delete();
     expect(
       await storage.retrieve(
-        storage.uriForKey(getAssetStorageKey(userId, copiedAsset.id, "image/png"))
+        storage.uriForKey(
+          getAssetStorageKey(userId, copiedAsset.id, "image/png")
+        )
       )
     ).toEqual(new Uint8Array([1, 2, 3]));
   });
@@ -135,7 +150,55 @@ describe("copyProjectDocument", () => {
         storage
       })
     ).rejects.toBeInstanceOf(ProjectCopyError);
-    expect((await Storyboard.listByProject(destinationProjectId, userId)).length).toBe(0);
+    expect(
+      (await Storyboard.listByProject(destinationProjectId, userId)).length
+    ).toBe(0);
+  });
+
+  it("removes staged objects when the destination is deleted before commit", async () => {
+    class DeletingStorage extends InMemoryStorageAdapter {
+      armed = false;
+
+      override async store(
+        key: string,
+        data: Uint8Array,
+        contentType?: string
+      ): Promise<string> {
+        const uri = await super.store(key, data, contentType);
+        if (this.armed) {
+          this.armed = false;
+          await Project.deleteOwned(userId, destinationProjectId);
+        }
+        return uri;
+      }
+    }
+
+    const storage = new DeletingStorage();
+    const reference = await saveAsset(storage, {
+      content: new Uint8Array([7, 8, 9])
+    });
+    const board = await Storyboard.create<Storyboard>({
+      user_id: userId,
+      project_id: sourceProjectId,
+      name: "Board",
+      document: JSON.stringify(storyboardDocument(reference.id))
+    });
+    storage.armed = true;
+
+    await expect(
+      copyProjectDocument({
+        userId,
+        type: "storyboard",
+        id: board.id,
+        destinationProjectId,
+        storage
+      })
+    ).rejects.toThrow("Destination project is unavailable");
+
+    expect(
+      await Storyboard.listByProject(destinationProjectId, userId)
+    ).toEqual([]);
+    expect((await storage.list("")).entries).toHaveLength(1);
   });
 
   it("rewrites an extension-bearing asset locator without requiring a second asset", async () => {
@@ -200,7 +263,9 @@ describe("copyProjectDocument", () => {
         storage
       })
     ).rejects.toBeInstanceOf(ProjectCopyError);
-    expect((await Storyboard.listByProject(destinationProjectId, userId)).length).toBe(0);
+    expect(
+      (await Storyboard.listByProject(destinationProjectId, userId)).length
+    ).toBe(0);
   });
 
   it("copies linked document cycles once and remaps both directions", async () => {

@@ -22,14 +22,22 @@ interface RememberedModel {
 
 interface LastModelState {
   byKind: Partial<Record<ModelKind, RememberedModel>>;
+  byTask: Partial<Record<string, RememberedModel>>;
   /** Record the last-used model for a kind. No-ops without provider + model. */
   remember: (kind: ModelKind, value: RememberedModel) => void;
+  /** Record a task-specific choice without replacing another task's choice. */
+  rememberForTask: (
+    kind: ModelKind,
+    task: string,
+    value: RememberedModel
+  ) => void;
 }
 
 export const useLastModelStore = create<LastModelState>()(
   persist(
     (set) => ({
       byKind: {},
+      byTask: {},
       remember: (kind, value) => {
         if (!value.provider || !value.model) {
           return;
@@ -48,6 +56,33 @@ export const useLastModelStore = create<LastModelState>()(
             byKind: {
               ...state.byKind,
               [kind]: {
+                provider: value.provider,
+                model: value.model,
+                voice: value.voice
+              }
+            }
+          };
+        });
+      },
+      rememberForTask: (kind, task, value) => {
+        if (!value.provider || !value.model) {
+          return;
+        }
+        const key = `${kind}:${task}`;
+        set((state) => {
+          const prev = state.byTask[key];
+          if (
+            prev &&
+            prev.provider === value.provider &&
+            prev.model === value.model &&
+            prev.voice === value.voice
+          ) {
+            return state;
+          }
+          return {
+            byTask: {
+              ...state.byTask,
+              [key]: {
                 provider: value.provider,
                 model: value.model,
                 voice: value.voice
@@ -89,3 +124,10 @@ export function modelKindForBinding(
 export const getRememberedModel = (
   kind: ModelKind
 ): RememberedModel | undefined => useLastModelStore.getState().byKind[kind];
+
+/** Non-reactive read of a remembered task-specific model. */
+export const getRememberedModelForTask = (
+  kind: ModelKind,
+  task: string
+): RememberedModel | undefined =>
+  useLastModelStore.getState().byTask[`${kind}:${task}`];

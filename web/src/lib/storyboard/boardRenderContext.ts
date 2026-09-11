@@ -42,7 +42,9 @@ const styleEntityId = (
     return null;
   }
   const styles = new Set(
-    entities.filter((entity) => entity.kind === "style").map((entity) => entity.id)
+    entities
+      .filter((entity) => entity.kind === "style")
+      .map((entity) => entity.id)
   );
   for (let i = entityIds.length - 1; i >= 0; i -= 1) {
     if (styles.has(entityIds[i])) {
@@ -52,7 +54,9 @@ const styleEntityId = (
   return null;
 };
 
-const imageAssetId = (image: NonNullable<Entity["reference_images"]>[number]): string | undefined => {
+const imageAssetId = (
+  image: NonNullable<Entity["reference_images"]>[number]
+): string | undefined => {
   if (typeof image.asset_id === "string" && image.asset_id.length > 0) {
     return image.asset_id;
   }
@@ -71,12 +75,14 @@ export const boardRenderContext = (
   shot?: Shot
 ): BoardRenderContext => {
   const byId = new Map(entities.map((entity) => [entity.id, entity]));
-  const boardEntities = (board?.entityIds ?? []).flatMap((id) => byId.get(id) ?? []);
+  const boardEntities = (board?.entityIds ?? []).flatMap(
+    (id) => byId.get(id) ?? []
+  );
   const selected = shot ? entitiesForShot(shot, boardEntities) : boardEntities;
   return {
     aspect_ratio: board?.aspectRatio ?? "16:9",
-    image_model: board?.imageModel?.id ?? "",
-    video_model: board?.videoModel?.id ?? "",
+    image_model: shot?.still_model?.id ?? board?.imageModel?.id ?? "",
+    video_model: shot?.clip_model?.id ?? board?.videoModel?.id ?? "",
     style_entity_id: styleEntityId(board?.entityIds, entities),
     style: board?.style ?? "",
     scenes: board?.screenplay?.scenes ?? null,

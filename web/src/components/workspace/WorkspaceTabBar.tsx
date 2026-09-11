@@ -37,6 +37,7 @@ import MobileDocumentSelector from "./MobileDocumentSelector";
 import MobileRailLauncher from "../panels/MobileRailLauncher";
 import { PROJECT_COLOR } from "../projects/projectIdentity";
 import { TYPE_COLOR, TYPE_GLYPH } from "./tabTypeIdentity";
+import { useWorkspaceHeaderActions } from "./WorkspaceHeaderActionsContext";
 
 /** Whether a document type supports both View and Edit (vs view-only). */
 const SUPPORTS_BOTH_MODES = {
@@ -307,6 +308,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const moveTab = useWorkspaceTabsStore((state) => state.moveTab);
   const updateApplication = useUpdateApplication();
   const trpcUtils = trpc.useUtils();
+  const headerActions = useWorkspaceHeaderActions()?.actions;
 
   const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
   const workflowManagerStore = useWorkflowManagerStore();
@@ -691,6 +693,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
       )}
 
       <div className="right-actions">
+        {headerActions}
         <NotificationButton />
       </div>
     </div>
