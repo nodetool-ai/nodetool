@@ -299,10 +299,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   },
 
   get: async (id: string, project_id?: string) => {
-    const raw = await trpcClient.assets.get.query({
-      id,
-      ...(project_id !== undefined ? { project_id } : {})
-    });
+    const getInput: Parameters<typeof trpcClient.assets.get.query>[0] = { id };
+    if (project_id !== undefined) getInput.project_id = project_id;
+    const raw = await trpcClient.assets.get.query(getInput);
     const data = normalizeAssetUrls(raw);
     get().add(data);
     return data;
@@ -323,12 +322,13 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       if (!query.parent_id) {
         throw new Error("Recursive asset queries require a parent_id");
       }
-      const data = await trpcClient.assets.recursive.query({
-        id: query.parent_id,
-        ...(query.project_id !== undefined
-          ? { project_id: query.project_id }
-          : {})
-      });
+      const recursiveInput: Parameters<
+        typeof trpcClient.assets.recursive.query
+      >[0] = { id: query.parent_id };
+      if (query.project_id !== undefined) {
+        recursiveInput.project_id = query.project_id;
+      }
+      const data = await trpcClient.assets.recursive.query(recursiveInput);
       const normalized = normalizeAssetList(data.assets ?? []);
       for (const asset of normalized) {
         get().add(asset);
@@ -352,10 +352,11 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
 
   loadFolderTree: async (sortBy?: string, project_id?: string) => {
     // Fallback implementation: fetch all folders via tRPC and build tree locally
-    const data = await trpcClient.assets.list.query({
-      content_type: "folder",
-      ...(project_id !== undefined ? { project_id } : {})
-    });
+    const listInput: Parameters<typeof trpcClient.assets.list.query>[0] = {
+      content_type: "folder"
+    };
+    if (project_id !== undefined) listInput.project_id = project_id;
+    const data = await trpcClient.assets.list.query(listInput);
     return buildFolderTree(
       normalizeAssetList(data.assets),
       sortBy === "updated_at" ? "updated_at" : "name"
@@ -395,10 +396,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
           });
       }
     }
-    return get().load({
-      parent_id: requestedFolderId,
-      ...(project_id !== undefined ? { project_id } : {})
-    });
+    const assetQuery: AssetQuery = { parent_id: requestedFolderId };
+    if (project_id !== undefined) assetQuery.project_id = project_id;
+    return get().load(assetQuery);
   },
 
   search: async (query: AssetSearchQuery): Promise<AssetSearchResult> => {
@@ -645,10 +645,11 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     folderId: string,
     project_id?: string
   ): Promise<AssetTreeNode[]> => {
-    const data = await trpcClient.assets.recursive.query({
-      id: folderId,
-      ...(project_id !== undefined ? { project_id } : {})
-    });
+    const recursiveInput: Parameters<
+      typeof trpcClient.assets.recursive.query
+    >[0] = { id: folderId };
+    if (project_id !== undefined) recursiveInput.project_id = project_id;
+    const data = await trpcClient.assets.recursive.query(recursiveInput);
     // The tRPC `recursive` procedure returns a flat array — convert it to the
     // tree shape expected by downstream code.
     return normalizeAssetList((data.assets ?? []) as AssetTreeNode[]);

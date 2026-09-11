@@ -210,18 +210,22 @@ export const assetsRouter = router({
           ? ctx.userId
           : input.parent_id;
 
-      const [assets, cursor] = await Asset.paginate(ctx.userId, {
+      const paginateOptions: Parameters<typeof Asset.paginate>[1] = {
         parentId: effectiveParentId,
-        ...(input.project_id !== undefined
-          ? { projectId: input.project_id }
-          : {}),
         contentType: input.content_type,
         workflowId: input.workflow_id,
         nodeId: input.node_id,
         jobId: input.job_id,
         timelineId: input.timeline_id,
         limit: input.page_size
-      });
+      };
+      if (input.project_id !== undefined) {
+        paginateOptions.projectId = input.project_id;
+      }
+      const [assets, cursor] = await Asset.paginate(
+        ctx.userId,
+        paginateOptions
+      );
       return {
         assets: await Promise.all(assets.map((a) => toAssetResponse(a))),
         next: cursor || null
