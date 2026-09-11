@@ -33,6 +33,11 @@ jest.mock("../../../stores/PanelStore", () => ({
 jest.mock("../../../hooks/useWorkspaceMenuShortcuts", () => ({
   useWorkspaceMenuShortcuts: jest.fn()
 }));
+jest.mock("../../../hooks/useProjects", () => ({
+  useProjects: () => ({ data: [], isPending: false, error: null }),
+  useOpenProject: () => jest.fn(),
+  useOpenNewProjectTab: () => jest.fn()
+}));
 jest.mock("@mui/material", () => ({
   ...jest.requireActual("@mui/material"),
   useMediaQuery: () => false
