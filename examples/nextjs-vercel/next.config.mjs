@@ -10,7 +10,13 @@ const nextConfig = {
     "@nodetool-ai/node-sdk",
     "@nodetool-ai/nodes-utils",
     "@nodetool-ai/core-nodes",
-    "@nodetool-ai/llm-nodes"
+    "@nodetool-ai/llm-nodes",
+    // fs-safe (a @nodetool-ai/storage dependency) loads its native helper with
+    // `new URL("../dist/native/", import.meta.url)` + `require`, which
+    // Turbopack cannot resolve statically. Inside the monorepo the
+    // @nodetool-ai/* entries above are symlinked workspaces, not
+    // node_modules, so Next bundles them anyway and reaches this import.
+    "@openclaw/fs-safe"
   ]
 };
 

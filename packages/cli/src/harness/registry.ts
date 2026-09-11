@@ -1515,6 +1515,13 @@ export const SURFACES: SurfaceEntry[] = [
  * one that is in neither.
  */
 export const UNCLAIMED_PATHS: Record<string, string> = {
+  "examples/nextjs-vercel/":
+    "Deployment example app. CI typechecks it (`npm run typecheck:examples`); " +
+    "its `next build` costs minutes and belongs to deploys, not the PR gate. " +
+    "No harness drives it headlessly.",
+  "examples/nextjs-cloudflare/":
+    "Deployment example app, same standing as examples/nextjs-vercel/: " +
+    "typechecked in CI, built only on deploy, no headless harness.",
   "packages/compute/":
     "Provisions and reaps real RunPod/Vast.ai GPU workers; only its hermetic " +
     "unit tests run headlessly today. A harness needs a recorded-fixture " +
