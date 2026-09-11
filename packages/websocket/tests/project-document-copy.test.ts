@@ -102,13 +102,15 @@ describe("copyProjectDocument", () => {
     await copiedAsset.save();
     expect((await Asset.find(userId, reference.id))?.name).toBe("Reference");
     await storage.delete(
-      getAssetStorageKey(userId, reference.id, reference.content_type)
+      storage.uriForKey(
+        getAssetStorageKey(userId, reference.id, reference.content_type)
+      )
     );
     await reference.delete();
     await board.delete();
     expect(
       await storage.retrieve(
-        getAssetStorageKey(userId, copiedAsset.id, "image/png")
+        storage.uriForKey(getAssetStorageKey(userId, copiedAsset.id, "image/png"))
       )
     ).toEqual(new Uint8Array([1, 2, 3]));
   });

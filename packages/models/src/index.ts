@@ -291,9 +291,15 @@ export type {
 } from "./project-summary.js";
 export {
   moveDocumentToProject,
+  hasProjectDocumentDependents,
   reassignProjectDocuments
 } from "./project-membership.js";
 export type { ProjectMemberType } from "./project-membership.js";
+export {
+  persistProjectCopy,
+  type ProjectCopyAsset,
+  type ProjectCopyDocument
+} from "./project-copy.js";
 export {
   Script,
   ScriptConflictError,

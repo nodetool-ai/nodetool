@@ -6,30 +6,21 @@
  * stable names. A copy reserves every destination id before writing anything,
  * which makes repeated references and document cycles resolve to one copy.
  */
-import { createTimeOrderedUuid } from "@nodetool-ai/models";
 import {
   Asset,
+  Application,
+  createTimeOrderedUuid,
   ImageDocument,
   JsScript,
+  persistProjectCopy,
   Script,
   Storyboard,
   TimelineSequence,
+  type ProjectCopyAsset,
+  type ProjectCopyDocument,
   type ProjectDocumentType
 } from "@nodetool-ai/models";
-import {
-  applications,
-  assets,
-  getDb,
-  getDbType,
-  imageDocuments,
-  jsScripts,
-  scripts,
-  storyboards,
-  timelineSequences,
-  type DbTransaction
-} from "@nodetool-ai/models";
 import type { StorageAdapter } from "@nodetool-ai/storage";
-import { Application } from "@nodetool-ai/models";
 import { retrieveAssetBytes, getAssetStorageKey } from "./asset-paths.js";
 
 export class ProjectCopyError extends Error {
@@ -39,17 +30,13 @@ export class ProjectCopyError extends Error {
   }
 }
 
-interface DocumentSource {
-  readonly type: ProjectDocumentType;
-  readonly id: string;
-  readonly row:
-    | Storyboard
-    | Script
-    | TimelineSequence
-    | ImageDocument
-    | Application
-    | JsScript;
-}
+type DocumentSource =
+  | { readonly type: "storyboard"; readonly id: string; readonly row: Storyboard }
+  | { readonly type: "script"; readonly id: string; readonly row: Script }
+  | { readonly type: "timeline"; readonly id: string; readonly row: TimelineSequence }
+  | { readonly type: "sketch"; readonly id: string; readonly row: ImageDocument }
+  | { readonly type: "application"; readonly id: string; readonly row: Application }
+  | { readonly type: "jsscript"; readonly id: string; readonly row: JsScript };
 
 interface PreparedAsset {
   readonly source: Asset;
@@ -119,7 +106,8 @@ function remapAssetLocator(
   ids: ReadonlyMap<string, string>
 ): string {
   const assetId = assetIdFromLocator(locator);
-  const copiedId = assetId ? ids.get(assetId) : undefined;
+  if (!assetId) return locator;
+  const copiedId = ids.get(assetId);
   if (!copiedId) return locator;
   const prefix = locator.slice(0, locator.lastIndexOf(assetId));
   return `${prefix}${copiedId}${locator.slice(prefix.length + assetId.length)}`;
@@ -217,20 +205,26 @@ async function loadDocument(
   type: ProjectDocumentType,
   id: string
 ): Promise<DocumentSource> {
-  const row = await (
-    {
-      storyboard: Storyboard.findById,
-      script: Script.findById,
-      timeline: TimelineSequence.findById,
-      sketch: ImageDocument.findById,
-      application: Application.findById,
-      jsscript: JsScript.findById
-    } as const
-  )[type](id);
-  if (!row || row.user_id !== userId) {
-    throw new ProjectCopyError(`${type} dependency ${id} is unavailable`);
+  const assertOwned = <T extends { user_id: string }>(row: T | null): T => {
+    if (!row || row.user_id !== userId) {
+      throw new ProjectCopyError(`${type} dependency ${id} is unavailable`);
+    }
+    return row;
+  };
+  switch (type) {
+    case "storyboard":
+      return { type, id, row: assertOwned(await Storyboard.findById(id)) };
+    case "script":
+      return { type, id, row: assertOwned(await Script.findById(id)) };
+    case "timeline":
+      return { type, id, row: assertOwned(await TimelineSequence.findById(id)) };
+    case "sketch":
+      return { type, id, row: assertOwned(await ImageDocument.findById(id)) };
+    case "application":
+      return { type, id, row: assertOwned(await Application.findById(id)) };
+    case "jsscript":
+      return { type, id, row: assertOwned(await JsScript.findById(id)) };
   }
-  return { type, id, row };
 }
 
 function documentPayload(source: DocumentSource): unknown {
@@ -277,14 +271,13 @@ function directReferences(source: DocumentSource): References {
   return found;
 }
 
-function insertCopiedDocument(
-  tx: DbTransaction,
+function copiedDocument(
   source: DocumentSource,
   destinationId: string,
   destinationProjectId: string,
   ids: ReadonlyMap<string, string>,
   now: string
-) {
+): ProjectCopyDocument {
   const document = JSON.stringify(cloneAndRemap(documentPayload(source), ids));
   const base = {
     id: destinationId,
@@ -297,18 +290,20 @@ function insertCopiedDocument(
   };
   switch (source.type) {
     case "storyboard":
-      return tx.insert(storyboards).values(
-        {
+      return {
+        type: source.type,
+        values: {
           ...base,
           timeline_id: source.row.timeline_id
             ? ids.get(source.row.timeline_id) ?? null
             : null,
           revision: 0
         }
-      );
+      };
     case "script":
-      return tx.insert(scripts).values(
-        {
+      return {
+        type: source.type,
+        values: {
           ...base,
           timeline_id: source.row.timeline_id
             ? ids.get(source.row.timeline_id) ?? null
@@ -317,10 +312,11 @@ function insertCopiedDocument(
             ? ids.get(source.row.storyboard_id) ?? null
             : null
         }
-      );
+      };
     case "timeline":
-      return tx.insert(timelineSequences).values(
-        {
+      return {
+        type: source.type,
+        values: {
           ...base,
           workflow_id: null,
           fps: source.row.fps,
@@ -329,10 +325,11 @@ function insertCopiedDocument(
           duration_ms: source.row.duration_ms,
           revision: 0
         }
-      );
+      };
     case "sketch":
-      return tx.insert(imageDocuments).values(
-        {
+      return {
+        type: source.type,
+        values: {
           ...base,
           workflow_id: null,
           width: source.row.width,
@@ -343,13 +340,14 @@ function insertCopiedDocument(
             : null,
           revision: 0
         }
-      );
+      };
     case "application":
-      return tx
-        .insert(applications)
-        .values({ ...base, description: source.row.description });
+      return {
+        type: source.type,
+        values: { ...base, description: source.row.description }
+      };
     case "jsscript":
-      return tx.insert(jsScripts).values(base);
+      return { type: source.type, values: base };
   }
 }
 
@@ -449,62 +447,46 @@ export async function copyProjectDocument(args: {
       );
     }
 
-    const db = getDb();
-    const writes = (tx: DbTransaction) => {
-      const statements: Array<{ run: () => void }> = [];
-      const now = new Date().toISOString();
-      for (const [sourceId, prepared] of preparedAssets) {
-        const destinationId = assetIds.get(sourceId);
-        if (!destinationId) throw new ProjectCopyError("Asset map was incomplete");
-        statements.push(
-          tx.insert(assets).values({
-            id: destinationId,
-            user_id: prepared.source.user_id,
-            parent_id: null,
-            file_id: null,
-            name: prepared.source.name,
-            content_type: prepared.source.content_type,
-            size: prepared.bytes?.byteLength ?? prepared.source.size,
-            duration: prepared.source.duration,
-            metadata: cloneMetadata(prepared.source.metadata, ids),
-            sketch_document_id: null,
-            workflow_id: null,
-            node_id: null,
-            job_id: null,
-            timeline_id: null,
-            project_id: args.destinationProjectId,
-            created_at: now,
-            updated_at: now
-          })
-        );
-      }
-      for (const [sourceKey, source] of sources) {
-        const destinationId = documentIds.get(sourceKey);
-        if (!destinationId) throw new ProjectCopyError("Document map was incomplete");
-        statements.push(
-          insertCopiedDocument(
-            tx,
-            source,
-            destinationId,
-            args.destinationProjectId,
-            ids,
-            now
-          )
-        );
-      }
-      return statements;
-    };
-    if (getDbType() === "sqlite") {
-      db.transaction((tx: DbTransaction): void => {
-        for (const statement of writes(tx)) {
-          statement.run();
-        }
-      });
-    } else {
-      await db.transaction(async (tx: DbTransaction): Promise<void> => {
-        for (const statement of writes(tx)) await statement;
+    const now = new Date().toISOString();
+    const assetCopies: ProjectCopyAsset[] = [];
+    for (const [sourceId, prepared] of preparedAssets) {
+      const destinationId = assetIds.get(sourceId);
+      if (!destinationId) throw new ProjectCopyError("Asset map was incomplete");
+      assetCopies.push({
+        id: destinationId,
+        user_id: prepared.source.user_id,
+        parent_id: null,
+        file_id: null,
+        name: prepared.source.name,
+        content_type: prepared.source.content_type,
+        size: prepared.bytes?.byteLength ?? prepared.source.size,
+        duration: prepared.source.duration,
+        metadata: cloneMetadata(prepared.source.metadata, ids),
+        sketch_document_id: null,
+        workflow_id: null,
+        node_id: null,
+        job_id: null,
+        timeline_id: null,
+        project_id: args.destinationProjectId,
+        created_at: now,
+        updated_at: now
       });
     }
+    const documentCopies: ProjectCopyDocument[] = [];
+    for (const [sourceKey, source] of sources) {
+      const destinationId = documentIds.get(sourceKey);
+      if (!destinationId) throw new ProjectCopyError("Document map was incomplete");
+      documentCopies.push(
+        copiedDocument(
+          source,
+          destinationId,
+          args.destinationProjectId,
+          ids,
+          now
+        )
+      );
+    }
+    await persistProjectCopy({ assets: assetCopies, documents: documentCopies });
   } catch (error) {
     await Promise.allSettled(storedUris.map((uri) => args.storage.delete(uri)));
     throw error;
