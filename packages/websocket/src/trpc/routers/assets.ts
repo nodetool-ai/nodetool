@@ -206,7 +206,8 @@ export const assetsRouter = router({
         !input.workflow_id &&
         !input.node_id &&
         !input.job_id &&
-        !input.timeline_id
+        !input.timeline_id &&
+        input.project_id === undefined
           ? ctx.userId
           : input.parent_id;
 
