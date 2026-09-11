@@ -1,21 +1,20 @@
 /**
  * Segmented picker that gives the right rails somewhere to live below `md`.
  *
- * The todo, task and memory rails have fixed widths, so on a phone they used
- * to drop out of the layout entirely and their content was unreachable. Here
- * they take the conversation's place one at a time.
+ * The todo and task rails have fixed widths, so on a phone they used to drop
+ * out of the layout entirely and their content was unreachable. Here they take
+ * the conversation's place one at a time.
  */
 import { memo } from "react";
 
 import { ToggleGroup, ToggleOption } from "../../ui_primitives";
 
-export type MobileRail = "chat" | "todos" | "task" | "memory";
+export type MobileRail = "chat" | "todos" | "task";
 
 const RAIL_LABELS: Record<MobileRail, string> = {
   chat: "Chat",
   todos: "Tasks",
-  task: "Task",
-  memory: "Memory"
+  task: "Task"
 };
 
 interface MobileRailTabsProps {

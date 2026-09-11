@@ -18,7 +18,6 @@ import {
 } from "../../../stores/ApiTypes";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import {
   FlexColumn,
   FlexRow,
@@ -32,11 +31,9 @@ import ChatInputSection from "./ChatInputSection";
 import ChatErrorBanner from "./ChatErrorBanner";
 import MobileRailTabs, { type MobileRail } from "./MobileRailTabs";
 import { TodoSidebar } from "../sidebar/TodoSidebar";
-import { MemorySidebar } from "../sidebar/MemorySidebar";
 import { TaskUpdateSidebar } from "../sidebar/TaskUpdateSidebar";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { getThreadRuntime } from "../../../core/chat/threadRuntime";
-import { useMemoryPanelStore } from "../../../stores/MemoryPanelStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useCombo } from "../../../stores/KeyPressedStore";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
@@ -325,11 +322,6 @@ const ChatView = ({
     isBusy && Boolean(currentTaskUpdate) && !hasAgentExecutionMessages;
   const showTaskSidebar = railsFit && hasTaskRail;
   const showTodoSidebar = railsFit && !showTaskSidebar && todos.length > 0;
-  const memoryPanelOpen = useMemoryPanelStore((state) => state.isOpen);
-  const toggleMemoryPanel = useMemoryPanelStore((state) => state.toggle);
-  const closeMemoryPanel = useMemoryPanelStore((state) => state.setOpen);
-  const canShowMemorySidebar =
-    railsFit && !showTaskSidebar && Boolean(effectiveThreadId);
 
   const [mobileRail, setMobileRail] = useState<MobileRail>("chat");
   const mobileRails = useMemo<MobileRail[]>(() => {
@@ -340,11 +332,8 @@ const ChatView = ({
     if (hasTaskRail) {
       rails.push("task");
     }
-    if (effectiveThreadId) {
-      rails.push("memory");
-    }
     return rails;
-  }, [todos.length, hasTaskRail, effectiveThreadId]);
+  }, [todos.length, hasTaskRail]);
   const showMobileRails = !railsFit && mobileRails.length > 1;
   // A rail whose content went away leaves the conversation hidden behind an
   // option that is no longer offered.
@@ -440,8 +429,7 @@ const ChatView = ({
   return (
     <div className="chat-view" css={cssStyles} ref={rootRef}>
       <div className="chat-main">
-        {(canShowMemorySidebar ||
-          (!isMobile && messages.length > 0) ||
+        {((!isMobile && messages.length > 0) ||
           (showNewChatButton && onNewChat)) && (
           <FlexRow className="chat-overlay-actions" align="center" gap={2}>
             {!isMobile && messages.length > 0 && (
@@ -449,14 +437,6 @@ const ChatView = ({
                 onClick={handleCopyConversation}
                 tooltip="Copy conversation as Markdown"
                 icon={<ContentCopyIcon fontSize="small" />}
-              />
-            )}
-            {canShowMemorySidebar && (
-              <ToolbarIconButton
-                onClick={toggleMemoryPanel}
-                tooltip={memoryPanelOpen ? "Hide memory" : "Show memory"}
-                active={memoryPanelOpen}
-                icon={<PsychologyOutlinedIcon fontSize="small" />}
               />
             )}
             {showNewChatButton && onNewChat && (
@@ -515,12 +495,6 @@ const ChatView = ({
             {activeMobileRail === "task" && currentTaskUpdate && (
               <TaskUpdateSidebar taskUpdate={currentTaskUpdate} />
             )}
-            {activeMobileRail === "memory" && effectiveThreadId && (
-              <MemorySidebar
-                threadId={effectiveThreadId}
-                onClose={() => setMobileRail("chat")}
-              />
-            )}
           </FlexColumn>
         )}
 
@@ -559,12 +533,6 @@ const ChatView = ({
         <TaskUpdateSidebar taskUpdate={currentTaskUpdate} />
       )}
       {showTodoSidebar && <TodoSidebar todos={todos} />}
-      {canShowMemorySidebar && memoryPanelOpen && effectiveThreadId && (
-        <MemorySidebar
-          threadId={effectiveThreadId}
-          onClose={() => closeMemoryPanel(false)}
-        />
-      )}
     </div>
   );
 };
