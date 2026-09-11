@@ -11,6 +11,7 @@ import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import FolderSpecialOutlinedIcon from "@mui/icons-material/FolderSpecialOutlined";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
+import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 
 import { isProduction } from "../../lib/env";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
@@ -122,7 +123,13 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
         key: "workspaces",
         label: "Workspaces",
         icon: <FolderSpecialOutlinedIcon />,
-        onClick: () => openPage("workspaces"),
+        onClick: () => openPage("workspaces")
+      },
+      {
+        key: "memory",
+        label: "Memory",
+        icon: <PsychologyOutlinedIcon />,
+        onClick: () => openPage("memory"),
         dividerAfter: true
       },
       {

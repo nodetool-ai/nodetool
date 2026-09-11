@@ -19,6 +19,7 @@ const WorkspacesPage = React.lazy(
 );
 const SettingsPage = React.lazy(() => import("../menus/SettingsMenu"));
 const EntityLibrary = React.lazy(() => import("../entities/EntityLibrary"));
+const MemoryPage = React.lazy(() => import("../memory/MemoryPage"));
 
 const PAGE_COMPONENTS = {
   assets: AssetExplorer,
@@ -30,6 +31,7 @@ const PAGE_COMPONENTS = {
   collections: CollectionsExplorer,
   workspaces: WorkspacesPage,
   entities: EntityLibrary,
+  memory: MemoryPage,
   settings: SettingsPage
 } satisfies Record<PageTabKey, React.ComponentType>;
 
@@ -49,7 +51,11 @@ const SCROLLING_SURFACE_STYLE: React.CSSProperties = {
 
 // These pages fill the tab and scroll inside their own chrome. The rest
 // (costs, …) are document-length and scroll this surface.
-const SELF_SCROLLING_PAGES = new Set<PageTabKey>(["assets", "settings"]);
+const SELF_SCROLLING_PAGES = new Set<PageTabKey>([
+  "assets",
+  "settings",
+  "memory"
+]);
 
 interface PageSurfaceProps {
   pageKey: PageTabKey;
