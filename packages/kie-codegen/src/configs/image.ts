@@ -1908,7 +1908,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompt describing the desired image.",
-          "required": true
+          "required": true,
+          "max": 390000
         },
         {
           "name": "task_id",
@@ -2008,7 +2009,7 @@ export const imageConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "A text description specifying the desired content or style of the generated image. (Max length: 390000 characters)",
+          "description": "A text description specifying the desired content or style of the generated image. (Max length: 8000 characters)",
           "required": false,
           "max": 390000
         },
@@ -2078,6 +2079,14 @@ export const imageConfig: ModuleConfig = {
           "description": "An array containing up to 1 URL string pointing to reference images. (Use file URLs after upload, not raw file content. Accepted types: image/jpeg, image/png, image/webp. Max size: 10.0MB per image.) In your prompt, reference the uploaded image by typing @image(n) followed by a space (for example: @image1 a sunset over the ocean).",
           "required": true,
           "max": 5
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
         }
       ],
       "uploads": [
@@ -2086,6 +2095,336 @@ export const imageConfig: ModuleConfig = {
           "kind": "image",
           "paramName": "image_urls",
           "isList": true
+        }
+      ]
+    },
+    {
+      "className": "GptImage25FlareTextToImage",
+      "modelId": "gpt-image-2-5-flare-text-to-image",
+      "title": "GPT Image 2.5 Flare - Text to Image",
+      "description": "GPT Image 2.5 Flare - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt. Required, maximum 20,000 characters.",
+          "required": true,
+          "min": 1,
+          "max": 20000
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated image is set to auto by default. The 27:16, 16:27, 9:8 and 8:9 aspect ratios support 1K only. 2K and 4K are available for other aspect ratios.",
+          "required": false,
+          "values": [
+            "auto",
+            "1:1",
+            "3:2",
+            "2:3",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9",
+            "27:16",
+            "16:27",
+            "9:8",
+            "8:9"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "",
+          "title": "Resolution",
+          "description": "Image resolution",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        {
+          "name": "background",
+          "type": "enum",
+          "default": "",
+          "title": "Background",
+          "description": "Image background",
+          "required": false,
+          "values": [
+            "transparent",
+            "opaque",
+            "auto"
+          ]
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "GptImage25FlareImageToImage",
+      "modelId": "gpt-image-2-5-flare-image-to-image",
+      "title": "GPT Image 2.5 Flare - Image To Image",
+      "description": "GPT Image 2.5 Flare - Image To Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompts, up to 20,000 characters.",
+          "required": true
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Array of input image URLs.",
+          "required": true,
+          "max": 16
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated image is set to auto by default. The 27:16, 16:27, 9:8 and 8:9 aspect ratios support 1K only. 2K and 4K are available for other aspect ratios.",
+          "required": false,
+          "values": [
+            "auto",
+            "1:1",
+            "3:2",
+            "2:3",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9",
+            "27:16",
+            "16:27",
+            "9:8",
+            "8:9"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "",
+          "title": "Resolution",
+          "description": "Image resolution",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        {
+          "name": "background",
+          "type": "enum",
+          "default": "",
+          "title": "Background",
+          "description": "Image background",
+          "required": false,
+          "values": [
+            "transparent",
+            "opaque",
+            "auto"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "paramName": "input_urls",
+          "isList": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "GptImage25SunburstTextToImage",
+      "modelId": "gpt-image-2-5-sunburst-text-to-image",
+      "title": "GPT Image 2.5 Sunburst - Text to Image",
+      "description": "GPT Image 2.5 Sunburst - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt. Required, maximum 20,000 characters.",
+          "required": true,
+          "min": 1,
+          "max": 20000
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated image is set to auto by default. The 27:16, 16:27, 9:8 and 8:9 aspect ratios support 1K only. 2K and 4K are available for other aspect ratios.",
+          "required": false,
+          "values": [
+            "auto",
+            "1:1",
+            "3:2",
+            "2:3",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9",
+            "27:16",
+            "16:27",
+            "9:8",
+            "8:9"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "",
+          "title": "Resolution",
+          "description": "Image resolution",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        {
+          "name": "background",
+          "type": "enum",
+          "default": "",
+          "title": "Background",
+          "description": "Image background",
+          "required": false,
+          "values": [
+            "transparent",
+            "opaque",
+            "auto"
+          ]
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "GptImage25SunburstImageToImage",
+      "modelId": "gpt-image-2-5-sunburst-image-to-image",
+      "title": "GPT Image 2.5 Sunburst - Image To Image",
+      "description": "GPT Image 2.5 Sunburst - Image To Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompts, up to 20,000 characters.",
+          "required": true
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Array of input image URLs.",
+          "required": true,
+          "max": 16
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated image is set to auto by default. The 27:16, 16:27, 9:8 and 8:9 aspect ratios support 1K only. 2K and 4K are available for other aspect ratios.",
+          "required": false,
+          "values": [
+            "auto",
+            "1:1",
+            "3:2",
+            "2:3",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9",
+            "27:16",
+            "16:27",
+            "9:8",
+            "8:9"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "",
+          "title": "Resolution",
+          "description": "Image resolution",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        {
+          "name": "background",
+          "type": "enum",
+          "default": "",
+          "title": "Background",
+          "description": "Image background",
+          "required": false,
+          "values": [
+            "transparent",
+            "opaque",
+            "auto"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "paramName": "input_urls",
+          "isList": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
@@ -2246,7 +2585,7 @@ export const imageConfig: ModuleConfig = {
           "type": "enum",
           "default": "",
           "title": "Aspect Ratio",
-          "description": "The aspect ratio of the generated image is set to auto by default. Note: for 2K and 4K resolution, the following aspect ratios are not supported: 5:4, 4:5, 3:1, 1:3, and 9:21.",
+          "description": "The aspect ratio of the generated image is set to auto by default. Note: for 2K resolution, the following aspect ratios are not supported: 5:4, 4:5, 3:1, 1:3, and 9:21. for 4K resolution, the following aspect ratios are not supported: 3:1, 1:3, and 9:21.",
           "required": false,
           "values": [
             "auto",
@@ -2278,6 +2617,19 @@ export const imageConfig: ModuleConfig = {
             "1K",
             "2K",
             "4K"
+          ]
+        },
+        {
+          "name": "background",
+          "type": "enum",
+          "default": "",
+          "title": "Background",
+          "description": "Image background Note: This parameter is only supported when the resolution is 1K.",
+          "required": false,
+          "values": [
+            "transparent",
+            "opaque",
+            "auto"
           ]
         }
       ],
@@ -2318,7 +2670,7 @@ export const imageConfig: ModuleConfig = {
           "type": "enum",
           "default": "",
           "title": "Aspect Ratio",
-          "description": "The aspect ratio of the generated image is set to auto by default. Note: 5:4 and 4:5 aspect ratios only support 1K images.",
+          "description": "The aspect ratio of the generated image is set to auto by default. Note: for 2K resolution, the following aspect ratios are not supported: 5:4, 4:5, 3:1, 1:3, and 9:21. for 4K resolution, the following aspect ratios are not supported: 3:1, 1:3, and 9:21.",
           "required": false,
           "values": [
             "auto",
@@ -2350,6 +2702,19 @@ export const imageConfig: ModuleConfig = {
             "1K",
             "2K",
             "4K"
+          ]
+        },
+        {
+          "name": "background",
+          "type": "enum",
+          "default": "",
+          "title": "Background",
+          "description": "Image background Note: This parameter is only supported when the resolution is 1K.",
+          "required": false,
+          "values": [
+            "transparent",
+            "opaque",
+            "auto"
           ]
         }
       ],
@@ -3323,6 +3688,14 @@ export const imageConfig: ModuleConfig = {
             "regular",
             "high"
           ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
         }
       ],
       "validation": [
@@ -4501,6 +4874,14 @@ export const imageConfig: ModuleConfig = {
           "required": false,
           "min": 0,
           "max": 2147483647
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
         }
       ],
       "uploads": [
