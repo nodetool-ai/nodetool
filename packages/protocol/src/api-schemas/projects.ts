@@ -82,6 +82,24 @@ export const projectDocumentRef = z.object({
 });
 export type ProjectDocumentRef = z.infer<typeof projectDocumentRef>;
 
+/** Copy one project document and its owned dependency graph into another project. */
+export const copyProjectDocumentInput = z.object({
+  type: projectDocumentType,
+  ref: z.string(),
+  destinationProjectId: z.string()
+});
+export type CopyProjectDocumentInput = z.infer<
+  typeof copyProjectDocumentInput
+>;
+
+export const copyProjectDocumentOutput = projectDocumentRef.extend({
+  copiedAssets: z.number(),
+  copiedDocuments: z.number()
+});
+export type CopyProjectDocumentOutput = z.infer<
+  typeof copyProjectDocumentOutput
+>;
+
 /**
  * Derived from the stored document on every read. A timeline reports its size
  * but not whether it has been rendered — nothing on the sequence row records
