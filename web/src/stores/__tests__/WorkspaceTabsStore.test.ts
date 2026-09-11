@@ -246,6 +246,55 @@ describe("creationProjectId", () => {
 });
 
 describe("openProject", () => {
+  it("keeps A's chat and output session separate from B's upload through a round trip", () => {
+    const store = useWorkspaceTabsStore.getState();
+    store.openProject({
+      id: "a",
+      name: "Aurora",
+      documents: [
+        { type: "chat", ref: "a-chat", title: "A chat" },
+        { type: "script", ref: "a-script", title: "A script" }
+      ]
+    });
+    store.setActiveTab("chat:a-chat");
+    store.openTab({
+      type: "image",
+      ref: "a-output",
+      title: "A output",
+      projectId: "a"
+    });
+
+    store.openProject({ id: "b", name: "Beacon" });
+    store.openTab({
+      type: "image",
+      ref: "b-upload",
+      title: "B upload",
+      projectId: "b"
+    });
+
+    store.openProject({ id: "a", name: "Aurora" });
+
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.activeProjectId).toBe("a");
+    expect(state.projectSessions.a.selectedChatThreadId).toBe("a-chat");
+    expect(state.projectSessions.a.tabIds).toEqual([
+      "project:a",
+      "chat:a-chat",
+      "script:a-script",
+      "image:a-output"
+    ]);
+    expect(state.projectSessions.b.tabIds).toEqual([
+      "project:b",
+      "image:b-upload"
+    ]);
+    expect(state.tabs.find((tab) => tab.id === "image:a-output")?.projectId).toBe(
+      "a"
+    );
+    expect(state.tabs.find((tab) => tab.id === "image:b-upload")?.projectId).toBe(
+      "b"
+    );
+  });
+
   it("opens the overview first and a tab per document, all in the group", () => {
     useWorkspaceTabsStore.getState().openProject({
       id: "p1",

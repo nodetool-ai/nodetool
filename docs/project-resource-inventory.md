@@ -1,6 +1,8 @@
 # Project resource and entry-point inventory
 
-This inventory records the project boundary found in source inspection for T1. It is an implementation input for AC11, not a claim that all rows are already scoped.
+This inventory records the project boundary found in source inspection for T1.
+The original findings are retained below; the final verification result is at
+[Final verification](#final-verification).
 
 ## Scan evidence
 
@@ -21,7 +23,7 @@ printf '%s\n' "$surface_files"
 
 The first scan returned these 12 project-bearing tables: `applications`, `assets`, `image_documents`, `jobs`, `js_scripts`, `predictions`, `scripts`, `storyboards`, `threads`, `timeline_sequences`, `workflows`, and `workspaces`. The schema directory also contains dependent tables without their own project column, including `messages`, `run_events`, `run_inbox_messages`, `workflow_versions`, and workflow sharing tables. Those rows inherit ownership through their parent thread, job, or workflow and must be covered by the parent lifecycle.
 
-## Resource inventory
+## Historical T1 resource inventory
 
 | Resource | Storage and current ownership | References and creation paths | List/search paths | Delete behavior | Planned project boundary and migration |
 | --- | --- | --- | --- | --- | --- |
@@ -51,8 +53,31 @@ Q11 is resolved as a copy boundary even though the implementation is still absen
 
 Q13 has a concrete current entry point: `packages/models/src/project-membership.ts` and `packages/websocket/src/trpc/routers/projects.ts` allow moving storyboard, script, timeline, sketch, application, JavaScript script, and entity resources. The move changes ownership without updating references and does not check dependents. Workflows, jobs, threads, and workspaces have project columns but are not in that move union. Future moves need either dependency-aware rewrites or a refusal with the affected references; a move must not silently break another project's document.
 
-## Current gaps that are outside the project summary union
+## Historical T1 gaps outside the project summary union
 
 `ProjectDocumentType` covers storyboard, script, timeline, sketch, application, and JavaScript script. It does not cover workflows, folders/general assets, threads/messages, workspace files, jobs/runs, or generated output assets. `Project.deleteOwned` reassigns only the seven membership tables in `project-membership.ts` to `default`, including assets. It does not archive, cancel active work, delete workflows, threads, or workspace files, or reconcile prediction/output ownership. `Project` also has one `thread_id`, which cannot represent D9's multiple independent conversations.
 
-Electron has workflow-only consumers and no project selector or project argument in its workflow fetch/tray paths. Mobile has an application project filter and project-shaped app documents, but its document backends and most screens still use `default` or unscoped lists. These clients must consume the same project-scoped API contracts as web rather than inventing separate ownership rules.
+Electron had workflow-only consumers and no project selector or project argument in its workflow fetch/tray paths. Mobile had an application project filter and project-shaped app documents, but its document backends and most screens used `default` or unscoped lists. These clients needed the same project-scoped API contracts as web rather than separate ownership rules.
+
+## Final verification
+
+The scan's 12 direct ownership tables are all present in both
+`Project.migrateToPersonal` and `Project.deleteOwned`: applications, assets,
+image documents, jobs, JavaScript scripts, predictions, scripts, storyboards,
+threads, timeline sequences, workflows, and workspaces. Messages, run events,
+run inbox rows, workflow versions, and sharing rows inherit their parent's
+ownership and lifecycle.
+
+The scoped entry points are web project selection and resource queries, tRPC
+resource/document routers, agent capability runs, job and chat execution,
+Electron's shared workspace shell, and mobile document transports. Mobile has
+no project selector in this release, but `documentBackend(kind, projectId)`
+forwards its supplied scope through every list and creation request.
+Unscoped callers retain their existing behavior. `mobile/src/documents/__tests__/backends.test.ts`
+verifies every document kind's scoped list and creation path.
+
+No additional project-owned type was omitted from this final scan. Existing
+mobile callers without project navigation retain their unscoped legacy path;
+they can pass ownership through the documented transport contract without a
+mobile navigation redesign. Global settings, credentials, installed models,
+and reusable templates remain deliberately outside the project boundary.

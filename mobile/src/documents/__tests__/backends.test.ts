@@ -332,4 +332,78 @@ describe('every document kind', () => {
       expect(documentBackend(kind).writable).toBe(true);
     }
   });
+
+  it('forwards an explicit project scope through every list and creation path', async () => {
+    const projectId = 'project-a';
+    mockResources.list.query.mockResolvedValue([]);
+    mockResources.create.mutate.mockResolvedValue({
+      ref: { id: 'sb1' },
+      name: 'Board',
+      updatedAt: '2026-01-01T00:00:00Z',
+    });
+    mockScripts.list.query.mockResolvedValue([]);
+    mockScripts.create.mutate.mockResolvedValue({
+      id: 'sc1',
+      name: 'Script',
+      updatedAt: '2026-01-01T00:00:00Z',
+    });
+    mockJsScripts.list.query.mockResolvedValue([]);
+    mockJsScripts.create.mutate.mockResolvedValue({
+      id: 'js1',
+      name: 'Script',
+      updatedAt: '2026-01-01T00:00:00Z',
+    });
+
+    await documentBackend('storyboard', projectId).list(10);
+    await documentBackend('storyboard', projectId).create('Board');
+    await documentBackend('timeline', projectId).list(10);
+    await documentBackend('timeline', projectId).create('Timeline');
+    await documentBackend('sketch', projectId).list(10);
+    await documentBackend('sketch', projectId).create('Sketch');
+    await documentBackend('script', projectId).list(10);
+    await documentBackend('script', projectId).create('Script');
+    await documentBackend('jsscript', projectId).list(10);
+    await documentBackend('jsscript', projectId).create('Script');
+
+    expect(mockResources.list.query).toHaveBeenCalledWith({
+      kind: 'storyboard',
+      limit: 10,
+      projectId,
+    });
+    expect(mockResources.create.mutate).toHaveBeenCalledWith({
+      kind: 'storyboard',
+      name: 'Board',
+      projectId,
+    });
+    expect(mockResources.list.query).toHaveBeenCalledWith({
+      kind: 'timeline',
+      limit: 10,
+      projectId,
+    });
+    expect(mockResources.create.mutate).toHaveBeenCalledWith({
+      kind: 'timeline',
+      name: 'Timeline',
+      projectId,
+    });
+    expect(mockResources.list.query).toHaveBeenCalledWith({
+      kind: 'sketch',
+      limit: 10,
+      projectId,
+    });
+    expect(mockResources.create.mutate).toHaveBeenCalledWith({
+      kind: 'sketch',
+      name: 'Sketch',
+      projectId,
+    });
+    expect(mockScripts.list.query).toHaveBeenCalledWith({ projectId });
+    expect(mockScripts.create.mutate).toHaveBeenCalledWith({
+      name: 'Script',
+      projectId,
+    });
+    expect(mockJsScripts.list.query).toHaveBeenCalledWith({ projectId });
+    expect(mockJsScripts.create.mutate).toHaveBeenCalledWith({
+      name: 'Script',
+      projectId,
+    });
+  });
 });
