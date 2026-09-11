@@ -46,7 +46,15 @@ jest.mock("@mui/material", () => ({
 jest.mock("@mui/material/styles", () => ({
   ...jest.requireActual("@mui/material/styles"),
   useTheme: () => ({
-    breakpoints: { down: () => "@media(max-width: 600px)" }
+    breakpoints: { down: () => "@media(max-width: 600px)" },
+    vars: {
+      palette: {
+        action: { hover: "#f5f5f5" },
+        c_app_header: "#ffffff",
+        divider: "#dddddd",
+        text: { primary: "#111111" }
+      }
+    }
   })
 }));
 
