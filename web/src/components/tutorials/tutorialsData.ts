@@ -1,10 +1,10 @@
 /**
  * Tutorials shown on the Tutorials page and the logo menu. Each is a
  * pre-rendered MP4 + poster produced by the Remotion harness in `demo/`, and
- * the pair is split by weight: the 55 MB of video streams from the
+ * the videos stream from the
  * documentation site, which serves the same files to
  * [its own Tutorials page](https://docs.nodetool.ai/tutorials), while the
- * 1.8 MB of posters ships with the app.
+ * posters ship with the app.
  *
  * The split is not only about size. Posters render on every card the moment a
  * page opens, so a poster that depends on a deploy of another site is broken;
@@ -48,7 +48,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "Say what you want changed and the assistant works the real layer tools: it adds the layer, sets the blend mode, and dials in opacity while you watch the panel update.",
     level: "Beginner",
-    durationLabel: "0:21",
+    durationLabel: "0:19",
     video: tutorialVideo("sketch-assistant.mp4"),
     poster: tutorialPoster("sketch-assistant.jpg"),
     accent: "#d946ef",
@@ -65,7 +65,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "From a blank page to voiced audio in one ask: the assistant casts the speakers, writes their lines, then synthesizes a take for each one.",
     level: "Beginner",
-    durationLabel: "0:24",
+    durationLabel: "0:22",
     video: tutorialVideo("script-assistant.mp4"),
     poster: tutorialPoster("script-assistant.jpg"),
     accent: "#0ea5e9",
@@ -82,7 +82,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "Describe the piece and the assistant writes the shots — camera and all — before spending a frame. Approve the board, then the stills render shot by shot.",
     level: "Beginner",
-    durationLabel: "0:30",
+    durationLabel: "0:34",
     video: tutorialVideo("storyboard-assistant.mp4"),
     poster: tutorialPoster("storyboard-assistant.jpg"),
     accent: "#ef4444",
@@ -99,7 +99,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "Describe an app in a sentence — an input, a button, an answer — and the assistant binds the workflow as an operation and places each widget against something the app declares.",
     level: "Beginner",
-    durationLabel: "0:25",
+    durationLabel: "0:23",
     video: tutorialVideo("app-assistant.mp4"),
     poster: tutorialPoster("app-assistant.jpg"),
     accent: "#6366f1",
@@ -116,7 +116,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "Say what goes in and what should come out. The assistant declares the ports first, writes the body, and saves a test case that grades it in the sandbox.",
     level: "Intermediate",
-    durationLabel: "0:25",
+    durationLabel: "0:30",
     video: tutorialVideo("jsscript-assistant.mp4"),
     poster: tutorialPoster("jsscript-assistant.jpg"),
     accent: "#84cc16",
@@ -133,7 +133,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "The wash comes back too strong. Saying so in the next message edits the layer that is already there — the stack stays the same size and nothing is regenerated.",
     level: "Beginner",
-    durationLabel: "0:28",
+    durationLabel: "0:25",
     video: tutorialVideo("sketch-correction.mp4"),
     poster: tutorialPoster("sketch-correction.jpg"),
     accent: "#2563eb",
@@ -150,7 +150,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "An under-specified brief gets a question back. The board stays empty and nothing renders while you decide, then your answer picks the format and the shot count.",
     level: "Beginner",
-    durationLabel: "0:26",
+    durationLabel: "0:23",
     video: tutorialVideo("storyboard-ask.mp4"),
     poster: tutorialPoster("storyboard-ask.jpg"),
     accent: "#be123c",
@@ -167,7 +167,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "Name the edge case you do not trust. The assistant saves it as a test, runs it red with the reason in the open, repairs the body, and runs the same cases green.",
     level: "Intermediate",
-    durationLabel: "0:29",
+    durationLabel: "0:35",
     video: tutorialVideo("jsscript-repair.mp4"),
     poster: tutorialPoster("jsscript-repair.jpg"),
     accent: "#0d9488",
@@ -184,7 +184,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "A question goes straight to Global Chat: the agent calls a web-search tool in the open, then streams its answer back token by token.",
     level: "Beginner",
-    durationLabel: "0:17",
+    durationLabel: "0:25",
     video: tutorialVideo("chat-agent-qa.mp4"),
     poster: tutorialPoster("chat-agent-qa.jpg"),
     accent: "#06b6d4",
@@ -201,7 +201,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "Watch a complete AI pipeline run on the canvas: a prompt is enhanced by an LLM, then turned into an image — all from connected nodes, no code.",
     level: "Beginner",
-    durationLabel: "0:23",
+    durationLabel: "0:31",
     video: tutorialVideo("first-workflow.mp4"),
     poster: tutorialPoster("first-workflow.jpg"),
     accent: "#f59e0b",
@@ -214,11 +214,11 @@ export const TUTORIALS: Tutorial[] = [
   {
     id: "connect-run",
     title: "Connect & run",
-    tagline: "The core loop in ten seconds",
+    tagline: "Follow a connected graph from input to output",
     description:
-      "The absolute basics. Add a node, drag from one handle into the next node's input, press Run, and read the result — the loop every workflow is built on.",
+      "Trace the existing connections from a text input through Uppercase, watch the nodes execute, and read HELLO NODETOOL in Preview.",
     level: "Beginner",
-    durationLabel: "0:11",
+    durationLabel: "0:23",
     video: tutorialVideo("connect-run.mp4"),
     poster: tutorialPoster("connect-run.jpg"),
     accent: "#22c55e",
@@ -235,7 +235,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "Turn a single topic into a structured list with one LLM node, then feed it downstream. The pattern behind batching, looping, and bulk generation.",
     level: "Beginner",
-    durationLabel: "0:17",
+    durationLabel: "0:26",
     video: tutorialVideo("list-generator.mp4"),
     poster: tutorialPoster("list-generator.jpg"),
     accent: "#8b5cf6",
@@ -252,7 +252,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "The simplest chat-style graph: type a question, send it to an LLM node, and watch the answer stream in phrase by phrase before it lands in a Preview.",
     level: "Beginner",
-    durationLabel: "0:16",
+    durationLabel: "0:24",
     video: tutorialVideo("ask-ai.mp4"),
     poster: tutorialPoster("ask-ai.jpg"),
     accent: "#06b6d4",
@@ -269,7 +269,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "The first graph that branches in: two text inputs flow into one Prompt node that fills a template, composing a single result from reusable parts.",
     level: "Beginner",
-    durationLabel: "0:12",
+    durationLabel: "0:26",
     video: tutorialVideo("combine-inputs.mp4"),
     poster: tutorialPoster("combine-inputs.jpg"),
     accent: "#ec4899",
@@ -286,7 +286,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "Condense an article, transcript, or any block of text into a short summary with a single Summarizer node, streaming it as it writes.",
     level: "Beginner",
-    durationLabel: "0:16",
+    durationLabel: "0:26",
     video: tutorialVideo("summarize-text.mp4"),
     poster: tutorialPoster("summarize-text.jpg"),
     accent: "#14b8a6",
@@ -303,7 +303,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "The first multimodal graph: drop a picture into an Image Input, wire it into an Agent, and watch the model look at the image and describe it in words.",
     level: "Beginner",
-    durationLabel: "0:17",
+    durationLabel: "0:26",
     video: tutorialVideo("describe-image.mp4"),
     poster: tutorialPoster("describe-image.jpg"),
     accent: "#f97316",
@@ -318,9 +318,9 @@ export const TUTORIALS: Tutorial[] = [
     title: "Cut a scene together",
     tagline: "Timeline editor · trim, arrange, caption",
     description:
-      "A short editing session on the timeline: trim a clip, drag in another, drop in a word-synced caption, then scrub the finished cut.",
+      "Watch the opening clip shorten, the next shot meet its edge, and a caption appear on its track. Then preview the finished cut.",
     level: "Beginner",
-    durationLabel: "0:23",
+    durationLabel: "0:33",
     video: tutorialVideo("timeline-trim-arrange.mp4"),
     poster: tutorialPoster("timeline-trim-arrange.jpg"),
     accent: "#8b5cf6",

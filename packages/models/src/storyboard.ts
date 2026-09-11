@@ -48,6 +48,21 @@ export interface StoryboardResponse {
   updatedAt: string;
 }
 
+/**
+ * One row as a board *listing* needs it: identity, name, and how many shots it
+ * holds. Everything else in the row is the `document` column, which carries the
+ * whole board — screenplay, every shot, every take. A listing that selects it
+ * reads (and JSON-parses) megabytes to print a number, so the count is asked of
+ * the database instead. See {@link Storyboard.listSummaries}.
+ */
+export interface StoryboardSummary {
+  id: string;
+  projectId: string;
+  name: string;
+  shotCount: number;
+  updatedAt: string;
+}
+
 export class StoryboardConflictError extends Error {
   constructor(id: string) {
     super(`Storyboard ${id} was modified concurrently`);
@@ -217,6 +232,54 @@ export class Storyboard extends DBModel {
       .limit(1);
     const row = rows[0];
     return row ? new Storyboard(row as Record<string, unknown>) : null;
+  }
+
+  /**
+   * The boards a listing shows, without reading any of their documents.
+   *
+   * `document` holds the entire board, so `listByUser(...).map(b =>
+   * b.toDocument().shots.length)` pulls every shot, take and prompt of every
+   * board out of the database and parses it — to print a shot count. The count
+   * is a property of the stored JSON, so it is computed there — written per
+   * dialect, like {@link Storyboard.findRecast}: `json_array_length` over a
+   * path in SQLite, over the cast text column in PostgreSQL. A document whose
+   * `shots` is missing or not an array counts 0 rather than failing the whole
+   * listing.
+   */
+  static async listSummaries(args: {
+    userId: string;
+    projectId?: string;
+    limit?: number;
+  }): Promise<StoryboardSummary[]> {
+    const db = getDb();
+    const postgres = getDbType() === "postgres";
+    const shots = postgres
+      ? sql<number>`CASE WHEN json_typeof((${storyboards.document}::json) -> 'shots') = 'array' THEN json_array_length((${storyboards.document}::json) -> 'shots') ELSE 0 END`
+      : sql<number>`COALESCE(json_array_length(${storyboards.document}, '$.shots'), 0)`;
+    const rows = await db
+      .select({
+        id: storyboards.id,
+        project_id: storyboards.project_id,
+        name: storyboards.name,
+        shot_count: shots,
+        updated_at: storyboards.updated_at
+      })
+      .from(storyboards)
+      .where(
+        and(
+          eq(storyboards.user_id, args.userId),
+          args.projectId ? eq(storyboards.project_id, args.projectId) : undefined
+        )
+      )
+      .orderBy(desc(storyboards.updated_at))
+      .limit(args.limit ?? 50);
+    return rows.map((row: Record<string, unknown>) => ({
+      id: row.id as string,
+      projectId: row.project_id as string,
+      name: row.name as string,
+      shotCount: Number(row.shot_count ?? 0),
+      updatedAt: row.updated_at as string
+    }));
   }
 
   static async listByProject(

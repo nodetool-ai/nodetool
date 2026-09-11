@@ -213,6 +213,8 @@ export const projectEntitySummary = z.object({
     .array(z.object({ name: z.string().optional(), hex: z.string() }))
     .nullable()
     .optional(),
+  /** Reference image when the entity marker points at a separate asset. */
+  reference_asset_id: z.string().optional(),
   updatedAt: z.string()
 });
 export type ProjectEntitySummary = z.infer<typeof projectEntitySummary>;

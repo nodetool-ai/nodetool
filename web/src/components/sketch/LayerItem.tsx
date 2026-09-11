@@ -214,6 +214,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
   return (
     <Box>
       <Box
+        data-focus-id={`sketch-layer-${layer.id}`}
         className={rowClass}
         draggable
         onContextMenu={(e) => {

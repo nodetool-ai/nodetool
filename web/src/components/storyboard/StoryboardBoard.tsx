@@ -76,10 +76,7 @@ import {
 } from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import { useStoryboardShotFocus } from "../../hooks/storyboard/useStoryboardShotFocus";
-import {
-  useImageModelsByProvider,
-  type ImageModelTask
-} from "../../hooks/useModelsByProvider";
+import type { ImageModelTask } from "../../hooks/useModelsByProvider";
 import LanguageModelSelect from "../properties/LanguageModelSelect";
 import { useInStudio } from "../../studio/StudioContext";
 import ImageModelSelect from "../properties/ImageModelSelect";
@@ -101,6 +98,7 @@ import BoardLineageChip from "./BoardLineageChip";
 import BoardRetryFailed from "./BoardRetryFailed";
 import BoardStaleBanner from "./BoardStaleBanner";
 import BoardStyleDialog from "./BoardStyleDialog";
+import EntityStillModelWarning from "./EntityStillModelWarning";
 import SceneHeader from "./SceneHeader";
 import ScriptLinkControl from "./ScriptLinkControl";
 import ShotCard from "./ShotCard";
@@ -539,16 +537,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     [insertShot, boardId]
   );
 
-  // Entity reference images only reach generation through an editing model;
-  // warn when entities are attached but the still model can't take them.
-  const { models: imageModels } = useImageModelsByProvider();
-  const stillModelDetails = imageModel?.id
-    ? imageModels.find((m) => m.id === imageModel.id)
-    : undefined;
-  const entitiesNeedEditModel =
-    entityIds.length > 0 &&
-    !stillModelDetails?.supported_tasks?.includes("image_to_image");
-
   const runDirect = useCallback(() => {
     onDirect?.(shotCount);
   }, [onDirect, shotCount]);
@@ -703,7 +691,12 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   }, [boardId, title]);
 
   return (
-    <ScrollArea fullHeight thin className="storyboard-board">
+    <ScrollArea
+      fullHeight
+      thin
+      className="storyboard-board"
+      data-focus-id="storyboard-board"
+    >
       <FlexColumn
         gap={SPACING.lg}
         sx={{
@@ -869,11 +862,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                           Choose a still model before rendering stills.
                         </Caption>
                       )}
-                      {entitiesNeedEditModel && (
-                        <Caption color="warning">
-                          Entities carry reference images, but this model only
-                          takes text. Pick an image-to-image model to use them.
-                        </Caption>
+                      {entityIds.length > 0 && (
+                        <EntityStillModelWarning modelId={imageModel?.id} />
                       )}
                     </FormField>
                     <FormField label="Clip model" sx={modelFieldSx}>

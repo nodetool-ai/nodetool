@@ -35,7 +35,7 @@ describe("useFolderTree", () => {
     const { result } = renderHook(() => useFolderTree());
     expect(useQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        queryKey: ["folderTree", "name"]
+        queryKey: ["folderTree", "name", "default"]
       })
     );
     expect(result.current.data).toEqual(mockFolderTree);
@@ -45,7 +45,7 @@ describe("useFolderTree", () => {
     renderHook(() => useFolderTree("updated_at"));
     expect(useQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        queryKey: ["folderTree", "updated_at"]
+        queryKey: ["folderTree", "updated_at", "default"]
       })
     );
   });
@@ -61,6 +61,6 @@ describe("useFolderTree", () => {
     renderHook(() => useFolderTree("name"));
     
     await capturedQueryFn?.();
-    expect(mockLoadFolderTree).toHaveBeenCalledWith("name");
+    expect(mockLoadFolderTree).toHaveBeenCalledWith("name", "default");
   });
 });

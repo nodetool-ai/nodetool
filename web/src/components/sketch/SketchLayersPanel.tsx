@@ -1366,7 +1366,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       {/* Active layer opacity & blend mode */}
       {activeLayer && (
         <>
-          <Box className="opacity-row sketch-layers-panel__opacity-row">
+          <Box
+            data-focus-id="sketch-layer-opacity"
+            className="opacity-row sketch-layers-panel__opacity-row"
+          >
             <Text
               sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textMuted }}
             >
@@ -1396,6 +1399,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </Text>
           </Box>
           <FormControl
+            data-focus-id="sketch-layer-blend-mode"
             className="sketch-layers-panel__blend-mode"
             size="small"
             sx={{ px: SPACING.none }}

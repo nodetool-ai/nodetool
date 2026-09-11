@@ -47,7 +47,11 @@ const toEntity = (row: ProjectEntitySummary): Entity => ({
   lora: row.lora ?? null,
   palette: row.palette ?? null,
   reference_images: [
-    { type: "image", asset_id: row.id, uri: `asset://${row.id}` }
+    {
+      type: "image",
+      asset_id: row.reference_asset_id ?? row.id,
+      uri: `asset://${row.reference_asset_id ?? row.id}`
+    }
   ],
   updated_at: row.updatedAt
 });
@@ -119,6 +123,7 @@ const ProjectEntitiesSectionInternal = ({
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
         onPick={handlePick}
+        projectId={projectId}
       />
 
       {editorAssetId && (

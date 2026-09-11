@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "writtenAt": "2026-08-26T15:49:38.326Z",
+  "writtenAt": "2026-09-10T18:30:54.232Z",
   "byNodeType": {
     "kie.image.Seedream45TextToImage": {
       "model_id": "seedream/4.5-text-to-image",
@@ -155,23 +155,59 @@
       "tier_count": 2,
       "pricing_url": "https://kie.ai/flux-2"
     },
-    "kie.image.GrokImagineTextToImage": {
-      "model_id": "grok-imagine/text-to-image",
-      "unit_price": 5,
-      "billing_unit": "4 images",
-      "currency": "credits",
-      "usd_price": 0.025,
-      "tier_count": 1,
-      "pricing_url": "https://kie.ai/grok-imagine"
-    },
-    "kie.image.GrokImagineImageToImage": {
-      "model_id": "grok-imagine/image-to-image",
+    "kie.image.GrokImagineImage20TextToImage": {
+      "model_id": "grok-imagine-image-2-0/text-to-image",
       "unit_price": 4,
       "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.02,
       "tier_count": 1,
+      "pricing_url": "https://kie.ai/grok-imagine-image-2"
+    },
+    "kie.image.GrokImagineTextToImage": {
+      "model_id": "grok-imagine/text-to-image",
+      "unit_price": 5,
+      "billing_unit": "generation",
+      "currency": "credits",
+      "usd_price": 0.025,
+      "tier_count": 1,
       "pricing_url": "https://kie.ai/grok-imagine"
+    },
+    "kie.image.GrokImagineImage20ImageToImage": {
+      "model_id": "grok-imagine-image-2-0/image-edit",
+      "unit_price": 4,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.02,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/grok-imagine-image-2"
+    },
+    "kie.image.GrokImagineImageToImage": {
+      "model_id": "grok-imagine/image-to-image",
+      "unit_price": 4,
+      "billing_unit": "generation",
+      "currency": "credits",
+      "usd_price": 0.02,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/grok-imagine"
+    },
+    "kie.image.GptImage25SunburstTextToImage": {
+      "model_id": "gpt-image-2-5-sunburst-text-to-image",
+      "unit_price": 6,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.03,
+      "tier_count": 3,
+      "pricing_url": "https://kie.ai/gpt-image-2-5"
+    },
+    "kie.image.GptImage25SunburstImageToImage": {
+      "model_id": "gpt-image-2-5-sunburst-image-to-image",
+      "unit_price": 6,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.03,
+      "tier_count": 3,
+      "pricing_url": "https://kie.ai/gpt-image-2-5"
     },
     "kie.image.GptImage15TextToImage": {
       "model_id": "gpt-image/1.5-text-to-image",
@@ -782,7 +818,7 @@
       "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.35,
-      "tier_count": 6,
+      "tier_count": 4,
       "pricing_url": "https://kie.ai/wan-2-6"
     },
     "kie.video.Wan25ImageToVideo": {
@@ -839,30 +875,75 @@
       "tier_count": 2,
       "pricing_url": "https://kie.ai/wan-2-7-video"
     },
-    "kie.video.MinimaxH3TextToVideo": {
-      "model_id": "minimax-h3/text-to-video",
-      "unit_price": 16,
+    "kie.video.Wan30Video": {
+      "model_id": "wan3.0-video",
+      "unit_price": 8,
       "billing_unit": "second",
       "currency": "credits",
-      "usd_price": 0.08,
+      "usd_price": 0.04,
+      "tier_count": 3,
+      "pricing_url": "https://kie.ai/wan3.0-video"
+    },
+    "kie.video.Wan30PrimeVideo": {
+      "model_id": "wan3.0-video-prime",
+      "unit_price": 12.2,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.0612,
+      "tier_count": 3,
+      "pricing_url": "https://kie.ai/wan3.0-video-prime"
+    },
+    "kie.video.PixverseV6ImageToVideo": {
+      "model_id": "pixverse-v6/image-to-video",
+      "unit_price": 4,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.02,
+      "tier_count": 8,
+      "pricing_url": "https://kie.ai/pixverse-v6"
+    },
+    "kie.video.PixverseV6VideoExtension": {
+      "model_id": "pixverse-v6/extend",
+      "unit_price": 4,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.02,
+      "tier_count": 8,
+      "pricing_url": "https://kie.ai/pixverse-v6"
+    },
+    "kie.video.PixverseV6FusionReferenceToVideo": {
+      "model_id": "pixverse-v6/reference-to-video",
+      "unit_price": 4.5,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.0225,
+      "tier_count": 8,
+      "pricing_url": "https://kie.ai/pixverse-v6"
+    },
+    "kie.video.MinimaxH3TextToVideo": {
+      "model_id": "minimax-h3/text-to-video",
+      "unit_price": 8,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.04,
       "tier_count": 2,
       "pricing_url": "https://kie.ai/minimax-h3"
     },
     "kie.video.MinimaxH3ImageToVideo": {
       "model_id": "minimax-h3/image-to-video",
-      "unit_price": 16,
+      "unit_price": 8,
       "billing_unit": "second",
       "currency": "credits",
-      "usd_price": 0.08,
+      "usd_price": 0.04,
       "tier_count": 2,
       "pricing_url": "https://kie.ai/minimax-h3"
     },
     "kie.video.MinimaxH3ReferenceToVideo": {
       "model_id": "minimax-h3/reference-to-video",
-      "unit_price": 16,
+      "unit_price": 8,
       "billing_unit": "second",
       "currency": "credits",
-      "usd_price": 0.08,
+      "usd_price": 0.04,
       "tier_count": 2,
       "pricing_url": "https://kie.ai/minimax-h3"
     },
@@ -928,6 +1009,15 @@
       "usd_price": 0.1125,
       "tier_count": 2,
       "pricing_url": "https://kie.ai/happyhorse-1-1"
+    },
+    "kie.video.GeminiOmni11Flash": {
+      "model_id": "google/gemini-omni-flash-1-1",
+      "unit_price": 63,
+      "billing_unit": "video",
+      "currency": "credits",
+      "usd_price": 0.315,
+      "tier_count": 20,
+      "pricing_url": "https://kie.ai/gemini-omni-1-1-flash"
     },
     "kie.video.GeminiOmniVideo": {
       "model_id": "gemini-omni-video",

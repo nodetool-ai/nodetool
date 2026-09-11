@@ -51,16 +51,27 @@ A ready-to-render "How to use NodeTool" walkthrough ships alongside the sample:
 cd demo
 npm run studio                 # open Studio, pick "Tutorial-first-workflow"
 npm run render:tutorial:first  # → docs/assets/tutorials/first-workflow.mp4
-npm run render:tutorials       # all seven tutorial compositions
+npm run render:tutorials       # graph tutorials
+npm run render:tutorials:all   # complete catalog: MP4 + settled result JPG
+npm run inspect:tutorials     # transition/action/result frames under .tmp/tutorial-focus/
+npm run sync:posters          # copy docs JPGs into the app
 ```
 
-It replays a synthetic four-node pipeline — **Text Input → Enhance Prompt (LLM,
-streaming) → Generate Image → Preview** (`web/src/demo/tutorialCast.ts`, inline
+It replays **Text Input → Enhance Prompt → Generate Image**, with the completed
+image inside its generating node (`web/src/demo/tutorialCast.ts`, inline
 assets, no backend) — under a title card, a step indicator that tracks the active
 node, lower-third captions, and a closing call-to-action (`demo/src/Tutorial.tsx`).
-Edit the entry's `steps` / `captions` in `demo/src/tutorials.ts` to retime or
-reword the narration; the timeline itself lives in `tutorialCast.ts`. To narrate
+Edit the entry's `shots`, `timeMap`, `steps`, and `captions` in
+`demo/src/tutorials.ts` to frame, retime, or reword the narration. Cast events
+stay on their own clock in `tutorialCast.ts`. To narrate
 a different run, point the entry's `castId` at your own cast.
+
+The complete render command enumerates graph, chat, timeline, and document
+registries. It preserves their public filenames, measures each encoded video
+with `ffprobe`, and updates the app's duration label. Use `--only first-workflow`
+to render one tutorial, or `--list` to inspect the selection. Inspection frames
+cover each shot's start, midpoint, settlement, action, and result. Review these
+before encoding and watch the encoded transitions at the app player's size.
 
 ## Cookbook recipe videos (no backend)
 

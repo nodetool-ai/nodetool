@@ -247,7 +247,7 @@ export const TextWidget: React.FC<WidgetCommon & { text?: string }> = (
   const text =
     props.formattedValue ?? (value != null ? str(value) : (props.text ?? ""));
   return (
-    <Text size="normal" sx={{ whiteSpace: "pre-wrap" }}>
+    <Text data-focus-id={`app-widget-${props.id}`} size="normal" sx={{ whiteSpace: "pre-wrap" }}>
       {text}
     </Text>
   );
@@ -822,6 +822,7 @@ export const TextInputWidget: React.FC<
   const { value, setValue, emit } = useBinding(props, "write");
   return (
     <TextInput
+      data-focus-id={`app-widget-${props.id}`}
       label={props.label ?? ""}
       placeholder={props.placeholder ?? ""}
       value={str(value)}
@@ -1099,6 +1100,7 @@ export const ButtonWidget: React.FC<
   const showRunning = isRunning && !designMode;
   return (
     <EditorButton
+      data-focus-id={`app-widget-${props.id}`}
       variant={
         (props.variant as "contained" | "outlined" | "text") ?? "contained"
       }

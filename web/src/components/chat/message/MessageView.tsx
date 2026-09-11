@@ -346,6 +346,7 @@ const ToolCallRow: React.FC<{
 
   return (
     <div
+      data-focus-id={tc.id ? `tool-call-${tc.id}` : undefined}
       className={`tool-row${isRunning ? " running" : ""}${
         isSubtask ? " subtask" : ""
       }${isPlan ? " plan" : ""}${tight ? " tight" : ""}`}
@@ -1009,7 +1010,10 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
 
     const formattedTime = formatMessageTimestamp(message.created_at);
     return (
-      <div className={messageClass}>
+      <div
+        className={messageClass}
+        data-focus-id={message.id ? `message-${message.id}` : undefined}
+      >
         <div className="message-body">
           <div className="message-content">
             {message.role === "assistant" &&

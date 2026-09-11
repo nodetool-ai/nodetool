@@ -103,6 +103,12 @@ interface KieChatModel {
 // model pinned by the path.
 const KIE_CHAT_MODELS: KieChatModel[] = [
   {
+    id: "gpt-6-astra",
+    name: "GPT 6 Astra",
+    api: "responses",
+    basePath: "/codex/v1"
+  },
+  {
     id: "gpt-5-6-sol",
     name: "GPT 5.6 Sol",
     api: "responses",
@@ -205,6 +211,12 @@ const KIE_CHAT_MODELS: KieChatModel[] = [
     basePath: "/claude"
   },
   {
+    id: "grok-4-6",
+    name: "Grok 4.6",
+    api: "responses",
+    basePath: "/grok/v1"
+  },
+  {
     id: "grok-4-5",
     name: "Grok 4.5",
     api: "responses",
@@ -227,6 +239,18 @@ const KIE_CHAT_MODELS: KieChatModel[] = [
     name: "Gemini 3 Pro",
     api: "openai",
     basePath: "/gemini-3-pro/v1"
+  },
+  {
+    id: "gemini-3-8-flash",
+    name: "Gemini 3.8 Flash",
+    api: "openai",
+    basePath: "/gemini-3-8-flash-openai/v1"
+  },
+  {
+    id: "gemini-3-7-flash",
+    name: "Gemini 3.7 Flash",
+    api: "openai",
+    basePath: "/gemini-3-7-flash-openai/v1"
   },
   {
     id: "gemini-3-6-flash",

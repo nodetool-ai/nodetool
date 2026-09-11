@@ -6,7 +6,7 @@
  * to Message.delete() in batches of 100, mirroring the legacy behavior.
  */
 
-import { Thread, Message, Memory } from "@nodetool-ai/models";
+import { Thread, Message, Memory, Project } from "@nodetool-ai/models";
 import type { Thread as ThreadModel } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -15,6 +15,7 @@ import { throwApiError } from "../error-formatter.js";
 import {
   listInput,
   listOutput,
+  createInput,
   getInput,
   threadResponse,
   updateInput,
@@ -89,6 +90,22 @@ async function deriveThreadTitle(threadId: string): Promise<string> {
 }
 
 export const threadsRouter = router({
+  create: protectedProcedure
+    .input(createInput)
+    .output(threadResponse)
+    .mutation(async ({ ctx, input }) => {
+      if (input.project_id !== "default") {
+        await Project.requireOwned(ctx.userId, input.project_id);
+      }
+      const thread = await Thread.create({
+        user_id: ctx.userId,
+        project_id: input.project_id,
+        workflow_id: input.workflow_id ?? null,
+        title: input.title ?? ""
+      });
+      return toThreadResponse(thread);
+    }),
+
   list: protectedProcedure
     .input(listInput)
     .output(listOutput)

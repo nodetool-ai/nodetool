@@ -865,6 +865,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "memories.delete": { capability: "memory_delete" },
   "memories.list": { capability: "memory_list" },
   "memories.search": { capability: "memory_search" },
+  "threads.create": {
+    withheld:
+      "Creating chat history is not a sandbox capability. Runs may read " +
+      "threads for context, while the chat module remains read-only so a " +
+      "run cannot create or alter transcript records outside its turn."
+  },
   "threads.delete": {
     withheld:
       "Chat history is the record of what a run was asked to do and " +

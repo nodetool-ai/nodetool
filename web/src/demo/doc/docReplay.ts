@@ -42,7 +42,11 @@ export function docStateAt<Cast extends DocDemoCast>(
   cast: Cast,
   timeMs: number
 ): Cast["doc"] {
-  return foldDocAt(cast.doc as object, cast.events as DocCastEvent<object>[], timeMs) as Cast["doc"];
+  return foldDocAt(
+    cast.doc as object,
+    cast.events as DocCastEvent<object>[],
+    timeMs
+  ) as Cast["doc"];
 }
 
 /**
@@ -50,7 +54,11 @@ export function docStateAt<Cast extends DocDemoCast>(
  * "seed the shared store" pattern as `seedCastMetadata` (graph) and
  * `seedTimelineCastAssets` (timeline).
  */
-export function seedDocState(cast: DocDemoCast, doc: DocDemoCast["doc"]): void {
+export function seedDocState(
+  cast: DocDemoCast,
+  doc: DocDemoCast["doc"],
+  timeMs = 0
+): void {
   switch (cast.surface) {
     case "script":
       useScriptStore.getState().loadScript(cast.docId, doc as ScriptCastDoc);
@@ -64,6 +72,12 @@ export function seedDocState(cast: DocDemoCast, doc: DocDemoCast["doc"]): void {
       useJsScriptStore
         .getState()
         .loadScript(cast.docId, doc as JsScriptCastDoc);
+      useJsScriptStore
+        .getState()
+        .setLastTest(
+          cast.docId,
+          cast.testRuns?.findLast((run) => run.t <= timeMs)?.report ?? null
+        );
       break;
     case "sketch":
     case "app":

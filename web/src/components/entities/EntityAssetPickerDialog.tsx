@@ -20,11 +20,17 @@ import {
 import type { Asset } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
 import ImageRefPreview from "../node/ImageRefPreview";
+import {
+  LOOSE_PROJECT_ID,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 
 interface EntityAssetPickerDialogProps {
   readonly open: boolean;
   readonly onClose: () => void;
   readonly onPick: (assetId: string) => void;
+  /** Project whose image assets may back the entity. Defaults to the active project. */
+  readonly projectId?: string;
   /** Dialog heading. Defaults to the "tag a new entity" wording. */
   readonly title?: string;
   /** When given, only these asset ids are offered — e.g. entities already tagged. */
@@ -42,6 +48,7 @@ const EntityAssetPickerDialogInternal: React.FC<
   open,
   onClose,
   onPick,
+  projectId,
   title = "Pick a reference image",
   assetIds,
   excludedAssetIds,
@@ -49,14 +56,18 @@ const EntityAssetPickerDialogInternal: React.FC<
   emptyDescription = "Generate or upload an image first."
 }) => {
   const theme = useTheme();
+  const activeProjectId =
+    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
+  const scopedProjectId = projectId ?? activeProjectId;
   const allowed = assetIds ? new Set(assetIds) : null;
   const excluded = excludedAssetIds ? new Set(excludedAssetIds) : null;
   const { data, isLoading } = useQuery({
-    queryKey: ["entity-asset-picker"],
+    queryKey: ["entity-asset-picker", scopedProjectId],
     queryFn: async (): Promise<Asset[]> => {
       const result = await trpcClient.assets.search.query({
         query: "",
-        page_size: 500
+        page_size: 500,
+        project_id: scopedProjectId
       });
       return (result.assets as Asset[]).filter((a) =>
         (a.content_type ?? "").startsWith("image/")

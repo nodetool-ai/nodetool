@@ -20,6 +20,10 @@ import { Asset } from "../../stores/ApiTypes";
 import { IconForType } from "../../config/IconForType";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import {
+  LOOSE_PROJECT_ID,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 
 const styles = (_theme: Theme) =>
   css({
@@ -47,6 +51,8 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [closedFolders, setClosedFolders] = useState<string[]>([]);
   const getAssetsRecursive = useAssetStore((state) => state.getAssetsRecursive);
+  const projectId =
+    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
 
   const folderIcon = useMemo(() => <IconForType iconName="folder" />, []);
   const imageIcon = useMemo(() => <IconForType iconName="image" />, []);
@@ -105,7 +111,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
       setIsLoading(true);
       onLoading(true);
       try {
-        const result = await getAssetsRecursive(folderId);
+        const result = await getAssetsRecursive(folderId, projectId);
         const treeWithTotals = processAssetTree(result);
         setAssetTree(treeWithTotals);
         const total = treeWithTotals.reduce(
@@ -129,7 +135,8 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     getAssetsRecursive,
     processAssetTree,
     onTotalAssetsCalculated,
-    onLoading
+    onLoading,
+    projectId
   ]);
 
   const handleToggleFolder = useCallback((assetId: string) => {

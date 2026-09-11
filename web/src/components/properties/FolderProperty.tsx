@@ -20,6 +20,10 @@ import dialogStyles from "../../styles/DialogStyles";
 import isEqual from "../../utils/isEqual";
 import Select from "../inputs/Select";
 import { FlexRow, DialogActionButtons } from "../ui_primitives";
+import {
+  LOOSE_PROJECT_ID,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 
 interface FolderValue {
   type: "folder";
@@ -30,15 +34,18 @@ const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const load = useAssetStore((state) => state.load);
   const createFolder = useAssetStore((state) => state.createFolder);
+  const projectId =
+    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
   const fetchFolders = async () => {
-    return await load({ content_type: "folder" });
+    return await load({ content_type: "folder", project_id: projectId });
   };
   const { data, error, isLoading, refetch } = useQuery<AssetList, Error>({
-    queryKey: ["assets", { content_type: "folder" }],
-    queryFn: fetchFolders
+    queryKey: ["assets", { content_type: "folder", project_id: projectId }],
+    queryFn: fetchFolders,
+    staleTime: 30_000
   });
 
   // Validate that the selected value exists in the options

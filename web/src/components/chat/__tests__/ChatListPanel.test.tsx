@@ -82,7 +82,8 @@ describe("ChatListPanel", () => {
       type: "chat",
       ref: "thread-1",
       mode: "view",
-      title: "Fixing the encoder"
+      title: "Fixing the encoder",
+      projectId: "default"
     });
   });
 
@@ -110,7 +111,8 @@ describe("ChatListPanel", () => {
       type: "chat",
       ref: "thread-new",
       mode: "view",
-      title: "New chat"
+      title: "New chat",
+      projectId: "default"
     });
   });
 });

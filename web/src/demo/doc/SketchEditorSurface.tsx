@@ -17,6 +17,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
+import { Box } from "../../components/ui_primitives";
 
 import {
   ConnectedLayersPanel,
@@ -151,7 +152,7 @@ export function SketchEditorSurface({
       >
         <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
           <ConnectedToolbar />
-          <div style={canvasStyle}>
+          <div data-focus-id="sketch-canvas" style={canvasStyle}>
             <SketchRenderer
               document={doc.document}
               showDimensions
@@ -162,7 +163,9 @@ export function SketchEditorSurface({
               preferCanvas2d
             />
           </div>
-          <ConnectedLayersPanel {...NOOP_PANEL_ACTIONS} />
+          <Box data-focus-id="sketch-layers">
+            <ConnectedLayersPanel {...NOOP_PANEL_ACTIONS} />
+          </Box>
         </div>
         <ConnectedStatusBar />
       </div>

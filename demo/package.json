@@ -63,7 +63,11 @@
     "build:3d-scene": "tsx scripts/build-3d-cast-scene.ts",
     "render:tab-chaos": "remotion render src/index.ts Tab-Chaos out/tab-chaos.mp4",
     "still:promo": "remotion still src/index.ts Promo-Master out/promo-frame.jpg --frame=300",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "render:tutorials:all": "tsx scripts/render-tutorials.ts",
+    "still:tutorials:all": "tsx scripts/render-tutorials.ts --stills-only",
+    "inspect:tutorials": "tsx scripts/render-tutorials.ts --inspect",
+    "test": "tsx --test src/__tests__/*.test.ts"
   },
   "dependencies": {
     "@remotion/bundler": "^4.0.481",

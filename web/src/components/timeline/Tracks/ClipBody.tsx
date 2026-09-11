@@ -787,6 +787,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
         data-testid={`clip-${clipId}`}
+        data-focus-id={`timeline-clip-${clipId}`}
         aria-selected={isSelected}
         role="option"
         tabIndex={0}
@@ -1000,6 +1001,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           onPointerCancel={handleTrimPointerEnd}
           aria-label="Trim clip end"
           data-testid={`clip-trim-end-${clipId}`}
+          data-focus-id={`timeline-trim-end-${clipId}`}
         />
 
         {clip.locked && (

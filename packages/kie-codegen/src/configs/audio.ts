@@ -619,7 +619,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "A description of the desired audio content. - In Custom Mode (`customMode: true`): Required if `instrumental` is `false`. The prompt will be strictly used as the lyrics and sung in the generated track. Character limits by model: - **V4**: Maximum 3000 characters - **V4_5 & V4_5PLUS**: Maximum 5000 characters - **V4_5ALL**: Maximum 5000 characters - **V5_5 & V5**: Maximum 5000 characters Example: \"A calm and relaxing piano track with soft melodies\" - In Non-custom Mode (`customMode: false`): Always required. The prompt serves as the core idea, and lyrics will be automatically generated based on it (not strictly matching the input). Maximum 3000 characters. Example: \"A short relaxing piano tune\"",
+          "description": "A description of the desired audio content. - In Custom Mode (`customMode: true`): Required if `instrumental` is `false`. The prompt will be strictly used as the lyrics and sung in the generated track. Character limits by model: - **V4**（Discontinued）: Maximum 3000 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 5000 characters - **V4_5ALL**（Discontinued）: Maximum 5000 characters - **V5_5 & V5**（Discontinued）: Maximum 5000 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 5000 characters Example: \"A calm and relaxing piano track with soft melodies\" - In Non-custom Mode (`customMode: false`): Always required. The prompt serves as the core idea, and lyrics will be automatically generated based on it (not strictly matching the input). Maximum 3000 characters. Example: \"A short relaxing piano tune\"",
           "required": true
         },
         {
@@ -627,7 +627,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Style",
-          "description": "Music style specification for the generated audio. - Required in Custom Mode (`customMode: true`). Defines the genre, mood, or artistic direction. - Character limits by model: - **V4**: Maximum 200 characters - **V4_5 & V4_5PLUS**: Maximum 1000 characters - **V4_5ALL**: Maximum 1000 characters - **V5_5 & V5**: Maximum 1000 characters - Common examples: Jazz, Classical, Electronic, Pop, Rock, Hip-hop, etc.",
+          "description": "Music style specification for the generated audio. - Required in Custom Mode (`customMode: true`). Defines the genre, mood, or artistic direction. - Character limits by model: - **V4**（Discontinued）: Maximum 200 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 1000 characters - **V4_5ALL**（Discontinued）: Maximum 1000 characters - **V5_5 & V5**（Discontinued）: Maximum 1000 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 1000 characters - Common examples: Jazz, Classical, Electronic, Pop, Rock, Hip-hop, etc.",
           "required": false
         },
         {
@@ -657,9 +657,9 @@ export const audioConfig: ModuleConfig = {
         {
           "name": "model",
           "type": "enum",
-          "default": "",
+          "default": "V6",
           "title": "Model",
-          "description": "The AI model version to use for generation. - Required for all requests. - Available options: - **`V5_5`**：Custom Models Tailored to Your Unique Taste. - **`V5`**: Superior musical expression, faster generation. - **`V4_5PLUS`**: V4.5+ delivers richer sound, new ways to create, max 8 min. - **`V4_5`**: V4.5 enables smarter prompts, faster generations, max 8 min. - **`V4_5ALL`**: V4.5ALL enables smarter prompts, faster generations, max 8 min. - **`V4`**: V4 improves vocal quality, max 4 min.",
+          "description": "The AI model version to use for generation. - Required for all requests. - Available options: - **`V6_WILD`**：Pushes creative boundaries for bolder, more distinctive musical expression. - **`V6_MINI`**：Lightweight and fast, balancing quality and speed for effortless creation. - **`V6`**：Greater musical expression with more natural vocals and richer details. - **`V5_5`**（Discontinued）：Custom Models Tailored to Your Unique Taste. - **`V5`**（Discontinued）: Superior musical expression, faster generation. - **`V4_5PLUS`**（Discontinued）: V4.5+ delivers richer sound, new ways to create, max 8 min. - **`V4_5`**（Discontinued）: V4.5 enables smarter prompts, faster generations, max 8 min. - **`V4_5ALL`**（Discontinued）: V4.5ALL enables smarter prompts, faster generations, max 8 min. - **`V4`**（Discontinued）: V4 improves vocal quality, max 4 min.",
           "required": true,
           "values": [
             "V4",
@@ -667,7 +667,10 @@ export const audioConfig: ModuleConfig = {
             "V4_5PLUS",
             "V4_5ALL",
             "V5",
-            "V5_5"
+            "V5_5",
+            "V6",
+            "V6_MINI",
+            "V6_WILD"
           ]
         },
         {
@@ -733,7 +736,7 @@ export const audioConfig: ModuleConfig = {
           "type": "enum",
           "default": "",
           "title": "Persona Model",
-          "description": "The persona model is only available for models version 5 and 5.5.",
+          "description": "The persona model is only applicable to the V5 (deactivated), V5.5 (deactivated), V6, V6_MINI, and V6_WILD models.",
           "required": false,
           "values": [
             "style_persona",
@@ -745,7 +748,7 @@ export const audioConfig: ModuleConfig = {
           "type": "float",
           "default": 20,
           "title": "Duration",
-          "description": "Audio duration. Optional; only effective when custom_mode is true and model is V5_5.",
+          "description": "Audio duration. Optional; It is only valid when custom_mode is true and the model is V5_5 (deprecated), V6, V6_MINI, or V6_WILD.",
           "required": false,
           "min": 10,
           "max": 360
@@ -794,7 +797,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "Prompt describing the desired audio extension content. - Required when `defaultParamFlag` is `true` (this parameter is not needed if `instrumental` is `true`). - Character limits by model: - **V4**: Max 3,000 characters - **V4_5 and V4_5PLUS**: Max 5,000 characters - **V4_5ALL**: Max 5,000 characters - **V5_5 and V5**: Max 5,000 characters - Describe how the music should continue or evolve in the extended section.",
+          "description": "Prompt describing the desired audio extension content. - Required when `defaultParamFlag` is `true` (this parameter is not needed if `instrumental` is `true`). - Character limits by model: - **V4**（Discontinued）: Max 3,000 characters - **V4_5 and V4_5PLUS**（Discontinued）: Max 5,000 characters - **V4_5ALL**（Discontinued）: Max 5,000 characters - **V5_5 and V5**（Discontinued）: Max 5,000 characters - **V6、V6_MINI 和 V6_WILD**: Max 5,000 characters - Describe how the music should continue or evolve in the extended section.",
           "required": false
         },
         {
@@ -802,7 +805,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Style",
-          "description": "Music style specification for the extended audio. - Required when `defaultParamFlag` is `true`. - Character limits by model: - **V4**: Maximum 200 characters - **V4_5 & V4_5PLUS**: Maximum 1000 characters - **V4_5ALL**: Maximum 1000 characters - **V5_5 & V5**: Maximum 1000 characters - Should typically align with the original audio's style for best results.",
+          "description": "Music style specification for the extended audio. - Required when `defaultParamFlag` is `true`. - Character limits by model: - **V4**（Discontinued）: Maximum 200 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 1000 characters - **V4_5ALL**（Discontinued）: Maximum 1000 characters - **V5_5 & V5**（Discontinued）: Maximum 1000 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 1000 characters - Should typically align with the original audio's style for best results.",
           "required": false
         },
         {
@@ -810,7 +813,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Title",
-          "description": "Title for the extended music track. - Required when `defaultParamFlag` is `true`. - Character limits by model: - **V4**: Maximum 80 characters - **V4_5 & V4_5PLUS**: Maximum 100 characters - **V4_5ALL**: Maximum 80 characters - **V5_5 & V5**: Maximum 100 characters - Will be displayed in player interfaces and filenames.",
+          "description": "Title for the extended music track. - Required when `defaultParamFlag` is `true`. - Character limits by model: - **V4**（Discontinued）: Maximum 80 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 100 characters - **V4_5ALL**（Discontinued）: Maximum 80 characters - **V5_5 & V5**（Discontinued）: Maximum 100 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 100 characters - Will be displayed in player interfaces and filenames.",
           "required": false
         },
         {
@@ -824,9 +827,9 @@ export const audioConfig: ModuleConfig = {
         {
           "name": "model",
           "type": "enum",
-          "default": "",
+          "default": "V6",
           "title": "Model",
-          "description": "The AI model version to use for generation. - Required for all requests. - Available options: - **`V5_5`**：Custom Models Tailored to Your Unique Taste. - **`V5`**: Superior musical expression, faster generation. - **`V4_5PLUS`**: V4.5+ delivers richer sound, new ways to create, max 8 min. - **`V4_5`**: V4.5 enables smarter prompts, faster generations, max 8 min. - **`V4_5ALL`**: V4.5ALL enables smarter prompts, faster generations, max 8 min. - **`V4`**: V4 improves vocal quality, max 4 min.",
+          "description": "The AI model version to use for generation. - Required for all requests. - Available options: - **`V6_WILD`**：Pushes creative boundaries for bolder, more distinctive musical expression. - **`V6_MINI`**：Lightweight and fast, balancing quality and speed for effortless creation. - **`V6`**：Greater musical expression with more natural vocals and richer details. - **`V5_5`**（Discontinued）：Custom Models Tailored to Your Unique Taste. - **`V5`**（Discontinued）: Superior musical expression, faster generation. - **`V4_5PLUS`**（Discontinued）: V4.5+ delivers richer sound, new ways to create, max 8 min. - **`V4_5`**（Discontinued）: V4.5 enables smarter prompts, faster generations, max 8 min. - **`V4_5ALL`**（Discontinued）: V4.5ALL enables smarter prompts, faster generations, max 8 min. - **`V4`**（Discontinued）: V4 improves vocal quality, max 4 min.",
           "required": true,
           "values": [
             "V4",
@@ -834,7 +837,10 @@ export const audioConfig: ModuleConfig = {
             "V4_5PLUS",
             "V4_5ALL",
             "V5",
-            "V5_5"
+            "V5_5",
+            "V6",
+            "V6_WILD",
+            "V6_MINI"
           ]
         },
         {
@@ -900,7 +906,7 @@ export const audioConfig: ModuleConfig = {
           "type": "enum",
           "default": "",
           "title": "Persona Model",
-          "description": "The persona model is only available for models version 5 and 5.5.",
+          "description": "The persona model is only applicable to the V5 (deactivated), V5.5 (deactivated), V6, V6_MINI, and V6_WILD models.",
           "required": false,
           "values": [
             "style_persona",
@@ -913,6 +919,14 @@ export const audioConfig: ModuleConfig = {
           "default": false,
           "title": "Instrumental",
           "description": "Indicates whether it is an instrumental track. If true, passing the `prompt` and `vocalGender` parameters is prohibited.",
+          "required": false
+        },
+        {
+          "name": "taskId",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Task ID from the original music generation. Optional.",
           "required": false
         }
       ],
@@ -957,7 +971,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "A description of the desired audio content. - In Custom Mode (`customMode: true`): Required if `instrumental` is `false`. The prompt will be strictly used as the lyrics and sung in the generated track. Character limits by model: - **V5_5 & V5**: Maximum 5000 characters - **V4_5PLUS & V4_5**: Maximum 5000 characters - **V4_5ALL**: Maximum 5000 characters - **V4**: Maximum 3000 characters Example: \"A calm and relaxing piano track with soft melodies\" - In Non-custom Mode (`customMode: false`): Always required. The prompt serves as the core idea, and lyrics will be automatically generated based on it (not strictly matching the input). Max length: 500 characters. Example: \"A short relaxing piano tune\"",
+          "description": "A description of the desired audio content. - In Custom Mode (`customMode: true`): Required if `instrumental` is `false`. The prompt will be strictly used as the lyrics and sung in the generated track. Character limits by model: - **V4**（Discontinued）: Max 3,000 characters - **V4_5 and V4_5PLUS**（Discontinued）: Max 5,000 characters - **V4_5ALL**（Discontinued）: Max 5,000 characters - **V5_5 and V5**（Discontinued）: Max 5,000 characters - **V6、V6_MINI 和 V6_WILD**: Max 5,000 characters Example: \"A calm and relaxing piano track with soft melodies\" - In Non-custom Mode (`customMode: false`): Always required. The prompt serves as the core idea, and lyrics will be automatically generated based on it (not strictly matching the input). Max length: 500 characters. Example: \"A short relaxing piano tune\"",
           "required": true
         },
         {
@@ -965,7 +979,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Style",
-          "description": "The music style or genre for the audio. - Required in Custom Mode (`customMode: true`). Examples: \"Jazz\", \"Classical\", \"Electronic\". Character limits by model: - **V5_5 & V5**: Maximum 1000 characters - **V4_5PLUS & V4_5**: Maximum 1000 characters - **V4_5ALL**: Maximum 1000 characters - **V4**: Maximum 200 characters Example: \"Classical\" - In Non-custom Mode (`customMode: false`): Leave empty.",
+          "description": "The music style or genre for the audio. - Required in Custom Mode (`customMode: true`). Examples: \"Jazz\", \"Classical\", \"Electronic\". Character limits by model: - **V4**（Discontinued）: Maximum 200 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 1000 characters - **V4_5ALL**（Discontinued）: Maximum 1000 characters - **V5_5 & V5**（Discontinued）: Maximum 1000 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 1000 characters Example: \"Classical\" - In Non-custom Mode (`customMode: false`): Leave empty.",
           "required": false
         },
         {
@@ -973,7 +987,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Title",
-          "description": "The title of the generated music track. - Required in Custom Mode (`customMode: true`). Character limits by model: - **V5_5 & V5**: Maximum 100 characters - **V4_5PLUS & V4_5**: Maximum 100 characters - **V4_5ALL**: Maximum 80 characters - **V4**: Maximum 80 characters Example: \"Peaceful Piano Meditation\" - In Non-custom Mode (`customMode: false`): Leave empty.",
+          "description": "The title of the generated music track. - Required in Custom Mode (`customMode: true`). Character limits by model: - **V4**（Discontinued）: Maximum 80 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 100 characters - **V4_5ALL**（Discontinued）: Maximum 80 characters - **V5_5 & V5**（Discontinued）: Maximum 100 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 100 characters Example: \"Peaceful Piano Meditation\" - In Non-custom Mode (`customMode: false`): Leave empty.",
           "required": false
         },
         {
@@ -995,9 +1009,9 @@ export const audioConfig: ModuleConfig = {
         {
           "name": "model",
           "type": "enum",
-          "default": "",
+          "default": "V6",
           "title": "Model",
-          "description": "The AI model version to use for generation. - Required for all requests. - Available options: - **`V5_5`**：Custom Models Tailored to Your Unique Taste. - **`V5`**: Superior musical expression, faster generation. - **`V4_5PLUS`**: V4.5+ delivers richer sound, new ways to create, max 8 min. - **`V4_5`**: V4.5 enables smarter prompts, faster generations, max 8 min. - **`V4_5ALL`**: V4.5ALL enables smarter prompts, faster generations, max 8 min. - **`V4`**: V4 improves vocal quality, max 4 min.",
+          "description": "The AI model version to use for generation. - Required for all requests. - Available options: - **`V6_WILD`**：Pushes creative boundaries for bolder, more distinctive musical expression. - **`V6_MINI`**：Lightweight and fast, balancing quality and speed for effortless creation. - **`V6`**：Greater musical expression with more natural vocals and richer details. - **`V5_5`**（Discontinued）：Custom Models Tailored to Your Unique Taste. - **`V5`**（Discontinued）: Superior musical expression, faster generation. - **`V4_5PLUS`**（Discontinued）: V4.5+ delivers richer sound, new ways to create, max 8 min. - **`V4_5`**（Discontinued）: V4.5 enables smarter prompts, faster generations, max 8 min. - **`V4_5ALL`**（Discontinued）: V4.5ALL enables smarter prompts, faster generations, max 8 min. - **`V4`**（Discontinued）: V4 improves vocal quality, max 4 min.",
           "required": true,
           "values": [
             "V4",
@@ -1005,7 +1019,10 @@ export const audioConfig: ModuleConfig = {
             "V4_5PLUS",
             "V4_5ALL",
             "V5",
-            "V5_5"
+            "V5_5",
+            "V6",
+            "V6_WILD",
+            "V6_MINI"
           ]
         },
         {
@@ -1071,7 +1088,7 @@ export const audioConfig: ModuleConfig = {
           "type": "enum",
           "default": "",
           "title": "Persona Model",
-          "description": "The persona model is only available for models version 5 and 5.5.",
+          "description": "The persona model is only applicable to the V5 (deactivated), V5.5 (deactivated), V6, V6_MINI, and V6_WILD models.",
           "required": false,
           "values": [
             "voice_persona",
@@ -1083,7 +1100,7 @@ export const audioConfig: ModuleConfig = {
           "type": "int",
           "default": 20,
           "title": "Duration",
-          "description": "Duration is selectable; valid only when `custom_mode` is `true` and `model` is `V5_5`.",
+          "description": "Audio duration. Optional; It is only valid when custom_mode is true and the model is V5_5 (deprecated), V6, V6_MINI, or V6_WILD.",
           "required": false,
           "min": 10,
           "max": 360
@@ -1153,7 +1170,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "Describe how the music should be extended. Optional; if provided, it will be used as a prompt. Subject to model character limits: - **V5_5 & V5**: Max 5,000 characters - **V4_5PLUS & V4_5**: Max 5,000 characters - **V4_5ALL**: Max 5,000 characters - **V4**: Max 3,000 characters",
+          "description": "Describe how the music should be extended. Optional; if provided, it will be used as a prompt. Subject to model character limits: - **V4**（Discontinued）: Max 3,000 characters - **V4_5 and V4_5PLUS**（Discontinued）: Max 5,000 characters - **V4_5ALL**（Discontinued）: Max 5,000 characters - **V5_5 and V5**（Discontinued）: Max 5,000 characters - **V6、V6_MINI 和 V6_WILD**: Max 5,000 characters",
           "required": false
         },
         {
@@ -1161,7 +1178,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Style",
-          "description": "Music style, e.g., Jazz, Classical, Electronic. Character limits by model: - **V5_5 & V5**: Maximum 1000 characters - **V4_5PLUS & V4_5**: Maximum 1000 characters - **V4_5ALL**: Maximum 1000 characters - **V4**: Maximum 200 characters",
+          "description": "Music style, e.g., Jazz, Classical, Electronic. Character limits by model: - **V4**（Discontinued）: Maximum 200 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 1000 characters - **V4_5ALL**（Discontinued）: Maximum 1000 characters - **V5_5 & V5**（Discontinued）: Maximum 1000 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 1000 characters",
           "required": false
         },
         {
@@ -1169,7 +1186,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Title",
-          "description": "Music title. Character limits by model: - **V5_5 & V5**: Maximum 100 characters - **V4_5PLUS & V4_5**: Maximum 100 characters - **V4_5ALL**: Maximum 80 characters - **V4**: Maximum 80 characters",
+          "description": "Music title. Character limits by model: - **V4**（Discontinued）: Maximum 80 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 100 characters - **V4_5ALL**（Discontinued）: Maximum 80 characters - **V5_5 & V5**（Discontinued）: Maximum 100 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 100 characters",
           "required": false
         },
         {
@@ -1183,9 +1200,9 @@ export const audioConfig: ModuleConfig = {
         {
           "name": "model",
           "type": "enum",
-          "default": "",
+          "default": "V6",
           "title": "Model",
-          "description": "The AI model version to use for generation. - Required for all requests. - Available options: - **`V5_5`**：Custom Models Tailored to Your Unique Taste. - **`V5`**: Superior musical expression, faster generation. - **`V4_5PLUS`**: V4.5+ delivers richer sound, new ways to create, max 8 min. - **`V4_5`**: V4.5 enables smarter prompts, faster generations, max 8 min. - **`V4_5ALL`**: V4.5ALL enables smarter prompts, faster generations, max 8 min. - **`V4`**: V4 improves vocal quality, max 4 min.",
+          "description": "The AI model version to use for generation. - Required for all requests. - Available options: - **`V6_WILD`**：Pushes creative boundaries for bolder, more distinctive musical expression. - **`V6_MINI`**：Lightweight and fast, balancing quality and speed for effortless creation. - **`V6`**：Greater musical expression with more natural vocals and richer details. - **`V5_5`**（Discontinued）：Custom Models Tailored to Your Unique Taste. - **`V5`**（Discontinued）: Superior musical expression, faster generation. - **`V4_5PLUS`**（Discontinued）: V4.5+ delivers richer sound, new ways to create, max 8 min. - **`V4_5`**（Discontinued）: V4.5 enables smarter prompts, faster generations, max 8 min. - **`V4_5ALL`**（Discontinued）: V4.5ALL enables smarter prompts, faster generations, max 8 min. - **`V4`**（Discontinued）: V4 improves vocal quality, max 4 min.",
           "required": true,
           "values": [
             "V4",
@@ -1193,7 +1210,10 @@ export const audioConfig: ModuleConfig = {
             "V4_5PLUS",
             "V4_5ALL",
             "V5",
-            "V5_5"
+            "V5_5",
+            "V6",
+            "V6_MINI",
+            "V6_WILD"
           ]
         },
         {
@@ -1259,7 +1279,7 @@ export const audioConfig: ModuleConfig = {
           "type": "enum",
           "default": "",
           "title": "Persona Model",
-          "description": "The persona model is only available for models version 5 and 5.5.",
+          "description": "The persona model is only applicable to the V5 (deactivated), V5.5 (deactivated), V6, V6_MINI, and V6_WILD models.",
           "required": false,
           "values": [
             "style_persona",
@@ -1308,14 +1328,17 @@ export const audioConfig: ModuleConfig = {
         {
           "name": "model",
           "type": "enum",
-          "default": "V4_5PLUS",
+          "default": "V6",
           "title": "Model",
-          "description": "The AI model version to use for generation. - Available options: - **`V5_5`**：Custom Models Tailored to Your Unique Taste. - **`V5`**: Superior musical expression, faster generation. - **`V4_5PLUS`**: V4.5+ is richer sound, new ways to create.",
+          "description": "The AI model version to use for generation. - Available options: - **`V6_WILD`**：Pushes creative boundaries for bolder, more distinctive musical expression. - **`V6_MINI`**：Lightweight and fast, balancing quality and speed for effortless creation. - **`V6`**：Greater musical expression with more natural vocals and richer details. - **`V5_5`**（Discontinued）：Custom Models Tailored to Your Unique Taste. - **`V5`**（Discontinued）: Superior musical expression, faster generation. - **`V4_5PLUS`**（Discontinued）: V4.5+ delivers richer sound, new ways to create, max 8 min.",
           "required": false,
           "values": [
             "V4_5PLUS",
             "V5",
-            "V5_5"
+            "V5_5",
+            "V6",
+            "V6_WILD",
+            "V6_MINI"
           ]
         },
         {
@@ -1432,14 +1455,17 @@ export const audioConfig: ModuleConfig = {
         {
           "name": "model",
           "type": "enum",
-          "default": "V4_5PLUS",
+          "default": "V6",
           "title": "Model",
-          "description": "The AI model version to use for generation. - Available options: - **`V5_5`**：Custom Models Tailored to Your Unique Taste. - **`V5`**: Superior musical expression, faster generation. - **`V4_5PLUS`**: V4.5+ is richer sound, new ways to create.",
+          "description": "The AI model version to use for generation. - Available options: - **`V6_WILD`**：Pushes creative boundaries for bolder, more distinctive musical expression. - **`V6_MINI`**：Lightweight and fast, balancing quality and speed for effortless creation. - **`V6`**：Greater musical expression with more natural vocals and richer details. - **`V5_5`**（Discontinued）：Custom Models Tailored to Your Unique Taste. - **`V5`**（Discontinued）: Superior musical expression, faster generation. - **`V4_5PLUS`**（Discontinued）: V4.5+ delivers richer sound, new ways to create, max 8 min.",
           "required": false,
           "values": [
             "V4_5PLUS",
             "V5",
-            "V5_5"
+            "V5_5",
+            "V6",
+            "V6_WILD",
+            "V6_MINI"
           ]
         },
         {
@@ -1748,7 +1774,7 @@ export const audioConfig: ModuleConfig = {
           "type": "enum",
           "default": "",
           "title": "Model",
-          "description": "AI model version used for generation. - Available options: - **`V5_5`**: A tailor-made exclusive model that fits your unique taste. - **`V5`**: Better musical expressiveness with faster generation speed. - **`V4_5PLUS`**: V4.5+ with richer timbre, new creative methods, up to 8 minutes. - **`V4_5`**: V4.5 with smarter prompts, faster generation speed, up to 8 minutes. - **`V4_5ALL`**: V4.5ALL with smarter prompts, faster generation speed, up to 8 minutes. - **`V4`**: V4 with improved vocal quality, up to 4 minutes.",
+          "description": "AI model version used for generation. - Available options: - **`V6_WILD`**：Pushes creative boundaries for bolder, more distinctive musical expression. - **`V6_MINI`**：Lightweight and fast, balancing quality and speed for effortless creation. - **`V6`**：Greater musical expression with more natural vocals and richer details. - **`V5_5`**（Discontinued）：Custom Models Tailored to Your Unique Taste. - **`V5`**（Discontinued）: Superior musical expression, faster generation. - **`V4_5PLUS`**（Discontinued）: V4.5+ delivers richer sound, new ways to create, max 8 min. - **`V4_5`**（Discontinued）: V4.5 enables smarter prompts, faster generations, max 8 min. - **`V4_5ALL`**（Discontinued）: V4.5ALL enables smarter prompts, faster generations, max 8 min. - **`V4`**（Discontinued）: V4 improves vocal quality, max 4 min.",
           "required": false,
           "values": [
             "V4",
@@ -1756,7 +1782,10 @@ export const audioConfig: ModuleConfig = {
             "V4_5PLUS",
             "V4_5ALL",
             "V5",
-            "V5_5"
+            "V5_5",
+            "V6",
+            "V6_MINI",
+            "V6_WILD"
           ]
         }
       ],
@@ -1915,7 +1944,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "A description of the desired audio content. - In Custom Mode (`customMode: true`): Required if `instrumental` is `false`. The prompt will be strictly used as the lyrics and sung in the generated track. Character limits by model: - **V4**: Maximum 3000 characters - **V4_5 & V4_5PLUS**: Maximum 5000 characters - **V4_5ALL**: Maximum 5000 characters - **V5 & V5_5**: Maximum 5000 characters Example: \"A calm and relaxing piano track with soft melodies\" - In Non-custom Mode (`customMode: false`): Always required. The prompt serves as the core idea, and lyrics will be automatically generated based on it (not strictly matching the input). Maximum 500 characters. Example: \"A short relaxing piano tune\"",
+          "description": "A description of the desired audio content. - In Custom Mode (`customMode: true`): Required if `instrumental` is `false`. The prompt will be strictly used as the lyrics and sung in the generated track. Character limits by model: - **V4**（Discontinued）: Max 3,000 characters - **V4_5 and V4_5PLUS**（Discontinued）: Max 5,000 characters - **V4_5ALL**（Discontinued）: Max 5,000 characters - **V5_5 and V5**（Discontinued）: Max 5,000 characters - **V6、V6_MINI 和 V6_WILD**: Max 5,000 characters Example: \"A calm and relaxing piano track with soft melodies\" - In Non-custom Mode (`customMode: false`): Always required. The prompt serves as the core idea, and lyrics will be automatically generated based on it (not strictly matching the input). Maximum 500 characters. Example: \"A short relaxing piano tune\"",
           "required": false
         },
         {
@@ -1923,7 +1952,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Style",
-          "description": "Music style specification for the generated audio. - Only available and required in Custom Mode (`customMode: true`). Defines the genre, mood, or artistic direction. - Character limits by model: - **V4**: Maximum 200 characters - **V4_5 & V4_5PLUS**: Maximum 1000 characters - **V4_5ALL**: Maximum 1000 characters - **V5 & V5_5**: Maximum 1000 characters - Common examples: Jazz, Classical, Electronic, Pop, Rock, Hip-hop, etc.",
+          "description": "Music style specification for the generated audio. - Only available and required in Custom Mode (`customMode: true`). Defines the genre, mood, or artistic direction. - Character limits by model: - **V4**（Discontinued）: Maximum 200 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 1000 characters - **V4_5ALL**（Discontinued）: Maximum 1000 characters - **V5_5 & V5**（Discontinued）: Maximum 1000 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 1000 characters - Common examples: Jazz, Classical, Electronic, Pop, Rock, Hip-hop, etc.",
           "required": true
         },
         {
@@ -1953,9 +1982,9 @@ export const audioConfig: ModuleConfig = {
         {
           "name": "model",
           "type": "enum",
-          "default": "",
+          "default": "V6",
           "title": "Model",
-          "description": "The AI model version to use for generation. - Required for all requests. - Available options: - **`V5_5`**: Custom Models Tailored to Your Unique Taste. - **`V5`**: Superior musical expression, faster generation. - **`V4_5PLUS`**: V4.5+ delivers richer sound, new ways to create, max 8 min. - **`V4_5`**: V4.5 enables smarter prompts, faster generations, max 8 min. - **`V4_5ALL`**: V4.5ALL enables smarter prompts, faster generations, max 8 min. - **`V4`**: V4 improves vocal quality, max 4 min.",
+          "description": "The AI model version to use for generation. - Required for all requests. - Available options: - **`V6_WILD`**：Pushes creative boundaries for bolder, more distinctive musical expression. - **`V6_MINI`**：Lightweight and fast, balancing quality and speed for effortless creation. - **`V6`**：Greater musical expression with more natural vocals and richer details. - **`V5_5`**（Discontinued）：Custom Models Tailored to Your Unique Taste. - **`V5`**（Discontinued）: Superior musical expression, faster generation. - **`V4_5PLUS`**（Discontinued）: V4.5+ delivers richer sound, new ways to create, max 8 min. - **`V4_5`**（Discontinued）: V4.5 enables smarter prompts, faster generations, max 8 min. - **`V4_5ALL`**（Discontinued）: V4.5ALL enables smarter prompts, faster generations, max 8 min. - **`V4`**（Discontinued）: V4 improves vocal quality, max 4 min.",
           "required": true,
           "values": [
             "V4",
@@ -1963,7 +1992,10 @@ export const audioConfig: ModuleConfig = {
             "V4_5PLUS",
             "V4_5ALL",
             "V5",
-            "V5_5"
+            "V5_5",
+            "V6",
+            "V6_MINI",
+            "V6_WILD"
           ]
         },
         {
@@ -2013,7 +2045,7 @@ export const audioConfig: ModuleConfig = {
           "type": "int",
           "default": 20,
           "title": "Duration",
-          "description": "Duration is selectable; valid only when `custom_mode` is `true` and `model` is `V5_5`.",
+          "description": "Audio duration. Optional; It is only valid when custom_mode is true and the model is V5_5 (deprecated), V6, V6_MINI, or V6_WILD.",
           "required": false,
           "min": 10,
           "max": 360
@@ -2042,6 +2074,40 @@ export const audioConfig: ModuleConfig = {
           "field": "model",
           "rule": "not_empty",
           "message": "Model is required"
+        }
+      ]
+    },
+    {
+      "className": "RecoveryAudio",
+      "modelId": "recoveryAudio",
+      "title": "Recovery Audio",
+      "description": "Recovery Audio via Kie.ai.\n\n    kie, audio, ai\n\n    Recover playable audio links for a music generation task that has already completed.",
+      "outputType": "audio",
+      "useSuno": true,
+      "sunoEndpoint": "/api/v1/suno/recovery",
+      "fields": [
+        {
+          "name": "task_id",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "The original music generation task ID for which the audio link needs to be restored. This ID is returned by the music generation class interface, not by this interface.",
+          "required": true
+        },
+        {
+          "name": "call_back_url",
+          "type": "str",
+          "default": "",
+          "title": "Call Back Url",
+          "description": "The URL for callback notifications after the recovery task is completed. Optional. If left blank, please use `GET /api/v1/suno/recovery/record-info` for polling instead.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "task_id",
+          "rule": "not_empty",
+          "message": "Task Id is required"
         }
       ]
     },
@@ -2407,13 +2473,16 @@ export const audioConfig: ModuleConfig = {
         {
           "name": "model",
           "type": "enum",
-          "default": "",
+          "default": "V6",
           "title": "Model",
-          "description": "Model Name",
+          "description": "Model Name - Required for all requests. - Available options: - **`V6_WILD`**：Pushes creative boundaries for bolder, more distinctive musical expression. - **`V6_MINI`**：Lightweight and fast, balancing quality and speed for effortless creation. - **`V6`**：Greater musical expression with more natural vocals and richer details. - **`V5_5`**（Discontinued）：Custom Models Tailored to Your Unique Taste. - **`V5`**（Discontinued）: Superior musical expression, faster generation.",
           "required": true,
           "values": [
             "V5",
-            "V5_5"
+            "V5_5",
+            "V6",
+            "V6_WILD",
+            "V6_MINI"
           ]
         },
         {

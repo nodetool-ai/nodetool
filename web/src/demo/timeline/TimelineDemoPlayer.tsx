@@ -107,6 +107,7 @@ function TimelineDemoSurface({
 
   return (
     <div
+      data-focus-id="timeline-editor"
       style={{
         width: "100%",
         height: "100%",
@@ -117,7 +118,7 @@ function TimelineDemoSurface({
     >
       {chrome && <DemoTopBar />}
       <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div data-focus-id="timeline-preview" style={{ flex: 1, minWidth: 0 }}>
           <PreviewArea
             fps={engine.fps}
             sequenceWidth={sequence.width}
@@ -126,8 +127,14 @@ function TimelineDemoSurface({
         </div>
         {chrome && <DemoInspectorPane />}
       </div>
-      <TracksRegion heightPx={tracksHeightPx} />
-      {chrome && <DemoStatusBar />}
+      <div data-focus-id="timeline-tracks">
+        <TracksRegion heightPx={tracksHeightPx} />
+      </div>
+      {chrome && (
+        <div data-focus-id="timeline-status">
+          <DemoStatusBar />
+        </div>
+      )}
     </div>
   );
 }

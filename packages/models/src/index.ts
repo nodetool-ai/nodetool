@@ -210,7 +210,11 @@ export {
   StoryboardConflictError,
   emptyStoryboardDocument
 } from "./storyboard.js";
-export type { StoryboardDocument, StoryboardResponse } from "./storyboard.js";
+export type {
+  StoryboardDocument,
+  StoryboardResponse,
+  StoryboardSummary
+} from "./storyboard.js";
 export {
   Application,
   ApplicationConflictError,

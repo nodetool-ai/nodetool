@@ -86,6 +86,26 @@ describe("Asset.paginate – additional filters", () => {
     expect(results[0].name).toBe("a.txt");
   });
 
+  it("filters identical asset names by project", async () => {
+    const projectA = await Asset.create<Asset>({
+      user_id: "u1",
+      name: "same-name.png",
+      content_type: "image/png",
+      project_id: "project-a"
+    });
+    await Asset.create<Asset>({
+      user_id: "u1",
+      name: "same-name.png",
+      content_type: "image/png",
+      project_id: "project-b"
+    });
+
+    const [results] = await Asset.paginate("u1", {
+      projectId: "project-a"
+    });
+    expect(results.map((asset) => asset.id)).toEqual([projectA.id]);
+  });
+
   it("filters by nodeId", async () => {
     await Asset.create<Asset>({
       user_id: "u1",
@@ -233,6 +253,26 @@ describe("Asset.searchAssetsGlobal", () => {
       contentType: "image"
     });
     expect(results).toHaveLength(2);
+  });
+
+  it("filters identical search matches by project", async () => {
+    const projectA = await Asset.create<Asset>({
+      user_id: "u1",
+      name: "same-name.png",
+      content_type: "image/png",
+      project_id: "project-a"
+    });
+    await Asset.create<Asset>({
+      user_id: "u1",
+      name: "same-name.png",
+      content_type: "image/png",
+      project_id: "project-b"
+    });
+
+    const [results] = await Asset.searchAssetsGlobal("u1", "same-name", {
+      projectId: "project-a"
+    });
+    expect(results.map((asset) => asset.id)).toEqual([projectA.id]);
   });
 
   it("returns empty for no matches", async () => {

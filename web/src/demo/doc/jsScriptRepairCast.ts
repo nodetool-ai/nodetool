@@ -59,13 +59,13 @@ await output("total", total);
 
 const CLEAN_CASE = {
   name: "sums the amount column",
-  inputs: { csv: "item,amount\\npens,3\\npaper,4.5\\n", column: "amount" },
+  inputs: { csv: "item,amount\npens,3\npaper,4.5\n", column: "amount" },
   expect: { total: 7.5 }
 };
 
 const EDGE_CASE = {
   name: "skips a non-numeric cell",
-  inputs: { csv: "item,amount\\npens,3\\npaper,n/a\\n", column: "amount" },
+  inputs: { csv: "item,amount\npens,3\npaper,n/a\n", column: "amount" },
   expect: { total: 3 }
 };
 
@@ -137,9 +137,56 @@ export const jsScriptRepairCast: JsScriptDocCast = {
 
   doc: working,
 
-  events: [
-    patch(4200, withEdgeCase),
-    patch(14000, repaired)
+  events: [patch(4200, withEdgeCase), patch(14000, repaired)],
+
+  testRuns: [
+    {
+      t: 7000,
+      report: {
+        passed: 1,
+        failed: 1,
+        cases: [
+          {
+            name: CLEAN_CASE.name,
+            ok: true,
+            outputs: { total: 7.5 },
+            logs: [],
+            mismatches: []
+          },
+          {
+            name: EDGE_CASE.name,
+            ok: false,
+            outputs: { total: "NaN" },
+            logs: [],
+            error: 'Number("n/a") produced NaN.',
+            mismatches: [{ output: "total", expected: 3, actual: "NaN" }]
+          }
+        ]
+      }
+    },
+    {
+      t: 16800,
+      report: {
+        passed: 2,
+        failed: 0,
+        cases: [
+          {
+            name: CLEAN_CASE.name,
+            ok: true,
+            outputs: { total: 7.5 },
+            logs: [],
+            mismatches: []
+          },
+          {
+            name: EDGE_CASE.name,
+            ok: true,
+            outputs: { total: 3 },
+            logs: [],
+            mismatches: []
+          }
+        ]
+      }
+    }
   ],
 
   assistant: [

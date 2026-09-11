@@ -26,8 +26,14 @@ import {
 import EntityCard from "./EntityCard";
 import EntityEditorDialog from "./EntityEditorDialog";
 import EntitySetupHost from "../setup/entity/EntitySetupHost";
+import {
+  LOOSE_PROJECT_ID,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 
 const EntityLibraryInternal: React.FC = () => {
+  const projectId =
+    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
   const { data: entities, isLoading } = useEntities();
   const deleteEntity = useDeleteEntity();
 
@@ -126,6 +132,7 @@ const EntityLibraryInternal: React.FC = () => {
           onClose={() => setEditorOpen(false)}
           assetId={editorAssetId}
           entity={editingEntity}
+          projectId={projectId}
         />
       )}
     </FlexColumn>

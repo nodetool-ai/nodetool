@@ -25,11 +25,13 @@ import {
 interface JsScriptEditorPaneProps {
   scriptId: string;
   readOnly?: boolean;
+  deterministicReadOnly?: boolean;
 }
 
 const JsScriptEditorPane = ({
   scriptId,
-  readOnly = false
+  readOnly = false,
+  deterministicReadOnly = false
 }: JsScriptEditorPaneProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -39,8 +41,8 @@ const JsScriptEditorPane = ({
   const { MonacoEditor, monacoLoadError, isMonacoLoading, loadMonacoIfNeeded } =
     useMonacoEditor();
   useEffect(() => {
-    void loadMonacoIfNeeded();
-  }, [loadMonacoIfNeeded]);
+    if (!deterministicReadOnly) void loadMonacoIfNeeded();
+  }, [deterministicReadOnly, loadMonacoIfNeeded]);
 
   const handleChange = useCallback(
     (next: string | undefined) => {
@@ -81,7 +83,7 @@ const JsScriptEditorPane = ({
           overflow: "hidden"
         }}
       >
-        {MonacoEditor ? (
+        {!deterministicReadOnly && MonacoEditor ? (
           <MonacoEditor
             value={code}
             onChange={handleChange}
@@ -91,11 +93,11 @@ const JsScriptEditorPane = ({
             height="100%"
             options={editorOptions}
           />
-        ) : monacoLoadError ? (
+        ) : !deterministicReadOnly && monacoLoadError ? (
           <Text size="small" color="error">
             {monacoLoadError}
           </Text>
-        ) : isMonacoLoading ? (
+        ) : !deterministicReadOnly && isMonacoLoading ? (
           <LoadingSpinner />
         ) : (
           <Box
@@ -109,7 +111,7 @@ const JsScriptEditorPane = ({
               height: "100%"
             }}
           >
-            {code}
+            <code data-focus-id="jsscript-code-content">{code}</code>
           </Box>
         )}
       </Box>

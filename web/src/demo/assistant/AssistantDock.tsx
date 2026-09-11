@@ -11,13 +11,14 @@
  * Used by `../doc/DocDemoPlayer.tsx` beside the document, and available to any
  * other player that wants to show the assistant that drove a run.
  */
-import React, { useLayoutEffect, useMemo } from "react";
+import React, { useLayoutEffect, useMemo, useRef } from "react";
 
 import ChatView from "../../components/chat/containers/ChatView";
 import { FlexRow, Text, SPACING } from "../../components/ui_primitives";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import type { ChatCastEvent } from "../chat/chatCastTypes";
 import { computeChatStateAt, seedChatGlobalState } from "../chat/chatReplay";
+import { applyAnchoredChatScroll } from "../chat/focusScroll";
 
 const DEMO_THREAD_ID = "demo-assistant-thread";
 
@@ -34,6 +35,8 @@ export interface AssistantDockProps {
   /** Model badge shown in the composer. */
   model: LanguageModel;
   style?: React.CSSProperties;
+  /** Focus targets whose anchor establishes a scroll position held for the shot. */
+  focusIds?: readonly string[];
 }
 
 export function AssistantDock({
@@ -41,8 +44,11 @@ export function AssistantDock({
   timeMs,
   title,
   model,
-  style
+  style,
+  focusIds = []
 }: AssistantDockProps): React.JSX.Element {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const scrollPositions = useRef(new Map<string, number>());
   const state = useMemo(
     () => computeChatStateAt(events, timeMs),
     [events, timeMs]
@@ -52,11 +58,14 @@ export function AssistantDock({
   // todo sidebar read a few fields off the global store instead of props.
   useLayoutEffect(() => {
     seedChatGlobalState(DEMO_THREAD_ID, state);
-  }, [state]);
+    applyAnchoredChatScroll(rootRef.current, focusIds, scrollPositions);
+  }, [focusIds, state]);
 
   return (
     <div
+      ref={rootRef}
       data-assistant-dock
+      data-focus-id="assistant-dock"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -66,6 +75,7 @@ export function AssistantDock({
       }}
     >
       <FlexRow
+        data-focus-id="assistant-title"
         align="center"
         sx={{ px: SPACING.md, py: SPACING.sm, flexShrink: 0 }}
       >
@@ -73,7 +83,7 @@ export function AssistantDock({
           {title}
         </Text>
       </FlexRow>
-      <div style={{ flex: 1, minHeight: 0 }}>
+      <div data-focus-id="assistant-thread" style={{ flex: 1, minHeight: 0 }}>
         <ChatView
           status={state.status}
           messages={state.messages}
@@ -84,6 +94,7 @@ export function AssistantDock({
           runningToolCallId={state.runningToolCallId}
           model={model}
           showNewChatButton={false}
+          externalScroll
         />
       </div>
     </div>

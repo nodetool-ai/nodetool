@@ -9,7 +9,7 @@ export const userMessage = (t: number, text: string): ChatCastEvent => ({
   t,
   payload: {
     kind: "message",
-    message: { type: "message", role: "user", content: text },
+    message: { type: "message", id: `demo-user-${t}`, role: "user", content: text },
   },
 });
 

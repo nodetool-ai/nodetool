@@ -26,6 +26,10 @@ import type { Asset } from "../stores/ApiTypes";
 import { mediaRefFromAsset } from "../utils/mediaRef";
 import { trpcClient } from "../trpc/client";
 import { isObjectLike, isString } from "../utils/typePredicates";
+import {
+  LOOSE_PROJECT_ID,
+  useWorkspaceTabsStore
+} from "../stores/WorkspaceTabsStore";
 
 /** The Entity-without-images object stored on `metadata.nodetool_entity`. */
 interface EntityMarker {
@@ -56,7 +60,7 @@ const invalidateProjectQueries = (client: QueryClient): void => {
     }
   });
 };
-const ENTITIES_QUERY_KEY = ["entities"] as const;
+const entityQueryKey = (projectId: string) => ["entities", projectId] as const;
 const VALID_KINDS: ReadonlySet<string> = new Set([
   "character",
   "location",
@@ -125,13 +129,19 @@ export function assetToEntity(asset: Asset): Entity | null {
 }
 
 /** Fetch all assets tagged as entities, mapped to {@link Entity} objects. */
-export function useEntities(): UseQueryResult<Entity[], Error> {
+export function useEntities(
+  projectId?: string
+): UseQueryResult<Entity[], Error> {
+  const activeProjectId =
+    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
+  const scopedProjectId = projectId ?? activeProjectId;
   return useQuery({
-    queryKey: ENTITIES_QUERY_KEY,
+    queryKey: entityQueryKey(scopedProjectId),
     queryFn: async (): Promise<Entity[]> => {
       const result = await trpcClient.assets.search.query({
         query: "",
-        page_size: 1000
+        page_size: 1000,
+        project_id: scopedProjectId
       });
       const entities: Entity[] = [];
       for (const asset of result.assets) {
@@ -179,9 +189,15 @@ export function useSaveEntity(): UseMutationResult<
   SaveEntityInput
 > {
   const queryClient = useQueryClient();
+  const activeProjectId =
+    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
   return useMutation({
     mutationFn: async (input: SaveEntityInput): Promise<Entity | null> => {
-      const asset = await trpcClient.assets.get.query({ id: input.assetId });
+      const projectId = input.projectId ?? activeProjectId;
+      const asset = await trpcClient.assets.get.query({
+        id: input.assetId,
+        project_id: projectId
+      });
       if (input.createOnly && readEntityMarker(asset.metadata)) {
         throw new Error("That image is already used by another entity.");
       }
@@ -210,21 +226,21 @@ export function useSaveEntity(): UseMutationResult<
       // Membership is the projects router's write, not the asset's: it is the
       // one path that checks the project is the caller's before filing
       // anything into it.
-      if (input.projectId && input.projectId !== updated.project_id) {
+      if (projectId !== updated.project_id) {
         await trpcClient.projects.assignDocument.mutate({
-          projectId: input.projectId,
+          projectId,
           type: "entity",
           ref: input.assetId
         });
         return assetToEntity({
           ...updated,
-          project_id: input.projectId
+          project_id: projectId
         } as Asset);
       }
       return assetToEntity(updated as Asset);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ENTITIES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["entities"] });
       invalidateProjectQueries(queryClient);
     }
   });
@@ -233,9 +249,14 @@ export function useSaveEntity(): UseMutationResult<
 /** Remove the entity marker from an asset. The asset itself is left intact. */
 export function useDeleteEntity(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient();
+  const activeProjectId =
+    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
   return useMutation({
     mutationFn: async (assetId: string): Promise<void> => {
-      const asset = await trpcClient.assets.get.query({ id: assetId });
+      const asset = await trpcClient.assets.get.query({
+        id: assetId,
+        project_id: activeProjectId
+      });
       const nextMetadata = {
         ...(asset.metadata ?? {})
       } satisfies Record<string, unknown>;
@@ -246,7 +267,7 @@ export function useDeleteEntity(): UseMutationResult<void, Error, string> {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ENTITIES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["entities"] });
       invalidateProjectQueries(queryClient);
     }
   });

@@ -47,6 +47,7 @@ export function DemoTopBar(): React.JSX.Element {
 export function DemoInspectorPane(): React.JSX.Element {
   return (
     <div
+      data-focus-id="timeline-inspector"
       style={{
         width: `${INSPECTOR_WIDTH_PCT}%`,
         flexShrink: 0,
