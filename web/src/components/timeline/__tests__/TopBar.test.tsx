@@ -11,11 +11,6 @@ jest.mock("../TopBarPrompt", () => ({
   TopBarPrompt: () => <div data-testid="top-bar-prompt" />
 }));
 
-const mockIsMobile = jest.fn(() => false);
-jest.mock("../../../hooks/timeline/useTimelineIsMobile", () => ({
-  useTimelineIsMobile: () => mockIsMobile()
-}));
-
 import { TopBar } from "../TopBar";
 
 const renderTopBar = (props: React.ComponentProps<typeof TopBar>) =>
@@ -28,41 +23,33 @@ const renderTopBar = (props: React.ComponentProps<typeof TopBar>) =>
 describe("TopBar project archive action", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockIsMobile.mockReturnValue(false);
   });
 
-  it("renders a wide-layout button that fires the callback", async () => {
+  it("offers the project archive in the overflow menu", async () => {
     const onExportBundle = jest.fn();
     renderTopBar({ onExportBundle });
 
-    const button = screen.getByRole("button", {
-      name: "Export project (.zip)"
-    });
-    await userEvent.click(button);
+    await userEvent.click(
+      screen.getByRole("button", { name: "More timeline actions" })
+    );
+    await userEvent.click(await screen.findByText("Export project (.zip)"));
     expect(onExportBundle).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the busy label while the archive is being prepared", () => {
+  it("shows the busy label while the archive is being prepared", async () => {
     renderTopBar({ onExportBundle: jest.fn(), isExportingBundle: true });
-    const button = screen.getByRole("button", { name: "Exporting…" });
-    expect(button).toBeDisabled();
-  });
-
-  it("offers the action in the compact overflow menu", async () => {
-    mockIsMobile.mockReturnValue(true);
-    const onExportBundle = jest.fn();
-    renderTopBar({ onExportBundle });
-
-    await userEvent.click(screen.getByRole("button", { name: "More actions" }));
-    const item = await screen.findByText("Export project (.zip)");
-    await userEvent.click(item);
-    expect(onExportBundle).toHaveBeenCalledTimes(1);
+    await userEvent.click(
+      screen.getByRole("button", { name: "More timeline actions" })
+    );
+    expect(
+      await screen.findByRole("menuitem", { name: "Exporting…" })
+    ).toHaveAttribute("aria-disabled", "true");
   });
 
   it("omits the action when no handler is given", () => {
     renderTopBar({ onSave: jest.fn() });
     expect(
-      screen.queryByRole("button", { name: "Export project (.zip)" })
+      screen.queryByRole("button", { name: "More timeline actions" })
     ).not.toBeInTheDocument();
   });
 });

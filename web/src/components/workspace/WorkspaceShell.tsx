@@ -19,6 +19,7 @@ import WorkspaceTabBar from "./WorkspaceTabBar";
 import TabContent from "./TabContent";
 import WorkspaceTabLayer from "./WorkspaceTabLayer";
 import ProjectSelector from "../projects/ProjectSelector";
+import { WorkspaceHeaderActionsProvider } from "./WorkspaceHeaderActionsContext";
 
 import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
 
@@ -179,7 +180,8 @@ const WorkspaceShell = () => {
     activeTab?.type === "workflow" && activeTab.mode === "edit";
 
   return (
-    <div css={shellStyles} className="workspace-shell">
+    <WorkspaceHeaderActionsProvider>
+      <div css={shellStyles} className="workspace-shell">
       {/* The guided game/workflow flows build their graphs through the same
           `ui_*` tools an agent drives, from tabs (e.g. New Project) where the
           editor chrome — and its own sync — is not mounted. Without this the
@@ -226,7 +228,8 @@ const WorkspaceShell = () => {
           </Suspense>
         )}
       </div>
-    </div>
+      </div>
+    </WorkspaceHeaderActionsProvider>
   );
 };
 
