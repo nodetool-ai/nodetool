@@ -325,7 +325,7 @@ export class Project extends DBModel {
       "nodetool_predictions"
     ]) {
       await executeRaw(
-        `DELETE FROM ${table} WHERE user_id = '${owner}' AND project_id = '${project}'`
+        `DELETE FROM ${table} WHERE user_id = '${owner}' AND project_id = '${project}' RETURNING id`
       );
     }
     await db
