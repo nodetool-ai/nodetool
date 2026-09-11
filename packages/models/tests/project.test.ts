@@ -84,7 +84,11 @@ describe("Project model", () => {
 
     const mine = await Project.listByUser("u1");
     expect(mine).toHaveLength(1);
-    expect(mine[0].toResponse()).toMatchObject({ name: "Aurora", kind: "spot" });
+    expect(mine[0].toResponse()).toMatchObject({
+      name: "Aurora",
+      kind: "spot",
+      archivedAt: null
+    });
   });
 
   it("answers not-found the same for a missing project and another user's", async () => {

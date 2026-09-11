@@ -47,6 +47,7 @@ export interface ProjectResponse {
   /** Free text — "spot", "trailer", "report". Not an enum on purpose. */
   kind: string;
   isPersonal: boolean;
+  archivedAt: string | null;
   /** The conversation that builds it, or null while nobody has asked for one. */
   threadId: string | null;
   createdAt: string;
