@@ -1321,7 +1321,10 @@ export class JobExecutionManager {
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
     let projectId = req.project_id ?? null;
-    if (workflowId) {
+    // Inline graphs do not require a database lookup. This matters for
+    // hermetic callers that provide a workflow_id only as a correlation id.
+    // Saved-workflow requests still resolve the persisted project owner here.
+    if (workflowId && !req.graph) {
       const workflow = await Workflow.find(userId, workflowId);
       if (workflow) {
         if (projectId !== null && projectId !== workflow.project_id) {
