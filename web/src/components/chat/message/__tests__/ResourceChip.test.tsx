@@ -11,7 +11,7 @@ const openResource = jest.fn();
 // QueryClientProvider, so use the manual mock (resolution itself is covered
 // by hooks/__tests__/useResolvedMediaUri.test.tsx).
 jest.mock("../../../../hooks/useResolvedMediaUri");
-import { mockAssetUrl } from "../../../../hooks/__mocks__/useResolvedMediaUri";
+import { mockAssetThumbUrl } from "../../../../hooks/__mocks__/useResolvedMediaUri";
 
 jest.mock("../../../../lib/chat/openResource", () => ({
   __esModule: true,
@@ -60,10 +60,11 @@ describe("ResourceChip", () => {
   it("renders a thumbnail for image assets", () => {
     const { container } = renderChip("asset://as_1.png", "render.png");
 
-    // Resolved through the asset record, not by rewriting the locator.
+    // Resolved through the asset record, not by rewriting the locator, and at
+    // 18px the chip takes the server's thumbnail rather than the full render.
     expect(container.querySelector("img")).toHaveAttribute(
       "src",
-      mockAssetUrl("as_1.png")
+      mockAssetThumbUrl("as_1")
     );
   });
 

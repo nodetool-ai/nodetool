@@ -290,6 +290,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
               <ResponsiveImage
                 className="layer-thumbnail"
                 locator={layerImage}
+                preferThumbnail
                 alt={layer.name}
                 fit="contain"
                 draggable={false}

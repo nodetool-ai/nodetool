@@ -29,7 +29,7 @@ import {
   ENTITY_KIND_ICON,
   getEntityKindChipSx
 } from "../entities/entityKind";
-import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
+import { useResolvedThumbnailUri } from "../../hooks/useResolvedMediaUri";
 
 interface StoryboardEntitiesFieldProps {
   boardId: string;
@@ -42,8 +42,9 @@ const EntityAvatar: React.FC<{ entity: Entity; size?: number }> = ({
   size = 20
 }) => {
   // A reference image is an `asset://` locator by construction — it needs the
-  // asset's own `get_url` before an <img> can load it.
-  const thumb = useResolvedMediaUri(entity.reference_images?.[0]);
+  // asset's own URL before an <img> can load it. At 20-24px the avatar takes
+  // the server's 512px thumbnail, not the multi-megabyte reference still.
+  const thumb = useResolvedThumbnailUri(entity.reference_images?.[0]);
   const Icon = ENTITY_KIND_ICON[entity.kind];
   const frameSx = {
     width: size,

@@ -65,6 +65,7 @@ const MemoryAssetThumb: React.FC<{ resource: Resource }> = memo(
     return (
       <ResponsiveImage
         locator={{ uri: resource.uri, asset_id: resource.id }}
+        preferThumbnail
         alt={label}
         title={label}
         fit="cover"

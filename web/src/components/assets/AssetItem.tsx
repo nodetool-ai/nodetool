@@ -555,11 +555,14 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               style={{ color: `var(--c_${assetType})` }}
               titleAccess={asset.content_type || "PDF file"}
             />
-            {asset.get_url !== "/images/placeholder.png" && (
+            {asset.thumb_url && (
+              // The server renders the first page to a JPEG; `get_url` is the
+              // PDF itself, which no browser paints as a background image — it
+              // only pulls the whole document down behind an empty tile.
               <div
                 className="image"
                 style={{
-                  backgroundImage: `url(${asset.get_url})`
+                  backgroundImage: `url(${asset.thumb_url})`
                 }}
                 aria-label={asset.id}
               />
