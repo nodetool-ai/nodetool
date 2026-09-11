@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  buildAudioToAudioModels,
   buildMusicModels,
   buildTTSModels,
   getManifestNodeMeta,
@@ -7,6 +8,7 @@ import {
   getRequiredTextInputNames,
   isKieMusicNode,
   loadImageModels,
+  loadAudioToAudioModels,
   loadMusicModels,
   loadTTSModels,
   loadVideoModels
@@ -512,6 +514,61 @@ describe("manifest-models music discovery", () => {
     expect(
       models.every((m) => m.supportedTasks?.includes("text_to_music"))
     ).toBe(true);
+  });
+});
+
+describe("manifest-models audio-to-audio discovery", () => {
+  it("finds the shipped audio transforms the other audio lists drop", () => {
+    const fal = loadAudioToAudioModels(FAL_PKG, FAL_MANIFEST, "fal_ai");
+    // Asserting a count would rot on the next manifest refresh; asserting the
+    // list is populated and names the endpoints that motivated the capability
+    // cannot pass by matching nothing.
+    expect(fal.length).toBeGreaterThan(20);
+    const ids = fal.map((m) => m.id);
+    expect(ids).toContain("fal-ai/elevenlabs/voice-changer");
+    expect(ids).toContain("fal-ai/stable-audio-25/audio-to-audio");
+    expect(fal[0]?.supportedTasks).toEqual(["audio_to_audio"]);
+
+    const replicate = loadAudioToAudioModels(
+      REPLICATE_PKG,
+      REPLICATE_MANIFEST,
+      "replicate"
+    );
+    expect(replicate.map((m) => m.id)).toContain("nateraw/audio-super-resolution");
+  });
+
+  it("keeps the three audio families disjoint", () => {
+    // A speech endpoint whose tags name a transform (fal-ai/dia-tts/voice-clone,
+    // fal-ai/tada/*/text-to-speech) still needs text to say. Offered as an
+    // audio-to-audio model it would be called with a recording and no text.
+    const a2a = loadAudioToAudioModels(FAL_PKG, FAL_MANIFEST, "fal_ai");
+    const tts = new Set(
+      loadTTSModels(FAL_PKG, FAL_MANIFEST, "fal_ai").map((m) => m.id)
+    );
+    const music = new Set(
+      loadMusicModels(FAL_PKG, FAL_MANIFEST, "fal_ai").map((m) => m.id)
+    );
+    const overlap = a2a.filter((m) => tts.has(m.id) || music.has(m.id));
+    expect(overlap.map((m) => m.id)).toEqual([]);
+  });
+
+  it("takes only audio-output entries", () => {
+    const models = buildAudioToAudioModels(
+      [
+        {
+          endpointId: "voice/voice-changer",
+          className: "Voice Changer",
+          outputType: "audio"
+        },
+        {
+          endpointId: "video/voice-changer",
+          className: "Video Voice Changer",
+          outputType: "video"
+        }
+      ],
+      "test"
+    );
+    expect(models.map((m) => m.id)).toEqual(["voice/voice-changer"]);
   });
 });
 

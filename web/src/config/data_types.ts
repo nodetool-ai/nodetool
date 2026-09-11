@@ -665,6 +665,18 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "model"
   },
   {
+    value: "audio_to_audio_model",
+    label: "Audio to audio model",
+    description:
+      "Reference to a model that rewrites a recording: voice change, isolation, stem separation, super-resolution.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "model"
+  },
+  {
     value: "video_model",
     label: "Video model",
     description:

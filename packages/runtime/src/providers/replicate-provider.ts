@@ -23,6 +23,8 @@ import type {
   ProviderTool,
   TextToImageParams,
   TextToMusicParams,
+  AudioToAudioModel,
+  AudioToAudioParams,
   TTSModel,
   VideoModel,
   TextToVideoParams,
@@ -41,6 +43,7 @@ import {
   getModelInputNames,
   loadImageModels,
   loadMusicModels,
+  loadAudioToAudioModels,
   loadVideoModels,
   selectMaskImageInput,
   selectPrimaryImageInput
@@ -713,6 +716,14 @@ export class ReplicateProvider extends BaseProvider {
     );
   }
 
+  async getAvailableAudioToAudioModels(): Promise<AudioToAudioModel[]> {
+    return loadAudioToAudioModels(
+      "@nodetool-ai/replicate-nodes",
+      "replicate-manifest.json",
+      "replicate"
+    );
+  }
+
   async getAvailableASRModels(): Promise<ASRModel[]> {
     return [
       {
@@ -1284,6 +1295,33 @@ export class ReplicateProvider extends BaseProvider {
 
     log.debug("textToMusic", { model: params.model.id });
     const output = await this.runModel(params.model.id, input);
+    const bytes = await this._fetchOutputBytes(output);
+    return { data: bytes, mimeType: sniffAudioMime(bytes) };
+  }
+
+  /**
+   * Rewrite a recording. Replicate's audio transforms (super-resolution, stem
+   * separation, enhancers) take the source under `audio`; the direction fields
+   * go through {@link pruneToDeclaredInputs} like {@link lipSync} does, so a
+   * model that declares none of them does not get sent one.
+   */
+  override async audioToAudio(
+    audio: Uint8Array,
+    params: AudioToAudioParams
+  ): Promise<EncodedAudioResult> {
+    const input: Record<string, unknown> = {
+      audio: this.dataUri(audio, "audio/mpeg")
+    };
+    if (params.prompt) input.prompt = params.prompt;
+    if (params.voice) input.voice = params.voice;
+    if (params.strength != null) input.strength = params.strength;
+    if (params.seed != null) input.seed = params.seed;
+
+    log.debug("audioToAudio", { model: params.model.id });
+    const output = await this.runModel(
+      params.model.id,
+      this.pruneToDeclaredInputs(params.model.id, input)
+    );
     const bytes = await this._fetchOutputBytes(output);
     return { data: bytes, mimeType: sniffAudioMime(bytes) };
   }

@@ -95,6 +95,36 @@ export interface MusicModel {
   supportedTasks?: string[];
 }
 
+/**
+ * A model that takes audio and hands back audio: voice conversion, isolation
+ * and denoise, stem separation, audio super-resolution, audio inpaint/extend.
+ * None of these generate from a prompt alone, so they belong in no TTS or
+ * music picker — offered as one, they fail at call time with nothing to work
+ * on. `isAudioTransformNode` in `manifest-models.ts` is what identifies them.
+ */
+export interface AudioToAudioModel {
+  id: string;
+  name: string;
+  provider: ProviderId;
+  /** Capability hints, e.g. `["audio_to_audio"]`. */
+  supportedTasks?: string[];
+}
+
+export interface AudioToAudioParams {
+  model: AudioToAudioModel;
+  /** What the transform should do, for endpoints that take direction. */
+  prompt?: string | null;
+  /** Target voice, for voice-conversion endpoints that name one. */
+  voice?: string | null;
+  /** How far from the source to move, for endpoints that take it (0..1). */
+  strength?: number | null;
+  seed?: number | null;
+  /** Requested output container hint (e.g. "mp3", "wav"). */
+  audioFormat?: string | null;
+  /** Per-call timeout. Providers translate this into a max polling window. */
+  timeoutSeconds?: number | null;
+}
+
 export interface ASRModel {
   id: string;
   name: string;

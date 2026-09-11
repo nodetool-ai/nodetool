@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {
+  AudioToAudioModel,
   Chunk,
   FolderRef,
   InputMode,
@@ -1895,6 +1896,136 @@ export class TextToMusicNode extends BaseNode {
   }
 }
 
+function hasAudioToAudioSupport(
+  context: ProcessingContext | undefined,
+  providerId: string,
+  modelId: string
+): context is ProcessingContext & {
+  audioToAudio: (
+    req: Record<string, unknown>
+  ) => Promise<{ data: Uint8Array; mimeType: string }>;
+} {
+  return (
+    !!context &&
+    typeof context.audioToAudio === "function" &&
+    !!providerId &&
+    !!modelId
+  );
+}
+
+/** Output handles AudioToAudioNode.process() emits. */
+type AudioToAudioNodeOutputs = {
+  audio: AudioRef;
+};
+
+export class AudioToAudioNode extends BaseNode {
+  static readonly nodeType = "nodetool.audio.AudioToAudio";
+  static readonly body = "content_card";
+  static readonly title = "Audio To Audio";
+  static readonly description =
+    "Rewrite an existing recording with an audio-to-audio model: change the voice, isolate or denoise it, separate a stem, raise its sample rate.\n    audio, audio-to-audio, voice-changer, isolation, denoise, stem-separation, AI";
+  static readonly metadataOutputTypes = {
+    audio: "audio"
+  };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio", "prompt"];
+  static readonly autoSaveAsset = true;
+
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation = {
+    audio: { kind: "single", source: "__execution__" }
+  } satisfies Record<string, OutputCorrelation>;
+
+  @prop({
+    type: "audio_to_audio_model",
+    default: {
+      type: "audio_to_audio_model",
+      provider: "fal_ai",
+      id: "fal-ai/elevenlabs/voice-changer",
+      name: "ElevenLabs Voice Changer",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The audio-to-audio model to use"
+  })
+  declare model: AudioToAudioModel;
+
+  @prop({
+    type: "audio",
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Audio",
+    description: "The recording to transform"
+  })
+  declare audio: AudioRef;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description:
+      "Optional direction for models that take one. Separators and denoisers ignore it."
+  })
+  declare prompt: string;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Voice",
+    description:
+      "Target voice, for voice-conversion models that name one. Leave empty otherwise."
+  })
+  declare voice: string;
+
+  @prop({
+    type: "float",
+    default: 0.6,
+    title: "Strength",
+    description: "How far from the source to move, where the model takes it.",
+    min: 0,
+    max: 1
+  })
+  declare strength: number;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<AudioToAudioNodeOutputs> {
+    const bytes = await audioBytesAsync(this.audio, context);
+    if (bytes.length === 0) throw new Error("The input audio is empty.");
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (!hasAudioToAudioSupport(context, providerId, modelId)) {
+      throw new Error(
+        `Audio To Audio requires an audio-to-audio provider; no provider ` +
+          `available for provider "${providerId}" / model "${modelId}".`
+      );
+    }
+    const encoded = await context.audioToAudio({
+      provider: providerId,
+      capability: "audio_to_audio",
+      model: modelId,
+      params: {
+        audio: bytes,
+        prompt: this.prompt || undefined,
+        voice: this.voice || undefined,
+        strength: Number(this.strength ?? 0.6)
+      }
+    });
+    if (encoded?.data && encoded.data.length > 0) {
+      return { audio: audioRefFromBytes(encoded.data) };
+    }
+    throw new Error(
+      `Audio To Audio produced no audio for provider "${providerId}" / ` +
+        `model "${modelId}".`
+    );
+  }
+}
+
 /** Output handles ChunkToAudioNode.process() emits. */
 type ChunkToAudioNodeOutputs = {
   audio: AudioRef | { type: string; uri: string; data: string };
@@ -2078,7 +2209,8 @@ const AUDIO_SERVER_NODES = tagAsServer([
   SaveAudioNode,
   SaveAudioFileNode,
   TextToSpeechNode,
-  TextToMusicNode
+  TextToMusicNode,
+  AudioToAudioNode
 ]);
 
 export const AUDIO_NODES = [...AUDIO_TRANSFORM_NODES, ...AUDIO_SERVER_NODES];

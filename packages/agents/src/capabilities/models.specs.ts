@@ -20,6 +20,7 @@ export const SUPPORTED_CAPABILITIES = [
   "reference_to_video",
   "text_to_speech",
   "text_to_music",
+  "audio_to_audio",
   "automatic_speech_recognition",
   "generate_embedding",
   "generate_message"
@@ -76,6 +77,7 @@ export const MODEL_TYPES = [
   "video",
   "tts",
   "music",
+  "audio_to_audio",
   "asr",
   "embedding"
 ] as const;

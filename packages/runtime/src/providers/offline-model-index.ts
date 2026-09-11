@@ -23,7 +23,8 @@ import {
   loadImageModels,
   loadVideoModels,
   loadTTSModels,
-  loadMusicModels
+  loadMusicModels,
+  loadAudioToAudioModels
 } from "./manifest-models.js";
 
 interface ManifestSource {
@@ -65,7 +66,8 @@ const LOADER_BY_MODEL_TYPE: Record<
   image_model: loadImageModels,
   video_model: loadVideoModels,
   tts_model: loadTTSModels,
-  music_model: loadMusicModels
+  music_model: loadMusicModels,
+  audio_to_audio_model: loadAudioToAudioModels
 };
 
 const cache = new Map<string, readonly string[] | undefined>();

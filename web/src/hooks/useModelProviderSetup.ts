@@ -15,6 +15,7 @@ export const capabilityForModelType = (
     case "tts_model": return "text_to_speech";
     case "asr_model": return "automatic_speech_recognition";
     case "music_model": return "text_to_music";
+    case "audio_to_audio_model": return "audio_to_audio";
     case "embedding_model": return "generate_embedding";
     case "model_3d_model": return "text_to_3d";
     default: return undefined;

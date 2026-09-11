@@ -9,7 +9,14 @@ import type { UnifiedModel } from "@nodetool-ai/protocol";
 import type { ProviderId } from "./providers/index.js";
 
 export interface RecommendedUnifiedModel extends UnifiedModel {
-  modality: "language" | "image" | "tts" | "asr" | "video" | "music";
+  modality:
+    | "language"
+    | "image"
+    | "tts"
+    | "asr"
+    | "video"
+    | "music"
+    | "audio_to_audio";
   task?:
     | "text_generation"
     | "embedding"

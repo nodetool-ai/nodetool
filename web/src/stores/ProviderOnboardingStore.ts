@@ -12,6 +12,7 @@ export type OnboardingCapability =
   | "text_to_speech"
   | "automatic_speech_recognition"
   | "text_to_music"
+  | "audio_to_audio"
   | "text_to_video"
   | "generate_embedding"
   | "text_to_3d"

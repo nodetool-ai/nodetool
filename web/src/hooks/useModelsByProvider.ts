@@ -8,6 +8,7 @@ import type {
   TTSModel,
   ASRModel,
   MusicModel,
+  AudioToAudioModel,
   VideoModel,
   ProviderInfo,
   UnifiedModel
@@ -18,6 +19,7 @@ import {
   useTTSProviders,
   useASRProviders,
   useMusicProviders,
+  useAudioToAudioProviders,
   useVideoProviders
 } from "./useProviders";
 import { useActiveWorker } from "./useWorkers";
@@ -412,6 +414,44 @@ export const useASRModelsByProvider = (): ModelsByProviderResult<ASRModel> => {
     refetch: aggregated.refetch
   };
 };
+
+/**
+ * Hook to fetch audio-to-audio models from every provider that can rewrite a
+ * recording (voice changers, separators, denoisers, super-resolution).
+ */
+export const useAudioToAudioModelsByProvider =
+  (): ModelsByProviderResult<AudioToAudioModel> => {
+    const { providers, isLoading: providersLoading } =
+      useAudioToAudioProviders();
+
+    const fetchModels = useCallback(
+      async (provider: string) =>
+        ((await trpc.models.audioToAudioByProvider.query({ provider })) ||
+          []) as AudioToAudioModel[],
+      []
+    );
+
+    const aggregated = useAggregatedProviderModels(
+      providers,
+      providersLoading,
+      "audio-to-audio-models",
+      fetchModels
+    );
+
+    const providerNames = useMemo(
+      () => providers.map((p) => p.provider),
+      [providers]
+    );
+
+    return {
+      models: aggregated.models,
+      providers: providerNames,
+      isLoading: providersLoading || aggregated.isLoading,
+      isFetching: aggregated.isFetching,
+      error: aggregated.error,
+      refetch: aggregated.refetch
+    };
+  };
 
 /**
  * Hook to fetch music models from all providers that support music generation.

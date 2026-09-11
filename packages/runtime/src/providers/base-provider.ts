@@ -14,6 +14,8 @@ import type {
   MessageContent,
   Model3D,
   MusicModel,
+  AudioToAudioModel,
+  AudioToAudioParams,
   ProviderId,
   ProviderSession,
   ProviderStop,
@@ -206,6 +208,7 @@ export type ProviderCapability =
   | "lip_sync"
   | "text_to_speech"
   | "text_to_music"
+  | "audio_to_audio"
   | "automatic_speech_recognition"
   | "generate_embedding"
   | "text_to_3d"
@@ -284,6 +287,12 @@ export function providerCapabilities(
     BaseProvider.prototype.getAvailableMusicModels
   ) {
     capabilities.push("text_to_music");
+  }
+  if (
+    instance.getAvailableAudioToAudioModels !==
+    BaseProvider.prototype.getAvailableAudioToAudioModels
+  ) {
+    capabilities.push("audio_to_audio");
   }
   if (
     instance.getAvailableASRModels !==
@@ -819,6 +828,16 @@ export abstract class BaseProvider {
    * `text_to_music` capability is advertised only when overridden.
    */
   async getAvailableMusicModels(): Promise<MusicModel[]> {
+    return [];
+  }
+
+  /**
+   * Audio **transform** models exposed by this provider (voice changers, stem
+   * separators, denoisers, audio super-resolution). Override on providers that
+   * can rewrite a recording; the base returns none so the `audio_to_audio`
+   * capability is advertised only when overridden.
+   */
+  async getAvailableAudioToAudioModels(): Promise<AudioToAudioModel[]> {
     return [];
   }
 
@@ -1779,6 +1798,20 @@ export abstract class BaseProvider {
    */
   async textToMusic(_params: TextToMusicParams): Promise<EncodedAudioResult> {
     throw new Error(`${this.provider} does not support textToMusic`);
+  }
+
+  /**
+   * Rewrite a recording: convert the voice, isolate or denoise it, separate a
+   * stem, raise its sample rate. The source bytes are passed positionally, the
+   * direction rides in the params. Like {@link textToMusic} this resolves to an
+   * {@link EncodedAudioResult} — every provider that offers these endpoints
+   * hands back a file, not PCM.
+   */
+  async audioToAudio(
+    _audio: Uint8Array,
+    _params: AudioToAudioParams
+  ): Promise<EncodedAudioResult> {
+    throw new Error(`${this.provider} does not support audioToAudio`);
   }
 
   async automaticSpeechRecognition(_args: {

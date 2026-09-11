@@ -44,6 +44,7 @@ import {
   Model3DRef,
   ModelPack,
   MusicModel,
+  AudioToAudioModel,
   Node,
   NodeMetadata as BaseNodeMetadataFromProtocol,
   NodeProgress,
@@ -179,6 +180,7 @@ export type { ToolCallUpdate };
 export type { ToolResultUpdate };
 export type { TTSModel };
 export type { MusicModel };
+export type { AudioToAudioModel };
 export type { VideoModel };
 export type { VideoRef };
 export type { Workflow };
@@ -400,6 +402,13 @@ export interface TTSModelValue {
 
 export interface MusicModelValue {
   type: "music_model";
+  id: string;
+  provider: Provider;
+  name: string;
+}
+
+export interface AudioToAudioModelValue {
+  type: "audio_to_audio_model";
   id: string;
   provider: Provider;
   name: string;
