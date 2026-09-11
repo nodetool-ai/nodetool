@@ -203,6 +203,28 @@ describe("Project model", () => {
     expect(await Project.deleteOwned("u1", project.id)).toBe(true);
   });
 
+  it("keeps a project's completed output separate from another project's upload", async () => {
+    const projectA = await Project.create<Project>({ user_id: "u1", name: "A" });
+    const projectB = await Project.create<Project>({ user_id: "u1", name: "B" });
+    const output = await Prediction.create<Prediction>({
+      user_id: "u1",
+      project_id: projectA.id
+    });
+    const upload = await Asset.create<Asset>({
+      user_id: "u1",
+      project_id: projectB.id,
+      name: "B upload"
+    });
+
+    const [storedOutput, storedUpload] = await Promise.all([
+      Prediction.find(output.id),
+      Asset.find("u1", upload.id)
+    ]);
+    expect(storedOutput?.project_id).toBe(projectA.id);
+    expect(storedUpload?.project_id).toBe(projectB.id);
+    expect(storedOutput?.project_id).not.toBe(storedUpload?.project_id);
+  });
+
   it("insertNew refuses to rewrite an id that already exists", async () => {
     const mine = await Project.create<Project>({
       id: "shared-id",
