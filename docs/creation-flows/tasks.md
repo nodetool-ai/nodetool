@@ -203,11 +203,11 @@ of each other. Inside a phase, tasks are listed in dependency order.
       exists. Test: no record, no text (criterion 13). (PRD D14)
 - [ ] **Next-steps strip.** `Extract script`, `Assemble timeline`.
 
-## P4 — Storyboard Edit Shot dialog
+## P4 — Storyboard Edit Shot panel
 
-- [ ] **Dialog shell.** `web/src/components/storyboard/ShotEditDialog.tsx`,
-      full-screen, opened from `Edit`, the dialogue icon and the selection
-      footer. Draft state for the table and header rows; `Save` commits one
+- [ ] **Panel shell.** `web/src/components/storyboard/ShotEditPanel.tsx`,
+      opened from `Edit`, the dialogue icon and the selection footer as a
+      full-width row of the shot grid, directly under the card it edits. Draft state for the table and header rows; `Save` commits one
       store update and one undo entry; `Regenerate` saves then renders;
       dirty close asks. Keyboard: `Esc`, `←`/`→`, `Cmd/Ctrl+S`. Tests:
       criterion 14. (PRD § 7.5, D11)
@@ -229,7 +229,7 @@ of each other. Inside a phase, tasks are listed in dependency order.
 - [ ] **Remove inspector fields.** Shrink the selection footer to `Edit`,
       `Iterate`, `Regenerate`, `Delete`. Delete the field editors from
       `ShotInspector.tsx` only after every field, the cost line, entity chips
-      and the duration toggle exist in the dialog (R2). Update
+      and the duration toggle exist in the panel (R2). Update
       `web/src/components/storyboard/__tests__/`.
 
 ## P5 — Storyboard imports and custom style

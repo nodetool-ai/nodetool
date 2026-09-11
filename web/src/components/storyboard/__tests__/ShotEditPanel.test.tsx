@@ -1,5 +1,5 @@
 /**
- * Criterion 14, against the real storyboard store: the dialog edits every
+ * Criterion 14, against the real storyboard store: the panel edits every
  * field in § 7.7.2, `Save` is one undo step, closing dirty asks, `Regenerate`
  * renders from the saved values, dialogue is read-only on a linked board, and
  * the ERT chip toggles `duration_source`.
@@ -93,7 +93,7 @@ jest.mock("../ShotEditViewer", () => stub("shot-edit-viewer"));
 jest.mock("../ShotTakesGallery", () => stub("takes-gallery"));
 jest.mock("../ShotScriptPanel", () => stub("script-panel"));
 
-import ShotEditDialog from "../ShotEditDialog";
+import ShotEditPanel from "../ShotEditPanel";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 
 const BOARD = "board-edit";
@@ -158,17 +158,18 @@ const storedShot = (id = "shot-1"): Shot => {
 };
 
 const onClose = jest.fn();
+const onShotChange = jest.fn();
 
-const renderDialog = (
-  props: Partial<React.ComponentProps<typeof ShotEditDialog>> = {}
+const renderPanel = (
+  props: Partial<React.ComponentProps<typeof ShotEditPanel>> = {}
 ) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <ShotEditDialog
+      <ShotEditPanel
         boardId={BOARD}
         shotId="shot-1"
-        open
         onClose={onClose}
+        onShotChange={onShotChange}
         {...props}
       />
     </ThemeProvider>
@@ -192,6 +193,7 @@ const typeInto = async (label: string, text: string) => {
 
 beforeEach(() => {
   onClose.mockClear();
+  onShotChange.mockClear();
   generateKeyframeMock.mockClear();
   generateClipMock.mockClear();
   lineIsVoiced = true;
@@ -201,10 +203,10 @@ afterEach(() => {
   useStoryboardStore.getState().removeBoard(BOARD);
 });
 
-describe("ShotEditDialog fields (criterion 14)", () => {
+describe("ShotEditPanel fields (criterion 14)", () => {
   it("shows the derived numbering and the board's aspect ratio read-only", () => {
     seed([baseShot(), baseShot({ id: "shot-2", index: 1, scene_id: "sc2" })]);
-    renderDialog();
+    renderPanel();
 
     // Scene 1, Shot 1 — both derived from `shot.index`, neither editable.
     expect(screen.getByTestId("cell-scene")).toHaveTextContent("1");
@@ -217,7 +219,7 @@ describe("ShotEditDialog fields (criterion 14)", () => {
   it("links to the board's settings form when the caller can open one", () => {
     seed([baseShot()]);
     const onOpenBoardSettings = jest.fn();
-    renderDialog({ onOpenBoardSettings });
+    renderPanel({ onOpenBoardSettings });
     expect(
       screen.getByRole("button", { name: "Board settings" })
     ).toBeEnabled();
@@ -225,14 +227,14 @@ describe("ShotEditDialog fields (criterion 14)", () => {
 
   it("numbers a shot by its scene, not by its position on the board", () => {
     seed([baseShot(), baseShot({ id: "shot-2", index: 1, scene_id: "sc2" })]);
-    renderDialog({ shotId: "shot-2" });
+    renderPanel({ shotId: "shot-2" });
     expect(screen.getByTestId("cell-scene")).toHaveTextContent("2");
     expect(screen.getByTestId("cell-shot")).toHaveTextContent("1");
   });
 
   it("edits every § 7.7.2 field and saves them in one write", async () => {
     seed([baseShot()]);
-    renderDialog();
+    renderPanel();
 
     await typeInto("Description", "A lighthouse at dawn");
     await typeInto("Dialogue", "We are open.");
@@ -269,7 +271,7 @@ describe("ShotEditDialog fields (criterion 14)", () => {
 
   it("puts every edited field back with a single undo", async () => {
     seed([baseShot()]);
-    renderDialog();
+    renderPanel();
 
     await typeInto("Description", "A lighthouse at dawn");
     await choose("Size", "wide");
@@ -286,7 +288,7 @@ describe("ShotEditDialog fields (criterion 14)", () => {
 
   it("moves the shot to the chosen scene and writes that scene's lighting", async () => {
     seed([baseShot(), baseShot({ id: "shot-2", index: 1, scene_id: "sc2" })]);
-    renderDialog();
+    renderPanel();
 
     await choose("Slugline", "INT. LAMP ROOM — NIGHT");
     await typeInto("Scene lighting", "sodium wash");
@@ -299,7 +301,7 @@ describe("ShotEditDialog fields (criterion 14)", () => {
   });
 });
 
-describe("ShotEditDialog overflow actions", () => {
+describe("ShotEditPanel overflow actions", () => {
   const openOverflow = async () => {
     await userEvent.click(
       screen.getByRole("button", { name: "More shot actions" })
@@ -311,7 +313,7 @@ describe("ShotEditDialog overflow actions", () => {
       baseShot(),
       baseShot({ id: "shot-2", index: 1, slug: "Second", action: "The lamp" })
     ]);
-    renderDialog({ shotId: "shot-2" });
+    renderPanel({ shotId: "shot-2" });
 
     await openOverflow();
     await userEvent.click(
@@ -329,7 +331,7 @@ describe("ShotEditDialog overflow actions", () => {
         keyframe: { type: "image", uri: "asset://still-1", asset_id: "still-1" }
       })
     ]);
-    renderDialog();
+    renderPanel();
 
     await typeInto("Description", "A lighthouse at dawn");
     await openOverflow();
@@ -345,10 +347,10 @@ describe("ShotEditDialog overflow actions", () => {
   });
 });
 
-describe("ShotEditDialog save semantics", () => {
+describe("ShotEditPanel save semantics", () => {
   it("asks before closing with unsaved edits, and discards on Discard", async () => {
     seed([baseShot()]);
-    renderDialog();
+    renderPanel();
 
     await typeInto("Description", "A lighthouse at dawn");
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
@@ -368,7 +370,7 @@ describe("ShotEditDialog save semantics", () => {
 
   it("saves and closes when the confirm's Save is taken", async () => {
     seed([baseShot()]);
-    renderDialog();
+    renderPanel();
 
     await typeInto("Description", "A lighthouse at dawn");
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
@@ -386,7 +388,7 @@ describe("ShotEditDialog save semantics", () => {
 
   it("closes without asking when nothing was edited", async () => {
     seed([baseShot()]);
-    renderDialog();
+    renderPanel();
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalled();
     expect(screen.queryByText("Discard changes?")).not.toBeInTheDocument();
@@ -394,7 +396,7 @@ describe("ShotEditDialog save semantics", () => {
 
   it("renders from the saved values, not the ones on screen before Save", async () => {
     seed([baseShot()]);
-    renderDialog();
+    renderPanel();
 
     await typeInto("Description", "A lighthouse at dawn");
     await userEvent.click(screen.getByRole("button", { name: "Regenerate" }));
@@ -407,10 +409,10 @@ describe("ShotEditDialog save semantics", () => {
   });
 });
 
-describe("ShotEditDialog keyboard", () => {
+describe("ShotEditPanel keyboard", () => {
   it("saves on Cmd/Ctrl+S", async () => {
     seed([baseShot()]);
-    renderDialog();
+    renderPanel();
 
     await typeInto("Description", "A lighthouse at dawn");
     await userEvent.keyboard("{Control>}s{/Control}");
@@ -431,7 +433,7 @@ describe("ShotEditDialog keyboard", () => {
         action: "The lamp turns"
       })
     ]);
-    renderDialog();
+    renderPanel();
 
     expect(screen.getByLabelText("Description")).toHaveValue(
       "A lighthouse at dusk"
@@ -450,7 +452,7 @@ describe("ShotEditDialog keyboard", () => {
 
   it("closes on Esc, asking when dirty", async () => {
     seed([baseShot()]);
-    renderDialog();
+    renderPanel();
 
     await userEvent.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalled();
@@ -463,7 +465,7 @@ describe("ShotEditDialog keyboard", () => {
   });
 });
 
-describe("ShotEditDialog on a linked board (PRD D9)", () => {
+describe("ShotEditPanel on a linked board (PRD D9)", () => {
   const linked = () =>
     seed(
       [baseShot({ script_line_ids: ["line-1"], dialogue: "We are closed." })],
@@ -472,7 +474,7 @@ describe("ShotEditDialog on a linked board (PRD D9)", () => {
 
   it("shows the dialogue read-only with a way into the script", () => {
     linked();
-    renderDialog();
+    renderPanel();
 
     expect(screen.queryByLabelText("Dialogue")).not.toBeInTheDocument();
     expect(screen.getByTestId("shot-dialogue-readonly")).toHaveTextContent(
@@ -485,7 +487,7 @@ describe("ShotEditDialog on a linked board (PRD D9)", () => {
 
   it("pins the length when one is typed, and unpins from the chip", async () => {
     linked();
-    renderDialog();
+    renderPanel();
 
     // 3400 ms + 250 ms of silence, rounded up — the takes' own duration.
     expect(
@@ -510,5 +512,50 @@ describe("ShotEditDialog on a linked board (PRD D9)", () => {
     expect(
       screen.getByLabelText("Estimated running time in seconds")
     ).toHaveValue(9);
+  });
+});
+
+describe("ShotEditPanel placement (it is a row of the board, not a dialog)", () => {
+  it("asks the board to move it rather than swapping the shot under itself", async () => {
+    seed([
+      baseShot(),
+      baseShot({ id: "shot-2", index: 1, slug: "Second", action: "The lamp" })
+    ]);
+    renderPanel();
+
+    await userEvent.click(screen.getByRole("button", { name: "Next shot" }));
+
+    expect(onShotChange).toHaveBeenCalledWith("shot-2");
+    // Still on shot-1: where the panel sits is the board's call.
+    expect(screen.getByLabelText("Description")).toHaveValue(
+      "A lighthouse at dusk"
+    );
+  });
+
+  it("asks about an unsaved draft before stepping away", async () => {
+    seed([baseShot(), baseShot({ id: "shot-2", index: 1, slug: "Second" })]);
+    renderPanel();
+
+    await typeInto("Description", "A lighthouse at dawn");
+    await userEvent.click(screen.getByRole("button", { name: "Next shot" }));
+
+    expect(onShotChange).not.toHaveBeenCalled();
+    const confirm = await screen.findByText("Discard changes?");
+    await userEvent.click(
+      within(confirm.closest("[role='dialog']") as HTMLElement).getByRole(
+        "button",
+        { name: "Discard" }
+      )
+    );
+    expect(onShotChange).toHaveBeenCalledWith("shot-2");
+    expect(storedShot().action).toBe("A lighthouse at dusk");
+  });
+
+  it("offers no stepping when the board cannot move it", () => {
+    seed([baseShot(), baseShot({ id: "shot-2", index: 1, slug: "Second" })]);
+    renderPanel({ onShotChange: undefined });
+    expect(
+      screen.queryByRole("button", { name: "Next shot" })
+    ).not.toBeInTheDocument();
   });
 });

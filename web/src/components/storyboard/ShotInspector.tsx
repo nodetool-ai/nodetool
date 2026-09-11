@@ -6,9 +6,10 @@
  * the four actions PRD § 7.5 leaves here — `Edit`, `Iterate`, `Regenerate`,
  * `Delete`.
  *
- * Every field this used to edit now lives in {@link ShotEditDialog}, which
- * `Edit` opens. The cross-document chips stay because nothing else on the
- * board says where a shot landed in the script and in the cut.
+ * Every field this used to edit now lives in {@link ShotEditPanel}, which the
+ * board opens under the shot's card when `Edit` is taken here. The
+ * cross-document chips stay because nothing else on the board says where a shot
+ * landed in the script and in the cut.
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
@@ -23,7 +24,6 @@ import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import { useBoardScriptLines } from "../../hooks/storyboard/useShotDuration";
 import { useShotTimelineLink } from "../../hooks/storyboard/useShotTimelineLink";
 import ShotActionText from "./ShotActionText";
-import ShotEditDialog from "./ShotEditDialog";
 import { isShotGenerating } from "./ShotStatusPill";
 import {
   Box,
@@ -52,6 +52,12 @@ interface ShotInspectorProps {
   readOnly?: boolean;
   /** Clears the board's selection. */
   onClose?: () => void;
+  /**
+   * Opens the shot's editor. The board renders it under the shot's card, so the
+   * footer asks rather than opening a surface of its own. Without it `Edit` is
+   * not offered.
+   */
+  onEdit?: (shotId: string) => void;
 }
 
 /** Sky — the app's colour for anything script- or voice-shaped. */
@@ -84,7 +90,8 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
   boardId,
   shot,
   readOnly,
-  onClose
+  onClose,
+  onEdit
 }) => {
   const removeShot = useStoryboardStore((state) => state.removeShot);
   const boardEntityIds = useStoryboardStore(
@@ -97,7 +104,6 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
   const { generateKeyframe, generateRevisedClip } = useGenerateShot();
   const { data: allEntities } = useEntities();
 
-  const [editOpen, setEditOpen] = useState(false);
   const [iterateOpen, setIterateOpen] = useState(false);
   const [iterateText, setIterateText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -218,14 +224,16 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
         )}
         {!readOnly && (
           <>
-            <EditorButton
-              variant="contained"
-              color="primary"
-              onClick={() => setEditOpen(true)}
-              title="Open this shot's fields, takes and script lines"
-            >
-              Edit
-            </EditorButton>
+            {onEdit && (
+              <EditorButton
+                variant="contained"
+                color="primary"
+                onClick={() => onEdit(shot.id)}
+                title="Open this shot's fields, takes and script lines under its card"
+              >
+                Edit
+              </EditorButton>
+            )}
             <EditorButton
               onClick={() => setIterateOpen(true)}
               disabled={isGenerating || !shot.clip}
@@ -260,14 +268,6 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
           <CloseButton onClick={onClose} tooltip="Clear shot selection" />
         )}
       </FlexRow>
-
-      <ShotEditDialog
-        boardId={boardId}
-        shotId={shot.id}
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        readOnly={readOnly}
-      />
 
       <Dialog
         open={iterateOpen}

@@ -11,8 +11,9 @@
  * footer (Edit, Iterate, Regenerate, Upload). Both swallow their clicks, so
  * reaching for an action never also selects the card.
  *
- * `Edit` and the dialogue icon both open {@link ShotEditDialog}; the icon
- * opens it on the dialogue cell (PRD § 7.5).
+ * `Edit` and the dialogue icon both ask the board to open the shot's editor
+ * directly under this card ({@link ShotEditPanel}); the icon opens it on the
+ * dialogue cell (PRD § 7.5).
  */
 
 import React, { memo, useCallback, useState } from "react";
@@ -47,7 +48,6 @@ import {
   MOTION
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
-import ShotEditDialog from "./ShotEditDialog";
 import ShotHoverToolbar from "./ShotHoverToolbar";
 import ShotMediaViewer from "./ShotMediaViewer";
 import ShotStatusPill, { CLIP_COLOR, isShotGenerating } from "./ShotStatusPill";
@@ -91,6 +91,12 @@ interface ShotCardProps {
   onDragEnd?: () => void;
   /** Fired on the card a drag was released on. */
   onDrop?: (shotId: string) => void;
+  /**
+   * Opens this shot's editor. The board owns it, because it renders it under
+   * this card's row — the card cannot place a panel outside its own cell.
+   * Without it the card shows no edit affordances.
+   */
+  onEdit?: (shotId: string, focus: "fields" | "dialogue") => void;
 }
 
 /** The thumbnail: a fixed 16:9 media area every card in the grid shares. */
@@ -153,7 +159,8 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   onDragStart,
   onDragEnter,
   onDragEnd,
-  onDrop
+  onDrop,
+  onEdit
 }) => {
   const theme = useTheme();
   const shotRenderContext =
@@ -165,10 +172,6 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [iterateOpen, setIterateOpen] = useState(false);
   const [iterateText, setIterateText] = useState("");
-  // Null while the Edit dialog is closed; `dialogue` opens it on that cell.
-  const [editFocus, setEditFocus] = useState<"fields" | "dialogue" | null>(
-    null
-  );
 
   // Why the last still or clip failed. Kept on the shot's job state until the
   // next attempt registers, so the card can say more than "failed".
@@ -265,9 +268,14 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     removeShot(boardId, shot.id);
   }, [removeShot, boardId, shot.id]);
 
-  const handleEdit = useCallback(() => setEditFocus("fields"), []);
-  const handleEditDialogue = useCallback(() => setEditFocus("dialogue"), []);
-  const handleCloseEdit = useCallback(() => setEditFocus(null), []);
+  const handleEdit = useCallback(
+    () => onEdit?.(shot.id, "fields"),
+    [onEdit, shot.id]
+  );
+  const handleEditDialogue = useCallback(
+    () => onEdit?.(shot.id, "dialogue"),
+    [onEdit, shot.id]
+  );
 
   const handleRegenerate = useCallback(() => {
     void generateKeyframe(boardId, shot).catch(() => undefined);
@@ -503,9 +511,11 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             borderRadius: BORDER_RADIUS.sm
           }}
         >
-          <EditorButton size="small" onClick={handleEdit} sx={footerButtonSx}>
-            Edit
-          </EditorButton>
+          {onEdit && (
+            <EditorButton size="small" onClick={handleEdit} sx={footerButtonSx}>
+              Edit
+            </EditorButton>
+          )}
           <EditorButton
             size="small"
             onClick={handleOpenIterate}
@@ -533,20 +543,22 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             multiple={false}
           />
           <Box sx={{ flex: 1 }} />
-          <ToolbarIconButton
-            icon={
-              hasDialogue ? (
-                <ChatBubbleIcon sx={{ fontSize: "1em" }} />
-              ) : (
-                <ChatBubbleOutlineIcon sx={{ fontSize: "1em" }} />
-              )
-            }
-            tooltip={hasDialogue ? "Edit the dialogue" : "Add dialogue"}
-            ariaLabel={hasDialogue ? "Edit dialogue" : "Add dialogue"}
-            data-testid="shot-dialogue-icon"
-            data-filled={hasDialogue ? "true" : undefined}
-            onClick={handleEditDialogue}
-          />
+          {onEdit && (
+            <ToolbarIconButton
+              icon={
+                hasDialogue ? (
+                  <ChatBubbleIcon sx={{ fontSize: "1em" }} />
+                ) : (
+                  <ChatBubbleOutlineIcon sx={{ fontSize: "1em" }} />
+                )
+              }
+              tooltip={hasDialogue ? "Edit the dialogue" : "Add dialogue"}
+              ariaLabel={hasDialogue ? "Edit dialogue" : "Add dialogue"}
+              data-testid="shot-dialogue-icon"
+              data-filled={hasDialogue ? "true" : undefined}
+              onClick={handleEditDialogue}
+            />
+          )}
         </FlexRow>
       )}
 
@@ -555,19 +567,6 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         media={viewerMedia}
         onClose={handleCloseViewer}
       />
-
-      {/* The dialog is its own surface: its clicks must not reach the card's
-          selection handler through the React tree. */}
-      <Box onClick={swallowClick}>
-        <ShotEditDialog
-          boardId={boardId}
-          shotId={shot.id}
-          open={editFocus !== null}
-          onClose={handleCloseEdit}
-          focusDialogue={editFocus === "dialogue"}
-          readOnly={readOnly}
-        />
-      </Box>
 
       {/* Both dialogs sit inside the card, so their clicks would bubble into
           its selection handler through the React tree. */}
