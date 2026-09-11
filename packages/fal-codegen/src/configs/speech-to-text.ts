@@ -35,6 +35,26 @@ export const config: ModuleConfig = {
         "Rapid speech-to-text conversion"
       ]
     },
+    "fal-ai/elevenlabs/forced-alignment": {
+      className: "ElevenLabsForcedAlignment",
+      docstring:
+        "ElevenLabs Forced Alignment times a known transcript against its audio, returning per-word and per-character timestamps.",
+      tags: [
+        "audio",
+        "transcription",
+        "stt",
+        "elevenlabs",
+        "speech-to-text",
+        "alignment"
+      ],
+      useCases: [
+        "Time captions to a recording",
+        "Build word-level subtitles from a script",
+        "Sync narration to a cut",
+        "Locate a phrase inside long audio",
+        "Drive lip-sync from a known script"
+      ]
+    },
     "fal-ai/smart-turn": {
       className: "SmartTurn",
       docstring:

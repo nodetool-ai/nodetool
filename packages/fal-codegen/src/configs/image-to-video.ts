@@ -180,6 +180,50 @@ export const config: ModuleConfig = {
       ]
     },
 
+    "minimax/h3-max/multi-angle/image-to-video": {
+      className: "MinimaxH3MaxMultiAngleImageToVideo",
+      docstring:
+        "H3 Max Multi Angle animates a still with a keyframed camera trajectory, controlling orbit, elevation, and distance in 3D space.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "minimax",
+        "h3",
+        "camera"
+      ],
+      useCases: [
+        "Orbit a product on a fixed frame",
+        "Script a camera move over key art",
+        "Show a subject from several angles",
+        "Add parallax to a still",
+        "Match a camera move across shots"
+      ]
+    },
+
+    "minimax/h3-max/reference-to-video": {
+      className: "MinimaxH3MaxReferenceToVideo",
+      docstring:
+        "H3 Max generates video from image, video, and audio references together, holding subject and style from the references.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "minimax",
+        "h3",
+        "reference"
+      ],
+      useCases: [
+        "Keep a cast consistent across shots",
+        "Carry a look from reference footage",
+        "Drive motion from a reference clip",
+        "Sync a shot to a reference track",
+        "Generate a shot from mixed references"
+      ]
+    },
+
     "minimax/h3/reference-to-video": {
       className: "MinimaxH3ReferenceToVideo",
       docstring:
@@ -3176,6 +3220,49 @@ export const config: ModuleConfig = {
         "Batch processing",
         "Professional applications",
         "Rapid prototyping"
+      ]
+    },
+    "google/gemini-omni-flash/v1.1/image-to-video": {
+      className: "GeminiOmniFlashV11ImageToVideo",
+      docstring:
+        "Gemini Omni Flash 1.1 animates a still into video with synchronized audio, optionally toward an end frame.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "google",
+        "gemini",
+        "omni",
+        "flash"
+      ],
+      useCases: [
+        "Animate key art with sound",
+        "Interpolate between a first and last frame",
+        "Add motion to product photography",
+        "Turn a generated still into a clip",
+        "Produce social cuts from one frame"
+      ]
+    },
+    "google/gemini-omni-flash/v1.1/reference-to-video": {
+      className: "GeminiOmniFlashV11ReferenceToVideo",
+      docstring:
+        "Gemini Omni Flash 1.1 generates video from images, videos, and text together, keeping a character's face, clothing, and voice across the result.",
+      tags: [
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "google",
+        "gemini",
+        "omni",
+        "flash",
+        "reference"
+      ],
+      useCases: [
+        "Hold a character across a sequence",
+        "Combine stills and footage in one prompt",
+        "Carry a voice through a generated shot",
+        "Recast a reference clip with new subjects",
+        "Generate a shot from mixed references"
       ]
     },
     "luma/agent/ray/v3.2/image-to-video": {

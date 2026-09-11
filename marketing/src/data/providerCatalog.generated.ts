@@ -31,13 +31,13 @@ export interface ProviderCatalog {
 export const providerCatalog: Record<string, ProviderCatalog> = {
   "fal_ai": {
     "id": "fal_ai",
-    "total": 1566,
+    "total": 1579,
     "counts": {
       "3d": 60,
-      "image": 740,
+      "image": 743,
       "audio": 127,
       "text": 18,
-      "video": 621
+      "video": 631
     },
     "topTags": [
       "generation",
@@ -341,6 +341,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "bria/increase-resolution",
+        "name": "Increase Resolution",
+        "kind": "image",
+        "desc": "Upscale an image 2x or 4x up to 8192x8192 without regenerating it, so original detail is preserved rather than reinvented.",
+        "tags": [
+          "editing",
+          "image to image",
+          "img2img"
+        ]
+      },
+      {
         "id": "bria/product-dimensions",
         "name": "Product Dimensions",
         "kind": "image",
@@ -481,17 +492,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "vision",
           "alignment",
           "similarity"
-        ]
-      },
-      {
-        "id": "fal-ai/aura-flow",
-        "name": "Aura Flow",
-        "kind": "image",
-        "desc": "AuraFlow v0.3 is an open-source flow-based text-to-image generation model that achieves state-of-the-art results on GenEval.",
-        "tags": [
-          "generation",
-          "text to image",
-          "txt2img"
         ]
       },
       {
@@ -671,6 +671,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "blackforestlabs/flux-3/edit-video",
+        "name": "Flux3 Edit Video",
+        "kind": "video",
+        "desc": "FLUX 3 re-renders an existing video from a natural-language instruction, changing what the prompt asks for and leaving the rest of the scene intact.",
+        "tags": [
+          "video",
+          "editing",
+          "video to video"
+        ]
+      },
+      {
         "id": "blackforestlabs/flux-3/extend-video",
         "name": "Flux3 Extend Video",
         "kind": "video",
@@ -825,6 +836,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "bria/video/background-removal/green-screen-despill",
+        "name": "Video Background Removal Green Screen Despill",
+        "kind": "video",
+        "desc": "Remove the background from chromakey footage, suppressing the green spill that bleeds onto the subject's edges.",
+        "tags": [
+          "editing",
+          "video to video",
+          "vid2vid"
+        ]
+      },
+      {
         "id": "bria/video/background-removal/v3",
         "name": "Video Background Removal V3",
         "kind": "video",
@@ -906,28 +928,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Bytedance Seedance20 Fast Reference To Video",
         "kind": "video",
         "desc": "Fast reference-image-to-video with ByteDance Seedance 2.0.",
-        "tags": [
-          "generation",
-          "image to video",
-          "img2vid"
-        ]
-      },
-      {
-        "id": "bytedance/seedance-2.0/fast/text-to-video",
-        "name": "Bytedance Seedance20 Fast Text To Video",
-        "kind": "video",
-        "desc": "Fast text-to-video with ByteDance Seedance 2.0.",
-        "tags": [
-          "generation",
-          "text to video",
-          "txt2vid"
-        ]
-      },
-      {
-        "id": "bytedance/seedance-2.0/image-to-video",
-        "name": "Bytedance Seedance20 Image To Video",
-        "kind": "video",
-        "desc": "Animate images with ByteDance Seedance 2.0.",
         "tags": [
           "generation",
           "image to video",
