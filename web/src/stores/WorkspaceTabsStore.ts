@@ -586,15 +586,26 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
       setActiveProjectId: (projectId) =>
         set((state) => {
           const session = sessionFor(state.projectSessions, projectId ?? undefined);
+          const currentTab = state.tabs.find(
+            (tab) => tab.id === state.activeTabId
+          );
           const fallbackTab = state.tabs.find((tab) =>
             projectId
               ? tab.projectId === projectId
               : tab.projectId === undefined
           );
+          const activeTabId =
+            session.activeTabId ??
+            (currentTab &&
+            (projectId
+              ? currentTab.projectId === projectId
+              : currentTab.projectId === undefined)
+              ? currentTab.id
+              : fallbackTab?.id) ??
+            state.activeTabId;
           return {
             activeProjectId: projectId,
-            activeTabId:
-              session.activeTabId ?? fallbackTab?.id ?? state.activeTabId,
+            activeTabId,
             tabs: gatherProjectTabs(state.tabs, projectId)
           };
         }),
@@ -636,10 +647,6 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
               .filter((tab) => tab.projectId === id)
               .map((tab) => [tab.id, tab] as const)
           );
-          const wantedIds = new Set([
-            overview.id,
-            ...documentTabs.map((tab) => tab.id)
-          ]);
           const restored = hasSession
             ? previous.tabIds
                 .map((tabId) =>
@@ -771,16 +778,15 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
       },
       migrate: (persisted, version) => {
         const state = persisted as Partial<WorkspaceTabsState>;
-        if (version < 2 || !state.projectSessions) {
-          return {
-            ...state,
-            projectSessions: sessionFromTabs(
-              state.tabs ?? [],
-              state.activeTabId ?? null
-            )
-          };
-        }
-        return state;
+        return {
+          tabs: state.tabs ?? [],
+          activeTabId: state.activeTabId ?? null,
+          activeProjectId: state.activeProjectId ?? null,
+          projectSessions:
+            version < 2 || !state.projectSessions
+              ? sessionFromTabs(state.tabs ?? [], state.activeTabId ?? null)
+              : state.projectSessions
+        };
       }
     }
   )
