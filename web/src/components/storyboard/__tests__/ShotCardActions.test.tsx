@@ -45,24 +45,6 @@ jest.mock("../../../serverState/useAssetUpload", () => ({
     selector({ uploadAsset: mockUploadAsset })
 }));
 
-// The dialog has its own suite; here only which surface the card opens matters.
-jest.mock("../ShotEditDialog", () => ({
-  __esModule: true,
-  default: ({
-    open,
-    focusDialogue
-  }: {
-    open: boolean;
-    focusDialogue?: boolean;
-  }) =>
-    open ? (
-      <div
-        data-testid="shot-edit-dialog"
-        data-focus-dialogue={focusDialogue ? "true" : undefined}
-      />
-    ) : null
-}));
-
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
     generateKeyframe: jest.fn(async () => undefined),
@@ -110,11 +92,14 @@ const renderCard = (
 ) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <ShotCard boardId={BOARD} shot={shot} {...props} />
+      <ShotCard boardId={BOARD} shot={shot} onEdit={onEdit} {...props} />
     </ThemeProvider>
   );
 
+const onEdit = jest.fn();
+
 beforeEach(() => {
+  onEdit.mockClear();
   mockUploadAsset.mockReset();
 });
 
@@ -235,27 +220,32 @@ describe("ShotCard edit affordances", () => {
     );
   });
 
-  it("opens the Edit dialog on the dialogue cell, without selecting the card", async () => {
+  // The editor opens under the card, which is the board's grid, so both
+  // affordances ask the board and name the cell to open on.
+  it("asks for the dialogue cell from the dialogue icon, without selecting the card", async () => {
     const onSelect = jest.fn();
     renderCard(seedShot({ dialogue: "Keep it lit." }), { onSelect });
 
     await userEvent.click(screen.getByTestId("shot-dialogue-icon"));
-    expect(screen.getByTestId("shot-edit-dialog")).toHaveAttribute(
-      "data-focus-dialogue",
-      "true"
-    );
+    expect(onEdit).toHaveBeenCalledWith("shot-1", "dialogue");
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it("opens the Edit dialog on the fields from Edit", async () => {
+  it("asks for the fields from Edit, without selecting the card", async () => {
     const onSelect = jest.fn();
     renderCard(seedShot(), { onSelect });
 
     await userEvent.click(screen.getByRole("button", { name: "Edit" }));
-    expect(screen.getByTestId("shot-edit-dialog")).not.toHaveAttribute(
-      "data-focus-dialogue"
-    );
+    expect(onEdit).toHaveBeenCalledWith("shot-1", "fields");
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("hides both when the board offers no editor", () => {
+    renderCard(seedShot({ dialogue: "Keep it lit." }), { onEdit: undefined });
+    expect(
+      screen.queryByRole("button", { name: "Edit" })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("shot-dialogue-icon")).not.toBeInTheDocument();
   });
 
   it("keeps the scene and shot caption as the card title", () => {

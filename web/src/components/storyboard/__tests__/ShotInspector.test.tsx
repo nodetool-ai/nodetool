@@ -1,7 +1,7 @@
 /**
  * The selection footer after P4: the selected shot's description, four actions
  * (`Edit`, `Iterate`, `Regenerate`, `Delete`), and cross-document chips. Every
- * editable field is asserted in `ShotEditDialog.test.tsx`.
+ * editable field is asserted in `ShotEditPanel.test.tsx`.
  */
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
@@ -109,13 +109,6 @@ jest.mock("../../../trpc/client", () => ({
   trpcClient: {}
 }));
 
-// The dialog has its own suite and reaches much further into the board.
-jest.mock("../ShotEditDialog", () => ({
-  __esModule: true,
-  default: ({ open }: { open: boolean }) =>
-    open ? <div data-testid="shot-edit-dialog" /> : null
-}));
-
 import ShotInspector from "../ShotInspector";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import { useDocumentFocusStore } from "../../../stores/DocumentFocusStore";
@@ -136,11 +129,19 @@ const renderInspector = (
 ) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <ShotInspector boardId="board-1" shot={shot} {...props} />
+      <ShotInspector
+        boardId="board-1"
+        shot={shot}
+        onEdit={onEdit}
+        {...props}
+      />
     </ThemeProvider>
   );
 
+const onEdit = jest.fn();
+
 beforeEach(() => {
+  onEdit.mockClear();
   removeShotMock.mockClear();
   generateKeyframeMock.mockClear();
   generateRevisedClipMock.mockClear();
@@ -188,7 +189,7 @@ describe("ShotInspector selection footer (PRD § 7.5)", () => {
     for (const name of ["Edit", "Iterate", "Regenerate", "Delete"]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
-    // The field editors moved into the dialog; none of them is here.
+    // The field editors moved into the panel under the card; none is here.
     expect(screen.queryByLabelText("Shot description")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Framing")).not.toBeInTheDocument();
     expect(
@@ -199,11 +200,19 @@ describe("ShotInspector selection footer (PRD § 7.5)", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("opens the Edit dialog from Edit", async () => {
+  // The editor belongs under the shot's card, which only the board can place,
+  // so Edit asks the board rather than opening a surface of its own.
+  it("asks the board to open the editor from Edit", async () => {
     renderInspector(makeShot());
-    expect(screen.queryByTestId("shot-edit-dialog")).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Edit" }));
-    expect(screen.getByTestId("shot-edit-dialog")).toBeInTheDocument();
+    expect(onEdit).toHaveBeenCalledWith("shot-1");
+  });
+
+  it("hides Edit when the board offers no editor", () => {
+    renderInspector(makeShot(), { onEdit: undefined });
+    expect(
+      screen.queryByRole("button", { name: "Edit" })
+    ).not.toBeInTheDocument();
   });
 
   it("renders a new still from Regenerate", async () => {

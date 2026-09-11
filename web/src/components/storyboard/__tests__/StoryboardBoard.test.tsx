@@ -189,6 +189,7 @@ jest.mock("../ShotCard", () => ({
     onDragStart,
     onDragEnter,
     onDrop,
+    onEdit,
     renderContext
   }: {
     shot: Shot;
@@ -201,6 +202,7 @@ jest.mock("../ShotCard", () => ({
     onDragStart?: (id: string) => void;
     onDragEnter?: (id: string) => void;
     onDrop?: (id: string) => void;
+    onEdit?: (id: string, focus: "fields" | "dialogue") => void;
   }) => (
     <div
       data-testid="shot-card"
@@ -226,7 +228,44 @@ jest.mock("../ShotCard", () => ({
       onDragStart={() => onDragStart?.(shot.id)}
       onDragEnter={() => onDragEnter?.(shot.id)}
       onDrop={() => onDrop?.(shot.id)}
-    />
+    >
+      {onEdit && (
+        // The real card swallows its footer's clicks, so reaching for Edit
+        // never also selects the card.
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onEdit(shot.id, "fields");
+          }}
+        >
+          {`Edit ${shot.id}`}
+        </button>
+      )}
+    </div>
+  )
+}));
+// The editor has its own suite (ShotEditPanel.test.tsx); here only where the
+// board puts it, and which shot it is given, matter.
+jest.mock("../ShotEditPanel", () => ({
+  __esModule: true,
+  default: ({
+    shotId,
+    onClose,
+    onShotChange
+  }: {
+    shotId: string;
+    onClose: () => void;
+    onShotChange?: (id: string) => void;
+  }) => (
+    <div data-testid="shot-edit-panel" data-shot-id={shotId}>
+      <button type="button" onClick={onClose}>
+        Close editor
+      </button>
+      <button type="button" onClick={() => onShotChange?.("s2")}>
+        Step to s2
+      </button>
+    </div>
   )
 }));
 // The inspector reads the real store, the entity library and the linked
@@ -957,5 +996,72 @@ describe("StoryboardBoard selection", () => {
     renderBoard(jest.fn());
     expect(screen.getAllByTestId("shot-inspector").length).toBeGreaterThan(0);
     activeShot = null;
+  });
+});
+
+// The editor is a row of the shot grid, placed right after the card it edits.
+// Nothing else enforces that: as a dialog it worked from anywhere, so a
+// regression would only show as the panel drifting away from its shot.
+describe("StoryboardBoard shot editing placement", () => {
+  const editCard = async (shotId: string) => {
+    await userEvent.click(
+      screen.getByRole("button", { name: `Edit ${shotId}` })
+    );
+  };
+
+  /** The grid cell holding a card, i.e. what the editor must follow. */
+  const cellOf = (shotId: string): HTMLElement =>
+    screen.getByLabelText(shotId).parentElement as HTMLElement;
+
+  it("opens the editor directly under the edited card, inside the grid", async () => {
+    mockShots = [makeShot("s1"), makeShot("s2"), makeShot("s3")];
+    renderBoard(jest.fn());
+    expect(screen.queryByTestId("shot-edit-panel")).not.toBeInTheDocument();
+
+    await editCard("s2");
+
+    const panel = screen.getByTestId("shot-edit-panel");
+    expect(panel).toHaveAttribute("data-shot-id", "s2");
+    const cell = cellOf("s2");
+    const row = cell.nextElementSibling as HTMLElement;
+    expect(row).toContainElement(panel);
+    // Same parent as the card's cell — a row of the grid, not a layer over it.
+    expect(row.parentElement).toBe(cell.parentElement);
+  });
+
+  it("closes the editor without touching the selection", async () => {
+    mockShots = [makeShot("s1"), makeShot("s2")];
+    mockSelectShot.mockClear();
+    renderBoard(jest.fn());
+
+    await editCard("s1");
+    await userEvent.click(screen.getByRole("button", { name: "Close editor" }));
+
+    expect(screen.queryByTestId("shot-edit-panel")).not.toBeInTheDocument();
+    expect(mockSelectShot).not.toHaveBeenCalled();
+  });
+
+  it("moves the editor under the shot it steps to", async () => {
+    mockShots = [makeShot("s1"), makeShot("s2")];
+    renderBoard(jest.fn());
+
+    await editCard("s1");
+    await userEvent.click(screen.getByRole("button", { name: "Step to s2" }));
+
+    const panel = screen.getByTestId("shot-edit-panel");
+    expect(panel).toHaveAttribute("data-shot-id", "s2");
+    expect(cellOf("s2").nextElementSibling).toContainElement(panel);
+  });
+
+  it("offers no editor on a read-only board", () => {
+    mockShots = [makeShot("s1")];
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard boardId="board-1" readOnly />
+      </ThemeProvider>
+    );
+    expect(
+      screen.queryByRole("button", { name: "Edit s1" })
+    ).not.toBeInTheDocument();
   });
 });

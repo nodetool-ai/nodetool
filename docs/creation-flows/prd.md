@@ -23,8 +23,8 @@ editor that already exists for that document, with the generated work in place.
 The storyboard flow (E1) is specified in full, modeled on the reference. It
 also reshapes the board and the shot editor: scene-grouped shot cards with a
 hover toolbar and an insert point, a genre chip and Change Style, and a
-full-screen Edit Shot dialog with the still, its versions and one shot-table
-row. The other four flows (E2–E5) are specified to the level their phases
+shot editor that opens underneath the card being edited, with the still, its
+versions and one shot-table row. The other four flows (E2–E5) are specified to the level their phases
 need: steps, plan shape, presets, generate action, landing, data fields and
 reuse.
 
@@ -105,7 +105,7 @@ buttons, Video Count toggle) are not part of any flow. See § 4.3.
 5. Genre, screenplay review, scenes with one ordering contract, prompt
    composition for every camera field, per-version render record and derived
    staleness, twelve shipped style presets and `Change Style`, board card
-   changes, the Edit Shot dialog with draft-then-save, PDF/DOCX/FDX and CSV
+   changes, the inline shot editor with draft-then-save, PDF/DOCX/FDX and CSV
    imports through a server extraction route.
 
 **E2–E5 (§ 8–§ 11), to phase level**
@@ -371,11 +371,12 @@ Batch jobs are server jobs. A board closed mid-batch reattaches on open: the
 generation store reconciles each shot's pending job by id and lands completed
 assets as versions, the same path the queue overlay uses today.
 
-### 7.5 Edit Shot dialog
+### 7.5 Edit Shot panel
 
-Full-screen dialog, `Edit your shot`. Replaces the docked inspector. The
-selection footer from Phase 0 keeps only `Edit`, `Iterate`, `Regenerate`,
-`Delete`.
+`Edit your shot`, opened directly underneath the card being edited as a
+full-width row of the shot grid, so the shot stays on screen while its fields
+are edited. The selection footer from Phase 0 keeps only `Edit`, `Iterate`,
+`Regenerate`, `Delete`; its `Edit` opens the same panel under the shot's card.
 
 - **Left.** Still or clip viewer with pan, flip horizontal, zoom in, zoom out,
   `Open in image editor`. Flip and image-editor edits each add a version, never
@@ -404,7 +405,8 @@ changes?" with `Save` and `Discard`. Version selection, deletion, flip and
 upload are not draft state. They commit immediately, as they do today.
 
 Keyboard: `Esc` closes (with the confirm above when dirty), `←`/`→` step
-versions, `Cmd/Ctrl+S` saves.
+versions, `Cmd/Ctrl+S` saves. `Previous shot` / `Next shot` move the panel under
+the shot they step to, asking about an unsaved draft first.
 
 ### 7.6 Imports
 
@@ -628,7 +630,7 @@ never changes under a user.
 - **D10 — Imported dialogue is deterministic.** FDX dialogue and scene order
   come from the parser. The Director fills camera and motion. A post-check
   restores drift. (Resolves F3.)
-- **D11 — Edit dialog replaces the docked inspector, draft-then-save.** § 7.5.
+- **D11 — The editor opens under the shot's card, draft-then-save.** § 7.5.
   (Resolves F8.)
 - **D12 — Style change never renders.** Stills and clips are marked stale.
   Stills re-render from the banner, clips from `Render clips`. (Resolves Q2.)
@@ -1243,7 +1245,7 @@ Copy follows [BRAND.md § Lexicon](../BRAND.md#5-lexicon): no billing terms, no
 | E1 review notice (FDX) | Restored the dialogue of shots 3 and 7 to your script. |
 | E1 step 3 | Choose your aspect ratio and art style · Set the look with a preset or your own references. You can change it later. · Generate your storyboard |
 | E1 board | Edit · Iterate · Retry N failed · Style changed. N stills and M clips are stale. · Re-render stills |
-| E1 dialog | Edit your shot · Save · Regenerate · Discard changes? · Save · Discard |
+| E1 shot editor | Edit your shot · Save · Regenerate · Discard changes? · Save · Discard |
 | E1 scanned PDF | No text found in this PDF. Paste the script, or upload a DOCX or FDX. |
 | E2 | What's the video? · Choose your format · Plan the beats · Re-plan · Continue to look · Choose your look · Generate your video · cost unknown until the first clip returns |
 | E3 | What's the script about? · Choose your format · Write the script · Rewrite · Continue to voices · Choose the voices · Voice your script |

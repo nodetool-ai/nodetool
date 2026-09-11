@@ -17,6 +17,10 @@
  *
  * Selecting a card opens the selection footer under the grid and scrolls it
  * into view; the arrow keys walk the selection along the grid.
+ *
+ * `Edit` on a card opens {@link ShotEditPanel} as a full-width row of the grid
+ * placed immediately after that card, so the editor sits directly underneath
+ * the shot it edits rather than over the board.
  */
 
 import React, {
@@ -100,6 +104,7 @@ import BoardStyleDialog from "./BoardStyleDialog";
 import SceneHeader from "./SceneHeader";
 import ScriptLinkControl from "./ScriptLinkControl";
 import ShotCard from "./ShotCard";
+import ShotEditPanel from "./ShotEditPanel";
 import ShotInsertPoint, { SHOT_INSERT_POINT_CLASS } from "./ShotInsertPoint";
 import ShotInspector from "./ShotInspector";
 import StoryboardEntitiesField from "./StoryboardEntitiesField";
@@ -167,6 +172,16 @@ const shotGridSx = {
   "@media (max-width: 600px)": {
     gridTemplateColumns: "minmax(0, 1fr)"
   }
+} as const;
+
+/**
+ * The editor's row: the full width of the grid, directly under the card whose
+ * shot it edits. The panel inside it spans the row the same way, so a narrow
+ * viewport that drops the grid to one column needs no second rule.
+ */
+const editRowSx = {
+  gridColumn: "1 / -1",
+  minWidth: 0
 } as const;
 
 /**
@@ -335,6 +350,31 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const openStyle = useCallback(() => setStyleOpen(true), []);
   const closeStyle = useCallback(() => setStyleOpen(false), []);
 
+  // Which shot's editor is open, and which cell it opened on. The board holds
+  // this rather than the card, because the panel is a row of this grid: a card
+  // cannot place a surface outside its own cell.
+  const [editing, setEditing] = useState<{
+    shotId: string;
+    focus: "fields" | "dialogue";
+  } | null>(null);
+  const handleEditShot = useCallback(
+    (shotId: string, focus: "fields" | "dialogue" = "fields") => {
+      setEditing({ shotId, focus });
+    },
+    []
+  );
+  const handleEditShotFields = useCallback(
+    (shotId: string) => handleEditShot(shotId, "fields"),
+    [handleEditShot]
+  );
+  const closeEditing = useCallback(() => setEditing(null), []);
+  // Stepping from the panel moves it under the shot it steps to; the focus goes
+  // back to the fields, since the dialogue cell was this shot's request.
+  const handleEditingShotChange = useCallback(
+    (shotId: string) => setEditing({ shotId, focus: "fields" }),
+    []
+  );
+
   // The one grouping pass the render needs: the headers, the cards under each,
   // the captions, and the scene a drop resolves against all read it.
   const scenes = screenplay?.scenes;
@@ -351,6 +391,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     []
   );
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
   const settingsPanelId = `storyboard-board-settings-${boardId}`;
 
   // The inspector docks under the grid, so on a board of more than a row or
@@ -359,6 +400,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   // not, because that already centres the card.
   const gridRef = useRef<HTMLDivElement>(null);
   const inspectorRef = useRef<HTMLDivElement>(null);
+  const editPanelRef = useRef<HTMLDivElement>(null);
   const revealInspector = useRef(false);
   useEffect(() => {
     if (!revealInspector.current) {
@@ -371,6 +413,19 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       behavior: "smooth"
     });
   }, [activeShotId]);
+
+  // The editor opens under the card, which on a tall card is partly below the
+  // fold; bring it into view on open and whenever it moves to another shot.
+  useEffect(() => {
+    if (!editing) {
+      return;
+    }
+    // `scrollIntoView` is absent under jsdom, so the call is guarded.
+    editPanelRef.current?.scrollIntoView?.({
+      block: "nearest",
+      behavior: "smooth"
+    });
+  }, [editing]);
 
   // Clicking the selected card deselects it (the card's aria-pressed
   // contract); the store's selectShot stays idempotent for programmatic
@@ -399,7 +454,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       const target = event.target as HTMLElement;
       if (
         !gridRef.current?.contains(target) ||
-        target.closest("input, textarea, [contenteditable=true]")
+        target.closest("input, textarea, [contenteditable=true]") ||
+        // The editor is a row of this grid, so its keys arrive here too. It owns
+        // them: Escape closes it, and nothing in it should move the selection.
+        target.closest(".shot-edit-panel")
       ) {
         return;
       }
@@ -960,30 +1018,48 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                   slugline={group.scene?.slugline || undefined}
                 />
                 {group.shots.map((shot) => (
-                  <Box key={shot.id} sx={shotSlotSx}>
-                    <ShotCard
-                      boardId={boardId}
-                      shot={shot}
-                      caption={captions.get(shot.id)}
-                      renderContext={renderContext}
-                      selected={shot.id === activeShotId}
-                      onSelect={handleSelectShot}
-                      readOnly={readOnly}
-                      draggable={!readOnly && !directing}
-                      dropTarget={shot.id === dropTargetId}
-                      onDragStart={handleDragStart}
-                      onDragEnter={handleDragEnter}
-                      onDragEnd={handleDragEnd}
-                      onDrop={handleDrop}
-                    />
-                    {!readOnly && !directing && (
-                      <ShotInsertPoint
-                        afterShotId={shot.id}
-                        label={`after ${captions.get(shot.id) ?? ""}`}
-                        onInsert={handleInsertShot}
+                  <React.Fragment key={shot.id}>
+                    <Box sx={shotSlotSx}>
+                      <ShotCard
+                        boardId={boardId}
+                        shot={shot}
+                        caption={captions.get(shot.id)}
+                        renderContext={renderContext}
+                        selected={shot.id === activeShotId}
+                        onSelect={handleSelectShot}
+                        readOnly={readOnly}
+                        draggable={!readOnly && !directing}
+                        dropTarget={shot.id === dropTargetId}
+                        onDragStart={handleDragStart}
+                        onDragEnter={handleDragEnter}
+                        onDragEnd={handleDragEnd}
+                        onDrop={handleDrop}
+                        onEdit={readOnly ? undefined : handleEditShot}
                       />
+                      {!readOnly && !directing && (
+                        <ShotInsertPoint
+                          afterShotId={shot.id}
+                          label={`after ${captions.get(shot.id) ?? ""}`}
+                          onInsert={handleInsertShot}
+                        />
+                      )}
+                    </Box>
+                    {/* Directly under the card: a full-width row of this same
+                        grid, so the shot stays on screen while it is edited. */}
+                    {editing?.shotId === shot.id && (
+                      <Box ref={editPanelRef} sx={editRowSx}>
+                        <ShotEditPanel
+                          boardId={boardId}
+                          shotId={shot.id}
+                          focusDialogue={editing.focus === "dialogue"}
+                          readOnly={readOnly}
+                          onClose={closeEditing}
+                          onShotChange={handleEditingShotChange}
+                          onOpenBoardSettings={openSettings}
+                        />
+                      </Box>
                     )}
-                  </Box>
+                  </React.Fragment>
                 ))}
               </React.Fragment>
             ))}
@@ -1021,6 +1097,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               shot={activeShot}
               readOnly={readOnly}
               onClose={clearSelection}
+              onEdit={readOnly ? undefined : handleEditShotFields}
             />
           </Box>
         )}

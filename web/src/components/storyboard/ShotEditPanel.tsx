@@ -1,10 +1,11 @@
 /**
- * ShotEditDialog
+ * ShotEditPanel
  *
- * `Edit your shot` — the full-screen editor that replaces the docked inspector
- * (PRD § 7.5, D11). The viewer and the takes gallery sit side by side, the
- * § 7.7.2 table row and the scene header row sit under them, and the linked
- * script's lines sit under that.
+ * `Edit your shot` — the editor the board opens **directly underneath the card
+ * being edited**, spanning the grid's full width, rather than over the board in
+ * a dialog: the shot stays on screen while its fields are edited. The viewer and
+ * the takes gallery sit side by side, the § 7.7.2 table row and the scene header
+ * row sit under them, and the linked script's lines sit under that.
  *
  * The two rows are a **draft**. Nothing typed here reaches the board until
  * `Save`, which writes the whole shot in one `updateShot` — one store update,
@@ -39,6 +40,7 @@ import {
   Box,
   Caption,
   Chip,
+  CloseButton,
   Dialog,
   Divider,
   EditorButton,
@@ -47,6 +49,7 @@ import {
   FlexColumn,
   FlexRow,
   Label,
+  Panel,
   ScrollArea,
   SelectField,
   Text,
@@ -82,12 +85,17 @@ import { getEntityChipSx, getEntityKindDotSx } from "../entities/entityKind";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { requestDocumentFocus } from "../../stores/DocumentFocusStore";
 
-interface ShotEditDialogProps {
+interface ShotEditPanelProps {
   boardId: string;
-  /** The shot the dialog opens on; `←`/`→` step from here. */
+  /** The shot the panel edits — the card it sits under. */
   shotId: string;
-  open: boolean;
   onClose: () => void;
+  /**
+   * Asks the board to move the panel under another shot. The panel cannot move
+   * itself: where it sits is the board's grid placement, not its own state.
+   * Without it, `Previous shot`/`Next shot` are not offered.
+   */
+  onShotChange?: (shotId: string) => void;
   /** Opens with the dialogue cell focused, for the card's dialogue icon. */
   focusDialogue?: boolean;
   readOnly?: boolean;
@@ -126,17 +134,16 @@ const shotNumberSx = {
   flexShrink: 0
 } as const;
 
-const ShotEditDialogInner: React.FC<ShotEditDialogProps> = ({
+const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   boardId,
   shotId,
-  open,
   onClose,
+  onShotChange,
   focusDialogue,
   readOnly,
   onOpenBoardSettings
 }) => {
-  const [currentId, setCurrentId] = useState(shotId);
-  // What the dialog is waiting on an answer for: a close, or a step to another
+  // What the panel is waiting on an answer for: a close, or a step to another
   // shot. Null while there is nothing pending.
   const [pending, setPending] = useState<{ shotId?: string } | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
@@ -167,33 +174,27 @@ const ShotEditDialogInner: React.FC<ShotEditDialogProps> = ({
   const { generateKeyframe, generateClip } = useGenerateShot();
   const { data: allEntities } = useEntities();
 
-  const shot = shots.find((s) => s.id === currentId);
+  const shot = shots.find((s) => s.id === shotId);
   const scene = useMemo(
     () => scenes.find((s) => s.id === shot?.scene_id) ?? null,
     [scenes, shot?.scene_id]
   );
 
-  // The draft, reset whenever the dialog opens on a different shot. Keyed on
-  // the shot id rather than the object so a store write behind the dialog (a
+  // The draft, reset whenever the panel moves to a different shot. Keyed on
+  // the shot id rather than the object so a store write behind the panel (a
   // landed render) does not wipe what is being typed.
   const [draft, setDraft] = useState<ShotDraft | null>(null);
   const [original, setOriginal] = useState<ShotDraft | null>(null);
   const draftedFor = useRef<string | null>(null);
   useEffect(() => {
-    if (!open || !shot || draftedFor.current === shot.id) {
+    if (!shot || draftedFor.current === shot.id) {
       return;
     }
     const next = draftFromShot(shot, scene);
     draftedFor.current = shot.id;
     setDraft(next);
     setOriginal(next);
-  }, [open, shot, scene]);
-  useEffect(() => {
-    if (!open) {
-      draftedFor.current = null;
-      setCurrentId(shotId);
-    }
-  }, [open, shotId]);
+  }, [shot, scene]);
 
   const dirty = !!draft && !!original && isDraftDirty(draft, original);
 
@@ -218,7 +219,7 @@ const ShotEditDialogInner: React.FC<ShotEditDialogProps> = ({
     () => sceneOrder(shots, scenes).flatMap((group) => group.shots),
     [shots, scenes]
   );
-  const position = ordered.findIndex((s) => s.id === currentId);
+  const position = ordered.findIndex((s) => s.id === shotId);
   const numbering = shot
     ? displayNumber(shot, shots)
     : { scene: 0, shot: 0 };
@@ -328,12 +329,12 @@ const ShotEditDialogInner: React.FC<ShotEditDialogProps> = ({
       }
       if (target.shotId) {
         draftedFor.current = null;
-        setCurrentId(target.shotId);
+        onShotChange?.(target.shotId);
       } else {
         onClose();
       }
     },
-    [dirty, onClose]
+    [dirty, onClose, onShotChange]
   );
 
   const runPending = useCallback(
@@ -348,12 +349,12 @@ const ShotEditDialogInner: React.FC<ShotEditDialogProps> = ({
       }
       if (target.shotId) {
         draftedFor.current = null;
-        setCurrentId(target.shotId);
+        onShotChange?.(target.shotId);
       } else {
         onClose();
       }
     },
-    [pending, commit, onClose]
+    [pending, commit, onClose, onShotChange]
   );
 
   const handleClose = useCallback(() => leave({}), [leave]);
@@ -368,22 +369,26 @@ const ShotEditDialogInner: React.FC<ShotEditDialogProps> = ({
     [ordered, position, leave]
   );
 
-  // `Cmd/Ctrl+S` saves. `←`/`→` step versions and are handled by the viewer,
-  // which owns the still/clip toggle and the pager index (PRD § 7.5).
+  // `Cmd/Ctrl+S` saves, `Esc` closes — the panel is not a dialog, so it listens
+  // for both itself. `←`/`→` step versions and are handled by the viewer, which
+  // owns the still/clip toggle and the pager index (PRD § 7.5).
   useEffect(() => {
-    if (!open) {
-      return;
-    }
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
         handleSave();
         return;
       }
+      // While the discard question is up it owns Escape: answering it is what
+      // closes the panel.
+      if (event.key === "Escape" && pending === null) {
+        event.preventDefault();
+        handleClose();
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, handleSave]);
+  }, [handleSave, handleClose, pending]);
 
   const handleEditInScript = useCallback(() => {
     if (!scriptId || !shot) {
@@ -408,65 +413,49 @@ const ShotEditDialogInner: React.FC<ShotEditDialogProps> = ({
     leave({});
   }, [scriptId, shot, scriptLines, openTab, leave]);
 
-  if (!open || !shot || !draft) {
+  if (!shot || !draft) {
     return null;
   }
 
-  const canStepBack = position > 0;
-  const canStepForward = position >= 0 && position < ordered.length - 1;
+  const canStep = !!onShotChange;
+  const canStepBack = canStep && position > 0;
+  const canStepForward =
+    canStep && position >= 0 && position < ordered.length - 1;
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      fullScreen
-      title="Edit your shot"
-      className="shot-edit-dialog"
-      actions={
-        <FlexRow align="center" gap={SPACING.sm} fullWidth wrap>
-          <ShotCostLine estimate={costEstimate} />
-          <Box sx={{ flex: 1 }} />
-          {!readOnly && (
-            <>
-              <ToolbarIconButton
-                icon={<MoreHorizIcon sx={{ fontSize: "1em" }} />}
-                tooltip="More actions"
-                ariaLabel="More shot actions"
-                onClick={(event) => setMenuAnchor(event.currentTarget)}
-              />
-              <EditorButton onClick={handleRegenerate}>Regenerate</EditorButton>
-              <EditorButton
-                variant="contained"
-                color="primary"
-                onClick={handleSave}
-                disabled={!dirty}
-              >
-                Save
-              </EditorButton>
-            </>
-          )}
-        </FlexRow>
-      }
+    <Panel
+      padding={SPACING.xl}
+      className="shot-edit-panel"
+      data-testid="shot-edit-panel"
+      data-shot-id={shot.id}
+      sx={{ minWidth: 0 }}
     >
       <FlexColumn gap={SPACING.xl} sx={{ minWidth: 0 }}>
         <FlexRow align="center" gap={SPACING.md} wrap>
+          <Text size="big">Edit your shot</Text>
           <Box sx={shotNumberSx}>
             {`SH ${String(shot.index + 1).padStart(2, "0")}`}
           </Box>
-          <EditorButton
-            onClick={() => stepShot(-1)}
-            disabled={!canStepBack}
-            title="Previous shot (←)"
-          >
-            Previous shot
-          </EditorButton>
-          <EditorButton
-            onClick={() => stepShot(1)}
-            disabled={!canStepForward}
-            title="Next shot (→)"
-          >
-            Next shot
-          </EditorButton>
+          {canStep && (
+            <>
+              <EditorButton
+                onClick={() => stepShot(-1)}
+                disabled={!canStepBack}
+                title="Previous shot"
+              >
+                Previous shot
+              </EditorButton>
+              <EditorButton
+                onClick={() => stepShot(1)}
+                disabled={!canStepForward}
+                title="Next shot"
+              >
+                Next shot
+              </EditorButton>
+            </>
+          )}
+          <Box sx={{ flex: 1 }} />
+          <CloseButton onClick={handleClose} />
         </FlexRow>
 
         <Box sx={columnsSx}>
@@ -608,6 +597,32 @@ const ShotEditDialogInner: React.FC<ShotEditDialogProps> = ({
         )}
 
         <ShotScriptPanel boardId={boardId} shot={shot} readOnly={readOnly} />
+
+        <Divider />
+
+        <FlexRow align="center" gap={SPACING.sm} wrap>
+          <ShotCostLine estimate={costEstimate} />
+          <Box sx={{ flex: 1 }} />
+          {!readOnly && (
+            <>
+              <ToolbarIconButton
+                icon={<MoreHorizIcon sx={{ fontSize: "1em" }} />}
+                tooltip="More actions"
+                ariaLabel="More shot actions"
+                onClick={(event) => setMenuAnchor(event.currentTarget)}
+              />
+              <EditorButton onClick={handleRegenerate}>Regenerate</EditorButton>
+              <EditorButton
+                variant="contained"
+                color="primary"
+                onClick={handleSave}
+                disabled={!dirty}
+              >
+                Save
+              </EditorButton>
+            </>
+          )}
+        </FlexRow>
       </FlexColumn>
 
       <EditorMenu
@@ -653,11 +668,11 @@ const ShotEditDialogInner: React.FC<ShotEditDialogProps> = ({
           Version choices, deletions, flips and uploads are already saved.
         </Caption>
       </Dialog>
-    </Dialog>
+    </Panel>
   );
 };
 
-export const ShotEditDialog = memo(ShotEditDialogInner);
-ShotEditDialog.displayName = "ShotEditDialog";
+export const ShotEditPanel = memo(ShotEditPanelInner);
+ShotEditPanel.displayName = "ShotEditPanel";
 
-export default ShotEditDialog;
+export default ShotEditPanel;
