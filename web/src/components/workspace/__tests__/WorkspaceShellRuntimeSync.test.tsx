@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 const workspaceTabsState = {
   tabs: [],
   activeTabId: null,
+  activeProjectId: null,
   setTitle: jest.fn()
 };
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
