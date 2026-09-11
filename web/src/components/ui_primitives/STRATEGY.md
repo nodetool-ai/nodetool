@@ -111,6 +111,13 @@ Two shapes, and the compiler picks between them:
 <AudioPlayback locator={content.audio} label="Generated audio" />
 ```
 
+Media shown at card size — a grid, a strip, a list row — takes
+`preferThumbnail` (and, in a long list, `loading="lazy"`). The server derives a
+512px JPEG for every raster asset it stores, and the full URL behind a
+generated still is 300 KB–1.2 MB; a storyboard of twelve pulled all of it to
+fill cards a few hundred pixels wide. `useResolvedThumbnailUri` is the hook
+form, and both fall back to the original when an asset has no thumbnail.
+
 Rendering a raw `asset://` literal into a JSX `src`/`poster`/`href` is rejected
 by `design-tokens/no-unresolved-media-src` (fixture:
 `scripts/test-media-src-rule.mjs`). The surfaces that render stored media are
