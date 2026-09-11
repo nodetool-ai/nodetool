@@ -47,6 +47,7 @@ jest.mock("@mui/material/styles", () => ({
   ...jest.requireActual("@mui/material/styles"),
   useTheme: () => ({
     breakpoints: { down: () => "@media(max-width: 600px)" },
+    spacing: (factor: number) => `${factor * 8}px`,
     vars: {
       palette: {
         action: { hover: "#f5f5f5" },
