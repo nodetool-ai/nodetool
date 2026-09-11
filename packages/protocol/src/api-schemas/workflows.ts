@@ -280,7 +280,7 @@ export type GetInput = z.infer<typeof getInput>;
 
 export const workflowBody = z.object({
   name: z.string().min(1),
-  project_id: z.string().default("default"),
+  project_id: z.string().optional(),
   tool_name: z.string().nullable().optional(),
   package_name: z.string().nullable().optional(),
   path: z.string().nullable().optional(),
@@ -307,6 +307,7 @@ export type WorkflowBody = z.infer<typeof workflowBody>;
 // ── create (POST /api/workflows) ─────────────────────────────────────────────
 
 export const createInput = workflowBody.extend({
+  project_id: z.string().default("default"),
   // Optional query params for example-seeding
   from_example_package: z.string().optional(),
   from_example_name: z.string().optional()

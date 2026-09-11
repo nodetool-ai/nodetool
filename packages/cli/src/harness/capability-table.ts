@@ -48,7 +48,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "create_workflow",
     module: "workflows",
     impl: "packages/agents/src/capabilities/workflows.ts",
-    contract: "efc501df79a2",
+    contract: "4c2f2cf8e5bb",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-dispatcher.test.ts",
