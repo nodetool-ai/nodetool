@@ -122,6 +122,7 @@ const ProjectOverviewSurface = ({ refId }: ProjectOverviewSurfaceProps) => {
           <ProjectDocumentCard
             key={`${document.type}:${document.ref}`}
             document={document}
+            sourceProjectId={refId}
             onOpen={openDocument}
           />
         ))}

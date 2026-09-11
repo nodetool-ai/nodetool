@@ -45,6 +45,146 @@ const DOCUMENT_TABLES = [
   assets
 ] as const;
 
+const REFERENCE_KEYS: Readonly<Record<string, ProjectMemberType>> = {
+  storyboardId: "storyboard",
+  storyboard_id: "storyboard",
+  scriptId: "script",
+  script_id: "script",
+  timelineId: "timeline",
+  timeline_id: "timeline",
+  sketchId: "sketch",
+  sketch_id: "sketch",
+  applicationId: "application",
+  application_id: "application",
+  jsScriptId: "jsscript",
+  js_script_id: "jsscript",
+  entityId: "entity",
+  entity_id: "entity",
+  entityIds: "entity",
+  entity_ids: "entity",
+  assetId: "entity",
+  asset_id: "entity",
+  assetIds: "entity",
+  asset_ids: "entity",
+  currentAssetId: "entity",
+  current_asset_id: "entity",
+  waveformAssetId: "entity",
+  waveform_asset_id: "entity",
+  thumbnailAssetId: "entity",
+  thumbnail_asset_id: "entity",
+  referenceAssetId: "entity",
+  reference_asset_id: "entity",
+  referenceAssetIds: "entity",
+  reference_asset_ids: "entity",
+  locationId: "entity",
+  location_id: "entity",
+  styleEntityId: "entity",
+  style_entity_id: "entity",
+  sourceAssetId: "entity",
+  source_asset_id: "entity",
+  maskAssetId: "entity",
+  mask_asset_id: "entity"
+};
+
+function matchesReference(value: unknown, id: string): boolean {
+  if (typeof value === "string") {
+    return value === id;
+  }
+  if (Array.isArray(value)) {
+    return value.some((item) => matchesReference(item, id));
+  }
+  return false;
+}
+
+function valueIncludesReference(
+  value: unknown,
+  type: ProjectMemberType,
+  id: string
+): boolean {
+  if (typeof value === "string") {
+    return type === "entity" && value === `asset://${id}`;
+  }
+  if (!value || typeof value !== "object") return false;
+  if (Array.isArray(value)) {
+    return value.some((item) => valueIncludesReference(item, type, id));
+  }
+  for (const [key, child] of Object.entries(value)) {
+    if (REFERENCE_KEYS[key] === type && matchesReference(child, id)) {
+      return true;
+    }
+    if (valueIncludesReference(child, type, id)) return true;
+  }
+  return false;
+}
+
+/**
+ * Whether another project document names this member. Moves do not rewrite
+ * references, so callers must refuse a cross-project move rather than leave a
+ * document pointing into a project it no longer owns.
+ */
+export async function hasProjectDocumentDependents(
+  userId: string,
+  type: ProjectMemberType,
+  id: string
+): Promise<boolean> {
+  const db = getDb();
+  const [boardRows, scriptRows, timelineRows, sketchRows, appRows, jsRows] =
+    await Promise.all([
+      db
+        .select({ document: storyboards.document, timelineId: storyboards.timeline_id })
+        .from(storyboards)
+        .where(eq(storyboards.user_id, userId)),
+      db
+        .select({
+          document: scripts.document,
+          timelineId: scripts.timeline_id,
+          storyboardId: scripts.storyboard_id
+        })
+        .from(scripts)
+        .where(eq(scripts.user_id, userId)),
+      db
+        .select({ document: timelineSequences.document })
+        .from(timelineSequences)
+        .where(eq(timelineSequences.user_id, userId)),
+      db
+        .select({
+          document: imageDocuments.document,
+          thumbnailAssetId: imageDocuments.thumbnail_asset_id
+        })
+        .from(imageDocuments)
+        .where(eq(imageDocuments.user_id, userId)),
+      db
+        .select({ document: applications.document })
+        .from(applications)
+        .where(eq(applications.user_id, userId)),
+      db
+        .select({ document: jsScripts.document })
+        .from(jsScripts)
+        .where(eq(jsScripts.user_id, userId))
+    ]);
+  const rows = [
+    boardRows,
+    scriptRows,
+    timelineRows,
+    sketchRows,
+    appRows,
+    jsRows
+  ];
+  return rows.some((group) =>
+    group.some((row) => {
+      const values = Object.values(row);
+      return values.some((value) => {
+        if (typeof value !== "string") return valueIncludesReference(value, type, id);
+        try {
+          return valueIncludesReference(JSON.parse(value), type, id);
+        } catch {
+          return value === id;
+        }
+      });
+    })
+  );
+}
+
 /**
  * Point every document of one project at another — the bulk form of
  * {@link moveDocumentToProject}, used when a project goes away and its

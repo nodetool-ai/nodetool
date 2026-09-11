@@ -76,8 +76,18 @@ const detail = {
 jest.mock("../../../trpc/client", () => ({
   trpc: {
     projects: {
-      get: { useQuery: () => ({ data: detail, isPending: false, error: null }) }
-    }
+      get: { useQuery: () => ({ data: detail, isPending: false, error: null }) },
+      list: { useQuery: () => ({ data: [], isPending: false, error: null }) },
+      copyDocument: {
+        useMutation: () => ({ isPending: false, mutate: jest.fn() })
+      }
+    },
+    useUtils: () => ({
+      projects: {
+        get: { invalidate: jest.fn() },
+        summaries: { invalidate: jest.fn() }
+      }
+    })
   }
 }));
 
@@ -158,6 +168,16 @@ describe("ProjectOverviewSurface", () => {
       title: "Script",
       projectId: "p1"
     });
+  });
+
+  it("opens copy selection without opening the source document", async () => {
+    renderSurface();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Copy Script to another project" })
+    );
+
+    expect(openTab).not.toHaveBeenCalled();
+    expect(screen.getByText("Copy Script")).toBeInTheDocument();
   });
 
   it("draws a script card from its stored lines", () => {

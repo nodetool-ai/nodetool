@@ -24,12 +24,15 @@ import {
   LOOSE_PROJECT_ID,
   PERSONAL_PROJECT_KIND,
   Project,
+  hasProjectDocumentDependents,
   listProjectDocuments,
   moveDocumentToProject,
   summarizeProject
 } from "@nodetool-ai/models";
 import {
   assignDocumentInput,
+  copyProjectDocumentInput,
+  copyProjectDocumentOutput,
   createProjectInput,
   patchProjectInput,
   projectDetail,
@@ -40,6 +43,8 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import { getAssetAdapter } from "../../lib/storage.js";
+import { copyProjectDocument, ProjectCopyError } from "../../lib/project-document-copy.js";
 
 const listInput = z.object({});
 const idInput = z.object({ id: z.string() });
@@ -221,6 +226,14 @@ export const projectsRouter = router({
       if (input.projectId !== LOOSE_PROJECT_ID) {
         await loadOwned(ctx.userId, input.projectId);
       }
+      if (
+        await hasProjectDocumentDependents(ctx.userId, input.type, input.ref)
+      ) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          "Cannot move a referenced document or entity. Copy it into the destination project instead."
+        );
+      }
       const moved = await moveDocumentToProject(
         ctx.userId,
         input.type,
@@ -234,5 +247,40 @@ export const projectsRouter = router({
         );
       }
       return { ok: true as const };
+    }),
+
+  /**
+   * Make an independent copy in another project. The copier first verifies the
+   * complete resource closure and only publishes database rows after every
+   * required asset is available, so a caller never receives a broken copy.
+   */
+  copyDocument: protectedProcedure
+    .input(copyProjectDocumentInput)
+    .output(copyProjectDocumentOutput)
+    .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      await loadOwned(ctx.userId, input.destinationProjectId);
+      try {
+        const copied = await copyProjectDocument({
+          userId: ctx.userId,
+          type: input.type,
+          id: input.ref,
+          destinationProjectId: input.destinationProjectId,
+          storage: getAssetAdapter()
+        });
+        return {
+          type: input.type,
+          ref: copied.id,
+          name: copied.name,
+          updatedAt: new Date().toISOString(),
+          copiedAssets: copied.copiedAssets,
+          copiedDocuments: copied.copiedDocuments
+        };
+      } catch (error) {
+        if (error instanceof ProjectCopyError) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+        }
+        throw error;
+      }
     })
 });

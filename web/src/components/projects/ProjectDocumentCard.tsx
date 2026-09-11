@@ -20,6 +20,7 @@ import {
 } from "../ui_primitives";
 import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
 import ProjectDocumentPreview from "./ProjectDocumentPreview";
+import CopyProjectDocumentAction from "./CopyProjectDocumentAction";
 import {
   documentProgress,
   documentStatusLine,
@@ -29,11 +30,13 @@ import {
 
 interface ProjectDocumentCardProps {
   document: ProjectDocument;
+  sourceProjectId: string;
   onOpen: (document: ProjectDocument) => void;
 }
 
 const ProjectDocumentCard = ({
   document,
+  sourceProjectId,
   onOpen
 }: ProjectDocumentCardProps) => {
   const handleOpen = useCallback(() => onOpen(document), [onOpen, document]);
@@ -74,6 +77,10 @@ const ProjectDocumentCard = ({
             {formatDocumentSpend(document)}
           </Box>
         </FlexRow>
+        <CopyProjectDocumentAction
+          document={document}
+          sourceProjectId={sourceProjectId}
+        />
       </FlexColumn>
     </Card>
   );
