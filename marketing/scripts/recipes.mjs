@@ -73,7 +73,7 @@ export const recipePresentation = [
       },
       supportedClaims: [
         "The captured Script flow preserved three approved Spanish lines through setup.",
-        "FAL Kokoro ef_dora produced editable line-level Spanish voice takes.",
+        "FAL Seed Speech felipe_es produced the male Spanish voice used in the comparison video.",
         "Line 2 was redirected and revoiced before three clips were sent to an editable 16.3-second timeline."
       ],
       limitations: [
