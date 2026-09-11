@@ -79,6 +79,9 @@ interface AssetGridState {
 
   // Workflow filter
   workflowFilter: string | null;
+  /** Project whose folder and selection state this explorer currently represents. */
+  scopeProjectId: string | null;
+  resetForProject: (projectId: string) => void;
   setWorkflowFilter: (workflowId: string | null) => void;
 }
 
@@ -207,6 +210,26 @@ const createAssetGridStore = (
 
   // Workflow filter
   workflowFilter: null,
+  scopeProjectId: null,
+  resetForProject: (projectId) =>
+    set({
+      scopeProjectId: projectId,
+      assetSearchTerm: null,
+      currentAudioAsset: null,
+      currentFolder: null,
+      currentFolderId: null,
+      globalSearchResults: [],
+      globalSearchQuery: "",
+      isGlobalSearchActive: false,
+      isGlobalSearchMode: false,
+      openAsset: null,
+      parentFolder: null,
+      selectedAssetIds: [],
+      selectedAssets: [],
+      selectedFolderId: null,
+      selectedFolderIds: [],
+      workflowFilter: null
+    }),
   setWorkflowFilter: (workflowId) => set({ workflowFilter: workflowId })
 }),
       {

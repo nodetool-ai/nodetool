@@ -4,6 +4,7 @@ import { FrontendToolRegistry } from "../frontendTools";
 import { trpcClient } from "../../../trpc/client";
 import { assetToEntity } from "../../../serverState/useEntities";
 import type { Asset } from "../../../stores/ApiTypes";
+import { creationProjectId } from "../../../stores/WorkspaceTabsStore";
 
 /**
  * Agent tools for the reusable-entity ("ingredients") library. Entities are
@@ -12,10 +13,11 @@ import type { Asset } from "../../../stores/ApiTypes";
  * cross-shot consistency.
  */
 
-async function fetchEntities(): Promise<Entity[]> {
+async function fetchEntities(projectId = creationProjectId()): Promise<Entity[]> {
   const result = await trpcClient.assets.search.query({
     query: "",
-    page_size: 1000
+    page_size: 1000,
+    project_id: projectId
   });
   const entities: Entity[] = [];
   for (const asset of result.assets) {

@@ -30,4 +30,10 @@ describe("assets.searchInput", () => {
     const result = searchInput.parse({ query: "cat" });
     expect(result.page_size).toBe(200);
   });
+
+  it("accepts a project scope for searches", () => {
+    expect(
+      searchInput.parse({ query: "same", project_id: "project-a" }).project_id
+    ).toBe("project-a");
+  });
 });

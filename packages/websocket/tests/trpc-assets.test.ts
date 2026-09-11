@@ -66,6 +66,7 @@ function makeAsset(opts: {
   workflow_id?: string | null;
   node_id?: string | null;
   job_id?: string | null;
+  project_id?: string;
   created_at?: string;
   updated_at?: string;
   duration?: number | null;
@@ -81,6 +82,7 @@ function makeAsset(opts: {
     workflow_id: opts.workflow_id ?? null,
     node_id: opts.node_id ?? null,
     job_id: opts.job_id ?? null,
+    project_id: opts.project_id,
     created_at: opts.created_at ?? "2026-04-17T00:00:00Z",
     updated_at: opts.updated_at ?? "2026-04-17T00:00:00Z",
     duration: opts.duration ?? null,
@@ -132,6 +134,24 @@ describe("assets router", () => {
         workflowId: undefined,
         nodeId: undefined,
         jobId: undefined,
+        limit: 10000
+      });
+    });
+
+    it("forwards project scope to asset pagination", async () => {
+      (Asset.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([[], ""]);
+
+      const caller = createCaller(makeCtx());
+      await caller.assets.list({ project_id: "project-a" });
+
+      expect(Asset.paginate).toHaveBeenCalledWith("user-1", {
+        parentId: undefined,
+        projectId: "project-a",
+        contentType: undefined,
+        workflowId: undefined,
+        nodeId: undefined,
+        jobId: undefined,
+        timelineId: undefined,
         limit: 10000
       });
     });
@@ -377,6 +397,32 @@ describe("assets router", () => {
       const result = await caller.assets.recursive({ id: "root" });
       expect(result.assets.map((a) => a.id)).toEqual(["c1", "f1", "gc"]);
     });
+
+    it("walks only descendants from the requested project", async () => {
+      const childA = makeAsset({ id: "a", project_id: "project-a" });
+      const childB = makeAsset({ id: "b", project_id: "project-b" });
+      (Asset.find as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeAsset({ id: "root", content_type: "folder", project_id: "project-a" })
+      );
+      (Asset.getChildren as ReturnType<typeof vi.fn>).mockImplementation(
+        (_userId: string, _folderId: string, _limit: number, projectId?: string) =>
+          Promise.resolve(projectId === "project-a" ? [childA] : [childB])
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.assets.recursive({
+        id: "root",
+        project_id: "project-a"
+      });
+
+      expect(result.assets.map((a) => a.id)).toEqual(["a"]);
+      expect(Asset.getChildren).toHaveBeenCalledWith(
+        "user-1",
+        "root",
+        10000,
+        "project-a"
+      );
+    });
   });
 
   // ── search ──────────────────────────────────────────────────────
@@ -416,6 +462,20 @@ describe("assets router", () => {
       expect(Asset.searchAssetsGlobal).toHaveBeenCalledWith("user-1", "cat", {
         contentType: "image",
         limit: 24
+      });
+    });
+
+    it("forwards project scope to asset search", async () => {
+      (
+        Asset.searchAssetsGlobal as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([[], "", []]);
+
+      const caller = createCaller(makeCtx());
+      await caller.assets.search({ query: "same", project_id: "project-a" });
+
+      expect(Asset.searchAssetsGlobal).toHaveBeenCalledWith("user-1", "same", {
+        projectId: "project-a",
+        limit: 200
       });
     });
 

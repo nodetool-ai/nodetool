@@ -5,6 +5,10 @@ import { useAssetStore } from "../../../../stores/AssetStore";
 import { useRecentAssetsStore } from "../../../../stores/RecentAssetsStore";
 import { useEntities } from "../../../../serverState/useEntities";
 import type { Asset } from "../../../../stores/ApiTypes";
+import {
+  LOOSE_PROJECT_ID,
+  useWorkspaceTabsStore
+} from "../../../../stores/WorkspaceTabsStore";
 
 export type MentionTab = "recent" | "saved";
 
@@ -77,6 +81,8 @@ export const useAssetMentionSearch = (
   const search = useAssetStore((state) => state.search);
   const updateAsset = useAssetStore((state) => state.update);
   const { data: allEntities } = useEntities();
+  const activeProjectId =
+    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
   const recentAssets = useRecentAssetsStore((state) => state.recentAssets);
   const renameRecentAsset = useRecentAssetsStore(
     (state) => state.renameRecentAsset
@@ -107,7 +113,11 @@ export const useAssetMentionSearch = (
     }
     let active = true;
     const handle = setTimeout(() => {
-      search({ query: queryString, page_size: PAGE_SIZE })
+      search({
+        query: queryString,
+        page_size: PAGE_SIZE,
+        project_id: activeProjectId
+      })
         .then((result) => {
           if (active && queryTokenRef.current === token) {
             // Folders aren't attachable — the mention picker is for files only.
@@ -128,7 +138,7 @@ export const useAssetMentionSearch = (
       active = false;
       clearTimeout(handle);
     };
-  }, [queryString, search]);
+  }, [queryString, search, activeProjectId]);
 
   const loadMoreSaved = useCallback(() => {
     if (!savedCursor || queryString === null || loadingMoreRef.current) {
@@ -137,7 +147,12 @@ export const useAssetMentionSearch = (
     const cursor = savedCursor;
     const token = queryTokenRef.current;
     loadingMoreRef.current = true;
-    search({ query: queryString, page_size: PAGE_SIZE, cursor })
+    search({
+      query: queryString,
+      page_size: PAGE_SIZE,
+      cursor,
+      project_id: activeProjectId
+    })
       .then((result) => {
         if (queryTokenRef.current !== token) {
           return;
@@ -158,17 +173,25 @@ export const useAssetMentionSearch = (
           loadingMoreRef.current = false;
         }
       });
-  }, [savedCursor, queryString, search]);
+  }, [savedCursor, queryString, search, activeProjectId]);
+
+  const scopedRecentAssets = useMemo(
+    () =>
+      recentAssets.filter(
+        (asset) => (asset.project_id ?? LOOSE_PROJECT_ID) === activeProjectId
+      ),
+    [recentAssets, activeProjectId]
+  );
 
   const filteredRecent = useMemo(() => {
     const q = (queryString ?? "").trim().toLowerCase();
     if (!q) {
-      return recentAssets;
+      return scopedRecentAssets;
     }
-    return recentAssets.filter((a) =>
+    return scopedRecentAssets.filter((a) =>
       (a.name || a.id).toLowerCase().includes(q)
     );
-  }, [recentAssets, queryString]);
+  }, [scopedRecentAssets, queryString]);
 
   const displayedAssets = activeTab === "recent" ? filteredRecent : savedAssets;
 
