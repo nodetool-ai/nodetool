@@ -70,7 +70,9 @@ describe("ProjectSelector", () => {
     trigger.focus();
     await user.keyboard("{Enter}");
 
-    await user.keyboard("{ArrowDown}{Enter}");
+    const aurora = await screen.findByRole("menuitem", { name: "Aurora" });
+    aurora.focus();
+    await user.keyboard("{Enter}");
 
     await waitFor(() =>
       expect(
