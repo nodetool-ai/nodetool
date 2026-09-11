@@ -189,15 +189,10 @@ describe("ShotCard drag to reorder", () => {
 });
 
 describe("ShotCard", () => {
-  it("shows the shot number and length without the description", () => {
+  it("does not overlay shot metadata or the description", () => {
     renderCard(makeShot({ index: 4, duration_seconds: 3 }));
-    expect(screen.getByText("SH 05 · 3s")).toBeInTheDocument();
+    expect(screen.queryByText("SH 05 · 3s")).not.toBeInTheDocument();
     expect(screen.queryByText("A lighthouse at dusk")).not.toBeInTheDocument();
-  });
-
-  it("drops the length from the label when the shot has none", () => {
-    renderCard(makeShot());
-    expect(screen.getByText("SH 01")).toBeInTheDocument();
   });
 
   it("shows why the last render failed", () => {
