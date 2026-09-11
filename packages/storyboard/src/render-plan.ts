@@ -15,8 +15,7 @@ import {
   entitiesForShot,
   isVersionStale,
   keyframePrompt,
-  clipPrompt,
-  directClipPrompt,
+  clipPromptFor,
   sceneForShot,
   shotRenderMode
 } from "@nodetool-ai/protocol";
@@ -203,9 +202,7 @@ export function planShotRenders(
     const prompt =
       kind === "keyframe"
         ? keyframePrompt(shot, context)
-        : mode === "direct" || mode === "reference"
-          ? directClipPrompt(shot, context)
-          : clipPrompt(shot);
+        : clipPromptFor(shot, context, mode);
     const applied = entitiesForShot(shot, [...entities]);
     const shotReferenceAssetIds = applied.flatMap((entity) =>
       (entity.reference_images ?? [])

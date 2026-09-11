@@ -24,7 +24,13 @@
  * A keyframe-mode clip animates a still that already carries framing, lens,
  * lighting and style, so repeating them in the video prompt only fights the
  * first-frame conditioning. A direct clip has no still, so it carries
- * everything.
+ * everything. A reference clip has no still either — its entity images
+ * condition the render, not a first frame — so it composes like a direct one.
+ *
+ * {@link clipPromptFor} is the one place that mapping lives: every render
+ * surface and the staleness record call it rather than branching on the mode
+ * themselves, because a surface that branched differently would render one
+ * prompt and hash another.
  *
  * `dialogue`, `notes` and `duration_seconds` never enter a prompt: the first
  * two are words for people, the third is a render parameter.
@@ -35,6 +41,7 @@
  * `entitiesForShot`.
  */
 
+import { shotRenderMode } from "./creative.js";
 import type { Scene, Shot } from "./creative.js";
 
 /** What a prompt needs beyond the shot itself. */
@@ -126,4 +133,21 @@ export function directClipPrompt(
     camera?.equipment,
     context.style
   ]);
+}
+
+/**
+ * The clip prompt for a shot in `mode` — `directClipPrompt` for a mode with no
+ * still to condition on (`direct`, `reference`), `clipPrompt` for `keyframe`.
+ *
+ * Pass `mode` when a call overrides the shot's own; omit it to read
+ * `shot.render_mode`.
+ */
+export function clipPromptFor(
+  shot: Shot,
+  context: ShotPromptContext = {},
+  mode: ReturnType<typeof shotRenderMode> = shotRenderMode(shot)
+): string {
+  return mode === "keyframe"
+    ? clipPrompt(shot)
+    : directClipPrompt(shot, context);
 }

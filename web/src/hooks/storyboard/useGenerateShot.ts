@@ -27,8 +27,7 @@ import type {
   Shot
 } from "@nodetool-ai/protocol";
 import {
-  clipPrompt,
-  directClipPrompt,
+  clipPromptFor,
   entitiesForShot,
   injectEntities,
   keyframePrompt,
@@ -288,7 +287,6 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         throw new Error(message);
       }
       const renderMode = shotRenderMode(shot);
-      const isDirect = renderMode === "direct";
       let sourceAssetId: string | undefined;
       if (renderMode === "keyframe") {
         if (!shot.keyframe) {
@@ -310,12 +308,14 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         board?.screenplay?.script_id,
         shot
       );
-      const prompt = isDirect || renderMode === "reference"
-        ? directClipPrompt(shot, {
-            scene: sceneForShot(shot, board?.screenplay?.scenes),
-            style: board?.style ?? ""
-          })
-        : clipPrompt(shot);
+      const prompt = clipPromptFor(
+        shot,
+        {
+          scene: sceneForShot(shot, board?.screenplay?.scenes),
+          style: board?.style ?? ""
+        },
+        renderMode
+      );
       const entities = entitiesForShot(shot, boardEntities(board?.entityIds));
       const data: Record<string, unknown> = {
         mode: "video",

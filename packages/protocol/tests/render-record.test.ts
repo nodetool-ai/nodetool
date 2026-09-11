@@ -96,6 +96,21 @@ describe("currentRenderInputs", () => {
     );
   });
 
+  it("hashes a reference-mode clip the way it is rendered", () => {
+    // A reference clip has no still, so its prompt carries framing, lens,
+    // lighting and style — the same composition a direct clip uses. Hashing
+    // the keyframe-mode prompt instead left a style or framing edit invisible
+    // to staleness, and `stale_only` skipped the re-render.
+    const shot = makeShot({ render_mode: "reference" });
+    expect(currentRenderInputs(shot, BOARD, "clip").prompt_hash).toBe(
+      currentRenderInputs(
+        { ...shot, render_mode: "direct" },
+        BOARD,
+        "clip"
+      ).prompt_hash
+    );
+  });
+
   it("takes the image model for a still and the video model for a clip", () => {
     const shot = makeShot();
     expect(currentRenderInputs(shot, BOARD, "keyframe").model).toBe(
@@ -108,6 +123,26 @@ describe("currentRenderInputs", () => {
 });
 
 describe("isVersionStale", () => {
+  it("reads a reference-mode clip as stale after a style edit", () => {
+    const shot = makeShot({ render_mode: "reference" });
+    const clip = {
+      type: "video" as const,
+      asset_id: "asset-clip-1",
+      render_inputs: stampRenderInputs(
+        currentRenderInputs(shot, BOARD, "clip"),
+        "2026-01-01T00:00:00.000Z"
+      )
+    };
+    const rendered: Shot = { ...shot, clip, clip_versions: [clip] };
+    expect(isVersionStale(clip, rendered, BOARD)).toBe(false);
+    expect(
+      isVersionStale(clip, rendered, { ...BOARD, style: "high-key, clean" })
+    ).toBe(true);
+    expect(
+      isVersionStale(clip, { ...rendered, camera: { framing: "close" } }, BOARD)
+    ).toBe(true);
+  });
+
   it("reads a version rendered from today's inputs as current", () => {
     const shot = makeRenderedShot();
     expect(shotStaleness(shot, BOARD)).toEqual({
