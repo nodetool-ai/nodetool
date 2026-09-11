@@ -7,6 +7,7 @@
 import { describe, expect, it } from "vitest";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import type {
+  AudioToAudioModel,
   ImageModel,
   LanguageModel,
   MusicModel,
@@ -78,6 +79,20 @@ class FakeMusicProvider extends BaseProvider {
     super(id);
   }
   override async getAvailableMusicModels(): Promise<MusicModel[]> {
+    return this.models;
+  }
+}
+
+class FakeAudioToAudioProvider extends BaseProvider {
+  constructor(
+    id: ProviderId,
+    private readonly models: AudioToAudioModel[]
+  ) {
+    super(id);
+  }
+  override async getAvailableAudioToAudioModels(): Promise<
+    AudioToAudioModel[]
+  > {
     return this.models;
   }
 }
@@ -351,6 +366,27 @@ describe("find_model through the adapter", () => {
     })) as { results: { ref: { type: string; id: string } }[] };
     expect(result.results[0].ref.type).toBe("music_model");
     expect(result.results[0].ref.id).toBe("beatoven/music-generation");
+  });
+
+  it("hands back an audio_to_audio_model ref for audio_to_audio", async () => {
+    // Same rule the music case above pins, for the transform family: an
+    // `audio_to_audio_model` property refuses a `music_model` ref, and the
+    // graph validator then checks the id against the music catalog and calls
+    // a real voice changer one the provider does not offer.
+    const tool = asTool(findModel, {
+      fal_ai: new FakeAudioToAudioProvider("fal_ai" as ProviderId, [
+        {
+          id: "fal-ai/elevenlabs/voice-changer",
+          name: "ElevenLabs Voice Changer",
+          provider: "fal_ai"
+        } as AudioToAudioModel
+      ])
+    });
+    const result = (await tool.process(ctx, {
+      capability: "audio_to_audio"
+    })) as { results: { ref: { type: string; id: string } }[] };
+    expect(result.results[0].ref.type).toBe("audio_to_audio_model");
+    expect(result.results[0].ref.id).toBe("fal-ai/elevenlabs/voice-changer");
   });
 
   it("does not score a music search on a speech leaderboard", async () => {

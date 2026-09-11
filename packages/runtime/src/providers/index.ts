@@ -321,6 +321,8 @@ export type {
   TTSModel,
   ASRModel,
   MusicModel,
+  AudioToAudioModel,
+  AudioToAudioParams,
   EmbeddingModel,
   ToolCall,
   ProviderTool,

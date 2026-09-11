@@ -352,3 +352,20 @@ export interface TextToMusicOutputs {
 export function textToMusic(inputs: TextToMusicInputs): DslNode<TextToMusicOutputs, "audio"> {
   return createNode("nodetool.audio.TextToMusic", inputs, { outputNames: ["audio"], defaultOutput: "audio" });
 }
+
+// Audio To Audio — nodetool.audio.AudioToAudio
+export type AudioToAudioInputs = {
+  model?: Connectable<unknown>;
+  audio?: Connectable<AudioRef>;
+  prompt?: Connectable<string>;
+  voice?: Connectable<string>;
+  strength?: Connectable<number>;
+};
+
+export interface AudioToAudioOutputs {
+  audio: AudioRef;
+}
+
+export function audioToAudio(inputs: AudioToAudioInputs): DslNode<AudioToAudioOutputs, "audio"> {
+  return createNode("nodetool.audio.AudioToAudio", inputs, { outputNames: ["audio"], defaultOutput: "audio" });
+}

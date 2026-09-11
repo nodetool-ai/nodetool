@@ -72,8 +72,12 @@ function textToSpeech(inputs) {
 function textToMusic(inputs) {
   return createNode("nodetool.audio.TextToMusic", inputs, { outputNames: ["audio"], defaultOutput: "audio" });
 }
+function audioToAudio(inputs) {
+  return createNode("nodetool.audio.AudioToAudio", inputs, { outputNames: ["audio"], defaultOutput: "audio" });
+}
 export {
   audioMixer,
+  audioToAudio,
   chunkToAudio,
   concat,
   concatList,
