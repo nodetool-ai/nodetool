@@ -321,15 +321,17 @@ export class Job extends DBModel {
       limit?: number;
       status?: JobStatus;
       workflowId?: string;
+      projectId?: string;
     } = {}
   ): Promise<[Job[], string]> {
-    const { limit = 50, status, workflowId } = opts;
+    const { limit = 50, status, workflowId, projectId } = opts;
     const startKey = opts.startKey ?? opts.cursor;
     const db = getDb();
 
     const conditions = [eq(jobs.user_id, userId)];
     if (status) conditions.push(eq(jobs.status, status));
     if (workflowId) conditions.push(eq(jobs.workflow_id, workflowId));
+    if (projectId !== undefined) conditions.push(eq(jobs.project_id, projectId));
     if (startKey) {
       const cursorRow = await Job.get<Job>(startKey);
       if (cursorRow && cursorRow.user_id === userId) {

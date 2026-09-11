@@ -6,6 +6,7 @@ import { Workflow } from "../src/workflow.js";
 import { Asset } from "../src/asset.js";
 import { Message } from "../src/message.js";
 import { Thread } from "../src/thread.js";
+import { Workspace } from "../src/workspace.js";
 
 // ── Setup ────────────────────────────────────────────────────────────
 
@@ -339,6 +340,69 @@ describe("Workflow model", () => {
     expect(JSON.stringify([...firstPage, ...secondPage])).not.toContain(
       "x".repeat(100)
     );
+  });
+
+  it("scopes workflow pages by project without changing the legacy default", async () => {
+    await Workflow.create<Workflow>({
+      user_id: "u1",
+      project_id: "p1",
+      name: "One",
+      graph: { nodes: [], edges: [] }
+    });
+    await Workflow.create<Workflow>({
+      user_id: "u1",
+      project_id: "p2",
+      name: "Two",
+      graph: { nodes: [], edges: [] }
+    });
+
+    const [all] = await Workflow.paginate("u1");
+    const [one] = await Workflow.paginate("u1", { projectId: "p1" });
+    const [summaries] = await Workflow.paginateSummaries("u1", {
+      projectId: "p1"
+    });
+    const [tools] = await Workflow.paginateTools("u1", {
+      projectId: "p1"
+    });
+
+    expect(all).toHaveLength(2);
+    expect(one.map((workflow) => workflow.project_id)).toEqual(["p1"]);
+    expect(summaries.map((workflow) => workflow.id)).toEqual([one[0].id]);
+    expect(tools).toEqual([]);
+  });
+
+  it("scopes job and thread pages by project", async () => {
+    await Job.create<Job>({ user_id: "u1", workflow_id: "w1", project_id: "p1" });
+    await Job.create<Job>({ user_id: "u1", workflow_id: "w2", project_id: "p2" });
+    await Thread.create<Thread>({ user_id: "u1", project_id: "p1", title: "One" });
+    await Thread.create<Thread>({ user_id: "u1", project_id: "p2", title: "Two" });
+
+    const [jobs] = await Job.paginate("u1", { projectId: "p1" });
+    const [threads] = await Thread.paginate("u1", { projectId: "p1" });
+
+    expect(jobs.map((job) => job.project_id)).toEqual(["p1"]);
+    expect(threads.map((thread) => thread.project_id)).toEqual(["p1"]);
+  });
+
+  it("scopes workspace pages by project", async () => {
+    await Workspace.create<Workspace>({
+      user_id: "u1",
+      project_id: "p1",
+      name: "One",
+      path: "/tmp/one"
+    });
+    await Workspace.create<Workspace>({
+      user_id: "u1",
+      project_id: "p2",
+      name: "Two",
+      path: "/tmp/two"
+    });
+
+    const [workspaces] = await Workspace.paginate("u1", {
+      projectId: "p2"
+    });
+
+    expect(workspaces.map((workspace) => workspace.project_id)).toEqual(["p2"]);
   });
 
   it("paginate with access filter", async () => {

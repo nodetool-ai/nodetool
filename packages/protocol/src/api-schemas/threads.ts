@@ -5,6 +5,7 @@ import { z } from "zod";
 export const threadResponse = z.object({
   id: z.string(),
   user_id: z.string(),
+  project_id: z.string().optional(),
   workflow_id: z.string().nullable().optional(),
   title: z.string().nullable(),
   created_at: z.string(),
@@ -20,7 +21,8 @@ export const listInput = z.object({
   limit: z.number().int().min(1).max(500).default(10),
   cursor: z.string().optional(),
   reverse: z.boolean().optional(),
-  workflow_id: z.string().optional()
+  workflow_id: z.string().optional(),
+  project_id: z.string().optional()
 });
 export type ListInput = z.infer<typeof listInput>;
 
@@ -40,7 +42,8 @@ export type GetInput = z.infer<typeof getInput>;
 // `title` is optional; defaults to "New Thread" server-side.
 export const createInput = z.object({
   title: z.string().optional(),
-  workflow_id: z.string().nullable().optional()
+  workflow_id: z.string().nullable().optional(),
+  project_id: z.string().default("default")
 });
 export type CreateInput = z.infer<typeof createInput>;
 

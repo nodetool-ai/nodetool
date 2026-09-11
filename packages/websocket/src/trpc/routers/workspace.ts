@@ -48,6 +48,7 @@ function toWorkspaceResponse(ws: Workspace): WorkspaceResponse {
   return {
     id: ws.id,
     user_id: ws.user_id,
+    project_id: ws.project_id,
     name: ws.name,
     path: ws.path,
     is_default: ws.is_default,
@@ -178,9 +179,11 @@ export const workspaceRouter = router({
       // editor never has to render a "no workspace" state and a run always has
       // somewhere to write.
       await Workspace.ensureDefault(ctx.userId);
-      const [items] = await Workspace.paginate(ctx.userId, {
+      const page: Parameters<typeof Workspace.paginate>[1] = {
         limit: input.limit
-      });
+      };
+      if (input.project_id !== undefined) page.projectId = input.project_id;
+      const [items] = await Workspace.paginate(ctx.userId, page);
       const readable = canManageWorkspaces()
         ? items
         : items.filter((ws) => ws.isManaged());
@@ -203,12 +206,16 @@ export const workspaceRouter = router({
         await Workspace.unsetOtherDefaults(ctx.userId);
       }
 
-      const ws = (await Workspace.create({
+      const workspaceInput: Record<string, unknown> = {
         user_id: ctx.userId,
         name: input.name,
         path: input.path,
         is_default: input.is_default
-      })) as Workspace;
+      };
+      if (input.project_id !== undefined) {
+        workspaceInput.project_id = input.project_id;
+      }
+      const ws = (await Workspace.create(workspaceInput)) as Workspace;
 
       return toWorkspaceResponse(ws);
     }),

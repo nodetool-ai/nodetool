@@ -90,14 +90,18 @@ export class Workspace extends DBModel {
 
   static async paginate(
     userId: string,
-    opts: { limit?: number; startKey?: string } = {}
+    opts: { limit?: number; projectId?: string; startKey?: string } = {}
   ): Promise<[Workspace[], string]> {
-    const { limit = 50 } = opts;
+    const { limit = 50, projectId } = opts;
     const db = getDb();
+    const conditions = [eq(workspaces.user_id, userId)];
+    if (projectId !== undefined) {
+      conditions.push(eq(workspaces.project_id, projectId));
+    }
     const rows = await db
       .select()
       .from(workspaces)
-      .where(eq(workspaces.user_id, userId))
+      .where(and(...conditions))
       .limit(limit + 1);
 
     const items = rows.map((r: Record<string, unknown>) => new Workspace(r));

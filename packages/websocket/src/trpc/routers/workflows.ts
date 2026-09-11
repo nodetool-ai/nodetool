@@ -244,6 +244,7 @@ function recordAutosave(workflowId: string, now: number): void {
 function toWorkflowResponse(workflow: WorkflowModel): WorkflowResponse {
   return {
     id: workflow.id,
+    project_id: workflow.project_id,
     access: workflow.access,
     created_at: (workflow.created_at as string | undefined) ?? null,
     updated_at: (workflow.updated_at as string | undefined) ?? null,
@@ -455,6 +456,7 @@ export const workflowsRouter = router({
         limit: input.limit,
         runMode: input.run_mode,
         tag: input.tag,
+        projectId: input.project_id,
         startKey: input.cursor
       });
       let filtered = workflows;

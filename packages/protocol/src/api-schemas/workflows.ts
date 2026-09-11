@@ -116,6 +116,8 @@ export type Graph = z.infer<typeof graph>;
 
 export const workflowResponse = z.object({
   id: z.string(),
+  /** Project ownership. Optional for clients during the rollout. */
+  project_id: z.string().optional(),
   access: z.string(),
   created_at: z.string().nullable().optional(),
   updated_at: z.string().nullable().optional(),
@@ -251,6 +253,7 @@ export const listInput = z.object({
   run_mode: z.string().optional(),
   mediaOutput: z.boolean().optional(),
   tag: z.string().optional(),
+  project_id: z.string().optional(),
   cursor: z.string().optional()
 });
 export type ListInput = z.infer<typeof listInput>;
@@ -277,6 +280,7 @@ export type GetInput = z.infer<typeof getInput>;
 
 export const workflowBody = z.object({
   name: z.string().min(1),
+  project_id: z.string().default("default"),
   tool_name: z.string().nullable().optional(),
   package_name: z.string().nullable().optional(),
   path: z.string().nullable().optional(),

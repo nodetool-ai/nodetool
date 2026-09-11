@@ -93,6 +93,13 @@ describe("workspace.createInput", () => {
     expect(createInput.parse({ name: "n", path: "/p" }).is_default).toBe(false);
   });
 
+  it("accepts an optional project id", () => {
+    expect(
+      createInput.parse({ name: "n", path: "/p", project_id: "project-1" })
+        .project_id
+    ).toBe("project-1");
+  });
+
   it("rejects empty name", () => {
     expect(createInput.safeParse({ name: "", path: "/p" }).success).toBe(false);
   });

@@ -530,6 +530,15 @@ describe("Built-in migrations", () => {
     expect(await adapter.tableExists("nodetool_workflow_shares")).toBe(true);
     expect(await adapter.tableExists("projects")).toBe(true);
 
+    for (const table of [
+      "nodetool_workflows",
+      "nodetool_threads",
+      "nodetool_jobs",
+      "nodetool_workspaces"
+    ]) {
+      expect(await adapter.columnExists(table, "project_id")).toBe(true);
+    }
+
     // Ledger rows carry the project (and document) they were spent on.
     expect(
       await adapter.columnExists("nodetool_predictions", "project_id")
