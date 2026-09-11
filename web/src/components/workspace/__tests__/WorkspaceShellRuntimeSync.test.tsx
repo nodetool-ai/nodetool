@@ -47,6 +47,7 @@ jest.mock("@mui/material/styles", () => ({
   ...jest.requireActual("@mui/material/styles"),
   useTheme: () => ({
     breakpoints: { down: () => "@media(max-width: 600px)" },
+    shape: { borderRadius: 8 },
     spacing: (factor: number) => `${factor * 8}px`,
     vars: {
       palette: {
