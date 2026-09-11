@@ -3,6 +3,7 @@ import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import ImageIcon from "@mui/icons-material/Image";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import MovieIcon from "@mui/icons-material/Movie";
@@ -21,6 +22,8 @@ import {
   Popover,
   Text,
   MOTION,
+  SHADOW,
+  reducedMotion,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx
@@ -33,6 +36,7 @@ interface MediaModeMenuProps {
   onClose: () => void;
   value: MediaMode;
   onChange: (mode: MediaMode) => void;
+  modes?: readonly MediaMode[];
 }
 
 interface ModeItem {
@@ -88,6 +92,12 @@ const MODES: ModeItem[] = [
     enabled: true
   },
   {
+    id: "music",
+    label: "Generate Music",
+    icon: <AudiotrackIcon fontSize="small" />,
+    enabled: true
+  },
+  {
     id: "audio_to_video",
     label: "Audio to Video",
     icon: <GraphicEqIcon fontSize="small" />,
@@ -126,11 +136,12 @@ const styles = (theme: Theme) =>
     ".mode-menu-item": {
       display: "flex",
       alignItems: "center",
-      gap: 8,
-      padding: theme.spacing(3, 4),
+      gap: getSpacingPx(SPACING.md),
+      padding: theme.spacing(SPACING.lg, SPACING.xl),
       cursor: "pointer",
       color: theme.vars.palette.grey[100],
       transition: MOTION.background,
+      ...reducedMotion({ transition: MOTION.none }),
       "&:hover": {
         backgroundColor: theme.vars.palette.c_overlay
       },
@@ -164,7 +175,8 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
   open,
   onClose,
   value,
-  onChange
+  onChange,
+  modes
 }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -178,14 +190,14 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
         backgroundColor: theme.vars.palette.grey[900],
         border: `1px solid ${theme.vars.palette.grey[800]}`,
         borderRadius: BORDER_RADIUS.sm,
-        boxShadow: `0 12px 40px ${theme.vars.palette.c_scrim}`
+        boxShadow: SHADOW(theme).lg
       }}
     >
       <div css={cssStyles} role="menu" aria-label="Generation mode">
         <Caption className="mode-menu-header" size="small">
           Mode
         </Caption>
-        {MODES.map((m) => {
+        {MODES.filter((m) => !modes || modes.includes(m.id)).map((m) => {
           const selected = m.id === value;
           return (
             <div
@@ -215,11 +227,11 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
             >
               <span className="mode-menu-icon">{m.icon}</span>
               <FlexRow
-                gap={0.5}
+                gap={SPACING.micro}
                 align="center"
                 sx={{ flex: 1, minWidth: 0 }}
               >
-                <Text size="normal" weight={500} sx={{ color: "inherit" }}>
+                <Text size="small" weight={500} sx={{ color: "inherit" }}>
                   {m.label}
                 </Text>
                 {m.description && (

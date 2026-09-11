@@ -16,6 +16,7 @@ import React, {
 import MediaControlChip from "./MediaControlChip";
 import ImageModelMenuDialog from "../../model_menu/ImageModelMenuDialog";
 import VideoModelMenuDialog from "../../model_menu/VideoModelMenuDialog";
+import MusicModelMenuDialog from "../../model_menu/MusicModelMenuDialog";
 import TTSModelMenuDialog from "../../model_menu/TTSModelMenuDialog";
 import LanguageModelMenuDialog from "../../model_menu/LanguageModelMenuDialog";
 import type {
@@ -26,6 +27,7 @@ import type {
   ImageModel,
   LanguageModel,
   TTSModel,
+  MusicModel,
   VideoModel
 } from "../../../stores/ApiTypes";
 
@@ -36,6 +38,7 @@ export const MODEL_CHIP_MAX_WIDTH = 320;
 export type ModelPicker =
   | { kind: "image"; task: ImageModelTask; onPick: (model: ImageModel) => void }
   | { kind: "video"; task: VideoModelTask; onPick: (model: VideoModel) => void }
+  | { kind: "music"; onPick: (model: MusicModel) => void }
   | { kind: "tts"; onPick: (model: TTSModel) => void }
   | {
       kind: "language";
@@ -67,6 +70,14 @@ export function ModelChip({
   const anchorRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
+  const pickMusic = picker.kind === "music" ? picker.onPick : undefined;
+  const handleMusicChange = useCallback(
+    (model: MusicModel) => {
+      pickMusic?.(model);
+      close();
+    },
+    [pickMusic, close]
+  );
   useImperativeHandle(openRef, () => ({ open: () => setOpen(true) }), []);
 
   const chip = (
@@ -132,6 +143,20 @@ export function ModelChip({
             picker.onPick(model);
             setOpen(false);
           }}
+        />
+      </>
+    );
+  }
+
+  if (picker.kind === "music") {
+    return (
+      <>
+        {chip}
+        <MusicModelMenuDialog
+          open={open}
+          anchorEl={anchorRef.current}
+          onClose={close}
+          onModelChange={handleMusicChange}
         />
       </>
     );

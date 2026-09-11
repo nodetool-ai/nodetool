@@ -1,33 +1,31 @@
-/**
- * TopBarPrompt
- *
- * The timeline editor's quick text-to-video generation bar. Type a prompt,
- * pick a model + output settings, and Generate drops a text-to-video direct-gen
- * clip onto the first unlocked video track at the playhead (creating a video
- * track if the sequence has none). Generation starts immediately.
- *
- * Layout mirrors the image editor's generate form (`ConnectedGeneratePopover`) and
- * the media chat composer: a prompt that grows to fill, then the model + setting
- * chips, then the primary Generate action. The model / duration / resolution /
- * aspect controls are the shared `MediaControlChip` + option menus, so options
- * track the selected model's manifest.
- *
- * On phones (`compact`) that one row is 600px of content in 390px of viewport,
- * so it wraps into two: prompt + Generate on top, the setting chips below in a
- * horizontally scrollable rail.
- */
+/** Quick video, speech, or music generation at the timeline playhead. */
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { useTheme } from "@mui/material/styles";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import AudiotrackIcon from "@mui/icons-material/Audiotrack";
+import ModelChip from "../chat/composer/ModelChip";
+import { MUSIC_DURATIONS } from "../../stores/MediaGenerationStore";
+import GraphicEqIcon from "@mui/icons-material/GraphicEq";
+import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import MovieIcon from "@mui/icons-material/Movie";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import TvIcon from "@mui/icons-material/Tv";
 
-import { useTimelineStore } from "../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
-import { useTimelinePlaybackStore } from "../../stores/timeline/TimelinePlaybackStore";
+import { useTimelinePlaybackStoreApi } from "../../stores/timeline/TimelineInstance";
 import { useTimelineDirectGenJob } from "../../hooks/timeline/useTimelineDirectGenJob";
 import { useLastDirectGenModel } from "../../hooks/timeline/useLastDirectGenModel";
 import { useClipCostEstimate } from "../../hooks/timeline/useClipCostEstimate";
@@ -42,6 +40,10 @@ import {
   Toast,
   SPACING
 } from "../ui_primitives";
+import ModeSelectChip from "../chat/composer/ModeSelectChip";
+import OptionChip from "../chat/composer/OptionChip";
+import { audioModelPatch } from "../chat/composer/modelSelection";
+import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import MediaControlChip from "../chat/composer/MediaControlChip";
 import MediaOptionMenu from "../chat/composer/MediaOptionMenu";
 import MediaAspectRatioMenu from "../chat/composer/MediaAspectRatioMenu";
@@ -55,26 +57,21 @@ import type {
   VideoModelSelection,
   VideoResolution
 } from "../../stores/MediaGenerationStore";
-import type { VideoModel } from "../../stores/ApiTypes";
+import type { MusicModel, TTSModel, VideoModel } from "../../stores/ApiTypes";
 import { useInStudio } from "../../studio/StudioContext";
-import { forTasks, STUDIO_CLIP_MODELS } from "../../studio/curatedModels";
+import {
+  forTasks,
+  STUDIO_CLIP_MODELS,
+  STUDIO_VOICES,
+  STUDIO_VOICE
+} from "../../studio/curatedModels";
 
-/**
- * Resolve the video track to drop the clip onto: the first unlocked video
- * track, creating one if the sequence has none yet. Returns `undefined` only
- * if a video track exists but is locked.
- */
-function pickOrCreateVideoTrack(): string | undefined {
-  const findVideo = () =>
-    useTimelineStore.getState().tracks.find((t) => t.type === "video");
+const GENERATION_MODES = ["video", "audio", "music"] as const;
+type GenerationMode = (typeof GENERATION_MODES)[number];
 
-  let video = findVideo();
-  if (!video) {
-    useTimelineStore.getState().addTrack("video", "Video");
-    video = findVideo();
-  }
-  if (!video || video.locked) return undefined;
-  return video.id;
+interface AudioSelection {
+  model: { id: string; provider: string; name: string; voices: string[] };
+  voice: string;
 }
 
 interface TopBarPromptProps {
@@ -85,6 +82,53 @@ interface TopBarPromptProps {
 export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false }) => {
   const theme = useTheme();
   const inStudio = useInStudio();
+  const timeline = useTimelineStoreApi();
+  const playback = useTimelinePlaybackStoreApi();
+  const [mode, setMode] = useState<GenerationMode>("video");
+  const [audioSelection, setAudioSelection] = useState<AudioSelection>();
+  const [musicSelection, setMusicSelection] = useState<MusicModel>();
+  const [musicDuration, setMusicDuration] = useState(30);
+  const lastMusicModel = useLastDirectGenModel("music");
+  const musicModel =
+    musicSelection ??
+    (lastMusicModel.model && lastMusicModel.provider
+      ? {
+          id: lastMusicModel.model,
+          name: lastMusicModel.model,
+          provider: lastMusicModel.provider
+        }
+      : undefined);
+  const lastAudioModel = useLastDirectGenModel("audio");
+  const studioVoice =
+    STUDIO_VOICES.find(
+      (option) =>
+        option.modelId === lastAudioModel.model &&
+        option.id === lastAudioModel.voice
+    )?.value ?? STUDIO_VOICE;
+  const audio =
+    audioSelection ??
+    (inStudio
+      ? studioVoice
+        ? { model: studioVoice, voice: studioVoice.selected_voice }
+        : undefined
+      : lastAudioModel.model && lastAudioModel.provider
+        ? {
+            model: {
+              id: lastAudioModel.model,
+              provider: lastAudioModel.provider,
+              name: lastAudioModel.model,
+              // Remembered bindings have no catalog. Offer only their known voice.
+              voices: lastAudioModel.voice ? [lastAudioModel.voice] : []
+            },
+            voice: lastAudioModel.voice ?? ""
+          }
+        : undefined);
+  const audioModelAnchorRef = useRef<HTMLButtonElement>(null);
+  const [audioModelOpen, setAudioModelOpen] = useState(false);
+  const voiceOptions = (audio?.model.voices ?? []).map((id) => ({
+    id,
+    label: id
+  }));
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -103,10 +147,11 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
   // Chip popover anchors.
   const videoModelAnchorRef = useRef<HTMLButtonElement>(null);
   const [videoModelOpen, setVideoModelOpen] = useState(false);
-  const [durationAnchor, setDurationAnchor] = useState<HTMLElement | null>(null);
-  const [resolutionAnchor, setResolutionAnchor] = useState<HTMLElement | null>(
+  const [durationAnchor, setDurationAnchor] = useState<HTMLElement | null>(
     null
   );
+  const [resolutionAnchor, setResolutionAnchor] =
+    useState<HTMLElement | null>(null);
   const [aspectAnchor, setAspectAnchor] = useState<HTMLElement | null>(null);
 
   const { durationOptions, resolutionOptions, aspectOptions } = useMemo(
@@ -136,33 +181,64 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
   const selectClip = useTimelineUIStore((s) => s.selectClip);
   const directGen = useTimelineDirectGenJob();
 
-  const canSubmit = prompt.trim().length > 0 && !!selectedModel?.id && !busy;
+  const model =
+    mode === "music"
+      ? musicModel
+      : mode === "audio"
+        ? audio?.model
+        : selectedModel;
+  const mediaType = mode === "video" ? "video" : "audio";
+  const generationDuration = mode === "music" ? musicDuration : duration;
+  const bindingKind =
+    mode === "music"
+      ? "text-to-music"
+      : mode === "audio"
+        ? "text-to-audio"
+        : "text-to-video";
+  const canSubmit = prompt.trim().length > 0 && !!model?.id && !busy;
 
   const handleSubmit = useCallback(async () => {
-    if (!canSubmit || !selectedModel) return;
+    if (!canSubmit || !model) return;
     // Clear any prior failure toast before we attempt again — otherwise a
     // successful retry leaves the previous error visible.
     setError(null);
-    const trackId = pickOrCreateVideoTrack();
+    const tracks = timeline
+      .getState()
+      .tracks.filter((track) => track.type === mediaType);
+    if (tracks.length === 0) {
+      timeline
+        .getState()
+        .addTrack(mediaType, mediaType === "audio" ? "Audio" : "Video");
+    }
+    const trackId = timeline
+      .getState()
+      .tracks.find((track) => track.type === mediaType && !track.locked)?.id;
     if (!trackId) {
-      setError("Unlock the video track first.");
+      setError(
+        `Unlock ${mediaType === "audio" ? "an audio" : "a video"} track first.`
+      );
       return;
     }
-    const startMs = useTimelinePlaybackStore.getState().currentTimeMs;
+    const startMs = playback.getState().getTimeMs();
     setBusy(true);
     try {
-      const clipId = addDirectGenClip({
+      const clipOptions: Parameters<typeof addDirectGenClip>[0] = {
         trackId,
         startMs,
-        durationMs: duration * 1000,
-        mediaType: "video",
-        bindingKind: "text-to-video",
+        durationMs: generationDuration * 1000,
+        mediaType,
+        bindingKind,
         prompt: prompt.trim(),
-        provider: selectedModel.provider,
-        model: selectedModel.id,
-        aspectRatio: aspect,
-        resolution
-      });
+        provider: model.provider,
+        model: model.id
+      };
+      if (mode === "video") {
+        clipOptions.aspectRatio = aspect;
+        clipOptions.resolution = resolution;
+      } else if (mode === "audio" && audio?.voice) {
+        clipOptions.voice = audio.voice;
+      }
+      const clipId = addDirectGenClip(clipOptions);
       selectClip(clipId);
       await directGen.start(clipId);
       setPrompt("");
@@ -175,10 +251,16 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     canSubmit,
     addDirectGenClip,
     prompt,
-    selectedModel,
+    model,
+    mode,
+    mediaType,
+    bindingKind,
+    audio?.voice,
+    timeline,
+    playback,
     aspect,
     resolution,
-    duration,
+    generationDuration,
     selectClip,
     directGen
   ]);
@@ -227,13 +309,19 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
       onChange={(e) => setPrompt(e.target.value)}
       onKeyDown={handleKeyDown}
       placeholder={
-        compact ? "Generate a video…" : "Generate a video at the playhead…"
+        mode === "music"
+          ? "Describe the music you want to generate…"
+          : mode === "audio"
+            ? "Enter text to speak…"
+            : compact
+              ? "Generate a video…"
+              : "Generate a video at the playhead…"
       }
       compact
       fullWidth
       disabled={busy}
       inputProps={{
-        "aria-label": "Quick text-to-video prompt",
+        "aria-label": `Quick ${bindingKind} prompt`,
         "data-testid": "topbar-prompt-input"
       }}
       slotProps={{
@@ -241,7 +329,10 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
           startAdornment: (
             <AutoAwesomeIcon
               fontSize="small"
-              sx={{ mr: 0.5, color: theme.vars.palette.primary.main }}
+              sx={{
+                mr: SPACING.micro,
+                color: theme.vars.palette.primary.main
+              }}
             />
           )
         }
@@ -249,7 +340,7 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
       sx={{
         flex: 1,
         minWidth: compact ? 0 : 160,
-        "& .MuiOutlinedInput-root": { height: 34 },
+        "& .MuiOutlinedInput-root": { height: 32 },
         // Bar text at the label token (13px) so the prompt reads at the same
         // size as the setting chips beside it. The doubled parent selector
         // outranks TextInput's own body-token rule for this bar only — the
@@ -261,15 +352,14 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     />
   );
 
-  // The bar creates a text-to-video clip with exactly these fields, so it
-  // prices through the same hook the clip inspector uses.
+  // Price the same binding that Generate will create.
   const costEstimate = useClipCostEstimate({
-    bindingKind: "text-to-video",
-    provider: selectedModel?.provider,
-    model: selectedModel?.id,
+    bindingKind,
+    provider: model?.provider,
+    model: model?.id,
     resolution,
     aspectRatio: aspect,
-    durationMs: duration * 1000
+    durationMs: generationDuration * 1000
   });
 
   const costLine = (
@@ -295,16 +385,20 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
       data-testid="topbar-generate"
       // Icon-only on phones: the label costs ~70px the prompt needs, and the
       // sparkle plus the field's placeholder already say what it does.
-      aria-label="Generate video"
+      aria-label={`Generate ${mode}`}
       // Native tooltip still fires on a disabled button: say why it is off.
       title={
         canSubmit ? undefined : "Type a prompt and pick a model to generate"
       }
       sx={{
         flexShrink: 0,
-        height: 34,
+        height: 32,
         ...(compact
-          ? { minWidth: 44, px: 1, "& .MuiButton-startIcon": { m: 0 } }
+          ? {
+              minWidth: 44,
+              px: SPACING.xs,
+              "& .MuiButton-startIcon": { m: 0 }
+            }
           : null)
       }}
     >
@@ -312,91 +406,203 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     </EditorButton>
   );
 
-  const settingChips = (
+  const videoSettingChips = (
     <>
       <MediaControlChip
-          ref={videoModelAnchorRef}
-          icon={<MovieIcon fontSize="small" />}
-          label={selectedModel?.name || "Select Model"}
-          active={videoModelOpen}
-          onClick={() => setVideoModelOpen(true)}
-          truncate
-          showChevron={false}
-        />
-        {videoModelOpen &&
-          (inStudio ? (
-            <MediaOptionMenu
-              anchorEl={videoModelAnchorRef.current}
-              open
-              onClose={() => setVideoModelOpen(false)}
-              header="Video model"
-              value={selectedModel?.id ?? ""}
-              options={curatedClipOptions}
-              onChange={(id) => {
-                const picked = STUDIO_CLIP_MODELS.find((o) => o.id === id);
-                if (picked) handlePickVideoModel(picked.value);
-                setVideoModelOpen(false);
-              }}
-            />
-          ) : (
-            <VideoModelMenuDialog
-              open
-              anchorEl={videoModelAnchorRef.current}
-              onClose={() => setVideoModelOpen(false)}
-              onModelChange={handlePickVideoModel}
-              task="text_to_video"
-            />
-          ))}
+        ref={videoModelAnchorRef}
+        icon={<MovieIcon fontSize="small" />}
+        label={selectedModel?.name || "Select Model"}
+        active={videoModelOpen}
+        onClick={() => setVideoModelOpen(true)}
+        truncate
+        showChevron={false}
+      />
+      {videoModelOpen &&
+        (inStudio ? (
+          <MediaOptionMenu
+            anchorEl={videoModelAnchorRef.current}
+            open
+            onClose={() => setVideoModelOpen(false)}
+            header="Video model"
+            value={selectedModel?.id ?? ""}
+            options={curatedClipOptions}
+            onChange={(id) => {
+              const picked = STUDIO_CLIP_MODELS.find((o) => o.id === id);
+              if (picked) handlePickVideoModel(picked.value);
+              setVideoModelOpen(false);
+            }}
+          />
+        ) : (
+          <VideoModelMenuDialog
+            open
+            anchorEl={videoModelAnchorRef.current}
+            onClose={() => setVideoModelOpen(false)}
+            onModelChange={handlePickVideoModel}
+            task="text_to_video"
+          />
+        ))}
 
-        <MediaControlChip
-          icon={<AccessTimeIcon fontSize="small" />}
-          label={`${duration} Sec`}
-          active={!!durationAnchor}
-          onClick={(e) => setDurationAnchor(e.currentTarget)}
-          showChevron={false}
-        />
-        <MediaOptionMenu
-          anchorEl={durationAnchor}
-          open={!!durationAnchor}
-          onClose={() => setDurationAnchor(null)}
-          header="Duration"
-          value={duration}
-          options={durationOptions}
-          onChange={(d) => setDuration(d)}
-        />
+      <MediaControlChip
+        icon={<AccessTimeIcon fontSize="small" />}
+        label={`${duration} Sec`}
+        active={!!durationAnchor}
+        onClick={(e) => setDurationAnchor(e.currentTarget)}
+        showChevron={false}
+      />
+      <MediaOptionMenu
+        anchorEl={durationAnchor}
+        open={!!durationAnchor}
+        onClose={() => setDurationAnchor(null)}
+        header="Duration"
+        value={duration}
+        options={durationOptions}
+        onChange={(d) => setDuration(d)}
+      />
 
-        <MediaControlChip
-          icon={<TvIcon fontSize="small" />}
-          label={resolution}
-          active={!!resolutionAnchor}
-          onClick={(e) => setResolutionAnchor(e.currentTarget)}
-          showChevron={false}
-        />
-        <MediaOptionMenu
-          anchorEl={resolutionAnchor}
-          open={!!resolutionAnchor}
-          onClose={() => setResolutionAnchor(null)}
-          header="Video Resolution"
-          value={resolution}
-          options={resolutionOptions}
-          onChange={(r) => setResolution(r)}
-        />
+      <MediaControlChip
+        icon={<TvIcon fontSize="small" />}
+        label={resolution}
+        active={!!resolutionAnchor}
+        onClick={(e) => setResolutionAnchor(e.currentTarget)}
+        showChevron={false}
+      />
+      <MediaOptionMenu
+        anchorEl={resolutionAnchor}
+        open={!!resolutionAnchor}
+        onClose={() => setResolutionAnchor(null)}
+        header="Video Resolution"
+        value={resolution}
+        options={resolutionOptions}
+        onChange={(r) => setResolution(r)}
+      />
 
-        <MediaControlChip
-          icon={<AspectRatioIcon fontSize="small" />}
-          label={aspect}
-          active={!!aspectAnchor}
-          onClick={(e) => setAspectAnchor(e.currentTarget)}
-          showChevron={false}
-        />
-        <MediaAspectRatioMenu
-          anchorEl={aspectAnchor}
-          open={!!aspectAnchor}
-          onClose={() => setAspectAnchor(null)}
-          value={aspect}
-          options={aspectOptions}
+      <MediaControlChip
+        icon={<AspectRatioIcon fontSize="small" />}
+        label={aspect}
+        active={!!aspectAnchor}
+        onClick={(e) => setAspectAnchor(e.currentTarget)}
+        showChevron={false}
+      />
+      <MediaAspectRatioMenu
+        anchorEl={aspectAnchor}
+        open={!!aspectAnchor}
+        onClose={() => setAspectAnchor(null)}
+        value={aspect}
+        options={aspectOptions}
         onChange={(v) => setAspect(v)}
       />
+    </>
+  );
+
+  const handlePickAudioModel = useCallback((picked: TTSModel) => {
+    setAudioSelection(audioModelPatch(picked, ""));
+    setAudioModelOpen(false);
+  }, []);
+  const openAudioModel = useCallback(() => setAudioModelOpen(true), []);
+  const closeAudioModel = useCallback(() => setAudioModelOpen(false), []);
+
+  const audioSettingChips = (
+    <>
+      <MediaControlChip
+        ref={audioModelAnchorRef}
+        icon={<GraphicEqIcon fontSize="small" />}
+        label={
+          inStudio
+            ? (STUDIO_VOICES.find((option) => option.id === audio?.voice)
+                ?.label ?? "Voice")
+            : audio?.model.name || "Select TTS Model"
+        }
+        active={audioModelOpen}
+        onClick={openAudioModel}
+        truncate
+      />
+      {audioModelOpen &&
+        (inStudio ? (
+          <MediaOptionMenu
+            anchorEl={audioModelAnchorRef.current}
+            open
+            onClose={closeAudioModel}
+            header="Voice"
+            value={audio?.voice ?? ""}
+            options={STUDIO_VOICES.map((option) => ({
+              id: option.id,
+              label: option.label
+            }))}
+            onChange={(id) => {
+              const picked = STUDIO_VOICES.find((option) => option.id === id);
+              if (picked)
+                setAudioSelection({ model: picked.value, voice: id });
+              setAudioModelOpen(false);
+            }}
+          />
+        ) : (
+          <TTSModelMenuDialog
+            open
+            anchorEl={audioModelAnchorRef.current}
+            onClose={closeAudioModel}
+            onModelChange={handlePickAudioModel}
+          />
+        ))}
+      {!inStudio && audio && voiceOptions.length > 0 && (
+        <OptionChip
+          menu="option"
+          icon={<RecordVoiceOverIcon fontSize="small" />}
+          label={audio.voice || "Voice"}
+          header="Voice"
+          value={audio.voice}
+          options={voiceOptions}
+          onChange={(voice) => setAudioSelection({ ...audio, voice })}
+        />
+      )}
+    </>
+  );
+
+  const musicSettingChips = (
+    <>
+      <ModelChip
+        icon={<AudiotrackIcon fontSize="small" />}
+        label={musicModel?.name || "Select Music Model"}
+        picker={{ kind: "music", onPick: setMusicSelection }}
+      />
+      <OptionChip
+        menu="option"
+        icon={<AccessTimeIcon fontSize="small" />}
+        label={`${musicDuration} Sec`}
+        header="Target Duration"
+        title={`Target duration: ${musicDuration} seconds. The model may adjust or ignore this.`}
+        value={musicDuration}
+        options={MUSIC_DURATIONS.map((id) => ({ id, label: `${id} Sec` }))}
+        onChange={setMusicDuration}
+      />
+    </>
+  );
+
+  const settingChips = (
+    <>
+      <ModeSelectChip
+        mode={mode}
+        modes={GENERATION_MODES}
+        onChange={(nextMode) => {
+          if (
+            nextMode !== "video" &&
+            nextMode !== "audio" &&
+            nextMode !== "music"
+          )
+            return;
+          setMode(nextMode);
+          setVideoModelOpen(false);
+          setAudioModelOpen(false);
+          setDurationAnchor(null);
+          setResolutionAnchor(null);
+          setAspectAnchor(null);
+          setError(null);
+        }}
+      />
+      {mode === "music"
+        ? musicSettingChips
+        : mode === "audio"
+          ? audioSettingChips
+          : videoSettingChips}
     </>
   );
 
@@ -413,7 +619,7 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
             {generateButton}
           </FlexRow>
           {/* Chip rail — scrolls horizontally rather than wrapping, so the bar
-              keeps a predictable two-row height whatever the model name is. */}
+          keeps a predictable two-row height whatever the model name is. */}
           <FlexRow
             gap={SPACING.sm}
             align="center"

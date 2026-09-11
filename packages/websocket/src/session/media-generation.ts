@@ -20,7 +20,8 @@ import { ProcessingContext as GenerationContext } from "@nodetool-ai/runtime";
 import type {
   BaseProvider,
   GenerationRequest,
-  GenerationResult
+  GenerationResult,
+  TextToMusicParams
 } from "@nodetool-ai/runtime";
 import type { GenerationReceipt } from "@nodetool-ai/protocol";
 
@@ -48,7 +49,9 @@ export interface GenerationRunOptions {
   /** Overrides the node type the ledger records for these rows. */
   nodeType?: () => string;
   /** The managed-provider receipt, read once the assets are stored. */
-  receiptAfterPersist?: () => { cost: NonNullable<GenerationReceipt["cost"]> } | null;
+  receiptAfterPersist?: () => {
+    cost: NonNullable<GenerationReceipt["cost"]>;
+  } | null;
   /** Called with every generation id this run opened. */
   onGenerationId?: (id: string) => void;
 }
@@ -217,10 +220,25 @@ export interface SpeechRequest {
   audioFormat?: string | null;
 }
 
-export interface SpeechBytes {
+export interface GeneratedAudioBytes {
   bytes: Uint8Array;
   mimeType: string;
   ext: string;
+}
+
+export async function generateMusicBytes(
+  provider: BaseProvider,
+  request: TextToMusicParams,
+  cancelled?: () => boolean
+): Promise<GeneratedAudioBytes | null> {
+  const encoded = await provider.textToMusic(request);
+  if (cancelled?.()) return null;
+  if (!encoded.data.length) throw new Error("Provider returned no audio data");
+  return {
+    bytes: encoded.data,
+    mimeType: encoded.mimeType,
+    ext: ENCODED_AUDIO_MIME_TO_EXT[encoded.mimeType] ?? "flac"
+  };
 }
 
 /**
@@ -236,7 +254,7 @@ export async function generateSpeechBytes(
   provider: BaseProvider,
   request: SpeechRequest,
   cancelled?: () => boolean
-): Promise<SpeechBytes | null> {
+): Promise<GeneratedAudioBytes | null> {
   const requestedFormat = request.audioFormat ?? null;
   const providerRequest = {
     text: request.text,

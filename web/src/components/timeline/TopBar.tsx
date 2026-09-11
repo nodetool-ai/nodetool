@@ -2,13 +2,8 @@
 /**
  * TopBar — Timeline Editor top bar.
  *
- * A single generation prompt bar (model + output settings + Generate) that
- * grows to fill, with Save / Export and an activity slot on the right. The
- * project name lives in the workspace tab, so it isn't repeated here.
- *
- * On phones the four labelled actions won't fit beside the prompt, so they
- * collapse into one overflow menu and the prompt takes the width it needs
- * (see `TopBarPrompt`'s `compact` layout).
+ * Project settings, Save / Export, and generation activity.
+ * Actions collapse into an overflow menu on narrow layouts.
  */
 
 import React, { memo, useCallback, useEffect, useState } from "react";
@@ -32,14 +27,11 @@ import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
 import VideoLibraryOutlinedIcon from "@mui/icons-material/VideoLibraryOutlined";
 
-import { TopBarPrompt } from "./TopBarPrompt";
 import { useTimelineIsMobile } from "../../hooks/timeline/useTimelineIsMobile";
 
 const styles = (theme: Theme, compact: boolean) =>
   css({
-    // Phones need two rows for the prompt + chip rail; let the bar size to it.
-    height: compact ? "auto" : 48,
-    minHeight: compact ? 48 : undefined,
+    height: 48,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     backgroundColor: theme.vars.palette.background.paper,
     padding: compact
@@ -98,13 +90,10 @@ export const TopBar: React.FC<TopBarProps> = memo(
     useEffect(() => {
       const element = barRef.current;
       if (!element) return;
-      // The prompt's model/settings rail and the four labelled actions need
-      // roughly 1,200px together. Collapse the actions before flexbox starts
-      // shrinking controls into one another, so this remains safe when a
-      // sidebar reduces the editor to an intermediate width.
+      // Collapse actions when the editor has insufficient width for labels.
       const update = () => {
         if (element.clientWidth === 0) return;
-        setIsNarrow(element.clientWidth < 1200);
+        setIsNarrow(element.clientWidth < 640);
       };
       update();
       const observer = new ResizeObserver(update);
@@ -134,12 +123,12 @@ export const TopBar: React.FC<TopBarProps> = memo(
       return (
         <FlexRow
           ref={barRef}
-          align="flex-start"
+          align="center"
+          justify="flex-end"
           gap={SPACING.sm}
           fullWidth
           css={styles(theme, true)}
         >
-          <TopBarPrompt compact />
           {activitySlot}
           {hasActions && (
             <>
@@ -214,13 +203,11 @@ export const TopBar: React.FC<TopBarProps> = memo(
       <FlexRow
         ref={barRef}
         align="center"
+        justify="flex-end"
         gap={SPACING.xs}
         fullWidth
         css={styles(theme, false)}
       >
-        {/* Quick-prompt generation bar — grows to fill */}
-        <TopBarPrompt />
-
         {/* Right: activity slot + settings / save / export */}
         {activitySlot}
 

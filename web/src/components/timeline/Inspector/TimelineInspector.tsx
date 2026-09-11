@@ -517,7 +517,8 @@ export const TimelineInspector: React.FC = memo(() => {
       clip.bindingKind === "text-to-image" ||
       clip.bindingKind === "image-to-image" ||
       clip.bindingKind === "text-to-video" ||
-      clip.bindingKind === "text-to-audio"
+      clip.bindingKind === "text-to-audio" ||
+      clip.bindingKind === "text-to-music"
     ) {
       return <DirectGenClipPanel clipId={clip.id} />;
     }

@@ -22,6 +22,8 @@ export const capabilityForMode = (
     case "image_to_video":
     case "reference_to_video":
       return "text_to_video";
+    case "music":
+      return "text_to_music";
     case "audio":
       return "text_to_speech";
     default:
@@ -44,6 +46,8 @@ export const setupReasonForMode = (mode: MediaMode): string | null => {
       return "Animating images needs a video provider. Connect one to continue.";
     case "reference_to_video":
       return "Reference to video needs a video provider. Connect one to continue.";
+    case "music":
+      return "Generating music needs a music provider. Connect one to continue.";
     case "audio":
       return "Generating speech needs a text-to-speech provider. Connect one to continue.";
     default:

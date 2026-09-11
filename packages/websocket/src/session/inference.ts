@@ -40,13 +40,21 @@ import { isFiniteNumber, isRecord, isString } from "../lib/wire-values.js";
 import type { ClientSession } from "./client-session.js";
 import {
   createGenerationRun,
-  generateSpeechBytes
+  generateSpeechBytes,
+  generateMusicBytes
 } from "./media-generation.js";
 
 const log = createLogger("nodetool.websocket.runner");
 
 export interface DirectMediaGenerationRequest {
-  mode: "image" | "image_edit" | "inpaint" | "video" | "video_edit" | "audio";
+  mode:
+    | "image"
+    | "image_edit"
+    | "inpaint"
+    | "video"
+    | "video_edit"
+    | "audio"
+    | "music";
   provider: string;
   model: string;
   prompt: string;
@@ -826,7 +834,7 @@ export class DirectInferenceHandler {
       return { asset_ids: [assetId] };
     }
 
-    if (req.mode === "audio") {
+    if (req.mode === "audio" || req.mode === "music") {
       const supportedFormats = new Set([
         "mp3",
         "wav",
@@ -842,22 +850,35 @@ export class DirectInferenceHandler {
 
       const audioGenerationId = randomUUID();
       const generated = await generate(
-        "text_to_speech",
-        {
-          text: prompt,
-          voice: req.voice,
-          speed: req.speed,
-          audio_format: requestedFormat
-        },
+        req.mode === "music" ? "text_to_music" : "text_to_speech",
+        req.mode === "music"
+          ? { prompt, duration_seconds: req.durationSeconds }
+          : {
+              text: prompt,
+              voice: req.voice,
+              speed: req.speed,
+              audio_format: requestedFormat
+            },
         null,
         async () => {
-          const speech = await generateSpeechBytes(provider, {
-            text: prompt,
-            model: req.model,
-            voice: req.voice,
-            speed: req.speed,
-            audioFormat: requestedFormat
-          });
+          const speech =
+            req.mode === "music"
+              ? await generateMusicBytes(provider, {
+                  model: {
+                    id: req.model,
+                    name: req.model,
+                    provider: req.provider
+                  },
+                  prompt,
+                  durationSeconds: req.durationSeconds
+                })
+              : await generateSpeechBytes(provider, {
+                  text: prompt,
+                  model: req.model,
+                  voice: req.voice,
+                  speed: req.speed,
+                  audioFormat: requestedFormat
+                });
           if (!speech) throw new Error("Provider returned no audio data");
           return storeAsset(speech.bytes, speech.mimeType, speech.ext);
         },

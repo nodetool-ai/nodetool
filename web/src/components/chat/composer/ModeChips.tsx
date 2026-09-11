@@ -6,7 +6,7 @@
  * with every menu and dialog it owned. That is what removed the composer's
  * "close everything on mode change" effect: there is nothing left to close.
  */
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import AppsIcon from "@mui/icons-material/Apps";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
@@ -27,12 +27,14 @@ import useMediaGenerationStore, {
   AUDIO_FORMATS,
   AUDIO_SPEEDS,
   DEFAULT_TTS_VOICES,
+  MUSIC_DURATIONS,
   IMAGE_VARIATIONS
 } from "../../../stores/MediaGenerationStore";
 import type {
   AudioFormat,
   MediaMode
 } from "../../../stores/MediaGenerationStore";
+import type { MusicModel } from "../../../stores/ApiTypes";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import ModelChip, { type ModelPickerHandle } from "./ModelChip";
 import OptionChip from "./OptionChip";
@@ -103,6 +105,49 @@ interface ModeChipsProps {
 
 interface ClusterProps {
   openModelPickerRef: React.Ref<ModelPickerHandle>;
+}
+
+function MusicModeChips({ openModelPickerRef }: ClusterProps) {
+  const params = useMediaGenerationStore((s) => s.music);
+  const setParams = useMediaGenerationStore((s) => s.setMusicParams);
+  const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
+  const handlePickMusic = useCallback(
+    (model: MusicModel) => {
+      setParams({
+        model: {
+          type: "music_model",
+          id: model.id,
+          provider: model.provider,
+          name: model.name
+        }
+      });
+      addRecentModel(recentModelEntry(model));
+    },
+    [setParams, addRecentModel]
+  );
+  return (
+    <>
+      <ModelChip
+        openRef={openModelPickerRef}
+        icon={<AudiotrackIcon fontSize="small" />}
+        label={params.model?.name || "Select Music Model"}
+        picker={{
+          kind: "music",
+          onPick: handlePickMusic
+        }}
+      />
+      <OptionChip
+        menu="option"
+        icon={<AccessTimeIcon fontSize="small" />}
+        label={`${params.duration} Sec`}
+        header="Target Duration"
+        title={`Target duration: ${params.duration} seconds. The model may adjust or ignore this.`}
+        value={params.duration}
+        options={MUSIC_DURATIONS.map((id) => ({ id, label: `${id} Sec` }))}
+        onChange={(duration) => setParams({ duration })}
+      />
+    </>
+  );
 }
 
 function ImageModeChips({ openModelPickerRef }: ClusterProps) {
@@ -531,6 +576,8 @@ export function ModeChips({ mode, openModelPickerRef }: ModeChipsProps) {
       <ReferenceToVideoModeChips openModelPickerRef={openModelPickerRef} />
     );
   }
+  if (mode === "music")
+    return <MusicModeChips openModelPickerRef={openModelPickerRef} />;
   if (mode === "audio") {
     return <AudioModeChips openModelPickerRef={openModelPickerRef} />;
   }

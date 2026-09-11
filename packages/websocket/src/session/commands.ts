@@ -785,7 +785,8 @@ export class CommandRouter {
         | "inpaint"
         | "video"
         | "video_edit"
-        | "audio" =
+        | "audio"
+        | "music" =
         rawMode === "image_edit"
           ? "image_edit"
           : rawMode === "inpaint"
@@ -796,7 +797,9 @@ export class CommandRouter {
                 ? "video_edit"
                 : rawMode === "audio"
                   ? "audio"
-                  : "image";
+                  : rawMode === "music"
+                    ? "music"
+                    : "image";
       const provider = String(data.provider ?? defaults.provider);
       const model = String(data.model ?? defaults.model);
       const prompt = String(data.prompt ?? "");

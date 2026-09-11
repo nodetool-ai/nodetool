@@ -618,6 +618,7 @@ export type MediaGenerationMode =
   | "image_to_video"
   | "reference_to_video"
   | "audio"
+  | "music"
   | "audio_to_video"
   | "retake"
   | "extend"
@@ -639,7 +640,7 @@ export interface MediaGenerationRequest {
   resolution?: string | null;
   /** Number of variations to generate (images). */
   variations?: number | null;
-  /** Duration in seconds (video). */
+  /** Requested duration in seconds (video or music). */
   duration?: number | null;
   /** Voice id for text-to-speech. */
   voice?: string | null;

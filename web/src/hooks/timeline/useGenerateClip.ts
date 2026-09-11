@@ -57,7 +57,8 @@ const isDirectGenKind = (kind: string | undefined): boolean =>
   kind === "text-to-image" ||
   kind === "image-to-image" ||
   kind === "text-to-video" ||
-  kind === "text-to-audio";
+  kind === "text-to-audio" ||
+  kind === "text-to-music";
 
 /**
  * Compute the non-generating clip status from current clip fields. Used by

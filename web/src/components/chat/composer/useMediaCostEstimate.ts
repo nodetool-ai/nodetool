@@ -52,12 +52,15 @@ function megapixelsFor(resolution: "1K" | "2K" | "4K", aspectRatio: string) {
   return Math.round(((width * height) / 1_000_000) * 100) / 100;
 }
 
-export function useMediaCostEstimate(mode: MediaMode): MediaCostEstimate | null {
+export function useMediaCostEstimate(
+  mode: MediaMode
+): MediaCostEstimate | null {
   const image = useMediaGenerationStore((s) => s.image);
   const imageEdit = useMediaGenerationStore((s) => s.imageEdit);
   const video = useMediaGenerationStore((s) => s.video);
   const imageToVideo = useMediaGenerationStore((s) => s.imageToVideo);
   const referenceToVideo = useMediaGenerationStore((s) => s.referenceToVideo);
+  const music = useMediaGenerationStore((s) => s.music);
   const audio = useMediaGenerationStore((s) => s.audio);
 
   return useMemo(() => {
@@ -119,6 +122,12 @@ export function useMediaCostEstimate(mode: MediaMode): MediaCostEstimate | null 
           quantity: 1
         };
       }
+      if (mode === "music")
+        return {
+          model: music.model,
+          params: { seconds: music.duration },
+          quantity: 1
+        };
       if (mode === "audio") {
         return { model: audio.model, params: {}, quantity: 1 };
       }
@@ -147,7 +156,7 @@ export function useMediaCostEstimate(mode: MediaMode): MediaCostEstimate | null 
       assumptions: price.assumptions,
       warnings: price.warnings
     };
-  }, [mode, image, imageEdit, video, imageToVideo, referenceToVideo, audio]);
+  }, [mode, image, imageEdit, video, imageToVideo, referenceToVideo, audio, music]);
 }
 
 export default useMediaCostEstimate;

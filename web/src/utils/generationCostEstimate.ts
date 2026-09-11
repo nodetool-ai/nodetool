@@ -25,7 +25,7 @@ import {
 /** What a surface states about the generation it is about to start. */
 export interface GenerationSpec {
   /** "image" prices a still, "video" a clip, "audio" a spoken take. */
-  kind: "image" | "video" | "audio";
+  kind: "image" | "video" | "audio" | "music";
   provider?: string | null;
   model?: string | null;
   /** The rung in the catalog's own spelling: "1K", "720p". */
@@ -78,7 +78,7 @@ function priceParams(spec: GenerationSpec): ModelPriceParams {
   if (spec.resolution) {
     params.resolution = spec.resolution;
   }
-  if (spec.kind === "video") {
+  if (spec.kind === "video" || spec.kind === "music") {
     if (spec.seconds != null && spec.seconds > 0) {
       params.seconds = spec.seconds;
     }

@@ -767,6 +767,11 @@ export class FalProvider extends BaseProvider {
       b.set("duration", params.durationSeconds)
         .set("seconds_total", params.durationSeconds)
         .set("music_duration", params.durationSeconds);
+      if (b.declares("music_length_ms")) {
+        // ElevenLabs expects an integer, despite the optional field's string
+        // type in the generated manifest: https://fal.ai/models/fal-ai/elevenlabs/music/api
+        b.force("music_length_ms", Math.round(params.durationSeconds * 1000));
+      }
     }
     if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
     return b.args;

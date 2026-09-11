@@ -44,9 +44,11 @@ export function clipGenerationSpec(
   const kind =
     clip.bindingKind === "text-to-video"
       ? "video"
-      : clip.bindingKind === "text-to-audio"
-        ? "audio"
-        : "image";
+      : clip.bindingKind === "text-to-music"
+        ? "music"
+        : clip.bindingKind === "text-to-audio"
+          ? "audio"
+          : "image";
   return {
     kind,
     provider: clip.provider ?? null,
@@ -58,7 +60,7 @@ export function clipGenerationSpec(
     // The direct-gen job derives the requested duration from the clip's own
     // length on the timeline, so a per-second model is priced for that.
     seconds:
-      kind === "video"
+      kind === "video" || kind === "music"
         ? Math.max(1, Math.round((clip.durationMs ?? 4000) / 1000))
         : null
   };

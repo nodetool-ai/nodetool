@@ -4,6 +4,7 @@
  * inside it.
  */
 import React, { useCallback, useState } from "react";
+import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
@@ -18,6 +19,7 @@ import MediaModeMenu from "./MediaModeMenu";
 import type { MediaMode } from "../../../stores/MediaGenerationStore";
 
 export function modeIconFor(mode: MediaMode): React.ReactNode {
+  if (mode === "music") return <AudiotrackIcon fontSize="small" />;
   if (mode === "image") {
     return <ImageIcon fontSize="small" />;
   }
@@ -43,6 +45,7 @@ export function modeIconFor(mode: MediaMode): React.ReactNode {
 }
 
 export function modeLabelFor(mode: MediaMode): string {
+  if (mode === "music") return "Music";
   if (mode === "image") {
     return "Image";
   }
@@ -79,6 +82,7 @@ export function modeLabelFor(mode: MediaMode): string {
 interface ModeSelectChipProps {
   mode: MediaMode;
   onChange: (mode: MediaMode) => void;
+  modes?: readonly MediaMode[];
   /** Icon plus chevron only: the mode reads from its icon, and the label
    *  costs room the model and workspace chips need on one line. */
   compact?: boolean;
@@ -87,6 +91,7 @@ interface ModeSelectChipProps {
 export function ModeSelectChip({
   mode,
   onChange,
+  modes,
   compact = false
 }: ModeSelectChipProps) {
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
@@ -109,6 +114,7 @@ export function ModeSelectChip({
         onClose={close}
         value={mode}
         onChange={onChange}
+        modes={modes}
       />
     </>
   );

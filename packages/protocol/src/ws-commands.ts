@@ -192,7 +192,9 @@ export const generateMediaDataSchema = z
      * "inpaint" = image-to-image confined to `mask_asset_id`;
      * "video" = text-to-video; "audio" = text-to-speech.
      */
-    mode: z.enum(["image", "image_edit", "inpaint", "video", "audio"]).optional(),
+    mode: z
+      .enum(["image", "image_edit", "inpaint", "video", "audio", "music"])
+      .optional(),
     provider: z.string().optional(),
     model: z.string().optional(),
     prompt: z.string().optional(),
