@@ -14,7 +14,7 @@ import { describe, expect, it, beforeEach, vi } from "vitest";
 import { Buffer } from "node:buffer";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
-import { Asset, initTestDb } from "@nodetool-ai/models";
+import { Asset, Project, initTestDb } from "@nodetool-ai/models";
 import {
   ASSET_CAPABILITIES,
   module as assetsModule
@@ -52,18 +52,34 @@ function makeContext(
 function asTool(
   name: string,
   context: ProcessingContext,
-  listPackageAssets?: PackageAssetLister
+  listPackageAssets?: PackageAssetLister,
+  projectId?: string
 ): Tool {
   const entry = ASSET_CAPABILITIES.find((e) => e.spec.name === name);
   if (!entry) throw new Error(`no assets capability named "${name}"`);
   return toolFromCapability(entry.spec, entry.impl, () =>
-    createCapabilityRun({ context, gate: UNGATED, listPackageAssets })
+    createCapabilityRun({
+      context,
+      gate: UNGATED,
+      listPackageAssets,
+      projectId
+    })
   );
 }
 
 beforeEach(() => {
   initTestDb();
 });
+
+async function seedAsset(id: string): Promise<void> {
+  await new Asset({
+    id,
+    user_id: USER,
+    project_id: "default",
+    name: `${id}.png`,
+    content_type: "image/png"
+  }).save();
+}
 
 describe("assets capability module", () => {
   it("is registered and drift-clean", async () => {
@@ -125,6 +141,68 @@ describe("assets capability module", () => {
 });
 
 describe("assets capabilities against the database", () => {
+  it("cannot list, search, get, or update assets from another project", async () => {
+    const projectA = await Project.create<Project>({
+      user_id: USER,
+      name: "A"
+    });
+    const projectB = await Project.create<Project>({
+      user_id: USER,
+      name: "B"
+    });
+    const inA = await Asset.create<Asset>({
+      user_id: USER,
+      project_id: projectA.id,
+      name: "shared-a.png",
+      content_type: "image/png"
+    });
+    const inB = await Asset.create<Asset>({
+      user_id: USER,
+      project_id: projectB.id,
+      name: "shared-b.png",
+      content_type: "image/png"
+    });
+    const resolveAssetBytes = vi.fn(async () => ({
+      bytes: new Uint8Array([1, 2, 3]),
+      attempts: [] as string[]
+    }));
+    const ctx = makeContext({ resolveAssetBytes });
+    const tool = (name: string) => asTool(name, ctx, undefined, projectA.id);
+
+    const listed = (await tool("list_assets").process(ctx, {})) as {
+      assets: Array<{ id: string }>;
+    };
+    expect(listed.assets.map((asset) => asset.id)).toEqual([inA.id]);
+    const searched = (await tool("asset_search").process(ctx, {
+      query: "shared"
+    })) as { assets: Array<{ asset_id: string }> };
+    expect(searched.assets.map((asset) => asset.asset_id)).toEqual([inA.id]);
+    expect(await tool("get_asset").process(ctx, { asset_id: inB.id })).toEqual({
+      error: `Asset ${inB.id} was not found.`
+    });
+    expect(
+      await tool("update_asset").process(ctx, {
+        asset_id: inB.id,
+        name: "stolen.png"
+      })
+    ).toEqual({ error: `Asset ${inB.id} was not found.` });
+    expect(
+      await tool("read_asset").process(ctx, { name: `asset://${inB.id}.png` })
+    ).toMatchObject({ success: false });
+    expect(
+      await tool("view_image").process(ctx, {
+        image_id: `/api/storage/${USER}/${inB.id}.png`
+      })
+    ).toMatchObject({ error: expect.stringContaining("not found") });
+    expect(
+      await tool("save_asset").process(ctx, {
+        name: "copied.png",
+        source: `asset://${inB.id}.png`
+      })
+    ).toMatchObject({ success: false });
+    expect(resolveAssetBytes).not.toHaveBeenCalled();
+  });
+
   it("lists, searches and reads back an asset row", async () => {
     const asset = (await Asset.create({
       user_id: USER,
@@ -259,13 +337,12 @@ describe("assets capabilities against the database", () => {
     // the in-memory adapter speaks `memory://`, so fake the one method the
     // resolver reads and keep the adapter's `store` for the saved copy.
     const bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 24]);
+    await seedAsset("abc");
     const inner = new InMemoryStorageAdapter();
     const storage = {
       store: inner.store.bind(inner),
       retrieve: async (uri: string) =>
-        uri === "/api/storage/downloads/abc.mp4"
-          ? bytes
-          : inner.retrieve(uri)
+        uri === "/api/storage/downloads/abc.mp4" ? bytes : inner.retrieve(uri)
     };
     const ctx = makeContext({ storage });
     const saved = (await asTool("save_asset", ctx).process(ctx, {
@@ -317,6 +394,7 @@ describe("assets capabilities against the database", () => {
   it("refuses a source that resolves to zero bytes", async () => {
     // A storage adapter that answers with an empty buffer instead of null is
     // what turned a failed copy into a 0-byte asset reported as saved.
+    await seedAsset("missing");
     const ctx = makeContext({
       storage: {
         retrieve: async () => new Uint8Array(0),
@@ -365,6 +443,7 @@ describe("assets capabilities against the database", () => {
 
 describe("view_image", () => {
   it("returns the payload shape the executors forward as image blocks", async () => {
+    await seedAsset("abc");
     const ctx = makeContext({
       resolveAssetBytes: vi.fn(async () => ({
         bytes: new Uint8Array(Buffer.from(TINY_PNG_B64, "base64")),
@@ -390,30 +469,30 @@ describe("view_image", () => {
     ["cloud metadata", "http://169.254.169.254/latest/meta-data/iam"],
     ["private range", "https://10.0.0.5/internal.png"],
     ["plain http to a public host", "http://example.com/logo.png"]
-  ])("refuses a %s URL instead of handing it to the vision provider", async (
-    _label,
-    url
-  ) => {
-    // The passthrough hands `image_content.uri` to the vision provider, which
-    // fetches it from *their* network — so this is not an SSRF against our
-    // host. It is still the one model-supplied URL in this path that never met
-    // the guard every other outbound URL here meets, and `save_asset` already
-    // refuses exactly these through `safeFetch`.
-    const resolveAssetBytes = vi.fn(async () => ({
-      bytes: new Uint8Array(),
-      attempts: [] as string[]
-    }));
-    const ctx = makeContext({ resolveAssetBytes });
-    const result = (await asTool("view_image", ctx).process(ctx, {
-      image_id: url
-    })) as Record<string, unknown>;
+  ])(
+    "refuses a %s URL instead of handing it to the vision provider",
+    async (_label, url) => {
+      // The passthrough hands `image_content.uri` to the vision provider, which
+      // fetches it from *their* network — so this is not an SSRF against our
+      // host. It is still the one model-supplied URL in this path that never met
+      // the guard every other outbound URL here meets, and `save_asset` already
+      // refuses exactly these through `safeFetch`.
+      const resolveAssetBytes = vi.fn(async () => ({
+        bytes: new Uint8Array(),
+        attempts: [] as string[]
+      }));
+      const ctx = makeContext({ resolveAssetBytes });
+      const result = (await asTool("view_image", ctx).process(ctx, {
+        image_id: url
+      })) as Record<string, unknown>;
 
-    expect(result.ok).toBeUndefined();
-    expect(result.image_content).toBeUndefined();
-    expect(String(result.error)).toContain("refused");
-    // Refused at the URL, not by falling through to an asset lookup.
-    expect(resolveAssetBytes).not.toHaveBeenCalled();
-  });
+      expect(result.ok).toBeUndefined();
+      expect(result.image_content).toBeUndefined();
+      expect(String(result.error)).toContain("refused");
+      // Refused at the URL, not by falling through to an asset lookup.
+      expect(resolveAssetBytes).not.toHaveBeenCalled();
+    }
+  );
 
   it("still passes a public https URL to the provider", async () => {
     // The guard must not close the door it exists to leave open.
@@ -433,13 +512,15 @@ describe("view_image", () => {
     // The shape a headless run hits: `save_asset` minted a real id, the row
     // exists, and its bytes do not resolve. Reporting only "pass an asset id"
     // sends an agent back round with the id it already had.
+    const assetId = "7bbcb4b593644b3abfe6abcfcd96aa60";
+    await seedAsset(assetId);
     const ctx = makeContext({
       resolveAssetBytes: vi.fn(async () => {
         throw new Error("storage backend unreachable");
       })
     });
     const result = (await asTool("view_image", ctx).process(ctx, {
-      image_id: "7bbcb4b593644b3abfe6abcfcd96aa60"
+      image_id: assetId
     })) as Record<string, unknown>;
 
     expect(String(result.error)).toContain("storage backend unreachable");
@@ -453,6 +534,7 @@ describe("view_image", () => {
   });
 
   it("says nothing resolved when the lookup answered with no bytes", async () => {
+    await seedAsset("empty-asset");
     const ctx = makeContext({
       resolveAssetBytes: vi.fn(async () => ({
         bytes: new Uint8Array(),

@@ -1,12 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
-  BORDER_RADIUS,
   Caption,
+  CONTROL,
   ContextMenu,
   EditorButton,
   FlexRow,
@@ -26,46 +26,30 @@ import {
   useOpenProject,
   useProjects
 } from "../../hooks/useProjects";
+import { useAuth } from "../../stores/useAuth";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
 import { ActivityIndicator } from "../timeline/ActivityIndicator";
 
-const selectorStyles = (theme: Theme) => css({
-  minHeight: "40px",
-  flexShrink: 0,
-  padding: `0 ${getSpacingPx(SPACING.xl)}`,
-  backgroundColor: theme.vars.palette.c_app_header,
-  borderBottom: `1px solid ${theme.vars.palette.divider}`,
-  WebkitAppRegion: "drag",
-  "& .selector-button": {
-    WebkitAppRegion: "no-drag",
-    display: "flex",
-    alignItems: "center",
-    gap: getSpacingPx(SPACING.md),
-    minHeight: "32px",
-    maxWidth: "min(100%, 360px)",
-    padding: `0 ${getSpacingPx(SPACING.md)}`,
-    border: "1px solid transparent",
-    borderRadius: BORDER_RADIUS.md,
-    background: "transparent",
-    color: theme.vars.palette.text.primary,
-    cursor: "pointer",
-    "&:hover, &:focus-visible": {
-      backgroundColor: theme.vars.palette.action.hover,
-      borderColor: theme.vars.palette.divider
+const selectorStyles = (theme: Theme) =>
+  css({
+    minHeight: CONTROL.height.xl,
+    flexShrink: 0,
+    padding: `0 ${getSpacingPx(SPACING.xl)}`,
+    backgroundColor: theme.vars.palette.c_app_header,
+    WebkitAppRegion: "drag",
+    justifyContent: "flex-end",
+    "& .selector-name": {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
+    "& .selector-glyph": { color: PROJECT_COLOR },
+    [theme.breakpoints.down("sm")]: {
+      padding: `0 ${getSpacingPx(SPACING.md)}`,
+      "& > .MuiTypography-root": { display: "none" },
+      "& .selector-button": { flex: 1, minWidth: 0 }
     }
-  },
-  "& .selector-name": {
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap"
-  },
-  "& .selector-glyph": { color: PROJECT_COLOR },
-  [theme.breakpoints.down("sm")]: {
-    padding: `0 ${getSpacingPx(SPACING.md)}`,
-    "& > .MuiTypography-root": { display: "none" },
-    "& .selector-button": { flex: 1, minWidth: 0 }
-  }
-});
+  });
 
 const ProjectSelector = () => {
   const anchorRef = useRef<HTMLButtonElement>(null);
@@ -74,12 +58,19 @@ const ProjectSelector = () => {
   const [search, setSearch] = useState("");
   const { data: projects, isPending, error } = useProjects();
   const openProject = useOpenProject();
-  const openNewProject = useOpenNewProjectTab();
+  const openNewProjectTab = useOpenNewProjectTab();
+  const authUserId = useAuth((state) => state.user?.id);
   const activeProjectId = useWorkspaceTabsStore(
     (state) => state.activeProjectId
   );
+  const personalProjectId = useWorkspaceTabsStore(
+    (state) => state.personalProjectId
+  );
   const setActiveProjectId = useWorkspaceTabsStore(
     (state) => state.setActiveProjectId
+  );
+  const resolvePersonalProject = useWorkspaceTabsStore(
+    (state) => state.resolvePersonalProject
   );
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
 
@@ -92,7 +83,19 @@ const ProjectSelector = () => {
   });
   const name =
     activeProject?.name ??
-    (activeProjectId ? activeTabTitle ?? "Project" : "Personal");
+    (activeProjectId === personalProjectId
+      ? "Personal"
+      : activeProjectId
+        ? (activeTabTitle ?? "Project")
+        : "Personal");
+  const personalProject = projects?.find((project) => project.isPersonal);
+  const resolvedPersonalId =
+    personalProject?.id ??
+    personalProjectId ??
+    (authUserId ? `personal:${authUserId}` : null);
+  useEffect(() => {
+    if (resolvedPersonalId) resolvePersonalProject(resolvedPersonalId);
+  }, [resolvePersonalProject, resolvedPersonalId]);
   const close = useCallback(() => {
     setOpen(false);
     setSearch("");
@@ -100,8 +103,12 @@ const ProjectSelector = () => {
 
   const selectPersonal = useCallback(() => {
     close();
-    setActiveProjectId(null);
-  }, [close, setActiveProjectId]);
+    if (resolvedPersonalId) {
+      void openProject({ id: resolvedPersonalId, name: "Personal" });
+    } else {
+      setActiveProjectId(null);
+    }
+  }, [close, openProject, resolvedPersonalId, setActiveProjectId]);
 
   const selectProject = useCallback(
     (project: { id: string; name: string }) => {
@@ -113,41 +120,59 @@ const ProjectSelector = () => {
 
   const openProjects = useCallback(() => {
     close();
+    setActiveProjectId(null);
     openTab({
       type: "project-list",
       ref: PROJECT_LIST_REF,
       mode: "view",
       title: "Projects"
     });
-  }, [close, openTab]);
+  }, [close, openTab, setActiveProjectId]);
+
+  const openNewProject = useCallback(() => {
+    close();
+    setActiveProjectId(null);
+    openNewProjectTab();
+  }, [close, openNewProjectTab, setActiveProjectId]);
 
   const needle = search.trim().toLowerCase();
-  const visibleProjects = (projects ?? []).filter((project) =>
-    project.name.toLowerCase().includes(needle)
+  const visibleProjects = (projects ?? []).filter(
+    (project) =>
+      !project.isPersonal && project.name.toLowerCase().includes(needle)
   );
 
   return (
     <FlexRow css={selectorStyles(theme)} align="center" gap={SPACING.md}>
-      <button
+      <EditorButton
         ref={anchorRef}
-        type="button"
+        size="medium"
+        variant="text"
         className="selector-button"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`Selected project: ${name}`}
         onClick={() => setOpen((value) => !value)}
+        sx={{
+          WebkitAppRegion: "no-drag",
+          minWidth: 0,
+          maxWidth: "100%",
+          gap: SPACING.md,
+          color: theme.vars.palette.text.primary
+        }}
       >
-        <span className="selector-glyph" aria-hidden>{PROJECT_GLYPH}</span>
+        <span className="selector-glyph" aria-hidden>
+          {PROJECT_GLYPH}
+        </span>
         <Text className="selector-name">{name}</Text>
         <span aria-hidden>▾</span>
-      </button>
+      </EditorButton>
       <Caption color="muted">Project</Caption>
       <ActivityIndicator />
       <ContextMenu
         open={open}
         anchorEl={anchorRef.current}
         onClose={close}
-        paperSx={{ minWidth: "280px", p: SPACING.sm }}
+        paperSx={{ p: SPACING.sm }}
       >
         <SearchInput
           value={search}
@@ -159,9 +184,11 @@ const ProjectSelector = () => {
         />
         <MenuItemPrimitive
           label="Personal"
-          secondary="Unassigned work"
+          secondary="Your personal workspace"
           selected={
-            activeProjectId === null || activeProjectId === LOOSE_PROJECT_ID
+            activeProjectId === resolvedPersonalId ||
+            activeProjectId === null ||
+            activeProjectId === LOOSE_PROJECT_ID
           }
           onClick={selectPersonal}
         />

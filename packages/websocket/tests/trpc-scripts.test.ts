@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { initTestDb, ModelObserver } from "@nodetool-ai/models";
+import { initTestDb, ModelObserver, Project } from "@nodetool-ai/models";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -27,8 +27,24 @@ function makeCtx(userId: string): Context {
 const caller = () => createCaller(makeCtx("user-1"));
 
 describe("scripts router back-pointers", () => {
-  beforeEach(() => initTestDb());
+  beforeEach(async () => {
+    initTestDb();
+    await Project.create<Project>({ id: "p1", user_id: "user-1", name: "One" });
+  });
   afterEach(() => ModelObserver.clear());
+
+  it("rejects missing and foreign project ids", async () => {
+    const foreign = await Project.create<Project>({
+      user_id: "user-2",
+      name: "Foreign"
+    });
+    await expect(
+      caller().scripts.create({ name: "Bad", projectId: "missing" })
+    ).rejects.toThrow(/project not found/i);
+    await expect(
+      caller().scripts.create({ name: "Bad", projectId: foreign.id })
+    ).rejects.toThrow(/project not found/i);
+  });
 
   it("patches, round-trips and clears the storyboard back-pointer", async () => {
     const created = await caller().scripts.create({

@@ -58,7 +58,13 @@ export class Thread extends DBModel {
       projectId?: string;
     } = {}
   ): Promise<[Thread[], string]> {
-    const { limit = 50, reverse = true, workflowId, projectId, startKey } = opts;
+    const {
+      limit = 50,
+      reverse = true,
+      workflowId,
+      projectId,
+      startKey
+    } = opts;
     const db = getDb();
     const conditions = [eq(threads.user_id, userId)];
     if (workflowId !== undefined) {
@@ -80,19 +86,32 @@ export class Thread extends DBModel {
         );
       }
     }
-    const where =
-      conditions.length === 1 ? conditions[0] : and(...conditions);
+    const where = conditions.length === 1 ? conditions[0] : and(...conditions);
     const rows = await db
       .select()
       .from(threads)
       .where(where)
       .orderBy(reverse ? desc(threads.updated_at) : asc(threads.updated_at))
-      .limit(limit + 1)
+      .limit(limit + 1);
 
     const items = rows.map((r: Record<string, unknown>) => new Thread(r));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
     return [items, cursor];
+  }
+
+  static async listByProject(
+    userId: string,
+    projectId: string
+  ): Promise<Thread[]> {
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(threads)
+      .where(
+        and(eq(threads.user_id, userId), eq(threads.project_id, projectId))
+      );
+    return rows.map((row) => new Thread(row));
   }
 }

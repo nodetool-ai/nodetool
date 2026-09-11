@@ -12,8 +12,9 @@ import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 
 const projects = {
   data: [
-    { id: "a", name: "Aurora" },
-    { id: "b", name: "Beacon" }
+    { id: "personal:u1", name: "Personal", isPersonal: true },
+    { id: "a", name: "Aurora", isPersonal: false },
+    { id: "b", name: "Beacon", isPersonal: false }
   ],
   isPending: false,
   error: null
@@ -28,7 +29,8 @@ jest.mock("../../../trpc/client", () => ({
   },
   trpcClient: {
     projects: {
-      documents: { query: (...args: unknown[]) => documentsQuery(...args) }
+      documents: { query: (...args: unknown[]) => documentsQuery(...args) },
+      restoreTabs: { query: async () => [] }
     }
   }
 }));
@@ -55,6 +57,7 @@ beforeEach(() => {
     tabs: [],
     activeTabId: null,
     activeProjectId: null,
+    personalProjectId: null,
     projectSessions: {}
   });
 });
@@ -79,8 +82,31 @@ describe("ProjectSelector", () => {
         screen.getByRole("button", { name: "Selected project: Aurora" })
       ).toBeInTheDocument()
     );
-    expect(documentsQuery).toHaveBeenCalledWith({ id: "a" });
-    expect(screen.queryByRole("textbox", { name: "Find a project" })).not.toBeInTheDocument();
+    expect(documentsQuery).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("textbox", { name: "Find a project" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders Personal once and selects its real project id", async () => {
+    const user = userEvent.setup();
+    renderSelector();
+    await user.click(
+      screen.getByRole("button", { name: "Selected project: Personal" })
+    );
+    expect(screen.getAllByRole("menuitem", { name: /Personal/ })).toHaveLength(
+      1
+    );
+    await user.click(screen.getByRole("menuitem", { name: /Personal/ }));
+    expect(useWorkspaceTabsStore.getState().activeProjectId).toBe(
+      "personal:u1"
+    );
+    expect(useWorkspaceTabsStore.getState().personalProjectId).toBe(
+      "personal:u1"
+    );
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(
+      "project:personal:u1"
+    );
   });
 
   it("keeps the selected project named above the tabs", () => {

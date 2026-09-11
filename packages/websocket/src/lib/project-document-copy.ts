@@ -31,11 +31,27 @@ export class ProjectCopyError extends Error {
 }
 
 type DocumentSource =
-  | { readonly type: "storyboard"; readonly id: string; readonly row: Storyboard }
+  | {
+      readonly type: "storyboard";
+      readonly id: string;
+      readonly row: Storyboard;
+    }
   | { readonly type: "script"; readonly id: string; readonly row: Script }
-  | { readonly type: "timeline"; readonly id: string; readonly row: TimelineSequence }
-  | { readonly type: "sketch"; readonly id: string; readonly row: ImageDocument }
-  | { readonly type: "application"; readonly id: string; readonly row: Application }
+  | {
+      readonly type: "timeline";
+      readonly id: string;
+      readonly row: TimelineSequence;
+    }
+  | {
+      readonly type: "sketch";
+      readonly id: string;
+      readonly row: ImageDocument;
+    }
+  | {
+      readonly type: "application";
+      readonly id: string;
+      readonly row: Application;
+    }
   | { readonly type: "jsscript"; readonly id: string; readonly row: JsScript };
 
 interface PreparedAsset {
@@ -96,7 +112,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function assetIdFromLocator(locator: string): string | null {
   if (!locator.startsWith("asset://")) return null;
   const rest = locator.slice("asset://".length).split(/[?#]/)[0];
-  const last = rest.includes("/") ? rest.slice(rest.lastIndexOf("/") + 1) : rest;
+  const last = rest.includes("/")
+    ? rest.slice(rest.lastIndexOf("/") + 1)
+    : rest;
   const id = last.replace(/\.[^.]+$/, "");
   return id || null;
 }
@@ -113,10 +131,7 @@ function remapAssetLocator(
   return `${prefix}${copiedId}${locator.slice(prefix.length + assetId.length)}`;
 }
 
-function addRef(
-  value: unknown,
-  target: Set<string>
-): void {
+function addRef(value: unknown, target: Set<string>): void {
   if (typeof value === "string" && value.length > 0) target.add(value);
   if (Array.isArray(value)) {
     for (const item of value) addRef(item, target);
@@ -183,10 +198,14 @@ function cloneAndRemap(
     if (value.startsWith("asset://")) return remapAssetLocator(value, ids);
     return ids.get(value) ?? value;
   }
-  if (Array.isArray(value)) return value.map((item) => cloneAndRemap(item, ids));
+  if (Array.isArray(value))
+    return value.map((item) => cloneAndRemap(item, ids));
   if (!isRecord(value)) return value;
   return Object.fromEntries(
-    Object.entries(value).map(([key, child]) => [key, cloneAndRemap(child, ids)])
+    Object.entries(value).map(([key, child]) => [
+      key,
+      cloneAndRemap(child, ids)
+    ])
   );
 }
 
@@ -196,7 +215,8 @@ function cloneMetadata(
 ): Record<string, unknown> | null {
   const copied = cloneAndRemap(metadata, ids);
   if (copied === null) return null;
-  if (!isRecord(copied)) throw new ProjectCopyError("Asset metadata was invalid");
+  if (!isRecord(copied))
+    throw new ProjectCopyError("Asset metadata was invalid");
   return copied;
 }
 
@@ -217,7 +237,11 @@ async function loadDocument(
     case "script":
       return { type, id, row: assertOwned(await Script.findById(id)) };
     case "timeline":
-      return { type, id, row: assertOwned(await TimelineSequence.findById(id)) };
+      return {
+        type,
+        id,
+        row: assertOwned(await TimelineSequence.findById(id))
+      };
     case "sketch":
       return { type, id, row: assertOwned(await ImageDocument.findById(id)) };
     case "application":
@@ -255,14 +279,17 @@ function directReferences(source: DocumentSource): References {
       break;
     case "timeline":
       if (source.row.workflow_id) {
-        throw new ProjectCopyError("Unsupported workflow dependency on timeline");
+        throw new ProjectCopyError(
+          "Unsupported workflow dependency on timeline"
+        );
       }
       break;
     case "sketch":
       if (source.row.workflow_id) {
         throw new ProjectCopyError("Unsupported workflow dependency on sketch");
       }
-      if (source.row.thumbnail_asset_id) found.assetIds.add(source.row.thumbnail_asset_id);
+      if (source.row.thumbnail_asset_id)
+        found.assetIds.add(source.row.thumbnail_asset_id);
       break;
     case "application":
     case "jsscript":
@@ -295,7 +322,7 @@ function copiedDocument(
         values: {
           ...base,
           timeline_id: source.row.timeline_id
-            ? ids.get(source.row.timeline_id) ?? null
+            ? (ids.get(source.row.timeline_id) ?? null)
             : null,
           revision: 0
         }
@@ -306,10 +333,10 @@ function copiedDocument(
         values: {
           ...base,
           timeline_id: source.row.timeline_id
-            ? ids.get(source.row.timeline_id) ?? null
+            ? (ids.get(source.row.timeline_id) ?? null)
             : null,
           storyboard_id: source.row.storyboard_id
-            ? ids.get(source.row.storyboard_id) ?? null
+            ? (ids.get(source.row.storyboard_id) ?? null)
             : null
         }
       };
@@ -336,7 +363,7 @@ function copiedDocument(
           height: source.row.height,
           background_color: source.row.background_color,
           thumbnail_asset_id: source.row.thumbnail_asset_id
-            ? ids.get(source.row.thumbnail_asset_id) ?? null
+            ? (ids.get(source.row.thumbnail_asset_id) ?? null)
             : null,
           revision: 0
         }
@@ -394,12 +421,17 @@ export async function copyProjectDocument(args: {
   while (assetsToVisit.length > 0) {
     const batch = assetsToVisit.splice(-900);
     const sourcesById = new Map(
-      (await Asset.findMany(args.userId, batch)).map((asset) => [asset.id, asset])
+      (await Asset.findMany(args.userId, batch)).map((asset) => [
+        asset.id,
+        asset
+      ])
     );
     for (const assetId of batch) {
       const source = sourcesById.get(assetId);
       if (!source) {
-        throw new ProjectCopyError(`Asset dependency ${assetId} is unavailable`);
+        throw new ProjectCopyError(
+          `Asset dependency ${assetId} is unavailable`
+        );
       }
       assetIds.set(assetId, createTimeOrderedUuid());
       const metadataRefs = findReferences(source.metadata);
@@ -436,14 +468,19 @@ export async function copyProjectDocument(args: {
     for (const [sourceId, prepared] of preparedAssets) {
       if (!prepared.bytes) continue;
       const destinationId = assetIds.get(sourceId);
-      if (!destinationId) throw new ProjectCopyError("Asset map was incomplete");
+      if (!destinationId)
+        throw new ProjectCopyError("Asset map was incomplete");
       const key = getAssetStorageKey(
         prepared.source.user_id,
         destinationId,
         prepared.source.content_type
       );
       storedUris.push(
-        await args.storage.store(key, prepared.bytes, prepared.source.content_type)
+        await args.storage.store(
+          key,
+          prepared.bytes,
+          prepared.source.content_type
+        )
       );
     }
 
@@ -451,7 +488,8 @@ export async function copyProjectDocument(args: {
     const assetCopies: ProjectCopyAsset[] = [];
     for (const [sourceId, prepared] of preparedAssets) {
       const destinationId = assetIds.get(sourceId);
-      if (!destinationId) throw new ProjectCopyError("Asset map was incomplete");
+      if (!destinationId)
+        throw new ProjectCopyError("Asset map was incomplete");
       assetCopies.push({
         id: destinationId,
         user_id: prepared.source.user_id,
@@ -475,7 +513,8 @@ export async function copyProjectDocument(args: {
     const documentCopies: ProjectCopyDocument[] = [];
     for (const [sourceKey, source] of sources) {
       const destinationId = documentIds.get(sourceKey);
-      if (!destinationId) throw new ProjectCopyError("Document map was incomplete");
+      if (!destinationId)
+        throw new ProjectCopyError("Document map was incomplete");
       documentCopies.push(
         copiedDocument(
           source,
@@ -486,7 +525,12 @@ export async function copyProjectDocument(args: {
         )
       );
     }
-    await persistProjectCopy({ assets: assetCopies, documents: documentCopies });
+    await persistProjectCopy({
+      userId: args.userId,
+      destinationProjectId: args.destinationProjectId,
+      assets: assetCopies,
+      documents: documentCopies
+    });
   } catch (error) {
     await Promise.allSettled(storedUris.map((uri) => args.storage.delete(uri)));
     throw error;
@@ -494,7 +538,8 @@ export async function copyProjectDocument(args: {
 
   const root = sources.get(`${args.type}:${args.id}`);
   const copiedId = documentIds.get(`${args.type}:${args.id}`);
-  if (!root || !copiedId) throw new ProjectCopyError("Copy root was unavailable");
+  if (!root || !copiedId)
+    throw new ProjectCopyError("Copy root was unavailable");
   return {
     id: copiedId,
     name: root.row.name,

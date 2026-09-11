@@ -331,7 +331,8 @@ export class Job extends DBModel {
     const conditions = [eq(jobs.user_id, userId)];
     if (status) conditions.push(eq(jobs.status, status));
     if (workflowId) conditions.push(eq(jobs.workflow_id, workflowId));
-    if (projectId !== undefined) conditions.push(eq(jobs.project_id, projectId));
+    if (projectId !== undefined)
+      conditions.push(eq(jobs.project_id, projectId));
     if (startKey) {
       const cursorRow = await Job.get<Job>(startKey);
       if (cursorRow && cursorRow.user_id === userId) {
@@ -351,5 +352,17 @@ export class Job extends DBModel {
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
     return [items, cursor];
+  }
+
+  static async listByProject(
+    userId: string,
+    projectId: string
+  ): Promise<Job[]> {
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(jobs)
+      .where(and(eq(jobs.user_id, userId), eq(jobs.project_id, projectId)));
+    return rows.map((row) => new Job(row));
   }
 }

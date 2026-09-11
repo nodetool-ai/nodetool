@@ -22,11 +22,15 @@ const tab = (
   title: ref
 });
 
-const reset = (tabs: WorkspaceTab[] = [], activeTabId: string | null = null) => {
+const reset = (
+  tabs: WorkspaceTab[] = [],
+  activeTabId: string | null = null
+) => {
   useWorkspaceTabsStore.setState({
     tabs,
     activeTabId,
     activeProjectId: null,
+    personalProjectId: null,
     projectSessions: {}
   });
 };
@@ -59,7 +63,9 @@ describe("nextActiveAfterClose", () => {
   });
 
   it("returns null when closing the only tab", () => {
-    expect(nextActiveAfterClose([tab("text", "c")], "text:c", "text:c")).toBeNull();
+    expect(
+      nextActiveAfterClose([tab("text", "c")], "text:c", "text:c")
+    ).toBeNull();
   });
 });
 
@@ -127,6 +133,22 @@ describe("closeTab", () => {
     expect(state.tabs.map((t) => t.id)).toEqual(["workflow:a", "text:c"]);
     expect(state.activeTabId).toBe("text:c");
   });
+
+  it("does not activate another project's hidden tab", () => {
+    reset(
+      [
+        { ...tab("workflow", "a"), projectId: "p1" },
+        { ...tab("workflow", "b"), projectId: "p2" }
+      ],
+      "workflow:a"
+    );
+    useWorkspaceTabsStore.setState({ activeProjectId: "p1" });
+
+    useWorkspaceTabsStore.getState().closeTab("workflow:a");
+
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBeNull();
+    expect(useWorkspaceTabsStore.getState().activeProjectId).toBe("p1");
+  });
 });
 
 describe("closing the last tab of a project", () => {
@@ -166,6 +188,38 @@ describe("closeOthers", () => {
     expect(state.tabs.map((t) => t.id)).toEqual(["image:b"]);
     expect(state.activeTabId).toBe("image:b");
   });
+
+  it("closes only sibling tabs in the same project", () => {
+    reset([
+      { ...tab("workflow", "a"), projectId: "p1" },
+      { ...tab("image", "b"), projectId: "p1" },
+      { ...tab("text", "c"), projectId: "p2" }
+    ]);
+    useWorkspaceTabsStore.setState({
+      activeProjectId: "p1",
+      projectSessions: {
+        p1: {
+          tabIds: ["workflow:a", "image:b"],
+          activeTabId: "workflow:a",
+          selectedChatThreadId: null
+        },
+        p2: {
+          tabIds: ["text:c"],
+          activeTabId: "text:c",
+          selectedChatThreadId: null
+        }
+      }
+    });
+
+    useWorkspaceTabsStore.getState().closeOthers("image:b");
+
+    expect(
+      useWorkspaceTabsStore.getState().tabs.map((item) => item.id)
+    ).toEqual(["image:b", "text:c"]);
+    expect(useWorkspaceTabsStore.getState().projectSessions.p2.tabIds).toEqual([
+      "text:c"
+    ]);
+  });
 });
 
 describe("moveTab", () => {
@@ -203,9 +257,9 @@ describe("seedTabsFromLegacy", () => {
       "workflow:b",
       "workflow:c"
     ]);
-    expect(seeded.tabs.every((t) => t.type === "workflow" && t.mode === "edit")).toBe(
-      true
-    );
+    expect(
+      seeded.tabs.every((t) => t.type === "workflow" && t.mode === "edit")
+    ).toBe(true);
     expect(seeded.activeTabId).toBe("workflow:b");
   });
 
@@ -224,6 +278,25 @@ describe("seedTabsFromLegacy", () => {
 describe("creationProjectId", () => {
   it("names the loose bucket while no project is open", () => {
     expect(creationProjectId()).toBe(LOOSE_PROJECT_ID);
+  });
+
+  it("uses the resolved Personal project when no named project is active", () => {
+    useWorkspaceTabsStore.getState().resolvePersonalProject("personal:u1");
+    expect(creationProjectId()).toBe("personal:u1");
+  });
+
+  it("does not turn Personal resolution alone into a saved session", () => {
+    useWorkspaceTabsStore.getState().resolvePersonalProject("personal:u1");
+    expect(
+      useWorkspaceTabsStore.getState().projectSessions["personal:u1"]
+    ).toBeUndefined();
+    useWorkspaceTabsStore.getState().openProject({
+      id: "personal:u1",
+      name: "Personal"
+    });
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(
+      "project:personal:u1"
+    );
   });
 
   it("follows the project that was opened after the caller was created", () => {
@@ -251,10 +324,19 @@ describe("openProject", () => {
     store.openProject({
       id: "a",
       name: "Aurora",
-      documents: [
-        { type: "chat", ref: "a-chat", title: "A chat" },
-        { type: "script", ref: "a-script", title: "A script" }
-      ]
+      documents: []
+    });
+    store.openTab({
+      type: "chat",
+      ref: "a-chat",
+      title: "A chat",
+      projectId: "a"
+    });
+    store.openTab({
+      type: "script",
+      ref: "a-script",
+      title: "A script",
+      projectId: "a"
     });
     store.setActiveTab("chat:a-chat");
     store.openTab({
@@ -287,15 +369,15 @@ describe("openProject", () => {
       "project:b",
       "image:b-upload"
     ]);
-    expect(state.tabs.find((tab) => tab.id === "image:a-output")?.projectId).toBe(
-      "a"
-    );
-    expect(state.tabs.find((tab) => tab.id === "image:b-upload")?.projectId).toBe(
-      "b"
-    );
+    expect(
+      state.tabs.find((tab) => tab.id === "image:a-output")?.projectId
+    ).toBe("a");
+    expect(
+      state.tabs.find((tab) => tab.id === "image:b-upload")?.projectId
+    ).toBe("b");
   });
 
-  it("opens the overview first and a tab per document, all in the group", () => {
+  it("opens only the overview on first opening", () => {
     useWorkspaceTabsStore.getState().openProject({
       id: "p1",
       name: "Aurora",
@@ -306,18 +388,26 @@ describe("openProject", () => {
     });
 
     const state = useWorkspaceTabsStore.getState();
-    expect(state.tabs.map((t) => t.id)).toEqual([
-      "project:p1",
-      "storyboard:b1",
-      "timeline:t1"
-    ]);
+    expect(state.tabs.map((t) => t.id)).toEqual(["project:p1"]);
     expect(state.tabs.every((t) => t.projectId === "p1")).toBe(true);
     expect(state.activeTabId).toBe("project:p1");
     expect(state.activeProjectId).toBe("p1");
   });
 
-  it("adopts a document already open instead of duplicating it, keeping its mode", () => {
-    reset([{ ...tab("timeline", "t1", "view"), title: "Cut" }], "timeline:t1");
+  it("restores a saved document without duplicating it, keeping its mode", () => {
+    reset(
+      [{ ...tab("timeline", "t1", "view"), title: "Cut", projectId: "p1" }],
+      "timeline:t1"
+    );
+    useWorkspaceTabsStore.setState({
+      projectSessions: {
+        p1: {
+          tabIds: ["timeline:t1"],
+          activeTabId: "timeline:t1",
+          selectedChatThreadId: null
+        }
+      }
+    });
 
     useWorkspaceTabsStore.getState().openProject({
       id: "p1",
@@ -326,15 +416,15 @@ describe("openProject", () => {
     });
 
     const state = useWorkspaceTabsStore.getState();
-    expect(state.tabs.map((t) => t.id)).toEqual(["project:p1", "timeline:t1"]);
-    expect(state.tabs[1]).toMatchObject({
+    expect(state.tabs.map((t) => t.id)).toEqual(["timeline:t1"]);
+    expect(state.tabs[0]).toMatchObject({
       mode: "view",
-      title: "Cut v2",
+      title: "Cut",
       projectId: "p1"
     });
   });
 
-  it("drops a project tab that is no longer in the documents list", () => {
+  it("does not adopt project documents from the inventory", () => {
     reset([
       { ...tab("storyboard", "stray"), projectId: "p1" },
       tab("workflow", "a"),
@@ -350,8 +440,8 @@ describe("openProject", () => {
     const state = useWorkspaceTabsStore.getState();
     expect(state.tabs.map((t) => t.id)).toEqual([
       "workflow:a",
-      "project:p1",
-      "storyboard:b1"
+      "storyboard:b1",
+      "project:p1"
     ]);
   });
 
@@ -366,9 +456,9 @@ describe("openProject", () => {
 
     expect(useWorkspaceTabsStore.getState().tabs.map((t) => t.id)).toEqual([
       "workflow:a",
-      "project:p1",
       "storyboard:b1",
-      "text:c"
+      "text:c",
+      "project:p1"
     ]);
   });
 
@@ -377,13 +467,25 @@ describe("openProject", () => {
     store.openProject({
       id: "p1",
       name: "One",
-      documents: [{ type: "text", ref: "one", title: "One doc" }]
+      documents: []
+    });
+    store.openTab({
+      type: "text",
+      ref: "one",
+      title: "One doc",
+      projectId: "p1"
     });
     store.setActiveTab("text:one");
     store.openProject({
       id: "p2",
       name: "Two",
-      documents: [{ type: "text", ref: "two", title: "Two doc" }]
+      documents: []
+    });
+    store.openTab({
+      type: "text",
+      ref: "two",
+      title: "Two doc",
+      projectId: "p2"
     });
     store.setActiveTab("text:two");
 
@@ -392,10 +494,7 @@ describe("openProject", () => {
     const state = useWorkspaceTabsStore.getState();
     expect(state.activeProjectId).toBe("p1");
     expect(state.activeTabId).toBe("text:one");
-    expect(state.projectSessions.p1.tabIds).toEqual([
-      "project:p1",
-      "text:one"
-    ]);
+    expect(state.projectSessions.p1.tabIds).toEqual(["project:p1", "text:one"]);
     expect(state.projectSessions.p2.activeTabId).toBe("text:two");
     expect(state.tabs).toEqual(
       expect.arrayContaining([
@@ -405,33 +504,59 @@ describe("openProject", () => {
     );
   });
 
-  it("restores the selected chat and drops unavailable documents only in that project", () => {
+  it("restores saved workflow and chat tabs without reopening closed documents", () => {
     const store = useWorkspaceTabsStore.getState();
     store.openProject({
       id: "p1",
       name: "One",
-      documents: [
-        { type: "chat", ref: "chat-one", title: "Chat" },
-        { type: "text", ref: "gone", title: "Gone" }
-      ]
+      documents: []
     });
+    store.openTab({
+      type: "chat",
+      ref: "chat-one",
+      title: "Chat",
+      projectId: "p1"
+    });
+    store.openTab({
+      type: "workflow",
+      ref: "flow-one",
+      title: "Flow",
+      projectId: "p1"
+    });
+    store.openTab({
+      type: "script",
+      ref: "closed",
+      title: "Closed",
+      projectId: "p1"
+    });
+    store.closeTab("script:closed");
     store.setActiveTab("chat:chat-one");
     store.openProject({
       id: "p2",
       name: "Two",
       documents: [{ type: "text", ref: "kept", title: "Kept" }]
     });
+    store.openTab({
+      type: "text",
+      ref: "kept",
+      title: "Kept",
+      projectId: "p2"
+    });
 
     store.openProject({
       id: "p1",
       name: "One",
-      documents: [{ type: "chat", ref: "chat-one", title: "Chat" }]
+      documents: [
+        { type: "chat", ref: "chat-one", title: "Chat" },
+        { type: "workflow", ref: "flow-one", title: "Flow" }
+      ]
     });
 
     const state = useWorkspaceTabsStore.getState();
     expect(state.activeTabId).toBe("chat:chat-one");
     expect(state.projectSessions.p1.selectedChatThreadId).toBe("chat-one");
-    expect(state.tabs.some((tab) => tab.id === "text:gone")).toBe(false);
+    expect(state.tabs.some((tab) => tab.id === "workflow:flow-one")).toBe(true);
+    expect(state.tabs.some((tab) => tab.id === "script:closed")).toBe(false);
     expect(state.tabs.some((tab) => tab.id === "text:kept")).toBe(true);
   });
 });
@@ -646,14 +771,20 @@ describe("store order is render order", () => {
   it("focuses the visually adjacent tab when the active tab closes", () => {
     useWorkspaceTabsStore.getState().closeTab("storyboard:g2");
     expect(refs()).toEqual(["g1", "l1", "l2"]);
-    expect(useWorkspaceTabsStore.getState().activeTabId).toBe("workflow:l1");
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe("storyboard:g1");
   });
 });
 
 describe("closeProject focus", () => {
   it("focuses the tab that slid into the group's place", () => {
     reset(
-      [tab("image", "l0"), grouped("g1"), grouped("g2"), tab("workflow", "l1"), tab("text", "l2")],
+      [
+        tab("image", "l0"),
+        grouped("g1"),
+        grouped("g2"),
+        tab("workflow", "l1"),
+        tab("text", "l2")
+      ],
       "storyboard:g1"
     );
     useWorkspaceTabsStore.getState().setActiveProjectId("p1");

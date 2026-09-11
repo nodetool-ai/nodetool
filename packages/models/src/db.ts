@@ -22,10 +22,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import * as schema from "./schema/index.js";
 import * as pgSchema from "./schema-pg/index.js";
-import {
-  MigrationRunner,
-  SQLiteMigrationAdapter
-} from "./migrations/index.js";
+import { MigrationRunner, SQLiteMigrationAdapter } from "./migrations/index.js";
 
 /**
  * better-sqlite3 refuses to create a database file whose parent directory
@@ -55,13 +52,16 @@ let _db: NodetoolDatabase | null = null;
 let _sqlite: Database.Database | null = null;
 let _pgClient: Sql | null = null;
 let _dbType: DbDialect = "sqlite";
+let _allowLegacyProjectWritesForTests = false;
 
 /**
  * Initialize a SQLite database connection with a file path.
  * Configures WAL mode, busy timeout, and synchronous mode.
  */
 export function initDb(dbPath: string): BetterSQLite3Database<typeof schema> {
-  if (_db && _dbType === "sqlite") return _db as BetterSQLite3Database<typeof schema>;
+  _allowLegacyProjectWritesForTests = false;
+  if (_db && _dbType === "sqlite")
+    return _db as BetterSQLite3Database<typeof schema>;
   if (_db && _dbType === "postgres") {
     throw new Error(
       "A PostgreSQL connection is already active. Call closeDb() before switching to SQLite."
@@ -93,6 +93,7 @@ export function initDb(dbPath: string): BetterSQLite3Database<typeof schema> {
  * Migrations must be run separately via MigrationRunner + PostgresJsMigrationAdapter.
  */
 export async function initPostgresDb(connectionString: string): Promise<void> {
+  _allowLegacyProjectWritesForTests = false;
   if (_db && _dbType === "postgres") return;
   if (_db && _dbType === "sqlite") {
     throw new Error(
@@ -120,7 +121,10 @@ export async function initPostgresDb(connectionString: string): Promise<void> {
  * Initialize an in-memory SQLite database for testing.
  * Creates all tables from the Drizzle schema.
  */
-export function initTestDb(): BetterSQLite3Database<typeof schema> {
+export function initTestDb(
+  options: { strictProjects?: boolean } = {}
+): BetterSQLite3Database<typeof schema> {
+  _allowLegacyProjectWritesForTests = options.strictProjects !== true;
   if (_sqlite) {
     try {
       _sqlite.close();
@@ -139,6 +143,11 @@ export function initTestDb(): BetterSQLite3Database<typeof schema> {
   return _db;
 }
 
+/** Compatibility for old fixtures that predate project rows. Never enabled outside initTestDb. */
+export function allowLegacyProjectWritesForTests(): boolean {
+  return _allowLegacyProjectWritesForTests;
+}
+
 /**
  * Get the current database instance.
  *
@@ -154,7 +163,6 @@ export function getDb(): BetterSQLite3Database<typeof schema> {
     );
   return _db as BetterSQLite3Database<typeof schema>;
 }
-
 
 /**
  * Get the current database dialect.
@@ -317,20 +325,22 @@ function addColumnDdl(column: SQLiteColumn): string {
  * or table reaches `addMissingColumns` the moment it reaches `src/schema/`.
  * `tests/schema-parity.test.ts` pins the derivation against the bootstrap DDL.
  */
-export const TABLE_COLUMNS: Record<string, Record<string, string>> =
-  Object.fromEntries(
-    Object.values(schema)
-      .filter((table) => is(table, SQLiteTable))
-      .map((table) => {
-        const config = getTableConfig(table as SQLiteTable);
-        return [
-          config.name,
-          Object.fromEntries(
-            config.columns.map((column) => [column.name, addColumnDdl(column)])
-          )
-        ];
-      })
-  );
+export const TABLE_COLUMNS: Record<
+  string,
+  Record<string, string>
+> = Object.fromEntries(
+  Object.values(schema)
+    .filter((table) => is(table, SQLiteTable))
+    .map((table) => {
+      const config = getTableConfig(table as SQLiteTable);
+      return [
+        config.name,
+        Object.fromEntries(
+          config.columns.map((column) => [column.name, addColumnDdl(column)])
+        )
+      ];
+    })
+);
 
 function addMissingColumns(sqlite: Database.Database): void {
   for (const [tableName, expectedCols] of Object.entries(TABLE_COLUMNS)) {
@@ -356,7 +366,9 @@ function addMissingColumns(sqlite: Database.Database): void {
  * otherwise a legacy database with duplicates cannot even open far enough for
  * migration 20260829_000004 to repair it.
  */
-function repairApplicationConstraintDuplicates(sqlite: Database.Database): void {
+function repairApplicationConstraintDuplicates(
+  sqlite: Database.Database
+): void {
   // The indexes are what the repair exists for, so their presence is the
   // record that it already ran. Without this the two scans below run on every
   // start, forever, over a table that grows with every app run.
