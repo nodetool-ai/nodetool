@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAssetStore } from "../stores/AssetStore";
 import { Asset } from "../stores/ApiTypes";
@@ -13,6 +13,10 @@ import { getAssetCategory } from "../components/assets/assetGridUtils";
 import { trpcClient } from "../trpc/client";
 import { normalizeAssetList } from "../utils/normalizeAsset";
 import { useNotificationStore } from "../stores/NotificationStore";
+import {
+  LOOSE_PROJECT_ID,
+  useWorkspaceTabsStore
+} from "../stores/WorkspaceTabsStore";
 
 type FilterOptions = {
   searchTerm: string;
@@ -61,6 +65,12 @@ export const useAssets = () => {
   const sizeFilter = useAssetGridStore((state) => state.sizeFilter);
   const typeFilter = useAssetGridStore((state) => state.typeFilter);
   const workflowFilter = useAssetGridStore((state) => state.workflowFilter);
+  const gridScopeProjectId = useAssetGridStore(
+    (state) => state.scopeProjectId
+  );
+  const resetForProject = useAssetGridStore((state) => state.resetForProject);
+  const activeProjectId =
+    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -69,72 +79,97 @@ export const useAssets = () => {
     throw new Error("User not logged");
   }
 
+  const projectScopeReady = gridScopeProjectId === activeProjectId;
+
+  useEffect(() => {
+    if (!projectScopeReady) {
+      resetForProject(activeProjectId);
+    }
+  }, [activeProjectId, projectScopeReady, resetForProject]);
+
   const fetchAssets = useCallback(async () => {
     const result = await load({
-      parent_id: currentFolderId || currentUser?.id
+      parent_id: currentFolderId || currentUser.id,
+      project_id: activeProjectId
     });
     return result;
-  }, [load, currentFolderId, currentUser?.id]);
+  }, [load, currentFolderId, currentUser.id, activeProjectId]);
 
   const {
     data: currentFolderAssets,
     error: currentFolderError,
     isLoading: isLoadingCurrentFolder
   } = useQuery({
-    queryKey: ["assets", { parent_id: currentFolderId }],
+    queryKey: [
+      "assets",
+      { parent_id: currentFolderId, project_id: activeProjectId }
+    ],
     queryFn: fetchAssets,
-    enabled: !!currentFolderId && !workflowFilter
+    enabled: projectScopeReady && !!currentFolderId && !workflowFilter,
+    staleTime: 30_000
   });
 
   // Fetch assets filtered by workflow_id when workflowFilter is active
   const fetchWorkflowAssets = useCallback(async () => {
     const data = await trpcClient.assets.list.query({
-      workflow_id: workflowFilter!
+      workflow_id: workflowFilter!,
+      project_id: activeProjectId
     });
     return {
       ...data,
       assets: normalizeAssetList(data.assets)
     };
-  }, [workflowFilter]);
+  }, [workflowFilter, activeProjectId]);
 
   const {
     data: workflowFilteredAssets,
     error: workflowFilterError,
     isLoading: isLoadingWorkflowAssets
   } = useQuery({
-    queryKey: ["assets", { workflow_id: workflowFilter }],
+    queryKey: [
+      "assets",
+      { workflow_id: workflowFilter, project_id: activeProjectId }
+    ],
     queryFn: fetchWorkflowAssets,
-    enabled: !!workflowFilter,
+    enabled: projectScopeReady && !!workflowFilter,
     staleTime: 30000
   });
 
   const refetchAssets = useCallback(() => {
     if (workflowFilter) {
       return queryClient.invalidateQueries({
-        queryKey: ["assets", { workflow_id: workflowFilter }]
+        queryKey: [
+          "assets",
+          { workflow_id: workflowFilter, project_id: activeProjectId }
+        ]
       });
     }
     return queryClient.invalidateQueries({
-      queryKey: ["assets", { parent_id: currentFolderId }]
+      queryKey: [
+        "assets",
+        { parent_id: currentFolderId, project_id: activeProjectId }
+      ]
     });
-  }, [queryClient, currentFolderId, workflowFilter]);
+  }, [queryClient, currentFolderId, workflowFilter, activeProjectId]);
 
   const fetchAllFolders = useCallback(async () => {
-    return await loadFolderTree(settings.assetsOrder);
-  }, [loadFolderTree, settings.assetsOrder]);
+    return await loadFolderTree(settings.assetsOrder, activeProjectId);
+  }, [loadFolderTree, settings.assetsOrder, activeProjectId]);
 
   const {
     data: folderTree,
     error: folderTreeError,
     isLoading: isLoadingFolderTree
   } = useQuery({
-    queryKey: ["folderTree", settings.assetsOrder],
+    queryKey: ["folderTree", settings.assetsOrder, activeProjectId],
     queryFn: fetchAllFolders
   });
 
   const refetchFolders = useCallback(() => {
-    return queryClient.invalidateQueries({ queryKey: ["folderTree"] });
-  }, [queryClient]);
+    return queryClient.invalidateQueries({
+      queryKey: ["folderTree", settings.assetsOrder, activeProjectId]
+    });
+  }, [queryClient, settings.assetsOrder, activeProjectId]);
 
   const refetchAssetsAndFolders = useCallback(() => {
     refetchAssets();
@@ -230,15 +265,21 @@ export const useAssets = () => {
   // to refresh the folder tree and the workflow-filtered list.
   const invalidateAssetSiblings = useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: ["assets", { parent_id: currentFolderId }]
+      queryKey: [
+        "assets",
+        { parent_id: currentFolderId, project_id: activeProjectId }
+      ]
     });
     if (workflowFilter) {
       queryClient.invalidateQueries({
-        queryKey: ["assets", { workflow_id: workflowFilter }]
+        queryKey: [
+          "assets",
+          { workflow_id: workflowFilter, project_id: activeProjectId }
+        ]
       });
     }
     queryClient.invalidateQueries({ queryKey: ["folderTree"] });
-  }, [queryClient, currentFolderId, workflowFilter]);
+  }, [queryClient, currentFolderId, workflowFilter, activeProjectId]);
 
   const notifyMutationError = useCallback(
     (content: string) => (err: Error) => {
@@ -279,7 +320,7 @@ export const useAssets = () => {
         setCurrentFolderId(folder.id || currentUser?.id || "");
         setCurrentFolder(folder || null);
         setSelectedAssetIds([]);
-        loadCurrentFolder(gridStore);
+        loadCurrentFolder(gridStore, activeProjectId);
       }
     },
     [
@@ -290,13 +331,14 @@ export const useAssets = () => {
       setCurrentFolder,
       setSelectedAssetIds,
       loadCurrentFolder,
-      gridStore
+      gridStore,
+      activeProjectId
     ]
   );
   const navigateToFolderId = useCallback(
     async (folderId: string | null) => {
       const getAsset = useAssetStore.getState().get;
-      const folder: Asset = await getAsset(folderId || "");
+      const folder: Asset = await getAsset(folderId || "", activeProjectId);
 
       if (folder) {
         setSelectedFolderId(folderId);
@@ -304,7 +346,7 @@ export const useAssets = () => {
         setCurrentFolderId(folderId || currentUser?.id || "");
         setCurrentFolder(folder || null);
         setSelectedAssetIds([]);
-        loadCurrentFolder(gridStore);
+        loadCurrentFolder(gridStore, activeProjectId);
       }
     },
     [
@@ -315,7 +357,8 @@ export const useAssets = () => {
       setCurrentFolder,
       setSelectedAssetIds,
       loadCurrentFolder,
-      gridStore
+      gridStore,
+      activeProjectId
     ]
   );
 
@@ -330,11 +373,12 @@ export const useAssets = () => {
     async (folderId: string) => {
       const result = await load({
         parent_id: folderId,
+        project_id: activeProjectId,
         recursive: true
       });
       return result;
     },
-    [load]
+    [load, activeProjectId]
   );
 
   return {

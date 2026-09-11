@@ -134,17 +134,28 @@ async function deleteFolderRecursive(
 async function getAllAssetsRecursive(
   userId: string,
   folderId: string,
+  projectId?: string,
   visited: Set<string> = new Set()
 ): Promise<AssetModel[]> {
   if (visited.has(folderId)) return [];
   visited.add(folderId);
 
+  if (projectId !== undefined) {
+    const folder = await Asset.find(userId, folderId);
+    if (!folder || folder.project_id !== projectId) return [];
+  }
+
   const collected: AssetModel[] = [];
-  const children = await Asset.getChildren(userId, folderId, 10000);
+  const children = await Asset.getChildren(userId, folderId, 10000, projectId);
   for (const child of children) {
     collected.push(child);
     if (child.content_type === "folder") {
-      const subAssets = await getAllAssetsRecursive(userId, child.id, visited);
+      const subAssets = await getAllAssetsRecursive(
+        userId,
+        child.id,
+        projectId,
+        visited
+      );
       collected.push(...subAssets);
     }
   }
@@ -201,6 +212,9 @@ export const assetsRouter = router({
 
       const [assets, cursor] = await Asset.paginate(ctx.userId, {
         parentId: effectiveParentId,
+        ...(input.project_id !== undefined
+          ? { projectId: input.project_id }
+          : {}),
         contentType: input.content_type,
         workflowId: input.workflow_id,
         nodeId: input.node_id,
@@ -242,6 +256,12 @@ export const assetsRouter = router({
 
       const asset = await Asset.find(ctx.userId, input.id);
       if (!asset) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
+      }
+      if (
+        input.project_id !== undefined &&
+        asset.project_id !== input.project_id
+      ) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
       }
       return toAssetResponse(asset);
@@ -480,7 +500,11 @@ export const assetsRouter = router({
     .input(recursiveInput)
     .output(recursiveOutput)
     .query(async ({ ctx, input }) => {
-      const assets = await getAllAssetsRecursive(ctx.userId, input.id);
+      const assets = await getAllAssetsRecursive(
+        ctx.userId,
+        input.id,
+        input.project_id
+      );
       return {
         assets: await Promise.all(assets.map((a) => toAssetResponse(a)))
       };
@@ -499,6 +523,9 @@ export const assetsRouter = router({
       };
       if (input.content_type) {
         searchOptions.contentType = input.content_type;
+      }
+      if (input.project_id !== undefined) {
+        searchOptions.projectId = input.project_id;
       }
       if (input.cursor) {
         searchOptions.cursor = input.cursor;

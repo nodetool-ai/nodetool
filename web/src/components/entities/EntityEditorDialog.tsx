@@ -219,6 +219,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
         onPick={handlePickImage}
+        projectId={projectId}
       />
     </Dialog>
   );

@@ -305,9 +305,14 @@ export class Asset extends DBModel {
   static async getChildren(
     userId: string,
     parentId: string,
-    limit = 100
+    limit = 100,
+    projectId?: string
   ): Promise<Asset[]> {
-    const [assetList] = await Asset.paginate(userId, { parentId, limit });
+    const [assetList] = await Asset.paginate(userId, {
+      parentId,
+      projectId,
+      limit
+    });
     return assetList;
   }
 
@@ -320,11 +325,12 @@ export class Asset extends DBModel {
     query: string,
     opts: {
       contentType?: string;
+      projectId?: string;
       limit?: number;
       cursor?: string;
     } = {}
   ): Promise<[Asset[], string, Array<Record<string, string>>]> {
-    const { contentType, limit = 100, cursor: startKey } = opts;
+    const { contentType, projectId, limit = 100, cursor: startKey } = opts;
     // Escape LIKE special characters to prevent pattern injection
     const sanitized = query.trim().replace(/[%_\\]/g, "\\$&");
     const db = getDb();
@@ -336,6 +342,9 @@ export class Asset extends DBModel {
     if (contentType) {
       const sanitizedType = contentType.replace(/[%_\\]/g, "\\$&");
       conditions.push(like(assets.content_type, `${sanitizedType}%`));
+    }
+    if (projectId) {
+      conditions.push(eq(assets.project_id, projectId));
     }
     if (startKey) {
       const cursorAsset = await Asset.get<Asset>(startKey);
@@ -467,10 +476,13 @@ export class Asset extends DBModel {
    */
   static async getAssetsRecursive(
     userId: string,
-    folderId: string
+    folderId: string,
+    projectId?: string
   ): Promise<{ assets: Record<string, unknown>[] }> {
     const folder = await Asset.find(userId, folderId);
-    if (!folder) return { assets: [] };
+    if (!folder || (projectId !== undefined && folder.project_id !== projectId)) {
+      return { assets: [] };
+    }
 
     // Guards against cyclic parent links: without it the descent never
     // terminates, and since better-sqlite3 is synchronous it starves the
@@ -484,6 +496,7 @@ export class Asset extends DBModel {
       visited.add(currentFolderId);
       const [assetList] = await Asset.paginate(userId, {
         parentId: currentFolderId,
+        projectId,
         limit: 10000
       });
       const result: Record<string, unknown>[] = [];

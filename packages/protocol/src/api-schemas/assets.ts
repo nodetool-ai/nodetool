@@ -31,6 +31,8 @@ export type AssetResponse = z.infer<typeof assetResponse>;
 // home folder if none are specified.
 export const listInput = z.object({
   parent_id: z.string().optional(),
+  /** Restrict browsing to one project; omitted keeps the explicit global view. */
+  project_id: z.string().optional(),
   content_type: z.string().optional(),
   workflow_id: z.string().optional(),
   node_id: z.string().optional(),
@@ -48,7 +50,9 @@ export type ListOutput = z.infer<typeof listOutput>;
 
 // ── get (GET /api/assets/:id) ────────────────────────────────────
 export const getInput = z.object({
-  id: z.string().min(1)
+  id: z.string().min(1),
+  /** Restrict a folder lookup to one project when it is used for navigation. */
+  project_id: z.string().optional()
 });
 export type GetInput = z.infer<typeof getInput>;
 
@@ -176,7 +180,9 @@ export type ChildrenOutput = z.infer<typeof childrenOutput>;
 // ── recursive (GET /api/assets/:id/recursive) ────────────────────
 // Flat list of every asset under the folder, including nested sub-folders.
 export const recursiveInput = z.object({
-  id: z.string().min(1)
+  id: z.string().min(1),
+  /** Restrict the recursive folder walk to one project. */
+  project_id: z.string().optional()
 });
 export type RecursiveInput = z.infer<typeof recursiveInput>;
 
@@ -190,6 +196,8 @@ export type RecursiveOutput = z.infer<typeof recursiveOutput>;
 // the `@`-mention typeahead show a list of assets before the user narrows it.
 export const searchInput = z.object({
   query: z.string(),
+  /** Restrict search results to one project; omitted is the explicit global search. */
+  project_id: z.string().optional(),
   content_type: z.string().optional(),
   page_size: z.number().int().min(1).max(10000).default(200),
   cursor: z.string().optional(),
