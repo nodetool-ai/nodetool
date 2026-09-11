@@ -24,8 +24,16 @@ import { Thread } from "./thread.js";
 
 /** The bucket documents land in when no project is active. */
 export const LOOSE_PROJECT_ID = "default";
+
 export const PERSONAL_PROJECT_KIND = "personal";
 export const PERSONAL_PROJECT_NAME = "Personal";
+
+/**
+ * The rows the Personal migration may claim: never assigned, or assigned to the
+ * loose bucket. An explicit project id is a user decision and is left alone.
+ */
+const LOOSE_ROW_SQL =
+  `(project_id IS NULL OR project_id = '' OR project_id = '${LOOSE_PROJECT_ID}')`;
 
 export interface PersonalMigrationReport {
   project: Project;
@@ -126,12 +134,18 @@ export class Project extends DBModel {
     const target = personal.id.replace(/'/g, "''");
     let migrated = 0;
     // Restore the legacy project.thread_id association before claiming
-    // remaining threads for Personal.
+    // remaining threads for Personal. Loose rows only, like every other
+    // statement here: a thread already assigned to a project stays there even
+    // when some project still names it as its own thread_id — that stale
+    // pointer is not authority to move a row the user placed. Two projects
+    // naming one thread is a broken legacy reference, so the oldest wins
+    // rather than whichever row the engine reaches first.
     await executeRaw(
       `UPDATE nodetool_threads SET project_id = (` +
         `SELECT p.id FROM projects p WHERE p.thread_id = nodetool_threads.id ` +
-        `AND p.user_id = nodetool_threads.user_id) ` +
-        `WHERE user_id = '${owner}' AND EXISTS (` +
+        `AND p.user_id = nodetool_threads.user_id ` +
+        `ORDER BY p.created_at, p.id LIMIT 1) ` +
+        `WHERE user_id = '${owner}' AND ${LOOSE_ROW_SQL} AND EXISTS (` +
         `SELECT 1 FROM projects p WHERE p.thread_id = nodetool_threads.id ` +
         `AND p.user_id = nodetool_threads.user_id) RETURNING id`
     );
@@ -142,8 +156,7 @@ export class Project extends DBModel {
       `UPDATE nodetool_jobs SET project_id = (` +
         `SELECT w.project_id FROM nodetool_workflows w ` +
         `WHERE w.id = nodetool_jobs.workflow_id AND w.user_id = nodetool_jobs.user_id) ` +
-        `WHERE user_id = '${owner}' AND (project_id IS NULL OR project_id = '' ` +
-        `OR project_id = 'default') AND EXISTS (` +
+        `WHERE user_id = '${owner}' AND ${LOOSE_ROW_SQL} AND EXISTS (` +
         `SELECT 1 FROM nodetool_workflows w WHERE w.id = nodetool_jobs.workflow_id ` +
         `AND w.user_id = nodetool_jobs.user_id AND w.project_id <> 'default') RETURNING id`
     );
@@ -156,8 +169,7 @@ export class Project extends DBModel {
     for (const table of tables) {
       const result = await executeRaw(
         `UPDATE ${table} SET project_id = '${target}' ` +
-          `WHERE user_id = '${owner}' AND ` +
-          `(project_id IS NULL OR project_id = '' OR project_id = 'default') RETURNING id`
+          `WHERE user_id = '${owner}' AND ${LOOSE_ROW_SQL} RETURNING id`
       );
       migrated += result.rows.length;
     }
