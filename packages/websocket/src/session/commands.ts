@@ -834,10 +834,10 @@ export class CommandRouter {
       const audioFormat = isString(data.audio_format)
         ? (data.audio_format as string)
         : undefined;
+      const projectId = isString(data.project_id) ? data.project_id : undefined;
       return this.runRpc(command, requestId, () => {
         const references = referenceMediaDataSchema.parse(data);
         return inference.runDirectMediaGeneration({
-      const projectId = isString(data.project_id) ? data.project_id : undefined;
           mode,
           provider,
           model,

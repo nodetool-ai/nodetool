@@ -581,7 +581,8 @@ export class ChatTurnHandler {
   async materializeAssistantImageContent(
     content: MessageContent[],
     userId: string,
-    workflowId: string | null
+    workflowId: string | null,
+    threadId: string | null = null
   ): Promise<Array<Record<string, unknown>>> {
     const out: Array<Record<string, unknown>> = [];
     for (const block of content) {
@@ -613,7 +614,9 @@ export class ChatTurnHandler {
           user_id: userId,
           workflow_id: workflowId ?? null,
           project_id:
-            (await Project.findByThread(userId, threadId))?.id ?? "default",
+            (threadId
+              ? (await Project.findByThread(userId, threadId))?.id
+              : null) ?? "default",
           name: `image_${Date.now()}`,
           content_type: mimeType,
           // Home — see the chat media generation path.
@@ -2030,7 +2033,8 @@ export class ChatTurnHandler {
           const materialized = await this.materializeAssistantImageContent(
             m.content,
             userId,
-            workflowId
+            workflowId,
+            threadId
           );
           persistedContent = materialized;
           if (echo) {
