@@ -35,7 +35,6 @@ import OpenMenu from "./OpenMenu";
 import WorkspaceTabItem from "./WorkspaceTabItem";
 import MobileDocumentSelector from "./MobileDocumentSelector";
 import MobileRailLauncher from "../panels/MobileRailLauncher";
-import ProjectScopeChip from "../projects/ProjectScopeChip";
 import { PROJECT_COLOR } from "../projects/projectIdentity";
 import { TYPE_COLOR, TYPE_GLYPH } from "./tabTypeIdentity";
 
@@ -110,8 +109,7 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.primary,
         backgroundColor: "var(--c_editor_bg_color)"
       },
-      // A tab in the open project's group. The cyan underline is the group's
-      // extent; the chip to its left names it.
+      // A tab in the selected project's group gets a shared cyan underline.
       "&.in-project": {
         boxShadow: `inset 0 -2px 0 color-mix(in srgb, ${PROJECT_COLOR} 35%, transparent)`
       },
@@ -331,16 +329,6 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     () => tabs.find((tab) => tab.id === activeTabId) ?? null,
     [tabs, activeTabId]
   );
-
-  // The store keeps its tabs in render order — the open project's tabs are one
-  // contiguous run behind the scope chip — so the bar renders `tabs` as they
-  // come and a tab's index on screen is its index in the store.
-  const firstGroupedTabId = visibleTabs.find(
-    (tab) => tab.projectId === activeProjectId
-  )?.id;
-  const groupName =
-    visibleTabs.find((tab) => tab.type === "project" && tab.ref === activeProjectId)
-      ?.title ?? "Project";
 
   const newTabButtonRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -647,12 +635,6 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         <div className="tabs">
           {visibleTabs.map((tab) => (
             <Fragment key={tab.id}>
-              {tab.id === firstGroupedTabId && activeProjectId && (
-                <ProjectScopeChip
-                  projectId={activeProjectId}
-                  fallbackName={groupName}
-                />
-              )}
               <WorkspaceTabItem
                 tab={tab}
                 inProject={tab.projectId === activeProjectId}
