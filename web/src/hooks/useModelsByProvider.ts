@@ -230,6 +230,7 @@ export type ImageModelTask =
   | "text_to_image"
   | "image_to_image"
   | "inpainting"
+  | "outpaint"
   | "upscale"
   | "remove_background"
   | "relight"
@@ -241,6 +242,9 @@ export type VideoModelTask =
   | "image_to_video"
   | "reference_to_video"
   | "video_to_video"
+  | "upscale_video"
+  | "interpolate_video"
+  | "outpaint_video"
   | "lip_sync";
 
 /**
@@ -250,12 +254,16 @@ export type VideoModelTask =
  */
 const STRICT_MODEL_TASKS = new Set<string>([
   "inpainting",
+  "outpaint",
   "upscale",
   "remove_background",
   "relight",
   "vectorize",
   "segment",
   "video_to_video",
+  "upscale_video",
+  "interpolate_video",
+  "outpaint_video",
   "reference_to_video",
   "lip_sync"
 ]);

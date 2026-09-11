@@ -173,6 +173,7 @@ import type {
   ImageBox,
   Message,
   MessageContent,
+  OutpaintPadding,
   ProviderStreamItem,
   SegmentPoint
 } from "./providers/types.js";
@@ -295,6 +296,7 @@ export type ProviderCapability =
   | "text_to_image"
   | "image_to_image"
   | "inpainting"
+  | "outpaint_image"
   | "upscale_image"
   | "remove_background"
   | "relight_image"
@@ -304,6 +306,9 @@ export type ProviderCapability =
   | "image_to_video"
   | "reference_to_video"
   | "video_to_video"
+  | "upscale_video"
+  | "interpolate_video"
+  | "outpaint_video"
   | "lip_sync"
   | "text_to_speech"
   | "text_to_music"
@@ -387,6 +392,7 @@ export type ProviderPredictionResult = Awaited<
       | "textToImage"
       | "imageToImage"
       | "inpaint"
+      | "outpaintImage"
       | "textToVideo"
       | "imageToVideo"
       | "referenceToVideo"
@@ -396,6 +402,9 @@ export type ProviderPredictionResult = Awaited<
       | "segmentImage"
       | "vectorizeImage"
       | "videoToVideo"
+      | "upscaleVideo"
+      | "interpolateVideo"
+      | "outpaintVideo"
       | "lipSync"
       | "textToMusic"
       | "audioToAudio"
@@ -787,6 +796,27 @@ function coerceImageList(params: Record<string, unknown>): Uint8Array[] {
   }
   const single = params.image;
   return single instanceof Uint8Array ? [single] : [];
+}
+
+/**
+ * Read an outpaint padding bag off the loose params. Only the four side keys
+ * are read, and only when numeric: a caller that passes nothing gets
+ * `undefined`, which lets the provider fall back to its endpoint's default
+ * expansion rather than sending zeros that would outpaint nothing.
+ */
+function coerceOutpaintPadding(value: unknown): OutpaintPadding | undefined {
+  if (!isObjectLike(value)) return undefined;
+  const side = (key: string): number | undefined =>
+    isNumber(value[key]) ? value[key] : undefined;
+  const padding: OutpaintPadding = {
+    left: side("left"),
+    right: side("right"),
+    top: side("top"),
+    bottom: side("bottom")
+  };
+  return Object.values(padding).some((v) => v !== undefined)
+    ? padding
+    : undefined;
 }
 
 function coerceByteList(value: unknown): Uint8Array[] {
@@ -3049,6 +3079,17 @@ export class ProcessingContext {
           }
         );
       }
+      case "outpaint_image":
+        return provider.outpaintImage(coerceImageList(params), {
+          signal: params.signal as AbortSignal | undefined,
+          prompt: params.prompt as string | undefined,
+          entities: await coerceEntityList(params, this),
+          model: { id: req.model, name: req.model, provider: req.provider },
+          negativePrompt: params.negative_prompt as string | undefined,
+          padding: coerceOutpaintPadding(params.padding),
+          aspectRatio: params.aspect_ratio as string | undefined,
+          seed: params.seed as number | undefined
+        });
       case "upscale_image":
         return provider.upscaleImage(params.image as Uint8Array, {
           model: { id: req.model, name: req.model, provider: req.provider },
@@ -3092,6 +3133,40 @@ export class ProcessingContext {
           durationSeconds: params.duration_seconds as number | undefined,
           resolution: params.resolution as string | undefined,
           seed: params.seed as number | undefined
+        });
+      case "upscale_video":
+        return provider.upscaleVideo(params.video as Uint8Array, {
+          signal: params.signal as AbortSignal | undefined,
+          model: { id: req.model, name: req.model, provider: req.provider },
+          scale: params.scale as number | undefined,
+          targetResolution: params.target_resolution as string | undefined,
+          prompt: params.prompt as string | undefined,
+          creativity: params.creativity as number | undefined,
+          seed: params.seed as number | undefined,
+          timeoutSeconds: params.timeout_seconds as number | undefined
+        });
+      case "interpolate_video":
+        return provider.interpolateVideo(params.video as Uint8Array, {
+          signal: params.signal as AbortSignal | undefined,
+          model: { id: req.model, name: req.model, provider: req.provider },
+          targetFps: params.target_fps as number | undefined,
+          factor: params.factor as number | undefined,
+          seed: params.seed as number | undefined,
+          timeoutSeconds: params.timeout_seconds as number | undefined
+        });
+      case "outpaint_video":
+        return provider.outpaintVideo(params.video as Uint8Array, {
+          signal: params.signal as AbortSignal | undefined,
+          model: { id: req.model, name: req.model, provider: req.provider },
+          prompt: params.prompt as string | undefined,
+          entities: await coerceEntityList(params, this),
+          negativePrompt: params.negative_prompt as string | undefined,
+          padding: coerceOutpaintPadding(params.padding),
+          expandRatio: params.expand_ratio as number | undefined,
+          aspectRatio: params.aspect_ratio as string | undefined,
+          resolution: params.resolution as string | undefined,
+          seed: params.seed as number | undefined,
+          timeoutSeconds: params.timeout_seconds as number | undefined
         });
       case "lip_sync":
         return provider.lipSync(params.video as Uint8Array, {

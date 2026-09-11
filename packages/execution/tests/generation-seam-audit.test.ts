@@ -30,6 +30,7 @@ const MEDIA_METHODS = [
   "imageToImages",
   "inpaint",
   "inpaintImages",
+  "outpaintImage",
   "upscaleImage",
   "removeBackground",
   "segmentImage",
@@ -43,6 +44,9 @@ const MEDIA_METHODS = [
   "imageToVideo",
   "referenceToVideo",
   "videoToVideo",
+  "upscaleVideo",
+  "interpolateVideo",
+  "outpaintVideo",
   "lipSync",
   "textTo3D",
   "imageTo3D"

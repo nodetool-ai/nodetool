@@ -27,7 +27,12 @@ import type {
   InpaintingParams,
   TextToVideoParams,
   ImageToVideoParams,
+  OutpaintImageParams,
+  OutpaintPadding,
+  OutpaintVideoParams,
   UpscaleImageParams,
+  UpscaleVideoParams,
+  InterpolateVideoParams,
   RemoveBackgroundParams,
   SegmentImageParams,
   ImageSegmentationMask,
@@ -237,6 +242,38 @@ function topazCreativity(
   }
   const level = Math.round(Math.min(1, Math.max(0, creativity)) * 5) + 1;
   return String(level);
+}
+
+/** The four per-side outpaint API names, in the order fal declares them. */
+const EXPAND_SIDES = [
+  ["left", "expand_left"],
+  ["right", "expand_right"],
+  ["top", "expand_top"],
+  ["bottom", "expand_bottom"]
+] as const;
+
+/**
+ * Write the padding onto whatever `expand_*` fields the endpoint declares.
+ *
+ * The two families spell the same request differently: image endpoints take
+ * pixel counts (`expand_top: 256`), while the wan-vace video ones take a
+ * boolean per side plus one shared `expand_ratio`. A pixel count sent to the
+ * boolean field is a 422, so the declared type decides — a positive count
+ * becomes `true` there, and the ratio rides separately.
+ */
+function setOutpaintPadding(
+  b: FalArgsBuilder,
+  padding: OutpaintPadding | null | undefined
+): void {
+  if (!padding) return;
+  for (const [side, apiName] of EXPAND_SIDES) {
+    const pixels = padding[side];
+    if (pixels == null) continue;
+    b.set(
+      apiName,
+      b.propType(apiName) === "bool" ? pixels > 0 : pixels
+    );
+  }
 }
 
 /**
@@ -1135,6 +1172,23 @@ export class FalProvider extends BaseProvider {
     return Promise.all(urls.map((url) => downloadBytes(url)));
   }
 
+  override async outpaintImage(
+    images: Uint8Array[],
+    params: OutpaintImageParams
+  ): Promise<Uint8Array> {
+    const modelId = params.model.id;
+    const urls = await this.uploadImages(images);
+    const b = new FalArgsBuilder(modelId);
+    b.attachAssets("image", urls)
+      .set("prompt", params.prompt)
+      .set("negative_prompt", params.negativePrompt)
+      .setSize(params.aspectRatio, null);
+    setOutpaintPadding(b, params.padding);
+    if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
+    log.debug("FAL outpaintImage", { model: modelId });
+    return this.runImageEndpoint(modelId, b.args);
+  }
+
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
     const client = await this.getClient();
     const modelId = params.model.id;
@@ -1428,6 +1482,72 @@ export class FalProvider extends BaseProvider {
     if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
     log.debug("FAL videoToVideo", { model: endpointId, variant });
     return this.runVideoEndpoint(endpointId, b.args);
+  }
+
+  override async upscaleVideo(
+    video: Uint8Array,
+    params: UpscaleVideoParams
+  ): Promise<Uint8Array> {
+    const { endpointId, variant } = splitTopazVariant(params.model.id);
+    const url = await this.upload(video, "video/mp4");
+    const b = new FalArgsBuilder(endpointId);
+    b.attachAsset("video", url)
+      .set("model", variant)
+      .set("prompt", params.prompt)
+      .set("creativity", params.creativity)
+      // `upscale_factor` and `scale` name the same thing across endpoints, and
+      // `target_resolution` is the rung-shaped alternative; each is written
+      // only where the endpoint declares it.
+      .set("upscale_factor", params.scale)
+      .set("scale", params.scale)
+      .set("target_resolution", params.targetResolution)
+      .setSize(null, params.targetResolution);
+    if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
+    log.debug("FAL upscaleVideo", { model: endpointId, variant });
+    return this.runVideoEndpoint(endpointId, b.args);
+  }
+
+  override async interpolateVideo(
+    video: Uint8Array,
+    params: InterpolateVideoParams
+  ): Promise<Uint8Array> {
+    const { endpointId, variant } = splitTopazVariant(params.model.id);
+    const url = await this.upload(video, "video/mp4");
+    const b = new FalArgsBuilder(endpointId);
+    b.attachAsset("video", url)
+      .set("model", variant)
+      .set("output_fps", params.targetFps)
+      .set("target_fps", params.targetFps)
+      // AMT doubles the frame count per pass, so a factor is log2 passes;
+      // Topaz takes the factor itself as a slowdown.
+      .set("slowdown_factor", params.factor)
+      .set(
+        "recursive_interpolation_passes",
+        params.factor != null && params.factor > 1
+          ? Math.max(1, Math.round(Math.log2(params.factor)))
+          : null
+      );
+    if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
+    log.debug("FAL interpolateVideo", { model: endpointId, variant });
+    return this.runVideoEndpoint(endpointId, b.args);
+  }
+
+  override async outpaintVideo(
+    video: Uint8Array,
+    params: OutpaintVideoParams
+  ): Promise<Uint8Array> {
+    const modelId = params.model.id;
+    const url = await this.upload(video, "video/mp4");
+    const b = new FalArgsBuilder(modelId);
+    b.attachAsset("video", url)
+      .set("prompt", params.prompt)
+      .set("negative_prompt", params.negativePrompt)
+      .set("expand_ratio", params.expandRatio)
+      .setSize(params.aspectRatio, params.resolution);
+    setOutpaintPadding(b, params.padding);
+    if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
+    log.debug("FAL outpaintVideo", { model: modelId });
+    return this.runVideoEndpoint(modelId, b.args);
   }
 
   override async lipSync(
