@@ -83,6 +83,42 @@ describe("harness registry", () => {
       expect(s.paths.length, s.id).toBeGreaterThan(0);
     }
   });
+
+  it("routes tutorial render changes through the demo test harness", () => {
+    const harness = HARNESSES.find((entry) => entry.id === "tutorial-rendering");
+    const surface = SURFACES.find((entry) => entry.id === "tutorial-rendering");
+
+    expect(harness?.selfcheck).toEqual({
+      command: "npm run test --workspace=demo",
+      cost: "cheap"
+    });
+    expect(surface?.harnesses).toEqual(["tutorial-rendering"]);
+    expect(surface?.paths).toEqual([
+      "demo/src/",
+      "demo/scripts/render-tutorials.ts"
+    ]);
+
+    const plan = planGate([
+      "demo/src/components/FocusCamera.tsx",
+      "demo/scripts/render-tutorials.ts"
+    ]);
+    expect(plan.unmappedFiles).toEqual([]);
+    expect(plan.surfaces).toEqual([
+      {
+        id: "tutorial-rendering",
+        files: [
+          "demo/src/components/FocusCamera.tsx",
+          "demo/scripts/render-tutorials.ts"
+        ]
+      }
+    ]);
+    expect(plan.checks).toContainEqual({
+      harnessId: "tutorial-rendering",
+      command: "npm run test --workspace=demo",
+      cost: "cheap",
+      surfaces: ["tutorial-rendering"]
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

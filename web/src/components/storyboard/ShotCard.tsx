@@ -358,6 +358,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       title={caption}
       aria-pressed={onSelect ? !!selected : undefined}
       data-shot-id={shot.id}
+      data-focus-id={`storyboard-shot-${shot.id}`}
       data-generating={isGenerating ? "true" : undefined}
       data-selected={selected ? "true" : undefined}
       data-drop-target={dropTarget ? "true" : undefined}

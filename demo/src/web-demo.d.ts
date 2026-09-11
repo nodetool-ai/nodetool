@@ -82,6 +82,7 @@ declare module "@web-demo" {
     /** Elapsed time into the cast, in milliseconds. */
     timeMs: number;
     style?: React.CSSProperties;
+    focusIds?: readonly string[];
   }
 
   export const ChatDemoPlayer: React.FC<ChatDemoPlayerProps>;
@@ -190,6 +191,7 @@ declare module "@web-demo" {
     /** Lets a frame renderer block the capture until videos are paintable. */
     onPendingMedia?: PendingMediaHandler;
     style?: React.CSSProperties;
+    focusIds?: readonly string[];
   }
 
   export const DocDemoPlayer: React.FC<DocDemoPlayerProps>;

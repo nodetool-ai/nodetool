@@ -246,7 +246,7 @@ const SectionLine = memo(function SectionLine({
   const { shotLink, orphaned } = useScriptLineShotLink(scriptId, line.id);
 
   return (
-    <div>
+    <div data-focus-id={`script-line-${line.id}`}>
       {!readOnly && (
         <InsertLineGap
           onInsert={handleInsert}
@@ -867,6 +867,7 @@ const ScriptDocumentPane = ({
 
   return (
     <FlexColumn
+      data-focus-id="script-document"
       gap={SPACING.md}
       sx={{ flex: 1, minWidth: 0, height: "100%", overflowY: "auto" }}
     >
@@ -1032,18 +1033,20 @@ const ScriptDocumentPane = ({
             onAction={readOnly ? undefined : () => addLine(scriptId)}
           />
         )}
-        {sections.map((section) => (
-          <SectionBlock
-            key={section.id}
-            scriptId={scriptId}
-            section={section}
-            highlightedLineId={highlightedLineId}
-            readOnly={readOnly}
-            mobile={isMobile}
-            dnd={dnd}
-            onKeyNav={onLineKeyNav}
-          />
-        ))}
+        <FlexColumn data-focus-id="script-lines" gap={SPACING.xxl}>
+          {sections.map((section) => (
+            <SectionBlock
+              key={section.id}
+              scriptId={scriptId}
+              section={section}
+              highlightedLineId={highlightedLineId}
+              readOnly={readOnly}
+              mobile={isMobile}
+              dnd={dnd}
+              onKeyNav={onLineKeyNav}
+            />
+          ))}
+        </FlexColumn>
         {!readOnly && !isEmpty && (
           <FlexRow
             gap={SPACING.sm}

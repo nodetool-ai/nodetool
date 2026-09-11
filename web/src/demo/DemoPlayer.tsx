@@ -108,7 +108,12 @@ interface DemoCanvasProps {
   viewport?: { x: number; y: number; zoom: number };
 }
 
-function DemoCanvas({ engine, cast, timeMs, viewport }: DemoCanvasProps): React.JSX.Element {
+function DemoCanvas({
+  engine,
+  cast,
+  timeMs,
+  viewport,
+}: DemoCanvasProps): React.JSX.Element {
   const nodeTypes = useDemoNodeTypes();
   const nodes = useStore(engine.nodeStore, (s) => s.nodes);
   const edges = useStore(engine.nodeStore, (s) => s.edges);

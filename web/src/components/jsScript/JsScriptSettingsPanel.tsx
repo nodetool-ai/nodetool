@@ -86,18 +86,20 @@ const JsScriptSettingsPanel = ({
         </FlexColumn>
 
         <Divider />
-        <JsScriptPortsEditor
-          label="Inputs"
-          ports={document.inputs}
-          readOnly={readOnly}
-          onChange={handleInputs}
-        />
-        <JsScriptPortsEditor
-          label="Outputs"
-          ports={document.outputs}
-          readOnly={readOnly}
-          onChange={handleOutputs}
-        />
+        <FlexColumn data-focus-id="jsscript-ports" gap={SPACING.lg}>
+          <JsScriptPortsEditor
+            label="Inputs"
+            ports={document.inputs}
+            readOnly={readOnly}
+            onChange={handleInputs}
+          />
+          <JsScriptPortsEditor
+            label="Outputs"
+            ports={document.outputs}
+            readOnly={readOnly}
+            onChange={handleOutputs}
+          />
+        </FlexColumn>
 
         <Divider />
         <JsScriptSecretsEditor

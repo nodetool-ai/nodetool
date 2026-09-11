@@ -23,11 +23,11 @@ import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 import type { CastAsset } from "../castTypes";
 
 import type { LanguageModel, Workflow } from "../../stores/ApiTypes";
+import type { SketchDocument, SketchTool } from "../../components/sketch/types";
 import type {
-  SketchDocument,
-  SketchTool
-} from "../../components/sketch/types";
-import type { JsScriptDocument } from "../../stores/jsScript/JsScriptStore";
+  JsScriptDocument,
+  JsScriptTestReport
+} from "../../stores/jsScript/JsScriptStore";
 import type { ScriptDraft } from "../../stores/script/ScriptStore";
 import type { StoryboardBoard } from "../../stores/storyboard/StoryboardStore";
 import type { ChatCastEvent } from "../chat/chatCastTypes";
@@ -129,8 +129,17 @@ export interface AppCastDoc {
 
 export type SketchDocCast = DocDemoCastBase<"sketch", SketchCastDoc>;
 export type ScriptDocCast = DocDemoCastBase<"script", ScriptCastDoc>;
-export type StoryboardDocCast = DocDemoCastBase<"storyboard", StoryboardCastDoc>;
-export type JsScriptDocCast = DocDemoCastBase<"jsscript", JsScriptCastDoc>;
+export type StoryboardDocCast = DocDemoCastBase<
+  "storyboard",
+  StoryboardCastDoc
+>;
+export interface JsScriptTestRunEvent {
+  t: number;
+  report: JsScriptTestReport;
+}
+export type JsScriptDocCast = DocDemoCastBase<"jsscript", JsScriptCastDoc> & {
+  testRuns?: JsScriptTestRunEvent[];
+};
 export type AppDocCast = DocDemoCastBase<"app", AppCastDoc>;
 
 /** A complete, replayable document-editor demo recording. */

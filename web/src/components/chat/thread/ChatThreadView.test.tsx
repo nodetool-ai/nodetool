@@ -9,25 +9,43 @@ import useGlobalChatStore from "../../../stores/GlobalChatStore";
 
 const mockScrollToIndex = jest.fn();
 let mockTotalSize: number | null = null;
+let mockSizeAdjustment: ((
+  item: { index: number; start: number },
+  delta: number,
+  instance: { scrollOffset: number }
+) => boolean) | undefined;
 
 // Bypass virtualization in tests: render every item synchronously.
 // jsdom has no layout engine, so @tanstack/react-virtual's measurements
 // would return zero and no items would appear.
 jest.mock("@tanstack/react-virtual", () => ({
-  useVirtualizer: ({ count }: { count: number }) => ({
-    getVirtualItems: () =>
-      Array.from({ length: count }, (_, index) => ({
-        index,
-        key: index,
-        start: index * 200,
-        end: (index + 1) * 200,
-        size: 200,
-        lane: 0
-      })),
-    getTotalSize: () => mockTotalSize ?? count * 200,
-    measureElement: () => {},
-    scrollToIndex: mockScrollToIndex
-  })
+  useVirtualizer: ({ count }: { count: number }) => {
+    const virtualizer = {
+      getVirtualItems: () =>
+        Array.from({ length: count }, (_, index) => ({
+          index,
+          key: index,
+          start: index * 200,
+          end: (index + 1) * 200,
+          size: 200,
+          lane: 0
+        })),
+      getTotalSize: () => mockTotalSize ?? count * 200,
+      measureElement: () => {},
+      scrollToIndex: mockScrollToIndex,
+      shouldAdjustScrollPositionOnItemSizeChange: undefined as unknown
+    };
+    Object.defineProperty(
+      virtualizer,
+      "shouldAdjustScrollPositionOnItemSizeChange",
+      {
+        set: (callback) => {
+          mockSizeAdjustment = callback;
+        }
+      }
+    );
+    return virtualizer;
+  }
 }));
 
 // Mock child components to isolate ChatThreadView logic
@@ -133,19 +151,61 @@ describe("ChatThreadView", () => {
     expect(screen.getByTestId("message-2")).toHaveTextContent("Hi there");
   });
 
+  it("leaves scroll positioning to an external replay controller", () => {
+    jest.useFakeTimers();
+    mockScrollToIndex.mockClear();
+    const { container } = renderWithTheme(
+      <ChatThreadView
+        {...defaultProps}
+        externalScroll
+      />
+    );
+    const host = container.querySelector<HTMLDivElement>(
+      ".scrollable-message-wrapper"
+    );
+    if (!host) throw new Error("Missing scroll host");
+    host.scrollTop = 123;
+
+    act(() => jest.runOnlyPendingTimers());
+
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+    expect(host.scrollTop).toBe(123);
+    expect(mockSizeAdjustment?.({ index: 0, start: 0 }, 20, { scrollOffset: 100 })).toBe(false);
+    jest.useRealTimers();
+  });
+
+  it("keeps size compensation enabled for normal chat rows above the viewport", () => {
+    renderWithTheme(<ChatThreadView {...defaultProps} />);
+    expect(mockSizeAdjustment?.({ index: 0, start: 0 }, 20, { scrollOffset: 100 })).toBe(true);
+  });
+
   it("loads older messages near the top and preserves the viewport when they arrive", async () => {
     jest.useFakeTimers();
     const loadMessages = jest.fn().mockResolvedValue([]);
     const originalLoad = useGlobalChatStore.getState().loadMessages;
-    useGlobalChatStore.setState({ messageCursors: { history: "1" }, loadMessages });
-    const { container, rerender } = renderWithTheme(<ChatThreadView {...defaultProps} threadId="history" />);
-    act(() => { jest.runOnlyPendingTimers(); });
-    const host = container.querySelector<HTMLDivElement>(".scrollable-message-wrapper");
+    useGlobalChatStore.setState({
+      messageCursors: { history: "1" },
+      loadMessages
+    });
+    const { container, rerender } = renderWithTheme(
+      <ChatThreadView {...defaultProps} threadId="history" />
+    );
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+    const host = container.querySelector<HTMLDivElement>(
+      ".scrollable-message-wrapper"
+    );
     expect(host).not.toBeNull();
     if (!host) throw new Error("Missing scroll host");
     host.scrollTop = 100;
-    Object.defineProperty(host, "clientHeight", { configurable: true, value: 100 });
-    const real = container.querySelector<HTMLDivElement>(".chat-messages-real-content");
+    Object.defineProperty(host, "clientHeight", {
+      configurable: true,
+      value: 100
+    });
+    const real = container.querySelector<HTMLDivElement>(
+      ".chat-messages-real-content"
+    );
     if (!real) throw new Error("Missing content");
     real.getBoundingClientRect = () => ({ bottom: 1000, top: 0 }) as DOMRect;
     act(() => {
@@ -153,19 +213,29 @@ describe("ChatThreadView", () => {
       fireEvent.scroll(host);
       jest.runOnlyPendingTimers();
     });
-    await act(async () => { await Promise.resolve(); });
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(loadMessages).toHaveBeenCalledWith("history", "1");
     mockScrollToIndex.mockClear();
     rerender(
       <ThemeProvider theme={mockTheme}>
-        <ChatThreadView {...defaultProps} threadId="history" messages={[
-          { type: "message", id: "older", role: "user", content: "Earlier" }, ...mockMessages
-        ]} />
+        <ChatThreadView
+          {...defaultProps}
+          threadId="history"
+          messages={[
+            { type: "message", id: "older", role: "user", content: "Earlier" },
+            ...mockMessages
+          ]}
+        />
       </ThemeProvider>
     );
     expect(host).toHaveAttribute("data-scroll-mode", "free-scrolling");
     expect(mockScrollToIndex).not.toHaveBeenCalled();
-    useGlobalChatStore.setState({ loadMessages: originalLoad, messageCursors: {} });
+    useGlobalChatStore.setState({
+      loadMessages: originalLoad,
+      messageCursors: {}
+    });
     jest.useRealTimers();
   });
 
@@ -475,7 +545,9 @@ describe("ChatThreadView", () => {
     );
 
     const status = screen.getByRole("status");
-    expect(status).toHaveTextContent("Generating image · fal_ai · flux-schnell");
+    expect(status).toHaveTextContent(
+      "Generating image · fal_ai · flux-schnell"
+    );
     expect(screen.getByText("4s")).toBeInTheDocument();
     expect(screen.queryByText("Thinking…")).not.toBeInTheDocument();
 
@@ -522,9 +594,9 @@ describe("ChatThreadView", () => {
         {...defaultProps}
         currentPlanningUpdate={
           {
-          id: "plan-1",
-          status: "in_progress",
-          plan: { steps: [] }
+            id: "plan-1",
+            status: "in_progress",
+            plan: { steps: [] }
           } as any
         }
       />
@@ -538,9 +610,9 @@ describe("ChatThreadView", () => {
         {...defaultProps}
         currentTaskUpdate={
           {
-          id: "task-1",
-          status: "in_progress",
-          task: { id: "t1", description: "test" }
+            id: "task-1",
+            status: "in_progress",
+            task: { id: "t1", description: "test" }
           } as any
         }
       />

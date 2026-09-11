@@ -6,7 +6,7 @@
  * but `ChatView` is prop-driven rather than store-driven, so replay is a
  * plain fold (`computeChatStateAt`) instead of a stateful engine.
  */
-import React, { useLayoutEffect, useMemo } from "react";
+import React, { useLayoutEffect, useMemo, useRef } from "react";
 import { ThemeRoot } from "../../components/ui_primitives";
 import { MemoryRouter } from "react-router-dom";
 import { TRPCProvider } from "../../trpc/Provider";
@@ -22,6 +22,7 @@ import ThemeNodetool from "../../components/themes/ThemeNodetool";
 import ChatView from "../../components/chat/containers/ChatView";
 import type { ChatDemoCast } from "./chatCastTypes";
 import { computeChatStateAt, seedChatGlobalState } from "./chatReplay";
+import { applyAnchoredChatScroll } from "./focusScroll";
 
 const DEMO_THREAD_ID = "demo-chat-thread";
 
@@ -30,6 +31,8 @@ export interface ChatDemoPlayerProps {
   /** Elapsed time into the cast, in milliseconds. */
   timeMs: number;
   style?: React.CSSProperties;
+  /** Focus targets whose anchor establishes a scroll position held for the shot. */
+  focusIds?: readonly string[];
 }
 
 /** Self-contained chat surface. `timeMs` may change every frame. */
@@ -37,7 +40,10 @@ export function ChatDemoPlayer({
   cast,
   timeMs,
   style,
+  focusIds = []
 }: ChatDemoPlayerProps): React.JSX.Element {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const scrollPositions = useRef(new Map<string, number>());
   const state = useMemo(
     () => computeChatStateAt(cast.events, timeMs),
     [cast, timeMs]
@@ -47,7 +53,8 @@ export function ChatDemoPlayer({
   // seeking — a couple of chat components read it directly instead of props.
   useLayoutEffect(() => {
     seedChatGlobalState(DEMO_THREAD_ID, state);
-  }, [state]);
+    applyAnchoredChatScroll(rootRef.current, focusIds, scrollPositions);
+  }, [focusIds, state]);
 
   return (
     <MemoryRouter>
@@ -55,22 +62,25 @@ export function ChatDemoPlayer({
         <ThemeRoot theme={ThemeNodetool}>
           {/* The composer's WorkspaceChip reads the workflow manager. */}
           <WorkflowManagerProvider queryClient={queryClient}>
-          <div
-            data-demo-player
-            style={{ width: "100%", height: "100%", ...style }}
-          >
-            <ChatView
-              status={state.status}
-              messages={state.messages}
-              sendMessage={async () => {}}
-              progress={state.progress}
-              total={state.total}
-              progressMessage={state.progressMessage}
-              runningToolCallId={state.runningToolCallId}
-              model={cast.model}
-              showNewChatButton={false}
-            />
-          </div>
+            <div
+              ref={rootRef}
+              data-demo-player
+              data-focus-id="chat-panel"
+              style={{ width: "100%", height: "100%", ...style }}
+            >
+              <ChatView
+                status={state.status}
+                messages={state.messages}
+                sendMessage={async () => {}}
+                progress={state.progress}
+                total={state.total}
+                progressMessage={state.progressMessage}
+                runningToolCallId={state.runningToolCallId}
+                model={cast.model}
+                showNewChatButton={false}
+                externalScroll
+              />
+            </div>
           </WorkflowManagerProvider>
         </ThemeRoot>
       </TRPCProvider>

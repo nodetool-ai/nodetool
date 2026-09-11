@@ -742,6 +742,18 @@ CAPABILITY_SUITES,
     selfcheck: { command: "npm run test:scripts", cost: "cheap" }
   },
   {
+    id: "tutorial-rendering",
+    title: "Tutorial render catalog, camera, and replay checks",
+    command: "npm run test --workspace=demo",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "docs/plans/tutorial-focus-animation.md",
+    selfcheck: {
+      command: "npm run test --workspace=demo",
+      cost: "cheap"
+    }
+  },
+  {
     id: "harness-audit",
     title: "Harness coverage audit (this registry)",
     command: "nodetool harness audit [--strict]",
@@ -1296,6 +1308,12 @@ export const SURFACES: SurfaceEntry[] = [
     title: "Web editor (graph canvas, run rendering)",
     harnesses: ["debug", "docker-smoke"],
     paths: ["web/"]
+  },
+  {
+    id: "tutorial-rendering",
+    title: "Tutorial rendering and inspection",
+    harnesses: ["tutorial-rendering"],
+    paths: ["demo/src/", "demo/scripts/render-tutorials.ts"]
   },
   {
     id: "desktop-backend",

@@ -99,7 +99,7 @@ const button = {
 };
 const output = {
   type: "Text",
-  props: { id: "out-headline", binding: "op:write/out:headline" }
+  props: { id: "out-headline", binding: "op:write/out:headline", text: "Your headline appears here" }
 };
 
 const operation = {

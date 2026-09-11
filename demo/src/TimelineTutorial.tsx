@@ -2,8 +2,9 @@ import React from "react";
 import { TimelineDemoPlayer } from "@web-demo";
 import { getTimelineCast } from "./casts/timelineRegistry";
 import { TutorialShell } from "./components/TutorialShell";
+import { FocusCamera } from "./components/FocusCamera";
 import type { TutorialStep } from "./components/StepIndicator";
-import type { CaptionCue } from "./types";
+import type { CaptionCue, TimeMap, TutorialShot } from "./types";
 
 // A `type` alias so its implicit index signature satisfies Remotion's
 // `Composition` props constraint (`Record<string, unknown>`).
@@ -17,6 +18,8 @@ export type TimelineTutorialProps = {
   replayWindowMs: number;
   steps: TutorialStep[];
   captions: CaptionCue[];
+  shots: TutorialShot[];
+  timeMap?: TimeMap;
   outroTitle: string;
   outroPoints: string[];
 };
@@ -35,6 +38,8 @@ export const TimelineTutorial: React.FC<TimelineTutorialProps> = ({
   replayWindowMs,
   steps,
   captions,
+  shots,
+  timeMap,
   outroTitle,
   outroPoints,
 }) => {
@@ -49,10 +54,22 @@ export const TimelineTutorial: React.FC<TimelineTutorialProps> = ({
       replayWindowMs={replayWindowMs}
       steps={steps}
       captions={captions}
+      timeMap={timeMap}
       outroTitle={outroTitle}
       outroPoints={outroPoints}
     >
-      {(timeMs) => <TimelineDemoPlayer cast={cast} timeMs={timeMs} />}
+      {(presentationTimeMs) => (
+        <FocusCamera
+          tutorialId={castId}
+          shots={shots}
+          presentationTimeMs={presentationTimeMs}
+          timeMap={timeMap}
+        >
+          {(_samplePresentationMs, sampleCastMs) => (
+            <TimelineDemoPlayer cast={cast} timeMs={sampleCastMs} />
+          )}
+        </FocusCamera>
+      )}
     </TutorialShell>
   );
 };

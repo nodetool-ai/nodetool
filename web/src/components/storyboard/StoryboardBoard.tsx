@@ -703,7 +703,12 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   }, [boardId, title]);
 
   return (
-    <ScrollArea fullHeight thin className="storyboard-board">
+    <ScrollArea
+      fullHeight
+      thin
+      className="storyboard-board"
+      data-focus-id="storyboard-board"
+    >
       <FlexColumn
         gap={SPACING.lg}
         sx={{

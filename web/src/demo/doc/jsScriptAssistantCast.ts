@@ -68,7 +68,7 @@ const TESTS = [
   {
     name: "sums the amount column",
     inputs: {
-      csv: "item,amount\\npens,3\\npaper,4.5\\n",
+      csv: "item,amount\npens,3\npaper,4.5\n",
       column: "amount"
     },
     expect: { total: 7.5 }
@@ -133,6 +133,25 @@ export const jsScriptAssistantCast: JsScriptDocCast = {
     patch(13600, withTests)
   ],
 
+  testRuns: [
+    {
+      t: 13600,
+      report: {
+        passed: 1,
+        failed: 0,
+        cases: [
+          {
+            name: TESTS[0].name,
+            ok: true,
+            outputs: { total: 7.5 },
+            logs: [],
+            mismatches: []
+          }
+        ]
+      }
+    }
+  ],
+
   assistant: [
     status(0, "connected"),
     userMessage(
@@ -151,7 +170,12 @@ export const jsScriptAssistantCast: JsScriptDocCast = {
     toolRunning(1700, PORTS_CALL, "Declaring ports…"),
     toolRunning(4000, null),
     toolResult(4200, ASSISTANT_ID, [
-      { id: PORTS_CALL, name: "ui_jsscript_set_ports", args: PORTS, result: { ok: true } },
+      {
+        id: PORTS_CALL,
+        name: "ui_jsscript_set_ports",
+        args: PORTS,
+        result: { ok: true }
+      },
       {
         id: CODE_CALL,
         name: "ui_jsscript_set_code",
@@ -172,7 +196,12 @@ export const jsScriptAssistantCast: JsScriptDocCast = {
     toolRunning(9600, TEST_CALL, "Running the saved case…"),
     toolRunning(13400, null),
     toolResult(13600, ASSISTANT_ID, [
-      { id: PORTS_CALL, name: "ui_jsscript_set_ports", args: PORTS, result: { ok: true } },
+      {
+        id: PORTS_CALL,
+        name: "ui_jsscript_set_ports",
+        args: PORTS,
+        result: { ok: true }
+      },
       {
         id: CODE_CALL,
         name: "ui_jsscript_set_code",

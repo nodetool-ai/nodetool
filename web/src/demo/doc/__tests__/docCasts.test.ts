@@ -11,6 +11,7 @@
  *      script's body, the app's widgets, the sketch's layer stack.
  */
 import { computeChatStateAt } from "../../chat/chatReplay";
+import Papa from "papaparse";
 import { useJsScriptStore } from "../../../stores/jsScript/JsScriptStore";
 import { useScriptStore } from "../../../stores/script/ScriptStore";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
@@ -40,8 +41,32 @@ const EXPECTED_SURFACES: DocSurface[] = [
 ];
 
 const seeded = (cast: DocDemoCast, timeMs: number): void => {
-  seedDocState(cast, docStateAt(cast, timeMs));
+  seedDocState(cast, docStateAt(cast, timeMs), timeMs);
 };
+
+it("JS saved CSV cases reproduce the demonstrated clean sum and NaN repair", () => {
+  const assistant = docStateAt(jsScriptAssistantCast, 18000).document.tests;
+  const repair = docStateAt(jsScriptRepairCast, 18000).document.tests;
+  expect(assistant).toHaveLength(1);
+  expect(repair).toHaveLength(2);
+  for (const savedCase of [...assistant, ...repair]) {
+    const csv = String(savedCase.inputs.csv);
+    expect(csv).toContain("\n");
+    const rows = Papa.parse<Record<string, string>>(csv, { header: true }).data;
+    const column = String(savedCase.inputs.column);
+    const original = rows.reduce((sum, row) => sum + Number(row[column] ?? 0), 0);
+    const repaired = rows.reduce((sum, row) => {
+      const n = Number(row[column]);
+      return sum + (Number.isFinite(n) ? n : 0);
+    }, 0);
+    expect(repaired).toBe(savedCase.expect?.total);
+    if (savedCase.name === "skips a non-numeric cell") {
+      expect(original).toBeNaN();
+    } else {
+      expect(original).toBe(savedCase.expect?.total);
+    }
+  }
+});
 
 describe("document casts — coverage", () => {
   it("ships a cast for every document type", () => {
@@ -126,9 +151,9 @@ describe("document casts — the surfaces get their data", () => {
   it("sketch: the editor chrome follows the layer the assistant works on", () => {
     // The panel highlights the row being edited, and a patch that touches only
     // the document leaves the chrome where the previous patch put it.
-    expect(docStateAt(sketchAssistantCast, 0).editor?.selectedLayerIds).toEqual([
-      "layer-base"
-    ]);
+    expect(docStateAt(sketchAssistantCast, 0).editor?.selectedLayerIds).toEqual(
+      ["layer-base"]
+    );
     expect(
       docStateAt(sketchAssistantCast, 6000).editor?.selectedLayerIds
     ).toEqual(["layer-vignette"]);
@@ -193,12 +218,40 @@ describe("document casts — the surfaces get their data", () => {
     seeded(jsScriptAssistantCast, 10000);
     const coded = useJsScriptStore.getState().getScript(id)?.document;
     expect(coded?.code).toContain('output("total"');
-    expect(coded?.code).toContain('import { parse } from "@nodetool-ai/sandbox-csv"');
+    expect(coded?.code).toContain(
+      'import { parse } from "@nodetool-ai/sandbox-csv"'
+    );
 
     seeded(jsScriptAssistantCast, 15000);
     expect(
       useJsScriptStore.getState().getScript(id)?.document.tests
     ).toHaveLength(1);
+    expect(useJsScriptStore.getState().lastTest[id]).toMatchObject({
+      passed: 1,
+      failed: 0
+    });
+  });
+
+  it("jsscript: a backward seek clears the later test verdict", () => {
+    const id = jsScriptRepairCast.docId;
+
+    seeded(jsScriptRepairCast, 9000);
+    expect(useJsScriptStore.getState().lastTest[id]).toMatchObject({
+      passed: 1,
+      failed: 1
+    });
+    expect(
+      useJsScriptStore.getState().lastTest[id]?.cases[1]?.mismatches[0]
+    ).toMatchObject({ expected: 3, actual: "NaN" });
+
+    seeded(jsScriptRepairCast, 5000);
+    expect(useJsScriptStore.getState().lastTest[id]).toBeUndefined();
+
+    seeded(jsScriptRepairCast, 18000);
+    expect(useJsScriptStore.getState().lastTest[id]).toMatchObject({
+      passed: 2,
+      failed: 0
+    });
   });
 
   it("app: the operation and variable precede the widgets that bind to them", () => {

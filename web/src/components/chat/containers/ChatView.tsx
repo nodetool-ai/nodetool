@@ -177,6 +177,8 @@ type ChatViewProps = {
    * (e.g. a workspace chat tab) that may not be `currentThreadId`.
    */
   threadId?: string | null;
+  /** A deterministic replay owns thread scrolling. */
+  externalScroll?: boolean;
 };
 
 // Stable empty-array sentinel so the Zustand selector below returns the same
@@ -217,6 +219,7 @@ const ChatView = ({
   currentPlanningUpdate,
   currentTaskUpdate,
   currentLogUpdate,
+  externalScroll = false,
   noMessagesPlaceholder,
   graph,
   onInsertCode,
@@ -481,6 +484,7 @@ const ChatView = ({
                 currentLogUpdate={currentLogUpdate}
                 onInsertCode={onInsertCode}
                 showTaskUpdate={false}
+                externalScroll={externalScroll}
               />
             ) : (
               noMessagesPlaceholder ?? <div style={{ flex: 1 }} />

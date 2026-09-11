@@ -34,9 +34,9 @@ import "../../styles/markdown/github-markdown.css";
 
 import ThemeNodetool from "../../components/themes/ThemeNodetool";
 import AppRuntimeView from "../../components/appbuilder/AppRuntimeView";
-import JsScriptEditorPane from "../../components/jsScript/JsScriptEditorPane";
-import ScriptDocumentPane from "../../components/script/ScriptDocumentPane";
-import { StoryboardBoard } from "../../components/storyboard/StoryboardBoard";
+import { JsScriptEditorSurface } from "./JsScriptEditorSurface";
+import { ScriptEditorSurface } from "./ScriptEditorSurface";
+import { StoryboardEditorSurface } from "./StoryboardEditorSurface";
 import { SketchEditorSurface } from "./SketchEditorSurface";
 import { WorkflowManagerProvider } from "../../contexts/WorkflowManagerContext";
 import { queryClient } from "../../queryClient";
@@ -49,11 +49,7 @@ import { resolveAssetUrlsIn } from "../assetSubstitution";
 import { seedDemoAuth, seedDemoSecrets } from "../demoEngine";
 import { useMediaReadiness, type PendingMediaHandler } from "../mediaReadiness";
 import { useVideoPlayhead } from "../videoPlayhead";
-import type {
-  AppCastDoc,
-  DocDemoCast,
-  SketchDocCast
-} from "./docCastTypes";
+import type { AppCastDoc, DocDemoCast, SketchDocCast, ScriptCastDoc, StoryboardCastDoc } from "./docCastTypes";
 import { disposeDocState, docStateAt, seedDocState } from "./docReplay";
 
 /** Renders the production component for the cast's surface. */
@@ -74,11 +70,11 @@ function DocSurfaceView({
         />
       );
     case "script":
-      return <ScriptDocumentPane scriptId={cast.docId} readOnly />;
+      return <ScriptEditorSurface scriptId={cast.docId} doc={doc as ScriptCastDoc} />;
     case "storyboard":
-      return <StoryboardBoard boardId={cast.docId} readOnly />;
+      return <StoryboardEditorSurface boardId={cast.docId} doc={doc as StoryboardCastDoc} />;
     case "jsscript":
-      return <JsScriptEditorPane scriptId={cast.docId} readOnly />;
+      return <JsScriptEditorSurface scriptId={cast.docId} />;
     case "app": {
       const app = doc as AppCastDoc;
       return (
@@ -114,6 +110,8 @@ export interface DocDemoPlayerProps {
    *  block the capture until media is paintable (see ../mediaReadiness.ts). */
   onPendingMedia?: PendingMediaHandler;
   style?: React.CSSProperties;
+  /** Focus targets forwarded to the assistant dock for anchored scrolling. */
+  focusIds?: readonly string[];
 }
 
 /** Self-contained document surface. `timeMs` may change every frame. */
@@ -124,7 +122,8 @@ export function DocDemoPlayer({
   resolveAssetUrl,
   mediaTimeMs,
   onPendingMedia,
-  style
+  style,
+  focusIds = []
 }: DocDemoPlayerProps): React.JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null);
   useVideoPlayhead(rootRef, mediaTimeMs);
@@ -151,8 +150,8 @@ export function DocDemoPlayer({
   // Seed synchronously before paint so each frame's DOM reflects exactly the
   // cast state at `timeMs`, the same way the other two players seek.
   useLayoutEffect(() => {
-    seedDocState(cast, doc);
-  }, [cast, doc]);
+    seedDocState(cast, doc, timeMs);
+  }, [cast, doc, timeMs]);
 
   useEffect(() => () => disposeDocState(cast), [cast]);
 
@@ -175,7 +174,10 @@ export function DocDemoPlayer({
                 ...style
               }}
             >
-              <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+              <div
+                data-focus-id="document-surface"
+                style={{ flex: 1, minWidth: 0, overflow: "hidden" }}
+              >
                 <DocSurfaceView cast={cast} doc={doc} />
               </div>
               {assistantWidthPx > 0 && (
@@ -184,6 +186,7 @@ export function DocDemoPlayer({
                   timeMs={timeMs}
                   title={cast.assistantTitle}
                   model={cast.assistantModel}
+                  focusIds={focusIds}
                   style={{ width: assistantWidthPx, flexShrink: 0 }}
                 />
               )}

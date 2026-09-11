@@ -155,21 +155,38 @@ const JsScriptRunConsole = ({
 
       <ScrollArea>
         <FlexColumn gap={SPACING.md} padding={1}>
-          {lastTest && (
-            <FlexColumn gap={SPACING.sm}>
-              <FlexRow gap={SPACING.sm} align="center">
-                <Label>Tests</Label>
-                <Chip
-                  compact
-                  color={lastTest.failed === 0 ? "success" : "error"}
-                  label={`${lastTest.passed} passed, ${lastTest.failed} failed`}
-                />
-              </FlexRow>
-              {lastTest.cases.map((report) => (
-                <CaseReport key={report.name} report={report} />
-              ))}
-            </FlexColumn>
-          )}
+          {(readOnly && tests.length > 0) || lastTest ? (
+            <FlexRow gap={SPACING.lg} align="flex-start">
+              {readOnly && tests.length > 0 && (
+                <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minWidth: 0 }}>
+                  <Label>Saved cases</Label>
+                  {tests.map((test) => (
+                    <FlexColumn key={test.name} gap={SPACING.xs}>
+                      <Text size="small" weight={600}>
+                        {test.name}
+                      </Text>
+                      <Mono>{`inputs: ${JSON.stringify(test.inputs)}\nexpected: ${JSON.stringify(test.expect)}`}</Mono>
+                    </FlexColumn>
+                  ))}
+                </FlexColumn>
+              )}
+              {lastTest && (
+                <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minWidth: 0 }}>
+                  <FlexRow gap={SPACING.sm} align="center">
+                    <Label>Tests</Label>
+                    <Chip
+                      compact
+                      color={lastTest.failed === 0 ? "success" : "error"}
+                      label={`${lastTest.passed} passed, ${lastTest.failed} failed`}
+                    />
+                  </FlexRow>
+                  {lastTest.cases.map((report) => (
+                    <CaseReport key={report.name} report={report} />
+                  ))}
+                </FlexColumn>
+              )}
+            </FlexRow>
+          ) : null}
 
           {lastRun && (
             <FlexColumn gap={SPACING.sm}>

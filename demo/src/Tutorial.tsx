@@ -6,7 +6,8 @@ import { getCast } from "./casts/registry";
 import { TutorialShell } from "./components/TutorialShell";
 import type { TutorialStep } from "./components/StepIndicator";
 import { buildCameraKeys, cameraAt, type CameraCast } from "./camera";
-import type { CaptionCue } from "./types";
+import type { CaptionCue, TimeMap, TutorialShot } from "./types";
+import { GraphFocusCamera } from "./components/GraphFocusCamera";
 
 // A `type` alias so its implicit index signature satisfies Remotion's
 // `Composition` props constraint (`Record<string, unknown>`).
@@ -30,6 +31,10 @@ export type TutorialProps = {
   steps: TutorialStep[];
   /** Timed lower-third narration (replay-relative ms). */
   captions: CaptionCue[];
+  /** Explicit camera edit. Omit to keep the legacy step-focus camera. */
+  shots?: TutorialShot[];
+  /** Pure presentation-to-cast timing map for authored holds. */
+  timeMap?: TimeMap;
   /** Closing call-to-action heading. */
   outroTitle: string;
   /** Closing call-to-action bullet lines. */
@@ -59,6 +64,8 @@ export const Tutorial: React.FC<TutorialProps> = ({
   replayWindowMs,
   steps,
   captions,
+  shots,
+  timeMap,
   outroTitle,
   outroPoints,
 }) => {
@@ -80,16 +87,24 @@ export const Tutorial: React.FC<TutorialProps> = ({
       replayWindowMs={replayWindowMs}
       steps={steps}
       captions={captions}
+      timeMap={timeMap}
       outroTitle={outroTitle}
       outroPoints={outroPoints}
     >
-      {(timeMs) => (
-        <DemoPlayer
-          cast={cast}
-          timeMs={timeMs}
-          resolveAssetUrl={resolveAssetUrl}
-          viewport={cameraAt(cameraKeys, timeMs)}
-        />
+      {(timeMs, castTimeMs) => shots ? (
+        <GraphFocusCamera
+          tutorialId={castId}
+          shots={shots}
+          presentationTimeMs={timeMs}
+          timeMap={timeMap}
+          overviewViewport={(cast as CameraCast).viewport ?? { x: 0, y: 0, zoom: 1 }}
+        >
+          {(measuredCastTime, viewport) => (
+            <DemoPlayer cast={cast} timeMs={measuredCastTime} resolveAssetUrl={resolveAssetUrl} viewport={viewport} />
+          )}
+        </GraphFocusCamera>
+      ) : (
+        <DemoPlayer cast={cast} timeMs={castTimeMs} resolveAssetUrl={resolveAssetUrl} viewport={cameraAt(cameraKeys, timeMs)} />
       )}
     </TutorialShell>
   );

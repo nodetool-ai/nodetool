@@ -91,6 +91,7 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
   return (
     <AppRuntimeContext.Provider value={runtime}>
       <Box
+        data-focus-id="app-runtime"
         className="appbuilder-runtime"
         sx={{ width: "100%", height: "100%", overflow: "auto" }}
       >

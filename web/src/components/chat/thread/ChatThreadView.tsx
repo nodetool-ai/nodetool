@@ -56,6 +56,8 @@ interface ChatThreadViewProps {
   onInsertCode?: (text: string, language?: string) => void;
   /** Render task updates inline. Full chat surfaces move them to a right rail. */
   showTaskUpdate?: boolean;
+  /** A deterministic replay owns scrolling and needs every row mounted. */
+  externalScroll?: boolean;
 }
 
 // StatusFooter re-renders once a second while a reply streams; a fresh `[]`
@@ -237,7 +239,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   currentTaskUpdate,
   currentLogUpdate,
   onInsertCode,
-  showTaskUpdate = true
+  showTaskUpdate = true,
+  externalScroll = false
 }) => {
   const theme = useTheme();
 
@@ -440,7 +443,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     lastUserMessageIndex,
     status,
     overscan: theme.virtualScroll.overscan.small,
-    loadOlderMessages: olderCursor ? loadOlderMessages : undefined
+    loadOlderMessages: olderCursor ? loadOlderMessages : undefined,
+    externalScroll
   });
 
   const isThoughtExpanded = useCallback(

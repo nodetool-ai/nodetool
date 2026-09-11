@@ -73,6 +73,8 @@ export interface UseChatScrollAnchorOptions {
   status: ChatStatus;
   overscan: number;
   loadOlderMessages?: () => Promise<unknown>;
+  /** A parent replay owns scrollTop and requires every message row mounted. */
+  externalScroll?: boolean;
 }
 
 export interface ChatScrollAnchor {
@@ -102,7 +104,8 @@ export function useChatScrollAnchor({
   lastUserMessageIndex,
   status,
   overscan,
-  loadOlderMessages
+  loadOlderMessages,
+  externalScroll = false
 }: UseChatScrollAnchorOptions): ChatScrollAnchor {
   const scrollRef = useRef<HTMLDivElement>(null);
   const realContentRef = useRef<HTMLDivElement>(null);
@@ -151,7 +154,7 @@ export function useChatScrollAnchor({
     estimateSize: () => ESTIMATED_MESSAGE_HEIGHT,
     anchorTo: "end",
     followOnAppend: false,
-    overscan,
+    overscan: externalScroll ? filteredMessages.length : overscan,
     getItemKey: (index) => filteredMessages[index].id ?? `msg-${index}`,
     initialRect: { width: 0, height: 800 }
   });
@@ -163,6 +166,7 @@ export function useChatScrollAnchor({
     _delta,
     instance
   ) => {
+    if (externalScroll) return false;
     if (item.index === filteredMessages.length - 1) return false;
     return item.start < (instance.scrollOffset ?? 0);
   };
@@ -209,6 +213,7 @@ export function useChatScrollAnchor({
   }, []);
 
   const applyScrollPolicy = useCallback(() => {
+    if (externalScroll) return;
     const el = scrollRef.current;
     const realContentBottom = getRealContentBottom();
     if (!el || realContentBottom == null) return;
@@ -239,7 +244,7 @@ export function useChatScrollAnchor({
     if (Math.abs(target - el.scrollTop) > SCROLL_POSITION_EPSILON) {
       el.scrollTop = target;
     }
-  }, [captureViewportAnchor, getRealContentBottom]);
+  }, [captureViewportAnchor, externalScroll, getRealContentBottom]);
 
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
@@ -259,6 +264,7 @@ export function useChatScrollAnchor({
   }, [captureViewportAnchor, getRealContentBottom, setScrollMode]);
 
   useEffect(() => {
+    if (externalScroll) return;
     const el = scrollHost;
     if (!el) return;
     // Coalesce scroll events to at most one measurement per frame — each call
@@ -320,10 +326,12 @@ export function useChatScrollAnchor({
     setScrollMode,
     updateScrollState,
     loadOlderMessages,
-    visibleThreadId
+    visibleThreadId,
+    externalScroll
   ]);
 
   const scrollToBottom = useCallback(() => {
+    if (externalScroll) return;
     const el = scrollRef.current;
     if (!el) return;
     setScrollMode("following-end");
@@ -336,11 +344,12 @@ export function useChatScrollAnchor({
       el.scrollTop = Math.max(0, realContentBottom - el.clientHeight);
     }
     setShowScrollToBottomButton(false);
-  }, [getRealContentBottom, setScrollMode]);
+  }, [externalScroll, getRealContentBottom, setScrollMode]);
 
   // Reset follow state whenever the visible thread changes, so a previously
   // "scrolled up" thread doesn't carry that state onto the next one.
   useEffect(() => {
+    if (externalScroll) return;
     setScrollMode("following-end");
     positionedAnchorIdRef.current = null;
     anchorSawBusyRef.current = false;
@@ -348,7 +357,7 @@ export function useChatScrollAnchor({
     setAnchorTailHeight(0);
     viewportAnchorRef.current = null;
     setShowScrollToBottomButton(false);
-  }, [visibleThreadId, setScrollMode]);
+  }, [externalScroll, visibleThreadId, setScrollMode]);
 
   // Land on the latest message when a thread first becomes visible — on mount,
   // thread switch, or once its messages finish loading. Without this the
@@ -357,6 +366,7 @@ export function useChatScrollAnchor({
   // syncs the count it reads) so the two don't fight over the scroll position.
   const landedThreadRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
+    if (externalScroll) return;
     if (!scrollHost || filteredMessages.length === 0) return;
     if (landedThreadRef.current === visibleThreadId) return;
     landedThreadRef.current = visibleThreadId;
@@ -389,12 +399,18 @@ export function useChatScrollAnchor({
     filteredMessages.length,
     messages.length,
     setScrollMode,
-    virtualizer
+    virtualizer,
+    externalScroll
   ]);
 
   // On new user message → scroll that message to top.
   // On other new messages → follow to bottom if user hasn't scrolled up.
   useEffect(() => {
+    if (externalScroll) {
+      previousMessageCountRef.current = messages.length;
+      previousLastMessageRef.current = messages.at(-1)?.id;
+      return;
+    }
     const prevCount = previousMessageCountRef.current;
     previousMessageCountRef.current = messages.length;
     const previousLast = previousLastMessageRef.current;
@@ -429,13 +445,15 @@ export function useChatScrollAnchor({
     lastUserMessageIndex,
     messages,
     setScrollMode,
-    status
+    status,
+    externalScroll
   ]);
 
   // Position a newly sent prompt once the reserved tail makes it scrollable.
   // The active turn then grows into that tail without moving the prompt until
   // the real response content reaches the usable viewport bottom.
   useEffect(() => {
+    if (externalScroll) return;
     if (!activeAnchor || !scrollHost) return;
     if (positionedAnchorIdRef.current === activeAnchor.messageId) return;
     positionedAnchorIdRef.current = activeAnchor.messageId;
@@ -462,7 +480,7 @@ export function useChatScrollAnchor({
       cancelAnimationFrame(firstFrame);
       cancelAnimationFrame(secondFrame);
     };
-  }, [activeAnchor, scrollHost, virtualizer]);
+  }, [activeAnchor, externalScroll, scrollHost, virtualizer]);
 
   // Apply the active policy before paint when the virtualizer reports a real
   // size change. Token updates that do not change layout perform no scroll.
@@ -474,6 +492,7 @@ export function useChatScrollAnchor({
   // without changing the virtualizer's total. Coalesce those measurements to
   // one policy application per animation frame.
   useEffect(() => {
+    if (externalScroll) return;
     const el = scrollHost;
     const realContent = realContentRef.current;
     if (!el || !realContent || typeof ResizeObserver === "undefined") return;
@@ -495,7 +514,7 @@ export function useChatScrollAnchor({
         layoutRafRef.current = null;
       }
     };
-  }, [applyScrollPolicy, scrollHost]);
+  }, [applyScrollPolicy, externalScroll, scrollHost]);
 
   // Once the turn settles, keep the just-sent prompt anchored where it landed
   // instead of snapping the view to the conversation bottom (which for a short
@@ -506,6 +525,7 @@ export function useChatScrollAnchor({
   // released only when the user scrolls (→ free-scrolling) or sends the next
   // turn. Free-scrolling mode is never overridden by a status change.
   useEffect(() => {
+    if (externalScroll) return;
     if (status === "loading" || status === "streaming") {
       if (scrollModeRef.current === "anchoring-new-turn") {
         anchorSawBusyRef.current = true;
@@ -526,10 +546,11 @@ export function useChatScrollAnchor({
       el.scrollTop + el.clientHeight - realContentBottom
     );
     setAnchorTailHeight(requiredTail);
-  }, [getRealContentBottom, status]);
+  }, [externalScroll, getRealContentBottom, status]);
 
   const preserveViewportAfterToggle = useCallback(
     (anchorElement: HTMLElement, anchorBottomBeforeToggle: number) => {
+      if (externalScroll) return;
       requestAnimationFrame(() => {
         if (
           scrollModeRef.current !== "free-scrolling" ||
@@ -548,7 +569,7 @@ export function useChatScrollAnchor({
         }
       });
     },
-    [captureViewportAnchor]
+    [captureViewportAnchor, externalScroll]
   );
 
   return {

@@ -2,8 +2,9 @@ import React from "react";
 import { ChatDemoPlayer } from "@web-demo";
 import { getChatCast } from "./casts/chatRegistry";
 import { TutorialShell } from "./components/TutorialShell";
+import { FocusCamera } from "./components/FocusCamera";
 import type { TutorialStep } from "./components/StepIndicator";
-import type { CaptionCue } from "./types";
+import type { CaptionCue, TimeMap, TutorialShot } from "./types";
 
 // A `type` alias so its implicit index signature satisfies Remotion's
 // `Composition` props constraint (`Record<string, unknown>`).
@@ -17,6 +18,8 @@ export type ChatTutorialProps = {
   replayWindowMs: number;
   steps: TutorialStep[];
   captions: CaptionCue[];
+  shots: TutorialShot[];
+  timeMap?: TimeMap;
   outroTitle: string;
   outroPoints: string[];
 };
@@ -36,6 +39,8 @@ export const ChatTutorial: React.FC<ChatTutorialProps> = ({
   replayWindowMs,
   steps,
   captions,
+  shots,
+  timeMap,
   outroTitle,
   outroPoints,
 }) => {
@@ -50,10 +55,22 @@ export const ChatTutorial: React.FC<ChatTutorialProps> = ({
       replayWindowMs={replayWindowMs}
       steps={steps}
       captions={captions}
+      timeMap={timeMap}
       outroTitle={outroTitle}
       outroPoints={outroPoints}
     >
-      {(timeMs) => <ChatDemoPlayer cast={cast} timeMs={timeMs} />}
+      {(presentationTimeMs) => (
+        <FocusCamera
+          tutorialId={castId}
+          shots={shots}
+          presentationTimeMs={presentationTimeMs}
+          timeMap={timeMap}
+        >
+          {(_samplePresentationMs, sampleCastMs, focusIds) => (
+            <ChatDemoPlayer cast={cast} timeMs={sampleCastMs} focusIds={focusIds} />
+          )}
+        </FocusCamera>
+      )}
     </TutorialShell>
   );
 };

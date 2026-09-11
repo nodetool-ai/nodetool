@@ -5,7 +5,8 @@ import { TitleCard } from "./TitleCard";
 import { Caption } from "./Caption";
 import { OutroCard } from "./OutroCard";
 import { StepIndicator, type TutorialStep } from "./StepIndicator";
-import type { CaptionCue } from "../types";
+import type { CaptionCue, TimeMap } from "../types";
+import { presentationToCastTime } from "../tutorialTiming";
 
 interface TutorialShellProps {
   /** Opening title-card heading. */
@@ -27,7 +28,9 @@ interface TutorialShellProps {
   /** Closing call-to-action bullet lines. */
   outroPoints: string[];
   /** The replay surface (a *DemoPlayer variant), rendered at the replay-relative time. */
-  children: (timeMs: number) => React.ReactNode;
+  children: (presentationTimeMs: number, castTimeMs: number) => React.ReactNode;
+  /** Optional hold/compression mapping. Omit for identity playback. */
+  timeMap?: TimeMap;
 }
 
 /**
@@ -48,6 +51,7 @@ export const TutorialShell: React.FC<TutorialShellProps> = ({
   outroTitle,
   outroPoints,
   children,
+  timeMap,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -58,10 +62,11 @@ export const TutorialShell: React.FC<TutorialShellProps> = ({
 
   const replayFrame = Math.max(0, frame - introFrames);
   const timeMs = (replayFrame / fps) * 1000;
+  const castTimeMs = presentationToCastTime(timeMs, timeMap);
 
   return (
     <AbsoluteFill style={{ background: "#0f0f17" }}>
-      {children(timeMs)}
+      {children(timeMs, castTimeMs)}
 
       {/* Step indicator + captions only during the replay beat. */}
       <Sequence from={introFrames} durationInFrames={replayFrames}>
