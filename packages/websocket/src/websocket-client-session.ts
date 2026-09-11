@@ -601,7 +601,9 @@ export class WebSocketClientSession implements ClientSession {
       entityRefResolver,
       resolveEntityReferenceImages,
       resolveSourceImageBytes: (data, mediaGeneration, userId) =>
-        this.resolveSourceImageBytes(data, mediaGeneration, userId)
+        this.resolveSourceImageBytes(data, mediaGeneration, userId),
+      resolveReferenceMediaBytes: (data, mediaGeneration, userId) =>
+        this.resolveReferenceMediaBytes(data, mediaGeneration, userId)
     });
     this.commands = new CommandRouter({
       session: this,
@@ -1181,6 +1183,113 @@ export class WebSocketClientSession implements ClientSession {
       }
     }
     return null;
+  }
+
+  private async resolveMediaRefBytes(
+    ref: Record<string, unknown>,
+    userId: string
+  ): Promise<Uint8Array | null> {
+    const assetId = isString(ref.asset_id) ? ref.asset_id : null;
+    if (assetId) {
+      const bytes = await this.loadAssetBytes(userId, assetId);
+      if (bytes?.length) return bytes;
+    }
+    const uri = isString(ref.uri) ? ref.uri : null;
+    if (uri?.startsWith("asset://")) {
+      const value = uri.slice("asset://".length);
+      const dot = value.lastIndexOf(".");
+      const bytes = await this.loadAssetBytes(
+        userId,
+        dot > -1 ? value.slice(0, dot) : value
+      );
+      if (bytes?.length) return bytes;
+    } else if (uri?.startsWith("data:")) {
+      const comma = uri.indexOf(",");
+      if (comma > -1) {
+        return new Uint8Array(Buffer.from(uri.slice(comma + 1), "base64"));
+      }
+    } else if (uri?.startsWith("http://") || uri?.startsWith("https://")) {
+      try {
+        const response = await fetchExternalMedia(uri);
+        if (response.ok) return new Uint8Array(await response.arrayBuffer());
+      } catch (err) {
+        log.warn("resolveMediaRefBytes: fetch failed", {
+          uri,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    }
+    const data = isString(ref.data) ? ref.data : null;
+    return data ? new Uint8Array(Buffer.from(data, "base64")) : null;
+  }
+
+  private async loadAssetBytes(
+    userId: string,
+    assetId: string
+  ): Promise<Uint8Array | null> {
+    if (!assetId) return null;
+    try {
+      const asset = await Asset.find(userId, assetId);
+      if (!asset) return null;
+      return await retrieveAssetBytes(
+        getAssetAdapter(),
+        userId,
+        assetId,
+        asset.content_type
+      );
+    } catch (err) {
+      log.warn("loadAssetBytes: asset load failed", {
+        assetId,
+        error: err instanceof Error ? err.message : String(err)
+      });
+      return null;
+    }
+  }
+
+  private mediaRefsOnMessage(
+    data: Record<string, unknown>,
+    blockType: "image_url" | "video"
+  ): Array<Record<string, unknown>> {
+    if (!Array.isArray(data.content)) return [];
+    const field = blockType === "image_url" ? "image" : "video";
+    return data.content
+      .filter((content) => {
+        if (!isObjectLike(content)) return false;
+        return (content as Record<string, unknown>).type === blockType;
+      })
+      .map((content) =>
+        isObjectLike((content as Record<string, unknown>)[field])
+          ? ((content as Record<string, unknown>)[field] as Record<
+              string,
+              unknown
+            >)
+          : {}
+      );
+  }
+
+  private async resolveReferenceMediaBytes(
+    data: Record<string, unknown>,
+    mediaGeneration: Record<string, unknown>,
+    userId: string
+  ): Promise<{ images: Uint8Array[]; videos: Uint8Array[] }> {
+    const collect = async (type: "image_url" | "video") => {
+      const bytes: Uint8Array[] = [];
+      for (const ref of this.mediaRefsOnMessage(data, type)) {
+        const value = await this.resolveMediaRefBytes(ref, userId);
+        if (value?.length) bytes.push(value);
+      }
+      return bytes;
+    };
+    const images = await collect("image_url");
+    const videos = await collect("video");
+    const explicitId = isString(mediaGeneration.source_asset_id)
+      ? mediaGeneration.source_asset_id
+      : null;
+    if (explicitId) {
+      const bytes = await this.loadAssetBytes(userId, explicitId);
+      if (bytes?.length) images.unshift(bytes);
+    }
+    return { images, videos };
   }
 
   async handleCommand(
