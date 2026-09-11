@@ -244,7 +244,6 @@ function recordAutosave(workflowId: string, now: number): void {
 function toWorkflowResponse(workflow: WorkflowModel): WorkflowResponse {
   return {
     id: workflow.id,
-    project_id: workflow.project_id,
     access: workflow.access,
     created_at: (workflow.created_at as string | undefined) ?? null,
     updated_at: (workflow.updated_at as string | undefined) ?? null,
@@ -263,6 +262,7 @@ function toWorkflowResponse(workflow: WorkflowModel): WorkflowResponse {
     path: workflow.path ?? null,
     run_mode: workflow.run_mode ?? null,
     workspace_id: workflow.workspace_id ?? null,
+    project_id: workflow.project_id,
     required_providers: null,
     required_models: null,
     html_app: workflow.html_app ?? null,

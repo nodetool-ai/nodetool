@@ -14,7 +14,7 @@
 
 import { createLogger } from "@nodetool-ai/config";
 import { BoundedHandle, WorkflowRunner } from "@nodetool-ai/kernel";
-import { Job, Workflow, getSecret } from "@nodetool-ai/models";
+import { Job, Project, Workflow, getSecret } from "@nodetool-ai/models";
 import {
   hydrateGraphNodeFlags,
   propertyTypesForMetadata,
@@ -512,8 +512,12 @@ export async function runWorkflow(
   // (Comment/Group/Reroute) pruned, and edges typed from `edge_type` or the
   // legacy `type`.
   let runnableGraph: ReturnType<typeof normalizeGraph>;
+  let workflowProjectId = options.projectId ?? null;
   if (options.graph) {
     runnableGraph = normalizeGraph(options.graph);
+    if (workflowProjectId && workflowProjectId !== "default") {
+      await Project.requireOwned(userId, workflowProjectId);
+    }
   } else {
     const workflow = await Workflow.find(userId, workflowId);
     if (!workflow) {
@@ -526,6 +530,18 @@ export async function runWorkflow(
         kind: "error",
         status: 400,
         detail: `Workflow run mode "${runMode}" is not supported by the standalone backend`
+      };
+    }
+    workflowProjectId = workflow.project_id;
+    if (
+      options.projectId !== undefined &&
+      options.projectId !== null &&
+      options.projectId !== workflow.project_id
+    ) {
+      return {
+        kind: "error",
+        status: 400,
+        detail: "Workflow is owned by another project"
       };
     }
     runnableGraph = normalizeGraph(workflow.getGraph());
@@ -573,7 +589,8 @@ export async function runWorkflow(
     status: "running",
     name: options.jobName ?? "",
     params,
-    graph: runnableGraph
+    graph: runnableGraph,
+    project_id: workflowProjectId ?? "default"
   })) as Job;
 
   // Everything after the row exists must finalize it. Workspace resolution,
@@ -631,6 +648,7 @@ export async function runWorkflow(
         const executionContext = buildWorkspaceExecutionContext({
           jobId: job.id,
           workflowId,
+          projectId: workflowProjectId,
           userId,
           workspace,
           storage: environment.storage ?? null,
@@ -656,7 +674,7 @@ export async function runWorkflow(
         attachRunCostLedger(executionContext, {
           userId,
           workflowId,
-          projectId: options.projectId ?? null,
+          projectId: workflowProjectId,
           documentId: options.documentId ?? null,
           nodeType: nodeTypeLookup(runnableGraph.nodes),
           resolveSecret: (key) => executionContext.getSecret(key)

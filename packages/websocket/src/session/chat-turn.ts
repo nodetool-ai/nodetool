@@ -581,7 +581,8 @@ export class ChatTurnHandler {
   async materializeAssistantImageContent(
     content: MessageContent[],
     userId: string,
-    workflowId: string | null
+    workflowId: string | null,
+    threadId: string | null = null
   ): Promise<Array<Record<string, unknown>>> {
     const out: Array<Record<string, unknown>> = [];
     for (const block of content) {
@@ -612,6 +613,10 @@ export class ChatTurnHandler {
         const asset = new Asset({
           user_id: userId,
           workflow_id: workflowId ?? null,
+          project_id:
+            (threadId
+              ? (await Project.findByThread(userId, threadId))?.id
+              : null) ?? "default",
           name: `image_${Date.now()}`,
           content_type: mimeType,
           // Home — see the chat media generation path.
@@ -1019,6 +1024,7 @@ export class ChatTurnHandler {
     const context = createRuntimeContext({
       jobId,
       workflowId: null,
+      projectId,
       userId,
       workspace: this.session.workspaceResolver
         ? await this.session.workspaceResolver(null, userId)
@@ -1657,6 +1663,7 @@ export class ChatTurnHandler {
       jobId: randomUUID(),
       workflowId,
       threadId: threadId || null,
+      projectId: chatProjectId,
       userId,
       workspace: chatWorkspace,
       authToken: this.deps.authToken()
@@ -2026,7 +2033,8 @@ export class ChatTurnHandler {
           const materialized = await this.materializeAssistantImageContent(
             m.content,
             userId,
-            workflowId
+            workflowId,
+            threadId
           );
           persistedContent = materialized;
           if (echo) {
@@ -2739,6 +2747,7 @@ export class ChatTurnHandler {
     const threadId = isString(data.thread_id) ? data.thread_id : "";
     const workflowId = isString(data.workflow_id) ? data.workflow_id : null;
     const userId = this.session.requireUserId();
+    const projectId = (await Project.findByThread(userId, threadId))?.id ?? null;
     const mode = String(mediaGeneration.mode ?? "");
     // The media composer's own selection first; a client without a separate
     // media picker (mobile) sends only the message-level one. The built-in
@@ -2833,6 +2842,7 @@ export class ChatTurnHandler {
       origin: { surface: "chat", thread_id: threadId || null },
       threadId,
       workflowId: workflowId ?? null,
+      projectId,
       assetNamePrefix: mode,
       signal
     });
@@ -3537,6 +3547,8 @@ export class ChatTurnHandler {
       : this.deps.defaults.provider;
     const model = isString(data.model) ? data.model : this.deps.defaults.model;
     const userId = this.session.requireUserId();
+    const chatProjectId =
+      (await Project.findByThread(userId, threadId))?.id ?? undefined;
     const jobId = randomUUID();
 
     log.info("Workflow message", { threadId, workflowId, jobId });
@@ -3631,6 +3643,7 @@ export class ChatTurnHandler {
       const context = createRuntimeContext({
         jobId,
         workflowId,
+        projectId: chatProjectId,
         userId,
         workspace,
         assetOutputMode: this.session.mode === "text" ? "data_uri" : "temp_url"

@@ -40,6 +40,8 @@ export interface GenerationRunOptions {
   threadId?: string | null;
   /** Stamped on assets stored through {@link GenerationRun.storeAsset}. */
   workflowId?: string | null;
+  /** Project captured when this generation was accepted. */
+  projectId?: string | null;
   /** Prefixes a stored asset's name, e.g. `image_1730000000000`. */
   assetNamePrefix: string;
   signal?: AbortSignal;
@@ -92,6 +94,7 @@ export function createGenerationRun(
     origin,
     threadId = null,
     workflowId = null,
+    projectId = null,
     assetNamePrefix,
     signal,
     nodeType,
@@ -102,7 +105,8 @@ export function createGenerationRun(
   const context = new GenerationContext({
     jobId: randomUUID(),
     userId,
-    threadId: threadId || null
+    threadId: threadId || null,
+    projectId
   });
   context.registerProvider(providerId, provider);
   context.setModelInterfaces({ createAsset: createAssetModelInterface });
@@ -144,6 +148,7 @@ export function createGenerationRun(
       const asset = new Asset({
         user_id: userId,
         workflow_id: workflowId,
+        project_id: projectId ?? "default",
         name: `${assetNamePrefix}_${Date.now()}`,
         content_type: contentType,
         // Home, the same folder an upload lands in. A null parent is

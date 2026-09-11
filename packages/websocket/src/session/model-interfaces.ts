@@ -135,6 +135,7 @@ export function serverModelInterfaces(): ProcessingContextModelInterfaces {
 export function createRuntimeContext(opts: {
   jobId: string;
   workflowId?: string | null;
+  projectId?: string | null;
   threadId?: string | null;
   userId: string;
   /**

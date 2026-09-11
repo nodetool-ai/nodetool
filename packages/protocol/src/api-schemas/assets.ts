@@ -64,6 +64,7 @@ export const createInput = z.object({
   job_id: z.string().nullable().optional(),
   timeline_id: z.string().nullable().optional(),
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+  project_id: z.string().min(1).optional(),
   sketch_document_id: z.string().nullable().optional(),
   size: z.number().nullable().optional()
 });
@@ -97,7 +98,8 @@ export const createUploadInput = z.object({
   node_id: z.string().nullable().optional(),
   job_id: z.string().nullable().optional(),
   timeline_id: z.string().nullable().optional(),
-  metadata: z.record(z.string(), z.unknown()).nullable().optional()
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+  project_id: z.string().min(1).optional()
 });
 export type CreateUploadInput = z.infer<typeof createUploadInput>;
 

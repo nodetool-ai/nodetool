@@ -10,7 +10,7 @@
  */
 
 import { Buffer } from "node:buffer";
-import { Asset } from "@nodetool-ai/models";
+import { Asset, Project } from "@nodetool-ai/models";
 import type { Asset as AssetModel } from "@nodetool-ai/models";
 import { createLogger } from "@nodetool-ai/config";
 
@@ -260,6 +260,11 @@ export const assetsRouter = router({
     .input(createUploadInput)
     .output(createUploadOutput)
     .mutation(async ({ ctx, input }) => {
+      if (input.project_id && input.project_id !== "default") {
+        if (!(await Project.findOwned(ctx.userId, input.project_id))) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, "Project not found");
+        }
+      }
       const max = getMaxUploadBytes();
       if (input.size > max) {
         throwApiError(
@@ -290,6 +295,7 @@ export const assetsRouter = router({
         job_id: input.job_id ?? null,
         timeline_id: input.timeline_id ?? null,
         metadata: input.metadata ?? null,
+        project_id: input.project_id ?? "default",
         // Recorded on finalize from what actually landed, not from the claim.
         size: null
       }));

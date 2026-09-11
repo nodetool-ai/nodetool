@@ -26,7 +26,8 @@ import {
   Workflow,
   WorkflowCollaborator,
   Job,
-  Asset
+  Asset,
+  Project
 } from "@nodetool-ai/models";
 import {
   loadPythonPackageMetadata,
@@ -425,6 +426,7 @@ export interface WorkflowRequestBody {
   settings?: Record<string, unknown> | null;
   run_mode?: string | null;
   workspace_id?: string | null;
+  project_id?: string;
   html_app?: string | null;
   app_doc?: Record<string, unknown> | null;
   expected_updated_at?: string;
@@ -502,7 +504,6 @@ async function parseBody<S extends z.ZodType>(
 export function toWorkflowResponse(workflow: Workflow) {
   return {
     id: workflow.id,
-    project_id: workflow.project_id,
     access: workflow.access,
     created_at: workflow.created_at,
     updated_at: workflow.updated_at,
@@ -520,6 +521,7 @@ export function toWorkflowResponse(workflow: Workflow) {
     path: workflow.path,
     run_mode: workflow.run_mode,
     workspace_id: workflow.workspace_id,
+    project_id: workflow.project_id,
     required_providers: null,
     required_models: null,
     html_app: workflow.html_app,
@@ -636,6 +638,7 @@ export async function handleWorkflowRun(
     // cold-start bootstrap failure must not turn that into a 500.
     environment: () => getWorkflowRuntimeEnvironment(options),
     params: body?.params ?? {},
+    projectId: body?.project_id ?? null,
     background: body?.background ?? false,
     interactive: body?.interactive === true,
     // The server's own import site, so a test that mocks it still governs.
@@ -1177,6 +1180,8 @@ export async function handleWorkflowImportBundle(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+  let projectId =
+    new URL(request.url).searchParams.get("project_id") ?? "default";
 
   let zipBytes: Uint8Array | null = null;
   const contentType = request.headers.get("content-type") ?? "";
@@ -1184,6 +1189,10 @@ export async function handleWorkflowImportBundle(
     try {
       const fd = await request.formData();
       const file = fd.get("file") as File | null;
+      const formProjectId = fd.get("project_id");
+      if (typeof formProjectId === "string" && formProjectId) {
+        projectId = formProjectId;
+      }
       if (file) {
         zipBytes = new Uint8Array(await file.arrayBuffer());
       }
@@ -1199,6 +1208,13 @@ export async function handleWorkflowImportBundle(
   if (!zipBytes) {
     return errorResponse(400, "A .nodetool bundle file is required");
   }
+  if (projectId !== "default") {
+    try {
+      await Project.requireOwned(userId, projectId);
+    } catch {
+      return errorResponse(400, "Project not found");
+    }
+  }
 
   let result: Awaited<ReturnType<typeof importWorkflowBundle>>;
   try {
@@ -1209,6 +1225,7 @@ export async function handleWorkflowImportBundle(
           name: fileName,
           content_type: assetType,
           parent_id: userId,
+          project_id: projectId,
           size: bytes.byteLength
         })) as Asset;
         const storedName = getAssetFileName(asset.id, asset.content_type);
@@ -1411,10 +1428,10 @@ export function toJobResponse(job: Job) {
   return {
     id: job.id,
     user_id: job.user_id,
-    project_id: job.project_id,
     job_type: "workflow",
     status: job.status,
     workflow_id: job.workflow_id,
+    project_id: job.project_id,
     started_at: job.started_at ?? null,
     finished_at: job.finished_at ?? null,
     error: job.error ?? null,
@@ -1489,6 +1506,14 @@ export async function handleAssetsRoot(
 
     const metadata: Record<string, unknown> = body.metadata ?? {};
 
+    if (body.project_id && body.project_id !== "default") {
+      try {
+        await Project.requireOwned(userId, body.project_id);
+      } catch {
+        return errorResponse(400, "Project not found");
+      }
+    }
+
     const assetContentType = normalizeAssetContentType(
       body.content_type,
       body.name
@@ -1504,6 +1529,7 @@ export async function handleAssetsRoot(
       job_id: body.job_id ?? null,
       metadata:
         Object.keys(metadata).length > 0 ? metadata : (body.metadata ?? null),
+      project_id: body.project_id ?? "default",
       size: fileSize ?? body.size ?? null
     })) as Asset;
 
@@ -1614,6 +1640,7 @@ export async function handleExtractAudio(
     content_type: "audio/wav",
     parent_id: source.id,
     workflow_id: source.workflow_id ?? null,
+    project_id: source.project_id,
     node_id: null,
     job_id: null,
     metadata: null,

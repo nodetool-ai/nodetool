@@ -184,6 +184,13 @@ export class Project extends DBModel {
     return row && row.user_id === userId ? row : null;
   }
 
+  /** Resolve a caller-supplied project without permitting cross-user writes. */
+  static async requireOwned(userId: string, id: string): Promise<Project> {
+    const project = await Project.findOwned(userId, id);
+    if (!project) throw new Error("Project not found");
+    return project;
+  }
+
   /**
    * The project whose agent thread this is. A chat turn knows its thread, so
    * this is how a run learns which project the documents it creates belong to.
