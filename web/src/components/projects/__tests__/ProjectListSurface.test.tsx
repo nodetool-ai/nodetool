@@ -47,14 +47,24 @@ const unassigned = {
 };
 
 const assignDocument = jest.fn();
+const archiveProject = jest.fn();
+const restoreProject = jest.fn();
+const deleteProject = jest.fn();
 const openProject = jest.fn();
 const openNewProject = jest.fn();
+
+const archiveMutation = { mutate: archiveProject, isPending: false };
+const restoreMutation = { mutate: restoreProject, isPending: false };
+const deleteMutation = { mutate: deleteProject, isPending: false };
 
 jest.mock("../../../hooks/useProjects", () => ({
   useProjectSummaries: () => summaries,
   useArchivedProjects: () => ({ data: [], isPending: false }),
   useUnassignedDocuments: () => unassigned,
   useAssignDocument: () => ({ mutate: assignDocument }),
+  useArchiveProject: () => archiveMutation,
+  useRestoreProject: () => restoreMutation,
+  useDeleteProject: () => deleteMutation,
   useOpenProject: () => openProject,
   useOpenNewProjectTab: () => openNewProject
 }));
