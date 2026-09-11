@@ -12,6 +12,7 @@ import BrokenImageIcon from "@mui/icons-material/BrokenImage";
 import { MOTION } from "./tokens";
 import {
   useResolvedMediaUri,
+  useResolvedThumbnailUri,
   type MediaLocator
 } from "../../hooks/useResolvedMediaUri";
 import type { ResolvedMediaUrl } from "../../utils/resolveMediaUri";
@@ -28,8 +29,17 @@ export interface ResponsiveImageProps extends Omit<BoxProps, 'onError'> {
    * Mutually exclusive with `src`.
    */
   locator?: MediaLocator;
+  /**
+   * Render the asset's 512px thumbnail rather than the stored original. For
+   * anything shown at card size — a grid, a strip, a list row — this is the
+   * difference between 60KB and a multi-megabyte still. Falls back to the
+   * original when the asset has no thumbnail. Ignored with `src`.
+   */
+  preferThumbnail?: boolean;
   /** Alt text for accessibility */
   alt: string;
+  /** Native lazy loading; `"lazy"` skips images scrolled out of view. */
+  loading?: "eager" | "lazy";
   /** Aspect ratio (e.g., "16/9", "1/1", "4/3") */
   aspectRatio?: string;
   /** How the image fits within its container */
@@ -57,6 +67,7 @@ const ResolvedImage: React.FC<
   borderRadius = 0,
   showSkeleton = false,
   showErrorFallback = true,
+  loading: loadingAttr,
   onError,
   onLoad,
   sx,
@@ -126,6 +137,8 @@ const ResolvedImage: React.FC<
         component="img"
         src={src || undefined}
         alt={alt}
+        loading={loadingAttr}
+        decoding="async"
         onLoad={handleLoad}
         onError={handleError}
         sx={{
@@ -156,6 +169,15 @@ const LocatorImage: React.FC<
 
 LocatorImage.displayName = "LocatorImage";
 
+/** The same branch, resolving to the asset's thumbnail. */
+const ThumbnailImage: React.FC<
+  Omit<ResponsiveImageProps, "src"> & { locator: MediaLocator }
+> = ({ locator, ...rest }) => (
+  <ResolvedImage {...rest} src={useResolvedThumbnailUri(locator) ?? ""} />
+);
+
+ThumbnailImage.displayName = "ThumbnailImage";
+
 /**
  * ResponsiveImage - An image with loading and error states
  *
@@ -177,12 +199,17 @@ LocatorImage.displayName = "LocatorImage";
  */
 export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
   locator,
+  preferThumbnail,
   ...rest
-}) =>
-  locator === undefined ? (
-    <ResolvedImage {...rest} />
+}) => {
+  if (locator === undefined) {
+    return <ResolvedImage {...rest} />;
+  }
+  return preferThumbnail ? (
+    <ThumbnailImage {...rest} locator={locator} />
   ) : (
     <LocatorImage {...rest} locator={locator} />
   );
+};
 
 ResponsiveImage.displayName = "ResponsiveImage";

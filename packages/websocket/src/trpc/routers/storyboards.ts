@@ -59,16 +59,6 @@ const stylePresetEntity = z.object({
   thumbnail: z.string()
 });
 
-function toListItem(board: Storyboard) {
-  return {
-    id: board.id,
-    projectId: board.project_id,
-    name: board.name,
-    shotCount: board.toDocument().shots.length,
-    updatedAt: board.updated_at
-  };
-}
-
 async function loadOwned(
   ctxUserId: string | null,
   id: string
@@ -85,12 +75,16 @@ export const storyboardsRouter = router({
   list: protectedProcedure
     .input(listInput)
     .output(z.array(storyboardListItem))
-    .query(async ({ ctx, input }) => {
-      const boards = input.projectId
-        ? await Storyboard.listByProject(input.projectId, ctx.userId)
-        : await Storyboard.listByUser(ctx.userId);
-      return boards.map(toListItem);
-    }),
+    .query(({ ctx, input }) =>
+      // Summaries, not rows: the shot count comes from the database, so a
+      // listing never reads a board's whole document to print one number.
+      input.projectId
+        ? Storyboard.listSummaries({
+            userId: ctx.userId,
+            projectId: input.projectId
+          })
+        : Storyboard.listSummaries({ userId: ctx.userId })
+    ),
 
   get: protectedProcedure
     .input(idInput)

@@ -20,11 +20,6 @@ jest.mock("../../assets/AssetViewer", () => ({
   default: () => <div data-testid="asset-viewer" />
 }));
 
-jest.mock("../../node/ImageRefPreview", () => ({
-  __esModule: true,
-  default: () => <div data-testid="image-preview" />
-}));
-
 jest.mock("../../../trpc/client", () => ({
   trpc: { scripts: { get: { useQuery: () => ({ data: undefined }) } } },
   trpcClient: {}

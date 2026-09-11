@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 
 import {
   useResolvedMedia,
-  useResolvedMediaUri
+  useResolvedMediaUri,
+  useResolvedThumbnailUri
 } from "../useResolvedMediaUri";
 
 const mockGetAsset = jest.fn();
@@ -24,10 +25,14 @@ jest.mock("@tanstack/react-query", () => ({
 const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
 
 /** The asset record the lookup resolves to, when it resolves. */
-const withAsset = (getUrl: string | undefined, contentType?: string) => {
+const withAsset = (
+  getUrl: string | undefined,
+  contentType?: string,
+  thumbUrl?: string
+) => {
   mockUseQuery.mockReturnValue({
     data: getUrl
-      ? { get_url: getUrl, content_type: contentType }
+      ? { get_url: getUrl, content_type: contentType, thumb_url: thumbUrl }
       : undefined
   } as any);
 };
@@ -130,5 +135,56 @@ describe("useResolvedMedia", () => {
       url: "https://cdn.example.com/signed/user-1/abc123.mp4?sig=x",
       contentType: "video/mp4"
     });
+  });
+
+  it("returns the asset's thumbnail alongside the full URL", () => {
+    withAsset(
+      "https://cdn.example.com/signed/user-1/abc123.png?sig=x",
+      "image/png",
+      "https://cdn.example.com/signed/user-1/abc123_thumb.jpg?sig=y"
+    );
+    const { result } = renderHook(() => useResolvedMedia("asset://abc123"));
+    expect(result.current.thumbUrl).toBe(
+      "https://cdn.example.com/signed/user-1/abc123_thumb.jpg?sig=y"
+    );
+  });
+
+  it("has no thumbnail for a locator that needs no lookup", () => {
+    const { result } = renderHook(() =>
+      useResolvedMedia("https://cdn.example.com/photo.png")
+    );
+    expect(result.current.thumbUrl).toBeUndefined();
+  });
+});
+
+describe("useResolvedThumbnailUri", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    withAsset(undefined);
+  });
+
+  it("resolves to the thumbnail, not the stored original", () => {
+    withAsset(
+      "https://cdn.example.com/signed/user-1/abc123.png?sig=x",
+      "image/png",
+      "https://cdn.example.com/signed/user-1/abc123_thumb.jpg?sig=y"
+    );
+    const { result } = renderHook(() =>
+      useResolvedThumbnailUri("asset://abc123")
+    );
+    expect(result.current).toBe(
+      "https://cdn.example.com/signed/user-1/abc123_thumb.jpg?sig=y"
+    );
+  });
+
+  // An asset whose thumbnail was never generated still has to render.
+  it("falls back to the full URL when the asset has no thumbnail", () => {
+    withAsset("https://cdn.example.com/signed/user-1/abc123.svg?sig=x");
+    const { result } = renderHook(() =>
+      useResolvedThumbnailUri("asset://abc123")
+    );
+    expect(result.current).toBe(
+      "https://cdn.example.com/signed/user-1/abc123.svg?sig=x"
+    );
   });
 });

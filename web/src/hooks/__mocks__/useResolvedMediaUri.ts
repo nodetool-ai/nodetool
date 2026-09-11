@@ -28,6 +28,21 @@ export const mockAssetUrl = (assetId: string): ResolvedMediaUrl =>
   `https://assets.test/${assetId}` as ResolvedMediaUrl;
 
 /**
+ * The asset's thumbnail URL under test. Distinct from {@link mockAssetUrl} so a
+ * suite can tell which of the two a surface renders — a grid of stills is
+ * supposed to show this one.
+ */
+export const mockAssetThumbUrl = (assetId: string): ResolvedMediaUrl =>
+  `https://assets.test/${assetId}_thumb.jpg` as ResolvedMediaUrl;
+
+/** Asset ids a test wants to have no thumbnail, as an SVG or a video has none. */
+export const mockAssetsWithoutThumbnail = new Set<string>();
+
+export const mockAssetWithoutThumbnail = (assetId: string): void => {
+  mockAssetsWithoutThumbnail.add(assetId);
+};
+
+/**
  * Asset ids a test wants to resolve to nothing — the shape of an asset whose
  * row is gone or whose object cannot be signed.
  */
@@ -89,6 +104,7 @@ export const resetMockAssetContentTypes = (): void => {
   mockAssetContentTypes.clear();
   mockMissingAssets.clear();
   mockPendingAssets.clear();
+  mockAssetsWithoutThumbnail.clear();
 };
 
 const locatorUri = (source: MediaLocator): string | undefined =>
@@ -106,14 +122,24 @@ export const useResolvedMedia = (
   source: MediaLocator
 ): {
   url: ResolvedMediaUrl | undefined;
+  thumbUrl: ResolvedMediaUrl | undefined;
   contentType: string | undefined;
   pending: boolean;
 } => {
   const uri = locatorUri(source);
   const id = assetIdOf(source);
   const pending = isPendingAsset(source);
+  const url = pending ? undefined : resolve(source);
+  // Only an asset has a thumbnail: a data/http/package locator resolves
+  // statically and carries nothing but itself, as in the app.
+  const hasThumb =
+    url !== undefined &&
+    id !== undefined &&
+    !mockAssetsWithoutThumbnail.has(id) &&
+    (uri === undefined || uri.startsWith("asset://"));
   return {
-    url: pending ? undefined : resolve(source),
+    url,
+    thumbUrl: hasThumb ? mockAssetThumbUrl(id) : undefined,
     pending,
     contentType:
       (uri ? contentTypeByLocator.get(uri) : undefined) ??
@@ -124,6 +150,13 @@ export const useResolvedMedia = (
 export const useResolvedMediaUri = (
   source: MediaLocator
 ): ResolvedMediaUrl | undefined => useResolvedMedia(source).url;
+
+export const useResolvedThumbnailUri = (
+  source: MediaLocator
+): ResolvedMediaUrl | undefined => {
+  const { url, thumbUrl } = useResolvedMedia(source);
+  return thumbUrl ?? url;
+};
 
 export const useResolvedMediaUris = (
   sources: MediaLocator[]

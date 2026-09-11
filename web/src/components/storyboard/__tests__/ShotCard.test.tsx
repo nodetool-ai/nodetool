@@ -43,13 +43,6 @@ jest.mock("../../../trpc/client", () => ({
   trpcClient: {}
 }));
 
-jest.mock("../../node/ImageRefPreview", () => ({
-  __esModule: true,
-  default: ({ placeholder }: { placeholder?: React.ReactNode }) => (
-    <div data-testid="image-preview">{placeholder}</div>
-  )
-}));
-
 // The card's cast chips read the entity library; the actions the card offers
 // are covered in ShotCardActions.test.tsx, so here it is simply empty.
 jest.mock("../../../serverState/useEntities", () => ({
@@ -73,6 +66,13 @@ jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
 
 import ShotCard from "../ShotCard";
 import { useStoryboardGenerationStore } from "../../../stores/storyboard/StoryboardGenerationStore";
+
+// The manual mock the card sees: reaching it by its own path would hand this
+// suite a second copy, whose state the card never reads.
+const { mockAssetWithoutThumbnail, resetMockAssetContentTypes } =
+  jest.requireMock(
+    "../../../hooks/useResolvedMediaUri"
+  ) as typeof import("../../../hooks/__mocks__/useResolvedMediaUri");
 
 const makeShot = (overrides: Partial<Shot> = {}): Shot => ({
   type: "shot",
@@ -315,6 +315,54 @@ describe("ShotCard selection", () => {
       "aria-pressed",
       "true"
     );
+  });
+});
+
+describe("ShotCard still", () => {
+  const keyframe = {
+    type: "image" as const,
+    uri: "asset://img-9",
+    asset_id: "img-9"
+  };
+
+  afterEach(() => resetMockAssetContentTypes());
+
+  // A board holds dozens of cards a few hundred pixels wide, and a generated
+  // still is 300 KB–1.2 MB. The card shows the server's 512px thumbnail; the
+  // original is what fullscreen and download reach for (pinned above).
+  it("shows the asset's thumbnail, not the stored still", () => {
+    renderCard(makeShot({ status: "keyframe_ready", keyframe }));
+
+    expect(screen.getByRole("img", { name: /Opening/ })).toHaveAttribute(
+      "src",
+      "https://assets.test/img-9_thumb.jpg"
+    );
+  });
+
+  it("falls back to the still when the asset has no thumbnail", () => {
+    mockAssetWithoutThumbnail("img-9");
+    renderCard(makeShot({ status: "keyframe_ready", keyframe }));
+
+    expect(screen.getByRole("img", { name: /Opening/ })).toHaveAttribute(
+      "src",
+      "https://assets.test/img-9"
+    );
+  });
+
+  it("leaves the cards below the fold to the browser", () => {
+    renderCard(makeShot({ status: "keyframe_ready", keyframe }));
+
+    expect(screen.getByRole("img", { name: /Opening/ })).toHaveAttribute(
+      "loading",
+      "lazy"
+    );
+  });
+
+  it("says so when the shot has no still", () => {
+    renderCard(makeShot());
+
+    expect(screen.getByText("No still yet")).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 });
 

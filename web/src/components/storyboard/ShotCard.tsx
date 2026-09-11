@@ -37,6 +37,7 @@ import {
   FlexColumn,
   FlexRow,
   ProgressBar,
+  ResponsiveImage,
   Text,
   TextInput,
   ToolbarIconButton,
@@ -47,7 +48,6 @@ import {
   TYPOGRAPHY,
   MOTION
 } from "../ui_primitives";
-import ImageRefPreview from "../node/ImageRefPreview";
 import ShotHoverToolbar from "./ShotHoverToolbar";
 import ShotMediaViewer from "./ShotMediaViewer";
 import ShotStatusPill, { CLIP_COLOR, isShotGenerating } from "./ShotStatusPill";
@@ -56,7 +56,10 @@ import { useStoryboardGenerationStore } from "../../stores/storyboard/Storyboard
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import { useShotDuration } from "../../hooks/storyboard/useShotDuration";
-import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
+import {
+  useResolvedMedia,
+  useResolvedMediaUri
+} from "../../hooks/useResolvedMediaUri";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
@@ -202,10 +205,17 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   // `asset://` locator, but the card renders the keyframe when it cannot.
   const clipUri = useResolvedMediaUri(shot.clip);
   // Download needs a URL, not a locator, and the still's is not otherwise
-  // resolved here — the preview primitive resolves its own.
-  const keyframeUri = useResolvedMediaUri(shot.keyframe);
+  // resolved here — the preview primitive resolves its own. Both forms of the
+  // still come off one asset lookup: the full one is what a download and the
+  // fullscreen viewer want, the thumbnail is what the card shows.
+  const keyframeMedia = useResolvedMedia(shot.keyframe);
+  const keyframeUri = keyframeMedia.url;
+  const keyframeThumbUri = keyframeMedia.thumbUrl ?? keyframeMedia.url;
   const downloadUri = clipUri ?? keyframeUri;
   const downloadKind = clipUri ? "clip" : "still";
+  // A ref with neither a locator nor an asset behind it has nothing to show:
+  // the card says so rather than waiting on a resolution that never lands.
+  const hasKeyframe = Boolean(shot.keyframe?.uri || shot.keyframe?.asset_id);
   const shotName = `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`;
   // What the preview shows is what fullscreen opens: the clip once there is
   // one, the selected still before that.
@@ -409,19 +419,28 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         onDoubleClick={previewMedia ? handleOpenViewer : undefined}
       >
         {clipUri ? (
-          <VideoPlayer locator={shot.clip} poster={keyframeUri ?? undefined} />
-        ) : (
-          <ImageRefPreview
-            value={shot.keyframe}
-            placeholder={
-              <Caption
-                color="muted"
-                sx={{ textAlign: "center", p: SPACING.md }}
-              >
-                No still yet
-              </Caption>
-            }
+          <VideoPlayer
+            locator={shot.clip}
+            poster={keyframeThumbUri ?? undefined}
           />
+        ) : hasKeyframe ? (
+          // The card is a few hundred pixels wide and a board holds dozens of
+          // them, so it shows the asset's thumbnail, not the full still, and
+          // leaves the ones below the fold to the browser's lazy loading. The
+          // full still is one double-click away, in the viewer.
+          <ResponsiveImage
+            locator={shot.keyframe}
+            preferThumbnail
+            loading="lazy"
+            showSkeleton
+            alt={shotName}
+            fit="cover"
+            sx={{ height: "100%" }}
+          />
+        ) : (
+          <Caption color="muted" sx={{ textAlign: "center", p: SPACING.md }}>
+            No still yet
+          </Caption>
         )}
         <Box sx={shotLabelSx}>
           {duration.seconds != null
