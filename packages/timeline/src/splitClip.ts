@@ -18,10 +18,11 @@ import type { CaptionWord, TimelineClip } from "./types.js";
  *   half: left when the delay falls before the cut, otherwise right with the
  *   delay rebased to the right half's start.
  * - A `"loop"` runs on both halves. `windowT` counts the cycle from the clip's
- *   own start, so the right half's delay is shifted to the next cycle boundary
- *   after the cut — the cycle grid carries across the cut instead of the loop
- *   restarting mid-cycle. A loop that has not started yet keeps the rest of
- *   its delay.
+ *   own start, so the right half's delay goes negative by the time already
+ *   elapsed — the compiler reads that as a phase offset and opens the right
+ *   half mid-cycle exactly where the left half left off, rather than
+ *   restarting the loop at the cut. A loop that has not started yet keeps the
+ *   rest of its delay ({@link rebaseLoopDelayMs}).
  * - A `fullClip` preset (kenBurns) ignores `delayMs` and runs once over the
  *   whole clip, and its curves are in canvas pixels that `splitClip` cannot
  *   compute, so neither half can carry a partial move: both replay the whole
