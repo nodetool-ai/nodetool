@@ -1276,8 +1276,38 @@ const NewProjectSurface = () => {
           </FlexColumn>
 
           <FlexColumn
+            gap={SPACING.md}
+            sx={{
+              "& button": { bgcolor: "common.black" },
+              "& button:not([aria-disabled=\"true\"]):hover": {
+                bgcolor: "common.black",
+                borderColor: "primary.main"
+              },
+              "& img": { opacity: 0.6 }
+            }}
+          >
+            <Caption color="muted">Start with a guided flow</Caption>
+            <OptionCardGrid
+              label="Guided creation flows"
+              options={entryOptions}
+              onSelect={handleEntryCard}
+              minColumnWidth={240}
+              variant="media"
+              // These cards route to a flow, they do not pick one of a set:
+              // no pressed state, and each is its own tab stop.
+              mode="navigation"
+            />
+          </FlexColumn>
+
+          {/* The composer sits below the cards, not above them: its `/` and `@`
+              menus open upward from the box's top edge
+              (`useTextareaSkillMention`), so it needs the page above it as
+              headroom. */}
+          <Caption color="muted">Or describe what you want to make</Caption>
+          <FlexColumn
             gap={SPACING.lg}
             sx={{
+              mt: -SPACING.lg,
               bgcolor: "background.paper",
               border: "1px solid",
               borderColor: "primary.main",
@@ -1448,29 +1478,6 @@ const NewProjectSurface = () => {
             </FlexColumn>
           )}
 
-          <FlexColumn
-            gap={SPACING.md}
-            sx={{
-              "& button": { bgcolor: "common.black" },
-              "& button:not([aria-disabled=\"true\"]):hover": {
-                bgcolor: "common.black",
-                borderColor: "primary.main"
-              },
-              "& img": { opacity: 0.6 }
-            }}
-          >
-            <Caption color="muted">Or start with a guided flow</Caption>
-            <OptionCardGrid
-              label="Guided creation flows"
-              options={entryOptions}
-              onSelect={handleEntryCard}
-              minColumnWidth={240}
-              variant="media"
-              // These cards route to a flow, they do not pick one of a set:
-              // no pressed state, and each is its own tab stop.
-              mode="navigation"
-            />
-          </FlexColumn>
         </FlexColumn>
 
         <Box sx={{ flex: 1, minHeight: SPACING.xxxl }} />
