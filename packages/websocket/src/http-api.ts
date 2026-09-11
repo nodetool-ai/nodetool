@@ -504,7 +504,6 @@ async function parseBody<S extends z.ZodType>(
 export function toWorkflowResponse(workflow: Workflow) {
   return {
     id: workflow.id,
-    project_id: workflow.project_id,
     access: workflow.access,
     created_at: workflow.created_at,
     updated_at: workflow.updated_at,
@@ -1429,7 +1428,6 @@ export function toJobResponse(job: Job) {
   return {
     id: job.id,
     user_id: job.user_id,
-    project_id: job.project_id,
     job_type: "workflow",
     status: job.status,
     workflow_id: job.workflow_id,

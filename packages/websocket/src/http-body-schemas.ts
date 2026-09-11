@@ -130,7 +130,6 @@ export const workflowRequestBodySchema = z.object({
   settings: unchecked<Record<string, unknown> | null>(),
   run_mode: unchecked<string | null>(),
   workspace_id: unchecked<string | null>(),
-  project_id: lenientString(),
   html_app: unchecked<string | null>(),
   app_doc: unchecked<Record<string, unknown> | null>(),
   expected_updated_at: unchecked<string>()

@@ -58,7 +58,6 @@ export interface WorkflowGraphInput {
 /** The fields both writers accept. Absent means "leave alone" on update. */
 export interface WorkflowWriteInput {
   name?: string;
-  project_id?: string;
   tool_name?: string | null;
   package_name?: string | null;
   path?: string | null;

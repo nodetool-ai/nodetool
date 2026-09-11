@@ -135,7 +135,6 @@ export const workflowResponse = z.object({
   path: z.string().nullable(),
   run_mode: z.string().nullable(),
   workspace_id: z.string().nullable(),
-  project_id: z.string().default("default"),
   required_providers: z.unknown().nullable(),
   required_models: z.unknown().nullable(),
   html_app: z.string().nullable(),
@@ -300,7 +299,6 @@ export const workflowBody = z.object({
   settings: z.record(z.string(), z.unknown()).nullable().optional(),
   run_mode: z.string().nullable().optional(),
   workspace_id: z.string().nullable().optional(),
-  project_id: z.string().min(1).optional(),
   html_app: z.string().nullable().optional(),
   app_doc: z.record(z.string(), z.unknown()).nullable().optional()
 });
