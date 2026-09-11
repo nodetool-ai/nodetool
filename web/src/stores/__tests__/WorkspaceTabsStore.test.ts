@@ -233,6 +233,16 @@ describe("creationProjectId", () => {
     useWorkspaceTabsStore.getState().setActiveProjectId(null);
     expect(create()).toBe(LOOSE_PROJECT_ID);
   });
+
+  it("clears a project tab when switching to Personal with no Personal tab", () => {
+    useWorkspaceTabsStore.getState().openProject({
+      id: "proj-1",
+      name: "Aurora"
+    });
+    useWorkspaceTabsStore.getState().setActiveProjectId(null);
+    expect(useWorkspaceTabsStore.getState().activeProjectId).toBeNull();
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBeNull();
+  });
 });
 
 describe("openProject", () => {

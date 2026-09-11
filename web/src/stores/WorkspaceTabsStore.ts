@@ -601,8 +601,8 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
               ? currentTab.projectId === projectId
               : currentTab.projectId === undefined)
               ? currentTab.id
-              : fallbackTab?.id) ??
-            state.activeTabId;
+            : fallbackTab?.id) ??
+            null;
           return {
             activeProjectId: projectId,
             activeTabId,
