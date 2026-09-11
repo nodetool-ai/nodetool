@@ -351793,5 +351793,2024 @@
       }
     ],
     "moduleName": "text_to_image"
+  },
+  {
+    "endpointId": "bria/increase-resolution",
+    "className": "IncreaseResolution",
+    "docstring": "Upscale an image 2x or 4x up to 8192x8192 without regenerating it, so original detail is preserved rather than reinvented.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "bria",
+      "upscale",
+      "resolution"
+    ],
+    "useCases": [
+      "Enlarge a photo for print",
+      "Raise resolution without altering detail",
+      "Upscale assets while keeping alpha",
+      "Prepare stills for large displays",
+      "Batch-resize a product catalog"
+    ],
+    "inputFields": [
+      {
+        "name": "output_type",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "png",
+        "description": "Image format. JPEG carries no alpha, so preserve_alpha does not apply.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputType",
+        "enumValues": [
+          "png",
+          "jpeg"
+        ]
+      },
+      {
+        "name": "preserve_alpha",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Reattach the source alpha channel to the result.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "preserve_color",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Correct the upscaled result's color cast against the source image.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Return the image inline instead of as a URL.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL of the image to upscale.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "desired_increase",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": 2,
+        "description": "Upscale factor. Each factor is its own SwinIR checkpoint.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "DesiredIncrease",
+        "enumValues": [
+          2,
+          4
+        ]
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "The upscaled image.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "OutputType",
+        "values": [
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "JPEG",
+            "jpeg"
+          ]
+        ],
+        "description": "Image format. JPEG carries no alpha, so preserve_alpha does not apply."
+      },
+      {
+        "name": "DesiredIncrease",
+        "values": [
+          [
+            "VALUE_2",
+            2
+          ],
+          [
+            "VALUE_4",
+            4
+          ]
+        ],
+        "description": "Upscale factor. Each factor is its own SwinIR checkpoint."
+      }
+    ],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "bria/ad-delayer",
+    "className": "AdDelayer",
+    "docstring": "Split a flat ad image into editable layers: background, product and logo cutouts, live text with typography, and vector shapes, returned as structured JSON.",
+    "tags": [
+      "vision",
+      "analysis",
+      "json",
+      "bria",
+      "ad",
+      "layers"
+    ],
+    "useCases": [
+      "Recover layers from a flattened ad",
+      "Extract ad copy with its typography",
+      "Rebuild a creative for a new size",
+      "Localize text in an existing ad",
+      "Feed ad structure into a design tool"
+    ],
+    "inputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Reference ad image to split into layers, as a public URL.",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "text_mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "svg",
+        "description": "Where the copy's glyphs come from. 'svg' traces them out of the reference ad as vector outlines, keeping the original letterforms; 'font' typesets them as live, editable text in the nearest matching font.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "TextMode",
+        "enumValues": [
+          "svg",
+          "font"
+        ]
+      }
+    ],
+    "outputType": "any",
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "TextMode",
+        "values": [
+          [
+            "SVG",
+            "svg"
+          ],
+          [
+            "FONT",
+            "font"
+          ]
+        ],
+        "description": "Where the copy's glyphs come from. 'svg' traces them out of the reference ad as vector outlines, keeping the original letterforms; 'font' typesets them as live, editable text in the nearest matching font."
+      }
+    ],
+    "moduleName": "image_to_json"
+  },
+  {
+    "endpointId": "fal-ai/vggt-1b",
+    "className": "Vggt1b",
+    "docstring": "VGGT-1B reconstructs a 3D scene from images or video, returning depth maps, camera poses, and a colored point cloud.",
+    "tags": [
+      "vision",
+      "analysis",
+      "json",
+      "3d",
+      "depth",
+      "point-cloud"
+    ],
+    "useCases": [
+      "Recover camera poses from footage",
+      "Build a point cloud from photos",
+      "Extract depth maps for compositing",
+      "Reconstruct a set from a scout video",
+      "Measure scene geometry from stills"
+    ],
+    "inputFields": [
+      {
+        "name": "export_point_cloud",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Return a GLB scene holding the fused coloured point cloud plus a cone mesh per estimated camera.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "alpha_blend_onto",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "white",
+        "description": "How to handle images with an alpha channel. 'white'/'black' composite onto that background, 'mean' composites onto the ImageNet mean RGB, and 'keep' discards alpha and keeps the original pixel values.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AlphaBlendOnto",
+        "enumValues": [
+          "keep",
+          "white",
+          "black",
+          "mean"
+        ]
+      },
+      {
+        "name": "array_encoding",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "base64",
+        "description": "How arrays are encoded inside the prediction JSON files. 'base64' emits {data, shape, dtype} objects; 'list' emits nested JSON lists, which are far larger.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ArrayEncoding",
+        "enumValues": [
+          "base64",
+          "list"
+        ]
+      },
+      {
+        "name": "exclude_keys",
+        "tsType": "string[]",
+        "propType": "list[str]",
+        "default": [],
+        "description": "Keys to omit from each prediction JSON file.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Enable safety checking of the input images and video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "frame_sampling_rate",
+        "tsType": "number",
+        "propType": "int",
+        "default": 24,
+        "description": "Sample every n-th frame of `video_url`. The first and last frames of the video are always included. Ignored when no video is given.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 1000
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Input images to reconstruct. Accepts JPEG, PNG, WEBP and the other formats Pillow decodes. Images are padded to a square and resized so the longest side is 518 pixels.",
+        "fieldType": "input",
+        "required": false,
+        "max": 48,
+        "apiParamName": "image_urls"
+      },
+      {
+        "name": "max_points",
+        "tsType": "number",
+        "propType": "int",
+        "default": 250000,
+        "description": "Upper bound on the number of points written to the GLB. Points above the default 250,000-point budget are evenly subsampled to limit GLB serialization and upload latency.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1000,
+        "max": 5000000
+      },
+      {
+        "name": "export_depth_maps",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Return one 16-bit grayscale PNG depth raster per frame. Pixel values map linearly from `depth_range` onto 0-65535.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "export_prediction_data",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Return one JSON file per frame with the raw model outputs (camera pose encoding, depth, depth confidence, mask).",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "Optional input video. Frames are sampled every `frame_sampling_rate`-th frame (the first and last frames are always included) and appended after `image_urls`.",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "video_url"
+      },
+      {
+        "name": "confidence_percentile",
+        "tsType": "number",
+        "propType": "float",
+        "default": 50,
+        "description": "Drop this percentage of the lowest-confidence points before building the point cloud. 0 keeps every point.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 100
+      }
+    ],
+    "outputType": "dict",
+    "outputFields": [
+      {
+        "name": "point_cloud",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "GLB scene with the fused point cloud and camera cones (when `export_point_cloud` is true).",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "depth_maps",
+        "tsType": "Image[]",
+        "propType": "list[Image]",
+        "default": [],
+        "description": "One 16-bit grayscale PNG depth raster per frame, in frame order (when `export_depth_maps` is true).",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "extrinsics",
+        "tsType": "number[][][]",
+        "propType": "list[list[list[float]]]",
+        "default": [],
+        "description": "Per-frame 3x4 camera-from-world extrinsics in OpenCV convention (x-right, y-down, z-forward).",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "timings",
+        "tsType": "object",
+        "propType": "dict[str, any]",
+        "default": null,
+        "description": "Wall-clock seconds per stage.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "depth_range",
+        "tsType": "number[]",
+        "propType": "list[float]",
+        "default": [],
+        "description": "The [min, max] depth used to quantize `depth_maps`. depth = min + (pixel / 65535) * (max - min).",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "num_frames",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "Number of frames reconstructed (images plus sampled video frames).",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "prediction_data",
+        "tsType": "File[]",
+        "propType": "list[File]",
+        "default": [],
+        "description": "One JSON file of raw predictions per frame, in frame order (when `export_prediction_data` is true).",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "intrinsics",
+        "tsType": "number[][][]",
+        "propType": "list[list[list[float]]]",
+        "default": [],
+        "description": "Per-frame 3x3 pinhole intrinsics, in pixels of the 518x518 model frame.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "AlphaBlendOnto",
+        "values": [
+          [
+            "KEEP",
+            "keep"
+          ],
+          [
+            "WHITE",
+            "white"
+          ],
+          [
+            "BLACK",
+            "black"
+          ],
+          [
+            "MEAN",
+            "mean"
+          ]
+        ],
+        "description": "How to handle images with an alpha channel. 'white'/'black' composite onto that background, 'mean' composites onto the ImageNet mean RGB, and 'keep' discards alpha and keeps the original pixel values."
+      },
+      {
+        "name": "ArrayEncoding",
+        "values": [
+          [
+            "BASE64",
+            "base64"
+          ],
+          [
+            "LIST",
+            "list"
+          ]
+        ],
+        "description": "How arrays are encoded inside the prediction JSON files. 'base64' emits {data, shape, dtype} objects; 'list' emits nested JSON lists, which are far larger."
+      }
+    ],
+    "moduleName": "image_to_json"
+  },
+  {
+    "endpointId": "minimax/h3-max/multi-angle/image-to-video",
+    "className": "MinimaxH3MaxMultiAngleImageToVideo",
+    "docstring": "H3 Max Multi Angle animates a still with a keyframed camera trajectory, controlling orbit, elevation, and distance in 3D space.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "minimax",
+      "h3",
+      "camera"
+    ],
+    "useCases": [
+      "Orbit a product on a fixed frame",
+      "Script a camera move over key art",
+      "Show a subject from several angles",
+      "Add parallax to a still",
+      "Match a camera move across shots"
+    ],
+    "inputFields": [
+      {
+        "name": "camera_trajectory",
+        "tsType": "H3MaxCameraKeyframe[]",
+        "propType": "list[H3MaxCameraKeyframe]",
+        "default": [],
+        "description": "Ordered camera keyframes. The first pose is held before its time and the final pose is held for the remainder of the video. Signed full turns are preserved, with at most 32 turns of total azimuth travel.",
+        "fieldType": "input",
+        "required": false,
+        "min": 2,
+        "max": 12
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Return the generated video as base64 instead of a CDN URL.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "The duration of the video in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "If set to true, the safety checker will be enabled.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Random seed. A random seed is selected when omitted.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "The same elements in the reference are rigid. Preserve every element exactly. The entire scene is frozen. Only the camera moves. no scene motion only camera motion",
+        "description": "Text prompt for video generation. When omitted or blank, defaults to preserving the frozen reference scene while only the camera moves.",
+        "fieldType": "input",
+        "required": false,
+        "max": 50000
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL of the image to use as the first frame.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "480P",
+        "description": "The native generation resolution, or 1080P latent refinement from a native 768P source.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480P",
+          "768P",
+          "1080P"
+        ]
+      },
+      {
+        "name": "prompt_expansion_mode",
+        "tsType": "string",
+        "propType": "str",
+        "default": "balanced",
+        "description": "How much effort to spend rewriting the prompt before generation. 'balanced' returns in about a second. 'quality' spends up to ~30s on a richer prompt.",
+        "fieldType": "input",
+        "required": true
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "expanded_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt after expansion, as sent to the model. Null when prompt expansion was disabled, left the prompt unchanged, or was performed internally by MiniMax's hosted API.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "timings",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Timing breakdown in seconds. 'inference' is the DiT denoising time on the GPU backend. Null on routes that do not report backend timings.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480P"
+          ],
+          [
+            "VALUE_768P",
+            "768P"
+          ],
+          [
+            "VALUE_1080P",
+            "1080P"
+          ]
+        ],
+        "description": "The native generation resolution, or 1080P latent refinement from a native 768P source."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "minimax/h3-max/reference-to-video",
+    "className": "MinimaxH3MaxReferenceToVideo",
+    "docstring": "H3 Max generates video from image, video, and audio references together, holding subject and style from the references.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "minimax",
+      "h3",
+      "reference"
+    ],
+    "useCases": [
+      "Keep a cast consistent across shots",
+      "Carry a look from reference footage",
+      "Drive motion from a reference clip",
+      "Sync a shot to a reference track",
+      "Generate a shot from mixed references"
+    ],
+    "inputFields": [
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "The duration of the video in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Return the generated video as base64 instead of a CDN URL.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt_expansion_mode",
+        "tsType": "string",
+        "propType": "str",
+        "default": "balanced",
+        "description": "How much effort to spend rewriting the prompt before generation. 'balanced' returns in about a second. 'quality' spends up to ~30s on a richer prompt.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "reference_images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "URLs of subject/style reference images, referenced in the prompt as Image 1, Image 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
+        "fieldType": "input",
+        "required": false,
+        "max": 9,
+        "apiParamName": "reference_image_urls"
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "If set to true, the safety checker will be enabled.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "adaptive",
+        "description": "The aspect ratio of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "adaptive",
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "reference_audio_urls",
+        "tsType": "audio[]",
+        "propType": "list[audio]",
+        "default": [],
+        "description": "URLs of reference audio clips (2-15 seconds each, combined duration at most 15 seconds), referenced in the prompt as Audio 1, Audio 2, and so on. Audio cannot be the only reference input; provide at least one reference image or video with it. Reference images, videos, and audio clips must add up to at most 12 files.",
+        "fieldType": "input",
+        "required": false,
+        "max": 3
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Random seed. A random seed is selected when omitted.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation. Refer to reference assets by their modality and order in the reference lists: Image 1, Image 2, Video 1, Audio 1, and so on.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 50000
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "768P",
+        "description": "The native generation resolution, or 1080P latent refinement from a native 768P source.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480P",
+          "768P",
+          "1080P"
+        ]
+      },
+      {
+        "name": "reference_video_urls",
+        "tsType": "video[]",
+        "propType": "list[video]",
+        "default": [],
+        "description": "URLs of motion/reference video clips (2-15 seconds each, combined duration at most 15 seconds), referenced in the prompt as Video 1, Video 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
+        "fieldType": "input",
+        "required": false,
+        "max": 3
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "expanded_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt after expansion, as sent to the model. Null when prompt expansion was disabled, left the prompt unchanged, or was performed internally by MiniMax's hosted API.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Base seed for reproducing the generation.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "timings",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Timing breakdown in seconds. 'inference' is the DiT denoising time on the GPU backend. Null on routes that do not report backend timings.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "ADAPTIVE",
+            "adaptive"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "The aspect ratio of the generated video."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480P"
+          ],
+          [
+            "VALUE_768P",
+            "768P"
+          ],
+          [
+            "VALUE_1080P",
+            "1080P"
+          ]
+        ],
+        "description": "The native generation resolution, or 1080P latent refinement from a native 768P source."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "google/gemini-omni-flash/v1.1/image-to-video",
+    "className": "GeminiOmniFlashV11ImageToVideo",
+    "docstring": "Gemini Omni Flash 1.1 animates a still into video with synchronized audio, optionally toward an end frame.",
+    "tags": [
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "google",
+      "gemini",
+      "omni",
+      "flash"
+    ],
+    "useCases": [
+      "Animate key art with sound",
+      "Interpolate between a first and last frame",
+      "Add motion to product photography",
+      "Turn a generated still into a clip",
+      "Produce social cuts from one frame"
+    ],
+    "inputFields": [
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "The resolution of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "360p",
+          "720p",
+          "1080p",
+          "4k"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 8,
+        "description": "The duration of the generated video, in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 3,
+        "max": 10
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing how the first image should be animated or interpolated into the optional end image.",
+        "fieldType": "input",
+        "required": true,
+        "max": 20000
+      },
+      {
+        "name": "end_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Optional URL of the end frame. When provided, the model interpolates between the two images in their listed order.",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "end_image_url"
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL of the first frame to animate.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "The aspect ratio of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "9:16"
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_360P",
+            "360p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ],
+          [
+            "VALUE_4K",
+            "4k"
+          ]
+        ],
+        "description": "The resolution of the generated video."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "The aspect ratio of the generated video."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "google/gemini-omni-flash/v1.1/reference-to-video",
+    "className": "GeminiOmniFlashV11ReferenceToVideo",
+    "docstring": "Gemini Omni Flash 1.1 generates video from images, videos, and text together, keeping a character's face, clothing, and voice across the result.",
+    "tags": [
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "google",
+      "gemini",
+      "omni",
+      "flash",
+      "reference"
+    ],
+    "useCases": [
+      "Hold a character across a sequence",
+      "Combine stills and footage in one prompt",
+      "Carry a voice through a generated shot",
+      "Recast a reference clip with new subjects",
+      "Generate a shot from mixed references"
+    ],
+    "inputFields": [
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "The resolution of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "360p",
+          "720p",
+          "1080p",
+          "4k"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 8,
+        "description": "The duration of the generated video, in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 3,
+        "max": 10
+      },
+      {
+        "name": "reference_video_urls",
+        "tsType": "video[]",
+        "propType": "list[video]",
+        "default": [],
+        "description": "URLs of up to three reference videos. Each video must be at most three seconds long.",
+        "fieldType": "input",
+        "required": false,
+        "max": 3
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the video. Reference media is sent in list order before the prompt.",
+        "fieldType": "input",
+        "required": true,
+        "max": 20000
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "The aspect ratio of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "URLs of reference images to incorporate into the video.",
+        "fieldType": "input",
+        "required": false,
+        "max": 10,
+        "apiParamName": "image_urls"
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_360P",
+            "360p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ],
+          [
+            "VALUE_4K",
+            "4k"
+          ]
+        ],
+        "description": "The resolution of the generated video."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "The aspect ratio of the generated video."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "fal-ai/elevenlabs/forced-alignment",
+    "className": "ElevenLabsForcedAlignment",
+    "docstring": "ElevenLabs Forced Alignment times a known transcript against its audio, returning per-word and per-character timestamps.",
+    "tags": [
+      "audio",
+      "transcription",
+      "stt",
+      "elevenlabs",
+      "speech-to-text",
+      "alignment"
+    ],
+    "useCases": [
+      "Time captions to a recording",
+      "Build word-level subtitles from a script",
+      "Sync narration to a cut",
+      "Locate a phrase inside long audio",
+      "Drive lip-sync from a known script"
+    ],
+    "inputFields": [
+      {
+        "name": "text",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Transcript to align with the audio",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 675000
+      },
+      {
+        "name": "audio",
+        "tsType": "audio",
+        "propType": "audio",
+        "default": null,
+        "description": "URL of the audio file to align. The file can be up to 3 GB and the audio can be up to 10 hours long.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "audio_url"
+      }
+    ],
+    "outputType": "dict",
+    "outputFields": [
+      {
+        "name": "words",
+        "tsType": "ForcedAlignmentWord[]",
+        "propType": "list[ForcedAlignmentWord]",
+        "default": [],
+        "description": "Word-level alignment details",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "loss",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "Average alignment loss for the transcript",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "characters",
+        "tsType": "ForcedAlignmentCharacter[]",
+        "propType": "list[ForcedAlignmentCharacter]",
+        "default": [],
+        "description": "Character-level alignment details",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [],
+    "moduleName": "speech_to_text"
+  },
+  {
+    "endpointId": "google/gemini-omni-flash/v1.1/text-to-video",
+    "className": "GeminiOmniFlashV11TextToVideo",
+    "docstring": "Gemini Omni Flash 1.1 generates video with native synchronized audio from a text prompt, taking camera direction in plain language.",
+    "tags": [
+      "generation",
+      "text-to-video",
+      "txt2vid",
+      "google",
+      "gemini",
+      "omni",
+      "flash"
+    ],
+    "useCases": [
+      "Render a written shot with sound",
+      "Direct a camera move in plain language",
+      "Produce ads from a script",
+      "Generate narrative clips with dialogue",
+      "Draft shots before a full render"
+    ],
+    "inputFields": [
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "The resolution of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "360p",
+          "720p",
+          "1080p",
+          "4k"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 8,
+        "description": "The duration of the generated video, in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 3,
+        "max": 10
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the video you want to generate.",
+        "fieldType": "input",
+        "required": true,
+        "max": 20000
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "The aspect ratio of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "9:16"
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_360P",
+            "360p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ],
+          [
+            "VALUE_4K",
+            "4k"
+          ]
+        ],
+        "description": "The resolution of the generated video."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "The aspect ratio of the generated video."
+      }
+    ],
+    "moduleName": "text_to_video"
+  },
+  {
+    "endpointId": "blackforestlabs/flux-3/edit-video",
+    "className": "Flux3EditVideo",
+    "docstring": "FLUX 3 re-renders an existing video from a natural-language instruction, changing what the prompt asks for and leaving the rest of the scene intact.",
+    "tags": [
+      "video",
+      "editing",
+      "video-to-video",
+      "vid2vid",
+      "flux-3",
+      "edit"
+    ],
+    "useCases": [
+      "Restyle a clip without reshooting it",
+      "Swap a subject or garment across a shot",
+      "Change the season or time of day of footage",
+      "Fix a detail in an approved take",
+      "Iterate on a shot through successive instructions"
+    ],
+    "inputFields": [
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing how to change the input video. The clip is re-rendered preserving motion, timing, and framing.",
+        "fieldType": "input",
+        "required": true,
+        "max": 4096
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "The safety tolerance level for the generated video. 0 is the strictest and 4 is the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "URL of the input video. MP4, under 50 MB and under 15 seconds.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "video_url"
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for the generation.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [],
+    "moduleName": "video_to_video"
+  },
+  {
+    "endpointId": "fal-ai/kling-video/o3/4k/video-to-video/reference",
+    "className": "KlingVideoO34kVideoToVideoReference",
+    "docstring": "Kling O3 Native 4K regenerates a video from reference images and elements, outputting 4K directly with no upscaling pass.",
+    "tags": [
+      "video",
+      "editing",
+      "video-to-video",
+      "vid2vid",
+      "kling",
+      "4k"
+    ],
+    "useCases": [
+      "Deliver 4K without a separate upscale",
+      "Recast a shot from reference stills",
+      "Carry elements across a re-render",
+      "Produce broadcast-resolution masters",
+      "Repurpose footage at full resolution"
+    ],
+    "inputFields": [
+      {
+        "name": "shot_type",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "customize",
+        "description": "The type of multi-shot video generation.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ShotType",
+        "enumValues": [
+          "customize"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation. Reference video as @Video1.",
+        "fieldType": "input",
+        "required": true,
+        "max": 2500
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": null,
+        "description": "Video duration in seconds (3-15s for reference video).",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15"
+        ]
+      },
+      {
+        "name": "keep_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to keep the original audio from the reference video. ",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": null,
+        "description": "Reference images for style/appearance. Reference in prompt as @Image1, @Image2, etc. Maximum 4 total (elements + reference images) when using video.",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "image_urls"
+      },
+      {
+        "name": "elements",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "Reference video URL. Only .mp4/.mov formats, 3-15s duration, 720-3840px resolution, max 200MB.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "video_url"
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "ShotType",
+        "values": [
+          [
+            "CUSTOMIZE",
+            "customize"
+          ]
+        ],
+        "description": "The type of multi-shot video generation."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ]
+        ],
+        "description": "Aspect ratio."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "VALUE_3",
+            "3"
+          ],
+          [
+            "VALUE_4",
+            "4"
+          ],
+          [
+            "VALUE_5",
+            "5"
+          ],
+          [
+            "VALUE_6",
+            "6"
+          ],
+          [
+            "VALUE_7",
+            "7"
+          ],
+          [
+            "VALUE_8",
+            "8"
+          ],
+          [
+            "VALUE_9",
+            "9"
+          ],
+          [
+            "VALUE_10",
+            "10"
+          ],
+          [
+            "VALUE_11",
+            "11"
+          ],
+          [
+            "VALUE_12",
+            "12"
+          ],
+          [
+            "VALUE_13",
+            "13"
+          ],
+          [
+            "VALUE_14",
+            "14"
+          ],
+          [
+            "VALUE_15",
+            "15"
+          ]
+        ],
+        "description": "Video duration in seconds (3-15s for reference video)."
+      }
+    ],
+    "moduleName": "video_to_video"
+  },
+  {
+    "endpointId": "fal-ai/kling-video/o3/4k/video-to-video/edit",
+    "className": "KlingVideoO34kVideoToVideoEdit",
+    "docstring": "Kling O3 Native 4K edits an existing video from a prompt and optional reference images, outputting 4K directly with no upscaling pass.",
+    "tags": [
+      "video",
+      "editing",
+      "video-to-video",
+      "vid2vid",
+      "kling",
+      "4k",
+      "edit"
+    ],
+    "useCases": [
+      "Edit a shot and deliver it at 4K",
+      "Change a subject in existing footage",
+      "Keep the source audio through an edit",
+      "Apply a look to a finished clip",
+      "Revise a master without re-shooting"
+    ],
+    "inputFields": [
+      {
+        "name": "keep_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to keep the original audio from the reference video. ",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation. Reference video as @Video1.",
+        "fieldType": "input",
+        "required": true,
+        "max": 2500
+      },
+      {
+        "name": "shot_type",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "customize",
+        "description": "The type of multi-shot video generation.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ShotType",
+        "enumValues": [
+          "customize"
+        ]
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": null,
+        "description": "Reference images for style/appearance. Reference in prompt as @Image1, @Image2, etc. Maximum 4 total (elements + reference images) when using video.",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "image_urls"
+      },
+      {
+        "name": "elements",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "Reference video URL. Only .mp4/.mov formats, 3-15s duration, 720-3840px resolution, max 200MB.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "video_url"
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "ShotType",
+        "values": [
+          [
+            "CUSTOMIZE",
+            "customize"
+          ]
+        ],
+        "description": "The type of multi-shot video generation."
+      }
+    ],
+    "moduleName": "video_to_video"
+  },
+  {
+    "endpointId": "bria/video/background-removal/green-screen-despill",
+    "className": "VideoBackgroundRemovalGreenScreenDespill",
+    "docstring": "Remove the background from chromakey footage, suppressing the green spill that bleeds onto the subject's edges.",
+    "tags": [
+      "editing",
+      "video-to-video",
+      "vid2vid",
+      "bria",
+      "background",
+      "removal",
+      "green-screen"
+    ],
+    "useCases": [
+      "Key studio footage shot on green",
+      "Clean spill off hair and edges",
+      "Composite talent onto a new plate",
+      "Prepare alpha clips for an edit",
+      "Batch-key a green-screen shoot"
+    ],
+    "inputFields": [
+      {
+        "name": "spill_suppression",
+        "tsType": "number",
+        "propType": "float",
+        "default": 1,
+        "description": "Strength of green-spill suppression. Higher values pull the green channel toward the red/blue average on green-dominant pixels, removing the green fringe around the subject. 0 disables it.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "preserve_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "If true, audio will be preserved in the output video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "Input video filmed on a green screen.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "video_url"
+      },
+      {
+        "name": "output_container_and_codec",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "webm_vp9",
+        "description": "Output container and codec. Options: mp4_h265, mp4_h264, webm_vp9, mov_h265, mov_proresks, mkv_h265, mkv_h264, mkv_vp9, gif.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputContainerAndCodec",
+        "enumValues": [
+          "mp4_h265",
+          "mp4_h264",
+          "webm_vp9",
+          "mov_h265",
+          "mov_proresks",
+          "mkv_h265",
+          "mkv_h264",
+          "mkv_vp9",
+          "gif"
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "request_id",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Bria request ID.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "warning",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Set when the request was served with an adjusted parameter, e.g. a transparent background falling back to black on a codec that cannot carry alpha.",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "Video with the green-screen background removed, on a transparent background.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "OutputContainerAndCodec",
+        "values": [
+          [
+            "MP4_H265",
+            "mp4_h265"
+          ],
+          [
+            "MP4_H264",
+            "mp4_h264"
+          ],
+          [
+            "WEBM_VP9",
+            "webm_vp9"
+          ],
+          [
+            "MOV_H265",
+            "mov_h265"
+          ],
+          [
+            "MOV_PRORESKS",
+            "mov_proresks"
+          ],
+          [
+            "MKV_H265",
+            "mkv_h265"
+          ],
+          [
+            "MKV_H264",
+            "mkv_h264"
+          ],
+          [
+            "MKV_VP9",
+            "mkv_vp9"
+          ],
+          [
+            "GIF",
+            "gif"
+          ]
+        ],
+        "description": "Output container and codec. Options: mp4_h265, mp4_h264, webm_vp9, mov_h265, mov_proresks, mkv_h265, mkv_h264, mkv_vp9, gif."
+      }
+    ],
+    "moduleName": "video_to_video"
+  },
+  {
+    "endpointId": "google/gemini-omni-flash/v1.1/edit",
+    "className": "GeminiOmniFlashV11Edit",
+    "docstring": "Gemini Omni Flash 1.1 edits video from a natural-language instruction, applying the requested change while keeping the rest of the scene, and holding character and scene consistency across successive edits.",
+    "tags": [
+      "editing",
+      "video-to-video",
+      "vid2vid",
+      "google",
+      "gemini",
+      "omni",
+      "flash"
+    ],
+    "useCases": [
+      "Apply a targeted change to a finished clip",
+      "Chain several edits on the same footage",
+      "Keep a character consistent across revisions",
+      "Restyle a shot from a written note",
+      "Revise a take without regenerating it"
+    ],
+    "inputFields": [
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "The resolution of the edited video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "360p",
+          "720p",
+          "1080p",
+          "4k"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "A simple instruction describing the edit.",
+        "fieldType": "input",
+        "required": true,
+        "max": 20000
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "URL of the video to edit.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "video_url"
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_360P",
+            "360p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ],
+          [
+            "VALUE_4K",
+            "4k"
+          ]
+        ],
+        "description": "The resolution of the edited video."
+      }
+    ],
+    "moduleName": "video_to_video"
   }
 ]

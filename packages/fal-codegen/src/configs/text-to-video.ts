@@ -2090,6 +2090,27 @@ export const config: ModuleConfig = {
         "Rapid prototyping"
       ]
     },
+    "google/gemini-omni-flash/v1.1/text-to-video": {
+      className: "GeminiOmniFlashV11TextToVideo",
+      docstring:
+        "Gemini Omni Flash 1.1 generates video with native synchronized audio from a text prompt, taking camera direction in plain language.",
+      tags: [
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "google",
+        "gemini",
+        "omni",
+        "flash"
+      ],
+      useCases: [
+        "Render a written shot with sound",
+        "Direct a camera move in plain language",
+        "Produce ads from a script",
+        "Generate narrative clips with dialogue",
+        "Draft shots before a full render"
+      ]
+    },
     "luma/agent/ray/v3.2/text-to-video": {
       className: "LumaAgentRayV32TextToVideo",
       docstring:

@@ -5235,6 +5235,26 @@ export const config: ModuleConfig = {
         "Rapid prototyping"
       ]
     },
+    "bria/increase-resolution": {
+      className: "IncreaseResolution",
+      docstring:
+        "Upscale an image 2x or 4x up to 8192x8192 without regenerating it, so original detail is preserved rather than reinvented.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "bria",
+        "upscale",
+        "resolution"
+      ],
+      useCases: [
+        "Enlarge a photo for print",
+        "Raise resolution without altering detail",
+        "Upscale assets while keeping alpha",
+        "Prepare stills for large displays",
+        "Batch-resize a product catalog"
+      ]
+    },
     "bytedance/seedream/v5/lite/edit": {
       className: "SeedreamV5LiteEdit",
       docstring:

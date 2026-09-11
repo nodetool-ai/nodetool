@@ -2,6 +2,20 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "blackforestlabs/flux-3/edit-video": {
+      className: "Flux3EditVideo",
+      docstring:
+        "FLUX 3 re-renders an existing video from a natural-language instruction, changing what the prompt asks for and leaving the rest of the scene intact.",
+      tags: ["video", "editing", "video-to-video", "vid2vid", "flux-3", "edit"],
+      useCases: [
+        "Restyle a clip without reshooting it",
+        "Swap a subject or garment across a shot",
+        "Change the season or time of day of footage",
+        "Fix a detail in an approved take",
+        "Iterate on a shot through successive instructions"
+      ]
+    },
+
     "blackforestlabs/flux-3/extend-video": {
       className: "Flux3ExtendVideo",
       docstring:
@@ -628,6 +642,40 @@ export const config: ModuleConfig = {
         "Automated video editing",
         "Special effects generation",
         "Content repurposing"
+      ]
+    },
+    "fal-ai/kling-video/o3/4k/video-to-video/reference": {
+      className: "KlingVideoO34kVideoToVideoReference",
+      docstring:
+        "Kling O3 Native 4K regenerates a video from reference images and elements, outputting 4K directly with no upscaling pass.",
+      tags: ["video", "editing", "video-to-video", "vid2vid", "kling", "4k"],
+      useCases: [
+        "Deliver 4K without a separate upscale",
+        "Recast a shot from reference stills",
+        "Carry elements across a re-render",
+        "Produce broadcast-resolution masters",
+        "Repurpose footage at full resolution"
+      ]
+    },
+    "fal-ai/kling-video/o3/4k/video-to-video/edit": {
+      className: "KlingVideoO34kVideoToVideoEdit",
+      docstring:
+        "Kling O3 Native 4K edits an existing video from a prompt and optional reference images, outputting 4K directly with no upscaling pass.",
+      tags: [
+        "video",
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "kling",
+        "4k",
+        "edit"
+      ],
+      useCases: [
+        "Edit a shot and deliver it at 4K",
+        "Change a subject in existing footage",
+        "Keep the source audio through an edit",
+        "Apply a look to a finished clip",
+        "Revise a master without re-shooting"
       ]
     },
     "fal-ai/steady-dancer": {
@@ -1861,6 +1909,27 @@ export const config: ModuleConfig = {
         "Rapid prototyping"
       ]
     },
+    "bria/video/background-removal/green-screen-despill": {
+      className: "VideoBackgroundRemovalGreenScreenDespill",
+      docstring:
+        "Remove the background from chromakey footage, suppressing the green spill that bleeds onto the subject's edges.",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "bria",
+        "background",
+        "removal",
+        "green-screen"
+      ],
+      useCases: [
+        "Key studio footage shot on green",
+        "Clean spill off hair and edges",
+        "Composite talent onto a new plate",
+        "Prepare alpha clips for an edit",
+        "Batch-key a green-screen shoot"
+      ]
+    },
     "decart/lucy-2-5/realtime": {
       className: "Lucy25Realtime",
       docstring:
@@ -2739,6 +2808,27 @@ export const config: ModuleConfig = {
         "Batch processing",
         "Professional applications",
         "Rapid prototyping"
+      ]
+    },
+    "google/gemini-omni-flash/v1.1/edit": {
+      className: "GeminiOmniFlashV11Edit",
+      docstring:
+        "Gemini Omni Flash 1.1 edits video from a natural-language instruction, applying the requested change while keeping the rest of the scene, and holding character and scene consistency across successive edits.",
+      tags: [
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "google",
+        "gemini",
+        "omni",
+        "flash"
+      ],
+      useCases: [
+        "Apply a targeted change to a finished clip",
+        "Chain several edits on the same footage",
+        "Keep a character consistent across revisions",
+        "Restyle a shot from a written note",
+        "Revise a take without regenerating it"
       ]
     },
     "luma/agent/ray/v3.2/reframe": {
