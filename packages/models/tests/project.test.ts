@@ -157,7 +157,12 @@ describe("Project model", () => {
     const workflow = await Workflow.create<Workflow>({ user_id: "u1", project_id: project.id });
     const thread = await Thread.create<Thread>({ user_id: "u1", project_id: project.id });
     const job = await Job.create<Job>({ user_id: "u1", workflow_id: workflow.id, project_id: project.id });
-    const workspace = await Workspace.create<Workspace>({ user_id: "u1", project_id: project.id });
+    const workspace = await Workspace.create<Workspace>({
+      user_id: "u1",
+      project_id: project.id,
+      name: "Project workspace",
+      path: "/tmp/project-workspace"
+    });
     const prediction = await Prediction.create<Prediction>({ user_id: "u1", project_id: project.id });
     // Another user's document in the same (impossible but cheap to assert) id
     // must not be touched by the sweep.
