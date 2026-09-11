@@ -2263,11 +2263,11 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "kie": {
     "id": "kie",
-    "total": 163,
+    "total": 169,
     "counts": {
-      "image": 53,
-      "audio": 28,
-      "video": 80,
+      "image": 57,
+      "audio": 29,
+      "video": 81,
       "text": 2
     },
     "topTags": [],
@@ -2354,6 +2354,34 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Google Nano Banana Edit",
         "kind": "image",
         "desc": "Google - Nano Banana Edit via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "gpt-image-2-5-flare-image-to-image",
+        "name": "GPT Image 2.5 Flare Image To Image",
+        "kind": "image",
+        "desc": "GPT Image 2.5 Flare - Image To Image via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "gpt-image-2-5-flare-text-to-image",
+        "name": "GPT Image 2.5 Flare Text to Image",
+        "kind": "image",
+        "desc": "GPT Image 2.5 Flare - Text to Image via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "gpt-image-2-5-sunburst-image-to-image",
+        "name": "GPT Image 2.5 Sunburst Image To Image",
+        "kind": "image",
+        "desc": "GPT Image 2.5 Sunburst - Image To Image via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "gpt-image-2-5-sunburst-text-to-image",
+        "name": "GPT Image 2.5 Sunburst Text to Image",
+        "kind": "image",
+        "desc": "GPT Image 2.5 Sunburst - Text to Image via Kie.ai.",
         "tags": []
       },
       {
@@ -2525,34 +2553,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
-        "id": "qwen3/image-to-image",
-        "name": "Qwen3 Image to Image",
-        "kind": "image",
-        "desc": "Qwen3 Image to Image via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "qwen3/pro-image-to-image",
-        "name": "Qwen3 Pro Image to Image",
-        "kind": "image",
-        "desc": "Qwen3 Pro Image to Image via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "qwen3/pro-text-to-image",
-        "name": "Qwen3 Pro Text to Image",
-        "kind": "image",
-        "desc": "Qwen3 Pro Text to Image via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "qwen3/text-to-image",
-        "name": "Qwen3 Text to Image",
-        "kind": "image",
-        "desc": "Qwen3 Text to Image via Kie.ai.",
-        "tags": []
-      },
-      {
         "id": "bytedance/seedance-1.5-pro",
         "name": "Bytedance Seedance 1.5 Pro",
         "kind": "video",
@@ -2627,6 +2627,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Gemini Omni Video",
         "kind": "video",
         "desc": "Gemini Omni Video via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "google/gemini-omni-flash-1-1",
+        "name": "Gemini Omni 1.1 Flash",
+        "kind": "video",
+        "desc": "Gemini Omni 1.1 Flash via Kie.ai.",
         "tags": []
       },
       {
@@ -2826,13 +2833,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
-        "id": "kling/ai-avatar-pro",
-        "name": "Kling AI Avatar Pro",
-        "kind": "video",
-        "desc": "Kling AI Avatar Pro via Kie.ai.",
-        "tags": []
-      },
-      {
         "id": "add-instrumental",
         "name": "Add Instrumental to Music",
         "kind": "audio",
@@ -2973,6 +2973,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "recoveryAudio",
+        "name": "Recovery Audio",
+        "kind": "audio",
+        "desc": "Recovery Audio via Kie.ai.",
+        "tags": []
+      },
+      {
         "id": "replace-section",
         "name": "Replace Music Section",
         "kind": "audio",
@@ -2991,13 +2998,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Suno Voice Check Availability API",
         "kind": "audio",
         "desc": "Suno Voice Check Availability API via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "suno-voice-generate",
-        "name": "Suno Voice Create Custom Voice API",
-        "kind": "audio",
-        "desc": "Suno Voice Create Custom Voice API via Kie.ai.",
         "tags": []
       },
       {
