@@ -220,6 +220,44 @@ describe("Project model", () => {
     expect(await Project.listByUser("empty")).toEqual([]);
   });
 
+  it("leaves an assigned thread where it is, even when a project names it", async () => {
+    const owner = await Project.create<Project>({
+      id: "owner",
+      user_id: "u1",
+      name: "Owner"
+    });
+    const elsewhere = await Project.create<Project>({
+      id: "elsewhere",
+      user_id: "u1",
+      name: "Elsewhere"
+    });
+    // The user moved this thread to `elsewhere`; `owner` still carries the
+    // legacy pointer. The move is the decision, the stale pointer is not.
+    const moved = await Thread.create<Thread>({
+      user_id: "u1",
+      project_id: elsewhere.id,
+      title: "Moved"
+    });
+    const loose = await Thread.create<Thread>({
+      user_id: "u1",
+      project_id: LOOSE_PROJECT_ID,
+      title: "Loose"
+    });
+    await owner.update({ thread_id: moved.id });
+    const second = await Project.create<Project>({
+      id: "second-owner",
+      user_id: "u1",
+      name: "Second owner"
+    });
+    await second.update({ thread_id: loose.id });
+
+    await Project.migrateToPersonal("u1");
+
+    expect((await Thread.find("u1", moved.id))?.project_id).toBe(elsewhere.id);
+    // A loose thread a project names still gets restored to that project.
+    expect((await Thread.find("u1", loose.id))?.project_id).toBe(second.id);
+  });
+
   it("does not allow Personal to be deleted", async () => {
     const personal = await Project.ensurePersonal("u1");
     expect(await Project.deleteOwned("u1", personal.id)).toBe(false);

@@ -16,11 +16,9 @@ import {
   entitiesForShot,
   injectEntities,
   keyframePrompt,
-  clipPrompt,
-  directClipPrompt,
+  clipPromptFor,
   sceneForShot,
-  sha256Hex,
-  shotRenderMode
+  sha256Hex
 } from "@nodetool-ai/protocol";
 import type { Entity, Screenplay, Shot } from "@nodetool-ai/protocol";
 import type { StoryboardDocument } from "./document.js";
@@ -272,9 +270,9 @@ const injectedPrompt = (
 /**
  * What this shot would render from, on this board, with this cast.
  *
- * The composition is the render path's own (`keyframePrompt`, `clipPrompt`,
- * `directClipPrompt`) plus `injectEntities`, and the digest is `sha256Hex`, the
- * one that writes `RenderInputs.prompt_hash`. Two of these are compared against
+ * The composition is the render path's own (`keyframePrompt`, `clipPromptFor`)
+ * plus `injectEntities`, and the digest is `sha256Hex`, the one that writes
+ * `RenderInputs.prompt_hash`. Two of these are compared against
  * each other, which is what makes a descriptor edit visible: the stored record
  * hashes the composed prompt *before* injection, so it does not cover one.
  */
@@ -292,13 +290,7 @@ function promptHashes(
       injectedPrompt(keyframePrompt(shot, context), shot, entities)
     ),
     clip: sha256Hex(
-      injectedPrompt(
-        shotRenderMode(shot) === "direct"
-          ? directClipPrompt(shot, context)
-          : clipPrompt(shot),
-        shot,
-        entities
-      )
+      injectedPrompt(clipPromptFor(shot, context), shot, entities)
     )
   };
 }

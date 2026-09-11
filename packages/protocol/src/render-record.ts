@@ -27,12 +27,7 @@ import type {
 } from "./creative.js";
 import { shotRenderMode } from "./creative.js";
 import { sha256Hex } from "./sha256.js";
-import {
-  clipPrompt,
-  directClipPrompt,
-  keyframePrompt,
-  sceneForShot
-} from "./shot-prompt.js";
+import { clipPromptFor, keyframePrompt, sceneForShot } from "./shot-prompt.js";
 
 /**
  * The board settings a shot's render inputs are drawn from.
@@ -90,11 +85,7 @@ function promptHashFor(
   if (kind === "keyframe") {
     return sha256Hex(keyframePrompt(shot, context));
   }
-  return sha256Hex(
-    shotRenderMode(shot) === "direct"
-      ? directClipPrompt(shot, context)
-      : clipPrompt(shot)
-  );
+  return sha256Hex(clipPromptFor(shot, context));
 }
 
 /**
