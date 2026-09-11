@@ -362,3 +362,20 @@ export interface TextToMusicOutputs {
 export function textToMusic(inputs: TextToMusicInputs): Promise<TextToMusicOutputs> {
   return callNode<TextToMusicOutputs>("nodetool.audio.TextToMusic", inputs);
 }
+
+// Audio To Audio — nodetool.audio.AudioToAudio
+export type AudioToAudioInputs = {
+  model?: unknown;
+  audio?: AudioRef;
+  prompt?: string;
+  voice?: string;
+  strength?: number;
+};
+
+export interface AudioToAudioOutputs {
+  audio: AudioRef;
+}
+
+export function audioToAudio(inputs: AudioToAudioInputs): Promise<AudioToAudioOutputs> {
+  return callNode<AudioToAudioOutputs>("nodetool.audio.AudioToAudio", inputs);
+}

@@ -143,6 +143,7 @@ export const MODEL_SEARCH_KINDS = [
   "reference_to_video",
   "text_to_speech",
   "text_to_music",
+  "audio_to_audio",
   "speech_to_text",
   "text_generation",
   "embedding"
@@ -156,6 +157,7 @@ export const uiSearchModelsParams = {
         "`text_to_image` for nodetool.image.TextToImage, `image_to_image` for nodetool.image.ImageToImage, " +
         "`text_to_video` for nodetool.video.TextToVideo, `image_to_video` for nodetool.video.ImageToVideo, `reference_to_video` for nodetool.video.ReferenceToVideo, " +
         "`text_to_speech` for nodetool.audio.TextToSpeech, `text_to_music` for nodetool.audio.TextToMusic, " +
+        "`audio_to_audio` for nodetool.audio.AudioToAudio, " +
         "`speech_to_text` for nodetool.text.AutomaticSpeechRecognition, " +
         "`text_generation` for nodetool.agents.* and nodetool.generators.*, `embedding` for nodetool.text.Embedding."
     ),
@@ -189,7 +191,7 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
   },
   ui_search_models: {
     description:
-      "List recommended/available AI models for a given task. Required: `kind` (one of: text_to_image, image_to_image, text_to_video, image_to_video, reference_to_video, text_to_speech, speech_to_text, text_generation, embedding). Returns model ids you can write to a generic AI node's `model` property via ui_update_node_data.",
+      "List recommended/available AI models for a given task. Required: `kind` (one of: text_to_image, image_to_image, text_to_video, image_to_video, reference_to_video, text_to_speech, text_to_music, audio_to_audio, speech_to_text, text_generation, embedding). Returns model ids you can write to a generic AI node's `model` property via ui_update_node_data.",
     parameters: uiSearchModelsParams
   },
   ui_add_node: {

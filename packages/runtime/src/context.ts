@@ -307,6 +307,7 @@ export type ProviderCapability =
   | "lip_sync"
   | "text_to_speech"
   | "text_to_music"
+  | "audio_to_audio"
   | "automatic_speech_recognition"
   | "generate_embedding"
   | "text_to_3d"
@@ -397,6 +398,7 @@ export type ProviderPredictionResult = Awaited<
       | "videoToVideo"
       | "lipSync"
       | "textToMusic"
+      | "audioToAudio"
       | "automaticSpeechRecognition"
       | "generateEmbedding"
       | "textTo3D"
@@ -3107,6 +3109,16 @@ export class ProcessingContext {
           audioFormat: params.audioFormat as string | undefined,
           timeoutSeconds: params.timeout_seconds as number | undefined
         });
+      case "audio_to_audio":
+        return provider.audioToAudio(params.audio as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider },
+          prompt: params.prompt as string | undefined,
+          voice: params.voice as string | undefined,
+          strength: params.strength as number | undefined,
+          seed: params.seed as number | undefined,
+          audioFormat: params.audioFormat as string | undefined,
+          timeoutSeconds: params.timeout_seconds as number | undefined
+        });
       case "automatic_speech_recognition":
         return provider.automaticSpeechRecognition({
           audio: params.audio as Uint8Array,
@@ -3507,6 +3519,30 @@ export class ProcessingContext {
         model: { id: req.model, name: req.model, provider: req.provider },
         lyrics: params.lyrics as string | undefined,
         durationSeconds: params.duration_seconds as number | undefined,
+        seed: params.seed as number | undefined,
+        audioFormat: params.audioFormat as string | undefined,
+        timeoutSeconds: params.timeout_seconds as number | undefined
+      });
+    });
+  }
+
+  /**
+   * Rewrite a recording into another one. Mirrors {@link textToMusic} for the
+   * `audio_to_audio` capability: the provider hands back an encoded file, and
+   * the source bytes ride in `params.audio`.
+   */
+  async audioToAudio(req: GenerationRequest): Promise<EncodedAudioResult> {
+    return this.runEncodedGeneration(req, async (provider) => {
+      const params = req.params ?? {};
+      const audio = params.audio;
+      if (!(audio instanceof Uint8Array) || audio.length === 0) {
+        throw new Error("audio_to_audio needs source audio bytes");
+      }
+      return provider.audioToAudio(audio, {
+        model: { id: req.model, name: req.model, provider: req.provider },
+        prompt: params.prompt as string | undefined,
+        voice: params.voice as string | undefined,
+        strength: params.strength as number | undefined,
         seed: params.seed as number | undefined,
         audioFormat: params.audioFormat as string | undefined,
         timeoutSeconds: params.timeout_seconds as number | undefined
@@ -4023,7 +4059,8 @@ const VIDEO_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
 ]);
 const AUDIO_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
   "text_to_speech",
-  "text_to_music"
+  "text_to_music",
+  "audio_to_audio"
 ]);
 const MODEL3D_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
   "text_to_3d",

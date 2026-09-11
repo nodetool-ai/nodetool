@@ -1,7 +1,7 @@
 // Auto-generated — do not edit manually
 
 import { createNode, Connectable, DslNode } from "../core.js";
-import type { ImageRef, AudioRef, Entity, GameSlotSpec, SlotFill } from "../types.js";
+import type { ImageRef, AudioRef, Entity, GameSlotSpec } from "../types.js";
 
 // Sprite Sheet — nodetool.game.SpriteSheet
 export type SpriteSheetInputs = {
@@ -51,6 +51,7 @@ export type SeamlessImageInputs = {
   check_x?: Connectable<boolean>;
   check_y?: Connectable<boolean>;
   threshold?: Connectable<number>;
+  repair?: Connectable<boolean>;
 };
 
 export interface SeamlessImageOutputs {
@@ -138,7 +139,7 @@ export function slotPrompt(inputs: SlotPromptInputs): DslNode<SlotPromptOutputs>
 export type ExportGodotProjectInputs = {
   template?: Connectable<string>;
   name?: Connectable<string>;
-  fills?: Connectable<SlotFill[]>;
+  fills?: Connectable<(ImageRef | AudioRef)[]>;
   directory?: Connectable<string>;
   verify?: Connectable<boolean>;
 };

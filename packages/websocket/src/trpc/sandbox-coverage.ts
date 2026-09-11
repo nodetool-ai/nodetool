@@ -416,6 +416,16 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "find_model resolves a model by capability; list_models and " +
       "list_provider_models enumerate the catalogs."
   },
+  "models.audioToAudio": {
+    elsewhere:
+      "find_model resolves a model by capability; list_models and " +
+      "list_provider_models enumerate the catalogs."
+  },
+  "models.audioToAudioByProvider": {
+    elsewhere:
+      "find_model resolves a model by capability; list_models and " +
+      "list_provider_models enumerate the catalogs."
+  },
   "models.availableForKind": {
     elsewhere:
       "find_model resolves a model by capability; list_models and " +

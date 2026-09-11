@@ -315,7 +315,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "find_model",
     module: "models",
     impl: "packages/agents/src/capabilities/models.ts",
-    contract: "cc6866ced0fd",
+    contract: "0830e70672b0",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-models.test.ts",
@@ -332,7 +332,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "list_models",
     module: "models",
     impl: "packages/agents/src/capabilities/models.ts",
-    contract: "aa55d4d361d6",
+    contract: "9b5ed87d0dbc",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-models.test.ts",

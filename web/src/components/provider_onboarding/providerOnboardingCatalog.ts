@@ -228,6 +228,7 @@ export const CAPABILITY_LABELS = {
   text_to_speech: "text-to-speech",
   automatic_speech_recognition: "speech-to-text",
   text_to_music: "music generation",
+  audio_to_audio: "audio transforms (voice change, isolation, separation)",
   text_to_video: "video generation",
   generate_embedding: "embeddings",
   text_to_3d: "3D generation",

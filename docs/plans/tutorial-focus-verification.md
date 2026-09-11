@@ -14,6 +14,6 @@ The [focus plan](tutorial-focus-animation.md) is implemented across T1–T17. Sh
 | V8 Repository | `npm run test:affected`, `npm run typecheck`, `npm run lint`, and `npm run dev:nodetool -- harness gate --base origin/main` passed. Typechecking used Node's 8GB heap setting. |
 | V9 Assets | All 17 MP4s fully decoded. Each is H.264, 1920×1080, 30fps, with the catalog frame count. Encoded durations match app labels. All 17 posters match their app copies byte for byte. No MP4 is bundled under `web/public/tutorials/`. |
 
-Videos and posters are in [docs/assets/tutorials](../assets/tutorials/). The complete render command is `npm run render:tutorials:all` from `demo/`, followed by `npm run sync:posters`. It derives filenames, inspection frames, posters, and durations from the complete catalog.
+Videos and posters are in `docs/assets/tutorials/`. The complete render command is `npm run render:tutorials:all` from `demo/`, followed by `npm run sync:posters`. It derives filenames, inspection frames, posters, and durations from the complete catalog.
 
 The casts remain synthetic demonstrations using production components. T2 traces an existing graph, T9 represents the recorded trim without a fabricated drag, and T14 ends on the assembled app without claiming a workflow run. Publication is separate from these committed assets.

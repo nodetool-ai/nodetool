@@ -978,6 +978,7 @@ const KIND_TO_MODALITY = {
   image_to_image: "image",
   text_to_speech: "tts",
   text_to_music: "music",
+  audio_to_audio: "audio_to_audio",
   speech_to_text: "asr",
   text_to_video: "video",
   image_to_video: "video",
@@ -1036,6 +1037,12 @@ async function collectProviderModelsForKind(
           case "text_to_music": {
             const models = await instance.getAvailableMusicModels();
             for (const m of models) out.push(toUnifiedModel(m, "music_model"));
+            return;
+          }
+          case "audio_to_audio": {
+            const models = await instance.getAvailableAudioToAudioModels();
+            for (const m of models)
+              out.push(toUnifiedModel(m, "audio_to_audio_model"));
             return;
           }
           case "speech_to_text": {
@@ -1103,6 +1110,10 @@ export async function collectProviderCatalogModels(
             ),
             collect(() => instance.getAvailableTTSModels(), "tts_model"),
             collect(() => instance.getAvailableMusicModels(), "music_model"),
+            collect(
+              () => instance.getAvailableAudioToAudioModels(),
+              "audio_to_audio_model"
+            ),
             collect(() => instance.getAvailableASRModels(), "asr_model"),
             collect(() => instance.getAvailableVideoModels(), "video_model")
           ]);
@@ -1628,6 +1639,50 @@ export const modelsRouter = router({
           if (!instance) return [];
           const models = await instance.getAvailableMusicModels();
           return models.map((m) => toUnifiedModel(m, "music_model"));
+        },
+        []
+      )
+    ),
+
+  audioToAudio: protectedProcedure
+    .output(modelsListOutput)
+    .query(async ({ ctx }) => {
+      const availableIds = await getAvailableProviderIds(ctx.userId);
+      const results = await Promise.all(
+        availableIds.map((providerId) =>
+          safeProviderCall(
+            "audioToAudio (aggregate)",
+            { provider: providerId, userId: ctx.userId },
+            async () => {
+              const instance = await instantiateProvider(providerId, ctx.userId);
+              if (!instance) return [] as UnifiedModel[];
+              const models = await instance.getAvailableAudioToAudioModels();
+              return models.map((m) =>
+                toUnifiedModel(m, "audio_to_audio_model")
+              );
+            },
+            [] as UnifiedModel[]
+          )
+        )
+      );
+      return results.flat();
+    }),
+
+  audioToAudioByProvider: protectedProcedure
+    .input(providerInput)
+    .output(modelsListOutput)
+    .query(async ({ ctx, input }) =>
+      safeProviderCall(
+        "audioToAudioByProvider",
+        { provider: input.provider, userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider(
+            input.provider as ProviderId,
+            ctx.userId
+          );
+          if (!instance) return [];
+          const models = await instance.getAvailableAudioToAudioModels();
+          return models.map((m) => toUnifiedModel(m, "audio_to_audio_model"));
         },
         []
       )

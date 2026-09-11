@@ -8,7 +8,13 @@
  */
 
 import { createLogger, loadPackageAssetJson } from "@nodetool-ai/config";
-import type { ImageModel, MusicModel, TTSModel, VideoModel } from "./types.js";
+import type {
+  AudioToAudioModel,
+  ImageModel,
+  MusicModel,
+  TTSModel,
+  VideoModel
+} from "./types.js";
 import { isNumber } from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
@@ -1307,6 +1313,48 @@ export function loadMusicModels(
   provider: string
 ): MusicModel[] {
   return buildMusicModels(loadManifest(packageName, exportPath), provider);
+}
+
+export function loadAudioToAudioModels(
+  packageName: string,
+  exportPath: string,
+  provider: string
+): AudioToAudioModel[] {
+  return buildAudioToAudioModels(loadManifest(packageName, exportPath), provider);
+}
+
+/**
+ * Pure transform: manifest nodes → deduplicated audio-transform models. These
+ * are exactly the entries {@link isAudioTransformNode} keeps out of the TTS and
+ * music lists, which is the point: without this list they are in no list at all.
+ *
+ * The TTS and music tests run first, and win. A speech endpoint that names
+ * itself one — `fal-ai/dia-tts/voice-clone`, `fal-ai/tada/*\/text-to-speech` —
+ * matches a transform keyword through its tags while still needing text to say;
+ * offered here it would be called with a recording and no text. The same
+ * precedence {@link isTTSNode} already applies, applied from this side.
+ */
+export function buildAudioToAudioModels(
+  manifest: ManifestNode[],
+  provider: string
+): AudioToAudioModel[] {
+  const seen = new Map<string, AudioToAudioModel>();
+
+  for (const n of manifest) {
+    if (n.outputType !== "audio") continue;
+    if (!isAudioTransformNode(n)) continue;
+    if (isTTSNode(n) || isMusicNode(n)) continue;
+    const id = nodeId(n);
+    if (!id || seen.has(id)) continue;
+    seen.set(id, {
+      id,
+      name: nodeName(n),
+      provider,
+      supportedTasks: ["audio_to_audio"]
+    });
+  }
+
+  return [...seen.values()];
 }
 
 /** Pure transform: manifest nodes → deduplicated text-to-music models. */

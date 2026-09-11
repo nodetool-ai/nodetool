@@ -21,6 +21,8 @@ import type {
   ProviderStreamItem,
   TextToImageParams,
   TextToMusicParams,
+  AudioToAudioModel,
+  AudioToAudioParams,
   ImageToImageParams,
   InpaintingParams,
   TextToVideoParams,
@@ -40,6 +42,7 @@ import {
   loadImageModels,
   loadManifest,
   loadMusicModels,
+  loadAudioToAudioModels,
   loadTTSModels,
   loadVideoModels,
   selectPrimaryImageInput,
@@ -721,6 +724,41 @@ export class FalProvider extends BaseProvider {
 
   override async getAvailableMusicModels(): Promise<MusicModel[]> {
     return loadMusicModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai");
+  }
+
+  override async getAvailableAudioToAudioModels(): Promise<AudioToAudioModel[]> {
+    return loadAudioToAudioModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai");
+  }
+
+  /**
+   * Rewrite a recording. The source audio is uploaded and attached to whatever
+   * audio field the endpoint declares; the optional direction fields are only
+   * written where the manifest declares them, so a voice changer that takes a
+   * `voice` and a separator that takes nothing both work off one call.
+   */
+  override async audioToAudio(
+    audio: Uint8Array,
+    params: AudioToAudioParams
+  ): Promise<EncodedAudioResult> {
+    const modelId = params.model.id;
+    const url = await this.upload(audio, "audio/mpeg");
+    const b = new FalArgsBuilder(modelId);
+    b.attachAsset("audio", url)
+      .set("prompt", params.prompt)
+      .set("voice", params.voice)
+      .set("strength", params.strength);
+    if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
+    this.recordRequestPayload(b.args);
+    log.debug("FAL audioToAudio", { model: modelId });
+    const client = await this.getClient();
+    const result = await client.subscribe(modelId, {
+      input: b.args,
+      logs: true,
+      onQueueUpdate: this.makeQueueUpdateHandler()
+    });
+    const data = (result.data ?? result) as Record<string, unknown>;
+    const bytes = await downloadBytes(extractAudioUrl(data));
+    return { data: bytes, mimeType: sniffAudioMime(bytes) };
   }
 
   /**

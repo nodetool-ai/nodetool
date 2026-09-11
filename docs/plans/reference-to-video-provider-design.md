@@ -1,7 +1,7 @@
 # Reference-to-Video Provider Contract — Technical Design
 
 **Status:** Draft for review
-**Related:** [providers.md](providers.md), [models-and-providers.md](models-and-providers.md), [media-generation-tracking-design.md](media-generation-tracking-design.md)
+**Related:** [providers.md](../providers.md), [models-and-providers.md](../models-and-providers.md), [media-generation-tracking-design.md](../media-generation-tracking-design.md)
 
 ---
 

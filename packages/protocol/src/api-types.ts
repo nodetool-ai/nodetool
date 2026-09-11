@@ -1378,6 +1378,21 @@ export interface MusicModel {
   supported_tasks?: string[];
 }
 
+/**
+ * A model that rewrites a recording rather than generating one: voice
+ * conversion, isolation and denoise, stem separation, audio super-resolution.
+ * Backs the `audio_to_audio` capability and the `audio_to_audio_model`
+ * property type.
+ */
+export interface AudioToAudioModel {
+  type: string;
+  id: string;
+  name: string;
+  provider: Provider;
+  path?: string | null;
+  supported_tasks?: string[];
+}
+
 export interface VideoModel {
   type: string;
   id: string;

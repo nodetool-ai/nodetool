@@ -3,7 +3,7 @@
 // "@nodetool-ai/sandbox-nodetool/flow" — see ../guest-core.ts.
 
 import { callNode, streamNode } from "../guest-core.js";
-import type { ImageRef, AudioRef, Entity, GameSlotSpec, SlotFill } from "../../types.js";
+import type { ImageRef, AudioRef, Entity, GameSlotSpec } from "../../types.js";
 
 // Sprite Sheet — nodetool.game.SpriteSheet
 export type SpriteSheetInputs = {
@@ -53,6 +53,7 @@ export type SeamlessImageInputs = {
   check_x?: boolean;
   check_y?: boolean;
   threshold?: number;
+  repair?: boolean;
 };
 
 export interface SeamlessImageOutputs {
@@ -144,7 +145,7 @@ export function slotPrompt(inputs: SlotPromptInputs): Promise<SlotPromptOutputs>
 export type ExportGodotProjectInputs = {
   template?: string;
   name?: string;
-  fills?: SlotFill[];
+  fills?: (ImageRef | AudioRef)[];
   directory?: string;
   verify?: boolean;
 };

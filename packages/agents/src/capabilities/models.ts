@@ -160,6 +160,7 @@ const CAPABILITY_REF_TYPE = {
   // refused it, and the graph validator then checked the id against the TTS
   // catalog and reported a real music model as one the provider does not offer.
   text_to_music: "music_model",
+  audio_to_audio: "audio_to_audio_model",
   automatic_speech_recognition: "asr_model",
   generate_embedding: "embedding_model"
 } satisfies Record<SupportedCapability, string>;
@@ -231,6 +232,8 @@ function capabilityToRecommendedModalities(
       return new Set(["tts"]);
     case "text_to_music":
       return new Set(["music"]);
+    case "audio_to_audio":
+      return new Set(["audio_to_audio"]);
     case "automatic_speech_recognition":
       return new Set(["asr"]);
     case "generate_embedding":
@@ -256,6 +259,8 @@ async function fetchModelsForCapability(
       return await provider.getAvailableTTSModels();
     case "text_to_music":
       return await provider.getAvailableMusicModels();
+    case "audio_to_audio":
+      return await provider.getAvailableAudioToAudioModels();
     case "automatic_speech_recognition":
       return await provider.getAvailableASRModels();
     case "generate_embedding":
@@ -877,6 +882,7 @@ const TYPE_CAPABILITY = {
   video: "text_to_video",
   tts: "text_to_speech",
   music: "text_to_music",
+  audio_to_audio: "audio_to_audio",
   asr: "automatic_speech_recognition",
   embedding: "generate_embedding"
 } satisfies Record<ModelType, ProviderCapability>;
@@ -896,6 +902,8 @@ async function fetchModelsOfType(
       return await provider.getAvailableTTSModels();
     case "music":
       return await provider.getAvailableMusicModels();
+    case "audio_to_audio":
+      return await provider.getAvailableAudioToAudioModels();
     case "asr":
       return await provider.getAvailableASRModels();
     case "embedding":
