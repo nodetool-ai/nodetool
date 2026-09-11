@@ -24,6 +24,126 @@ const trailer = (file, alt, caption) =>
   capture("storyboard-to-trailer", `raw/${file}.png`, alt, caption);
 
 export const recipeGuides = {
+  "impossible-product-worlds": {
+    name: "Impossible product worlds",
+    outcome:
+      "Fly above a giant product to reveal a luxury pool in its lid, then return to a clean hero shot in a short surreal commercial.",
+    audience: "Brand teams and creative studios",
+    guide: {
+      entry: "Storyboard",
+      stages: ["Idea", "Story", "Entities", "Look"],
+      introduction:
+        "Direct a three-shot commercial that opens with one continuous drone flight. Rise above a giant cup to reveal a luxury pool in its fitted lid, then cut to ordinary tabletop scale and a final packshot.",
+      inputs: [
+        "One clear product photo with the full silhouette visible",
+        "A product name and approved closing line",
+        "Your chosen image and video providers, plus a music provider if needed"
+      ],
+      brief:
+        "Small object. Big escape. Create a three-shot surreal commercial for the Olive Travel Cup, a fictional unbranded olive-green travel cup with a charcoal lid. Use the supplied product reference throughout.\n\n1. An eight-second continuous drone flight. Begin low in golden dunes facing a monumental cup. Fly forward, rise above its rim, and tilt down to reveal a luxury turquoise pool built into its fitted lid, with pale stone coping, two cream loungers, and a beige parasol. Keep the same cup visible throughout. The pool already exists and is revealed by the camera angle. No cut, lid detachment, or object transformation.\n2. Four seconds at ordinary scale: the cup on a sunlit tabletop with its lid beside it. A small lateral camera slide establishes familiar scale.\n3. Three seconds on a cobalt-blue studio background: cup upright, lid fitted, clear space above for the closing line.\n\nVertical 9:16. Target 15 seconds: 8, 4, and 3. Warm directional light and sharp shadows. No people, generated lettering, extra handles, or product-performance claims. Add Small object. Big escape. as editable text over the final hero.",
+      note:
+        "The rendered example is a silent 15-second concept film. AtlasCloud generated the stills and clips through NodeTool. The final export was assembled locally after the timeline renderer omitted the new opening clip. Product proportions vary between the generated shots.",
+      steps: [
+        {
+          id: "reference",
+          phase: "Prepare",
+          stage: "Product",
+          title: "Choose the details that must survive",
+          description:
+            "Start with an unobstructed product photo. Note its silhouette, colour, lid, and materials. If you use another product, adapt the hidden pool to a visible feature such as a cap or recess.",
+          action: "Choose your product reference"
+        },
+        {
+          id: "idea",
+          phase: "Guided setup",
+          stage: "Idea",
+          title: "Give the product an impossible setting",
+          description:
+            "Create a project and choose Storyboard. Paste the example brief into Idea, then replace the product details with your own. Keep the drone approach and pool reveal in one continuous opening shot, followed by a tabletop shot and final hero.",
+          action: "Continue"
+        },
+        {
+          id: "story",
+          phase: "Guided setup",
+          stage: "Story",
+          title: "Plan a three-shot Commercial",
+          description:
+            "Select Commercial and 3 shots. Generate the screenplay. Use the 15-second target to keep the concept focused, then set the exact shot lengths when you edit the clips.",
+          action: "Generate screenplay"
+        },
+        {
+          id: "review",
+          phase: "Guided setup",
+          stage: "Review",
+          title: "Make the scale change readable",
+          description:
+            "Keep the cup visible while the camera rises above its rim. The pool should already exist inside the fitted lid and become visible as the camera tilts down. Use the next cut to return to ordinary tabletop scale.",
+          action: "Set up entities"
+        },
+        {
+          id: "entities",
+          phase: "Guided setup",
+          stage: "Entities",
+          title: "Anchor every world to one product",
+          description:
+            "Create or select a product entity using your photo and assign it to all three shots. Describe the fitted lid, its rim, and drinking opening so the pool reveal retains the product's identity.",
+          action: "Choose the look"
+        },
+        {
+          id: "look",
+          phase: "Guided setup",
+          stage: "Look",
+          title: "Make the impossible feel photographed",
+          description:
+            "Choose 9:16 and a photographic style with warm directional light, sharp shadows, golden sand, and deep blue backgrounds. Select an image model that supports entity references, then generate the board.",
+          action: "Generate your storyboard"
+        },
+        {
+          id: "stills",
+          phase: "Storyboard",
+          stage: "Stills",
+          title: "Review the product before the spectacle",
+          description:
+            "Compare every still with the source photo. Check the silhouette, lid geometry, and colour. Begin the drone shot below the lid rim so the pool is hidden. Keep the lid attached throughout the reveal. Regenerate a still if it changes the product's silhouette.",
+          action: "Accept one still per shot"
+        },
+        {
+          id: "motion",
+          phase: "Finish",
+          stage: "Motion",
+          title: "Move the camera through each scene",
+          description:
+            "Render the opening as one eight-second clip: approach the cup, ascend above its rim, then tilt down to reveal the luxury pool, narrow deck, loungers, and parasol. Keep the cup stationary and the camera path continuous. Render the tabletop slide and near-static hero separately.",
+          action: "Render and review each clip",
+          image: {
+            src: "/recipes/runs/2026-09-11-impossible-product-worlds/pool-poster.webp",
+            alt: "The drone camera reveals a luxury pool inside the giant cup's fitted lid.",
+            caption: "A frame from the continuous drone reveal in the rendered example.",
+            width: 540,
+            height: 960
+          }
+        },
+        {
+          id: "edit",
+          phase: "Finish",
+          stage: "Timeline",
+          title: "Cut from impossible to familiar",
+          description:
+            "Assemble the three accepted clips and trim them to 8, 4, and 3 seconds. Use a direct cut for the return to tabletop scale. Add your approved closing line as editable text over the final hero and check its position in the vertical frame.",
+          action: "Assemble the 15-second edit"
+        },
+        {
+          id: "delivery",
+          phase: "Finish",
+          stage: "Delivery",
+          title: "Finish with sound and a clear product read",
+          description:
+            "If the cut needs music, ask the agent for a sparse instrumental score covering the full edit, with a change at the tabletop reveal. Balance it in the timeline. Watch once with sound and once muted, check the final product and closing line, then export the vertical film.",
+          action: "Review and export"
+        }
+      ]
+    }
+  },
   "viral-video-ad-engine": {
     name: "Product commercials",
     outcome:

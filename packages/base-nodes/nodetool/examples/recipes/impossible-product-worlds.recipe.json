@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "impossible-product-worlds",
+  "name": "Impossible product worlds",
+  "outcome": "Fly above a giant product to reveal a luxury pool in its lid, then return to a clean hero shot in a short surreal commercial.",
+  "audience": "Brand teams and creative studios",
+  "summary": [
+    "Build a three-shot commercial around one continuous drone flight above a giant product, revealing a luxury pool inside its fitted lid.",
+    "Review the source stills and generated clips, then assemble an eight-second reveal, four-second tabletop shot, and three-second hero."
+  ],
+  "caveats": [
+    "The recipe page includes a rendered 15-second silent concept film. Product proportions vary between the generated shots.",
+    "The bundled workflow explores product stills. Follow the Storyboard guide on the recipe page to plan, animate, and edit the complete commercial.",
+    "Generated images and clips can change product details. Compare every take with your reference before exporting."
+  ],
+  "hero": "Put a Product on a Studio Backdrop",
+  "apps": [
+    {
+      "app": "product-reshoot",
+      "role": "Explore product scene treatments from one reference photo. Use Storyboard and Timeline for the complete three-shot commercial."
+    }
+  ],
+  "steps": [
+    {
+      "example": "Put a Product on a Studio Backdrop",
+      "role": "Build each world",
+      "handoff": "Replace the image-edit prompt with one scene from your approved board. Repeat from the same product photo for each scene, and match the aspect ratio to your delivery."
+    }
+  ]
+}
