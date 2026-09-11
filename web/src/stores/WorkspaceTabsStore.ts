@@ -136,6 +136,7 @@ interface WorkspaceTabsState {
   moveTab: (id: string, toIndex: number) => void;
   getActiveTab: () => WorkspaceTab | null;
   setActiveProjectId: (projectId: string | null) => void;
+  setSelectedChatThread: (projectId: string | null, threadId: string) => void;
   /**
    * Make `input.id` the active project: open its overview tab, adopt or open a
    * tab per document, and gather the group into one contiguous run. Documents
@@ -609,6 +610,15 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             tabs: gatherProjectTabs(state.tabs, projectId)
           };
         }),
+
+      setSelectedChatThread: (projectId, threadId) =>
+        set((state) => ({
+          projectSessions: updateSession(
+            state.projectSessions,
+            projectId ?? undefined,
+            (session) => ({ ...session, selectedChatThreadId: threadId })
+          )
+        })),
 
       openProject: ({ id, name, documents }) =>
         set((state) => {

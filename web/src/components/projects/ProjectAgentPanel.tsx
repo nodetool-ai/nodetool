@@ -24,6 +24,8 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
+import ChatPanelHeader from "../chat/containers/ChatPanelHeader";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import useGlobalChatStore, {
   useThreadRuntime
 } from "../../stores/GlobalChatStore";
@@ -79,6 +81,20 @@ const ProjectAgentPanel = ({
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const ensureThread = trpc.projects.thread.useMutation();
   const ensureThreadAsync = ensureThread.mutateAsync;
+  const selectedChatCandidate = useWorkspaceTabsStore(
+    (state) => state.projectSessions[projectId]?.selectedChatThreadId ?? null
+  );
+  const selectedChatThreadId = useGlobalChatStore((state) => {
+    const thread = selectedChatCandidate
+      ? state.threads?.[selectedChatCandidate]
+      : undefined;
+    return thread && (thread.project_id ?? "default") === projectId
+      ? selectedChatCandidate
+      : null;
+  });
+  const setSelectedChatThread = useWorkspaceTabsStore(
+    (state) => state.setSelectedChatThread
+  );
 
   const {
     connect,
@@ -86,7 +102,8 @@ const ProjectAgentPanel = ({
     loadMessages,
     sendMessage,
     trySendMessage,
-    stopGeneration
+    stopGeneration,
+    createNewThread
   } = useGlobalChatStore(
     useShallow((state) => ({
       connect: state.connect,
@@ -94,7 +111,8 @@ const ProjectAgentPanel = ({
       loadMessages: state.loadMessages,
       sendMessage: state.sendMessage,
       trySendMessage: state.trySendMessage,
-      stopGeneration: state.stopGeneration
+      stopGeneration: state.stopGeneration,
+      createNewThread: state.createNewThread
     }))
   );
   const messages = useGlobalChatStore((state) =>
@@ -135,9 +153,11 @@ const ProjectAgentPanel = ({
     // Nothing to do when the incoming id is the thread this panel already
     // bound — including the null → id flip, which is the cache catching up
     // with the thread we created ourselves.
+    const preferredThreadId = selectedChatThreadId ?? boundThreadId;
     if (
       bound.current?.projectId === projectId &&
-      (boundThreadId === null || boundThreadId === bound.current.threadId)
+      (preferredThreadId === null ||
+        preferredThreadId === bound.current.threadId)
     ) {
       return;
     }
@@ -154,13 +174,15 @@ const ProjectAgentPanel = ({
       // A project that already names its thread needs no write; only the
       // first visit creates one.
       const id =
-        boundThreadId ?? (await ensureThreadAsync({ id: projectId })).threadId;
+        preferredThreadId ??
+        (await ensureThreadAsync({ id: projectId })).threadId;
       if (!active || !mounted.current) return;
       // Claimed before the awaits below, so the cache catching up mid-load
       // cannot start a second bind of the same thread.
       const claim = { projectId, threadId: id };
       bound.current = claim;
       setThreadId(id);
+      setSelectedChatThread(projectId, id);
       // The row exists on the server, so a fetch registers it with the store
       // rather than guessing at a local one.
       await fetchThread(id);
@@ -175,7 +197,33 @@ const ProjectAgentPanel = ({
     return () => {
       active = false;
     };
-  }, [projectId, boundThreadId, ensureThreadAsync, fetchThread, loadMessages]);
+  }, [
+    projectId,
+    boundThreadId,
+    selectedChatThreadId,
+    ensureThreadAsync,
+    fetchThread,
+    loadMessages,
+    setSelectedChatThread
+  ]);
+
+  const handleNewChat = useCallback(async () => {
+    const id = await createNewThread(undefined, undefined, {
+      projectId
+    });
+    setSelectedChatThread(projectId, id);
+    setHistoryLoaded(false);
+    setThreadId(id);
+  }, [createNewThread, projectId, setSelectedChatThread]);
+
+  const handleSelectThread = useCallback(
+    (id: string) => {
+      setSelectedChatThread(projectId, id);
+      setHistoryLoaded(false);
+      setThreadId(id);
+    },
+    [projectId, setSelectedChatThread]
+  );
 
   const systemPrompt = useMemo(
     () => projectSystemPrompt(projectName, projectId),
@@ -274,34 +322,43 @@ const ProjectAgentPanel = ({
         Project agent
       </Caption>
       {threadId ? (
-        <ChatView
-          status={chatStatus}
-          messages={messages}
-          progress={runtime.progress.current}
-          total={runtime.progress.total}
-          progressMessage={runtime.statusMessage}
-          model={selectedModel}
-          onModelChange={setSelectedModel}
-          sendMessage={handleSend}
-          onStop={handleStop}
-          threadId={threadId}
-          systemPrompt={systemPrompt}
-          chatSource="workspace_chat"
-          currentPlanningUpdate={runtime.planningUpdate}
-          currentTaskUpdate={runtime.taskUpdate}
-          currentLogUpdate={runtime.logUpdate}
-          runningToolCallId={runtime.runningToolCallId}
-          hideModePicker
-          composerPlaceholder="Ask for a change to this project…"
-          noMessagesPlaceholder={
-            <FlexColumn sx={{ flex: 1, px: SPACING.lg, pt: SPACING.lg }}>
-              <Caption color="muted">
-                Nothing here yet. Ask for a change and the agent builds it into
-                this project.
-              </Caption>
-            </FlexColumn>
-          }
-        />
+        <>
+          <ChatPanelHeader
+            projectId={projectId}
+            threadId={threadId}
+            onNewChat={() => void handleNewChat()}
+            onSelectThread={handleSelectThread}
+            title="Project conversations"
+          />
+          <ChatView
+            status={chatStatus}
+            messages={messages}
+            progress={runtime.progress.current}
+            total={runtime.progress.total}
+            progressMessage={runtime.statusMessage}
+            model={selectedModel}
+            onModelChange={setSelectedModel}
+            sendMessage={handleSend}
+            onStop={handleStop}
+            threadId={threadId}
+            systemPrompt={systemPrompt}
+            chatSource="workspace_chat"
+            currentPlanningUpdate={runtime.planningUpdate}
+            currentTaskUpdate={runtime.taskUpdate}
+            currentLogUpdate={runtime.logUpdate}
+            runningToolCallId={runtime.runningToolCallId}
+            hideModePicker
+            composerPlaceholder="Ask for a change to this project…"
+            noMessagesPlaceholder={
+              <FlexColumn sx={{ flex: 1, px: SPACING.lg, pt: SPACING.lg }}>
+                <Caption color="muted">
+                  Nothing here yet. Ask for a change and the agent builds it into
+                  this project.
+                </Caption>
+              </FlexColumn>
+            }
+          />
+        </>
       ) : (
         <LoadingSpinner />
       )}

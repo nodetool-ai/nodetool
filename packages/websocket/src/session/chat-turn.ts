@@ -527,13 +527,18 @@ export class ChatTurnHandler {
 
   private async ensureThreadExists(
     threadId?: string,
-    workflowId?: string | null
+    workflowId?: string | null,
+    projectId?: string
   ): Promise<string> {
     const userId = this.session.requireUserId();
     if (!threadId) {
+      if (projectId && projectId !== "default") {
+        await Project.requireOwned(userId, projectId);
+      }
       const thread = await Thread.create({
         user_id: userId,
         workflow_id: workflowId ?? null,
+        project_id: projectId ?? "default",
         title: ""
       });
       return thread.id;
@@ -544,6 +549,7 @@ export class ChatTurnHandler {
       id: threadId,
       user_id: userId,
       workflow_id: workflowId ?? null,
+      project_id: projectId ?? "default",
       title: ""
     });
     return thread.id;
@@ -1136,7 +1142,8 @@ export class ChatTurnHandler {
       : null;
     const threadId = await this.ensureThreadExists(
       isString(data.thread_id) ? data.thread_id : undefined,
-      messageWorkflowId
+      messageWorkflowId,
+      isString(data.project_id) ? data.project_id : undefined
     );
     data.thread_id = threadId;
 

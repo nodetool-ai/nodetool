@@ -30,12 +30,13 @@ const useOpenThreadTab = () => {
   const location = useLocation();
 
   return useCallback(
-    (threadId: string, title?: string) => {
+    (threadId: string, title?: string, projectId?: string) => {
       openTab({
         type: "chat",
         ref: threadId,
         mode: "view",
-        title: title || "New chat"
+        title: title || "New chat",
+        projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
         navigate("/workspace");
@@ -47,6 +48,9 @@ const useOpenThreadTab = () => {
 
 export const CreateChatButton = memo(function CreateChatButton() {
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
+  const activeProjectId = useWorkspaceTabsStore(
+    (state) => state.activeProjectId
+  );
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -54,8 +58,11 @@ export const CreateChatButton = memo(function CreateChatButton() {
 
   const handleCreate = useCallback(async () => {
     try {
-      const threadId = await createNewThread();
-      openThreadTab(threadId);
+      const projectId = activeProjectId ?? "default";
+      const threadId = await createNewThread(undefined, undefined, {
+        projectId
+      });
+      openThreadTab(threadId, undefined, projectId);
     } catch (error) {
       console.error("Failed to create new chat thread:", error);
       addNotification({
@@ -63,7 +70,7 @@ export const CreateChatButton = memo(function CreateChatButton() {
         content: "Could not start a new conversation. Please try again."
       });
     }
-  }, [createNewThread, openThreadTab, addNotification]);
+  }, [createNewThread, openThreadTab, addNotification, activeProjectId]);
 
   return (
     <Tooltip title="New chat" placement="right-start">
@@ -108,6 +115,9 @@ const ChatListPanel = () => {
   );
   const setVisibility = usePanelStore((state) => state.setVisibility);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
+  const activeProjectId = useWorkspaceTabsStore(
+    (state) => state.activeProjectId
+  );
   const openThreadTab = useOpenThreadTab();
 
   const activeThreadId = activeTabId?.startsWith("chat:")
@@ -122,10 +132,14 @@ const ChatListPanel = () => {
     [threads, messageCache]
   );
 
+  const projectId = activeProjectId ?? "default";
   const threadsWithMessages = useMemo<Record<string, ThreadInfo>>(() => {
     const needle = filterValue.trim().toLowerCase();
     const result: Record<string, ThreadInfo> = {};
     for (const [id, thread] of Object.entries(threads)) {
+      if ((thread.project_id ?? "default") !== projectId) {
+        continue;
+      }
       const preview = threadPreview(thread.title, messageCache[id]);
       if (needle && !preview.toLowerCase().includes(needle)) {
         continue;
@@ -138,11 +152,15 @@ const ChatListPanel = () => {
       };
     }
     return result;
-  }, [threads, messageCache, filterValue]);
+  }, [threads, messageCache, filterValue, projectId]);
 
   const handleSelectThread = useCallback(
     (id: string) => {
-      openThreadTab(id, threads[id]?.title ?? undefined);
+      openThreadTab(
+        id,
+        threads[id]?.title ?? undefined,
+        threads[id]?.project_id ?? "default"
+      );
       setVisibility(false);
     },
     [openThreadTab, threads, setVisibility]
@@ -164,11 +182,14 @@ const ChatListPanel = () => {
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
   const handleNewThread = useCallback(async () => {
     try {
-      openThreadTab(await createNewThread());
+      const threadId = await createNewThread(undefined, undefined, {
+        projectId
+      });
+      openThreadTab(threadId, undefined, projectId);
     } catch (error) {
       console.error("Failed to create new chat thread:", error);
     }
-  }, [createNewThread, openThreadTab]);
+  }, [createNewThread, openThreadTab, projectId]);
 
   const isEmpty = Object.keys(threadsWithMessages).length === 0;
 

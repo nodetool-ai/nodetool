@@ -59,6 +59,7 @@ import {
   type ThreadRuntime
 } from "../core/chat/threadRuntime";
 import { isObjectLike, isString } from "../utils/typePredicates";
+import { creationProjectId } from "./WorkspaceTabsStore";
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus =
@@ -371,13 +372,14 @@ export interface GlobalChatState {
     options?: {
       title?: string;
       workflowId?: string | null;
+      projectId?: string | null;
       makeCurrent?: boolean;
     }
   ) => void;
   createNewThread: (
     title?: string,
     workflowId?: string | null,
-    options?: { makeCurrent?: boolean }
+    options?: { makeCurrent?: boolean; projectId?: string | null }
   ) => Promise<string>;
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
@@ -1061,7 +1063,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Ensure we have a thread
         let threadId = targetThreadId ?? currentThreadId;
         if (!threadId) {
-          threadId = await get().createNewThread();
+          threadId = await get().createNewThread(undefined, undefined, {
+            projectId: creationProjectId()
+          });
         }
         const tid = threadId;
 
@@ -1099,6 +1103,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
             get().threadWorkflowId[tid] ??
             null)
           : (workflowId ?? null);
+        const boundProjectId =
+          get().threads[tid]?.project_id ?? creationProjectId();
         set((state) => ({
           threadWorkflowId: {
             ...state.threadWorkflowId,
@@ -1132,6 +1138,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const chatMessageData = {
           ...messageWithoutTools,
           workflow_id: message.workflow_id ?? boundWorkflowId,
+          project_id: boundProjectId,
           thread_id: threadId,
           permission_mode: get().getPermissionMode(threadId),
           model: isMediaGeneration
@@ -1303,6 +1310,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           options?.workflowId !== undefined
             ? options.workflowId
             : (get().workflowId ?? null);
+        const boundProjectId = options?.projectId ?? creationProjectId();
 
         ensureThreadSubscription(threadId, set, get);
 
@@ -1310,6 +1318,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const localThread: Thread = {
           id: threadId,
           user_id: "",
+          project_id: boundProjectId,
           workflow_id: boundWorkflowId,
           title: safeTitle || "New conversation",
           created_at: now,
@@ -1357,12 +1366,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
       createNewThread: async (
         title?: string,
         workflowId?: string | null,
-        options?: { makeCurrent?: boolean }
+        options?: { makeCurrent?: boolean; projectId?: string | null }
       ) => {
         const id = crypto.randomUUID();
         get().ensureLocalThread(id, {
           title: isString(title) ? title : undefined,
           workflowId,
+          projectId:
+            options?.projectId !== undefined
+              ? options.projectId
+              : creationProjectId(),
           makeCurrent: options?.makeCurrent !== false
         });
         return id;
