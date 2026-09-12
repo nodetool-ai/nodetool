@@ -165,6 +165,7 @@ function buildProductionRun(spec) {
   if (!run) return null;
   const paths = [
     run.hero.src,
+    run.card.src,
     run.ogImage,
     run.proof?.src,
     run.video?.mp4,

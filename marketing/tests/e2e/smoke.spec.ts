@@ -11,6 +11,15 @@ const ROUTES = registryModules.flatMap((m) => {
   return sampled.map((e) => e.route);
 });
 
+const MEDIA_MAGIC: Record<string, string> = {
+  jpg: "\xff\xd8\xff",
+  jpeg: "\xff\xd8\xff",
+  png: "\x89PNG",
+  webp: "RIFF",
+  mp4: "ftyp",
+  webm: "\x1a\x45\xdf\xa3"
+};
+
 test.describe("marketing smoke", () => {
   for (const path of ROUTES) {
     test(`${path} renders with a NodeTool title and exactly one h1`, async ({
@@ -44,6 +53,63 @@ test.describe("marketing smoke", () => {
     const cta = page.getByRole("link", { name: /download nodetool/i }).first();
     await expect(cta).toBeVisible();
     await expect(cta).toHaveAttribute("href", "/download");
+  });
+
+  test("homepage proof projects lead with reviewed outputs and boundaries", async ({
+    page
+  }) => {
+    await page.goto("/");
+
+    const proof = page.getByRole("region", {
+      name: "How teams are using NodeTool"
+    });
+    await expect(proof).toBeVisible();
+    await expect(proof.getByText("NodeTool example projects")).toBeVisible();
+
+    const expectedRoutes = [
+      "/recipes/viral-video-ad-engine",
+      "/recipes/ecommerce-sku-visual-factory",
+      "/recipes/multilingual-video-dubber",
+      "/recipes/storyboard-to-trailer"
+    ];
+    const projectLinks = proof.locator(
+      'article a[href^="/recipes/"]:not([href="/recipes"])'
+    );
+    await expect(projectLinks).toHaveCount(expectedRoutes.length);
+    expect(
+      await projectLinks.evaluateAll((links) =>
+        links.map((link) => link.getAttribute("href"))
+      )
+    ).toEqual(expectedRoutes);
+
+    for (const route of expectedRoutes) {
+      const recipe = recipeEntries.find((entry) => entry.route === route)!;
+      const run = recipe.productionRun!;
+      const project = proof.locator("article", {
+        has: page.locator(`a[href="${route}"]`)
+      });
+
+      await expect(
+        project.getByRole("heading", { name: run.proofTitle })
+      ).toBeVisible();
+      await expect(project.getByText(run.reviewLabel)).toBeVisible();
+      await expect(project.getByText(run.statusLabel)).toBeVisible();
+      await expect(project.getByText(run.essentialLimitation)).toBeVisible();
+    }
+
+    const adProject = proof.locator("article", {
+      has: page.locator('a[href="/recipes/viral-video-ad-engine"]')
+    });
+    const adVideo = adProject.locator("video");
+    await expect(adVideo).toHaveCount(1);
+    await expect(adVideo).toHaveAttribute("controls", "");
+    await expect(adVideo).not.toHaveAttribute("autoplay", "");
+    await expect(adVideo).toHaveAttribute("preload", "none");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(adVideo).toBeVisible();
+    expect((await adVideo.boundingBox())?.width ?? 0).toBeGreaterThan(300);
+    await expect(adProject.locator("img")).toBeVisible();
   });
 
   test("the download page offers an installer for every platform", async ({
@@ -83,10 +149,11 @@ test.describe("marketing smoke", () => {
     await expect(proof).toBeVisible();
     await expect(proof.getByText("Partial example")).toBeVisible();
     await expect(proof.getByText("Three 15-second cuts")).toBeVisible();
+    const recipe = recipeEntries.find(
+      (entry) => entry.slug === "viral-video-ad-engine"
+    )!;
     await expect(
-      proof.getByText(
-        "The live app captures and guided-flow walkthrough are not complete."
-      )
+      proof.getByText(recipe.productionRun!.essentialLimitation)
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /download nodetool studio/i }).first()
@@ -124,6 +191,7 @@ test.describe("marketing smoke", () => {
       const run = recipe.productionRun!;
       const files = [
         run.hero.src,
+        run.card.src,
         run.ogImage,
         run.proof?.src,
         run.video?.mp4,
@@ -135,10 +203,13 @@ test.describe("marketing smoke", () => {
       for (const file of files) {
         const response = await request.get(file);
         expect(response.status(), `${file} status`).toBe(200);
+        const body = await response.body();
+        expect(body.byteLength, `${file} bytes`).toBeGreaterThan(0);
+        const extension = file.split(".").pop()!;
         expect(
-          (await response.body()).byteLength,
-          `${file} bytes`
-        ).toBeGreaterThan(0);
+          body.subarray(0, 12).toString("latin1"),
+          `${file} signature`
+        ).toContain(MEDIA_MAGIC[extension]);
       }
     });
   }
@@ -224,19 +295,13 @@ test.describe("marketing smoke", () => {
   for (const recipe of recipeEntries.filter((r) => r.sample)) {
     test(`${recipe.route} serves its sample media`, async ({ request }) => {
       const sample = recipe.sample!;
-      const magic: Record<string, string> = {
-        jpg: "\xff\xd8\xff",
-        webp: "RIFF",
-        mp4: "ftyp",
-        webm: "\x1a\x45\xdf\xa3"
-      };
       const files = [sample.image, sample.video, sample.webm, sample.poster];
       for (const file of files.filter(Boolean) as string[]) {
         const res = await request.get(file);
         expect(res.status(), `${file} status`).toBe(200);
         const head = (await res.body()).subarray(0, 12).toString("latin1");
         const ext = file.split(".").pop()!;
-        expect(head, `${file} magic bytes`).toContain(magic[ext]);
+        expect(head, `${file} magic bytes`).toContain(MEDIA_MAGIC[ext]);
       }
     });
   }

@@ -19,6 +19,11 @@ export const recipeEntries: RecipeEntry[] = [
         "src": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/recipe-card.webp",
         "alt": "Three vertical Olive Travel Cup ad variants shown side by side."
       },
+      "card": {
+        "src": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/hooks-contact-sheet.webp",
+        "alt": "Three opening compositions for the same Olive Travel Cup ad.",
+        "caption": "Three openings built from one fictional product reference."
+      },
       "ogImage": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/recipe-card.jpg",
       "proof": {
         "src": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/hooks-contact-sheet.webp",
@@ -37,9 +42,8 @@ export const recipeEntries: RecipeEntry[] = [
         "The same accepted Olive Travel Cup reference appears across all six shots.",
         "FAL generated the stills, motion clips, and voice through NodeTool."
       ],
-      "essentialLimitation": "The live app captures and guided-flow walkthrough are not complete.",
+      "essentialLimitation": "The product is fictional, and the live app captures and guided-flow walkthrough are not complete.",
       "limitations": [
-        "The product is a fictional, unbranded demonstration object.",
         "No speed, virality, sales, product-performance, price, or provider-cost claim is supported."
       ],
       "reviewLabel": "Partial example"
@@ -320,6 +324,11 @@ export const recipeEntries: RecipeEntry[] = [
         "src": "/recipes/runs/2026-09-10-marketing-recipes-01/multilingual-video-dubber/recipe-card.webp",
         "alt": "Synthetic presenter with English and Spanish versions of the same short script."
       },
+      "card": {
+        "src": "/recipes/runs/2026-09-10-marketing-recipes-01/multilingual-video-dubber/translation-review.webp",
+        "alt": "English source lines beside their Spanish translation and back-translation review.",
+        "caption": "Synthetic presenter example with a recorded translation review."
+      },
       "ogImage": "/recipes/runs/2026-09-10-marketing-recipes-01/multilingual-video-dubber/recipe-card.jpg",
       "proof": {
         "src": "/recipes/runs/2026-09-10-marketing-recipes-01/multilingual-video-dubber/translation-review.webp",
@@ -338,9 +347,8 @@ export const recipeEntries: RecipeEntry[] = [
         "Inworld Realtime TTS 2 with the female Ashley voice produced the Spanish track used in the comparison video.",
         "Line 2 was redirected and revoiced before three clips were sent to an editable 16.3-second timeline."
       ],
-      "essentialLimitation": "Human audition and final playback review are not recorded.",
+      "essentialLimitation": "The native timeline preview failed, and human audition and lip-sync acceptance remain pending.",
       "limitations": [
-        "The native timeline preview failed, and the lip-sync finishing pass has not been accepted by a human reviewer.",
         "Five required app captures, the walkthrough, persistent document IDs, and lossless capture originals are missing."
       ],
       "reviewLabel": "Partial example"
@@ -612,6 +620,11 @@ export const recipeEntries: RecipeEntry[] = [
       "hero": {
         "src": "/recipes/runs/2026-09-10-marketing-recipes-01/ecommerce-sku-visual-factory/recipe-card.webp",
         "alt": "Olive Travel Cup shown as a cutout, studio product image, winter scene, and motion frame."
+      },
+      "card": {
+        "src": "/recipes/runs/2026-09-10-marketing-recipes-01/ecommerce-sku-visual-factory/source-to-set.webp",
+        "alt": "Accepted Olive Travel Cup reference beside its transparent cutout and catalogue treatments.",
+        "caption": "One accepted reference carried through a coordinated catalogue set."
       },
       "ogImage": "/recipes/runs/2026-09-10-marketing-recipes-01/ecommerce-sku-visual-factory/recipe-card.jpg",
       "proof": {
@@ -917,6 +930,11 @@ export const recipeEntries: RecipeEntry[] = [
       "hero": {
         "src": "/recipes/runs/2026-09-10-marketing-recipes-01/storyboard-to-trailer/recipe-card.webp",
         "alt": "NodeTool Storyboard view showing the six-shot board for The Next Tide."
+      },
+      "card": {
+        "src": "/recipes/runs/2026-09-10-marketing-recipes-01/storyboard-to-trailer/storyboard-board.jpg",
+        "alt": "The complete six-shot storyboard for The Next Tide.",
+        "caption": "The reviewed board is the end of this recorded example."
       },
       "ogImage": "/recipes/runs/2026-09-10-marketing-recipes-01/storyboard-to-trailer/recipe-card.jpg",
       "proof": {

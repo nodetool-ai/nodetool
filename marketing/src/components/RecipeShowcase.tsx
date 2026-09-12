@@ -1,8 +1,20 @@
 import { ArrowRight } from "lucide-react";
 import { recipeEntries } from "@/data/recipes";
+import type { RecipeEntry } from "@/data/recipes";
 import RecipeCard from "./RecipeCard";
 
+const HOMEPAGE_RECIPE_ORDER = [
+  "viral-video-ad-engine",
+  "ecommerce-sku-visual-factory",
+  "multilingual-video-dubber",
+  "storyboard-to-trailer"
+];
+
 export default function RecipeShowcase() {
+  const projects = HOMEPAGE_RECIPE_ORDER.map((slug) =>
+    recipeEntries.find((recipe) => recipe.slug === slug)
+  ).filter((recipe): recipe is RecipeEntry => Boolean(recipe));
+
   return (
     <section
       id="jobs"
@@ -10,21 +22,24 @@ export default function RecipeShowcase() {
       className="relative overflow-clip-safe py-24"
     >
       <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mb-12 max-w-2xl">
-          <p className="text-sm font-medium text-amber-300">Guided recipes</p>
+        <div className="mb-12 max-w-3xl">
           <h2
             id="jobs-title"
-            className="mt-4 text-3xl font-semibold tracking-tight text-slate-100 md:text-5xl"
+            className="text-3xl font-semibold tracking-tight text-slate-100 md:text-5xl"
           >
-            A clear next step for what you want to make.
+            How teams are using NodeTool
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-slate-300">
-            Start an ad, a catalogue, a translated video, or a story. Follow the
-            guided setup, review the result, and make it yours in the editor.
+          <p className="mt-5 text-sm font-medium uppercase tracking-[0.18em] text-amber-300">
+            NodeTool example projects
+          </p>
+          <p className="mt-3 max-w-xl text-lg leading-relaxed text-slate-300">
+            Recorded outputs, editable projects, and the review work still
+            ahead.
           </p>
         </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          {recipeEntries.map((recipe) => (
+        {projects[0] && <RecipeCard recipe={projects[0]} featured />}
+        <div className="mt-6 grid gap-6 lg:grid-cols-3">
+          {projects.slice(1).map((recipe) => (
             <RecipeCard key={recipe.slug} recipe={recipe} />
           ))}
         </div>

@@ -17,6 +17,11 @@ export const recipePresentation = [
         src: `${runRoot}/viral-video-ad-engine/recipe-card.webp`,
         alt: "Three vertical Olive Travel Cup ad variants shown side by side."
       },
+      card: {
+        src: `${runRoot}/viral-video-ad-engine/hooks-contact-sheet.webp`,
+        alt: "Three opening compositions for the same Olive Travel Cup ad.",
+        caption: "Three openings built from one fictional product reference."
+      },
       ogImage: `${runRoot}/viral-video-ad-engine/recipe-card.jpg`,
       proof: {
         src: `${runRoot}/viral-video-ad-engine/hooks-contact-sheet.webp`,
@@ -38,9 +43,8 @@ export const recipePresentation = [
         "FAL generated the stills, motion clips, and voice through NodeTool."
       ],
       essentialLimitation:
-        "The live app captures and guided-flow walkthrough are not complete.",
+        "The product is fictional, and the live app captures and guided-flow walkthrough are not complete.",
       limitations: [
-        "The product is a fictional, unbranded demonstration object.",
         "No speed, virality, sales, product-performance, price, or provider-cost claim is supported."
       ]
     }
@@ -58,6 +62,12 @@ export const recipePresentation = [
       hero: {
         src: `${runRoot}/multilingual-video-dubber/recipe-card.webp`,
         alt: "Synthetic presenter with English and Spanish versions of the same short script."
+      },
+      card: {
+        src: `${runRoot}/multilingual-video-dubber/translation-review.webp`,
+        alt: "English source lines beside their Spanish translation and back-translation review.",
+        caption:
+          "Synthetic presenter example with a recorded translation review."
       },
       ogImage: `${runRoot}/multilingual-video-dubber/recipe-card.jpg`,
       proof: {
@@ -80,9 +90,8 @@ export const recipePresentation = [
         "Line 2 was redirected and revoiced before three clips were sent to an editable 16.3-second timeline."
       ],
       essentialLimitation:
-        "Human audition and final playback review are not recorded.",
+        "The native timeline preview failed, and human audition and lip-sync acceptance remain pending.",
       limitations: [
-        "The native timeline preview failed, and the lip-sync finishing pass has not been accepted by a human reviewer.",
         "Five required app captures, the walkthrough, persistent document IDs, and lossless capture originals are missing."
       ]
     }
@@ -100,6 +109,12 @@ export const recipePresentation = [
       hero: {
         src: `${runRoot}/ecommerce-sku-visual-factory/recipe-card.webp`,
         alt: "Olive Travel Cup shown as a cutout, studio product image, winter scene, and motion frame."
+      },
+      card: {
+        src: `${runRoot}/ecommerce-sku-visual-factory/source-to-set.webp`,
+        alt: "Accepted Olive Travel Cup reference beside its transparent cutout and catalogue treatments.",
+        caption:
+          "One accepted reference carried through a coordinated catalogue set."
       },
       ogImage: `${runRoot}/ecommerce-sku-visual-factory/recipe-card.jpg`,
       proof: {
@@ -143,6 +158,11 @@ export const recipePresentation = [
       hero: {
         src: `${runRoot}/storyboard-to-trailer/recipe-card.webp`,
         alt: "NodeTool Storyboard view showing the six-shot board for The Next Tide."
+      },
+      card: {
+        src: `${runRoot}/storyboard-to-trailer/storyboard-board.jpg`,
+        alt: "The complete six-shot storyboard for The Next Tide.",
+        caption: "The reviewed board is the end of this recorded example."
       },
       ogImage: `${runRoot}/storyboard-to-trailer/recipe-card.jpg`,
       proof: {

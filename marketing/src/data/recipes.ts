@@ -140,6 +140,8 @@ export interface RecipeProductionRun {
   summary: string;
   provider: string;
   hero: RecipeProductionMedia;
+  /** Result media selected for promoted recipe cards. */
+  readonly card: RecipeProductionMedia;
   ogImage: string;
   proof: RecipeProductionMedia | null;
   video: {
