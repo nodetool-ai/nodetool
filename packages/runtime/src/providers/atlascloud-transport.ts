@@ -178,14 +178,54 @@ export async function atlasPoll(
   throw new Error(`AtlasCloud job timed out (predictionId: ${predictionId})`);
 }
 
-export function pickOutputUrl(result: AtlasPollResult): string {
-  if (Array.isArray(result.outputs) && result.outputs.length > 0) {
-    const first = result.outputs[0];
-    if (isString(first)) return first;
-    if (first && isString(first.url)) return first.url;
+/**
+ * Read one prediction once, without polling — the lookup behind
+ * `AtlasCloudProvider.getGeneration`. `atlasPoll` waits for a terminal state
+ * and throws on failure; this reports whatever state the job is in, and
+ * answers `null` for a prediction id AtlasCloud does not know (404).
+ */
+export async function atlasGetPrediction(
+  apiKey: string,
+  predictionId: string,
+  opts: { fetchFn?: typeof fetch; signal?: AbortSignal } = {}
+): Promise<AtlasPollResult | null> {
+  const fetchFn = opts.fetchFn ?? globalThis.fetch.bind(globalThis);
+  const init: RequestInit = { headers: authHeaders(apiKey) };
+  if (opts.signal) init.signal = opts.signal;
+  const res = await fetchFn(`${ATLAS_BASE}${pollPath(predictionId)}`, init);
+  const text = await res.text();
+  let data: { data?: AtlasPollResult; message?: string } | null;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = null;
   }
-  if (isString(result.output)) return result.output;
-  if (isString(result.url)) return result.url;
+  if (res.status === 404) return null;
+  // A non-2xx that still carries a prediction body is the prediction's own
+  // failure, and is reported as that state rather than as a transport error.
+  if (!res.ok && !data?.data) {
+    throw new Error(
+      `AtlasCloud prediction lookup ${res.status}: ${text.slice(0, 500)}`
+    );
+  }
+  return data?.data ?? null;
+}
+
+/** Every output URL a finished prediction carries, in the order it lists them. */
+export function outputUrls(result: AtlasPollResult): string[] {
+  const urls: string[] = [];
+  for (const entry of result.outputs ?? []) {
+    if (isString(entry)) urls.push(entry);
+    else if (entry && isString(entry.url)) urls.push(entry.url);
+  }
+  if (isString(result.output)) urls.push(result.output);
+  if (isString(result.url)) urls.push(result.url);
+  return urls;
+}
+
+export function pickOutputUrl(result: AtlasPollResult): string {
+  const [first] = outputUrls(result);
+  if (first !== undefined) return first;
   throw new Error(
     `No output URL in result: ${JSON.stringify(result).slice(0, 500)}`
   );

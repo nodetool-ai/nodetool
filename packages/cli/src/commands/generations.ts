@@ -6,8 +6,11 @@
  * its outcome (docs/media-generation-tracking-design.md). `list` and `get`
  * read the rows, `await` waits for one to settle, `cancel` closes a running
  * one, `reconcile` asks the provider what it billed, and `sweep` runs the
- * startup sweep plus one drain of the reconcile queue by hand. The same
- * five actions are the `generations` agent capabilities.
+ * startup sweep plus one drain of the reconcile queue by hand.
+ *
+ * `provider-list` and `provider-get` ask the *provider* instead: its own
+ * record of what this account ran, from any machine, at the price it billed.
+ * The seven actions are the `generations` agent capabilities.
  */
 
 import type { Command } from "commander";
@@ -18,6 +21,13 @@ import {
   sweepInterruptedGenerations
 } from "@nodetool-ai/execution";
 
+import {
+  isProviderGenerationsUnsupported,
+  type ProviderGeneration,
+  type ProviderGenerationQuery
+} from "@nodetool-ai/runtime";
+
+import { createProviderStrict } from "../providers.js";
 import { asJson, printTable, printKv } from "./output.js";
 import { setupLocalDb, LOCAL_USER_ID } from "./local-db.js";
 
@@ -86,6 +96,47 @@ function summaryRow(row: Prediction): Record<string, string> {
 
 const resolveSecret = (key: string, userId: string): Promise<string | null> =>
   getSecret(key, userId);
+
+const PROVIDER_STATUSES: ReadonlySet<string> = new Set([
+  "running",
+  "completed",
+  "failed",
+  "cancelled",
+  "unknown"
+]);
+
+/** `--status` as the provider vocabulary, rejecting anything else outright. */
+function providerStatusOption(
+  value: string
+): ProviderGenerationQuery["status"] {
+  if (!PROVIDER_STATUSES.has(value)) {
+    fail(`Invalid --status value: ${value}. One of ${[...PROVIDER_STATUSES].join(", ")}.`);
+  }
+  // SAFETY: the set holds exactly the members of ProviderGenerationStatus.
+  return value as ProviderGenerationQuery["status"];
+}
+
+/** A provider with no history API is a capability answer, not a stack trace. */
+function providerGenerationsMessage(providerId: string, error: unknown): string {
+  if (isProviderGenerationsUnsupported(error)) {
+    return (
+      `${providerId} exposes no generation history. Read this installation's ` +
+      `own record with \`nodetool generations list\`.`
+    );
+  }
+  return String(error instanceof Error ? error.message : error);
+}
+
+function providerSummaryRow(row: ProviderGeneration): Record<string, string> {
+  return {
+    request_id: row.request_id,
+    status: row.status,
+    model: row.model ?? "",
+    cost: costCell(row.cost),
+    started: row.created_at ?? "",
+    outputs: String(row.output_urls.length)
+  };
+}
 
 export function registerGenerationsCommands(program: Command): void {
   const generations = program
@@ -242,6 +293,83 @@ export function registerGenerationsCommands(program: Command): void {
         fail(e);
       }
     });
+
+  generations
+    .command("provider-list")
+    .description("List the provider's own record of this account's generations")
+    .requiredOption("--provider <name>", "Provider id, e.g. fal_ai")
+    .option("--model <id>", "Only this endpoint / model id (comma-separated)")
+    .option("--status <status>", "running, completed, failed, cancelled, unknown")
+    .option("--since <iso>", "Only generations started at or after this time")
+    .option("--until <iso>", "Exclusive upper bound")
+    .option("--limit <n>", "Max results", "50")
+    .option("--cursor <cursor>", "The next_cursor from a previous page")
+    .option("--json", "Output as JSON")
+    .action(
+      async (opts: {
+        provider: string;
+        model?: string;
+        status?: string;
+        since?: string;
+        until?: string;
+        limit: string;
+        cursor?: string;
+        json?: boolean;
+      }) => {
+        try {
+          await setupLocalDb();
+          const provider = await createProviderStrict(opts.provider);
+          const query: ProviderGenerationQuery = {
+            limit: Math.max(1, Number.parseInt(opts.limit, 10) || 50)
+          };
+          if (opts.model) query.model = opts.model.split(",").map((m) => m.trim());
+          if (opts.status) query.status = providerStatusOption(opts.status);
+          if (opts.since) query.since = opts.since;
+          if (opts.until) query.until = opts.until;
+          if (opts.cursor) query.cursor = opts.cursor;
+          const page = await provider.listGenerations(query);
+          if (opts.json) {
+            asJson(page);
+            return;
+          }
+          if (page.generations.length === 0) {
+            console.log(`${opts.provider} reports no generations.`);
+          } else {
+            printTable(page.generations.map(providerSummaryRow));
+          }
+          if (page.note) console.log(page.note);
+          if (page.next_cursor) console.log(`next_cursor: ${page.next_cursor}`);
+        } catch (e) {
+          fail(providerGenerationsMessage(opts.provider, e));
+        }
+      }
+    );
+
+  generations
+    .command("provider-get <request_id>")
+    .description("Ask a provider about one generation, by its own request id")
+    .requiredOption("--provider <name>", "Provider id, e.g. fal_ai")
+    .option("--model <id>", "The endpoint / model id, when known")
+    .option("--json", "Output as JSON")
+    .action(
+      async (
+        requestId: string,
+        opts: { provider: string; model?: string; json?: boolean }
+      ) => {
+        try {
+          await setupLocalDb();
+          const provider = await createProviderStrict(opts.provider);
+          const lookup: { model?: string } = {};
+          if (opts.model) lookup.model = opts.model;
+          const row = await provider.getGeneration(requestId, lookup);
+          if (!row) fail(`${opts.provider} has no request ${requestId}.`);
+          if (opts.json) asJson(row);
+          else printKv({ ...row });
+        } catch (e) {
+          fail(providerGenerationsMessage(opts.provider, e));
+        }
+      }
+    );
 
   generations
     .command("sweep")

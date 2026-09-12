@@ -110,6 +110,26 @@ export type {
   ProviderUsageTotals
 } from "./base-provider.js";
 export {
+  ProviderGenerationsUnsupportedError,
+  isProviderGenerationsUnsupported,
+  providerGeneration
+} from "./provider-generations.js";
+export {
+  FalPlatformAuthError,
+  falBillingEvent,
+  falListGenerations,
+  falGetGeneration,
+  falRequestCost
+} from "./fal-generations.js";
+export type { FalGenerationsOptions } from "./fal-generations.js";
+export type {
+  ProviderGeneration,
+  ProviderGenerationLookup,
+  ProviderGenerationPage,
+  ProviderGenerationQuery,
+  ProviderGenerationStatus
+} from "./provider-generations.js";
+export {
   CORE_TOOL_NAMES,
   DISCOVERY_TOOL_NAMES,
   DIRECT_TOOL_NAMES,

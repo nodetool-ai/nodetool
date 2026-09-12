@@ -54,6 +54,13 @@ import {
   isProviderToolErrorResult,
   PROVIDER_STOP_ABORTED
 } from "./types.js";
+import type {
+  ProviderGeneration,
+  ProviderGenerationLookup,
+  ProviderGenerationPage,
+  ProviderGenerationQuery
+} from "./provider-generations.js";
+import { ProviderGenerationsUnsupportedError } from "./provider-generations.js";
 import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
 import { getTracer } from "../telemetry.js";
@@ -220,7 +227,9 @@ export type ProviderCapability =
   | "automatic_speech_recognition"
   | "generate_embedding"
   | "text_to_3d"
-  | "image_to_3d";
+  | "image_to_3d"
+  | "list_generations"
+  | "get_generation";
 
 /**
  * Derive a provider's capability set by checking which optional `getAvailable*`
@@ -333,6 +342,14 @@ export function providerCapabilities(
     // Providers that expose 3D models are assumed to support both task types;
     // individual `textTo3D` / `imageTo3D` calls will throw if not implemented.
     capabilities.push("text_to_3d", "image_to_3d");
+  }
+  // The provider's own record of what it ran, exposed only by providers with
+  // a history API behind it (see provider-generations.ts).
+  if (instance.listGenerations !== BaseProvider.prototype.listGenerations) {
+    capabilities.push("list_generations");
+  }
+  if (instance.getGeneration !== BaseProvider.prototype.getGeneration) {
+    capabilities.push("get_generation");
   }
   return capabilities;
 }
@@ -716,6 +733,36 @@ export abstract class BaseProvider {
       return [...set];
     }
     return providerCapabilities(this);
+  }
+
+  /**
+   * The provider's own record of the generations this account ran, newest
+   * first. Only providers with a request-history API override this; the base
+   * throws {@link ProviderGenerationsUnsupportedError} so a caller can tell
+   * "this provider cannot answer" from "this provider ran nothing".
+   *
+   * This is the provider's truth, not NodeTool's: it covers generations made
+   * outside this installation and carries the billed cost rather than the
+   * estimate the local row holds until reconciliation.
+   */
+  async listGenerations(
+    _query: ProviderGenerationQuery = {}
+  ): Promise<ProviderGenerationPage> {
+    throw new ProviderGenerationsUnsupportedError(this.provider, "list");
+  }
+
+  /**
+   * One generation at the provider, by the provider's own request id — the id
+   * the local row keeps as `provider_request_id`. Returns null when the
+   * provider answers that it has no such request. Throws
+   * {@link ProviderGenerationsUnsupportedError} when the provider has no
+   * lookup API at all.
+   */
+  async getGeneration(
+    _requestId: string,
+    _options: ProviderGenerationLookup = {}
+  ): Promise<ProviderGeneration | null> {
+    throw new ProviderGenerationsUnsupportedError(this.provider, "get");
   }
 
   getContainerEnv(): Record<string, string> {

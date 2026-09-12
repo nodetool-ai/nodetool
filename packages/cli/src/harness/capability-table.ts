@@ -826,6 +826,26 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "list_provider_generations",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "cc949bb0abfb",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "get_provider_generation",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "427e679c46ab",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
     name: "list_assets",
     module: "assets",
     impl: "packages/agents/src/capabilities/assets.ts",

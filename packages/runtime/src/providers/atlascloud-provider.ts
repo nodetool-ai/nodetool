@@ -35,10 +35,22 @@ import { isBoolean, isNumber } from "@nodetool-ai/protocol";
 import {
   ATLAS_BASE,
   atlasDownload,
+  atlasGetPrediction,
   atlasPoll,
   atlasSubmit,
+  outputUrls,
   pickOutputUrl
 } from "./atlascloud-transport.js";
+import {
+  providerGeneration,
+  type ProviderGeneration,
+  type ProviderGenerationLookup,
+  type ProviderGenerationStatus
+} from "./provider-generations.js";
+import {
+  TERMINAL_FAILURE_STATES,
+  TERMINAL_SUCCESS_STATES
+} from "./http-transport.js";
 import {
   getManifestNodeMeta,
   getModelInputFields,
@@ -387,6 +399,22 @@ interface AtlasChatModelRow {
 // Provider
 // ---------------------------------------------------------------------------
 
+/**
+ * AtlasCloud's prediction status in the shared vocabulary. `cancelled` is
+ * reported as itself rather than folded into the failure set the poll loop
+ * uses, because a reader asking after the fact needs the difference.
+ */
+function atlasGenerationStatus(
+  status: string | undefined
+): ProviderGenerationStatus {
+  const value = (status ?? "").toLowerCase();
+  if (value === "") return "unknown";
+  if (value === "cancelled" || value === "canceled") return "cancelled";
+  if (TERMINAL_SUCCESS_STATES.has(value)) return "completed";
+  if (TERMINAL_FAILURE_STATES.has(value)) return "failed";
+  return "running";
+}
+
 export class AtlasCloudProvider extends OpenAICompatProvider {
   private modelMap: Map<string, ModelInfo> | null = null;
   private chatModels: Promise<AtlasChatModelRow[]> | null = null;
@@ -491,6 +519,35 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       log.warn(`Failed to load AtlasCloud video models: ${err}`);
       return [];
     }
+  }
+
+  /**
+   * One AtlasCloud prediction by its id — the `provider_request_id` the local
+   * row keeps. AtlasCloud publishes no listing endpoint, so `listGenerations`
+   * stays unsupported and this provider advertises only `get_generation`.
+   *
+   * The prediction carries no cost or timestamps, so those fields are null:
+   * the price of an AtlasCloud generation is the local row's estimate.
+   */
+  override async getGeneration(
+    requestId: string,
+    options: ProviderGenerationLookup = {}
+  ): Promise<ProviderGeneration | null> {
+    const opts: { fetchFn: typeof fetch; signal?: AbortSignal } = {
+      fetchFn: this.atlasFetch
+    };
+    if (options.signal) opts.signal = options.signal;
+    const result = await atlasGetPrediction(this.apiKey, requestId, opts);
+    if (!result) return null;
+    const fields: Parameters<typeof providerGeneration>[0] = {
+      provider: "atlascloud",
+      request_id: requestId,
+      status: atlasGenerationStatus(result.status),
+      output_urls: outputUrls(result),
+      error: result.error ?? null
+    };
+    if (options.model !== undefined) fields.model = options.model;
+    return providerGeneration(fields);
   }
 
   private getModelMap(): Map<string, ModelInfo> {

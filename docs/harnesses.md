@@ -2041,9 +2041,33 @@ no billed amount yet is retried with backoff (1, 5, 30, 120, 720 minutes) by a
 worker the server starts, and a provider with no billing API leaves the queue
 as `unavailable`. FAL and kie reconcile; the sweep runs at every server start.
 
+Two more commands ask the *provider* instead of the local table — its own
+record of what this account ran, from any machine or from the provider's own
+site, at the price it billed:
+
+```bash
+npm run dev:nodetool -- generations provider-list --provider fal_ai [--model <endpoint>] [--since <iso>] [--limit 50] [--json]
+npm run dev:nodetool -- generations provider-get <request_id> --provider fal_ai [--model <endpoint>] [--json]
+```
+
+That is `BaseProvider.listGenerations` / `getGeneration`
+(`packages/runtime/src/providers/provider-generations.ts`), which a provider
+overrides only where it publishes a history API — `providerCapabilities`
+reports `list_generations` / `get_generation` for exactly those, and every
+other provider throws `ProviderGenerationsUnsupportedError`, a capability
+answer rather than a failure. FAL answers both through its Platform APIs: a
+listing with no model filter comes from the billing feed, which records the
+charge and not the outcome (those rows read `status: "unknown"`, and the page
+says so), while a listing filtered by endpoint reads the request history for
+status, timings and output urls with the costs merged in. AtlasCloud publishes
+a prediction lookup and no listing, so it answers `provider-get` only. Both
+need the provider's own key, and FAL's Platform APIs need it admin-scoped.
+
 Agents reach the same record through the `generations` capability module
 (`list_generations`, `get_generation`, `await_generation`,
-`cancel_generation`, `reconcile_generation`), and every generation capability
+`cancel_generation`, `reconcile_generation`, plus
+`list_provider_generations` and `get_provider_generation` for the provider's
+own record), and every generation capability
 (`generate_image`, `generate_video`, `generate_speech`, the storyboard
 renders, …) returns the `generation_id` next to the asset. `background: true`
 returns the id at once and leaves the follower to finish the job; at most 16

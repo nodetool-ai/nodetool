@@ -4,6 +4,11 @@
  * the caller's own rows, a background call returns the id at once and the
  * row settles without anyone awaiting, cancel stops the call, and reconcile
  * asks the provider now.
+ *
+ * The last two capabilities read the provider's own record instead, so the
+ * provider here is a fake that answers the `BaseProvider.listGenerations` /
+ * `getGeneration` contract — what the real clients return is checked in
+ * `packages/runtime/tests/providers/provider-generations.test.ts`.
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
@@ -12,8 +17,12 @@ import {
   BaseProvider,
   ProcessingContext,
   generationRegistry,
+  providerGeneration,
   registerCostReconciler,
   type Message,
+  type ProviderGeneration,
+  type ProviderGenerationPage,
+  type ProviderGenerationQuery,
   type ProviderStreamItem,
   type TextToImageParams
 } from "@nodetool-ai/runtime";
@@ -251,5 +260,139 @@ describe("generations capabilities", () => {
     const refused = (await gen.impl(run, { provider: "fake", model: "m", prompt: "one more", background: true })) as { error?: string };
     expect(refused.error).toContain("16 background generations");
     for (const id of generationRegistry.runningFor(USER)) generationRegistry.cancel(id, USER);
+  });
+});
+
+/** A provider that keeps a history, as FAL does. */
+class HistoryProvider extends BaseProvider {
+  constructor() {
+    super("fake");
+  }
+  readonly queries: ProviderGenerationQuery[] = [];
+  override async listGenerations(
+    query: ProviderGenerationQuery = {}
+  ): Promise<ProviderGenerationPage> {
+    this.queries.push(query);
+    return {
+      generations: [
+        providerGeneration({
+          provider: "fake",
+          request_id: "req-1",
+          model: "fake/model",
+          status: "completed",
+          cost: 0.25
+        })
+      ],
+      next_cursor: "page-2",
+      note: "costs only"
+    };
+  }
+  override async getGeneration(
+    requestId: string
+  ): Promise<ProviderGeneration | null> {
+    if (requestId !== "req-1") return null;
+    return providerGeneration({
+      provider: "fake",
+      request_id: requestId,
+      status: "completed",
+      output_urls: ["https://cdn/out.png"]
+    });
+  }
+  async generateMessage(): Promise<Message> {
+    throw new Error("not used");
+  }
+  async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
+    throw new Error("not used");
+  }
+}
+
+describe("provider-side generation capabilities", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+
+  function runWith(provider: BaseProvider) {
+    const ctx = new ProcessingContext({ jobId: "j", userId: USER });
+    ctx.registerProvider("fake", provider);
+    return ungatedCapabilityRun(ctx);
+  }
+
+  it("lists what the provider recorded, passing the filters through", async () => {
+    const provider = new HistoryProvider();
+    const result = (await capability(
+      generations,
+      "list_provider_generations"
+    ).impl(runWith(provider), {
+      provider: "fake",
+      model: "fake/model, other/model",
+      status: "completed",
+      since: "2026-09-01",
+      limit: 500,
+      cursor: "page-1"
+    })) as {
+      provider: string;
+      generations: ProviderGeneration[];
+      next_cursor: string | null;
+      note: string | null;
+    };
+    expect(result.provider).toBe("fake");
+    expect(result.generations[0]).toMatchObject({
+      request_id: "req-1",
+      cost: 0.25
+    });
+    expect(result.next_cursor).toBe("page-2");
+    expect(result.note).toBe("costs only");
+    expect(provider.queries[0]).toMatchObject({
+      model: ["fake/model", "other/model"],
+      status: "completed",
+      since: "2026-09-01",
+      cursor: "page-1",
+      // The provider APIs page at 100; a larger ask is bounded, not forwarded.
+      limit: 100
+    });
+  });
+
+  it("reads one provider generation, and reports an id the provider lacks", async () => {
+    const run = runWith(new HistoryProvider());
+    const found = (await capability(generations, "get_provider_generation").impl(
+      run,
+      { provider: "fake", request_id: "req-1" }
+    )) as ProviderGeneration;
+    expect(found.output_urls).toEqual(["https://cdn/out.png"]);
+
+    const missing = (await capability(
+      generations,
+      "get_provider_generation"
+    ).impl(run, { provider: "fake", request_id: "req-9" })) as {
+      error: string;
+    };
+    expect(missing.error).toContain("no request req-9");
+  });
+
+  it("says a provider keeps no history instead of failing the call", async () => {
+    const run = runWith(new SlowImageProvider(1));
+    const listed = (await capability(
+      generations,
+      "list_provider_generations"
+    ).impl(run, { provider: "fake" })) as { error: string };
+    expect(listed.error).toContain("no listable generation history");
+
+    const got = (await capability(generations, "get_provider_generation").impl(
+      run,
+      { provider: "fake", request_id: "req-1" }
+    )) as { error: string };
+    expect(got.error).toContain("cannot be asked about a single generation");
+  });
+
+  it("names an unavailable provider rather than throwing", async () => {
+    const run = ungatedCapabilityRun(
+      new ProcessingContext({ jobId: "j", userId: USER })
+    );
+    const result = (await capability(
+      generations,
+      "list_provider_generations"
+    ).impl(run, { provider: "not_a_provider" })) as { error: string };
+    expect(result.error).toContain("not_a_provider");
+    expect(result.error).toContain("not available");
   });
 });

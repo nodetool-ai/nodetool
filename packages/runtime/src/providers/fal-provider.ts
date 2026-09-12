@@ -8,6 +8,17 @@
 
 import { recordGenerationReceipt } from "../generation-receipt.js";
 import { BaseProvider } from "./base-provider.js";
+import {
+  falGetGeneration,
+  falListGenerations,
+  type FalGenerationsOptions
+} from "./fal-generations.js";
+import type {
+  ProviderGeneration,
+  ProviderGenerationLookup,
+  ProviderGenerationPage,
+  ProviderGenerationQuery
+} from "./provider-generations.js";
 import { createLogger } from "@nodetool-ai/config";
 import { OpenAICompatProvider } from "./openai-compat-provider.js";
 import type {
@@ -741,6 +752,43 @@ export class FalProvider extends BaseProvider {
       storage: client.storage
     };
     return this._client;
+  }
+
+  /** How the platform-API client reaches FAL: this provider's fetch, its signal. */
+  private generationsOptions(
+    signal: AbortSignal | undefined
+  ): FalGenerationsOptions {
+    const options: FalGenerationsOptions = { fetchFn: this._fetch };
+    if (signal) options.signal = signal;
+    return options;
+  }
+
+  /**
+   * FAL's own record of this account's requests, through its Platform APIs —
+   * generations this installation never ran included, at the cost FAL billed.
+   * See `fal-generations.ts` for which endpoint answers what.
+   */
+  override async listGenerations(
+    query: ProviderGenerationQuery = {}
+  ): Promise<ProviderGenerationPage> {
+    return falListGenerations(
+      this.apiKey,
+      query,
+      this.generationsOptions(query.signal)
+    );
+  }
+
+  /** One FAL request by its request id — the id the local row keeps. */
+  override async getGeneration(
+    requestId: string,
+    options: ProviderGenerationLookup = {}
+  ): Promise<ProviderGeneration | null> {
+    return falGetGeneration(
+      this.apiKey,
+      requestId,
+      options,
+      this.generationsOptions(options.signal)
+    );
   }
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
