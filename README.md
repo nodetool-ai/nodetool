@@ -65,21 +65,19 @@ finished, and an agent drives every one of them through the actions you have.
 
 ![NodeTool storyboard](marketing/public/surface-storyboard-poster.webp)
 
-Board the film shot by shot. Pitch a concept, a visual style, and a shot count,
-and the Director node returns a typed screenplay: one shot per card with action,
+Board the film shot by shot. Pitch a concept, a style, and a shot count, and
+the Director node returns a typed screenplay: one shot per card with action,
 camera, motion, and duration, plus the logline, style bible, narration, and
 music direction.
 
 - **Cheap stages first.** A still costs cents, a clip costs dollars. Generate
-  stills until one looks right, pick it, and only then generate the clip.
+  stills until one looks right, then animate that one.
 - **Revise one shot, not the reel.** "Make it darker, add rain" runs
-  video-to-video on the existing clip and swaps it in place. Fixing shot 3
-  never re-rolls shots 1 to 5.
+  video-to-video on that clip alone and swaps it in place.
 - **Entities keep the cast steady.** Characters, locations, styles, and props
-  are named objects whose canonical descriptor is pasted verbatim into every
-  prompt that names them.
-- **Assemble the cut.** One click lays the rendered shots onto a timeline with
-  narration and music tracks, each clip still linked to its shot.
+  paste the same descriptor into every prompt that names them.
+- **Assemble the cut.** One click lays the shots onto a timeline with narration
+  and music, each clip still linked to its shot.
 
 Agents drive the same board through the `ui_storyboard_*` tools, or headlessly
 with `render_storyboard_stills`, `render_storyboard_clips`, and
@@ -91,25 +89,23 @@ with `render_storyboard_stills`, `render_storyboard_clips`, and
 ![NodeTool script editor: the transcript panel beside the sequence it assembles into](marketing/public/surface-script-poster.webp)
 
 Draft the dialogue, cast a provider, model, and voice per character, and
-audition alternate readings. Voicing a line saves a take with its own word
-timings rather than overwriting the last one. Change the words and the take
-flags itself stale, so you see what still needs voicing. The current takes
-assemble into a sequence, word timings riding along as captions.
+audition alternate readings. Each voicing saves its own take with word timings,
+and changing the words flags that take stale. The current takes assemble into a
+sequence, the timings riding along as captions.
 
-Without the editor open, `voice_script_lines` voices every draft or stale line
-with its cast voice, and `assemble_script_timeline` cuts the result into a
-saved sequence that `validate_timeline` then checks.
+Headlessly, `voice_script_lines` voices every draft or stale line in its cast
+voice and `assemble_script_timeline` cuts the result into a sequence that
+`validate_timeline` checks.
 
 ### Timeline
 
 ![NodeTool timeline](marketing/public/surface-timeline-poster.webp)
 
-Arrange, trim, and layer generated video and audio across tracks, down to the
-frame and the stem. Drop in your own footage or bind a workflow to a clip
-(text-to-image, image-to-video, or text-to-speech) and generate in place:
-change a parameter and the clip regenerates, tweak the bound workflow and the
-clip flags itself stale. Export to MP4. The agent edits the same document when
-you ask it to tighten the opening.
+Arrange, trim, and layer video and audio across tracks, down to the frame and
+the stem. Drop in your own footage, or bind a workflow to a clip and generate
+in place: change a parameter and the clip regenerates, tweak the workflow and
+the clip flags itself stale. Export to MP4. The agent edits the same document
+when you ask it to tighten the opening.
 [Video editor guide →](https://docs.nodetool.ai/video-editor)
 
 ### Sketch
@@ -117,10 +113,10 @@ you ask it to tighten the opening.
 ![NodeTool sketch editor](marketing/public/screen_sketch_editor.webp)
 
 Build a composition in layers with blend modes and masks, then bind a layer to
-a model or one of your own workflows and generate where you are painting.
-Change a prompt or an upstream input and the layer flags itself stale. The node
-hands the workflow a flattened image, a mask, and per-layer outputs, so it
-pairs with the mask, inpaint, outpaint, and compositing nodes.
+a model or a workflow and generate where you are painting. Change a prompt or
+an upstream input and the layer flags itself stale. The node hands the workflow
+a flattened image, a mask, and per-layer outputs for the mask, inpaint,
+outpaint, and compositing nodes.
 [Sketch editor guide →](https://docs.nodetool.ai/sketch-editor)
 
 ### 3D
@@ -129,21 +125,19 @@ pairs with the mask, inpaint, outpaint, and compositing nodes.
 
 Place primitives and lights in a glTF scene by hand or by tool call, then
 capture a view as a depth or composition reference for an image or video model.
-The same operations run headlessly through `create_model3d`, `get_model3d`,
-`edit_model3d`, `validate_model3d`, and `render_model3d`, so a scene is
-reproducible with no editor open.
+`create_model3d`, `get_model3d`, `edit_model3d`, `validate_model3d`, and
+`render_model3d` run the same operations with no editor open.
 
 ## The node editor
 
 ![NodeTool workflow canvas](marketing/public/screen_workflow.webp)
 
 Every project is a graph you can open. Drag nodes in, connect typed ports, and
-read the live output at each step. Double-click the canvas to search and add a
-node, or drag a connection into empty space to see compatible next steps. The
-editor refuses a mismatch, so an image cannot land in a text field.
+read the live output at each step. Double-click the canvas to search for a
+node, or drag a connection into empty space to see what fits. The editor
+refuses a mismatch, so an image cannot land in a text field.
 
-Every editor above sits on this canvas, and an agent wires it through the same
-actions you have.
+Every editor above sits on this canvas.
 
 ## Recipes
 
