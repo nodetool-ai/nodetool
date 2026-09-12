@@ -181,7 +181,10 @@ describe("PanelStore — merge migration", () => {
   const initialState = usePanelStore.getState();
   const getMerge = () => {
     const opts = usePanelStore.persist.getOptions();
-    return opts.merge as (p: unknown, c: typeof initialState) => typeof initialState;
+    return opts.merge as (
+      p: unknown,
+      c: typeof initialState
+    ) => typeof initialState;
   };
 
   afterEach(() => {
@@ -190,7 +193,14 @@ describe("PanelStore — merge migration", () => {
 
   it("migrates workflowGrid to workflows", () => {
     const merged = getMerge()(
-      { panel: { panelSize: 500, isVisible: true, activeView: "workflowGrid", activeNodeCategory: "all" } },
+      {
+        panel: {
+          panelSize: 500,
+          isVisible: true,
+          activeView: "workflowGrid",
+          activeNodeCategory: "all"
+        }
+      },
       initialState
     );
     expect(merged.panel.activeView).toBe("workflows");
@@ -198,7 +208,14 @@ describe("PanelStore — merge migration", () => {
 
   it("migrates search to nodes/all", () => {
     const merged = getMerge()(
-      { panel: { panelSize: 500, isVisible: true, activeView: "search", activeNodeCategory: "all" } },
+      {
+        panel: {
+          panelSize: 500,
+          isVisible: true,
+          activeView: "search",
+          activeNodeCategory: "all"
+        }
+      },
       initialState
     );
     expect(merged.panel.activeView).toBe("nodes");
@@ -207,7 +224,9 @@ describe("PanelStore — merge migration", () => {
 
   it("migrates legacy node category alias in activeView", () => {
     const merged = getMerge()(
-      { panel: { panelSize: 500, isVisible: true, activeView: "image-models" } },
+      {
+        panel: { panelSize: 500, isVisible: true, activeView: "image-models" }
+      },
       initialState
     );
     expect(merged.panel.activeView).toBe("nodes");
@@ -216,7 +235,14 @@ describe("PanelStore — merge migration", () => {
 
   it("migrates legacy alias in activeNodeCategory field", () => {
     const merged = getMerge()(
-      { panel: { panelSize: 600, isVisible: true, activeView: "nodes", activeNodeCategory: "tools" } },
+      {
+        panel: {
+          panelSize: 600,
+          isVisible: true,
+          activeView: "nodes",
+          activeNodeCategory: "tools"
+        }
+      },
       initialState
     );
     expect(merged.panel.activeNodeCategory).toBe("image");
@@ -224,7 +250,14 @@ describe("PanelStore — merge migration", () => {
 
   it("clamps persisted panelSize to max", () => {
     const merged = getMerge()(
-      { panel: { panelSize: 9999, isVisible: false, activeView: "workflows", activeNodeCategory: "all" } },
+      {
+        panel: {
+          panelSize: 9999,
+          isVisible: false,
+          activeView: "workflows",
+          activeNodeCategory: "all"
+        }
+      },
       initialState
     );
     expect(merged.panel.panelSize).toBe(800);
@@ -232,7 +265,14 @@ describe("PanelStore — merge migration", () => {
 
   it("clamps persisted panelSize to min", () => {
     const merged = getMerge()(
-      { panel: { panelSize: 5, isVisible: false, activeView: "workflows", activeNodeCategory: "all" } },
+      {
+        panel: {
+          panelSize: 5,
+          isVisible: false,
+          activeView: "workflows",
+          activeNodeCategory: "all"
+        }
+      },
       initialState
     );
     expect(merged.panel.panelSize).toBe(60);
@@ -248,11 +288,18 @@ describe("PanelStore — merge migration", () => {
     expect(merged).toEqual(initialState);
   });
 
-  it("preserves valid current view names", () => {
+  it("moves the retired workflow output view to Library", () => {
     const merged = getMerge()(
-      { panel: { panelSize: 500, isVisible: true, activeView: "assets", activeNodeCategory: "all" } },
+      {
+        panel: {
+          panelSize: 500,
+          isVisible: true,
+          activeView: "assets",
+          activeNodeCategory: "all"
+        }
+      },
       initialState
     );
-    expect(merged.panel.activeView).toBe("assets");
+    expect(merged.panel.activeView).toBe("library");
   });
 });

@@ -23,12 +23,11 @@ import {
 } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import isEqual from "../../utils/isEqual";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import AssetGrid from "../assets/AssetGrid";
 import {
   AssetGridStoreProvider,
-  ASSETS_ASSET_GRID_STORE_KEY,
   LIBRARY_ASSET_GRID_STORE_KEY
 } from "../../stores/AssetGridStore";
 import WorkflowList from "../workflows/WorkflowList";
@@ -60,7 +59,7 @@ import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
 import NodeLibrary from "../node_menu/NodeLibrary";
 import RailAppMenu from "./RailAppMenu";
 import ProjectsRailButton from "../projects/ProjectsRailButton";
-import AppPagesList from "./AppPagesList";
+import MorePanel from "./MorePanel";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 
 import {
@@ -76,10 +75,10 @@ import {
 import { PAGE_TAB_TITLES } from "../workspace/pageTabs";
 import {
   LEFT_PANEL_TOP_LEVEL,
-  LEFT_PANEL_GROUPS,
-  WORKFLOW_OUTPUT_DESCRIPTION,
-  getTopLevelCategory
+  getTopLevelCategory,
+  isMorePanelView
 } from "../../config/quickAccessCategories";
+import type { LeftPanelTopLevelCategory } from "../../config/quickAccessCategories";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -93,7 +92,6 @@ import ThemeToggle from "../ui/ThemeToggle";
 import PanelHeadline from "../ui/PanelHeadline";
 import MenuIcon from "@mui/icons-material/Menu";
 import CodeIcon from "@mui/icons-material/Code";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 
 import Fullscreen from "@mui/icons-material/Fullscreen";
 
@@ -106,6 +104,7 @@ const WORKFLOW_EDIT_ONLY_VIEWS: readonly LeftPanelView[] = [
   "history",
   "favorites"
 ];
+const EMPTY_LEFT_PANEL_VIEWS: readonly LeftPanelView[] = [];
 
 const isWorkflowEditOnlyView = (view: string): view is LeftPanelView =>
   (WORKFLOW_EDIT_ONLY_VIEWS as readonly string[]).includes(view);
@@ -269,8 +268,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   onViewChange,
   handlePanelToggle,
   showAppMenu = false,
-  showProjects = false,
-  hiddenViews
+  showProjects = false
 }: {
   activeView: LeftPanelView;
   onViewChange: (view: LeftPanelView) => void;
@@ -278,27 +276,12 @@ const VerticalToolbar = memo(function VerticalToolbar({
   showAppMenu?: boolean;
   /** Projects open as tabs, so the entry only exists in the workspace shell. */
   showProjects?: boolean;
-  hiddenViews?: readonly LeftPanelView[];
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
-  const currentWorkflow = useWorkflowManager((state) =>
-    state.currentWorkflowId
-      ? (state.nodeStores[state.currentWorkflowId]?.getState().getWorkflow() ??
-        null)
-      : null
-  );
 
   // Sidebar shows the view as "active" only when the panel is open and
   // that view is selected.
-  const renderedActive: LeftPanelView | "" =
-    panelVisible && LEFT_PANEL_TOP_LEVEL.some((c) => c.id === activeView)
-      ? (activeView as LeftPanelView)
-      : "";
-
-  const labelOverrides = useMemo(
-    () => (currentWorkflow ? { assets: "Workflow Output" } : undefined),
-    [currentWorkflow]
-  );
+  const renderedActive: LeftPanelView | "" = panelVisible ? activeView : "";
 
   return (
     <div className="vertical-toolbar">
@@ -307,8 +290,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <QuickAccessSidebar
         activeCategory={renderedActive}
         onCategoryClick={onViewChange}
-        hiddenViews={hiddenViews}
-        labelOverrides={labelOverrides}
       />
       <Divider className="toolbar-divider" sx={{ mx: SPACING.lg }} />
       <ThemeToggle />
@@ -330,6 +311,7 @@ const PanelContent = memo(function PanelContent({
   setActiveNodeCategory,
   handlePanelToggle,
   projectId,
+  hiddenViews,
   isMobile = false
 }: {
   readonly activeView: LeftPanelView;
@@ -337,6 +319,7 @@ const PanelContent = memo(function PanelContent({
   readonly setActiveNodeCategory: (id: NodeCategoryId) => void;
   readonly handlePanelToggle: (view: LeftPanelView) => void;
   readonly projectId: string;
+  readonly hiddenViews: readonly LeftPanelView[];
   readonly isMobile?: boolean;
 }) {
   const navigate = useNavigate();
@@ -350,10 +333,7 @@ const PanelContent = memo(function PanelContent({
   const setVisibility = usePanelStore((state) => state.setVisibility);
   const closePanel = useCallback(() => setVisibility(false), [setVisibility]);
   const activeCategory = getTopLevelCategory(activeView);
-  const headlineDescription =
-    activeView === "assets" && currentWorkflow
-      ? WORKFLOW_OUTPUT_DESCRIPTION
-      : activeCategory.description;
+  const headlineDescription = activeCategory.description;
 
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   // The asset library is a workspace tab like the other manager pages, not a
@@ -366,7 +346,7 @@ const PanelContent = memo(function PanelContent({
       title: PAGE_TAB_TITLES.assets
     });
     navigate("/workspace");
-    handlePanelToggle("assets");
+    handlePanelToggle("library");
   }, [openTab, navigate, handlePanelToggle]);
 
   const handleEntitiesFullscreenClick = useCallback(() => {
@@ -385,6 +365,18 @@ const PanelContent = memo(function PanelContent({
       <NodeLibrary
         activeSubcategory={activeNodeCategory}
         onSubcategoryChange={setActiveNodeCategory}
+        isMobile={isMobile}
+      />
+    );
+  }
+
+  if (activeView === "more") {
+    return (
+      <MorePanel
+        onSelectView={handlePanelToggle}
+        hiddenViews={hiddenViews}
+        includeAppPages={isMobile}
+        onAppPageAction={closePanel}
         isMobile={isMobile}
       />
     );
@@ -430,41 +422,6 @@ const PanelContent = memo(function PanelContent({
           <ScrollArea fullHeight>
             <FavoritesTiles showEmpty hideHeader />
           </ScrollArea>
-        </FlexColumn>
-      )}
-      {activeView === "assets" && (
-        <FlexColumn
-          className="assets-container"
-          fullWidth
-          fullHeight
-          sx={{
-            overflow: "hidden"
-          }}
-        >
-          {!isMobile && (
-            <PanelHeadline
-              title={currentWorkflow ? "Workflow Output" : "Assets"}
-              docsTopic={activeCategory.docsTopic}
-              description={headlineDescription}
-              actions={
-                <Tooltip
-                  title="Open the global asset library"
-                  placement="right-start"
-                >
-                  <ToolbarIconButton
-                    className={`${path === "/assets" ? "active" : ""}`}
-                    onClick={handleFullscreenClick}
-                    tabIndex={-1}
-                    icon={<Fullscreen />}
-                    ariaLabel="Open the global asset library"
-                  />
-                </Tooltip>
-              }
-            />
-          )}
-          <AssetGridStoreProvider persistKey={ASSETS_ASSET_GRID_STORE_KEY}>
-            <AssetGrid maxItemSize={5} isMobile={isMobile} />
-          </AssetGridStoreProvider>
         </FlexColumn>
       )}
       {activeView === "library" && (
@@ -857,6 +814,41 @@ const MOBILE_CREATE_ACTIONS: Partial<
   apps: CreateApplicationButton
 };
 
+interface MobilePanelCategoryButtonProps {
+  readonly category: LeftPanelTopLevelCategory;
+  readonly active: boolean;
+  readonly onSelect: (view: LeftPanelView) => void;
+}
+
+const MobilePanelCategoryButton = ({
+  category,
+  active,
+  onSelect
+}: MobilePanelCategoryButtonProps) => {
+  const handleClick = useCallback(
+    () => onSelect(category.id),
+    [category.id, onSelect]
+  );
+
+  return (
+    <Tooltip
+      title={category.label}
+      placement="bottom"
+      delay={TOOLTIP_ENTER_DELAY}
+    >
+      <ToolbarIconButton
+        className="tab-button"
+        active={active}
+        aria-pressed={active}
+        onClick={handleClick}
+        ariaLabel={category.label}
+        tabIndex={-1}
+        icon={category.icon}
+      />
+    </Tooltip>
+  );
+};
+
 const MobilePanelLeft: React.FC<{
   readonly activeView: LeftPanelView;
   readonly activeNodeCategory: NodeCategoryId;
@@ -868,8 +860,8 @@ const MobilePanelLeft: React.FC<{
   readonly onViewChange: (view: LeftPanelView) => void;
   readonly handlePanelToggle: (view: LeftPanelView) => void;
   readonly projectId: string;
-  /** Top-level views to omit, same as the desktop rail. */
-  readonly hiddenViews?: readonly LeftPanelView[];
+  /** Views to omit from the consolidated panel. */
+  readonly hiddenViews: readonly LeftPanelView[];
   /**
    * In the workspace shell the top row carries the launcher buttons
    * (MobileRailLauncher), so this variant renders only the sheet.
@@ -893,46 +885,16 @@ const MobilePanelLeft: React.FC<{
   showProjects = false
 }) => {
   const theme = useTheme();
-  // The app pages (Settings, Help, Downloads, …) are a section of this sheet
-  // rather than a second menu in the top row, so the sheet has two modes:
-  // browse a document category, or pick an app page.
-  const [appPagesOpen, setAppPagesOpen] = useState(false);
 
   const handleSheetViewChange = useCallback(
     (view: LeftPanelView) => {
-      setAppPagesOpen(false);
       onViewChange(view);
     },
     [onViewChange]
   );
 
-  const showAppPages = useCallback(() => setAppPagesOpen(true), []);
-
-  // Reopening the sheet lands on the documents it was browsing, not on More.
-  useEffect(() => {
-    if (!isVisible) {
-      setAppPagesOpen(false);
-    }
-  }, [isVisible]);
-
-  const categoryGroups = useMemo(
-    () =>
-      LEFT_PANEL_GROUPS.map((group) => ({
-        ...group,
-        categories: group.categories.filter(
-          (category) => !hiddenViews?.includes(category.id)
-        )
-      })).filter((group) => group.categories.length > 0),
-    [hiddenViews]
-  );
-
-  const CreateAction = appPagesOpen
-    ? undefined
-    : MOBILE_CREATE_ACTIONS[activeView];
-
-  const launcherTitle = appPagesOpen
-    ? "More"
-    : getTopLevelCategory(activeView).label;
+  const CreateAction = MOBILE_CREATE_ACTIONS[activeView];
+  const launcherTitle = getTopLevelCategory(activeView).label;
 
   return (
     <>
@@ -954,36 +916,9 @@ const MobilePanelLeft: React.FC<{
         open={isVisible}
         onClose={onClose}
         title={launcherTitle}
-        ariaLabel="Workflows, sketches, timelines, and assets panel"
+        ariaLabel="Project navigation panel"
         headerExtras={
           <div css={mobileHeaderExtrasStyles(theme)}>
-            {categoryGroups.map((group) => (
-              <FlexRow
-                key={group.id}
-                className="mobile-tab-group"
-                gap={SPACING.xs}
-              >
-                {group.categories.map((category) => (
-                  <Tooltip
-                    key={category.id}
-                    title={category.label}
-                    placement="bottom"
-                    delay={TOOLTIP_ENTER_DELAY}
-                  >
-                    <ToolbarIconButton
-                      className={`tab-button ${
-                        activeView === category.id ? "active" : ""
-                      }`}
-                      onClick={() => handleSheetViewChange(category.id)}
-                      ariaLabel={category.label}
-                      tabIndex={-1}
-                      icon={category.icon}
-                    />
-                  </Tooltip>
-                ))}
-              </FlexRow>
-            ))}
-
             <FlexRow className="mobile-tab-group" gap={SPACING.xs}>
               {showProjects && (
                 <ProjectsRailButton
@@ -991,19 +926,18 @@ const MobilePanelLeft: React.FC<{
                   tooltipPlacement="bottom"
                 />
               )}
-              <Tooltip
-                title="More"
-                placement="bottom"
-                delay={TOOLTIP_ENTER_DELAY}
-              >
-                <ToolbarIconButton
-                  className={`tab-button ${appPagesOpen ? "active" : ""}`}
-                  onClick={showAppPages}
-                  ariaLabel="More"
-                  tabIndex={-1}
-                  icon={<MoreHorizIcon />}
+              {LEFT_PANEL_TOP_LEVEL.map((category) => (
+                <MobilePanelCategoryButton
+                  key={category.id}
+                  category={category}
+                  active={
+                    category.id === "more"
+                      ? isMorePanelView(activeView)
+                      : activeView === category.id
+                  }
+                  onSelect={handleSheetViewChange}
                 />
-              </Tooltip>
+              ))}
             </FlexRow>
 
             <Box sx={{ flex: 1 }} />
@@ -1017,23 +951,18 @@ const MobilePanelLeft: React.FC<{
             overflow: "hidden"
           }}
         >
-          {appPagesOpen ? (
-            <ScrollArea>
-              <AppPagesList onAction={onClose} />
-            </ScrollArea>
-          ) : (
-            <ContextMenuProvider>
-              <ContextMenus />
-              <PanelContent
-                activeView={activeView}
-                activeNodeCategory={activeNodeCategory}
-                setActiveNodeCategory={setActiveNodeCategory}
-                handlePanelToggle={handlePanelToggle}
-                projectId={projectId}
-                isMobile
-              />
-            </ContextMenuProvider>
-          )}
+          <ContextMenuProvider>
+            <ContextMenus />
+            <PanelContent
+              activeView={activeView}
+              activeNodeCategory={activeNodeCategory}
+              setActiveNodeCategory={setActiveNodeCategory}
+              handlePanelToggle={handlePanelToggle}
+              projectId={projectId}
+              hiddenViews={hiddenViews}
+              isMobile
+            />
+          </ContextMenuProvider>
         </FlexColumn>
       </MobileBottomSheet>
     </>
@@ -1100,14 +1029,15 @@ const PanelLeft: React.FC = () => {
   const activeView = rawActiveView || "workflows";
 
   const displayActiveView: LeftPanelView =
-    isWorkflowEditOnlyView(activeView) && !isWorkflowEditActive
-      ? "workflows"
-      : activeView;
+    activeView === "assets"
+      ? "library"
+      : isWorkflowEditOnlyView(activeView) && !isWorkflowEditActive
+        ? "workflows"
+        : activeView;
 
-  const hiddenViews = useMemo<readonly LeftPanelView[] | undefined>(
-    () => (isWorkflowEditActive ? undefined : WORKFLOW_EDIT_ONLY_VIEWS),
-    [isWorkflowEditActive]
-  );
+  const hiddenViews = isWorkflowEditActive
+    ? EMPTY_LEFT_PANEL_VIEWS
+    : WORKFLOW_EDIT_ONLY_VIEWS;
 
   const onViewChange = useCallback(
     (view: LeftPanelView) => {
@@ -1132,7 +1062,9 @@ const PanelLeft: React.FC = () => {
   }, [setVisibility]);
 
   useEffect(() => {
-    if (!isWorkflowEditActive && isWorkflowEditOnlyView(activeView)) {
+    if (activeView === "assets") {
+      setActiveView("library");
+    } else if (!isWorkflowEditActive && isWorkflowEditOnlyView(activeView)) {
       setActiveView("workflows");
     }
   }, [activeView, isWorkflowEditActive, setActiveView]);
@@ -1172,7 +1104,6 @@ const PanelLeft: React.FC = () => {
           handlePanelToggle={handlePanelToggleClick}
           showAppMenu={isWorkspace}
           showProjects={isWorkspace}
-          hiddenViews={hiddenViews}
         />
 
         <div
@@ -1224,6 +1155,7 @@ const PanelLeft: React.FC = () => {
               setActiveNodeCategory={setActiveNodeCategory}
               handlePanelToggle={handlePanelToggle}
               projectId={projectId}
+              hiddenViews={hiddenViews}
             />
           </div>
         </div>

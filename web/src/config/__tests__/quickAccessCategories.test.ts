@@ -1,5 +1,6 @@
 import {
-  LEFT_PANEL_GROUPS,
+  LEFT_PANEL_DIRECT,
+  LEFT_PANEL_MORE_GROUPS,
   LEFT_PANEL_TOP_LEVEL,
   NODE_SUBCATEGORIES,
   filterNodesForCategory,
@@ -33,67 +34,41 @@ const idsIn = (category: NodeCategoryId, all: NodeMetadata[]): string[] =>
   );
 
 describe("quickAccessCategories", () => {
-  it("ships seventeen top-level views in order", () => {
+  it("ships only the direct rail views and More at the top level", () => {
     const ids = LEFT_PANEL_TOP_LEVEL.map((c) => c.id);
-    expect(ids).toEqual([
-      "nodes",
-      "favorites",
-      "history",
-      "workflows",
-      "apps",
+    expect(ids).toEqual(["chats", "library", "more"]);
+    expect(LEFT_PANEL_DIRECT.map((category) => category.id)).toEqual([
       "chats",
-      "sketches",
-      "scripts",
-      "storyboards",
-      "entities",
-      "timelines",
-      "jsscripts",
-      "skills",
-      "settings",
-      "workspace-files",
-      "assets",
       "library"
     ]);
   });
 
-  it("groups node tools, global objects, editors, and workflow context", () => {
+  it("groups every remaining panel view under More", () => {
     expect(
-      LEFT_PANEL_GROUPS.map((group) => ({
+      LEFT_PANEL_MORE_GROUPS.map((group) => ({
         id: group.id,
-        placement: group.placement,
         views: group.categories.map((category) => category.id)
       }))
     ).toEqual([
       {
-        id: "node-tools",
-        placement: "top",
-        views: ["nodes", "favorites", "history"]
+        id: "project-content",
+        views: ["workflows", "apps"]
       },
       {
-        id: "main-objects",
-        placement: "top",
-        views: ["workflows", "apps", "chats"]
+        id: "workflow-tools",
+        views: ["nodes", "favorites", "history", "settings"]
       },
       {
         id: "editors",
-        placement: "top",
-        views: [
-          "sketches",
-          "scripts",
-          "storyboards",
-          "entities",
-          "timelines"
-        ]
+        views: ["sketches", "scripts", "storyboards", "entities", "timelines"]
       },
       {
         id: "developer-tools",
-        placement: "top",
         views: ["jsscripts", "skills"]
       },
       {
-        id: "workflow-context",
-        placement: "bottom",
-        views: ["settings", "workspace-files", "assets", "library"]
+        id: "workspace",
+        views: ["workspace-files"]
       }
     ]);
   });

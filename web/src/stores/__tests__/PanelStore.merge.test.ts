@@ -50,10 +50,47 @@ describe("PanelStore merge (legacy migration)", () => {
     expect(result.panel.activeNodeCategory).toBe("image-ai");
   });
 
-  it("preserves valid view names", () => {
+  it("moves the retired workflow output view to Library", () => {
     const cs = currentState();
     const result = merge({ panel: { activeView: "assets" } }, cs);
-    expect(result.panel.activeView).toBe("assets");
+    expect(result.panel.activeView).toBe("library");
+  });
+
+  it("hydrates version 3 preferences while moving workflow output to Library", async () => {
+    const cs = currentState();
+    const storageKey = "left-panel-storage";
+    const previousStorage = localStorage.getItem(storageKey);
+
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        version: 3,
+        state: {
+          panel: {
+            panelSize: 640,
+            isVisible: true,
+            activeView: "assets",
+            activeNodeCategory: "all"
+          }
+        }
+      })
+    );
+
+    try {
+      await usePanelStore.persist.rehydrate();
+      expect(usePanelStore.getState().panel).toMatchObject({
+        panelSize: 640,
+        isVisible: true,
+        activeView: "library"
+      });
+    } finally {
+      usePanelStore.setState(cs, true);
+      if (previousStorage === null) {
+        localStorage.removeItem(storageKey);
+      } else {
+        localStorage.setItem(storageKey, previousStorage);
+      }
+    }
   });
 
   it("keeps the workspace file browser view", () => {
@@ -64,31 +101,46 @@ describe("PanelStore merge (legacy migration)", () => {
 
   it("clamps panelSize to min 60", () => {
     const cs = currentState();
-    const result = merge({ panel: { panelSize: 10, activeView: "workflows" } }, cs);
+    const result = merge(
+      { panel: { panelSize: 10, activeView: "workflows" } },
+      cs
+    );
     expect(result.panel.panelSize).toBe(60);
   });
 
   it("clamps panelSize to max 800", () => {
     const cs = currentState();
-    const result = merge({ panel: { panelSize: 2000, activeView: "workflows" } }, cs);
+    const result = merge(
+      { panel: { panelSize: 2000, activeView: "workflows" } },
+      cs
+    );
     expect(result.panel.panelSize).toBe(800);
   });
 
   it("uses current panelSize when persisted is non-numeric", () => {
     const cs = currentState();
-    const result = merge({ panel: { panelSize: "big", activeView: "workflows" } }, cs);
+    const result = merge(
+      { panel: { panelSize: "big", activeView: "workflows" } },
+      cs
+    );
     expect(result.panel.panelSize).toBe(cs.panel.panelSize);
   });
 
   it("preserves isVisible boolean", () => {
     const cs = currentState();
-    const result = merge({ panel: { isVisible: true, activeView: "workflows" } }, cs);
+    const result = merge(
+      { panel: { isVisible: true, activeView: "workflows" } },
+      cs
+    );
     expect(result.panel.isVisible).toBe(true);
   });
 
   it("uses current isVisible when persisted is non-boolean", () => {
     const cs = currentState();
-    const result = merge({ panel: { isVisible: "yes", activeView: "workflows" } }, cs);
+    const result = merge(
+      { panel: { isVisible: "yes", activeView: "workflows" } },
+      cs
+    );
     expect(result.panel.isVisible).toBe(cs.panel.isVisible);
   });
 

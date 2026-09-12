@@ -30,7 +30,8 @@ export type LeftPanelView =
   | "assets"
   | "library"
   | "workspace-files"
-  | "nodes";
+  | "nodes"
+  | "more";
 export type PanelView = LeftPanelView;
 
 export type NodeCategoryId =
@@ -63,7 +64,8 @@ const VALID_VIEWS: LeftPanelView[] = [
   "assets",
   "library",
   "workspace-files",
-  "nodes"
+  "nodes",
+  "more"
 ];
 
 const VALID_NODE_CATEGORIES: NodeCategoryId[] = [
@@ -138,12 +140,16 @@ export const usePanelStore = createResizablePanelStore<
   mergeExtra: (persisted) => {
     // Legacy flat-list views: any node-category id now lives under the
     // "nodes" top-level view with that id selected as sub-tab.
-    const raw = isString(persisted.activeView) ? persisted.activeView : undefined;
+    const raw = isString(persisted.activeView)
+      ? persisted.activeView
+      : undefined;
     const patch: Partial<ResizablePanelState<PanelView> & LeftPanelExtra> = {};
 
     const rawCategory = raw ? normalizeNodeCategoryId(raw) : undefined;
     if (raw === "workflowGrid") {
       patch.activeView = "workflows";
+    } else if (raw === "assets") {
+      patch.activeView = "library";
     } else if (raw === "search") {
       patch.activeView = "nodes";
       patch.activeNodeCategory = "all";

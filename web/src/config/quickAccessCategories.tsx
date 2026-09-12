@@ -37,6 +37,7 @@ import CollectionsOutlinedIcon from "@mui/icons-material/CollectionsOutlined";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 
 import type { NodeMetadata } from "../stores/ApiTypes";
 import {
@@ -47,17 +48,17 @@ import { getRequiredSecretKeyForNamespace } from "../utils/nodeProvider";
 import type { LeftPanelView, NodeCategoryId } from "../stores/PanelStore";
 
 export interface LeftPanelTopLevelCategory {
-  id: LeftPanelView;
-  label: string;
-  description: string;
-  docsTopic: DocsTopic;
-  icon: ReactNode;
+  readonly id: LeftPanelView;
+  readonly label: string;
+  readonly description: string;
+  readonly docsTopic: DocsTopic;
+  readonly icon: ReactNode;
 }
 
-export interface LeftPanelGroup {
-  id: string;
-  placement: "top" | "bottom";
-  categories: readonly LeftPanelTopLevelCategory[];
+export interface LeftPanelSection {
+  readonly id: string;
+  readonly label: string;
+  readonly categories: readonly LeftPanelTopLevelCategory[];
 }
 
 interface NodeSubcategory {
@@ -91,10 +92,7 @@ const isAiNode = (m: NodeMetadata): boolean =>
   m.auto_save_asset === true ||
   getRequiredSecretKeyForNamespace(m.namespace) !== null;
 
-/**
- * Top-level sidebar icons. Reduced from 12 → 5 by collapsing all node
- * tile-grids under a single "Nodes" entry with sub-tabs.
- */
+/** Definitions for direct and consolidated left-panel destinations. */
 const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
   Record<LeftPanelView, LeftPanelTopLevelCategory>
 > = {
@@ -193,7 +191,8 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
   skills: {
     id: "skills",
     label: "Skills",
-    description: "Agent skills — markdown instructions matched to the objective.",
+    description:
+      "Agent skills — markdown instructions matched to the objective.",
     docsTopic: "agents",
     icon: <AutoAwesomeIcon />
   },
@@ -214,37 +213,47 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
   library: {
     id: "library",
     label: "Library",
-    description: "Browse all assets in the global library.",
+    description: "Browse assets in the current project.",
     docsTopic: "assets",
     icon: <CollectionsOutlinedIcon />
+  },
+  more: {
+    id: "more",
+    label: "More",
+    description:
+      "Open additional workflow, editor, developer, and workspace panels.",
+    docsTopic: "workflows",
+    icon: <MoreHorizIcon />
   }
 };
 
-export const WORKFLOW_OUTPUT_DESCRIPTION =
-  "Browse assets created by the current workflow.";
+export const LEFT_PANEL_DIRECT: readonly LeftPanelTopLevelCategory[] = [
+  LEFT_PANEL_CATEGORY_BY_ID.chats,
+  LEFT_PANEL_CATEGORY_BY_ID.library
+];
 
-export const LEFT_PANEL_GROUPS: readonly LeftPanelGroup[] = [
+export const LEFT_PANEL_MORE_GROUPS: readonly LeftPanelSection[] = [
   {
-    id: "node-tools",
-    placement: "top",
+    id: "project-content",
+    label: "Project",
     categories: [
-      LEFT_PANEL_CATEGORY_BY_ID.nodes,
-      LEFT_PANEL_CATEGORY_BY_ID.favorites,
-      LEFT_PANEL_CATEGORY_BY_ID.history
+      LEFT_PANEL_CATEGORY_BY_ID.workflows,
+      LEFT_PANEL_CATEGORY_BY_ID.apps
     ]
   },
   {
-    id: "main-objects",
-    placement: "top",
+    id: "workflow-tools",
+    label: "Workflow tools",
     categories: [
-      LEFT_PANEL_CATEGORY_BY_ID.workflows,
-      LEFT_PANEL_CATEGORY_BY_ID.apps,
-      LEFT_PANEL_CATEGORY_BY_ID.chats
+      LEFT_PANEL_CATEGORY_BY_ID.nodes,
+      LEFT_PANEL_CATEGORY_BY_ID.favorites,
+      LEFT_PANEL_CATEGORY_BY_ID.history,
+      LEFT_PANEL_CATEGORY_BY_ID.settings
     ]
   },
   {
     id: "editors",
-    placement: "top",
+    label: "Create & edit",
     categories: [
       LEFT_PANEL_CATEGORY_BY_ID.sketches,
       LEFT_PANEL_CATEGORY_BY_ID.scripts,
@@ -255,27 +264,29 @@ export const LEFT_PANEL_GROUPS: readonly LeftPanelGroup[] = [
   },
   {
     id: "developer-tools",
-    placement: "top",
+    label: "Developer",
     categories: [
       LEFT_PANEL_CATEGORY_BY_ID.jsscripts,
       LEFT_PANEL_CATEGORY_BY_ID.skills
     ]
   },
   {
-    id: "workflow-context",
-    placement: "bottom",
-    categories: [
-      LEFT_PANEL_CATEGORY_BY_ID.settings,
-      LEFT_PANEL_CATEGORY_BY_ID["workspace-files"],
-      LEFT_PANEL_CATEGORY_BY_ID.assets,
-      LEFT_PANEL_CATEGORY_BY_ID.library
-    ]
+    id: "workspace",
+    label: "Workspace",
+    categories: [LEFT_PANEL_CATEGORY_BY_ID["workspace-files"]]
   }
 ];
 
-/** Flat form used by lookup and mobile code that does not need group metadata. */
-export const LEFT_PANEL_TOP_LEVEL: readonly LeftPanelTopLevelCategory[] =
-  LEFT_PANEL_GROUPS.flatMap((group) => group.categories);
+export const LEFT_PANEL_TOP_LEVEL: readonly LeftPanelTopLevelCategory[] = [
+  ...LEFT_PANEL_DIRECT,
+  LEFT_PANEL_CATEGORY_BY_ID.more
+];
+
+export const isMorePanelView = (view: LeftPanelView | ""): boolean =>
+  view === "more" ||
+  LEFT_PANEL_MORE_GROUPS.some((group) =>
+    group.categories.some((category) => category.id === view)
+  );
 
 /**
  * Node sub-tabs shown inside the Nodes view. Each entry filters
