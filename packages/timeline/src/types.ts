@@ -893,6 +893,12 @@ export interface TimelineClip {
   /** Rounded-corner radius in source pixels. 0 = sharp corners. */
   borderRadius?: number;
   /**
+   * Crop the source before anything else reads it. The kept rectangle becomes
+   * the clip's picture, so the contain fit, the transform, the border radius,
+   * the masks and the effects all apply to the cropped frame.
+   */
+  crop?: ClipCrop;
+  /**
    * GPU effects applied to this clip in order. On an `adjustment` clip they
    * run on the composite of the layers beneath it instead of on its own
    * pixels.
@@ -953,6 +959,36 @@ export interface TimelineClip {
  * rotates and scales with the layer. `kind` is a plain string for the same
  * forward compat `preset` has: an unknown kind parses and is skipped.
  */
+/**
+ * The part of the source a clip keeps, as the fraction of each edge thrown
+ * away. `{ left: 0.25, right: 0.25, top: 0, bottom: 0 }` keeps the middle half
+ * of the picture.
+ *
+ * **A crop reframes, it does not knock out.** The kept rectangle *becomes* the
+ * clip's picture: it is re-fit to the canvas, so cropping a 16:9 shot to 1:1
+ * and leaving the transform alone gives a square that fills the frame the way
+ * a 1:1 source would. Hiding part of a layer while it stays where it was is
+ * {@link ClipMask} with `kind: "rect"`, which is a different edit and stays
+ * the way to ask for it.
+ *
+ * The insets are fractions rather than source pixels so a crop survives the
+ * asset under it changing resolution — an upscale, or `restoreVersion` swapping
+ * in a generation rendered at another size. Both compositors read them through
+ * `cropRectPx`, which is where the clamping lives; an inset pair that leaves no
+ * picture (`left + right >= 1`) is reported by the validator as
+ * `crop_degenerate` and renders uncropped rather than blanking the shot.
+ */
+export interface ClipCrop {
+  /** Fraction of the source width dropped from the left edge, 0..1. */
+  left: number;
+  /** Fraction of the source width dropped from the right edge, 0..1. */
+  right: number;
+  /** Fraction of the source height dropped from the top edge, 0..1. */
+  top: number;
+  /** Fraction of the source height dropped from the bottom edge, 0..1. */
+  bottom: number;
+}
+
 export interface ClipMask {
   /** `"rect" | "ellipse" | "path"`. */
   kind: string;
@@ -1135,7 +1171,8 @@ export type KnownClipEffect =
   | ClipChromaKeyEffect
   | ClipCurvesEffect
   | ClipLevelsEffect
-  | ClipLiftGammaGainEffect;
+  | ClipLiftGammaGainEffect
+  | ClipGrainEffect;
 
 /**
  * An effect whose `type` this build does not apply, carried rather than
@@ -1194,6 +1231,9 @@ export const isClipLiftGammaGainEffect = (
   e: ClipEffect
 ): e is ClipLiftGammaGainEffect => e.type === "liftGammaGain";
 
+export const isClipGrainEffect = (e: ClipEffect): e is ClipGrainEffect =>
+  e.type === "grain";
+
 /**
  * Effect types this build applies. Anything else parses and rides through as an
  * {@link UnknownClipEffect} (I2); the validator reports it as `unknown_effect`
@@ -1209,7 +1249,8 @@ export const CLIP_EFFECT_TYPES = [
   "chromaKey",
   "curves",
   "levels",
-  "liftGammaGain"
+  "liftGammaGain",
+  "grain"
 ] as const;
 
 export type ClipEffectType = (typeof CLIP_EFFECT_TYPES)[number];
@@ -1300,6 +1341,53 @@ export interface ClipVignetteEffect {
    * legacy spelling made mandatory.
    */
   radius?: number;
+}
+
+/**
+ * Film grain: a per-pixel gain wobble, multiplied into the picture rather than
+ * added to it. Multiplying is what keeps a premultiplied layer legal — adding
+ * noise can push a channel past its own alpha, which reads as a bright fringe
+ * wherever the layer is translucent — and it is also how real grain behaves,
+ * biting hardest in the midtones and leaving black black.
+ *
+ * Canvas 2D has no way to draw it (`ctx.filter` carries no noise), so that path
+ * reports `grain` through `unsupportedEffectTypes` instead of approximating it.
+ */
+export interface ClipGrainEffect {
+  id: string;
+  type: "grain";
+  enabled: boolean;
+  /** Grain strength, 0..1. 0 is a no-op. */
+  amount: number;
+  /**
+   * Grain cell size in source pixels — 1 is per-pixel, larger is coarser stock.
+   * Absent means `grain@1`'s own default.
+   */
+  size?: number;
+  /**
+   * How much the three channels wobble independently: 0 is monochrome grain
+   * (one gain for the pixel), 1 is full colour noise. Absent means the module
+   * default.
+   */
+  colorAmount?: number;
+  /**
+   * Roll the pattern with the frame clock, the way exposed stock does. Absent
+   * or false holds one pattern for every frame, which is what a still wants.
+   *
+   * The roll is not a clock and not `Math.random`: `resolveAnimatedLayerProps`
+   * stamps {@link seed} from the frame's own time, so two renders of the same
+   * frame are byte-identical and a cached render can be handed back.
+   */
+  animate?: boolean;
+  /**
+   * Which pattern to draw. Any two effects sharing a seed grain identically,
+   * which is what lets two clips of the same stock match.
+   *
+   * On an `animate` grain the scene model overwrites this per frame, so the
+   * stored value is only the pattern a still — or a host that never resolves
+   * animated props — draws.
+   */
+  seed?: number;
 }
 
 export interface ClipSharpenEffect {

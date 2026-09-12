@@ -29,6 +29,7 @@ import {
   resolveCustomMask,
   computeModel3DBakeHash,
   isGeneratedMatteStale,
+  isCropUsable,
   sourceRate,
   DEFAULT_TEMPO,
   resolveTempo,
@@ -533,6 +534,7 @@ function checkClip(
 
   issues.push(...maskIssues(clip));
   issues.push(...unknownEffectIssues(clip));
+  issues.push(...cropIssues(clip));
   const shapeKind = unknownShapeKindIssue(clip);
   if (shapeKind) issues.push(shapeKind);
   issues.push(...model3dIssues(clip, { fps, ...canvas }));
@@ -584,6 +586,32 @@ function fontPortabilityIssues(clip: TimelineClip): TimelineDebugIssue[] {
     });
   }
   return issues;
+}
+
+/**
+ * A crop whose insets keep no picture.
+ *
+ * `left + right >= 1` on either axis leaves nothing to draw. Both compositors
+ * fall back to the whole source rather than blanking the shot — a slider
+ * dragged to the end should show the uncropped picture, not a hole — so this is
+ * a warning about a framing that is being ignored, not an error.
+ */
+function cropIssues(clip: TimelineClip): TimelineDebugIssue[] {
+  const crop = clip.crop;
+  if (!crop || isCropUsable(crop)) return [];
+  return [
+    {
+      severity: "warning",
+      code: "crop_degenerate",
+      message:
+        `Clip "${clipLabel(clip)}" is cropped to nothing (left ${crop.left} + ` +
+        `right ${crop.right}, top ${crop.top} + bottom ${crop.bottom}); each ` +
+        "pair must stay below 1. The clip draws its whole source instead.",
+      path: "crop",
+      clipId: clip.id,
+      trackId: clip.trackId
+    }
+  ];
 }
 
 /** What an effect's `type` accepts, for the `unknown_effect` message. */

@@ -651,6 +651,18 @@ export const clipLiftGammaGainEffect = z.object({
   gain: rgbTriple
 });
 
+/** Mirrors ClipGrainEffect. Absent knobs mean `filters.grain@1`'s own defaults. */
+export const clipGrainEffect = z.object({
+  id: z.string(),
+  type: z.literal("grain"),
+  enabled: z.boolean(),
+  amount: z.number(),
+  size: z.number().optional(),
+  colorAmount: z.number().optional(),
+  animate: z.boolean().optional(),
+  seed: z.number().optional()
+});
+
 /**
  * The clip effect chain. Without the members below Zod drops any effect whose
  * type it does not carry on every PATCH, so a graded clip loses that step of
@@ -666,7 +678,8 @@ const knownClipEffect = z.discriminatedUnion("type", [
   clipChromaKeyEffect,
   clipCurvesEffect,
   clipLevelsEffect,
-  clipLiftGammaGainEffect
+  clipLiftGammaGainEffect,
+  clipGrainEffect
 ]);
 
 /**
@@ -683,7 +696,8 @@ export const KNOWN_CLIP_EFFECT_TYPE_LIST = [
   "chromaKey",
   "curves",
   "levels",
-  "liftGammaGain"
+  "liftGammaGain",
+  "grain"
 ] as const;
 const KNOWN_CLIP_EFFECT_TYPES: ReadonlySet<string> = new Set(
   KNOWN_CLIP_EFFECT_TYPE_LIST
@@ -1043,6 +1057,20 @@ export const clipModel3DStyle = z.object({
 export type ClipModel3DStyle = z.infer<typeof clipModel3DStyle>;
 
 /**
+ * The part of the source a clip keeps, as the fraction of each edge dropped.
+ * Mirrors ClipCrop: a crop reframes (the kept rectangle becomes the picture and
+ * is re-fit to the canvas), where `clipMask` with `kind: "rect"` hides part of
+ * a layer that stays put.
+ */
+export const clipCrop = z.object({
+  left: z.number(),
+  right: z.number(),
+  top: z.number(),
+  bottom: z.number()
+});
+export type ClipCrop = z.infer<typeof clipCrop>;
+
+/**
  * Shape mask on one clip, in the layer's own normalized 0..1 space. `kind` is
  * a plain string for forward compat: an unknown kind parses and is skipped at
  * render time rather than failing the document.
@@ -1206,6 +1234,9 @@ export const timelineClip = z.object({
   fadeOutMs: z.number().optional(),
   transform: clipTransform.optional(),
   borderRadius: z.number().optional(),
+  /** Without this field Zod strips it on every PATCH and a cropped clip
+   * reverts to its full frame on the next save. */
+  crop: clipCrop.optional(),
   effects: z.array(clipEffect).optional(),
   transitionIn: clipTransition.optional(),
   textStyle: clipTextStyle.optional(),

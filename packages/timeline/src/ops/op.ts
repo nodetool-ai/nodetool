@@ -18,7 +18,7 @@ import type {
   TransitionParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import type { ClipModel3DStylePatch } from "../authoredStyles.js";
-import type { TimelineClip, TimelineTrack } from "../types.js";
+import type { ClipCrop, TimelineClip, TimelineTrack } from "../types.js";
 import type { ClipAnimation } from "../animation/types.js";
 import type { TimelineAnimationInput } from "./types.js";
 
@@ -191,6 +191,8 @@ export interface SetClipParamsOp {
     fadeOutMs?: number;
     blendMode?: string;
     borderRadius?: number;
+    /** Null clears the crop and puts the whole source back. */
+    crop?: ClipCrop | null;
     hidden?: boolean;
     muted?: boolean;
     locked?: boolean;

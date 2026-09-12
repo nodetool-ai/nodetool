@@ -23,6 +23,7 @@ import {
   isClipCurvesEffect,
   isClipDropShadowEffect,
   isClipGlowEffect,
+  isClipGrainEffect,
   isClipLevelsEffect,
   isClipLiftGammaGainEffect,
   isClipSharpenEffect,
@@ -73,7 +74,8 @@ const ADDABLE_EFFECTS = [
   { value: "chromaKey", label: "Chroma key" },
   { value: "curves", label: "Curves" },
   { value: "levels", label: "Levels" },
-  { value: "liftGammaGain", label: "Lift / gamma / gain" }
+  { value: "liftGammaGain", label: "Lift / gamma / gain" },
+  { value: "grain", label: "Film grain" }
 ] as const;
 
 type AddableEffectType = (typeof ADDABLE_EFFECTS)[number]["value"];
@@ -156,6 +158,18 @@ function makeEffect(type: AddableEffectType): ClipEffect {
         lift: [0, 0, 0],
         gamma: [1, 1, 1],
         gain: [1, 1, 1]
+      };
+    case "grain":
+      // Fine, monochrome and rolling — the stock a shot gets when somebody
+      // asks for "some grain" rather than for a look.
+      return {
+        id,
+        type,
+        enabled: true,
+        amount: 0.25,
+        size: 1,
+        colorAmount: 0,
+        animate: true
       };
   }
 }
@@ -281,6 +295,45 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             value={effect.softness}
             display={effect.softness.toFixed(2)}
             onChange={(softness) => onPatch({ softness })}
+          />
+        </>
+      );
+    }
+
+    if (isClipGrainEffect(effect)) {
+      return (
+        <>
+          <InspectorSliderRow
+            label="Amount"
+            min={0}
+            max={1}
+            step={0.01}
+            value={effect.amount}
+            display={effect.amount.toFixed(2)}
+            onChange={(amount) => onPatch({ amount })}
+          />
+          <InspectorSliderRow
+            label="Size"
+            min={1}
+            max={16}
+            step={0.5}
+            value={effect.size ?? 1}
+            display={`${(effect.size ?? 1).toFixed(1)}px`}
+            onChange={(size) => onPatch({ size })}
+          />
+          <InspectorSliderRow
+            label="Colour"
+            min={0}
+            max={1}
+            step={0.01}
+            value={effect.colorAmount ?? 0}
+            display={(effect.colorAmount ?? 0).toFixed(2)}
+            onChange={(colorAmount) => onPatch({ colorAmount })}
+          />
+          <InspectorToggleRow
+            label="Animate"
+            checked={effect.animate ?? false}
+            onChange={(animate) => onPatch({ animate })}
           />
         </>
       );

@@ -317,6 +317,7 @@ export async function renderTimelineComposited(
           precomposeGroupId: layer.precomposeGroupId,
           mask: anim.mask,
           borderRadius: layer.borderRadius,
+          crop: layer.crop,
           effects: anim.effects ?? layer.effects,
           trackEffects: layer.trackEffects,
           transition: layer.transition
@@ -350,6 +351,7 @@ export async function renderTimelineComposited(
             transform: undefined,
             parentMatrix: undefined,
             borderRadius: undefined,
+            crop: undefined,
             effects: undefined,
             trackEffects: undefined,
             // The cut's opacity is already in `opacity`; dropping the record

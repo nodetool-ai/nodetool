@@ -1,5 +1,6 @@
 import type {
   AnimationSampleMask,
+  ClipCrop,
   ClipEffect,
   ClipMask,
   ClipTransform,
@@ -49,6 +50,13 @@ export interface CompositeLayer {
   precomposeGroupId?: string;
   /** Rounded-corner radius in source pixels. Default 0. */
   borderRadius?: number;
+  /**
+   * The part of the source this layer draws, from the scene model. Taken before
+   * anything else reads the pixels, so the contain fit, the transform, the
+   * border radius and the masks all see the cropped rectangle as the layer's
+   * whole picture.
+   */
+  crop?: ClipCrop;
   /**
    * Wipe mask (from a `wipe` animation) applied in the layer's own quad
    * space, so the wipe edge rotates with the layer. Absent means unmasked.

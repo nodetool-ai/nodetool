@@ -33,7 +33,13 @@ import {
 } from "@nodetool-ai/gpu/webgpu";
 
 import type { AnimationSampleMask, WipeDirection } from "../animation/index.js";
-import type { ClipEffect, ClipTransform, TrackEffect } from "../types.js";
+import type {
+  ClipCrop,
+  ClipEffect,
+  ClipTransform,
+  TrackEffect
+} from "../types.js";
+import { cropRectPx, hasCrop } from "../crop.js";
 import { parseCssColorOrBlack } from "./color.js";
 import { WebGPUEffectsProcessor } from "./effects.js";
 import type { CompositorBlendMode, MatteMode } from "./sceneModel.js";
@@ -180,6 +186,12 @@ export interface FrameLayer<TSource = FrameLayerPixels> {
   precomposeGroupId?: string;
   /** Rounded-corner radius in source pixels. */
   borderRadius?: number;
+  /**
+   * The part of the source this layer draws. The crop is taken before anything
+   * else reads the pixels, so the contain fit, the transform, the border radius
+   * and the effects all see the cropped frame as the layer's whole picture.
+   */
+  crop?: ClipCrop;
   mask?: AnimationSampleMask;
   /**
    * The clip's shape mask, already rasterized as coverage in alpha — the host
@@ -380,6 +392,8 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   private readonly precompTargets = new Map<string, GPUTexture>();
   /** One 1×1 texture per colour a `dipToColor` transition fades through. */
   private readonly solids = new Map<string, GPUTexture>();
+  /** One cropped copy per cropped layer, by layer id — see {@link cropSource}. */
+  private readonly crops = new Map<string, GpuSourceTexture>();
   /** Resolves a premultiplied accumulation to the straight alpha the blend
    *  shader reads a source as. Built with the second pass. */
   private unpremultiply: GPURenderPipeline | null = null;
@@ -699,8 +713,12 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     layer: FrameLayer<TSource>,
     encoder: GPUCommandEncoder
   ): ResolvedLayer | null {
-    const src = this.upload(layer.id, layer.source);
-    if (!src) return null;
+    const uploaded = this.upload(layer.id, layer.source);
+    if (!uploaded) return null;
+    // Crop first: everything below — the effect chain, the shape mask, the
+    // contain fit, the border radius — then sees the cropped rectangle as the
+    // layer's whole picture, which is what a crop means.
+    const src = this.cropSource(layer, uploaded, encoder);
 
     const clipEffects = layer.effects ?? [];
     const trackEffects = layer.trackEffects ?? [];
@@ -825,6 +843,66 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       ),
       borderRadius: 0
     };
+  }
+
+  /**
+   * The layer's pixels narrowed to its crop rectangle, as a texture of exactly
+   * that size. Returns the upload untouched when there is no usable crop, which
+   * is every layer of a document nobody has cropped — that path allocates
+   * nothing and copies nothing.
+   *
+   * A plain texture-to-texture copy, not a shader pass: the crop is an axis
+   * aligned region of whole texels, so there is nothing to filter and a copy is
+   * both exact and cheaper than a render pass. The copy is recorded into the
+   * frame's own encoder, so it costs no extra submit.
+   */
+  private cropSource(
+    layer: FrameLayer<TSource>,
+    uploaded: GpuSourceTexture,
+    encoder: GPUCommandEncoder
+  ): GpuSourceTexture {
+    if (!hasCrop(layer.crop)) {
+      // A clip that was cropped and is not any more must not keep drawing the
+      // stale copy, and holding the texture for a layer with no crop would leak
+      // it until the layer left the frame.
+      const stale = this.crops.get(layer.id);
+      if (stale) {
+        stale.texture.destroy();
+        this.crops.delete(layer.id);
+      }
+      return uploaded;
+    }
+
+    const rect = cropRectPx(layer.crop, uploaded.width, uploaded.height);
+    let entry = this.crops.get(layer.id);
+    if (!entry || entry.width !== rect.width || entry.height !== rect.height) {
+      entry?.texture.destroy();
+      entry = {
+        texture: this.device.createTexture({
+          label: `${this.label}-crop-${layer.id}`,
+          size: { width: rect.width, height: rect.height },
+          format: TEXTURE_FORMAT,
+          usage:
+            GPUTextureUsage.TEXTURE_BINDING |
+            GPUTextureUsage.COPY_DST |
+            GPUTextureUsage.COPY_SRC |
+            GPUTextureUsage.RENDER_ATTACHMENT
+        }),
+        width: rect.width,
+        height: rect.height
+      };
+      this.crops.set(layer.id, entry);
+    }
+
+    // Re-copied every frame rather than versioned: the upload underneath is
+    // itself re-written whenever the pixels change, and a video layer's change
+    // every frame, so a version check here would only add a field to get wrong.
+    encoder.copyTextureToTexture(
+      { texture: uploaded.texture, origin: { x: rect.x, y: rect.y } },
+      { texture: entry.texture },
+      { width: rect.width, height: rect.height }
+    );
+    return entry;
   }
 
   /** A 1×1 opaque texture of `color`, kept for the life of the compositor. */
@@ -1300,6 +1378,12 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     }
 
     this.retainSources(live);
+    for (const [id, entry] of this.crops) {
+      if (!live.has(id)) {
+        entry.texture.destroy();
+        this.crops.delete(id);
+      }
+    }
     for (const [id, texture] of this.precompTargets) {
       if (!liveTargets.has(id)) {
         texture.destroy();
@@ -1320,6 +1404,8 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     for (const texture of this.solids.values()) texture.destroy();
     this.solids.clear();
     this.effects.dispose();
+    for (const entry of this.crops.values()) entry.texture.destroy();
+    this.crops.clear();
     this.core.dispose();
     this.precompCore?.dispose();
     this.precompCore = null;

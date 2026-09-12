@@ -33,7 +33,9 @@
 import { blendModeToCanvasOp } from "@nodetool-ai/gpu";
 
 import type { AnimationSampleMask, WipeDirection } from "../animation/index.js";
+import { cropRectPx, hasCrop } from "../crop.js";
 import type {
+  ClipCrop,
   ClipDropShadowEffect,
   ClipEffect,
   ClipMask,
@@ -130,6 +132,13 @@ export interface Canvas2DLayer<TSource> {
   precomposeGroupId?: string;
   /** Rounded-corner radius in source pixels. */
   borderRadius?: number;
+  /**
+   * The part of the source this layer draws, taken before anything else reads
+   * it: the contain fit, the transform, the border radius and the masks all see
+   * the cropped rectangle as the layer's whole picture. Needs `cropSurface` to
+   * copy through, or the layer draws uncropped and reports `crop_skipped`.
+   */
+  crop?: ClipCrop;
   mask?: AnimationSampleMask;
   /**
    * The clip's shape mask, in this layer's own source-pixel space so it turns
@@ -305,6 +314,13 @@ export interface DrawTimelineFrameOptions<TSource> {
    */
   matteSurface?: CompositeSurfaceFactory<TSource>;
   /**
+   * Holds a cropped layer's picture at the crop's own size. Distinct from
+   * `maskScratch` and `maskSurface`: it stays live for the whole of one layer's
+   * draw, and both of those read from it while it does. Without it a cropped
+   * layer draws uncropped and reports `crop_skipped`.
+   */
+  cropSurface?: CompositeSurfaceFactory<TSource>;
+  /**
    * Seed the frame fully transparent instead of opaque black — an alpha export.
    * Off by default, so a preview keeps the ground it has.
    */
@@ -337,7 +353,9 @@ export type Canvas2DDegradationReason =
   /** Drop shadows past the first in the chain, not cast. */
   | "drop_shadow_extra_ignored"
   /** Brightness applied as a CSS multiply instead of the GPU's addition. */
-  | "brightness_multiplicative";
+  | "brightness_multiplicative"
+  /** A crop skipped: the layer drew its whole source, at its whole-source fit. */
+  | "crop_skipped";
 
 /** One degradation, and the clip it happened to. */
 export interface Canvas2DDegradation {
@@ -886,7 +904,8 @@ export function drawTimelineLayer<TSource>(
   surfaces: DrawTimelineFrameOptions<TSource> = {},
   degraded: Canvas2DDegradation[] = []
 ): boolean {
-  const { sourceWidth: width, sourceHeight: height } = layer;
+  const cropped = cropLayerSource(layer, surfaces, degraded);
+  const { source: layerSource, width, height } = cropped;
   if (width <= 0 || height <= 0) return false;
 
   if (layer.matte) {
@@ -955,7 +974,7 @@ export function drawTimelineLayer<TSource>(
   // path clips and cost nothing; soft ones pre-mask the source on a scratch
   // surface with `destination-in`, which is also what lets a shape mask and a
   // wipe compose without a second copy.
-  let source = layer.source;
+  let source = layerSource;
   // An animated wipe on the clip and a wipe transition both reduce to one
   // reveal; the clip's own wins, because it is the motion the author put there.
   const wipe = layer.mask ?? transition?.mask;
@@ -967,7 +986,7 @@ export function drawTimelineLayer<TSource>(
   let applied = { shape: false, wipe: false, brightness: false };
   if (softWipe || softShape || lifts) {
     const prepared = prepareSource(
-      layer.source,
+      layerSource,
       width,
       height,
       wipe,
@@ -1016,6 +1035,53 @@ export function drawTimelineLayer<TSource>(
   ctx.restore();
   resetContext(ctx);
   return drawn;
+}
+
+/**
+ * The picture a layer actually draws, and its size: the crop rectangle copied
+ * onto its own surface, or the layer's own source when there is nothing to crop.
+ *
+ * The copy is what makes a crop reframe rather than knock out — every caller
+ * downstream treats the returned size as the layer's source size, so the
+ * contain fit, the transform, the border radius and the masks all act on the
+ * cropped frame. Drawing the whole source at a negative offset onto a surface
+ * the size of the crop is the 5-argument `drawImage` spelling of a sub-rectangle
+ * blit, which is all {@link CompositeContext2D} vends.
+ *
+ * A host that vends no `cropSurface` gets the uncropped layer and a
+ * `crop_skipped` report, the same call {@link drawMattedLayer} makes: the
+ * picture is wrong in a way the caller is told about, rather than absent.
+ */
+function cropLayerSource<TSource>(
+  layer: Canvas2DLayer<TSource>,
+  surfaces: DrawTimelineFrameOptions<TSource>,
+  degraded: Canvas2DDegradation[]
+): { source: TSource; width: number; height: number } {
+  const { source, sourceWidth: width, sourceHeight: height } = layer;
+  if (!hasCrop(layer.crop) || width <= 0 || height <= 0) {
+    return { source, width, height };
+  }
+
+  const rect = cropRectPx(layer.crop, width, height);
+  const surface = surfaces.cropSurface?.(rect.width, rect.height);
+  if (!surface) {
+    degraded.push({ clipId: layer.clipId, reason: "crop_skipped" });
+    return { source, width, height };
+  }
+
+  const cctx = surface.ctx;
+  cctx.setTransform(1, 0, 0, 1, 0, 0);
+  cctx.globalAlpha = 1;
+  cctx.filter = "none";
+  cctx.globalCompositeOperation = "source-over";
+  cctx.clearRect(0, 0, rect.width, rect.height);
+  try {
+    cctx.drawImage(source, -rect.x, -rect.y, width, height);
+  } catch {
+    degraded.push({ clipId: layer.clipId, reason: "crop_skipped" });
+    return { source, width, height };
+  }
+  return { source: surface.surface, width: rect.width, height: rect.height };
 }
 
 /**

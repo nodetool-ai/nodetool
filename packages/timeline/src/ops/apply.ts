@@ -56,6 +56,7 @@ import {
   textStyleWithDefaults
 } from "../authoredStyles.js";
 import { isGroupClip, moveGroup, trimGroup, ungroup } from "../group.js";
+import { isCropUsable } from "../crop.js";
 import { splitClip } from "../splitClip.js";
 import { moveTrackOrder, type TrackDestination } from "../trackOrder.js";
 import { trimClip } from "../trimClip.js";
@@ -159,6 +160,7 @@ const CLIP_PARAM_KEYS = [
   "fadeOutMs",
   "blendMode",
   "borderRadius",
+  "crop",
   "hidden",
   "muted",
   "locked",
@@ -1020,6 +1022,21 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
         clip.blendMode = patch.blendMode as TimelineClip["blendMode"];
       }
       if (patch.borderRadius !== undefined) clip.borderRadius = patch.borderRadius;
+      if (patch.crop !== undefined) {
+        // Null is how a caller puts the whole source back; leaving the field
+        // with all-zero insets would store a crop that means nothing.
+        if (patch.crop === null) {
+          delete clip.crop;
+        } else {
+          if (!isCropUsable(patch.crop)) {
+            throw new Error(
+              `Crop on clip "${clip.name}" keeps no picture: left + right and ` +
+                "top + bottom must each stay below 1."
+            );
+          }
+          clip.crop = patch.crop;
+        }
+      }
       if (patch.hidden !== undefined) clip.hidden = patch.hidden;
       if (patch.muted !== undefined) clip.muted = patch.muted;
       if (patch.locked !== undefined) clip.locked = patch.locked;

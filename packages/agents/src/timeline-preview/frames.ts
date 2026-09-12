@@ -390,6 +390,12 @@ export async function renderTimelineFrames(
    */
   const maskSurfaceFor = precompositeSurfaceFor;
   const matteSurfaceFor = precompositeSurfaceFor;
+  /**
+   * Where a cropped layer's picture lands. Also from the precomposite pool: the
+   * crop stays live for the whole of one layer's draw, and the mask surfaces
+   * read from it while it does.
+   */
+  const cropSurfaceFor = precompositeSurfaceFor;
 
   /**
    * Encoded asset bytes, shared by every frame in the pass — but only a
@@ -703,6 +709,7 @@ export async function renderTimelineFrames(
       drawn.transform = anim.transform;
       drawn.parentMatrix = layer.parentMatrix;
       drawn.borderRadius = layer.borderRadius;
+      drawn.crop = layer.crop;
       drawn.shapeMask = layer.shapeMask;
       drawn.effects = anim.effects ?? layer.effects;
       drawn.trackEffects = layer.trackEffects;
@@ -789,7 +796,8 @@ export async function renderTimelineFrames(
       precomposites: drawPrecomposites,
       precompositeSurface: precompositeSurfaceFor,
       maskSurface: maskSurfaceFor,
-      matteSurface: matteSurfaceFor
+      matteSurface: matteSurfaceFor,
+      cropSurface: cropSurfaceFor
     });
     for (const layer of drawReport.skipped) {
       const report = reportFor.get(layer);
