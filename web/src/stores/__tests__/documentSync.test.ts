@@ -204,7 +204,7 @@ describe("createDocumentSyncController", () => {
   it("debounces edits and never overlaps saves", async () => {
     let draft = "first";
     let revision = "rev-1";
-    let resolveSave: ((value: { updatedAt: string }) => void) | null = null;
+    let resolveSave!: (value: { updatedAt: string }) => void;
     const save = jest.fn(
       () =>
         new Promise<{ updatedAt: string }>((resolve) => {
@@ -233,13 +233,13 @@ describe("createDocumentSyncController", () => {
     controller.markDirty();
     const flush = controller.flush();
     expect(save).toHaveBeenCalledTimes(1);
-    resolveSave?.({ updatedAt: "rev-2" });
+    resolveSave({ updatedAt: "rev-2" });
     revision = "rev-2";
     for (let attempt = 0; attempt < 5 && save.mock.calls.length < 2; attempt += 1) {
       await Promise.resolve();
     }
     expect(save).toHaveBeenCalledTimes(2);
-    resolveSave?.({ updatedAt: "rev-3" });
+    resolveSave({ updatedAt: "rev-3" });
     await flush;
     expect(controller.isSaving()).toBe(false);
   });

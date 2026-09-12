@@ -16,7 +16,7 @@
     "verify:backend-bundle": "node ../scripts/verify-backend-bundle.mjs",
     "build": "tsc && vite build && node scripts/fetch-node-runtime.mjs && npm run prepare-backend && npm run prepare-mcpb && npm run verify:bundle && electron-builder",
     "vite:build": "vite build && node scripts/verify-bundle.mjs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node ../scripts/run-tsc.mjs --noEmit",
     "lint": "oxlint .",
     "lint:fix": "oxlint . --fix",
     "lint:eslint": "eslint .",
