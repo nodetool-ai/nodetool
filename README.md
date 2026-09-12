@@ -66,9 +66,8 @@ finished, and an agent drives every one of them through the actions you have.
 ![NodeTool storyboard](marketing/public/surface-storyboard-poster.webp)
 
 Board the film shot by shot. Pitch a concept, a style, and a shot count, and
-the Director node returns a typed screenplay: one shot per card with action,
-camera, motion, and duration, plus the logline, style bible, narration, and
-music direction.
+you get back a screenplay: one shot per card with action, camera, motion, and
+duration, plus the logline, style bible, narration, and music direction.
 
 - **Cheap stages first.** A still costs cents, a clip costs dollars. Generate
   stills until one looks right, then animate that one.
@@ -79,9 +78,7 @@ music direction.
 - **Assemble the cut.** One click lays the shots onto a timeline with narration
   and music, each clip still linked to its shot.
 
-Agents drive the same board through the `ui_storyboard_*` tools, or headlessly
-with `render_storyboard_stills`, `render_storyboard_clips`, and
-`assemble_storyboard_timeline`.
+The agent works the same board, with or without the editor open.
 [Creative agent guide →](https://docs.nodetool.ai/creative-agent)
 
 ### Script and voice
@@ -91,11 +88,8 @@ with `render_storyboard_stills`, `render_storyboard_clips`, and
 Draft the dialogue, cast a provider, model, and voice per character, and
 audition alternate readings. Each voicing saves its own take with word timings,
 and changing the words flags that take stale. The current takes assemble into a
-sequence, the timings riding along as captions.
-
-Headlessly, `voice_script_lines` voices every draft or stale line in its cast
-voice and `assemble_script_timeline` cuts the result into a sequence that
-`validate_timeline` checks.
+sequence, the timings riding along as captions. Ask the agent and it voices
+every line that still needs it, then cuts the sequence for you.
 
 ### Timeline
 
@@ -114,19 +108,18 @@ when you ask it to tighten the opening.
 
 Build a composition in layers with blend modes and masks, then bind a layer to
 a model or a workflow and generate where you are painting. Change a prompt or
-an upstream input and the layer flags itself stale. The node hands the workflow
-a flattened image, a mask, and per-layer outputs for the mask, inpaint,
-outpaint, and compositing nodes.
+an upstream input and the layer flags itself stale. The rest of the workflow
+receives the flattened image, the mask, and each layer on its own.
 [Sketch editor guide →](https://docs.nodetool.ai/sketch-editor)
 
 ### 3D
 
 ![NodeTool 3D scene editor](marketing/public/surface-3d-poster.webp)
 
-Place primitives and lights in a glTF scene by hand or by tool call, then
-capture a view as a depth or composition reference for an image or video model.
-`create_model3d`, `get_model3d`, `edit_model3d`, `validate_model3d`, and
-`render_model3d` run the same operations with no editor open.
+Place primitives and lights in a scene by hand or by asking, then capture a
+view as a depth or composition reference for an image or video model. The same
+scene builds and renders with no editor open, so it comes back the same way
+every time.
 
 ## The node editor
 
