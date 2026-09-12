@@ -96,3 +96,16 @@ describe("lookupGenerations", () => {
     await expect(lookupGenerations(["req-1"])).resolves.toEqual(new Map());
   });
 });
+
+
+it("recovers a batch larger than the server's request-id limit", async () => {
+  const ids = Array.from({ length: 300 }, (_, index) => `req-${index}`);
+  rpcRequestMock.mockImplementation(async (_command, data) => ({
+    generations: data.request_ids.slice(0, 128).map((id: string) => ({
+      request_id: id, generation_id: `gen-${id}`, status: "completed", asset_ids: [id]
+    }))
+  }));
+  const found = await lookupGenerations(ids);
+  expect(found.size).toBe(ids.length);
+  expect(rpcRequestMock.mock.calls.every(([, data]) => data.request_ids.length <= 128)).toBe(true);
+});

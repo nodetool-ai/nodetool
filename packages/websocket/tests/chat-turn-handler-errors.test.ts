@@ -8,7 +8,7 @@
  * whose `generateLoop` the test scripts.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { initTestDb, Memory, Message } from "@nodetool-ai/models";
+import { initTestDb, Memory, Message, Prediction } from "@nodetool-ai/models";
 import { SUPERSEDED_TOOL_RESULT } from "../src/chat-tool-call-repair.js";
 import { unroutableToolMessage } from "../src/session/chat-prompt.js";
 import {
@@ -337,5 +337,46 @@ describe("the turn's volatile memory block", () => {
     // never by content.
     expect(wire).toContain("the campaign grade is teal-orange");
     expect(wire).not.toContain("unrelated");
+  });
+});
+
+
+describe("generation recovery on a later agent turn", () => {
+  beforeEach(() => initTestDb());
+
+  it("supplies saved generation results without needing the original tool response", async () => {
+    const threadId = "t-recover-generation";
+    for (const [id, userId, thread, status] of [
+      ["gen-completed", "1", threadId, "completed"],
+      ["gen-running", "1", threadId, "running"],
+      ["gen-other-user", "2", threadId, "completed"],
+      ["gen-other-thread", "1", "elsewhere", "completed"]
+    ]) {
+      await Prediction.create({
+        id, user_id: userId, thread_id: thread, status,
+        provider: "fal", model: "video", capability: "text_to_video",
+        asset_ids: status === "completed" ? [`asset-${id}`] : []
+      });
+    }
+    let seen: GenerateLoopArgs["messages"] = [];
+    const harness = makeChatTurnHarness({
+      session: { resolveProvider: async () => fakeProvider({
+        generateLoop: async function* (args: GenerateLoopArgs) {
+          seen = args.messages;
+          yield { type: "chunk", content: "ok", done: true };
+        }
+      }) }
+    });
+    await harness.handler.handleChatMessage(chatTurn(threadId, "Recover my renders"));
+    const wire = JSON.stringify(seen);
+    expect(wire).toContain("asset://asset-gen-completed");
+    expect(wire).toContain("gen-running");
+    expect(wire).not.toContain("gen-other-user");
+    expect(wire).not.toContain("gen-other-thread");
+    expect(JSON.stringify(seen.filter((message) => message.role === "system")))
+      .not.toContain("gen-completed");
+    const [history] = await Message.paginate(threadId, { limit: 10 });
+    expect(JSON.stringify(history.map((message) => message.content)))
+      .not.toContain("asset-gen-completed");
   });
 });

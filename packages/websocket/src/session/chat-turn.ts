@@ -868,6 +868,38 @@ export class ChatTurnHandler {
     }
   }
 
+  private async buildGenerationBlock(userId: string, threadId: string): Promise<string> {
+    try {
+      const [rows, next] = await Prediction.listGenerations(userId, {
+        threadId,
+        limit: 50
+      });
+      if (rows.length === 0) return "";
+      const generations = rows.map((row) => ({
+        generation_id: row.id,
+        status: row.status,
+        model: row.model,
+        capability: row.capability,
+        tool_call_id: row.tool_call_id,
+        asset_uris: (row.asset_ids ?? []).map((id) => `asset://${id}`)
+      }));
+      return [
+        "Saved generations for this conversation (database snapshot):",
+        JSON.stringify(generations),
+        "Reuse completed assets. A missing tool response does not mean the generation failed. " +
+          "Use get_generation or await_generation to check pending work before starting another paid render. " +
+          "An interrupted record does not prove that the provider cancelled its request.",
+        next ? "Older records are available through list_generations with this thread_id." : ""
+      ].filter(Boolean).join("\n");
+    } catch (error) {
+      log.warn("Failed to load conversation generations", {
+        threadId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return "Generation history is temporarily unavailable. Check list_generations before retrying earlier renders.";
+    }
+  }
+
   /**
    * The user's skills, read once per turn.
    *
@@ -1866,6 +1898,8 @@ export class ChatTurnHandler {
     if (threadId) {
       const memoryBlock = await this.buildMemoryBlock(userId, threadId);
       if (memoryBlock) volatileContext.push(memoryBlock);
+      const generationBlock = await this.buildGenerationBlock(userId, threadId);
+      if (generationBlock) volatileContext.push(generationBlock);
     }
 
     // The bodies of any skills the message invoked with `/<name>`. The catalog

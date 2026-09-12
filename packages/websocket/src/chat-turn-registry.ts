@@ -15,10 +15,9 @@
  * Sessions are keyed by user+thread in a process-wide registry (one turn per
  * thread; a new turn supersedes and aborts the previous one, matching the
  * single-turn semantics `beginChatTurn` already enforces per connection).
- * Two timers bound a session's life:
- *   - detach grace: a running turn nobody is attached to is aborted after
- *     `NODETOOL_CHAT_DETACH_GRACE_MS` (default 10 min) so an abandoned client
- *     cannot leave an agent working forever;
+ * A running turn uses its execution budget even while detached. An optional
+ * `NODETOOL_CHAT_DETACH_GRACE_MS` can impose an additional disconnect limit
+ * (disabled by default). Finished sessions use a retention timer:
  *   - retention: a finished session is kept for
  *     `NODETOOL_CHAT_REPLAY_RETENTION_MS` (default 5 min) so a client that
  *     reconnects just after the turn ended still gets the tail, then dropped.
@@ -42,7 +41,7 @@ function envInt(name: string, fallback: number): number {
 const MAX_BUFFERED_EVENTS = () =>
   envInt("NODETOOL_CHAT_REPLAY_BUFFER_EVENTS", 2000);
 const DETACH_GRACE_MS = () =>
-  envInt("NODETOOL_CHAT_DETACH_GRACE_MS", 10 * 60 * 1000);
+  envInt("NODETOOL_CHAT_DETACH_GRACE_MS", 0);
 const RETENTION_MS = () =>
   envInt("NODETOOL_CHAT_REPLAY_RETENTION_MS", 5 * 60 * 1000);
 
@@ -186,20 +185,22 @@ export class ChatTurnSession {
 
   /**
    * The attached connection went away. A running turn keeps executing and
-   * buffering; if nobody reattaches within the grace window the turn is
-   * aborted so it cannot run unattended forever.
+   * buffering under its existing execution budget. Operators may configure
+   * an additional detach timeout.
    */
   detach(target?: ChatTurnDeliveryTarget): void {
     if (target && this.target !== target) return;
     this.target = null;
     if (this.status !== "running") return;
     this.clearDetachTimer();
+    const graceMs = DETACH_GRACE_MS();
+    if (graceMs === 0) return;
     this.detachTimer = setTimeout(() => {
       log.info("Detached chat turn expired, aborting", {
         threadId: this.threadId
       });
       this.abort("stop");
-    }, DETACH_GRACE_MS());
+    }, graceMs);
     this.detachTimer.unref?.();
   }
 

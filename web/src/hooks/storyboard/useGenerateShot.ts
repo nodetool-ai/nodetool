@@ -48,7 +48,6 @@ import {
 } from "../useModelsByProvider";
 import { modelMatchesTask } from "../modelTaskMatching";
 import {
-  PENDING_JOB_TTL_MS,
   subscribeDirectShotJob,
   unsubscribeShotJob,
   useStoryboardGenerationStore,
@@ -192,8 +191,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         // is the authority; the subscription just gets there faster.
         await subscribeDirectShotJob(
           requestId,
-          { shotId: shot.id, boardId, kind },
-          Date.now() + PENDING_JOB_TTL_MS
+          { shotId: shot.id, boardId, kind }
         );
         try {
           await globalWebSocketManager.send({

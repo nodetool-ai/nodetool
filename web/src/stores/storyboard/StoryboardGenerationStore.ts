@@ -111,7 +111,7 @@ export interface PendingShotJob {
   shotId: string;
   jobId: string;
   kind: ShotJobKind;
-  /** Epoch ms the request was sent. Bounds how long the entry is kept. */
+  /** Epoch ms the request was sent. Used to measure render duration. */
   startedAt: number;
   renderInputs?: RenderInputs;
 }
@@ -151,8 +151,7 @@ interface StoryboardGenerationStoreState {
 
   /**
    * Rebuild in-memory rows for a board's persisted pending requests and return
-   * the ones that still need a subscription. Expired entries, and entries for
-   * shots the board no longer has, are dropped.
+   * the ones that still need a subscription. Entries for deleted shots are dropped.
    */
   restorePendingJobs: (boardId: string) => PendingShotJob[];
 
@@ -231,29 +230,6 @@ const deriveMembership = (
 
 // ── Pending-job persistence ──────────────────────────────────────────────────
 
-/**
- * How long a persisted request is worth recovering.
- *
- * A direct `generate_media` reply arrives on one open socket, so a reply that
- * landed while the tab was shut reached nobody. `reattachBoardJobs` recovers
- * those from the generation row instead, which outlives the socket; this bound
- * is what stops entries nobody will ever ask about accumulating in
- * localStorage. Longer than the slowest video render, short enough that a
- * stale entry does not show a card as rendering the next morning.
- */
-export const PENDING_JOB_TTL_MS = 30 * 60 * 1000;
-
-/** Second bound: one entry per shot, and a board keeps at most this many. */
-const MAX_PENDING_JOBS_PER_BOARD = 64;
-
-const prunePending = (
-  jobs: readonly PendingShotJob[],
-  now: number
-): PendingShotJob[] =>
-  jobs
-    .filter((job) => now - job.startedAt < PENDING_JOB_TTL_MS)
-    .slice(-MAX_PENDING_JOBS_PER_BOARD);
-
 /** Replace a board's entry for one shot — a shot has one request at a time. */
 const withPendingJob = (
   pendingJobs: Record<string, PendingShotJob[]>,
@@ -265,7 +241,7 @@ const withPendingJob = (
   );
   return {
     ...pendingJobs,
-    [boardId]: prunePending([...others, entry], Date.now())
+    [boardId]: [...others, entry]
   };
 };
 
@@ -387,10 +363,9 @@ export const useStoryboardGenerationStore = create<StoryboardGenerationStoreStat
       durationSamples: {},
 
       restorePendingJobs: (boardId) => {
-        const now = Date.now();
         const board = useStoryboardStore.getState().getBoard(boardId);
         const shotIds = new Set((board?.shots ?? []).map((shot) => shot.id));
-        const kept = prunePending(get().pendingJobs[boardId] ?? [], now).filter(
+        const kept = (get().pendingJobs[boardId] ?? []).filter(
           (job) => shotIds.has(job.shotId)
         );
         // A shot whose row is already live kept its subscription through the
@@ -748,6 +723,10 @@ const settleDirectShotJob = (
   outcome: { assetIds: readonly string[]; errorMessage: string }
 ): void => {
   const generationStore = useStoryboardGenerationStore.getState();
+  if (generationStore.shotJobs[context.shotId]?.jobId !== requestId) {
+    unsubscribeShotJob(requestId);
+    return;
+  }
   const assetId = outcome.assetIds[0];
   const errorMessage =
     outcome.errorMessage.trim() ||
@@ -817,8 +796,8 @@ const handleShotJobMessage = (
  * Subscribe to a direct-generation request (`generate_media` RPC) keyed by
  * its request id. No reconnect handshake — the reply is one rpc_response.
  *
- * `watchUntil` additionally polls the generation row until it settles, giving
- * up at that timestamp. Both the live send and reattachment pass it.
+ * Poll the saved generation until it settles. Both live sends and reattachment
+ * use this path. Waiting does not expire or discard a pending request.
  * The subscription alone cannot recover a reconnect: `subscribe` is a
  * client-side map with no replay, and the server writes the reply to the
  * socket that asked, so one that landed while that socket was gone reaches
@@ -828,33 +807,18 @@ const handleShotJobMessage = (
  */
 export const subscribeDirectShotJob = async (
   requestId: string,
-  context: DirectShotJobContext,
-  watchUntil?: number
+  context: DirectShotJobContext
 ): Promise<void> => {
   if (jobSubscriptions.has(requestId)) {
     jobContexts.set(requestId, context);
     return;
   }
-  await globalWebSocketManager.ensureConnection();
   jobContexts.set(requestId, context);
   const unsubscribe = globalWebSocketManager.subscribe(requestId, (message) =>
     handleShotJobMessage(requestId, message)
   );
-  if (watchUntil === undefined) {
-    jobSubscriptions.set(requestId, unsubscribe);
-    return;
-  }
-  const stopWatch = watchGeneration(requestId, watchUntil, (outcome) => {
+  const stopWatch = watchGeneration(requestId, null, (outcome) => {
     if (!outcome) {
-      // The window ran out with the row still running. Nothing more is coming
-      // that this client can see, so the card offers Retry rather than
-      // rendering forever.
-      unsubscribeShotJob(requestId);
-      useStoryboardGenerationStore
-        .getState()
-        .updateJobStatus(requestId, "failed", {
-          errorMessage: "Generation did not report back in time."
-        });
       return;
     }
     settleDirectShotJob(requestId, jobContexts.get(requestId) ?? context, {
@@ -882,9 +846,8 @@ export const subscribeDirectShotJob = async (
  * what gets there at all after a reload, or when the reply arrives in the
  * window between the lookup and the subscription.
  *
- * Entries older than {@link PENDING_JOB_TTL_MS}, and entries for shots the
- * board no longer has, are dropped by `restorePendingJobs` rather than
- * recovered either way.
+ * Pending requests survive until settlement or explicit removal. Elapsed
+ * browser time is not evidence that a provider failed.
  */
 export const reattachBoardJobs = async (boardId: string): Promise<void> => {
   const restored = useStoryboardGenerationStore
@@ -893,7 +856,6 @@ export const reattachBoardJobs = async (boardId: string): Promise<void> => {
   if (restored.length === 0) {
     return;
   }
-  await globalWebSocketManager.ensureConnection();
   const outcomes = await lookupGenerations(restored.map((job) => job.jobId));
 
   await Promise.all(
@@ -918,8 +880,7 @@ export const reattachBoardJobs = async (boardId: string): Promise<void> => {
       // socket that no longer exists, so the row is what settles this.
       return subscribeDirectShotJob(
         job.jobId,
-        context,
-        job.startedAt + PENDING_JOB_TTL_MS
+        context
       );
     })
   );

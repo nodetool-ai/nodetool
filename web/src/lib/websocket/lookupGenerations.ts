@@ -76,29 +76,32 @@ export async function lookupGenerations(
   if (requestIds.length === 0) {
     return found;
   }
-  let result: Record<string, unknown>;
-  try {
-    result = await rpcRequest("lookup_generations", {
-      request_ids: [...requestIds]
-    });
-  } catch {
-    // Intentional: an unavailable lookup is not a failed render. The caller
-    // subscribes instead, and a reply that can still arrive still lands.
-    return found;
-  }
-  const rows = Array.isArray(result.generations) ? result.generations : [];
-  for (const row of rows) {
-    if (!isRecord(row) || typeof row.request_id !== "string") {
+  // Prediction.byRequestIds caps each server query at 128 request ids.
+  const ids = [...new Set(requestIds)];
+  for (let offset = 0; offset < ids.length; offset += 128) {
+    let result: Record<string, unknown>;
+    try {
+      result = await rpcRequest("lookup_generations", {
+        request_ids: ids.slice(offset, offset + 128)
+      }, 15_000);
+    } catch {
+      // A failed lookup leaves this batch unresolved for the next poll.
       continue;
     }
-    found.set(row.request_id, {
-      requestId: row.request_id,
-      generationId:
-        typeof row.generation_id === "string" ? row.generation_id : "",
-      status: readStatus(row.status),
-      assetIds: readAssetIds(row.asset_ids),
-      error: typeof row.error === "string" ? row.error : null
-    });
+    const rows = Array.isArray(result.generations) ? result.generations : [];
+    for (const row of rows) {
+      if (!isRecord(row) || typeof row.request_id !== "string") {
+        continue;
+      }
+      found.set(row.request_id, {
+        requestId: row.request_id,
+        generationId:
+          typeof row.generation_id === "string" ? row.generation_id : "",
+        status: readStatus(row.status),
+        assetIds: readAssetIds(row.asset_ids),
+        error: typeof row.error === "string" ? row.error : null
+      });
+    }
   }
   return found;
 }

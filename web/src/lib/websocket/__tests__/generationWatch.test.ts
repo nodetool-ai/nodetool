@@ -79,6 +79,15 @@ describe("watchGeneration", () => {
     expect(settled).not.toHaveBeenCalled();
   });
 
+  it("reads a completed result after the browser slept past the deadline", async () => {
+    const settled = jest.fn();
+    watchGeneration("req-sleep", Date.now() + 10_000, settled);
+    jest.setSystemTime(Date.now() + 60 * 60 * 1000);
+    lookupMock.mockResolvedValue(new Map([["req-sleep", row("req-sleep")]]));
+    await jest.advanceTimersByTimeAsync(2_000);
+    expect(settled).toHaveBeenCalledWith(row("req-sleep"));
+  });
+
   it("gives up with null once the deadline passes", async () => {
     const settled = jest.fn();
     watchGeneration("req-1", Date.now() + 10_000, settled);

@@ -33,26 +33,38 @@ export const randomRequestId = (): string => {
 
 export async function rpcRequest(
   command: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
+  timeoutMs?: number
 ): Promise<Record<string, unknown>> {
   await globalWebSocketManager.ensureConnection();
   const requestId = randomRequestId();
   return new Promise((resolve, reject) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const cleanup = (): void => {
+      if (timer !== undefined) clearTimeout(timer);
+      unsubscribe();
+    };
     const unsubscribe = globalWebSocketManager.subscribe(requestId, (msg) => {
       if (msg.type !== "rpc_response") return;
       const response = msg as RpcResponse;
       if (response.request_id !== requestId) return;
-      unsubscribe();
+      cleanup();
       if (response.error) {
         reject(new Error(response.error.message ?? "RPC failed"));
         return;
       }
       resolve(response.result ?? {});
     });
+    if (timeoutMs !== undefined) {
+      timer = setTimeout(() => {
+        cleanup();
+        reject(new Error(`${command} timed out while waiting for its reply`));
+      }, timeoutMs);
+    }
     globalWebSocketManager
       .send({ command, request_id: requestId, data })
       .catch((err) => {
-        unsubscribe();
+        cleanup();
         reject(err instanceof Error ? err : new Error(String(err)));
       });
   });

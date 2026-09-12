@@ -32,7 +32,7 @@ interface Watch {
   /** Called once, with the row's terminal outcome or null on giving up. */
   settle: (outcome: GenerationLookup | null) => void;
   /** When to stop asking — the entry's own remaining window. */
-  deadline: number;
+  deadline: number | null;
 }
 
 const watches = new Map<string, Watch>();
@@ -81,23 +81,19 @@ const scheduleTick = (): void => {
 };
 
 async function tick(): Promise<void> {
-  const now = Date.now();
-  // Anything past its window gives up first, so a dead entry cannot keep the
-  // timer alive forever.
-  for (const [requestId, watch] of [...watches]) {
-    if (now >= watch.deadline) {
-      finish(requestId, null);
-    }
-  }
-  if (watches.size === 0) {
-    stopTimer();
-    return;
-  }
-
   const outcomes = await lookupGenerations([...watches.keys()]);
   for (const [requestId, outcome] of outcomes) {
     if (isSettled(outcome.status)) {
       finish(requestId, outcome);
+    }
+  }
+
+  // A suspended browser may wake after the deadline with a completed row.
+  // Read that result before applying the caller's waiting limit.
+  const now = Date.now();
+  for (const [requestId, watch] of watches) {
+    if (watch.deadline !== null && now >= watch.deadline) {
+      finish(requestId, null);
     }
   }
 
@@ -111,6 +107,7 @@ async function tick(): Promise<void> {
 
 /**
  * Watch one request until its row settles, or until `deadline` passes.
+ * A null deadline keeps unresolved work recoverable until explicitly cleared.
  *
  * `settle` is called at most once: with the terminal row, or with null when the
  * window ran out and the row never settled. Returns a canceller for the case
@@ -118,7 +115,7 @@ async function tick(): Promise<void> {
  */
 export function watchGeneration(
   requestId: string,
-  deadline: number,
+  deadline: number | null,
   settle: (outcome: GenerationLookup | null) => void
 ): () => void {
   const isNew = !watches.has(requestId);

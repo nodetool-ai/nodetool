@@ -205,15 +205,30 @@ describe("ChatTurnSession", () => {
       vi.useRealTimers();
     });
 
-    it("aborts a running turn when the detach grace window elapses", () => {
+    it("keeps a detached turn alive beyond ten minutes by default", () => {
       const controller = new AbortController();
       const session = registry.open("u1", "t1", controller, makeHooks());
       const target = makeTarget();
       session.attach(target, 0);
       session.detach(target);
 
-      vi.advanceTimersByTime(10 * 60 * 1000 + 1);
+      vi.advanceTimersByTime(60 * 60 * 1000);
+      expect(controller.signal.aborted).toBe(false);
+      session.abort("stop");
       expect(controller.signal.aborted).toBe(true);
+    });
+
+    it("honors an explicitly configured detach limit", () => {
+      vi.stubEnv("NODETOOL_CHAT_DETACH_GRACE_MS", "1000");
+      try {
+        const controller = new AbortController();
+        const session = registry.open("u1", "t1", controller, makeHooks());
+        session.detach();
+        vi.advanceTimersByTime(1000);
+        expect(controller.signal.aborted).toBe(true);
+      } finally {
+        vi.unstubAllEnvs();
+      }
     });
 
     it("does not abort while a target is attached", () => {

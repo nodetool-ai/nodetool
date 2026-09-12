@@ -771,7 +771,7 @@ export class WebSocketClientSession implements ClientSession {
 
     // A resilient chat turn survives the socket: detach it (frames keep
     // buffering in the session for replay) instead of aborting. The session's
-    // detach-grace timer bounds how long it may run unattended. Its pending
+    // execution budget bounds its work while detached. Its pending
     // client tool calls stay alive too — replay re-delivers the `tool_call`
     // frames, so a reconnecting client can still answer them. Everything
     // else (a sessionless `inference` turn, other pending calls) is cancelled

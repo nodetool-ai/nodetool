@@ -401,15 +401,16 @@ bounded buffer; a client that reconnects sends
 replayed. Three variables size that machinery:
 
 - `NODETOOL_CHAT_DETACH_GRACE_MS` — a running turn nobody is attached to is
-  aborted after this long (default 10 minutes).
+  aborted after this long when configured as a positive integer. Disabled by
+  default (`0`). Detached agents retain their normal turn budget and deadline.
 - `NODETOOL_CHAT_REPLAY_RETENTION_MS` — a finished turn is kept this long so a
   client reconnecting just after it ended still gets the tail (default 5
   minutes).
 - `NODETOOL_CHAT_REPLAY_BUFFER_EVENTS` — frames buffered per turn (default
   2000).
 
-Each is read as a positive integer; a value that is not one is ignored and the
-default used. Assistant and tool messages are persisted independently of the
+Positive integers override these defaults. Zero or invalid values use the
+default. Assistant and tool messages are persisted independently of the
 buffer, so an expired or truncated replay costs only unpersisted stream chunks —
 the client refetches thread history over REST.
 
@@ -609,7 +610,7 @@ missing binary.
 | `NODETOOL_PACKS_REQUIRE_ALLOWLIST` | Default `allowUnlisted` to false without production mode | no | `1` only. Same trust default `NODETOOL_ENV=production` gives, without disabling the local-only features production mode turns off. The packaged desktop app sets it — its optional-node directory holds user-installed code, but it needs the Python bridge, file browser, and the rest of the local surface. An explicit `allowUnlisted` in `packs.json` still wins |
 | `NODETOOL_PACKS_ALLOWLIST` | Node packs trusted to load, as a comma-separated list of pack names | no | Whitespace around each name is trimmed and empty entries dropped. It is the environment layer of the same allowlist `packs.json` holds under `allow`, and it wins over the file — so it is the ephemeral override (`NODETOOL_PACKS_ALLOWLIST=nodetool-base,my-pack nodetool serve`), never a persisted setting: a partial trust update written back to disk deliberately ignores it. Unset, the file's `allow` applies, then an empty list. It only decides which *listed* packs are trusted; whether unlisted packs load at all is `NODETOOL_PACKS_REQUIRE_ALLOWLIST` and `NODETOOL_ENV`. See [Node Packs](node-packs.md) |
 | `NODETOOL_PACKS_CONFIG` | Path to the node-pack trust file | no | Default `~/.config/nodetool/packs.json` on every platform (the loader anchors it at the OS home directory, not at `NODETOOL_CACHE_DIR`). The file is JSON with four optional keys — `allow` (array of pack names), `allowUnlisted` (boolean), `enabledBuiltins` and `disabledBuiltins` (arrays) — and a file that is missing or unparseable reads as no configuration rather than an error. Point it elsewhere to run a server against a trust set that is not the calling user's |
-| `NODETOOL_CHAT_DETACH_GRACE_MS` | How long a running chat turn survives with no client attached | no | Default `600000` (10 minutes), then the turn is aborted so an abandoned client cannot leave an agent working forever. See [Chat turn replay](#chat-turn-replay) |
+| `NODETOOL_CHAT_DETACH_GRACE_MS` | How long a running chat turn survives with no client attached | no | Default `0` (disabled). Positive values add a disconnect timeout. Agent execution budgets still apply. See [Chat turn replay](#chat-turn-replay) |
 | `NODETOOL_CHAT_REPLAY_RETENTION_MS` | How long a finished turn is kept for a late reconnect | no | Default `300000` (5 minutes) |
 | `NODETOOL_CHAT_REPLAY_BUFFER_EVENTS` | Frames buffered per turn for replay | no | Default `2000`. A client whose `last_seq` predates the buffer is told the replay is incomplete and refetches thread history over REST |
 | `NODETOOL_JOB_DETACH_GRACE_MS` | How long a running workflow job survives with no client attached | no | Default `600000` (10 minutes), then the run is cancelled so an abandoned client cannot leave a workflow spending forever. See [Job run replay](#job-run-replay) |

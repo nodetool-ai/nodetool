@@ -21,6 +21,8 @@ jest.mock("../../../lib/websocket/lookupGenerations", () => ({
   lookupGenerations: (ids: readonly string[]) => lookupMock(ids)
 }));
 
+import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
+
 import type { BoardRenderContext, Shot } from "@nodetool-ai/protocol";
 
 import {
@@ -118,9 +120,9 @@ describe("pending-job persistence", () => {
     expect(persisted()[BOARD]).toBeUndefined();
   });
 
-  it("drops an entry older than the reattach window instead of restoring it", () => {
+  it("retains an unresolved entry when returning the next day", () => {
     const target = seedBoard("s-expired");
-    const hourAgo = Date.now() - 60 * 60 * 1000;
+    const hourAgo = Date.now() - 24 * 60 * 60 * 1000;
     useStoryboardGenerationStore.setState({
       pendingJobs: {
         [BOARD]: [
@@ -138,8 +140,8 @@ describe("pending-job persistence", () => {
       .getState()
       .restorePendingJobs(BOARD);
 
-    expect(restored).toEqual([]);
-    expect(useStoryboardGenerationStore.getState().pendingJobs[BOARD]).toBeUndefined();
+    expect(restored).toHaveLength(1);
+    expect(restored[0].jobId).toBe("req-expired");
   });
 });
 
@@ -358,7 +360,7 @@ describe("a board reopened after a reload", () => {
     }
   });
 
-  it("fails the shot when the row never settles inside its window", async () => {
+  it("keeps a slow generation recoverable beyond thirty minutes", async () => {
     jest.useFakeTimers();
     try {
       const target = reloadedWithPending("s-reload-stuck", "req-stuck");
@@ -371,9 +373,60 @@ describe("a board reopened after a reload", () => {
 
       expect(
         useStoryboardGenerationStore.getState().shotJobs[target.id]?.status
-      ).toBe("failed");
+      ).toBe("running");
+      expect(useStoryboardGenerationStore.getState().pendingJobs[BOARD]).toHaveLength(1);
+      lookupMock.mockResolvedValue(settled("req-stuck"));
+      await jest.advanceTimersByTimeAsync(15_000);
+      expect(boardShot(target.id)?.keyframe?.asset_id).toBe("asset-recovered");
     } finally {
       jest.useRealTimers();
     }
   });
+});
+
+
+it("retains every pending shot in a large board", () => {
+  for (let index = 0; index < 150; index++) {
+    const target = seedBoard(`large-${index}`);
+    useStoryboardGenerationStore.getState().registerJob(target.id, BOARD, `req-${index}`, "keyframe");
+  }
+  expect(useStoryboardGenerationStore.getState().pendingJobs[BOARD]).toHaveLength(150);
+});
+
+it("does not let a late result overwrite a newer shot render", () => {
+  const target = seedBoard("s-replaced");
+  const store = useStoryboardGenerationStore.getState();
+  store.registerJob(target.id, BOARD, "req-old", "keyframe");
+  store.registerJob(target.id, BOARD, "req-new", "keyframe");
+  __handleShotJobMessageForTests("req-old", {
+    shotId: target.id, boardId: BOARD, kind: "keyframe"
+  }, {
+    type: "rpc_response", request_id: "req-old", result: { asset_ids: ["old-asset"] }
+  });
+  expect(boardShot(target.id)?.keyframe).toBeUndefined();
+  expect(useStoryboardGenerationStore.getState().shotJobs[target.id]?.jobId).toBe("req-new");
+  expect(useStoryboardGenerationStore.getState().pendingJobs[BOARD][0].jobId).toBe("req-new");
+});
+
+
+it("recovers after opening a board while the connection is unavailable", async () => {
+  jest.useFakeTimers();
+  const ensure = jest.mocked(globalWebSocketManager.ensureConnection);
+  ensure.mockRejectedValue(new Error("offline"));
+  try {
+    const target = seedBoard("s-offline");
+    useStoryboardGenerationStore.setState({ pendingJobs: {
+      [BOARD]: [{ shotId: target.id, jobId: "req-offline", kind: "keyframe", startedAt: Date.now() }]
+    } });
+    await expect(reattachBoardJobs(BOARD)).resolves.toBeUndefined();
+    lookupMock.mockResolvedValue(new Map([["req-offline", {
+      requestId: "req-offline", generationId: "gen-offline", status: "completed",
+      assetIds: ["asset-offline"], error: null
+    }]]));
+    await jest.advanceTimersByTimeAsync(2000);
+    expect(boardShot(target.id)?.keyframe?.asset_id).toBe("asset-offline");
+  } finally {
+    ensure.mockResolvedValue(undefined);
+    jest.useRealTimers();
+  }
 });
