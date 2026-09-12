@@ -3,25 +3,43 @@
  * generation, readable by the agent that asked for it.
  *
  * A generation capability (`generate_image`, `render_storyboard_clips`, …)
- * returns a `generation_id`. These five read that row, wait for it to settle
- * when the call was started in the background, stop it, and ask the provider
- * what it billed. Every read is scoped to the caller: `findForUser` and
- * `listGenerations` carry the user id in the WHERE, so an id belonging to
+ * returns a `generation_id`. Five capabilities read that row, wait for it to
+ * settle when the call was started in the background, stop it, and ask the
+ * provider what it billed. Every read is scoped to the caller: `findForUser`
+ * and `listGenerations` carry the user id in the WHERE, so an id belonging to
  * someone else reads as absent.
+ *
+ * Two more read the *provider's* own record through
+ * `BaseProvider.listGenerations` / `getGeneration` — generations this
+ * installation never ran, and the price the provider billed rather than the
+ * estimate. Those are the provider's rows, scoped by the account the API key
+ * belongs to, not by NodeTool's user id.
  *
  * Design: docs/media-generation-tracking-design.md § 10.
  */
 
 import type { Prediction } from "@nodetool-ai/models";
-import { generationRegistry } from "@nodetool-ai/runtime";
-import type { CapabilityExport, CapabilityModule } from "./types.js";
+import {
+  generationRegistry,
+  isProviderGenerationsUnsupported,
+  type BaseProvider,
+  type ProviderGenerationQuery,
+  type ProviderGenerationStatus
+} from "@nodetool-ai/runtime";
+import type {
+  CapabilityExport,
+  CapabilityModule,
+  CapabilityRun
+} from "./types.js";
 import { userIdOf } from "../tools/mcp-tool-support.js";
 import {
   listGenerationsSpec,
   getGenerationSpec,
   awaitGenerationSpec,
   cancelGenerationSpec,
-  reconcileGenerationSpec
+  reconcileGenerationSpec,
+  listProviderGenerationsSpec,
+  getProviderGenerationSpec
 } from "./generations.specs.js";
 import { isNonEmptyString, isRecord, isString } from "../utils/type-guards.js";
 
@@ -256,12 +274,128 @@ const reconcileGenerationCapability: CapabilityExport = {
   }
 };
 
+const PROVIDER_STATUSES: ReadonlySet<string> = new Set([
+  "running",
+  "completed",
+  "failed",
+  "cancelled",
+  "unknown"
+]);
+
+function providerStatus(value: unknown): ProviderGenerationStatus | undefined {
+  if (!isString(value) || !PROVIDER_STATUSES.has(value)) return undefined;
+  // SAFETY: the set holds exactly the members of ProviderGenerationStatus,
+  // and `has` just proved this string is one of them.
+  return value as ProviderGenerationStatus;
+}
+
+/**
+ * The provider instance, or the reason there isn't one. A missing key and an
+ * unregistered id both arrive here as a throw, and the agent needs to read
+ * which it was rather than see the tool fail.
+ */
+async function providerOf(
+  run: CapabilityRun,
+  providerId: string
+): Promise<BaseProvider | string> {
+  try {
+    return await run.context.getProvider(providerId);
+  } catch (err) {
+    return `Provider '${providerId}' is not available: ${
+      err instanceof Error ? err.message : String(err)
+    }`;
+  }
+}
+
+const listProviderGenerations: CapabilityExport = {
+  spec: listProviderGenerationsSpec,
+  impl: async (run, params) => {
+    const providerId = String(params["provider"] ?? "");
+    const provider = await providerOf(run, providerId);
+    if (isString(provider)) return { error: provider };
+
+    const query: ProviderGenerationQuery = {
+      limit: bounded(params["limit"], 50, 100)
+    };
+    const model = optionalString(params["model"]);
+    if (model) query.model = model.split(",").map((id) => id.trim());
+    const status = providerStatus(params["status"]);
+    if (status) query.status = status;
+    const since = optionalString(params["since"]);
+    if (since) query.since = since;
+    const until = optionalString(params["until"]);
+    if (until) query.until = until;
+    const cursor = optionalString(params["cursor"]);
+    if (cursor) query.cursor = cursor;
+    if (run.context.signal) query.signal = run.context.signal;
+
+    try {
+      const page = await provider.listGenerations(query);
+      return {
+        provider: providerId,
+        generations: page.generations,
+        next_cursor: page.next_cursor,
+        note: page.note
+      };
+    } catch (err) {
+      if (isProviderGenerationsUnsupported(err)) {
+        return {
+          provider: providerId,
+          error:
+            `${providerId} keeps no listable generation history. Read this ` +
+            `installation's own record with list_generations.`
+        };
+      }
+      throw err;
+    }
+  }
+};
+
+const getProviderGeneration: CapabilityExport = {
+  spec: getProviderGenerationSpec,
+  impl: async (run, params) => {
+    const providerId = String(params["provider"] ?? "");
+    const requestId = String(params["request_id"] ?? "");
+    const provider = await providerOf(run, providerId);
+    if (isString(provider)) return { error: provider };
+
+    const lookup: { model?: string; signal?: AbortSignal } = {};
+    const model = optionalString(params["model"]);
+    if (model) lookup.model = model;
+    if (run.context.signal) lookup.signal = run.context.signal;
+
+    try {
+      const row = await provider.getGeneration(requestId, lookup);
+      if (!row) {
+        return {
+          provider: providerId,
+          request_id: requestId,
+          error: `${providerId} has no request ${requestId}.`
+        };
+      }
+      return row;
+    } catch (err) {
+      if (isProviderGenerationsUnsupported(err)) {
+        return {
+          provider: providerId,
+          error:
+            `${providerId} cannot be asked about a single generation. Read ` +
+            `this installation's own record with get_generation.`
+        };
+      }
+      throw err;
+    }
+  }
+};
+
 export const GENERATION_CAPABILITIES: readonly CapabilityExport[] = [
   listGenerations,
   getGeneration,
   awaitGeneration,
   cancelGeneration,
-  reconcileGenerationCapability
+  reconcileGenerationCapability,
+  listProviderGenerations,
+  getProviderGeneration
 ];
 
 export const module: CapabilityModule = {
@@ -274,5 +408,7 @@ export {
   getGeneration,
   awaitGeneration,
   cancelGeneration,
-  reconcileGenerationCapability as reconcileGeneration
+  reconcileGenerationCapability as reconcileGeneration,
+  listProviderGenerations,
+  getProviderGeneration
 };

@@ -110,7 +110,9 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "get_generation",
     "await_generation",
     "cancel_generation",
-    "reconcile_generation"
+    "reconcile_generation",
+    "list_provider_generations",
+    "get_provider_generation"
   ],
   collections: [
     "list_collections",
@@ -1137,7 +1139,18 @@ const nodetool = (() => {
       reconcile: (id) =>
         __need("reconcile_generation")({
           generation_id: __generationId(id, "reconcile")
-        })
+        }),
+      /**
+       * The provider's own record instead of this installation's: what it ran
+       * from any machine, at the price it billed. Not every provider keeps one.
+       */
+      fromProvider: (provider, opts) =>
+        __need("list_provider_generations")(__merge(opts, { provider: provider })),
+      /** One provider-side generation by the provider's own request id. */
+      getFromProvider: (provider, requestId, opts) =>
+        __need("get_provider_generation")(
+          __merge(opts, { provider: provider, request_id: requestId })
+        )
     },
 
     collections: {
@@ -1738,7 +1751,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {timeout_seconds})\` for one started with \`background: true\`,
   \`cancel(generationId)\`, \`reconcile(generationId)\` to ask the provider
   what it billed. Every \`generateImage\`/\`generateVideo\`/… result carries
-  \`generation_id\`; read its cost with \`get\` instead of guessing.`
+  \`generation_id\`; read its cost with \`get\` instead of guessing. For the
+  provider's own record — generations this installation never ran, at the price
+  the provider billed — \`fromProvider(provider, {model, status, since, limit})\`
+  and \`getFromProvider(provider, requestId, {model})\`.`
   },
   {
     namespace: "collections",

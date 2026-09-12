@@ -3,9 +3,11 @@
  *
  * A generation is one provider media call tracked as a ledger row from before
  * the call to its terminal state (docs/media-generation-tracking-design.md).
- * These five read, wait on, stop and reconcile that record; the generation
+ * Five of these read, wait on, stop and reconcile that record; the generation
  * capabilities themselves (`generate_image`, …) return the `generation_id`
- * these take.
+ * they take. The last two read the *provider's* own record instead, for
+ * generations this installation never ran and for the price it actually
+ * billed (`packages/runtime/src/providers/provider-generations.ts`).
  */
 
 import type { CapabilitySpec } from "./types.js";
@@ -144,11 +146,94 @@ export const reconcileGenerationSpec: CapabilitySpec = {
     `Reconciling the cost of generation ${params["generation_id"]}`
 };
 
+export const listProviderGenerationsSpec: CapabilitySpec = {
+  name: "list_provider_generations",
+  description:
+    "List what the provider itself recorded, not what this installation " +
+    "recorded: generations made from any machine or from the provider's own " +
+    "site, at the price the provider billed. Use it to find a generation " +
+    "with no local row, or to check the local record against the provider. " +
+    "Only providers with a history API answer — fal_ai does; a provider " +
+    "that does not says so. Some listings report a charge without an " +
+    "outcome, and say that in `note`; pass a `model` to fal_ai for status, " +
+    "timings and output urls.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      provider: {
+        type: "string",
+        description: "Provider id, e.g. fal_ai."
+      },
+      model: {
+        type: "string",
+        description:
+          "Only this endpoint / model id. Comma-separate a few to widen it."
+      },
+      status: {
+        type: "string",
+        enum: ["running", "completed", "failed", "cancelled", "unknown"],
+        description: "Only generations in this state, where the provider filters by it."
+      },
+      since: {
+        type: "string",
+        description: "ISO timestamp; generations started before it are left out."
+      },
+      until: {
+        type: "string",
+        description: "ISO timestamp, exclusive upper bound."
+      },
+      limit: {
+        type: "number",
+        description: "How many to return (1-100).",
+        default: 50
+      },
+      cursor: {
+        type: "string",
+        description: "The `next_cursor` from a previous page."
+      }
+    },
+    required: ["provider"]
+  },
+  category: "external",
+  userMessage: (params) =>
+    `Listing generations recorded by ${params["provider"]}`
+};
+
+export const getProviderGenerationSpec: CapabilitySpec = {
+  name: "get_provider_generation",
+  description:
+    "Ask a provider about one generation by its own request id — the " +
+    "`provider_request_id` a local generation record carries. Returns the " +
+    "provider's status, what it billed, and the output urls it still hosts, " +
+    "which is how a lost asset is recovered. fal_ai and atlascloud answer; " +
+    "pass `model` when you know the endpoint, so the lookup can narrow.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      provider: { type: "string", description: "Provider id, e.g. fal_ai." },
+      request_id: {
+        type: "string",
+        description: "The provider's own request / prediction id."
+      },
+      model: {
+        type: "string",
+        description: "The endpoint / model id, when known."
+      }
+    },
+    required: ["provider", "request_id"]
+  },
+  category: "external",
+  userMessage: (params) =>
+    `Reading ${params["provider"]} generation ${params["request_id"]}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const generationsSpecs: readonly CapabilitySpec[] = [
   listGenerationsSpec,
   getGenerationSpec,
   awaitGenerationSpec,
   cancelGenerationSpec,
-  reconcileGenerationSpec
+  reconcileGenerationSpec,
+  listProviderGenerationsSpec,
+  getProviderGenerationSpec
 ];
