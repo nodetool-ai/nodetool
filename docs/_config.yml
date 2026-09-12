@@ -201,6 +201,10 @@ exclude:
   # Internal implementation plans & specs (agentic-worker instructions).
   - COMPONENT_STREAMLINE_PLAN.md
   - superpowers/
+  # Marketing-site audits. They cite repository source under marketing/ and
+  # docs excluded above, which no built page can resolve, and nothing links
+  # to them, so they are excluded rather than noindexed.
+  - strategy/
 
 # Custom theme settings
 # Using custom futuristic dark theme located in _layouts, _includes, and assets

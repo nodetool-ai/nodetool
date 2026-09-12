@@ -34,9 +34,9 @@ NodeTool can make.
 
 **Open-source agent-first creative workspace**
 
-Create and edit images, video, audio, and text with agents that work alongside
-you. Let them build and revise workflows, then inspect and edit the results
-yourself. Your project keeps the brief, assets, and edits together.
+Create images, video, audio, and text with agents that work alongside you.
+Describe what you want, let the agent build it, then take over whenever you
+like.
 
 Use "agent-first" in supporting copy to explain how agents build and revise
 workflows and documents that creators can inspect and edit. Keep the primary

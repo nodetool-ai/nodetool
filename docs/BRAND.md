@@ -23,10 +23,9 @@ change.
 - **Mission.** Give creators and developers control over multi-modal AI
   orchestration without platform lock-in, credit markups, or lost context.
 - **Primary tagline.** Open-source agent-first creative workspace.
-- **Intro.** Create and edit images, video, audio, and text with agents that
-  work alongside you. Let them build and revise workflows, then inspect and
-  edit the results yourself. Your project keeps the brief, assets, and edits
-  together.
+- **Intro.** Create images, video, audio, and text with agents that work
+  alongside you. Describe what you want, let the agent build it, then take over
+  whenever you like.
 - **Agent-first.** Use this in supporting copy to explain that agents operate
   the same editable workflows and documents as the creator. Keep AI in the
   primary category label.
@@ -37,7 +36,7 @@ change.
 The pitch above is the general-purpose one — README, docs, conference blurb,
 app store listing. The marketing homepage uses the same tagline and intro;
 [marketing/NARRATIVE.md](../marketing/NARRATIVE.md) owns the page narrative.
-Both describe editable agent work and persistent project context.
+Both describe editable agent work. Persistent project context is Pillar 3.
 
 ## 2. Voice
 

@@ -9,14 +9,9 @@
 
 **Agent-first creative workspace**
 
-Create and edit images, video, audio, and text with agents that work alongside
-you. Describe what you want, let the agent build it, then take over whenever you
-like. Refine a shot, try a different voice, or rework the cut, yourself or with
-the agent.
-
-You get an editable project, not just a finished file. Your workflows, assets,
-and edits stay together, so you can inspect how something was made and change
-individual parts without starting over.
+Create images, video, audio, and text with agents that work alongside you.
+Describe what you want, let the agent build it, then take over whenever you
+like.
 
 **[Download NodeTool Studio](https://github.com/nodetool-ai/nodetool/releases/latest)** ·
 **[Quick start](#first-run-in-studio)** ·
@@ -27,28 +22,25 @@ individual parts without starting over.
 
 ## Every model you need, on your own keys
 
-Run local models or connect cloud providers with your own API keys. Choose your
-models and pay providers directly: NodeTool calls the provider with your key at
-their price, with no NodeTool billing unit in between. When a better model
-ships, add it the day it ships.
+Run local models or connect cloud providers with your own API keys. NodeTool
+calls the provider with your key, at their price, with no billing unit in
+between. When a better model ships, add it the day it ships.
 
 [Models and Providers](docs/models-and-providers.md) lists what runs where.
 
 ## Why NodeTool
 
-- Agents drive the real editors. They wire the graph, run it, and you take the wheel at any
-  point.
-- Inspect intermediate results, swap a model, and rerun only the part that
-  changed.
-- The graph, inputs, assets, and edits stay together in your project. 
+- Agents drive the real editors. They wire the graph and run it. You take the
+  wheel at any point.
+- Inspect intermediate results, swap a model, and rerun only what changed.
+- The graph, inputs, assets, and edits stay together in your project.
 - Run the same workflow from the studio, the CLI, or an external agent over
   [MCP](#mcp).
 
 Studio is free and runs on macOS, Windows, and Linux. Local models have
-hardware requirements that depend on the model, and working offline needs both
-the models and the assets on your machine.
-[NodeTool Cloud](https://nodetool.ai/cloud) is in alpha; it runs on hosted
-storage and cloud providers rather than your machine's local models.
+hardware requirements that depend on the model, and offline work needs the
+models and assets on your machine. [NodeTool Cloud](https://nodetool.ai/cloud)
+is in alpha and runs on hosted storage and cloud providers.
 
 ## First run in Studio
 
@@ -62,30 +54,27 @@ storage and cloud providers rather than your machine's local models.
 ## One workspace, brief through final cut
 
 Write a brief and ask the agent for a storyboard. Approve the stills before
-spending on video generation, then assemble the clips on a timeline. Trim and
-reorder the cut, add narration, and export an MP4. Revise an individual shot
-without regenerating the rest of the film. The
-[film quick start](docs/getting-started.md) walks through each step, including
-model setup and export.
+spending on video, then assemble the clips on a timeline. Trim the cut, add
+narration, and export an MP4. Revise one shot without regenerating the film.
+The [film quick start](docs/getting-started.md) walks through each step.
 
 Five editors share one project, so a piece never leaves the studio to be
-finished, and an agent drives every one of them through the same actions you
-have.
+finished, and an agent drives every one of them through the actions you have.
 
 ### Storyboard
 
 ![NodeTool storyboard](marketing/public/surface-storyboard-poster.webp)
 
-Board the film shot by shot. Pitch a concept and a visual style, pick a shot
-count, and the Director node returns a typed screenplay: one structured shot
-per card with action, camera, motion, and duration, plus the logline, style
-bible, narration, and music direction.
+Board the film shot by shot. Pitch a concept, a visual style, and a shot count,
+and the Director node returns a typed screenplay: one shot per card with action,
+camera, motion, and duration, plus the logline, style bible, narration, and
+music direction.
 
 - **Cheap stages first.** A still costs cents, a clip costs dollars. Generate
   stills until one looks right, pick it, and only then generate the clip.
 - **Revise one shot, not the reel.** "Make it darker, add rain" runs
-  video-to-video on the existing clip and swaps the result in place. Fixing
-  shot 3 never re-rolls shots 1 to 5.
+  video-to-video on the existing clip and swaps it in place. Fixing shot 3
+  never re-rolls shots 1 to 5.
 - **Entities keep the cast steady.** Characters, locations, styles, and props
   are named objects whose canonical descriptor is pasted verbatim into every
   prompt that names them.
@@ -102,11 +91,10 @@ with `render_storyboard_stills`, `render_storyboard_clips`, and
 ![NodeTool script editor: the transcript panel beside the sequence it assembles into](marketing/public/surface-script-poster.webp)
 
 Draft the dialogue, cast a provider, model, and voice per character, and
-audition alternate line readings. Voicing a line saves a take with its own word
+audition alternate readings. Voicing a line saves a take with its own word
 timings rather than overwriting the last one. Change the words and the take
-flags itself stale, so you see exactly what still needs voicing. The current
-takes assemble into a sequence end to end, word timings riding along as
-captions.
+flags itself stale, so you see what still needs voicing. The current takes
+assemble into a sequence, word timings riding along as captions.
 
 Without the editor open, `voice_script_lines` voices every draft or stale line
 with its cast voice, and `assemble_script_timeline` cuts the result into a
@@ -116,12 +104,12 @@ saved sequence that `validate_timeline` then checks.
 
 ![NodeTool timeline](marketing/public/surface-timeline-poster.webp)
 
-Arrange, trim, and layer generated video and audio across multiple tracks, down
-to the frame and the stem. Drop in your own footage or bind a workflow to a
-clip (text-to-image, image-to-video, or text-to-speech) and generate it in
-place: change a parameter and the clip regenerates, tweak the bound workflow
-and the clip flags itself stale. Export the sequence to MP4. The agent edits
-the same document when you ask it to tighten the opening.
+Arrange, trim, and layer generated video and audio across tracks, down to the
+frame and the stem. Drop in your own footage or bind a workflow to a clip
+(text-to-image, image-to-video, or text-to-speech) and generate in place:
+change a parameter and the clip regenerates, tweak the bound workflow and the
+clip flags itself stale. Export to MP4. The agent edits the same document when
+you ask it to tighten the opening.
 [Video editor guide →](https://docs.nodetool.ai/video-editor)
 
 ### Sketch
@@ -131,8 +119,8 @@ the same document when you ask it to tighten the opening.
 Build a composition in layers with blend modes and masks, then bind a layer to
 a model or one of your own workflows and generate where you are painting.
 Change a prompt or an upstream input and the layer flags itself stale. The node
-hands the rest of the workflow a flattened image, a mask, and per-layer
-outputs, so it pairs with the mask, inpaint, outpaint, and compositing nodes.
+hands the workflow a flattened image, a mask, and per-layer outputs, so it
+pairs with the mask, inpaint, outpaint, and compositing nodes.
 [Sketch editor guide →](https://docs.nodetool.ai/sketch-editor)
 
 ### 3D
@@ -154,14 +142,13 @@ read the live output at each step. Double-click the canvas to search and add a
 node, or drag a connection into empty space to see compatible next steps. The
 editor refuses a mismatch, so an image cannot land in a text field.
 
-Every editor above sits on this canvas, and an agent wires it through the
-same actions you have.
+Every editor above sits on this canvas, and an agent wires it through the same
+actions you have.
 
 ## Recipes
 
 Each recipe is a downloadable bundle that runs on your keys at provider list
-prices. Whether the result is an editable timeline or an exported video depends
-on the workflow you choose.
+prices.
 
 | Recipe | What you end up holding | Models the shipped chain calls |
 | --- | --- | --- |
@@ -172,13 +159,13 @@ on the workflow you choose.
 
 The [recipe gallery](https://nodetool.ai/recipes) has the model chain and
 contact sheet for each run. The [showcase](https://nodetool.ai/showcase) and
-[template gallery](https://nodetool.ai/templates) hold the single workflows the
+[template gallery](https://nodetool.ai/templates) hold the single workflows
 recipes chain.
 
 ## How NodeTool compares
 
 The comparison is against the closed AI studios, because that is what a
-production team is choosing between.
+production team chooses between.
 
 | | NodeTool | Closed AI studios |
 | :--- | :--- | :--- |
@@ -196,15 +183,14 @@ Choosing against a node tool instead? See
 ## The agent
 
 Most tools bolt a chat panel onto an editor. NodeTool built the editors around
-the agent: every surface hands it the same actions you have — wire a graph,
-paint a layer, cut a clip, revise a shot, voice a line.
+the agent: every surface hands it the actions you have — wire a graph, paint a
+layer, cut a clip, revise a shot, voice a line.
 
 - **Build workflows.** Describe the pipeline. The agent picks the nodes, wires
-  the edges, and validates the graph, and what it leaves behind is a workflow
-  you own.
+  the edges, and validates the graph, and leaves behind a workflow you own.
 - **Build apps.** Ask for a custom UI. The agent plans the workflow, places
-  widgets, and replays interactions. A separate judge model grades the result.
-  No passing verdict, no app.
+  widgets, and replays interactions. A judge model grades the result. No
+  passing verdict, no app.
 - **Repair on the fly.** Put an agent on the failure path and it decides
   whether to retry, repair, skip, or stop, within the cost budget you set.
 - **Bring your own agent.** The toolbelt is exposed over [MCP](#mcp), so Claude
@@ -221,7 +207,7 @@ Everything the film surfaces do is reachable on the canvas without the film.
 
 | | |
 | :--- | :--- |
-| **Mini apps** | Give a workflow a screen: inputs, a Run button, a place for the result. Hand it to a teammate who never sees the canvas. |
+| **Mini apps** | Give a workflow a screen: inputs, a Run button, the result. Hand it to a teammate who never sees the canvas. |
 | **Editing tools as nodes** | Mask, inpaint, outpaint, relight, upscale, layer, and composite. |
 | **Every modality** | Image, video, audio, and text in one workflow. |
 | **Every major provider** | OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace, plus one node for every model on Replicate, fal.ai, and KIE. |
@@ -274,7 +260,7 @@ The MCP server can drive workflows and creative editing surfaces. See the
 
 This deterministic example uses the repository's
 [`hello_input_output_cli.json`](examples/workflows/hello_input_output_cli.json)
-template. It does not call a model, so it needs no API key:
+template. It calls no model, so it needs no API key:
 
 ```bash
 git clone https://github.com/nodetool-ai/nodetool.git
@@ -287,14 +273,12 @@ npm run workflow -- ./examples/workflows/hello_input_output_cli.json \
 ```
 
 The input node named `text` connects to a `Reroute` output node. The command's
-JSON summary includes `hello from NodeTool` in its outputs. Change the `text`
-input and run it again to see the new value. See
+JSON summary includes `hello from NodeTool` in its outputs. See
 [`examples/workflows/README.md`](examples/workflows/README.md) for more
 examples and expected behavior.
 
-To run an agent or a model-backed workflow, configure a provider first. For
-example, obtain an OpenAI key, export it in the shell, and use the checked-in
-OpenAI example:
+To run an agent or a model-backed workflow, configure a provider first. Export
+an OpenAI key and use the checked-in OpenAI example:
 
 ```bash
 export OPENAI_API_KEY='your-key'
@@ -302,8 +286,8 @@ npm run workflow -- ./examples/workflows/agent_openai_basic_cli.json \
   --input prompt='Write one sentence about workflow testing.'
 ```
 
-This makes a paid provider request. The example selects GPT-4o. Access and
-billing depend on your provider account. See
+This makes a paid provider request against GPT-4o. Access and billing depend
+on your provider account. See
 [Models and Providers](docs/models-and-providers.md) and
 [Provider Guides](https://docs.nodetool.ai/developer/providers/) for other
 providers and local setup. Do not add a key to a committed file.
@@ -333,14 +317,14 @@ npm run dev
 ```
 
 For an automatic install, build, and launch from a fresh checkout, use
-`./start.sh full`. To start only the API, use `./start.sh`; to inspect the
-environment without changing it, use `./start.sh doctor`.
-These commands do not launch the Electron desktop app.
+`./start.sh full`. To start only the API, use `./start.sh`. To inspect the
+environment without changing it, use `./start.sh doctor`. None of these launch
+the Electron desktop app.
 
-In a separate terminal, launch the desktop shell with `npm run electron` from
-the prepared checkout. Node.js 22.22.1 is pinned in
-[`.nvmrc`](.nvmrc). Python 3.11 and conda are optional, for Python nodes. For
-locked-down environments or missing WebGPU, see [development environment](docs/dev-environment.md).
+In a separate terminal, launch the desktop shell with `npm run electron`.
+Node.js 22.22.1 is pinned in [`.nvmrc`](.nvmrc). Python 3.11 and conda are
+optional, for Python nodes. For locked-down environments or missing WebGPU, see
+[development environment](docs/dev-environment.md).
 
 ## Testing
 
@@ -374,7 +358,7 @@ Read [`AGENTS.md`](AGENTS.md) and the
 [development standards](docs/DEVELOPMENT_STANDARDS.md), then open an issue for
 larger changes. Pull requests for bug fixes, nodes, providers, workflows, and
 documentation are welcome. Run the narrowest relevant checks before opening a
-PR and include the command results.
+PR and include their results.
 
 ## License and community
 
