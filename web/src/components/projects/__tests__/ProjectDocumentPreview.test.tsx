@@ -61,13 +61,15 @@ describe("ProjectDocumentPreview", () => {
               name: "V1",
               clips: [{ startMs: 0, durationMs: 15_000 }]
             },
-            { type: "audio", name: "A1", clips: [] }
+            { type: "audio", name: "A1", clips: [] },
+            { type: "midi", name: "M1", clips: [{ startMs: 0, durationMs: 10_000 }] }
           ]
         }
       })
     );
     expect(screen.getByText("V1")).toBeInTheDocument();
     expect(screen.getByText("A1")).toBeInTheDocument();
+    expect(screen.getByText("M1")).toBeInTheDocument();
   });
 
   it("falls back to the type's glyph when there is nothing to draw", () => {
