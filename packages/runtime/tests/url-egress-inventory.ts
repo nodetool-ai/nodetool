@@ -343,6 +343,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Prediction output URLs; submit and poll address the constant API base."
   ),
   guardedSafeFetch(
+    "packages/runtime/src/providers/muapi-transport.ts",
+    "MuAPI submit/poll/upload/download, shared by the provider and the node pack",
+    "provider-response",
+    "Job output URLs; submit, poll and upload address the constant API base."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",
     "Meshy model download",
     "provider-response",

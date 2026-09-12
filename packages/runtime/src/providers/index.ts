@@ -63,6 +63,7 @@ import { ElevenLabsProvider } from "./elevenlabs-provider.js";
 import { TopazProvider } from "./topaz-provider.js";
 import { ReveProvider } from "./reve-provider.js";
 import { AtlasCloudProvider } from "./atlascloud-provider.js";
+import { MuapiProvider } from "./muapi-provider.js";
 import { AkiProvider } from "./aki-provider.js";
 import { MeshyProvider } from "./meshy-provider.js";
 import { RodinProvider } from "./rodin-provider.js";
@@ -198,6 +199,7 @@ export { ElevenLabsProvider };
 export { TopazProvider };
 export { ReveProvider };
 export { AtlasCloudProvider };
+export { MuapiProvider };
 export { AkiProvider };
 export { MeshyProvider };
 export { RodinProvider };
@@ -457,6 +459,9 @@ registerBuiltinProvider(PROVIDER_IDS.TOPAZ, TopazProvider, {
 registerBuiltinProvider(PROVIDER_IDS.REVE, ReveProvider, { REVE_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.ATLASCLOUD, AtlasCloudProvider, {
   ATLASCLOUD_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.MUAPI, MuapiProvider, {
+  MUAPI_API_KEY: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.AKI, AkiProvider, { AKI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, {

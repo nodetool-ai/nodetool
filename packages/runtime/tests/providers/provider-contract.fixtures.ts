@@ -43,6 +43,7 @@ export const MEDIA_ONLY_EXEMPTIONS: Record<string, string> = {
   elevenlabs: "Text-to-speech provider; generateMessage(s) always throws.",
   topaz: "Image upscaling provider; generateMessage(s) always throws.",
   reve: "Image generation provider; generateMessage(s) always throws.",
+  muapi: "Video generation provider; generateMessage(s) always throws.",
   meshy: "3D asset generation provider; generateMessage(s) always throws.",
   rodin: "3D asset generation provider; generateMessage(s) always throws.",
   cohere: "Embeddings/rerank provider; generateMessage(s) always throws.",
