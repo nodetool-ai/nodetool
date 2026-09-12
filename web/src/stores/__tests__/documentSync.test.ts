@@ -7,6 +7,7 @@ import {
   handleDocumentResourceChange,
   registerDocumentSync
 } from "../documentSync";
+import { createDocumentSyncController } from "../documentSync";
 import { useConflictStore, clearAllConflicts } from "../ConflictStore";
 
 const subscriber = (
@@ -188,5 +189,106 @@ describe("conflict store", () => {
     expect(
       useConflictStore.getState().byKey["storyboard:b1"].conflicts.map((c) => c.unit.id)
     ).toEqual(["s5"]);
+  });
+});
+
+describe("createDocumentSyncController", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("debounces edits and never overlaps saves", async () => {
+    let draft = "first";
+    let revision = "rev-1";
+    let resolveSave: ((value: { updatedAt: string }) => void) | null = null;
+    const save = jest.fn(
+      () =>
+        new Promise<{ updatedAt: string }>((resolve) => {
+          resolveSave = resolve;
+        })
+    );
+    const controller = createDocumentSyncController({
+      debounceMs: 10,
+      getDraft: () => draft,
+      getRevision: () => revision,
+      isDirty: () => draft !== "saved",
+      save,
+      recoverCasConflict: async () => {},
+      onStatus: jest.fn()
+    });
+
+    controller.markDirty();
+    jest.advanceTimersByTime(9);
+    expect(save).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(1);
+    await Promise.resolve();
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(controller.isSaving()).toBe(true);
+
+    draft = "second";
+    controller.markDirty();
+    const flush = controller.flush();
+    expect(save).toHaveBeenCalledTimes(1);
+    resolveSave?.({ updatedAt: "rev-2" });
+    revision = "rev-2";
+    await Promise.resolve();
+    resolveSave?.({ updatedAt: "rev-3" });
+    await flush;
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(controller.isSaving()).toBe(false);
+  });
+
+  it("recovers a CAS conflict before retrying the draft", async () => {
+    let attempts = 0;
+    let draft = "draft";
+    let revision = "rev-1";
+    const recover = jest.fn(async () => {
+      revision = "rev-2";
+    });
+    const controller = createDocumentSyncController({
+      debounceMs: 1,
+      getDraft: () => draft,
+      getRevision: () => revision,
+      isDirty: () => draft !== "saved",
+      save: jest.fn(async (_draft: string, base: string) => {
+        attempts += 1;
+        if (base === "rev-1") throw new Error("modified since last read");
+        draft = "saved";
+        return { updatedAt: "rev-3" };
+      }),
+      recoverCasConflict: recover,
+      isCasConflict: (error) => error instanceof Error && /modified/.test(error.message)
+    });
+
+    controller.markDirty();
+    const flush = controller.flush();
+    await flush;
+    expect(recover).toHaveBeenCalledTimes(1);
+    expect(attempts).toBe(2);
+  });
+
+  it("cancels the debounce but flushes a pending draft on teardown", async () => {
+    let saved = false;
+    const controller = createDocumentSyncController({
+      debounceMs: 10,
+      getDraft: () => "draft",
+      getRevision: () => "rev-1",
+      isDirty: () => !saved,
+      save: jest.fn(async () => {
+        saved = true;
+        return { updatedAt: "rev-2" };
+      }),
+      recoverCasConflict: async () => {}
+    });
+
+    controller.markDirty();
+    controller.dispose();
+    jest.advanceTimersByTime(10);
+    await Promise.resolve();
+    expect(saved).toBe(true);
   });
 });

@@ -130,7 +130,7 @@ describe("useJsScriptServerSync", () => {
     );
   });
 
-  it("reloads the server copy when the save loses a CAS conflict", async () => {
+  it("re-reads and retries the draft when the save loses a CAS conflict", async () => {
     updateMutate.mockRejectedValueOnce(
       new Error("JS script was modified since last read")
     );
@@ -146,14 +146,15 @@ describe("useJsScriptServerSync", () => {
     act(() => useJsScriptStore.getState().setCode("js-1", "emit('a', 1)"));
 
     await waitFor(
-      () =>
-        expect(useJsScriptStore.getState().saveStatus["js-1"]).toBe("reloaded"),
+      () => expect(updateMutate).toHaveBeenCalledTimes(2),
       { timeout: 3000 }
     );
     expect(useJsScriptStore.getState().scripts["js-1"]?.name).toBe(
-      "Won the race"
+      "Saved script"
     );
-    expect(useJsScriptStore.getState().serverRevisions["js-1"]).toBe("rev-9");
+    expect(updateMutate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ baseUpdatedAt: "rev-9", name: "Saved script" })
+    );
   });
 
   it("flags an error status when an autosave fails for another reason", async () => {
@@ -423,6 +424,7 @@ describe("useJsScriptServerSync merge", () => {
     });
 
     // A no-ops notice arrives while that save is still in flight.
+    getQuery.mockResolvedValueOnce(serverScript("rev-42"));
     await act(async () => {
       handleDocumentResourceChange("jsscript", {
         event: "updated",
@@ -432,12 +434,15 @@ describe("useJsScriptServerSync merge", () => {
       await Promise.resolve();
     });
 
-    // The token the next save reads lives in the store, not only in the ref.
-    expect(useJsScriptStore.getState().serverRevisions["js-1"]).toBe("rev-42");
     await act(async () => {
       resolveSave({ updatedAt: "rev-2" });
       await Promise.resolve();
     });
+    // The foreign notice is drained after the in-flight write settles.
+    await flushJsScriptSave("js-1");
+    expect(updateMutate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ baseUpdatedAt: "rev-42" })
+    );
   });
 
   it("saves the merged document with the rolled token after a merge", async () => {
