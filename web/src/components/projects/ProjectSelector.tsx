@@ -5,6 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
+  Box,
   Caption,
   CONTROL,
   ContextMenu,
@@ -26,18 +27,33 @@ import {
   useOpenProject,
   useProjects
 } from "../../hooks/useProjects";
+import { TOOLBAR_WIDTH } from "../../config/constants";
 import { useAuth } from "../../stores/useAuth";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
 import { ActivityIndicator } from "../timeline/ActivityIndicator";
 
 const selectorStyles = (theme: Theme) =>
   css({
+    display: "grid",
+    gridTemplateColumns: `minmax(${TOOLBAR_WIDTH}px, 1fr) auto 1fr`,
+    gridTemplateAreas: `"left center trailing"`,
+    alignItems: "center",
+    columnGap: getSpacingPx(SPACING.md),
     minHeight: CONTROL.height.xl,
     flexShrink: 0,
     padding: `0 ${getSpacingPx(SPACING.xl)}`,
     backgroundColor: theme.vars.palette.c_app_header,
     WebkitAppRegion: "drag",
-    justifyContent: "flex-end",
+    "& .selector-center": {
+      gridArea: "center",
+      minWidth: 0,
+      maxWidth: "100%"
+    },
+    "& .selector-trailing": {
+      gridArea: "trailing",
+      justifySelf: "end",
+      minWidth: 0
+    },
     "& .selector-name": {
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -46,8 +62,9 @@ const selectorStyles = (theme: Theme) =>
     "& .selector-glyph": { color: PROJECT_COLOR },
     [theme.breakpoints.down("sm")]: {
       padding: `0 ${getSpacingPx(SPACING.md)}`,
-      "& > .MuiTypography-root": { display: "none" },
-      "& .selector-button": { flex: 1, minWidth: 0 }
+      gridTemplateColumns: "1fr auto 1fr",
+      "& .selector-label": { display: "none" },
+      "& .selector-button": { minWidth: 0 }
     }
   });
 
@@ -142,101 +159,111 @@ const ProjectSelector = () => {
   );
 
   return (
-    <FlexRow css={selectorStyles(theme)} align="center" gap={SPACING.md}>
-      <EditorButton
-        ref={anchorRef}
-        size="medium"
-        variant="text"
-        className="selector-button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={`Selected project: ${name}`}
-        onClick={() => setOpen((value) => !value)}
-        sx={{
-          WebkitAppRegion: "no-drag",
-          minWidth: 0,
-          maxWidth: "100%",
-          gap: SPACING.md,
-          color: theme.vars.palette.text.primary
-        }}
+    <Box css={selectorStyles(theme)}>
+      <FlexRow
+        className="selector-center"
+        align="center"
+        gap={SPACING.md}
       >
-        <span className="selector-glyph" aria-hidden>
-          {PROJECT_GLYPH}
-        </span>
-        <Text className="selector-name">{name}</Text>
-        <span aria-hidden>▾</span>
-      </EditorButton>
-      <Caption color="muted">Project</Caption>
-      <ActivityIndicator />
-      <ContextMenu
-        open={open}
-        anchorEl={anchorRef.current}
-        onClose={close}
-        paperSx={{ p: SPACING.sm }}
-      >
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Find a project"
-          ariaLabel="Find a project"
-          fullWidth
-          sx={{ mb: SPACING.sm }}
-        />
-        <MenuItemPrimitive
-          label="Personal"
-          secondary="Your personal workspace"
-          selected={
-            activeProjectId === resolvedPersonalId ||
-            activeProjectId === null ||
-            activeProjectId === LOOSE_PROJECT_ID
-          }
-          onClick={selectPersonal}
-        />
-        {isPending && (
-          <Caption sx={{ px: SPACING.md, py: SPACING.sm }}>
-            Loading projects…
-          </Caption>
-        )}
-        {error && (
-          <Caption color="error" sx={{ px: SPACING.md, py: SPACING.sm }}>
-            Could not load projects
-          </Caption>
-        )}
-        {visibleProjects.map((project) => (
-          <MenuItemPrimitive
-            key={project.id}
-            label={project.name}
-            selected={project.id === activeProjectId}
-            onClick={() => selectProject(project)}
-          />
-        ))}
-        {!isPending && !error && visibleProjects.length === 0 && (
-          <Caption sx={{ px: SPACING.md, py: SPACING.sm }}>
-            {needle ? "No matching projects" : "No named projects yet"}
-          </Caption>
-        )}
-        <FlexRow
-          className="selector-actions"
-          gap={SPACING.sm}
-          sx={{ px: SPACING.md, pt: SPACING.sm, pb: SPACING.md }}
+        <EditorButton
+          ref={anchorRef}
+          size="medium"
+          variant="text"
+          className="selector-button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-label={`Selected project: ${name}`}
+          onClick={() => setOpen((value) => !value)}
+          sx={{
+            WebkitAppRegion: "no-drag",
+            minWidth: 0,
+            maxWidth: "100%",
+            gap: SPACING.md,
+            color: theme.vars.palette.text.primary
+          }}
         >
-          <EditorButton
-            density="compact"
-            variant="outlined"
-            onClick={openNewProject}
+          <span className="selector-glyph" aria-hidden>
+            {PROJECT_GLYPH}
+          </span>
+          <Text className="selector-name">{name}</Text>
+          <span aria-hidden>▾</span>
+        </EditorButton>
+        <ContextMenu
+          open={open}
+          anchorEl={anchorRef.current}
+          onClose={close}
+          paperSx={{ p: SPACING.sm }}
+        >
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Find a project"
+            ariaLabel="Find a project"
+            fullWidth
+            sx={{ mb: SPACING.sm }}
+          />
+          <MenuItemPrimitive
+            label="Personal"
+            secondary="Your personal workspace"
+            selected={
+              activeProjectId === resolvedPersonalId ||
+              activeProjectId === null ||
+              activeProjectId === LOOSE_PROJECT_ID
+            }
+            onClick={selectPersonal}
+          />
+          {isPending && (
+            <Caption sx={{ px: SPACING.md, py: SPACING.sm }}>
+              Loading projects…
+            </Caption>
+          )}
+          {error && (
+            <Caption color="error" sx={{ px: SPACING.md, py: SPACING.sm }}>
+              Could not load projects
+            </Caption>
+          )}
+          {visibleProjects.map((project) => (
+            <MenuItemPrimitive
+              key={project.id}
+              label={project.name}
+              selected={project.id === activeProjectId}
+              onClick={() => selectProject(project)}
+            />
+          ))}
+          {!isPending && !error && visibleProjects.length === 0 && (
+            <Caption sx={{ px: SPACING.md, py: SPACING.sm }}>
+              {needle ? "No matching projects" : "No named projects yet"}
+            </Caption>
+          )}
+          <FlexRow
+            className="selector-actions"
+            gap={SPACING.sm}
+            sx={{ px: SPACING.md, pt: SPACING.sm, pb: SPACING.md }}
           >
-            New project
-          </EditorButton>
-          <EditorButton
-            density="compact"
-            variant="outlined"
-            onClick={openProjects}
-          >
-            Manage projects
-          </EditorButton>
-        </FlexRow>
-      </ContextMenu>
-    </FlexRow>
+            <EditorButton
+              density="compact"
+              variant="outlined"
+              onClick={openNewProject}
+            >
+              New project
+            </EditorButton>
+            <EditorButton
+              density="compact"
+              variant="outlined"
+              onClick={openProjects}
+            >
+              Manage projects
+            </EditorButton>
+          </FlexRow>
+        </ContextMenu>
+      </FlexRow>
+      <FlexRow className="selector-trailing" align="center" gap={SPACING.md}>
+        <Caption className="selector-label" color="muted">
+          Project
+        </Caption>
+        <ActivityIndicator />
+      </FlexRow>
+    </Box>
   );
 };
 
