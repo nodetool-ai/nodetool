@@ -59,7 +59,10 @@ export interface AtlasFieldDef {
   values?: Array<string | number>;
   min?: number;
   max?: number;
+  maxItems?: number;
   required?: boolean;
+  /** Require at least one image or video in the named wrapped asset group. */
+  requiredGroup?: boolean;
   /**
    * When true, wraps a single-asset field's resolved value in a one-element
    * array. Used by AtlasCloud `*-edit` endpoints which expect `images: [url]`.
@@ -677,6 +680,11 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
             const r = await resolveAssetForAtlas(item, context, inner);
             if (r !== null) resolved.push(r);
           }
+          if (f.maxItems !== undefined && resolved.length > f.maxItems) {
+            throw new Error(
+              `${specRef.title}: "${f.title ?? f.name}" accepts at most ${f.maxItems} items`
+            );
+          }
           if (resolved.length > 0) {
             if (f.wrapInto) {
               appendWrapped(input, f.wrapInto, resolved, inner);
@@ -689,6 +697,38 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
 
         if (v === "") continue;
         input[f.name] = coerceScalar(v, f.type);
+      }
+
+      const requiredGroups = new Set(
+        specRef.fields
+          .filter((field) => field.requiredGroup && field.wrapInto)
+          .map((field) => field.wrapInto!)
+      );
+      for (const group of requiredGroups) {
+        const values = input[group];
+        const hasVisualReference =
+          Array.isArray(values) &&
+          values.some(
+            (value) =>
+              typeof value === "object" &&
+              value !== null &&
+              "type" in value &&
+              (value.type === "image" || value.type === "video")
+          );
+        if (!hasVisualReference) {
+          throw new Error(
+            `${specRef.title}: connect at least one reference image or video`
+          );
+        }
+      }
+
+      if (
+        input.background === "transparent" &&
+        input.output_format === "jpeg"
+      ) {
+        throw new Error(
+          `${specRef.title}: transparent backgrounds require PNG or WebP output`
+        );
       }
 
       const predictionId = await atlasSubmit(
@@ -712,8 +752,12 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
       // or rejects the write — that mirrors the autoSaveAsset contract used
       // by topaz-nodes.
       const isVideo = specRef.outputType === "video";
-      const ext = isVideo ? "mp4" : "png";
-      const mime = isVideo ? "video/mp4" : "image/png";
+      const imageFormat =
+        input.output_format === "jpeg" || input.output_format === "webp"
+          ? input.output_format
+          : "png";
+      const ext = isVideo ? "mp4" : imageFormat === "jpeg" ? "jpg" : imageFormat;
+      const mime = isVideo ? "video/mp4" : `image/${imageFormat}`;
       const filename = `atlascloud-${specRef.outputType}-${Date.now()}.${ext}`;
 
       const storage = context?.storage;

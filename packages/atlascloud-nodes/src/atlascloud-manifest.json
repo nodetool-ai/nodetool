@@ -1,5 +1,1517 @@
 [
   {
+    "className": "GPTImage25SunburstTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "openai/gpt-image-2.5-sunburst/text-to-image",
+    "outputType": "image",
+    "title": "GPT Image 2.5 Sunburst — Text to Image",
+    "description": "AtlasCloud / OpenAI GPT Image 2.5 Sunburst — high-detail text-to-image with flexible sizing and transparent backgrounds.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "description": "Rendering quality tier. gpt-image-2.5 adds xhigh and max on top of low/medium/high. Higher tiers cost more per image.",
+        "values": [
+          "auto",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1024x1024",
+        "title": "Size",
+        "description": "Output image dimensions. Choose a preset up to 3840x2160 or let the model select the size.",
+        "values": [
+          "auto",
+          "1024x768",
+          "768x1024",
+          "1024x1536",
+          "1536x1024",
+          "2048x2048",
+          "2048x1152",
+          "1152x2048",
+          "2560x1088",
+          "1088x2560",
+          "2880x2160",
+          "2160x2880",
+          "3840x2160",
+          "2160x3840"
+        ]
+      },
+      {
+        "name": "background",
+        "type": "enum",
+        "default": "auto",
+        "title": "Background",
+        "description": "Background of the generated image. When using transparent, set the output format to png or webp.",
+        "values": [
+          "auto",
+          "opaque",
+          "transparent"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Output image format.",
+        "values": [
+          "png",
+          "jpeg",
+          "webp"
+        ]
+      },
+      {
+        "name": "moderation",
+        "type": "enum",
+        "default": "auto",
+        "title": "Moderation",
+        "description": "Content-moderation strictness. low applies less restrictive filtering.",
+        "values": [
+          "auto",
+          "low"
+        ]
+      },
+      {
+        "name": "n",
+        "type": "int",
+        "default": 1,
+        "title": "N",
+        "description": "Number of images to generate, 1 to 10. Each image is billed separately.",
+        "min": 1,
+        "max": 10
+      }
+    ]
+  },
+  {
+    "className": "GPTImage25SunburstEdit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "openai/gpt-image-2.5-sunburst/edit",
+    "outputType": "image",
+    "title": "GPT Image 2.5 Sunburst — Edit",
+    "description": "AtlasCloud / OpenAI GPT Image 2.5 Sunburst — natural-language editing for up to 16 source images with optional masking.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Source images to edit.",
+        "maxItems": 16,
+        "required": true
+      },
+      {
+        "name": "mask",
+        "type": "image",
+        "default": null,
+        "title": "Mask",
+        "description": "Optional mask marking the region to edit."
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "description": "Rendering quality tier. gpt-image-2.5 adds xhigh and max on top of low/medium/high. Higher tiers cost more per image.",
+        "values": [
+          "auto",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1024x1024",
+        "title": "Size",
+        "description": "Output image dimensions. Choose a preset up to 3840x2160 or let the model select the size.",
+        "values": [
+          "auto",
+          "1024x768",
+          "768x1024",
+          "1024x1536",
+          "1536x1024",
+          "2048x2048",
+          "2048x1152",
+          "1152x2048",
+          "2560x1088",
+          "1088x2560",
+          "2880x2160",
+          "2160x2880",
+          "3840x2160",
+          "2160x3840"
+        ]
+      },
+      {
+        "name": "background",
+        "type": "enum",
+        "default": "auto",
+        "title": "Background",
+        "description": "Background of the generated image. When using transparent, set the output format to png or webp.",
+        "values": [
+          "auto",
+          "opaque",
+          "transparent"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Output image format.",
+        "values": [
+          "png",
+          "jpeg",
+          "webp"
+        ]
+      },
+      {
+        "name": "moderation",
+        "type": "enum",
+        "default": "auto",
+        "title": "Moderation",
+        "description": "Content-moderation strictness. low applies less restrictive filtering.",
+        "values": [
+          "auto",
+          "low"
+        ]
+      },
+      {
+        "name": "n",
+        "type": "int",
+        "default": 1,
+        "title": "N",
+        "description": "Number of images to generate, 1 to 10. Each image is billed separately.",
+        "min": 1,
+        "max": 10
+      }
+    ]
+  },
+  {
+    "className": "GPTImage25FlareTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "openai/gpt-image-2.5-flare/text-to-image",
+    "outputType": "image",
+    "title": "GPT Image 2.5 Flare — Text to Image",
+    "description": "AtlasCloud / OpenAI GPT Image 2.5 Flare — fast text-to-image with flexible sizing and transparent backgrounds.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "description": "Rendering quality tier. gpt-image-2.5 adds xhigh and max on top of low/medium/high. Higher tiers cost more per image.",
+        "values": [
+          "auto",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1024x1024",
+        "title": "Size",
+        "description": "Output image dimensions. Choose a preset up to 3840x2160 or let the model select the size.",
+        "values": [
+          "auto",
+          "1024x768",
+          "768x1024",
+          "1024x1536",
+          "1536x1024",
+          "2048x2048",
+          "2048x1152",
+          "1152x2048",
+          "2560x1088",
+          "1088x2560",
+          "2880x2160",
+          "2160x2880",
+          "3840x2160",
+          "2160x3840"
+        ]
+      },
+      {
+        "name": "background",
+        "type": "enum",
+        "default": "auto",
+        "title": "Background",
+        "description": "Background of the generated image. When using transparent, set the output format to png or webp.",
+        "values": [
+          "auto",
+          "opaque",
+          "transparent"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Output image format.",
+        "values": [
+          "png",
+          "jpeg",
+          "webp"
+        ]
+      },
+      {
+        "name": "moderation",
+        "type": "enum",
+        "default": "auto",
+        "title": "Moderation",
+        "description": "Content-moderation strictness. low applies less restrictive filtering.",
+        "values": [
+          "auto",
+          "low"
+        ]
+      },
+      {
+        "name": "n",
+        "type": "int",
+        "default": 1,
+        "title": "N",
+        "description": "Number of images to generate, 1 to 10. Each image is billed separately.",
+        "min": 1,
+        "max": 10
+      }
+    ]
+  },
+  {
+    "className": "GPTImage25FlareEdit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "openai/gpt-image-2.5-flare/edit",
+    "outputType": "image",
+    "title": "GPT Image 2.5 Flare — Edit",
+    "description": "AtlasCloud / OpenAI GPT Image 2.5 Flare — fast natural-language editing for up to 16 source images with optional masking.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Source images to edit.",
+        "maxItems": 16,
+        "required": true
+      },
+      {
+        "name": "mask",
+        "type": "image",
+        "default": null,
+        "title": "Mask",
+        "description": "Optional mask marking the region to edit."
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "description": "Rendering quality tier. gpt-image-2.5 adds xhigh and max on top of low/medium/high. Higher tiers cost more per image.",
+        "values": [
+          "auto",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1024x1024",
+        "title": "Size",
+        "description": "Output image dimensions. Choose a preset up to 3840x2160 or let the model select the size.",
+        "values": [
+          "auto",
+          "1024x768",
+          "768x1024",
+          "1024x1536",
+          "1536x1024",
+          "2048x2048",
+          "2048x1152",
+          "1152x2048",
+          "2560x1088",
+          "1088x2560",
+          "2880x2160",
+          "2160x2880",
+          "3840x2160",
+          "2160x3840"
+        ]
+      },
+      {
+        "name": "background",
+        "type": "enum",
+        "default": "auto",
+        "title": "Background",
+        "description": "Background of the generated image. When using transparent, set the output format to png or webp.",
+        "values": [
+          "auto",
+          "opaque",
+          "transparent"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Output image format.",
+        "values": [
+          "png",
+          "jpeg",
+          "webp"
+        ]
+      },
+      {
+        "name": "moderation",
+        "type": "enum",
+        "default": "auto",
+        "title": "Moderation",
+        "description": "Content-moderation strictness. low applies less restrictive filtering.",
+        "values": [
+          "auto",
+          "low"
+        ]
+      },
+      {
+        "name": "n",
+        "type": "int",
+        "default": 1,
+        "title": "N",
+        "description": "Number of images to generate, 1 to 10. Each image is billed separately.",
+        "min": 1,
+        "max": 10
+      }
+    ]
+  },
+  {
+    "className": "MinimaxH3MaxTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "minimax/h3-max/text-to-video",
+    "outputType": "video",
+    "title": "MiniMax H3 Max — Text to Video",
+    "description": "AtlasCloud / MiniMax H3 Max — generates cinematic 5-15 second video from text.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "768P",
+        "title": "Resolution",
+        "description": "Native 480P or 768P output, or SR-enhanced 1440P or 4K short edge.",
+        "values": [
+          "480P",
+          "768P",
+          "1440p-sr",
+          "4k-sr"
+        ],
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration",
+        "description": "The duration of the generated video in seconds.",
+        "values": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "required": true
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "prompt_expansion",
+        "type": "bool",
+        "default": false,
+        "title": "Prompt Expansion",
+        "description": "Whether to expand the prompt for better results."
+      }
+    ]
+  },
+  {
+    "className": "MinimaxH3MaxImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "minimax/h3-max/image-to-video",
+    "outputType": "video",
+    "title": "MiniMax H3 Max — Image to Video",
+    "description": "AtlasCloud / MiniMax H3 Max — animates a first frame and optional end frame into a 5-15 second video.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "First frame of the video.",
+        "required": true
+      },
+      {
+        "name": "end_image",
+        "type": "image",
+        "default": null,
+        "title": "End Frame Image",
+        "description": "Optional last frame of the video."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "768P",
+        "title": "Resolution",
+        "description": "Native 480P or 768P output, or SR-enhanced 1440P or 4K short edge.",
+        "values": [
+          "480P",
+          "768P",
+          "1440p-sr",
+          "4k-sr"
+        ],
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration",
+        "description": "The duration of the generated video in seconds.",
+        "values": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "required": true
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Ratio",
+        "description": "The aspect ratio of the generated video. Use 'adaptive' to let the model choose.",
+        "values": [
+          "adaptive"
+        ]
+      },
+      {
+        "name": "prompt_expansion",
+        "type": "bool",
+        "default": false,
+        "title": "Prompt Expansion",
+        "description": "Whether to expand the prompt for better results."
+      }
+    ]
+  },
+  {
+    "className": "MinimaxH3FastTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "minimax/h3-fast/text-to-video",
+    "outputType": "video",
+    "title": "MiniMax H3 Fast — Text to Video",
+    "description": "AtlasCloud / MiniMax H3 Fast — quickly generates 5-15 second video from text.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "480P",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "480P"
+        ],
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration",
+        "description": "The duration of the generated video in seconds.",
+        "values": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "required": true
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "prompt_expansion",
+        "type": "bool",
+        "default": false,
+        "title": "Prompt Expansion",
+        "description": "Whether to expand the prompt for better results."
+      }
+    ]
+  },
+  {
+    "className": "MinimaxH3FastImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "minimax/h3-fast/image-to-video",
+    "outputType": "video",
+    "title": "MiniMax H3 Fast — Image to Video",
+    "description": "AtlasCloud / MiniMax H3 Fast — quickly animates a first frame and optional end frame into video.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "First frame of the video.",
+        "required": true
+      },
+      {
+        "name": "end_image",
+        "type": "image",
+        "default": null,
+        "title": "End Frame Image",
+        "description": "Optional last frame of the video."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "480P",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "480P"
+        ],
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration",
+        "description": "The duration of the generated video in seconds.",
+        "values": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "required": true
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Ratio",
+        "description": "The aspect ratio of the generated video. Use 'adaptive' to let the model choose.",
+        "values": [
+          "adaptive"
+        ]
+      },
+      {
+        "name": "prompt_expansion",
+        "type": "bool",
+        "default": false,
+        "title": "Prompt Expansion",
+        "description": "Whether to expand the prompt for better results."
+      }
+    ]
+  },
+  {
+    "className": "MinimaxH3FastReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "minimax/h3-fast/reference-to-video",
+    "outputType": "video",
+    "title": "MiniMax H3 Fast — Reference to Video",
+    "description": "AtlasCloud / MiniMax H3 Fast — quickly generates video from reference images, videos, and audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference images that anchor the generation.",
+        "wrapInto": "refers",
+        "requiredGroup": true
+      },
+      {
+        "name": "reference_videos",
+        "type": "list[video]",
+        "default": null,
+        "title": "Reference Videos",
+        "description": "Reference videos that anchor the generation.",
+        "wrapInto": "refers",
+        "requiredGroup": true
+      },
+      {
+        "name": "reference_audios",
+        "type": "list[audio]",
+        "default": null,
+        "title": "Reference Audios",
+        "description": "Reference audio that anchors the generation.",
+        "wrapInto": "refers"
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "480P",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "480P"
+        ],
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration",
+        "description": "The duration of the generated video in seconds.",
+        "values": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "required": true
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "prompt_expansion",
+        "type": "bool",
+        "default": false,
+        "title": "Prompt Expansion",
+        "description": "Whether to expand the prompt for better results."
+      }
+    ]
+  },
+  {
+    "className": "GeminiOmni11FlashTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "google/gemini-omni-1.1-flash/text-to-video",
+    "outputType": "video",
+    "title": "Gemini Omni 1.1 Flash — Text to Video",
+    "description": "AtlasCloud / Google Gemini Omni 1.1 Flash — text-to-video with native audio and resolutions from draft quality to 4K.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 10,
+        "title": "Duration",
+        "description": "The duration of the generated video in seconds.",
+        "min": 3,
+        "max": 10
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated video. 360p is a fast, low-cost draft mode for previewing a shot. 1080p and 4K are upscaled from the natively generated frames.",
+        "values": [
+          "360p",
+          "720p",
+          "1080p",
+          "4k"
+        ]
+      },
+      {
+        "name": "thinking_level",
+        "type": "enum",
+        "default": "default",
+        "title": "Thinking Level",
+        "description": "Controls the amount of internal reasoning the model performs before generating a response. Higher levels may improve quality on complex tasks but increase latency.",
+        "values": [
+          "default",
+          "high",
+          "low"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "GeminiOmni11FlashImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "google/gemini-omni-1.1-flash/image-to-video",
+    "outputType": "video",
+    "title": "Gemini Omni 1.1 Flash — Image to Video",
+    "description": "AtlasCloud / Google Gemini Omni 1.1 Flash — animates a first frame with an optional final frame and native audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "First frame of the generated video.",
+        "required": true
+      },
+      {
+        "name": "last_image",
+        "type": "image",
+        "default": null,
+        "title": "Last Image",
+        "description": "Optional last frame of the generated video."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 10,
+        "title": "Duration",
+        "description": "The duration of the generated video in seconds.",
+        "min": 3,
+        "max": 10
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated video. 360p is a fast, low-cost draft mode for previewing a shot. 1080p and 4K are upscaled from the natively generated frames.",
+        "values": [
+          "360p",
+          "720p",
+          "1080p",
+          "4k"
+        ]
+      },
+      {
+        "name": "thinking_level",
+        "type": "enum",
+        "default": "default",
+        "title": "Thinking Level",
+        "description": "Controls the amount of internal reasoning the model performs before generating a response. Higher levels may improve quality on complex tasks but increase latency.",
+        "values": [
+          "default",
+          "high",
+          "low"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "GeminiOmni11FlashReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "google/gemini-omni-1.1-flash/reference-to-video",
+    "outputType": "video",
+    "title": "Gemini Omni 1.1 Flash — Reference to Video",
+    "description": "AtlasCloud / Google Gemini Omni 1.1 Flash — generates consistent video with native audio from image and video references.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Images to use as character, scene, or style references.",
+        "maxItems": 10
+      },
+      {
+        "name": "reference_videos",
+        "type": "list[video]",
+        "default": null,
+        "title": "Reference Videos",
+        "description": "Video clips to use as motion, character, or style references.",
+        "maxItems": 3
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 10,
+        "title": "Duration",
+        "description": "The duration of the generated video in seconds.",
+        "min": 3,
+        "max": 10
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated video. 360p is a fast, low-cost draft mode for previewing a shot. 1080p and 4K are upscaled from the natively generated frames.",
+        "values": [
+          "360p",
+          "720p",
+          "1080p",
+          "4k"
+        ]
+      },
+      {
+        "name": "thinking_level",
+        "type": "enum",
+        "default": "default",
+        "title": "Thinking Level",
+        "description": "Controls the amount of internal reasoning the model performs before generating a response. Higher levels may improve quality on complex tasks but increase latency.",
+        "values": [
+          "default",
+          "high",
+          "low"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "GeminiOmni11FlashVideoEdit",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "google/gemini-omni-1.1-flash/video-edit",
+    "outputType": "video",
+    "title": "Gemini Omni 1.1 Flash — Video Edit",
+    "description": "AtlasCloud / Google Gemini Omni 1.1 Flash — applies text-directed edits to a source video with optional image references.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "video",
+        "type": "video",
+        "default": null,
+        "title": "Video",
+        "description": "Source video to edit.",
+        "required": true
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Optional character, scene, or style references.",
+        "maxItems": 10
+      },
+      {
+        "name": "thinking_level",
+        "type": "enum",
+        "default": "default",
+        "title": "Thinking Level",
+        "description": "Controls the amount of internal reasoning the model performs before generating a response. Higher levels may improve quality on complex tasks but increase latency.",
+        "values": [
+          "default",
+          "high",
+          "low"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "GeminiOmni11FlashVideoExtend",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "google/gemini-omni-1.1-flash/video-extend",
+    "outputType": "video",
+    "title": "Gemini Omni 1.1 Flash — Video Extend",
+    "description": "AtlasCloud / Google Gemini Omni 1.1 Flash — continues a source video with native audio and optional image references.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "video",
+        "type": "video",
+        "default": null,
+        "title": "Video",
+        "description": "Source video to extend.",
+        "required": true
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Optional character, scene, or style references."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 10,
+        "title": "Duration",
+        "description": "The duration in seconds of the continuation appended to the source video. The total length of the extended video must not exceed 40 seconds.",
+        "min": 3,
+        "max": 10
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated video. 360p is a fast, low-cost draft mode for previewing a shot. 1080p and 4K are upscaled from the natively generated frames.",
+        "values": [
+          "360p",
+          "720p",
+          "1080p",
+          "4k"
+        ]
+      },
+      {
+        "name": "thinking_level",
+        "type": "enum",
+        "default": "default",
+        "title": "Thinking Level",
+        "description": "Controls the amount of internal reasoning the model performs before generating a response. Higher levels may improve quality on complex tasks but increase latency.",
+        "values": [
+          "default",
+          "high",
+          "low"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "MinimaxH3DeveloperTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "minimax/h3-developer/text-to-video",
+    "outputType": "video",
+    "title": "MiniMax H3 Developer — Text to Video",
+    "description": "AtlasCloud / MiniMax H3 Developer — self-hosted text-to-video with generated audio and upscaled output tiers.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "768P",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "480P",
+          "768P",
+          "1440p-sr",
+          "4k-sr"
+        ],
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration",
+        "description": "The duration of the generated video in seconds.",
+        "values": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "required": true
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ],
+        "required": true
+      },
+      {
+        "name": "prompt_expansion",
+        "type": "bool",
+        "default": false,
+        "title": "Prompt Expansion",
+        "description": "Whether to expand the prompt for better results."
+      }
+    ]
+  },
+  {
+    "className": "MinimaxH3DeveloperImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "minimax/h3-developer/image-to-video",
+    "outputType": "video",
+    "title": "MiniMax H3 Developer — Image to Video",
+    "description": "AtlasCloud / MiniMax H3 Developer — self-hosted animation from a first frame and optional end frame with generated audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "First frame of the video.",
+        "required": true
+      },
+      {
+        "name": "end_image",
+        "type": "image",
+        "default": null,
+        "title": "End Frame Image",
+        "description": "Optional last frame of the video."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "768P",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "480P",
+          "768P",
+          "1440p-sr",
+          "4k-sr"
+        ],
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration",
+        "description": "The duration of the generated video in seconds.",
+        "values": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "required": true
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Ratio",
+        "description": "The aspect ratio of the generated video. Use 'adaptive' to let the model choose.",
+        "values": [
+          "adaptive"
+        ]
+      },
+      {
+        "name": "prompt_expansion",
+        "type": "bool",
+        "default": false,
+        "title": "Prompt Expansion",
+        "description": "Whether to expand the prompt for better results."
+      }
+    ]
+  },
+  {
+    "className": "MinimaxH3DeveloperReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "minimax/h3-developer/reference-to-video",
+    "outputType": "video",
+    "title": "MiniMax H3 Developer — Reference to Video",
+    "description": "AtlasCloud / MiniMax H3 Developer — self-hosted video generation from reference images, videos, and audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference images that anchor the generation.",
+        "wrapInto": "refers",
+        "requiredGroup": true
+      },
+      {
+        "name": "reference_videos",
+        "type": "list[video]",
+        "default": null,
+        "title": "Reference Videos",
+        "description": "Reference videos that anchor the generation.",
+        "wrapInto": "refers",
+        "requiredGroup": true
+      },
+      {
+        "name": "reference_audios",
+        "type": "list[audio]",
+        "default": null,
+        "title": "Reference Audios",
+        "description": "Reference audio that anchors the generation.",
+        "wrapInto": "refers"
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "768P",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "480P",
+          "768P",
+          "1440p-sr",
+          "4k-sr"
+        ],
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 8,
+        "title": "Duration",
+        "description": "The duration of the generated video in seconds.",
+        "values": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "required": true
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Ratio",
+        "description": "The aspect ratio of the generated video. Use 'adaptive' to let the model choose.",
+        "values": [
+          "adaptive",
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "prompt_expansion",
+        "type": "bool",
+        "default": false,
+        "title": "Prompt Expansion",
+        "description": "Whether to expand the prompt for better results."
+      }
+    ]
+  },
+  {
     "className": "Seedance2TextToVideo",
     "moduleName": "video",
     "modality": "video",
@@ -7048,6 +8560,7 @@
         "title": "Resolution",
         "description": "The resolution of the generated video.",
         "values": [
+          "480P",
           "768P",
           "2K"
         ],
@@ -7140,6 +8653,7 @@
         "title": "Resolution",
         "description": "The resolution of the generated video.",
         "values": [
+          "480P",
           "768P",
           "2K"
         ],
@@ -7239,6 +8753,7 @@
         "title": "Resolution",
         "description": "The resolution of the generated video.",
         "values": [
+          "480P",
           "768P",
           "2K"
         ],

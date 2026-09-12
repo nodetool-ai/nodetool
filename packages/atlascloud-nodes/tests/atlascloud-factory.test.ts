@@ -351,6 +351,127 @@ describe("createAtlasNodeClass.process", () => {
     };
   }
 
+  it.each([
+    {
+      modelId: "openai/gpt-image-2.5-sunburst/text-to-image",
+      submitPath: "/generateImage",
+      outputUrl: "https://cdn/out.webp",
+      outputType: "image",
+      properties: { output_format: "webp" },
+      expectedInput: { output_format: "webp" },
+      expectedMime: "image/webp"
+    },
+    {
+      modelId: "minimax/h3-fast/reference-to-video",
+      submitPath: "/generateVideo",
+      outputUrl: "https://cdn/out.mp4",
+      outputType: "video",
+      properties: {
+        reference_images: [{ uri: "https://input/reference.png" }]
+      },
+      expectedInput: {
+        refers: [{ url: "https://input/reference.png", type: "image" }]
+      },
+      expectedMime: "video/mp4"
+    },
+    {
+      modelId: "google/gemini-omni-1.1-flash/reference-to-video",
+      submitPath: "/generateVideo",
+      outputUrl: "https://cdn/out.mp4",
+      outputType: "video",
+      properties: {
+        reference_images: [{ uri: "https://input/reference.png" }]
+      },
+      expectedInput: {
+        reference_images: ["https://input/reference.png"]
+      },
+      expectedMime: "video/mp4"
+    }
+  ])(
+    "runs the real manifest contract for $modelId",
+    async ({
+      modelId,
+      submitPath,
+      outputUrl,
+      outputType,
+      properties,
+      expectedInput,
+      expectedMime
+    }) => {
+      const manifest = JSON.parse(
+        readFileSync(
+          join(
+            dirname(fileURLToPath(import.meta.url)),
+            "../src/atlascloud-manifest.json"
+          ),
+          "utf8"
+        )
+      ) as AtlasManifestEntry[];
+      const spec = manifest.find((entry) => entry.modelId === modelId);
+      expect(spec).toBeDefined();
+
+      let submittedBody: Record<string, unknown> | undefined;
+      global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+        const requestUrl = String(url);
+        if (requestUrl.endsWith(submitPath)) {
+          submittedBody = JSON.parse(init!.body as string);
+          return {
+            ok: true,
+            status: 200,
+            text: async () => JSON.stringify({ data: { id: "test-job" } })
+          } as Response;
+        }
+        if (requestUrl.includes("/prediction/test-job")) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers(),
+            text: async () =>
+              JSON.stringify({
+                data: { status: "completed", outputs: [outputUrl] }
+              })
+          } as Response;
+        }
+        if (requestUrl === outputUrl) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers(),
+            arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer
+          } as Response;
+        }
+        throw new Error(`unexpected: ${requestUrl}`);
+      }) as unknown as typeof fetch;
+
+      const NodeClass = createAtlasNodeClass(spec!) as unknown as new (
+        properties?: Record<string, unknown>
+      ) => {
+        process: (ctx: unknown) => Promise<Record<string, unknown>>;
+        setDynamic: (key: string, value: unknown) => void;
+      };
+      const node = new NodeClass({
+        prompt: "minimal contract test",
+        ...properties
+      });
+      node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "test-key" });
+
+      const storage = {
+        store: vi.fn().mockResolvedValue("memory://atlascloud-output")
+      };
+      const output = await node.process({ storage });
+
+      expect(submittedBody?.model).toBe(modelId);
+      expect(submittedBody?.prompt).toBe("minimal contract test");
+      expect(submittedBody).toEqual(expect.objectContaining(expectedInput));
+      expect(storage.store).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Uint8Array),
+        expectedMime
+      );
+      expect((output.output as { type: string }).type).toBe(outputType);
+    }
+  );
+
   it("declares the standard provider statics on the generated class", () => {
     const Cls = createAtlasNodeClass(makeSpec()) as unknown as {
       nodeType: string;
@@ -1066,6 +1187,31 @@ describe("atlascloud-manifest", () => {
     )
   ) as AtlasManifestEntry[];
 
+  it("ships the selected AtlasCloud image and video families", () => {
+    const modelIds = new Set(manifest.map((entry) => entry.modelId));
+    const expected = [
+      "openai/gpt-image-2.5-sunburst/text-to-image",
+      "openai/gpt-image-2.5-sunburst/edit",
+      "openai/gpt-image-2.5-flare/text-to-image",
+      "openai/gpt-image-2.5-flare/edit",
+      "minimax/h3-max/text-to-video",
+      "minimax/h3-max/image-to-video",
+      "minimax/h3-fast/text-to-video",
+      "minimax/h3-fast/image-to-video",
+      "minimax/h3-fast/reference-to-video",
+      "google/gemini-omni-1.1-flash/text-to-video",
+      "google/gemini-omni-1.1-flash/image-to-video",
+      "google/gemini-omni-1.1-flash/reference-to-video",
+      "google/gemini-omni-1.1-flash/video-edit",
+      "google/gemini-omni-1.1-flash/video-extend",
+      "minimax/h3-developer/text-to-video",
+      "minimax/h3-developer/image-to-video",
+      "minimax/h3-developer/reference-to-video"
+    ];
+
+    expect(expected.filter((modelId) => !modelIds.has(modelId))).toEqual([]);
+  });
+
   it("no longer exposes the unsurfaced return_last_frame option", () => {
     const offenders = manifest
       .filter((e) => e.fields.some((f) => f.name === "return_last_frame"))
@@ -1079,8 +1225,9 @@ describe("atlascloud-manifest", () => {
         .filter((f) => f.wrapInto !== undefined)
         .map((f) => ({ entry: e, field: f }))
     );
-    // Wan 3.0 / Wan 3.0 Prime / MiniMax H3 reference-to-video: 3 inputs each.
-    expect(wrapped.length).toBe(9);
+    // Wan 3.0 / Wan 3.0 Prime / MiniMax H3, H3 Fast, and H3 Developer
+    // reference-to-video: 3 inputs each.
+    expect(wrapped.length).toBe(15);
     for (const { entry, field } of wrapped) {
       expect(field.type).toMatch(/^list\[(image|video|audio)\]$/);
       // The wrap target is the API parameter, so no node property may claim it
@@ -1099,6 +1246,19 @@ describe("atlascloud-manifest", () => {
       expect(images?.type).toBe("list[image]");
       // the single-wrap `array` flag must be gone now that it's a real list
       expect((images as { array?: boolean }).array).toBeUndefined();
+    }
+  });
+
+  it("keeps MiniMax numeric duration options as integer properties", () => {
+    const minimaxH3Variants = manifest.filter((entry) =>
+      /^minimax\/h3-(max|fast|developer)\//.test(entry.modelId)
+    );
+
+    expect(minimaxH3Variants.length).toBeGreaterThan(0);
+    for (const entry of minimaxH3Variants) {
+      expect(entry.fields.find((field) => field.name === "duration")?.type).toBe(
+        "int"
+      );
     }
   });
 });

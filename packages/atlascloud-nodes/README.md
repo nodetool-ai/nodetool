@@ -40,6 +40,10 @@ npm install @nodetool-ai/atlascloud-nodes
 | GPT Image 1.5 — Text to Image | `atlascloud.image.GPTImage15TextToImage` |
 | GPT Image 2 — Edit | `atlascloud.image.GPTImage2Edit` |
 | GPT Image 2 — Text to Image | `atlascloud.image.GPTImage2TextToImage` |
+| GPT Image 2.5 Flare — Edit | `atlascloud.image.GPTImage25FlareEdit` |
+| GPT Image 2.5 Flare — Text to Image | `atlascloud.image.GPTImage25FlareTextToImage` |
+| GPT Image 2.5 Sunburst — Edit | `atlascloud.image.GPTImage25SunburstEdit` |
+| GPT Image 2.5 Sunburst — Text to Image | `atlascloud.image.GPTImage25SunburstTextToImage` |
 | Grok Imagine Image — Edit | `atlascloud.image.GrokImagineImageEdit` |
 | Grok Imagine Image — Text to Image | `atlascloud.image.GrokImagineImageTextToImage` |
 | Grok Imagine Image 2.0 — Edit | `atlascloud.image.GrokImagineImage2Edit` |
@@ -106,6 +110,11 @@ npm install @nodetool-ai/atlascloud-nodes
 | Gemini Omni Flash — Reference to Video | `atlascloud.video.GeminiOmniFlashReferenceToVideo` |
 | Gemini Omni Flash — Text to Video | `atlascloud.video.GeminiOmniFlashTextToVideo` |
 | Gemini Omni Flash — Video Edit | `atlascloud.video.GeminiOmniFlashVideoEdit` |
+| Gemini Omni 1.1 Flash — Image to Video | `atlascloud.video.GeminiOmni11FlashImageToVideo` |
+| Gemini Omni 1.1 Flash — Reference to Video | `atlascloud.video.GeminiOmni11FlashReferenceToVideo` |
+| Gemini Omni 1.1 Flash — Text to Video | `atlascloud.video.GeminiOmni11FlashTextToVideo` |
+| Gemini Omni 1.1 Flash — Video Edit | `atlascloud.video.GeminiOmni11FlashVideoEdit` |
+| Gemini Omni 1.1 Flash — Video Extend | `atlascloud.video.GeminiOmni11FlashVideoExtend` |
 | Grok Imagine Video v1.5 — Image to Video | `atlascloud.video.GrokImagineVideo15ImageToVideo` |
 | Grok Imagine Video v1.5 — Reference to Video | `atlascloud.video.GrokImagineVideo15ReferenceToVideo` |
 | Grok Imagine Video v1.5 — Text to Video | `atlascloud.video.GrokImagineVideo15TextToVideo` |
@@ -137,6 +146,14 @@ npm install @nodetool-ai/atlascloud-nodes
 | MiniMax H3 — Image to Video | `atlascloud.video.MinimaxH3ImageToVideo` |
 | MiniMax H3 — Reference to Video | `atlascloud.video.MinimaxH3ReferenceToVideo` |
 | MiniMax H3 — Text to Video | `atlascloud.video.MinimaxH3TextToVideo` |
+| MiniMax H3 Developer — Image to Video | `atlascloud.video.MinimaxH3DeveloperImageToVideo` |
+| MiniMax H3 Developer — Reference to Video | `atlascloud.video.MinimaxH3DeveloperReferenceToVideo` |
+| MiniMax H3 Developer — Text to Video | `atlascloud.video.MinimaxH3DeveloperTextToVideo` |
+| MiniMax H3 Fast — Image to Video | `atlascloud.video.MinimaxH3FastImageToVideo` |
+| MiniMax H3 Fast — Reference to Video | `atlascloud.video.MinimaxH3FastReferenceToVideo` |
+| MiniMax H3 Fast — Text to Video | `atlascloud.video.MinimaxH3FastTextToVideo` |
+| MiniMax H3 Max — Image to Video | `atlascloud.video.MinimaxH3MaxImageToVideo` |
+| MiniMax H3 Max — Text to Video | `atlascloud.video.MinimaxH3MaxTextToVideo` |
 | PixVerse v6 — Image to Video | `atlascloud.video.PixverseV6ImageToVideo` |
 | PixVerse v6 — Text to Video | `atlascloud.video.PixverseV6TextToVideo` |
 | Seedance 2.0 — Image to Video | `atlascloud.video.Seedance2ImageToVideo` |
