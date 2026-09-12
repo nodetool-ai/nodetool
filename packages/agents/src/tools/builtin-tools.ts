@@ -204,6 +204,15 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "transcribe_audio",
   "embed_text",
 
+  // Generation history, provider status, billing reconciliation and cancellation
+  "list_generations",
+  "get_generation",
+  "await_generation",
+  "cancel_generation",
+  "reconcile_generation",
+  "list_provider_generations",
+  "get_provider_generation",
+
   // Web
   "browser",
   "take_screenshot",

@@ -30,6 +30,7 @@ import {
   NODETOOL_API_PRELUDE_FULL
 } from "../src/codeact/nodetool-api.js";
 import { TOOLS_PRELUDE } from "../src/codeact/tools-prelude.js";
+import { getBuiltinTools } from "../src/tools/builtin-tools.js";
 
 const PRELUDE = `${TOOLS_PRELUDE}\n${NODETOOL_API_PRELUDE_FULL}`;
 
@@ -77,6 +78,58 @@ async function runRecording(code: string, names: readonly string[] = []) {
 }
 
 describe("the sandbox toolbelt", () => {
+  it.each([
+    ["agent sessions", getBuiltinTools],
+    ["sandbox scripts", assembleSandboxToolbelt]
+  ] as const)(
+    "can inspect and manage generations in %s",
+    async (_host, assemble) => {
+      const names = assemble().map((tool) => tool.name);
+      const { result, calls } = await runRecording(
+        `await nodetool.generations.list({ thread_id: "thread-1" });
+       await nodetool.generations.get("generation-1");
+       await nodetool.generations.wait("generation-1", { timeout_seconds: 1 });
+       await nodetool.generations.cancel("generation-1");
+       await nodetool.generations.reconcile("generation-1");
+       await nodetool.generations.fromProvider("fal_ai", { limit: 1 });
+       await nodetool.generations.getFromProvider("fal_ai", "request-1", {
+         model: "fal-ai/flux/schnell"
+       });
+       return nodetool.capabilities().generations;`,
+        names
+      );
+      expect(result.error).toBeUndefined();
+      expect(calls).toEqual([
+        { name: "list_generations", args: { thread_id: "thread-1" } },
+        { name: "get_generation", args: { generation_id: "generation-1" } },
+        {
+          name: "await_generation",
+          args: { generation_id: "generation-1", timeout_seconds: 1 }
+        },
+        { name: "cancel_generation", args: { generation_id: "generation-1" } },
+        {
+          name: "reconcile_generation",
+          args: { generation_id: "generation-1" }
+        },
+        {
+          name: "list_provider_generations",
+          args: { provider: "fal_ai", limit: 1 }
+        },
+        {
+          name: "get_provider_generation",
+          args: {
+            provider: "fal_ai",
+            request_id: "request-1",
+            model: "fal-ai/flux/schnell"
+          }
+        }
+      ]);
+      expect(result.result).toEqual(
+        expect.arrayContaining(calls.map((call) => call.name))
+      );
+    }
+  );
+
   it("adds model discovery for configured providers in JS scripts", async () => {
     const context = {
       isProviderConfigured: async (providerId: string) =>
