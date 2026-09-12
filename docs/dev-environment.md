@@ -4,6 +4,19 @@ Two setups where a plain `npm install` or a plain test run does not work:
 locked-down containers, and machines without a Vulkan driver. The everyday
 setup is [AGENTS.md § Prerequisites](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#prerequisites).
 
+### `libc` in the lockfile
+
+npm selects a prebuilt native package by the `os`, `cpu` and `libc` recorded in
+`package-lock.json`. npm 10 reads `libc` from the registry but never writes it,
+which makes `npm ci` reify both the glibc and the musl build of every such
+package — `npm install` filters them, `npm ci` does not, so it lands in CI, the
+Docker image and every fresh clone rather than on a developer's machine.
+
+`npm run fix:lockfile-libc` backfills the field from the registry, and
+`npm run check:lockfile-libc` (part of `npm run check`) fails when it goes
+missing again. Rerun the fix after any `npm install` under npm 10 that rewrites
+the lock, and commit the result.
+
 ### Install in sandboxed / proxied environments
 
 Three postinstall steps break `npm install` in locked-down containers (CI
