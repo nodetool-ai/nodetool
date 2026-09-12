@@ -137,19 +137,16 @@ ownership.
 
 ## Jobs, not demos
 
-The homepage shows the four recipes (`/recipes`) under the heading "How teams
-are using NodeTool", because each is a job with a buyer, a real run against live
-models, and a chain that ships inside Studio (Examples → Recipes; the site also
-packs each as a `.nodetool` bundle). The four use cases on `/use-cases`
+The homepage shows the four recipes (`/recipes`) under "Made with NodeTool".
+Each pairs example media with a guide to making related work in Studio. The four use cases on `/use-cases`
 (trailer, teaser, product video, poster) are demos of a surface; they stay on
 their own pages.
 
-Each recipe card carries: what you end up holding, who it is for, and the models
-the shipped chain calls. That is the proof the BYOK claim has
-today. The proof it still lacks is a real provider bill per recipe. Until a
-recorded run produces one, the card says "at provider list prices" and names
-the models. **Do not put an estimated dollar figure on a card.** A number that
-turns out wrong costs more trust than no number.
+Each recipe card shows one result, a short description, and a link to the guide.
+The featured card plays the finished ad on request. Model details belong on the
+recipe page. Internal review status and production checklists stay in the run
+records. Describe the visible result accurately, including when it is a
+storyboard rather than a finished film. Do not put estimated costs on cards.
 
 ## The argument we do not make
 
@@ -195,11 +192,8 @@ difference between a viable margin and none to a team making a hundred.
 
 ## Cost, once
 
-Cost appears in three places and no more: the hero bullet ("your own keys,
-provider list prices"), the recipe cards, and the calculator — which lives on
-`/pricing`, not on the homepage. It used to appear seven times. Repetition
-reads as anxiety, and a reader who has seen the calculator does not need the
-dashboard.
+State provider pricing once in the main page copy. Keep detailed costs and the
+calculator on `/pricing`.
 
 - **Cost.** "Studio is free. You pay providers directly, at their published
   prices." Never imply a NodeTool credit exists.
@@ -240,11 +234,9 @@ Until those exist, do not compensate with adjectives. A missing testimonial is
 better than a manufactured superlative, and a borrowed "used by millions" line
 with no number behind it is worse than both.
 
-What the pages can say today, and do: how far the recorded run is from the
-download. Every sample carries a per-model disclosure, and `sampleFidelity`
-turns it into the one line that goes above the picture and on the card — run as
-shipped, or *n* of *m* models reached another way. A visitor should never have
-to infer that from a list.
+Recipe pages show the result and name the provider that made it. Keep detailed
+model substitutions and review evidence in the run records. When the guide
+shows a different production from the featured result, say so in the guide.
 
 ## Phrasing rules
 

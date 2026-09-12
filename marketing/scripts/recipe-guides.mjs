@@ -25,15 +25,15 @@ const trailer = (file, alt, caption) =>
 
 export const recipeGuides = {
   "viral-video-ad-engine": {
-    name: "Product ad variants",
+    name: "Product commercials",
     outcome:
-      "One product, three openings. Build a short ad in a storyboard, then reuse its shots and voice across different cuts.",
+      "Give your product a story. Direct the shots, shape the sound, and finish your ad in the timeline.",
     audience: "Social and performance marketing teams",
     guide: {
       entry: "Storyboard",
       stages: ["Idea", "Story", "Entities", "Look"],
       introduction:
-        "Start with a four-shot Commercial storyboard. Review the pictures, add a script, and finish three 15-second cuts in the timeline.",
+        "Try a different direction with this quiet-morning example: four shots, one product, and three opening variations.",
       inputs: [
         "One clear product photo",
         "A short creative brief",
@@ -41,7 +41,7 @@ export const recipeGuides = {
       ],
       brief:
         "Create a quiet morning commercial for the Olive Travel Cup. Four shots: a cup on a pale kitchen worktop, a close view of the lid, the cup beside a plain cream book, and a final hero view. Warm window light. Keep the cup's shape and colour consistent. Vertical 9:16, for a 15-second ad. No generated lettering or product-performance claims.",
-      note: "The screenshots show the live Storyboard, Script, and Timeline documents behind the three finished ads. A recorded video walkthrough is not included.",
+      note: "These steps show the quiet-morning commercial, a separate example from Tiny Film Crew above.",
       steps: [
         {
           id: "idea",

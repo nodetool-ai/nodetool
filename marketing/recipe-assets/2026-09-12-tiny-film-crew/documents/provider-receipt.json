@@ -1,0 +1,36 @@
+{
+  "code": 200,
+  "message": "",
+  "data": {
+    "id": "547260092ff842a09b3e13389ef0df73",
+    "model": "minimax/h3/reference-to-video",
+    "outputs": [
+      "https://atlas-media.oss-us-west-1.aliyuncs.com/videos/440965707563324.mp4"
+    ],
+    "urls": {
+      "get": "https://api.atlascloud.ai/api/v1/model/prediction/547260092ff842a09b3e13389ef0df73"
+    },
+    "has_nsfw_contents": null,
+    "status": "completed",
+    "created_at": "2026-09-12T11:00:07.15Z",
+    "error": "",
+    "completion_tokens": 781170,
+    "total_tokens": 794190,
+    "usage": {
+      "total_tokens": 794190,
+      "prompt_tokens": 13020,
+      "completion_tokens": 781170,
+      "total_seconds": 15,
+      "input_seconds": 0,
+      "output_seconds": 15,
+      "input_image_count": 1
+    },
+    "executionTime": 0,
+    "timings": {
+      "inference": 0
+    },
+    "price": "1.2",
+    "latency_ms": 624127,
+    "completed_at": "2026-09-12T11:10:31.277Z"
+  }
+}

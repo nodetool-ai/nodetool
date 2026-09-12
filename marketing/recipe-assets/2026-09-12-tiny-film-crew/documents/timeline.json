@@ -1,0 +1,111 @@
+{
+  "id": "d893de53adce443ca0ef441b481d7ff6",
+  "user_id": "1",
+  "project_id": "personal:1",
+  "workflow_id": null,
+  "name": "Tiny Film Crew \u2014 Final Ad",
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "duration_ms": 15000,
+  "document": {
+    "tracks": [
+      {
+        "id": "track_1",
+        "name": "Overlay 3",
+        "type": "overlay",
+        "index": 0,
+        "visible": true,
+        "locked": false
+      },
+      {
+        "id": "efdbd985d98c4d70a0c1971cacc54893",
+        "name": "Shots",
+        "type": "video",
+        "index": 1,
+        "visible": true,
+        "locked": false
+      },
+      {
+        "id": "e9415329d5c94d87abd84f46aab41701",
+        "name": "Shot Audio",
+        "type": "audio",
+        "index": 2,
+        "visible": true,
+        "locked": false
+      }
+    ],
+    "clips": [
+      {
+        "id": "8ca1f85756c64db682db466ab290a0e9",
+        "trackId": "efdbd985d98c4d70a0c1971cacc54893",
+        "name": "tiny-crew-film",
+        "startMs": 0,
+        "durationMs": 15000,
+        "mediaType": "video",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "currentAssetId": "39cf559515d34ffc9618b11e4d9c82c3",
+        "linkId": "d52d0881a838441994852b4928debcaa",
+        "storyboardBoardId": "ec0119689efa42ac9676b9f4371c324a",
+        "storyboardShotId": "shot_1_mty9vb2m",
+        "inPointMs": 0,
+        "outPointMs": 15000
+      },
+      {
+        "id": "a9101df786ca4766a01010122fadd142",
+        "trackId": "e9415329d5c94d87abd84f46aab41701",
+        "name": "tiny-crew-film (audio)",
+        "startMs": 0,
+        "durationMs": 15000,
+        "mediaType": "audio",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "currentAssetId": "39cf559515d34ffc9618b11e4d9c82c3",
+        "linkId": "d52d0881a838441994852b4928debcaa",
+        "storyboardBoardId": "ec0119689efa42ac9676b9f4371c324a",
+        "storyboardShotId": "shot_1_mty9vb2m",
+        "inPointMs": 0,
+        "outPointMs": 15000,
+        "volumeDb": -2
+      },
+      {
+        "id": "clip_1",
+        "trackId": "track_1",
+        "name": "Big production.\nEveryday coffee.",
+        "startMs": 12000,
+        "durationMs": 3000,
+        "mediaType": "text",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "textStyle": {
+          "text": "Big production.\nEveryday coffee.",
+          "fontFamily": "Inter",
+          "fontSizePx": 48,
+          "fontWeight": 600,
+          "color": "#233027",
+          "align": "center",
+          "maxWidthFrac": 0.9,
+          "lineHeight": 1.15,
+          "shadow": {
+            "color": "rgba(255,255,255,0.25)",
+            "blurPx": 8,
+            "offsetX": 0,
+            "offsetY": 0
+          }
+        },
+        "animations": []
+      }
+    ],
+    "markers": []
+  },
+  "created_at": "2026-09-12T11:11:05.503Z",
+  "updated_at": "2026-09-12T11:16:18.898Z",
+  "revision": 4
+}

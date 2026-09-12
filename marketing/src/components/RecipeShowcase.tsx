@@ -27,14 +27,10 @@ export default function RecipeShowcase() {
             id="jobs-title"
             className="text-3xl font-semibold tracking-tight text-slate-100 md:text-5xl"
           >
-            How teams are using NodeTool
+            Made with NodeTool
           </h2>
-          <p className="mt-5 text-sm font-medium uppercase tracking-[0.18em] text-amber-300">
-            NodeTool example projects
-          </p>
-          <p className="mt-3 max-w-xl text-lg leading-relaxed text-slate-300">
-            Recorded outputs, editable projects, and the review work still
-            ahead.
+          <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-300">
+            Ads, catalogue images, dubbed videos, and storyboards. Start with an example.
           </p>
         </div>
         {projects[0] && <RecipeCard recipe={projects[0]} featured />}

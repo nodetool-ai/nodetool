@@ -1,0 +1,29 @@
+{
+  "final_file": "tiny-film-crew.mp4",
+  "duration_seconds": 15,
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "audio": "AAC stereo 48000Hz",
+  "source_file": "tiny-film-crew-clean.mp4",
+  "source_duration_seconds": 15.084,
+  "source_width": 1440,
+  "source_height": 2560,
+  "source_fps": 24,
+  "storyboard_id": "ec0119689efa42ac9676b9f4371c324a",
+  "timeline_id": "d893de53adce443ca0ef441b481d7ff6",
+  "source_asset_id": "39cf559515d34ffc9618b11e4d9c82c3",
+  "final_asset_id": "c334e9a6daa244d4a2a5f1716e548967",
+  "provider_prediction_id": "547260092ff842a09b3e13389ef0df73",
+  "checks": [
+    "Inspected sampled source frames including polishing, film crew, hand lifting cup, empty set, and human sip.",
+    "Inspected exported closing title at full resolution.",
+    "Local Whisper transcript confirms all four intended lines.",
+    "ffprobe confirms 15.000 seconds and portrait 1080x1920 at 30fps with stereo audio.",
+    "Timeline validation passed with one text-backing warning resolved by visual inspection."
+  ],
+  "review_limitations": [
+    "External Gemini video review was rejected by automatic approval review because external sharing was not separately authorized. Used local checks instead.",
+    "Dialogue verified through local transcription, not a listening review."
+  ]
+}

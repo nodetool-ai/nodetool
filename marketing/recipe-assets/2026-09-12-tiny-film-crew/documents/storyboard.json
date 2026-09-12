@@ -1,0 +1,89 @@
+{
+  "id": "ec0119689efa42ac9676b9f4371c324a",
+  "user_id": "1",
+  "project_id": "personal:1",
+  "name": "Tiny Film Crew \u2014 Big production. Everyday coffee.",
+  "document": {
+    "screenplay": null,
+    "shots": [
+      {
+        "type": "shot",
+        "id": "shot_1_mty9vb2m",
+        "index": 0,
+        "action": "Create a complete 15-second vertical 9:16 live-action photorealistic miniature-world comedy commercial, with FIVE deliberate camera cuts. Image 1 is ONLY the product identity reference for the Olive Travel Cup: preserve its muted-olive tapered matte body, charcoal flat lid and rectangular drinking aperture, no handle or logo. The reference is NOT the opening shot. Same pale limestone kitchen counter and warm morning window light across shots. The cup is normal human size. The adult film technicians are tiny, 3cm tall, and stay that size. Practical navy and tan crew clothes, realistic worn miniature ladders, cables, reflector and director chair. Understated cinematic photography, tactile surfaces, natural human movement, serious deadpan behavior, not cartoon or plastic toys. [00:00-00:03] Start EXTREME MACRO on a tiny technician suspended on a little platform polishing the giant charcoal cup lid with a cloth. Small controlled pullback reveals the olive cup body below and establishes the startling scale. Radio voice says: \"Product is ready.\" [00:03-00:06] CUT to low countertop wide view: two miniature grips push a silver reflector toward the cup. A miniature director in navy jacket sits beside a small cinema camera on a tripod. He says with absolute seriousness: \"Beautiful. Nobody move.\" [00:06-00:08.5] CUT to gorgeous cup hero shot, warm side light and tiny equipment at its base. A tiny clapperboard snaps at bottom of frame. Director says: \"And... action.\" A giant soft shadow crosses the counter. [00:08.5-00:12] CUT wider: one NORMAL-SIZED HUMAN HAND enters from upper right, closes its fingers naturally around the cup body, and lifts cup vertically completely out of the miniature set. The small crew and equipment stay on the counter untouched. Hold on the empty circular space where the cup was. The miniature director looks up and says quietly: \"Was that the take?\" [00:12-00:15] CUT to normal human scale, chest-level close-up of an adult in a plain cream dressing gown raising the same cup to their mouth for one relaxed sip. Only lower face and torso visible. Warm bright kitchen background, tiny set visible softly far behind on countertop. End on a steady composed hold with clear upper third for a title added later. No generated writing, subtitles, end cards, logos or watermarks. No dissolves, fluid morphs, cup duplication, floating equipment or changing product geometry.",
+        "status": "rendered",
+        "slug": "tiny-crew-film",
+        "camera": {
+          "framing": "multi-shot commercial",
+          "lens": "macro 85mm and 35mm",
+          "movement": "precise cuts and one reveal"
+        },
+        "motion": "Follow the exact five timecoded cuts and action beats above in one coherent 15-second film. Native English dialogue with natural concise delivery by the tiny crew, same director voice throughout. Continuous quiet kitchen room tone and subtle busy miniature film-set sound: cloth squeak, wheels, radio crackle, one clapper snap. All busy sounds stop as the huge shadow arrives. Human footsteps and clothing rustle as cup is lifted. Give the final dry question space to land. No narrator, no sung vocals, no music. The absurd scale and the human hand lifting the cup must read clearly. Final second steady hold.",
+        "duration_seconds": 15,
+        "duration_source": "manual",
+        "render_mode": "reference",
+        "entity_ids": [
+          "382922e1ca1543468d59f0af5575350e"
+        ],
+        "clip": {
+          "type": "video",
+          "asset_id": "39cf559515d34ffc9618b11e4d9c82c3",
+          "uri": "asset://39cf559515d34ffc9618b11e4d9c82c3.mp4",
+          "render_inputs": {
+            "kind": "clip",
+            "prompt_hash": "b8675e0d1e9cc804c46f63270f2a9de05176c877522b4656d82a2e6a9ab64883",
+            "model": "minimax/h3/reference-to-video",
+            "aspect_ratio": "9:16",
+            "style_entity_id": null,
+            "render_mode": "reference",
+            "reference_asset_ids": [
+              "382922e1ca1543468d59f0af5575350e"
+            ],
+            "recorded_at": "2026-09-12T11:10:34.094Z"
+          },
+          "duration": 15.084
+        },
+        "clip_versions": [
+          {
+            "type": "video",
+            "asset_id": "39cf559515d34ffc9618b11e4d9c82c3",
+            "uri": "asset://39cf559515d34ffc9618b11e4d9c82c3.mp4",
+            "render_inputs": {
+              "kind": "clip",
+              "prompt_hash": "b8675e0d1e9cc804c46f63270f2a9de05176c877522b4656d82a2e6a9ab64883",
+              "model": "minimax/h3/reference-to-video",
+              "aspect_ratio": "9:16",
+              "style_entity_id": null,
+              "render_mode": "reference",
+              "reference_asset_ids": [
+                "382922e1ca1543468d59f0af5575350e"
+              ],
+              "recorded_at": "2026-09-12T11:10:34.094Z"
+            },
+            "duration": 15.084
+          }
+        ]
+      }
+    ],
+    "brief": "Render one finished 15-second 9:16 commercial for the existing Olive Travel Cup. A miniature film crew treats the cup shoot with absurd seriousness, until a normal-sized person casually picks it up. Native dialogue and sound design should carry continuously across the five cuts. Closing editable text: Big production. Everyday coffee. User approved direct rendering. Preserve the cup reference.",
+    "style": "Photorealistic macro commercial photography, warm morning window light on pale stone kitchen counter, muted olive and charcoal product, miniature adult film technicians in practical work clothes, worn realistic grip equipment, convincing scale and contact shadows. Dry deadpan humor, no cartoon styling. No generated text, logos or watermarks.",
+    "entityIds": [
+      "382922e1ca1543468d59f0af5575350e"
+    ],
+    "aspectRatio": "9:16",
+    "setupStage": "done",
+    "genre": "",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": {
+      "type": "video_model",
+      "provider": "atlascloud",
+      "id": "minimax/h3/reference-to-video",
+      "name": "MiniMax H3"
+    }
+  },
+  "timeline_id": "d893de53adce443ca0ef441b481d7ff6",
+  "created_at": "2026-09-12T10:56:58.602Z",
+  "updated_at": "2026-09-12T11:11:05.505Z",
+  "revision": 8
+}

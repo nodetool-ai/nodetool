@@ -107,25 +107,9 @@ export default async function RecipePage({ params }: RecipePageProps) {
                     priority
                     className="h-auto w-full rounded-xl border border-white/15 bg-slate-950"
                   />
-                  <figcaption className="mt-3 text-sm leading-relaxed text-slate-400">
-                    {hero.caption ?? hero.alt}
-                  </figcaption>
                 </figure>
               )}
               <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
-                <p className="text-sm text-slate-400 lg:mt-4">
-                  For {entry.audience.charAt(0).toLowerCase()}
-                  {entry.audience.slice(1)}
-                </p>
-                {entry.productionRun && (
-                  <p className="mt-5 text-sm leading-relaxed text-slate-300">
-                    <span className="font-medium text-amber-200">
-                      {entry.productionRun.reviewLabel}
-                    </span>
-                    {" · "}
-                    {entry.productionRun.statusLabel}
-                  </p>
-                )}
                 <div className="mt-8 flex flex-wrap items-center gap-4">
                   <a
                     href="/download"
@@ -144,11 +128,6 @@ export default async function RecipePage({ params }: RecipePageProps) {
                     See every step
                   </a>
                 </div>
-                <p className="mt-4 text-sm text-slate-400">
-                  Install Studio, create a project, then choose{" "}
-                  {entry.guide.entry}. Use the example brief and your own
-                  provider keys to begin.
-                </p>
               </div>
             </div>
           </div>

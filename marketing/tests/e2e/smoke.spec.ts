@@ -55,16 +55,16 @@ test.describe("marketing smoke", () => {
     await expect(cta).toHaveAttribute("href", "/download");
   });
 
-  test("homepage proof projects lead with reviewed outputs and boundaries", async ({
+  test("homepage projects lead with results and one link per project", async ({
     page
   }) => {
     await page.goto("/");
 
     const proof = page.getByRole("region", {
-      name: "How teams are using NodeTool"
+      name: "Made with NodeTool"
     });
     await expect(proof).toBeVisible();
-    await expect(proof.getByText("NodeTool example projects")).toBeVisible();
+    await expect(proof.getByText("Still to review")).toHaveCount(0);
 
     const expectedRoutes = [
       "/recipes/viral-video-ad-engine",
@@ -92,9 +92,9 @@ test.describe("marketing smoke", () => {
       await expect(
         project.getByRole("heading", { name: run.proofTitle })
       ).toBeVisible();
-      await expect(project.getByText(run.reviewLabel)).toBeVisible();
-      await expect(project.getByText(run.statusLabel)).toBeVisible();
-      await expect(project.getByText(run.essentialLimitation)).toBeVisible();
+      await expect(project.getByText(run.summary)).toBeVisible();
+      await expect(project.getByText(run.reviewLabel)).toHaveCount(0);
+      await expect(project.getByText(run.essentialLimitation)).toHaveCount(0);
     }
 
     const adProject = proof.locator("article", {
@@ -109,7 +109,8 @@ test.describe("marketing smoke", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(adVideo).toBeVisible();
     expect((await adVideo.boundingBox())?.width ?? 0).toBeGreaterThan(300);
-    await expect(adProject.locator("img")).toBeVisible();
+    await expect(adProject.locator("img")).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   });
 
   test("the download page offers an installer for every platform", async ({
@@ -136,25 +137,25 @@ test.describe("marketing smoke", () => {
     expect(await ld.count()).toBeGreaterThan(0);
   });
 
-  test("recipe detail leads with reviewed work and a Studio handoff", async ({
+  test("recipe detail leads with the finished ad and a Studio handoff", async ({
     page
   }) => {
     await page.goto("/recipes/viral-video-ad-engine");
 
     const proof = page.getByRole("region", {
-      name: "Three product ads. One shared reference."
+      name: "Big production. Everyday coffee."
     });
     const guide = page.getByRole("region", { name: /guide/i });
 
     await expect(proof).toBeVisible();
-    await expect(proof.getByText("Partial example")).toBeVisible();
-    await expect(proof.getByText("Three 15-second cuts")).toBeVisible();
+    await expect(page.getByText("Partial example")).toHaveCount(0);
+    await expect(page.getByText("Review notes", { exact: true })).toHaveCount(0);
     const recipe = recipeEntries.find(
       (entry) => entry.slug === "viral-video-ad-engine"
     )!;
     await expect(
       proof.getByText(recipe.productionRun!.essentialLimitation)
-    ).toBeVisible();
+    ).toHaveCount(0);
     await expect(
       page.getByRole("link", { name: /download nodetool studio/i }).first()
     ).toHaveAttribute("href", "/download");

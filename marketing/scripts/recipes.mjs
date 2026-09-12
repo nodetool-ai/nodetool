@@ -1,51 +1,49 @@
 // Page order and recorded examples. Guided instructions live beside this file.
 import { recipeGuides } from "./recipe-guides.mjs";
+const tinyCrewRoot = "/recipes/runs/2026-09-12-tiny-film-crew";
 const runRoot = "/recipes/runs/2026-09-10-marketing-recipes-01";
 
 export const recipePresentation = [
   {
     slug: "viral-video-ad-engine",
     productionRun: {
-      runId: "2026-09-10-marketing-recipes-01",
+      runId: "2026-09-12-tiny-film-crew",
       status: "partial",
-      statusLabel: "Three 15-second cuts",
-      proofTitle: "Three product ads. One shared reference.",
+      statusLabel: "15-second product commercial",
+      proofTitle: "Big production. Everyday coffee.",
       summary:
-        "Three editable 15-second product ads use different opening shots and share the remaining footage.",
-      provider: "Media generated with FAL through NodeTool",
+        "A tiny film crew sets up the perfect coffee shot. Then a human hand steals the star of the show.",
+      provider: "MiniMax H3 via AtlasCloud. Edited in NodeTool.",
       hero: {
-        src: `${runRoot}/viral-video-ad-engine/recipe-card.webp`,
-        alt: "Three vertical Olive Travel Cup ad variants shown side by side."
+        src: `${tinyCrewRoot}/card.jpg`,
+        alt: "Miniature film crew directing a commercial around an oversized olive travel cup.",
+        width: 1200,
+        height: 630
       },
       card: {
-        src: `${runRoot}/viral-video-ad-engine/hooks-contact-sheet.webp`,
-        alt: "Three opening compositions for the same Olive Travel Cup ad.",
-        caption: "Three openings built from one fictional product reference."
+        src: `${tinyCrewRoot}/card.jpg`,
+        alt: "Miniature film crew directing a commercial around an oversized olive travel cup.",
+        width: 1200,
+        height: 630
       },
-      ogImage: `${runRoot}/viral-video-ad-engine/recipe-card.jpg`,
-      proof: {
-        src: `${runRoot}/viral-video-ad-engine/hooks-contact-sheet.webp`,
-        alt: "Three opening compositions for the same Olive Travel Cup ad.",
-        caption:
-          "Three opening compositions for the same fictional product. The remaining shots and voice lines are shared."
-      },
+      ogImage: `${tinyCrewRoot}/card.jpg`,
+      proof: null,
       video: {
-        mp4: `${runRoot}/viral-video-ad-engine/ad-a.mp4`,
-        webm: `${runRoot}/viral-video-ad-engine/ad-a.webm`,
-        poster: `${runRoot}/viral-video-ad-engine/ad-a-poster.webp`,
+        mp4: `${tinyCrewRoot}/tiny-film-crew.mp4`,
+        webm: null,
+        poster: `${tinyCrewRoot}/poster.webp`,
         hasAudio: true,
-        caption:
-          "Variant A is a finished 1080×1920 cut with captions and voice."
+        caption: "Tiny Film Crew. A 15-second ad for the fictional Olive Travel Cup, with dialogue and a closing title."
       },
       supportedClaims: [
-        "Three editable 15-second product-ad variants were produced with different openings and shared remaining footage.",
-        "The same accepted Olive Travel Cup reference appears across all six shots.",
-        "FAL generated the stills, motion clips, and voice through NodeTool."
+        "MiniMax H3 generated the five-beat scene from the product reference through NodeTool.",
+        "The editable timeline adds the closing title and adjusts audio level.",
+        "The exported 1080×1920 ad is 15 seconds long with dialogue and music."
       ],
       essentialLimitation:
-        "The product is fictional, and the live app captures and guided-flow walkthrough are not complete.",
+        "The guide below demonstrates a separate four-shot commercial, not the Tiny Film Crew render.",
       limitations: [
-        "No speed, virality, sales, product-performance, price, or provider-cost claim is supported."
+        "Verification used local frame inspection, transcription, and media checks."
       ]
     }
   },
@@ -57,7 +55,7 @@ export const recipePresentation = [
       statusLabel: "English and Spanish example",
       proofTitle: "Review the words. Revise one voice line.",
       summary:
-        "A synthetic English presenter was translated, revoiced in Spanish, and prepared as editable line-level takes.",
+        "An English presenter, revoiced in Spanish. Edit the translation and revise individual voice lines.",
       provider: "Media generated with FAL and Replicate through NodeTool",
       hero: {
         src: `${runRoot}/multilingual-video-dubber/recipe-card.webp`,
@@ -82,7 +80,7 @@ export const recipePresentation = [
         poster: `${runRoot}/multilingual-video-dubber/language-comparison-poster.webp`,
         hasAudio: true,
         caption:
-          "Synthetic presenter footage with separate English, Spanish voiceover, and lip-sync finishing passes. Human audio and visual acceptance is pending."
+          "Synthetic presenter with English, Spanish voiceover, and lip-sync versions."
       },
       supportedClaims: [
         "The captured Script flow preserved three approved Spanish lines through setup.",
@@ -104,7 +102,7 @@ export const recipePresentation = [
       statusLabel: "Three views and a motion clip",
       proofTitle: "Build a catalogue set from one product reference.",
       summary:
-        "One accepted Olive Travel Cup reference became a cutout, three catalogue stills, a short motion clip, a 4096px derivative, and listing copy.",
+        "Turn one product photo into a cutout, studio shots, and seasonal scenes.",
       provider: "Media generated with FAL through NodeTool",
       hero: {
         src: `${runRoot}/ecommerce-sku-visual-factory/recipe-card.webp`,
@@ -150,9 +148,9 @@ export const recipePresentation = [
       runId: "2026-09-10-marketing-recipes-01",
       status: "partial",
       statusLabel: "Storyboard example",
-      proofTitle: "Review the story before animating it.",
+      proofTitle: "A mystery told in six frames.",
       summary:
-        "The Storyboard flow turned The Next Tide brief into a reviewed six-shot mystery board with reusable references.",
+        "The Next Tide: a six-shot storyboard with a shared cast, locations, and props.",
       provider:
         "Reference images and voice takes generated with FAL through NodeTool",
       hero: {
