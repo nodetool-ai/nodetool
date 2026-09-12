@@ -672,9 +672,10 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "control."
   },
   "projects.delete": {
-    gap:
-      "Same grouping surface as `projects.create`. Deleting a project " +
-      "leaves its documents in place, so this loses a name, not content."
+    withheld:
+      "Deleting a project permanently removes its documents, conversations, " +
+      "assets, jobs and workspace files. Irreversible bulk loss stays behind " +
+      "the human-facing project lifecycle surface."
   },
   "projects.documents": {
     gap:
@@ -699,6 +700,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
     gap:
       "Project lifecycle management is not exposed through a sandbox " +
       "capability yet. Restoring changes a project's visibility."
+  },
+  "projects.restoreTabs": {
+    elsewhere:
+      "Frontend session restoration validates each saved resource through " +
+      "its type-specific lookup. A run reaches those resources through the " +
+      "corresponding get and list capabilities, not the browser's tab session."
   },
   "projects.thread": {
     gap:

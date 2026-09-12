@@ -29,6 +29,7 @@ import type {
   TextToMusicParams,
   TextToVideoParams,
   TTSModel,
+  UpscaleVideoParams,
   VideoModel
 } from "./types.js";
 import type { ReferenceToVideoInputs, ReferenceToVideoParams } from "./types.js";
@@ -38,6 +39,7 @@ import {
   loadMusicModels,
   loadTTSModels,
   getModelImageInputs,
+  getModelMediaInputs,
   getModelReferenceInputs,
   getModelInputFields,
   getManifestNodeMeta,
@@ -1491,6 +1493,60 @@ export class KieProvider extends BaseProvider {
     this.assertRequiredTextFields(input, fields, modelId);
 
     log.debug("Kie imageToVideo", { model: modelId, images: imageUrls.length });
+
+    const { pollInterval, maxAttempts } = this.pollConfig(
+      modelId,
+      params.timeoutSeconds
+    );
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input, signal);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts, signal);
+    return downloadResultBytes(apiKey, taskId, signal);
+  }
+
+  /**
+   * Upscale a video. The clip uploads to the model's declared video field and
+   * the requested size is written to whichever of `upscale_factor` /
+   * `resolution` the schema declares — Kie's two upscalers take one each.
+   */
+  override async upscaleVideo(
+    video: Uint8Array,
+    params: UpscaleVideoParams
+  ): Promise<Uint8Array> {
+    if (video.length === 0) {
+      throw new Error("The input video is empty.");
+    }
+    const modelId = params.model.id;
+    const supported = loadVideoModels(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, "kie")
+      .find((model) => model.id === modelId)
+      ?.supportedTasks;
+    if (supported && !supported.includes("upscale_video")) {
+      throw new Error(`Kie model ${modelId} does not support upscale_video`);
+    }
+    const apiKey = this.requireApiKey();
+    const signal = this.timeoutSignal(params.timeoutSeconds);
+    const videoUrl = await uploadMediaBytes(apiKey, video, signal, "video");
+    const fields = getModelInputFields(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
+    const videoField = getModelMediaInputs(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId)
+      .find((field) => field.kind === "video");
+    const input: Record<string, unknown> = {
+      [videoField?.apiName ?? "video_url"]: videoField?.isList
+        ? [videoUrl]
+        : videoUrl
+    };
+    if (params.scale != null && this.declaresField(fields, "upscale_factor")) {
+      input.upscale_factor = params.scale;
+    }
+    if (
+      params.targetResolution &&
+      this.declaresField(fields, "resolution")
+    ) {
+      input.resolution = params.targetResolution;
+    }
+    this.applyEditOptions(input, fields, params);
+    this.applyRequiredDefaults(input, fields);
+    this.clampToDeclaredMax(input, fields);
+
+    log.debug("Kie upscaleVideo", { model: modelId });
 
     const { pollInterval, maxAttempts } = this.pollConfig(
       modelId,

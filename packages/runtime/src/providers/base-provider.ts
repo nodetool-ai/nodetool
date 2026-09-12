@@ -10,6 +10,7 @@ import type {
   ReferenceToVideoParams,
   LanguageModel,
   LipSyncParams,
+  InterpolateVideoParams,
   Message,
   MessageContent,
   Model3D,
@@ -38,7 +39,10 @@ import type {
   TextToVideoParams,
   ToolCall,
   TTSModel,
+  OutpaintImageParams,
+  OutpaintVideoParams,
   UpscaleImageParams,
+  UpscaleVideoParams,
   VectorizeImageParams,
   VideoModel,
   VideoToVideoParams
@@ -196,6 +200,7 @@ export type ProviderCapability =
   | "text_to_image"
   | "image_to_image"
   | "inpainting"
+  | "outpaint_image"
   | "upscale_image"
   | "remove_background"
   | "relight_image"
@@ -205,6 +210,9 @@ export type ProviderCapability =
   | "image_to_video"
   | "reference_to_video"
   | "video_to_video"
+  | "upscale_video"
+  | "interpolate_video"
+  | "outpaint_video"
   | "lip_sync"
   | "text_to_speech"
   | "text_to_music"
@@ -255,6 +263,9 @@ export function providerCapabilities(
   if (instance.inpaint !== BaseProvider.prototype.inpaint) {
     capabilities.push("inpainting");
   }
+  if (instance.outpaintImage !== BaseProvider.prototype.outpaintImage) {
+    capabilities.push("outpaint_image");
+  }
   if (instance.upscaleImage !== BaseProvider.prototype.upscaleImage) {
     capabilities.push("upscale_image");
   }
@@ -272,6 +283,15 @@ export function providerCapabilities(
   }
   if (instance.videoToVideo !== BaseProvider.prototype.videoToVideo) {
     capabilities.push("video_to_video");
+  }
+  if (instance.upscaleVideo !== BaseProvider.prototype.upscaleVideo) {
+    capabilities.push("upscale_video");
+  }
+  if (instance.interpolateVideo !== BaseProvider.prototype.interpolateVideo) {
+    capabilities.push("interpolate_video");
+  }
+  if (instance.outpaintVideo !== BaseProvider.prototype.outpaintVideo) {
+    capabilities.push("outpaint_video");
   }
   if (instance.lipSync !== BaseProvider.prototype.lipSync) {
     capabilities.push("lip_sync");
@@ -1715,6 +1735,18 @@ export abstract class BaseProvider {
     return results;
   }
 
+  /**
+   * Outpaint (uncrop): extend an image past its frame, filling the added area
+   * with content that continues the scene. The first image is the subject;
+   * providers that take reference images use the rest.
+   */
+  async outpaintImage(
+    _images: Uint8Array[],
+    _params: OutpaintImageParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support outpaintImage`);
+  }
+
   /** Increase the resolution / detail of an image. */
   async upscaleImage(
     _image: Uint8Array,
@@ -1855,6 +1887,33 @@ export abstract class BaseProvider {
     _params: VideoToVideoParams
   ): Promise<Uint8Array> {
     throw new Error(`${this.provider} does not support videoToVideo`);
+  }
+
+  /** Increase the resolution / detail of a video. */
+  async upscaleVideo(
+    _video: Uint8Array,
+    _params: UpscaleVideoParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support upscaleVideo`);
+  }
+
+  /**
+   * Synthesize intermediate frames so a clip plays at a higher frame rate (or
+   * in slow motion at the same one).
+   */
+  async interpolateVideo(
+    _video: Uint8Array,
+    _params: InterpolateVideoParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support interpolateVideo`);
+  }
+
+  /** Extend a video past its frame, consistently across its frames. */
+  async outpaintVideo(
+    _video: Uint8Array,
+    _params: OutpaintVideoParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support outpaintVideo`);
   }
 
   /** Drive a face in a video/image to match the speech in an audio track. */
@@ -2095,6 +2154,7 @@ const MODALITY_PROMISE_METHODS = [
   "imageToImages",
   "inpaint",
   "inpaintImages",
+  "outpaintImage",
   "upscaleImage",
   "removeBackground",
   "relightImage",
@@ -2107,6 +2167,9 @@ const MODALITY_PROMISE_METHODS = [
   "imageToVideo",
   "referenceToVideo",
   "videoToVideo",
+  "upscaleVideo",
+  "interpolateVideo",
+  "outpaintVideo",
   "lipSync",
   "textTo3D",
   "imageTo3D",

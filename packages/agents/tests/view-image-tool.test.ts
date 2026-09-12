@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
 import { Buffer } from "node:buffer";
+import { beforeEach, describe, it, expect, vi } from "vitest";
+import { Asset, initTestDb } from "@nodetool-ai/models";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import {
   extractInjectableImages,
@@ -42,6 +43,19 @@ const SVG_MARKUP =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" ' +
   'height="16"><rect width="16" height="16" fill="#c00"/></svg>';
 const SVG_BYTES = new Uint8Array(Buffer.from(SVG_MARKUP, "utf8"));
+
+beforeEach(async () => {
+  initTestDb();
+  for (const id of ["abc123", "vector1", "outward"]) {
+    await Asset.create({
+      id,
+      user_id: "1",
+      project_id: "default",
+      name: `${id}.png`,
+      content_type: "image/png"
+    });
+  }
+});
 
 function imageContext(bytes: Uint8Array | null) {
   return {
@@ -206,7 +220,7 @@ describe("ViewImageTool", () => {
     const result = (await tool.process(imageContext(null), {
       image_id: "asset://missing.png"
     })) as Record<string, any>;
-    expect(result.error).toMatch(/Could not load image/);
+    expect(result.error).toBe("Asset missing was not found.");
   });
 
   it("passes remote URLs through for the provider to fetch", async () => {
@@ -220,15 +234,15 @@ describe("ViewImageTool", () => {
 });
 
 describe("ListImagesTool", () => {
-  it("returns an error envelope when the asset store is unavailable", async () => {
-    // No DB in the unit-test runtime → the asset query throws, caught into error.
+  it("returns an empty list when the project has no images", async () => {
+    initTestDb();
     const tool = listImagesTool();
     const result = (await tool.process(imageContext(null), {})) as Record<
       string,
       any
     >;
-    expect(result.error).toContain("Could not list image assets");
-    expect(result.images).toBeUndefined();
+    expect(result.images).toEqual([]);
+    expect(result.count).toBe(0);
   });
 });
 

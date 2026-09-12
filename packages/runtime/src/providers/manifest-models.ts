@@ -256,14 +256,54 @@ const VIDEO_SOURCE_KEYWORDS = [
   "video-edit",
   "video edit",
   "restyle",
-  "outpaint",
   "inpaint",
   "background-removal",
   "background removal",
-  "interpolation",
   "dubbing",
   "eraser"
 ];
+
+/** Resolution / detail enhancers that take a clip and hand back a bigger one. */
+const VIDEO_UPSCALE_KEYWORDS = [
+  "upscal",
+  "super-resolution",
+  "super resolution",
+  "superres",
+  "seedvr",
+  "vsr",
+  "enhancer"
+];
+
+/** Frame-rate / slow-motion models that synthesize intermediate frames. */
+const VIDEO_INTERPOLATE_KEYWORDS = [
+  "interpolation",
+  "interpolate",
+  "frame-interp",
+  "frame interp",
+  "rife",
+  "film-net"
+];
+
+/** Models that extend a clip past its frame. */
+const VIDEO_OUTPAINT_KEYWORDS = ["outpaint", "uncrop", "expand-video"];
+
+/** The specialized transform an id names, or null for everything else. */
+function specializedVideoTask(hay: string): string | null {
+  if (matchesAny(hay, ...VIDEO_UPSCALE_KEYWORDS)) return "upscale_video";
+  if (matchesAny(hay, ...VIDEO_INTERPOLATE_KEYWORDS)) return "interpolate_video";
+  if (matchesAny(hay, ...VIDEO_OUTPAINT_KEYWORDS)) return "outpaint_video";
+  return null;
+}
+
+/**
+ * A LoRA trainer, not a generation endpoint. `fal-ai/ltx23-trainer-v2/outpaint`
+ * trains an outpainting adapter from a dataset URL — it takes no clip and
+ * returns no video, so every task keyword in its id is about what the trained
+ * weights will do, not what the endpoint does.
+ */
+function isTrainerEndpoint(hay: string): boolean {
+  return matchesAny(hay, "trainer", "-train", "/train", "training");
+}
 
 /** A bare `/extend` path segment (`.../ltx-video-13b-dev/extend`). */
 const EXTEND_SEGMENT = /(^|[/\- ])extend([/\- ]|$)/;
@@ -308,23 +348,16 @@ export function inferVideoTasks(name: string, id: string): string[] {
   ) {
     return ["video_to_video"];
   }
-  // Video upscalers/enhancers (Topaz, SeedVR, FlashVSR, …) transform a source
-  // clip, but their ids never spell out "video-to-video", so without this they
+  // Specialized video transforms. Each takes a source clip and answers a
+  // question `video_to_video` cannot: how big, how many frames, how wide.
+  // Their ids never spell out "video-to-video", so without these branches they
   // fall through to the generator branch and show up in the text/image-to-video
   // pickers with no video input.
-  if (
-    matchesAny(
-      hay,
-      "upscal",
-      "super-resolution",
-      "super resolution",
-      "superres",
-      "seedvr",
-      "vsr",
-      "enhancer"
-    )
-  ) {
-    return ["video_to_video"];
+  const specialized = specializedVideoTask(hay);
+  if (specialized) {
+    // A trainer carries the same keywords and performs none of them, so it
+    // stays a plain source-consuming endpoint rather than claiming the task.
+    return [isTrainerEndpoint(hay) ? "video_to_video" : specialized];
   }
   if (
     matchesAny(hay, ...VIDEO_SOURCE_KEYWORDS) ||
@@ -362,6 +395,12 @@ export function inferVideoTasks(name: string, id: string): string[] {
  */
 export function inferImageTasks(name: string, id: string): string[] {
   const hay = `${id} ${name}`.toLowerCase();
+  // Outpainting is tested before inpainting: `bria/genfill` aside, the two
+  // families share vocabulary ("fill", "expand"), and an endpoint whose id says
+  // outpaint never also accepts a mask-confined edit.
+  if (matchesAny(hay, "outpaint", "uncrop", "expand-image", "expand image")) {
+    return ["outpaint"];
+  }
   if (
     matchesAny(
       hay,
@@ -442,7 +481,17 @@ export function inferImageTasks(name: string, id: string): string[] {
   ) {
     return ["vectorize"];
   }
-  return ["text_to_image", "image_to_image"];
+  // Mask-guided editors that don't declare their mask field. `buildImageModels`
+  // tags `inpainting` from a declared mask input, which is the reliable signal;
+  // this catches the endpoints whose manifest entry carries no mask field but
+  // whose id says what they are (`fal-ai/lora/inpaint`, `bria/genfill`). The
+  // tag is added, not substituted: these take a prompt and an image like any
+  // other editor, so they stay answers to an image_to_image request too.
+  const tasks = ["text_to_image", "image_to_image"];
+  if (matchesAny(hay, "inpaint", "genfill", "eraser")) {
+    tasks.push("inpainting");
+  }
+  return tasks;
 }
 
 // ---------------------------------------------------------------------------
@@ -553,6 +602,23 @@ export function narrowTasksByRequiredInputs(
   return kept.length > 0 ? kept : [transformTask];
 }
 
+/**
+ * Tasks whose whole call is "here is a clip, hand me back another one". A
+ * model that declares no video input cannot serve one however its id reads:
+ * `grok-imagine/upscale` upscales a previous task by id, and fal's
+ * `amt-interpolation/frame-interpolation` takes a frame list. Offered under
+ * these tasks they fail at call time with nothing to work on.
+ */
+const VIDEO_SOURCE_TASKS = new Set([
+  "upscale_video",
+  "interpolate_video",
+  "outpaint_video"
+]);
+
+function declaresVideoInput(entry: ManifestNode): boolean {
+  return manifestEntryMediaInputs(entry).some((f) => f.kind === "video");
+}
+
 /** Pure transform: manifest nodes → deduplicated, task-tagged video models. */
 export function buildVideoModels(
   manifest: ManifestNode[],
@@ -581,6 +647,9 @@ export function buildVideoModels(
     }
     tasks = tasks.filter(
       (task) => task !== "reference_to_video" || referenceInputs.length > 0
+    );
+    tasks = tasks.filter(
+      (task) => !VIDEO_SOURCE_TASKS.has(task) || declaresVideoInput(n)
     );
     if (tasks.length === 0) continue;
 
@@ -775,6 +844,23 @@ export function getModelInputNames(
       .map((f) => f.name)
       .filter((n): n is string => typeof n === "string" && n.length > 0)
   );
+}
+
+/**
+ * Every media input a model declares, image and video alike, normalized across
+ * the manifest conventions. {@link getModelImageInputs} answers the image-only
+ * question; a video transform needs the field its clip attaches to.
+ */
+export function getModelMediaInputs(
+  packageName: string,
+  exportPath: string,
+  modelId: string
+): ModelMediaInput[] {
+  const entry = loadManifest(packageName, exportPath).find(
+    (n) => nodeId(n) === modelId
+  );
+  if (!entry) return [];
+  return manifestEntryMediaInputs(entry);
 }
 
 export function getModelImageInputs(

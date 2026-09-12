@@ -15,6 +15,10 @@ import {
 } from "../../hooks/useProjects";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
+interface ErrorWithMessage {
+  readonly message: string;
+}
+
 interface ProjectLifecycleActionsProps {
   readonly project: {
     id: string;
@@ -33,25 +37,28 @@ const ProjectLifecycleActions = ({ project }: ProjectLifecycleActionsProps) => {
   const addNotification = useNotificationStore((state) => state.addNotification);
 
   const stop = (event: MouseEvent<HTMLButtonElement>) => event.stopPropagation();
-  const reportError = (action: string, error: Error) =>
-    addNotification({
-      type: "error",
-      alert: true,
-      content: `Could not ${action} ${project.name}: ${error.message}`
-    });
+  const reportError = useCallback(
+    (action: string, error: ErrorWithMessage) =>
+      addNotification({
+        type: "error",
+        alert: true,
+        content: `Could not ${action} ${project.name}: ${error.message}`
+      }),
+    [addNotification, project.name]
+  );
   const handleArchive = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       stop(event);
       archive.mutate({ id: project.id }, { onError: (error) => reportError("archive", error) });
     },
-    [archive, project.id]
+    [archive, project.id, reportError]
   );
   const handleRestore = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       stop(event);
       restore.mutate({ id: project.id }, { onError: (error) => reportError("restore", error) });
     },
-    [project.id, restore]
+    [project.id, reportError, restore]
   );
   const requestDelete = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
@@ -68,7 +75,7 @@ const ProjectLifecycleActions = ({ project }: ProjectLifecycleActionsProps) => {
         onError: (error) => reportError("delete", error)
       }
     );
-  }, [project.id, remove]);
+  }, [project.id, remove, reportError]);
 
   if (project.isPersonal) return null;
 

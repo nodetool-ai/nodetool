@@ -491,6 +491,41 @@ export interface UpscaleImageParams {
   seed?: number | null;
 }
 
+/**
+ * How far to grow the canvas on each side, in source-image pixels.
+ *
+ * Endpoints spell outpainting three ways: per-side pixel counts
+ * (`fal-ai/image-apps-v2/outpaint`), per-side booleans plus one ratio
+ * (`fal-ai/wan-vace-14b/outpainting`), and a target canvas or aspect ratio
+ * (`bria/expand-image`, `fal-ai/ltx-2.3-quality/outpaint`). Pixels are the one
+ * spelling that carries the others' information, so callers state pixels and
+ * each provider reduces them to what its endpoint declares.
+ */
+export interface OutpaintPadding {
+  left?: number | null;
+  right?: number | null;
+  top?: number | null;
+  bottom?: number | null;
+}
+
+/**
+ * Outpaint (uncrop): keep the source image and generate new content in the
+ * area the padding adds around it. The inverse of {@link InpaintingParams} —
+ * inpainting repaints inside the frame, outpainting extends past it.
+ */
+export interface OutpaintImageParams {
+  model: ImageModel;
+  /** What belongs in the new area; blank lets the model continue the scene. */
+  prompt?: string | null;
+  entities?: EntityReference[] | null;
+  negativePrompt?: string | null;
+  padding?: OutpaintPadding | null;
+  /** Target canvas aspect ratio, for endpoints that expand to one. */
+  aspectRatio?: string | null;
+  seed?: number | null;
+  signal?: AbortSignal;
+}
+
 /** Remove the background from an image, returning an image with alpha. */
 export interface RemoveBackgroundParams {
   model: ImageModel;
@@ -660,6 +695,69 @@ export interface VideoToVideoParams {
   durationSeconds?: number | null;
   resolution?: string | null;
   seed?: number | null;
+}
+
+/**
+ * Increase the resolution / detail of a video. The video-domain twin of
+ * {@link UpscaleImageParams}: `scale` is a magnification factor and
+ * `targetResolution` names a rung instead ("1080p", "2160p"). Endpoints take
+ * one or the other, so a caller may set both and let the provider pick.
+ */
+export interface UpscaleVideoParams {
+  model: VideoModel;
+  /** Target magnification factor, e.g. 2 or 4. */
+  scale?: number | null;
+  /** Target output resolution, e.g. "1080p" — for endpoints that take a rung. */
+  targetResolution?: string | null;
+  /** Guidance for generative upscalers; pure ESRGAN-style models ignore it. */
+  prompt?: string | null;
+  /** 0-1 hint for how much new detail the model may invent. */
+  creativity?: number | null;
+  seed?: number | null;
+  timeoutSeconds?: number | null;
+  signal?: AbortSignal;
+}
+
+/**
+ * Frame interpolation: synthesize intermediate frames so a clip plays at a
+ * higher frame rate, or in slow motion at the same one. `targetFps` and
+ * `factor` are alternatives — an endpoint declares one (`target_fps` on Topaz,
+ * `recursive_interpolation_passes` on AMT) and ignores the other.
+ */
+export interface InterpolateVideoParams {
+  model: VideoModel;
+  /** Frames per second to interpolate up to. */
+  targetFps?: number | null;
+  /** Multiply the frame count by this instead of naming an fps. */
+  factor?: number | null;
+  seed?: number | null;
+  timeoutSeconds?: number | null;
+  signal?: AbortSignal;
+}
+
+/**
+ * Outpaint a video: keep the source footage and generate new content in the
+ * area the padding adds around it, consistently across frames. The video twin
+ * of {@link OutpaintImageParams}.
+ */
+export interface OutpaintVideoParams {
+  model: VideoModel;
+  /** What belongs in the new area; blank lets the model continue the scene. */
+  prompt?: string | null;
+  entities?: EntityReference[] | null;
+  negativePrompt?: string | null;
+  padding?: OutpaintPadding | null;
+  /**
+   * Fraction of the source dimension to add on each padded side, for endpoints
+   * that take one ratio plus per-side switches rather than pixel counts.
+   */
+  expandRatio?: number | null;
+  /** Target canvas aspect ratio, for endpoints that expand to one. */
+  aspectRatio?: string | null;
+  resolution?: string | null;
+  seed?: number | null;
+  timeoutSeconds?: number | null;
+  signal?: AbortSignal;
 }
 
 /**
