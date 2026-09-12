@@ -14,7 +14,7 @@
     "lint:eslint:fix": "eslint src --ext .tsx,.ts,.js,.jsx --fix",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node ../scripts/run-tsc.mjs --noEmit",
     "eas": "npx --yes --package eas-cli -- eas",
     "build:dev": "npm run eas -- build --profile development --platform all",
     "build:preview": "npm run eas -- build --profile preview --platform all",
