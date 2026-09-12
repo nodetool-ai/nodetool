@@ -21,6 +21,7 @@ import {
 import CommunitySection from "../../components/CommunitySection";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
+import RecipeShowcase from "../../components/RecipeShowcase";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 
 const marketingBenefits = [
@@ -318,6 +319,8 @@ export default function MarketingSegmentPage() {
             </motion.div>
           </div>
         </section>
+
+        <RecipeShowcase />
 
         {/* More marketing workflows on the way */}
         <section className="py-20 relative">
