@@ -9,7 +9,8 @@
  * form that does work.
  */
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { Asset, initTestDb } from "@nodetool-ai/models";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/index.js";
 
@@ -17,10 +18,23 @@ const ID = "abc123";
 const TEXT = "generated report";
 const BYTES = new TextEncoder().encode(TEXT);
 
+beforeEach(async () => {
+  initTestDb();
+  for (const id of [ID, "blob", "notes"]) {
+    await Asset.create({
+      id,
+      user_id: "user-read-asset",
+      project_id: "default",
+      name: `${id}.txt`,
+      content_type: "text/plain"
+    });
+  }
+});
+
 /** A context whose asset resolver answers for one id, plus a storage map. */
 function context(): ProcessingContext {
   const stored = new Map<string, Uint8Array>([
-    ["memory://assets/notes.txt", BYTES],
+    ["memory://projects/default/assets/notes.txt", BYTES],
     ["/api/storage/blob.bin", BYTES]
   ]);
   return {

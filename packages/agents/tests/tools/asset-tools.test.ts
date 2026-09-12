@@ -3,13 +3,18 @@
  */
 
 import { Buffer } from "node:buffer";
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import { toolForCapabilityName } from "../../src/capabilities/lazy-tool.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
+import { Asset, initTestDb } from "@nodetool-ai/models";
 
 const saveAssetTool = () => toolForCapabilityName("save_asset");
 const readAssetTool = () => toolForCapabilityName("read_asset");
+
+beforeEach(() => {
+  initTestDb();
+});
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
@@ -213,7 +218,18 @@ describe("ReadAssetTool", () => {
 
     // Store content first
     const data = new TextEncoder().encode("file contents here");
-    await storage.store("assets/notes.txt", data, "text/plain");
+    await storage.store(
+      "projects/default/assets/notes.txt",
+      data,
+      "text/plain"
+    );
+    await Asset.create({
+      id: "notes",
+      user_id: "1",
+      project_id: "default",
+      name: "notes.txt",
+      content_type: "text/plain"
+    });
 
     const result = (await tool.process(ctx, {
       name: "notes.txt"
@@ -315,13 +331,17 @@ describe("SaveAssetTool + ReadAssetTool round-trip", () => {
   });
 
   it("read_asset resolves assets saved via the createAsset path (#23)", async () => {
-    // Chat contexts define createAsset (DB-backed). Previously read_asset only
-    // probed `assets/<name>` storage keys and never found createAsset-saved
-    // assets; save_asset now mirrors the bytes to that key.
+    // Chat contexts define createAsset (DB-backed). The returned asset URI is
+    // the stable handle that read_asset resolves through the context.
     const storage = new InMemoryStorageAdapter();
+    const bytes = new TextEncoder().encode("# Findings");
     const ctx = {
       hasModelInterface: (name: string) => name === "createAsset",
       createAsset: vi.fn(async () => ({ id: "db-generated-id" })),
+      resolveAssetBytes: vi.fn(async (uri: string) => ({
+        bytes: uri.startsWith("asset://db-generated-id") ? bytes : null,
+        attempts: [uri]
+      })),
       storage
     } as unknown as ProcessingContext;
 
@@ -331,9 +351,16 @@ describe("SaveAssetTool + ReadAssetTool round-trip", () => {
       content_type: "text/markdown"
     })) as Record<string, unknown>;
     expect(saved.asset_id).toBe("db-generated-id");
+    await Asset.create({
+      id: "db-generated-id",
+      user_id: "1",
+      project_id: "default",
+      name: "report.md",
+      content_type: "text/markdown"
+    });
 
     const read = (await readAssetTool().process(ctx, {
-      name: "report.md"
+      name: saved.asset_uri
     })) as Record<string, unknown>;
     expect(read.success).toBe(true);
     expect(read.content).toBe("# Findings");
