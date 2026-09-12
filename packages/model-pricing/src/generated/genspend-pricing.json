@@ -2,8 +2,8 @@
   "schemaVersion": 3,
   "source": "https://genspend.io/api/v1/export",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-09-04T08:12:26.572Z",
-  "catalogGeneratedAt": "2026-09-04T08:12:25.636Z",
+  "updatedAt": "2026-09-12T08:07:01.673Z",
+  "catalogGeneratedAt": "2026-09-12T08:07:00.682Z",
   "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
   "catalogModels": 142,
   "catalogOfferings": 479,
@@ -18,7 +18,7 @@
     "replicate",
     "together"
   ],
-  "pricedModels": 328,
+  "pricedModels": 327,
   "prices": {
     "atlascloud:alibaba/happyhorse-1.1/image-to-video": {
       "unit_price": 0.07,
@@ -283,7 +283,7 @@
       "source_url": "https://www.atlascloud.ai/models/black-forest-labs/flux-schnell"
     },
     "atlascloud:bytedance/seedance-2.0-fast/image-to-video": {
-      "unit_price": 0.072,
+      "unit_price": 0.027,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-fast",
@@ -293,19 +293,19 @@
       "tier": "fast",
       "variants": [
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": true
         },
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
         },
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
@@ -317,7 +317,7 @@
       }
     },
     "atlascloud:bytedance/seedance-2.0-fast/reference-to-video": {
-      "unit_price": 0.072,
+      "unit_price": 0.027,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-fast",
@@ -327,19 +327,19 @@
       "tier": "fast",
       "variants": [
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": true
         },
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
         },
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
@@ -351,7 +351,7 @@
       }
     },
     "atlascloud:bytedance/seedance-2.0-fast/text-to-video": {
-      "unit_price": 0.072,
+      "unit_price": 0.027,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-fast",
@@ -361,19 +361,19 @@
       "tier": "fast",
       "variants": [
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": true
         },
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
         },
         {
-          "price_usd": 0.072,
+          "price_usd": 0.027,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
@@ -424,7 +424,7 @@
       }
     },
     "atlascloud:bytedance/seedance-2.0/image-to-video": {
-      "unit_price": 0.112,
+      "unit_price": 0.09,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2",
@@ -437,7 +437,7 @@
       }
     },
     "atlascloud:bytedance/seedance-2.0/reference-to-video": {
-      "unit_price": 0.112,
+      "unit_price": 0.09,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2",
@@ -450,7 +450,7 @@
       }
     },
     "atlascloud:bytedance/seedance-2.0/text-to-video": {
-      "unit_price": 0.112,
+      "unit_price": 0.09,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2",
@@ -612,7 +612,7 @@
       "source_url": "https://www.atlascloud.ai/models/bytedance/seedream-v5.0-lite/edit-sequential"
     },
     "atlascloud:bytedance/seedream-v5.0-pro/edit": {
-      "unit_price": 0.045,
+      "unit_price": 0.036,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-5-pro",
@@ -633,7 +633,7 @@
       ]
     },
     "atlascloud:bytedance/seedream-v5.0-pro/text-to-image": {
-      "unit_price": 0.045,
+      "unit_price": 0.036,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "seedream-5-pro",
@@ -1354,7 +1354,7 @@
       "source_url": "https://www.atlascloud.ai/models/microsoft/mai-image-2.5/text-to-image"
     },
     "atlascloud:minimax/h3/image-to-video": {
-      "unit_price": 0.08,
+      "unit_price": 0.038,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "minimax-h3",
@@ -1367,7 +1367,7 @@
       }
     },
     "atlascloud:minimax/h3/reference-to-video": {
-      "unit_price": 0.08,
+      "unit_price": 0.038,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "minimax-h3",
@@ -1380,7 +1380,7 @@
       }
     },
     "atlascloud:minimax/h3/text-to-video": {
-      "unit_price": 0.08,
+      "unit_price": 0.038,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "minimax-h3",
@@ -1500,7 +1500,7 @@
       "source_url": "https://www.atlascloud.ai/models/nvidia/cosmos-3-super/text-to-image"
     },
     "atlascloud:openai/gpt-image-1.5/edit": {
-      "unit_price": 0.008,
+      "unit_price": 0.005,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gpt-image-1.5",
@@ -1509,7 +1509,7 @@
       "source_url": "https://www.atlascloud.ai/models/openai/gpt-image-1.5/text-to-image"
     },
     "atlascloud:openai/gpt-image-1.5/text-to-image": {
-      "unit_price": 0.007,
+      "unit_price": 0.003,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gpt-image-1.5",
@@ -1536,7 +1536,7 @@
       "source_url": "https://www.atlascloud.ai/models/openai/gpt-image-1/text-to-image"
     },
     "atlascloud:openai/gpt-image-2/edit": {
-      "unit_price": 0.01,
+      "unit_price": 0.006,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gpt-image-2",
@@ -1545,7 +1545,7 @@
       "source_url": "https://www.atlascloud.ai/models/openai/gpt-image-2/text-to-image"
     },
     "atlascloud:openai/gpt-image-2/text-to-image": {
-      "unit_price": 0.009,
+      "unit_price": 0.004,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "gpt-image-2",
@@ -1880,10 +1880,10 @@
       "unit_price": 0.04,
       "billing_unit": "images",
       "unit_class": "per-image",
-      "model_slug": "bria-fibo",
-      "match": "provider-id",
+      "model_slug": "bria-fibo-edit",
+      "match": "catalog",
       "live": true,
-      "source_url": "https://fal.ai/models/bria/fibo/generate"
+      "source_url": "https://fal.ai/models/bria/fibo-edit/edit"
     },
     "fal_ai:bytedance/seedance-2.5/image-to-video": {
       "unit_price": 21.4,
@@ -3213,77 +3213,6 @@
       "unit_class": "per-video-second",
       "model_slug": "pixverse-c1",
       "match": "provider-id",
-      "live": false,
-      "source_url": "https://fal.ai/models/fal-ai/pixverse/c1/image-to-video",
-      "variants": [
-        {
-          "price_usd": 0.03,
-          "unit_class": "per-video-second",
-          "resolution": "360p",
-          "with_audio": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.04,
-          "unit_class": "per-video-second",
-          "resolution": "360p",
-          "with_audio": true,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.04,
-          "unit_class": "per-video-second",
-          "resolution": "540p",
-          "with_audio": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.05,
-          "unit_class": "per-video-second",
-          "resolution": "540p",
-          "with_audio": true,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.05,
-          "unit_class": "per-video-second",
-          "resolution": "720p",
-          "with_audio": false,
-          "is_base": true
-        },
-        {
-          "price_usd": 0.065,
-          "unit_class": "per-video-second",
-          "resolution": "720p",
-          "with_audio": true,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.095,
-          "unit_class": "per-video-second",
-          "resolution": "1080p",
-          "with_audio": false,
-          "is_base": false
-        },
-        {
-          "price_usd": 0.12,
-          "unit_class": "per-video-second",
-          "resolution": "1080p",
-          "with_audio": true,
-          "is_base": false
-        }
-      ],
-      "clip_seconds": {
-        "min": 1,
-        "max": 15
-      }
-    },
-    "fal_ai:fal-ai/pixverse/c1/reference-to-video": {
-      "unit_price": 0.05,
-      "billing_unit": "seconds",
-      "unit_class": "per-video-second",
-      "model_slug": "pixverse-c1",
-      "match": "catalog",
       "live": false,
       "source_url": "https://fal.ai/models/fal-ai/pixverse/c1/image-to-video",
       "variants": [
