@@ -525,11 +525,11 @@ describe("inferVideoTasks", () => {
     ["image-to-video", ["image_to_video"]],
     ["image to video", ["image_to_video"]],
     ["imagetovideo", ["image_to_video"]],
-    ["fal-ai/topaz/upscale/video", ["video_to_video"]],
-    ["super-resolution", ["video_to_video"]],
-    ["seedvr", ["video_to_video"]],
-    ["flashvsr", ["video_to_video"]],
-    ["wan-vision-enhancer", ["video_to_video"]]
+    ["fal-ai/topaz/upscale/video", ["upscale_video"]],
+    ["super-resolution", ["upscale_video"]],
+    ["seedvr", ["upscale_video"]],
+    ["flashvsr", ["upscale_video"]],
+    ["wan-vision-enhancer", ["upscale_video"]]
   ];
   for (const [frag, expected] of cases) {
     it(`"${frag}" → ${expected.join("+")}`, () => {
@@ -555,10 +555,16 @@ describe("inferVideoTasks", () => {
     ["fal-ai/ltx-video-13b-dev/extend", ["video_to_video"]],
     ["fal-ai/ltx-2.3/reframe", ["video_to_video"]],
     ["fal-ai/ltx-2/retake-video", ["video_to_video"]],
-    ["fal-ai/ltx-2.3-quality/outpaint", ["video_to_video"]],
+    ["fal-ai/ltx-2.3-quality/outpaint", ["outpaint_video"]],
     ["fal-ai/bernini-r/edit-video", ["video_to_video"]],
     ["bria/video/background-removal/v3", ["video_to_video"]],
-    ["fal-ai/amt-interpolation/frame-interpolation", ["video_to_video"]],
+    ["fal-ai/amt-interpolation/frame-interpolation", ["interpolate_video"]],
+    ["fal-ai/rife/video", ["interpolate_video"]],
+    ["fal-ai/wan-vace-14b/outpainting", ["outpaint_video"]],
+    ["fal-ai/seedvr/upscale/video", ["upscale_video"]],
+    // A trainer names the task its weights will serve, not one it performs.
+    ["fal-ai/ltx23-trainer-v2/outpaint", ["video_to_video"]],
+    ["fal-ai/ltx23-trainer-v2/interpolate", ["video_to_video"]],
     ["fal-ai/elevenlabs/dubbing", ["video_to_video"]],
     ["decart/lucy-restyle", ["video_to_video"]],
     ["blackforestlabs/flux-3/first-last-frame-to-video", ["image_to_video"]],

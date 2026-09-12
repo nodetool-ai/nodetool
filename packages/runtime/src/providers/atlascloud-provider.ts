@@ -55,6 +55,7 @@ import type {
   LanguageModel,
   TextToImageParams,
   TextToVideoParams,
+  UpscaleVideoParams,
   VideoModel
 } from "./types.js";
 import type { ReferenceToVideoInputs, ReferenceToVideoParams } from "./types.js";
@@ -637,6 +638,39 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       input,
       runJobOptions(params)
     );
+  }
+
+  override async upscaleVideo(
+    video: Uint8Array,
+    params: UpscaleVideoParams
+  ): Promise<Uint8Array> {
+    if (video.length === 0) {
+      throw new Error("video must not be empty");
+    }
+    const modelId = params.model.id;
+    const model = (await this.getAvailableVideoModels()).find(
+      (item) => item.id === modelId
+    );
+    if (!model?.supportedTasks?.includes("upscale_video")) {
+      throw new Error(`AtlasCloud model ${modelId} does not support upscale_video`);
+    }
+    const info = this.resolveModel(modelId, "video");
+    const videoField = ["video", "video_url", "input_video"].find((name) =>
+      info.fields.has(name)
+    );
+    if (!videoField) {
+      throw new Error(`AtlasCloud model ${modelId} does not declare a video field`);
+    }
+    const dataUri = `data:${sniffMediaMime(video, "video/mp4")};base64,${Buffer.from(video).toString("base64")}`;
+    const input: Record<string, unknown> = {
+      [videoField]: info.fields.get(videoField)?.type.startsWith("list[")
+        ? [dataUri]
+        : dataUri
+    };
+    setIfDeclared(input, info, params.targetResolution, "target_resolution", "resolution");
+    setIfDeclared(input, info, params.scale, "upscale_factor", "scale");
+    setIfDeclared(input, info, params.seed, "seed");
+    return this.runJob("video", modelId, info, input, runJobOptions(params));
   }
 
   override async referenceToVideo(

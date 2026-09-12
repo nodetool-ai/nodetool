@@ -161,12 +161,18 @@ const clipTaskForShot = (shot: Shot): VideoModelTask => {
       : "image_to_video";
 };
 
-const CLIP_TASK_LABELS: Record<VideoModelTask, string> = {
+/**
+ * The clip tasks a board can ask for, keyed off the helper that produces them
+ * so the labels cannot drift from it. A shot renders one of three ways; the
+ * rest of `VideoModelTask` (revision, lip sync, upscaling, interpolation,
+ * outpainting) never reaches this picker.
+ */
+type ClipModelTask = ReturnType<typeof requiredVideoTasksForShots>[number];
+
+const CLIP_TASK_LABELS: Record<ClipModelTask, string> = {
   image_to_video: "Animate stills",
   text_to_video: "Generate from prompts",
-  reference_to_video: "Use entity references",
-  video_to_video: "Revise clips",
-  lip_sync: "Lip sync"
+  reference_to_video: "Use entity references"
 };
 
 const imageValue = (model: ShotModelRef): ImageModelValue => ({

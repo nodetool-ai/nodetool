@@ -716,7 +716,7 @@ describe("FalProvider — Topaz model variants", () => {
     expect(redefine.supportedTasks).toEqual(["upscale"]);
   });
 
-  it("lists one video model per Topaz variant, tagged video-to-video", async () => {
+  it("lists one video model per Topaz variant, tagged upscale_video", async () => {
     const models = await createProvider().getAvailableVideoModels();
     const ids = models.map((m) => m.id);
 
@@ -724,7 +724,7 @@ describe("FalProvider — Topaz model variants", () => {
     expect(ids).toContain(`${VIDEO_ENDPOINT}/Proteus`);
     expect(ids).toContain(`${VIDEO_ENDPOINT}/Starlight Precise 2.5`);
     const proteus = models.find((m) => m.id === `${VIDEO_ENDPOINT}/Proteus`)!;
-    expect(proteus.supportedTasks).toEqual(["video_to_video"]);
+    expect(proteus.supportedTasks).toEqual(["upscale_video"]);
   });
 
   it("sends the selected variant as `model` to the bare endpoint", async () => {

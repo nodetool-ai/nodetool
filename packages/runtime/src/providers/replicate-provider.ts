@@ -28,7 +28,9 @@ import type {
   TTSModel,
   VideoModel,
   TextToVideoParams,
+  OutpaintImageParams,
   UpscaleImageParams,
+  UpscaleVideoParams,
   RemoveBackgroundParams,
   RelightImageParams,
   VectorizeImageParams,
@@ -1153,6 +1155,43 @@ export class ReplicateProvider extends BaseProvider {
     return this.runWithInput(params.model.id, input);
   }
 
+  /**
+   * Outpaint an image. Replicate's expand models take the target canvas rather
+   * than per-side padding (`bria/expand-image`: `canvas_size` plus where the
+   * original sits inside it), so the padding is turned into that geometry and
+   * pruned to whatever the model declares.
+   */
+  override async outpaintImage(
+    images: Uint8Array[],
+    params: OutpaintImageParams
+  ): Promise<Uint8Array> {
+    const input: Record<string, unknown> = this.imageInput(
+      params.model.id,
+      images
+    );
+    if (params.prompt) input.prompt = params.prompt;
+    if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
+    if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
+    const padding = params.padding;
+    if (padding) {
+      const left = padding.left ?? 0;
+      const top = padding.top ?? 0;
+      input.expand_left = left;
+      input.expand_right = padding.right ?? 0;
+      input.expand_top = top;
+      input.expand_bottom = padding.bottom ?? 0;
+      // Where the source image lands on the expanded canvas, for the models
+      // that place it explicitly instead of taking per-side amounts.
+      input.original_image_location = [left, top];
+    }
+    if (params.seed != null) input.seed = params.seed;
+    log.debug("outpaintImage", { model: params.model.id });
+    return this.runWithInput(
+      params.model.id,
+      this.pruneToDeclaredInputs(params.model.id, input)
+    );
+  }
+
   override async removeBackground(
     image: Uint8Array,
     params: RemoveBackgroundParams
@@ -1229,6 +1268,33 @@ export class ReplicateProvider extends BaseProvider {
     if (params.strength != null) input.strength = params.strength;
     if (params.seed != null) input.seed = params.seed;
     log.debug("videoToVideo", { model: params.model.id });
+    return this.runWithInput(
+      params.model.id,
+      this.pruneToDeclaredInputs(params.model.id, input)
+    );
+  }
+
+  override async upscaleVideo(
+    video: Uint8Array,
+    params: UpscaleVideoParams
+  ): Promise<Uint8Array> {
+    const input: Record<string, unknown> = {
+      video: this.dataUri(video, "video/mp4")
+    };
+    // One concept, four spellings across the catalog's upscalers; the prune
+    // below drops whichever names this model does not declare.
+    if (params.scale != null) {
+      input.scale = params.scale;
+      input.upscale_factor = params.scale;
+      input.resolution = params.scale;
+    }
+    if (params.targetResolution) {
+      input.target_resolution = params.targetResolution;
+    }
+    if (params.prompt) input.prompt = params.prompt;
+    if (params.creativity != null) input.creativity = params.creativity;
+    if (params.seed != null) input.seed = params.seed;
+    log.debug("upscaleVideo", { model: params.model.id });
     return this.runWithInput(
       params.model.id,
       this.pruneToDeclaredInputs(params.model.id, input)

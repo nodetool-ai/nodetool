@@ -1,11 +1,15 @@
 const STRICT_MODEL_TASKS = new Set<string>([
   "inpainting",
+  "outpaint",
   "upscale",
   "remove_background",
   "relight",
   "vectorize",
   "segment",
   "video_to_video",
+  "upscale_video",
+  "interpolate_video",
+  "outpaint_video",
   "reference_to_video",
   "lip_sync"
 ]);
