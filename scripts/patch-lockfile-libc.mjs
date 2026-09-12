@@ -65,10 +65,18 @@ export function candidates(packages) {
     .filter((candidate) => candidate.name !== null);
 }
 
+/**
+ * Registry URL for one exact resolution. A scoped name carries one "/", but
+ * escape every one: a string pattern replaces only the first, which would
+ * leave a path separator in the URL and address the wrong document.
+ */
+export function registryUrl(name, version, base = registry) {
+  return `${base.replace(/\/+$/, "")}/${name.replaceAll("/", "%2f")}/${version}`;
+}
+
 /** Read the authoritative `libc` for one resolution from the registry. */
 async function fetchLibc(name, version) {
-  const url = `${registry.replace(/\/$/, "")}/${name.replace("/", "%2f")}/${version}`;
-  const response = await fetch(url);
+  const response = await fetch(registryUrl(name, version));
   if (!response.ok) {
     throw new Error(`${name}@${version}: registry returned ${response.status}`);
   }

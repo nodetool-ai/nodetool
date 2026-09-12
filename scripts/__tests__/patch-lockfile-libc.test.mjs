@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { candidates, checkOffline, packageName, withLibc } from "../patch-lockfile-libc.mjs";
+import { candidates, checkOffline, packageName, registryUrl, withLibc } from "../patch-lockfile-libc.mjs";
 
 const muslEntry = (overrides = {}) => ({
   version: "1.0.0",
@@ -36,6 +36,32 @@ describe("packageName", () => {
 
   it("returns null for a workspace link key with no node_modules segment", () => {
     expect(packageName("packages/runtime")).toBeNull();
+  });
+});
+
+describe("registryUrl", () => {
+  const base = "https://registry.npmjs.org";
+
+  it("escapes the scope separator so the path addresses one document", () => {
+    expect(registryUrl("@rspack/binding-linux-x64-musl", "1.7.11", base)).toBe(
+      "https://registry.npmjs.org/@rspack%2fbinding-linux-x64-musl/1.7.11"
+    );
+  });
+
+  it("leaves an unscoped name alone", () => {
+    expect(registryUrl("lightningcss-linux-x64-musl", "1.31.1", base)).toBe(
+      "https://registry.npmjs.org/lightningcss-linux-x64-musl/1.31.1"
+    );
+  });
+
+  it("escapes every separator, not just the first", () => {
+    expect(registryUrl("a/b/c", "1.0.0", base)).toBe("https://registry.npmjs.org/a%2fb%2fc/1.0.0");
+  });
+
+  it("does not double the separator against a registry with a trailing slash", () => {
+    expect(registryUrl("pkg", "1.0.0", "https://registry.example.com/")).toBe(
+      "https://registry.example.com/pkg/1.0.0"
+    );
   });
 });
 
