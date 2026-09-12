@@ -12,15 +12,13 @@ without being told how.
 | `commands/serve.md` | `/serve` — start the API on :7777 in the background and poll until it answers. |
 | `commands/verify.md` | `/verify` — typecheck, lint, test, and fix what breaks. |
 | `commands/onboard.md` | `/onboard <area>` — locate the owning workspace, entry point, nearest example, and the pitfalls that apply. |
-| `skills/` | 18 NodeTool skills (workflow building, custom nodes, API reference, deployment, troubleshooting) plus 18 general engineering skills — see below. Claude loads these on its own when a task matches. |
+| `skills/` | Repository engineering and NodeTool authoring skills. The `.agents` symlink exposes the same files to Codex. |
 
 ## Engineering skills
 
 `skills/` also carries the engineering skills from
 [mattpocock/skills](https://github.com/mattpocock/skills) (MIT), vendored at
-commit `8b36d4f` (license kept at `skills/LICENSE-mattpocock-skills`). They are
-language- and repo-agnostic, so they sit alongside the NodeTool-specific ones
-rather than replacing them.
+commit `8b36d4f` (license kept at `skills/LICENSE-mattpocock-skills`). They are adapted to NodeTool's repository rules and sit alongside its authoring skills.
 
 Type these to invoke them (`disable-model-invocation: true` — Claude never
 reaches for them on its own):
@@ -34,7 +32,7 @@ reaches for them on its own):
 | `/triage` | Move issues through a state machine of triage roles. |
 | `/to-spec` | Turn the conversation into a spec on the issue tracker. |
 | `/to-tickets` | Break a plan into tracer-bullet tickets with blocking edges. |
-| `/implement` | Build from a spec or tickets, driving `/tdd` and closing with `/code-review`. |
+| `/implement` | Build from a spec or tickets and verify against acceptance criteria. |
 | `/wayfinder` | Map work too big for one session as decision tickets, resolved one at a time. |
 
 The rest are model-invoked — Claude reaches for them when a task matches, and
@@ -44,7 +42,7 @@ you can also type them:
 | :--- | :--- |
 | `/tdd` | Red-green-refactor loop, one vertical slice at a time. |
 | `/diagnosing-bugs` | Diagnosis loop for hard bugs and performance regressions. |
-| `/code-review` | Three-axis review of a diff — correctness, standards, spec — as parallel sub-agents. |
+| `/code-review` | Review correctness, standards, and spec coverage, delegating when useful and available. |
 | `/codebase-design` | Vocabulary for deep modules — small interfaces, clean seams. |
 | `/domain-modeling` | Sharpen domain terms, update `CONTEXT.md` and ADRs. |
 | `/prototype` | Throwaway prototype to answer a design question. |
@@ -58,9 +56,32 @@ plus a Correctness axis carrying this repo's landmines (cross-package imports,
 MsgPack framing, Zustand subscriptions, `ui_primitives`, packaged-Electron
 paths, IPC security). It pairs with `unslop` for a full pre-merge pass.
 
-The upstream skills also ship a Codex `agents/` directory per skill; those were
-dropped on the way in, since this repo drives them through Claude Code. To
-refresh them, re-copy from `skills/engineering/` upstream.
+Existing invocation metadata is preserved. Claude-specific frontmatter remains
+in place. Codex discovers the same skill files through `.agents/skills`.
+Review upstream updates against local adaptations instead of replacing them wholesale.
+
+## Maintaining skills
+
+Use OpenAI's [prompting guidance](https://developers.openai.com/api/docs/guides/latest-model#prompting-best-practices)
+and [skill authoring guidance](https://developers.openai.com/codex/skills#best-practices)
+when updating these instructions.
+
+Lead with the intended result and a precise trigger. Keep task-specific constraints
+in the entrypoint and load substantial reference material only for the relevant
+operation. Preserve tool contracts, user choices, and existing authorization.
+User instructions take precedence over skill guidelines within the host's enforced
+permissions. Examples do not add deliverables or checkpoints to another request.
+
+Ask about consequential missing decisions, while continuing independent work.
+Prepare a concrete result before requesting any needed approval. If a skill rule
+causes a pause, link and quote that rule and explain the unresolved decision or
+permission. Keep delegation optional when the host cannot provide it.
+
+For code edits, follow [mandatory verification](../AGENTS.md#mandatory-post-change-verification).
+For skill prose, validate frontmatter, reference links, and representative requests.
+Test both intended triggers and nearby requests that should use another skill.
+Check that a completed request ends with an artifact or evidenced result. Do not
+infer improved task success from a smaller prompt alone.
 
 ## Running things
 

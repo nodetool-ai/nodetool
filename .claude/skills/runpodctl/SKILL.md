@@ -1,6 +1,6 @@
 ---
 name: runpodctl
-description: Runpod CLI to manage your GPU workloads.
+description: "Manage Runpod pods, serverless endpoints, templates, volumes, and transfers with runpodctl."
 allowed-tools: Bash(runpodctl:*)
 compatibility: Linux, macOS
 metadata:

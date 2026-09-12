@@ -1,15 +1,29 @@
 ---
 name: implement
-description: "Implement a piece of work based on a spec or set of tickets."
+description: "Implement an existing spec or tickets, verify the requested behavior, and report the result."
 disable-model-invocation: true
 ---
 
-Implement the work described by the user in the spec or tickets.
+# Implement
 
-Use /tdd where possible, at pre-agreed seams.
+Deliver the behavior and acceptance criteria in the user's spec or tickets.
+Read applicable repository instructions and the current implementation. Reuse
+choices and authorization already established in the conversation.
 
-Run typechecking regularly, single test files regularly, and the full test suite once at the end.
+Resolve routine implementation choices from the code and spec. Ask only when a
+missing decision materially changes the requested behavior or requires new
+authorization. Continue independent work while that question is pending.
 
-Once done, use /code-review to review the work.
+Use [tdd](../tdd/SKILL.md) when requested or useful for a behavior change. Reuse
+existing test boundaries. Reproduce bugs before fixing them and retain the
+reproduction, as required by the repository.
 
-Commit your work to the current branch.
+Run focused checks while changing the code, then complete the
+[mandatory post-change verification](../../../AGENTS.md#mandatory-post-change-verification).
+Once required checks pass, repeat or broaden them only for new changes,
+failures, or unresolved risks.
+
+Review the diff against the acceptance criteria and repository rules. Use
+[code-review](../code-review/SKILL.md) for a structured review when needed.
+Report the resulting behavior, verification evidence, and any remaining blocker.
+Commit or publish only when authorized by the user's request or session context.

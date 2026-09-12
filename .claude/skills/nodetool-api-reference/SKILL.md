@@ -1,6 +1,6 @@
 ---
 name: nodetool-api-reference
-description: Use NodeTool REST API, WebSocket protocol, Chat API (OpenAI-compatible), workflow execution endpoints, and streaming responses. Use when user asks about API endpoints, WebSocket protocol, how to call the API, build a client, integrate with NodeTool, or stream workflow results.
+description: "Integrate with NodeTool REST, MsgPack WebSocket, workflow execution, or OpenAI-compatible Chat APIs."
 ---
 
 You help users integrate with NodeTool's HTTP + WebSocket server (default `http://localhost:7777`). Start it with `nodetool serve` (flags: `--host`, `--port`).

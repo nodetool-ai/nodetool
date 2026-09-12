@@ -1,6 +1,6 @@
 ---
 name: flash
-description: runpod-flash SDK and CLI for deploying AI workloads on Runpod serverless GPUs/CPUs.
+description: "Develop and deploy AI workloads with the runpod-flash SDK and CLI on Runpod serverless GPUs or CPUs."
 user-invocable: true
 ---
 

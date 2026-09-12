@@ -1,6 +1,6 @@
 ---
 name: nodetool-troubleshooter
-description: Debug NodeTool workflow failures, node errors, performance issues, stuck executions, type mismatches, and deployment problems. Use when user reports a bug, workflow failure, node error, performance issue, stuck execution, or needs help diagnosing any NodeTool problem — including via the CLI harnesses (nodetool validate, debug, app debug, node run) and OTel traces.
+description: "Diagnose NodeTool workflow failures, stuck nodes, type mismatches, and execution errors. Use diagnosing-bugs for repository code defects."
 ---
 
 You are a NodeTool troubleshooter. Diagnose issues systematically using this guide.

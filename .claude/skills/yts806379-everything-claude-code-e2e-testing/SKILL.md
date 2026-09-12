@@ -1,328 +1,47 @@
 ---
 name: e2e-testing
-description: Playwright E2E testing patterns, Page Object Model, configuration, CI/CD integration, artifact management, and flaky test strategies. Use when writing, fixing, or deflaking Playwright tests in this repo — the web E2E suites under web/tests/ (e2e-runner, debug-harness, visual) and the Electron E2E setup.
+description: "Write, repair, or diagnose Playwright E2E tests for NodeTool web and workflow harnesses using existing suites and fixtures."
 origin: ECC
 ---
 
-# E2E Testing Patterns
+# E2E testing
 
-> **This repo**: Playwright suites live in `web/tests/` with per-suite configs at the `web/` root — `playwright.config.ts`, `playwright.e2e-runner.config.ts`, `playwright.debug-harness.config.ts`. Run the harness suites via `cd web && npm run test:debug-harness` (see root `CLAUDE.md` § nodetool debug). Electron E2E setup: `electron/src/AGENTS.md` § E2E Test Setup. The generic patterns below apply on top of that layout — prefer the repo's existing fixtures and configs over the scaffold shown here.
+Build or repair a Playwright test that detects the requested user-visible behavior.
+Use [web/TESTING.md](../../../web/TESTING.md) and the existing suite's fixtures,
+page objects, and configuration. Do not replace them with a generic scaffold.
+Electron main-process tests use Jest under `electron/src/__tests__/`, as described
+in [Electron instructions](../../../electron/src/AGENTS.md).
 
-Comprehensive Playwright patterns for building stable, fast, and maintainable E2E test suites.
+## Choose the suite
 
-## Test File Organization
+Inspect `web/package.json` and the relevant Playwright config for the exact command.
+Use the graph runner or debug harness for real-backend workflow scenarios. Read
+its entry in the [harness reference](../../../docs/harnesses.md) before first use.
+Build backend packages and install the required Playwright browser as described
+in the testing guide before running web E2E.
 
-```
-tests/
-├── e2e/
-│   ├── auth/
-│   │   ├── login.spec.ts
-│   │   ├── logout.spec.ts
-│   │   └── register.spec.ts
-│   ├── features/
-│   │   ├── browse.spec.ts
-│   │   ├── search.spec.ts
-│   │   └── create.spec.ts
-│   └── api/
-│       └── endpoints.spec.ts
-├── fixtures/
-│   ├── auth.ts
-│   └── data.ts
-└── playwright.config.ts
-```
+## Write or diagnose the test
 
-## Page Object Model (POM)
+Reuse the nearest scenario. Select controls by role and accessible name when
+available. Assert the specific visible result with retrying Playwright assertions.
+Keep tests independent and reset fixtures through the suite's existing mechanism.
 
-```typescript
-import { Page, Locator } from '@playwright/test'
+Register a network wait before triggering the action that produces the request.
+Wait for a specific response or visible state, not arbitrary sleeps or global
+network idleness. Use page objects only where they simplify repeated interactions.
 
-export class ItemsPage {
-  readonly page: Page
-  readonly searchInput: Locator
-  readonly itemCards: Locator
-  readonly createButton: Locator
+For a reported failure, reproduce it before changing the test or application.
+Inspect its trace, screenshot, console, and request evidence. Use bounded repeat
+runs when diagnosing an intermittent race. A retry reaching green does not prove
+the race is fixed. Do not hide failures with skip, fixme, or extra retries.
 
-  constructor(page: Page) {
-    this.page = page
-    this.searchInput = page.locator('[data-testid="search-input"]')
-    this.itemCards = page.locator('[data-testid="item-card"]')
-    this.createButton = page.locator('[data-testid="create-btn"]')
-  }
+## Verify and report
 
-  async goto() {
-    await this.page.goto('/items')
-    await this.page.waitForLoadState('networkidle')
-  }
+Run the affected scenario and confirm the assertion detects the intended failure
+and passes with the correction. Use the suite's configured trace, screenshot,
+and video capture rather than introducing a separate recording mechanism.
 
-  async search(query: string) {
-    await this.searchInput.fill(query)
-    await this.page.waitForResponse(resp => resp.url().includes('/api/search'))
-    await this.page.waitForLoadState('networkidle')
-  }
-
-  async getItemCount() {
-    return await this.itemCards.count()
-  }
-}
-```
-
-## Test Structure
-
-```typescript
-import { test, expect } from '@playwright/test'
-import { ItemsPage } from '../../pages/ItemsPage'
-
-test.describe('Item Search', () => {
-  let itemsPage: ItemsPage
-
-  test.beforeEach(async ({ page }) => {
-    itemsPage = new ItemsPage(page)
-    await itemsPage.goto()
-  })
-
-  test('should search by keyword', async ({ page }) => {
-    await itemsPage.search('test')
-
-    const count = await itemsPage.getItemCount()
-    expect(count).toBeGreaterThan(0)
-
-    await expect(itemsPage.itemCards.first()).toContainText(/test/i)
-    await page.screenshot({ path: 'artifacts/search-results.png' })
-  })
-
-  test('should handle no results', async ({ page }) => {
-    await itemsPage.search('xyznonexistent123')
-
-    await expect(page.locator('[data-testid="no-results"]')).toBeVisible()
-    expect(await itemsPage.getItemCount()).toBe(0)
-  })
-})
-```
-
-## Playwright Configuration
-
-```typescript
-import { defineConfig, devices } from '@playwright/test'
-
-export default defineConfig({
-  testDir: './tests/e2e',
-  fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['junit', { outputFile: 'playwright-results.xml' }],
-    ['json', { outputFile: 'playwright-results.json' }]
-  ],
-  use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
-    actionTimeout: 10000,
-    navigationTimeout: 30000,
-  },
-  projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
-    { name: 'mobile-chrome', use: { ...devices['Pixel 5'] } },
-  ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
-})
-```
-
-## Flaky Test Patterns
-
-### Quarantine
-
-```typescript
-test('flaky: complex search', async ({ page }) => {
-  test.fixme(true, 'Flaky - Issue #123')
-  // test code...
-})
-
-test('conditional skip', async ({ page }) => {
-  test.skip(process.env.CI, 'Flaky in CI - Issue #123')
-  // test code...
-})
-```
-
-### Identify Flakiness
-
-```bash
-npx playwright test tests/search.spec.ts --repeat-each=10
-npx playwright test tests/search.spec.ts --retries=3
-```
-
-### Common Causes & Fixes
-
-**Race conditions:**
-```typescript
-// Bad: assumes element is ready
-await page.click('[data-testid="button"]')
-
-// Good: auto-wait locator
-await page.locator('[data-testid="button"]').click()
-```
-
-**Network timing:**
-```typescript
-// Bad: arbitrary timeout
-await page.waitForTimeout(5000)
-
-// Good: wait for specific condition
-await page.waitForResponse(resp => resp.url().includes('/api/data'))
-```
-
-**Animation timing:**
-```typescript
-// Bad: click during animation
-await page.click('[data-testid="menu-item"]')
-
-// Good: wait for stability
-await page.locator('[data-testid="menu-item"]').waitFor({ state: 'visible' })
-await page.waitForLoadState('networkidle')
-await page.locator('[data-testid="menu-item"]').click()
-```
-
-## Artifact Management
-
-### Screenshots
-
-```typescript
-await page.screenshot({ path: 'artifacts/after-login.png' })
-await page.screenshot({ path: 'artifacts/full-page.png', fullPage: true })
-await page.locator('[data-testid="chart"]').screenshot({ path: 'artifacts/chart.png' })
-```
-
-### Traces
-
-```typescript
-await browser.startTracing(page, {
-  path: 'artifacts/trace.json',
-  screenshots: true,
-  snapshots: true,
-})
-// ... test actions ...
-await browser.stopTracing()
-```
-
-### Video
-
-```typescript
-// In playwright.config.ts
-use: {
-  video: 'retain-on-failure',
-  videosPath: 'artifacts/videos/'
-}
-```
-
-## CI/CD Integration
-
-```yaml
-# .github/workflows/e2e.yml
-name: E2E Tests
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: npx playwright install --with-deps
-      - run: npx playwright test
-        env:
-          BASE_URL: ${{ vars.STAGING_URL }}
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
-```
-
-## Test Report Template
-
-```markdown
-# E2E Test Report
-
-**Date:** YYYY-MM-DD HH:MM
-**Duration:** Xm Ys
-**Status:** PASSING / FAILING
-
-## Summary
-- Total: X | Passed: Y (Z%) | Failed: A | Flaky: B | Skipped: C
-
-## Failed Tests
-
-### test-name
-**File:** `tests/e2e/feature.spec.ts:45`
-**Error:** Expected element to be visible
-**Screenshot:** artifacts/failed.png
-**Recommended Fix:** [description]
-
-## Artifacts
-- HTML Report: playwright-report/index.html
-- Screenshots: artifacts/*.png
-- Videos: artifacts/videos/*.webm
-- Traces: artifacts/*.zip
-```
-
-## Wallet / Web3 Testing
-
-```typescript
-test('wallet connection', async ({ page, context }) => {
-  // Mock wallet provider
-  await context.addInitScript(() => {
-    window.ethereum = {
-      isMetaMask: true,
-      request: async ({ method }) => {
-        if (method === 'eth_requestAccounts')
-          return ['0x1234567890123456789012345678901234567890']
-        if (method === 'eth_chainId') return '0x1'
-      }
-    }
-  })
-
-  await page.goto('/')
-  await page.locator('[data-testid="connect-wallet"]').click()
-  await expect(page.locator('[data-testid="wallet-address"]')).toContainText('0x1234')
-})
-```
-
-## Financial / Critical Flow Testing
-
-```typescript
-test('trade execution', async ({ page }) => {
-  // Skip on production — real money
-  test.skip(process.env.NODE_ENV === 'production', 'Skip on production')
-
-  await page.goto('/markets/test-market')
-  await page.locator('[data-testid="position-yes"]').click()
-  await page.locator('[data-testid="trade-amount"]').fill('1.0')
-
-  // Verify preview
-  const preview = page.locator('[data-testid="trade-preview"]')
-  await expect(preview).toContainText('1.0')
-
-  // Confirm and wait for blockchain
-  await page.locator('[data-testid="confirm-trade"]').click()
-  await page.waitForResponse(
-    resp => resp.url().includes('/api/trade') && resp.status() === 200,
-    { timeout: 30000 }
-  )
-
-  await expect(page.locator('[data-testid="trade-success"]')).toBeVisible()
-})
-```
+Complete [mandatory post-change verification](../../../AGENTS.md#mandatory-post-change-verification)
+for code changes. Report the tested scenario, actual command result, and relevant
+failure artifacts. Do not run unrelated browser suites without a dependency or
+unresolved concern that warrants them.

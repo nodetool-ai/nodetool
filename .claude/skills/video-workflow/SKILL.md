@@ -1,6 +1,6 @@
 ---
 name: video-workflow
-description: Build a reusable NodeTool workflow graph that produces video, so the same pipeline can be re-run on new inputs — a UGC factory, a batch shot renderer, a per-SKU ad generator. Use when the user asks for a template, a pipeline, a factory, a batch job, or something they will run again with different inputs, rather than one finished video. Not for directing a single piece, which needs no graph (use ugc-video, product-commercial or short-film).
+description: "Build a reusable NodeTool video workflow for batches or repeated inputs. For a single finished piece, use a storyboard skill."
 ---
 
 **Load `/storyboard-core` for what a shot is and how entities season a prompt,
@@ -82,7 +82,7 @@ for. A graph loses that unless you build it in: keep the still half and the clip
 separable, so the user can run to the stills, look, and then run the clip half. Say
 which inputs do that when you hand the workflow over.
 
-## Validate, and do not run the expensive half
+## Validate and deliver the requested result
 
 `validate_workflow` with the inline graph before saving — it catches unknown node
 types, missing required properties, unselected models, dangling edges and a model id
@@ -91,10 +91,15 @@ the provider does not offer, in well under a second and with no spend.
 `create_workflow` refuses to save a graph whose model properties are unselected, so
 pick real ones with `find_model` and stamp them in. Nothing fills them in at run time.
 
-Save the graph. Do not run the clip stage unless the user asks — a batch renderer's
-whole point is that one run costs real money.
+Save and read back the graph. A request to build a template ends with a validated
+workflow and its input instructions. If the user also requested execution, run
+the authorized stages within their scope and budget. Do not request the same
+authorization again.
 
 ## Brief
+
+Adapt these examples to the user's brief. Example deliverables, style choices,
+and approval checkpoints apply only when the user adopts them.
 
 ```
 Build a workflow named "UGC factory" that I can re-run from Chat.

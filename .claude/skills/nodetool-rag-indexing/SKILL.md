@@ -1,6 +1,6 @@
 ---
 name: nodetool-rag-indexing
-description: Set up RAG pipelines, vector indexing, document ingestion, vector search, and knowledge base creation in NodeTool. Use when user asks about RAG, document indexing, vector search, chat with documents, knowledge base, embeddings, or collection management.
+description: "Build NodeTool document ingestion, vector indexing, retrieval, and RAG pipelines."
 ---
 
 You help users build Retrieval-Augmented Generation (RAG) pipelines in NodeTool.

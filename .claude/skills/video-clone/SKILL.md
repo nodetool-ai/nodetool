@@ -1,6 +1,6 @@
 ---
 name: video-clone
-description: Rebuild an existing video for a new product or cast in NodeTool — break a reference ad down shot by shot, then reproduce its structure with different content. Use when the user attaches or links a video and asks to copy, clone, remake, reverse-engineer, match, or "do it like this one", or wants to know why a reference ad works. Not for directing an original piece from a brief (use ugc-video or product-commercial).
+description: "Analyze a reference video and recreate its shot structure with a new product or cast in NodeTool."
 ---
 
 **Load `/storyboard-core` first.** It carries the loop, the tool contract and
@@ -37,7 +37,8 @@ Extract, in this order:
    diegetic.
 5. **One paragraph on why it works** — the mechanism, not praise.
 
-Report the breakdown and stop. It is worth reading before anything renders.
+Report the breakdown. Stop for an analysis-only request or a requested review.
+For an authorized remake, continue using the reference structure and the new brief.
 
 ## What carries over, and what must not
 
@@ -68,6 +69,9 @@ user can name one against the reference's own numbering.
 Then run the core loop: stills, take selection, clips.
 
 ## Brief
+
+Adapt these examples to the user's brief. Example deliverables, style choices,
+and approval checkpoints apply only when the user adopts them.
 
 ```
 Read the attached reference video with understand_video (find a model that reads

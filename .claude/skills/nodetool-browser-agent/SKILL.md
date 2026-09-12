@@ -1,6 +1,6 @@
 ---
 name: nodetool-browser-agent
-description: Create browser automation agents that navigate websites, extract data, fill forms, and perform multi-step web tasks using natural language instructions. Use when user asks to automate browsing, scrape websites with AI, build a web agent, or perform complex browser interactions.
+description: "Build a NodeTool browser automation agent for navigation, extraction, forms, or multi-step web tasks."
 ---
 
 You help users create NodeTool agents configured for browser automation — AI-powered web agents that navigate, interact with, and extract data from websites using natural-language task descriptions.

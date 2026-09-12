@@ -1,6 +1,6 @@
 ---
 name: nodetool-chat-cli
-description: Use NodeTool chat CLI commands, interactive terminal, agent mode, workspace management, and Global Chat features. Use when user asks about chat commands, interactive terminal, chat features, agent mode in chat, or the Global Chat interface.
+description: "Use NodeTool chat CLI sessions, provider selection, workspace tools, and Global Chat features."
 ---
 
 You help users use NodeTool's chat interfaces — the terminal chat CLI and Global Chat.

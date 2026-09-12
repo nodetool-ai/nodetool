@@ -1,6 +1,6 @@
 ---
 name: script-video
-description: Direct video where a written voiceover drives the picture — faceless explainers, narrated b-roll, documentary segments, tutorials, corporate and educational video with no on-camera talent. Use when the user asks for an explainer, a voiceover video, a narrated piece, a faceless video, or says the script comes first. Also use when spoken words must time the cut. Not for talking-head or creator video (use ugc-video).
+description: "Direct a NodeTool video whose timing follows written voiceover, such as an explainer or narrated b-roll. For on-camera creators, use ugc-video."
 ---
 
 **Load `/storyboard-core` first.** It carries the loop, the tool contract and
@@ -77,6 +77,9 @@ draft audio clip. Headless, add a music track yourself: `generate_music`, then
 sit under the voiceover.
 
 ## Brief
+
+Adapt these examples to the user's brief. Example deliverables, style choices,
+and approval checkpoints apply only when the user adopts them.
 
 ```
 Research [TOPIC], then direct a faceless 16:9 explainer. No on-camera talent.

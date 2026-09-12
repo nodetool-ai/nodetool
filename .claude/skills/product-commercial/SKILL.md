@@ -1,6 +1,6 @@
 ---
 name: product-commercial
-description: Direct a polished product film in NodeTool — pack shots, macro hero spots, luxury commercials, brand films on location, with or without talent. Use when the user wants an ad that looks shot on a camera rather than a phone, mentions a pack shot, hero shot, product film, brand spot, cyclorama or studio lighting, or names a product as the subject of a multi-shot video. Not for self-filmed or creator-style pieces (use ugc-video).
+description: "Direct a polished product film or brand commercial in NodeTool. For phone-shot creator ads, use ugc-video."
 ---
 
 **Load `/storyboard-core` first.** It carries the loop, the tool contract,
@@ -24,8 +24,10 @@ geometry and finish — `squat 200ml amber glass cylinder, brushed gold screw ca
 single centred cream label, serif wordmark` — not as marketing copy.
 
 Never invent a logo, a tagline or a label layout. If the label has to be readable, say
-so in the shot's `action` and give that shot a macro framing; if it stays unreadable
-after a still, render a new still rather than pushing on to a clip.
+so in the shot's `action` and give that shot a macro framing. Inspect the still
+before rendering its clip. If the label remains unreadable, retry only within the
+user's retry and spending limits. With no retries authorized, report the defect
+and follow the remaining requested stages without claiming the label is readable.
 
 Given several angles (front, three-quarter, back, top), tag the best single hero angle
 as the entity and keep the rest as plain assets — only the first reference image rides
@@ -46,7 +48,8 @@ editable.
 
 ## Shot pattern
 
-Five to seven shots, and the camera earns each cut. A product film reads as expensive
+Use the requested shot count. When the brief leaves it open, five to seven shots
+are a starting pattern. Give each cut a distinct purpose. A product film reads as expensive
 when the **light** moves and the pack does not — write that literally:
 `the light streak crosses the glass, the bottle stays still`.
 
@@ -69,6 +72,9 @@ stiffen: a fast orbit, liquid pouring, an explosive reveal. Then the framing and
 have to go into the action text, since no still carries them in.
 
 ## Briefs
+
+Adapt these examples to the user's brief. Example deliverables, style choices,
+and approval checkpoints apply only when the user adopts them.
 
 `references/briefs.md` has two: a 10s luxury pack shot with no talent, and a 30s
 street CPG walk with a character. Replace the bracketed placeholders and hand one over

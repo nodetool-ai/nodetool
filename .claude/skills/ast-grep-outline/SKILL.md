@@ -1,6 +1,6 @@
 ---
 name: ast-grep-outline
-description: Use when exploring or modifying a codebase and you need a cheap structural map of files, directories, imports, exports, or direct members before reading full source.
+description: "Map file structure, imports, exports, and direct members with ast-grep before reading selected source."
 ---
 
 # Use ast-grep outline
@@ -79,7 +79,6 @@ ast-grep outline $(git diff --name-only HEAD) --items exports
 types, follow re-export chains, or build a call graph. Use `ast-grep run`,
 `rg`, or compiler-backed tools for those questions, then outline the candidate
 files they surface.
-````
 
 ## NodeTool notes
 

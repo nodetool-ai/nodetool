@@ -1,6 +1,6 @@
 ---
 name: companion-clis
-description: Companion CLIs for Runpod workflows — HuggingFace, GitHub, Docker, and AWS.
+description: "Use Hugging Face, GitHub, Docker, and AWS CLIs for Runpod model downloads, images, releases, and volume transfers."
 allowed-tools: Bash(hf:*), Bash(gh:*), Bash(docker:*), Bash(aws:*), Bash(ssh-keygen:*), Bash(ssh-add:*), Bash(ssh-agent:*)
 compatibility: Linux, macOS, Windows
 metadata:

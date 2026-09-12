@@ -1,6 +1,6 @@
 ---
 name: launch-kit
-description: Produce a whole campaign in NodeTool rather than one video — entity sheets for a product and model, a set of still campaign frames, several short social cuts and a long film, all on one locked grade. Use when the user asks for a launch kit, a campaign, an asset pack, a content set, "a bunch of assets", or names several deliverables in different aspect ratios from one product. Not for a single video (use product-commercial or ugc-video).
+description: "Produce a NodeTool campaign with shared product and cast entities, stills, and multiple video cuts. Use for a coordinated asset set."
 ---
 
 **Load `/storyboard-core` first.** It carries the loop, the tool contract and
@@ -9,17 +9,18 @@ a set rather than a cut.
 
 ## What makes this job type its own
 
-Every other job renders once. This one renders in four passes over days, and the thing
-that must not drift between them is the **grade** and the **cast**. Consistency is the
-deliverable; the individual frames are almost incidental.
+Keep the grade and cast consistent across the requested campaign deliverables.
+Use the passes below as an organizing pattern, scaled to the brief.
 
 So: one entity set, one board `style` string, one image model, one video model, fixed
 at phase A and reused verbatim through phase D. Changing the image model mid-kit is how
 a kit ends up looking like two kits.
 
-## Run it in phases, and stop between them
+## Produce the requested campaign
 
-Each phase ends with a report and a wait. The user approves before the next spends.
+Use phases as progress checkpoints. Continue within the authorized deliverables
+and budget. Pause for a user-requested review or a missing decision that changes
+the output or spending scope. Do not reconfirm authorization already given.
 
 ### A — Cast and lock
 
@@ -37,32 +38,34 @@ Each phase ends with a report and a wait. The user approves before the next spen
    ids in `resources`. This is what makes the kit resumable next week — `share_result`
    would be discarded with the run.
 
-Report: entity ids, the grade string, both model ids. Stop.
+Report entity ids, the grade, and model ids. Continue with the requested assets.
 
 ### B — Still campaign frames
 
-Twelve or so, mixed crops, on-figure and product-only. This is stills-only mode from
-the core loop: run through take selection and **stop before clips**.
+Produce the requested number and mix of stills. Use take selection when the user
+reserved that choice. A stills-only request ends here. Otherwise continue to the
+authorized video deliverables with the selected frames.
 
 Vary the crop in `camera.framing` and repeat it in `action`, since only framing reaches
 the still prompt. Give product-only frames an explicit `entity_ids` naming the product
 alone, so the model's descriptor does not season a frame she is not in.
 
-Report the approved asset ids. Stop.
+Report the selected asset ids and continue within the requested scope.
 
 ### C — Social cuts
 
-Three vertical clips, 6–8 seconds, animated from **stills the user already approved in
-B**. Do not re-render those stills; a new still is a new look.
+Use the brief's clip count, durations, and ratios, animated from the selected
+phase-B stills. Honor any requested approval of those stills. Reuse them to keep
+the look consistent.
 
 A separate board per aspect ratio — `aspect_ratio` is a board field, not a shot field,
 so one board cannot serve 9:16 and 16:9. Same entities, same style, same models on each.
 
-Report clip asset ids. Stop.
+Report clip asset ids. Continue if the requested kit includes a longer film.
 
 ### D — The long film
 
-One 30-second 16:9 piece, slugged and timed. Assemble it, then finish the sound:
+Build the longer piece at the requested duration and aspect ratio, with stable slugs and timing. Assemble it, then finish the sound:
 `edit_timeline` → `get_state`, then `set_clip_params {muted: true}` on the "Shot Audio"
 clips under any voiceover, and add music with `generate_music` + `add_track` +
 `add_media_clip` at a low `volumeDb`.
@@ -85,6 +88,9 @@ If the user is deciding, that is the ratio to tell them.
 those are enough to resume without re-deriving the look.
 
 ## Brief
+
+Adapt these examples to the user's brief. Example deliverables, style choices,
+and approval checkpoints apply only when the user adopts them.
 
 ```
 Launch kit for [BRAND] [SKU] from the attached flat and on-body photos.

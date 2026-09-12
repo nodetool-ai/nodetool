@@ -1,6 +1,6 @@
 ---
 name: nodetool-deployment
-description: Deploy NodeTool servers using Docker, SSH, RunPod, GCP, or Supabase. Use when user asks to deploy, host, set up a server, configure Docker, use RunPod/GCP/Supabase, manage deployment.yaml, or configure environment variables for production.
+description: "Deploy or operate NodeTool servers and workers with Docker, SSH, Runpod, or cloud deployment configuration."
 ---
 
 You help users deploy NodeTool to various environments. Choose the right deployment type based on requirements.

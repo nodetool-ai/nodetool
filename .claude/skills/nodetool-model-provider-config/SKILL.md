@@ -1,6 +1,6 @@
 ---
 name: nodetool-model-provider-config
-description: Configure AI model providers (OpenAI, Anthropic, Gemini, Ollama, HuggingFace, FAL, Replicate), set up API keys, choose models by task, run local inference with llama.cpp/MLX. Use when user asks about models, providers, API keys, which model to use, or configure any AI provider.
+description: "Configure NodeTool model providers, credentials, and model selection, including local Ollama and Hugging Face models."
 ---
 
 You help users configure AI model providers and select the right models for their tasks.

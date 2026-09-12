@@ -1,17 +1,17 @@
 ---
 name: storyboard-core
-description: Shared reference for directing video in NodeTool — the storyboard-to-timeline loop, the exact tool contract, entity casting, how a shot becomes a prompt, permission gating and memory. Load this before acting on any storyboard, script, entity or timeline work, and whenever another NodeTool video skill (ugc-video, product-commercial, video-clone, script-video, short-film, launch-kit, video-workflow) tells you to. Consult it directly when the question is which tool, which argument, or why a render came out wrong.
+description: "Use NodeTool storyboard, entity-casting, rendering, and timeline-assembly tools for video production or debugging their contracts."
 ---
 
 The shared half of every NodeTool video job. The use-case skills carry the style,
 the shot pattern and the briefs; this carries the machinery they all assume.
 
-Direct video on the **storyboard** surface, then finish in the **timeline**. Do not
-author a node graph for a one-off piece — `/video-workflow` covers the case
-where a reusable template is actually wanted.
+Direct video on the **storyboard** surface, then finish in the **timeline**. Use a node graph when the user requests one or needs a reusable template, as
+described in [video-workflow](../video-workflow/SKILL.md).
 
-Read `references/tool-contract.md` before the first tool call. It carries the exact
-tool names, argument shapes, and the fields each one refuses.
+Read the relevant section of [tool-contract.md](references/tool-contract.md)
+before the first call in that tool family. Use the live tool schema when it differs
+from an example. Load other sections only when the task reaches them.
 
 ## Pick the use-case skill
 
@@ -58,15 +58,17 @@ Bridge the two with `ui_open_document {type: "storyboard", id}`.
    `image_to_video` or `text_to_video`; write both through
    `{op: "set_board", image_model, video_model}`. There is no default — an unset
    model fails the render rather than spending on a model nobody chose.
-5. **Direct.** One `{op: "add_shot", ...}` per shot. Then **stop.** Report the shot
-   count and the two models, and wait.
+5. **Direct.** One `{op: "add_shot", ...}` per shot. Report the shot count and
+   selected models. Continue to the stages authorized by the request. A board-only
+   request ends here. Honor any checkpoint the user requested.
 6. **Stills.** `render_storyboard_stills {storyboard_id}` — omit `targets` for every
    shot that still needs one. Cap 24 shots per call.
-7. **The user picks takes.** Every render keeps the old still in
-   `keyframe_versions`. Selecting a different one is a click in the board's takes
-   gallery; no tool does it. Never claim you switched takes.
-8. **Clips.** `render_storyboard_clips {storyboard_id}` — the expensive step. Wait
-   for the user's word.
+7. **Take selection, when requested.** Every render keeps the old still in
+   `keyframe_versions`. Selecting a different one requires the board's takes gallery. No tool does it.
+   Pause if the user reserved that selection. Otherwise continue with the current
+   take. Never claim to have switched takes without a supported action.
+8. **Clips.** `render_storyboard_clips {storyboard_id}` within the requested
+   generation scope and budget. Reuse prior authorization instead of asking again.
 9. **Revise one shot:** `revise_storyboard_clip {target, instruction}`. Needs an
    existing clip; it is video-to-video and touches no other shot.
 10. **Cut.** `assemble_storyboard_timeline`, then `validate_timeline`. Re-running
@@ -114,9 +116,12 @@ message*; it never becomes shot text.
   conditioning stiffens the result, and for native-audio video models, which are
   weakest on their image path.
 - A native-audio model writes the sound per clip, so a board of one clip per shot
-  cuts the audio at every join. Load the `video-audio-continuity` system skill
-  before rendering: either the whole piece is one shot carrying the cuts, or the
+  cuts the audio at every join. Before rendering, load the `video-audio-continuity`
+  system skill through `load_skill`, or read its
+  [repository source](../../../packages/system-skills/video-audio-continuity/SKILL.md): either the whole piece is one shot carrying the cuts, or the
   continuity comes from a narration or music track and the shot audio is muted.
+  A silent cut is also valid when sound is not requested. Reuse existing audio
+  or keep the cut silent when extra generation would exceed the authorized scope.
 
 ## Where the models will not do what the cut wants
 
@@ -161,13 +166,16 @@ Permission mode decides what runs without asking. `read` tools always run.
 | `plan` | **blocked** |
 
 `plan` blocks `create_storyboard` and `edit_storyboard` too, so the board cannot be
-written in it. To write the board and stop before spending, use **`default`** and let
-the user deny the render calls. `ui_storyboard_*` calls are not gated at all — in a
-browser session the human's word is the only gate on `ui_storyboard_generate_clip`.
+written in it. Respect the active permission mode and tool approval responses. For a board-only
+request, write the board and omit render calls. Do not switch modes or use browser
+tools to evade a denied headless action. A tool being callable does not authorize
+spend beyond the user's request.
 
 **You cannot price a render.** No tool estimates it, and `Shot.cost_estimate` is not
-populated. Say "7 shots × <video model>" and let the user decide; report actual spend
-afterwards with `get_cost_summary`.
+populated. Report the shot count and model without inventing a dollar estimate. If a user
+budget cannot be checked before spending, resolve that constraint first. Report
+actual spend afterwards with `get_cost_summary`. If authorization is missing,
+prepare the board and explain the specific render action that needs approval.
 
 ## Memory
 
@@ -194,4 +202,6 @@ Cut it. Assemble, validate, narration on its own track, mute Shot Audio on 1-6.
 ## Reference files
 
 - `references/tool-contract.md` — every tool, its arguments, and the fields it refuses.
-- `references/standing-orders.md` — the block to paste as message 1 of a chat thread.
+- [standing-orders.md](references/standing-orders.md) contains an optional brief
+  for users who explicitly want approval between stages. Its sample checkpoints
+  do not add requirements to a different request.

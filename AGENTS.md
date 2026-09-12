@@ -55,6 +55,7 @@ Guidelines](docs/BRAND.md).
 ## Quick Navigation
 
 - **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** — Required for all work.
+- **[Repository Skills](#repository-skills)** — Task-specific engineering and NodeTool authoring workflows.
 - **[Design System](docs/DESIGN.md)** — Required for UI work.
 - **[UI Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** — Required for frontend work.
 - **[Harness-First Engineering](docs/HARNESS_FIRST.md)** — The doctrine: every surface headlessly drivable, the registry, `nodetool harness audit`
@@ -91,6 +92,34 @@ Use these sections for the detailed rules summarized below.
 | Verification and diagnostics | [testing](docs/DEVELOPMENT_STANDARDS.md#8-testing), [observability](docs/DEVELOPMENT_STANDARDS.md#17-observability), [enforcement](docs/DEVELOPMENT_STANDARDS.md#22-enforcement) |
 | Security boundaries | [application security](docs/DEVELOPMENT_STANDARDS.md#16-security), [Electron security](docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security) |
 | Delivering changes | [documentation and comments](docs/DEVELOPMENT_STANDARDS.md#19-documentation--comments), [commits and PRs](docs/DEVELOPMENT_STANDARDS.md#20-git-commits-prs), [dependencies](docs/DEVELOPMENT_STANDARDS.md#21-dependencies--versions) |
+
+## Repository Skills
+
+Skills live in `.claude/skills/`. The `.agents` symlink exposes the same files
+through `.agents/skills/`. Use a skill when requested or when its description
+and invocation policy match the task. Read the selected `SKILL.md`, then only
+the supporting references needed for the current operation. User instructions
+take precedence over skill guidelines.
+
+| Task | Skill |
+|---|---|
+| Implement an existing spec or tickets | [implement](.claude/skills/implement/SKILL.md) |
+| Diagnose code failures or performance regressions | [diagnosing-bugs](.claude/skills/diagnosing-bugs/SKILL.md) |
+| Review a diff, branch, or PR | [code-review](.claude/skills/code-review/SKILL.md) |
+| Remove unnecessary code or prose from a requested change | [unslop](.claude/skills/unslop/SKILL.md) |
+| Develop behavior test-first | [tdd](.claude/skills/tdd/SKILL.md) |
+| Write or repair web and workflow Playwright tests | [e2e-testing](.claude/skills/yts806379-everything-claude-code-e2e-testing/SKILL.md) |
+| Map source structure before reading selected code | [ast-grep-outline](.claude/skills/ast-grep-outline/SKILL.md) |
+| Design module interfaces and test boundaries | [codebase-design](.claude/skills/codebase-design/SKILL.md) |
+| Turn an agreed discussion into a spec or dependent tickets | [to-spec](.claude/skills/to-spec/SKILL.md), [to-tickets](.claude/skills/to-tickets/SKILL.md) |
+| Create or edit a NodeTool workflow graph | [nodetool-workflow-builder](.claude/skills/nodetool-workflow-builder/SKILL.md) |
+| Create or update a NodeTool node implementation | [nodetool-custom-node-developer](.claude/skills/nodetool-custom-node-developer/SKILL.md) |
+| Diagnose a failed or stuck workflow run | [nodetool-troubleshooter](.claude/skills/nodetool-troubleshooter/SKILL.md) |
+| Direct storyboards, render shots, and assemble timelines | [storyboard-core](.claude/skills/storyboard-core/SKILL.md) |
+
+Use [ask-matt](.claude/skills/ask-matt/SKILL.md) when the user asks which
+engineering workflow fits. See [skill maintenance guidance](.claude/README.md#maintaining-skills)
+when updating skills.
 
 ## Architecture
 

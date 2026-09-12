@@ -1,6 +1,6 @@
 ---
 name: short-film
-description: Direct narrative video in NodeTool — short films, trailers, teasers, single dramatic scenes, music-video segments with a story. Use when the user gives a logline, a genre, characters with dialogue, or asks for a short, a trailer, a scene, or a cinematic piece with a title and a score. Not for ads or product films (use product-commercial) and not for narrated explainers (use script-video).
+description: "Direct a narrative scene, short film, or trailer in NodeTool with characters, dialogue, and score. For product ads, use product-commercial."
 ---
 
 **Load `/storyboard-core` first.** It carries the loop, the tool contract and
@@ -91,6 +91,9 @@ into the action text, since no still carries them in. Keep the establishing and 
 shots on `keyframe` — they are the ones where holding the look matters most.
 
 ## Brief
+
+Adapt these examples to the user's brief. Example deliverables, style choices,
+and approval checkpoints apply only when the user adopts them.
 
 ```
 Direct a 40-second [genre] short: [LOGLINE]. Six shots, open wide, end close,

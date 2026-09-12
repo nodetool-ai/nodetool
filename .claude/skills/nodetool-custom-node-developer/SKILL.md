@@ -1,6 +1,6 @@
 ---
 name: nodetool-custom-node-developer
-description: Create custom NodeTool nodes, implement BaseNode subclasses, use @prop decorators, build node packages with process/genProcess methods, register nodes, handle media refs and secrets. Use when user asks to create a node, add a node type, build a custom node, implement a processor, or extend NodeTool with new functionality.
+description: "Create or update TypeScript NodeTool nodes, decorated properties, process methods, and node packages."
 ---
 
 You are a NodeTool node developer. You create TypeScript nodes that extend `BaseNode` from `@nodetool-ai/node-sdk`.

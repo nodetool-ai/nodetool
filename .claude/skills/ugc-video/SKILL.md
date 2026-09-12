@@ -1,6 +1,6 @@
 ---
 name: ugc-video
-description: Direct phone-shot video with a person in it — UGC ads, creator testimonials, review-to-hero spots, comedy sketches, day-in-the-life and ritual pieces, first-person travel vlogs. Use when the user wants a video that looks self-filmed or friend-filmed, mentions UGC, TikTok, Reels, a creator, a testimonial, a talking-head ad, or names a person as the subject of a multi-shot video. Not for polished product films (use product-commercial) or narrated b-roll with no talent (use script-video).
+description: "Direct phone-shot creator videos, UGC ads, testimonials, or vlogs in NodeTool. For polished product films, use product-commercial."
 ---
 
 **Load `/storyboard-core` first.** It carries the loop, the tool contract,
@@ -68,6 +68,9 @@ changed-outfit version of the same person is a **second entity** — cast it the
 way and name it in the shots where it applies.
 
 ## Briefs
+
+Adapt these examples to the user's brief. Example deliverables, style choices,
+and approval checkpoints apply only when the user adopts them.
 
 `references/briefs.md` has four written to these rules: review-to-hero UGC ad,
 Pinterest-fail comedy, locker-room ritual, and a night-city vlog with a shot-collapse

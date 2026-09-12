@@ -1,14 +1,13 @@
 # Standing orders
 
-Paste as message 1 of a Chat thread, then the job brief as message 2. The brief
-comes from the use-case skill — `/ugc-video`, `/product-commercial`,
-`/video-clone`, `/script-video`, `/short-film`,
-`/launch-kit` — each of which carries briefs already written to these orders.
+Use this optional template only when the user wants a staged review with approval
+between the board, stills, clips, and cut. Its checkpoints express that user's
+chosen workflow. They do not apply to other requests or override authorization
+already given to finish a piece.
 
-Set the thread's permission mode to **Default** — not Plan. Plan blocks every write,
-including writing the board itself; Default asks before each write, which is the gate
-you actually want. Switch to Auto only once the board is frozen and you are happy to
-let the renders run unattended.
+Respect the thread's existing permission mode. Plan mode blocks writes. Do not
+switch modes or use another tool family to evade a denial. The user can adapt the
+brief to authorize the desired stages and set a budget.
 
 ```
 You are directing on the storyboard surface, then finishing in the timeline.

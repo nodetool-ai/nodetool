@@ -1,6 +1,6 @@
 ---
 name: godot-game
-description: Make a complete 2D game in NodeTool and hand over a runnable Godot 4 project — pick a template (platformer, top-down, shoot-em-up), lock a cast and a pixel style, fill every asset slot the template declares with checked sprite sheets, tiles, backgrounds, sound effects and a music loop, export the project, write the gameplay hooks, and verify it under headless Godot. Use when the user asks for a game, a Godot project, a playable prototype, sprites for a game, or a game asset pack. Not for a single sprite or one sound (run the nodetool.game node directly).
+description: "Build a playable Godot game or complete game asset pack in NodeTool using templates, checked assets, export, and verification."
 ---
 
 ## What makes this job type its own
@@ -16,9 +16,11 @@ Two things must not drift across the run: the **style** (one style entity, one
 image model, pixel size fixed) and the **cast** (one entity per character). A
 sheet generated with a different model than the tileset reads as two games.
 
-## Run it in phases, and stop between them
+## Work through the requested phases
 
-Each phase ends with a report and a wait. The user approves before the next spends.
+Use the phases as progress checkpoints. Continue through the requested output
+within the authorized generation scope and budget. Pause only for a requested
+review, an unresolved decision, or an action requiring new authorization.
 
 Look at the project's workflows first. The Game entry card builds a slot-filling
 workflow that ends in `nodetool.game.ExportGodotProject`, so when the project
@@ -33,7 +35,7 @@ such workflow.
 2. Write `design.md` into the workspace with `write_file`: premise, core loop,
    the player's verbs, enemies, one level's layout in words, win and lose
    conditions. Keep it under a page.
-3. Report the template id and its slot list. Stop.
+3. Report the template id and its slot list. Continue if the requested output includes assets or a playable game.
 
 ### P1 — Cast and lock
 
@@ -49,7 +51,7 @@ such workflow.
 4. `memory_save` the template id, the model id, and every entity id, with the
    ids in `resources`.
 
-Report entity ids and the model id. Stop.
+Report entity ids and the model id, then continue within the authorized scope.
 
 ### P2 — Fill the manifest
 
@@ -70,7 +72,8 @@ check node stores its output as a new asset carrying the fill and returns that
 `asset_id`; that is the id the export takes, not the raw generation's. Keep a
 table of `slot_id → asset_id` as you go and `memory_save` it after each slot.
 
-Report a contact sheet: every slot, its asset id, and the check result. Stop.
+Report a contact sheet with every slot, asset id, and check result. Continue to
+export for a playable-game request, or stop here for an asset-pack request.
 
 **The graph path.** When the user wants the pack re-runnable — a second style, a
 second character, a new template — build a workflow instead of the loop above.
@@ -121,7 +124,10 @@ Report slot counts before P2 starts. A platformer manifest is roughly eight
 generations plus regenerations; a sheet that fails its cell check is the usual
 retry. Afterwards `get_cost_summary` gives what the game cost.
 
-## Brief
+## Optional staged-review brief
+
+Use this example only when the user wants to approve each phase. Its pauses do
+not apply to a request that already authorizes completion.
 
 ```
 Make a [platformer / top-down / shoot-em-up] about [premise]. Stop after each
