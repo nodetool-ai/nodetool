@@ -46,6 +46,7 @@ const summary = (
       name: kind,
       kind,
       isPersonal: false,
+      archivedAt: null,
       threadId: null,
       createdAt: "",
       updatedAt: ""

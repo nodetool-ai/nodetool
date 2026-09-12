@@ -11,6 +11,7 @@
  * of its own. Everything below is driven by the same engine the player drives.
  */
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
@@ -46,11 +47,19 @@ function renderChrome(timeMs: number) {
 }
 
 describe("timeline demo chrome", () => {
-  it("shows the editor's actions, inert", () => {
+  it("shows the editor's actions, inert", async () => {
+    const user = userEvent.setup();
     renderChrome(0);
-    for (const name of [/project settings/i, /^save$/i, /^export$/i]) {
+    for (const name of [/^save$/i, /^export video$/i]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
+
+    await user.click(
+      screen.getByRole("button", { name: /more timeline actions/i })
+    );
+    expect(
+      screen.getByRole("menuitem", { name: /project settings/i })
+    ).toBeInTheDocument();
   });
 
   it("reports the cast's zoom in the status bar", () => {

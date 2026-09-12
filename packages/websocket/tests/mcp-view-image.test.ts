@@ -14,6 +14,7 @@ import {
 } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Asset, initTestDb } from "@nodetool-ai/models";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { createMcpServer, type McpServerOptions } from "../src/mcp-server.js";
 import * as storage from "../src/lib/storage.js";
@@ -27,6 +28,7 @@ const connections: Array<{
 }> = [];
 
 beforeAll(async () => {
+  initTestDb();
   root = await mkdtemp(join(tmpdir(), "nodetool-mcp-images-"));
   vi.stubEnv(process.platform === "win32" ? "APPDATA" : "XDG_DATA_HOME", root);
   const adapter = new FileStorageAdapter(join(root, "assets"));
@@ -39,6 +41,14 @@ beforeAll(async () => {
   imagePath = join(root, "image with spaces.png");
   await writeFile(imagePath, png);
   await adapter.store("1/test-image.png", png, "image/png");
+  await new Asset({
+    id: "test-image",
+    user_id: "1",
+    name: "test-image.png",
+    content_type: "image/png",
+    size: png.length,
+    project_id: "default"
+  }).save();
 });
 
 afterEach(async () => {

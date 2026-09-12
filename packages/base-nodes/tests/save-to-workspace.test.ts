@@ -6,7 +6,7 @@
  * than overwritten.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtemp, rm, readdir, writeFile } from "node:fs/promises";
+import { mkdtemp, realpath, rm, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { ProcessingContext } from "@nodetool-ai/runtime";
@@ -26,7 +26,9 @@ const PNG = Buffer.from(
 );
 
 beforeEach(async () => {
-  workspace = await mkdtemp(path.join(tmpdir(), "nodetool-workspace-"));
+  workspace = await realpath(
+    await mkdtemp(path.join(tmpdir(), "nodetool-workspace-"))
+  );
   context = new ProcessingContext({ jobId: "save-test", workspaceDir: workspace });
 });
 

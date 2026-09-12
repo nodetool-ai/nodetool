@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
+import * as mod from "../src/index.js";
 
 describe("deploy index exports", () => {
-  it("exports all public API", async () => {
-    const mod = await import("../src/index.js");
+  it("exports all public API", () => {
     expect(mod).toBeDefined();
 
     // deployment-config
