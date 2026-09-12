@@ -1204,11 +1204,20 @@ export const recipeEntries: RecipeEntry[] = [
       "runId": "2026-09-11-impossible-product-worlds",
       "status": "partial",
       "statusLabel": "15-second drone reveal",
-      "summary": "A continuous drone flight rises above a giant desert cup and reveals a luxury pool inside its fitted lid, followed by a tabletop shot and closing hero.",
+      "proofTitle": "Small object. Big escape.",
+      "summary": "A giant cup in the desert. A hidden pool in its lid. One continuous drone shot reveals an impossible escape.",
       "provider": "GPT Image 2 stills and Kling v3 Turbo clips generated with AtlasCloud through NodeTool",
       "hero": {
         "src": "/recipes/runs/2026-09-11-impossible-product-worlds/pool-poster.webp",
-        "alt": "A giant olive travel cup in the desert with a turquoise pool and loungers inside its lid."
+        "alt": "A giant olive travel cup in the desert with a turquoise pool and loungers inside its lid.",
+        "width": 540,
+        "height": 960
+      },
+      "card": {
+        "src": "/recipes/runs/2026-09-11-impossible-product-worlds/pool-poster.webp",
+        "alt": "A giant olive travel cup in the desert with a turquoise pool and loungers inside its lid.",
+        "width": 540,
+        "height": 960
       },
       "ogImage": "/recipes/runs/2026-09-11-impossible-product-worlds/pool-poster.jpg",
       "proof": null,
@@ -1223,10 +1232,12 @@ export const recipeEntries: RecipeEntry[] = [
         "The opening camera move keeps the cup in view while revealing a pool inside its fitted lid.",
         "The final MP4 contains 450 frames at 30 fps and was visually reviewed."
       ],
+      "essentialLimitation": "Product proportions vary between generated shots.",
       "limitations": [
         "The fictional product changes proportions between generated shots. The result demonstrates a creative direction, not exact product reproduction.",
         "Final playback was assembled locally after the timeline renderer omitted the revised opening clip. No recorded UI walkthrough or soundtrack is included."
-      ]
+      ],
+      "reviewLabel": "Partial example"
     },
     "guide": {
       "entry": "Storyboard",

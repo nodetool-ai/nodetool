@@ -68,6 +68,7 @@ test.describe("marketing smoke", () => {
 
     const expectedRoutes = [
       "/recipes/viral-video-ad-engine",
+      "/recipes/impossible-product-worlds",
       "/recipes/ecommerce-sku-visual-factory",
       "/recipes/multilingual-video-dubber",
       "/recipes/storyboard-to-trailer"
@@ -111,6 +112,21 @@ test.describe("marketing smoke", () => {
     expect((await adVideo.boundingBox())?.width ?? 0).toBeGreaterThan(300);
     await expect(adProject.locator("img")).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  });
+
+  test("advertising showcase opens the impossible product worlds recipe", async ({ page }) => {
+    await page.goto("/marketing");
+    await page.getByRole("link", {
+      name: "Explore the Impossible product worlds project"
+    }).click();
+    await expect(page).toHaveURL(/\/recipes\/impossible-product-worlds$/);
+    await expect(page.getByRole("heading", {
+      name: "Impossible product worlds", exact: true
+    })).toBeVisible();
+    const video = page.locator("#production-proof video");
+    await expect(video).toHaveJSProperty("error", null);
+    await expect(video).toHaveJSProperty("duration", 15);
+    await expect(page.getByText("Still to review")).toHaveCount(0);
   });
 
   test("the download page offers an installer for every platform", async ({
