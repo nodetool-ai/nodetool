@@ -19,6 +19,7 @@ import { Render, type Data } from "@puckeditor/core";
 import ThemeNodetool from "../components/themes/ThemeNodetool";
 import {
   namespaceOf,
+  operationTarget,
   parseBinding,
   stateKey,
   type AppInstanceState,
@@ -40,7 +41,10 @@ import {
   type AppRuntimeContextValue
 } from "../components/appbuilder/runtime/AppRuntimeContext";
 import { appConfig } from "../components/appbuilder/puck/config";
-import { extractWorkflowIO } from "../components/appbuilder/workflowIO";
+import {
+  extractScriptIO,
+  extractWorkflowIO
+} from "../components/appbuilder/workflowIO";
 import { Workflow } from "../stores/ApiTypes";
 import { Box, BORDER_RADIUS, ThemeRoot } from "../components/ui_primitives";
 import { makeDemoAudio, makeDemoGradient, makeDemoVideo } from "./demoMedia";
@@ -54,12 +58,18 @@ interface PreviewWorkflow {
   graph: Workflow["graph"];
 }
 
+interface PreviewScript {
+  key: string;
+  document: Parameters<typeof extractScriptIO>[0];
+}
+
 interface PreviewBundle {
   slug: string;
   name: string;
   image: string | null;
   app: ApplicationDocument;
   workflows: PreviewWorkflow[];
+  scripts?: PreviewScript[];
   /** Keyed by the same binding token the widgets carry (`op:<id>/out:<node>`). */
   values: Record<string, unknown>;
 }
@@ -67,7 +77,9 @@ interface PreviewBundle {
 const isToken = (v: unknown, kind: string): boolean =>
   isObjectLike(v) && (v as Record<string, unknown>).$demo === kind;
 
-async function resolveDemoValues(bundle: PreviewBundle): Promise<Record<string, unknown>> {
+async function resolveDemoValues(
+  bundle: PreviewBundle
+): Promise<Record<string, unknown>> {
   const resolved: Record<string, unknown> = {};
   const art = bundle.image ?? makeDemoGradient(bundle.name);
   let video: string | null | undefined;
@@ -128,12 +140,16 @@ async function mediaSettled(el: HTMLElement): Promise<void> {
   const images = [...el.querySelectorAll("img")];
   const videos = [...el.querySelectorAll("video")];
   await Promise.all([
-    ...images.map((img) => (img.complete ? Promise.resolve() : img.decode().catch(() => {}))),
+    ...images.map((img) =>
+      img.complete ? Promise.resolve() : img.decode().catch(() => {})
+    ),
     ...videos.map(
       (v) =>
         new Promise<void>((resolveVideo) => {
           if (v.readyState >= 2) return resolveVideo();
-          v.addEventListener("loadeddata", () => resolveVideo(), { once: true });
+          v.addEventListener("loadeddata", () => resolveVideo(), {
+            once: true
+          });
           setTimeout(resolveVideo, 4000);
         })
     )
@@ -208,13 +224,24 @@ const AppPreviewApp: React.FC = () => {
   // WorkflowInput widget to render the control its node's type calls for, and
   // for every `op:<id>/…` binding to resolve the way the runtime resolves it.
   const operationIO = useMemo(() => {
-    const graphs = new Map(bundle?.workflows.map((w) => [w.key, w.graph]) ?? []);
-    return (bundle?.app.operations ?? []).map((operation) => ({
-      operation,
-      io: extractWorkflowIO({
-        graph: graphs.get(operation.workflowId)
-      } as Workflow)
-    }));
+    const graphs = new Map(
+      bundle?.workflows.map((w) => [w.key, w.graph]) ?? []
+    );
+    const scripts = new Map(
+      bundle?.scripts?.map((s) => [s.key, s.document]) ?? []
+    );
+    return (bundle?.app.operations ?? []).map((operation) => {
+      const target = operationTarget(operation);
+      return {
+        operation,
+        io:
+          target.kind === "script"
+            ? extractScriptIO(scripts.get(target.scriptId))
+            : extractWorkflowIO({
+                graph: graphs.get(target.workflowId)
+              } as Workflow)
+      };
+    });
   }, [bundle]);
 
   const runtime = useMemo((): AppRuntimeContextValue | null => {

@@ -131,13 +131,21 @@ const READ_WIDGET = {
   Markdown: (base) => ({ type: "Markdown", props: { ...base, text: "" } }),
   Image: (base) => ({
     type: "Image",
-    props: { ...base, fit: "contain", height: 280, placeholder: "Your result appears here" }
+    props: {
+      ...base,
+      fit: "contain",
+      height: 280,
+      placeholder: "Your result appears here"
+    }
   }),
   Video: (base) => ({
     type: "Video",
     props: { ...base, height: 320, placeholder: "Your video appears here" }
   }),
-  Audio: (base) => ({ type: "Audio", props: { ...base, placeholder: "Your audio appears here" } }),
+  Audio: (base) => ({
+    type: "Audio",
+    props: { ...base, placeholder: "Your audio appears here" }
+  }),
   Table: (base) => ({ type: "Table", props: base }),
   Json: (base) => ({ type: "Json", props: base })
 };
@@ -165,7 +173,14 @@ const runEvents = (operationIds) =>
   }));
 
 const changeRun = (operationId, pace) => [
-  { trigger: "change", kind: "run", operationId, pace: pace ?? "live", key: "", value: "" }
+  {
+    trigger: "change",
+    kind: "run",
+    operationId,
+    pace: pace ?? "live",
+    key: "",
+    value: ""
+  }
 ];
 
 /**
@@ -177,31 +192,39 @@ function buildControl(control, ctx) {
 
   const opInput = (op, name) => {
     const operation = ctx.operations.get(op);
-    if (!operation) fail(`${ctx.app.name}: control names unknown operation "${op}"`);
+    if (!operation)
+      fail(`${ctx.app.name}: control names unknown operation "${op}"`);
     const node = operation.template.inputs.get(name);
     if (!node) {
       fail(
         `${ctx.app.name}: operation "${op}" (${operation.template.name}) has no input named "${name}"`
       );
     }
-    return node;
+    return { operation, node };
   };
 
   // `text`, `select` and `slider` take either an input name or `{ node, prop }`.
   // An input name binds the template's Input node; `{ node, prop }` binds a
   // property on a node inside the graph, so no Input node is needed.
   const inputTarget = (kind, name) => {
-    const node = opInput(control.op, name);
+    const { operation, node } = opInput(control.op, name);
     ctx.seedInputValue(control.op, node);
+    const portId = operation.kind === "script" ? node.name : node.id;
     return {
-      binding: inputBinding(control.op, node.id),
+      binding: inputBinding(control.op, portId),
       idParts: [kind === "slider" ? "slider" : "in", control.op, name]
     };
   };
 
   const propTarget = (kind, target) => {
     const operation = ctx.operations.get(control.op);
-    if (!operation) fail(`${ctx.app.name}: ${kind} names unknown operation "${control.op}"`);
+    if (!operation)
+      fail(`${ctx.app.name}: ${kind} names unknown operation "${control.op}"`);
+    if (operation.kind === "script") {
+      fail(
+        `${ctx.app.name}: ${kind} cannot bind a node property on script operation "${control.op}"`
+      );
+    }
     const { node, prop } = target;
     const graphNode = operation.template.graph.nodes.find((n) => n.id === node);
     if (!graphNode) {
@@ -220,7 +243,10 @@ function buildControl(control, ctx) {
   };
 
   if (control.note !== undefined) {
-    return { type: "Text", props: { id: nextId(["note"]), text: control.note } };
+    return {
+      type: "Text",
+      props: { id: nextId(["note"]), text: control.note }
+    };
   }
 
   // A run button lists the operations it starts; `run: true` on a slider or an
@@ -297,12 +323,13 @@ function buildControl(control, ctx) {
   }
 
   if (control.input !== undefined) {
-    const node = opInput(control.op, control.input);
+    const { operation, node } = opInput(control.op, control.input);
+    const portId = operation.kind === "script" ? node.name : node.id;
     return {
       type: "WorkflowInput",
       props: {
         id: nextId(["in", control.op, control.input]),
-        binding: inputBinding(control.op, node.id),
+        binding: inputBinding(control.op, portId),
         label: control.label,
         events: []
       }
@@ -327,13 +354,14 @@ function buildControl(control, ctx) {
   }
 
   if (control.number !== undefined) {
-    const node = opInput(control.op, control.number);
+    const { operation, node } = opInput(control.op, control.number);
     ctx.seedInputValue(control.op, node);
+    const portId = operation.kind === "script" ? node.name : node.id;
     return {
       type: "NumberInput",
       props: {
         id: nextId(["in", control.op, control.number]),
-        binding: inputBinding(control.op, node.id),
+        binding: inputBinding(control.op, portId),
         label: control.label,
         min: control.min,
         max: control.max,
@@ -360,13 +388,14 @@ function buildControl(control, ctx) {
   }
 
   if (control.color !== undefined) {
-    const node = opInput(control.op, control.color);
+    const { operation, node } = opInput(control.op, control.color);
     ctx.seedInputValue(control.op, node);
+    const portId = operation.kind === "script" ? node.name : node.id;
     return {
       type: "ColorInput",
       props: {
         id: nextId(["in", control.op, control.color]),
-        binding: inputBinding(control.op, node.id),
+        binding: inputBinding(control.op, portId),
         label: control.label,
         events: []
       }
@@ -374,12 +403,13 @@ function buildControl(control, ctx) {
   }
 
   if (control.audio !== undefined) {
-    const node = opInput(control.op, control.audio);
+    const { operation, node } = opInput(control.op, control.audio);
+    const portId = operation.kind === "script" ? node.name : node.id;
     return {
       type: "AudioInput",
       props: {
         id: nextId(["in", control.op, control.audio]),
-        binding: inputBinding(control.op, node.id),
+        binding: inputBinding(control.op, portId),
         label: control.label,
         events: control.run ? changeRun(control.op, "release") : []
       }
@@ -400,7 +430,9 @@ function buildControl(control, ctx) {
         min: control.min ?? 0,
         max: control.max ?? 100,
         step: control.step ?? 1,
-        events: control.run ? changeRun(control.op, control.pace ?? "release") : []
+        events: control.run
+          ? changeRun(control.op, control.pace ?? "release")
+          : []
       }
     };
   }
@@ -414,7 +446,9 @@ function buildResult(result, ctx) {
 
   if (result.progress !== undefined) {
     if (!ctx.operations.has(result.progress)) {
-      fail(`${ctx.app.name}: progress names unknown operation "${result.progress}"`);
+      fail(
+        `${ctx.app.name}: progress names unknown operation "${result.progress}"`
+      );
     }
     items.push({
       type: "Progress",
@@ -428,7 +462,10 @@ function buildResult(result, ctx) {
   }
 
   if (result.note !== undefined) {
-    items.push({ type: "Text", props: { id: nextId(["note"]), text: result.note } });
+    items.push({
+      type: "Text",
+      props: { id: nextId(["note"]), text: result.note }
+    });
     return items;
   }
 
@@ -440,16 +477,18 @@ function buildResult(result, ctx) {
     idParts = ["out", result.showVar];
   } else {
     const operation = ctx.operations.get(result.op);
-    if (!operation) fail(`${ctx.app.name}: result names unknown operation "${result.op}"`);
-    const node = operation.template.outputs.get(result.show);
-    if (!node) {
+    if (!operation)
+      fail(`${ctx.app.name}: result names unknown operation "${result.op}"`);
+    const port = operation.template.outputs.get(result.show);
+    if (!port) {
       fail(
         `${ctx.app.name}: operation "${result.op}" (${operation.template.name}) has no output named "${result.show}"`
       );
     }
-    binding = outputBinding(result.op, node.id);
+    const portId = operation.kind === "script" ? port.name : port.id;
+    binding = outputBinding(result.op, portId);
     idParts = ["out", result.op, result.show];
-    ctx.displayed.add(`${result.op}:${node.id}`);
+    ctx.displayed.add(`${result.op}:${portId}`);
   }
 
   const make = READ_WIDGET[result.as ?? "Markdown"];
@@ -457,7 +496,11 @@ function buildResult(result, ctx) {
   if (result.label) {
     items.push({
       type: "Heading",
-      props: { id: nextId(["lbl", ...idParts.slice(1)]), text: result.label, level: "3" }
+      props: {
+        id: nextId(["lbl", ...idParts.slice(1)]),
+        text: result.label,
+        level: "3"
+      }
     });
   }
   items.push(make({ id: nextId(idParts), binding }));
@@ -475,13 +518,39 @@ function buildApp(app, templates) {
 
   const operations = new Map();
   for (const operation of app.operations) {
+    if (operation.script !== undefined) {
+      const script = app.scripts?.[operation.script];
+      if (!script) {
+        fail(
+          `${app.name}: operation "${operation.id}" names unknown script key "${operation.script}"`
+        );
+      }
+      operations.set(operation.id, {
+        spec: operation,
+        key: operation.script,
+        kind: "script",
+        template: {
+          name: script.name,
+          inputs: new Map(
+            script.document.inputs.map((port) => [port.name, port])
+          ),
+          outputs: new Map(
+            script.document.outputs.map((port) => [port.name, port])
+          )
+        }
+      });
+      continue;
+    }
     const templateName = app.workflows[operation.workflow];
     if (!templateName) {
-      fail(`${app.name}: operation "${operation.id}" names unknown workflow key "${operation.workflow}"`);
+      fail(
+        `${app.name}: operation "${operation.id}" names unknown workflow key "${operation.workflow}"`
+      );
     }
     operations.set(operation.id, {
       spec: operation,
       key: operation.workflow,
+      kind: "workflow",
       template: templates.get(templateName)
     });
   }
@@ -494,35 +563,54 @@ function buildApp(app, templates) {
     displayed,
     useVariable: (id) => {
       if (!declaredVariables.has(id)) {
-        fail(`${app.name}: widget binds variable "${id}", which the app does not declare`);
+        fail(
+          `${app.name}: widget binds variable "${id}", which the app does not declare`
+        );
       }
     },
     // A text/number/select control seeds the preview with the graph's own
     // default, which is what makes the screenshot look filled in.
     seedInputValue: (op, node) => {
       const value = node.data?.value;
-      if (value === undefined || value === null || typeof value === "object") return;
+      if (value === undefined || value === null || typeof value === "object")
+        return;
       values[inputBinding(op, node.id)] = value;
     }
   };
 
-  const content = [
+  const defaultContent = [
     {
       type: "Heading",
-      props: { id: nextId(["title"]), text: `${app.emoji} ${app.name}`, level: "1" }
+      props: {
+        id: nextId(["title"]),
+        text: `${app.emoji} ${app.name}`,
+        level: "1"
+      }
     },
     { type: "Text", props: { id: nextId(["tagline"]), text: app.tagline } }
   ];
-  if (app.note) {
-    content.push({ type: "Text", props: { id: nextId(["app-note"]), text: app.note } });
+  const content = app.content ? structuredClone(app.content) : defaultContent;
+  if (!app.content && app.note) {
+    content.push({
+      type: "Text",
+      props: { id: nextId(["app-note"]), text: app.note }
+    });
   }
 
-  for (const section of app.sections) {
-    const controls = (section.controls ?? []).map((control) => buildControl(control, ctx));
-    const results = (section.results ?? []).flatMap((result) => buildResult(result, ctx));
+  for (const section of app.content ? [] : app.sections) {
+    const controls = (section.controls ?? []).map((control) =>
+      buildControl(control, ctx)
+    );
+    const results = (section.results ?? []).flatMap((result) =>
+      buildResult(result, ctx)
+    );
     const left = {
       type: "Container",
-      props: { id: nextId(["panel", section.title]), title: section.title, content: controls }
+      props: {
+        id: nextId(["panel", section.title]),
+        title: section.title,
+        content: controls
+      }
     };
     if (results.length === 0) {
       content.push(left);
@@ -550,42 +638,67 @@ function buildApp(app, templates) {
 
   // Operation mappings key on node IDs, so a renamed node never breaks an app.
   const documentOperations = app.operations.map((operation) => {
-    const template = operations.get(operation.id).template;
+    const entry = operations.get(operation.id);
+    const template = entry.template;
     const inputs = {};
     for (const [name, mapping] of Object.entries(operation.inputs ?? {})) {
-      const node = template.inputs.get(name);
-      if (!node) {
-        fail(`${app.name}: operation "${operation.id}" maps input "${name}", which ${template.name} does not have`);
+      const port = template.inputs.get(name);
+      if (!port) {
+        fail(
+          `${app.name}: operation "${operation.id}" maps input "${name}", which ${template.name} does not have`
+        );
       }
-      if (mapping.from === "variable" && !declaredVariables.has(mapping.variableId)) {
-        fail(`${app.name}: operation "${operation.id}" reads undeclared variable "${mapping.variableId}"`);
+      if (
+        mapping.from === "variable" &&
+        !declaredVariables.has(mapping.variableId)
+      ) {
+        fail(
+          `${app.name}: operation "${operation.id}" reads undeclared variable "${mapping.variableId}"`
+        );
       }
-      inputs[node.id] = mapping;
+      inputs[entry.kind === "script" ? port.name : port.id] = mapping;
     }
     const outputs = {};
     for (const [name, mapping] of Object.entries(operation.outputs ?? {})) {
-      const node = template.outputs.get(name);
-      if (!node) {
-        fail(`${app.name}: operation "${operation.id}" maps output "${name}", which ${template.name} does not have`);
+      const port = template.outputs.get(name);
+      if (!port) {
+        fail(
+          `${app.name}: operation "${operation.id}" maps output "${name}", which ${template.name} does not have`
+        );
       }
-      if (mapping.to === "variable" && !declaredVariables.has(mapping.variableId)) {
-        fail(`${app.name}: operation "${operation.id}" writes undeclared variable "${mapping.variableId}"`);
+      if (
+        mapping.to === "variable" &&
+        !declaredVariables.has(mapping.variableId)
+      ) {
+        fail(
+          `${app.name}: operation "${operation.id}" writes undeclared variable "${mapping.variableId}"`
+        );
       }
-      outputs[node.id] = mapping;
+      outputs[entry.kind === "script" ? port.name : port.id] = mapping;
     }
-    return {
+    const result = {
       id: operation.id,
       name: operation.name,
-      workflowId: operation.workflow,
+      workflowId: entry.kind === "script" ? "" : operation.workflow,
       inputs,
       outputs,
       policy: operation.policy ?? "replace",
       ...(operation.timeoutMs ? { timeoutMs: operation.timeoutMs } : {})
     };
+    if (entry.kind === "script") {
+      result.target = {
+        kind: "script",
+        scriptId: operation.script,
+        scriptVersion: 1
+      };
+    }
+    return result;
   });
 
   const document = {
-    schemaVersion: APP_SCHEMA_VERSION,
+    schemaVersion: documentOperations.some((operation) => operation.target)
+      ? 4
+      : APP_SCHEMA_VERSION,
     // No root title: the first widget is already a Heading carrying the app's
     // emoji and name, and the runtime renders a root title as a heading of its
     // own — so setting both printed the name twice on every example.
@@ -627,13 +740,21 @@ function buildBundle(app, templates) {
       graphHash: null
     };
   });
+  const scripts = Object.entries(app.scripts ?? {}).map(([key, script]) => ({
+    key,
+    name: script.name,
+    sourceId: `${PACKAGE}/${script.name}`,
+    document: script.document,
+    version: null
+  }));
   return {
     bundle: {
       schemaVersion: BUNDLE_SCHEMA_VERSION,
       name: app.name,
       description: app.description,
       app: document,
-      workflows
+      workflows,
+      ...(scripts.length > 0 ? { scripts } : {})
     },
     values
   };
@@ -647,7 +768,9 @@ function writeFile(file, contents) {
   const existing = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
   if (existing === contents) return false;
   if (checkOnly) {
-    fail(`${path.relative(ROOT, file)} is out of date — run node scripts/build-example-apps.mjs`);
+    fail(
+      `${path.relative(ROOT, file)} is out of date — run node scripts/build-example-apps.mjs`
+    );
   }
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, contents, "utf8");
@@ -685,11 +808,13 @@ function previewFor(app, bundle, values) {
       name: workflow.name,
       graph: {
         nodes: workflow.graph.nodes.filter(
-          (node) => node.type.startsWith("nodetool.input.") || isOutputNode(node)
+          (node) =>
+            node.type.startsWith("nodetool.input.") || isOutputNode(node)
         ),
         edges: []
       }
     })),
+    ...(bundle.scripts ? { scripts: bundle.scripts } : {}),
     values
   };
 }
@@ -773,7 +898,9 @@ function runRegen() {
     );
     if (error || !report?.bundle) {
       failed += 1;
-      console.log(`❌ ${app.slug}: ${error ?? report?.verdict?.reason ?? "no bundle"}`);
+      console.log(
+        `❌ ${app.slug}: ${error ?? report?.verdict?.reason ?? "no bundle"}`
+      );
       continue;
     }
     const lines = diffBundles(shipped, report.bundle);
@@ -813,7 +940,9 @@ const templates = new Map(
 );
 
 // Any template not bound by an app still must not carry an app_doc.
-for (const file of fs.readdirSync(EXAMPLES).filter((f) => f.endsWith(".json"))) {
+for (const file of fs
+  .readdirSync(EXAMPLES)
+  .filter((f) => f.endsWith(".json"))) {
   const name = file.replace(/\.json$/, "");
   if (!templates.has(name)) loadTemplate(name);
 }
@@ -824,6 +953,7 @@ fs.mkdirSync(path.join(PREVIEW, "img"), { recursive: true });
 const manifest = [];
 const liveSlugs = new Set();
 const bundleFiles = [];
+const debugInteractions = new Map();
 
 for (const app of EXAMPLE_APPS) {
   const { bundle, values } = buildBundle(app, templates);
@@ -837,6 +967,9 @@ for (const app of EXAMPLE_APPS) {
     `${JSON.stringify(preview, null, 2)}\n`
   );
   liveSlugs.add(app.slug);
+  if (Array.isArray(app.debugInteractions)) {
+    debugInteractions.set(app.slug, app.debugInteractions);
+  }
   manifest.push({
     slug: app.slug,
     name: app.name,
@@ -895,18 +1028,24 @@ const outDir = fs.mkdtempSync(path.join(ROOT, "nodetool-debug-examples-"));
 let failed = 0;
 for (const file of bundleFiles) {
   const name = path.basename(file);
+  const slug = path.basename(file, ".app.json");
+  const args = [
+    "tsx",
+    "./packages/cli/src/nodetool.ts",
+    "app",
+    "debug",
+    file,
+    "--no-run",
+    "--out",
+    path.join(outDir, slug)
+  ];
+  const interactions = debugInteractions.get(slug);
+  if (interactions) {
+    args.push("--interact", JSON.stringify(interactions));
+  }
   const result = spawnSync(
     "npx",
-    [
-      "tsx",
-      "./packages/cli/src/nodetool.ts",
-      "app",
-      "debug",
-      file,
-      "--no-run",
-      "--out",
-      path.join(outDir, path.basename(file, ".app.json"))
-    ],
+    args,
     {
       cwd: ROOT,
       encoding: "utf8",
@@ -918,7 +1057,9 @@ for (const file of bundleFiles) {
   if (!ok) {
     failed += 1;
     console.log((result.stdout ?? "").trim());
-    console.error((result.stderr ?? "").trim().split("\n").slice(-10).join("\n"));
+    console.error(
+      (result.stderr ?? "").trim().split("\n").slice(-10).join("\n")
+    );
   }
 }
 fs.rmSync(outDir, { recursive: true, force: true });

@@ -275,11 +275,23 @@ describe("media.bytes / media.text", () => {
     expect(result.result).toContain("asset://missing-one");
   });
 
-  it("rejects a non-object ref", async () => {
+  it("reads a media locator string", async () => {
+    const { adapter, entries } = createStorage();
+    entries.set("image.png", new Uint8Array([1, 2, 3]));
+    const result = await runInSandbox({
+      code: `
+        return Array.from(await media.bytes("/api/storage/image.png"));
+      `,
+      context: contextWith(adapter)
+    });
+    expect(result.result).toEqual([1, 2, 3]);
+  });
+
+  it("rejects a non-media value", async () => {
     const result = await runInSandbox({
       code: `
         try {
-          await media.bytes("asset://x");
+          await media.bytes(42);
           return "resolved";
         } catch (e) {
           return e.message;
@@ -287,7 +299,7 @@ describe("media.bytes / media.text", () => {
       `,
       context: contextWith()
     });
-    expect(result.result).toContain("expected a media ref object");
+    expect(result.result).toContain("expected a media locator string or ref object");
   });
 
   it("refuses a ref over the size ceiling", async () => {

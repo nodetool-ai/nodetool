@@ -118,7 +118,7 @@ export const SEGMENT_IMAGE_SCHEMA: JsonSchema = {
     prompt: {
       type: "string" as const,
       description:
-        "The concept to segment, e.g. \"the red car\". Leave it out to ask the model for whatever objects it finds."
+        'The concept to segment, e.g. "the red car". Leave it out to ask the model for whatever objects it finds.'
     },
     points: {
       type: "array" as const,
@@ -310,7 +310,8 @@ export const GENERATE_MUSIC_SCHEMA: JsonSchema = {
     model: { type: "string" as const },
     prompt: {
       type: "string" as const,
-      description: "What the music should sound like — style, mood, instruments."
+      description:
+        "What the music should sound like — style, mood, instruments."
     },
     lyrics: {
       type: "string" as const,
@@ -519,6 +520,48 @@ export const generateImageSpec: CapabilitySpec = {
     `Generating image with ${String(params["provider"])}:${String(params["model"])}`
 };
 
+export const GENERATE_TEXT_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    provider: {
+      type: "string" as const,
+      description: "Provider id from find_model."
+    },
+    model: {
+      type: "string" as const,
+      description:
+        "Model id from find_model, or the whole find_model hit / `.ref` object."
+    },
+    prompt: { type: "string" as const, description: "User prompt." },
+    system: {
+      type: "string" as const,
+      description: "Optional system instruction."
+    },
+    images: {
+      type: "array" as const,
+      items: { type: "string" as const },
+      description:
+        "Optional image references as asset:// URIs, /api/storage/ keys, data URIs, or public URLs."
+    },
+    max_tokens: {
+      type: "number" as const,
+      description: "Maximum output tokens. Default 2048, max 16384."
+    },
+    temperature: { type: "number" as const }
+  },
+  required: ["provider", "model", "prompt"]
+};
+
+export const generateTextSpec: CapabilitySpec = {
+  name: "generate_text",
+  description:
+    "Run one language-model roundtrip, optionally with images, using a provider+model selected via find_model (capability=generate_message). Returns the model's text without creating an asset.",
+  inputSchema: GENERATE_TEXT_SCHEMA,
+  category: "external",
+  userMessage: (params) =>
+    `Generating text with ${String(params["provider"])}:${String(params["model"])}`
+};
+
 export const editImageSpec: CapabilitySpec = {
   name: "edit_image",
   description:
@@ -702,16 +745,16 @@ export const FFMPEG_SCHEMA: JsonSchema = {
         "and cannot escape it; ffmpeg opens local files only, so an " +
         "asset:// URI or a URL in args is refused — name it in `inputs` " +
         "instead. " +
-        "Example: [\"-i\", \"in.mp4\", \"-vf\", \"scale=1280:-2\", \"out.mp4\"]."
+        'Example: ["-i", "in.mp4", "-vf", "scale=1280:-2", "out.mp4"].'
     },
     inputs: {
       type: "object" as const,
       description:
         "Files to copy into the workspace before the run, as " +
-        "{\"<workspace-relative name>\": \"<asset:// URI, /api/storage/ key, " +
-        "or data: URI>\"}. This is how an asset reaches ffmpeg: stage it, " +
+        '{"<workspace-relative name>": "<asset:// URI, /api/storage/ key, ' +
+        'or data: URI>"}. This is how an asset reaches ffmpeg: stage it, ' +
         "then use the name in args. At most 8 files, 100 MB each. " +
-        "Example: {\"a.mp4\": \"asset://<id>.mp4\", \"b.mp4\": \"asset://<id>.mp4\"}.",
+        'Example: {"a.mp4": "asset://<id>.mp4", "b.mp4": "asset://<id>.mp4"}.',
       additionalProperties: { type: "string" as const }
     },
     output_file: {
@@ -742,8 +785,7 @@ export const ffmpegSpec: CapabilitySpec = {
   inputSchema: FFMPEG_SCHEMA,
   category: "execute",
   userMessage: (params) => {
-    const out =
-      isString(params["output_file"]) ? params["output_file"] : "";
+    const out = isString(params["output_file"]) ? params["output_file"] : "";
     return out ? `Running ffmpeg → ${out}` : "Running ffmpeg";
   }
 };
@@ -762,8 +804,8 @@ export const FFPROBE_SCHEMA: JsonSchema = {
       type: "object" as const,
       description:
         "Files to copy into the workspace before the run, as " +
-        "{\"<workspace-relative name>\": \"<asset:// URI, /api/storage/ key, " +
-        "or data: URI>\"} — the same staging `ffmpeg` takes. `path` stages an " +
+        '{"<workspace-relative name>": "<asset:// URI, /api/storage/ key, ' +
+        'or data: URI>"} — the same staging `ffmpeg` takes. `path` stages an ' +
         "asset by itself, so this is for the extra files a probe needs. At " +
         "most 8 files, 100 MB each.",
       additionalProperties: { type: "string" as const }
@@ -838,6 +880,7 @@ export const ytDlpSpec: CapabilitySpec = {
 
 /** Every spec this module declares, in declaration order. */
 export const mediaSpecs: readonly CapabilitySpec[] = [
+  generateTextSpec,
   generateImageSpec,
   editImageSpec,
   segmentImageSpec,

@@ -5,6 +5,9 @@ const runRoot = "/recipes/runs/2026-09-10-marketing-recipes-01";
 
 export const recipePresentation = [
   {
+    slug: "directed-campaign-kit"
+  },
+  {
     slug: "viral-video-ad-engine",
     productionRun: {
       runId: "2026-09-12-tiny-film-crew",

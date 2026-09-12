@@ -1,0 +1,90 @@
+{
+  "id": "directed-campaign-directions",
+  "access": "private",
+  "created_at": "2026-09-12T00:00:00.000Z",
+  "updated_at": "2026-09-12T00:00:00.000Z",
+  "name": "Propose Three Campaign Directions",
+  "tool_name": null,
+  "description": "Validate one product brief and optional role-labelled reference, then propose exactly three written campaign directions before any image generation.",
+  "tags": ["campaign", "image", "example"],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {"comment": "# Propose Three Campaign Directions\n\nValidate the product brief and reference assignment, ask one language model for directions A, B, and C, then validate its JSON into a readable review and captured plan. No image model runs here."},
+        "ui_properties": {"position": {"x": 0, "y": -220}, "width": 520, "height": 160, "selectable": true},
+        "dynamic_properties": {}
+      },
+      {"id": "in-product_image", "type": "nodetool.input.ImageInput", "data": {"name": "product_image", "value": {"type": "image", "uri": ""}, "description": "Required product identity reference."}, "ui_properties": {"position": {"x": 0, "y": 0}, "width": 260, "title": "Product image"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-product_name", "type": "nodetool.input.StringInput", "data": {"name": "product_name", "value": "", "description": "Product name."}, "ui_properties": {"position": {"x": 0, "y": 140}, "width": 260, "title": "Product name"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-campaign_message", "type": "nodetool.input.StringInput", "data": {"name": "campaign_message", "value": "", "description": "What the campaign should communicate.", "line_mode": "multi_line", "max_length": 600}, "ui_properties": {"position": {"x": 0, "y": 280}, "width": 260, "title": "Campaign message"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-audience", "type": "nodetool.input.StringInput", "data": {"name": "audience", "value": "", "description": "Intended audience.", "line_mode": "multi_line", "max_length": 300}, "ui_properties": {"position": {"x": 0, "y": 420}, "width": 260, "title": "Audience"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-headline", "type": "nodetool.input.StringInput", "data": {"name": "headline", "value": "", "description": "Exact approved headline.", "line_mode": "multi_line", "max_length": 120}, "ui_properties": {"position": {"x": 0, "y": 560}, "width": 260, "title": "Headline"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-cta", "type": "nodetool.input.StringInput", "data": {"name": "cta", "value": "", "description": "Exact approved call to action.", "max_length": 80}, "ui_properties": {"position": {"x": 0, "y": 700}, "width": 260, "title": "CTA"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-reference_image", "type": "nodetool.input.ImageInput", "data": {"name": "reference_image", "value": {"type": "image", "uri": ""}, "description": "Optional visual reference. Required when reference_role is not none."}, "ui_properties": {"position": {"x": 0, "y": 840}, "width": 260, "title": "Visual reference"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-reference_role", "type": "nodetool.input.StringInput", "data": {"name": "reference_role", "value": "none", "description": "One of none, composition, palette, material, or lighting."}, "ui_properties": {"position": {"x": 0, "y": 980}, "width": 260, "title": "Reference role"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-reference_use", "type": "nodetool.input.StringInput", "data": {"name": "reference_use", "value": "", "description": "What to take from the optional reference.", "line_mode": "multi_line", "max_length": 300}, "ui_properties": {"position": {"x": 0, "y": 1120}, "width": 260, "title": "Use from reference"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-reference_ignore", "type": "nodetool.input.StringInput", "data": {"name": "reference_ignore", "value": "", "description": "What must not transfer from the optional reference.", "line_mode": "multi_line", "max_length": 300}, "ui_properties": {"position": {"x": 0, "y": 1260}, "width": 260, "title": "Ignore from reference"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {
+        "id": "direction-brief",
+        "type": "nodetool.code.Code",
+        "data": {"code": "const text = (name, max) => {\n  const value = String(inputs[name] ?? \"\").trim();\n  if (!value) throw new Error(`${name.replaceAll(\"_\", \" \" )} is required.`);\n  if (value.length > max) throw new Error(`${name.replaceAll(\"_\", \" \" )} must be ${max} characters or fewer.`);\n  return value;\n};\nconst image = (name) => {\n  const value = inputs[name];\n  const hasUri = typeof value?.uri === \"string\" && value.uri.trim().length > 0;\n  const hasData = typeof value?.data === \"string\" && value.data.length > 0;\n  if (!value || typeof value !== \"object\" || value.type !== \"image\" || (!hasUri && !hasData)) throw new Error(`${name.replaceAll(\"_\", \" \" )} is required.`);\n  return value;\n};\nconst productName = text(\"product_name\", 120);\nconst campaignMessage = text(\"campaign_message\", 600);\nconst audience = text(\"audience\", 300);\nconst headline = text(\"headline\", 120);\nconst cta = text(\"cta\", 80);\nconst referenceRole = String(inputs.reference_role ?? \"none\").trim().toLowerCase();\nconst roles = [\"none\", \"composition\", \"palette\", \"material\", \"lighting\"];\nif (!roles.includes(referenceRole)) throw new Error(`Reference role must be one of: ${roles.join(\", \" )}.`);\nconst productImage = image(\"product_image\");\nconst images = [productImage];\nlet referenceImage = null;\nif (referenceRole !== \"none\") {\n  referenceImage = image(\"reference_image\");\n  images.push(referenceImage);\n}\nconst referenceUse = String(inputs.reference_use ?? \"\").trim();\nconst referenceIgnore = String(inputs.reference_ignore ?? \"\").trim();\nif (referenceUse.length > 300 || referenceIgnore.length > 300) throw new Error(\"Reference notes must be 300 characters or fewer.\");\nconst brief = { schemaVersion: 1, productName, campaignMessage, audience, headline, cta, productImage, referenceImage, referenceRole, referenceUse, referenceIgnore };\nconst referenceInstruction = referenceRole === \"none\"\n  ? \"There is no optional visual reference. Use image 1 only.\"\n  : `Image 2 has the single role '${referenceRole}'. Use: ${referenceUse || \"the named role only\"}. Ignore: ${referenceIgnore || \"objects, branding, and product identity\"}. Palette must not transfer objects. Lighting must not transfer the depicted product. Composition must not transfer branding.`;\nconst prompt = `Develop exactly three distinct written campaign directions for this captured brief.\\n\\nProduct: ${productName}\\nCampaign message: ${campaignMessage}\\nAudience: ${audience}\\nExact headline: ${headline}\\nExact CTA: ${cta}\\n\\nImage 1 is always the product identity reference and controls proportions, finish, lid, visible branding, and geometry. ${referenceInstruction}\\n\\nReturn JSON only, with this exact shape: {\"directions\":[{\"id\":\"A\",\"title\":\"...\",\"setting\":\"...\",\"composition\":\"...\",\"lighting\":\"...\",\"palette\":\"...\",\"preservationInstructions\":\"...\"},{\"id\":\"B\",...},{\"id\":\"C\",...}]}. Do not add campaign copy or change the approved headline or CTA.`;\nawait output(\"prompt\", prompt);\nawait output(\"images\", images);\nawait output(\"brief\", JSON.stringify(brief));"},
+        "ui_properties": {"position": {"x": 340, "y": 360}, "width": 420, "title": "Validate and capture brief"},
+        "dynamic_properties": {"product_image": {"type": "image", "uri": ""}, "product_name": "", "campaign_message": "", "audience": "", "headline": "", "cta": "", "reference_image": {"type": "image", "uri": ""}, "reference_role": "none", "reference_use": "", "reference_ignore": ""},
+        "dynamic_inputs": {
+          "product_image": {"type": {"type": "image"}}, "product_name": {"type": {"type": "str"}}, "campaign_message": {"type": {"type": "str"}}, "audience": {"type": {"type": "str"}}, "headline": {"type": {"type": "str"}}, "cta": {"type": {"type": "str"}}, "reference_image": {"type": {"type": "image"}}, "reference_role": {"type": {"type": "str"}}, "reference_use": {"type": {"type": "str"}}, "reference_ignore": {"type": {"type": "str"}}
+        },
+        "dynamic_outputs": {"prompt": {"type": "str", "type_args": [], "optional": false}, "images": {"type": "list", "type_args": [{"type": "image", "type_args": [], "optional": false}], "optional": false}, "brief": {"type": "str", "type_args": [], "optional": false}},
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "direction-agent",
+        "type": "nodetool.agents.Agent",
+        "data": {"model": {"type": "language_model", "provider": "openai", "id": "gpt-5-mini", "name": "GPT-5 mini", "path": null, "supported_tasks": []}, "system": "You are a campaign creative director. Follow the requested JSON schema exactly. Return no prose or code fences.", "prompt": "", "tools": [], "image": [], "audio": [], "history": [], "thread_id": "", "max_tokens": 4096, "max_turns": 1},
+        "ui_properties": {"position": {"x": 820, "y": 360}, "width": 320, "title": "Propose A, B, and C"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_all"
+      },
+      {
+        "id": "direction-parser",
+        "type": "nodetool.code.Code",
+        "data": {"code": "const raw = String(inputs.response ?? \"\").trim();\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch {\n  throw new Error(\"The direction model returned malformed JSON. Run the proposal again; no image was generated.\");\n}\nlet brief;\ntry { brief = JSON.parse(String(inputs.brief ?? \"\")); } catch { throw new Error(\"The captured brief is invalid. Return to the brief and propose again.\"); }\nif (!parsed || !Array.isArray(parsed.directions) || parsed.directions.length !== 3) throw new Error(\"The direction response must contain exactly three directions.\");\nconst requiredIds = [\"A\", \"B\", \"C\"];\nconst fields = [\"title\", \"setting\", \"composition\", \"lighting\", \"palette\", \"preservationInstructions\"];\nconst directions = parsed.directions.map((item, index) => {\n  if (!item || typeof item !== \"object\") throw new Error(`Direction ${requiredIds[index]} is not an object.`);\n  const id = String(item.id ?? \"\").trim();\n  if (id !== requiredIds[index]) throw new Error(\"Directions must be ordered and identified as A, B, and C.\");\n  const clean = { id };\n  for (const field of fields) {\n    const value = String(item[field] ?? \"\").trim();\n    if (!value) throw new Error(`Direction ${id} is missing ${field}.`);\n    if (value.length > 600) throw new Error(`Direction ${id} ${field} is too long.`);\n    clean[field] = value;\n  }\n  return clean;\n});\nif (new Set(directions.map((item) => item.id)).size !== 3) throw new Error(\"Direction IDs must be distinct.\");\nconst markdown = directions.map((item) => `### ${item.id} — ${item.title}\\n\\n- Setting: ${item.setting}\\n- Composition: ${item.composition}\\n- Lighting: ${item.lighting}\\n- Palette: ${item.palette}\\n- Preserve: ${item.preservationInstructions}`).join(\"\\n\\n\");\nconst plan = JSON.stringify({ schemaVersion: 1, brief, directions });\nawait output(\"directions\", markdown);\nawait output(\"plan\", plan);\nawait output(\"phase\", \"directions_ready\");"},
+        "ui_properties": {"position": {"x": 1200, "y": 360}, "width": 420, "title": "Validate directions"},
+        "dynamic_properties": {"response": "", "brief": ""},
+        "dynamic_inputs": {"response": {"type": {"type": "str"}}, "brief": {"type": {"type": "str"}}},
+        "dynamic_outputs": {"directions": {"type": "str", "type_args": [], "optional": false}, "plan": {"type": "str", "type_args": [], "optional": false}, "phase": {"type": "str", "type_args": [], "optional": false}},
+        "sync_mode": "on_all"
+      },
+      {"id": "out-directions", "type": "nodetool.output.Output", "data": {"name": "directions"}, "ui_properties": {"position": {"x": 1700, "y": 260}, "width": 260, "title": "Directions"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "out-plan", "type": "nodetool.output.Output", "data": {"name": "plan"}, "ui_properties": {"position": {"x": 1700, "y": 400}, "width": 260, "title": "Captured plan"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "out-phase", "type": "nodetool.output.Output", "data": {"name": "phase"}, "ui_properties": {"position": {"x": 1700, "y": 540}, "width": 260, "title": "Ready phase"}, "dynamic_properties": {}, "dynamic_outputs": {}}
+    ],
+    "edges": [
+      {"id": "product-image-to-brief", "source": "in-product_image", "sourceHandle": "output", "target": "direction-brief", "targetHandle": "product_image"},
+      {"id": "product-name-to-brief", "source": "in-product_name", "sourceHandle": "output", "target": "direction-brief", "targetHandle": "product_name"},
+      {"id": "message-to-brief", "source": "in-campaign_message", "sourceHandle": "output", "target": "direction-brief", "targetHandle": "campaign_message"},
+      {"id": "audience-to-brief", "source": "in-audience", "sourceHandle": "output", "target": "direction-brief", "targetHandle": "audience"},
+      {"id": "headline-to-brief", "source": "in-headline", "sourceHandle": "output", "target": "direction-brief", "targetHandle": "headline"},
+      {"id": "cta-to-brief", "source": "in-cta", "sourceHandle": "output", "target": "direction-brief", "targetHandle": "cta"},
+      {"id": "reference-image-to-brief", "source": "in-reference_image", "sourceHandle": "output", "target": "direction-brief", "targetHandle": "reference_image"},
+      {"id": "reference-role-to-brief", "source": "in-reference_role", "sourceHandle": "output", "target": "direction-brief", "targetHandle": "reference_role"},
+      {"id": "reference-use-to-brief", "source": "in-reference_use", "sourceHandle": "output", "target": "direction-brief", "targetHandle": "reference_use"},
+      {"id": "reference-ignore-to-brief", "source": "in-reference_ignore", "sourceHandle": "output", "target": "direction-brief", "targetHandle": "reference_ignore"},
+      {"id": "prompt-to-agent", "source": "direction-brief", "sourceHandle": "prompt", "target": "direction-agent", "targetHandle": "prompt"},
+      {"id": "images-to-agent", "source": "direction-brief", "sourceHandle": "images", "target": "direction-agent", "targetHandle": "image"},
+      {"id": "agent-to-parser", "source": "direction-agent", "sourceHandle": "text", "target": "direction-parser", "targetHandle": "response"},
+      {"id": "brief-to-parser", "source": "direction-brief", "sourceHandle": "brief", "target": "direction-parser", "targetHandle": "brief"},
+      {"id": "directions-out", "source": "direction-parser", "sourceHandle": "directions", "target": "out-directions", "targetHandle": "value"},
+      {"id": "plan-out", "source": "direction-parser", "sourceHandle": "plan", "target": "out-plan", "targetHandle": "value"},
+      {"id": "phase-out", "source": "direction-parser", "sourceHandle": "phase", "target": "out-phase", "targetHandle": "value"}
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

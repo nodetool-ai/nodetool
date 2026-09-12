@@ -31,6 +31,7 @@ import {
   critiqueImage,
   editImage,
   embedText,
+  generateText,
   generateImage,
   generateMusic,
   generateSpeech,
@@ -84,6 +85,7 @@ describe("the media capability module", () => {
     expect(await capabilityModuleDrift()).toEqual([]);
     const media = await loadCapabilityModule("media");
     expect(media.exports.map((e) => e.spec.name)).toEqual([
+      "generate_text",
       "generate_image",
       "edit_image",
       "segment_image",
@@ -114,6 +116,7 @@ describe("the media capability module", () => {
 
 describe("wire identity: a Tool built from the spec", () => {
   const pairs: [CapabilityExport, Tool][] = [
+    [generateText, toolForCapabilityName("generate_text")],
     [generateImage, toolForCapabilityName("generate_image")],
     [editImage, toolForCapabilityName("edit_image")],
     [generateVideo, toolForCapabilityName("generate_video")],
@@ -143,6 +146,57 @@ describe("wire identity: a Tool built from the spec", () => {
     expect(tool.name).toBe(name);
     expect(tool.description).toBe(entry.spec.description);
     expect(tool.inputSchema).toEqual(entry.spec.inputSchema);
+  });
+});
+
+describe("generate_text", () => {
+  it("sends system, prompt, and image references through generate_message", async () => {
+    const predict = vi.fn(async () => ({
+      role: "assistant",
+      content: [{ type: "text", text: '{"headline":"Go farther"}' }]
+    }));
+    const result = await asTool(generateText).process(makeContext(predict), {
+      provider: "codex",
+      model: "gpt-6-astra",
+      system: "Return JSON only.",
+      prompt: "Write the campaign.",
+      images: ["asset://product.png", "asset://reference.png"],
+      max_tokens: 3000,
+      temperature: 0.2
+    });
+
+    expect(result).toEqual({
+      type: "text",
+      provider: "codex",
+      model: "gpt-6-astra",
+      text: '{"headline":"Go farther"}'
+    });
+    expect(predict).toHaveBeenCalledWith({
+      provider: "codex",
+      capability: "generate_message",
+      model: "gpt-6-astra",
+      params: {
+        messages: [
+          { role: "system", content: "Return JSON only." },
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image: { type: "image", uri: "asset://product.png" }
+              },
+              {
+                type: "image_url",
+                image: { type: "image", uri: "asset://reference.png" }
+              },
+              { type: "text", text: "Write the campaign." }
+            ]
+          }
+        ],
+        max_tokens: 3000,
+        temperature: 0.2
+      }
+    });
   });
 });
 
@@ -194,7 +248,8 @@ describe("edit_image through the adapter", () => {
       workspace: {
         localDir: null,
         write: async () => {},
-        read: async (p: string) => (p === "in.png" ? new Uint8Array([1]) : null),
+        read: async (p: string) =>
+          p === "in.png" ? new Uint8Array([1]) : null,
         key: (p: string) => p
       }
     }) as unknown as ProcessingContext;
@@ -516,10 +571,9 @@ describe("ffmpeg and yt_dlp capabilities", () => {
   });
 
   it("yt_dlp rejects a non-http url", async () => {
-    const result = (await asTool(ytDlp).process(
-      localWorkspaceContext("/tmp"),
-      { url: "file:///etc/passwd" }
-    )) as Record<string, unknown>;
+    const result = (await asTool(ytDlp).process(localWorkspaceContext("/tmp"), {
+      url: "file:///etc/passwd"
+    })) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/unsupported scheme/);
   });
 
@@ -538,7 +592,9 @@ describe("ffmpeg and yt_dlp capabilities", () => {
       localWorkspaceContext("/tmp"),
       { args: ["-i", "http://169.254.169.254/latest/meta-data/", "out.txt"] }
     )) as Record<string, unknown>;
-    expect(String(result["error"])).toMatch(/Only workspace files are readable/);
+    expect(String(result["error"])).toMatch(
+      /Only workspace files are readable/
+    );
   });
 
   it("ffmpeg stages an inputs ref into the workspace before running", async () => {
@@ -631,29 +687,25 @@ describe("ffmpeg and yt_dlp capabilities", () => {
     ["http://10.0.0.5/internal.mp4", /internal\/private address/],
     ["http://[::ffff:127.0.0.1]/x.mp4", /internal\/private address/]
   ])("yt_dlp refuses %s", async (url, expected) => {
-    const result = (await asTool(ytDlp).process(
-      localWorkspaceContext("/tmp"),
-      { url }
-    )) as Record<string, unknown>;
+    const result = (await asTool(ytDlp).process(localWorkspaceContext("/tmp"), {
+      url
+    })) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(expected);
   });
 
   it("yt_dlp refuses a format that would be read as an option", async () => {
-    const result = (await asTool(ytDlp).process(
-      localWorkspaceContext("/tmp"),
-      { url: "https://example.com/v", format: "--exec" }
-    )) as Record<string, unknown>;
+    const result = (await asTool(ytDlp).process(localWorkspaceContext("/tmp"), {
+      url: "https://example.com/v",
+      format: "--exec"
+    })) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/cannot start with/);
   });
 
   it("yt_dlp refuses an output template that escapes the workspace", async () => {
-    const result = (await asTool(ytDlp).process(
-      localWorkspaceContext("/tmp"),
-      {
-        url: "https://example.com/v",
-        output_file: "../../root/.ssh/authorized_keys"
-      }
-    )) as Record<string, unknown>;
+    const result = (await asTool(ytDlp).process(localWorkspaceContext("/tmp"), {
+      url: "https://example.com/v",
+      output_file: "../../root/.ssh/authorized_keys"
+    })) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/outside the workspace/);
   });
 });
@@ -719,9 +771,9 @@ describe("generate_music through the adapter", () => {
     const call = textToMusic.mock.calls[0][0] as Record<string, unknown>;
     expect(call["capability"]).toBe("text_to_music");
     expect(call["model"]).toBe("beatoven/music-generation");
-    expect((call["params"] as Record<string, unknown>)["duration_seconds"]).toBe(
-      30
-    );
+    expect(
+      (call["params"] as Record<string, unknown>)["duration_seconds"]
+    ).toBe(30);
   });
 
   it("names the model when the provider refuses", async () => {
@@ -865,9 +917,8 @@ describe("animate_image takes its shape from the still", () => {
 
   const sentParams = (context: ProcessingContext): Record<string, unknown> =>
     (
-      (
-        context.runProviderPrediction as unknown as ReturnType<typeof vi.fn>
-      ).mock.calls[0][0] as Record<string, unknown>
+      (context.runProviderPrediction as unknown as ReturnType<typeof vi.fn>)
+        .mock.calls[0][0] as Record<string, unknown>
     )["params"] as Record<string, unknown>;
 
   it("picks the closest named ratio, not an invented one", () => {
@@ -917,9 +968,7 @@ describe("animate_image takes its shape from the still", () => {
  */
 describe("generate_video_from_references", () => {
   /** A PNG header, and an MP4 `ftyp` box. Nothing decodes either. */
-  const PNG = new Uint8Array([
-    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
-  ]);
+  const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   const MP4 = new Uint8Array([
     0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d
   ]);
@@ -943,16 +992,14 @@ describe("generate_video_from_references", () => {
 
   const sentParams = (context: ProcessingContext): Record<string, unknown> =>
     (
-      (
-        context.runProviderPrediction as unknown as ReturnType<typeof vi.fn>
-      ).mock.calls[0][0] as Record<string, unknown>
+      (context.runProviderPrediction as unknown as ReturnType<typeof vi.fn>)
+        .mock.calls[0][0] as Record<string, unknown>
     )["params"] as Record<string, unknown>;
 
   const sentCapability = (context: ProcessingContext): unknown =>
     (
-      (
-        context.runProviderPrediction as unknown as ReturnType<typeof vi.fn>
-      ).mock.calls[0][0] as Record<string, unknown>
+      (context.runProviderPrediction as unknown as ReturnType<typeof vi.fn>)
+        .mock.calls[0][0] as Record<string, unknown>
     )["capability"];
 
   it("routes each reference into the list its own kind belongs in", async () => {
@@ -978,7 +1025,9 @@ describe("generate_video_from_references", () => {
     expect(classifyReferenceMedia("hero", PNG)).toBe("image");
     expect(classifyReferenceMedia("clip", MP4)).toBe("video");
     // Neither, so the call has to refuse rather than guess.
-    expect(classifyReferenceMedia("notes.txt", new Uint8Array([1, 2, 3]))).toBeNull();
+    expect(
+      classifyReferenceMedia("notes.txt", new Uint8Array([1, 2, 3]))
+    ).toBeNull();
   });
 
   it("refuses a reference that is neither an image nor a video", async () => {

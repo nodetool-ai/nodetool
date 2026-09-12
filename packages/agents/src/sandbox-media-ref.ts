@@ -258,9 +258,12 @@ export function remapMediaRef(value: unknown): MediaRefValue {
 
 /** The ref argument, checked. A guest can pass anything, including `undefined`. */
 function requireRef(where: string, ref: unknown): MediaRefValue {
+  if (isString(ref) && ref.length > 0) {
+    return { uri: ref };
+  }
   if (!isRecord(ref)) {
     throw new Error(
-      `${where}: expected a media ref object ({type, uri, asset_id, data})`
+      `${where}: expected a media locator string or ref object ({type, uri, asset_id, data})`
     );
   }
   return ref;

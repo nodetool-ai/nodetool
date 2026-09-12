@@ -394,7 +394,10 @@
             "type": "nodetool.input.ImageInput",
             "data": {
               "name": "photo",
-              "value": null,
+              "value": {
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+              },
               "description": "The product photo"
             },
             "ui_properties": {
@@ -418,13 +421,34 @@
             },
             "ui_properties": {
               "position": {
-                "x": 990,
+                "x": 1650,
                 "y": 120
               },
               "zIndex": 0,
               "width": 300,
               "selectable": true,
               "title": "4  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "edge-softness",
+            "type": "nodetool.input.FloatInput",
+            "data": {
+              "name": "edge_softness",
+              "value": 1,
+              "min": 0,
+              "max": 3,
+              "description": "Edge softness in pixels. Set to 0 for the original cutout."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 330,
+                "y": 460
+              },
+              "width": 300,
+              "title": "Edge softness"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -492,7 +516,10 @@
             "type": "nodetool.input.ImageInput",
             "data": {
               "name": "photo",
-              "value": null,
+              "value": {
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+              },
               "description": "The photo to work on"
             },
             "ui_properties": {
@@ -516,13 +543,34 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
+                "x": 1650,
                 "y": 120
               },
               "zIndex": 0,
               "width": 300,
               "selectable": true,
               "title": "3  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "edge-softness",
+            "type": "nodetool.input.FloatInput",
+            "data": {
+              "name": "edge_softness",
+              "value": 1,
+              "min": 0,
+              "max": 3,
+              "description": "Edge softness in pixels. Set to 0 for the original cutout."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 330,
+                "y": 460
+              },
+              "width": 300,
+              "title": "Edge softness"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}

@@ -458,6 +458,236 @@ export const miniAppEntries: MiniAppEntry[] = [
     "widgetCount": 12
   },
   {
+    "route": "/apps/directed-campaign-kit",
+    "title": "Directed Campaign Kit — Free AI Mini App | NodeTool",
+    "description": "One product. One direction. A campaign you can revise.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "directed-campaign-kit",
+    "name": "Directed Campaign Kit",
+    "summary": "Upload one product image. A multimodal language model fills the brief and proposes three directions before you approve a hero, build two formats, and direct one revision.",
+    "featured": false,
+    "note": null,
+    "workflows": [
+      {
+        "name": "Render a Directed Campaign Hero",
+        "slug": "render-a-directed-campaign-hero",
+        "route": "/templates/render-a-directed-campaign-hero"
+      },
+      {
+        "name": "Compose Directed Campaign Formats",
+        "slug": "compose-directed-campaign-formats",
+        "route": "/templates/compose-directed-campaign-formats"
+      },
+      {
+        "name": "Revise an Accepted Campaign Hero",
+        "slug": "revise-an-accepted-campaign-hero",
+        "route": "/templates/revise-an-accepted-campaign-hero"
+      },
+      {
+        "name": "Reopen a Directed Campaign",
+        "slug": "reopen-a-directed-campaign",
+        "route": "/templates/reopen-a-directed-campaign"
+      }
+    ],
+    "templateRoute": "/templates/render-a-directed-campaign-hero",
+    "screenshot": "/apps/directed-campaign-kit.png",
+    "tags": [
+      "campaign",
+      "document",
+      "example",
+      "image",
+      "svg"
+    ],
+    "heading": "🎯 Directed Campaign Kit",
+    "tagline": "One product. One direction. A campaign you can revise.",
+    "buttonLabel": "Analyze image and write campaign",
+    "inputs": [
+      {
+        "label": "Campaign prompt (optional)",
+        "kind": "text"
+      },
+      {
+        "label": "Product image (required)",
+        "kind": "image"
+      },
+      {
+        "label": "Product name",
+        "kind": "text"
+      },
+      {
+        "label": "Campaign message",
+        "kind": "text"
+      },
+      {
+        "label": "Audience",
+        "kind": "text"
+      },
+      {
+        "label": "Exact headline",
+        "kind": "text"
+      },
+      {
+        "label": "Exact CTA",
+        "kind": "text"
+      },
+      {
+        "label": "Optional visual reference",
+        "kind": "image"
+      },
+      {
+        "label": "Reference role",
+        "kind": "choice"
+      },
+      {
+        "label": "What this reference contributes",
+        "kind": "text"
+      },
+      {
+        "label": "What to ignore",
+        "kind": "text"
+      },
+      {
+        "label": "Direction",
+        "kind": "choice"
+      },
+      {
+        "label": "Change",
+        "kind": "text"
+      },
+      {
+        "label": "Preserve",
+        "kind": "text"
+      },
+      {
+        "label": "Allow to respond",
+        "kind": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Directions",
+        "kind": "text"
+      },
+      {
+        "label": "Candidate Hero",
+        "kind": "image"
+      },
+      {
+        "label": "Original",
+        "kind": "image"
+      },
+      {
+        "label": "Original 4:5",
+        "kind": "image"
+      },
+      {
+        "label": "Original 9:16",
+        "kind": "image"
+      },
+      {
+        "label": "Revision 1",
+        "kind": "image"
+      },
+      {
+        "label": "Revision 1 · 4:5",
+        "kind": "image"
+      },
+      {
+        "label": "Revision 1 · 9:16",
+        "kind": "image"
+      }
+    ],
+    "widgetCount": 134
+  },
+  {
+    "route": "/apps/dubbing-desk",
+    "title": "Dubbing Desk — Free AI Mini App | NodeTool",
+    "description": "One presenter clip, spoken in another language, checked and subtitled.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "dubbing-desk",
+    "name": "Dubbing Desk",
+    "summary": "The Multilingual Video Dubber chain behind one surface. Transcribing writes the script into a variable the revoice and back-translation steps both read, so the words that get dubbed are the words you can see.",
+    "featured": false,
+    "note": "🔑 Needs a FAL key for transcription, speech and lip-sync, and an OpenAI key for the translation.",
+    "workflows": [
+      {
+        "name": "Transcribe a Clip",
+        "slug": "transcribe-a-clip",
+        "route": "/templates/transcribe-a-clip"
+      },
+      {
+        "name": "Localise a Script and Revoice It",
+        "slug": "localise-a-script-and-revoice-it",
+        "route": "/templates/localise-a-script-and-revoice-it"
+      },
+      {
+        "name": "One Tagline, Six Markets",
+        "slug": "one-tagline-six-markets",
+        "route": "/templates/one-tagline-six-markets"
+      },
+      {
+        "name": "AI Spokesperson",
+        "slug": "ai-spokesperson",
+        "route": "/templates/ai-spokesperson"
+      },
+      {
+        "name": "Subtitle Text from a Recording",
+        "slug": "subtitle-text-from-a-recording",
+        "route": "/templates/subtitle-text-from-a-recording"
+      }
+    ],
+    "templateRoute": "/templates/transcribe-a-clip",
+    "screenshot": null,
+    "tags": [
+      "audio",
+      "data",
+      "example",
+      "marketing",
+      "text",
+      "video"
+    ],
+    "heading": "🌍 Dubbing Desk",
+    "tagline": "One presenter clip, spoken in another language, checked and subtitled.",
+    "buttonLabel": "Get the script back out",
+    "inputs": [
+      {
+        "label": "Presenter clip",
+        "kind": "video"
+      },
+      {
+        "label": "The script that gets dubbed",
+        "kind": "text"
+      },
+      {
+        "label": "A line to read back",
+        "kind": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Localised voice track",
+        "kind": "audio"
+      },
+      {
+        "label": "Subtitle lines",
+        "kind": "text"
+      },
+      {
+        "label": "Dubbed cut",
+        "kind": "video"
+      },
+      {
+        "label": "Six markets, back-translated",
+        "kind": "text"
+      }
+    ],
+    "widgetCount": 32
+  },
+  {
     "route": "/apps/film-studio",
     "title": "Film Studio — Free AI Mini App | NodeTool",
     "description": "Brief → direction → storyboard → cut → key art.",
@@ -1170,6 +1400,119 @@ export const miniAppEntries: MiniAppEntry[] = [
     "widgetCount": 20
   },
   {
+    "route": "/apps/sku-factory",
+    "title": "SKU Factory — Free AI Mini App | NodeTool",
+    "description": "One packshot in, the whole channel set out.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "sku-factory",
+    "name": "SKU Factory",
+    "summary": "The E-commerce SKU Visual Factory chain behind one surface. Drop a product photo once and the cutout, the studio scene, the seasonal relight and the listing copy all read the same image; motion and print resolution stay on their own buttons because they cost more.",
+    "featured": false,
+    "note": "🔑 Needs a FAL key for the image steps and an OpenAI key for the listing. The turntable is a video model and is metered per second.",
+    "workflows": [
+      {
+        "name": "Cut a Product Out of Its Background",
+        "slug": "cut-a-product-out-of-its-background",
+        "route": "/templates/cut-a-product-out-of-its-background"
+      },
+      {
+        "name": "Put a Product on a Studio Backdrop",
+        "slug": "put-a-product-on-a-studio-backdrop",
+        "route": "/templates/put-a-product-on-a-studio-backdrop"
+      },
+      {
+        "name": "Relight a Product for a Seasonal Campaign",
+        "slug": "relight-a-product-for-a-seasonal-campaign",
+        "route": "/templates/relight-a-product-for-a-seasonal-campaign"
+      },
+      {
+        "name": "Spin a Packshot into a Turntable Clip",
+        "slug": "spin-a-packshot-into-a-turntable-clip",
+        "route": "/templates/spin-a-packshot-into-a-turntable-clip"
+      },
+      {
+        "name": "Take a Product Shot to Print Resolution",
+        "slug": "take-a-product-shot-to-print-resolution",
+        "route": "/templates/take-a-product-shot-to-print-resolution"
+      },
+      {
+        "name": "Write a Listing from the Product Photo",
+        "slug": "write-a-listing-from-the-product-photo",
+        "route": "/templates/write-a-listing-from-the-product-photo"
+      }
+    ],
+    "templateRoute": "/templates/cut-a-product-out-of-its-background",
+    "screenshot": null,
+    "tags": [
+      "example",
+      "image",
+      "text",
+      "video"
+    ],
+    "heading": "🏷️ SKU Factory",
+    "tagline": "One packshot in, the whole channel set out.",
+    "buttonLabel": "Make the still set",
+    "inputs": [
+      {
+        "label": "Your packshot",
+        "kind": "image"
+      },
+      {
+        "label": "The set it stands on",
+        "kind": "text"
+      },
+      {
+        "label": "Frame",
+        "kind": "choice"
+      },
+      {
+        "label": "The light to put on it",
+        "kind": "text"
+      },
+      {
+        "label": "Camera move",
+        "kind": "text"
+      },
+      {
+        "label": "Seconds",
+        "kind": "number"
+      },
+      {
+        "label": "Upscale",
+        "kind": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Cutout",
+        "kind": "image"
+      },
+      {
+        "label": "Studio scene",
+        "kind": "image"
+      },
+      {
+        "label": "Seasonal",
+        "kind": "image"
+      },
+      {
+        "label": "Listing copy",
+        "kind": "text"
+      },
+      {
+        "label": "Turntable clip",
+        "kind": "video"
+      },
+      {
+        "label": "Print master",
+        "kind": "image"
+      }
+    ],
+    "widgetCount": 35
+  },
+  {
     "route": "/apps/study-buddy",
     "title": "Study Buddy — Free AI Mini App | NodeTool",
     "description": "A deck of flashcards and the concept behind it, side by side.",
@@ -1235,6 +1578,100 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "widgetCount": 16
+  },
+  {
+    "route": "/apps/trailer-room",
+    "title": "Trailer Room — Free AI Mini App | NodeTool",
+    "description": "Premise to beat sheet to shot list to a scored teaser, on one page.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "trailer-room",
+    "name": "Trailer Room",
+    "summary": "The Storyboard to Trailer chain behind one surface. Rewrite the beat sheet and the shot list while they still cost one text call each, then spend once on the footage and lay a score under the cut.",
+    "featured": false,
+    "note": "💸 Beats and shots are text calls. Shoot spends on a per-second video model and Score on one audio generation.",
+    "workflows": [
+      {
+        "name": "Trailer Beats from a Premise",
+        "slug": "trailer-beats-from-a-premise",
+        "route": "/templates/trailer-beats-from-a-premise"
+      },
+      {
+        "name": "Shot List from a Synopsis",
+        "slug": "shot-list-from-a-synopsis",
+        "route": "/templates/shot-list-from-a-synopsis"
+      },
+      {
+        "name": "Movie Trailer Generator",
+        "slug": "movie-trailer-generator",
+        "route": "/templates/movie-trailer-generator"
+      },
+      {
+        "name": "Score a Silent Clip",
+        "slug": "score-a-silent-clip",
+        "route": "/templates/score-a-silent-clip"
+      }
+    ],
+    "templateRoute": "/templates/trailer-beats-from-a-premise",
+    "screenshot": null,
+    "tags": [
+      "ai",
+      "audio",
+      "creative",
+      "example",
+      "generation",
+      "music",
+      "storyboard",
+      "storytelling",
+      "text",
+      "trailer",
+      "video"
+    ],
+    "heading": "🎞️ Trailer Room",
+    "tagline": "Premise to beat sheet to shot list to a scored teaser, on one page.",
+    "buttonLabel": "Write the beats",
+    "inputs": [
+      {
+        "label": "Your trailer in one line",
+        "kind": "text"
+      },
+      {
+        "label": "Synopsis to break into shots",
+        "kind": "text"
+      },
+      {
+        "label": "Visual style",
+        "kind": "text"
+      },
+      {
+        "label": "Number of shots",
+        "kind": "number"
+      },
+      {
+        "label": "Score mood",
+        "kind": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Beat sheet",
+        "kind": "text"
+      },
+      {
+        "label": "Shot list",
+        "kind": "text"
+      },
+      {
+        "label": "The cut",
+        "kind": "video"
+      },
+      {
+        "label": "Scored teaser",
+        "kind": "video"
+      }
+    ],
+    "widgetCount": 31
   },
   {
     "route": "/apps/upscale-image",
@@ -1452,5 +1889,103 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "widgetCount": 13
+  },
+  {
+    "route": "/apps/viral-ad-engine",
+    "title": "Viral Ad Engine — Free AI Mini App | NodeTool",
+    "description": "Settle the line, fan it into a test set, then put the product in motion.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "viral-ad-engine",
+    "name": "Viral Ad Engine",
+    "summary": "The Viral Video Ad Engine chain behind one surface. The offer drives both the copy registers and the hook-and-thumbnail set, so the line you pick and the thumbnails you test come from the same brief.",
+    "featured": false,
+    "note": "🔑 Needs an OpenAI key for the writing and a FAL key for the thumbnails. The ad loop is a video model; the vertical cut runs locally.",
+    "workflows": [
+      {
+        "name": "Ad Copy in Three Registers",
+        "slug": "ad-copy-in-three-registers",
+        "route": "/templates/ad-copy-in-three-registers"
+      },
+      {
+        "name": "Hook & Thumbnail Factory",
+        "slug": "hook-and-thumbnail-factory",
+        "route": "/templates/hook-and-thumbnail-factory"
+      },
+      {
+        "name": "Ad Loop from a Product Photo",
+        "slug": "ad-loop-from-a-product-photo",
+        "route": "/templates/ad-loop-from-a-product-photo"
+      },
+      {
+        "name": "Cut a Landscape Clip for Vertical",
+        "slug": "cut-a-landscape-clip-for-vertical",
+        "route": "/templates/cut-a-landscape-clip-for-vertical"
+      }
+    ],
+    "templateRoute": "/templates/ad-copy-in-three-registers",
+    "screenshot": null,
+    "tags": [
+      "content",
+      "example",
+      "image",
+      "marketing",
+      "social",
+      "text",
+      "video"
+    ],
+    "heading": "📈 Viral Ad Engine",
+    "tagline": "Settle the line, fan it into a test set, then put the product in motion.",
+    "buttonLabel": "Write it and fan it out",
+    "inputs": [
+      {
+        "label": "What are you advertising?",
+        "kind": "text"
+      },
+      {
+        "label": "Who it is for",
+        "kind": "text"
+      },
+      {
+        "label": "How many hooks",
+        "kind": "number"
+      },
+      {
+        "label": "Product photo",
+        "kind": "image"
+      },
+      {
+        "label": "Camera move",
+        "kind": "text"
+      },
+      {
+        "label": "A landscape cut to reframe",
+        "kind": "video"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Three registers",
+        "kind": "text"
+      },
+      {
+        "label": "Hook lines",
+        "kind": "text"
+      },
+      {
+        "label": "Thumbnails",
+        "kind": "image"
+      },
+      {
+        "label": "Ad loop",
+        "kind": "video"
+      },
+      {
+        "label": "Vertical cut",
+        "kind": "video"
+      }
+    ],
+    "widgetCount": 33
   }
 ];

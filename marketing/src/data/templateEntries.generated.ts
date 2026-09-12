@@ -3827,6 +3827,414 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/compose-directed-campaign-formats",
+    "title": "Compose Directed Campaign Formats — NodeTool AI Workflow Template",
+    "description": "Compose one accepted hero into deterministic 1080×1350 and 1080×1920 PNG and self-contained SVG formats, then export a portable versioned campaign record.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "compose-directed-campaign-formats",
+    "name": "Compose Directed Campaign Formats",
+    "summary": "Compose one accepted hero into deterministic 1080×1350 and 1080×1920 PNG and self-contained SVG formats, then export a portable versioned campaign record.",
+    "tags": [
+      "campaign",
+      "image",
+      "svg",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 9
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 3
+      },
+      {
+        "type": "lib.svg.Document",
+        "label": "Document",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "lib.svg.SVGToImage",
+        "label": "SVG To Image",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.DocumentInput",
+        "label": "Document Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 20,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": -240,
+          "width": 560,
+          "isComment": true
+        },
+        {
+          "id": "in-hero",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 80,
+          "width": 280
+        },
+        {
+          "id": "in-contract",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 240,
+          "width": 280
+        },
+        {
+          "id": "in-version",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 400,
+          "width": 280,
+          "subtitle": "original"
+        },
+        {
+          "id": "in-original_record",
+          "type": "nodetool.input.DocumentInput",
+          "title": "Document Input",
+          "x": 0,
+          "y": 560,
+          "width": 280
+        },
+        {
+          "id": "layout-elements",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 360,
+          "y": 260,
+          "width": 500
+        },
+        {
+          "id": "portrait-svg",
+          "type": "lib.svg.Document",
+          "title": "Document",
+          "x": 940,
+          "y": 80,
+          "width": 280
+        },
+        {
+          "id": "portrait-png",
+          "type": "lib.svg.SVGToImage",
+          "title": "SVG To Image",
+          "x": 940,
+          "y": 240,
+          "width": 280
+        },
+        {
+          "id": "story-svg",
+          "type": "lib.svg.Document",
+          "title": "Document",
+          "x": 940,
+          "y": 440,
+          "width": 280
+        },
+        {
+          "id": "story-png",
+          "type": "lib.svg.SVGToImage",
+          "title": "SVG To Image",
+          "x": 940,
+          "y": 600,
+          "width": 280
+        },
+        {
+          "id": "layout-finalize",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1300,
+          "y": 300,
+          "width": 520
+        },
+        {
+          "id": "out-hero",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1900,
+          "y": 0,
+          "width": 240
+        },
+        {
+          "id": "out-portrait",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1900,
+          "y": 120,
+          "width": 240
+        },
+        {
+          "id": "out-story",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1900,
+          "y": 240,
+          "width": 240
+        },
+        {
+          "id": "out-portrait_svg",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1900,
+          "y": 360,
+          "width": 240
+        },
+        {
+          "id": "out-story_svg",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1900,
+          "y": 480,
+          "width": 240
+        },
+        {
+          "id": "out-contract",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2200,
+          "y": 0,
+          "width": 240
+        },
+        {
+          "id": "out-record",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2200,
+          "y": 120,
+          "width": 240
+        },
+        {
+          "id": "out-record_file",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2200,
+          "y": 240,
+          "width": 240
+        },
+        {
+          "id": "normalize-hero",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 340,
+          "y": 80,
+          "width": 320
+        },
+        {
+          "id": "out-phase",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2200,
+          "y": 360,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in-hero",
+          "sourceHandle": "output",
+          "target": "normalize-hero",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "normalize-hero",
+          "sourceHandle": "image",
+          "target": "layout-elements",
+          "targetHandle": "hero",
+          "color": "any"
+        },
+        {
+          "source": "in-contract",
+          "sourceHandle": "output",
+          "target": "layout-elements",
+          "targetHandle": "contract",
+          "color": "any"
+        },
+        {
+          "source": "in-version",
+          "sourceHandle": "output",
+          "target": "layout-elements",
+          "targetHandle": "version",
+          "color": "any"
+        },
+        {
+          "source": "layout-elements",
+          "sourceHandle": "portrait_elements",
+          "target": "portrait-svg",
+          "targetHandle": "elements",
+          "color": "any"
+        },
+        {
+          "source": "layout-elements",
+          "sourceHandle": "portrait_elements",
+          "target": "portrait-png",
+          "targetHandle": "elements",
+          "color": "any"
+        },
+        {
+          "source": "layout-elements",
+          "sourceHandle": "story_elements",
+          "target": "story-svg",
+          "targetHandle": "elements",
+          "color": "any"
+        },
+        {
+          "source": "layout-elements",
+          "sourceHandle": "story_elements",
+          "target": "story-png",
+          "targetHandle": "elements",
+          "color": "any"
+        },
+        {
+          "source": "normalize-hero",
+          "sourceHandle": "image",
+          "target": "layout-finalize",
+          "targetHandle": "hero",
+          "color": "any"
+        },
+        {
+          "source": "in-contract",
+          "sourceHandle": "output",
+          "target": "layout-finalize",
+          "targetHandle": "contract",
+          "color": "any"
+        },
+        {
+          "source": "in-version",
+          "sourceHandle": "output",
+          "target": "layout-finalize",
+          "targetHandle": "version",
+          "color": "any"
+        },
+        {
+          "source": "in-original_record",
+          "sourceHandle": "output",
+          "target": "layout-finalize",
+          "targetHandle": "original_record",
+          "color": "any"
+        },
+        {
+          "source": "portrait-png",
+          "sourceHandle": "output",
+          "target": "layout-finalize",
+          "targetHandle": "portrait",
+          "color": "any"
+        },
+        {
+          "source": "story-png",
+          "sourceHandle": "output",
+          "target": "layout-finalize",
+          "targetHandle": "story",
+          "color": "any"
+        },
+        {
+          "source": "portrait-svg",
+          "sourceHandle": "output",
+          "target": "layout-finalize",
+          "targetHandle": "portrait_svg_raw",
+          "color": "any"
+        },
+        {
+          "source": "story-svg",
+          "sourceHandle": "output",
+          "target": "layout-finalize",
+          "targetHandle": "story_svg_raw",
+          "color": "any"
+        },
+        {
+          "source": "layout-finalize",
+          "sourceHandle": "hero",
+          "target": "out-hero",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "layout-finalize",
+          "sourceHandle": "portrait",
+          "target": "out-portrait",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "layout-finalize",
+          "sourceHandle": "story",
+          "target": "out-story",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "layout-finalize",
+          "sourceHandle": "portrait_svg",
+          "target": "out-portrait_svg",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "layout-finalize",
+          "sourceHandle": "story_svg",
+          "target": "out-story_svg",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "layout-finalize",
+          "sourceHandle": "contract",
+          "target": "out-contract",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "layout-finalize",
+          "sourceHandle": "record",
+          "target": "out-record",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "layout-finalize",
+          "sourceHandle": "record_file",
+          "target": "out-record_file",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "layout-finalize",
+          "sourceHandle": "phase",
+          "target": "out-phase",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/concept-art-iteration-board",
     "title": "Concept Art Iteration Board — NodeTool AI Workflow Template",
     "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on gpt-5-mini; images on fal-ai/flux/schnell.",
@@ -16246,6 +16654,316 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/propose-three-campaign-directions",
+    "title": "Propose Three Campaign Directions — NodeTool AI Workflow Template",
+    "description": "Validate one product brief and optional role-labelled reference, then propose exactly three written campaign directions before any image generation.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "propose-three-campaign-directions",
+    "name": "Propose Three Campaign Directions",
+    "summary": "Validate one product brief and optional role-labelled reference, then propose exactly three written campaign directions before any image generation.",
+    "tags": [
+      "campaign",
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 8
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      }
+    ],
+    "nodeCount": 16,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": -220,
+          "width": 520,
+          "isComment": true
+        },
+        {
+          "id": "in-product_image",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 0,
+          "width": 260
+        },
+        {
+          "id": "in-product_name",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 140,
+          "width": 260
+        },
+        {
+          "id": "in-campaign_message",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 280,
+          "width": 260
+        },
+        {
+          "id": "in-audience",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 420,
+          "width": 260
+        },
+        {
+          "id": "in-headline",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 560,
+          "width": 260
+        },
+        {
+          "id": "in-cta",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 700,
+          "width": 260
+        },
+        {
+          "id": "in-reference_image",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 840,
+          "width": 260
+        },
+        {
+          "id": "in-reference_role",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 980,
+          "width": 260,
+          "subtitle": "none"
+        },
+        {
+          "id": "in-reference_use",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 1120,
+          "width": 260
+        },
+        {
+          "id": "in-reference_ignore",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 1260,
+          "width": 260
+        },
+        {
+          "id": "direction-brief",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 340,
+          "y": 360,
+          "width": 420
+        },
+        {
+          "id": "direction-agent",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 820,
+          "y": 360,
+          "width": 320,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "direction-parser",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1200,
+          "y": 360,
+          "width": 420
+        },
+        {
+          "id": "out-directions",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1700,
+          "y": 260,
+          "width": 260
+        },
+        {
+          "id": "out-plan",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1700,
+          "y": 400,
+          "width": 260
+        },
+        {
+          "id": "out-phase",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1700,
+          "y": 540,
+          "width": 260
+        }
+      ],
+      "edges": [
+        {
+          "source": "in-product_image",
+          "sourceHandle": "output",
+          "target": "direction-brief",
+          "targetHandle": "product_image",
+          "color": "any"
+        },
+        {
+          "source": "in-product_name",
+          "sourceHandle": "output",
+          "target": "direction-brief",
+          "targetHandle": "product_name",
+          "color": "any"
+        },
+        {
+          "source": "in-campaign_message",
+          "sourceHandle": "output",
+          "target": "direction-brief",
+          "targetHandle": "campaign_message",
+          "color": "any"
+        },
+        {
+          "source": "in-audience",
+          "sourceHandle": "output",
+          "target": "direction-brief",
+          "targetHandle": "audience",
+          "color": "any"
+        },
+        {
+          "source": "in-headline",
+          "sourceHandle": "output",
+          "target": "direction-brief",
+          "targetHandle": "headline",
+          "color": "any"
+        },
+        {
+          "source": "in-cta",
+          "sourceHandle": "output",
+          "target": "direction-brief",
+          "targetHandle": "cta",
+          "color": "any"
+        },
+        {
+          "source": "in-reference_image",
+          "sourceHandle": "output",
+          "target": "direction-brief",
+          "targetHandle": "reference_image",
+          "color": "any"
+        },
+        {
+          "source": "in-reference_role",
+          "sourceHandle": "output",
+          "target": "direction-brief",
+          "targetHandle": "reference_role",
+          "color": "any"
+        },
+        {
+          "source": "in-reference_use",
+          "sourceHandle": "output",
+          "target": "direction-brief",
+          "targetHandle": "reference_use",
+          "color": "any"
+        },
+        {
+          "source": "in-reference_ignore",
+          "sourceHandle": "output",
+          "target": "direction-brief",
+          "targetHandle": "reference_ignore",
+          "color": "any"
+        },
+        {
+          "source": "direction-brief",
+          "sourceHandle": "prompt",
+          "target": "direction-agent",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "direction-brief",
+          "sourceHandle": "images",
+          "target": "direction-agent",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "direction-agent",
+          "sourceHandle": "text",
+          "target": "direction-parser",
+          "targetHandle": "response",
+          "color": "any"
+        },
+        {
+          "source": "direction-brief",
+          "sourceHandle": "brief",
+          "target": "direction-parser",
+          "targetHandle": "brief",
+          "color": "any"
+        },
+        {
+          "source": "direction-parser",
+          "sourceHandle": "directions",
+          "target": "out-directions",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "direction-parser",
+          "sourceHandle": "plan",
+          "target": "out-plan",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "direction-parser",
+          "sourceHandle": "phase",
+          "target": "out-phase",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/pull-a-field-out-of-json-text",
     "title": "Pull a Field out of JSON Text — NodeTool AI Workflow Template",
     "description": "Read a value from JSON text using a dotted path. This example extracts the name Ada.",
@@ -17437,6 +18155,979 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/render-a-directed-campaign-hero",
+    "title": "Render a Directed Campaign Hero — NodeTool AI Workflow Template",
+    "description": "Select one captured direction deterministically, edit the product reference into a 16:9 hero, and emit its creative contract only after the image succeeds.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "render-a-directed-campaign-hero",
+    "name": "Render a Directed Campaign Hero",
+    "summary": "Select one captured direction deterministically, edit the product reference into a 16:9 hero, and emit its creative contract only after the image succeeds.",
+    "tags": [
+      "campaign",
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.image.ImageToImage",
+        "label": "Image To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 8,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": -220,
+          "width": 520,
+          "isComment": true
+        },
+        {
+          "id": "in-plan",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "in-choice",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 300,
+          "width": 280,
+          "subtitle": "A"
+        },
+        {
+          "id": "hero-prepare",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 360,
+          "y": 180,
+          "width": 440
+        },
+        {
+          "id": "hero-edit",
+          "type": "nodetool.image.ImageToImage",
+          "title": "Image To Image",
+          "x": 880,
+          "y": 180,
+          "width": 320,
+          "subtitle": "fal-ai/nano-banana/edit"
+        },
+        {
+          "id": "hero-finalize",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1260,
+          "y": 180,
+          "width": 380
+        },
+        {
+          "id": "out-hero",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1720,
+          "y": 100,
+          "width": 250
+        },
+        {
+          "id": "out-contract",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1720,
+          "y": 240,
+          "width": 250
+        },
+        {
+          "id": "out-phase",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1720,
+          "y": 380,
+          "width": 250
+        }
+      ],
+      "edges": [
+        {
+          "source": "in-plan",
+          "sourceHandle": "output",
+          "target": "hero-prepare",
+          "targetHandle": "plan",
+          "color": "any"
+        },
+        {
+          "source": "in-choice",
+          "sourceHandle": "output",
+          "target": "hero-prepare",
+          "targetHandle": "choice",
+          "color": "any"
+        },
+        {
+          "source": "hero-prepare",
+          "sourceHandle": "prompt",
+          "target": "hero-edit",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "hero-prepare",
+          "sourceHandle": "images",
+          "target": "hero-edit",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "hero-edit",
+          "sourceHandle": "output",
+          "target": "hero-finalize",
+          "targetHandle": "hero",
+          "color": "any"
+        },
+        {
+          "source": "hero-prepare",
+          "sourceHandle": "contract",
+          "target": "hero-finalize",
+          "targetHandle": "contract",
+          "color": "any"
+        },
+        {
+          "source": "hero-finalize",
+          "sourceHandle": "hero",
+          "target": "out-hero",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "hero-finalize",
+          "sourceHandle": "contract",
+          "target": "out-contract",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "hero-finalize",
+          "sourceHandle": "phase",
+          "target": "out-phase",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/reopen-a-directed-campaign",
+    "title": "Reopen a Directed Campaign — NodeTool AI Workflow Template",
+    "description": "Validate a portable schema-version-1 campaign record and restore its accepted original and optional revision without calling a model.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "reopen-a-directed-campaign",
+    "name": "Reopen a Directed Campaign",
+    "summary": "Validate a portable schema-version-1 campaign record and restore its accepted original and optional revision without calling a model.",
+    "tags": [
+      "campaign",
+      "document",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 22
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 15
+      },
+      {
+        "type": "nodetool.input.DocumentInput",
+        "label": "Document Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.If",
+        "label": "If",
+        "count": 1
+      }
+    ],
+    "nodeCount": 39,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": -220,
+          "width": 560,
+          "isComment": true
+        },
+        {
+          "id": "in-record_file",
+          "type": "nodetool.input.DocumentInput",
+          "title": "Document Input",
+          "x": 0,
+          "y": 200,
+          "width": 300
+        },
+        {
+          "id": "validate-record",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 340,
+          "y": 100,
+          "width": 500
+        },
+        {
+          "id": "validate-original-source",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 880,
+          "y": -400,
+          "width": 420
+        },
+        {
+          "id": "validate-original-portrait",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1340,
+          "y": -400,
+          "width": 420
+        },
+        {
+          "id": "validate-original-story",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 880,
+          "y": -240,
+          "width": 420
+        },
+        {
+          "id": "validate-original-portrait-svg",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1340,
+          "y": -240,
+          "width": 420
+        },
+        {
+          "id": "validate-original-story-svg",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 880,
+          "y": -80,
+          "width": 420
+        },
+        {
+          "id": "validate-revision-source",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1340,
+          "y": -80,
+          "width": 420
+        },
+        {
+          "id": "validate-revision-portrait",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 880,
+          "y": 80,
+          "width": 420
+        },
+        {
+          "id": "validate-revision-story",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1340,
+          "y": 80,
+          "width": 420
+        },
+        {
+          "id": "validate-revision-portrait-svg",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 880,
+          "y": 240,
+          "width": 420
+        },
+        {
+          "id": "validate-revision-story-svg",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1340,
+          "y": 240,
+          "width": 420
+        },
+        {
+          "id": "restore-original-source",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 920,
+          "y": 40,
+          "width": 420
+        },
+        {
+          "id": "restore-original-portrait",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1390,
+          "y": 40,
+          "width": 420
+        },
+        {
+          "id": "restore-original-story",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 920,
+          "y": 220,
+          "width": 420
+        },
+        {
+          "id": "restore-original-portrait-svg",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1390,
+          "y": 220,
+          "width": 420
+        },
+        {
+          "id": "restore-original-story-svg",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 920,
+          "y": 400,
+          "width": 420
+        },
+        {
+          "id": "restore-revision-source",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1390,
+          "y": 400,
+          "width": 420
+        },
+        {
+          "id": "restore-revision-portrait",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 920,
+          "y": 580,
+          "width": 420
+        },
+        {
+          "id": "restore-revision-story",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1390,
+          "y": 580,
+          "width": 420
+        },
+        {
+          "id": "restore-revision-portrait-svg",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 920,
+          "y": 760,
+          "width": 420
+        },
+        {
+          "id": "restore-revision-story-svg",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1390,
+          "y": 760,
+          "width": 420
+        },
+        {
+          "id": "restore-finalize",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1420,
+          "y": 980,
+          "width": 420
+        },
+        {
+          "id": "restore-record-file",
+          "type": "nodetool.control.If",
+          "title": "If",
+          "x": 1900,
+          "y": 900,
+          "width": 280
+        },
+        {
+          "id": "out-accepted_hero",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1080,
+          "y": 0,
+          "width": 240
+        },
+        {
+          "id": "out-accepted_contract",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1080,
+          "y": 120,
+          "width": 240
+        },
+        {
+          "id": "out-original_portrait",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1080,
+          "y": 240,
+          "width": 240
+        },
+        {
+          "id": "out-original_story",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1080,
+          "y": 360,
+          "width": 240
+        },
+        {
+          "id": "out-original_portrait_svg",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1080,
+          "y": 480,
+          "width": 240
+        },
+        {
+          "id": "out-original_story_svg",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1080,
+          "y": 600,
+          "width": 240
+        },
+        {
+          "id": "out-original_record",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1080,
+          "y": 720,
+          "width": 240
+        },
+        {
+          "id": "out-revised_hero",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1380,
+          "y": 0,
+          "width": 240
+        },
+        {
+          "id": "out-revised_contract",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1380,
+          "y": 120,
+          "width": 240
+        },
+        {
+          "id": "out-revised_portrait",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1380,
+          "y": 240,
+          "width": 240
+        },
+        {
+          "id": "out-revised_story",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1380,
+          "y": 360,
+          "width": 240
+        },
+        {
+          "id": "out-revised_portrait_svg",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1380,
+          "y": 480,
+          "width": 240
+        },
+        {
+          "id": "out-revised_story_svg",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1380,
+          "y": 600,
+          "width": 240
+        },
+        {
+          "id": "out-record_file",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1380,
+          "y": 720,
+          "width": 240
+        },
+        {
+          "id": "out-phase",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1380,
+          "y": 840,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "validate-record",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "restore-original-source",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "restore-original-portrait",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "restore-original-source",
+          "sourceHandle": "gate",
+          "target": "restore-original-portrait",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "restore-original-story",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "restore-original-portrait",
+          "sourceHandle": "gate",
+          "target": "restore-original-story",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "restore-original-portrait-svg",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "restore-original-story",
+          "sourceHandle": "gate",
+          "target": "restore-original-portrait-svg",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "restore-original-story-svg",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "restore-original-portrait-svg",
+          "sourceHandle": "gate",
+          "target": "restore-original-story-svg",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "restore-revision-source",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "restore-original-story-svg",
+          "sourceHandle": "gate",
+          "target": "restore-revision-source",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "restore-revision-portrait",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "restore-revision-source",
+          "sourceHandle": "gate",
+          "target": "restore-revision-portrait",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "restore-revision-story",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "restore-revision-portrait",
+          "sourceHandle": "gate",
+          "target": "restore-revision-story",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "restore-revision-portrait-svg",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "restore-revision-story",
+          "sourceHandle": "gate",
+          "target": "restore-revision-portrait-svg",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "restore-revision-story-svg",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "restore-revision-portrait-svg",
+          "sourceHandle": "gate",
+          "target": "restore-revision-story-svg",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "restore-finalize",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "restore-revision-story-svg",
+          "sourceHandle": "gate",
+          "target": "restore-finalize",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "restore-original-source",
+          "sourceHandle": "value",
+          "target": "out-accepted_hero",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-original-portrait",
+          "sourceHandle": "value",
+          "target": "out-original_portrait",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-original-story",
+          "sourceHandle": "value",
+          "target": "out-original_story",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-original-portrait-svg",
+          "sourceHandle": "value",
+          "target": "out-original_portrait_svg",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-original-story-svg",
+          "sourceHandle": "value",
+          "target": "out-original_story_svg",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-revision-source",
+          "sourceHandle": "value",
+          "target": "out-revised_hero",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-revision-portrait",
+          "sourceHandle": "value",
+          "target": "out-revised_portrait",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-revision-story",
+          "sourceHandle": "value",
+          "target": "out-revised_story",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-revision-portrait-svg",
+          "sourceHandle": "value",
+          "target": "out-revised_portrait_svg",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-revision-story-svg",
+          "sourceHandle": "value",
+          "target": "out-revised_story_svg",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-finalize",
+          "sourceHandle": "accepted_contract",
+          "target": "out-accepted_contract",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-finalize",
+          "sourceHandle": "original_record",
+          "target": "out-original_record",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-finalize",
+          "sourceHandle": "revised_contract",
+          "target": "out-revised_contract",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-finalize",
+          "sourceHandle": "phase",
+          "target": "out-phase",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "validate-original-source",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "validate-record",
+          "sourceHandle": "gate",
+          "target": "validate-original-source",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "validate-original-portrait",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "validate-original-source",
+          "sourceHandle": "gate",
+          "target": "validate-original-portrait",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "validate-original-story",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "validate-original-portrait",
+          "sourceHandle": "gate",
+          "target": "validate-original-story",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "validate-original-portrait-svg",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "validate-original-story",
+          "sourceHandle": "gate",
+          "target": "validate-original-portrait-svg",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "validate-original-story-svg",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "validate-original-portrait-svg",
+          "sourceHandle": "gate",
+          "target": "validate-original-story-svg",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "validate-revision-source",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "validate-original-story-svg",
+          "sourceHandle": "gate",
+          "target": "validate-revision-source",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "validate-revision-portrait",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "validate-revision-source",
+          "sourceHandle": "gate",
+          "target": "validate-revision-portrait",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "validate-revision-story",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "validate-revision-portrait",
+          "sourceHandle": "gate",
+          "target": "validate-revision-story",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "validate-revision-portrait-svg",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "validate-revision-story",
+          "sourceHandle": "gate",
+          "target": "validate-revision-portrait-svg",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "validate-revision-story-svg",
+          "targetHandle": "record_file",
+          "color": "any"
+        },
+        {
+          "source": "validate-revision-portrait-svg",
+          "sourceHandle": "gate",
+          "target": "validate-revision-story-svg",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "validate-revision-story-svg",
+          "sourceHandle": "gate",
+          "target": "restore-original-source",
+          "targetHandle": "gate",
+          "color": "any"
+        },
+        {
+          "source": "in-record_file",
+          "sourceHandle": "output",
+          "target": "restore-record-file",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "restore-finalize",
+          "sourceHandle": "ready",
+          "target": "restore-record-file",
+          "targetHandle": "condition",
+          "color": "any"
+        },
+        {
+          "source": "restore-record-file",
+          "sourceHandle": "if_true",
+          "target": "out-record_file",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/research-agent",
     "title": "Research Agent — NodeTool AI Workflow Template",
     "description": "Give it a topic and an audience; the agent runs real web searches, opens the best sources, and streams back a cited markdown briefing. Differentiator: genuine multi-step tool use (search + browse) with inline citations — not a single prompt call.",
@@ -17823,6 +19514,258 @@ export const templateEntries: TemplateEntry[] = [
           "source": "op",
           "sourceHandle": "output",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/revise-an-accepted-campaign-hero",
+    "title": "Revise an Accepted Campaign Hero — NodeTool AI Workflow Template",
+    "description": "Apply one bounded revision to the accepted campaign hero while recording the exact change, preservation instructions, allowed response, and parent contract.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "revise-an-accepted-campaign-hero",
+    "name": "Revise an Accepted Campaign Hero",
+    "summary": "Apply one bounded revision to the accepted campaign hero while recording the exact change, preservation instructions, allowed response, and parent contract.",
+    "tags": [
+      "campaign",
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 4
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 3
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.ImageToImage",
+        "label": "Image To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 12,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": -220,
+          "width": 520,
+          "isComment": true
+        },
+        {
+          "id": "in-hero",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 80,
+          "width": 280
+        },
+        {
+          "id": "in-contract",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 230,
+          "width": 280
+        },
+        {
+          "id": "in-change",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 380,
+          "width": 280,
+          "subtitle": "Move the scene from late afternoon to blue hour."
+        },
+        {
+          "id": "in-preserve",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 530,
+          "width": 280,
+          "subtitle": "Keep the cup, camera position, composition, stone surface, headline, CTA, and spacing."
+        },
+        {
+          "id": "in-allow",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 680,
+          "width": 280,
+          "subtitle": "Let reflections, shadows, and the sky respond to the light."
+        },
+        {
+          "id": "normalize-hero",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 340,
+          "y": 80,
+          "width": 320
+        },
+        {
+          "id": "revision-prepare",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 360,
+          "y": 300,
+          "width": 440
+        },
+        {
+          "id": "revision-edit",
+          "type": "nodetool.image.ImageToImage",
+          "title": "Image To Image",
+          "x": 880,
+          "y": 300,
+          "width": 320,
+          "subtitle": "fal-ai/nano-banana/edit"
+        },
+        {
+          "id": "revision-finalize",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1260,
+          "y": 300,
+          "width": 380
+        },
+        {
+          "id": "out-hero",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1720,
+          "y": 220,
+          "width": 250
+        },
+        {
+          "id": "out-contract",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1720,
+          "y": 360,
+          "width": 250
+        },
+        {
+          "id": "out-phase",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1720,
+          "y": 500,
+          "width": 250
+        }
+      ],
+      "edges": [
+        {
+          "source": "in-hero",
+          "sourceHandle": "output",
+          "target": "normalize-hero",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "normalize-hero",
+          "sourceHandle": "image",
+          "target": "revision-prepare",
+          "targetHandle": "hero",
+          "color": "any"
+        },
+        {
+          "source": "in-contract",
+          "sourceHandle": "output",
+          "target": "revision-prepare",
+          "targetHandle": "contract",
+          "color": "any"
+        },
+        {
+          "source": "in-change",
+          "sourceHandle": "output",
+          "target": "revision-prepare",
+          "targetHandle": "change",
+          "color": "any"
+        },
+        {
+          "source": "in-preserve",
+          "sourceHandle": "output",
+          "target": "revision-prepare",
+          "targetHandle": "preserve",
+          "color": "any"
+        },
+        {
+          "source": "in-allow",
+          "sourceHandle": "output",
+          "target": "revision-prepare",
+          "targetHandle": "allow",
+          "color": "any"
+        },
+        {
+          "source": "revision-prepare",
+          "sourceHandle": "prompt",
+          "target": "revision-edit",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "revision-prepare",
+          "sourceHandle": "images",
+          "target": "revision-edit",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "revision-edit",
+          "sourceHandle": "output",
+          "target": "revision-finalize",
+          "targetHandle": "hero",
+          "color": "any"
+        },
+        {
+          "source": "revision-prepare",
+          "sourceHandle": "contract",
+          "target": "revision-finalize",
+          "targetHandle": "contract",
+          "color": "any"
+        },
+        {
+          "source": "revision-finalize",
+          "sourceHandle": "hero",
+          "target": "out-hero",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "revision-finalize",
+          "sourceHandle": "contract",
+          "target": "out-contract",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "revision-finalize",
+          "sourceHandle": "phase",
+          "target": "out-phase",
           "targetHandle": "value",
           "color": "any"
         }

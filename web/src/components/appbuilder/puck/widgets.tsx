@@ -74,10 +74,33 @@ const numOr = (v: unknown, fallback: number): number =>
   isNumber(v) && Number.isFinite(v) ? v : fallback;
 
 export const resolveImageSrc = (value: unknown): string | null => {
-  if (isString(value)) return value.length > 0 ? value : null;
+  if (isString(value)) {
+    if (value.length === 0) return null;
+    if (/^[a-f0-9]{32}$/i.test(value)) return `asset://${value}`;
+    if (value.trimStart().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(value);
+        if (isObjectLike(parsed)) {
+          const candidate =
+            parsed.uri ??
+            parsed.url ??
+            (isString(parsed.asset_id) ? `asset://${parsed.asset_id}` : undefined) ??
+            parsed.data;
+          if (isString(candidate) && candidate.length > 0) return candidate;
+        }
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
   if (value && isObjectLike(value)) {
     const obj = value as Record<string, unknown>;
-    const candidate = obj.uri ?? obj.url ?? obj.data;
+    const candidate =
+      obj.uri ??
+      obj.url ??
+      (isString(obj.asset_id) ? `asset://${obj.asset_id}` : undefined) ??
+      obj.data;
     if (isString(candidate) && candidate.length > 0) return candidate;
   }
   return null;
@@ -1097,7 +1120,13 @@ export const ButtonWidget: React.FC<
 > = (props) => {
   const { emit, designMode, runnerState } = useBinding(props, "none");
   const isRunning = runnerState === "running";
-  const showRunning = isRunning && !designMode;
+  const runsOnClick = (props.events ?? []).some(
+    (event) =>
+      event.trigger === "click" && (!event.kind || event.kind === "run")
+  );
+  // A mixed-action button stays disabled while busy when any click event runs
+  // the operation. Cancel-only and non-run buttons remain operable.
+  const showRunning = isRunning && runsOnClick && !designMode;
   return (
     <EditorButton
       data-focus-id={`app-widget-${props.id}`}
@@ -1108,7 +1137,7 @@ export const ButtonWidget: React.FC<
       density="normal"
       size="medium"
       fullWidth
-      disabled={showRunning}
+      disabled={Boolean(props.disabled) || showRunning}
       onClick={() => emit("click")}
       sx={{
         fontSize: TYPOGRAPHY.sans.body.fontSize,

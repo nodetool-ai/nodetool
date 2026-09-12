@@ -21,7 +21,7 @@
  * the call's own `secrets` list — authoring runs are hermetic by default.
  */
 
-import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { RunSandboxOptions } from "../js-sandbox.js";
 import type {
   CapabilityExport,
@@ -143,10 +143,16 @@ return __yielded;`
   };
   let source = body;
   if (params.withToolbelt) {
-    const { NODETOOL_PRELUDE, sandboxToolBridgeGlobals } =
-      await import("../sandbox-toolbelt.js");
+    const {
+      NODETOOL_PRELUDE,
+      assembleJsScriptToolbelt,
+      sandboxToolBridgeGlobals
+    } = await import("../sandbox-toolbelt.js");
     source = `${NODETOOL_PRELUDE}\n${body}`;
-    Object.assign(globals, sandboxToolBridgeGlobals(context));
+    Object.assign(
+      globals,
+      sandboxToolBridgeGlobals(context, await assembleJsScriptToolbelt(context))
+    );
   }
 
   // A body reading `stream` needs a source, or every verb throws. Only a call
@@ -304,9 +310,8 @@ const CODE_LEGACY_CONTRACT = "code_legacy_contract";
 const validateCode: CapabilityExport = {
   spec: validateCodeSpec,
   impl: async (run, params) => {
-    const { validateCodeNodeBody, usesEmitOutputContract } = await import(
-      "@nodetool-ai/node-sdk"
-    );
+    const { validateCodeNodeBody, usesEmitOutputContract } =
+      await import("@nodetool-ai/node-sdk");
     const issues = validateCodeNodeBody({
       code: params["code"],
       availableInputs: stringList(params["inputs"]),
@@ -389,14 +394,10 @@ const testCode: CapabilityExport = {
     const timeout = timeoutSeconds(params["timeout_seconds"]);
 
     const cases: GradedCase[] = rawCases.map((entry, i) => {
-      const raw =
-        isObjectLike(entry)
-          ? (entry as Record<string, unknown>)
-          : {};
-      const name =
-        isNonBlankString(raw["name"])
-          ? raw["name"]
-          : `case ${i + 1}`;
+      const raw = isObjectLike(entry) ? (entry as Record<string, unknown>) : {};
+      const name = isNonBlankString(raw["name"])
+        ? raw["name"]
+        : `case ${i + 1}`;
       const staged = inputStreamBag(raw["input_streams"]);
       const graded: GradedCase = { name, inputs: inputBag(raw["inputs"]) };
       if (isObjectLike(raw["expect"])) {

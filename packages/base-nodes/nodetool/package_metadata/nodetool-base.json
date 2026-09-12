@@ -201,6 +201,36 @@
   ],
   "examples": [
     {
+      "id": "directed-campaign-directions",
+      "name": "Propose Three Campaign Directions",
+      "description": "Validate one product brief and optional role-labelled reference, then propose exactly three written campaign directions before any image generation.",
+      "tags": ["campaign", "image", "example"]
+    },
+    {
+      "id": "directed-campaign-hero",
+      "name": "Render a Directed Campaign Hero",
+      "description": "Select one captured direction deterministically, edit the product reference into a 16:9 hero, and emit its creative contract only after the image succeeds.",
+      "tags": ["campaign", "image", "example"]
+    },
+    {
+      "id": "directed-campaign-layouts",
+      "name": "Compose Directed Campaign Formats",
+      "description": "Compose one accepted hero into deterministic 1080×1350 and 1080×1920 PNG and self-contained SVG formats, then export a portable versioned campaign record.",
+      "tags": ["campaign", "image", "svg", "example"]
+    },
+    {
+      "id": "directed-campaign-revision",
+      "name": "Revise an Accepted Campaign Hero",
+      "description": "Apply one bounded revision to the accepted campaign hero while recording the exact change, preservation instructions, allowed response, and parent contract.",
+      "tags": ["campaign", "image", "example"]
+    },
+    {
+      "id": "directed-campaign-restore",
+      "name": "Reopen a Directed Campaign",
+      "description": "Validate a portable schema-version-1 campaign record and restore its accepted original and optional revision without calling a model.",
+      "tags": ["campaign", "document", "example"]
+    },
+    {
       "id": "data_generator",
       "name": "Data Generator",
       "description": "Generate structured data using AI agents",

@@ -619,7 +619,10 @@
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "clip",
-              "value": null,
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+              },
               "description": "The clip to score"
             },
             "ui_properties": {
@@ -640,7 +643,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "mood",
-              "value": "Warm analogue synth bed, slow pulse, hopeful but restrained, no drums",
+              "value": "Soft jazz guitar and brushed drums for a quiet coffee shop, instrumental",
               "description": "The mood of the score"
             },
             "ui_properties": {
@@ -664,13 +667,13 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1120,
-                "y": 320
+                "x": 2800,
+                "y": 240
               },
               "zIndex": 0,
               "width": 240,
               "selectable": true,
-              "title": "5  Scored clip"
+              "title": "Scored clip"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -685,7 +688,7 @@
     "op:shots/out:out": "1. Close on the speedometer, handheld, 2s\n2. Low wide of the bridge mouth, locked off, 3s\n3. Tracking side profile of the car, dolly right, 4s",
     "op:trailer/in:style": "cinematic film still, theatrical key art, anamorphic framing, high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, fine film grain, gritty",
     "op:trailer/in:shot_count": 6,
-    "op:score/in:in-mood": "Warm analogue synth bed, slow pulse, hopeful but restrained, no drums",
+    "op:score/in:in-mood": "Soft jazz guitar and brushed drums for a quiet coffee shop, instrumental",
     "var:cut": {
       "$demo": "video"
     },

@@ -1,0 +1,83 @@
+{
+  "id": "directed-campaign-revision",
+  "access": "private",
+  "created_at": "2026-09-12T00:00:00.000Z",
+  "updated_at": "2026-09-12T00:00:00.000Z",
+  "name": "Revise an Accepted Campaign Hero",
+  "tool_name": null,
+  "description": "Apply one bounded revision to the accepted campaign hero while recording the exact change, preservation instructions, allowed response, and parent contract.",
+  "tags": ["campaign", "image", "example"],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {"id": "intro", "type": "nodetool.workflows.base_node.Comment", "data": {"comment": "# Revise an Accepted Campaign Hero\n\nThe accepted hero is the only editing source. Capture Change, Preserve, and Allow to respond in a child contract, make one image edit, and wait for its result before opening revision review."}, "ui_properties": {"position": {"x": 0, "y": -220}, "width": 520, "height": 165, "selectable": true}, "dynamic_properties": {}},
+      {"id": "in-hero", "type": "nodetool.input.ImageInput", "data": {"name": "hero", "value": {"type": "image", "uri": ""}, "description": "Accepted campaign hero. This is the primary and only editing source."}, "ui_properties": {"position": {"x": 0, "y": 80}, "width": 280, "title": "Accepted hero"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-contract", "type": "nodetool.input.StringInput", "data": {"name": "contract", "value": "", "description": "Accepted hero contract.", "line_mode": "multi_line"}, "ui_properties": {"position": {"x": 0, "y": 230}, "width": 280, "title": "Accepted contract"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-change", "type": "nodetool.input.StringInput", "data": {"name": "change", "value": "Move the scene from late afternoon to blue hour.", "description": "The requested change.", "line_mode": "multi_line", "max_length": 500}, "ui_properties": {"position": {"x": 0, "y": 380}, "width": 280, "title": "Change"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-preserve", "type": "nodetool.input.StringInput", "data": {"name": "preserve", "value": "Keep the cup, camera position, composition, stone surface, headline, CTA, and spacing.", "description": "What must remain unchanged.", "line_mode": "multi_line", "max_length": 700}, "ui_properties": {"position": {"x": 0, "y": 530}, "width": 280, "title": "Preserve"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-allow", "type": "nodetool.input.StringInput", "data": {"name": "allow", "value": "Let reflections, shadows, and the sky respond to the light.", "description": "What may respond naturally to the change.", "line_mode": "multi_line", "max_length": 500}, "ui_properties": {"position": {"x": 0, "y": 680}, "width": 280, "title": "Allow to respond"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {
+        "id": "normalize-hero",
+        "type": "nodetool.code.Code",
+        "data": {"code": "let value = inputs.value;\nif (typeof value === \"string\") {\n  const trimmed = value.trim();\n  if (trimmed.startsWith(\"{\")) {\n    try { value = JSON.parse(trimmed); } catch { value = { type: \"image\", uri: trimmed }; }\n  } else {\n    value = { type: \"image\", uri: trimmed };\n  }\n}\nif (!value || value.type !== \"image\" || (typeof value.uri !== \"string\" && typeof value.data !== \"string\" && typeof value.asset_id !== \"string\")) throw new Error(\"The accepted hero is not a valid image reference.\");\nawait output(\"image\", value);"},
+        "ui_properties": {"position": {"x": 340, "y": 80}, "width": 320, "title": "Normalize app image"},
+        "dynamic_properties": {"value": null},
+        "dynamic_inputs": {"value": {"type": {"type": "any"}}},
+        "dynamic_outputs": {"image": {"type": "image", "type_args": [], "optional": false}},
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "revision-prepare",
+        "type": "nodetool.code.Code",
+        "data": {"code": "const heroBytes = await media.bytes(inputs.hero);\nif (heroBytes.length === 0) throw new Error(\"The accepted hero is empty.\");\nlet parentContract;\ntry { parentContract = JSON.parse(String(inputs.contract ?? \"\")); } catch { throw new Error(\"The accepted hero contract is invalid.\"); }\nif (!parentContract || parentContract.schemaVersion !== 1 || !parentContract.copy || !parentContract.selectedDirection) throw new Error(\"The accepted hero contract is incomplete.\");\nconst bounded = (name, max) => {\n  const value = String(inputs[name] ?? \"\").trim();\n  if (!value) throw new Error(`${name} is required.`);\n  if (value.length > max) throw new Error(`${name} must be ${max} characters or fewer.`);\n  return value;\n};\nconst change = bounded(\"change\", 500);\nconst preserve = bounded(\"preserve\", 700);\nconst allow = bounded(\"allow\", 500);\nconst prompt = `Edit the accepted campaign hero supplied as Image 1.\\n\\nChange: ${change}\\nPreserve exactly: ${preserve}\\nAllow to respond: ${allow}\\n\\nThe accepted image remains the source of truth for product identity, geometry, camera, surface, composition, visible branding, and copy space. Do not add, rewrite, or render the headline or CTA. Do not introduce another product.`;\nconst revisedContract = { schemaVersion: 1, kind: \"revision\", parentContract, brief: parentContract.brief, selectedDirection: parentContract.selectedDirection, copy: parentContract.copy, revisionRequest: { change, preserve, allow }, sourceOrder: [\"accepted campaign hero\"], render: { aspectRatio: \"16:9\", resolution: \"1K\", prompt } };\nawait output(\"prompt\", prompt);\nawait output(\"images\", [inputs.hero]);\nawait output(\"contract\", JSON.stringify(revisedContract));"},
+        "ui_properties": {"position": {"x": 360, "y": 300}, "width": 440, "title": "Capture revision request"},
+        "dynamic_properties": {"hero": {"type": "image", "uri": ""}, "contract": "", "change": "", "preserve": "", "allow": ""},
+        "dynamic_inputs": {"hero": {"type": {"type": "any"}}, "contract": {"type": {"type": "str"}}, "change": {"type": {"type": "str"}}, "preserve": {"type": {"type": "str"}}, "allow": {"type": {"type": "str"}}},
+        "dynamic_outputs": {"prompt": {"type": "str", "type_args": [], "optional": false}, "images": {"type": "list", "type_args": [{"type": "image", "type_args": [], "optional": false}], "optional": false}, "contract": {"type": "str", "type_args": [], "optional": false}},
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "revision-edit",
+        "type": "nodetool.image.ImageToImage",
+        "data": {"model": {"type": "image_model", "provider": "fal_ai", "id": "fal-ai/nano-banana/edit", "name": "Nano Banana Edit", "path": null, "supported_tasks": []}, "image": [], "prompt": "", "negative_prompt": "added text, changed product, changed logo, changed camera, duplicate product", "entities": [], "strength": 0.45, "aspect_ratio": "16:9", "resolution": "1K", "scheduler": ""},
+        "ui_properties": {"position": {"x": 880, "y": 300}, "width": 320, "title": "Make one revision"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_all"
+      },
+      {
+        "id": "revision-finalize",
+        "type": "nodetool.code.Code",
+        "data": {"code": "if (!inputs.hero || inputs.hero.type !== \"image\" || (typeof inputs.hero.uri !== \"string\" && typeof inputs.hero.data !== \"string\")) throw new Error(\"The revision model did not return a valid image.\");\nlet contract;\ntry { contract = JSON.parse(String(inputs.contract ?? \"\")); } catch { throw new Error(\"The revised contract is invalid.\"); }\nif (!contract || contract.schemaVersion !== 1 || contract.kind !== \"revision\" || !contract.parentContract || !contract.revisionRequest) throw new Error(\"The revised contract is incomplete.\");\nawait output(\"hero\", inputs.hero);\nawait output(\"contract\", JSON.stringify(contract));\nawait output(\"phase\", \"revision_review\");"},
+        "ui_properties": {"position": {"x": 1260, "y": 300}, "width": 380, "title": "Finalize revision candidate"},
+        "dynamic_properties": {"hero": {"type": "image", "uri": ""}, "contract": ""},
+        "dynamic_inputs": {"hero": {"type": {"type": "image"}}, "contract": {"type": {"type": "str"}}},
+        "dynamic_outputs": {"hero": {"type": "image", "type_args": [], "optional": false}, "contract": {"type": "str", "type_args": [], "optional": false}, "phase": {"type": "str", "type_args": [], "optional": false}},
+        "sync_mode": "on_all"
+      },
+      {"id": "out-hero", "type": "nodetool.output.Output", "data": {"name": "hero"}, "ui_properties": {"position": {"x": 1720, "y": 220}, "width": 250, "title": "Revision candidate"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "out-contract", "type": "nodetool.output.Output", "data": {"name": "contract"}, "ui_properties": {"position": {"x": 1720, "y": 360}, "width": 250, "title": "Revision contract"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "out-phase", "type": "nodetool.output.Output", "data": {"name": "phase"}, "ui_properties": {"position": {"x": 1720, "y": 500}, "width": 250, "title": "Review phase"}, "dynamic_properties": {}, "dynamic_outputs": {}}
+    ],
+    "edges": [
+      {"id": "hero-to-normalizer", "source": "in-hero", "sourceHandle": "output", "target": "normalize-hero", "targetHandle": "value"},
+      {"id": "hero-to-prepare", "source": "normalize-hero", "sourceHandle": "image", "target": "revision-prepare", "targetHandle": "hero"},
+      {"id": "contract-to-prepare", "source": "in-contract", "sourceHandle": "output", "target": "revision-prepare", "targetHandle": "contract"},
+      {"id": "change-to-prepare", "source": "in-change", "sourceHandle": "output", "target": "revision-prepare", "targetHandle": "change"},
+      {"id": "preserve-to-prepare", "source": "in-preserve", "sourceHandle": "output", "target": "revision-prepare", "targetHandle": "preserve"},
+      {"id": "allow-to-prepare", "source": "in-allow", "sourceHandle": "output", "target": "revision-prepare", "targetHandle": "allow"},
+      {"id": "prompt-to-edit", "source": "revision-prepare", "sourceHandle": "prompt", "target": "revision-edit", "targetHandle": "prompt"},
+      {"id": "images-to-edit", "source": "revision-prepare", "sourceHandle": "images", "target": "revision-edit", "targetHandle": "image"},
+      {"id": "edit-to-finalize", "source": "revision-edit", "sourceHandle": "output", "target": "revision-finalize", "targetHandle": "hero"},
+      {"id": "contract-to-finalize", "source": "revision-prepare", "sourceHandle": "contract", "target": "revision-finalize", "targetHandle": "contract"},
+      {"id": "hero-out", "source": "revision-finalize", "sourceHandle": "hero", "target": "out-hero", "targetHandle": "value"},
+      {"id": "contract-out", "source": "revision-finalize", "sourceHandle": "contract", "target": "out-contract", "targetHandle": "value"},
+      {"id": "phase-out", "source": "revision-finalize", "sourceHandle": "phase", "target": "out-phase", "targetHandle": "value"}
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

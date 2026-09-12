@@ -495,7 +495,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "script",
-              "value": "",
+              "value": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend.",
               "description": "The English script"
             },
             "ui_properties": {
@@ -519,7 +519,7 @@
             },
             "ui_properties": {
               "position": {
-                "x": 990,
+                "x": 1980,
                 "y": 120
               },
               "zIndex": 0,
@@ -593,7 +593,10 @@
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "presenter_clip",
-              "value": null,
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+              },
               "description": "Footage of a person speaking to camera"
             },
             "ui_properties": {
@@ -614,7 +617,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "script",
-              "value": "Our spring release ships today. Faster renders, sharper output, and a price that did not move.",
+              "value": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend.",
               "description": "The new words the presenter should say"
             },
             "ui_properties": {
@@ -638,7 +641,7 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1120,
+                "x": 2110,
                 "y": 320
               },
               "zIndex": 0,

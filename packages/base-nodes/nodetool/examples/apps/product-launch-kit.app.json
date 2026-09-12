@@ -528,8 +528,8 @@
               "model": {
                 "type": "image_model",
                 "provider": "fal_ai",
-                "id": "fal-ai/flux/schnell",
-                "name": "FLUX.1 Schnell",
+                "id": "fal-ai/nano-banana/edit",
+                "name": "Nano Banana",
                 "path": null,
                 "supported_tasks": []
               },
@@ -552,7 +552,8 @@
               "title": "🅰️ Composite product into scene (image-to-image)"
             },
             "dynamic_properties": {},
-            "dynamic_outputs": {}
+            "dynamic_outputs": {},
+            "sync_mode": "on_all"
           },
           {
             "id": "5",

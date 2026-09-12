@@ -142,7 +142,7 @@
     {
       "key": "revoice",
       "name": "AI Spokesperson",
-      "description": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
+      "description": "Turn a script into speech, normalise the volume, and soften the audio edges before syncing it to your presenter clip.",
       "sourceId": "nodetool-base/AI Spokesperson",
       "graph": {
         "nodes": [
@@ -151,13 +151,7 @@
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
               "headline": "AI Spokesperson",
-              "comment": [
-                "Re-voice an existing presenter clip without a reshoot.\n\n",
-                "1. Drop in footage of a person talking to camera.\n",
-                "2. Write the new script.\n",
-                "3. TTS voices it, then lip-sync redrives the mouth to match.\n\n",
-                "Keep the script close to the original length — lip-sync follows the audio, and a much longer script will run past the footage."
-              ]
+              "comment": "Turn a script into speech, normalise the volume, and soften the audio edges before syncing it to your presenter clip."
             },
             "ui_properties": {
               "position": {
@@ -177,7 +171,10 @@
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "presenter_clip",
-              "value": null,
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+              },
               "description": "Footage of a person speaking to camera"
             },
             "ui_properties": {
@@ -198,7 +195,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "script",
-              "value": "Our spring release ships today. Faster renders, sharper output, and a price that did not move.",
+              "value": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend.",
               "description": "The new words the presenter should say"
             },
             "ui_properties": {
@@ -256,7 +253,7 @@
             },
             "ui_properties": {
               "position": {
-                "x": 760,
+                "x": 1750,
                 "y": 300
               },
               "zIndex": 0,
@@ -275,13 +272,62 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1120,
+                "x": 2110,
                 "y": 320
               },
               "zIndex": 0,
               "width": 240,
               "selectable": true,
               "title": "5  Re-voiced clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "level",
+            "type": "nodetool.audio.Normalize",
+            "data": {},
+            "ui_properties": {
+              "position": {
+                "x": 710,
+                "y": 380
+              },
+              "width": 300,
+              "title": "Even out volume"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "fade-in",
+            "type": "nodetool.audio.FadeIn",
+            "data": {
+              "duration": 0.01
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1040,
+                "y": 380
+              },
+              "width": 300,
+              "title": "Soften the start"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "fade-out",
+            "type": "nodetool.audio.FadeOut",
+            "data": {
+              "duration": 0.03
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1370,
+                "y": 380
+              },
+              "width": 300,
+              "title": "Soften the ending"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -303,18 +349,39 @@
             "targetHandle": "video"
           },
           {
-            "id": "e3",
-            "source": "speech",
-            "sourceHandle": "audio",
-            "target": "sync",
-            "targetHandle": "audio"
-          },
-          {
             "id": "e4",
             "source": "sync",
             "sourceHandle": "output",
             "target": "output-clip",
             "targetHandle": "value"
+          },
+          {
+            "id": "speech-level-audio",
+            "source": "speech",
+            "sourceHandle": "audio",
+            "target": "level",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "level-fade-in-audio",
+            "source": "level",
+            "sourceHandle": "output",
+            "target": "fade-in",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "fade-in-fade-out-audio",
+            "source": "fade-in",
+            "sourceHandle": "output",
+            "target": "fade-out",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "e3",
+            "source": "fade-out",
+            "sourceHandle": "output",
+            "target": "sync",
+            "targetHandle": "audio"
           }
         ]
       },

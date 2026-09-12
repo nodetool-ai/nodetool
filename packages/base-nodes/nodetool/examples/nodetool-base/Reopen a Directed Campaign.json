@@ -1,0 +1,1744 @@
+{
+  "id": "directed-campaign-restore",
+  "access": "private",
+  "created_at": "2026-09-12T00:00:00.000Z",
+  "updated_at": "2026-09-12T00:00:00.000Z",
+  "name": "Reopen a Directed Campaign",
+  "tool_name": null,
+  "description": "Validate a portable schema-version-1 campaign record and restore its accepted original and optional revision without calling a model.",
+  "tags": ["campaign", "document", "example"],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Reopen a Directed Campaign\n\nRead directed-campaign.json, validate its version, copy, direction, MIME-labelled base64 payloads, dimensions, and revision ancestry, then recreate typed media references. Validation finishes before any output is written. No provider runs."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -220
+          },
+          "width": 560,
+          "height": 180,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "in-record_file",
+        "type": "nodetool.input.DocumentInput",
+        "data": {
+          "name": "record_file",
+          "value": {
+            "type": "document",
+            "uri": ""
+          },
+          "description": "A directed-campaign.json record exported by Compose Directed Campaign Formats."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 200
+          },
+          "width": 300,
+          "title": "Campaign record"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "validate-record",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "const MAX_RECORD_BYTES = 16 * 1024 * 1024;\nconst fileInfo = await media.info(inputs.record_file);\nif (fileInfo.size > MAX_RECORD_BYTES) throw new Error(\"The campaign record exceeds the 16 MiB portable record limit.\");\nif (fileInfo.mimeType !== \"application/json\") throw new Error(`Campaign record MIME type must be application/json, received ${fileInfo.mimeType || \"unknown\"}.`);\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The campaign record contains malformed JSON. The current campaign was not changed.\"); }\nif (!record || record.schemaVersion !== 1) throw new Error(\"Campaign record schemaVersion must be 1. The current campaign was not changed.\");\nif (![\"original\", \"revision\"].includes(record.acceptedVersion)) throw new Error(\"Campaign record acceptedVersion must be original or revision.\");\nconst text = (label, value, max) => {\n  if (typeof value !== \"string\" || value.length === 0) throw new Error(`${label} is required.`);\n  if (value.length > max) throw new Error(`${label} exceeds ${max} characters.`);\n  return value;\n};\nif (!record.brief || typeof record.brief !== \"object\") throw new Error(\"Campaign record brief is missing.\");\ntext(\"Product name\", record.brief.productName, 120);\ntext(\"Campaign message\", record.brief.campaignMessage, 600);\ntext(\"Audience\", record.brief.audience, 300);\ntext(\"Headline\", record.brief.headline, 120);\ntext(\"CTA\", record.brief.cta, 80);\nconst roles = [\"none\", \"composition\", \"palette\", \"material\", \"lighting\"];\nif (!record.references || !roles.includes(record.references.role)) throw new Error(\"Campaign record reference role is invalid.\");\nif (String(record.references.use ?? \"\").length > 300 || String(record.references.ignore ?? \"\").length > 300) throw new Error(\"Campaign record reference notes exceed 300 characters.\");\nconst directionFields = [\"id\", \"title\", \"setting\", \"composition\", \"lighting\", \"palette\", \"preservationInstructions\"];\nif (!record.selectedDirection || record.selectedDirection.id === undefined) throw new Error(\"Campaign record selected direction is missing.\");\nif (![\"A\", \"B\", \"C\"].includes(record.selectedDirection.id)) throw new Error(\"Campaign record selected direction ID is invalid.\");\nfor (const field of directionFields) text(`Selected direction ${field}`, record.selectedDirection[field], field === \"id\" ? 1 : 600);\nif (!record.approvedCopy || record.approvedCopy.productName !== record.brief.productName || record.approvedCopy.headline !== record.brief.headline || record.approvedCopy.cta !== record.brief.cta) throw new Error(\"Campaign record approved copy does not match its brief.\");\nconst validateContract = (contract, kind, label) => {\n  if (!contract || contract.schemaVersion !== 1 || contract.kind !== kind || !contract.brief || !contract.copy || !contract.selectedDirection) throw new Error(`${label} is incomplete.`);\n  if (contract.copy.productName !== record.approvedCopy.productName || contract.copy.headline !== record.approvedCopy.headline || contract.copy.cta !== record.approvedCopy.cta) throw new Error(`${label} copy does not match the approved copy.`);\n};\nif (!record.original || typeof record.original !== \"object\") throw new Error(\"Campaign record original section is missing.\");\nvalidateContract(record.original.contract, \"hero\", \"Original contract\");\nif (record.acceptedVersion === \"revision\") {\n  if (!record.revision || typeof record.revision !== \"object\") throw new Error(\"A revision record must include the revision section.\");\n  validateContract(record.revision.contract, \"revision\", \"Revision contract\");\n  if (JSON.stringify(record.revision.contract.parentContract) !== JSON.stringify(record.original.contract)) throw new Error(\"Revision ancestry does not match the accepted original contract.\");\n  if (!record.revision.request || JSON.stringify(record.revision.request) !== JSON.stringify(record.revision.contract.revisionRequest)) throw new Error(\"Revision request does not match the revision contract.\");\n  text(\"Revision change\", record.revision.request.change, 500);\n  text(\"Revision preserve\", record.revision.request.preserve, 700);\n  text(\"Revision allow\", record.revision.request.allow, 500);\n} else if (record.revision !== undefined && record.revision !== null) {\n  throw new Error(\"An original-only record cannot contain an accepted revision.\");\n}\nawait output(\"gate\", \"validated\");"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 100
+          },
+          "width": 500,
+          "title": "Validate complete campaign record"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          }
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "validate-original-source",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"validated\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The campaign record could not be reread during media validation.\"); }\nconst item = record.original?.source;\nif (!item && \"original\" === \"revision\" && record.acceptedVersion === \"original\") {\n  await output(\"gate\", \"validate-original-source\");\n} else {\n  if (!item || typeof item !== \"object\") throw new Error(\"original source is missing.\");\n  const allowed = \"source\" === \"svg\" ? [\"image/svg+xml\"] : \"source\" === \"png\" ? [\"image/png\"] : [\"image/png\", \"image/jpeg\", \"image/webp\", \"image/avif\"];\n  if (!allowed.includes(item.mimeType)) throw new Error(`original source has unsupported MIME type ${item.mimeType || \"unknown\"}.`);\n  const width = null;\n  const height = null;\n  if (width !== null && (item.width !== width || item.height !== height)) throw new Error(`original source must be exactly ${width}×${height}.`);\n  if (width === null && (!Number.isInteger(item.width) || !Number.isInteger(item.height) || item.width < 1 || item.height < 1 || item.width > 4096 || item.height > 4096)) throw new Error(\"original source has invalid source dimensions.\");\n  if (typeof item.data !== \"string\" || item.data.length === 0 || item.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(item.data)) throw new Error(\"original source has invalid base64 data.\");\n  const bytes = fromBase64(item.data);\n  if (bytes.length === 0 || toBase64(bytes) !== item.data) throw new Error(\"original source has invalid base64 data.\");\n  await output(\"gate\", \"validate-original-source\");\n}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 880,
+            "y": -400
+          },
+          "width": 420,
+          "title": "Validate original source"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "validate-original-portrait",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"validate-original-source\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The campaign record could not be reread during media validation.\"); }\nconst item = record.original?.portrait;\nif (!item && \"original\" === \"revision\" && record.acceptedVersion === \"original\") {\n  await output(\"gate\", \"validate-original-portrait\");\n} else {\n  if (!item || typeof item !== \"object\") throw new Error(\"original portrait is missing.\");\n  const allowed = \"png\" === \"svg\" ? [\"image/svg+xml\"] : \"png\" === \"png\" ? [\"image/png\"] : [\"image/png\", \"image/jpeg\", \"image/webp\", \"image/avif\"];\n  if (!allowed.includes(item.mimeType)) throw new Error(`original portrait has unsupported MIME type ${item.mimeType || \"unknown\"}.`);\n  const width = 1080;\n  const height = 1350;\n  if (width !== null && (item.width !== width || item.height !== height)) throw new Error(`original portrait must be exactly ${width}×${height}.`);\n  if (width === null && (!Number.isInteger(item.width) || !Number.isInteger(item.height) || item.width < 1 || item.height < 1 || item.width > 4096 || item.height > 4096)) throw new Error(\"original portrait has invalid source dimensions.\");\n  if (typeof item.data !== \"string\" || item.data.length === 0 || item.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(item.data)) throw new Error(\"original portrait has invalid base64 data.\");\n  const bytes = fromBase64(item.data);\n  if (bytes.length === 0 || toBase64(bytes) !== item.data) throw new Error(\"original portrait has invalid base64 data.\");\n  await output(\"gate\", \"validate-original-portrait\");\n}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1340,
+            "y": -400
+          },
+          "width": 420,
+          "title": "Validate original portrait"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "validate-original-story",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"validate-original-portrait\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The campaign record could not be reread during media validation.\"); }\nconst item = record.original?.story;\nif (!item && \"original\" === \"revision\" && record.acceptedVersion === \"original\") {\n  await output(\"gate\", \"validate-original-story\");\n} else {\n  if (!item || typeof item !== \"object\") throw new Error(\"original story is missing.\");\n  const allowed = \"png\" === \"svg\" ? [\"image/svg+xml\"] : \"png\" === \"png\" ? [\"image/png\"] : [\"image/png\", \"image/jpeg\", \"image/webp\", \"image/avif\"];\n  if (!allowed.includes(item.mimeType)) throw new Error(`original story has unsupported MIME type ${item.mimeType || \"unknown\"}.`);\n  const width = 1080;\n  const height = 1920;\n  if (width !== null && (item.width !== width || item.height !== height)) throw new Error(`original story must be exactly ${width}×${height}.`);\n  if (width === null && (!Number.isInteger(item.width) || !Number.isInteger(item.height) || item.width < 1 || item.height < 1 || item.width > 4096 || item.height > 4096)) throw new Error(\"original story has invalid source dimensions.\");\n  if (typeof item.data !== \"string\" || item.data.length === 0 || item.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(item.data)) throw new Error(\"original story has invalid base64 data.\");\n  const bytes = fromBase64(item.data);\n  if (bytes.length === 0 || toBase64(bytes) !== item.data) throw new Error(\"original story has invalid base64 data.\");\n  await output(\"gate\", \"validate-original-story\");\n}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 880,
+            "y": -240
+          },
+          "width": 420,
+          "title": "Validate original story"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "validate-original-portrait-svg",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"validate-original-story\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The campaign record could not be reread during media validation.\"); }\nconst item = record.original?.portraitSvg;\nif (!item && \"original\" === \"revision\" && record.acceptedVersion === \"original\") {\n  await output(\"gate\", \"validate-original-portrait-svg\");\n} else {\n  if (!item || typeof item !== \"object\") throw new Error(\"original portraitSvg is missing.\");\n  const allowed = \"svg\" === \"svg\" ? [\"image/svg+xml\"] : \"svg\" === \"png\" ? [\"image/png\"] : [\"image/png\", \"image/jpeg\", \"image/webp\", \"image/avif\"];\n  if (!allowed.includes(item.mimeType)) throw new Error(`original portraitSvg has unsupported MIME type ${item.mimeType || \"unknown\"}.`);\n  const width = 1080;\n  const height = 1350;\n  if (width !== null && (item.width !== width || item.height !== height)) throw new Error(`original portraitSvg must be exactly ${width}×${height}.`);\n  if (width === null && (!Number.isInteger(item.width) || !Number.isInteger(item.height) || item.width < 1 || item.height < 1 || item.width > 4096 || item.height > 4096)) throw new Error(\"original portraitSvg has invalid source dimensions.\");\n  if (typeof item.data !== \"string\" || item.data.length === 0 || item.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(item.data)) throw new Error(\"original portraitSvg has invalid base64 data.\");\n  const bytes = fromBase64(item.data);\n  if (bytes.length === 0 || toBase64(bytes) !== item.data) throw new Error(\"original portraitSvg has invalid base64 data.\");\n  await output(\"gate\", \"validate-original-portrait-svg\");\n}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1340,
+            "y": -240
+          },
+          "width": 420,
+          "title": "Validate original portraitSvg"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "validate-original-story-svg",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"validate-original-portrait-svg\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The campaign record could not be reread during media validation.\"); }\nconst item = record.original?.storySvg;\nif (!item && \"original\" === \"revision\" && record.acceptedVersion === \"original\") {\n  await output(\"gate\", \"validate-original-story-svg\");\n} else {\n  if (!item || typeof item !== \"object\") throw new Error(\"original storySvg is missing.\");\n  const allowed = \"svg\" === \"svg\" ? [\"image/svg+xml\"] : \"svg\" === \"png\" ? [\"image/png\"] : [\"image/png\", \"image/jpeg\", \"image/webp\", \"image/avif\"];\n  if (!allowed.includes(item.mimeType)) throw new Error(`original storySvg has unsupported MIME type ${item.mimeType || \"unknown\"}.`);\n  const width = 1080;\n  const height = 1920;\n  if (width !== null && (item.width !== width || item.height !== height)) throw new Error(`original storySvg must be exactly ${width}×${height}.`);\n  if (width === null && (!Number.isInteger(item.width) || !Number.isInteger(item.height) || item.width < 1 || item.height < 1 || item.width > 4096 || item.height > 4096)) throw new Error(\"original storySvg has invalid source dimensions.\");\n  if (typeof item.data !== \"string\" || item.data.length === 0 || item.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(item.data)) throw new Error(\"original storySvg has invalid base64 data.\");\n  const bytes = fromBase64(item.data);\n  if (bytes.length === 0 || toBase64(bytes) !== item.data) throw new Error(\"original storySvg has invalid base64 data.\");\n  await output(\"gate\", \"validate-original-story-svg\");\n}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 880,
+            "y": -80
+          },
+          "width": 420,
+          "title": "Validate original storySvg"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "validate-revision-source",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"validate-original-story-svg\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The campaign record could not be reread during media validation.\"); }\nconst item = record.revision?.source;\nif (!item && \"revision\" === \"revision\" && record.acceptedVersion === \"original\") {\n  await output(\"gate\", \"validate-revision-source\");\n} else {\n  if (!item || typeof item !== \"object\") throw new Error(\"revision source is missing.\");\n  const allowed = \"source\" === \"svg\" ? [\"image/svg+xml\"] : \"source\" === \"png\" ? [\"image/png\"] : [\"image/png\", \"image/jpeg\", \"image/webp\", \"image/avif\"];\n  if (!allowed.includes(item.mimeType)) throw new Error(`revision source has unsupported MIME type ${item.mimeType || \"unknown\"}.`);\n  const width = null;\n  const height = null;\n  if (width !== null && (item.width !== width || item.height !== height)) throw new Error(`revision source must be exactly ${width}×${height}.`);\n  if (width === null && (!Number.isInteger(item.width) || !Number.isInteger(item.height) || item.width < 1 || item.height < 1 || item.width > 4096 || item.height > 4096)) throw new Error(\"revision source has invalid source dimensions.\");\n  if (typeof item.data !== \"string\" || item.data.length === 0 || item.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(item.data)) throw new Error(\"revision source has invalid base64 data.\");\n  const bytes = fromBase64(item.data);\n  if (bytes.length === 0 || toBase64(bytes) !== item.data) throw new Error(\"revision source has invalid base64 data.\");\n  await output(\"gate\", \"validate-revision-source\");\n}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1340,
+            "y": -80
+          },
+          "width": 420,
+          "title": "Validate revision source"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "validate-revision-portrait",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"validate-revision-source\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The campaign record could not be reread during media validation.\"); }\nconst item = record.revision?.portrait;\nif (!item && \"revision\" === \"revision\" && record.acceptedVersion === \"original\") {\n  await output(\"gate\", \"validate-revision-portrait\");\n} else {\n  if (!item || typeof item !== \"object\") throw new Error(\"revision portrait is missing.\");\n  const allowed = \"png\" === \"svg\" ? [\"image/svg+xml\"] : \"png\" === \"png\" ? [\"image/png\"] : [\"image/png\", \"image/jpeg\", \"image/webp\", \"image/avif\"];\n  if (!allowed.includes(item.mimeType)) throw new Error(`revision portrait has unsupported MIME type ${item.mimeType || \"unknown\"}.`);\n  const width = 1080;\n  const height = 1350;\n  if (width !== null && (item.width !== width || item.height !== height)) throw new Error(`revision portrait must be exactly ${width}×${height}.`);\n  if (width === null && (!Number.isInteger(item.width) || !Number.isInteger(item.height) || item.width < 1 || item.height < 1 || item.width > 4096 || item.height > 4096)) throw new Error(\"revision portrait has invalid source dimensions.\");\n  if (typeof item.data !== \"string\" || item.data.length === 0 || item.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(item.data)) throw new Error(\"revision portrait has invalid base64 data.\");\n  const bytes = fromBase64(item.data);\n  if (bytes.length === 0 || toBase64(bytes) !== item.data) throw new Error(\"revision portrait has invalid base64 data.\");\n  await output(\"gate\", \"validate-revision-portrait\");\n}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 880,
+            "y": 80
+          },
+          "width": 420,
+          "title": "Validate revision portrait"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "validate-revision-story",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"validate-revision-portrait\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The campaign record could not be reread during media validation.\"); }\nconst item = record.revision?.story;\nif (!item && \"revision\" === \"revision\" && record.acceptedVersion === \"original\") {\n  await output(\"gate\", \"validate-revision-story\");\n} else {\n  if (!item || typeof item !== \"object\") throw new Error(\"revision story is missing.\");\n  const allowed = \"png\" === \"svg\" ? [\"image/svg+xml\"] : \"png\" === \"png\" ? [\"image/png\"] : [\"image/png\", \"image/jpeg\", \"image/webp\", \"image/avif\"];\n  if (!allowed.includes(item.mimeType)) throw new Error(`revision story has unsupported MIME type ${item.mimeType || \"unknown\"}.`);\n  const width = 1080;\n  const height = 1920;\n  if (width !== null && (item.width !== width || item.height !== height)) throw new Error(`revision story must be exactly ${width}×${height}.`);\n  if (width === null && (!Number.isInteger(item.width) || !Number.isInteger(item.height) || item.width < 1 || item.height < 1 || item.width > 4096 || item.height > 4096)) throw new Error(\"revision story has invalid source dimensions.\");\n  if (typeof item.data !== \"string\" || item.data.length === 0 || item.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(item.data)) throw new Error(\"revision story has invalid base64 data.\");\n  const bytes = fromBase64(item.data);\n  if (bytes.length === 0 || toBase64(bytes) !== item.data) throw new Error(\"revision story has invalid base64 data.\");\n  await output(\"gate\", \"validate-revision-story\");\n}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1340,
+            "y": 80
+          },
+          "width": 420,
+          "title": "Validate revision story"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "validate-revision-portrait-svg",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"validate-revision-story\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The campaign record could not be reread during media validation.\"); }\nconst item = record.revision?.portraitSvg;\nif (!item && \"revision\" === \"revision\" && record.acceptedVersion === \"original\") {\n  await output(\"gate\", \"validate-revision-portrait-svg\");\n} else {\n  if (!item || typeof item !== \"object\") throw new Error(\"revision portraitSvg is missing.\");\n  const allowed = \"svg\" === \"svg\" ? [\"image/svg+xml\"] : \"svg\" === \"png\" ? [\"image/png\"] : [\"image/png\", \"image/jpeg\", \"image/webp\", \"image/avif\"];\n  if (!allowed.includes(item.mimeType)) throw new Error(`revision portraitSvg has unsupported MIME type ${item.mimeType || \"unknown\"}.`);\n  const width = 1080;\n  const height = 1350;\n  if (width !== null && (item.width !== width || item.height !== height)) throw new Error(`revision portraitSvg must be exactly ${width}×${height}.`);\n  if (width === null && (!Number.isInteger(item.width) || !Number.isInteger(item.height) || item.width < 1 || item.height < 1 || item.width > 4096 || item.height > 4096)) throw new Error(\"revision portraitSvg has invalid source dimensions.\");\n  if (typeof item.data !== \"string\" || item.data.length === 0 || item.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(item.data)) throw new Error(\"revision portraitSvg has invalid base64 data.\");\n  const bytes = fromBase64(item.data);\n  if (bytes.length === 0 || toBase64(bytes) !== item.data) throw new Error(\"revision portraitSvg has invalid base64 data.\");\n  await output(\"gate\", \"validate-revision-portrait-svg\");\n}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 880,
+            "y": 240
+          },
+          "width": 420,
+          "title": "Validate revision portraitSvg"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "validate-revision-story-svg",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"validate-revision-portrait-svg\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The campaign record could not be reread during media validation.\"); }\nconst item = record.revision?.storySvg;\nif (!item && \"revision\" === \"revision\" && record.acceptedVersion === \"original\") {\n  await output(\"gate\", \"validate-revision-story-svg\");\n} else {\n  if (!item || typeof item !== \"object\") throw new Error(\"revision storySvg is missing.\");\n  const allowed = \"svg\" === \"svg\" ? [\"image/svg+xml\"] : \"svg\" === \"png\" ? [\"image/png\"] : [\"image/png\", \"image/jpeg\", \"image/webp\", \"image/avif\"];\n  if (!allowed.includes(item.mimeType)) throw new Error(`revision storySvg has unsupported MIME type ${item.mimeType || \"unknown\"}.`);\n  const width = 1080;\n  const height = 1920;\n  if (width !== null && (item.width !== width || item.height !== height)) throw new Error(`revision storySvg must be exactly ${width}×${height}.`);\n  if (width === null && (!Number.isInteger(item.width) || !Number.isInteger(item.height) || item.width < 1 || item.height < 1 || item.width > 4096 || item.height > 4096)) throw new Error(\"revision storySvg has invalid source dimensions.\");\n  if (typeof item.data !== \"string\" || item.data.length === 0 || item.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(item.data)) throw new Error(\"revision storySvg has invalid base64 data.\");\n  const bytes = fromBase64(item.data);\n  if (bytes.length === 0 || toBase64(bytes) !== item.data) throw new Error(\"revision storySvg has invalid base64 data.\");\n  await output(\"gate\", \"validate-revision-story-svg\");\n}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1340,
+            "y": 240
+          },
+          "width": 420,
+          "title": "Validate revision storySvg"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "restore-original-source",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"validate-revision-story-svg\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The validated campaign record could not be reread.\"); }\nconst item = record.original?.source;\nlet value;\nif (!item && \"original\" === \"revision\" && record.acceptedVersion === \"original\") {\n  value = { type: \"image\", uri: \"\", asset_id: null };\n} else {\n  if (!item || typeof item.data !== \"string\") throw new Error(\"The validated original source payload is unavailable.\");\n  const bytes = fromBase64(item.data);\n  value = await media.toImage(bytes, { mimeType: item.mimeType, });\n}\nawait output(\"value\", value);\nawait output(\"gate\", \"restore-original-source\");"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 920,
+            "y": 40
+          },
+          "width": 420,
+          "title": "Restore original hero"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "value": {
+            "type": "image",
+            "type_args": [],
+            "optional": false
+          },
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "restore-original-portrait",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"restore-original-source\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The validated campaign record could not be reread.\"); }\nconst item = record.original?.portrait;\nlet value;\nif (!item && \"original\" === \"revision\" && record.acceptedVersion === \"original\") {\n  value = { type: \"image\", uri: \"\", asset_id: null };\n} else {\n  if (!item || typeof item.data !== \"string\") throw new Error(\"The validated original portrait payload is unavailable.\");\n  const bytes = fromBase64(item.data);\n  value = await media.toImage(bytes, { mimeType: \"image/png\", });\n}\nawait output(\"value\", value);\nawait output(\"gate\", \"restore-original-portrait\");"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1390,
+            "y": 40
+          },
+          "width": 420,
+          "title": "Restore original 4:5"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "value": {
+            "type": "image",
+            "type_args": [],
+            "optional": false
+          },
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "restore-original-story",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"restore-original-portrait\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The validated campaign record could not be reread.\"); }\nconst item = record.original?.story;\nlet value;\nif (!item && \"original\" === \"revision\" && record.acceptedVersion === \"original\") {\n  value = { type: \"image\", uri: \"\", asset_id: null };\n} else {\n  if (!item || typeof item.data !== \"string\") throw new Error(\"The validated original story payload is unavailable.\");\n  const bytes = fromBase64(item.data);\n  value = await media.toImage(bytes, { mimeType: \"image/png\", });\n}\nawait output(\"value\", value);\nawait output(\"gate\", \"restore-original-story\");"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 920,
+            "y": 220
+          },
+          "width": 420,
+          "title": "Restore original 9:16"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "value": {
+            "type": "image",
+            "type_args": [],
+            "optional": false
+          },
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "restore-original-portrait-svg",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"restore-original-story\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The validated campaign record could not be reread.\"); }\nconst item = record.original?.portraitSvg;\nlet value;\nif (!item && \"original\" === \"revision\" && record.acceptedVersion === \"original\") {\n  value = { type: \"document\", uri: \"\", asset_id: null };\n} else {\n  if (!item || typeof item.data !== \"string\") throw new Error(\"The validated original portraitSvg payload is unavailable.\");\n  const bytes = fromBase64(item.data);\n  value = await media.toDocument(bytes, { mimeType: \"image/svg+xml\", filename: \"original-portrait.svg\" });\n}\nawait output(\"value\", value);\nawait output(\"gate\", \"restore-original-portrait-svg\");"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1390,
+            "y": 220
+          },
+          "width": 420,
+          "title": "Restore original 4:5 SVG"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "value": {
+            "type": "document",
+            "type_args": [],
+            "optional": false
+          },
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "restore-original-story-svg",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"restore-original-portrait-svg\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The validated campaign record could not be reread.\"); }\nconst item = record.original?.storySvg;\nlet value;\nif (!item && \"original\" === \"revision\" && record.acceptedVersion === \"original\") {\n  value = { type: \"document\", uri: \"\", asset_id: null };\n} else {\n  if (!item || typeof item.data !== \"string\") throw new Error(\"The validated original storySvg payload is unavailable.\");\n  const bytes = fromBase64(item.data);\n  value = await media.toDocument(bytes, { mimeType: \"image/svg+xml\", filename: \"original-story.svg\" });\n}\nawait output(\"value\", value);\nawait output(\"gate\", \"restore-original-story-svg\");"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 920,
+            "y": 400
+          },
+          "width": 420,
+          "title": "Restore original 9:16 SVG"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "value": {
+            "type": "document",
+            "type_args": [],
+            "optional": false
+          },
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "restore-revision-source",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"restore-original-story-svg\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The validated campaign record could not be reread.\"); }\nconst item = record.revision?.source;\nlet value;\nif (!item && \"revision\" === \"revision\" && record.acceptedVersion === \"original\") {\n  value = { type: \"image\", uri: \"\", asset_id: null };\n} else {\n  if (!item || typeof item.data !== \"string\") throw new Error(\"The validated revision source payload is unavailable.\");\n  const bytes = fromBase64(item.data);\n  value = await media.toImage(bytes, { mimeType: item.mimeType, });\n}\nawait output(\"value\", value);\nawait output(\"gate\", \"restore-revision-source\");"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1390,
+            "y": 400
+          },
+          "width": 420,
+          "title": "Restore revision hero"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "value": {
+            "type": "image",
+            "type_args": [],
+            "optional": false
+          },
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "restore-revision-portrait",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"restore-revision-source\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The validated campaign record could not be reread.\"); }\nconst item = record.revision?.portrait;\nlet value;\nif (!item && \"revision\" === \"revision\" && record.acceptedVersion === \"original\") {\n  value = { type: \"image\", uri: \"\", asset_id: null };\n} else {\n  if (!item || typeof item.data !== \"string\") throw new Error(\"The validated revision portrait payload is unavailable.\");\n  const bytes = fromBase64(item.data);\n  value = await media.toImage(bytes, { mimeType: \"image/png\", });\n}\nawait output(\"value\", value);\nawait output(\"gate\", \"restore-revision-portrait\");"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 920,
+            "y": 580
+          },
+          "width": 420,
+          "title": "Restore revision 4:5"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "value": {
+            "type": "image",
+            "type_args": [],
+            "optional": false
+          },
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "restore-revision-story",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"restore-revision-portrait\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The validated campaign record could not be reread.\"); }\nconst item = record.revision?.story;\nlet value;\nif (!item && \"revision\" === \"revision\" && record.acceptedVersion === \"original\") {\n  value = { type: \"image\", uri: \"\", asset_id: null };\n} else {\n  if (!item || typeof item.data !== \"string\") throw new Error(\"The validated revision story payload is unavailable.\");\n  const bytes = fromBase64(item.data);\n  value = await media.toImage(bytes, { mimeType: \"image/png\", });\n}\nawait output(\"value\", value);\nawait output(\"gate\", \"restore-revision-story\");"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1390,
+            "y": 580
+          },
+          "width": 420,
+          "title": "Restore revision 9:16"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "value": {
+            "type": "image",
+            "type_args": [],
+            "optional": false
+          },
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "restore-revision-portrait-svg",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"restore-revision-story\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The validated campaign record could not be reread.\"); }\nconst item = record.revision?.portraitSvg;\nlet value;\nif (!item && \"revision\" === \"revision\" && record.acceptedVersion === \"original\") {\n  value = { type: \"document\", uri: \"\", asset_id: null };\n} else {\n  if (!item || typeof item.data !== \"string\") throw new Error(\"The validated revision portraitSvg payload is unavailable.\");\n  const bytes = fromBase64(item.data);\n  value = await media.toDocument(bytes, { mimeType: \"image/svg+xml\", filename: \"revision-portrait.svg\" });\n}\nawait output(\"value\", value);\nawait output(\"gate\", \"restore-revision-portrait-svg\");"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 920,
+            "y": 760
+          },
+          "width": 420,
+          "title": "Restore revision 4:5 SVG"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "value": {
+            "type": "document",
+            "type_args": [],
+            "optional": false
+          },
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "restore-revision-story-svg",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"restore-revision-portrait-svg\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The validated campaign record could not be reread.\"); }\nconst item = record.revision?.storySvg;\nlet value;\nif (!item && \"revision\" === \"revision\" && record.acceptedVersion === \"original\") {\n  value = { type: \"document\", uri: \"\", asset_id: null };\n} else {\n  if (!item || typeof item.data !== \"string\") throw new Error(\"The validated revision storySvg payload is unavailable.\");\n  const bytes = fromBase64(item.data);\n  value = await media.toDocument(bytes, { mimeType: \"image/svg+xml\", filename: \"revision-story.svg\" });\n}\nawait output(\"value\", value);\nawait output(\"gate\", \"restore-revision-story-svg\");"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1390,
+            "y": 760
+          },
+          "width": 420,
+          "title": "Restore revision 9:16 SVG"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "value": {
+            "type": "document",
+            "type_args": [],
+            "optional": false
+          },
+          "gate": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "restore-finalize",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "if (String(inputs.gate ?? \"\") !== \"restore-revision-story-svg\") return;\nlet record;\ntry { record = JSON.parse(await media.text(inputs.record_file)); } catch { throw new Error(\"The validated campaign record could not be reread.\"); }\nconst originalRecord = JSON.stringify({ schemaVersion: 1, acceptedVersion: \"original\", productName: record.brief.productName, headline: record.approvedCopy.headline, cta: record.approvedCopy.cta, hasRevision: false, portableRecord: \"record_file\" });\nawait output(\"accepted_contract\", JSON.stringify(record.original.contract));\nawait output(\"original_record\", originalRecord);\nawait output(\"revised_contract\", record.acceptedVersion === \"revision\" ? JSON.stringify(record.revision.contract) : \"\");\nawait output(\"ready\", true);\nawait output(\"phase\", record.acceptedVersion === \"revision\" ? \"complete\" : \"campaign_ready\");"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1420,
+            "y": 980
+          },
+          "width": 420,
+          "title": "Finish restored campaign"
+        },
+        "dynamic_properties": {
+          "record_file": {
+            "type": "document",
+            "uri": ""
+          },
+          "gate": ""
+        },
+        "dynamic_inputs": {
+          "record_file": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "gate": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "accepted_contract": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          },
+          "original_record": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          },
+          "revised_contract": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          },
+          "phase": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          },
+          "ready": {
+            "type": "bool",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "restore-record-file",
+        "type": "nodetool.control.If",
+        "data": {
+          "condition": false,
+          "value": null
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1900,
+            "y": 900
+          },
+          "width": 280,
+          "title": "Release validated record"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-accepted_hero",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "accepted_hero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 0
+          },
+          "width": 240,
+          "title": "Accepted hero"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-accepted_contract",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "accepted_contract"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 120
+          },
+          "width": 240,
+          "title": "Accepted contract"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-original_portrait",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "original_portrait"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 240
+          },
+          "width": 240,
+          "title": "Original 4:5"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-original_story",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "original_story"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 360
+          },
+          "width": 240,
+          "title": "Original 9:16"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-original_portrait_svg",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "original_portrait_svg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 480
+          },
+          "width": 240,
+          "title": "Original 4:5 SVG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-original_story_svg",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "original_story_svg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 600
+          },
+          "width": 240,
+          "title": "Original 9:16 SVG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-original_record",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "original_record"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 720
+          },
+          "width": 240,
+          "title": "Original record"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-revised_hero",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "revised_hero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1380,
+            "y": 0
+          },
+          "width": 240,
+          "title": "Revised hero"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-revised_contract",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "revised_contract"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1380,
+            "y": 120
+          },
+          "width": 240,
+          "title": "Revised contract"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-revised_portrait",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "revised_portrait"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1380,
+            "y": 240
+          },
+          "width": 240,
+          "title": "Revised 4:5"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-revised_story",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "revised_story"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1380,
+            "y": 360
+          },
+          "width": 240,
+          "title": "Revised 9:16"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-revised_portrait_svg",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "revised_portrait_svg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1380,
+            "y": 480
+          },
+          "width": 240,
+          "title": "Revised 4:5 SVG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-revised_story_svg",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "revised_story_svg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1380,
+            "y": 600
+          },
+          "width": 240,
+          "title": "Revised 9:16 SVG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-record_file",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "record_file"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1380,
+            "y": 720
+          },
+          "width": 240,
+          "title": "Campaign record"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-phase",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "phase"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1380,
+            "y": 840
+          },
+          "width": 240,
+          "title": "Restored phase"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "record-to-validator",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "validate-record",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "record-to-restore-original-source",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "restore-original-source",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "record-to-restore-original-portrait",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "restore-original-portrait",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-restore-original-portrait",
+        "source": "restore-original-source",
+        "sourceHandle": "gate",
+        "target": "restore-original-portrait",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-restore-original-story",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "restore-original-story",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-restore-original-story",
+        "source": "restore-original-portrait",
+        "sourceHandle": "gate",
+        "target": "restore-original-story",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-restore-original-portrait-svg",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "restore-original-portrait-svg",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-restore-original-portrait-svg",
+        "source": "restore-original-story",
+        "sourceHandle": "gate",
+        "target": "restore-original-portrait-svg",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-restore-original-story-svg",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "restore-original-story-svg",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-restore-original-story-svg",
+        "source": "restore-original-portrait-svg",
+        "sourceHandle": "gate",
+        "target": "restore-original-story-svg",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-restore-revision-source",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "restore-revision-source",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-restore-revision-source",
+        "source": "restore-original-story-svg",
+        "sourceHandle": "gate",
+        "target": "restore-revision-source",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-restore-revision-portrait",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "restore-revision-portrait",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-restore-revision-portrait",
+        "source": "restore-revision-source",
+        "sourceHandle": "gate",
+        "target": "restore-revision-portrait",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-restore-revision-story",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "restore-revision-story",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-restore-revision-story",
+        "source": "restore-revision-portrait",
+        "sourceHandle": "gate",
+        "target": "restore-revision-story",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-restore-revision-portrait-svg",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "restore-revision-portrait-svg",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-restore-revision-portrait-svg",
+        "source": "restore-revision-story",
+        "sourceHandle": "gate",
+        "target": "restore-revision-portrait-svg",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-restore-revision-story-svg",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "restore-revision-story-svg",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-restore-revision-story-svg",
+        "source": "restore-revision-portrait-svg",
+        "sourceHandle": "gate",
+        "target": "restore-revision-story-svg",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-finalize",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "restore-finalize",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-finalize",
+        "source": "restore-revision-story-svg",
+        "sourceHandle": "gate",
+        "target": "restore-finalize",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "restored-accepted_hero",
+        "source": "restore-original-source",
+        "sourceHandle": "value",
+        "target": "out-accepted_hero",
+        "targetHandle": "value"
+      },
+      {
+        "id": "restored-original_portrait",
+        "source": "restore-original-portrait",
+        "sourceHandle": "value",
+        "target": "out-original_portrait",
+        "targetHandle": "value"
+      },
+      {
+        "id": "restored-original_story",
+        "source": "restore-original-story",
+        "sourceHandle": "value",
+        "target": "out-original_story",
+        "targetHandle": "value"
+      },
+      {
+        "id": "restored-original_portrait_svg",
+        "source": "restore-original-portrait-svg",
+        "sourceHandle": "value",
+        "target": "out-original_portrait_svg",
+        "targetHandle": "value"
+      },
+      {
+        "id": "restored-original_story_svg",
+        "source": "restore-original-story-svg",
+        "sourceHandle": "value",
+        "target": "out-original_story_svg",
+        "targetHandle": "value"
+      },
+      {
+        "id": "restored-revised_hero",
+        "source": "restore-revision-source",
+        "sourceHandle": "value",
+        "target": "out-revised_hero",
+        "targetHandle": "value"
+      },
+      {
+        "id": "restored-revised_portrait",
+        "source": "restore-revision-portrait",
+        "sourceHandle": "value",
+        "target": "out-revised_portrait",
+        "targetHandle": "value"
+      },
+      {
+        "id": "restored-revised_story",
+        "source": "restore-revision-story",
+        "sourceHandle": "value",
+        "target": "out-revised_story",
+        "targetHandle": "value"
+      },
+      {
+        "id": "restored-revised_portrait_svg",
+        "source": "restore-revision-portrait-svg",
+        "sourceHandle": "value",
+        "target": "out-revised_portrait_svg",
+        "targetHandle": "value"
+      },
+      {
+        "id": "restored-revised_story_svg",
+        "source": "restore-revision-story-svg",
+        "sourceHandle": "value",
+        "target": "out-revised_story_svg",
+        "targetHandle": "value"
+      },
+      {
+        "id": "restored-accepted_contract",
+        "source": "restore-finalize",
+        "sourceHandle": "accepted_contract",
+        "target": "out-accepted_contract",
+        "targetHandle": "value"
+      },
+      {
+        "id": "restored-original_record",
+        "source": "restore-finalize",
+        "sourceHandle": "original_record",
+        "target": "out-original_record",
+        "targetHandle": "value"
+      },
+      {
+        "id": "restored-revised_contract",
+        "source": "restore-finalize",
+        "sourceHandle": "revised_contract",
+        "target": "out-revised_contract",
+        "targetHandle": "value"
+      },
+      {
+        "id": "restored-phase",
+        "source": "restore-finalize",
+        "sourceHandle": "phase",
+        "target": "out-phase",
+        "targetHandle": "value"
+      },
+      {
+        "id": "record-to-validate-original-source",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "validate-original-source",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-validate-original-source",
+        "source": "validate-record",
+        "sourceHandle": "gate",
+        "target": "validate-original-source",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-validate-original-portrait",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "validate-original-portrait",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-validate-original-portrait",
+        "source": "validate-original-source",
+        "sourceHandle": "gate",
+        "target": "validate-original-portrait",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-validate-original-story",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "validate-original-story",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-validate-original-story",
+        "source": "validate-original-portrait",
+        "sourceHandle": "gate",
+        "target": "validate-original-story",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-validate-original-portrait-svg",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "validate-original-portrait-svg",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-validate-original-portrait-svg",
+        "source": "validate-original-story",
+        "sourceHandle": "gate",
+        "target": "validate-original-portrait-svg",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-validate-original-story-svg",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "validate-original-story-svg",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-validate-original-story-svg",
+        "source": "validate-original-portrait-svg",
+        "sourceHandle": "gate",
+        "target": "validate-original-story-svg",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-validate-revision-source",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "validate-revision-source",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-validate-revision-source",
+        "source": "validate-original-story-svg",
+        "sourceHandle": "gate",
+        "target": "validate-revision-source",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-validate-revision-portrait",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "validate-revision-portrait",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-validate-revision-portrait",
+        "source": "validate-revision-source",
+        "sourceHandle": "gate",
+        "target": "validate-revision-portrait",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-validate-revision-story",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "validate-revision-story",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-validate-revision-story",
+        "source": "validate-revision-portrait",
+        "sourceHandle": "gate",
+        "target": "validate-revision-story",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-validate-revision-portrait-svg",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "validate-revision-portrait-svg",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-validate-revision-portrait-svg",
+        "source": "validate-revision-story",
+        "sourceHandle": "gate",
+        "target": "validate-revision-portrait-svg",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-to-validate-revision-story-svg",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "validate-revision-story-svg",
+        "targetHandle": "record_file"
+      },
+      {
+        "id": "gate-to-validate-revision-story-svg",
+        "source": "validate-revision-portrait-svg",
+        "sourceHandle": "gate",
+        "target": "validate-revision-story-svg",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "gate-to-restore-original-source",
+        "source": "validate-revision-story-svg",
+        "sourceHandle": "gate",
+        "target": "restore-original-source",
+        "targetHandle": "gate"
+      },
+      {
+        "id": "record-file-to-release",
+        "source": "in-record_file",
+        "sourceHandle": "output",
+        "target": "restore-record-file",
+        "targetHandle": "value"
+      },
+      {
+        "id": "ready-to-release",
+        "source": "restore-finalize",
+        "sourceHandle": "ready",
+        "target": "restore-record-file",
+        "targetHandle": "condition"
+      },
+      {
+        "id": "restored-record_file",
+        "source": "restore-record-file",
+        "sourceHandle": "if_true",
+        "target": "out-record_file",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

@@ -106,13 +106,8 @@ export interface RecipeProductionMedia {
 
 export interface RecipeGuideStep {
   id: string;
-  phase:
-    | "Prepare"
-    | "Guided setup"
-    | "Storyboard"
-    | "Script"
-    | "Finish"
-    | "Continue";
+  /** Named stage from the recipe's own guided flow. */
+  phase: string;
   stage: string;
   title: string;
   description: string;
@@ -121,7 +116,8 @@ export interface RecipeGuideStep {
 }
 
 export interface RecipeGuide {
-  entry: "Storyboard" | "Script";
+  /** Product surface where the guided flow starts. */
+  entry: string;
   stages: string[];
   introduction: string;
   inputs: string[];

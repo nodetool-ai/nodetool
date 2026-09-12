@@ -1118,6 +1118,32 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       }
     ),
     tool(
+      "generate_text",
+      "Run one language-model roundtrip.",
+      {
+        provider: s,
+        model: s,
+        prompt: s,
+        system: s,
+        images: { type: "array", items: s },
+        max_tokens: { type: "number" },
+        temperature: { type: "number" }
+      },
+      (params) => {
+        const model = world.model(
+          params["provider"],
+          params["model"],
+          "generate_message"
+        );
+        return {
+          type: "text",
+          provider: model.provider,
+          model: model.model_id,
+          text: `Draft: ${str(params["prompt"])}`
+        };
+      }
+    ),
+    tool(
       "generate_image",
       "Generate an image and save it as an asset.",
       {

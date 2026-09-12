@@ -129,6 +129,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   ffprobe: "execute",
   find_model: "read",
   generate_image: "write",
+  generate_text: "external",
   generate_speech: "write",
   generate_music: "write",
   generate_video: "write",

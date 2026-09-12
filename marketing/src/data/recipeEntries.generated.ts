@@ -8,6 +8,143 @@ import type { RecipeEntry } from "./recipes";
 export const recipeEntries: RecipeEntry[] = [
   {
     "sample": null,
+    "productionRun": null,
+    "guide": {
+      "entry": "Directed Campaign Kit",
+      "stages": [
+        "Brief",
+        "Direction",
+        "Hero",
+        "Formats",
+        "Revision"
+      ],
+      "introduction": "Upload a product image and let the app write the working brief and three campaign directions. Keep any field you want to control, choose a direction, then approve the hero before making formats or revisions.",
+      "inputs": [
+        "One clear product image",
+        "Optional campaign steer or reference image",
+        "Language and image models configured in NodeTool"
+      ],
+      "brief": "Create a campaign for the product in the supplied image. Infer a concise product name, audience, message, headline, and call to action. Propose three distinct visual directions. Keep the product recognizable and avoid unsupported performance claims.",
+      "note": "The product image is the only required brief input. Add exact copy or audience details before uploading when those values must not be inferred. Model selection remains available in the app for hero generation and revision.",
+      "steps": [
+        {
+          "id": "upload",
+          "phase": "Brief",
+          "stage": "Product image",
+          "title": "Start with the product",
+          "description": "Open Directed Campaign Kit. Add an optional campaign steer first, then upload one clear product image. Uploading starts the language-model roundtrip automatically.",
+          "action": "Upload the product image"
+        },
+        {
+          "id": "review",
+          "phase": "Brief",
+          "stage": "AI draft",
+          "title": "Review the filled brief",
+          "description": "Check the inferred product name, audience, message, headline, and call to action. Edit any value that must be exact. The app keeps your non-empty values when you ask it to analyze again.",
+          "action": "Approve or edit the brief"
+        },
+        {
+          "id": "direction",
+          "phase": "Direction",
+          "stage": "A, B, or C",
+          "title": "Choose one visual direction",
+          "description": "Compare the three written directions before generating an image. Select the route that best expresses the message and gives the product a clear role in the composition.",
+          "action": "Choose a direction"
+        },
+        {
+          "id": "hero",
+          "phase": "Hero",
+          "stage": "Generate",
+          "title": "Generate and approve the hero",
+          "description": "Open Optional steering and models if you want a specific image model. Generate the 16:9 hero, compare it with the product image, and accept it only when identity, copy, and composition are sound.",
+          "action": "Accept the hero"
+        },
+        {
+          "id": "formats",
+          "phase": "Formats",
+          "stage": "4:5 and 9:16",
+          "title": "Build the campaign formats",
+          "description": "Create portrait and story versions from the accepted hero. The app keeps the copy editable and exports a campaign record that can reopen the project later.",
+          "action": "Build the formats"
+        },
+        {
+          "id": "revision",
+          "phase": "Revision",
+          "stage": "Compare",
+          "title": "Direct one bounded revision",
+          "description": "Describe one change, what must stay fixed, and what may respond. Choose the revision model if needed, generate the take, then compare it with the accepted original before choosing a final version.",
+          "action": "Accept the original or revision"
+        }
+      ]
+    },
+    "route": "/recipes/directed-campaign-kit",
+    "title": "Directed campaign kit | NodeTool guided recipe",
+    "description": "Turn one product image into an approved campaign hero, two ready-to-edit formats, and one controlled revision.",
+    "priority": 0.8,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "directed-campaign-kit",
+    "name": "Directed campaign kit",
+    "outcome": "Turn one product image into an approved campaign hero, two ready-to-edit formats, and one controlled revision.",
+    "audience": "Small brand and social teams",
+    "heroThumbnail": null,
+    "bundle": "/recipes/directed-campaign-kit.nodetool",
+    "workflowCount": 3,
+    "nodeCount": 40,
+    "keys": [
+      {
+        "provider": "fal_ai",
+        "env": "FAL_API_KEY"
+      }
+    ],
+    "steps": [
+      {
+        "template": "render-a-directed-campaign-hero",
+        "name": "Render a Directed Campaign Hero",
+        "route": "/templates/render-a-directed-campaign-hero",
+        "role": "Approve the hero",
+        "handoff": "In the app, upload the product image, review the AI-written brief and directions, choose one, then check product identity and composition before accepting.",
+        "thumbnail": null,
+        "nodeCount": 8,
+        "models": [
+          {
+            "provider": "fal_ai",
+            "model": "fal-ai/nano-banana/edit"
+          }
+        ],
+        "alternative": null
+      },
+      {
+        "template": "compose-directed-campaign-formats",
+        "name": "Compose Directed Campaign Formats",
+        "route": "/templates/compose-directed-campaign-formats",
+        "role": "Build the formats",
+        "handoff": "Keep the accepted hero and exact copy together in 4:5 and 9:16.",
+        "thumbnail": null,
+        "nodeCount": 20,
+        "models": [],
+        "alternative": null
+      },
+      {
+        "template": "revise-an-accepted-campaign-hero",
+        "name": "Revise an Accepted Campaign Hero",
+        "route": "/templates/revise-an-accepted-campaign-hero",
+        "role": "Direct one revision",
+        "handoff": "Compare the revision with the original, then use the same composition workflow.",
+        "thumbnail": null,
+        "nodeCount": 12,
+        "models": [
+          {
+            "provider": "fal_ai",
+            "model": "fal-ai/nano-banana/edit"
+          }
+        ],
+        "alternative": null
+      }
+    ]
+  },
+  {
+    "sample": null,
     "productionRun": {
       "runId": "2026-09-12-tiny-film-crew",
       "status": "partial",

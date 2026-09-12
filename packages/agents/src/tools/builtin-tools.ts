@@ -193,6 +193,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   // beside `find_model`/`list_models`, which do need the injected provider map,
   // so a host that injected none — a Code node, a JS script — got a belt that
   // could judge an image and score its adherence but had no way to make one.
+  "generate_text",
   "generate_image",
   "edit_image",
   "generate_video",
@@ -266,8 +267,8 @@ export function getBuiltinTools(): Tool[] {
 }
 
 /** The `browser_*` names, which stand or fall together. */
-const BROWSER_TOOL_NAMES: readonly string[] = BUILTIN_TOOL_NAMES.filter((name) =>
-  name.startsWith("browser_")
+const BROWSER_TOOL_NAMES: readonly string[] = BUILTIN_TOOL_NAMES.filter(
+  (name) => name.startsWith("browser_")
 );
 
 /**
@@ -286,7 +287,8 @@ const BROWSER_TOOL_NAMES: readonly string[] = BUILTIN_TOOL_NAMES.filter((name) =
 export function availableBuiltinToolNames(): readonly string[] {
   const dropped = new Set<string>();
   if (!isYtDlpEnabled()) dropped.add("yt_dlp");
-  if (!isBrowserEnabled()) for (const name of BROWSER_TOOL_NAMES) dropped.add(name);
+  if (!isBrowserEnabled())
+    for (const name of BROWSER_TOOL_NAMES) dropped.add(name);
   if (!isBlenderEnabled()) dropped.add("render_model3d");
   if (dropped.size === 0) return BUILTIN_TOOL_NAMES;
   return BUILTIN_TOOL_NAMES.filter((name) => !dropped.has(name));

@@ -10,7 +10,7 @@ import type { AppInstanceState } from "@nodetool-ai/app-runtime";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { makeTestRuntime } from "../../__tests__/testRuntime";
-import { ProgressWidget, TableWidget } from "../widgets";
+import { ProgressWidget, resolveImageSrc, TableWidget } from "../widgets";
 
 const OUTPUT_KEY = "main:out1";
 
@@ -86,5 +86,25 @@ describe("ProgressWidget", () => {
   it("falls back to the configured label when the run reports nothing", () => {
     renderWidget(<ProgressWidget id="p1" label="Working" />, RUNNING);
     expect(screen.getByText("Working")).toBeInTheDocument();
+  });
+});
+
+describe("resolveImageSrc", () => {
+  it("reads a serialized media ref stored in an app variable", () => {
+    expect(
+      resolveImageSrc(JSON.stringify({ type: "image", uri: "asset://hero" }))
+    ).toBe("asset://hero");
+  });
+
+  it("resolves an asset-only media ref", () => {
+    expect(resolveImageSrc({ type: "image", asset_id: "hero" })).toBe(
+      "asset://hero"
+    );
+  });
+
+  it("resolves an asset ID emitted through an app variable", () => {
+    expect(resolveImageSrc("3d5bf29fd3004ca0bb4991d2648b2876")).toBe(
+      "asset://3d5bf29fd3004ca0bb4991d2648b2876"
+    );
   });
 });

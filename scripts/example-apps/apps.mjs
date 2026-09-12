@@ -16,12 +16,15 @@
 //              Inputs with no mapping are driven by a widget; outputs with no
 //              mapping are displayed.
 //   sections   [ { title, op?, controls: [...], results: [...] } ]
+//   content    Optional authored widget tree, used instead of sections.
 //
 // Control kinds: input, text, number, slider, select, image, video, audio,
 // switch, color, run, note. Result kinds: progress, show, showVar, heading, note.
 // `text`, `select` and `slider` take an input name or `{ node, prop }` to drive
 // a node property inside the graph; `default` seeds the preview value.
 // See buildControl() in the builder for the exact props each one emits.
+
+import { DIRECTED_CAMPAIGN_KIT_APP } from "./directed-campaign-kit.mjs";
 
 const SLIDERS_IMAGE_ENHANCE = [
   { slider: { node: "denoise-node", prop: "radius" }, label: "Denoise", min: 0, max: 16, step: 0.5, default: 0 },
@@ -1947,5 +1950,6 @@ export const EXAMPLE_APPS = [
         ]
       }
     ]
-  }
+  },
+  DIRECTED_CAMPAIGN_KIT_APP
 ];

@@ -1,0 +1,759 @@
+{
+  "id": "directed-campaign-layouts",
+  "access": "private",
+  "created_at": "2026-09-12T00:00:00.000Z",
+  "updated_at": "2026-09-12T00:00:00.000Z",
+  "name": "Compose Directed Campaign Formats",
+  "tool_name": null,
+  "description": "Compose one accepted hero into deterministic 1080×1350 and 1080×1920 PNG and self-contained SVG formats, then export a portable versioned campaign record.",
+  "tags": ["campaign", "image", "svg", "example"],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Compose Directed Campaign Formats\n\nBuild 4:5 and 9:16 artboards from the same complete accepted hero. Both PNGs and self-contained SVGs share the exact text element tree. The final step waits for every artifact, preserves the original record when adding a revision, and exports directed-campaign.json."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -240
+          },
+          "width": 560,
+          "height": 190,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "in-hero",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "hero",
+          "value": {
+            "type": "image",
+            "uri": ""
+          },
+          "description": "Accepted original or accepted revision hero."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 80
+          },
+          "width": 280,
+          "title": "Accepted hero"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-contract",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "contract",
+          "value": "",
+          "description": "Creative contract for this accepted hero.",
+          "line_mode": "multi_line"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 240
+          },
+          "width": 280,
+          "title": "Creative contract"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-version",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "version",
+          "value": "original",
+          "description": "original or revision."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 400
+          },
+          "width": 280,
+          "title": "Version"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-original_record",
+        "type": "nodetool.input.DocumentInput",
+        "data": {
+          "name": "original_record",
+          "value": {
+            "type": "document",
+            "uri": ""
+          },
+          "description": "Required unchanged portable original record when composing an accepted revision."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 560
+          },
+          "width": 280,
+          "title": "Original record file"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "layout-elements",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "let contract;\ntry { contract = JSON.parse(String(inputs.contract ?? \"\")); } catch { throw new Error(\"The accepted creative contract is invalid.\"); }\nif (!contract || contract.schemaVersion !== 1 || !contract.copy || !contract.brief || !contract.selectedDirection) throw new Error(\"The accepted creative contract is incomplete.\");\nconst version = String(inputs.version ?? \"\").trim();\nif (![\"original\", \"revision\"].includes(version)) throw new Error(\"Version must be original or revision.\");\nif (version === \"original\" && contract.kind !== \"hero\") throw new Error(\"Original layouts require an accepted hero contract.\");\nif (version === \"revision\" && contract.kind !== \"revision\") throw new Error(\"Revision layouts require an accepted revision contract.\");\nconst heroBytes = await media.bytes(inputs.hero);\nconst heroInfo = await media.info(inputs.hero);\nconst allowedImageMimes = [\"image/png\", \"image/jpeg\", \"image/webp\", \"image/avif\"];\nif (!allowedImageMimes.includes(heroInfo.mimeType)) throw new Error(`Hero MIME type ${heroInfo.mimeType || \"unknown\"} is not supported.`);\nif (heroBytes.length === 0) throw new Error(\"The accepted hero is empty.\");\nconst exact = (name, value, max) => {\n  if (typeof value !== \"string\" || value.length === 0) throw new Error(`${name} is required in the creative contract.`);\n  if (value.length > max) throw new Error(`${name} must be ${max} characters or fewer before composing formats.`);\n  return value;\n};\nconst productName = exact(\"Product name\", contract.copy.productName, 120);\nconst headline = exact(\"Headline\", contract.copy.headline, 120);\nconst cta = exact(\"CTA\", contract.copy.cta, 80);\nconst wrapExact = (value, maxColumns, maxLines, label) => {\n  const lines = [];\n  let remaining = value;\n  while (remaining.length > 0) {\n    const newline = remaining.indexOf(\"\\n\");\n    if (newline >= 0 && newline < maxColumns) {\n      lines.push(remaining.slice(0, newline + 1));\n      remaining = remaining.slice(newline + 1);\n      continue;\n    }\n    if (remaining.length <= maxColumns) { lines.push(remaining); remaining = \"\"; continue; }\n    let cut = maxColumns;\n    while (cut > 0 && !/\\s/.test(remaining[cut])) cut -= 1;\n    if (cut === 0) throw new Error(`${label} contains a word longer than ${maxColumns} characters. Add a word break before composing formats.`);\n    lines.push(remaining.slice(0, cut + 1));\n    remaining = remaining.slice(cut + 1);\n  }\n  if (lines.length > maxLines) throw new Error(`${label} needs ${lines.length} lines but the layout supports ${maxLines}. Shorten the copy before composing formats.`);\n  return lines;\n};\nconst heroDataUri = `data:${heroInfo.mimeType};base64,${toBase64(heroBytes)}`;\nconst textElement = (x, y, size, lineHeight, value, maxColumns, maxLines, label, fill) => ({ name: \"text\", attributes: { x, y, fill, \"font-family\": \"Arial, Helvetica, sans-serif\", \"font-size\": size, \"font-weight\": 600, \"xml:space\": \"preserve\" }, children: wrapExact(value, maxColumns, maxLines, label).map((line, index) => ({ name: \"tspan\", attributes: { x, dy: index === 0 ? 0 : lineHeight }, content: line })) });\nconst artboard = (height, headlineY, imageY, imageHeight, ctaY, headlineColumns) => [\n  { name: \"metadata\", content: \"Directed Campaign Kit. System font fallback: Arial, Helvetica, sans-serif. The embedded photograph uses the accepted hero bytes.\" },\n  { name: \"rect\", attributes: { x: 0, y: 0, width: 1080, height, fill: \"#172022\" } },\n  { name: \"rect\", attributes: { x: 0, y: 0, width: 24, height, fill: \"#66734f\" } },\n  textElement(80, 86, 34, 42, productName, 44, 2, \"Product name\", \"#dce3d4\"),\n  textElement(80, headlineY, 58, 68, headline, headlineColumns, 4, \"Headline\", \"#f1f3ec\"),\n  { name: \"image\", attributes: { x: 80, y: imageY, width: 920, height: imageHeight, href: heroDataUri, preserveAspectRatio: \"xMidYMid meet\" } },\n  { name: \"line\", attributes: { x1: 80, y1: ctaY - 70, x2: 1000, y2: ctaY - 70, stroke: \"#66734f\", \"stroke-width\": 2 } },\n  textElement(80, ctaY, 32, 40, cta, 50, 2, \"CTA\", \"#dce3d4\")\n];\nawait output(\"portrait_elements\", artboard(1350, 170, 300, 820, 1240, 30));\nawait output(\"story_elements\", artboard(1920, 190, 380, 1240, 1790, 28));"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 360,
+            "y": 260
+          },
+          "width": 500,
+          "title": "Validate copy and build elements"
+        },
+        "dynamic_properties": {
+          "hero": {
+            "type": "image",
+            "uri": ""
+          },
+          "contract": "",
+          "version": "original"
+        },
+        "dynamic_inputs": {
+          "hero": {
+            "type": {
+              "type": "any"
+            }
+          },
+          "contract": {
+            "type": {
+              "type": "str"
+            }
+          },
+          "version": {
+            "type": {
+              "type": "str"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "portrait_elements": {
+            "type": "list",
+            "type_args": [
+              {
+                "type": "svg_element",
+                "type_args": [],
+                "optional": false
+              }
+            ],
+            "optional": false
+          },
+          "story_elements": {
+            "type": "list",
+            "type_args": [
+              {
+                "type": "svg_element",
+                "type_args": [],
+                "optional": false
+              }
+            ],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "portrait-svg",
+        "type": "lib.svg.Document",
+        "data": {
+          "elements": [],
+          "width": 1080,
+          "height": 1350,
+          "viewBox": "0 0 1080 1350"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 940,
+            "y": 80
+          },
+          "width": 280,
+          "title": "4:5 editable SVG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "portrait-png",
+        "type": "lib.svg.SVGToImage",
+        "data": {
+          "elements": [],
+          "width": 1080,
+          "height": 1350,
+          "viewBox": "0 0 1080 1350",
+          "scale": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 940,
+            "y": 240
+          },
+          "width": 280,
+          "title": "4:5 PNG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "story-svg",
+        "type": "lib.svg.Document",
+        "data": {
+          "elements": [],
+          "width": 1080,
+          "height": 1920,
+          "viewBox": "0 0 1080 1920"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 940,
+            "y": 440
+          },
+          "width": 280,
+          "title": "9:16 editable SVG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "story-png",
+        "type": "lib.svg.SVGToImage",
+        "data": {
+          "elements": [],
+          "width": 1080,
+          "height": 1920,
+          "viewBox": "0 0 1080 1920",
+          "scale": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 940,
+            "y": 600
+          },
+          "width": 280,
+          "title": "9:16 PNG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "layout-finalize",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "const MAX_RECORD_BYTES = 16 * 1024 * 1024;\nconst allowedImageMimes = [\"image/png\", \"image/jpeg\", \"image/webp\", \"image/avif\"];\nconst readImage = async (ref, label) => {\n  const bytes = await media.bytes(ref);\n  const info = await media.info(ref);\n  if (!allowedImageMimes.includes(info.mimeType)) throw new Error(`${label} has unsupported MIME type ${info.mimeType || \"unknown\"}.`);\n  if (bytes.length === 0) throw new Error(`${label} is empty.`);\n  return { bytes, mimeType: info.mimeType, width: Number(ref && ref.width) || 0, height: Number(ref && ref.height) || 0 };\n};\nconst rawSvg = (value, label) => {\n  if (!value || typeof value.data !== \"string\" || value.data.length === 0) throw new Error(`${label} is empty.`);\n  const bytes = fromBase64(value.data);\n  if (bytes.length === 0) throw new Error(`${label} is empty.`);\n  return bytes;\n};\nlet contract;\ntry { contract = JSON.parse(String(inputs.contract ?? \"\")); } catch { throw new Error(\"The accepted creative contract is invalid.\"); }\nconst version = String(inputs.version ?? \"\").trim();\nif (![\"original\", \"revision\"].includes(version)) throw new Error(\"Version must be original or revision.\");\nconst source = await readImage(inputs.hero, \"Accepted hero\");\nconst portrait = await readImage(inputs.portrait, \"4:5 PNG\");\nconst story = await readImage(inputs.story, \"9:16 PNG\");\nif (portrait.mimeType !== \"image/png\" || portrait.width !== 1080 || portrait.height !== 1350) throw new Error(\"The 4:5 PNG must be exactly 1080×1350.\");\nif (story.mimeType !== \"image/png\" || story.width !== 1080 || story.height !== 1920) throw new Error(\"The 9:16 PNG must be exactly 1080×1920.\");\nconst portraitSvgBytes = rawSvg(inputs.portrait_svg_raw, \"4:5 SVG\");\nconst storySvgBytes = rawSvg(inputs.story_svg_raw, \"9:16 SVG\");\nconst payload = (item) => ({ mimeType: item.mimeType, width: item.width, height: item.height, data: toBase64(item.bytes) });\nconst svgPayload = (bytes, width, height) => ({ mimeType: \"image/svg+xml\", width, height, data: toBase64(bytes) });\nconst artifacts = { source: payload(source), portrait: payload(portrait), story: payload(story), portraitSvg: svgPayload(portraitSvgBytes, 1080, 1350), storySvg: svgPayload(storySvgBytes, 1080, 1920), contract };\nlet record;\nif (version === \"original\") {\n  if (!contract || contract.schemaVersion !== 1 || contract.kind !== \"hero\" || !contract.brief || !contract.selectedDirection || !contract.copy) throw new Error(\"Original layouts require a complete accepted hero contract.\");\n  record = { schemaVersion: 1, brief: contract.brief, references: { role: contract.brief.referenceRole, use: contract.brief.referenceUse, ignore: contract.brief.referenceIgnore }, selectedDirection: contract.selectedDirection, approvedCopy: contract.copy, acceptedVersion: \"original\", original: artifacts };\n} else {\n  let original;\n  try { original = JSON.parse(await media.text(inputs.original_record)); } catch { throw new Error(\"The original campaign record file is invalid. Retry the original layout or reopen a valid record.\"); }\n  if (!original || original.schemaVersion !== 1 || original.acceptedVersion !== \"original\" || !original.original || original.revision) throw new Error(\"Revision layouts require the unchanged original-only campaign record.\");\n  if (!contract || contract.schemaVersion !== 1 || contract.kind !== \"revision\" || !contract.parentContract || !contract.revisionRequest) throw new Error(\"Revision layouts require a complete child contract.\");\n  record = { ...original, acceptedVersion: \"revision\", revision: { ...artifacts, request: contract.revisionRequest } };\n}\nconst recordText = JSON.stringify(record);\nconst recordBytes = new TextEncoder().encode(recordText);\nif (recordBytes.length > MAX_RECORD_BYTES) throw new Error(`The campaign record is ${recordBytes.length} bytes and exceeds the 16 MiB portable record limit. Reduce source file sizes and retry; no artifact was dropped.`);\nconst [heroRef, portraitRef, storyRef, portraitSvgRef, storySvgRef, recordFile] = await Promise.all([\n  media.toImage(source.bytes, { mimeType: source.mimeType }),\n  media.toImage(portrait.bytes, { mimeType: \"image/png\" }),\n  media.toImage(story.bytes, { mimeType: \"image/png\" }),\n  media.toDocument(portraitSvgBytes, { mimeType: \"image/svg+xml\", filename: `${version}-portrait.svg` }),\n  media.toDocument(storySvgBytes, { mimeType: \"image/svg+xml\", filename: `${version}-story.svg` }),\n  media.toDocument(recordBytes, { mimeType: \"application/json\", filename: \"directed-campaign.json\" })\n]);\nawait output(\"hero\", heroRef);\nawait output(\"portrait\", portraitRef);\nawait output(\"story\", storyRef);\nawait output(\"portrait_svg\", portraitSvgRef);\nawait output(\"story_svg\", storySvgRef);\nawait output(\"contract\", JSON.stringify(contract));\nawait output(\"record\", JSON.stringify({ schemaVersion: 1, acceptedVersion: record.acceptedVersion, productName: record.brief.productName, headline: record.approvedCopy.headline, cta: record.approvedCopy.cta, hasRevision: record.acceptedVersion === \"revision\", portableRecord: \"record_file\" }));\nawait output(\"record_file\", recordFile);\nawait output(\"phase\", version === \"original\" ? \"campaign_ready\" : \"complete\");"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1300,
+            "y": 300
+          },
+          "width": 520,
+          "title": "Wait, snapshot, and export"
+        },
+        "dynamic_properties": {
+          "hero": {
+            "type": "image",
+            "uri": ""
+          },
+          "contract": "",
+          "version": "original",
+          "original_record": {
+            "type": "document",
+            "uri": ""
+          },
+          "portrait": {
+            "type": "image",
+            "uri": ""
+          },
+          "story": {
+            "type": "image",
+            "uri": ""
+          },
+          "portrait_svg_raw": {},
+          "story_svg_raw": {}
+        },
+        "dynamic_inputs": {
+          "hero": {
+            "type": {
+              "type": "any"
+            }
+          },
+          "contract": {
+            "type": {
+              "type": "str"
+            }
+          },
+          "version": {
+            "type": {
+              "type": "str"
+            }
+          },
+          "original_record": {
+            "type": {
+              "type": "document"
+            }
+          },
+          "portrait": {
+            "type": {
+              "type": "image"
+            }
+          },
+          "story": {
+            "type": {
+              "type": "image"
+            }
+          },
+          "portrait_svg_raw": {
+            "type": {
+              "type": "any"
+            }
+          },
+          "story_svg_raw": {
+            "type": {
+              "type": "any"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "hero": {
+            "type": "image",
+            "type_args": [],
+            "optional": false
+          },
+          "portrait": {
+            "type": "image",
+            "type_args": [],
+            "optional": false
+          },
+          "story": {
+            "type": "image",
+            "type_args": [],
+            "optional": false
+          },
+          "portrait_svg": {
+            "type": "document",
+            "type_args": [],
+            "optional": false
+          },
+          "story_svg": {
+            "type": "document",
+            "type_args": [],
+            "optional": false
+          },
+          "contract": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          },
+          "record": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          },
+          "record_file": {
+            "type": "document",
+            "type_args": [],
+            "optional": false
+          },
+          "phase": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "out-hero",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "hero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1900,
+            "y": 0
+          },
+          "width": 240,
+          "title": "Accepted hero"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-portrait",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "portrait"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1900,
+            "y": 120
+          },
+          "width": 240,
+          "title": "4:5 PNG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-story",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "story"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1900,
+            "y": 240
+          },
+          "width": 240,
+          "title": "9:16 PNG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-portrait_svg",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "portrait_svg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1900,
+            "y": 360
+          },
+          "width": 240,
+          "title": "4:5 SVG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-story_svg",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "story_svg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1900,
+            "y": 480
+          },
+          "width": 240,
+          "title": "9:16 SVG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-contract",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "contract"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2200,
+            "y": 0
+          },
+          "width": 240,
+          "title": "Accepted contract"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-record",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "record"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2200,
+            "y": 120
+          },
+          "width": 240,
+          "title": "Campaign snapshot"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out-record_file",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "record_file"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2200,
+            "y": 240
+          },
+          "width": 240,
+          "title": "Campaign record file"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "normalize-hero",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "let value = inputs.value;\nif (typeof value === \"string\") {\n  const trimmed = value.trim();\n  if (trimmed.startsWith(\"{\")) {\n    try { value = JSON.parse(trimmed); } catch { value = { type: \"image\", uri: trimmed }; }\n  } else {\n    value = { type: \"image\", uri: trimmed };\n  }\n}\nif (!value || value.type !== \"image\" || (typeof value.uri !== \"string\" && typeof value.data !== \"string\" && typeof value.asset_id !== \"string\")) throw new Error(\"The accepted hero is not a valid image reference.\");\nawait output(\"image\", value);"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 80
+          },
+          "width": 320,
+          "title": "Normalize app image"
+        },
+        "dynamic_properties": {
+          "value": null
+        },
+        "dynamic_inputs": {
+          "value": {
+            "type": {
+              "type": "any"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "image": {
+            "type": "image",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "out-phase",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "phase"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2200,
+            "y": 360
+          },
+          "width": 240,
+          "title": "Accepted phase"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "hero-to-normalizer",
+        "source": "in-hero",
+        "sourceHandle": "output",
+        "target": "normalize-hero",
+        "targetHandle": "value"
+      },
+      {
+        "id": "hero-to-elements",
+        "source": "normalize-hero",
+        "sourceHandle": "image",
+        "target": "layout-elements",
+        "targetHandle": "hero"
+      },
+      {
+        "id": "contract-to-elements",
+        "source": "in-contract",
+        "sourceHandle": "output",
+        "target": "layout-elements",
+        "targetHandle": "contract"
+      },
+      {
+        "id": "version-to-elements",
+        "source": "in-version",
+        "sourceHandle": "output",
+        "target": "layout-elements",
+        "targetHandle": "version"
+      },
+      {
+        "id": "portrait-elements-to-svg",
+        "source": "layout-elements",
+        "sourceHandle": "portrait_elements",
+        "target": "portrait-svg",
+        "targetHandle": "elements"
+      },
+      {
+        "id": "portrait-elements-to-png",
+        "source": "layout-elements",
+        "sourceHandle": "portrait_elements",
+        "target": "portrait-png",
+        "targetHandle": "elements"
+      },
+      {
+        "id": "story-elements-to-svg",
+        "source": "layout-elements",
+        "sourceHandle": "story_elements",
+        "target": "story-svg",
+        "targetHandle": "elements"
+      },
+      {
+        "id": "story-elements-to-png",
+        "source": "layout-elements",
+        "sourceHandle": "story_elements",
+        "target": "story-png",
+        "targetHandle": "elements"
+      },
+      {
+        "id": "hero-to-finalize",
+        "source": "normalize-hero",
+        "sourceHandle": "image",
+        "target": "layout-finalize",
+        "targetHandle": "hero"
+      },
+      {
+        "id": "contract-to-finalize",
+        "source": "in-contract",
+        "sourceHandle": "output",
+        "target": "layout-finalize",
+        "targetHandle": "contract"
+      },
+      {
+        "id": "version-to-finalize",
+        "source": "in-version",
+        "sourceHandle": "output",
+        "target": "layout-finalize",
+        "targetHandle": "version"
+      },
+      {
+        "id": "original-record-to-finalize",
+        "source": "in-original_record",
+        "sourceHandle": "output",
+        "target": "layout-finalize",
+        "targetHandle": "original_record"
+      },
+      {
+        "id": "portrait-png-to-finalize",
+        "source": "portrait-png",
+        "sourceHandle": "output",
+        "target": "layout-finalize",
+        "targetHandle": "portrait"
+      },
+      {
+        "id": "story-png-to-finalize",
+        "source": "story-png",
+        "sourceHandle": "output",
+        "target": "layout-finalize",
+        "targetHandle": "story"
+      },
+      {
+        "id": "portrait-svg-to-finalize",
+        "source": "portrait-svg",
+        "sourceHandle": "output",
+        "target": "layout-finalize",
+        "targetHandle": "portrait_svg_raw"
+      },
+      {
+        "id": "story-svg-to-finalize",
+        "source": "story-svg",
+        "sourceHandle": "output",
+        "target": "layout-finalize",
+        "targetHandle": "story_svg_raw"
+      },
+      {
+        "id": "final-hero",
+        "source": "layout-finalize",
+        "sourceHandle": "hero",
+        "target": "out-hero",
+        "targetHandle": "value"
+      },
+      {
+        "id": "final-portrait",
+        "source": "layout-finalize",
+        "sourceHandle": "portrait",
+        "target": "out-portrait",
+        "targetHandle": "value"
+      },
+      {
+        "id": "final-story",
+        "source": "layout-finalize",
+        "sourceHandle": "story",
+        "target": "out-story",
+        "targetHandle": "value"
+      },
+      {
+        "id": "final-portrait-svg",
+        "source": "layout-finalize",
+        "sourceHandle": "portrait_svg",
+        "target": "out-portrait_svg",
+        "targetHandle": "value"
+      },
+      {
+        "id": "final-story-svg",
+        "source": "layout-finalize",
+        "sourceHandle": "story_svg",
+        "target": "out-story_svg",
+        "targetHandle": "value"
+      },
+      {
+        "id": "final-contract",
+        "source": "layout-finalize",
+        "sourceHandle": "contract",
+        "target": "out-contract",
+        "targetHandle": "value"
+      },
+      {
+        "id": "final-record",
+        "source": "layout-finalize",
+        "sourceHandle": "record",
+        "target": "out-record",
+        "targetHandle": "value"
+      },
+      {
+        "id": "final-record-file",
+        "source": "layout-finalize",
+        "sourceHandle": "record_file",
+        "target": "out-record_file",
+        "targetHandle": "value"
+      },
+      {
+        "id": "final-phase",
+        "source": "layout-finalize",
+        "sourceHandle": "phase",
+        "target": "out-phase",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

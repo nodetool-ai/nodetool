@@ -2,10 +2,10 @@
  * The `media` capability module — provider-backed generation, plus the vision
  * judges that grade what it produced.
  *
- * Ten capabilities that used to be ten `Tool` subclasses: the seven generation
- * tools in `../tools/media-tools.ts` and the three judging tools in
- * `../tools/creative-critique-tools.ts`. Wire names, descriptions and schemas
- * are unchanged; `getAllMcpTools` builds them through `toolFromCapability`.
+ * These capabilities replace the generation tools in `../tools/media-tools.ts`
+ * and the judging tools in `../tools/creative-critique-tools.ts`. Wire names,
+ * descriptions and schemas are unchanged; `getAllMcpTools` builds them through
+ * `toolFromCapability`.
  *
  * Every generation capability is a thin wrapper around
  * `ProcessingContext.runProviderPrediction` (or `streamProviderPrediction`
@@ -28,7 +28,6 @@ import type {
   GenerationRequest,
   ImageBox,
   ImageSegmentationMask,
-  JsonSchema,
   ProcessingContext,
   SegmentPoint,
   Workspace
@@ -90,6 +89,7 @@ import type {
   CapabilityRun
 } from "./types.js";
 import {
+  generateTextSpec,
   generateImageSpec,
   editImageSpec,
   segmentImageSpec,
@@ -122,6 +122,61 @@ interface MediaModelArgs {
   provider: string;
   model: string;
 }
+
+const generateText: CapabilityExport = {
+  spec: generateTextSpec,
+  impl: async (run, params) => {
+    const m = parseModelArgs(params);
+    if ("error" in m) return m;
+    const prompt = params["prompt"];
+    if (!isNonEmptyString(prompt)) return { error: "prompt is required" };
+    const imageValues = params["images"];
+    if (imageValues !== undefined && !Array.isArray(imageValues)) {
+      return { error: "images must be an array of strings" };
+    }
+    const images = (imageValues ?? []).filter(isNonEmptyString);
+    if (images.length !== (imageValues ?? []).length) {
+      return { error: "images must contain only non-empty strings" };
+    }
+    const content: MessageContent[] = [
+      ...images.map(imagePart),
+      textPart(prompt)
+    ];
+    const messages: Message[] = [];
+    const system = params["system"];
+    if (isNonEmptyString(system)) {
+      messages.push({ role: "system", content: system });
+    }
+    messages.push({ role: "user", content });
+    const maxTokens = Math.max(
+      1,
+      Math.min(16384, Number(params["max_tokens"]) || 2048)
+    );
+    try {
+      const result = (await run.context.runProviderPrediction({
+        provider: m.provider,
+        capability: "generate_message",
+        model: m.model,
+        params: {
+          messages,
+          max_tokens: maxTokens,
+          temperature:
+            typeof params["temperature"] === "number"
+              ? params["temperature"]
+              : 0
+        }
+      })) as Message;
+      return {
+        type: "text",
+        provider: m.provider,
+        model: m.model,
+        text: messageText(result)
+      };
+    } catch (error) {
+      return predictionError("generate_message", m, error);
+    }
+  }
+};
 
 function readModelId(value: unknown): string | undefined {
   return isNonEmptyString(value) ? value : undefined;
@@ -450,7 +505,10 @@ async function runMediaGeneration(
       ...persisted
     };
   } catch (e) {
-    return { ...predictionError(spec.capability, spec.m, e), generation_id: id };
+    return {
+      ...predictionError(spec.capability, spec.m, e),
+      generation_id: id
+    };
   }
 }
 
@@ -460,8 +518,7 @@ const generateImage: CapabilityExport = {
     const m = parseModelArgs(params);
     if ("error" in m) return m;
     const prompt = params["prompt"];
-    if (!isNonEmptyString(prompt))
-      return { error: "prompt is required" };
+    if (!isNonEmptyString(prompt)) return { error: "prompt is required" };
     return runMediaGeneration(run, params, {
       capability: "text_to_image",
       m,
@@ -488,8 +545,7 @@ const editImage: CapabilityExport = {
     const prompt = params["prompt"];
     if (!isNonEmptyString(inputFile))
       return { error: "input_file is required" };
-    if (!isNonEmptyString(prompt))
-      return { error: "prompt is required" };
+    if (!isNonEmptyString(prompt)) return { error: "prompt is required" };
     const referenceFiles = params["reference_files"];
     if (referenceFiles !== undefined && !Array.isArray(referenceFiles))
       return { error: "reference_files must be an array of strings" };
@@ -559,7 +615,9 @@ const segmentImage: CapabilityExport = {
 
     const rawPoints = params["points"];
     const points = Array.isArray(rawPoints)
-      ? rawPoints.map(parseSegmentPoint).filter((p): p is SegmentPoint => p !== null)
+      ? rawPoints
+          .map(parseSegmentPoint)
+          .filter((p): p is SegmentPoint => p !== null)
       : [];
 
     try {
@@ -683,8 +741,7 @@ const generateVideo: CapabilityExport = {
     const m = parseModelArgs(params);
     if ("error" in m) return m;
     const prompt = params["prompt"];
-    if (!isNonEmptyString(prompt))
-      return { error: "prompt is required" };
+    if (!isNonEmptyString(prompt)) return { error: "prompt is required" };
     return runMediaGeneration(run, params, {
       capability: "text_to_video",
       m,
@@ -723,9 +780,7 @@ const animateImage: CapabilityExport = {
     // does not.
     if (shape.aspect_ratio === undefined) {
       const size = imagePixelSize(image);
-      const derived = size
-        ? nearestAspectRatio(size.width, size.height)
-        : null;
+      const derived = size ? nearestAspectRatio(size.width, size.height) : null;
       if (derived) shape.aspect_ratio = derived;
     }
     return runMediaGeneration(run, params, {
@@ -1184,7 +1239,10 @@ const generateSpeech: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return { ...predictionError("text_to_speech", m, e), generation_id: generationId };
+      return {
+        ...predictionError("text_to_speech", m, e),
+        generation_id: generationId
+      };
     }
   }
 };
@@ -1259,7 +1317,10 @@ const generateMusic: CapabilityExport = {
     try {
       const encoded = await context.textToMusic(req);
       if (!encoded?.data || encoded.data.length === 0) {
-        return { error: "Provider returned no audio data", generation_id: generationId };
+        return {
+          error: "Provider returned no audio data",
+          generation_id: generationId
+        };
       }
       const mime = encoded.mimeType ?? "audio/mpeg";
       const seamAssetId = await seamAssetFor(generationId);
@@ -1284,7 +1345,10 @@ const generateMusic: CapabilityExport = {
         ...persisted
       };
     } catch (e) {
-      return { ...predictionError("text_to_music", m, e), generation_id: generationId };
+      return {
+        ...predictionError("text_to_music", m, e),
+        generation_id: generationId
+      };
     }
   }
 };
@@ -1539,10 +1603,8 @@ const critiqueImage: CapabilityExport = {
     if ("error" in m) return m;
     const image = params["image"];
     const brief = params["brief"];
-    if (!isNonEmptyString(image))
-      return { error: "image is required" };
-    if (!isNonEmptyString(brief))
-      return { error: "brief is required" };
+    if (!isNonEmptyString(image)) return { error: "image is required" };
+    if (!isNonEmptyString(brief)) return { error: "brief is required" };
 
     const prompt =
       `You are a demanding art director reviewing one image against a brief.` +
@@ -1631,8 +1693,7 @@ const compareImages: CapabilityExport = {
         error: `images must contain at most ${MAX_COMPARE_IMAGES} candidates`
       };
     }
-    if (!isNonEmptyString(brief))
-      return { error: "brief is required" };
+    if (!isNonEmptyString(brief)) return { error: "brief is required" };
 
     const prompt =
       `You are judging which of two images better fulfills a creative brief.` +
@@ -1742,10 +1803,8 @@ const scoreImageAdherence: CapabilityExport = {
     if ("error" in m) return m;
     const image = params["image"];
     const brief = params["brief"];
-    if (!isNonEmptyString(image))
-      return { error: "image is required" };
-    if (!isNonEmptyString(brief))
-      return { error: "brief is required" };
+    if (!isNonEmptyString(image)) return { error: "image is required" };
+    if (!isNonEmptyString(brief)) return { error: "brief is required" };
 
     try {
       let questions = Array.isArray(params["questions"])
@@ -2240,10 +2299,9 @@ const ffmpeg: CapabilityExport = {
  * concatenation. The raw payload stays exactly as ffprobe wrote it; this is a
  * second, typed view of the four fields a caller actually plans a cut with.
  */
-export function ffprobeSummary(parsed: Record<string, unknown>): Record<
-  string,
-  unknown
-> {
+export function ffprobeSummary(
+  parsed: Record<string, unknown>
+): Record<string, unknown> {
   const format = isObjectLike(parsed["format"]) ? parsed["format"] : {};
   const streams = Array.isArray(parsed["streams"]) ? parsed["streams"] : [];
   const numeric = (value: unknown): number | null => {
@@ -2258,7 +2316,8 @@ export function ffprobeSummary(parsed: Record<string, unknown>): Record<
   const video = ofKind("video");
   const audio = ofKind("audio");
   const summary: Record<string, unknown> = {
-    duration_seconds: numeric(format["duration"]) ?? numeric(video?.["duration"]),
+    duration_seconds:
+      numeric(format["duration"]) ?? numeric(video?.["duration"]),
     has_video: video !== undefined,
     has_audio: audio !== undefined
   };
@@ -2508,6 +2567,7 @@ const ytDlp: CapabilityExport = {
 
 /** Every media capability, in the order `getAllMcpTools` offered them. */
 export const MEDIA_CAPABILITIES: readonly CapabilityExport[] = [
+  generateText,
   generateImage,
   editImage,
   segmentImage,
@@ -2534,6 +2594,7 @@ export const module: CapabilityModule = {
 };
 
 export {
+  generateText,
   generateImage,
   editImage,
   segmentImage,

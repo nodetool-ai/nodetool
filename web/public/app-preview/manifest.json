@@ -173,5 +173,12 @@
     "emoji": "📈",
     "featured": false,
     "workflows": 4
+  },
+  {
+    "slug": "directed-campaign-kit",
+    "name": "Directed Campaign Kit",
+    "emoji": "🎯",
+    "featured": false,
+    "workflows": 4
   }
 ]

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "slug": "directed-campaign-kit",
+  "name": "Directed campaign kit",
+  "outcome": "Approve one product hero, build two campaign formats, and compare one directed revision with the original.",
+  "audience": "Small brand and social teams",
+  "summary": [
+    "Upload one product image so the app can write the brief and three campaign directions automatically.",
+    "Build campaign formats from the accepted image and preserve the original when you revise it."
+  ],
+  "caveats": [
+    "Image edits can change product details. Compare every take with the product reference.",
+    "SVG exports preserve editable text. PNG exports are flat images.",
+    "Choose compatible language and image-edit models using your own provider keys."
+  ],
+  "hero": "Render a Directed Campaign Hero",
+  "apps": [
+    {
+      "app": "directed-campaign-kit",
+      "role": "Direct and revise the campaign from one screen."
+    }
+  ],
+  "steps": [
+    {
+      "example": "Render a Directed Campaign Hero",
+      "role": "Approve the hero",
+      "handoff": "In the app, upload the product image, review the AI-written brief and directions, choose one, then check product identity and composition before accepting."
+    },
+    {
+      "example": "Compose Directed Campaign Formats",
+      "role": "Build the formats",
+      "handoff": "Keep the accepted hero and exact copy together in 4:5 and 9:16."
+    },
+    {
+      "example": "Revise an Accepted Campaign Hero",
+      "role": "Direct one revision",
+      "handoff": "Compare the revision with the original, then use the same composition workflow."
+    }
+  ]
+}

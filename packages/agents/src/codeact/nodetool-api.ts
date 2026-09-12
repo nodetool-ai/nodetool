@@ -45,7 +45,12 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   packs: ["list_sandbox_packages", "get_sandbox_package_docs"],
   nodes: ["search_nodes", "get_node_info", "list_nodes", "run_node"],
   agents: ["run_subtask", "start_subtask", "wait_subtasks"],
-  models: ["find_model", "list_models", "list_provider_models"],
+  models: [
+    "find_model",
+    "list_models",
+    "list_provider_models",
+    "generate_text"
+  ],
   media: [
     "generate_image",
     "edit_image",
@@ -851,7 +856,12 @@ const nodetool = (() => {
       list: (opts) => __need("list_models")(__merge(opts)),
       /** One provider's own catalog. */
       forProvider: (provider, opts) =>
-        __need("list_provider_models")(__merge(opts, { provider: provider }))
+        __need("list_provider_models")(__merge(opts, { provider: provider })),
+      /** One language-model roundtrip, with optional image references. */
+      generate: (prompt, model, opts) =>
+        __need("generate_text")(
+          __merge(opts, __merge(__model(model), { prompt: prompt }))
+        )
     },
 
     media: {

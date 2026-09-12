@@ -16,7 +16,10 @@
  */
 import { describe, it, expect } from "vitest";
 
-import { assembleSandboxToolbelt } from "../src/sandbox-toolbelt.js";
+import {
+  assembleJsScriptToolbelt,
+  assembleSandboxToolbelt
+} from "../src/sandbox-toolbelt.js";
 import {
   APIFY_TOOL_NAMES,
   SERPAPI_TOOL_NAMES
@@ -74,6 +77,19 @@ async function runRecording(code: string, names: readonly string[] = []) {
 }
 
 describe("the sandbox toolbelt", () => {
+  it("adds model discovery for configured providers in JS scripts", async () => {
+    const context = {
+      isProviderConfigured: async (providerId: string) =>
+        providerId === "codex",
+      getProvider: async () => ({})
+    } as never;
+    const names = new Set(
+      (await assembleJsScriptToolbelt(context)).map((tool) => tool.name)
+    );
+    expect(names.has("find_model")).toBe(true);
+    expect(names.has("list_models")).toBe(true);
+  });
+
   it("carries the Apify and SerpAPI capabilities", () => {
     const names = new Set(assembleSandboxToolbelt().map((tool) => tool.name));
     for (const name of [...APIFY_TOOL_NAMES, ...SERPAPI_TOOL_NAMES]) {
@@ -101,6 +117,7 @@ describe("the sandbox toolbelt", () => {
   it("can generate media, not only judge it", () => {
     const names = new Set(assembleSandboxToolbelt().map((tool) => tool.name));
     for (const name of [
+      "generate_text",
       "generate_image",
       "edit_image",
       "generate_video",
@@ -301,7 +318,9 @@ describe("the nodetool object model's own errors", () => {
        }`,
       ["find_model"]
     );
-    expect(result.result).toContain("nodetool.models.find_model does not exist");
+    expect(result.result).toContain(
+      "nodetool.models.find_model does not exist"
+    );
     expect(result.result).toContain("Did you mean nodetool.models.find?");
     expect(result.result).toContain("forProvider");
     expect(result.result).not.toContain("not a function");
@@ -352,7 +371,7 @@ describe("the nodetool object model's own errors", () => {
     );
     expect(result.error).toBeUndefined();
     expect(result.result).toBe(
-      "function,function,find/forProvider/list/pick,{}"
+      "function,function,find/forProvider/generate/list/pick,{}"
     );
   }, 60_000);
 });

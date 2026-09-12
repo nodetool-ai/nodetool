@@ -3,9 +3,10 @@
  *
  * Same assembly as an agent loop's server half: `getBuiltinTools()` plus the
  * Apify and SerpAPI capabilities, plus the in-process MCP tools that only need
- * the process node registry. The example catalog, DSL exporter, and provider
- * map live above this package, so those tools stay dark and
- * `nodetool.capabilities()` reports the difference.
+ * the process node registry. The example catalog and DSL exporter live above
+ * this package, so those tools stay dark and `nodetool.capabilities()` reports
+ * the difference. JS scripts use `assembleJsScriptToolbelt` to add the current
+ * user's configured provider catalogs for model discovery.
  *
  * Apify and SerpAPI are here because a body can already reach both by import
  * (`@nodetool-ai/sandbox-nodetool/apify`), which the Code node mounts ungated.
@@ -19,7 +20,11 @@
  * they are not on this belt.
  */
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  listRegisteredProviderIds,
+  type BaseProvider,
+  type ProcessingContext
+} from "@nodetool-ai/runtime";
 import type { Tool } from "./tools/base-tool.js";
 import { getBuiltinTools } from "./tools/builtin-tools.js";
 import {
@@ -27,25 +32,47 @@ import {
   getSerpApiTools
 } from "./tools/external-capability-tools.js";
 import { getAllMcpTools } from "./tools/mcp-tools.js";
-import {
-  buildToolBridge,
-  TOOLS_PRELUDE
-} from "./codeact/tool-api.js";
+import { buildToolBridge, TOOLS_PRELUDE } from "./codeact/tool-api.js";
 import { NODETOOL_API_PRELUDE_FULL } from "./codeact/nodetool-api.js";
 
 export const NODETOOL_PRELUDE = `${TOOLS_PRELUDE}\n${NODETOOL_API_PRELUDE_FULL}`;
 
-export function assembleSandboxToolbelt(): Tool[] {
+export function assembleSandboxToolbelt(
+  options: Parameters<typeof getAllMcpTools>[0] = {}
+): Tool[] {
   const byName = new Map<string, Tool>();
   for (const tool of [
     ...getBuiltinTools(),
     ...getApifyTools(),
     ...getSerpApiTools(),
-    ...getAllMcpTools({ registry: NodeRegistry.global })
+    ...getAllMcpTools({ registry: NodeRegistry.global, ...options })
   ]) {
     byName.set(tool.name, tool);
   }
   return [...byName.values()];
+}
+
+/**
+ * Add the current user's configured provider catalogs to a script toolbelt.
+ * Provider instances stay owned by the processing context, so credentials,
+ * custom endpoints, tracing, and cancellation follow the script run.
+ */
+export async function assembleJsScriptToolbelt(
+  context: ProcessingContext
+): Promise<Tool[]> {
+  const providers: Record<string, BaseProvider> = {};
+  await Promise.all(
+    listRegisteredProviderIds().map(async (providerId) => {
+      try {
+        if (await context.isProviderConfigured(providerId)) {
+          providers[providerId] = await context.getProvider(providerId);
+        }
+      } catch {
+        // A broken provider must not prevent scripts from using another one.
+      }
+    })
+  );
+  return assembleSandboxToolbelt({ providers });
 }
 
 export function sandboxToolBridgeGlobals(

@@ -1,0 +1,27 @@
+{
+  "campaign": "Directed Campaign Kit",
+  "message": "One product. One direction. A campaign you can revise.",
+  "assets": [
+    {
+      "path": "directed-campaign-kit-hero.png",
+      "role": "Wide launch artwork",
+      "source": "Built-in image generation"
+    },
+    {
+      "path": "directed-campaign-kit-social-square.png",
+      "role": "Square social card",
+      "source": "Generated from the wide artwork by build-assets.mjs"
+    },
+    {
+      "path": "../../public/apps/directed-campaign-kit.png",
+      "role": "Actual mini-app screenshot",
+      "source": "web/scripts/screenshot-app-previews.mjs"
+    },
+    {
+      "path": "campaign-copy.md",
+      "role": "Channel-ready launch copy",
+      "source": "NodeTool brand and writing guidelines"
+    }
+  ],
+  "imagePrompt": "A wide photoreal product campaign set with one anonymous matte bottle, charcoal, muted olive, warm white, left-side negative space, subtle portrait and vertical framing planes, no text, logos, UI, people, or watermark."
+}

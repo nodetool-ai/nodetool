@@ -329,7 +329,10 @@
             "type": "nodetool.input.ImageInput",
             "data": {
               "name": "photo",
-              "value": null,
+              "value": {
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+              },
               "description": "The photo to work on"
             },
             "ui_properties": {
@@ -353,13 +356,34 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
+                "x": 1320,
                 "y": 120
               },
               "zIndex": 0,
               "width": 300,
               "selectable": true,
               "title": "3  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "sharpness",
+            "type": "nodetool.input.FloatInput",
+            "data": {
+              "name": "sharpness",
+              "value": 0.3,
+              "min": 0,
+              "max": 1,
+              "description": "Sharpening strength. Set to 0 to disable."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 330,
+                "y": 440
+              },
+              "width": 300,
+              "title": "Sharpness"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}

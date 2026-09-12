@@ -1,0 +1,66 @@
+{
+  "id": "directed-campaign-hero",
+  "access": "private",
+  "created_at": "2026-09-12T00:00:00.000Z",
+  "updated_at": "2026-09-12T00:00:00.000Z",
+  "name": "Render a Directed Campaign Hero",
+  "tool_name": null,
+  "description": "Select one captured direction deterministically, edit the product reference into a 16:9 hero, and emit its creative contract only after the image succeeds.",
+  "tags": ["campaign", "image", "example"],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {"id": "intro", "type": "nodetool.workflows.base_node.Comment", "data": {"comment": "# Render a Directed Campaign Hero\n\nChoose A, B, or C from the captured plan. The product image is always first and the optional role-labelled reference is second. The image edit creates no campaign text; the finalizer waits for the image before advancing."}, "ui_properties": {"position": {"x": 0, "y": -220}, "width": 520, "height": 170, "selectable": true}, "dynamic_properties": {}},
+      {"id": "in-plan", "type": "nodetool.input.StringInput", "data": {"name": "plan", "value": "", "description": "Validated serialized plan from Propose Three Campaign Directions.", "line_mode": "multi_line"}, "ui_properties": {"position": {"x": 0, "y": 120}, "width": 280, "title": "Captured plan"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "in-choice", "type": "nodetool.input.StringInput", "data": {"name": "choice", "value": "A", "description": "Direction ID A, B, or C."}, "ui_properties": {"position": {"x": 0, "y": 300}, "width": 280, "title": "Direction choice"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {
+        "id": "hero-prepare",
+        "type": "nodetool.code.Code",
+        "data": {"code": "let plan;\ntry { plan = JSON.parse(String(inputs.plan ?? \"\")); } catch { throw new Error(\"The campaign plan is invalid. Propose directions again.\"); }\nif (!plan || plan.schemaVersion !== 1 || !plan.brief || !Array.isArray(plan.directions) || plan.directions.length !== 3) throw new Error(\"The campaign plan does not match schema version 1.\");\nconst choice = String(inputs.choice ?? \"\").trim().toUpperCase();\nif (![\"A\", \"B\", \"C\"].includes(choice)) throw new Error(\"Direction choice must be A, B, or C.\");\nconst direction = plan.directions.find((item) => item && item.id === choice);\nif (!direction) throw new Error(`Direction ${choice} is missing from the captured plan.`);\nconst brief = plan.brief;\nawait media.bytes(brief.productImage);\nconst images = [brief.productImage];\nif (brief.referenceRole !== \"none\") {\n  await media.bytes(brief.referenceImage);\n  images.push(brief.referenceImage);\n}\nconst optional = brief.referenceRole === \"none\" ? \"No optional reference is assigned.\" : `Image 2 controls ${brief.referenceRole} only. Use: ${brief.referenceUse || \"the assigned role\"}. Ignore: ${brief.referenceIgnore || \"objects, branding, and identity\"}.`;\nconst prompt = `Create one photorealistic landscape campaign hero at 16:9. Image 1 is the product identity reference: preserve its geometry, proportions, finish, lid, visible branding, and color. ${optional}\\n\\nSelected direction ${direction.id} — ${direction.title}\\nSetting: ${direction.setting}\\nComposition: ${direction.composition}\\nLighting: ${direction.lighting}\\nPalette: ${direction.palette}\\nPreserve: ${direction.preservationInstructions}\\n\\nLeave deliberate copy space for the approved headline and CTA, but do not render, invent, or add any campaign text, logos, labels, or typography.`;\nconst capturedBrief = { productName: String(brief.productName), campaignMessage: String(brief.campaignMessage), audience: String(brief.audience), headline: String(brief.headline), cta: String(brief.cta), referenceRole: String(brief.referenceRole), referenceUse: String(brief.referenceUse ?? \"\"), referenceIgnore: String(brief.referenceIgnore ?? \"\") };\nconst contract = { schemaVersion: 1, kind: \"hero\", brief: capturedBrief, selectedDirection: direction, copy: { productName: capturedBrief.productName, headline: capturedBrief.headline, cta: capturedBrief.cta }, sourceOrder: brief.referenceRole === \"none\" ? [\"product identity\"] : [\"product identity\", `optional ${brief.referenceRole} reference`], render: { aspectRatio: \"16:9\", resolution: \"1K\", prompt } };\nawait output(\"prompt\", prompt);\nawait output(\"images\", images);\nawait output(\"contract\", JSON.stringify(contract));"},
+        "ui_properties": {"position": {"x": 360, "y": 180}, "width": 440, "title": "Select and capture direction"},
+        "dynamic_properties": {"plan": "", "choice": "A"},
+        "dynamic_inputs": {"plan": {"type": {"type": "str"}}, "choice": {"type": {"type": "str"}}},
+        "dynamic_outputs": {"prompt": {"type": "str", "type_args": [], "optional": false}, "images": {"type": "list", "type_args": [{"type": "image", "type_args": [], "optional": false}], "optional": false}, "contract": {"type": "str", "type_args": [], "optional": false}},
+        "sync_mode": "on_all"
+      },
+      {
+        "id": "hero-edit",
+        "type": "nodetool.image.ImageToImage",
+        "data": {"model": {"type": "image_model", "provider": "fal_ai", "id": "fal-ai/nano-banana/edit", "name": "Nano Banana Edit", "path": null, "supported_tasks": []}, "image": [], "prompt": "", "negative_prompt": "text, lettering, typography, captions, duplicate product, altered logo, cropped product", "entities": [], "strength": 0.65, "aspect_ratio": "16:9", "resolution": "1K", "scheduler": ""},
+        "ui_properties": {"position": {"x": 880, "y": 180}, "width": 320, "title": "Render selected hero"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_all"
+      },
+      {
+        "id": "hero-finalize",
+        "type": "nodetool.code.Code",
+        "data": {"code": "if (!inputs.hero || inputs.hero.type !== \"image\" || (typeof inputs.hero.uri !== \"string\" && typeof inputs.hero.data !== \"string\")) throw new Error(\"The hero model did not return a valid image.\");\nlet contract;\ntry { contract = JSON.parse(String(inputs.contract ?? \"\")); } catch { throw new Error(\"The captured hero contract is invalid.\"); }\nif (!contract || contract.schemaVersion !== 1 || contract.kind !== \"hero\") throw new Error(\"The captured hero contract is incomplete.\");\nawait output(\"hero\", inputs.hero);\nawait output(\"contract\", JSON.stringify(contract));\nawait output(\"phase\", \"hero_ready\");"},
+        "ui_properties": {"position": {"x": 1260, "y": 180}, "width": 380, "title": "Finalize candidate"},
+        "dynamic_properties": {"hero": {"type": "image", "uri": ""}, "contract": ""},
+        "dynamic_inputs": {"hero": {"type": {"type": "image"}}, "contract": {"type": {"type": "str"}}},
+        "dynamic_outputs": {"hero": {"type": "image", "type_args": [], "optional": false}, "contract": {"type": "str", "type_args": [], "optional": false}, "phase": {"type": "str", "type_args": [], "optional": false}},
+        "sync_mode": "on_all"
+      },
+      {"id": "out-hero", "type": "nodetool.output.Output", "data": {"name": "hero"}, "ui_properties": {"position": {"x": 1720, "y": 100}, "width": 250, "title": "Candidate hero"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "out-contract", "type": "nodetool.output.Output", "data": {"name": "contract"}, "ui_properties": {"position": {"x": 1720, "y": 240}, "width": 250, "title": "Creative contract"}, "dynamic_properties": {}, "dynamic_outputs": {}},
+      {"id": "out-phase", "type": "nodetool.output.Output", "data": {"name": "phase"}, "ui_properties": {"position": {"x": 1720, "y": 380}, "width": 250, "title": "Ready phase"}, "dynamic_properties": {}, "dynamic_outputs": {}}
+    ],
+    "edges": [
+      {"id": "plan-to-prepare", "source": "in-plan", "sourceHandle": "output", "target": "hero-prepare", "targetHandle": "plan"},
+      {"id": "choice-to-prepare", "source": "in-choice", "sourceHandle": "output", "target": "hero-prepare", "targetHandle": "choice"},
+      {"id": "prompt-to-edit", "source": "hero-prepare", "sourceHandle": "prompt", "target": "hero-edit", "targetHandle": "prompt"},
+      {"id": "images-to-edit", "source": "hero-prepare", "sourceHandle": "images", "target": "hero-edit", "targetHandle": "image"},
+      {"id": "edit-to-finalize", "source": "hero-edit", "sourceHandle": "output", "target": "hero-finalize", "targetHandle": "hero"},
+      {"id": "contract-to-finalize", "source": "hero-prepare", "sourceHandle": "contract", "target": "hero-finalize", "targetHandle": "contract"},
+      {"id": "hero-out", "source": "hero-finalize", "sourceHandle": "hero", "target": "out-hero", "targetHandle": "value"},
+      {"id": "contract-out", "source": "hero-finalize", "sourceHandle": "contract", "target": "out-contract", "targetHandle": "value"},
+      {"id": "phase-out", "source": "hero-finalize", "sourceHandle": "phase", "target": "out-phase", "targetHandle": "value"}
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}
