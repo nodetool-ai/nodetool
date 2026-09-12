@@ -923,6 +923,31 @@ describe("document previews", () => {
       ]
     });
   });
+
+  it("keeps midi tracks and unnamed tracks in a parseable preview", () => {
+    expect(
+      timelinePreview(
+        [
+          { id: "midi", type: "midi", index: 0 },
+          { id: "video", name: null, type: "video", index: 1 },
+          { id: "legacy", name: "FX", type: "effect", index: 2 }
+        ],
+        [{ trackId: "midi", startMs: 0, durationMs: 1_000 }],
+        1_000
+      )
+    ).toEqual({
+      kind: "timeline",
+      durationMs: 1_000,
+      tracks: [
+        {
+          type: "midi",
+          name: "",
+          clips: [{ startMs: 0, durationMs: 1_000 }]
+        },
+        { type: "video", name: "", clips: [] }
+      ]
+    });
+  });
 });
 
 describe("moveDocumentToProject", () => {

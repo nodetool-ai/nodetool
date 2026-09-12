@@ -115,8 +115,18 @@ export interface TimelinePreviewClip {
   durationMs: number;
 }
 
+const PREVIEW_TRACK_TYPES = [
+  "video",
+  "audio",
+  "overlay",
+  "subtitle",
+  "midi"
+] as const;
+
+export type TimelinePreviewTrackType = (typeof PREVIEW_TRACK_TYPES)[number];
+
 export interface TimelinePreviewTrack {
-  type: "video" | "audio" | "overlay" | "subtitle" | "midi";
+  type: TimelinePreviewTrackType;
   name: string;
   clips: TimelinePreviewClip[];
 }
@@ -276,17 +286,26 @@ export function scriptPreview(doc: ScriptDocument): ScriptPreview {
  * starts and how long it runs. Everything else a clip carries — media,
  * effects, bindings — is not what a 120px card draws.
  */
+type PreviewTrackInput = {
+  id: string;
+  name?: string | null;
+  type: string;
+  index: number;
+};
+
+function isPreviewTrack(
+  track: PreviewTrackInput
+): track is PreviewTrackInput & { type: TimelinePreviewTrackType } {
+  return (PREVIEW_TRACK_TYPES as readonly string[]).includes(track.type);
+}
+
 export function timelinePreview(
-  tracks: readonly {
-    id: string;
-    name: string;
-    type: "video" | "audio" | "overlay" | "subtitle" | "midi";
-    index: number;
-  }[],
+  tracks: readonly PreviewTrackInput[],
   clips: readonly { trackId: string; startMs: number; durationMs: number }[],
   durationMs: number
 ): TimelinePreview {
-  const ordered = [...tracks]
+  const ordered = tracks
+    .filter(isPreviewTrack)
     .sort((a, b) => a.index - b.index)
     .slice(0, TIMELINE_PREVIEW_TRACKS);
   return {
@@ -294,7 +313,7 @@ export function timelinePreview(
     durationMs,
     tracks: ordered.map((track) => ({
       type: track.type,
-      name: track.name,
+      name: track.name ?? "",
       clips: clips
         .filter((clip) => clip.trackId === track.id)
         .sort((a, b) => a.startMs - b.startMs)

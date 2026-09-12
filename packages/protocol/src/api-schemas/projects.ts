@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { timelineTrack } from "./timeline.js";
 
 // ── Project ──────────────────────────────────────────────────────────────────
 // A project is a name over documents that already carry `project_id`. `kind` is
@@ -161,7 +162,7 @@ export const projectDocumentPreview = z.discriminatedUnion("kind", [
     durationMs: z.number(),
     tracks: z.array(
       z.object({
-        type: z.enum(["video", "audio", "overlay", "subtitle"]),
+        type: timelineTrack.shape.type,
         name: z.string(),
         clips: z.array(
           z.object({ startMs: z.number(), durationMs: z.number() })

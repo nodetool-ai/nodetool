@@ -17,6 +17,7 @@ import {
   Script,
   Storyboard,
   Thread,
+  TimelineSequence,
   Workflow,
   Workspace
 } from "@nodetool-ai/models";
@@ -387,6 +388,42 @@ describe("projects router", () => {
     ]);
     const auroraSummary = summaries.find((s) => s.project.id === aurora.id);
     expect(auroraSummary?.documents.map((d) => d.name)).toEqual(["Board"]);
+  });
+
+  it("summaries survive a timeline with midi tracks and missing names", async () => {
+    const aurora = await caller().projects.create({ name: "Aurora", kind: "" });
+    await TimelineSequence.create<TimelineSequence>({
+      user_id: "user-1",
+      project_id: aurora.id,
+      name: "Cut",
+      document: JSON.stringify({
+        tracks: [
+          { id: "t1", type: "midi", index: 0, visible: true, locked: false },
+          {
+            id: "t2",
+            name: "Video",
+            type: "video",
+            index: 1,
+            visible: true,
+            locked: false
+          }
+        ],
+        clips: [],
+        markers: []
+      })
+    });
+
+    const summaries = await caller().projects.summaries({});
+    const auroraSummary = summaries.find((s) => s.project.id === aurora.id);
+    expect(auroraSummary?.documents.map((d) => d.name)).toEqual(["Cut"]);
+    expect(auroraSummary?.documents[0]?.preview).toEqual({
+      kind: "timeline",
+      durationMs: 0,
+      tracks: [
+        { type: "midi", name: "", clips: [] },
+        { type: "video", name: "Video", clips: [] }
+      ]
+    });
   });
 
   it("lists the documents in no project, and moves one in and back out", async () => {
