@@ -120,6 +120,16 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "compose-directed-campaign-formats",
+        "name": "Compose Directed Campaign Formats",
+        "description": "Compose one accepted hero into deterministic 1080×1350 and 1080×1920 PNG and self-contained SVG formats, then export a portable versioned campaign record.",
+        "tags": [
+          "campaign",
+          "image",
+          "svg"
+        ]
+      },
+      {
         "slug": "concept-art-iteration-board",
         "name": "Concept Art Iteration Board",
         "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on gpt-5-mini; images on fal-ai/flux/schnell.",
@@ -354,6 +364,15 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "propose-three-campaign-directions",
+        "name": "Propose Three Campaign Directions",
+        "description": "Validate one product brief and optional role-labelled reference, then propose exactly three written campaign directions before any image generation.",
+        "tags": [
+          "campaign",
+          "image"
+        ]
+      },
+      {
         "slug": "pull-a-still-from-a-clip",
         "name": "Pull a Still from a Clip",
         "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
@@ -380,10 +399,28 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "render-a-directed-campaign-hero",
+        "name": "Render a Directed Campaign Hero",
+        "description": "Select one captured direction deterministically, edit the product reference into a 16:9 hero, and emit its creative contract only after the image succeeds.",
+        "tags": [
+          "campaign",
+          "image"
+        ]
+      },
+      {
         "slug": "restyle-a-photo-as-an-illustration",
         "name": "Restyle a Photo as an Illustration",
         "description": "Keep the composition, change the medium. Strength is the dial: low preserves the photograph, high redraws it into something new.",
         "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "revise-an-accepted-campaign-hero",
+        "name": "Revise an Accepted Campaign Hero",
+        "description": "Apply one bounded revision to the accepted campaign hero while recording the exact change, preservation instructions, allowed response, and parent contract.",
+        "tags": [
+          "campaign",
           "image"
         ]
       },
@@ -1453,6 +1490,15 @@ export const templateCatalog: CatalogCategory[] = [
         "description": "Two regex passes and a whitespace collapse, in the order that matters: redact before you normalise, or the pattern you are matching may already have been reshaped.",
         "tags": [
           "text"
+        ]
+      },
+      {
+        "slug": "reopen-a-directed-campaign",
+        "name": "Reopen a Directed Campaign",
+        "description": "Validate a portable schema-version-1 campaign record and restore its accepted original and optional revision without calling a model.",
+        "tags": [
+          "campaign",
+          "document"
         ]
       },
       {

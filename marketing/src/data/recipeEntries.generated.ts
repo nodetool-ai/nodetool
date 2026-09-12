@@ -18,14 +18,14 @@ export const recipeEntries: RecipeEntry[] = [
         "Formats",
         "Revision"
       ],
-      "introduction": "Upload a product image and let the app write the working brief and three campaign directions. Keep any field you want to control, choose a direction, then approve the hero before making formats or revisions.",
+      "introduction": "Upload a product image. The app writes the brief and three directions. Approve the hero, then make formats and revisions.",
       "inputs": [
         "One clear product image",
         "Optional campaign steer or reference image",
         "Language and image models configured in NodeTool"
       ],
       "brief": "Create a campaign for the product in the supplied image. Infer a concise product name, audience, message, headline, and call to action. Propose three distinct visual directions. Keep the product recognizable and avoid unsupported performance claims.",
-      "note": "The product image is the only required brief input. Add exact copy or audience details before uploading when those values must not be inferred. Model selection remains available in the app for hero generation and revision.",
+      "note": "The product image is the only required input. Add exact copy or audience details before uploading when they must not be inferred. Model selection stays available in the app.",
       "steps": [
         {
           "id": "upload",
@@ -192,7 +192,7 @@ export const recipeEntries: RecipeEntry[] = [
         "Entities",
         "Look"
       ],
-      "introduction": "Try a different direction with this quiet-morning example: four shots, one product, and three opening variations.",
+      "introduction": "A quiet-morning example: four shots, one product, three opening variations.",
       "inputs": [
         "One clear product photo",
         "A short creative brief",
@@ -496,14 +496,14 @@ export const recipeEntries: RecipeEntry[] = [
         "Format",
         "Voices"
       ],
-      "introduction": "Prepare the translated words with the agent, then use the Script guide to review and voice them. Video timing and lip sync are finishing steps.",
+      "introduction": "Prepare the translation with the agent, then review and voice it in the Script guide. Timing and lip sync come last.",
       "inputs": [
         "A short source video you can use",
         "A reviewed transcript and translation",
         "A voice provider for the target language"
       ],
       "brief": "Empieza con una breve descripción. Revisa el texto, elige una voz y escucha el resultado antes de exportarlo.\n\nSi necesitas cambiar una frase, edítala y vuelve a grabarla.\n\nTu guion sigue siendo editable, así que la siguiente versión parte del trabajo que ya tienes.",
-      "note": "The screenshots show a Spanish Script session using Kokoro ef_dora. The comparison video was produced separately with the female Inworld Ashley voice. Choosing a language in Voices does not translate the script.",
+      "note": "Screenshots show a Spanish Script session using Kokoro ef_dora. The comparison video used the Inworld Ashley voice. Choosing a language in Voices does not translate the script.",
       "steps": [
         {
           "id": "translation",
@@ -795,14 +795,14 @@ export const recipeEntries: RecipeEntry[] = [
         "Entities",
         "Look"
       ],
-      "introduction": "Use the Commercial storyboard guide to plan three product views. Carry the same product reference through the set, then prepare the delivery files with the agent.",
+      "introduction": "Plan three product views in the Commercial storyboard guide, keep one product reference throughout, then prepare delivery files with the agent.",
       "inputs": [
         "One clear product photo",
         "The views and formats you need",
         "Verified product facts for listing copy"
       ],
       "brief": "Create three square catalogue views of the Olive Travel Cup. A clean studio hero on a pale limestone plinth, a winter-light scene with a blurred branch in the distance, and a three-quarter hero for a short camera move. Keep the olive body and charcoal lid consistent. No text, labels, or extra products.",
-      "note": "The screenshots show the real Commercial setup. The higher-resolution delivery images were generated separately with the same product reference. Cutout, motion, upscale, and listing copy are agent-assisted finishing steps.",
+      "note": "Screenshots show the real Commercial setup. Delivery images were generated separately from the same reference. Cutout, motion, upscale, and listing copy are agent-assisted.",
       "steps": [
         {
           "id": "source",
@@ -1097,14 +1097,14 @@ export const recipeEntries: RecipeEntry[] = [
         "Entities",
         "Look"
       ],
-      "introduction": "Start with a Mystery storyboard. Review the story, cast reusable character and location references, and choose the look before moving into motion and editing.",
+      "introduction": "Start from a Mystery storyboard: review the story, cast character and location references, then choose the look.",
       "inputs": [
         "A short story premise",
         "Character, location, and prop references",
         "Your chosen image, video, and voice providers"
       ],
       "brief": "The Next Tide. A lighthouse keeper discovers a bottle carrying a message dated forty years in the future, written in her own hand. A restrained mystery on a blue-hour coast, with a warm amber keeper's room. Six shots for a short trailer. One central character, a lighthouse, a room, and a message bottle. No readable text inside generated pictures.",
-      "note": "This example reaches the six-shot storyboard. Motion, score, and the finished trailer are not available in this run. The final steps explain how to continue from the board.",
+      "note": "This example stops at the six-shot storyboard. Motion, score, and the trailer are not in this run. The final steps explain how to continue.",
       "steps": [
         {
           "id": "idea",
@@ -1384,14 +1384,14 @@ export const recipeEntries: RecipeEntry[] = [
         "Entities",
         "Look"
       ],
-      "introduction": "Direct a three-shot commercial that opens with one continuous drone flight. Rise above a giant cup to reveal a luxury pool in its fitted lid, then cut to ordinary tabletop scale and a final packshot.",
+      "introduction": "Three shots: one continuous drone flight over a giant cup that reveals a pool in its lid, then ordinary tabletop scale, then a packshot.",
       "inputs": [
         "One clear product photo with the full silhouette visible",
         "A product name and approved closing line",
         "Your chosen image and video providers, plus a music provider if needed"
       ],
       "brief": "Small object. Big escape. Create a three-shot surreal commercial for the Olive Travel Cup, a fictional unbranded olive-green travel cup with a charcoal lid. Use the supplied product reference throughout.\n\n1. An eight-second continuous drone flight. Begin low in golden dunes facing a monumental cup. Fly forward, rise above its rim, and tilt down to reveal a luxury turquoise pool built into its fitted lid, with pale stone coping, two cream loungers, and a beige parasol. Keep the same cup visible throughout. The pool already exists and is revealed by the camera angle. No cut, lid detachment, or object transformation.\n2. Four seconds at ordinary scale: the cup on a sunlit tabletop with its lid beside it. A small lateral camera slide establishes familiar scale.\n3. Three seconds on a cobalt-blue studio background: cup upright, lid fitted, clear space above for the closing line.\n\nVertical 9:16. Target 15 seconds: 8, 4, and 3. Warm directional light and sharp shadows. No people, generated lettering, extra handles, or product-performance claims. Add Small object. Big escape. as editable text over the final hero.",
-      "note": "The rendered example is a silent 15-second concept film. AtlasCloud generated the stills and clips through NodeTool. The final export was assembled locally after the timeline renderer omitted the new opening clip. Product proportions vary between the generated shots.",
+      "note": "The example is a silent 15-second concept film, rendered through AtlasCloud and assembled locally. Product proportions vary between shots.",
       "steps": [
         {
           "id": "reference",
