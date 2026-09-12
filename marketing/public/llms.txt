@@ -79,3 +79,4 @@
 - [Multilingual video](https://nodetool.ai/recipes/multilingual-video-dubber): Review a translation, choose a voice, and edit the delivery line by line. Finish with a new-language voiceover or a separate lip-sync pass.
 - [Product catalogue assets](https://nodetool.ai/recipes/ecommerce-sku-visual-factory): Turn one product reference into a coordinated set of studio images, seasonal scenes, and a short motion clip.
 - [Storyboard to trailer](https://nodetool.ai/recipes/storyboard-to-trailer): Turn a story idea into a six-shot storyboard, then develop its voice, motion, and edit in the same workspace.
+- [Impossible product worlds](https://nodetool.ai/recipes/impossible-product-worlds): Fly above a giant product to reveal a luxury pool in its lid, then return to a clean hero shot in a short surreal commercial.

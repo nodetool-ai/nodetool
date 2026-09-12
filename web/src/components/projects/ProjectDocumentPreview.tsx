@@ -17,6 +17,7 @@ import {
   FlexRow,
   ResponsiveImage,
   SPACING,
+  getSpacingPx,
   TYPOGRAPHY
 } from "../ui_primitives";
 import { colorForType } from "../../config/data_types";
@@ -41,6 +42,7 @@ const LINE_STATE_COLOR: Record<ScriptPreview["lines"][number]["state"], string> 
 const TRACK_COLOR: Record<TimelinePreview["tracks"][number]["type"], string> = {
   video: colorForType("video"),
   audio: colorForType("audio"),
+  midi: "var(--palette-primary-main)",
   overlay: colorForType("image"),
   subtitle: colorForType("str")
 };
@@ -89,8 +91,8 @@ const ScriptLines = ({ preview }: { preview: ScriptPreview }) => (
           <Box
             aria-hidden
             sx={{
-              width: "6px",
-              height: "6px",
+              width: getSpacingPx(SPACING.sm),
+              height: getSpacingPx(SPACING.sm),
               flexShrink: 0,
               borderRadius: BORDER_RADIUS.circle,
               bgcolor: LINE_STATE_COLOR[line.state]
@@ -159,7 +161,7 @@ const TrackBars = ({ preview }: { preview: TimelinePreview }) => {
             <Box
               component="span"
               sx={{
-                width: "30px",
+                width: getSpacingPx(SPACING.xxxl),
                 flexShrink: 0,
                 ...TYPOGRAPHY.mono.caption,
                 color: "text.disabled"
@@ -167,7 +169,7 @@ const TrackBars = ({ preview }: { preview: TimelinePreview }) => {
             >
               {track.name}
             </Box>
-            <Box sx={{ position: "relative", flex: 1, height: "18px" }}>
+            <Box sx={{ position: "relative", flex: 1, height: getSpacingPx(SPACING.xl) }}>
               {span > 0 &&
                 track.clips.map((clip, index) => (
                   <Box

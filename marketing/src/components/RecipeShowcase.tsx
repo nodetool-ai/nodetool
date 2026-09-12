@@ -5,6 +5,7 @@ import RecipeCard from "./RecipeCard";
 
 const HOMEPAGE_RECIPE_ORDER = [
   "viral-video-ad-engine",
+  "impossible-product-worlds",
   "ecommerce-sku-visual-factory",
   "multilingual-video-dubber",
   "storyboard-to-trailer"
@@ -34,7 +35,7 @@ export default function RecipeShowcase() {
           </p>
         </div>
         {projects[0] && <RecipeCard recipe={projects[0]} featured />}
-        <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
           {projects.slice(1).map((recipe) => (
             <RecipeCard key={recipe.slug} recipe={recipe} />
           ))}

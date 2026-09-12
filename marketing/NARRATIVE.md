@@ -137,7 +137,7 @@ ownership.
 
 ## Jobs, not demos
 
-The homepage shows the four recipes (`/recipes`) under "Made with NodeTool".
+The homepage shows selected recipes (`/recipes`) under "Made with NodeTool".
 Each pairs example media with a guide to making related work in Studio. The four use cases on `/use-cases`
 (trailer, teaser, product video, poster) are demos of a surface; they stay on
 their own pages.

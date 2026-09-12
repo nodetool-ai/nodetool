@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-09-11-impossible-product-worlds",
+  "recipeSlug": "impossible-product-worlds",
+  "status": "partial",
+  "product": "Fictional unbranded Olive Travel Cup",
+  "sourceReference": "marketing/recipe-assets/2026-09-10-marketing-recipes-01/shared/product/product-reference.png",
+  "models": {
+    "stills": {
+      "provider": "atlascloud",
+      "id": "openai/gpt-image-2/edit"
+    },
+    "video": {
+      "provider": "atlascloud",
+      "id": "kwaivgi/kling-v3.0-turbo/image-to-video"
+    }
+  },
+  "shots": [
+    {
+      "name": "Continuous drone pool reveal",
+      "startSeconds": 0,
+      "durationSeconds": 8,
+      "assetId": "5c3726601ae54933a3fc777ea113918f",
+      "generationId": "21dbce2f-a992-431c-b3bf-b0c5871bb5e5"
+    },
+    {
+      "name": "Tabletop scale",
+      "startSeconds": 8,
+      "durationSeconds": 4,
+      "assetId": "be51d2a7ab5a45f5a408f7202f1b7308",
+      "generationId": "73454439-e591-4a4c-b5ff-70455fe7c4cf"
+    },
+    {
+      "name": "Closing hero",
+      "startSeconds": 12,
+      "durationSeconds": 3,
+      "assetId": "2e72a78924134765941992a9bf2a88d8",
+      "generationId": "7da293e5-5cee-4a25-a7eb-7a7a612cc02f"
+    }
+  ],
+  "output": {
+    "path": "marketing/public/recipes/runs/2026-09-11-impossible-product-worlds/drone-reveal-final.mp4",
+    "sha256": "64d41e46d995806a86fcfccd7bbd85664f86e4d6b44b3362a1bbef72a174955f",
+    "bytes": 11278653,
+    "width": 1080,
+    "height": 1920,
+    "durationSeconds": 15,
+    "fps": 30,
+    "frames": 450,
+    "hasAudio": false
+  },
+  "verification": {
+    "decode": "FFmpeg decoded the complete final MP4 without errors.",
+    "visualReview": "The opening keeps the same cup in view during the ascent and reveals a pool in the fitted lid. The tabletop shot and closing text are visible.",
+    "assembly": "The local NodeTool timeline omitted the new opening asset in its export. FFmpeg assembled the generated eight-second opening with the final seven seconds of the previously verified cut."
+  },
+  "limitations": [
+    "The cup proportions vary between generated shots.",
+    "Human acceptance of the revised final cut has not been recorded. The source video assets remain in the local NodeTool library."
+  ]
+}
