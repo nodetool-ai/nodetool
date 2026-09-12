@@ -1375,11 +1375,11 @@ export const EXAMPLE_APPS = [
     slug: "ad-maker",
     name: "Ad Maker",
     emoji: "📣",
-    featured: false,
-    tagline: "One offer, three registers of copy, five headlines and a hero image.",
+    featured: true,
+    tagline: "Settle the words. Direct the image. Keep the brief.",
     description:
-      "Type the offer once. Three agents run side by side: ad copy written plain, playful and premium; five headlines each taking a different angle; and a hero image whose prompt stays visible so it can be corrected rather than guessed at.",
-    note: "🔑 Needs an OpenAI key for the writing and a FAL key for the image.",
+      "Start with one offer and compare three copy registers with five headline angles. Only then write the visual brief and spend the image call. The final prompt stays beside the hero so the result can be directed instead of guessed at.",
+    note: "🔑 Writing uses OpenAI. The hero uses FAL and runs only when you ask for it.",
     workflows: {
       copy: "Ad Copy in Three Registers",
       headlines: "Five Headlines for a Landing Page",
@@ -1394,6 +1394,14 @@ export const EXAMPLE_APPS = [
         type: "str",
         default:
           "Aurora Trail running shoes: a third lighter than last season, grip that holds on wet rock, launching this Friday"
+      },
+      {
+        id: "visualBrief",
+        name: "Visual brief",
+        scope: "instance",
+        type: "str",
+        default:
+          "Aurora Trail running shoes on wet black rock after rain. Low camera, restrained slate palette, sharp side light, visible water grip, no text in the image."
       }
     ],
     operations: [
@@ -1401,37 +1409,86 @@ export const EXAMPLE_APPS = [
         id: "copy",
         name: "Copy",
         workflow: "copy",
-        policy: "parallel",
+        policy: "replace",
         inputs: { offer: { from: "variable", variableId: "offer" } }
       },
       {
         id: "headlines",
         name: "Headlines",
         workflow: "headlines",
-        policy: "parallel",
+        policy: "replace",
         inputs: { offer: { from: "variable", variableId: "offer" } }
       },
       {
         id: "visual",
         name: "Visual",
         workflow: "visual",
-        policy: "parallel",
-        inputs: { idea: { from: "variable", variableId: "offer" } }
+        policy: "replace",
+        timeoutMs: 600000,
+        inputs: { idea: { from: "variable", variableId: "visualBrief" } }
       }
     ],
     sections: [
       {
-        title: "The offer",
+        title: "1 · Write the routes",
         controls: [
           { textVar: "offer", label: "What are you advertising?", multiline: true },
-          { run: ["copy", "headlines", "visual"], label: "Make the ad" }
+          {
+            note:
+              "Start with the cheap decision point. Compare the writing before generating an image."
+          },
+          { run: ["copy", "headlines"], label: "Write copy and headlines" }
         ],
         results: [
-          { progress: "copy", label: "Writing copy…" },
-          { show: "variants", op: "copy", as: "Markdown", label: "Ad copy", demo: "**Plain**\nAurora Trail. A third lighter. Grips wet rock. Out Friday.\n\n**Playful**\nYour old shoes just got a text: it's over.\n\n**Premium**\nEngineered for the ground that gives nothing back." },
-          { show: "headlines", op: "headlines", as: "Markdown", label: "Headlines", demo: "1. Lighter than your excuses\n2. Grip that argues with gravity\n3. Built for the rock, not the treadmill" },
-          { show: "image", op: "visual", as: "Image", label: "Hero image", demo: IMG },
-          { show: "prompt_used", op: "visual", as: "Markdown", label: "Prompt used" }
+          { progress: "copy", label: "Writing three registers…" },
+          {
+            show: "variants",
+            op: "copy",
+            as: "Markdown",
+            label: "Three copy routes",
+            demo:
+              "**Plain**\nAurora Trail. A third lighter. Grips wet rock. Out Friday.\n\n**Playful**\nYour old shoes just got a text: it's over.\n\n**Premium**\nEngineered for the ground that gives nothing back."
+          },
+          { progress: "headlines", label: "Testing five angles…" },
+          {
+            show: "headlines",
+            op: "headlines",
+            as: "Markdown",
+            label: "Five headline angles",
+            demo:
+              "1. Lighter than your excuses\n2. Grip that argues with gravity\n3. Built for the rock, not the treadmill\n4. Wet rock. Dry confidence.\n5. Friday gets lighter."
+          }
+        ]
+      },
+      {
+        title: "2 · Direct the image",
+        controls: [
+          {
+            note:
+              "Carry the strongest promise into the scene. State what the product is doing, where it sits, and what must not appear."
+          },
+          {
+            textVar: "visualBrief",
+            label: "Visual brief",
+            multiline: true
+          },
+          { run: ["visual"], label: "Generate the hero" }
+        ],
+        results: [
+          { progress: "visual", label: "Writing the prompt and rendering…" },
+          {
+            show: "prompt_used",
+            op: "visual",
+            as: "Markdown",
+            label: "Prompt sent to the image model"
+          },
+          {
+            show: "image",
+            op: "visual",
+            as: "Image",
+            label: "Campaign hero",
+            demo: IMG
+          }
         ]
       }
     ]

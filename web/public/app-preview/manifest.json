@@ -143,7 +143,7 @@
     "slug": "ad-maker",
     "name": "Ad Maker",
     "emoji": "📣",
-    "featured": false,
+    "featured": true,
     "workflows": 3
   },
   {

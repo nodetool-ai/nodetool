@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "Ad Maker",
-  "description": "Type the offer once. Three agents run side by side: ad copy written plain, playful and premium; five headlines each taking a different angle; and a hero image whose prompt stays visible so it can be corrected rather than guessed at.",
+  "description": "Start with one offer and compare three copy registers with five headline angles. Only then write the visual brief and spend the image call. The final prompt stays beside the hero so the result can be directed instead of guessed at.",
   "app": {
     "schemaVersion": 3,
     "ui": {
@@ -21,27 +21,27 @@
           "type": "Text",
           "props": {
             "id": "tagline",
-            "text": "One offer, three registers of copy, five headlines and a hero image."
+            "text": "Settle the words. Direct the image. Keep the brief."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs an OpenAI key for the writing and a FAL key for the image."
+            "text": "🔑 Writing uses OpenAI. The hero uses FAL and runs only when you ask for it."
           }
         },
         {
           "type": "Columns",
           "props": {
-            "id": "cols-the-offer",
+            "id": "cols-1-write-the-routes",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-the-offer",
-                  "title": "The offer",
+                  "id": "panel-1-write-the-routes",
+                  "title": "1 · Write the routes",
                   "content": [
                     {
                       "type": "TextInput",
@@ -54,10 +54,17 @@
                       }
                     },
                     {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "Start with the cheap decision point. Compare the writing before generating an image."
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
-                        "id": "btn-copy-headlines-visual",
-                        "label": "Make the ad",
+                        "id": "btn-copy-headlines",
+                        "label": "Write copy and headlines",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -74,7 +81,112 @@
                             "operationId": "headlines",
                             "key": "",
                             "value": ""
-                          },
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-1-write-the-routes-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-copy",
+                        "binding": "op:copy/exec#progress",
+                        "label": "Writing three registers…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-copy-variants",
+                        "text": "Three copy routes",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-copy-variants",
+                        "binding": "op:copy/out:out",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-headlines",
+                        "binding": "op:headlines/exec#progress",
+                        "label": "Testing five angles…"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-headlines-headlines",
+                        "text": "Five headline angles",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-headlines-headlines",
+                        "binding": "op:headlines/out:out",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-2-direct-the-image",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-2-direct-the-image",
+                  "title": "2 · Direct the image",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-2",
+                        "text": "Carry the strongest promise into the scene. State what the product is doing, where it sits, and what must not appear."
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-visualbrief",
+                        "binding": "var:visualBrief",
+                        "label": "Visual brief",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-visual",
+                        "label": "Generate the hero",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
                           {
                             "trigger": "click",
                             "kind": "run",
@@ -93,46 +205,30 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-the-offer-results",
+                  "id": "panel-2-direct-the-image-results",
                   "title": "Results",
                   "content": [
                     {
                       "type": "Progress",
                       "props": {
-                        "id": "progress-copy",
-                        "binding": "op:copy/exec#progress",
-                        "label": "Writing copy…"
+                        "id": "progress-visual",
+                        "binding": "op:visual/exec#progress",
+                        "label": "Writing the prompt and rendering…"
                       }
                     },
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-copy-variants",
-                        "text": "Ad copy",
+                        "id": "lbl-visual-prompt-used",
+                        "text": "Prompt sent to the image model",
                         "level": "3"
                       }
                     },
                     {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-copy-variants",
-                        "binding": "op:copy/out:out",
-                        "text": ""
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-headlines-headlines",
-                        "text": "Headlines",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Markdown",
-                      "props": {
-                        "id": "out-headlines-headlines",
-                        "binding": "op:headlines/out:out",
+                        "id": "out-visual-prompt-used",
+                        "binding": "op:visual/out:op",
                         "text": ""
                       }
                     },
@@ -140,7 +236,7 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-visual-image",
-                        "text": "Hero image",
+                        "text": "Campaign hero",
                         "level": "3"
                       }
                     },
@@ -152,22 +248,6 @@
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-visual-prompt-used",
-                        "text": "Prompt used",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Markdown",
-                      "props": {
-                        "id": "out-visual-prompt-used",
-                        "binding": "op:visual/out:op",
-                        "text": ""
                       }
                     }
                   ]
@@ -191,7 +271,7 @@
           }
         },
         "outputs": {},
-        "policy": "parallel"
+        "policy": "replace"
       },
       {
         "id": "headlines",
@@ -204,7 +284,7 @@
           }
         },
         "outputs": {},
-        "policy": "parallel"
+        "policy": "replace"
       },
       {
         "id": "visual",
@@ -213,11 +293,12 @@
         "inputs": {
           "in": {
             "from": "variable",
-            "variableId": "offer"
+            "variableId": "visualBrief"
           }
         },
         "outputs": {},
-        "policy": "parallel"
+        "policy": "replace",
+        "timeoutMs": 600000
       }
     ],
     "resources": [],
@@ -232,6 +313,17 @@
         "default": "Aurora Trail running shoes: a third lighter than last season, grip that holds on wet rock, launching this Friday",
         "scope": "user",
         "persist": true
+      },
+      {
+        "id": "visualBrief",
+        "name": "Visual brief",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Aurora Trail running shoes on wet black rock after rain. Low camera, restrained slate palette, sharp side light, visible water grip, no text in the image.",
+        "scope": "instance",
+        "persist": false
       }
     ]
   },

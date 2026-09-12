@@ -6,15 +6,15 @@ export const miniAppEntries: MiniAppEntry[] = [
   {
     "route": "/apps/ad-maker",
     "title": "Ad Maker — Free AI Mini App | NodeTool",
-    "description": "One offer, three registers of copy, five headlines and a hero image.",
+    "description": "Settle the words. Direct the image. Keep the brief.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "ad-maker",
     "name": "Ad Maker",
-    "summary": "Type the offer once. Three agents run side by side: ad copy written plain, playful and premium; five headlines each taking a different angle; and a hero image whose prompt stays visible so it can be corrected rather than guessed at.",
-    "featured": false,
-    "note": "🔑 Needs an OpenAI key for the writing and a FAL key for the image.",
+    "summary": "Start with one offer and compare three copy registers with five headline angles. Only then write the visual brief and spend the image call. The final prompt stays beside the hero so the result can be directed instead of guessed at.",
+    "featured": true,
+    "note": "🔑 Writing uses OpenAI. The hero uses FAL and runs only when you ask for it.",
     "workflows": [
       {
         "name": "Ad Copy in Three Registers",
@@ -40,33 +40,37 @@ export const miniAppEntries: MiniAppEntry[] = [
       "text"
     ],
     "heading": "📣 Ad Maker",
-    "tagline": "One offer, three registers of copy, five headlines and a hero image.",
-    "buttonLabel": "Make the ad",
+    "tagline": "Settle the words. Direct the image. Keep the brief.",
+    "buttonLabel": "Write copy and headlines",
     "inputs": [
       {
         "label": "What are you advertising?",
+        "kind": "text"
+      },
+      {
+        "label": "Visual brief",
         "kind": "text"
       }
     ],
     "outputs": [
       {
-        "label": "Ad copy",
+        "label": "Three copy routes",
         "kind": "text"
       },
       {
-        "label": "Headlines",
+        "label": "Five headline angles",
         "kind": "text"
       },
       {
-        "label": "Hero image",
+        "label": "Prompt sent to the image model",
+        "kind": "text"
+      },
+      {
+        "label": "Campaign hero",
         "kind": "image"
-      },
-      {
-        "label": "Prompt used",
-        "kind": "text"
       }
     ],
-    "widgetCount": 17
+    "widgetCount": 26
   },
   {
     "route": "/apps/ai-spokesperson",
