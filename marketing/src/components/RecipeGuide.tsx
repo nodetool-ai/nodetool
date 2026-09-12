@@ -2,7 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ArrowRight, Check, Copy, Pause, Play } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ChevronRight,
+  Copy,
+  Pause,
+  Play
+} from "lucide-react";
 import type { RecipeGuide as Guide } from "@/data/recipes";
 
 interface RecipeGuideProps {
@@ -88,13 +95,29 @@ export default function RecipeGuide({ guide }: RecipeGuideProps) {
         >
           Follow the {guide.entry} guide
         </h2>
-        <p className="mt-4 max-w-3xl text-lg leading-relaxed text-slate-300">
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-300">
           {guide.introduction}
         </p>
-        <div className="mt-8 grid gap-8 border-t border-white/10 pt-8 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <ol className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-amber-300">
+          {guide.stages.map((stage, index) => (
+            <li key={stage} className="flex items-center gap-2">
+              {index > 0 && (
+                <span aria-hidden="true" className="text-slate-600">
+                  →
+                </span>
+              )}
+              <span className="rounded-md bg-amber-300/10 px-2 py-1">
+                {stage}
+              </span>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-6 grid gap-6 border-t border-white/10 pt-6 lg:grid-cols-[260px_minmax(0,1fr)]">
           <div>
-            <h3 className="text-lg font-semibold">Bring to this recipe</h3>
-            <ul className="mt-4 space-y-3 text-sm leading-relaxed text-slate-300">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+              Bring to this recipe
+            </h3>
+            <ul className="mt-3 space-y-2 text-sm leading-snug text-slate-300">
               {guide.inputs.map((input) => (
                 <li key={input} className="flex gap-2">
                   <Check
@@ -106,9 +129,9 @@ export default function RecipeGuide({ guide }: RecipeGuideProps) {
               ))}
             </ul>
           </div>
-          <div className="min-w-0 rounded-xl border border-white/10 bg-slate-900/40 p-6">
+          <div className="min-w-0 rounded-xl border border-white/10 bg-slate-900/40 p-5">
             <div className="flex items-center justify-between gap-4">
-              <h3 className="text-lg font-semibold">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
                 {guide.entry === "Script"
                   ? "Try the example script"
                   : "Try the example brief"}
@@ -127,7 +150,7 @@ export default function RecipeGuide({ guide }: RecipeGuideProps) {
               </button>
             </div>
             <p
-              className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-slate-300"
+              className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-300"
               lang={guide.entry === "Script" ? "es" : undefined}
             >
               {guide.brief}
@@ -141,12 +164,16 @@ export default function RecipeGuide({ guide }: RecipeGuideProps) {
             </p>
           </div>
         </div>
-        <p className="mt-6 max-w-3xl text-sm leading-relaxed text-slate-400">
-          {guide.note}
-        </p>
-        <p className="mt-5 text-sm text-amber-300">
-          {guide.stages.join(" → ")}
-        </p>
+        <details className="group mt-5 max-w-3xl text-sm text-slate-400">
+          <summary className="focus-ring inline-flex cursor-pointer list-none items-center gap-2 rounded-lg py-1 text-slate-300 hover:text-slate-100 [&::-webkit-details-marker]:hidden">
+            <ChevronRight
+              className="h-4 w-4 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none"
+              aria-hidden="true"
+            />
+            About this example
+          </summary>
+          <p className="mt-2 pl-6 leading-relaxed">{guide.note}</p>
+        </details>
         <div
           id="recipe-step-content"
           ref={contentRef}
