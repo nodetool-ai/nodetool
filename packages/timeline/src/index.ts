@@ -21,6 +21,7 @@ export * from "./fill-text.js";
 export * from "./retarget.js";
 export * from "./group.js";
 export * from "./composition.js";
+export * from "./crop.js";
 export * from "./splitClip.js";
 export * from "./trimClip.js";
 export * from "./rippleEdit.js";

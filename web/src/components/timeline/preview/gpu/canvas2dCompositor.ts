@@ -119,6 +119,7 @@ export class Canvas2DCompositor implements TimelineCompositor {
         precompositeSurface: (width, height) => this.takeSurface(width, height),
         maskSurface: (width, height) => this.takeSurface(width, height),
         matteSurface: (width, height) => this.takeSurface(width, height),
+        cropSurface: (width, height) => this.takeSurface(width, height),
         alpha: this.alpha
       }
     );

@@ -121,6 +121,7 @@ export function buildCompositeLayer(
   built.transform = anim.transform;
   built.parentMatrix = layer.parentMatrix;
   built.borderRadius = layer.borderRadius;
+  built.crop = layer.crop;
   built.shapeMask = layer.shapeMask;
   built.effects = anim.effects ?? layer.effects;
   built.trackEffects = layer.trackEffects;
@@ -214,6 +215,7 @@ export function toCanvas2DLayer(
     parentMatrix: layer.parentMatrix,
     precomposeGroupId: layer.precomposeGroupId,
     borderRadius: layer.borderRadius,
+    crop: layer.crop,
     mask: layer.mask,
     shapeMask: layer.shapeMask,
     matte,

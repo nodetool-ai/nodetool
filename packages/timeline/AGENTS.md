@@ -273,6 +273,60 @@
   `AnimatedLayerProps.shapeStyle`, not the clip's own; a host that reaches for
   `layer.shapeStyle` renders a trim animation as a held first frame.
 
+## Crop (`src/crop.ts`)
+
+- **A crop reframes; it does not knock out.** `clip.crop` is four normalized
+  insets, and the rectangle they keep *becomes* the layer's picture: the contain
+  fit is recomputed from the cropped size, the transform places the cropped
+  frame, the border radius rounds its corners, and the effect chain and masks
+  run on its pixels. Cropping a 16:9 shot to 1:1 therefore fills the frame the
+  way a 1:1 source would. Hiding part of a layer that stays where it was is
+  `ClipMask` with `kind: "rect"` — a different edit, and still the way to ask
+  for it. The equivalence both compositors are held to is
+  `render.crop.gpu.test.ts`'s: a cropped layer renders exactly like an uncropped
+  layer whose source is the crop.
+- **Insets, not pixels, and one place that resolves them.** Fractions survive
+  the asset under them changing resolution — an upscale, or `restoreVersion`
+  swapping in a generation rendered at another size. `cropRectPx` is the only
+  reader: it clamps to the source, snaps to whole texels, and answers with the
+  whole source when there is no usable crop, so a caller hands the result
+  straight to a draw without branching.
+- **Cropping happens before anything else looks at the pixels**, which is what
+  lets the rest of both compositors stay unchanged. The GPU path narrows the
+  upload with a `copyTextureToTexture` into a crop-sized texture cached by layer
+  id (an axis-aligned region of whole texels has nothing to filter, so a copy is
+  exact and cheaper than a pass); Canvas 2D blits the whole source at a negative
+  offset onto a crop-sized surface, which is the 5-argument `drawImage` spelling
+  of a sub-rectangle. A clip that *was* cropped and is not any more must drop the
+  cached copy, or it keeps drawing the stale one.
+- **A crop is source-space and says nothing about time**, so `trimClip` and
+  `splitClip` carry it across untouched — the same argument `generatedMatte`
+  makes for sharing the in-point.
+- **Insets that keep no picture render uncropped rather than blanking the
+  shot** — a slider dragged to the end should show the whole frame, not a hole.
+  `isCropUsable` decides it in one place for the ops, the renderers and the
+  validator's `crop_degenerate`. Canvas 2D needs a `cropSurface` from its host;
+  without one it draws uncropped and reports `crop_skipped` (I7).
+
+## Film grain (`filters.grain@1`)
+
+- **Grain multiplies, it does not add.** The layer arrives premultiplied, so
+  `rgb <= a` holds on every pixel and adding noise pushes a channel past its own
+  alpha — invisible on an opaque layer, a bright fringe wherever it is
+  translucent. A per-channel gain saturated against alpha preserves the
+  invariant, and it is also how stock behaves: grain bites in the midtones and
+  leaves black black. The case that catches the additive version is a *dark*
+  half-opaque source; on a bright one the readback's own saturation hides it,
+  which is why `render.grain.gpu.test.ts` says so where it picks its fixture.
+- **The pattern is a hash of the grain cell and a seed — no clock, no
+  `Math.random`.** `resolveAnimatedLayerProps` stamps the frame's time on an
+  `animate` grain, so it rolls the way exposed stock does while two renders of
+  the same frame stay byte-identical and a cached render can be handed back.
+  That is the one place the roll happens, and it is why the shader has no
+  `animate` knob: by the time the chain runs, the seed is already decided.
+- **Canvas 2D has no noise to draw with**, so it reports `grain` through
+  `unsupportedEffectTypes` rather than approximating it.
+
 ## Generated mattes (`src/generatedMatte.ts`, D2)
 
 - **A generated matte is an attribute of the clip, not a second clip.**

@@ -9,7 +9,8 @@ import {
   isClipLevelsEffect,
   isClipLiftGammaGainEffect,
   isClipSharpenEffect,
-  isClipVignetteEffect
+  isClipVignetteEffect,
+  isClipGrainEffect
 } from "../types.js";
 import {
   createDefaultRegistry,
@@ -28,6 +29,7 @@ import {
   mixerDropShadowV1,
   sharpenUnsharpMaskV1,
   vignetteV1,
+  filtersGrainV1,
   chromaKeyV1,
   maskApplyV1,
   maskFromImageV1,
@@ -397,6 +399,19 @@ export class WebGPUEffectsProcessor {
         tolerance: effect.tolerance,
         softness: effect.softness,
         spill: effect.spill ?? chromaKeyV1.paramDefaults.spill
+      });
+      return;
+    }
+    if (isClipGrainEffect(effect)) {
+      // `animate` is not a knob here: the scene model has already stamped the
+      // frame's seed on the effect, so this only ever draws the pattern it is
+      // handed. That is what keeps a render reproducible.
+      step(filtersGrainV1, {
+        amount: effect.amount,
+        size: effect.size ?? filtersGrainV1.paramDefaults.size,
+        colorAmount:
+          effect.colorAmount ?? filtersGrainV1.paramDefaults.colorAmount,
+        seed: effect.seed ?? filtersGrainV1.paramDefaults.seed
       });
       return;
     }
@@ -809,7 +824,8 @@ function isShaderStepEffect(effect: ClipEffect): boolean {
     isClipChromaKeyEffect(effect) ||
     isClipCurvesEffect(effect) ||
     isClipLevelsEffect(effect) ||
-    isClipLiftGammaGainEffect(effect)
+    isClipLiftGammaGainEffect(effect) ||
+    isClipGrainEffect(effect)
   );
 }
 

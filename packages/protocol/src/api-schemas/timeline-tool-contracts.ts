@@ -208,6 +208,7 @@ export const CLIP_PARAM_KEYS = [
   "fadeOutMs",
   "blendMode",
   "borderRadius",
+  "crop",
   "hidden",
   "muted",
   "locked",

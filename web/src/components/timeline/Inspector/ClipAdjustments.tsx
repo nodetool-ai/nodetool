@@ -26,10 +26,12 @@ import type {
   BlendMode,
   ClipBlurEffect,
   ClipColorEffect,
+  ClipCrop,
   ClipEffect,
   ClipTransform,
   TimelineClip
 } from "@nodetool-ai/timeline";
+import { hasCrop, isCropUsable } from "@nodetool-ai/timeline";
 import { BLEND_MODES } from "@nodetool-ai/gpu";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -66,6 +68,27 @@ const IDENTITY_TRANSFORM: ClipTransform = {
   rotation: 0,
   anchor: { x: 0.5, y: 0.5 }
 };
+
+const NO_CROP: ClipCrop = { left: 0, right: 0, top: 0, bottom: 0 };
+
+/** The edge opposite each one, which is what limits how far it can be dragged. */
+const CROP_OPPOSITE: Record<keyof ClipCrop, keyof ClipCrop> = {
+  left: "right",
+  right: "left",
+  top: "bottom",
+  bottom: "top"
+};
+
+/**
+ * How far this edge can come in before the pair keeps no picture. Stopping a
+ * few percent short leaves a sliver to drag back from — a slider pinned at the
+ * exact limit has nowhere to go but out.
+ */
+function cropMax(crop: ClipCrop, edge: keyof ClipCrop): number {
+  return Math.max(0, 0.95 - crop[CROP_OPPOSITE[edge]]);
+}
+
+const cropDisplay = (value: number) => `${Math.round(value * 100)}%`;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -271,9 +294,43 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
       (value: number) => patchClip(clip.id, { borderRadius: value }),
       [clip.id, patchClip]
     );
+    // A crop is stored as four insets, so one slider writes one edge and leaves
+    // the other three alone. Dragging an edge past what its opposite leaves is
+    // refused by the slider's own max rather than by a validation message: the
+    // pair has to keep some picture between them.
+    const setCropEdge = useCallback(
+      (edge: keyof ClipCrop, value: number) => {
+        const current = clipRef.current.crop ?? NO_CROP;
+        const next = { ...current, [edge]: value };
+        patchClip(clipRef.current.id, {
+          crop: isCropUsable(next) && hasCrop(next) ? next : undefined
+        });
+      },
+      [patchClip]
+    );
+    const handleCropLeftChange = useCallback(
+      (v: number) => setCropEdge("left", v),
+      [setCropEdge]
+    );
+    const handleCropRightChange = useCallback(
+      (v: number) => setCropEdge("right", v),
+      [setCropEdge]
+    );
+    const handleCropTopChange = useCallback(
+      (v: number) => setCropEdge("top", v),
+      [setCropEdge]
+    );
+    const handleCropBottomChange = useCallback(
+      (v: number) => setCropEdge("bottom", v),
+      [setCropEdge]
+    );
     const handleResetTransform = useCallback(
       () =>
-        patchClip(clip.id, { transform: undefined, borderRadius: undefined }),
+        patchClip(clip.id, {
+          transform: undefined,
+          borderRadius: undefined,
+          crop: undefined
+        }),
       [clip.id, patchClip]
     );
 
@@ -388,6 +445,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
     // ── Derived display values ──────────────────────────────────────────────
 
     const transform = clip.transform ?? IDENTITY_TRANSFORM;
+    const crop = clip.crop ?? NO_CROP;
     const color = findColorEffect(clip);
     const colorEnabled = color?.enabled ?? false;
     const blur = findBlurEffect(clip);
@@ -567,6 +625,43 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   value={clip.borderRadius ?? 0}
                   display={`${(clip.borderRadius ?? 0).toFixed(0)}px`}
                   onChange={handleBorderRadiusChange}
+                />
+                <InspectorDivider />
+                <InspectorSliderRow
+                  label="Crop L"
+                  min={0}
+                  max={cropMax(crop, "left")}
+                  step={0.005}
+                  value={crop.left}
+                  display={cropDisplay(crop.left)}
+                  onChange={handleCropLeftChange}
+                />
+                <InspectorSliderRow
+                  label="Crop R"
+                  min={0}
+                  max={cropMax(crop, "right")}
+                  step={0.005}
+                  value={crop.right}
+                  display={cropDisplay(crop.right)}
+                  onChange={handleCropRightChange}
+                />
+                <InspectorSliderRow
+                  label="Crop T"
+                  min={0}
+                  max={cropMax(crop, "top")}
+                  step={0.005}
+                  value={crop.top}
+                  display={cropDisplay(crop.top)}
+                  onChange={handleCropTopChange}
+                />
+                <InspectorSliderRow
+                  label="Crop B"
+                  min={0}
+                  max={cropMax(crop, "bottom")}
+                  step={0.005}
+                  value={crop.bottom}
+                  display={cropDisplay(crop.bottom)}
+                  onChange={handleCropBottomChange}
                 />
               </FlexColumn>
             </CollapsibleSection>

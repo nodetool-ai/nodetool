@@ -12,6 +12,7 @@
  */
 
 import type {
+  ClipCrop,
   ClipEffect,
   ClipMask,
   ClipModel3DStyle,
@@ -20,6 +21,7 @@ import type {
   TimelineTrack,
   TrackEffect
 } from "../types.js";
+import { isClipGrainEffect } from "../types.js";
 import type { Model3DCameraChannels } from "../model3d.js";
 import type {
   AnimationSample,
@@ -529,6 +531,14 @@ export interface ActiveLayer {
    */
   precomposeGroupId?: string;
   borderRadius?: number;
+  /**
+   * The part of the source this layer draws (D2's sibling for framing): the
+   * crop is taken before anything else reads the pixels, so the contain fit,
+   * the transform, the border radius and the effect chain all see the cropped
+   * rectangle as the layer's whole picture. Never set on a caption layer, which
+   * composites frame-sized and untransformed and so has no source to crop.
+   */
+  crop?: ClipCrop;
   effects?: ClipEffect[];
   trackEffects?: TrackEffect[];
   /** Present only when `kind === "caption"`: the words to draw this frame. */
@@ -986,6 +996,7 @@ export function computeActiveLayersWithHorizon(
           parentMatrix,
           precomposeGroupId,
           borderRadius: clip.borderRadius,
+          crop: clip.crop,
           effects: clip.effects,
           trackEffects: track.effects,
           textStyle: clip.textStyle,
@@ -1009,6 +1020,7 @@ export function computeActiveLayersWithHorizon(
           parentMatrix,
           precomposeGroupId,
           borderRadius: clip.borderRadius,
+          crop: clip.crop,
           effects: clip.effects,
           trackEffects: track.effects,
           shapeStyle: clip.shapeStyle,
@@ -1033,6 +1045,7 @@ export function computeActiveLayersWithHorizon(
           parentMatrix,
           precomposeGroupId,
           borderRadius: clip.borderRadius,
+          crop: clip.crop,
           effects: clip.effects,
           trackEffects: track.effects,
           shapeMask: clip.mask,
@@ -1098,6 +1111,7 @@ export function computeActiveLayersWithHorizon(
         parentMatrix,
         precomposeGroupId,
         borderRadius: clip.borderRadius,
+        crop: clip.crop,
         effects: clip.effects,
         trackEffects: track.effects,
         shapeMask: clip.mask,
@@ -1539,7 +1553,7 @@ export function resolveAnimatedLayerProps(
   const clip = layer.clip;
   const compiled = compiledFor(clip, canvas, cache);
   if (compiled.length === 0) {
-    return staticProps(layer);
+    return staticProps(layer, currentTimeMs);
   }
 
   const s = sampleAnimations(
@@ -1549,7 +1563,7 @@ export function resolveAnimatedLayerProps(
     clipSourceMsAt(clip, currentTimeMs)
   );
   if (isIdentitySample(s)) {
-    return staticProps(layer);
+    return staticProps(layer, currentTimeMs);
   }
 
   const base = layer.transform ?? IDENTITY_TRANSFORM;
@@ -1577,7 +1591,10 @@ export function resolveAnimatedLayerProps(
     transform,
     opacity: layer.opacity * s.opacity,
     mask: s.mask,
-    effects: composeAnimatedEffects(clip.effects, s),
+    effects: seedAnimatedGrain(
+      composeAnimatedEffects(clip.effects, s),
+      currentTimeMs
+    ),
     shapeStyle: composeAnimatedShapeStyle(clip.shapeStyle, s),
     cameraAzimuth: s.cameraAzimuth,
     cameraElevation: s.cameraElevation,
@@ -1587,15 +1604,18 @@ export function resolveAnimatedLayerProps(
 }
 
 /** The layer's own values, for a clip with no animation in flight. */
-function staticProps(layer: {
-  clip: TimelineClip;
-  transform?: ClipTransform;
-  opacity: number;
-}): AnimatedLayerProps {
+function staticProps(
+  layer: {
+    clip: TimelineClip;
+    transform?: ClipTransform;
+    opacity: number;
+  },
+  currentTimeMs: number
+): AnimatedLayerProps {
   return {
     transform: layer.transform,
     opacity: layer.opacity,
-    effects: layer.clip.effects,
+    effects: seedAnimatedGrain(layer.clip.effects, currentTimeMs),
     shapeStyle: layer.clip.shapeStyle,
     cameraAzimuth: 0,
     cameraElevation: 0,
@@ -1645,6 +1665,30 @@ function composeAnimatedEffects(
     out.push({ id: "anim-blur", type: "blur", enabled: true, radius: s.blur });
   }
   return out;
+}
+
+/**
+ * Give every `animate` grain the frame's own seed, so the pattern rolls the way
+ * exposed stock does instead of sitting on the picture like dirt on the lens.
+ *
+ * The seed is the frame time, not a counter and not `Math.random`: re-rendering
+ * one frame draws the same grain, which is what lets a cached render be handed
+ * back and what makes the preview and the export agree. Every host resolves its
+ * layers through {@link resolveAnimatedLayerProps}, so this is the one place
+ * the roll happens; a grain with `animate` off keeps whatever seed the document
+ * stored, and a chain with no animated grain is returned untouched.
+ */
+function seedAnimatedGrain(
+  effects: ClipEffect[] | undefined,
+  currentTimeMs: number
+): ClipEffect[] | undefined {
+  if (!effects?.some((e) => e.enabled && isClipGrainEffect(e) && e.animate)) {
+    return effects;
+  }
+  const seed = Math.floor(currentTimeMs);
+  return effects.map((e) =>
+    e.enabled && isClipGrainEffect(e) && e.animate ? { ...e, seed } : e
+  );
 }
 
 /**

@@ -1126,7 +1126,22 @@ export const effectParams = z.object({
     .optional()
     .describe("dropShadow shadow colour, chromaKey key colour, e.g. #00ff00."),
   opacity: z.number().optional().describe("dropShadow: 0..1."),
-  amount: z.number().optional().describe("vignette and sharpen: strength."),
+  amount: z
+    .number()
+    .optional()
+    .describe("vignette, sharpen and grain: strength."),
+  size: z
+    .number()
+    .optional()
+    .describe("grain: cell size in the clip's own pixels, 1 is per-pixel."),
+  colorAmount: z
+    .number()
+    .optional()
+    .describe("grain: 0 is monochrome grain, 1 full colour noise."),
+  animate: z
+    .boolean()
+    .optional()
+    .describe("grain: roll the pattern per frame instead of holding one."),
   softness: z
     .number()
     .optional()
@@ -1221,6 +1236,15 @@ export function buildEffect(
         tolerance: input.tolerance ?? 0.1,
         softness: input.softness ?? 0.05,
         spill: input.spill
+      };
+    case "grain":
+      return {
+        ...base,
+        type: "grain",
+        amount: input.amount ?? 0.25,
+        size: input.size,
+        colorAmount: input.colorAmount,
+        animate: input.animate
       };
     case "curves":
       return {

@@ -10,7 +10,7 @@
  * one records the context state each draw ran under.
  */
 import { describe, expect, it } from "vitest";
-import { makeClip } from "../src/index.js";
+import { CLIP_EFFECT_TYPES, makeClip } from "../src/index.js";
 import type { ClipEffect, TrackEffect } from "../src/index.js";
 import { resolveAnimatedLayerProps } from "../src/render/sceneModel.js";
 import {
@@ -79,7 +79,8 @@ const everyEffect: ClipEffect[] = [
     lift: [0, 0, 0],
     gamma: [1, 1, 1],
     gain: [1, 1, 1]
-  }
+  },
+  { id: "11", type: "grain", enabled: true, amount: 0.3 }
 ];
 
 /** The shadow state a `drawImage` ran under, alongside the filter. */
@@ -193,6 +194,16 @@ const layer = (
 });
 
 describe("Canvas 2D — the clip effect catalog", () => {
+  it("covers every type the document can carry", () => {
+    // `everyEffect` is only "one of every type" for as long as somebody keeps
+    // it that way. It had already stopped being that once — a type added to
+    // `CLIP_EFFECT_TYPES` and not to the list here leaves the report below
+    // pinned to a set that no longer describes the build, and passes.
+    expect([...new Set(everyEffect.map((e) => e.type))].sort()).toEqual(
+      [...CLIP_EFFECT_TYPES].sort()
+    );
+  });
+
   it("reports exactly the types it cannot draw", () => {
     expect(unsupportedEffectTypes([{ effects: everyEffect }])).toEqual([
       "chromaKey",
@@ -200,6 +211,7 @@ describe("Canvas 2D — the clip effect catalog", () => {
       "color.tint",
       "curves",
       "glow",
+      "grain",
       "levels",
       "liftGammaGain",
       "sharpen",
