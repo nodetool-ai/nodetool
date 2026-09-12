@@ -12,19 +12,22 @@ interface WorkspaceExplorerSelection {
 }
 
 /**
- * Which workspace the Workspace Explorer shows.
+ * Which workspace the Workspace Explorer shows inside the requested project.
  *
  * The user's own choice, persisted, falling back to the default workspace —
  * which the server creates while answering the list call, so the explorer has
  * something to show on a healthy install with no workflow open. A remembered
- * id that no longer exists (deleted workspace, another machine) loses to the
- * default rather than leaving the tree pointed at nothing.
+ * id that does not exist in this project (deleted workspace, another machine,
+ * or the workspace selected in a different project) loses to the project's
+ * first available workspace rather than leaving the tree pointed at nothing.
  *
  * Nothing here reads or writes a workflow. Compare {@link useCurrentWorkspace},
  * which resolves where the *active workflow's* run writes.
  */
-export const useWorkspaceExplorer = (): WorkspaceExplorerSelection => {
-  const { workspaces, defaultWorkspace, isLoading } = useWorkspaces();
+export const useWorkspaceExplorer = (
+  projectId?: string
+): WorkspaceExplorerSelection => {
+  const { workspaces, defaultWorkspace, isLoading } = useWorkspaces(projectId);
 
   const browsedWorkspaceId = useWorkspaceExplorerStore(
     (state) => state.browsedWorkspaceId

@@ -280,10 +280,15 @@ const shouldLoadChildren = (item: TreeViewItem | undefined): boolean => {
  * Browser for the files in a workspace folder.
  *
  * Independent of the graph editor: it shows whichever workspace the user
- * picked here, works with no workflow open, and changing that pick moves only
- * this tree — a workflow keeps whatever workspace its runs write to.
+ * picked inside the active project, works with no workflow open, and changing
+ * that pick moves only this tree — a workflow keeps whatever workspace its
+ * runs write to.
  */
-const WorkspaceTree: React.FC = () => {
+interface WorkspaceTreeProps {
+  readonly projectId: string;
+}
+
+const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
   const theme = useTheme();
   const [files, setFiles] = useState<TreeViewItem[]>([]);
   const filesRef = useRef<TreeViewItem[]>([]);
@@ -299,7 +304,7 @@ const WorkspaceTree: React.FC = () => {
     workspaceId,
     setWorkspaceId,
     isLoading: isLoadingWorkspaces
-  } = useWorkspaceExplorer();
+  } = useWorkspaceExplorer(projectId);
   const workspaceIdRef = useRef<string | undefined>(workspaceId);
   workspaceIdRef.current = workspaceId;
 
@@ -377,8 +382,10 @@ const WorkspaceTree: React.FC = () => {
 
       try {
         const children = await fetchWorkspaceFiles(wsId, itemId || ".");
+        if (workspaceIdRef.current !== wsId) return;
         setFiles((prev) => updateTreeWithChildren(prev, itemId, children));
       } catch (error) {
+        if (workspaceIdRef.current !== wsId) return;
         console.error("Failed to load children:", error);
         setFiles((prev) => updateTreeWithChildren(prev, itemId, [createErrorItem(itemId)]));
       }
@@ -411,10 +418,11 @@ const WorkspaceTree: React.FC = () => {
         type: "workspace-file",
         ref: `${wsId}::${itemId}`,
         mode: "view",
-        title: item?.label ?? itemId.split("/").pop() ?? itemId
+        title: item?.label ?? itemId.split("/").pop() ?? itemId,
+        projectId
       });
     },
-    [loadItemChildren, openTab]
+    [loadItemChildren, openTab, projectId]
   );
 
   const handleOpenExternally = useCallback(async () => {
@@ -475,6 +483,7 @@ const WorkspaceTree: React.FC = () => {
         <WorkspaceSelect
           value={workspaceId}
           onChange={setWorkspaceId}
+          projectId={projectId}
         />
         <SettingsButton
           className="settings-button"

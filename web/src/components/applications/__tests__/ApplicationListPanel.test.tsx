@@ -48,15 +48,16 @@ const applications = [
     updatedAt: "2026-07-19T10:00:00.000Z"
   }
 ];
+const useApplications = jest.fn((_projectId?: string) => ({
+  data: applications,
+  isLoading: false,
+  isError: false,
+  error: null
+}));
 
 jest.mock("../../../hooks/useApplications", () => ({
   ...jest.requireActual("../../../hooks/useApplications"),
-  useApplications: () => ({
-    data: applications,
-    isLoading: false,
-    isError: false,
-    error: null
-  }),
+  useApplications,
   useCreateApplication: () => ({
     mutateAsync: createMutateAsync,
     isPending: false
@@ -65,7 +66,7 @@ jest.mock("../../../hooks/useApplications", () => ({
   useDeleteApplication: () => ({ mutate: deleteMutate })
 }));
 
-const workflowsQuery = jest.fn(() => ({
+const workflowsQuery = jest.fn((_input?: unknown) => ({
   data: { workflows: [{ id: "wf-1", name: "Render poster" }] },
   isLoading: false
 }));
@@ -78,7 +79,9 @@ jest.mock("../../../trpc/client", () => ({
         list: { invalidate: listInvalidate }
       }
     }),
-    workflows: { list: { useQuery: () => workflowsQuery() } }
+    workflows: {
+      list: { useQuery: (input: unknown) => workflowsQuery(input) }
+    }
   }
 }));
 
@@ -114,8 +117,14 @@ beforeEach(() => {
 });
 
 describe("ApplicationListPanel", () => {
+  it("requests only applications from the visible project", () => {
+    renderPanel(<ApplicationListPanel projectId="project-a" />);
+
+    expect(useApplications).toHaveBeenCalledWith("project-a");
+  });
+
   it("lists apps newest first with their operation count", () => {
-    renderPanel(<ApplicationListPanel />);
+    renderPanel(<ApplicationListPanel projectId="default" />);
 
     const items = screen.getAllByRole("button", { name: /maker|writer/ });
     expect(items[0]).toHaveTextContent("Poster maker");
@@ -124,7 +133,7 @@ describe("ApplicationListPanel", () => {
   });
 
   it("marks the app open in the active tab as current", () => {
-    renderPanel(<ApplicationListPanel />);
+    renderPanel(<ApplicationListPanel projectId="default" />);
 
     expect(
       screen.getByRole("button", { name: /Poster maker/ })
@@ -133,7 +142,7 @@ describe("ApplicationListPanel", () => {
 
   it("opens the app in a workspace tab when clicked", async () => {
     const user = userEvent.setup();
-    renderPanel(<ApplicationListPanel />);
+    renderPanel(<ApplicationListPanel projectId="default" />);
 
     await user.click(screen.getByRole("button", { name: /Caption writer/ }));
 
@@ -141,13 +150,14 @@ describe("ApplicationListPanel", () => {
       type: "application",
       ref: "app-2",
       mode: "edit",
-      title: "Caption writer"
+      title: "Caption writer",
+      projectId: "default"
     });
   });
 
   it("filters by name", async () => {
     const user = userEvent.setup();
-    renderPanel(<ApplicationListPanel />);
+    renderPanel(<ApplicationListPanel projectId="default" />);
 
     await user.type(screen.getByPlaceholderText("Search apps..."), "caption");
 
@@ -156,7 +166,7 @@ describe("ApplicationListPanel", () => {
   });
 
   it("duplicates an app from its stored document", async () => {
-    renderPanel(<ApplicationListPanel />);
+    renderPanel(<ApplicationListPanel projectId="default" />);
 
     await act(async () => {
       await useSidebarDocumentActionsStore
@@ -177,7 +187,7 @@ describe("ApplicationListPanel", () => {
 
   it("reports a duplicate that fails", async () => {
     getFetch.mockRejectedValueOnce(new Error("Application not found"));
-    renderPanel(<ApplicationListPanel />);
+    renderPanel(<ApplicationListPanel projectId="default" />);
 
     await act(async () => {
       await useSidebarDocumentActionsStore
@@ -199,7 +209,7 @@ describe("ApplicationListPanel", () => {
 
   it("renames an app through the sidebar rename action", async () => {
     const user = userEvent.setup();
-    renderPanel(<ApplicationListPanel />);
+    renderPanel(<ApplicationListPanel projectId="default" />);
 
     act(() => {
       useSidebarDocumentActionsStore
@@ -230,7 +240,7 @@ describe("ApplicationListPanel", () => {
       });
       return undefined;
     });
-    renderPanel(<ApplicationListPanel />);
+    renderPanel(<ApplicationListPanel projectId="default" />);
 
     act(() => {
       useSidebarDocumentActionsStore
@@ -263,7 +273,7 @@ describe("ApplicationListPanel", () => {
       options?.onError?.({ message: "Network down" });
       return undefined;
     });
-    renderPanel(<ApplicationListPanel />);
+    renderPanel(<ApplicationListPanel projectId="default" />);
 
     act(() => {
       useSidebarDocumentActionsStore
@@ -290,7 +300,7 @@ describe("ApplicationListPanel", () => {
       options?.onError?.({ message: "Application not found" });
       return undefined;
     });
-    renderPanel(<ApplicationListPanel />);
+    renderPanel(<ApplicationListPanel projectId="default" />);
 
     act(() => {
       useSidebarDocumentActionsStore
@@ -312,7 +322,7 @@ describe("ApplicationListPanel", () => {
 
   it("deletes only after the confirmation is accepted", async () => {
     const user = userEvent.setup();
-    renderPanel(<ApplicationListPanel />);
+    renderPanel(<ApplicationListPanel projectId="default" />);
 
     act(() => {
       useSidebarDocumentActionsStore
@@ -356,18 +366,25 @@ describe("CreateApplicationButton", () => {
 describe("CreateApplicationFromWorkflowButton", () => {
   it("imports the picked workflow's app document", async () => {
     const user = userEvent.setup();
-    renderPanel(<CreateApplicationFromWorkflowButton />);
+    renderPanel(<CreateApplicationFromWorkflowButton projectId="project-a" />);
 
     await user.click(
       screen.getByRole("button", { name: "Create app from workflow" })
     );
-    await user.click(await screen.findByRole("button", { name: "Render poster" }));
+    expect(workflowsQuery).toHaveBeenCalledWith({
+      cursor: "",
+      limit: 100,
+      project_id: "project-a"
+    });
+    await user.click(
+      await screen.findByRole("button", { name: "Render poster" })
+    );
 
     await waitFor(() =>
       expect(createMutateAsync).toHaveBeenCalledWith({
         name: "Render poster",
         description: "",
-        projectId: "default",
+        projectId: "project-a",
         fromWorkflowId: "wf-1"
       })
     );

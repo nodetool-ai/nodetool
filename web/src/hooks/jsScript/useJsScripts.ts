@@ -5,8 +5,11 @@
 
 import { trpc } from "../../trpc/client";
 
-export const useJsScripts = () =>
-  trpc.jsScripts.list.useQuery({}, { staleTime: 30_000 });
+export const useJsScripts = (projectId?: string) =>
+  trpc.jsScripts.list.useQuery(projectId ? { projectId } : {}, {
+    staleTime: 30_000,
+    retry: false
+  });
 
 export const useCreateJsScript = () => {
   const utils = trpc.useUtils();

@@ -43,6 +43,7 @@ jest.mock("../../../stores/GlobalChatStore", () => {
 
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   __esModule: true,
+  creationProjectId: () => "default",
   useWorkspaceTabsStore: <T,>(
     selector: (state: { openTab: jest.Mock; activeTabId: string }) => T
   ) => selector({ openTab, activeTabId: "chat:thread-2" })
@@ -67,14 +68,14 @@ describe("ChatListPanel", () => {
   });
 
   it("lists the threads", () => {
-    renderPanel(<ChatListPanel />);
+    renderPanel(<ChatListPanel projectId="default" />);
     expect(screen.getByText("Fixing the encoder")).toBeInTheDocument();
     expect(screen.getByText("Storyboard ideas")).toBeInTheDocument();
   });
 
   it("opens the selected thread as a chat tab", async () => {
     const user = userEvent.setup();
-    renderPanel(<ChatListPanel />);
+    renderPanel(<ChatListPanel projectId="default" />);
 
     await user.click(screen.getByText("Fixing the encoder"));
 
@@ -89,7 +90,7 @@ describe("ChatListPanel", () => {
 
   it("filters threads by the search term", async () => {
     const user = userEvent.setup();
-    renderPanel(<ChatListPanel />);
+    renderPanel(<ChatListPanel projectId="default" />);
 
     await user.type(
       screen.getByPlaceholderText("Search conversations..."),
@@ -102,7 +103,7 @@ describe("ChatListPanel", () => {
 
   it("opens a tab for a freshly created thread", async () => {
     const user = userEvent.setup();
-    renderPanel(<CreateChatButton />);
+    renderPanel(<CreateChatButton projectId="project-a" />);
 
     await user.click(screen.getByRole("button", { name: "New chat" }));
 
@@ -112,7 +113,10 @@ describe("ChatListPanel", () => {
       ref: "thread-new",
       mode: "view",
       title: "New chat",
-      projectId: "default"
+      projectId: "project-a"
+    });
+    expect(createNewThread).toHaveBeenCalledWith(undefined, undefined, {
+      projectId: "project-a"
     });
   });
 });

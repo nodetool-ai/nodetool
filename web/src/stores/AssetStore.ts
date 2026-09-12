@@ -22,6 +22,7 @@ import { isFunction, isNumber, isObjectLike } from "../utils/typePredicates";
 
 type AssetCreatePayload = {
   workflow_id?: string;
+  project_id?: string;
   parent_id?: string | null;
   content_type?: string | null;
   name?: string;
@@ -84,7 +85,12 @@ const uploadAssetDirect = async (
     parent_id: payload.parent_id ?? "",
     size: file.size
   };
-  if (payload.workflow_id) uploadInput.workflow_id = payload.workflow_id;
+  if (payload.workflow_id) {
+    uploadInput.workflow_id = payload.workflow_id;
+  }
+  if (payload.project_id) {
+    uploadInput.project_id = payload.project_id;
+  }
   const created = await trpcClient.assets.createUpload.mutate(uploadInput);
 
   if (!created.upload) {
@@ -208,22 +214,34 @@ export interface AssetStore {
   invalidateQueries: (queryKey: QueryKey) => void;
   get: (id: string, project_id?: string) => Promise<Asset>;
   getAllAssetsInFolder: (folderId: string, project_id?: string) => Promise<Asset[]>;
-  createFolder: (parent_id: string | null, name: string) => Promise<Asset>;
+  createFolder: (
+    parent_id: string | null,
+    name: string,
+    project_id?: string
+  ) => Promise<Asset>;
   createAsset: (
     file: File,
     workflow_id?: string,
     parent_id?: string,
     onUploadProgress?: (progressEvent: UploadProgressEvent) => void,
-    source?: UploadSource
+    source?: UploadSource,
+    project_id?: string
   ) => Promise<Asset>;
   load: (query: AssetQuery) => Promise<AssetList>;
   loadFolderTree: (sortBy?: string, project_id?: string) => Promise<FolderTree>;
   loadCurrentFolder: (gridStore: AssetGridStoreApi, project_id?: string) => Promise<AssetList>;
-  search: (query: AssetSearchQuery) => Promise<AssetSearchResult>;
+  search: (
+    query: AssetSearchQuery,
+    signal?: AbortSignal
+  ) => Promise<AssetSearchResult>;
   update: (asset: AssetUpdate) => Promise<Asset>;
   delete: (id: string) => Promise<string[]>;
   download: (ids: string[]) => Promise<boolean>;
-  getAssetsRecursive: (folderId: string, project_id?: string) => Promise<AssetTreeNode[]>;
+  getAssetsRecursive: (
+    folderId: string,
+    project_id?: string,
+    signal?: AbortSignal
+  ) => Promise<AssetTreeNode[]>;
 }
 
 export type FolderTree = Record<string, AssetTreeNode>;
@@ -401,15 +419,23 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     return get().load(assetQuery);
   },
 
-  search: async (query: AssetSearchQuery): Promise<AssetSearchResult> => {
+  search: async (
+    query: AssetSearchQuery,
+    signal?: AbortSignal
+  ): Promise<AssetSearchResult> => {
     try {
       const searchInput: Parameters<typeof trpcClient.assets.search.query>[0] =
         { query: query.query };
       if (query.content_type) searchInput.content_type = query.content_type;
       if (query.page_size) searchInput.page_size = query.page_size;
       if (query.cursor) searchInput.cursor = query.cursor;
-      if (query.project_id !== undefined) searchInput.project_id = query.project_id;
-      const data = await trpcClient.assets.search.query(searchInput);
+      if (query.project_id !== undefined) {
+        searchInput.project_id = query.project_id;
+      }
+      const data = await trpcClient.assets.search.query(
+        searchInput,
+        signal ? { signal } : {}
+      );
       const result = data as AssetSearchResult;
       return { ...result, assets: normalizeAssetList(result.assets) };
     } catch (error) {
@@ -432,14 +458,22 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @param parent_id The ID of the parent asset.
    * @param name The name of the folder.
    */
-  createFolder: async (parent_id: string | null, name: string) => {
+  createFolder: async (
+    parent_id: string | null,
+    name: string,
+    project_id?: string
+  ) => {
     try {
+      const payload: AssetCreatePayload = {
+        parent_id,
+        content_type: "folder",
+        name
+      };
+      if (project_id) {
+        payload.project_id = project_id;
+      }
       const folder = await uploadAsset(
-        {
-          parent_id,
-          content_type: "folder",
-          name
-        },
+        payload,
         undefined,
         undefined,
         "Failed to create folder"
@@ -611,7 +645,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     workflow_id?: string,
     parent_id?: string,
     onUploadProgress?: (progressEvent: UploadProgressEvent) => void,
-    source: UploadSource = "file"
+    source: UploadSource = "file",
+    project_id?: string
   ) => {
     try {
       const preparedFile = await prepareUploadFile(file, source);
@@ -623,13 +658,21 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         finalMime: preparedFile.finalMime
       });
 
+      const payload: AssetCreatePayload = {
+        content_type: preparedFile.finalMime,
+        name: preparedFile.file.name
+      };
+      if (workflow_id) {
+        payload.workflow_id = workflow_id;
+      }
+      if (parent_id) {
+        payload.parent_id = parent_id;
+      }
+      if (project_id) {
+        payload.project_id = project_id;
+      }
       const asset = await uploadAsset(
-        {
-          workflow_id: workflow_id,
-          parent_id: parent_id,
-          content_type: preparedFile.finalMime,
-          name: preparedFile.file.name
-        },
+        payload,
         preparedFile.file,
         onUploadProgress
       );
@@ -643,13 +686,19 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
 
   getAssetsRecursive: async (
     folderId: string,
-    project_id?: string
+    project_id?: string,
+    signal?: AbortSignal
   ): Promise<AssetTreeNode[]> => {
     const recursiveInput: Parameters<
       typeof trpcClient.assets.recursive.query
     >[0] = { id: folderId };
-    if (project_id !== undefined) recursiveInput.project_id = project_id;
-    const data = await trpcClient.assets.recursive.query(recursiveInput);
+    if (project_id !== undefined) {
+      recursiveInput.project_id = project_id;
+    }
+    const data = await trpcClient.assets.recursive.query(
+      recursiveInput,
+      signal ? { signal } : {}
+    );
     // The tRPC `recursive` procedure returns a flat array — convert it to the
     // tree shape expected by downstream code.
     return normalizeAssetList((data.assets ?? []) as AssetTreeNode[]);

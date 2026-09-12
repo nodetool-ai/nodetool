@@ -69,8 +69,10 @@ export const useAssets = () => {
     (state) => state.scopeProjectId
   );
   const resetForProject = useAssetGridStore((state) => state.resetForProject);
-  const activeProjectId =
-    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
+  const activeProjectId = useWorkspaceTabsStore(
+    (state) =>
+      state.activeProjectId ?? state.personalProjectId ?? LOOSE_PROJECT_ID
+  );
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -295,7 +297,8 @@ export const useAssets = () => {
   );
 
   const createFolderMutation = useMutation({
-    mutationFn: (name: string) => createFolder(currentFolderId, name),
+    mutationFn: (name: string) =>
+      createFolder(currentFolderId, name, activeProjectId),
     onSuccess: invalidateAssetSiblings,
     onError: notifyMutationError("Error creating folder.")
   });
@@ -386,6 +389,7 @@ export const useAssets = () => {
     folderFilesFiltered, // Filtered assets based on search term and content type
     folderAssets: currentFolderAssets, // Raw data returned from the API for the current folder, including both files and folders
     folderTree, // Tree structure of all folders in the system
+    projectId: activeProjectId,
     currentFolderId, // ID of the currently selected folder
     isLoading, // if assets are currently being loaded
     error, // error during asset fetching

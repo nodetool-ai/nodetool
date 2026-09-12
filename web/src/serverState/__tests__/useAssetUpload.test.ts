@@ -11,6 +11,10 @@ jest.mock("../../stores/AssetStore", () => ({
   }
 }));
 
+jest.mock("../../stores/WorkspaceTabsStore", () => ({
+  creationProjectId: () => "current-project"
+}));
+
 import { useAssetUpload } from "../useAssetUpload";
 
 describe("useAssetUpload", () => {
@@ -99,6 +103,30 @@ describe("useAssetUpload", () => {
       });
 
       expect(mockCreateAsset).toHaveBeenCalled();
+    });
+
+    it("forwards the project scope to asset creation", () => {
+      const mockFile = new File(["test"], "test.txt", {
+        type: "text/plain"
+      });
+      mockCreateAsset.mockReturnValue(new Promise(() => {}));
+
+      act(() => {
+        useAssetUpload.getState().uploadAsset({
+          file: mockFile,
+          project_id: "project-a"
+        });
+      });
+
+      expect(mockCreateAsset).toHaveBeenCalledTimes(1);
+      const [file, workflowId, parentId, onProgress, source, projectId] =
+        mockCreateAsset.mock.calls[0];
+      expect(file).toBe(mockFile);
+      expect(workflowId).toBeUndefined();
+      expect(parentId).toBeUndefined();
+      expect(typeof onProgress).toBe("function");
+      expect(source).toBeUndefined();
+      expect(projectId).toBe("project-a");
     });
   });
 
@@ -241,7 +269,8 @@ describe("useAssetUpload", () => {
         "wf-1",
         "parent-1",
         expect.any(Function),
-        undefined
+        undefined,
+        "current-project"
       );
     });
   });

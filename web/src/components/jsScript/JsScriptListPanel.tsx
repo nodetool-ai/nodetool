@@ -75,10 +75,14 @@ export const CreateJsScriptButton = memo(function CreateJsScriptButton() {
  * workspace tab. Deliberately thinner than ScriptListPanel — rename, duplicate
  * and delete arrive with the versions UI in a later pass.
  */
-const JsScriptListPanel = () => {
+interface JsScriptListPanelProps {
+  readonly projectId: string;
+}
+
+const JsScriptListPanel = ({ projectId }: JsScriptListPanelProps) => {
   const theme = useTheme();
   const [filterValue, setFilterValue] = useState("");
-  const { data, isLoading, isError, error } = useJsScripts();
+  const { data, isLoading, isError, error } = useJsScripts(projectId);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setVisibility = usePanelStore((state) => state.setVisibility);
@@ -110,14 +114,15 @@ const JsScriptListPanel = () => {
         type: "jsscript",
         ref: id,
         mode: "edit",
-        title: name || DEFAULT_NAME
+        title: name || DEFAULT_NAME,
+        projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
         navigate("/workspace");
       }
       setVisibility(false);
     },
-    [location.pathname, navigate, openTab, setVisibility]
+    [location.pathname, navigate, openTab, projectId, setVisibility]
   );
 
   return (

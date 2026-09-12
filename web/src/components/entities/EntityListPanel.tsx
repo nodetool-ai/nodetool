@@ -24,15 +24,17 @@ import {
 import EntityAssetPickerDialog from "./EntityAssetPickerDialog";
 import EntityCard from "./EntityCard";
 import EntityEditorDialog from "./EntityEditorDialog";
-import {
-  LOOSE_PROJECT_ID,
-  useWorkspaceTabsStore
-} from "../../stores/WorkspaceTabsStore";
+import { creationProjectId } from "../../stores/WorkspaceTabsStore";
 
 /** Picks an image asset, then opens the editor to describe it. */
-export const CreateEntityButton = memo(function CreateEntityButton() {
-  const projectId =
-    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
+interface CreateEntityButtonProps {
+  readonly projectId?: string;
+}
+
+export const CreateEntityButton = memo(function CreateEntityButton({
+  projectId
+}: CreateEntityButtonProps) {
+  const scopedProjectId = projectId ?? creationProjectId();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [assetId, setAssetId] = useState<string | null>(null);
 
@@ -55,24 +57,28 @@ export const CreateEntityButton = memo(function CreateEntityButton() {
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
         onPick={handlePick}
-        projectId={projectId}
+        projectId={scopedProjectId}
       />
       {assetId && (
         <EntityEditorDialog
           open
           onClose={() => setAssetId(null)}
           assetId={assetId}
-          projectId={projectId}
+          projectId={scopedProjectId}
         />
       )}
     </>
   );
 });
 
-const EntityListPanelInternal: React.FC = () => {
-  const projectId =
-    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
-  const { data: entities, isLoading } = useEntities();
+interface EntityListPanelProps {
+  readonly projectId: string;
+}
+
+const EntityListPanelInternal: React.FC<EntityListPanelProps> = ({
+  projectId
+}) => {
+  const { data: entities, isLoading } = useEntities(projectId);
   const deleteEntity = useDeleteEntity();
   const [editing, setEditing] = useState<Entity | null>(null);
 

@@ -20,7 +20,9 @@ import { useNotificationStore } from "../stores/NotificationStore";
 import { assetToClip } from "../components/timeline/dnd/assetToClipAdapter";
 import { newDocumentId } from "../lib/newDocumentId";
 
-export const useEditVideoAsset = (): ((asset: Asset) => Promise<void>) => {
+export const useEditVideoAsset = (
+  projectId?: string
+): ((asset: Asset) => Promise<void>) => {
   const navigate = useNavigate();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const addNotification = useNotificationStore((state) => state.addNotification);
@@ -28,12 +30,15 @@ export const useEditVideoAsset = (): ((asset: Asset) => Promise<void>) => {
   return useCallback(
     async (asset: Asset) => {
       try {
+        const scopedProjectId =
+          asset.project_id ?? projectId ?? creationProjectId();
         if (asset.timeline_id) {
           openTab({
             type: "timeline",
             ref: asset.timeline_id,
             mode: "edit",
-            title: asset.name || "Timeline"
+            title: asset.name || "Timeline",
+            projectId: scopedProjectId
           });
           navigate("/workspace");
           return;
@@ -42,7 +47,7 @@ export const useEditVideoAsset = (): ((asset: Asset) => Promise<void>) => {
         const sequence = await trpcClient.timeline.create.mutate({
           id: newDocumentId(),
           name: asset.name || "Untitled video",
-          projectId: creationProjectId()
+          projectId: scopedProjectId
         });
         const track = makeTrack({ type: "video", index: 0, name: "Video" });
         const clip = assetToClip(asset, track.id, 0);
@@ -54,7 +59,8 @@ export const useEditVideoAsset = (): ((asset: Asset) => Promise<void>) => {
           type: "timeline",
           ref: sequence.id,
           mode: "edit",
-          title: sequence.name || asset.name || "Timeline"
+          title: sequence.name || asset.name || "Timeline",
+          projectId: scopedProjectId
         });
         navigate("/workspace");
       } catch (error) {
@@ -66,6 +72,6 @@ export const useEditVideoAsset = (): ((asset: Asset) => Promise<void>) => {
         });
       }
     },
-    [navigate, openTab, addNotification]
+    [navigate, openTab, addNotification, projectId]
   );
 };

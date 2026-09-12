@@ -53,7 +53,8 @@ const AssetCreateFolderConfirmation: React.FC = () => {
   const theme = useTheme();
   const createFolder = useAssetStore((state) => state.createFolder);
   const updateAsset = useAssetStore((state) => state.update);
-  const { refetchAssetsAndFolders, folderFilesFiltered } = useAssets();
+  const { refetchAssetsAndFolders, folderFilesFiltered, projectId } =
+    useAssets();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -134,7 +135,8 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     try {
       const newFolder = await createFolder(
         currentFolder?.id || "",
-        cleanedName
+        cleanedName,
+        projectId
       );
 
       if (hasSelectedAssets && newFolder) {
@@ -176,7 +178,8 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     setDialogOpen,
     refetchAssetsAndFolders,
     setSelectedAssetIds,
-    setSelectedAssets
+    setSelectedAssets,
+    projectId
   ]);
 
   // Place from the measured size, not an assumed one: a fixed upward offset put

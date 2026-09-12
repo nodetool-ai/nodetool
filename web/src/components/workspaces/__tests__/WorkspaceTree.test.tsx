@@ -50,7 +50,7 @@ const renderTree = () =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <ThemeProvider theme={mockTheme}>
-        <WorkspaceTree />
+        <WorkspaceTree projectId="project-a" />
       </ThemeProvider>
     </QueryClientProvider>
   );
@@ -97,7 +97,8 @@ describe("WorkspaceTree", () => {
       type: "workspace-file",
       ref: "ws-default::notes.md",
       mode: "view",
-      title: "notes.md"
+      title: "notes.md",
+      projectId: "project-a"
     });
   });
 

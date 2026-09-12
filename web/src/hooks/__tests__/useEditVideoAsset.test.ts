@@ -49,14 +49,25 @@ describe("useEditVideoAsset", () => {
     const { result } = renderHook(() => useEditVideoAsset());
 
     await act(async () => {
-      await result.current(videoAsset({ id: "v1", timeline_id: "seq-123" }));
+      await result.current(
+        videoAsset({
+          id: "v1",
+          timeline_id: "seq-123",
+          project_id: "project-a"
+        })
+      );
     });
 
     // No new timeline is created — we reopen the existing sequence.
     expect(createMutate).not.toHaveBeenCalled();
     expect(updateMutate).not.toHaveBeenCalled();
     expect(useWorkspaceTabsStore.getState().tabs).toContainEqual(
-      expect.objectContaining({ type: "timeline", ref: "seq-123", mode: "edit" })
+      expect.objectContaining({
+        type: "timeline",
+        ref: "seq-123",
+        mode: "edit",
+        projectId: "project-a"
+      })
     );
     expect(navigateMock).toHaveBeenCalledWith("/workspace");
     expect(addNotification).not.toHaveBeenCalled();
@@ -71,7 +82,13 @@ describe("useEditVideoAsset", () => {
     const { result } = renderHook(() => useEditVideoAsset());
 
     await act(async () => {
-      await result.current(videoAsset({ id: "v2", name: "render.mp4" }));
+      await result.current(
+        videoAsset({
+          id: "v2",
+          name: "render.mp4",
+          project_id: "project-a"
+        })
+      );
     });
 
     // The id is minted client-side at creation, so assert its shape (a
@@ -79,7 +96,7 @@ describe("useEditVideoAsset", () => {
     expect(createMutate).toHaveBeenCalledWith({
       id: expect.stringMatching(/^[0-9a-f]{32}$/),
       name: "render.mp4",
-      projectId: "default"
+      projectId: "project-a"
     });
 
     expect(updateMutate).toHaveBeenCalledTimes(1);
@@ -101,7 +118,12 @@ describe("useEditVideoAsset", () => {
     expect(arg.document.clips[0].trackId).toBe(arg.document.tracks[0].id);
 
     expect(useWorkspaceTabsStore.getState().tabs).toContainEqual(
-      expect.objectContaining({ type: "timeline", ref: "seq-new", mode: "edit" })
+      expect.objectContaining({
+        type: "timeline",
+        ref: "seq-new",
+        mode: "edit",
+        projectId: "project-a"
+      })
     );
     expect(navigateMock).toHaveBeenCalledWith("/workspace");
   });

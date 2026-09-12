@@ -11,7 +11,9 @@ import {
   List,
   ListItemButton,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
@@ -27,7 +29,7 @@ import {
 
 const styles = (_theme: Theme) =>
   css({
-    "&": { paddingBottom: "3em" }
+    "&": { paddingBottom: getSpacingPx(SPACING.xxxl) }
   });
 
 interface AssetTreeProps {
@@ -51,8 +53,10 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [closedFolders, setClosedFolders] = useState<string[]>([]);
   const getAssetsRecursive = useAssetStore((state) => state.getAssetsRecursive);
-  const projectId =
-    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
+  const projectId = useWorkspaceTabsStore(
+    (state) =>
+      state.activeProjectId ?? state.personalProjectId ?? LOOSE_PROJECT_ID
+  );
 
   const folderIcon = useMemo(() => <IconForType iconName="folder" />, []);
   const imageIcon = useMemo(() => <IconForType iconName="image" />, []);
@@ -107,11 +111,19 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   }, [calculateTotalAssets, sortNodes]);
 
   useEffect(() => {
+    const abortController = new AbortController();
     const fetchAssetTree = async () => {
       setIsLoading(true);
       onLoading(true);
       try {
-        const result = await getAssetsRecursive(folderId, projectId);
+        const result = await getAssetsRecursive(
+          folderId,
+          projectId,
+          abortController.signal
+        );
+        if (abortController.signal.aborted) {
+          return;
+        }
         const treeWithTotals = processAssetTree(result);
         setAssetTree(treeWithTotals);
         const total = treeWithTotals.reduce(
@@ -120,16 +132,24 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         );
         onTotalAssetsCalculated(total);
       } catch (error) {
+        if (abortController.signal.aborted) {
+          return;
+        }
         console.error("Error fetching asset tree:", error);
         setAssetTree([]);
         onTotalAssetsCalculated(0);
       } finally {
-        setIsLoading(false);
-        onLoading(false);
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+          onLoading(false);
+        }
       }
     };
 
-    fetchAssetTree();
+    void fetchAssetTree();
+    return () => {
+      abortController.abort();
+    };
   }, [
     folderId,
     getAssetsRecursive,
@@ -208,7 +228,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
           <React.Fragment key={node.id}>
             <ListItemButton
               onClick={createFolderToggleHandler(node.id)}
-              style={{ paddingLeft: `${depth * 16}px` }}
+              sx={{ paddingLeft: theme.spacing(depth * SPACING.xl) }}
             >
               <ListItemIcon
                 sx={{
@@ -252,7 +272,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         ))}
       </List>
     );
-  }, [closedFolders, createFolderToggleHandler, getFileIcon, theme.vars.palette.grey]);
+  }, [closedFolders, createFolderToggleHandler, getFileIcon, theme]);
 
   if (isLoading) {
     return <LoadingSpinner />;

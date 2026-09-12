@@ -1,11 +1,28 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAssetStore } from "../stores/AssetStore";
 import { AssetSearchResult } from "../stores/ApiTypes";
+import {
+  LOOSE_PROJECT_ID,
+  useWorkspaceTabsStore
+} from "../stores/WorkspaceTabsStore";
 
 export const useAssetSearch = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const projectAbortControllerRef = useRef(new AbortController());
+  const latestRequestIdRef = useRef(0);
   const search = useAssetStore((state) => state.search);
+  const projectId = useWorkspaceTabsStore(
+    (state) =>
+      state.activeProjectId ?? state.personalProjectId ?? LOOSE_PROJECT_ID
+  );
+
+  useEffect(() => {
+    const abortController = new AbortController();
+    projectAbortControllerRef.current.abort();
+    projectAbortControllerRef.current = abortController;
+    return () => abortController.abort();
+  }, [projectId]);
 
   const searchAssets = useCallback(
     async (
@@ -20,29 +37,39 @@ export const useAssetSearch = () => {
         return null;
       }
 
-      if (signal?.aborted) {
+      const projectSignal = projectAbortControllerRef.current.signal;
+      const requestSignal = signal
+        ? AbortSignal.any([signal, projectSignal])
+        : projectSignal;
+      if (requestSignal.aborted) {
         return null;
       }
 
+      const requestId = latestRequestIdRef.current + 1;
+      latestRequestIdRef.current = requestId;
       setIsSearching(true);
       setSearchError(null);
 
       try {
-        const result = await search({
-          query: query.trim(),
-          content_type: contentType,
-          page_size: pageSize,
-          cursor: cursor
-        });
+        const result = await search(
+          {
+            query: query.trim(),
+            content_type: contentType,
+            page_size: pageSize,
+            cursor,
+            project_id: projectId
+          },
+          requestSignal
+        );
 
-        if (signal?.aborted) {
+        if (requestSignal.aborted) {
           return null;
         }
 
         return result;
       } catch (error) {
         // Aborted requests are expected — surface no error
-        if (signal?.aborted) {
+        if (requestSignal.aborted) {
           return null;
         }
 
@@ -53,12 +80,12 @@ export const useAssetSearch = () => {
         setSearchError(errorMessage);
         return null;
       } finally {
-        if (!signal?.aborted) {
+        if (latestRequestIdRef.current === requestId) {
           setIsSearching(false);
         }
       }
     },
-    [search]
+    [projectId, search]
   );
 
   const clearError = useCallback(() => {

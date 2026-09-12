@@ -18,7 +18,6 @@ import { trpcClient } from "../../trpc/client";
 import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
-import SharedWithMeSection from "./SharedWithMeSection";
 import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
@@ -27,6 +26,7 @@ import { useSelectedTags } from "../../stores/WorkflowListViewStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { EmptyState, FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
 import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -46,17 +46,27 @@ const styles = (theme: Theme) =>
 
 const WORKFLOW_LIST_PAGE_SIZE = 1000;
 
-const loadWorkflows = async (cursor?: string, limit?: number) => {
+const loadWorkflows = async (
+  cursor: string | undefined,
+  limit: number | undefined,
+  projectId: string
+) => {
   return trpcClient.workflows.list.query({
     cursor: cursor ?? "",
-    limit: limit ?? 100
+    limit: limit ?? 100,
+    project_id: projectId
   }) as Promise<WorkflowListType>;
 };
 
-const WorkflowList = () => {
+interface WorkflowListProps {
+  readonly projectId: string;
+}
+
+const WorkflowList = ({ projectId }: WorkflowListProps) => {
   const theme = useTheme();
   const memoizedStyles = useMemo(() => styles(theme), [theme]);
   const queryClient = useQueryClient();
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const [filterValue, setFilterValue] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const autoFocusEnabled = useAutoFocusEnabled();
@@ -81,9 +91,10 @@ const WorkflowList = () => {
     Error
   >(
     {
-      queryKey: workflowListQueryKey(WORKFLOW_LIST_PAGE_SIZE),
-      queryFn: () => loadWorkflows("", WORKFLOW_LIST_PAGE_SIZE),
+      queryKey: workflowListQueryKey(WORKFLOW_LIST_PAGE_SIZE, "", projectId),
+      queryFn: () => loadWorkflows("", WORKFLOW_LIST_PAGE_SIZE, projectId),
       staleTime: 15 * 60 * 1000,
+      retry: false,
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       refetchOnReconnect: false
@@ -184,10 +195,17 @@ const WorkflowList = () => {
 
   const handleOpenWorkflow = useCallback(
     (workflow: Workflow) => {
-      navigate("/editor/" + workflow.id);
+      openTab({
+        type: "workflow",
+        ref: workflow.id,
+        mode: "edit",
+        title: workflow.name,
+        projectId
+      });
+      navigate("/workspace");
       usePanelStore.getState().setVisibility(false);
     },
-    [navigate]
+    [navigate, openTab, projectId]
   );
 
   // Memoize workflow name lookup map to avoid recalculating on every duplicateWorkflow call
@@ -222,10 +240,25 @@ const WorkflowList = () => {
       });
       const newName = `${baseName} (${highestNumber + 1})`;
       workflowRequest.name = newName.substring(0, 50);
+      workflowRequest.project_id = projectId;
       const newWorkflow = await createWorkflow(workflowRequest);
-      navigate(`/editor/${newWorkflow.id}`);
+      openTab({
+        type: "workflow",
+        ref: newWorkflow.id,
+        mode: "edit",
+        title: newWorkflow.name,
+        projectId
+      });
+      navigate("/workspace");
     },
-    [copyWorkflow, createWorkflow, workflowNamesMap, navigate]
+    [
+      copyWorkflow,
+      createWorkflow,
+      workflowNamesMap,
+      navigate,
+      openTab,
+      projectId
+    ]
   );
 
   const handleEdit = useCallback((workflow: Workflow) => {
@@ -241,7 +274,7 @@ const WorkflowList = () => {
         });
         // Update the cache optimistically
         queryClient.setQueryData<WorkflowListType>(
-          workflowListQueryKey(WORKFLOW_LIST_PAGE_SIZE),
+          workflowListQueryKey(WORKFLOW_LIST_PAGE_SIZE, "", projectId),
           (old) => {
             if (!old) { return old; }
             return {
@@ -278,7 +311,7 @@ const WorkflowList = () => {
         queryClient.invalidateQueries({ queryKey: ["workflows"] });
       }
     },
-    [queryClient, getWorkflow, updateWorkflow, addNotification]
+    [queryClient, projectId, getWorkflow, updateWorkflow, addNotification]
   );
 
   const handleToggleFavorites = useCallback(() => {
@@ -400,7 +433,6 @@ const WorkflowList = () => {
             />
           </div>
         )}
-        <SharedWithMeSection />
       </FlexColumn>
     </>
   );

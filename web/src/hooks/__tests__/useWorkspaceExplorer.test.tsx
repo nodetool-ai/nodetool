@@ -18,21 +18,23 @@ const renders = {
 
 let workspaces: Array<typeof defaultWorkspace> = [];
 let isLoading = false;
+const mockUseWorkspaces = jest.fn((_projectId?: string) => ({
+  workspaces,
+  canManage: true,
+  defaultWorkspace: workspaces.find((w) => w.is_default) ?? workspaces[0],
+  isLoading,
+  error: null
+}));
 
 jest.mock("../useWorkspaces", () => ({
-  useWorkspaces: () => ({
-    workspaces,
-    canManage: true,
-    defaultWorkspace: workspaces.find((w) => w.is_default) ?? workspaces[0],
-    isLoading,
-    error: null
-  })
+  useWorkspaces: (projectId?: string) => mockUseWorkspaces(projectId)
 }));
 
 describe("useWorkspaceExplorer", () => {
   beforeEach(() => {
     workspaces = [defaultWorkspace, renders];
     isLoading = false;
+    mockUseWorkspaces.mockClear();
     act(() => {
       useWorkspaceExplorerStore.getState().setBrowsedWorkspaceId(null);
     });
@@ -42,6 +44,11 @@ describe("useWorkspaceExplorer", () => {
     const { result } = renderHook(() => useWorkspaceExplorer());
     expect(result.current.workspaceId).toBe("ws-default");
     expect(result.current.workspace?.name).toBe("Default");
+  });
+
+  it("loads only workspaces from the requested project", () => {
+    renderHook(() => useWorkspaceExplorer("project-a"));
+    expect(mockUseWorkspaces).toHaveBeenCalledWith("project-a");
   });
 
   it("remembers the picked workspace", () => {

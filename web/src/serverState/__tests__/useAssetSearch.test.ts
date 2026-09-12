@@ -1,6 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 
 const mockSearch = jest.fn();
+let mockProjectId = "project-a";
 
 jest.mock("../../stores/AssetStore", () => ({
   __esModule: true,
@@ -10,11 +11,22 @@ jest.mock("../../stores/AssetStore", () => ({
   )
 }));
 
+jest.mock("../../stores/WorkspaceTabsStore", () => ({
+  LOOSE_PROJECT_ID: "default",
+  useWorkspaceTabsStore: <T>(
+    selector: (state: {
+      activeProjectId: string | null;
+      personalProjectId: string | null;
+    }) => T
+  ) => selector({ activeProjectId: null, personalProjectId: mockProjectId })
+}));
+
 import { useAssetSearch } from "../useAssetSearch";
 
 describe("useAssetSearch", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockProjectId = "project-a";
     mockSearch.mockResolvedValue({
       assets: [{ id: "1", name: "test.png" }],
       next_cursor: null
@@ -73,12 +85,16 @@ describe("useAssetSearch", () => {
       searchResult = await result.current.searchAssets("test query");
     });
 
-    expect(mockSearch).toHaveBeenCalledWith({
+    expect(mockSearch).toHaveBeenCalledTimes(1);
+    const [searchInput, searchSignal] = mockSearch.mock.calls[0];
+    expect(searchInput).toEqual({
       query: "test query",
       content_type: undefined,
       page_size: 100,
-      cursor: undefined
+      cursor: undefined,
+      project_id: "project-a"
     });
+    expect(searchSignal).toBeInstanceOf(AbortSignal);
     expect(searchResult).toEqual({
       assets: [{ id: "1", name: "test.png" }],
       next_cursor: null
@@ -92,9 +108,9 @@ describe("useAssetSearch", () => {
       await result.current.searchAssets("  hello world  ");
     });
 
-    expect(mockSearch).toHaveBeenCalledWith(
-      expect.objectContaining({ query: "hello world" })
-    );
+    const [searchInput, searchSignal] = mockSearch.mock.calls[0];
+    expect(searchInput.query).toBe("hello world");
+    expect(searchSignal).toBeInstanceOf(AbortSignal);
   });
 
   it("passes content type filter", async () => {
@@ -104,9 +120,9 @@ describe("useAssetSearch", () => {
       await result.current.searchAssets("test", "image/png");
     });
 
-    expect(mockSearch).toHaveBeenCalledWith(
-      expect.objectContaining({ content_type: "image/png" })
-    );
+    const [searchInput, searchSignal] = mockSearch.mock.calls[0];
+    expect(searchInput.content_type).toBe("image/png");
+    expect(searchSignal).toBeInstanceOf(AbortSignal);
   });
 
   it("passes page size parameter", async () => {
@@ -116,9 +132,9 @@ describe("useAssetSearch", () => {
       await result.current.searchAssets("test", undefined, 50);
     });
 
-    expect(mockSearch).toHaveBeenCalledWith(
-      expect.objectContaining({ page_size: 50 })
-    );
+    const [searchInput, searchSignal] = mockSearch.mock.calls[0];
+    expect(searchInput.page_size).toBe(50);
+    expect(searchSignal).toBeInstanceOf(AbortSignal);
   });
 
   it("passes cursor parameter", async () => {
@@ -128,9 +144,9 @@ describe("useAssetSearch", () => {
       await result.current.searchAssets("test", undefined, 100, "cursor-abc");
     });
 
-    expect(mockSearch).toHaveBeenCalledWith(
-      expect.objectContaining({ cursor: "cursor-abc" })
-    );
+    const [searchInput, searchSignal] = mockSearch.mock.calls[0];
+    expect(searchInput.cursor).toBe("cursor-abc");
+    expect(searchSignal).toBeInstanceOf(AbortSignal);
   });
 
   it("sets error on search failure", async () => {
@@ -180,6 +196,31 @@ describe("useAssetSearch", () => {
 
     expect(searchResult).toBeNull();
     expect(mockSearch).not.toHaveBeenCalled();
+  });
+
+  it("clears loading when a project switch aborts the active search", async () => {
+    mockSearch.mockImplementationOnce(
+      (_query: unknown, signal: AbortSignal) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener("abort", () => reject(new Error("aborted")));
+        })
+    );
+    const { result, rerender } = renderHook(() => useAssetSearch());
+
+    let pendingSearch!: Promise<unknown>;
+    act(() => {
+      pendingSearch = result.current.searchAssets("test");
+    });
+    expect(result.current.isSearching).toBe(true);
+
+    mockProjectId = "project-b";
+    rerender();
+    await act(async () => {
+      await pendingSearch;
+    });
+
+    expect(result.current.isSearching).toBe(false);
+    expect(result.current.searchError).toBeNull();
   });
 
   it("clearError resets searchError to null", async () => {

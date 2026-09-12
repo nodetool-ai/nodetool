@@ -121,12 +121,13 @@ function compactPath(path: string): string {
 }
 
 interface WorkspaceSelectProps {
-  value: string | undefined;
-  onChange: (workspaceId: string | undefined) => void;
-  helperText?: string;
-  fullWidth?: boolean;
-  disabled?: boolean;
-  compact?: boolean;
+  readonly value: string | undefined;
+  readonly onChange: (workspaceId: string | undefined) => void;
+  readonly projectId?: string;
+  readonly helperText?: string;
+  readonly fullWidth?: boolean;
+  readonly disabled?: boolean;
+  readonly compact?: boolean;
 }
 
 const CREATE_NEW_VALUE = "__create_new__";
@@ -135,6 +136,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
   function WorkspaceSelect({
     value,
     onChange,
+    projectId,
     helperText,
     fullWidth = true,
     disabled = false,
@@ -142,22 +144,25 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
   }) {
     const theme = useTheme();
     const cssStyles = useMemo(() => styles(theme), [theme]);
-    const writeWorkspaceToCache = useWorkspaceCacheWriter();
+    const writeWorkspaceToCache = useWorkspaceCacheWriter(projectId);
     const addNotification = useNotificationStore(
       (state) => state.addNotification
     );
     const { pickFolder, dialog: folderPickerDialog } = useFolderPicker();
 
     const { workspaces, canManage, defaultWorkspace, isLoading, error } =
-      useWorkspaces();
+      useWorkspaces(projectId);
 
     const createMutation = useMutation({
       mutationFn: async (path: string) => {
-        return trpcClient.workspace.create.mutate({
+        const input = {
           name: nameFromPath(path),
           path,
           is_default: false
-        });
+        };
+        return trpcClient.workspace.create.mutate(
+          projectId ? { ...input, project_id: projectId } : input
+        );
       },
       onSuccess: (created) => {
         writeWorkspaceToCache(created as WorkspaceResponse);

@@ -43,23 +43,39 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
     selector: (state: {
       tabs: unknown[];
       activeTabId: string | null;
+      activeProjectId: string;
+      personalProjectId: string;
       openTab: jest.Mock;
     }) => T
-  ) => selector({ tabs: [], activeTabId: null, openTab: jest.fn() })
+  ) =>
+    selector({
+      tabs: [],
+      activeTabId: null,
+      activeProjectId: "project-a",
+      personalProjectId: "personal-project",
+      openTab: jest.fn()
+    }),
+  LOOSE_PROJECT_ID: "default"
 }));
 
 jest.mock("../../assets/AssetGrid", () => () => (
   <div data-testid="asset-grid" />
 ));
-jest.mock("../../workflows/WorkflowList", () => () => (
-  <div data-testid="workflow-list" />
-));
+jest.mock(
+  "../../workflows/WorkflowList",
+  () => (props: { projectId?: string }) => (
+    <div data-testid="workflow-list" data-project-id={props.projectId} />
+  )
+);
 jest.mock("../../workflows/WorkflowForm", () => () => (
   <div data-testid="workflow-form" />
 ));
-jest.mock("../../workflows/CreateWorkflowButton", () => () => (
-  <div data-testid="create-workflow" />
-));
+jest.mock(
+  "../../workflows/CreateWorkflowButton",
+  () => (props: { projectId?: string }) => (
+    <div data-testid="create-workflow" data-project-id={props.projectId} />
+  )
+);
 jest.mock("../../node_menu/NodeLibrary", () => () => (
   <div data-testid="node-library" />
 ));
@@ -80,35 +96,76 @@ jest.mock("../../context_menus/ContextMenus", () => () => (
 
 jest.mock("../../timeline/TimelineListPanel", () => ({
   __esModule: true,
-  default: () => <div data-testid="timeline-list" />,
+  default: (props: { projectId?: string }) => (
+    <div data-testid="timeline-list" data-project-id={props.projectId} />
+  ),
   CreateTimelineButton: () => <div data-testid="create-timeline" />
 }));
 jest.mock("../../sketch/SketchListPanel", () => ({
   __esModule: true,
-  default: () => <div data-testid="sketch-list" />,
+  default: (props: { projectId?: string }) => (
+    <div data-testid="sketch-list" data-project-id={props.projectId} />
+  ),
   CreateSketchButton: () => <div data-testid="create-sketch" />
 }));
 jest.mock("../../storyboard/StoryboardListPanel", () => ({
   __esModule: true,
-  default: () => <div data-testid="storyboard-list" />,
+  default: (props: { projectId?: string }) => (
+    <div data-testid="storyboard-list" data-project-id={props.projectId} />
+  ),
   CreateStoryboardButton: () => <div data-testid="create-storyboard" />
 }));
 jest.mock("../../script/ScriptListPanel", () => ({
   __esModule: true,
-  default: () => <div data-testid="script-list" />,
+  default: (props: { projectId?: string }) => (
+    <div data-testid="script-list" data-project-id={props.projectId} />
+  ),
   CreateScriptButton: () => <div data-testid="create-script" />
 }));
 jest.mock("../../chat/ChatListPanel", () => ({
   __esModule: true,
-  default: () => <div data-testid="chat-list" />,
-  CreateChatButton: () => <div data-testid="create-chat" />
+  default: (props: { projectId?: string }) => (
+    <div data-testid="chat-list" data-project-id={props.projectId} />
+  ),
+  CreateChatButton: (props: { projectId?: string }) => (
+    <div data-testid="create-chat" data-project-id={props.projectId} />
+  )
 }));
 jest.mock("../../applications/ApplicationListPanel", () => ({
   __esModule: true,
-  default: () => <div data-testid="application-list" />,
+  default: (props: { projectId?: string }) => (
+    <div data-testid="application-list" data-project-id={props.projectId} />
+  ),
   CreateApplicationButton: () => <div data-testid="create-application" />,
   CreateApplicationFromWorkflowButton: () => (
     <div data-testid="create-application-from-workflow" />
+  )
+}));
+jest.mock("../../entities/EntityListPanel", () => ({
+  __esModule: true,
+  default: (props: { projectId?: string }) => (
+    <div data-testid="entity-list" data-project-id={props.projectId} />
+  ),
+  CreateEntityButton: (props: { projectId?: string }) => (
+    <div data-testid="create-entity" data-project-id={props.projectId} />
+  )
+}));
+jest.mock("../../jsScript/JsScriptListPanel", () => ({
+  __esModule: true,
+  default: (props: { projectId?: string }) => (
+    <div data-testid="jsscript-list" data-project-id={props.projectId} />
+  ),
+  CreateJsScriptButton: () => <div data-testid="create-jsscript" />
+}));
+jest.mock("../../skills/SkillListPanel", () => ({
+  __esModule: true,
+  default: () => <div data-testid="skill-list" />,
+  CreateSkillButton: () => <div data-testid="create-skill" />
+}));
+jest.mock("../../workspaces/WorkspaceTree", () => ({
+  __esModule: true,
+  default: (props: { projectId?: string }) => (
+    <div data-testid="workspace-tree" data-project-id={props.projectId} />
   )
 }));
 
@@ -198,6 +255,48 @@ it("switches the sheet to the view whose tab was tapped", async () => {
   await user.click(screen.getByLabelText("Apps"));
   expect(usePanelStore.getState().panel.activeView).toBe("apps");
   expect(screen.getByTestId("application-list")).toBeInTheDocument();
+});
+
+it("scopes every project-owned list to the active project", async () => {
+  const user = userEvent.setup();
+  renderPanel();
+
+  const projectViews = [
+    ["Workflows", "workflow-list"],
+    ["Apps", "application-list"],
+    ["Chats", "chat-list"],
+    ["Sketches", "sketch-list"],
+    ["Scripts", "script-list"],
+    ["Storyboards", "storyboard-list"],
+    ["Entities", "entity-list"],
+    ["Timelines", "timeline-list"],
+    ["JS Scripts", "jsscript-list"],
+    ["Workspace", "workspace-tree"]
+  ] as const;
+
+  for (const [label, testId] of projectViews) {
+    await user.click(screen.getByLabelText(label));
+    expect(screen.getByTestId(testId)).toHaveAttribute(
+      "data-project-id",
+      "project-a"
+    );
+  }
+
+  await user.click(screen.getByLabelText("Workflows"));
+  expect(screen.getByTestId("create-workflow")).toHaveAttribute(
+    "data-project-id",
+    "project-a"
+  );
+  await user.click(screen.getByLabelText("Chats"));
+  expect(screen.getByTestId("create-chat")).toHaveAttribute(
+    "data-project-id",
+    "project-a"
+  );
+  await user.click(screen.getByLabelText("Entities"));
+  expect(screen.getByTestId("create-entity")).toHaveAttribute(
+    "data-project-id",
+    "project-a"
+  );
 });
 
 it("shows the create action for the active list view", async () => {

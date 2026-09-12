@@ -54,19 +54,19 @@ describe("EntityListPanel", () => {
 
   it("lists the entities", () => {
     mockUseEntities.mockReturnValue({ data: [entity], isLoading: false });
-    renderWithTheme(<EntityListPanel />);
+    renderWithTheme(<EntityListPanel projectId="default" />);
     expect(screen.getByText("Mara")).toBeInTheDocument();
   });
 
   it("points at the + button when there is nothing to show", () => {
     mockUseEntities.mockReturnValue({ data: [], isLoading: false });
-    renderWithTheme(<EntityListPanel />);
+    renderWithTheme(<EntityListPanel projectId="default" />);
     expect(screen.getByText("No entities yet")).toBeInTheDocument();
   });
 
   it("removes an entity through the delete mutation", async () => {
     mockUseEntities.mockReturnValue({ data: [entity], isLoading: false });
-    renderWithTheme(<EntityListPanel />);
+    renderWithTheme(<EntityListPanel projectId="default" />);
     await userEvent.click(screen.getByRole("button", { name: /remove/i }));
     expect(mockDelete).toHaveBeenCalledWith("asset-1");
   });
@@ -74,7 +74,7 @@ describe("EntityListPanel", () => {
 
 describe("CreateEntityButton", () => {
   it("opens the asset picker", async () => {
-    renderWithTheme(<CreateEntityButton />);
+    renderWithTheme(<CreateEntityButton projectId="project-a" />);
     expect(screen.queryByTestId("asset-picker")).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /new entity/i }));
     expect(screen.getByTestId("asset-picker")).toBeInTheDocument();

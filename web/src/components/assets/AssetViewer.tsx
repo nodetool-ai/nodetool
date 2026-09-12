@@ -360,7 +360,8 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   // model3d → 3D editor), retiring the legacy /assets/edit route.
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const navigate = useNavigate();
-  const editVideoAsset = useEditVideoAsset();
+  const { folderFiles, projectId } = useAssets();
+  const editVideoAsset = useEditVideoAsset(projectId);
 
   // Reset compare mode when viewer closes
   useEffect(() => {
@@ -371,8 +372,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       setShowInfo(false);
     }
   }, [open]);
-
-  const { folderFiles } = useAssets();
 
   const assetsToUse = useMemo(
     () => sortedAssets || folderFiles || [],
@@ -477,12 +476,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         type: isSvg ? "svg" : "image",
         ref: currentAsset.id,
         mode: "edit",
-        title: currentAsset.name || (isSvg ? "SVG" : "Image")
+        title: currentAsset.name || (isSvg ? "SVG" : "Image"),
+        projectId: currentAsset.project_id ?? projectId
       });
       navigate("/workspace");
       handleClose();
     }
-  }, [currentAsset, isImage, isSvg, openTab, navigate, handleClose]);
+  }, [currentAsset, isImage, isSvg, openTab, navigate, handleClose, projectId]);
 
   const handleOpenModel3DEditor = useCallback(() => {
     if (currentAsset && isModel3D) {
@@ -490,12 +490,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         type: "model3d",
         ref: currentAsset.id,
         mode: "edit",
-        title: currentAsset.name || "3D model"
+        title: currentAsset.name || "3D model",
+        projectId: currentAsset.project_id ?? projectId
       });
       navigate("/workspace");
       handleClose();
     }
-  }, [currentAsset, isModel3D, openTab, navigate, handleClose]);
+  }, [currentAsset, isModel3D, openTab, navigate, handleClose, projectId]);
 
   const handleOpenAudioEditor = useCallback(() => {
     if (currentAsset && isAudio) {
@@ -503,12 +504,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         type: "audio",
         ref: currentAsset.id,
         mode: "edit",
-        title: currentAsset.name || "Audio"
+        title: currentAsset.name || "Audio",
+        projectId: currentAsset.project_id ?? projectId
       });
       navigate("/workspace");
       handleClose();
     }
-  }, [currentAsset, isAudio, openTab, navigate, handleClose]);
+  }, [currentAsset, isAudio, openTab, navigate, handleClose, projectId]);
 
   const handleOpenVideoEditor = useCallback(() => {
     if (currentAsset && isVideo) {

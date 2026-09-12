@@ -209,10 +209,14 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
   );
 });
 
-const SketchListPanel = () => {
+interface SketchListPanelProps {
+  readonly projectId: string;
+}
+
+const SketchListPanel = ({ projectId }: SketchListPanelProps) => {
   const { data, isLoading, isError, error } = trpc.sketch.list.useQuery(
-    {},
-    { staleTime: 30_000 }
+    { projectId },
+    { staleTime: 30_000, retry: false }
   );
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
@@ -233,14 +237,15 @@ const SketchListPanel = () => {
           type: "sketch",
           ref: id,
           mode: "edit",
-          title: name || "Untitled sketch"
+          title: name || "Untitled sketch",
+          projectId
         });
       } else {
         navigate(`/sketch/${id}`);
       }
       setVisibility(false);
     },
-    [location.pathname, navigate, openTab, setVisibility]
+    [location.pathname, navigate, openTab, projectId, setVisibility]
   );
 
   const [editingId, setEditingId] = useState<string | null>(null);

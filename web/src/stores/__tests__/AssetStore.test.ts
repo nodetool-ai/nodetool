@@ -287,7 +287,16 @@ describe("AssetStore", () => {
         const file = new File(["test content"], "test.jpg", {
           type: "image/jpeg"
         });
-        const result = await useAssetStore.getState().createAsset(file);
+        const result = await useAssetStore
+          .getState()
+          .createAsset(
+            file,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            "project-a"
+          );
 
         expect(fetchMock).toHaveBeenCalledWith(
           uploadTarget.upload.url,
@@ -298,6 +307,9 @@ describe("AssetStore", () => {
           })
         );
         expect(mockRestFetch).not.toHaveBeenCalled();
+        expect(createUploadMutate).toHaveBeenCalledWith(
+          expect.objectContaining({ project_id: "project-a" })
+        );
         expect(finalizeMutate).toHaveBeenCalledWith({ asset_id: "direct-id" });
         expect(result.id).toBe("direct-id");
       });
@@ -574,10 +586,13 @@ describe("AssetStore", () => {
         content_type: "image/jpeg"
       });
 
-      expect(searchQuery).toHaveBeenCalledWith({
-        query: "test query",
-        content_type: "image/jpeg"
-      });
+      expect(searchQuery).toHaveBeenCalledWith(
+        {
+          query: "test query",
+          content_type: "image/jpeg"
+        },
+        {}
+      );
       expect(result).toEqual(mockSearchResult);
     });
   });
@@ -680,9 +695,17 @@ describe("AssetStore", () => {
       });
 
       const { createFolder } = useAssetStore.getState();
-      const result = await createFolder("parent1", "New Folder");
+      const result = await createFolder(
+        "parent1",
+        "New Folder",
+        "project-a"
+      );
 
       expect(mockRestFetch).toHaveBeenCalledWith("/api/assets/", expect.objectContaining({ method: "POST", body: expect.any(FormData) }));
+      const request = mockRestFetch.mock.calls[0][1] as { body: FormData };
+      expect(JSON.parse(request.body.get("json") as string)).toEqual(
+        expect.objectContaining({ project_id: "project-a" })
+      );
       expect(result).toEqual(mockFolder);
     });
 
@@ -763,7 +786,10 @@ describe("AssetStore", () => {
       const { getAllAssetsInFolder } = useAssetStore.getState();
       const result = await getAllAssetsInFolder("root-folder");
 
-      expect(recursiveQuery).toHaveBeenCalledWith({ id: "root-folder" });
+      expect(recursiveQuery).toHaveBeenCalledWith(
+        { id: "root-folder" },
+        {}
+      );
       // Flat list → three items, no nesting.
       expect(result).toHaveLength(3);
       const ids = result.map((a) => a.id).sort();

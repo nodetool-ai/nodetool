@@ -2,11 +2,13 @@ import { create } from "zustand";
 import { Asset } from "../stores/ApiTypes";
 import { useAssetStore } from "../stores/AssetStore";
 import { UploadSource } from "../utils/imageUploadValidation";
+import { creationProjectId } from "../stores/WorkspaceTabsStore";
 
 type UploadFileInput = {
   id?: string;
   file: File;
   workflow_id?: string;
+  project_id?: string;
   parent_id?: string;
   source?: UploadSource;
   onCompleted?: (asset: Asset) => void;
@@ -103,7 +105,8 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
         const progress = (progressEvent.loaded / progressEvent.total) * 100;
         get().updateStatus(nextUploadIndex, progress, "uploading");
       },
-      uploadFile.source
+      uploadFile.source,
+      uploadFile.project_id ?? creationProjectId()
     )
       .then((asset: Asset) => {
         get().updateStatus(nextUploadIndex, 100, "completed");

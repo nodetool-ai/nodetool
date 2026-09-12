@@ -63,8 +63,12 @@ export const CreateScriptButton = memo(function CreateScriptButton() {
   );
 });
 
-const ScriptListPanel = () => {
-  const { data, isLoading, isError, error } = useScripts();
+interface ScriptListPanelProps {
+  readonly projectId: string;
+}
+
+const ScriptListPanel = ({ projectId }: ScriptListPanelProps) => {
+  const { data, isLoading, isError, error } = useScripts(projectId);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setVisibility = usePanelStore((state) => state.setVisibility);
@@ -81,14 +85,15 @@ const ScriptListPanel = () => {
         type: "script",
         ref: id,
         mode: "edit",
-        title: name || "Untitled script"
+        title: name || "Untitled script",
+        projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
         navigate("/workspace");
       }
       setVisibility(false);
     },
-    [location.pathname, navigate, openTab, setVisibility]
+    [location.pathname, navigate, openTab, projectId, setVisibility]
   );
 
   const [editingId, setEditingId] = useState<string | null>(null);

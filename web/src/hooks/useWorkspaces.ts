@@ -5,6 +5,11 @@ import type { WorkspaceResponse } from "../stores/ApiTypes";
 
 export const WORKSPACES_QUERY_KEY = ["workspaces"] as const;
 
+export const workspacesQueryKey = (projectId?: string): readonly unknown[] =>
+  projectId
+    ? [...WORKSPACES_QUERY_KEY, "list", { projectId }]
+    : WORKSPACES_QUERY_KEY;
+
 export interface WorkspacesData {
   workspaces: WorkspaceResponse[];
   /**
@@ -15,8 +20,10 @@ export interface WorkspacesData {
   canManage: boolean;
 }
 
-const fetchWorkspaces = async (): Promise<WorkspacesData> => {
-  const result = await trpcClient.workspace.list.query({ limit: 100 });
+const fetchWorkspaces = async (projectId?: string): Promise<WorkspacesData> => {
+  const result = await trpcClient.workspace.list.query(
+    projectId ? { limit: 100, project_id: projectId } : { limit: 100 }
+  );
   return {
     workspaces: result.workspaces as WorkspaceResponse[],
     canManage: result.can_manage
@@ -24,17 +31,19 @@ const fetchWorkspaces = async (): Promise<WorkspacesData> => {
 };
 
 /**
- * The user's workspaces plus what this deployment allows doing with them.
+ * The user's workspaces, optionally limited to one project, plus what this
+ * deployment allows doing with them.
  *
- * One query for every surface that shows workspaces — the composer chip, the
- * workflow form, the settings manager — so they cannot disagree about which
- * one is default. The server creates the default workspace while answering
- * this call, so the list is never empty on a healthy install.
+ * Project scope is part of the query key so the left-panel explorer cannot
+ * reuse another project's cached workspace list. Unscoped surfaces retain the
+ * account-wide list.
  */
-export function useWorkspaces() {
+export function useWorkspaces(projectId?: string) {
   const query = useQuery({
-    queryKey: WORKSPACES_QUERY_KEY,
-    queryFn: fetchWorkspaces
+    queryKey: workspacesQueryKey(projectId),
+    queryFn: () => fetchWorkspaces(projectId),
+    staleTime: 30_000,
+    retry: false
   });
   const workspaces = query.data?.workspaces ?? [];
   return {
@@ -48,14 +57,17 @@ export function useWorkspaces() {
 }
 
 /** Insert or replace one workspace in the cached list without a refetch. */
-export function useWorkspaceCacheWriter() {
+export function useWorkspaceCacheWriter(projectId?: string) {
   const queryClient = useQueryClient();
   return (workspace: WorkspaceResponse) => {
-    queryClient.setQueryData<WorkspacesData>(WORKSPACES_QUERY_KEY, (prev) => {
-      if (!prev) return prev;
-      const without = prev.workspaces.filter((w) => w.id !== workspace.id);
-      return { ...prev, workspaces: [...without, workspace] };
-    });
+    queryClient.setQueryData<WorkspacesData>(
+      workspacesQueryKey(projectId),
+      (prev) => {
+        if (!prev) return prev;
+        const without = prev.workspaces.filter((w) => w.id !== workspace.id);
+        return { ...prev, workspaces: [...without, workspace] };
+      }
+    );
     queryClient.invalidateQueries({ queryKey: WORKSPACES_QUERY_KEY });
   };
 }

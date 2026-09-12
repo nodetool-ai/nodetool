@@ -66,8 +66,12 @@ export const CreateStoryboardButton = memo(function CreateStoryboardButton() {
   );
 });
 
-const StoryboardListPanel = () => {
-  const { data, isLoading, isError, error } = useStoryboards();
+interface StoryboardListPanelProps {
+  readonly projectId: string;
+}
+
+const StoryboardListPanel = ({ projectId }: StoryboardListPanelProps) => {
+  const { data, isLoading, isError, error } = useStoryboards(projectId);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setVisibility = usePanelStore((state) => state.setVisibility);
@@ -84,14 +88,15 @@ const StoryboardListPanel = () => {
         type: "storyboard",
         ref: id,
         mode: "edit",
-        title: name || "Untitled storyboard"
+        title: name || "Untitled storyboard",
+        projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
         navigate("/workspace");
       }
       setVisibility(false);
     },
-    [location.pathname, navigate, openTab, setVisibility]
+    [location.pathname, navigate, openTab, projectId, setVisibility]
   );
 
   const [editingId, setEditingId] = useState<string | null>(null);

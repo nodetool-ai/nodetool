@@ -284,8 +284,12 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
   );
 });
 
-const TimelineListPanel = () => {
-  const { data, isLoading, isError, error } = useTimelines();
+interface TimelineListPanelProps {
+  readonly projectId: string;
+}
+
+const TimelineListPanel = ({ projectId }: TimelineListPanelProps) => {
+  const { data, isLoading, isError, error } = useTimelines(projectId);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setVisibility = usePanelStore((state) => state.setVisibility);
@@ -305,14 +309,15 @@ const TimelineListPanel = () => {
           type: "timeline",
           ref: id,
           mode: "edit",
-          title: name || "Untitled video"
+          title: name || "Untitled video",
+          projectId
         });
       } else {
         navigate(`/timeline/${id}`);
       }
       setVisibility(false);
     },
-    [location.pathname, navigate, openTab, setVisibility]
+    [location.pathname, navigate, openTab, projectId, setVisibility]
   );
 
   const [editingId, setEditingId] = useState<string | null>(null);

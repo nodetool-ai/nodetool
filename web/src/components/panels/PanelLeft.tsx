@@ -69,7 +69,10 @@ import {
   usePanelStore
 } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  LOOSE_PROJECT_ID,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 import { PAGE_TAB_TITLES } from "../workspace/pageTabs";
 import {
   LEFT_PANEL_TOP_LEVEL,
@@ -326,13 +329,15 @@ const PanelContent = memo(function PanelContent({
   activeNodeCategory,
   setActiveNodeCategory,
   handlePanelToggle,
+  projectId,
   isMobile = false
 }: {
-  activeView: LeftPanelView;
-  activeNodeCategory: NodeCategoryId;
-  setActiveNodeCategory: (id: NodeCategoryId) => void;
-  handlePanelToggle: (view: LeftPanelView) => void;
-  isMobile?: boolean;
+  readonly activeView: LeftPanelView;
+  readonly activeNodeCategory: NodeCategoryId;
+  readonly setActiveNodeCategory: (id: NodeCategoryId) => void;
+  readonly handlePanelToggle: (view: LeftPanelView) => void;
+  readonly projectId: string;
+  readonly isMobile?: boolean;
 }) {
   const navigate = useNavigate();
   const path = useLocation().pathname;
@@ -503,7 +508,7 @@ const PanelContent = memo(function PanelContent({
             overflow: "hidden"
           }}
         >
-          <WorkspaceTree />
+          <WorkspaceTree projectId={projectId} />
         </FlexColumn>
       )}
       {activeView === "workflows" && (
@@ -520,11 +525,11 @@ const PanelContent = memo(function PanelContent({
               title="Workflows"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
-              actions={<CreateWorkflowButton />}
+              actions={<CreateWorkflowButton projectId={projectId} />}
             />
           )}
           <ScrollArea fullHeight>
-            <WorkflowList />
+            <WorkflowList projectId={projectId} />
           </ScrollArea>
         </FlexColumn>
       )}
@@ -542,10 +547,10 @@ const PanelContent = memo(function PanelContent({
               title="Chats"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
-              actions={<CreateChatButton />}
+              actions={<CreateChatButton projectId={projectId} />}
             />
           )}
-          <ChatListPanel />
+          <ChatListPanel projectId={projectId} />
         </FlexColumn>
       )}
       {activeView === "sketches" && (
@@ -565,7 +570,7 @@ const PanelContent = memo(function PanelContent({
               actions={<CreateSketchButton />}
             />
           )}
-          <SketchListPanel />
+          <SketchListPanel projectId={projectId} />
         </FlexColumn>
       )}
       {activeView === "timelines" && (
@@ -585,7 +590,7 @@ const PanelContent = memo(function PanelContent({
               actions={<CreateTimelineButton />}
             />
           )}
-          <TimelineListPanel />
+          <TimelineListPanel projectId={projectId} />
         </FlexColumn>
       )}
       {activeView === "storyboards" && (
@@ -605,7 +610,7 @@ const PanelContent = memo(function PanelContent({
               actions={<CreateStoryboardButton />}
             />
           )}
-          <StoryboardListPanel />
+          <StoryboardListPanel projectId={projectId} />
         </FlexColumn>
       )}
       {activeView === "entities" && (
@@ -632,12 +637,12 @@ const PanelContent = memo(function PanelContent({
                       ariaLabel="Open entities in full page"
                     />
                   </Tooltip>
-                  <CreateEntityButton />
+                  <CreateEntityButton projectId={projectId} />
                 </>
               }
             />
           )}
-          <EntityListPanel />
+          <EntityListPanel projectId={projectId} />
         </FlexColumn>
       )}
       {activeView === "scripts" && (
@@ -657,7 +662,7 @@ const PanelContent = memo(function PanelContent({
               actions={<CreateScriptButton />}
             />
           )}
-          <ScriptListPanel />
+          <ScriptListPanel projectId={projectId} />
         </FlexColumn>
       )}
       {activeView === "jsscripts" && (
@@ -677,7 +682,7 @@ const PanelContent = memo(function PanelContent({
               actions={<CreateJsScriptButton />}
             />
           )}
-          <JsScriptListPanel />
+          <JsScriptListPanel projectId={projectId} />
         </FlexColumn>
       )}
       {activeView === "skills" && (
@@ -716,13 +721,13 @@ const PanelContent = memo(function PanelContent({
               description={headlineDescription}
               actions={
                 <>
-                  <CreateApplicationFromWorkflowButton />
+                  <CreateApplicationFromWorkflowButton projectId={projectId} />
                   <CreateApplicationButton />
                 </>
               }
             />
           )}
-          <ApplicationListPanel />
+          <ApplicationListPanel projectId={projectId} />
         </FlexColumn>
       )}
       {activeView === "settings" && currentWorkflow && (
@@ -837,7 +842,9 @@ const mobileHeaderExtrasStyles = (theme: Theme) =>
 
 // The create action each list view offers, mirroring the desktop panel
 // headlines (which mobile hides in favour of the sheet header).
-const MOBILE_CREATE_ACTIONS: Partial<Record<LeftPanelView, React.FC>> = {
+const MOBILE_CREATE_ACTIONS: Partial<
+  Record<LeftPanelView, React.ComponentType<{ readonly projectId?: string }>>
+> = {
   workflows: CreateWorkflowButton,
   chats: CreateChatButton,
   sketches: CreateSketchButton,
@@ -851,24 +858,25 @@ const MOBILE_CREATE_ACTIONS: Partial<Record<LeftPanelView, React.FC>> = {
 };
 
 const MobilePanelLeft: React.FC<{
-  activeView: LeftPanelView;
-  activeNodeCategory: NodeCategoryId;
-  setActiveNodeCategory: (id: NodeCategoryId) => void;
-  isVisible: boolean;
-  hasHeader: boolean;
-  onOpen: () => void;
-  onClose: () => void;
-  onViewChange: (view: LeftPanelView) => void;
-  handlePanelToggle: (view: LeftPanelView) => void;
+  readonly activeView: LeftPanelView;
+  readonly activeNodeCategory: NodeCategoryId;
+  readonly setActiveNodeCategory: (id: NodeCategoryId) => void;
+  readonly isVisible: boolean;
+  readonly hasHeader: boolean;
+  readonly onOpen: () => void;
+  readonly onClose: () => void;
+  readonly onViewChange: (view: LeftPanelView) => void;
+  readonly handlePanelToggle: (view: LeftPanelView) => void;
+  readonly projectId: string;
   /** Top-level views to omit, same as the desktop rail. */
-  hiddenViews?: readonly LeftPanelView[];
+  readonly hiddenViews?: readonly LeftPanelView[];
   /**
    * In the workspace shell the top row carries the launcher buttons
    * (MobileRailLauncher), so this variant renders only the sheet.
    */
-  hideLauncher?: boolean;
+  readonly hideLauncher?: boolean;
   /** Same condition as the desktop rail's showProjects. */
-  showProjects?: boolean;
+  readonly showProjects?: boolean;
 }> = ({
   activeView,
   activeNodeCategory,
@@ -879,6 +887,7 @@ const MobilePanelLeft: React.FC<{
   onClose,
   onViewChange,
   handlePanelToggle,
+  projectId,
   hiddenViews,
   hideLauncher = false,
   showProjects = false
@@ -998,7 +1007,7 @@ const MobilePanelLeft: React.FC<{
             </FlexRow>
 
             <Box sx={{ flex: 1 }} />
-            {CreateAction && <CreateAction />}
+            {CreateAction && <CreateAction projectId={projectId} />}
           </div>
         }
       >
@@ -1020,6 +1029,7 @@ const MobilePanelLeft: React.FC<{
                 activeNodeCategory={activeNodeCategory}
                 setActiveNodeCategory={setActiveNodeCategory}
                 handlePanelToggle={handlePanelToggle}
+                projectId={projectId}
                 isMobile
               />
             </ContextMenuProvider>
@@ -1036,12 +1046,14 @@ const PanelLeft: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const location = useLocation();
-  const { activeTabType, activeTabMode } = useWorkspaceTabsStore(
+  const { activeTabType, activeTabMode, projectId } = useWorkspaceTabsStore(
     useShallow((state) => {
       const tab = state.tabs.find((t) => t.id === state.activeTabId);
       return {
         activeTabType: tab?.type ?? null,
-        activeTabMode: tab?.mode ?? null
+        activeTabMode: tab?.mode ?? null,
+        projectId:
+          state.activeProjectId ?? state.personalProjectId ?? LOOSE_PROJECT_ID
       };
     })
   );
@@ -1137,6 +1149,7 @@ const PanelLeft: React.FC = () => {
         onClose={handleMobileClose}
         onViewChange={onViewChange}
         handlePanelToggle={handlePanelToggle}
+        projectId={projectId}
         hiddenViews={hiddenViews}
         hideLauncher={isWorkspace}
         showProjects={isWorkspace}
@@ -1210,6 +1223,7 @@ const PanelLeft: React.FC = () => {
               activeNodeCategory={activeNodeCategory}
               setActiveNodeCategory={setActiveNodeCategory}
               handlePanelToggle={handlePanelToggle}
+              projectId={projectId}
             />
           </div>
         </div>

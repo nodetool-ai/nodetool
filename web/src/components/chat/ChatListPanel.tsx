@@ -7,7 +7,10 @@ import AddIcon from "@mui/icons-material/Add";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { usePanelStore } from "../../stores/PanelStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  creationProjectId,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
 import ThreadList from "./thread/ThreadList";
@@ -46,11 +49,14 @@ const useOpenThreadTab = () => {
   );
 };
 
-export const CreateChatButton = memo(function CreateChatButton() {
+interface CreateChatButtonProps {
+  readonly projectId?: string;
+}
+
+export const CreateChatButton = memo(function CreateChatButton({
+  projectId
+}: CreateChatButtonProps) {
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
-  const activeProjectId = useWorkspaceTabsStore(
-    (state) => state.activeProjectId
-  );
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -58,11 +64,11 @@ export const CreateChatButton = memo(function CreateChatButton() {
 
   const handleCreate = useCallback(async () => {
     try {
-      const projectId = activeProjectId ?? "default";
+      const scopedProjectId = projectId ?? creationProjectId();
       const threadId = await createNewThread(undefined, undefined, {
-        projectId
+        projectId: scopedProjectId
       });
-      openThreadTab(threadId, undefined, projectId);
+      openThreadTab(threadId, undefined, scopedProjectId);
     } catch (error) {
       console.error("Failed to create new chat thread:", error);
       addNotification({
@@ -70,7 +76,7 @@ export const CreateChatButton = memo(function CreateChatButton() {
         content: "Could not start a new conversation. Please try again."
       });
     }
-  }, [createNewThread, openThreadTab, addNotification, activeProjectId]);
+  }, [createNewThread, openThreadTab, addNotification, projectId]);
 
   return (
     <Tooltip title="New chat" placement="right-start">
@@ -89,7 +95,11 @@ export const CreateChatButton = memo(function CreateChatButton() {
  * conversation is a workspace document like every other — the panel keeps the
  * thread list of the old fullscreen chat without taking over the screen.
  */
-const ChatListPanel = () => {
+interface ChatListPanelProps {
+  readonly projectId: string;
+}
+
+const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
   const [filterValue, setFilterValue] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const autoFocusEnabled = useAutoFocusEnabled();
@@ -115,9 +125,6 @@ const ChatListPanel = () => {
   );
   const setVisibility = usePanelStore((state) => state.setVisibility);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
-  const activeProjectId = useWorkspaceTabsStore(
-    (state) => state.activeProjectId
-  );
   const openThreadTab = useOpenThreadTab();
 
   const activeThreadId = activeTabId?.startsWith("chat:")
@@ -132,7 +139,6 @@ const ChatListPanel = () => {
     [threads, messageCache]
   );
 
-  const projectId = activeProjectId ?? "default";
   const threadsWithMessages = useMemo<Record<string, ThreadInfo>>(() => {
     const needle = filterValue.trim().toLowerCase();
     const result: Record<string, ThreadInfo> = {};

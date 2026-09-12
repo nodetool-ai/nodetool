@@ -5,8 +5,11 @@
 
 import { trpc } from "../../trpc/client";
 
-export const useStoryboards = () =>
-  trpc.storyboards.list.useQuery({}, { staleTime: 30_000 });
+export const useStoryboards = (projectId?: string) =>
+  trpc.storyboards.list.useQuery(projectId ? { projectId } : {}, {
+    staleTime: 30_000,
+    retry: false
+  });
 
 export const useCreateStoryboard = () => {
   const utils = trpc.useUtils();

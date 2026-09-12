@@ -14,6 +14,7 @@ import type { Workflow } from "../ApiTypes";
 jest.mock("../../trpc/client", () => ({
   trpcClient: {
     workflows: {
+      create: { mutate: jest.fn() },
       update: { mutate: jest.fn() },
       versions: { create: { mutate: jest.fn() } }
     }
@@ -66,6 +67,7 @@ import { trpcClient } from "../../trpc/client";
 import { createWorkflowManagerStore } from "../WorkflowManagerStore";
 
 const updateMutate = trpcClient.workflows.update.mutate as jest.Mock;
+const createMutate = trpcClient.workflows.create.mutate as jest.Mock;
 const versionMutate = trpcClient.workflows.versions.create.mutate as jest.Mock;
 
 describe("saveWorkflow first save", () => {
@@ -77,7 +79,8 @@ describe("saveWorkflow first save", () => {
 
   it("omits expected_updated_at for a never-persisted workflow, then sends the server revision", async () => {
     const store = createWorkflowManagerStore(new QueryClient());
-    const workflow = await store.getState().createNew();
+    const workflow = await store.getState().createNew("project-a");
+    expect(workflow.project_id).toBe("project-a");
 
     const serverUpdatedAt = "2026-08-14T12:00:00.000Z";
     updateMutate.mockResolvedValue({
@@ -89,6 +92,7 @@ describe("saveWorkflow first save", () => {
 
     expect(updateMutate).toHaveBeenCalledTimes(1);
     expect(updateMutate.mock.calls[0][0].expected_updated_at).toBeUndefined();
+    expect(updateMutate.mock.calls[0][0].project_id).toBe("project-a");
 
     // The workflow is persisted now — the second save must go back to
     // optimistic concurrency.
@@ -116,6 +120,20 @@ describe("saveWorkflow first save", () => {
 
     // The retry is still a first save: no expected_updated_at.
     expect(updateMutate.mock.calls[1][0].expected_updated_at).toBeUndefined();
+  });
+
+  it("keeps a workflow copy in the source project", async () => {
+    const store = createWorkflowManagerStore(new QueryClient());
+    const original = await store.getState().createNew("project-a");
+    const copy = await store.getState().copy(original);
+    createMutate.mockResolvedValue(copy);
+
+    await store.getState().create(copy);
+
+    expect(copy.project_id).toBe("project-a");
+    expect(createMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ project_id: "project-a" })
+    );
   });
 
   it("adopts the server revision even when the user edited during the save", async () => {

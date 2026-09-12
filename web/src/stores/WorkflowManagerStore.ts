@@ -305,8 +305,8 @@ export type WorkflowManagerState = {
     workflowId: string,
     options?: { makeCurrent?: boolean }
   ) => Promise<Workflow | undefined>;
-  newWorkflow: () => Workflow;
-  createNew: () => Promise<Workflow>;
+  newWorkflow: (projectId?: string) => Workflow;
+  createNew: (projectId?: string) => Promise<Workflow>;
   create: (
     workflow: WorkflowRequest,
     fromExamplePackage?: string,
@@ -426,7 +426,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * The workflow is only saved when saveWorkflow() is called for the first time.
        * @returns {Workflow} A new workflow object with default values
        */
-      newWorkflow: () => {
+      newWorkflow: (projectId?: string) => {
         const lastUsedWorkspaceId =
           useCurrentWorkspaceStore.getState().lastUsedWorkspaceId;
         const data: Workflow = {
@@ -447,6 +447,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           run_mode: "workflow",
           workspace_id: lastUsedWorkspaceId ?? null
         };
+        if (projectId) {
+          data.project_id = projectId;
+        }
         return data;
       },
 
@@ -479,7 +482,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         let data: Workflow;
         try {
           const graph = workflow.graph ?? { nodes: [], edges: [] };
-          data = (await trpcClient.workflows.update.mutate({
+          const updateInput: Parameters<
+            typeof trpcClient.workflows.update.mutate
+          >[0] = {
             id: workflow.id,
             name: workflow.name,
             access: workflow.access ?? "private",
@@ -497,7 +502,13 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             expected_updated_at: neverPersisted
               ? undefined
               : workflow.updated_at ?? undefined
-          })) as Workflow;
+          };
+          if (workflow.project_id) {
+            updateInput.project_id = workflow.project_id;
+          }
+          data = (await trpcClient.workflows.update.mutate(
+            updateInput
+          )) as Workflow;
         } catch (err) {
           throw createErrorMessage(err, "Failed to save workflow");
         }
@@ -617,8 +628,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * Does not save to server until saveWorkflow() is explicitly called.
        * @returns {Promise<Workflow>} The created workflow
        */
-      createNew: async () => {
-        const workflow = get().newWorkflow();
+      createNew: async (projectId?: string) => {
+        const workflow = get().newWorkflow(projectId);
         get().addWorkflow(workflow);
         set((state) => ({
           unsavedWorkflowIds: {
@@ -646,7 +657,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         let data: Workflow;
         try {
           const graph = workflow.graph ?? { nodes: [], edges: [] };
-          data = (await trpcClient.workflows.create.mutate({
+          const createInput: Parameters<
+            typeof trpcClient.workflows.create.mutate
+          >[0] = {
             name: workflow.name,
             access: workflow.access ?? "private",
             graph,
@@ -662,7 +675,13 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             html_app: workflow.html_app,
             from_example_package: fromExamplePackage,
             from_example_name: fromExampleName
-          })) as Workflow;
+          };
+          if (workflow.project_id) {
+            createInput.project_id = workflow.project_id;
+          }
+          data = (await trpcClient.workflows.create.mutate(
+            createInput
+          )) as Workflow;
         } catch (err) {
           throw createErrorMessage(err, "Failed to create workflow");
         }
@@ -728,7 +747,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (!workflow) {
           throw new Error("Workflow not found");
         }
-        const copiedWorkflow = {
+        const copiedWorkflow: Workflow = {
           id: crypto.randomUUID(),
           name: workflow.name,
           description: workflow.description,
@@ -741,6 +760,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           updated_at: new Date().toISOString(),
           settings: workflow.settings
         };
+        if (workflow.project_id) {
+          copiedWorkflow.project_id = workflow.project_id;
+        }
         return copiedWorkflow;
       },
 

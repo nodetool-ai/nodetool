@@ -90,19 +90,26 @@ export const CreateApplicationButton = memo(function CreateApplicationButton() {
   );
 });
 
+interface CreateApplicationFromWorkflowButtonProps {
+  readonly projectId?: string;
+}
+
 /**
  * One-way scaffold: creates a new app bound to the picked workflow as its
  * first operation. The app is a real, separate resource from that moment on —
  * nothing syncs back to the workflow.
  */
 export const CreateApplicationFromWorkflowButton = memo(
-  function CreateApplicationFromWorkflowButton() {
+  function CreateApplicationFromWorkflowButton({
+    projectId
+  }: CreateApplicationFromWorkflowButtonProps) {
     const [open, setOpen] = useState(false);
     const createApplication = useCreateApplication();
     const openApplication = useOpenApplication();
+    const scopedProjectId = projectId ?? creationProjectId();
     const { data, isLoading } = trpc.workflows.list.useQuery(
-      { cursor: "", limit: 100 },
-      { enabled: open }
+      { cursor: "", limit: 100, project_id: scopedProjectId },
+      { enabled: open, staleTime: 30_000, retry: false }
     );
 
     const handlePick = useCallback(
@@ -112,7 +119,7 @@ export const CreateApplicationFromWorkflowButton = memo(
           const created = await createApplication.mutateAsync({
             name: workflowName || UNTITLED,
             description: "",
-            projectId: creationProjectId(),
+            projectId: scopedProjectId,
             fromWorkflowId: workflowId
           });
           openApplication(created.id, created.name, created.projectId);
@@ -120,7 +127,7 @@ export const CreateApplicationFromWorkflowButton = memo(
           console.error("Failed to create app from workflow", error);
         }
       },
-      [createApplication, openApplication]
+      [createApplication, openApplication, scopedProjectId]
     );
 
     const workflows = data?.workflows ?? [];
@@ -173,10 +180,18 @@ export const CreateApplicationFromWorkflowButton = memo(
   }
 );
 
-const ApplicationListPanel = () => {
-  const { data, isLoading, isError, error } = useApplications();
+interface ApplicationListPanelProps {
+  readonly projectId: string;
+}
+
+const ApplicationListPanel = ({ projectId }: ApplicationListPanelProps) => {
+  const { data, isLoading, isError, error } = useApplications(projectId);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const openApplication = useOpenApplication();
+  const handleOpenApplication = useCallback(
+    (id: string, name: string) => openApplication(id, name, projectId),
+    [openApplication, projectId]
+  );
 
   const activeApplicationId = activeTabId?.startsWith("application:")
     ? activeTabId.slice("application:".length)
@@ -301,7 +316,7 @@ const ApplicationListPanel = () => {
           }
           active={app.id === activeApplicationId}
           editing={app.id === editingId}
-          onOpen={openApplication}
+          onOpen={handleOpenApplication}
           onContextMenu={handleContextMenu}
           onCommitRename={handleCommitRename}
           onCancelRename={() => setEditingId(null)}

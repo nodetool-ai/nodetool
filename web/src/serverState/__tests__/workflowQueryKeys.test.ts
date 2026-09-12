@@ -13,6 +13,12 @@ describe("workflowListQueryKey", () => {
     expect(workflowListQueryKey(200)).toEqual(workflowListQueryKey(200, ""));
   });
 
+  it("gives each project its own cache entry", () => {
+    expect(workflowListQueryKey(200, "", "project-a")).not.toEqual(
+      workflowListQueryKey(200, "", "project-b")
+    );
+  });
+
   it("keeps the shared prefix so ['workflows'] invalidation still matches", async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } }
