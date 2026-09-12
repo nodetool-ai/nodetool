@@ -147,6 +147,9 @@ class FakeProvider implements WorkerProvider {
   public costUsd: number | undefined;
   /** ws URL resume() reports back (defaults to a fresh one). */
   public resumeWsUrl = "wss://pod-resumed-7777.proxy.runpod.net";
+  /** Handle resume() reports back. Verda hands back a NEW one: it releases the
+   * machine on stop and boots a fresh one from the retained disk. */
+  public resumeProviderRef: string | null = null;
 
   async provision(spec: WorkerSpec): Promise<ProvisionResult> {
     this.provisioned.push(spec);
@@ -170,7 +173,7 @@ class FakeProvider implements WorkerProvider {
   async resume(ref: string): Promise<ProvisionResult> {
     this.resumed.push(ref);
     return {
-      providerRef: ref,
+      providerRef: this.resumeProviderRef ?? ref,
       wsUrl: this.resumeWsUrl,
       status: "running",
       costUsd: this.costUsd,
@@ -411,6 +414,29 @@ describe("WorkerManager — resume / terminate", () => {
     );
   });
 
+  it("resume adopts a provider handle that changed across the pause", async () => {
+    // A Verda pause DELETES the machine and keeps its disk, so resuming boots
+    // a new instance with a new handle. Dropping it would leave the registry
+    // pointing at a dead machine while the live one billed untracked, and a
+    // later stop/terminate would act on nothing.
+    const { manager, models, provider } = makeManager();
+    provider.resumeProviderRef = "verda:new-handle";
+    await manager.createProfile(PROFILE_INPUT);
+    const instance = await manager.provision("hf-a40");
+    await manager.stop(instance.id);
+
+    const resumed = await manager.resume(instance.id);
+
+    expect(resumed.provider_ref).toBe("verda:new-handle");
+    expect(models.instances.get(instance.id)?.provider_ref).toBe(
+      "verda:new-handle"
+    );
+
+    // The teardown that follows must target the NEW machine.
+    await manager.terminate(instance.id);
+    expect(provider.terminated).toEqual(["verda:new-handle"]);
+  });
+
   it("terminate destroys the provider resource and marks the instance terminated", async () => {
     const { manager, models, provider } = makeManager();
     await manager.createProfile(PROFILE_INPUT);
@@ -491,7 +517,9 @@ describe("WorkerManager — API key resolution", () => {
     await manager.provision("hf-a40");
 
     expect(getSecret).toHaveBeenCalledWith("RUNPOD_API_KEY", expect.anything());
-    expect(factory).toHaveBeenCalledWith("runpod", "secret-runpod-key");
+    expect(factory).toHaveBeenCalledWith("runpod", {
+      RUNPOD_API_KEY: "secret-runpod-key",
+    });
   });
 
   it("falls back to the environment when the secret store has no key", async () => {
@@ -505,7 +533,9 @@ describe("WorkerManager — API key resolution", () => {
 
       await manager.provision("hf-a40");
 
-      expect(factory).toHaveBeenCalledWith("runpod", "env-runpod-key");
+      expect(factory).toHaveBeenCalledWith("runpod", {
+        RUNPOD_API_KEY: "env-runpod-key",
+      });
     } finally {
       if (prev === undefined) {
         delete process.env.RUNPOD_API_KEY;
@@ -795,6 +825,7 @@ describe("WorkerManager — reconcile", () => {
       await expect(manager.apiKeyStatus()).resolves.toEqual({
         runpod: true,
         vast: true,
+        verda: true,
       });
     });
 
