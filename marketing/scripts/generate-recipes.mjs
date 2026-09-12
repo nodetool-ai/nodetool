@@ -322,8 +322,9 @@ function buildRecipe(spec, byExampleName) {
       name: spec.name,
       outcome: spec.outcome,
       audience: spec.audience,
-      heroThumbnail: steps.find((s) => s.entry.name === spec.hero).step
-        .thumbnail,
+      heroThumbnail:
+        spec.heroThumbnail ??
+        steps.find((s) => s.entry.name === spec.hero).step.thumbnail,
       bundle: `/recipes/${spec.slug}.nodetool`,
       workflowCount: steps.length,
       nodeCount: steps.reduce((n, s) => n + s.step.nodeCount, 0),

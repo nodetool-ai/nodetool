@@ -87,7 +87,7 @@ export const recipeEntries: RecipeEntry[] = [
     "name": "Directed campaign kit",
     "outcome": "Turn one product image into an approved campaign hero, two ready-to-edit formats, and one controlled revision.",
     "audience": "Small brand and social teams",
-    "heroThumbnail": null,
+    "heroThumbnail": "/apps/directed-campaign-kit.png",
     "bundle": "/recipes/directed-campaign-kit.nodetool",
     "workflowCount": 3,
     "nodeCount": 40,

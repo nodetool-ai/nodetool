@@ -13,21 +13,52 @@ export default function RecipeCard({
 }: RecipeCardProps) {
   const run = recipe.productionRun;
   if (!run) {
-    return (
-      <a
-        href={recipe.route}
-        className="focus-ring group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 p-6 transition-colors hover:border-amber-400/40 motion-reduce:transition-none"
-      >
-        <h3 className="mt-3 text-2xl font-semibold tracking-tight text-slate-100 group-hover:text-amber-200">
+    const copy = (
+      <div className="flex flex-1 flex-col p-6 md:p-8">
+        <p className="text-sm font-medium text-amber-300">Mini app case study</p>
+        <h3 className="mt-4 text-2xl font-semibold tracking-tight text-slate-100 md:text-3xl">
           {recipe.name}
         </h3>
-        <p className="mt-3 flex-1 text-base leading-relaxed text-slate-300">
+        <p className="mt-4 max-w-xl flex-1 text-base leading-relaxed text-slate-300">
           {recipe.outcome}
         </p>
-        <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-amber-300">
+        <a
+          href={recipe.route}
+          className="focus-ring mt-7 inline-flex w-fit items-center gap-2 rounded text-sm font-medium text-amber-300 transition-colors hover:text-amber-200 motion-reduce:transition-none"
+        >
           Follow the steps <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        </span>
-      </a>
+        </a>
+      </div>
+    );
+
+    if (recipe.heroThumbnail) {
+      return (
+        <article
+          className={
+            featured
+              ? "overflow-hidden rounded-3xl border border-white/10 bg-slate-950/70 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center"
+              : "overflow-hidden rounded-2xl border border-white/10 bg-slate-900/45"
+          }
+        >
+          <div className="bg-slate-950">
+            <Image
+              src={recipe.heroThumbnail}
+              alt={`${recipe.name} mini app`}
+              width={1960}
+              height={1590}
+              sizes={featured ? "(min-width: 1024px) 600px, 100vw" : "100vw"}
+              className="h-auto w-full object-contain"
+            />
+          </div>
+          {copy}
+        </article>
+      );
+    }
+
+    return (
+      <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 transition-colors hover:border-amber-400/40 motion-reduce:transition-none">
+        {copy}
+      </article>
     );
   }
 

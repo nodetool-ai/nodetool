@@ -67,6 +67,7 @@ test.describe("marketing smoke", () => {
     await expect(proof.getByText("Still to review")).toHaveCount(0);
 
     const expectedRoutes = [
+      "/recipes/directed-campaign-kit",
       "/recipes/viral-video-ad-engine",
       "/recipes/impossible-product-worlds",
       "/recipes/ecommerce-sku-visual-factory",
@@ -85,10 +86,22 @@ test.describe("marketing smoke", () => {
 
     for (const route of expectedRoutes) {
       const recipe = recipeEntries.find((entry) => entry.route === route)!;
-      const run = recipe.productionRun!;
       const project = proof.locator("article", {
         has: page.locator(`a[href="${route}"]`)
       });
+
+      if (!recipe.productionRun) {
+        await expect(
+          project.getByRole("heading", { name: recipe.name })
+        ).toBeVisible();
+        await expect(project.getByText(recipe.outcome)).toBeVisible();
+        await expect(
+          project.getByRole("img", { name: /directed campaign kit mini app/i })
+        ).toBeVisible();
+        continue;
+      }
+
+      const run = recipe.productionRun;
 
       await expect(
         project.getByRole("heading", { name: run.proofTitle })
@@ -98,19 +111,17 @@ test.describe("marketing smoke", () => {
       await expect(project.getByText(run.essentialLimitation)).toHaveCount(0);
     }
 
-    const adProject = proof.locator("article", {
-      has: page.locator('a[href="/recipes/viral-video-ad-engine"]')
+    const campaignProject = proof.locator("article", {
+      has: page.locator('a[href="/recipes/directed-campaign-kit"]')
     });
-    const adVideo = adProject.locator("video");
-    await expect(adVideo).toHaveCount(1);
-    await expect(adVideo).toHaveAttribute("controls", "");
-    await expect(adVideo).not.toHaveAttribute("autoplay", "");
-    await expect(adVideo).toHaveAttribute("preload", "none");
+    const campaignImage = campaignProject.getByRole("img", {
+      name: /directed campaign kit mini app/i
+    });
+    await expect(campaignImage).toHaveCount(1);
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(adVideo).toBeVisible();
-    expect((await adVideo.boundingBox())?.width ?? 0).toBeGreaterThan(300);
-    await expect(adProject.locator("img")).toHaveCount(0);
+    await expect(campaignImage).toBeVisible();
+    expect((await campaignImage.boundingBox())?.width ?? 0).toBeGreaterThan(300);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   });
 

@@ -4,6 +4,7 @@ import type { RecipeEntry } from "@/data/recipes";
 import RecipeCard from "./RecipeCard";
 
 const HOMEPAGE_RECIPE_ORDER = [
+  "directed-campaign-kit",
   "viral-video-ad-engine",
   "impossible-product-worlds",
   "ecommerce-sku-visual-factory",
