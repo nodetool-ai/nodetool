@@ -23,6 +23,159 @@
  */
 import type { DocumentOp } from "@nodetool-ai/protocol";
 
+/** Result returned by an adapter after the server accepts a snapshot. */
+export interface DocumentSyncSaveResult {
+  readonly updatedAt: string;
+}
+
+/** Surface-specific persistence and merge behavior used by the shared lifecycle. */
+export interface DocumentSyncLifecycle<TDraft> {
+  readonly debounceMs?: number;
+  readonly retryDelayMs?: number;
+  readonly maxRetries?: number;
+  readonly getDraft: () => TDraft | null;
+  readonly getRevision: () => string | null;
+  readonly isDirty: () => boolean;
+  readonly save: (draft: TDraft, revision: string) => Promise<DocumentSyncSaveResult>;
+  readonly recoverCasConflict: () => Promise<void>;
+  readonly onStatus?: (status: "saved" | "unsaved" | "saving" | "error" | "reloaded") => void;
+  readonly isCasConflict?: (error: unknown) => boolean;
+  readonly isRetryableError?: (error: unknown) => boolean;
+}
+
+/**
+ * Owns the timing and ordering of one document's writes. The adapter supplies
+ * snapshots, persistence, and merge behavior, while this controller ensures
+ * edits are debounced, writes never overlap, flushes wait for the active write,
+ * and a CAS rejection re-reads before retrying the unchanged draft.
+ */
+export interface DocumentSyncController {
+  markDirty(): void;
+  isSaving(): boolean;
+  flush(): Promise<{ ok: true; updatedAt: string | null } | { ok: false; error: string }>;
+  dispose(): void;
+}
+
+/** Create the lifecycle controller for one open document. */
+export function createDocumentSyncController<TDraft>(
+  adapter: DocumentSyncLifecycle<TDraft>
+): DocumentSyncController {
+  const debounceMs = adapter.debounceMs ?? 750;
+  const retryDelayMs = adapter.retryDelayMs ?? 5_000;
+  const maxRetries = adapter.maxRetries ?? 3;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let inFlight: Promise<{ ok: true; updatedAt: string | null } | { ok: false; error: string }> | null = null;
+  let flushRequested = false;
+  let disposed = false;
+  let retries = 0;
+
+  const clearTimer = (): void => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+  };
+
+  const schedule = (delay = debounceMs): void => {
+    clearTimer();
+    if (disposed) return;
+    timer = setTimeout(() => {
+      timer = null;
+      void save(false);
+    }, delay);
+  };
+
+  const save = (flush: boolean): Promise<{ ok: true; updatedAt: string | null } | { ok: false; error: string }> => {
+    if (inFlight) {
+      if (flush) flushRequested = true;
+      return inFlight;
+    }
+    const draft = adapter.getDraft();
+    const revision = adapter.getRevision();
+    if ((!flush && disposed) || !draft || !revision || !adapter.isDirty()) {
+      return Promise.resolve({ ok: true, updatedAt: revision });
+    }
+
+    adapter.onStatus?.("saving");
+    const pending = (async () => {
+      let nextDraft = draft;
+      let nextRevision = revision;
+      try {
+        while (true) {
+          try {
+            const result = await adapter.save(nextDraft, nextRevision);
+            retries = 0;
+            adapter.onStatus?.(adapter.isDirty() ? "unsaved" : "saved");
+            return { ok: true as const, updatedAt: result.updatedAt };
+          } catch (error) {
+            if (!adapter.isCasConflict?.(error)) {
+              adapter.onStatus?.("error");
+              if (!disposed && adapter.isRetryableError?.(error) !== false && retries < maxRetries) {
+                retries += 1;
+                schedule(retryDelayMs);
+              } else {
+                retries = 0;
+              }
+              return { ok: false as const, error: error instanceof Error ? error.message : String(error) };
+            }
+
+            try {
+              await adapter.recoverCasConflict();
+            } catch (recoveryError) {
+              adapter.onStatus?.("error");
+              return {
+                ok: false as const,
+                error: recoveryError instanceof Error ? recoveryError.message : String(recoveryError)
+              };
+            }
+            if (!flush) {
+              if (!disposed) {
+                adapter.onStatus?.("unsaved");
+                schedule(0);
+              }
+              return { ok: false as const, error: error instanceof Error ? error.message : String(error) };
+            }
+            const recoveredDraft = adapter.getDraft();
+            const recoveredRevision = adapter.getRevision();
+            if (!recoveredDraft || !recoveredRevision || !adapter.isDirty()) {
+              return { ok: true as const, updatedAt: recoveredRevision };
+            }
+            nextDraft = recoveredDraft;
+            nextRevision = recoveredRevision;
+          }
+        }
+      } finally {
+        inFlight = null;
+        if (flushRequested) {
+          flushRequested = false;
+          void save(true);
+        }
+      }
+    })();
+    inFlight = pending;
+    return pending;
+  };
+
+  return {
+    isSaving: () => inFlight !== null,
+    markDirty: () => {
+      if (disposed) return;
+      retries = 0;
+      adapter.onStatus?.("unsaved");
+      schedule();
+    },
+    flush: async () => {
+      clearTimer();
+      while (inFlight) await inFlight;
+      return save(true);
+    },
+    dispose: () => {
+      disposed = true;
+      clearTimer();
+      if (inFlight) flushRequested = true;
+      else void save(true);
+    }
+  };
+}
+
 /**
  * Where a document editor is in its initial server load. A surface that renders
  * an empty document while `"loading"` looks like an empty document, so surfaces
