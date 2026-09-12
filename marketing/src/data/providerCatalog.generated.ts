@@ -3582,10 +3582,10 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "atlascloud": {
     "id": "atlascloud",
-    "total": 157,
+    "total": 174,
     "counts": {
-      "video": 81,
-      "image": 76
+      "image": 80,
+      "video": 94
     },
     "topTags": [
       "video",
@@ -4232,6 +4232,51 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "google/gemini-omni-1.1-flash/image-to-video",
+        "name": "Gemini Omni 1.1 Flash — Image to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Google Gemini Omni 1.1 Flash — animates a first frame with an optional final frame and native audio.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "google/gemini-omni-1.1-flash/reference-to-video",
+        "name": "Gemini Omni 1.1 Flash — Reference to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Google Gemini Omni 1.1 Flash — generates consistent video with native audio from image and video references.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "google/gemini-omni-1.1-flash/text-to-video",
+        "name": "Gemini Omni 1.1 Flash — Text to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Google Gemini Omni 1.1 Flash — text-to-video with native audio and resolutions from draft quality to 4K.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "google/gemini-omni-1.1-flash/video-edit",
+        "name": "Gemini Omni 1.1 Flash — Video Edit",
+        "kind": "video",
+        "desc": "AtlasCloud / Google Gemini Omni 1.1 Flash — applies text-directed edits to a source video with optional image references.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "google/gemini-omni-1.1-flash/video-extend",
+        "name": "Gemini Omni 1.1 Flash — Video Extend",
+        "kind": "video",
+        "desc": "AtlasCloud / Google Gemini Omni 1.1 Flash — continues a source video with native audio and optional image references.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
         "id": "google/gemini-omni-flash/image-to-video",
         "name": "Gemini Omni Flash — Image to Video",
         "kind": "video",
@@ -4263,51 +4308,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Gemini Omni Flash — Video Edit",
         "kind": "video",
         "desc": "AtlasCloud / Google Gemini Omni Flash — edits an existing video from a text prompt with optional reference images.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "google/veo3.1-fast/image-to-video",
-        "name": "Veo 3.1 Fast — Image to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / Google Veo 3.1 Fast — speed-optimized image-to-video for fast previews and iteration.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "google/veo3.1-fast/text-to-video",
-        "name": "Veo 3.1 Fast — Text to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / Google Veo 3.1 Fast — speed-optimized text-to-video for rapid creative iteration.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "google/veo3.1-lite/image-to-video",
-        "name": "Veo 3.1 Lite — Image to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / Google Veo 3.1 Lite — cost-efficient image-to-video with synchronized audio at 720p/1080p.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "google/veo3.1-lite/start-end-frame-to-video",
-        "name": "Veo 3.1 Lite — Start and End Frame to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / Google Veo 3.1 Lite — interpolates between a first and a last frame.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "google/veo3.1-lite/text-to-video",
-        "name": "Veo 3.1 Lite — Text to Video",
-        "kind": "video",
-        "desc": "AtlasCloud / Google Veo 3.1 Lite — cost-efficient text-to-video with synchronized audio at 720p/1080p.",
         "tags": [
           "video"
         ]
