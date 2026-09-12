@@ -1,7 +1,7 @@
 /**
  * Landing-matrix page-data (PR-6). Each entry drives one `/solutions/<slug>`
  * page: a swappable hero + a featured template embed (the graph rendered from
- * that template's JSON via WorkflowGraphFromJson) + shared body sections.
+ * that template’s JSON via WorkflowFlowDiagram) + shared body sections.
  *
  * Two kinds share the same shape:
  *  - `use-case` — a concrete outcome ("make a music video")
