@@ -324,8 +324,7 @@ export default function Home() {
             </h2>
             <p className="mt-4 text-lg text-slate-300">
               Download the open-source studio for macOS, Windows, and Linux.
-              Free, AGPL-3.0, and built alongside working filmmakers, designers,
-              and video editors. Or try Cloud in your browser, in alpha, with
+              Free, AGPL-3.0. Or try Cloud in your browser, in alpha, with
               nothing to install.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">

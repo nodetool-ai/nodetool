@@ -192,10 +192,9 @@ export default function EditionsCompareSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
-            Same workflows, same building blocks, same providers. Pick the one
-            that suits how you work, and switch whenever you like. Both are
-            AGPL-3.0 open source: Cloud is simply our hosting of the same code
-            you can run yourself.
+            Same workflows, same building blocks, same providers, both
+            AGPL-3.0. Cloud is our hosting of the code you can run yourself.
+            Switch between them whenever you like.
           </motion.p>
         </header>
 
@@ -207,8 +206,8 @@ export default function EditionsCompareSection({
               <p className="text-sm text-slate-300 leading-relaxed">
                 <strong className="text-white">Best for:</strong> artists with
                 a good graphics card or an Apple Silicon Mac, big local model
-                collections, offline work, and anyone who wants everything kept
-                on their own disk.
+                collections, offline work, and everything kept on their own
+                disk.
               </p>
               <ul className="space-y-2.5">
                 {rows.map((r) => (
@@ -229,9 +228,8 @@ export default function EditionsCompareSection({
             <div className="p-5 space-y-4">
               <p className="text-sm text-slate-300 leading-relaxed">
                 <strong className="text-white">Best for:</strong> studios and
-                solo artists who want to start in seconds, work from any device,
-                and skip the hardware setup, while still using their own keys
-                with every provider.
+                solo artists who want to skip the hardware setup and work from
+                any device, still on their own keys.
               </p>
               <ul className="space-y-2.5">
                 {rows.map((r) => (
@@ -256,9 +254,8 @@ export default function EditionsCompareSection({
           <a href="/cloud" className="text-blue-300 hover:text-blue-200 underline underline-offset-2">
             Cloud
           </a>{" "}
-          is worth a look if you want to see the workspace without installing
-          anything, and it is in alpha until further notice. Your workflows move
-          freely between the two.
+          is for looking around without installing anything, and it is in alpha
+          until further notice. Workflows move freely between the two.
         </p>
       </div>
     </section>

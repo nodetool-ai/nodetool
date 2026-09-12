@@ -28,7 +28,7 @@ const routes: Route[] = [
   {
     name: "App builder",
     href: "/apps",
-    body: "Give a workflow a screen: inputs, a Run button, a place for the result. Hand it to a teammate who never sees the canvas.",
+    body: "Give a workflow a screen: inputs, a Run button, the result. Hand it to a teammate who never sees the canvas.",
     icon: AppWindow,
   },
   {
@@ -52,7 +52,7 @@ const routes: Route[] = [
   {
     name: "Assets and local models",
     href: "/studio",
-    body: "The desktop app keeps your files, your model library, and your keys on disk, and runs offline.",
+    body: "The desktop app keeps your files, models, and keys on disk, and runs offline.",
     icon: FolderOpen,
   },
   {
@@ -84,8 +84,7 @@ export default function UnderneathSection() {
           </h2>
           <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
             Chain models, editors, and code into a node graph you can re-run on
-            new inputs, ship as a mini-app, or drive headless from the CLI. Each
-            part has its own page.
+            new inputs, ship as an app, or drive headless from the CLI.
           </p>
         </header>
 

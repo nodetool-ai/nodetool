@@ -136,10 +136,9 @@ export default function ModelSupportSection({
                         className="text-lg text-slate-400 leading-relaxed"
                     >
                         Route your shots through the best video, image, audio,
-                        and language models on the market, or run open weights
-                        locally on your own hardware. Switch between them with
-                        one click, and pay each provider directly at their
-                        published price.
+                        and language models, or run open weights on your own
+                        hardware. Switch in one click. Pay each provider
+                        directly, at their published price.
                     </motion.p>
                 </div>
 
