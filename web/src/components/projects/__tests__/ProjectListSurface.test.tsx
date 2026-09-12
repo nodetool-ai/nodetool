@@ -7,32 +7,37 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
-const summaries = {
-  data: [
+const auroraSummary = {
+  project: {
+    id: "p1",
+    name: "Aurora Launch Spot",
+    kind: "spot",
+    createdAt: "2026-08-01T00:00:00.000Z",
+    updatedAt: "2026-08-29T00:00:00.000Z"
+  },
+  documents: [
     {
-      project: {
-        id: "p1",
-        name: "Aurora Launch Spot",
-        kind: "spot",
-        createdAt: "2026-08-01T00:00:00.000Z",
-        updatedAt: "2026-08-29T00:00:00.000Z"
-      },
-      documents: [
-        {
-          type: "storyboard",
-          ref: "b1",
-          name: "Board",
-          updatedAt: "2026-08-29T00:00:00.000Z",
-          status: { kind: "storyboard", shots: 8, stills: 8, clips: 6 },
-          spendUsd: 4.12,
-          unpricedCount: 0,
-          thumbnails: []
-        }
-      ],
-      spend: { totalUsd: 4.12, unpricedCount: 0, byCategory: [] }
+      type: "storyboard",
+      ref: "b1",
+      name: "Board",
+      updatedAt: "2026-08-29T00:00:00.000Z",
+      status: { kind: "storyboard", shots: 8, stills: 8, clips: 6 },
+      spendUsd: 4.12,
+      unpricedCount: 0,
+      thumbnails: []
     }
   ],
-  isPending: false
+  spend: { totalUsd: 4.12, unpricedCount: 0, byCategory: [] }
+};
+
+let summaries: {
+  data: unknown;
+  isPending: boolean;
+  error: Error | null;
+} = {
+  data: [auroraSummary],
+  isPending: false,
+  error: null
 };
 
 const unassigned = {
@@ -90,7 +95,14 @@ const renderSurface = () =>
     </ThemeProvider>
   );
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  summaries = {
+    data: [auroraSummary],
+    isPending: false,
+    error: null
+  };
+});
 
 describe("ProjectListSurface", () => {
   it("shows each project's derived status and spend", () => {
@@ -135,6 +147,13 @@ describe("ProjectListSurface", () => {
       dataTransfer: { getData: () => "workflow:some-id" }
     });
     expect(assignDocument).not.toHaveBeenCalled();
+  });
+
+  it("says when the project list failed to load", () => {
+    summaries = { data: undefined, isPending: false, error: new Error("boom") };
+    renderSurface();
+    expect(screen.getByText("Could not load projects")).toBeInTheDocument();
+    expect(screen.queryByText("Aurora Launch Spot")).not.toBeInTheDocument();
   });
 
   it("starts a project on the new-project surface", async () => {

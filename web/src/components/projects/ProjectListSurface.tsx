@@ -176,6 +176,8 @@ const ProjectListSurface = () => {
       <ScrollArea fullHeight sx={{ px: SPACING.xxl, py: SPACING.xl }}>
         {summaries.isPending ? (
           <LoadingSpinner />
+        ) : summaries.error ? (
+          <Caption color="error">Could not load projects</Caption>
         ) : (
           <Box
             sx={{
