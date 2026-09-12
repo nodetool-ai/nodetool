@@ -86,9 +86,9 @@ export default function ComparisonSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
-            A hosted platform will make the film, and it keeps the model list,
-            the billing, and the project. Here is the same table with the
-            studio open.
+            A hosted platform makes the film and keeps the model list, the
+            billing, and the project. Here is the same table with the studio
+            open.
           </motion.p>
         </header>
 
@@ -200,15 +200,15 @@ export default function ComparisonSection({
                 Pick the model. Pick the price.
               </h3>
               <p className="text-slate-300 leading-relaxed mb-4 text-[1.025rem]">
-                Take Seedance, one of today&apos;s best video models. It is sold
-                by FAL, Replicate, and KIE at different prices, and NodeTool
-                lets you pick the cheapest of the three. When the next Veo or
-                Kling arrives, you switch to it in one click.
+                Take Seedance, one of today&apos;s best video models. FAL,
+                Replicate, and KIE each sell it at a different price, and
+                NodeTool lets you pick the cheapest. When the next Veo or Kling
+                arrives, you switch in one click.
               </p>
               <p className="text-slate-400 leading-relaxed text-[1.025rem]">
                 That is what holding the keys buys you: the best model at the
-                best price each week, and nothing to lose if your favorite tool
-                gets bought, repriced, or shut down.
+                best price each week, and nothing to lose if a tool gets bought,
+                repriced, or shut down.
               </p>
             </div>
           </div>

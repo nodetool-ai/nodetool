@@ -44,7 +44,7 @@ const SURFACES: Surface[] = [
     label: "Storyboard",
     icon: Clapperboard,
     headline: "Visual storyboards",
-    body: "Board the film shot by shot. Generate cheap stills first to lock the look, then pay to animate only the shots you approved.",
+    body: "Board the film shot by shot. Generate cheap stills to lock the look, then animate only the shots you approved.",
     asset: "surface-storyboard",
   },
   {
@@ -52,7 +52,7 @@ const SURFACES: Surface[] = [
     label: "Script & voice",
     icon: FileText,
     headline: "Scripting & casting",
-    body: "Draft the dialogue, cast a voice per character, and audition alternate line readings. Change the words and the take flags itself stale, so you see exactly what still needs voicing.",
+    body: "Draft the dialogue, cast a voice per character, and audition alternate readings. Change the words and the take flags itself stale, so you see what still needs voicing.",
     asset: "surface-script",
   },
   {
@@ -60,7 +60,7 @@ const SURFACES: Surface[] = [
     label: "Timeline",
     icon: Film,
     headline: "Multi-track timeline",
-    body: "Arrange, trim, and layer generated video and audio across multiple tracks, down to the frame and the stem. The agent edits the same document when you ask it to tighten the opening.",
+    body: "Arrange, trim, and layer generated video and audio across tracks, down to the frame and the stem. The agent edits the same document when you ask it to tighten the opening.",
     asset: "surface-timeline",
   },
   {
@@ -68,7 +68,7 @@ const SURFACES: Surface[] = [
     label: "Sketch",
     icon: Brush,
     headline: "Layered drawing canvas",
-    body: "Sketch, paint with brushes, and blend hand-drawn elements with AI-generated layers. Bind a layer to a prompt and regenerate that layer alone.",
+    body: "Sketch, paint, and blend hand-drawn elements with generated layers. Bind a layer to a prompt and regenerate that layer alone.",
     asset: "surface-sketch",
   },
   {
@@ -184,9 +184,8 @@ export default function SurfaceShowcase() {
           </h2>
           <p className="text-lg text-slate-300">
             Storyboard, script, timeline, sketch, and 3D scene, all on the
-            canvas you generate on. A storyboard becomes a script, the script
-            becomes takes, the takes land on a multi-track timeline. The agent
-            works every one of them through the same tools you click.
+            canvas you generate on. The agent works every one of them through
+            the same tools you click.
           </p>
         </div>
 

@@ -33,10 +33,9 @@ export default function NodeToolHero() {
 
         <div className="hero-rise lg:col-span-5">
           <p className="max-w-lg text-lg leading-relaxed text-slate-300">
-            Create and edit images, video, audio, and text with agents that work
+            Create images, video, audio, and text with agents that work
             alongside you. Describe what you want, let the agent build it, then
-            take over whenever you like. Refine a shot, try a different voice, or
-            rework the cut, yourself or with the agent.
+            take over whenever you like.
           </p>
 
           <div className="mt-6 flex">
@@ -81,22 +80,9 @@ export default function NodeToolHero() {
           <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
             <HeroDemoPlayer
               alt="NodeTool: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film"
-              caption="One sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film. Recorded in the app — open it full screen to read the panels."
+              caption="One sentence becomes a storyboard, stills and clips, a cut on the timeline, and a finished film. Recorded in the app. Open it full screen to read the panels."
             />
           </div>
-        </div>
-        <div className="grid gap-6 border-t border-slate-800 pt-6 sm:grid-cols-2 lg:col-span-12">
-          <p className="max-w-xl text-sm leading-relaxed text-slate-400">
-            You get an editable project, not just a finished file. Your
-            workflows, assets, and edits stay together, so you can inspect how
-            something was made and change individual parts without starting
-            over.
-          </p>
-
-          <p className="max-w-xl text-sm leading-relaxed text-slate-400">
-            Run local models or connect cloud providers with your own API keys.
-            Choose your models and pay providers directly.
-          </p>
         </div>
       </div>
     </div>

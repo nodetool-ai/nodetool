@@ -18,7 +18,7 @@ const variants = {
         Made with <span className="text-blue-400">working creatives</span>
       </>
     ),
-    body: "NodeTool is open source under AGPL-3.0. Star the project on GitHub, join us on Discord, and share workflows with the artists, motion designers, and studios already using it on real jobs.",
+    body: "NodeTool is open source under AGPL-3.0. Star it on GitHub, join us on Discord, and share workflows with the artists and studios already using it on real jobs.",
     card: "rounded-3xl border border-white/10 bg-slate-900/40 backdrop-blur-xl p-8 md:p-16 text-center overflow-hidden relative",
     topBar:
       "absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50",

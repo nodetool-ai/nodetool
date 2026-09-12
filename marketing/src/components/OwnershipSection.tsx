@@ -7,22 +7,22 @@ import { Shield, FolderOpen, Globe, Lock } from "lucide-react";
 const features = [
   {
     title: "Bring your own keys",
-    body: "Connect directly to OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, and the specialized video models. Your keys stay on your disk in Studio, encrypted in Cloud.",
+    body: "Connect to OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, and the video specialists. Keys stay on your disk in Studio, encrypted in Cloud.",
     icon: Lock,
   },
   {
     title: "No markups",
-    body: "No credit packs, no subscription traps. If an image costs $0.03 at the provider, you pay $0.03 to the provider. NodeTool takes no cut.",
+    body: "If an image costs $0.03 at the provider, you pay $0.03 to the provider. No credit packs. NodeTool takes no cut.",
     icon: Shield,
   },
   {
     title: "Open source, end to end",
-    body: "Studio and Cloud are built from the same AGPL-3.0 source, with no paywalled features. Read it, fork it, or host it yourself at any time.",
+    body: "Studio and Cloud are built from the same AGPL-3.0 source, with no paywalled features. Read it, fork it, or host it yourself.",
     icon: Globe,
   },
   {
     title: "A project file that opens anywhere",
-    body: "The board, the script with its takes, and the multi-track cut are ordinary files on your disk. Export a .nodetool bundle and open it on another machine, or in a fork.",
+    body: "The board, the script with its takes, and the multi-track cut are ordinary files on your disk. Export a .nodetool bundle and open it anywhere.",
     icon: FolderOpen,
   },
 ];
@@ -57,9 +57,8 @@ export default function OwnershipSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            No locked project formats, no markups, no subscription tiers.
-            Bring your own keys and switch providers with one click. You own
-            the project file, the workflow, and the final cut.
+            Bring your own keys and switch providers in one click. You own the
+            project file, the workflow, and the final cut.
           </motion.p>
         </div>
 
@@ -102,7 +101,7 @@ export default function OwnershipSection({
         </motion.div>
 
         <p className="mt-10 text-center text-sm text-slate-400">
-          What that comes to in a month, model by model, is on the{" "}
+          What that costs a month, model by model, is on the{" "}
           <a
             href="/pricing#byok-calculator"
             className="text-blue-300 underline underline-offset-2 hover:text-blue-200 focus-ring"

@@ -47,7 +47,7 @@ export default function BuildRunDeploy() {
           title="Pitch"
           icon={<Workflow className="h-6 w-6" />}
           accent="blue"
-          description="Tell the agent your concept, style, and tone. It drafts the script, casts the voices, and sets the visual direction. Prefer to wire it yourself? It's the same canvas."
+          description="Tell the agent your concept, style, and tone. It drafts the script, casts the voices, and sets the visual direction."
         >
           <BuildVisual />
         </Card>
@@ -57,7 +57,7 @@ export default function BuildRunDeploy() {
           title="Automate"
           icon={<PlayCircle className="h-6 w-6" />}
           accent="fuchsia"
-          description="The agent storyboards scenes, generates the footage, syncs the audio, and cuts it all together on a multi-track timeline — running on your own accounts at provider prices."
+          description="The agent boards the scenes, generates the footage, syncs the audio, and cuts it on a multi-track timeline. On your keys, at provider prices."
         >
           <RunVisual />
         </Card>
@@ -67,7 +67,7 @@ export default function BuildRunDeploy() {
           title="Direct"
           icon={<Wand2 className="h-6 w-6" />}
           accent="amber"
-          description="Jump in at any moment. Swap a voice take, re-roll a clip, or trim frames. The agent builds the foundation; you refine the final cut."
+          description="Jump in at any moment. Swap a voice take, re-roll a clip, trim frames. The agent lays the foundation. You cut the final."
         >
           <EditVisual />
         </Card>

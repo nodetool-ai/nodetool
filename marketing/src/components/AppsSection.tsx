@@ -64,9 +64,8 @@ export default function AppsSection() {
             Apps for everything.
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-slate-400">
-            One job, one tool, one screen. Every app here is a shipped workflow
-            with a form on top, so an operator runs it without opening the
-            canvas.
+            One job, one tool, one screen. Each app is a shipped workflow with
+            a form on top, so an operator runs it without opening the canvas.
           </p>
         </header>
 
