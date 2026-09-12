@@ -9,53 +9,308 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [September 2026]
+
+Shipped [v0.7.0](https://github.com/nodetool-ai/nodetool/releases/tag/v0.7.0).
+
 ### Added
 
 #### UI/Frontend
-- Node bypass feature to skip nodes in workflows without deleting them
-- Professional image editor with crop, rotate, flip, and draw tools
-- Professional color picker with harmony modes, gradient builder, swatches, and contrast checker
-- Standalone chat window accessible from system tray
-- Standalone mini-app windows launchable from system tray
-- Getting Started Panel on Dashboard for improved onboarding
-- Audio player with WaveSurfer.js waveform visualization
-- Jobs panel with workflow info and elapsed time display
-- Result overlays on nodes showing output previews during execution
-- Unified WebSocket endpoint (/ws) for all real-time communication
-- Tab spinner indicator for running workflows
+- Guided creation flows for workflow, script, storyboard, timeline, and game documents
+- Game flow that exports a Godot project
+- Project picker above workspace tabs, with entities assigned to projects
+- Multiple chat threads per project
+- Memory as its own page, outside chat
+- Reference-to-video mode in chat, providers, and storyboard render
+- Shot editor under each storyboard card
+- Timeline MIDI tracks (piano roll, tempo grid, instruments, agent ops)
+- Timeline 3D clips, clip crop, film grain, audio-driven motion, subject mattes
+- Speech and music generation in the timeline composer
+- Chrome extension chat UI
+- Timeline zip import and export
 
-#### Documentation
-- Updated user interface guide with standalone chat and mini-app features
-- Added workflow editor documentation for node bypass and built-in editors
-- Enhanced tips and tricks with debugging using bypass nodes
-- Updated global chat documentation with standalone window feature
-- Improved getting started guide with onboarding panel section
+#### Nodes and runtime
+- `packages/storyboard`, `packages/game-nodes`, `packages/godot`, `packages/godot-templates`, `packages/blender-nodes`
+- Storyboard, script, and timeline graph nodes
+- Graph-resource examples, fixtures, and harness
+- Recipes shipped as apps, not loose workflows
+- GPT Image 2.5, Flux 3 Video Edit, and new FAL, KIE, and AtlasCloud models
+- Video upscale, interpolate, and outpaint task types
+- `audio_to_audio` provider capability
+- External MCP servers on the agent toolbelt
+- Generation recovery after reload or browser disconnect
 
-### Fixed
+### Changed
+
+#### UI/Frontend
+- Left-panel navigation consolidated
+- Setup and connect model pickers redesigned
+- Chat model stored per conversation
+
+#### Nodes
+- Dropped the `lib.apple` node library
+
+## [August 2026]
+
+### Added
+
+#### UI/Frontend
+- Projects as the workspace unit: data layer, overview, tab group, and new-project chat
+- New-project surface that starts from a brief or a skill
+- Mini-app deploy to a hidden URL without login
+- SVG as its own document, with agent visibility of the drawing
+- Sketch Deform transform; agents can place images and assets on sketch layers
+- App Builder form, capture, compare, pick, and Sketch Pad widgets
+- Cost estimates in timeline and sketch editors before a render
+- Chrome extension
+- Telegram package
+
+#### Agents
+- Immutable system skills
+- Plan mode with a real planner; plan results render as a document
+- Live browser as an agent capability (local headless Chrome screenshots)
+- OpenAI and Gemini web search; Brave image search with chat previews
+- Audio and video measurement tools, not only descriptions
+- Storyboard production skills
+- QuickJS sandbox-compiler and sandbox-packs
+
+#### Runtime
+- `packages/model3d`, `packages/browser`, `packages/system-skills`
+- AtlasCloud: 60 more image and video models
+- Topaz, Reve, Aki, Meshy, Rodin in the GenSpend price inventory
+- Timeline JS for custom clip animations; agents can inspect a rendered frame
+- Motion-graphics skill
+
+### Changed
+
+#### UI/Frontend
+- Dashboard removed; onboarding moved into the new-project surface
+- Starter tracks replaced with examples and tutorials
+- Storyboard restyled as a shot grid
+- Project agent uses the shared chat surface
+
+#### Nodes
+- Retired 24 nodes already covered by the sandbox and Code node
+- Dropped plan mode from the Agent node
+- Package Manager no longer lists bash, ruby, or lua
+
+### Removed
+- Cloud-profile browser tools under the production profile
+- Dashboard home
+
+## [July 2026]
+
+### Added
+
+#### UI/Frontend
+- Script editor: author, voice, timeline bridge, SRT/VTT export, agent tools
+- Storyboard surface with still/clip gallery, render queue, and assistant panel
+- Entities in @ mentions and storyboard shots
+- Code Node AI authoring with typed handles
+- Mini-app widgets: Sketch, Timeline, chat, AI, and the remaining Puck types
+- Image-editor and 3D-scene assistant panels
+- Undo/redo in script and storyboard
+- Provider onboarding when a capability is blocked
+- Shell-style prompt history in chat composers
+- Claude Desktop `.mcpb` install from the app
+
+#### Agents and CLI
+- Thread-level memory with typed resource references
+- Headless tool-loop evals for editor surfaces, app builder, and sub-agents
+- `nodetool` CLI: local DB reads, RAG collections, cost tracking, asset output modes
+- Google Workspace tools and nodes from Google login
+- Claude subscription login for the Claude Agent provider
+- VLM-judge creative critique tools
+
+#### Runtime
+- `packages/app-runtime`, `packages/model-pricing`, `packages/execution`
+- In-process `node-llama-cpp` provider with native function calling
+- 327 FAL models and 82 Replicate models (2026)
+- KIE webhook callbacks
+- Timeline preset motion design, animatable effects, per-word text animation
+- Nightly GenSpend price catalog sync
+- Flatpak as a Linux release target
+
+## [June 2026]
+
+### Added
+
+#### UI/Frontend
+- Library panel for global asset browsing
+- Timeline agent tools for AI video editing
+- 3D scene editing from chat
+- Timeline project settings (canvas size, fps), track reorder, playhead-anchored zoom
+- Optional node packs to thin the node menu
+- Draggable, resizable node menu with compact tiles
+- Dynamic outputs UI on content-card nodes
+- Code node runs in the browser
+- Beginner tutorials with Remotion demo videos
+- Chrome extension documentation
+- Movie Trailer Generator example and marketing page
 
 #### Electron
-- Fixed auto-updater crash when `app-update.yml` is missing on Windows
-  - Added `app-update.yml` to packaged app resources
-  - Hardened updater logic to gracefully handle missing config file
-  - Auto-updater now logs warnings instead of crashing when config is unavailable
+- Switchable vaults (multiple databases)
+- Local file references in desktop mode
 
-### Troubleshooting
+#### Runtime
+- `packages/reve-nodes`, `packages/huggingface-nodes`, `packages/minimax-nodes`, `packages/together-nodes`, `packages/compute`
+- Static workflow validation and CLI tools
+- xAI image and video generation
+- Text-to-music as a provider capability
+- Unified TTS picker for Fal, Kie, and ElevenLabs
+- AppleScript macOS automation nodes
+- Set/Get Variable nodes with Prompt-node UI
+- Asset Collection node
+- Claude Agent SDK with durable sessions
+- Next.js workflow-runner examples (Vercel and Cloudflare)
+- `nodetool generate` CLI
 
-#### Windows: Auto-update crash with "ENOENT: no such file or directory, app-update.yml"
+## [May 2026]
 
-If you encounter an error like:
-```
-Error: ENOENT: no such file or directory, open
-'C:\Users\<user>\AppData\Local\Programs\Nodetool\resources\app-update.yml'
-```
+### Added
 
-This is caused by a missing auto-update configuration file in older installations. To resolve:
+#### UI/Frontend
+- Timeline package: tracks view, inspector, standalone player, frame-by-frame export
+- Sketch / image-editor surface (tool rail, GENERATE inspector, selection action bar)
+- In-browser audio sample editor as a workspace tab
+- Canvas media composer; inline Run on the canvas
+- Monaco editor and type-aware preview for text tabs (CSV, markdown)
+- Queue view in the bottom panel
+- Costs analytics dashboard
+- "Run Node" as its own job; "Run From Here" as concurrent jobs
+- Prompt mentions that expand assets, folders, audio, and video
+- AtlasCloud in Settings → API Keys
 
-1. Uninstall Nodetool from Windows Settings > Apps
-2. Delete the installation directory: `C:\Users\<user>\AppData\Local\Programs\Nodetool\`
-3. Download and install the latest version from [GitHub releases](https://github.com/nodetool-ai/nodetool/releases)
+#### Runtime
+- `packages/timeline`, `packages/image-editor`, `packages/gpu`, `packages/sdk`, `packages/workflow-runner`
+- Domain node packs: audio, automation, code, core, data, document, image, integration, llm, text, video, atlascloud, topaz
+- AtlasCloud image and video nodes
+- Long-term memory for chat and agents
+- Browser as a fourth platform; WebGPU hybrid node tags
+- MCP App UIs for catalog tools
+- ElevenLabs v3 model and standard voice node
+- ComfyUI dynamic schema, live save-node outputs, progress, and logs
 
-This issue has been fixed in the latest release, and future installations will include the required configuration file.
+### Changed
+
+#### UI/Frontend
+- Onboarding tour replaced with a dashboard welcome flow
+- Floating toolbar became the canvas media composer
+- Chat UX aligned with the design system type scale and spacing
+
+## [April 2026]
+
+### Added
+
+#### UI/Frontend
+- Guided onboarding tour
+- Sandbox live view with VNC
+- Marketing site (hero, developers, screenshots)
+- Settings shortcut (Cmd/Ctrl+,)
+- Multi-task and graph agent modes in chat
+- Namespace icons in the node menu
+- Report-this-issue on node errors
+
+#### Runtime
+- Docker image builds and serves the web app
+- PostgreSQL / Supabase support and migration CLI
+- OpenTelemetry tracing for agents, workflows, and LLM calls
+- Sandbox workflow nodes, asset bridge, and auto-persist of sandbox outputs
+- Transformers.js provider and nodes (NLP, vision, audio, Kokoro TTS)
+- TensorFlow.js model nodes
+- GraphPlanner, FindModelTool, and provider-backed media tools
+- Pre-flight graph validation with per-property errors in the UI
+- DeepSeek, xAI (Grok), Cohere, Voyage AI, and Jina embedding providers
+- Together image, TTS, ASR, embedding, and video
+- 53 new FAL endpoints
+- `nodetool agent` CLI (YAML agents with traces)
+
+## [March 2026]
+
+### Added
+
+#### Backend
+- TypeScript backend packages: agents, auth, base-nodes, chat, cli, config, kernel, models, node-sdk, protocol, runtime, security, storage, websocket, deploy, dsl
+- Provider codegen: FAL, Replicate, KIE
+- Node packs: fal-nodes, replicate-nodes, kie-nodes, elevenlabs-nodes, huggingface, vectorstore
+- Fastify WebSocket server
+- Python nodes over a lazy stdio bridge (no Docker WebSocket bridge)
+- ComfyUI executor: local and RunPod, with node-definition fetch
+- Package Manager Runtimes tab (install, uninstall, workflow runtime check)
+- Claude Agent provider (subscription login)
+- Multi-agent TeamLead + Agent architecture
+- MiniJSAgentTool: sandboxed JS for agents
+- DSL snippet sidebar and generated DSL updates
+
+#### UI/Frontend
+- Portal home (conversational) in place of the dashboard
+- Agent mode selector in the chat composer
+- Code node in node-menu quick actions
+- Phase 3 and 4 UI primitives (Checkbox, ContextMenu, TextInput, DataTable, and others)
+- ARIA labels on icon-only buttons and chat mode toggles
+
+### Changed
+
+#### Runtime
+- Server can start without Python; the bridge starts only when a graph needs it
+- Local-only features gated with `NODETOOL_ENV=production`
+
+## [February 2026]
+
+### Added
+
+#### UI/Frontend
+- Standalone Chat App from the system tray
+- Quick Add Node dialog
+- Node snippets
+- Inspector for single- and multi-select node properties
+- File tabs (FileTabsStore, FileTabHeader, FileTabContent)
+- WorkflowNode for sub-workflow execution
+- ComfyUI graphs as workflow graphs in the editor
+- Duplicate and Duplicate Vertical in the node context menu
+- Run selected nodes
+- Constant node from an output menu, with edge wiring
+- Data-flow particle animation on edges
+- Keyboard shortcut hints and KeyboardShortcutCard
+- Real-time validation for required node settings
+- Dynamic FAL schema node
+- 3D generation
+- Quick-action, favorite, and recent tiles in the node menu
+- Minimap type colors and legend
+
+#### Electron
+- Configurable model-service startup and tray status
+- Tray install buttons for managed services
+- IPC log bridge (renderer to main)
+- Windows Electron development mode
+- Flatpak packaging for Linux
+
+## [January 2026]
+
+### Added
+
+#### UI/Frontend
+- Image editor on the asset panel (crop, rotate, flip, draw) with backend persistence
+- Jobs panel with grouped jobs, duration, and a vertical toolbar
+- Image, video, audio, and text list properties
+- Native file picker for image properties in Electron
+- Output node for workflow outputs
+- Mini-app list inputs, cancel, duration tracking, and bypassed-node handling
+- Custom edges
+- Dialog UI primitive and a first set of shared primitives
+- Clipboard paste for images, HTML, RTF, and text
+- CSV/Excel drop zone on DataframeProperty
+- EmbeddingModelProperty
+- Enum support on properties
+- Node bypass in the MiniApp runner
+
+#### Runtime
+- Z.AI provider (OpenAI-compatible client)
+- Shell CLI installer with micromamba bootstrap
+
+#### Documentation and tests
+- Image editor docs, VibeCoding docs, mobile app docs
+- E2E coverage for CRUD, accessibility, node ops, error handling, execution, import/export
 
 ## [Unreleased] - 2025-12-20
 
@@ -255,6 +510,24 @@ This issue has been fixed in the latest release, and future installations will i
 
 - Updated Windows release process with code signing
 - Enhanced Azure code signing for improved security
+
+### Troubleshooting
+
+#### Windows: Auto-update crash with "ENOENT: no such file or directory, app-update.yml"
+
+If you encounter an error like:
+```
+Error: ENOENT: no such file or directory, open
+'C:\Users\<user>\AppData\Local\Programs\Nodetool\resources\app-update.yml'
+```
+
+This is caused by a missing auto-update configuration file in older installations. To resolve:
+
+1. Uninstall Nodetool from Windows Settings > Apps
+2. Delete the installation directory: `C:\Users\<user>\AppData\Local\Programs\Nodetool\`
+3. Download and install the latest version from [GitHub releases](https://github.com/nodetool-ai/nodetool/releases)
+
+This issue has been fixed in the latest release, and future installations will include the required configuration file.
 
 ## [November 2025]
 
