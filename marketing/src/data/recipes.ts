@@ -134,7 +134,9 @@ export interface RecipeGuide {
 export interface RecipeProductionRun {
   runId: string;
   status: "partial" | "accepted";
+  reviewLabel: string;
   statusLabel: string;
+  proofTitle: string;
   summary: string;
   provider: string;
   hero: RecipeProductionMedia;
@@ -148,6 +150,7 @@ export interface RecipeProductionRun {
     caption: string;
   } | null;
   supportedClaims: string[];
+  essentialLimitation: string;
   limitations: string[];
 }
 

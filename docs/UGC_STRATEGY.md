@@ -2,18 +2,19 @@
 layout: page
 title: "UGC Strategy"
 permalink: /ugc-strategy
-description: "Creator-driven distribution strategy for NodeTool — the Higgsfield playbook, what transfers to an open BYOK tool, and a 90-day plan."
+description: "Creator-driven distribution strategy for NodeTool, adapted for an open BYOK tool with a 90-day plan."
 ---
 
-Research basis: external research on Higgsfield, PixVerse, OpenArt, Freepik/Magnific, and Krea
-(sources linked inline), plus an audit of NodeTool's own distribution surfaces — the example
+Research basis: external reporting on closed creative platforms, plus first-party material from
+PixVerse, OpenArt, Freepik/Magnific, and Krea where linked below. The plan also audits NodeTool's
+own distribution surfaces — the example
 workflow gallery, the example mini apps and their generated `/apps/*` landing pages, the `demo/`
 Remotion cast harness, and [SEO_STRATEGY.md](SEO_STRATEGY.md). Written 2026-08-18. Numbers about
 competitors decay fast; re-verify before quoting them externally.
 
-**The one-line thesis:** Higgsfield replaced performance marketing with paid creators posting
-template-made videos, and it reached ~$300M ARR in 11 months doing it. NodeTool cannot copy the
-mechanism (we have no credit currency and no engagement budget), but it can copy the structure:
+**The one-line thesis:** A closed creative platform replaced much of its performance marketing
+with paid creators posting template-made videos. NodeTool cannot copy the mechanism (we have no
+credit currency and no engagement budget), but it can copy the structure:
 a high-cadence template engine, a distinctive shareable artifact, and a creator program that pays
 in things an open-source BYOK tool actually has.
 
@@ -22,33 +23,29 @@ bounties. Every incentive in this plan is one we can grant at no marginal cost: 
 featuring, early access, and shipping a creator's work inside the product. The spend is team
 time — mostly the weekly template and its demo clip.
 
-## 1. What Higgsfield did
+## 1. What the closed-platform model did
 
-The [Product Growth teardown](https://www.productgrowth.blog/p/higgsfield-growth-teardown),
-[Sacra](https://sacra.com/c/higgsfield/), and
-[Forbes](https://www.forbes.com/sites/rashishrivastava/2026/02/11/racist-videos-and-payment-problems-the-dark-side-of-this-ai-startups-super-fast-growth/)
-agree on the mechanics:
+External reporting and first-party material describe these mechanics:
 
-1. **Presets, not prompts.** 100+ cinematic templates (dolly-ins, crash-zooms, FPV drone shots)
-   made "click-to-video" the product. Ten new presets shipped daily; underperformers were cycled
-   out on engagement data. The preset is the unit of virality: a viewer sees an effect, wants that
-   exact effect, and the preset name is the search query that converts.
-2. **Creators as the paid channel.** Higgsfield Earn paid creators on real-time engagement
-   metrics: 50,000+ submissions, ~90% approval, $1M+ paid to 10,000+ creators. Mid-tier and micro
-   creators got polished templates to showcase; the company got 3B+ organic impressions and
-   300,000 paying subscribers in a year — more reach than paid ads would have bought.
+1. **Presets, not prompts.** Cinematic templates (dolly-ins, crash-zooms, FPV drone shots)
+   made "click-to-video" the product. New presets shipped frequently, and underperformers were
+   cycled out using engagement data. The preset is the unit of virality: a viewer sees an effect,
+   wants that exact effect, and the preset name is the search query that converts.
+2. **Creators as the paid channel.** The platform paid creators according to real-time engagement.
+   Mid-tier and micro creators got polished templates to showcase, while the company gained
+   distribution outside paid ads.
 3. **A partner tier above the mercenary tier.** The
-   [Creator Partnership Program](https://higgsfield.ai/blog/creator-partnership-program) pays in
+   creator partnership program pays in
    plan + monthly credits, early model access, and featuring — audience size explicitly does not
    matter, only that AI content is central to the creator's work.
 4. **Persistent characters.** Soul ID gave creators consistent AI personas they could run as
    accounts — turning one-off outputs into ongoing series, which is what platforms reward.
-5. **Move upmarket on the same asset.** Marketing Studio / Hermes and UGC Factory resold the same
-   preset engine to social media marketers, who became
-   [85% of usage](https://sacra.com/c/higgsfield/) and the durable revenue base.
+5. **Move upmarket on the same asset.** The company repackaged the same preset engine for social
+   media marketers, who became its durable revenue base.
 
-**Where it broke.** Paying on raw engagement with no content review bought shock-value content —
-Forbes documented payment offered for deliberately offensive videos — plus creator payment
+**Where it broke.** Paying on raw engagement with no content review bought shock-value content.
+[Forbes](https://www.forbes.com/sites/rashishrivastava/2026/02/11/racist-videos-and-payment-problems-the-dark-side-of-this-ai-startups-super-fast-growth/)
+documented payment offered for deliberately offensive videos, plus creator payment
 disputes and an X account suspension for inauthentic behavior. The lesson is not "don't pay
 creators"; it is that the approval gate must score content quality, not engagement alone, and
 that paying creators late destroys the channel.
@@ -58,7 +55,7 @@ that paying creators late destroys the channel.
 - **PixVerse** runs the classic [affiliate motion](https://pixverse.ai/en/affiliate): 30%
   recurring for 12 months, 90-day cookie, 2-tier payouts, and — notably — distributes playbooks
   from top affiliates on which hooks and formats convert. The playbook *is* the enablement.
-- **OpenArt** splits the two tiers the way Higgsfield does: a
+- **OpenArt** splits the two tiers the way the closed platform does: a
   [Creative Partner Program](https://openart.ai/programs/cpp) paying in tools, early access, and
   collaboration, plus a separate [affiliate program](https://openart.ai/programs/affiliate) for
   commission-motivated referrers.
@@ -74,7 +71,7 @@ link, and the partner tier pays in access and featuring, not only cash.
 
 ## 3. What transfers to NodeTool — and what does not
 
-| Higgsfield mechanism | NodeTool equivalent | Status |
+| Closed-platform mechanism | NodeTool equivalent | Status |
 |---|---|---|
 | Preset (click-to-video) | Example workflow / example mini app, installable in one click | Exists — 61 example workflows, curated app bundles, `/apps/*` landing pages |
 | Preset engine (10/day, cull losers) | Trend-reactive template cadence with kill criteria | Missing — examples ship with releases, not with trends |
@@ -86,12 +83,12 @@ link, and the partner tier pays in access and featuring, not only cash.
 
 Two structural differences do the work:
 
-**BYOK cuts both ways.** We cannot hand out credits, but every Higgsfield-style tool meters
+**BYOK cuts both ways.** We cannot hand out credits, but every credit-based tool meters
 credits — and creator comment sections fill with "how many credits does this cost?" NodeTool's
 answer ("your keys, provider prices, no markup") is a hook in itself, and it means a creator's
 audience can reproduce the result without a paywall between them and the first output.
 
-**The canvas is the format.** A Higgsfield video looks like every other AI video. A screen
+**The canvas is the format.** A closed-platform video looks like every other AI video. A screen
 recording that ends by zooming out from the output to the node graph that made it is instantly
 attributable to NodeTool — the watermark is the product. The `demo/` Remotion harness already
 replays recorded graph-UI casts into polished video; pointing it at user-submitted casts turns
@@ -103,12 +100,12 @@ replays recorded graph-UI casts into polished video; pointing it at user-submitt
 
 - Ship **one trend-reactive template per week** as a floor: an example workflow + mini app bundle
   built around whatever effect is currently moving on TikTok/Reels/Shorts, named after the effect
-  the way Higgsfield names presets ("the search query is the name").
+  the way closed platforms name presets ("the search query is the name").
 - Each template ships with: the installable bundle, an `/apps/*` landing page (the generator in
   `marketing/scripts/generate-miniapp-entries.mjs` already does this), a 15–30s canvas-reveal
   clip rendered through the `demo/` harness, and a caption block creators can paste.
 - **Kill criteria, stated up front:** a template that produces no measurable installs or social
-  pickup in 30 days is retired from the featured row. Higgsfield's daily cull is the discipline
+  pickup in 30 days is retired from the featured row. A daily cull is the discipline
   to copy even at weekly cadence.
 
 ### 4.2 The signature format: output → canvas reveal
@@ -116,18 +113,18 @@ replays recorded graph-UI casts into polished video; pointing it at user-submitt
 Standardize one recognizable clip shape and use it everywhere (our channels and creator
 enablement kits): hook with the finished output for 3–5 seconds, cut or zoom out to the canvas,
 scrub one or two parameter changes live, end on the template name + "free, open source, your own
-keys." This is Krea's insight (the tool on screen is the content) fused with Higgsfield's
-(the named effect is the search query).
+keys." This combines Krea's insight that the tool on screen is the content with
+the closed-platform insight that the named effect is the search query.
 
 ### 4.3 Creator program, adapted
 
-Two tiers, mirroring the OpenArt/Higgsfield split, paid entirely in non-cash currency:
+Two tiers, mirroring the OpenArt/closed-platform split, paid entirely in non-cash currency:
 
-- **Partners** (apply, curated, size-blind like Higgsfield's): early access to releases, featured
+- **Partners** (apply, curated, size-blind): early access to releases, featured
   placement on the site and example gallery with attribution and a link, a direct channel to the
   team, and their templates shipped as named examples ("the *X* workflow by *creator*"). For an
   audience of makers, having your workflow ship inside the product — with a permanent link on its
-  `/apps/*` page — is compensation Higgsfield cannot offer at any price.
+  `/apps/*` page — is compensation a closed platform cannot offer at any price.
 - **Template wanted-list** (open, contribution-based): a public list of templates we want (trend
   effects, model showcases, persistent-character series), run like open-source issues. An
   accepted submission — judged on a published quality bar + `nodetool validate` passing + a
@@ -136,7 +133,7 @@ Two tiers, mirroring the OpenArt/Higgsfield split, paid entirely in non-cash cur
   the same motivation that produces pull requests produces presets, and it costs review time,
   not money.
 
-The quality-gated acceptance rule is the direct correction of Higgsfield's failure mode:
+The quality-gated acceptance rule directly corrects the closed-platform failure mode:
 engagement-metered rewards selected for shock content. We reward acceptance, not reach.
 
 ### 4.4 Persistent characters as a template category
@@ -148,7 +145,7 @@ subscription-locked persona tools.
 
 ### 4.5 What we explicitly do not do
 
-- **No paid creators, no cash bounties, no ad spend.** There is no budget, and Higgsfield's
+- **No paid creators, no cash bounties, no ad spend.** There is no budget, and the closed-platform
   trajectory shows the paid version is also the dangerous one: engagement-metered payouts
   selected for shock content, and late payments burned the channel.
 - **No affiliate program yet.** Recurring-commission affiliates need a metered subscription to

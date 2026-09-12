@@ -158,7 +158,7 @@ compared against it before the reader had seen a single finished job. That
 section is gone.
 
 The reason is not politeness. Naming Runway, LTX Studio, Figma Weave, Flora or
-Higgsfield on our homepage puts their name in the reader's head at our expense
+Naming a competitor on our homepage puts their name in the reader's head at our expense
 and asks them to accept a competitive claim before they have any reason to
 trust us. None of those companies names anyone on their own front page. The
 strong move is the same one they make: show what the product does and let the

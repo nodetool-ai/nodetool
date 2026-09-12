@@ -179,7 +179,11 @@ function buildProductionRun(spec) {
       );
     }
   }
-  return run;
+  return {
+    ...run,
+    reviewLabel:
+      run.status === "partial" ? "Partial example" : "Reviewed example"
+  };
 }
 
 /** Publish supplied captures without altering the pixels or inventing UI. */

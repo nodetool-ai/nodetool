@@ -156,7 +156,7 @@ Audience-specific taglines:
 Use these differentiators verbatim on `/compare/*` pages.
 
 The homepage compares against one competitor set: the **closed AI studios**
-(Runway, LTX Studio, Figma Weave, Flora, Higgsfield). That is who a production
+(Runway, LTX Studio, Figma Weave, Flora). That is who a production
 team is choosing between. The other columns feed `/alternatives/*` pages.
 
 | Dimension | NodeTool | Closed AI studios (Runway, LTX Studio, Figma Weave) | ComfyUI | Zapier / Make / n8n | Langflow / Flowise / Dify |

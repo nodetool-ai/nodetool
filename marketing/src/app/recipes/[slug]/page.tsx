@@ -11,7 +11,6 @@ import RecipeCard from "@/components/RecipeCard";
 import { recipeEntries } from "@/data/recipes";
 
 const BASE_URL = "https://nodetool.ai";
-const APP_URL = "https://app.nodetool.ai/workspace";
 
 interface RecipePageProps {
   params: Promise<{ slug: string }>;
@@ -50,7 +49,7 @@ export default async function RecipePage({ params }: RecipePageProps) {
   const preview = entry.guide.steps.find(
     (step) => step.stage === "Entities" || step.stage === "Voices"
   )?.image;
-  const hero = preview ?? entry.productionRun?.hero;
+  const hero = entry.productionRun?.hero ?? preview;
   const howToLd = {
     "@context": "https://schema.org",
     "@type": "HowTo",
@@ -74,8 +73,8 @@ export default async function RecipePage({ params }: RecipePageProps) {
     <main className="overflow-clip-safe relative min-h-screen bg-slate-950 text-slate-100">
       <SiteHeader />
       <JsonLd data={howToLd} />
-      <div className="relative pt-28">
-        <section className="pt-10 pb-12">
+      <div className="relative pt-24 lg:pt-28">
+        <section className="pt-6 pb-12 lg:pt-10">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <a
               href="/recipes"
@@ -84,10 +83,10 @@ export default async function RecipePage({ params }: RecipePageProps) {
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               All recipes
             </a>
-            <div className="mt-8 grid items-center gap-10 lg:grid-cols-[0.85fr_1.15fr]">
-              <div>
+            <div className="mt-6 grid gap-x-10 gap-y-6 lg:mt-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-y-0">
+              <div className="lg:col-start-1 lg:row-start-1 lg:self-end">
                 <p className="text-sm font-medium text-amber-300">
-                  {entry.guide.entry} guided flow
+                  NodeTool example project
                 </p>
                 <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
                   {entry.name}
@@ -95,17 +94,48 @@ export default async function RecipePage({ params }: RecipePageProps) {
                 <p className="mt-5 text-lg leading-relaxed text-slate-300">
                   {entry.outcome}
                 </p>
-                <p className="mt-4 text-sm text-slate-400">
+              </div>
+              {hero && (
+                <figure className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
+                  <Image
+                    src={hero.src}
+                    alt={hero.alt}
+                    width={hero.width ?? (entry.productionRun ? 1600 : 3200)}
+                    height={hero.height ?? (entry.productionRun ? 900 : 2000)}
+                    quality={90}
+                    sizes="(min-width: 1024px) 640px, calc(100vw - 48px)"
+                    priority
+                    className="h-auto w-full rounded-xl border border-white/15 bg-slate-950"
+                  />
+                  <figcaption className="mt-3 text-sm leading-relaxed text-slate-400">
+                    {hero.caption ?? hero.alt}
+                  </figcaption>
+                </figure>
+              )}
+              <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
+                <p className="text-sm text-slate-400 lg:mt-4">
                   For {entry.audience.charAt(0).toLowerCase()}
                   {entry.audience.slice(1)}
                 </p>
+                {entry.productionRun && (
+                  <p className="mt-5 text-sm leading-relaxed text-slate-300">
+                    <span className="font-medium text-amber-200">
+                      {entry.productionRun.reviewLabel}
+                    </span>
+                    {" · "}
+                    {entry.productionRun.statusLabel}
+                  </p>
+                )}
                 <div className="mt-8 flex flex-wrap items-center gap-4">
                   <a
-                    href={APP_URL}
+                    href="/download"
                     className="focus-ring inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-amber-300"
                   >
-                    Open NodeTool{" "}
-                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    Download NodeTool Studio{" "}
+                    <ArrowRight
+                      className="h-4 w-4 shrink-0"
+                      aria-hidden="true"
+                    />
                   </a>
                   <a
                     href="#guided-flow"
@@ -115,35 +145,18 @@ export default async function RecipePage({ params }: RecipePageProps) {
                   </a>
                 </div>
                 <p className="mt-4 text-sm text-slate-400">
-                  Create a project, then choose {entry.guide.entry}.
+                  Install Studio, create a project, then choose{" "}
+                  {entry.guide.entry}. Use the example brief and your own
+                  provider keys to begin.
                 </p>
               </div>
-              {hero && (
-                <figure className="min-w-0">
-                  <Image
-                    src={hero.src}
-                    alt={hero.alt}
-                    width={preview ? (preview.width ?? 3200) : 1600}
-                    height={preview ? (preview.height ?? 2000) : 900}
-                    quality={90}
-                    sizes="(min-width: 1024px) 640px, 100vw"
-                    priority
-                    className="h-auto w-full rounded-xl border border-white/15 bg-slate-950"
-                  />
-                  <figcaption className="mt-3 text-sm leading-relaxed text-slate-400">
-                    {preview
-                      ? preview.caption
-                      : "Three opening compositions from the example product ad."}
-                  </figcaption>
-                </figure>
-              )}
             </div>
           </div>
         </section>
-        <RecipeGuide guide={entry.guide} />
         {entry.productionRun && (
           <RecipeProductionRun run={entry.productionRun} />
         )}
+        <RecipeGuide guide={entry.guide} />
         <section className="py-16">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="flex flex-col justify-between gap-6 border-y border-white/10 py-8 md:flex-row md:items-center">
@@ -153,28 +166,22 @@ export default async function RecipePage({ params }: RecipePageProps) {
                   {entry.guide.entry === "Script" ? "script" : "idea"}
                 </h2>
                 <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-300">
-                  Open NodeTool and choose {entry.guide.entry}. The guide takes
-                  you through the setup, and the editors let you keep refining
-                  each part.
+                  Install NodeTool Studio, create a project, and choose{" "}
+                  {entry.guide.entry}. Add your brief and references, then
+                  connect your provider keys before generating media.
                 </p>
               </div>
               <a
-                href={APP_URL}
+                href="/download"
                 className="focus-ring inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-amber-300"
               >
-                Open NodeTool{" "}
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                Download NodeTool Studio{" "}
+                <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
               </a>
             </div>
             <p className="mt-4 text-sm text-slate-400">
-              Prefer the desktop app?{" "}
-              <a
-                href="/download"
-                className="focus-ring rounded text-slate-200 underline underline-offset-4 hover:text-amber-300"
-              >
-                Download NodeTool
-              </a>
-              .
+              Studio is free and open source. You pay providers directly for
+              media generation. Set up your own project using the guide above.
             </p>
           </div>
         </section>

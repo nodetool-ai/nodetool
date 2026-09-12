@@ -12,6 +12,7 @@ export const recipeEntries: RecipeEntry[] = [
       "runId": "2026-09-10-marketing-recipes-01",
       "status": "partial",
       "statusLabel": "Three 15-second cuts",
+      "proofTitle": "Three product ads. One shared reference.",
       "summary": "Three editable 15-second product ads use different opening shots and share the remaining footage.",
       "provider": "Media generated with FAL through NodeTool",
       "hero": {
@@ -36,11 +37,12 @@ export const recipeEntries: RecipeEntry[] = [
         "The same accepted Olive Travel Cup reference appears across all six shots.",
         "FAL generated the stills, motion clips, and voice through NodeTool."
       ],
+      "essentialLimitation": "The live app captures and guided-flow walkthrough are not complete.",
       "limitations": [
         "The product is a fictional, unbranded demonstration object.",
-        "The live app captures and guided-flow walkthrough are not complete.",
         "No speed, virality, sales, product-performance, price, or provider-cost claim is supported."
-      ]
+      ],
+      "reviewLabel": "Partial example"
     },
     "guide": {
       "entry": "Storyboard",
@@ -311,6 +313,7 @@ export const recipeEntries: RecipeEntry[] = [
       "runId": "2026-09-10-marketing-recipes-01",
       "status": "partial",
       "statusLabel": "English and Spanish example",
+      "proofTitle": "Review the words. Revise one voice line.",
       "summary": "A synthetic English presenter was translated, revoiced in Spanish, and prepared as editable line-level takes.",
       "provider": "Media generated with FAL and Replicate through NodeTool",
       "hero": {
@@ -335,11 +338,12 @@ export const recipeEntries: RecipeEntry[] = [
         "Inworld Realtime TTS 2 with the female Ashley voice produced the Spanish track used in the comparison video.",
         "Line 2 was redirected and revoiced before three clips were sent to an editable 16.3-second timeline."
       ],
+      "essentialLimitation": "Human audition and final playback review are not recorded.",
       "limitations": [
-        "Human audition and final playback review are not recorded.",
         "The native timeline preview failed, and the lip-sync finishing pass has not been accepted by a human reviewer.",
         "Five required app captures, the walkthrough, persistent document IDs, and lossless capture originals are missing."
-      ]
+      ],
+      "reviewLabel": "Partial example"
     },
     "guide": {
       "entry": "Script",
@@ -602,6 +606,7 @@ export const recipeEntries: RecipeEntry[] = [
       "runId": "2026-09-10-marketing-recipes-01",
       "status": "partial",
       "statusLabel": "Three views and a motion clip",
+      "proofTitle": "Build a catalogue set from one product reference.",
       "summary": "One accepted Olive Travel Cup reference became a cutout, three catalogue stills, a short motion clip, a 4096px derivative, and listing copy.",
       "provider": "Media generated with FAL through NodeTool",
       "hero": {
@@ -626,11 +631,12 @@ export const recipeEntries: RecipeEntry[] = [
         "The run produced a transparent cutout, studio and seasonal stills, a short motion clip, a 4096px derivative, and factual listing copy.",
         "The recorded Commercial flow shows the real setup and finishing sequence."
       ],
+      "essentialLimitation": "The scene treatments are generative and do not preserve source pixels unchanged.",
       "limitations": [
-        "The scene treatments are generative and do not preserve source pixels unchanged.",
         "The motion clip is a short camera arc, not a full 360-degree reconstruction.",
         "Project naming and exact take linkage are unverified. The capture files and walkthrough need format and frame-rate recapture before acceptance."
-      ]
+      ],
+      "reviewLabel": "Partial example"
     },
     "guide": {
       "entry": "Storyboard",
@@ -905,6 +911,7 @@ export const recipeEntries: RecipeEntry[] = [
       "runId": "2026-09-10-marketing-recipes-01",
       "status": "partial",
       "statusLabel": "Storyboard example",
+      "proofTitle": "Review the story before animating it.",
       "summary": "The Storyboard flow turned The Next Tide brief into a reviewed six-shot mystery board with reusable references.",
       "provider": "Reference images and voice takes generated with FAL through NodeTool",
       "hero": {
@@ -921,11 +928,12 @@ export const recipeEntries: RecipeEntry[] = [
       "supportedClaims": [
         "The Storyboard flow created a six-shot mystery board with reusable character, location, and prop references."
       ],
+      "essentialLimitation": "No finished trailer exists.",
       "limitations": [
-        "No finished trailer exists.",
         "Motion clips, score, editable timeline, masters, previews, and finishing captures are missing.",
         "The selected keyframes and accepted voice takes remain server-side and are not presented here as exported deliverables."
-      ]
+      ],
+      "reviewLabel": "Partial example"
     },
     "guide": {
       "entry": "Storyboard",

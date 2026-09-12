@@ -39,7 +39,7 @@ export default function RecipeGuide({ guide }: RecipeGuideProps) {
 
     const observer = new IntersectionObserver(
       ([entry]) => setIsInView(entry.isIntersecting),
-      { threshold: 0.35 },
+      { threshold: 0.35 }
     );
     observer.observe(content);
     return () => observer.disconnect();
@@ -90,6 +90,59 @@ export default function RecipeGuide({ guide }: RecipeGuideProps) {
         </h2>
         <p className="mt-4 max-w-3xl text-lg leading-relaxed text-slate-300">
           {guide.introduction}
+        </p>
+        <div className="mt-8 grid gap-8 border-t border-white/10 pt-8 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <div>
+            <h3 className="text-lg font-semibold">Bring to this recipe</h3>
+            <ul className="mt-4 space-y-3 text-sm leading-relaxed text-slate-300">
+              {guide.inputs.map((input) => (
+                <li key={input} className="flex gap-2">
+                  <Check
+                    className="mt-1 h-4 w-4 shrink-0 text-amber-300"
+                    aria-hidden="true"
+                  />
+                  <span>{input}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="min-w-0 rounded-xl border border-white/10 bg-slate-900/40 p-6">
+            <div className="flex items-center justify-between gap-4">
+              <h3 className="text-lg font-semibold">
+                {guide.entry === "Script"
+                  ? "Try the example script"
+                  : "Try the example brief"}
+              </h3>
+              <button
+                type="button"
+                onClick={copyBrief}
+                className="focus-ring inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm text-amber-300"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Copy className="h-4 w-4" aria-hidden="true" />
+                )}
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <p
+              className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-slate-300"
+              lang={guide.entry === "Script" ? "es" : undefined}
+            >
+              {guide.brief}
+            </p>
+            <p role="status" className="mt-2 text-sm text-slate-400">
+              {copyError
+                ? "Select the text above and copy it to use this example."
+                : copied
+                  ? "Copied to clipboard."
+                  : ""}
+            </p>
+          </div>
+        </div>
+        <p className="mt-6 max-w-3xl text-sm leading-relaxed text-slate-400">
+          {guide.note}
         </p>
         <p className="mt-5 text-sm text-amber-300">
           {guide.stages.join(" → ")}
@@ -197,59 +250,6 @@ export default function RecipeGuide({ guide }: RecipeGuideProps) {
             </p>
           </div>
         </div>
-        <div className="mt-12 grid gap-8 border-t border-white/10 pt-8 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <div>
-            <h3 className="text-lg font-semibold">Bring to this recipe</h3>
-            <ul className="mt-4 space-y-3 text-sm leading-relaxed text-slate-300">
-              {guide.inputs.map((input) => (
-                <li key={input} className="flex gap-2">
-                  <Check
-                    className="mt-1 h-4 w-4 shrink-0 text-amber-300"
-                    aria-hidden="true"
-                  />
-                  <span>{input}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="min-w-0 rounded-xl border border-white/10 bg-slate-900/40 p-6">
-            <div className="flex items-center justify-between gap-4">
-              <h3 className="text-lg font-semibold">
-                {guide.entry === "Script"
-                  ? "Try the example script"
-                  : "Try the example brief"}
-              </h3>
-              <button
-                type="button"
-                onClick={copyBrief}
-                className="focus-ring inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm text-amber-300"
-              >
-                {copied ? (
-                  <Check className="h-4 w-4" aria-hidden="true" />
-                ) : (
-                  <Copy className="h-4 w-4" aria-hidden="true" />
-                )}
-                {copied ? "Copied" : "Copy"}
-              </button>
-            </div>
-            <p
-              className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-slate-300"
-              lang={guide.entry === "Script" ? "es" : undefined}
-            >
-              {guide.brief}
-            </p>
-            <p role="status" className="mt-2 text-sm text-slate-400">
-              {copyError
-                ? "Select the text above and copy it to use this example."
-                : copied
-                  ? "Copied to clipboard."
-                  : ""}
-            </p>
-          </div>
-        </div>
-        <p className="mt-6 max-w-3xl text-sm leading-relaxed text-slate-400">
-          {guide.note}
-        </p>
       </div>
     </section>
   );
