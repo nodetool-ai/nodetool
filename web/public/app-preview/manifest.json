@@ -147,6 +147,13 @@
     "workflows": 3
   },
   {
+    "slug": "ugc-product-video",
+    "name": "UGC Product Video",
+    "emoji": "🤳",
+    "featured": true,
+    "workflows": 3
+  },
+  {
     "slug": "trailer-room",
     "name": "Trailer Room",
     "emoji": "🎞️",

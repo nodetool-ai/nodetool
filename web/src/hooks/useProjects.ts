@@ -17,8 +17,8 @@ import { useNotificationStore } from "../stores/NotificationStore";
 
 /**
  * Open the surface a project is started from. One tab, so every entry point —
- * the `+ New` menu, the list's ghost card, its header button — lands on the
- * same one rather than stacking copies.
+ * the project selector, the list's ghost card, its header button — lands on
+ * the same one rather than stacking copies.
  */
 export const useOpenNewProjectTab = () => {
   const openTab = useWorkspaceTabsStore((state) => state.openTab);

@@ -29,6 +29,7 @@ describe("isSettled", () => {
     // The startup sweep writes this when a restart orphaned the row: nothing
     // more is coming for it either.
     expect(isSettled("interrupted")).toBe(true);
+    expect(isSettled("needs_attention")).toBe(true);
     expect(isSettled("running")).toBe(false);
   });
 });
@@ -67,13 +68,40 @@ describe("lookupGenerations", () => {
     expect(found.has("req-unknown")).toBe(false);
   });
 
-  it("reads an unrecognised status as running, so nothing is discarded", async () => {
+  it("preserves pending as an unresolved public state", async () => {
     rpcRequestMock.mockResolvedValue({
       generations: [{ request_id: "req-1", status: "pending" }]
     });
     expect((await lookupGenerations(["req-1"])).get("req-1")?.status).toBe(
-      "running"
+      "pending"
     );
+  });
+
+  it("returns durable lifecycle dimensions and errors", async () => {
+    rpcRequestMock.mockResolvedValue({
+      generations: [
+        {
+          request_id: "req-1",
+          generation_id: "gen-1",
+          status: "recovering",
+          asset_ids: [],
+          error: null,
+          submission_status: "submitted",
+          provider_status: "succeeded",
+          output_status: "saving",
+          attachment_status: "pending",
+          output_error: "disk full"
+        }
+      ]
+    });
+    expect((await lookupGenerations(["req-1"])).get("req-1")).toMatchObject({
+      status: "recovering",
+      submissionStatus: "submitted",
+      providerStatus: "succeeded",
+      outputStatus: "saving",
+      attachmentStatus: "pending",
+      outputError: "disk full"
+    });
   });
 
   it("yields an empty map when the lookup cannot run at all", async () => {
@@ -97,15 +125,21 @@ describe("lookupGenerations", () => {
   });
 });
 
-
 it("recovers a batch larger than the server's request-id limit", async () => {
   const ids = Array.from({ length: 300 }, (_, index) => `req-${index}`);
   rpcRequestMock.mockImplementation(async (_command, data) => ({
     generations: data.request_ids.slice(0, 128).map((id: string) => ({
-      request_id: id, generation_id: `gen-${id}`, status: "completed", asset_ids: [id]
+      request_id: id,
+      generation_id: `gen-${id}`,
+      status: "completed",
+      asset_ids: [id]
     }))
   }));
   const found = await lookupGenerations(ids);
   expect(found.size).toBe(ids.length);
-  expect(rpcRequestMock.mock.calls.every(([, data]) => data.request_ids.length <= 128)).toBe(true);
+  expect(
+    rpcRequestMock.mock.calls.every(
+      ([, data]) => data.request_ids.length <= 128
+    )
+  ).toBe(true);
 });

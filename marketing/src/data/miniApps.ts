@@ -46,6 +46,8 @@ export interface MiniAppEntry extends PageEntry {
   workflows: MiniAppWorkflow[];
   /** Route of the first bound workflow's /templates page. */
   templateRoute: string;
+  /** Recipe whose reviewed production run demonstrates this app, when available. */
+  productionRecipeSlug?: string;
   /** Public path to the app screenshot (`/apps/<slug>.png`) or null. */
   screenshot: string | null;
   tags: string[];

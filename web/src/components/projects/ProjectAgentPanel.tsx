@@ -207,9 +207,14 @@ const ProjectAgentPanel = ({
     setSelectedChatThread
   ]);
 
+  // A project conversation stands on its own. `undefined` for the workflow
+  // would inherit whatever workflow the store is currently on, and making it
+  // current would hand that workflow's remembered conversation to this one, so
+  // both are passed explicitly.
   const handleNewChat = useCallback(async () => {
-    const id = await createNewThread(undefined, undefined, {
-      projectId
+    const id = await createNewThread(undefined, null, {
+      projectId,
+      makeCurrent: false
     });
     setSelectedChatThread(projectId, id);
     setHistoryLoaded(false);

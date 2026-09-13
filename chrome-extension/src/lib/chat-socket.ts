@@ -489,9 +489,12 @@ export class ChatSocket {
     if (!this.socket || this.socket.readyState !== this.Ctor.OPEN) {
       throw new Error("WebSocket is not connected");
     }
-    let frame: string | Uint8Array;
+    let frame: string | ArrayBuffer;
     try {
-      frame = pack(payload);
+      // TypeScript 7 models the WebSocket BufferSource overload with an
+      // ArrayBuffer-backed view. Copy the msgpack bytes into an owned buffer
+      // so SharedArrayBuffer-backed views cannot cross that boundary.
+      frame = new Uint8Array(pack(payload)).buffer;
     } catch (err) {
       console.warn(
         "[ChatSocket] msgpack encode failed, falling back to JSON:",

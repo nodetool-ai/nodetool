@@ -203,7 +203,8 @@ function buildControl(control, ctx) {
     return { operation, node };
   };
 
-  // `text`, `select` and `slider` take either an input name or `{ node, prop }`.
+  // `text`, `model`, `select` and `slider` take either an input name or
+  // `{ node, prop }`.
   // An input name binds the template's Input node; `{ node, prop }` binds a
   // property on a node inside the graph, so no Input node is needed.
   const inputTarget = (kind, name) => {
@@ -257,6 +258,14 @@ function buildControl(control, ctx) {
         fail(`${ctx.app.name}: run button targets unknown operation "${op}"`);
       }
     }
+    if (
+      control.disabledWhen !== undefined &&
+      !ctx.operations.has(control.disabledWhen)
+    ) {
+      fail(
+        `${ctx.app.name}: disabledWhen names unknown operation "${control.disabledWhen}"`
+      );
+    }
     return {
       type: "Button",
       props: {
@@ -264,7 +273,15 @@ function buildControl(control, ctx) {
         label: control.label,
         variant: "contained",
         color: "primary",
-        events: runEvents(control.run)
+        events: runEvents(control.run),
+        ...(control.disabledWhen
+          ? {
+              disabledWhen: {
+                binding: execBinding(control.disabledWhen, "running"),
+                op: "notEmpty"
+              }
+            }
+          : {})
       }
     };
   }
@@ -348,6 +365,23 @@ function buildControl(control, ctx) {
         binding,
         label: control.label,
         multiline: control.multiline === true,
+        events: []
+      }
+    };
+  }
+
+  if (control.model !== undefined) {
+    const { binding, idParts } =
+      typeof control.model === "string"
+        ? inputTarget("model", control.model)
+        : propTarget("model", control.model);
+    return {
+      type: "ModelSelect",
+      props: {
+        id: nextId(idParts),
+        binding,
+        label: control.label,
+        modelKind: control.modelKind,
         events: []
       }
     };
@@ -465,6 +499,25 @@ function buildResult(result, ctx) {
     items.push({
       type: "Text",
       props: { id: nextId(["note"]), text: result.note }
+    });
+    return items;
+  }
+
+  if (result.error !== undefined) {
+    if (!ctx.operations.has(result.error)) {
+      fail(`${ctx.app.name}: error names unknown operation "${result.error}"`);
+    }
+    const binding = execBinding(result.error, "error");
+    items.push({
+      type: "Alert",
+      props: {
+        id: nextId(["error", result.error]),
+        binding,
+        title: result.label ?? "Generation failed",
+        text: "",
+        severity: "error",
+        visibleWhen: { binding, op: "notEmpty" }
+      }
     });
     return items;
   }

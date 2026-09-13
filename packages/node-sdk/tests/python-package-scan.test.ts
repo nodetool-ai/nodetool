@@ -35,8 +35,10 @@ const pythonAvailable =
   (process.env["NODETOOL_PYTHON"] &&
     existsSync(process.env["NODETOOL_PYTHON"])) ||
   existsSync(CONDA_PY);
+const fixtureAvailable = existsSync(join(FIXTURE, "pyproject.toml"));
 
-const describeMaybe = pythonAvailable ? describe : describe.skip;
+const describeMaybe =
+  pythonAvailable && fixtureAvailable ? describe : describe.skip;
 
 describeMaybe("scanPythonPackage", () => {
   it("scans the sample_pkg fixture", async () => {

@@ -33,8 +33,6 @@ import { RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
-import type { Shot, ShotStatus } from '@nodetool-ai/protocol';
-
 import { RootStackParamList } from '../navigation/types';
 import { apiService } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
@@ -57,6 +55,8 @@ import {
   type StoryboardShotNode,
   type StoryboardSnapshot,
   type StoryboardUpdateShotPatch,
+  type Shot,
+  type ShotStatus,
 } from '../documents/storyboardTypes';
 
 type Props = {

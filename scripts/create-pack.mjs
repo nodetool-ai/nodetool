@@ -52,9 +52,9 @@ const files = {
       types: "dist/index.d.ts",
       scripts: {
         build:
-          "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc",
+          "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && node ../../scripts/run-tsc.mjs",
         test: "vitest run",
-        lint: "tsc --noEmit"
+        lint: "node ../../scripts/run-tsc.mjs --noEmit"
       },
       dependencies: {
         "@nodetool-ai/node-sdk": "latest"

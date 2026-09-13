@@ -315,7 +315,7 @@
           "type": "str",
           "optional": true
         },
-        "default": "Aurora Trail running shoes: a third lighter than last season, grip that holds on wet rock, launching this Friday",
+        "default": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid, launching this Friday",
         "scope": "user",
         "persist": true
       },
@@ -326,7 +326,7 @@
           "type": "str",
           "optional": true
         },
-        "default": "Aurora Trail running shoes on wet black rock after rain. Low camera, restrained slate palette, sharp side light, visible water grip, no text in the image.",
+        "default": "Olive Travel Cup on a pale limestone cafe counter at warm sunrise. Editorial 50mm product photography, restrained sage, charcoal, and cream palette, clean negative space on the upper left, no text in the image.",
         "scope": "instance",
         "persist": false
       }
@@ -501,12 +501,11 @@
     }
   ],
   "values": {
-    "op:copy/out:out": "**Plain**\nAurora Trail. A third lighter. Grips wet rock. Out Friday.\n\n**Playful**\nYour old shoes just got a text: it's over.\n\n**Premium**\nEngineered for the ground that gives nothing back.",
-    "op:headlines/out:out": "1. Lighter than your excuses\n2. Grip that argues with gravity\n3. Built for the rock, not the treadmill\n4. Wet rock. Dry confidence.\n5. Friday gets lighter.",
-    "op:visual/out:out": {
-      "$demo": "image"
-    },
-    "var:offer": "Aurora Trail running shoes: a third lighter than last season, grip that holds on wet rock, launching this Friday",
-    "var:visualBrief": "Aurora Trail running shoes on wet black rock after rain. Low camera, restrained slate palette, sharp side light, visible water grip, no text in the image."
+    "op:copy/out:out": "**Plain**\nOlive Cup. Matte finish. Charcoal lid. Out Friday.\n\n**Playful**\nYour morning has a new plus-one.\n\n**Premium**\nDesigned for the space between first sip and first meeting.",
+    "op:headlines/out:out": "1. Make room for your morning\n2. The calm before the calendar\n3. One cup. A quieter start.\n4. Your morning, before the noise\n5. Take the good part with you",
+    "op:visual/out:op": "Olive Travel Cup on a pale limestone cafe counter at warm sunrise, warm window key light with subtle cool fill, editorial 50mm product photography, restrained sage, charcoal, and cream palette, generous clean negative space on the upper left, no lettering, logo, or watermark.",
+    "op:visual/out:out": "/app-preview/media/ad-maker/campaign-hero.png",
+    "var:offer": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid, launching this Friday",
+    "var:visualBrief": "Olive Travel Cup on a pale limestone cafe counter at warm sunrise. Editorial 50mm product photography, restrained sage, charcoal, and cream palette, clean negative space on the upper left, no text in the image."
   }
 }

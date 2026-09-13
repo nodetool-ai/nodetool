@@ -10,18 +10,31 @@
  *    `input`. The docs imply nesting; the worker only reads top level.
  *    Response: `{ data: { id } }`.
  *  - Poll: GET /api/v1/model/prediction/{id} → `{ data: { status, outputs, error? } }`.
+ *  - Callback: a submit carrying `webhook_url` is answered with one signed
+ *    POST per terminal prediction (https://atlascloud.ai/docs/en/webhooks).
  *  - Submit is never retried: a 429/5xx may have created the job upstream, and
  *    a second POST is a second bill.
  */
 
 import { isString } from "@nodetool-ai/protocol";
+import { createLogger } from "@nodetool-ai/config";
+import {
+  AtlasWebhookWaitTimeout,
+  registerAtlasWebhookWait
+} from "./atlascloud-webhook-registry.js";
 import {
   TERMINAL_FAILURE_STATES,
   TERMINAL_SUCCESS_STATES,
   fetchWithRetry,
   sleep
 } from "./http-transport.js";
-import { assertSafePublicHttpsUrl, safeFetch } from "./safe-url.js";
+import {
+  assertSafePublicHttpsUrl,
+  isSafePublicHttpsUrl,
+  safeFetch
+} from "./safe-url.js";
+
+const log = createLogger("nodetool.runtime.providers.atlascloud-transport");
 
 export const ATLAS_BASE = "https://api.atlascloud.ai";
 
@@ -85,6 +98,42 @@ export async function atlasDownload(
   return new Uint8Array(await res.arrayBuffer());
 }
 
+/** Path the signed AtlasCloud callback route is mounted on. */
+export const ATLAS_WEBHOOK_PATH = "/api/providers/atlascloud/webhook";
+
+/** AtlasCloud rejects a `webhook_url` longer than this. */
+export const ATLAS_WEBHOOK_MAX_URL_LENGTH = 1024;
+
+/**
+ * The callback URL to send with a submission, or undefined when this server has
+ * no address AtlasCloud could reach.
+ *
+ * AtlasCloud accepts only a public https URL, so a `NODETOOL_PUBLIC_URL` that is
+ * http, loopback, or an RFC1918 address resolves to undefined here: the run
+ * polls instead of sending a submission AtlasCloud would refuse.
+ */
+/**
+ * Drop trailing slashes in one pass. `replace(/\/+$/, "")` is quadratic in the
+ * length of the slash run, because each start position retries the whole run
+ * (80k slashes took 2.4s locally), and this value comes from configuration
+ * rather than from a constant.
+ */
+function withoutTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") end -= 1;
+  return value.slice(0, end);
+}
+
+export function atlasWebhookUrl(
+  env: Record<string, string | undefined> = process.env
+): string | undefined {
+  const base = env["NODETOOL_PUBLIC_URL"]?.trim();
+  if (!base) return undefined;
+  const url = `${withoutTrailingSlashes(base)}${ATLAS_WEBHOOK_PATH}`;
+  if (url.length > ATLAS_WEBHOOK_MAX_URL_LENGTH) return undefined;
+  return isSafePublicHttpsUrl(url) ? url : undefined;
+}
+
 export async function atlasSubmit(
   apiKey: string,
   modality: AtlasModality,
@@ -92,10 +141,16 @@ export async function atlasSubmit(
   input: Record<string, unknown>,
   signal?: AbortSignal
 ): Promise<string> {
+  // A callback is an optimization over polling, never a replacement for it, so
+  // the field is added here rather than asked for by every call site.
+  const webhookUrl = atlasWebhookUrl();
+  const body = webhookUrl
+    ? { model: modelId, ...input, webhook_url: webhookUrl }
+    : { model: modelId, ...input };
   const init: RequestInit = {
     method: "POST",
     headers: authHeaders(apiKey),
-    body: JSON.stringify({ model: modelId, ...input })
+    body: JSON.stringify(body)
   };
   if (signal) init.signal = signal;
   const res = await fetch(`${ATLAS_BASE}${SUBMIT_PATH[modality]}`, init);
@@ -138,6 +193,18 @@ export interface AtlasPollOptions {
   signal?: AbortSignal;
 }
 
+/**
+ * `atlasPoll` ran out of attempts without seeing a terminal state. Its own
+ * callers treat this as the job timing out; `atlasAwaitResult` does not,
+ * because there the callback wait owns the deadline.
+ */
+export class AtlasPollBudgetExhausted extends Error {
+  constructor(predictionId: string) {
+    super(`AtlasCloud job timed out (predictionId: ${predictionId})`);
+    this.name = "AtlasPollBudgetExhausted";
+  }
+}
+
 export async function atlasPoll(
   apiKey: string,
   predictionId: string,
@@ -148,6 +215,13 @@ export async function atlasPoll(
   const url = `${ATLAS_BASE}${pollPath(predictionId)}`;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // `sleep` resolves rather than throws on abort, so without this an aborted
+    // wait would burn the request's whole retry budget on doomed fetches.
+    if (opts.signal?.aborted) {
+      throw opts.signal.reason instanceof Error
+        ? opts.signal.reason
+        : new Error(`AtlasCloud poll aborted (predictionId: ${predictionId})`);
+    }
     const init: RequestInit = { headers: authHeaders(apiKey) };
     if (opts.signal) init.signal = opts.signal;
     const res = await fetchWithRetry(url, init);
@@ -175,7 +249,99 @@ export async function atlasPoll(
     }
     if (attempt < maxAttempts - 1) await sleep(pollInterval, opts.signal);
   }
-  throw new Error(`AtlasCloud job timed out (predictionId: ${predictionId})`);
+  throw new AtlasPollBudgetExhausted(predictionId);
+}
+
+/**
+ * How often the prediction endpoint is read while a callback is outstanding.
+ *
+ * AtlasCloud's delivery is at-least-once and best effort. A callback can be
+ * lost and a duplicate can arrive, so the endpoint stays the authority. The
+ * callback only shortens the wait, and this bounds what a lost one costs.
+ */
+export const ATLAS_WEBHOOK_RECONCILE_INTERVAL_MS = 15_000;
+
+/**
+ * Wait for a prediction to reach a terminal state.
+ *
+ * Without a reachable callback URL this is `atlasPoll`. With one, the callback
+ * and a slow reconciliation poll race: whichever reports the terminal state
+ * first settles the wait, and the loser is aborted. The result is the same
+ * either way, so a callback AtlasCloud never sends costs latency, not the run.
+ */
+export async function atlasAwaitResult(
+  apiKey: string,
+  predictionId: string,
+  opts: AtlasPollOptions = {}
+): Promise<AtlasPollResult> {
+  if (!atlasWebhookUrl()) return atlasPoll(apiKey, predictionId, opts);
+
+  const pollInterval = opts.pollInterval ?? 3000;
+  const maxAttempts = opts.maxAttempts ?? 600;
+  const windowMs = pollInterval * maxAttempts;
+  // Reconcile on the slow cadence, but never so slowly that a short window
+  // gets one request: a caller asking for 12s deserves real fallback polling
+  // inside it, not a single read and then nothing.
+  const reconcileInterval = Math.max(
+    pollInterval,
+    Math.min(ATLAS_WEBHOOK_RECONCILE_INTERVAL_MS, Math.floor(windowMs / 2))
+  );
+  // `atlasPoll` reads before each sleep, so N attempts span (N-1) intervals.
+  const reconcileAttempts = Math.floor(windowMs / reconcileInterval) + 1;
+
+  // `addEventListener` does not deliver an abort that already happened, so a
+  // caller signal aborted before this call has to compose rather than
+  // subscribe. `AbortSignal.any` carries an already-aborted input through.
+  const settled = new AbortController();
+  const waitSignal = opts.signal
+    ? AbortSignal.any([opts.signal, settled.signal])
+    : settled.signal;
+
+  const callback = registerAtlasWebhookWait(
+    predictionId,
+    windowMs,
+    waitSignal
+  );
+  const reconcile = atlasPoll(apiKey, predictionId, {
+    pollInterval: reconcileInterval,
+    maxAttempts: reconcileAttempts,
+    signal: waitSignal
+  }).catch((error: unknown): Promise<AtlasPollResult> => {
+    // Running out of reconciliation attempts is not a verdict on the job. The
+    // callback wait holds the real deadline and rejects at `windowMs`, so this
+    // half simply stops. Every other rejection — a terminal failure, a 4xx, an
+    // abort — is the answer and propagates.
+    if (error instanceof AtlasPollBudgetExhausted) {
+      return new Promise<AtlasPollResult>(() => undefined);
+    }
+    throw error;
+  });
+  // Aborting the loser rejects it after the race has been decided. These
+  // handlers keep that expected rejection from surfacing as an unhandled one.
+  callback.catch(() => undefined);
+  reconcile.catch(() => undefined);
+
+  log.debug("Awaiting AtlasCloud prediction", {
+    predictionId,
+    windowMs,
+    reconcileInterval,
+    reconcileAttempts
+  });
+  try {
+    return await Promise.race([callback, reconcile]);
+  } catch (error) {
+    // The window ran out with neither a callback nor a terminal poll. That is
+    // the job not finishing, which is what the polling path reports, so both
+    // modes fail a slow prediction the same way.
+    if (error instanceof AtlasWebhookWaitTimeout) {
+      throw new AtlasPollBudgetExhausted(predictionId);
+    }
+    throw error;
+  } finally {
+    settled.abort(
+      new Error(`AtlasCloud wait settled (predictionId: ${predictionId})`)
+    );
+  }
 }
 
 /**

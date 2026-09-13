@@ -22,6 +22,9 @@ export const mockExampleStoryboards: {
   value: Record<string, unknown>[] | undefined;
 } = { value: undefined };
 
+/** The project `creationProjectId` reports. Suites that open a named project set this. */
+export const mockCreationProjectId = { value: "default" };
+
 export const mockOpenMenu = {
   openTab: jest.fn(),
   addNotification: jest.fn(),
@@ -49,7 +52,7 @@ jest.mock("../../hooks/storyboard/useStoryboards", () => ({
 }));
 
 jest.mock("../../stores/WorkspaceTabsStore", () => ({
-  creationProjectId: () => "default",
+  creationProjectId: () => mockCreationProjectId.value,
   useWorkspaceTabsStore: <T,>(selector: (s: { openTab: jest.Mock }) => T): T =>
     selector({ openTab: mockOpenMenu.openTab })
 }));

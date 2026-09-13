@@ -25,7 +25,7 @@ export const TOP_CATEGORIES: TemplateCategory[] = [
     id: "agents",
     label: "Agents",
     tags: ["agent", "agents", "ai", "claude", "huggingface"],
-    color: "#6690d4"
+    color: "#3d68a8"
   },
   {
     id: "data-web",

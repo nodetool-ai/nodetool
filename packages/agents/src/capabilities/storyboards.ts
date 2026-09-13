@@ -19,7 +19,6 @@
 import {
   mp4DurationSeconds,
   type GenerationRequest,
-  type JsonSchema,
   type ProcessingContext
 } from "@nodetool-ai/runtime";
 import type {
@@ -30,7 +29,6 @@ import type {
 import type {
   ClipVersion,
   Entity,
-  ImageRef,
   KeyframeVersion,
   Scene,
   Screenplay,
@@ -504,9 +502,8 @@ const createStoryboard: CapabilityExport = {
       ? params["id"].trim()
       : undefined;
 
-    const { Storyboard, emptyStoryboardDocument } = await import(
-      "@nodetool-ai/models"
-    );
+    const { Storyboard, emptyStoryboardDocument } =
+      await import("@nodetool-ai/models");
     if (requestedId) {
       const existing = await Storyboard.findById(requestedId);
       if (existing) {
@@ -609,7 +606,8 @@ function renderHost(context: ProcessingContext): StoryboardRenderHost {
         model: request.model,
         params: request.params,
         origin: { surface: "capability" },
-        persist: request.persist
+        persist: request.persist,
+        destination: request.destination
       });
       return { output: result.output, assets: result.assets };
     },
@@ -706,7 +704,12 @@ const renderStoryboardStills: CapabilityExport = {
     if (isError(board)) return board;
     const { row, doc } = board;
 
-    const model = resolveModel(params, doc.imageModel, "still", "text_to_image");
+    const model = resolveModel(
+      params,
+      doc.imageModel,
+      "still",
+      "text_to_image"
+    );
     if (isError(model)) return model;
 
     const { shotRenderMode } = await import("@nodetool-ai/protocol");
@@ -723,7 +726,13 @@ const renderStoryboardStills: CapabilityExport = {
     );
     if (isError(selected)) return selected;
     const entities = await loadBoardEntities(context, doc);
-    const fresh = await filterStale(selected, params, doc, entities, "keyframe");
+    const fresh = await filterStale(
+      selected,
+      params,
+      doc,
+      entities,
+      "keyframe"
+    );
     const skipped = fresh.skipped;
     const chosen = fresh.shots;
     if (chosen.length === 0) {
@@ -743,9 +752,8 @@ const renderStoryboardStills: CapabilityExport = {
       };
     }
 
-    const { planShotRenders, renderShots } = await import(
-      "@nodetool-ai/storyboard"
-    );
+    const { planShotRenders, renderShots } =
+      await import("@nodetool-ai/storyboard");
     // What this call actually renders with, which is not always what the board
     // says: `style` and `model` can be overridden per call. Recording the
     // override is the point — a version rendered against something other than
@@ -764,9 +772,14 @@ const renderStoryboardStills: CapabilityExport = {
       chosen.map((shot) => shot.id),
       planOptions
     );
-    const outcomes = await renderShots(renderHost(context), { id: row.id }, plans, {
-      concurrency: clampConcurrency(params["concurrency"])
-    });
+    const outcomes = await renderShots(
+      renderHost(context),
+      { id: row.id },
+      plans,
+      {
+        concurrency: clampConcurrency(params["concurrency"])
+      }
+    );
     const results = outcomes.map((outcome) => outcomeRow(outcome, false));
 
     return {
@@ -790,13 +803,20 @@ const renderStoryboardClips: CapabilityExport = {
     const { row, doc } = board;
 
     const override = params["mode"];
-    if (override !== undefined && override !== "keyframe" && override !== "direct" && override !== "reference") {
+    if (
+      override !== undefined &&
+      override !== "keyframe" &&
+      override !== "direct" &&
+      override !== "reference"
+    ) {
       return { error: 'mode must be "keyframe", "direct", or "reference".' };
     }
     // The call's override wins over the shot's own setting, for this call only.
     const { shotRenderMode } = await import("@nodetool-ai/protocol");
     const modeOf = (shot: Shot): "keyframe" | "direct" | "reference" =>
-      override === "keyframe" || override === "direct" || override === "reference"
+      override === "keyframe" ||
+      override === "direct" ||
+      override === "reference"
         ? override
         : shotRenderMode(shot);
 
@@ -826,8 +846,10 @@ const renderStoryboardClips: CapabilityExport = {
     if (isError(model)) return model;
     const declaredTasks = doc.videoModel?.supported_tasks;
     if (
-      Array.isArray(declaredTasks) && declaredTasks.length > 0 &&
-      model.model === doc.videoModel?.id && model.provider === doc.videoModel?.provider
+      Array.isArray(declaredTasks) &&
+      declaredTasks.length > 0 &&
+      model.model === doc.videoModel?.id &&
+      model.provider === doc.videoModel?.provider
     ) {
       const unsupported = [...requiredCapabilities].find(
         (task) => !declaredTasks.includes(task)
@@ -850,7 +872,7 @@ const renderStoryboardClips: CapabilityExport = {
         note:
           skipped.length > 0
             ? "No selected shot's clip is stale."
-            : "No shot is ready for a clip. A keyframe-mode shot needs a still first (render_storyboard_stills), or set its render_mode to \"direct\" — or pass mode: \"direct\" here — to render straight from the prompt. Name shots explicitly with `targets` to override the selection."
+            : 'No shot is ready for a clip. A keyframe-mode shot needs a still first (render_storyboard_stills), or set its render_mode to "direct" — or pass mode: "direct" here — to render straight from the prompt. Name shots explicitly with `targets` to override the selection.'
       };
     }
     if (chosen.length > MAX_SHOTS_PER_CALL) {
@@ -860,9 +882,8 @@ const renderStoryboardClips: CapabilityExport = {
     }
 
     const { scriptLinesById } = await import("@nodetool-ai/timeline");
-    const { planShotRenders, renderShots } = await import(
-      "@nodetool-ai/storyboard"
-    );
+    const { planShotRenders, renderShots } =
+      await import("@nodetool-ai/storyboard");
     // A linked board times its shots from the words they cover, so a clip is
     // rendered long enough to hold its voiceover (design §2.3). A shot pinned
     // to `manual`, an unvoiced line, or an unlinked board keeps
@@ -938,7 +959,12 @@ const reviseStoryboardClip: CapabilityExport = {
       };
     }
 
-    const model = resolveModel(params, doc.videoModel, "clip", "video_to_video");
+    const model = resolveModel(
+      params,
+      doc.videoModel,
+      "clip",
+      "video_to_video"
+    );
     if (isError(model)) return model;
 
     const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
@@ -1115,9 +1141,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
     const { width, height } = frameSizeForAspect(doc.aspectRatio);
     const fps = Math.max(1, Math.min(Number(params["fps"]) || 30, 120));
     const name =
-      isString(params["name"]) && params["name"]
-        ? params["name"]
-        : row.name;
+      isString(params["name"]) && params["name"] ? params["name"] : row.name;
 
     // Re-assembling replaces the board's existing cut rather than leaving a
     // trail of orphan sequences behind it — and rewrites only what this board
@@ -1568,7 +1592,10 @@ const SHOT_MEDIA_FIELDS = new Set([
  * op ignoring a field it never had. An op that silently drops half its
  * arguments is indistinguishable from one that worked.
  */
-function assertKnownShotFields(op: string, args: Record<string, unknown>): void {
+function assertKnownShotFields(
+  op: string,
+  args: Record<string, unknown>
+): void {
   const unknown = Object.keys(args).filter((key) => !SHOT_EDIT_FIELDS.has(key));
   if (unknown.length === 0) return;
   const media = unknown.filter((key) => SHOT_MEDIA_FIELDS.has(key));
@@ -1601,7 +1628,9 @@ const BOARD_EDIT_FIELDS = new Set([
  * just set.
  */
 function assertKnownBoardFields(args: Record<string, unknown>): void {
-  const unknown = Object.keys(args).filter((key) => !BOARD_EDIT_FIELDS.has(key));
+  const unknown = Object.keys(args).filter(
+    (key) => !BOARD_EDIT_FIELDS.has(key)
+  );
   if (unknown.length === 0) return;
   throw new Error(
     `set_board does not take ${unknown.map((k) => `\`${k}\``).join(", ")}. ` +
@@ -1648,7 +1677,9 @@ function parseShotCoverage(
         "point at the shot that owns the clip."
     );
   }
-  const seconds = (key: "start_seconds" | "end_seconds"): number | undefined => {
+  const seconds = (
+    key: "start_seconds" | "end_seconds"
+  ): number | undefined => {
     const given = raw[key];
     if (given === undefined || given === null) return undefined;
     const n = Number(given);
@@ -1703,7 +1734,9 @@ function applyShotFields(
   if (args["render_mode"] !== undefined) {
     const mode = String(args["render_mode"]);
     if (mode !== "keyframe" && mode !== "direct" && mode !== "reference") {
-      throw new Error('render_mode must be "keyframe", "direct", or "reference".');
+      throw new Error(
+        'render_mode must be "keyframe", "direct", or "reference".'
+      );
     }
     next.render_mode = mode;
   }
@@ -1778,17 +1811,17 @@ function applyBoardOp(
       const anchorRef = optionalString(args["after_shot_id"]);
       if (anchorRef !== undefined) {
         const anchor = findShot(doc.shots, anchorRef);
-        if (!anchor) throw new Error(`after_shot_id names no shot: "${anchorRef}".`);
+        if (!anchor)
+          throw new Error(`after_shot_id names no shot: "${anchorRef}".`);
         const ordered = [...doc.shots].sort((a, b) => a.index - b.index);
         const at = ordered.findIndex((s) => s.id === anchor.id) + 1;
         ordered.splice(at, 0, withScene(shot, anchor.scene_id ?? null));
         applyStructural(doc, ordered);
         return { id: shot.id, index: at };
       }
-      const at =
-        isNumber(args["index"])
-          ? Math.max(0, Math.min(Math.trunc(args["index"]), doc.shots.length))
-          : doc.shots.length;
+      const at = isNumber(args["index"])
+        ? Math.max(0, Math.min(Math.trunc(args["index"]), doc.shots.length))
+        : doc.shots.length;
       const shots = [...doc.shots];
       shots.splice(at, 0, shot);
       applyStructural(doc, shots);
@@ -1862,7 +1895,9 @@ function applyBoardOp(
         ? (optionalString(args["scene_id"]) ?? null)
         : (moved.scene_id ?? seeded ?? null);
       if (sceneId !== null && !docScenes(doc).some((s) => s.id === sceneId)) {
-        throw new Error(`move_shot names no scene on this board: "${sceneId}".`);
+        throw new Error(
+          `move_shot names no scene on this board: "${sceneId}".`
+        );
       }
       const position = Number(args["position"] ?? args["index"]);
       if (!Number.isInteger(position) || position < 0) {
@@ -1944,8 +1979,10 @@ function applyBoardOp(
         throw new Error(`No scene matches "${sceneId}".`);
       }
       const next: Scene = { ...target };
-      if (args["slugline"] !== undefined) next.slugline = String(args["slugline"]);
-      if (args["lighting"] !== undefined) next.lighting = String(args["lighting"]);
+      if (args["slugline"] !== undefined)
+        next.slugline = String(args["slugline"]);
+      if (args["lighting"] !== undefined)
+        next.lighting = String(args["lighting"]);
       setDocScenes(
         doc,
         scenes.map((scene) => (scene.id === sceneId ? next : scene))
@@ -2045,9 +2082,12 @@ function applyBoardOp(
           entity_ids: doc.entityIds
         };
       }
-      const descriptor = optionalString(args["style"]) ?? optionalString(args["descriptor"]);
+      const descriptor =
+        optionalString(args["style"]) ?? optionalString(args["descriptor"]);
       if (descriptor === undefined) {
-        throw new Error("set_style needs an `entity_id` or a `style` descriptor.");
+        throw new Error(
+          "set_style needs an `entity_id` or a `style` descriptor."
+        );
       }
       doc.style = descriptor;
       return { style: doc.style, style_entity_id: null };
@@ -2061,8 +2101,16 @@ function applyBoardOp(
       const chosen = versions[index];
       const updated: Shot =
         kind === "keyframe"
-          ? { ...shot, keyframe: chosen as KeyframeVersion, keyframe_versions: versions as KeyframeVersion[] }
-          : { ...shot, clip: chosen as ClipVersion, clip_versions: versions as ClipVersion[] };
+          ? {
+              ...shot,
+              keyframe: chosen as KeyframeVersion,
+              keyframe_versions: versions as KeyframeVersion[]
+            }
+          : {
+              ...shot,
+              clip: chosen as ClipVersion,
+              clip_versions: versions as ClipVersion[]
+            };
       doc.shots = doc.shots.map((s) => (s.id === shot.id ? updated : s));
       return { id: shot.id, kind, version: index };
     }
@@ -2076,7 +2124,8 @@ function applyBoardOp(
       const selected = kind === "keyframe" ? shot.keyframe : shot.clip;
       const refId = (v: { asset_id?: string | null; uri?: string } | null) =>
         v?.asset_id ?? v?.uri ?? "";
-      const removedSelected = !!selected && refId(versions[index]) === refId(selected);
+      const removedSelected =
+        !!selected && refId(versions[index]) === refId(selected);
       // The next version at the same position becomes selected, or the last
       // one when the removed version was at the end.
       const next =
@@ -2084,7 +2133,7 @@ function applyBoardOp(
           ? null
           : removedSelected
             ? remaining[Math.min(index, remaining.length - 1)]
-            : selected ?? null;
+            : (selected ?? null);
       const updated: Shot = { ...shot };
       if (kind === "keyframe") {
         updated.keyframe = next as KeyframeVersion | null;
@@ -2224,7 +2273,8 @@ const editStoryboard: CapabilityExport = {
       // first error hides every problem behind it.
       const records: BoardOpRecord[] = [];
       const entities = await loadStyleEntities(run, doc, ops);
-      const resolvedOps: { tool: string; input: Record<string, unknown> }[] = [];
+      const resolvedOps: { tool: string; input: Record<string, unknown> }[] =
+        [];
       for (const parsed of ops) {
         try {
           const result = applyBoardOp(doc, parsed, entities) as
@@ -2403,7 +2453,11 @@ const directStoryboard: CapabilityExport = {
       schema: buildScreenplaySchema(shotCount)
     });
     const parsed = raw
-      ? parseScreenplay(raw, { shotCount, aspectRatio, genre: genre || undefined })
+      ? parseScreenplay(raw, {
+          shotCount,
+          aspectRatio,
+          genre: genre || undefined
+        })
       : null;
     // No usable answer — a provider without tool support, or the fake provider
     // — falls back to placeholder shots derived from the brief, the same rule

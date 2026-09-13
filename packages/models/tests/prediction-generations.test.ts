@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ModelObserver } from "../src/base-model.js";
 import { initTestDb } from "../src/db.js";
 import { Prediction } from "../src/prediction.js";
+import { deriveGenerationStatus } from "../src/durable-generation.js";
 
 async function row(data: Record<string, unknown> = {}): Promise<Prediction> {
   return Prediction.create<Prediction>({
@@ -64,6 +65,75 @@ describe("Prediction generations", () => {
     expect(byJob.map((p) => p.status)).toEqual(["failed"]);
     const [since] = await Prediction.listGenerations("u1", { since: t(3) });
     expect(since).toHaveLength(1);
+  });
+
+  it("uses the public status derivation for durable status filters", async () => {
+    const cases = [
+      {
+        status: "failed",
+        provider_status: "failed",
+        output_status: "ready",
+        attachment_status: "ready"
+      },
+      {
+        status: "completed",
+        provider_status: "succeeded",
+        output_status: "ready",
+        attachment_status: "retrying"
+      },
+      {
+        status: "cancelled",
+        provider_status: "succeeded",
+        output_status: "pending",
+        attachment_status: "pending"
+      },
+      {
+        status: "running",
+        provider_status: "succeeded",
+        output_status: "saving",
+        attachment_status: "pending"
+      },
+      {
+        status: "running",
+        provider_status: "running",
+        output_status: "pending",
+        attachment_status: "pending"
+      },
+      {
+        status: "running",
+        provider_status: "cancelled",
+        output_status: "pending",
+        attachment_status: "pending"
+      }
+    ] as const;
+    const created = await Promise.all(
+      cases.map((value, index) =>
+        row({
+          ...value,
+          lifecycle_owner: "durable",
+          idempotency_key: `status-${index}`,
+          input_fingerprint: `fingerprint-${index}`,
+          created_at: new Date(Date.UTC(2026, 8, 3, 12, 0, index)).toISOString()
+        })
+      )
+    );
+    const publicStatuses = cases.map((value) =>
+      deriveGenerationStatus({
+        ...value,
+        submission_status: "submitted",
+        cancel_requested_at: null,
+        lifecycle_owner: "durable"
+      })
+    );
+    for (const status of new Set(publicStatuses)) {
+      const [filtered] = await Prediction.listGenerations("u1", { status });
+      expect(filtered.map((prediction) => prediction.id).sort()).toEqual(
+        created
+          .filter((_, index) => publicStatuses[index] === status)
+          .map((prediction) => prediction.id)
+          .sort()
+      );
+    }
   });
 
   it("markCancelledIfRunning flips a running row exactly once, for its owner", async () => {

@@ -108,6 +108,8 @@ export interface ChatCodeActToolCall {
 }
 
 export interface ChatCodeActSessionOptions {
+  /** False only when the host already includes the shared product knowledge. */
+  includeProductKnowledge?: boolean;
   /** The full chat toolbelt as schemas (server + client tools alike). */
   tools: ToolSignatureSource[];
   /**
@@ -477,6 +479,7 @@ export function createChatCodeActSession(
   if (withFabric) extraSections.push(FABRIC_PROMPT_SECTION);
 
   const systemPromptSection = buildCodeActSystemPrompt({
+    includeProductKnowledge: options.includeProductKnowledge ?? true,
     tools: resident,
     deferredTools: deferred,
     graftedSpecifiers,

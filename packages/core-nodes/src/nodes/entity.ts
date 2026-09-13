@@ -250,7 +250,7 @@ export class ListEntitiesNode extends BaseNode {
   static readonly inputFields: string[] = [];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     entity: { kind: "iteration", source: "__execution__", group: "items" },
     entities: { kind: "single", source: "__execution__" }
   } satisfies Record<string, OutputCorrelation>;

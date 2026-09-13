@@ -14,7 +14,11 @@
  */
 
 import type { Command } from "commander";
-import { Prediction, getSecret } from "@nodetool-ai/models";
+import {
+  deriveGenerationStatus,
+  Prediction,
+  getSecret
+} from "@nodetool-ai/models";
 import {
   drainReconcileQueue,
   reconcileGeneration,
@@ -30,8 +34,39 @@ import {
 import { createProviderStrict } from "../providers.js";
 import { asJson, printTable, printKv } from "./output.js";
 import { setupLocalDb, LOCAL_USER_ID } from "./local-db.js";
+import { isString } from "../predicates.js";
 
-const TERMINAL = new Set(["completed", "failed", "cancelled", "interrupted"]);
+const PUBLIC_STATUSES = new Set([
+  "pending",
+  "running",
+  "recovering",
+  "completed",
+  "failed",
+  "cancelled",
+  "needs_attention",
+  "interrupted"
+]);
+const TERMINAL = new Set([
+  "completed",
+  "failed",
+  "cancelled",
+  "needs_attention",
+  "interrupted"
+]);
+
+function lifecycleError(row: Prediction, key: string): string | null {
+  const value = row.metadata?.[key];
+  return isString(value) ? value : null;
+}
+
+/** Completed is public only after the durable output has been saved. */
+function publicGenerationStatus(row: Prediction): string {
+  if (row.status === "interrupted") return "interrupted";
+  if (row.lifecycle_owner !== "durable") {
+    return PUBLIC_STATUSES.has(row.status) ? row.status : "pending";
+  }
+  return deriveGenerationStatus(row);
+}
 
 function fail(e: unknown): never {
   console.error(String(e instanceof Error ? e.message : e));
@@ -47,7 +82,11 @@ function record(row: Prediction): Record<string, unknown> {
   const metadata = row.metadata ?? {};
   return {
     generation_id: row.id,
-    status: row.status,
+    status: publicGenerationStatus(row),
+    submission_status: row.submission_status ?? null,
+    provider_status: row.provider_status ?? null,
+    output_status: row.output_status ?? null,
+    attachment_status: row.attachment_status ?? null,
     provider: row.provider,
     model: row.model,
     capability: row.capability ?? null,
@@ -62,6 +101,10 @@ function record(row: Prediction): Record<string, unknown> {
     completed_at: row.completed_at,
     duration_seconds: row.duration,
     generation_error: row.error,
+    submission_error: lifecycleError(row, "submission_error"),
+    provider_error: lifecycleError(row, "provider_error"),
+    output_error: lifecycleError(row, "output_error"),
+    attachment_error: lifecycleError(row, "attachment_error"),
     origin: {
       surface: row.surface ?? null,
       thread_id: row.thread_id ?? null,
@@ -84,12 +127,13 @@ function record(row: Prediction): Record<string, unknown> {
 function summaryRow(row: Prediction): Record<string, string> {
   return {
     id: row.id,
-    status: row.status,
+    status: publicGenerationStatus(row),
     provider: row.provider,
     model: row.model,
     capability: row.capability ?? "",
     cost: costCell(row.cost),
     assets: (row.asset_ids ?? []).join(","),
+    output: row.output_status ?? "",
     started: row.started_at ?? row.created_at ?? ""
   };
 }
@@ -110,14 +154,19 @@ function providerStatusOption(
   value: string
 ): ProviderGenerationQuery["status"] {
   if (!PROVIDER_STATUSES.has(value)) {
-    fail(`Invalid --status value: ${value}. One of ${[...PROVIDER_STATUSES].join(", ")}.`);
+    fail(
+      `Invalid --status value: ${value}. One of ${[...PROVIDER_STATUSES].join(", ")}.`
+    );
   }
   // SAFETY: the set holds exactly the members of ProviderGenerationStatus.
   return value as ProviderGenerationQuery["status"];
 }
 
 /** A provider with no history API is a capability answer, not a stack trace. */
-function providerGenerationsMessage(providerId: string, error: unknown): string {
+function providerGenerationsMessage(
+  providerId: string,
+  error: unknown
+): string {
   if (isProviderGenerationsUnsupported(error)) {
     return (
       `${providerId} exposes no generation history. Read this installation's ` +
@@ -146,7 +195,10 @@ export function registerGenerationsCommands(program: Command): void {
   generations
     .command("list")
     .description("List generations, newest first")
-    .option("--status <status>", "running, completed, failed, cancelled, interrupted")
+    .option(
+      "--status <status>",
+      "pending, running, recovering, completed, failed, cancelled, needs_attention, interrupted"
+    )
     .option("--provider <name>", "Filter by provider")
     .option("--capability <name>", "Filter by capability, e.g. text_to_video")
     .option("--thread-id <id>", "Only generations a chat thread asked for")
@@ -222,13 +274,17 @@ export function registerGenerationsCommands(program: Command): void {
     .option("--timeout <seconds>", "How long to wait", "300")
     .option("--json", "Output as JSON")
     .action(async (id: string, opts: { timeout: string; json?: boolean }) => {
-      const timeoutMs = Math.max(1, Number.parseInt(opts.timeout, 10) || 300) * 1000;
+      const timeoutMs =
+        Math.max(1, Number.parseInt(opts.timeout, 10) || 300) * 1000;
       try {
         await setupLocalDb();
         const deadline = Date.now() + timeoutMs;
         let row = await Prediction.findForUser(LOCAL_USER_ID, id);
         if (!row) fail(`Generation ${id} was not found.`);
-        while (!TERMINAL.has(row.status) && Date.now() < deadline) {
+        while (
+          !TERMINAL.has(publicGenerationStatus(row)) &&
+          Date.now() < deadline
+        ) {
           await new Promise((r) => setTimeout(r, 2_000));
           row = (await Prediction.findForUser(LOCAL_USER_ID, id)) ?? row;
         }
@@ -240,7 +296,7 @@ export function registerGenerationsCommands(program: Command): void {
         }
         // The exit code is the verdict: a generation still running when the
         // wait ran out is not a settled one.
-        process.exit(TERMINAL.has(row.status) ? 0 : 1);
+        process.exit(TERMINAL.has(publicGenerationStatus(row)) ? 0 : 1);
       } catch (e) {
         fail(e);
       }
@@ -253,16 +309,30 @@ export function registerGenerationsCommands(program: Command): void {
     .action(async (id: string, opts: { json?: boolean }) => {
       try {
         await setupLocalDb();
-        const cancelled = await Prediction.markCancelledIfRunning(id, LOCAL_USER_ID);
-        const result = { generation_id: id, cancelled };
+        const row = await Prediction.findForUser(LOCAL_USER_ID, id);
+        const isDurable = row?.lifecycle_owner === "durable";
+        const cancellationRequested = isDurable
+          ? await Prediction.requestCancellation(id, LOCAL_USER_ID)
+          : false;
+        const cancelled = isDurable
+          ? false
+          : await Prediction.markCancelledIfRunning(id, LOCAL_USER_ID);
+        const succeeded = cancellationRequested || cancelled;
+        const result = {
+          generation_id: id,
+          cancelled,
+          cancellation_requested: cancellationRequested
+        };
         if (opts.json) asJson(result);
         else
           console.log(
-            cancelled
-              ? `Generation ${id} cancelled. A call running in a server process finishes on its own; the record is closed.`
-              : `Generation ${id} is not running — it already settled, or it does not exist.`
+            cancellationRequested
+              ? `Cancellation requested for durable generation ${id}. The worker will close the record after the provider responds.`
+              : cancelled
+                ? `Generation ${id} cancelled. A call running in a server process finishes on its own; the record is closed.`
+                : `Generation ${id} is not running — it already settled, or it does not exist.`
           );
-        process.exit(cancelled ? 0 : 1);
+        process.exit(succeeded ? 0 : 1);
       } catch (e) {
         fail(e);
       }
@@ -270,7 +340,9 @@ export function registerGenerationsCommands(program: Command): void {
 
   generations
     .command("reconcile <generation_id>")
-    .description("Ask the provider what it billed, by request id, and update the row")
+    .description(
+      "Ask the provider what it billed, by request id, and update the row"
+    )
     .option("--json", "Output as JSON")
     .action(async (id: string, opts: { json?: boolean }) => {
       try {
@@ -299,7 +371,10 @@ export function registerGenerationsCommands(program: Command): void {
     .description("List the provider's own record of this account's generations")
     .requiredOption("--provider <name>", "Provider id, e.g. fal_ai")
     .option("--model <id>", "Only this endpoint / model id (comma-separated)")
-    .option("--status <status>", "running, completed, failed, cancelled, unknown")
+    .option(
+      "--status <status>",
+      "running, completed, failed, cancelled, unknown"
+    )
     .option("--since <iso>", "Only generations started at or after this time")
     .option("--until <iso>", "Exclusive upper bound")
     .option("--limit <n>", "Max results", "50")
@@ -322,7 +397,8 @@ export function registerGenerationsCommands(program: Command): void {
           const query: ProviderGenerationQuery = {
             limit: Math.max(1, Number.parseInt(opts.limit, 10) || 50)
           };
-          if (opts.model) query.model = opts.model.split(",").map((m) => m.trim());
+          if (opts.model)
+            query.model = opts.model.split(",").map((m) => m.trim());
           if (opts.status) query.status = providerStatusOption(opts.status);
           if (opts.since) query.since = opts.since;
           if (opts.until) query.until = opts.until;
@@ -381,7 +457,9 @@ export function registerGenerationsCommands(program: Command): void {
       try {
         await setupLocalDb();
         // Nothing is running in this process, so every open row is orphaned.
-        const interrupted = await sweepInterruptedGenerations(new Date().toISOString());
+        const interrupted = await sweepInterruptedGenerations(
+          new Date().toISOString()
+        );
         const reconciled = await drainReconcileQueue(resolveSecret);
         const result = { interrupted, reconcile_attempts: reconciled };
         if (opts.json) asJson(result);

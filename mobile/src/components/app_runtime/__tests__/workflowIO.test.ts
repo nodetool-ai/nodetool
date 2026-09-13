@@ -23,11 +23,13 @@ describe("extractWorkflowIO", () => {
         {
           id: "n1",
           type: "nodetool.input.StringInput",
+          sync_mode: "on_any",
           data: { name: "prompt", label: "Prompt", value: "hi" },
         },
         {
           id: "n2",
           type: "nodetool.input.FloatInput",
+          sync_mode: "on_any",
           data: { name: "strength", min: 0, max: 1 },
         },
       ])
@@ -58,11 +60,13 @@ describe("extractWorkflowIO", () => {
         {
           id: "o1",
           type: "nodetool.output.StringOutput",
+          sync_mode: "on_any",
           data: { name: "result" },
         },
         {
           id: "o2",
           type: "nodetool.workflows.base_node.Preview",
+          sync_mode: "on_any",
           data: { name: "preview" },
         },
       ])
@@ -77,6 +81,7 @@ describe("extractWorkflowIO", () => {
         {
           id: "n1",
           type: "nodetool.input.StringInput",
+          sync_mode: "on_any",
           data: { name: "prompt" },
           ui_properties: { bypassed: true },
         },
@@ -88,7 +93,7 @@ describe("extractWorkflowIO", () => {
 
   it("falls back to the node id when the node has no name", () => {
     const io = extractWorkflowIO(
-      workflow([{ id: "n1", type: "nodetool.input.StringInput", data: {} }])
+      workflow([{ id: "n1", type: "nodetool.input.StringInput", sync_mode: "on_any", data: {} }])
     );
 
     expect(io.inputs[0]).toMatchObject({ name: "n1", label: "n1" });
@@ -106,16 +111,19 @@ describe("extractVariableNames", () => {
         {
           id: "v1",
           type: "nodetool.workflows.base_node.SetVariable",
+          sync_mode: "on_any",
           data: { name: "theme" },
         },
         {
           id: "v2",
           type: "nodetool.workflows.base_node.SetVariable",
+          sync_mode: "on_any",
           data: { properties: { name: "count" } },
         },
         {
           id: "v3",
           type: "nodetool.workflows.base_node.SetVariable",
+          sync_mode: "on_any",
           data: { name: "theme" },
         },
       ])

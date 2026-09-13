@@ -10,13 +10,13 @@
 
 import type {
   // Graph & Node types
-  Node,
+  Node as _Node,
   Edge,
   // Asset types
   Asset,
   // Workflow types
-  Workflow,
-  WorkflowGraph,
+  Workflow as _Workflow,
+  WorkflowGraph as _WorkflowGraph,
   // Thread & Message types
   Thread,
   Message,
@@ -27,7 +27,7 @@ import type {
   OutputSlot,
   NodeMetadata as _NodeMetadata,
   // Job types
-  RunJobRequest,
+  RunJobRequest as _RunJobRequest,
   // Model types
   ProviderInfo,
   LanguageModel,
@@ -45,13 +45,15 @@ import type {
 
 // ── Re-exports ─────────────────────────────────────────────────────────
 // Graph & Node
-export type { Node, Edge };
+export type Node = _Node;
+export type { Edge };
 
 // Asset
 export type { Asset };
 
 // Workflow
-export type { Workflow, WorkflowGraph };
+export type WorkflowGraph = _WorkflowGraph;
+export type Workflow = _Workflow;
 
 // Thread & Message
 export type { Thread, Message, MessageContent };
@@ -61,7 +63,11 @@ export type { Property, OutputSlot };
 export type { PropertyTypeMetadata };
 
 // Job
-export type { RunJobRequest };
+export interface RunJobRequest extends _RunJobRequest {
+  application_id?: string | null;
+  application_version?: number | null;
+  operation_id?: string | null;
+}
 
 // Models
 export type { ProviderInfo, LanguageModel };
@@ -80,7 +86,15 @@ export type {
 
 // ── Mobile-only types (not in protocol) ───────────────────────────────
 
-export interface NodeMetadata extends _NodeMetadata {
+export interface NodeMetadata
+  extends Omit<
+    _NodeMetadata,
+    "basic_fields" | "is_dynamic" | "expose_as_tool" | "supports_dynamic_inputs"
+  > {
+  basic_fields?: string[];
+  is_dynamic?: boolean;
+  expose_as_tool?: boolean;
+  supports_dynamic_inputs: boolean;
   searchInfo?: {
     score?: number;
     matches?: Array<{

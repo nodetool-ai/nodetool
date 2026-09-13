@@ -18,13 +18,15 @@
 //   sections   [ { title, op?, controls: [...], results: [...] } ]
 //   content    Optional authored widget tree, used instead of sections.
 //
-// Control kinds: input, text, number, slider, select, image, video, audio,
-// switch, color, run, note. Result kinds: progress, show, showVar, heading, note.
-// `text`, `select` and `slider` take an input name or `{ node, prop }` to drive
+// Control kinds: input, text, model, number, slider, select, image, video, audio,
+// switch, color, run, note. Result kinds: progress, error, show, showVar,
+// heading, note.
+// `text`, `model`, `select` and `slider` take an input name or `{ node, prop }` to drive
 // a node property inside the graph; `default` seeds the preview value.
 // See buildControl() in the builder for the exact props each one emits.
 
 import { DIRECTED_CAMPAIGN_KIT_APP } from "./directed-campaign-kit.mjs";
+import { UGC_PRODUCT_VIDEO_APP } from "./ugc-product-video.mjs";
 
 const SLIDERS_IMAGE_ENHANCE = [
   { slider: { node: "denoise-node", prop: "radius" }, label: "Denoise", min: 0, max: 16, step: 0.5, default: 0 },
@@ -37,6 +39,7 @@ const SLIDERS_IMAGE_ENHANCE = [
 const IMG = { $demo: "image" };
 const VIDEO = { $demo: "video" };
 const AUDIO = { $demo: "audio" };
+const AD_MAKER_HERO = "/app-preview/media/ad-maker/campaign-hero.png";
 
 export const EXAMPLE_APPS = [
   // ── 1 ──────────────────────────────────────────────────────────────────────
@@ -1393,7 +1396,7 @@ export const EXAMPLE_APPS = [
         persist: true,
         type: "str",
         default:
-          "Aurora Trail running shoes: a third lighter than last season, grip that holds on wet rock, launching this Friday"
+          "Olive Travel Cup: a matte muted-olive cup with a charcoal lid, launching this Friday"
       },
       {
         id: "visualBrief",
@@ -1401,7 +1404,7 @@ export const EXAMPLE_APPS = [
         scope: "instance",
         type: "str",
         default:
-          "Aurora Trail running shoes on wet black rock after rain. Low camera, restrained slate palette, sharp side light, visible water grip, no text in the image."
+          "Olive Travel Cup on a pale limestone cafe counter at warm sunrise. Editorial 50mm product photography, restrained sage, charcoal, and cream palette, clean negative space on the upper left, no text in the image."
       }
     ],
     operations: [
@@ -1447,7 +1450,7 @@ export const EXAMPLE_APPS = [
             as: "Markdown",
             label: "Three copy routes",
             demo:
-              "**Plain**\nAurora Trail. A third lighter. Grips wet rock. Out Friday.\n\n**Playful**\nYour old shoes just got a text: it's over.\n\n**Premium**\nEngineered for the ground that gives nothing back."
+              "**Plain**\nOlive Cup. Matte finish. Charcoal lid. Out Friday.\n\n**Playful**\nYour morning has a new plus-one.\n\n**Premium**\nDesigned for the space between first sip and first meeting."
           },
           { progress: "headlines", label: "Testing five angles…" },
           {
@@ -1456,7 +1459,7 @@ export const EXAMPLE_APPS = [
             as: "Markdown",
             label: "Five headline angles",
             demo:
-              "1. Lighter than your excuses\n2. Grip that argues with gravity\n3. Built for the rock, not the treadmill\n4. Wet rock. Dry confidence.\n5. Friday gets lighter."
+              "1. Make room for your morning\n2. The calm before the calendar\n3. One cup. A quieter start.\n4. Your morning, before the noise\n5. Take the good part with you"
           }
         ]
       },
@@ -1480,19 +1483,23 @@ export const EXAMPLE_APPS = [
             show: "prompt_used",
             op: "visual",
             as: "Markdown",
-            label: "Prompt sent to the image model"
+            label: "Prompt sent to the image model",
+            demo:
+              "Olive Travel Cup on a pale limestone cafe counter at warm sunrise, warm window key light with subtle cool fill, editorial 50mm product photography, restrained sage, charcoal, and cream palette, generous clean negative space on the upper left, no lettering, logo, or watermark."
           },
           {
             show: "image",
             op: "visual",
             as: "Image",
             label: "Campaign hero",
-            demo: IMG
+            demo: AD_MAKER_HERO
           }
         ]
       }
     ]
   },
+
+  UGC_PRODUCT_VIDEO_APP,
 
   // ── 22 ─────────────────────────────────────────────────────────────────────
   // The four apps below each bind one shipped recipe

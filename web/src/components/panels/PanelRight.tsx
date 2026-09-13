@@ -21,7 +21,10 @@ import { WorkflowCostEstimatePanel } from "../costs/WorkflowCostEstimatePanel";
 import type { NodeStore } from "../../stores/NodeStore";
 import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 
-import { PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
+import {
+  HEADER_HEIGHT,
+  PANEL_RESIZE_HANDLE_WIDTH
+} from "../../config/constants";
 import ContextMenus from "../context_menus/ContextMenus";
 import {
   MobileBottomSheet,
@@ -31,7 +34,6 @@ import {
   Z_INDEX
 } from "../ui_primitives";
 
-const HEADER_AREA_HEIGHT = 77;
 // Matches HEADER_HEIGHT in PanelBottom — the bar still occupies this when collapsed.
 const BOTTOM_PANEL_HEADER_HEIGHT = 32;
 
@@ -39,8 +41,8 @@ const styles = (theme: Theme, bottomOffset: number, isVisible: boolean) =>
   css({
     position: "fixed",
     right: 0,
-    top: `var(--workspace-header-height, ${HEADER_AREA_HEIGHT}px)`,
-    height: `calc(100vh - var(--workspace-header-height, ${HEADER_AREA_HEIGHT}px) - ${bottomOffset}px)`,
+    top: `var(--workspace-header-height, ${HEADER_HEIGHT}px)`,
+    height: `calc(100vh - var(--workspace-header-height, ${HEADER_HEIGHT}px) - ${bottomOffset}px)`,
     display: "flex",
     flexDirection: "row",
     zIndex: theme.zIndex.appBar,

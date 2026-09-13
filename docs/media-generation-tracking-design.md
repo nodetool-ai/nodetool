@@ -28,6 +28,53 @@ await, cancel, reconcile. Generation capabilities gain `background: true`,
 which returns the generation id at once and leaves the follower to finish the
 job. The CLI gets the same surface as `nodetool generations`.
 
+### Current implementation boundary
+
+The durable path now has two identities. A generation is keyed by its
+idempotency key and input fingerprint. Each provider attempt has its own
+attempt number, provider request id, endpoint and callback credentials. The
+generation row and the attempt row are lease-fenced, so a stale worker cannot
+overwrite a newer owner.
+
+The row records four independent dimensions:
+
+| Dimension | States | Meaning |
+|---|---|---|
+| Submission | `accepted`, `submitting`, `submitted`, `submission_unknown` | Whether NodeTool accepted and identified the provider submission |
+| Provider | `unknown`, `queued`, `running`, `succeeded`, `failed`, `cancelled` | The provider's observed execution state |
+| Output | `pending`, `saving`, `ready`, `retrying`, `unavailable` | Whether the provider result has been recorded and saved |
+| Attachment | `pending`, `attached`, `superseded`, `target_deleted`, `retrying` | Whether a destination attachment is current |
+
+The public status is derived from those dimensions. `completed` means durable
+output is ready. A provider success with output still saving is `recovering`.
+`needs_attention` covers unavailable or retrying output, retrying attachments,
+and unknown submission. Existing `interrupted` rows remain readable.
+
+FAL queue calls use an explicit submit, bind and wait sequence. The submission
+POST is made once, its provider request id is persisted before the status or
+result wait, and binding does not submit again. A signed callback is accepted
+into the durable inbox before the HTTP response is sent. The inbox verifies
+the Ed25519 signature and five-minute timestamp window, bounds the raw body to
+10 MiB, deduplicates deliveries, and refreshes FAL's JWK set through a cached,
+coalesced request. When no callback is configured, or when a callback is not
+available, the recovery worker polls the bound FAL request instead. It consumes
+pending inbox deliveries before polling attempts.
+
+The callback URL is generated only from a valid `https` `NODETOOL_PUBLIC_URL`.
+Local servers normally omit it and use queue polling. A hosted server must set
+it to an address FAL can reach. The callback route is
+`POST /api/providers/fal/webhook/:token`.
+
+Durable cancellation records `cancel_requested_at`; it does not immediately
+claim that FAL cancelled the request or close the generation row. The worker
+uses the bound request id to request provider cancellation and records the
+observed result. The in-process registry can still abort a local call, which
+then closes through the normal generation seam.
+
+This implementation does not checkpoint arbitrary agent or workflow stacks.
+Persisted generation state survives a socket or worker restart, but resuming a
+paused agent turn or workflow execution requires a separate checkpoint design.
+
 ## 2. What is wrong today
 
 Read with `packages/execution/src/cost-ledger.ts` and
@@ -129,17 +176,14 @@ split "what ran" from "what it cost" and every consumer would join them. The
 lifecycle goes into the row that already exists; the write path changes from
 insert-on-success to insert-on-start plus update-on-close.
 
-### D2. The follower is a listener plus a durable queue, not a worker process
+### D2. The listener and durable recovery worker have different jobs
 
-The provider call is already an in-process `await` inside the SDK or the
-provider's own poll loop (`kie-provider.ts pollUntilDone`,
-`gemini-provider.ts` operation polling, `meshy-provider.ts pollTaskStatus`).
-The follower does not take that over. It watches the messages the seam emits,
-which is what the ledger does today, and adds the two things a listener
-cannot give: a queue that survives a restart (reconciliation, stored in the
-row) and a sweep that closes rows the restart orphaned. Resumable polling of a
-provider job across restarts needs a submit/poll split in every provider and is
-out of scope (§12).
+The ordinary generation tracker watches the messages the seam emits and closes
+the in-process row. The durable recovery worker handles accepted attempts after
+the submitting call or process is gone. It consumes a signed FAL inbox delivery
+when one exists, otherwise binds the persisted provider request id and polls
+the queue. It never replays a paid submit. Other providers still need their own
+submit and poll adapters before they can use this recovery path.
 
 ### D3. Receipts flow through AsyncLocalStorage, not through return types
 
@@ -160,7 +204,9 @@ a `persist` option and saves through `createAsset` before it emits
 `job_id` on the asset. The caller gets `assets` back and stops saving on its
 own. A host with no `createAsset` interface (a hermetic eval, the CLI without a
 database) gets the bytes and writes a workspace file as before; the row then
-records `asset_ids: []` and `metadata.persisted: "workspace"`.
+records `asset_ids: []` and `metadata.persisted: "workspace"`. Durable recovery
+records provider output separately from attachment state, so this path does not
+imply that every provider result has been copied to owned storage.
 
 ## 5. The seam
 
@@ -262,8 +308,10 @@ would discard a render still in flight.
 
 `predictionSchema` in `packages/protocol/src/messages.ts`:
 
-- `status` narrows to `"running" | "completed" | "failed" | "cancelled"` on
-  the wire; `"interrupted"` exists only in the row, written by the sweep.
+- `status` exposes `pending`, `running`, `recovering`, `completed`, `failed`,
+  `cancelled`, `needs_attention` and `interrupted`.
+- `submission_status`, `provider_status`, `output_status` and
+  `attachment_status` expose the independent lifecycle dimensions.
 - add `origin: GenerationOrigin`, `asset_ids: string[]`,
   `receipt: GenerationReceipt | null`.
 - `data` stops carrying bytes (F7). It stays in the schema, nullable, for the
@@ -455,8 +503,8 @@ for any procedure the dashboard gains to list generations (classified
 |---|---|---|---|
 | `list_generations` | read | `status?`, `provider?`, `capability?`, `thread_id?`, `job_id?`, `since?` (ISO), `limit` (default 50, max 500) | `{generations: GenerationSummary[], next}`: id, status, provider, model, capability, cost, currency, asset_ids, started_at, duration, error |
 | `get_generation` | read | `generation_id` | the full row: parameters (redacted), price breakdown, receipt, reconcile state, assets as `asset://` refs, origin |
-| `await_generation` | read | `generation_id`, `timeout_seconds` (default 300, max 1800) | the row once terminal, or `{status: "running", waited_seconds}` on timeout. In-process it subscribes to the registry; across processes it polls the row every 5 s |
-| `cancel_generation` | write | `generation_id` | `{generation_id, status: "cancelled"}` or `{cancelled: false, error}` when the id is not running or not the caller's. The category matches `cancel_job`, and so does the row write: one UPDATE with `id`, `user_id` and `status = 'running'` in the WHERE (`Job.markCancelledIfActive`), then the abort |
+| `await_generation` | read | `generation_id`, `timeout_seconds` (default 300, max 1800) | the row once settled, or its current public state with `waited_seconds` on timeout. In-process it subscribes to the registry; across processes it polls the row every 5 s |
+| `cancel_generation` | write | `generation_id` | Local work can abort and close as cancelled. Durable work records a cancellation request; the worker must observe the provider result before closing the row. |
 | `reconcile_generation` | external | `generation_id` | `{before: cost, after: cost, reconciled: boolean, reason?}`; runs the provider's reconciler now, outside the queue's schedule |
 
 Every read is scoped: `Prediction.find` is unscoped today and stays that way
@@ -515,13 +563,11 @@ shape is unchanged apart from that field.
 
 ## 12. Out of scope
 
-- **Resumable provider polling.** After a restart, a kie task or a Veo
-  operation is still running at the provider. Picking it up again needs a
-  `submit`/`poll` split per provider (`kie`, `gemini`, `openai`, `meshy`,
-  `rodin`, `minimax`, `together`, `xai`, `atlascloud`, `evolink`, `topaz`; FAL
-  and Replicate hide it inside their SDKs). The row records the request id so
-  the cost is recovered; the media is not. This is the next design once the
-  row exists.
+- **Resumable polling for providers other than FAL.** The durable recovery
+  worker can bind and poll FAL attempts after a restart. Other providers still
+  need provider-specific submit and poll adapters. The row records their
+  lifecycle state, but this document does not claim that their media can be
+  recovered.
 - **Moving S7 behind the seam** (§8).
 - **Budget refusal before the call.** `admitSpend` exists for the nodetool
   provider only; extending the pre-run gate to BYOK is a pricing question, not

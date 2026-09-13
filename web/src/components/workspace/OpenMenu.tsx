@@ -11,8 +11,6 @@ import {
   LoadingSpinner
 } from "../ui_primitives";
 import { useExampleStoryboards } from "../../hooks/storyboard/useStoryboards";
-import { useOpenNewProjectTab } from "../../hooks/useProjects";
-import { PROJECT_GLYPH } from "../projects/projectIdentity";
 import {
   TEXT_FILE_TEMPLATES,
   useNewDocumentCatalog,
@@ -28,8 +26,8 @@ interface OpenMenuProps {
 type MenuView = "root" | NewDocumentSubmenu;
 
 /**
- * The `[+]` menu for the workspace tab bar. A project comes first — it is what
- * most new work starts as — and the blank documents keep their list below it.
+ * The `[+]` menu for the workspace tab bar. Blank documents only; starting a
+ * project lives on the project selector to the left of New.
  */
 const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   const [view, setView] = useState<MenuView>("root");
@@ -39,7 +37,6 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
     onClose();
   }, [onClose]);
 
-  const openNewProject = useOpenNewProjectTab();
   const {
     entries,
     createTextFile,
@@ -62,34 +59,21 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       maxHeight="70vh"
     >
       <FlexColumn sx={{ width: 320, py: 0.5 }}>
-        {view === "root" && (
-          <>
+        {view === "root" &&
+          entries.map((entry) => (
             <MenuItemPrimitive
-              label="Start a project…"
-              secondary="An agent plans and builds its documents"
-              icon={<span aria-hidden>{PROJECT_GLYPH}</span>}
-              dividerAfter
-              onClick={() => {
-                close();
-                openNewProject();
-              }}
+              key={entry.key}
+              label={entry.menuLabel}
+              icon={entry.icon}
+              hasSubmenu={entry.submenu !== undefined}
+              onClick={() =>
+                entry.submenu
+                  ? setView(entry.submenu)
+                  : void entry.create?.()
+              }
+              disabled={creating !== null}
             />
-            {entries.map((entry) => (
-              <MenuItemPrimitive
-                key={entry.key}
-                label={entry.menuLabel}
-                icon={entry.icon}
-                hasSubmenu={entry.submenu !== undefined}
-                onClick={() =>
-                  entry.submenu
-                    ? setView(entry.submenu)
-                    : void entry.create?.()
-                }
-                disabled={creating !== null}
-              />
-            ))}
-          </>
-        )}
+          ))}
 
         {view === "texts" && (
           <>

@@ -5,6 +5,7 @@ export type {
 } from "./client.js";
 export {
   OpenAICompatError,
+  errorFromOkBody,
   errorFromResponse,
   errorFromStreamEvent,
   parseErrorBody

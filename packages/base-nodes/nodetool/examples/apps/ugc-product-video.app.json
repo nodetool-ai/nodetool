@@ -1,0 +1,1277 @@
+{
+  "schemaVersion": 1,
+  "name": "UGC Product Video",
+  "description": "Create a native-audio Seedance 2.5 testimonial, then turn its spoken words into stable captions, restrained motion graphics, and an exact branded close.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🤳 UGC Product Video",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One take. Native voice. A polished social finish."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Writing and caption transcription use OpenAI. The sample uses Seedance 2.5 on AtlasCloud with native audio; choose it below or select another compatible model."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-1-choose-the-angle",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-1-choose-the-angle",
+                  "title": "1 · Choose the angle",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-offer",
+                        "binding": "var:offer",
+                        "label": "What are you selling?",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "Pick the promise before touching footage. A UGC hook should create curiosity without making a claim the product cannot support."
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-copy",
+                        "label": "Explore three angles",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "copy",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:copy/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-1-choose-the-angle-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-copy",
+                        "binding": "op:copy/exec#progress",
+                        "label": "Writing three routes…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-copy",
+                        "binding": "op:copy/exec#error",
+                        "title": "The angle pass failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:copy/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-copy-variants",
+                        "text": "Angles to adapt",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-copy-variants",
+                        "binding": "op:copy/out:out",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-2-generate-one-continuous-testimonial",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-2-generate-one-continuous-testimonial",
+                  "title": "2 · Generate one continuous testimonial",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-2",
+                        "text": "Image 1 anchors the creator and room. Image 2 anchors only the product. Seedance 2.5 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
+                      }
+                    },
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-creatorimage",
+                        "binding": "var:creatorImage",
+                        "label": "Vertical creator image",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-productimage",
+                        "binding": "var:productImage",
+                        "label": "Clean product image",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-creator-generate-model",
+                        "binding": "op:creator/prop:generate#model",
+                        "label": "Video model",
+                        "modelKind": "video_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-creatorscript",
+                        "binding": "var:creatorScript",
+                        "label": "Complete 15-second script",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-creator",
+                        "label": "Make the 15-second testimonial",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "creator",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:creator/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-2-generate-one-continuous-testimonial-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-creator",
+                        "binding": "op:creator/exec#progress",
+                        "label": "Generating voice, lip-sync, and motion together…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-creator",
+                        "binding": "op:creator/exec#error",
+                        "title": "The creator testimonial failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:creator/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-creatorclip",
+                        "text": "Continuous creator testimonial",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-creatorclip",
+                        "binding": "var:creatorClip",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-3-finish-the-reel",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-3-finish-the-reel",
+                  "title": "3 · Finish the Reel",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-brand",
+                        "binding": "var:brand",
+                        "label": "Brand",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-slogan",
+                        "binding": "var:slogan",
+                        "label": "Slogan",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-brand-caption-style",
+                        "binding": "op:brand/in:caption-style",
+                        "label": "Caption style",
+                        "options": [
+                          {
+                            "value": "Polished"
+                          },
+                          {
+                            "value": "Minimal"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ColorInput",
+                      "props": {
+                        "id": "in-brand-brand-accent",
+                        "binding": "op:brand/in:brand-accent",
+                        "label": "Brand accent (optional)",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-brand",
+                        "label": "Add motion + captions",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "brand",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:brand/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-3-finish-the-reel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-brand",
+                        "binding": "op:brand/exec#progress",
+                        "label": "Transcribing the clip and rendering the finish…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-brand",
+                        "binding": "op:brand/exec#error",
+                        "title": "The Reel finish failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:brand/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-finalvideo",
+                        "text": "Finished 15-second UGC Reel",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-finalvideo",
+                        "binding": "var:finalVideo",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-3",
+                        "text": "Captions follow the generated audio and stay reviewable. Watch once with sound, once muted, and check every highlighted word before publishing."
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "copy",
+        "name": "Angles",
+        "workflowId": "copy",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "offer"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "creator",
+        "name": "Creator testimonial",
+        "workflowId": "creator",
+        "inputs": {
+          "creator-image": {
+            "from": "variable",
+            "variableId": "creatorImage"
+          },
+          "product-image": {
+            "from": "variable",
+            "variableId": "productImage"
+          },
+          "script": {
+            "from": "variable",
+            "variableId": "creatorScript"
+          },
+          "product": {
+            "from": "variable",
+            "variableId": "offer"
+          }
+        },
+        "outputs": {
+          "video-out": {
+            "to": "variable",
+            "variableId": "creatorClip"
+          }
+        },
+        "policy": "replace",
+        "timeoutMs": 600000
+      },
+      {
+        "id": "brand",
+        "name": "Finish the Reel",
+        "workflowId": "brand",
+        "inputs": {
+          "creator-clip": {
+            "from": "variable",
+            "variableId": "creatorClip"
+          },
+          "brand": {
+            "from": "variable",
+            "variableId": "brand"
+          },
+          "slogan": {
+            "from": "variable",
+            "variableId": "slogan"
+          }
+        },
+        "outputs": {
+          "video-out": {
+            "to": "variable",
+            "variableId": "finalVideo"
+          }
+        },
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "offer",
+        "name": "Offer",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid for a calmer morning routine",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "creatorImage",
+        "name": "Vertical creator reference",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "productImage",
+        "name": "Product reference",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "creatorScript",
+        "name": "15-second creator script",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "I did not expect a travel cup to fix my mornings, but this one did. The lid never leaks in my bag, the finish feels great, and my coffee stays hot through my first meeting. I use it every day.",
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "creatorClip",
+        "name": "Creator testimonial",
+        "type": {
+          "type": "video",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "brand",
+        "name": "Brand",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "MORROW",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "slogan",
+        "name": "Slogan",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Carry the calm.",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "finalVideo",
+        "name": "Branded UGC Reel",
+        "type": {
+          "type": "video",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "copy",
+      "name": "Ad Copy in Three Registers",
+      "description": "The same offer written plain, playful and premium. Register is usually the variable a team argues about, so produce all three and let the work settle it.",
+      "sourceId": "nodetool-base/Ad Copy in Three Registers",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "offer",
+              "value": "",
+              "description": "The offer to advertise"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Input"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "ag",
+            "type": "nodetool.agents.Agent",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "system": "You write ad copy. Produce three versions of the same offer — plain, playful, premium — each about 40 words, labelled.",
+              "prompt": "",
+              "tools": [],
+              "image": [],
+              "audio": [],
+              "history": [],
+              "thread_id": "",
+              "max_tokens": 16384,
+              "max_turns": 100
+            },
+            "ui_properties": {
+              "position": {
+                "x": 330,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "2  Agent"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "variants"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Output"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in",
+            "sourceHandle": "output",
+            "target": "ag",
+            "targetHandle": "prompt"
+          },
+          {
+            "id": "e2",
+            "source": "ag",
+            "sourceHandle": "text",
+            "target": "out",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "creator",
+      "name": "Generate a Native-Audio UGC Testimonial",
+      "description": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
+      "sourceId": "nodetool-base/Generate a Native-Audio UGC Testimonial",
+      "graph": {
+        "nodes": [
+          {
+            "id": "creator-image",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "creator_image",
+              "value": null,
+              "description": "Image 1: vertical reference showing the creator, setting, and wardrobe without the product"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 100
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Creator reference"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "product-image",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "product_image",
+              "value": null,
+              "description": "Image 2: clean product reference used only for the brief middle proof beat"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Product reference"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "script",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "script",
+              "value": "I did not expect a travel cup to fix my mornings, but this one did. The lid never leaks in my bag, the finish feels great, and my coffee stays hot through my first meeting. I use it every day.",
+              "description": "Exact words the video model should voice"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Spoken script"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "product",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "product",
+              "value": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid",
+              "description": "Product description used for the brief middle proof beat"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 770
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4  Product brief"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "prompt",
+            "type": "nodetool.text.Template",
+            "data": {
+              "string": "Use @Image1 only for the creator identity, face, hair, wardrobe, room, and natural skin texture. Use @Image2 only for the product silhouette, muted-olive finish, charcoal lid, and proportions. Do not transfer the product image background. Product: {{ product }}. Create one continuous 15-second vertical 9:16 front-camera phone testimonial. Preserve fine facial asymmetry, small spontaneous blinks, tiny gaze corrections, breathing, imperfect handheld movement, slight autofocus and exposure breathing, and mild phone compression. [0.0-4.5s] Chest-up creator alone. No product or hands visible. She begins the exact dialogue below with mild surprise. [4.5-7.0s] Without cutting away from her face, she briefly lifts the @Image2 product from below frame into the lower-right corner, never blocking her face, then lowers it completely out of frame at 7.0s. [7.0-15.0s] Keep the camera on her face with the product and hands fully out of frame through the final smile. Exact dialogue: {{ script }} No extra words. Generate picture, voice, and lip-sync together in one pass. Natural adult female voice, clear conversational English, warm mid-register, unstaged creator cadence, subtle room tone. No music, voice-over, extra speakers, subtitles, on-screen text, logos, jump cuts, cutaways, beauty-filter skin, waxy texture, rigid posture, repetitive mouth motion, exaggerated expressions, product before 4.5s, product after 7.0s, product morphing, or compositing seams."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 390,
+                "y": 280
+              },
+              "zIndex": 0,
+              "width": 340,
+              "selectable": true,
+              "title": "6  Native-audio direction"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "references",
+            "type": "nodetool.image.ImagesToList",
+            "data": {},
+            "ui_properties": {
+              "position": {
+                "x": 390,
+                "y": 100
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "5  Ordered Seedance references"
+            },
+            "dynamic_properties": {
+              "image_1_creator": null,
+              "image_2_product": null
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "generate",
+            "type": "nodetool.video.ReferenceToVideo",
+            "data": {
+              "model": {
+                "type": "video_model",
+                "provider": "atlascloud",
+                "id": "bytedance/seedance-2.5/reference-to-video",
+                "name": "Seedance 2.5 Reference to Video",
+                "path": null,
+                "supported_tasks": [
+                  "reference_to_video"
+                ]
+              },
+              "reference_images": [],
+              "reference_videos": [],
+              "use_reference_video_audio": false,
+              "negative_prompt": "",
+              "aspect_ratio": "9:16",
+              "resolution": "720p",
+              "duration": 15,
+              "timeout_seconds": 1800
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 190
+              },
+              "zIndex": 0,
+              "width": 320,
+              "selectable": true,
+              "title": "7  Generate picture and voice together"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "video-out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "video"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1240,
+                "y": 220
+              },
+              "zIndex": 0,
+              "width": 260,
+              "selectable": true,
+              "title": "8  Native-audio testimonial"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "creator-image",
+            "sourceHandle": "output",
+            "target": "references",
+            "targetHandle": "image_1_creator"
+          },
+          {
+            "id": "e2",
+            "source": "product-image",
+            "sourceHandle": "output",
+            "target": "references",
+            "targetHandle": "image_2_product"
+          },
+          {
+            "id": "e3",
+            "source": "script",
+            "sourceHandle": "output",
+            "target": "prompt",
+            "targetHandle": "script"
+          },
+          {
+            "id": "e4",
+            "source": "product",
+            "sourceHandle": "output",
+            "target": "prompt",
+            "targetHandle": "product"
+          },
+          {
+            "id": "e5",
+            "source": "references",
+            "sourceHandle": "output",
+            "target": "generate",
+            "targetHandle": "reference_images"
+          },
+          {
+            "id": "e6",
+            "source": "prompt",
+            "sourceHandle": "output",
+            "target": "generate",
+            "targetHandle": "prompt"
+          },
+          {
+            "id": "e7",
+            "source": "generate",
+            "sourceHandle": "output",
+            "target": "video-out",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "brand",
+      "name": "Brand a UGC Product Video",
+      "description": "Turn one continuous vertical creator clip into a polished branded reel. The workflow extracts the native audio, transcribes it with word timestamps, groups the words into short animated phrases, builds an editable NodeTool timeline with MORROW motion graphics, and renders the finished video.",
+      "sourceId": "nodetool-base/Brand a UGC Product Video",
+      "graph": {
+        "nodes": [
+          {
+            "id": "intro",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Brand a UGC Product Video\n\nDrop in one continuous, native-audio vertical creator clip. The workflow transcribes the clip, groups the spoken words into 3–5 word phrases, and builds a reusable editable timeline with word highlighting, stable frame-snapped phrases, a MORROW opening bug, a compact lower-left DAILY RITUAL callout, and an animated closing lockup.\n\n**Pipeline:** Creator clip → Native audio → Word timestamps → Motion-design timeline → Final reel\n\n**Style:** Ivory `#F6F4EC`, sage `#C0D28C`, forest `#14241E`. `Polished` adds a soft caption plate; `Minimal` keeps only type and outline."
+            },
+            "ui_properties": {
+              "position": {
+                "x": -20,
+                "y": -210
+              },
+              "zIndex": -1,
+              "width": 1860,
+              "height": 170,
+              "selectable": true,
+              "title": "MORROW motion finishing"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "creator-clip",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "creator_clip",
+              "value": null,
+              "description": "One continuous 9:16 creator clip with its native audio"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Creator clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brand",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "brand",
+              "value": "MORROW",
+              "description": "Brand name used by the opening bug and closing lockup"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 250
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Brand"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "slogan",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "slogan",
+              "value": "Carry the calm.",
+              "description": "Closing line under the brand"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 450
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Slogan"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "caption-style",
+            "type": "nodetool.input.SelectInput",
+            "data": {
+              "name": "caption_style",
+              "value": "Polished",
+              "options": [
+                "Polished",
+                "Minimal"
+              ],
+              "enum_type_name": "",
+              "description": "Polished adds a restrained forest plate; Minimal keeps the outlined type"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 650
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4  Caption style"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brand-accent",
+            "type": "nodetool.input.ColorInput",
+            "data": {
+              "name": "brand_accent",
+              "value": {
+                "type": "color",
+                "value": "#C0D28C"
+              },
+              "description": "Active-word, underline, bracket, and closing-rule color"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 850
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "5  Brand accent"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "extract-audio",
+            "type": "nodetool.video.ExtractAudio",
+            "data": {},
+            "ui_properties": {
+              "position": {
+                "x": 360,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "6  Keep the native track"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "transcribe",
+            "type": "openai.audio.Transcribe",
+            "data": {
+              "model": "whisper-1",
+              "language": "auto_detect",
+              "timestamps": true,
+              "prompt": "Return the creator's exact spoken words. Preserve product and brand terms.",
+              "temperature": 0
+            },
+            "ui_properties": {
+              "position": {
+                "x": 700,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "7  Derive word timings"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "build-timeline",
+            "type": "nodetool.code.Code",
+            "data": {
+              "code": "const creator = inputs.creator;\nconst rawWords = Array.isArray(inputs.words) ? inputs.words : [];\nconst brand = String(inputs.brand || 'MORROW').trim().toUpperCase();\nconst slogan = String(inputs.slogan || 'Carry the calm.').trim();\nconst captionStyleName = String(inputs.captionStyle || 'Polished');\nconst brandAccent = String((inputs.brandAccent && inputs.brandAccent.value) || inputs.brandAccent || '#C0D28C');\nconst IVORY = '#F6F4EC';\nconst FOREST = '#14241E';\nconst DURATION_MS = 15_083;\nconst closingPanel = {riseStartMs: 11_750, riseEndMs: 12_300, holdEndMs: 15_083};\nconst openingBug = {startMs: 150, endMs: 2_700};\nconst dailyRitual = {startMs: 5_000, endMs: 7_000};\nif (!creator || typeof creator !== 'object') throw new Error('A creator clip is required.');\nif (rawWords.length === 0) throw new Error('The transcription returned no word timestamps. Use whisper-1 with timestamps enabled.');\nlet assetId = typeof creator.asset_id === 'string' ? creator.asset_id : '';\nif (!assetId) { const saveOptions = creator.uri ? {source: creator.uri, content_type: 'video/mp4'} : {content_base64: creator.data, content_type: 'video/mp4'}; const saved = await nodetool.assets.save(`${brand.toLowerCase()}-creator.mp4`, saveOptions); assetId = String(saved.asset_id || saved.id || ''); }\nif (!assetId) throw new Error('The creator clip could not be stored as a timeline asset.');\nconst words = rawWords.map((item) => { const stamp = Array.isArray(item.timestamp) ? item.timestamp : []; return {text: String(item.text || '').trim(), startMs: Math.max(0, Math.round(Number(stamp[0] || 0) * 1000)), endMs: Math.max(1, Math.round(Number(stamp[1] || stamp[0] || 0) * 1000))}; }).filter((item) => item.text && item.endMs > item.startMs).sort((a, b) => a.startMs - b.startMs);\nconst clauses = []; let clause = [];\nfor (const word of words) { const gap = clause.length ? word.startMs - clause[clause.length - 1].endMs : 0; if (clause.length && gap > 450) { clauses.push(clause); clause = []; } clause.push(word); if (/[.!?]$/.test(word.text)) { clauses.push(clause); clause = []; } }\nif (clause.length) clauses.push(clause);\nfunction countsFor(total) { const counts = []; let left = total; while (left > 5) { const take = left - 5 < 3 ? left - 3 : 5; counts.push(take); left -= take; } if (left > 0) counts.push(left); if (counts.length > 1 && counts[counts.length - 1] < 3) counts[counts.length - 2] += counts.pop(); return counts; }\nconst phrases = [];\nfor (const run of clauses) { let cursor = 0; for (const count of countsFor(run.length)) { const slice = run.slice(cursor, cursor + count); cursor += count; if (slice.length < 3 && phrases.length && phrases[phrases.length - 1].words.length + slice.length <= 5) phrases[phrases.length - 1].words.push(...slice); else phrases.push({words: slice}); } }\nconst clip = (overrides) => ({sourceType: 'imported', status: 'generated', locked: false, versions: [], ...overrides});\nconst pop = (id, durationMs = 250) => ({id, role: 'in', preset: 'pop', durationMs, easing: 'easeOutBack', params: {overshoot: 1.06}});\nconst slideUp = (id, durationMs = 550) => ({id, role: 'in', preset: 'slide', durationMs, easing: 'easeOut', params: {direction: 'down', distance: 0.34}});\nconst captionStyle = {fontFamily: 'Inter', fontSizeFrac: captionStyleName === 'Minimal' ? 0.043 : 0.048, color: IVORY, activeColor: brandAccent, outline: {color: FOREST, widthPx: 4}, bottomMarginFrac: 0.39};\nif (captionStyleName !== 'Minimal') captionStyle.background = {color: '#14241ECC', paddingPx: 16, radiusPx: 14};\nconst FPS = 24;\nconst frameToMs = (frame) => Math.round(frame * 1000 / FPS);\nconst msToFrame = (ms) => Math.max(0, Math.round(ms * FPS / 1000));\nconst phraseStartFrames = phrases.map((phrase) => msToFrame(phrase.words[0].startMs));\nconst captionClips = phrases.map((phrase, index) => { const last = phrase.words[phrase.words.length - 1]; const startFrame = phraseStartFrames[index]; const startMs = frameToMs(startFrame); const nextPhrase = phrases[index + 1]; const nextStartFrame = nextPhrase ? phraseStartFrames[index + 1] : msToFrame(DURATION_MS); const hasGenuinePause = Boolean(nextPhrase && nextPhrase.words[0].startMs - last.endMs > 450); const naturalEndFrame = Math.max(startFrame + 1, msToFrame(Math.min(DURATION_MS, last.endMs + 180))); const endFrame = nextPhrase ? (hasGenuinePause ? Math.min(nextStartFrame - 1, naturalEndFrame) : nextStartFrame) : Math.min(msToFrame(DURATION_MS), naturalEndFrame); const safeEndFrame = Math.max(startFrame + 1, endFrame); const endMs = frameToMs(safeEndFrame); const captionWords = phrase.words.map((word, wordIndex) => { const wordStartFrame = Math.max(startFrame, msToFrame(word.startMs)); const nextWord = phrase.words[wordIndex + 1]; const wordEndFrame = nextWord ? Math.max(wordStartFrame + 1, msToFrame(nextWord.startMs)) : Math.max(wordStartFrame + 1, safeEndFrame); return {word: word.text.toUpperCase(), startMs: frameToMs(wordStartFrame) - startMs, endMs: Math.min(frameToMs(wordEndFrame) - startMs, endMs - startMs)}; }); return clip({id: `caption-${index + 1}`, trackId: 'captions', name: `Phrase ${index + 1}`, startMs, durationMs: endMs - startMs, mediaType: 'text', caption: {words: captionWords, style: captionStyle}}); });\nconst clips = [\nclip({id: 'creator-video', trackId: 'video', name: 'Creator clip with native audio', startMs: 0, durationMs: DURATION_MS, mediaType: 'video', sourceType: 'imported', currentAssetId: assetId, volumeDb: 0}),\nclip({id: 'opening-bug-plate', trackId: 'motion-a', name: 'openingBug plate', startMs: openingBug.startMs, durationMs: openingBug.endMs - openingBug.startMs, mediaType: 'shape', shapeStyle: {kind: 'rect', x: 0.081, y: 0.116, width: 0.333, height: 0.054, fill: FOREST, cornerRadius: 0.012}, animations: [pop('opening-bug-pop')]}),\nclip({id: 'opening-bug-accent', trackId: 'motion-b', name: 'openingBug accent', startMs: openingBug.startMs + 80, durationMs: openingBug.endMs - openingBug.startMs - 80, mediaType: 'shape', shapeStyle: {kind: 'line', x: 0.107, y: 0.129, x2: 0.107, y2: 0.157, stroke: brandAccent, strokeWidthPx: 7, lineCap: 'round'}, animations: [pop('opening-accent-pop', 180)]}),\nclip({id: 'opening-bug-brand', trackId: 'motion-c', name: 'openingBug MORROW', startMs: openingBug.startMs + 120, durationMs: openingBug.endMs - openingBug.startMs - 120, mediaType: 'text', textStyle: {text: brand, fontFamily: 'Inter', fontSizePx: 34, fontWeight: 600, color: IVORY, align: 'center', letterSpacingPx: 3, stroke: {color: FOREST, widthPx: 1}}, transform: {position: {x: -194, y: -480}, scale: {x: 1, y: 1}, rotation: 0, anchor: {x: 0.5, y: 0.5}}, animations: [pop('opening-brand-pop', 180)]}),\nclip({id: 'daily-panel', trackId: 'motion-a', name: 'dailyRitual compact lower-left panel', startMs: dailyRitual.startMs, durationMs: dailyRitual.endMs - dailyRitual.startMs, mediaType: 'shape', shapeStyle: {kind: 'rect', x: 0.0625, y: 0.7403, width: 0.3281, height: 0.0476, fill: '#14241EE8', cornerRadius: 0}}),\nclip({id: 'daily-rule', trackId: 'motion-b', name: 'dailyRitual sage rule', startMs: dailyRitual.startMs, durationMs: dailyRitual.endMs - dailyRitual.startMs, mediaType: 'shape', shapeStyle: {kind: 'line', x: 0.067, y: 0.7403, x2: 0.067, y2: 0.7879, stroke: brandAccent, strokeWidthPx: 7, lineCap: 'butt'}}),\nclip({id: 'daily-label', trackId: 'motion-c', name: 'dailyRitual stable label', startMs: dailyRitual.startMs, durationMs: dailyRitual.endMs - dailyRitual.startMs, mediaType: 'text', textStyle: {text: 'DAILY RITUAL', fontFamily: 'Inter', fontSizePx: 20, fontWeight: 600, color: brandAccent, align: 'center', letterSpacingPx: 2, lineHeight: 1}, transform: {position: {x: -224, y: 354}, scale: {x: 1, y: 1}, rotation: 0, anchor: {x: 0.5, y: 0.5}}}),\nclip({id: 'daily-rule-tail', trackId: 'motion-d', name: 'dailyRitual sage rule tail', startMs: dailyRitual.startMs, durationMs: dailyRitual.endMs - dailyRitual.startMs, mediaType: 'shape', shapeStyle: {kind: 'line', x: 0.3906, y: 0.7645, x2: 0.5599, y2: 0.7645, stroke: brandAccent, strokeWidthPx: 3, lineCap: 'butt'}}),\nclip({id: 'closing-panel', trackId: 'motion-a', name: 'closingPanel deep-forest rise', startMs: closingPanel.riseStartMs, durationMs: closingPanel.holdEndMs - closingPanel.riseStartMs, mediaType: 'shape', shapeStyle: {kind: 'rect', x: 0, y: 0.715, width: 1, height: 0.285, fill: FOREST}, animations: [slideUp('closing-panel-rise', closingPanel.riseEndMs - closingPanel.riseStartMs)]}),\nclip({id: 'closing-rule', trackId: 'motion-b', name: 'closingPanel sage rule', startMs: 12_220, durationMs: closingPanel.holdEndMs - 12_220, mediaType: 'shape', shapeStyle: {kind: 'line', x: 0.095, y: 0.772, x2: 0.095, y2: 0.914, stroke: brandAccent, strokeWidthPx: 7, lineCap: 'round'}, animations: [{id: 'closing-rule-draw', role: 'in', preset: 'custom', durationMs: 320, custom: {curves: [{property: 'trimEnd', keyframes: [{t: 0, value: 0}, {t: 1, value: 1, easing: 'easeOut'}]}]}}]}),\nclip({id: 'closing-brand', trackId: 'motion-c', name: 'closingPanel MORROW', startMs: closingPanel.riseEndMs, durationMs: closingPanel.holdEndMs - closingPanel.riseEndMs, mediaType: 'text', textStyle: {text: brand, fontFamily: 'Inter', fontSizePx: 72, fontWeight: 600, color: IVORY, align: 'center', letterSpacingPx: 7, stroke: {color: FOREST, widthPx: 1}}, transform: {position: {x: 12, y: 365}, scale: {x: 1, y: 1}, rotation: 0, anchor: {x: 0.5, y: 0.5}}, animations: [slideUp('closing-brand-rise', 320)]}),\nclip({id: 'closing-slogan', trackId: 'motion-d', name: 'closingPanel slogan', startMs: 12_520, durationMs: closingPanel.holdEndMs - 12_520, mediaType: 'text', textStyle: {text: slogan, fontFamily: 'Inter', fontSizePx: 35, fontWeight: 500, color: IVORY, align: 'center', letterSpacingPx: 1, stroke: {color: FOREST, widthPx: 1}}, transform: {position: {x: 0, y: 455}, scale: {x: 1, y: 1}, rotation: 0, anchor: {x: 0.5, y: 0.5}}, animations: [slideUp('closing-slogan-rise', 280)]}),\n...captionClips];\nconst created = await nodetool.timelines.create(`${brand} UGC motion finish`, {fps: 24, width: 768, height: 1344});\nconst timelineId = String(created.timeline_id || created.id || '');\nif (!timelineId) throw new Error('Could not create the motion-design timeline.');\nconst document = {tracks: [{id: 'captions', name: 'Animated phrase captions', type: 'overlay', index: 0, visible: true, locked: false}, {id: 'motion-d', name: 'Motion D', type: 'overlay', index: 1, visible: true, locked: false}, {id: 'motion-c', name: 'Motion C', type: 'overlay', index: 2, visible: true, locked: false}, {id: 'motion-b', name: 'Motion B', type: 'overlay', index: 3, visible: true, locked: false}, {id: 'motion-a', name: 'Motion A', type: 'overlay', index: 4, visible: true, locked: false}, {id: 'video', name: 'Creator + native audio', type: 'video', index: 5, visible: true, locked: false}], clips, markers: [{id: 'opening', timeMs: openingBug.startMs, label: 'Opening bug', color: brandAccent}, {id: 'cup', timeMs: dailyRitual.startMs, label: 'Daily ritual', color: brandAccent}, {id: 'close', timeMs: closingPanel.riseStartMs, label: 'Closing panel', color: brandAccent}]};\nconst written = await nodetool.timelines.setDocument(timelineId, document, {fps: 24, width: 768, height: 1344, snapshot_name: 'MORROW motion finish'});\nif (written && written.error) throw new Error(String(written.error));\nawait output('timeline', {type: 'timeline', id: timelineId});",
+              "timeout": 90,
+              "max_response_mb": 1,
+              "allow_local_network": false,
+              "allow_host_filesystem": false,
+              "secrets": [],
+              "script": {}
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1070,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 400,
+              "height": 520,
+              "selectable": true,
+              "title": "8  Build the editable motion timeline"
+            },
+            "dynamic_properties": {
+              "creator": null,
+              "words": [],
+              "brand": "",
+              "slogan": "",
+              "captionStyle": "Polished",
+              "brandAccent": {
+                "type": "color",
+                "value": "#C0D28C"
+              }
+            },
+            "dynamic_outputs": {
+              "timeline": {
+                "type": "timeline",
+                "type_args": [],
+                "optional": false
+              }
+            }
+          },
+          {
+            "id": "render",
+            "type": "nodetool.timeline.RenderTimeline",
+            "data": {
+              "timeline": {
+                "type": "timeline",
+                "id": null,
+                "data": null
+              },
+              "include_audio": true,
+              "format": "mp4",
+              "alpha": false,
+              "video_codec": "",
+              "motion_blur_samples": 1,
+              "shutter_angle": 180,
+              "bitrate": 0,
+              "preview_scale": 1
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1540,
+                "y": 390
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "9  Render the finished reel"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "video-out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "video",
+              "description": "Polished vertical UGC reel with editable motion graphics and captions"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1910,
+                "y": 390
+              },
+              "zIndex": 0,
+              "width": 260,
+              "selectable": true,
+              "title": "10  Branded UGC reel"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "creator-clip",
+            "sourceHandle": "output",
+            "target": "extract-audio",
+            "targetHandle": "video"
+          },
+          {
+            "id": "e2",
+            "source": "extract-audio",
+            "sourceHandle": "output",
+            "target": "transcribe",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "e3",
+            "source": "creator-clip",
+            "sourceHandle": "output",
+            "target": "build-timeline",
+            "targetHandle": "creator"
+          },
+          {
+            "id": "e4",
+            "source": "transcribe",
+            "sourceHandle": "words",
+            "target": "build-timeline",
+            "targetHandle": "words"
+          },
+          {
+            "id": "e5",
+            "source": "brand",
+            "sourceHandle": "output",
+            "target": "build-timeline",
+            "targetHandle": "brand"
+          },
+          {
+            "id": "e6",
+            "source": "slogan",
+            "sourceHandle": "output",
+            "target": "build-timeline",
+            "targetHandle": "slogan"
+          },
+          {
+            "id": "e7",
+            "source": "caption-style",
+            "sourceHandle": "output",
+            "target": "build-timeline",
+            "targetHandle": "captionStyle"
+          },
+          {
+            "id": "e8",
+            "source": "brand-accent",
+            "sourceHandle": "output",
+            "target": "build-timeline",
+            "targetHandle": "brandAccent"
+          },
+          {
+            "id": "e9",
+            "source": "build-timeline",
+            "sourceHandle": "timeline",
+            "target": "render",
+            "targetHandle": "timeline"
+          },
+          {
+            "id": "e10",
+            "source": "render",
+            "sourceHandle": "output",
+            "target": "video-out",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}

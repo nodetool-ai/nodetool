@@ -4,7 +4,19 @@
  */
 
 import { createFalClient, type FalClient } from "@fal-ai/client";
-import { fetchExternalMedia } from "@nodetool-ai/runtime";
+import {
+  createFalQueueOperations,
+  currentGenerationProviderRequestOptions,
+  falSubmitAndWait,
+  recordGenerationBindingAsync,
+  recordGenerationProviderResult,
+  recordGenerationReceiptAsync,
+  fetchExternalMedia,
+  type FalQueueOperations,
+  type FalQueueSubmission,
+  type GenerationRequest,
+  type ProcessingContext
+} from "@nodetool-ai/runtime";
 
 // ---------------------------------------------------------------------------
 // API Key extraction
@@ -52,26 +64,159 @@ export async function falSubmitWithMeta(
   apiKey: string,
   endpoint: string,
   args: Record<string, unknown>,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  options: {
+    readonly webhookUrl?: string;
+    readonly signal?: AbortSignal;
+    readonly onAccepted?: (
+      submission: FalQueueSubmission
+    ) => void | Promise<void>;
+    readonly onBound?: (binding: {
+      readonly providerRequestId: string;
+      readonly endpoint: string;
+    }) => void | Promise<void>;
+  } = {}
 ): Promise<{ data: Record<string, unknown>; requestId: string | null }> {
   const client = getClient(apiKey);
-  const result = await client.subscribe(endpoint, {
-    input: args,
-    logs: true,
-    onQueueUpdate: onProgress
-      ? (update: { status: string; logs?: Array<{ message: string }> }) => {
-          if (update.status === "IN_PROGRESS") {
-            for (const entry of update.logs ?? []) {
-              onProgress(entry.message);
+  // `subscribe()` performs submit, polling, and result retrieval as one opaque
+  // operation. Prefer the explicit queue adapter so the paid POST is issued
+  // exactly once and the request id is available before waiting. Older test
+  // doubles and hosts may only expose subscribe(), so retain that fallback.
+  if ("queue" in client && client.queue) {
+    const operations: FalQueueOperations = createFalQueueOperations({ apiKey });
+    const providerRequestOptions = currentGenerationProviderRequestOptions();
+    const request: {
+      endpoint: string;
+      input: Record<string, unknown>;
+      signal?: AbortSignal;
+      webhookUrl?: string;
+    } = {
+      endpoint,
+      input: args
+    };
+    const webhookUrl = options.webhookUrl ?? providerRequestOptions?.webhookUrl;
+    if (webhookUrl) request.webhookUrl = webhookUrl;
+    if (options.signal) request.signal = options.signal;
+    const result = await falSubmitAndWait(operations, request, {
+      signal: options.signal,
+      onAccepted: async (submission) => {
+        await recordGenerationReceiptAsync(
+          { provider_request_id: submission.providerRequestId },
+          submission
+        );
+        await options.onAccepted?.(submission);
+      },
+      onBound: async (binding) => {
+        await recordGenerationBindingAsync(binding);
+        await options.onBound?.(binding);
+      },
+      onUpdate: (observation) => {
+        const rawStatus = observation.rawStatus;
+        if (
+          typeof rawStatus === "object" &&
+          rawStatus !== null &&
+          "logs" in rawStatus &&
+          Array.isArray(rawStatus.logs)
+        ) {
+          for (const entry of rawStatus.logs) {
+            if (
+              typeof entry === "object" &&
+              entry !== null &&
+              "message" in entry &&
+              typeof entry.message === "string"
+            ) {
+              onProgress?.(entry.message);
             }
           }
         }
-      : undefined
-  });
+      }
+    });
+    recordGenerationProviderResult(result.data);
+    return { data: result.data, requestId: result.requestId };
+  }
+  const subscribeOptions: Parameters<FalClient["subscribe"]>[1] = onProgress
+    ? {
+        input: args,
+        logs: true,
+        onQueueUpdate: (update: {
+          status: string;
+          logs?: Array<{ message: string }>;
+        }) => {
+          if (update.status !== "IN_PROGRESS") return;
+          for (const entry of update.logs ?? []) onProgress(entry.message);
+        }
+      }
+    : { input: args, logs: true };
+  if (options.signal) {
+    Object.assign(subscribeOptions, { abortSignal: options.signal });
+  }
+  const result = await client.subscribe(endpoint, subscribeOptions);
   const data = (result.data ?? result) as Record<string, unknown>;
+  recordGenerationProviderResult(data);
   const requestId =
     (result as { requestId?: string } | undefined)?.requestId ?? null;
   return { data, requestId };
+}
+
+/**
+ * Submit a FAL request through the processing context's generation seam.
+ *
+ * FAL nodes are provider-specific nodes, so they cannot use one of the
+ * capability helpers on ProcessingContext. Keeping the call here gives the
+ * generated, raw, and schema-driven nodes the same acceptance and binding
+ * ordering as the higher-level provider while preserving their endpoint
+ * shaped output. When an enclosing durable seam already supplied provider
+ * request options, the request is already inside that seam and must not open
+ * a second ledger row.
+ */
+export async function falSubmitWithGeneration(
+  apiKey: string,
+  endpoint: string,
+  args: Record<string, unknown>,
+  context: ProcessingContext | undefined,
+  nodeType: string,
+  capability: GenerationRequest["capability"],
+  onProgress?: (message: string) => void
+): Promise<{ data: Record<string, unknown>; requestId: string | null }> {
+  if (!context || currentGenerationProviderRequestOptions()) {
+    return falSubmitWithMeta(apiKey, endpoint, args, onProgress);
+  }
+
+  const generation = await context.runGenerationWith<Record<string, unknown>>(
+    {
+      provider: "fal_ai",
+      capability,
+      model: endpoint,
+      nodeId: nodeType,
+      params: args,
+      origin: { surface: "workflow", node_id: nodeType }
+    },
+    async (_provider, signal) =>
+      (await falSubmitWithMeta(apiKey, endpoint, args, onProgress, { signal }))
+        .data
+  );
+
+  return {
+    data: generation.output,
+    requestId: generation.receipt?.provider_request_id ?? null
+  };
+}
+
+/** Map manifest output metadata to the closest protocol capability. */
+export function falCapabilityForOutputType(
+  outputType: string
+): GenerationRequest["capability"] {
+  switch (outputType.toLowerCase()) {
+    case "video":
+      return "text_to_video";
+    case "audio":
+      return "text_to_speech";
+    case "model_3d":
+      return "text_to_3d";
+    case "image":
+    default:
+      return "text_to_image";
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -98,9 +243,7 @@ interface UploadContext {
   storage?: {
     retrieve(uri: string): Promise<Uint8Array | null | undefined>;
   } | null;
-  resolveAssetBytes?: (
-    uri: string
-  ) => Promise<{ bytes: Uint8Array | null }>;
+  resolveAssetBytes?: (uri: string) => Promise<{ bytes: Uint8Array | null }>;
 }
 
 export async function assetToFalUrl(

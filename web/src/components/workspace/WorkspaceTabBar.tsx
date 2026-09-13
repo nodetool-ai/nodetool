@@ -35,6 +35,8 @@ import OpenMenu from "./OpenMenu";
 import WorkspaceTabItem from "./WorkspaceTabItem";
 import MobileDocumentSelector from "./MobileDocumentSelector";
 import MobileRailLauncher from "../panels/MobileRailLauncher";
+import ProjectSelector from "../projects/ProjectSelector";
+import { ActivityIndicator } from "../timeline/ActivityIndicator";
 import { PROJECT_COLOR } from "../projects/projectIdentity";
 import { TYPE_COLOR, TYPE_GLYPH } from "./tabTypeIdentity";
 import { useWorkspaceHeaderActions } from "./WorkspaceHeaderActionsContext";
@@ -110,9 +112,14 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.primary,
         backgroundColor: "var(--c_editor_bg_color)"
       },
-      // A tab in the selected project's group gets a shared cyan underline.
+      // Document tabs in the selected project share a cyan underline. Home
+      // does not: the selector already marks the project.
       "&.in-project": {
         boxShadow: `inset 0 -2px 0 color-mix(in srgb, ${PROJECT_COLOR} 35%, transparent)`
+      },
+      "&.is-home": {
+        minWidth: 0,
+        padding: `0 ${getSpacingPx(SPACING.lg)}`
       },
       "&.drop-target-left": {
         boxShadow: `inset 2px 0 0 ${theme.vars.palette.primary.main}`
@@ -257,6 +264,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       flexShrink: 0,
+      gap: getSpacingPx(SPACING.sm),
       paddingRight: getSpacingPx(SPACING.xs),
       "& .MuiIconButton-root, & .MuiButtonBase-root": {
         minWidth: "28px",
@@ -606,6 +614,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         mobile's one navigation surface — document categories plus the app
         pages the desktop logo menu holds. */}
       {isMobile && <MobileRailLauncher />}
+      <ProjectSelector />
       <button
         ref={newTabButtonRef}
         type="button"
@@ -639,7 +648,10 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             <Fragment key={tab.id}>
               <WorkspaceTabItem
                 tab={tab}
-                inProject={tab.projectId === activeProjectId}
+                inProject={
+                  tab.type !== "project" &&
+                  tab.projectId === activeProjectId
+                }
                 isActive={tab.id === activeTabId}
                 isEditing={editingTabId === tab.id}
                 canRename={tabCanRename(tab.type)}
@@ -694,6 +706,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
 
       <div className="right-actions">
         {headerActions}
+        <ActivityIndicator />
         <NotificationButton />
       </div>
     </div>

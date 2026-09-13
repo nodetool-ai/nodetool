@@ -1,4 +1,11 @@
-import { pgTable, text, integer, real, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  integer,
+  real,
+  index,
+  uniqueIndex
+} from "drizzle-orm/pg-core";
 import { jsonText } from "./helpers.js";
 
 export const predictions = pgTable(
@@ -53,6 +60,20 @@ export const predictions = pgTable(
      * indexed, beside the status and the assets the call produced.
      */
     request_id: text("request_id"),
+    idempotency_key: text("idempotency_key"),
+    input_fingerprint: text("input_fingerprint"),
+    lifecycle_owner: text("lifecycle_owner").notNull().default("legacy"),
+    submission_status: text("submission_status").notNull().default("accepted"),
+    provider_status: text("provider_status").notNull().default("unknown"),
+    output_status: text("output_status").notNull().default("pending"),
+    attachment_status: text("attachment_status").notNull().default("pending"),
+    accepted_at: text("accepted_at"),
+    lease_owner: text("lease_owner"),
+    lease_expires_at: text("lease_expires_at"),
+    lease_version: integer("lease_version").notNull().default(0),
+    next_check_at: text("next_check_at"),
+    attempt_count: integer("attempt_count").notNull().default(0),
+    cancel_requested_at: text("cancel_requested_at"),
     /** The run that asked, when one did. */
     job_id: text("job_id"),
     /** Assets the generation produced — the outcome next to the charge. */
@@ -80,6 +101,15 @@ export const predictions = pgTable(
     index("idx_prediction_user_thread").on(table.user_id, table.thread_id),
     index("idx_prediction_job").on(table.job_id),
     // Scoped by user: a lookup answers only for the caller's own rows.
-    index("idx_prediction_user_request").on(table.user_id, table.request_id)
+    index("idx_prediction_user_request").on(table.user_id, table.request_id),
+    uniqueIndex("idx_prediction_user_idempotency").on(
+      table.user_id,
+      table.idempotency_key
+    ),
+    index("idx_prediction_durable_due").on(
+      table.lifecycle_owner,
+      table.next_check_at
+    ),
+    index("idx_prediction_lease").on(table.lease_expires_at)
   ]
 );

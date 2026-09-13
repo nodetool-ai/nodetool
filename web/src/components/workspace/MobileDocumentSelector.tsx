@@ -27,6 +27,7 @@ import {
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
+import { tabDisplayTitle } from "./tabTypeIdentity";
 
 interface MobileDocumentSelectorProps {
   tabs: WorkspaceTab[];
@@ -200,7 +201,9 @@ const MobileDocumentSelector = ({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={
-          activeTab ? `Open document: ${activeTab.title}` : "Open documents"
+          activeTab
+            ? `Open document: ${tabDisplayTitle(activeTab)}`
+            : "Open documents"
         }
         onClick={() => setOpen(true)}
       >
@@ -210,7 +213,7 @@ const MobileDocumentSelector = ({
           </span>
         )}
         <span className="doc-title">
-          {activeTab ? activeTab.title : "No document open"}
+          {activeTab ? tabDisplayTitle(activeTab) : "No document open"}
         </span>
         {activeTab && <DocumentStatus tab={activeTab} />}
         {tabs.length > 1 && <span className="doc-count">{tabs.length}</span>}
@@ -237,7 +240,7 @@ const MobileDocumentSelector = ({
                 secondaryAction={
                   <CloseButton
                     className="row-close"
-                    tooltip={`Close ${tab.title}`}
+                    tooltip={`Close ${tabDisplayTitle(tab)}`}
                     onClick={() => onClose(tab)}
                   />
                 }
@@ -254,7 +257,10 @@ const MobileDocumentSelector = ({
                   >
                     {typeGlyph[tab.type]}
                   </span>
-                  <ListItemText primary={tab.title} secondary={tab.type} />
+                  <ListItemText
+                    primary={tabDisplayTitle(tab)}
+                    secondary={tab.type}
+                  />
                   <DocumentStatus tab={tab} />
                 </ListItemButton>
               </ListItem>

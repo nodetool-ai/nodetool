@@ -23,7 +23,8 @@ import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   getFalApiKey,
-  falSubmitWithMeta,
+  falSubmitWithGeneration,
+  falCapabilityForOutputType,
   falImageToRef,
   removeNulls,
   isRefSet,
@@ -280,7 +281,12 @@ function coerceAssetRef(
   const obj = value as Record<string, FalResponseValue>;
   const kind = assetKindOf(propType);
   if (obj.url) {
-    return { type: kind ?? propType, uri: obj.url, width: obj.width, height: obj.height };
+    return {
+      type: kind ?? propType,
+      uri: obj.url,
+      width: obj.width,
+      height: obj.height
+    };
   }
   return value;
 }
@@ -365,10 +371,7 @@ function secondaryOutputs(
   return out;
 }
 
-function mapOutput(
-  spec: FalManifestEntry,
-  res: Record<string, unknown>
-) {
+function mapOutput(spec: FalManifestEntry, res: Record<string, unknown>) {
   switch (spec.outputType) {
     case "video": {
       const keys = ["video", "videos", "video_url", "video_file"];
@@ -429,12 +432,9 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
   const description = `${descFirstLine}\n${descSecondLine}`;
   const isImageOutput = spec.outputType === "image";
   // Generative outputs — auto-save assets and auto-show result preview in UI
-  const isGenerativeOutput = [
-    "image",
-    "video",
-    "audio",
-    "model_3d"
-  ].includes(spec.outputType);
+  const isGenerativeOutput = ["image", "video", "audio", "model_3d"].includes(
+    spec.outputType
+  );
 
   const endpointId = spec.endpointId;
   const specRef = spec;
@@ -446,10 +446,13 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
       const apiKey = getFalApiKey(this._secrets);
       validateRequiredAssetArgs(this, specRef, title);
       const args = await buildArgs(this, specRef, apiKey, context);
-      const { data: res, requestId } = await falSubmitWithMeta(
+      const { data: res, requestId } = await falSubmitWithGeneration(
         apiKey,
         endpointId,
-        args
+        args,
+        context,
+        nodeType,
+        falCapabilityForOutputType(specRef.outputType)
       );
       reportFalCost(context, nodeType, res, args, requestId);
       if (isImageOutput) {
@@ -565,7 +568,9 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
   applyContentCardBody(FalNodeClass);
 
   // Compute and set field classification
-  const { inlineFields, inputFields } = computeFieldClassification(spec.inputFields);
+  const { inlineFields, inputFields } = computeFieldClassification(
+    spec.inputFields
+  );
   Object.defineProperty(FalNodeClass, "inlineFields", {
     value: inlineFields,
     configurable: true
@@ -586,8 +591,7 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     // string must not shadow the AssetRef default, so ignore non-object
     // manifest defaults for asset propTypes.
     const manifestDefault =
-      assetKindOf(field.propType) !== null &&
-      typeof field.default !== "object"
+      assetKindOf(field.propType) !== null && typeof field.default !== "object"
         ? undefined
         : field.default;
     const propOptions: PropOptions = {
