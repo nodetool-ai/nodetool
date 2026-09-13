@@ -69,6 +69,12 @@ export interface DurableRecoveryRunResult {
   readonly skipped: number;
 }
 
+/** The instant a lease is claimed and when that claim expires. */
+interface RecoveryLeaseWindow {
+  readonly nowIso: string;
+  readonly expiresAt: string;
+}
+
 interface LeaseHeartbeat {
   lost(): boolean;
   stop(): void;
@@ -78,6 +84,17 @@ function record(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
+}
+
+function parsedRecord(
+  value: string | null | undefined
+): Record<string, unknown> | null {
+  if (!value) return null;
+  try {
+    return record(JSON.parse(value));
+  } catch {
+    return null;
+  }
 }
 
 function asString(value: unknown): string | null {
@@ -131,6 +148,7 @@ export class DurableGenerationRecoveryWorker {
   private readonly finalizeOutput?: DurableGenerationRecoveryOptions["finalizeOutput"];
   private readonly submitAccepted?: DurableGenerationRecoveryOptions["submitAccepted"];
   private readonly attachOutput?: DurableGenerationRecoveryOptions["attachOutput"];
+  private pass: Promise<DurableRecoveryRunResult> | null = null;
 
   constructor(options: DurableGenerationRecoveryOptions) {
     this.provider = options.provider;
@@ -146,7 +164,31 @@ export class DurableGenerationRecoveryWorker {
     this.attachOutput = options.attachOutput;
   }
 
+  /**
+   * One pass at a time per instance. A pass polls the provider item by item,
+   * so it can outlast the interval the host runs it on; a second overlapping
+   * pass would reclaim leases the first still holds and redo its work.
+   */
   async runOnce(): Promise<DurableRecoveryRunResult> {
+    if (this.pass) return this.pass;
+    this.pass = this.runPass().finally(() => {
+      this.pass = null;
+    });
+    return this.pass;
+  }
+
+  /** A lease window measured at the moment of the claim it fences. A batch
+   * can take longer than one lease, so a window minted for the whole batch
+   * hands its last items an expiry that has already passed. */
+  private leaseWindow(): RecoveryLeaseWindow {
+    const now = this.now();
+    return {
+      nowIso: now.toISOString(),
+      expiresAt: new Date(now.getTime() + this.leaseMs).toISOString()
+    };
+  }
+
+  private async runPass(): Promise<DurableRecoveryRunResult> {
     const result = {
       deliveries: 0,
       polledAttempts: 0,
@@ -154,14 +196,12 @@ export class DurableGenerationRecoveryWorker {
       failed: 0,
       skipped: 0
     };
-    const now = this.now();
-    const nowIso = now.toISOString();
-    const expiresAt = new Date(now.getTime() + this.leaseMs).toISOString();
     const deliveries = await GenerationWebhookDelivery.pending(
-      nowIso,
+      this.now().toISOString(),
       this.batchSize
     );
     for (const delivery of deliveries) {
+      const { nowIso, expiresAt } = this.leaseWindow();
       const claimed = await GenerationWebhookDelivery.claim(
         delivery.id,
         this.workerId,
@@ -193,8 +233,12 @@ export class DurableGenerationRecoveryWorker {
 
     const remaining = Math.max(0, this.batchSize - result.deliveries);
     if (remaining > 0) {
-      const attempts = await GenerationAttempt.recoverable(nowIso, remaining);
+      const attempts = await GenerationAttempt.recoverable(
+        this.now().toISOString(),
+        remaining
+      );
       for (const attempt of attempts) {
+        const { nowIso, expiresAt } = this.leaseWindow();
         let outcome: "completed" | "failed" | "skipped";
         try {
           outcome = await this.pollAttempt(attempt, nowIso, expiresAt);
@@ -306,6 +350,7 @@ export class DurableGenerationRecoveryWorker {
         outputs
       );
       if (attachments === "skipped") return "skipped";
+      await this.settleAttachmentProjection(existingGeneration, attachments);
       const nextCheckAt =
         attachments === "pending"
           ? new Date(this.now().getTime() + this.leaseMs).toISOString()
@@ -469,6 +514,7 @@ export class DurableGenerationRecoveryWorker {
         storedOutputs
       );
       if (attachments === "skipped") return "skipped";
+      await this.settleAttachmentProjection(generation, attachments);
       await GenerationAttempt.transition(
         claimed.id,
         this.workerId,
@@ -715,7 +761,14 @@ export class DurableGenerationRecoveryWorker {
         );
         return "skipped";
       }
-      return null;
+      return this.repairFromStoredOutputs(
+        attempt,
+        generation,
+        outputs,
+        attachments,
+        nowIso,
+        expiresAt
+      );
     }
     const generationLease = await Prediction.claimGenerationLease(
       generation.id,
@@ -882,6 +935,89 @@ export class DurableGenerationRecoveryWorker {
     }
   }
 
+  /**
+   * Commit the terminal generation from output rows that are already saved.
+   * The attempt's recorded provider result is the manifest of a complete
+   * result: every output identity it names must have a ready row before the
+   * generation is called completed, so a crash halfway through recording a
+   * multi-output result still falls back to the provider. Returning null means
+   * the state could not be repaired locally.
+   */
+  private async repairFromStoredOutputs(
+    attempt: GenerationAttempt,
+    generation: Prediction,
+    outputs: GenerationOutput[],
+    attachments: "pending" | "complete" | "skipped" | null,
+    nowIso: string,
+    expiresAt: string
+  ): Promise<"completed" | "skipped" | null> {
+    const manifest = parsedRecord(attempt.raw_result_ref);
+    if (!manifest) return null;
+    const ready = new Map(
+      outputs
+        .filter((output) => output.status === "ready")
+        .map((output) => [
+          `${output.output_key}:${output.output_index}`,
+          output
+        ])
+    );
+    const expected = decodeFalOutputs(manifest);
+    if (
+      expected.length === 0 ||
+      expected.some(
+        (descriptor) =>
+          !ready.has(`${descriptor.outputKey}:${descriptor.outputIndex}`)
+      )
+    ) {
+      return null;
+    }
+    const generationLease = await Prediction.claimGenerationLease(
+      generation.id,
+      this.workerId,
+      nowIso,
+      expiresAt
+    );
+    if (!generationLease) return "skipped";
+    if (
+      !(await Prediction.transitionDurable(
+        generation.id,
+        this.workerId,
+        generationLease.lease_version,
+        {
+          status: "completed",
+          submission_status: "submitted",
+          provider_status: "succeeded",
+          provider_request_id: attempt.provider_request_id,
+          output_status: "ready",
+          attachment_status:
+            attachments === "complete" ? "attached" : "pending",
+          error: null,
+          asset_ids: [...ready.values()]
+            .map((output) => output.asset_id)
+            .filter((id): id is string => typeof id === "string"),
+          next_check_at: null,
+          completed_at: this.now().toISOString()
+        }
+      ))
+    )
+      return "skipped";
+    if (
+      !(await GenerationAttempt.transition(
+        attempt.id,
+        this.workerId,
+        attempt.lease_version,
+        {
+          submission_status: "submitted",
+          provider_status: "succeeded",
+          last_error: null,
+          next_check_at: null
+        }
+      ))
+    )
+      return "skipped";
+    return "completed";
+  }
+
   private startLeaseRenewal(
     attempt: GenerationAttempt,
     generation: Prediction
@@ -1036,6 +1172,19 @@ export class DurableGenerationRecoveryWorker {
       return "skipped";
     }
     const descriptors = decodeFalOutputs(output);
+    // Record the complete provider result before the first output row is
+    // written. A later pass reads it back as the manifest of what this result
+    // contains, so a crash before the generation projection can be repaired
+    // from the saved rows instead of another paid provider read.
+    if (
+      !(await GenerationAttempt.transition(
+        attempt.id,
+        this.workerId,
+        attemptLease.lease_version,
+        { raw_result_ref: JSON.stringify(output) }
+      ))
+    )
+      return "skipped";
     const outputStates: GenerationOutputSaveState[] = [];
     const persistedOutputs: GenerationOutput[] = [];
     for (const descriptor of descriptors) {
@@ -1229,6 +1378,18 @@ export class DurableGenerationRecoveryWorker {
     return allReady ? "completed" : hasUnavailableOutput ? "failed" : "skipped";
   }
 
+  /** Record on the generation that its destination work is done. A generation
+   * whose media is saved and ready is terminal and holds no lease, so the
+   * projection cannot ride on a fenced transition. */
+  private async settleAttachmentProjection(
+    generation: Prediction,
+    attachments: "pending" | "complete" | "skipped" | null
+  ): Promise<void> {
+    if (attachments !== "complete") return;
+    if (generation.attachment_status === "attached") return;
+    await Prediction.settleAttachments(generation.id, "attached");
+  }
+
   /** Apply each destination intent independently. A ready output can be
    * retried after its generation is terminal, so attachment work must not be
    * coupled to provider polling or storage retries. */
@@ -1247,13 +1408,21 @@ export class DurableGenerationRecoveryWorker {
       const outputKey = asString(intent.output_key);
       const outputIndex =
         typeof intent.output_index === "number" ? intent.output_index : 0;
+      // An intent without an output key means "the media this generation
+      // produced". A structured row carries no asset, so attaching it could
+      // never succeed and would reschedule the attempt forever.
       const output = outputKey
         ? outputs.find(
             (candidate) =>
               candidate.output_key === outputKey &&
               candidate.output_index === outputIndex
           )
-        : outputs[0];
+        : (outputs.find(
+            (candidate) =>
+              candidate.output_type === "media" && Boolean(candidate.asset_id)
+          ) ??
+          outputs.find((candidate) => candidate.output_type === "media") ??
+          outputs[0]);
       if (!output || output.status !== "ready") {
         pendingCount++;
         continue;

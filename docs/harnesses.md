@@ -2076,12 +2076,15 @@ may be open per run, and `await_generation` collects them.
 #### Durable generation recovery selfcheck
 
 The `generation-recovery` harness exercises durable acceptance, lease fencing,
-FAL queue submission and binding, receipt ordering, and signed webhook inbox
-deduplication with local databases and fake HTTP responses. It never calls a
-paid provider endpoint.
+FAL queue submission and binding, receipt ordering, destination attachment
+recovery, and signed webhook inbox deduplication with local databases and fake
+HTTP responses. It never calls a paid provider endpoint. It also holds the
+recovery decoder level with the response shapes the live FAL extractors read,
+so a shape the live path saves cannot be recovered as a completion with no
+asset.
 
 ```bash
-npm run dev:nodetool -- harness gate --files packages/execution/src/generation-recovery-worker.ts
+npm run dev:nodetool -- harness gate packages/execution/src/generation-recovery-worker.ts
 ```
 
 The gate selects the focused model, execution, runtime, and websocket suites

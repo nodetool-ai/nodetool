@@ -471,6 +471,40 @@ export class DurablePrediction extends DBModel {
     return updated[0] ? new DurablePrediction(updated[0]) : null;
   }
 
+  /**
+   * Project the settled outcome of a generation's attachment rows onto the
+   * generation, and stop scheduling it. A generation whose media is saved and
+   * ready is terminal and holds no lease, yet its destination work can still
+   * be outstanding, so this write is fenced by the status it replaces instead
+   * of a lease version. It only moves a non-terminal attachment projection
+   * forward; the attachment rows stay the source of truth.
+   */
+  static async settleAttachments(
+    id: string,
+    status: Extract<
+      DurableAttachmentStatus,
+      "attached" | "superseded" | "target_deleted"
+    >
+  ): Promise<boolean> {
+    const db = getDb();
+    const updated = await db
+      .update(predictions)
+      .set({ attachment_status: status, next_check_at: null })
+      .where(
+        and(
+          eq(predictions.id, id),
+          eq(predictions.lifecycle_owner, "durable"),
+          inArray(predictions.attachment_status, [
+            "pending",
+            "ready",
+            "retrying"
+          ])
+        )
+      )
+      .returning({ id: predictions.id });
+    return updated.length > 0;
+  }
+
   static async renewGenerationLease(
     id: string,
     workerId: string,

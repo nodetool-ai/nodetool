@@ -137,9 +137,9 @@ const GAME_FLOW_SUITES =
  */
 const GENERATION_RECOVERY_SUITES =
   "npm run test --workspace=packages/models -- durable-generation prediction-generations schema-parity migration-schema-parity && " +
-  "npm run test --workspace=packages/execution -- durable-generation-lifecycle generation-recovery-worker fal-output-decoder && " +
+  "npm run test --workspace=packages/execution -- durable-generation-lifecycle generation-recovery-worker generation-attachment-recovery fal-output-decoder fal-media-shape-parity && " +
   "npm run test --workspace=packages/runtime -- generation-acceptance-order generation-receipt-binding fal-queue && " +
-  "npm run test --workspace=packages/websocket -- fal-webhook";
+  "npm run test --workspace=packages/websocket -- fal-webhook generation-recovery-media";
 
 /**
  * The AtlasCloud callback suites: the Ed25519 ingress route's verification and
@@ -976,6 +976,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/execution/src/generation-tracker.ts",
       "packages/execution/src/generation-lifecycle.ts",
       "packages/execution/src/generation-recovery-worker.ts",
+      "packages/execution/src/fal-output-decoder.ts",
       "packages/models/src/durable-generation.ts",
       "packages/models/src/schema/generation-",
       "packages/models/src/schema-pg/generation-",
@@ -985,6 +986,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/runtime/src/providers/provider-queue.ts",
       "packages/runtime/src/redact-params.ts",
       "packages/websocket/src/routes/fal-webhook.ts",
+      "packages/websocket/src/generation-recovery.ts",
       "packages/agents/src/capabilities/generations.ts",
       "packages/agents/src/capabilities/generations.specs.ts",
       "packages/cli/src/commands/generations.ts"
