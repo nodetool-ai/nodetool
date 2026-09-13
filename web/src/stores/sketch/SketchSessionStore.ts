@@ -979,11 +979,11 @@ export function useStandaloneSketchDocument(
     // past the lifecycle gate. A dirty one merges the external change per
     // merge unit (layer, binding, canvas): draft wins, refused values land in
     // the conflict banner, and no undo entry is recorded for them (ADR 0001).
-    const mergeExternal = (notice: { ops?: DocumentOp[] }): void => {
+    const mergeExternal = (notice: { ops?: DocumentOp[] }): Promise<void> => {
       const session = sessionStore.getState();
       const base = session.lastSavedDocument;
-      if (!base) return;
-      void (async () => {
+      if (!base) return Promise.resolve();
+      return (async () => {
         let fresh: SketchDocumentResponse;
         try {
           fresh = await trpcClient.sketch.get.query({ id: response.id });
