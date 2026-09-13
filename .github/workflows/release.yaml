@@ -243,6 +243,13 @@ jobs:
         shell: bash -l {0}
         run: npm ci
 
+      # Validate both compiler roles before the cross-platform package build.
+      # This catches a missing platform-native package or an incorrect npm
+      # alias before the release job spends time compiling and packaging.
+      - name: Check TypeScript compiler roles
+        shell: bash -l {0}
+        run: npm run check:typescript
+
       - name: Build workspace packages
         shell: bash -l {0}
         env:

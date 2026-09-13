@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:mutation": "stryker run",
-    "lint": "tsc --noEmit",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit",
     "bench:sandbox": "tsx bench/sandbox-boundary.ts"
   },
   "dependencies": {
@@ -89,7 +89,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
     "@types/turndown": "^5.0.5",
-    "typescript": "^5.7.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^4.1.2"
   },
   "exports": {

@@ -15,7 +15,7 @@
     "test:e2e": "vitest run --config vitest.config.e2e.ts",
     "test:metadata-parity": "vitest run tests/metadata-parity.test.ts",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit"
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
     "@nodetool-ai/audio-nodes": "*",
@@ -39,7 +39,7 @@
     "@nodetool-ai/execution": "*",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.1.2",
-    "typescript": "^5.7.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^4.1.2"
   },
   "exports": {

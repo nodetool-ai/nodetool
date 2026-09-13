@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    // Next's CLI mode expects the legacy JavaScript tsc entrypoint. The
+    // TypeScript 6 compatibility package exposes only its compiler API.
+    useTypeScriptCli: false
+  },
   // The runner and node packages are server-only ESM that lazy-load `node:`
   // built-ins. On Vercel's Node.js runtime we keep them external (run them as
   // real Node modules) rather than letting Next trace/bundle those imports.

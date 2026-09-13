@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
-    "lint": "tsc --noEmit"
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
     "@nodetool-ai/kernel": "*",
@@ -29,7 +29,7 @@
     "@playwright/test": "^1.50.0",
     "@types/node": "^22.0.0",
     "@webgpu/types": "^0.1.70",
-    "typescript": "^5.7.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "vite": "^6.0.0",
     "vite-plugin-node-polyfills": "^0.28.0",
     "vitest": "^4.1.2"

@@ -42,14 +42,13 @@ describe("prepareTypeScriptWorkspaceBuild", () => {
 
     await prepareTypeScriptWorkspaceBuild(workspaceDir, runCommand);
 
-    expect(runCommand).toHaveBeenCalledWith(
-      process.execPath,
-      [resolve(import.meta.dirname, "../../../node_modules/typescript/bin/tsc"), "--build"],
-      {
-        cwd: workspaceDir,
-        env: typeScriptBuildEnv(),
-      }
-    );
+    const command = getTypeScriptBuildCommand(resolve(import.meta.dirname, "../../.."), {
+      cwd: workspaceDir,
+    });
+    expect(runCommand).toHaveBeenCalledWith(command.command, command.args, {
+      cwd: command.cwd,
+      env: command.env,
+    });
     await expect(readFile(join(workspaceDir, "tsconfig.tsbuildinfo"), "utf8")).resolves.toBe(
       "stale build state"
     );
@@ -134,33 +133,40 @@ describe("prepareTypeScriptWorkspaceBuild", () => {
     expect(existsSync(join(workspaceDir, "dist", "sub", "removed.js"))).toBe(false);
   });
 
-  it("uses the repo-local TypeScript CLI through node", () => {
+  it("uses the repo-local native TypeScript CLI by default", () => {
     const repoRoot = resolve(import.meta.dirname, "../../..");
 
-    expect(getTypeScriptBuildCommand(repoRoot)).toEqual({
-      command: process.execPath,
-      args: [resolve(repoRoot, "node_modules", "typescript", "bin", "tsc"), "--build"]
-    });
-    expect(getTypeScriptBuildCommand(repoRoot, { force: true })).toEqual({
-      command: process.execPath,
-      args: [
-        resolve(repoRoot, "node_modules", "typescript", "bin", "tsc"),
-        "--build",
-        "--force"
-      ]
-    });
+    const command = getTypeScriptBuildCommand(repoRoot);
+    expect(command.command).toBe(command.compiler.binPath);
+    expect(command.args).toEqual(["--build"]);
+    expect(command.compiler.version).toBe("7");
+
+    const forced = getTypeScriptBuildCommand(repoRoot, { force: true });
+    expect(forced.command).toBe(forced.compiler.binPath);
+    expect(forced.args).toEqual(["--build", "--force"]);
   });
 
-  it("raises the tsc heap unless NODE_OPTIONS already sets one", () => {
+  it("raises the TypeScript 6 heap without changing TypeScript 7", () => {
     expect(typeScriptBuildEnv({ NODE_OPTIONS: undefined })).toEqual({
+      NODE_OPTIONS: undefined,
+    });
+    expect(typeScriptBuildEnv({ NODE_OPTIONS: undefined }, "6")).toEqual({
       NODE_OPTIONS: `--max-old-space-size=${DEFAULT_TSC_HEAP_MB}`,
     });
     expect(
-      typeScriptBuildEnv({ NODE_OPTIONS: "--conditions=nodetool-dev --max-old-space-size=4096" })
+      typeScriptBuildEnv(
+        { NODE_OPTIONS: "--conditions=nodetool-dev --max-old-space-size=4096" },
+        "6"
+      )
     ).toEqual({
       NODE_OPTIONS: "--conditions=nodetool-dev --max-old-space-size=4096",
     });
-    expect(typeScriptBuildEnv({ NODETOOL_TSC_HEAP_MB: "12288", NODE_OPTIONS: undefined })).toMatchObject({
+    expect(
+      typeScriptBuildEnv(
+        { NODETOOL_TSC_HEAP_MB: "12288", NODE_OPTIONS: undefined },
+        "6"
+      )
+    ).toMatchObject({
       NODE_OPTIONS: "--max-old-space-size=12288",
     });
   });

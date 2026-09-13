@@ -88,6 +88,8 @@ export interface Workflow {
   readonly edges: WorkflowEdge[];
 }
 
+type WorkflowTerminal = Pick<DslNode<Record<string, unknown>, string>, "nodeId">;
+
 interface RegisteredNodeDescriptor {
   nodeId: string;
   nodeType: string;
@@ -238,7 +240,7 @@ function assertNoNestedHandles(desc: RegisteredNodeDescriptor): void {
   }
 }
 
-export function workflow(...terminals: DslNode<never>[]): Workflow {
+export function workflow(...terminals: WorkflowTerminal[]): Workflow {
   if (terminals.length === 0) {
     throw new Error("workflow() requires at least one terminal node");
   }

@@ -23,14 +23,10 @@ for (let i = 0; i < args.length; i++) {
   if (args[i] === "--out" && args[i + 1]) outDir = args[++i];
 }
 
-// Load TypeScript compiler API (globally installed)
+// The `typescript` package name is the supported TypeScript 6 compiler API.
+// Command-line builds select the native compiler through scripts/run-tsc.mjs.
 const require = createRequire(import.meta.url);
-let ts;
-try {
-  ts = require("/opt/node22/lib/node_modules/typescript/lib/typescript.js");
-} catch {
-  ts = require(path.join(repoRoot, "node_modules/typescript/lib/typescript.js"));
-}
+const ts = require("typescript");
 
 // Node classes are defined across many workspace packages (core-nodes,
 // text-nodes, image-nodes, llm-nodes, automation-nodes, integration-nodes,

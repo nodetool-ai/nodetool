@@ -3,6 +3,14 @@ import { readdir, rm, access, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  DEFAULT_TSC_HEAP_MB,
+  getTscCommand,
+  typeScriptBuildEnv
+} from "./resolve-tsc.mjs";
+
+export { DEFAULT_TSC_HEAP_MB, typeScriptBuildEnv };
+
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = dirname(scriptPath);
 const repoRoot = resolve(scriptDir, "..");
@@ -106,8 +114,28 @@ export async function runCommand(command, args, options = {}) {
       env: options.env ?? process.env,
     });
 
-    child.on("error", rejectRun);
-    child.on("exit", (code) => {
+    let forwarding = false;
+    const forwardSignal = (signal) => {
+      forwarding = true;
+      child.kill(signal);
+    };
+    process.once("SIGINT", forwardSignal);
+    process.once("SIGTERM", forwardSignal);
+    child.on("error", (error) => {
+      process.removeListener("SIGINT", forwardSignal);
+      process.removeListener("SIGTERM", forwardSignal);
+      rejectRun(error);
+    });
+    child.on("exit", (code, signal) => {
+      process.removeListener("SIGINT", forwardSignal);
+      process.removeListener("SIGTERM", forwardSignal);
+      if (signal) {
+        if (forwarding) {
+          process.kill(process.pid, signal);
+        }
+        rejectRun(new Error(`${command} ${args.join(" ")} terminated by ${signal}`));
+        return;
+      }
       if (code === 0) {
         resolveRun();
         return;
@@ -134,48 +162,32 @@ export async function prepareTypeScriptWorkspaceBuild(workspaceDir, execute = ru
   // files disappear.
   await dropOrphanedBuildInfo(workspaceDir);
 
-  const { command, args } = getTypeScriptBuildCommand(repoRoot, {
+  const { command, args, env, cwd } = getTypeScriptBuildCommand(repoRoot, {
     force: process.env.NODETOOL_FORCE_TSC_BUILD === "1",
+    cwd: workspaceDir,
   });
   await execute(command, args, {
-    cwd: workspaceDir,
-    env: typeScriptBuildEnv(),
+    cwd,
+    env,
   });
 
   await pruneOrphanedDistOutputs(workspaceDir);
   await writeBuildStamp(workspaceDir);
 }
 
-/** Default V8 heap (MiB) for `tsc --build` child processes. Override with NODETOOL_TSC_HEAP_MB. */
-export const DEFAULT_TSC_HEAP_MB = 8192;
-
-export function typeScriptBuildEnv(baseEnv = process.env) {
-  const configured = baseEnv.NODETOOL_TSC_HEAP_MB;
-  const heapMb =
-    configured && /^\d+$/.test(configured)
-      ? Number(configured)
-      : DEFAULT_TSC_HEAP_MB;
-  const existing = baseEnv.NODE_OPTIONS ?? "";
-  const hasHeapFlag = /--max[-_]old[-_]space[-_]size=\d+/i.test(existing);
-  const heapFlag = `--max-old-space-size=${heapMb}`;
-  return {
-    ...baseEnv,
-    NODE_OPTIONS: hasHeapFlag ? existing : [existing, heapFlag].filter(Boolean).join(" ").trim(),
-  };
-}
-
 export function getTypeScriptBuildCommand(
   rootDir = repoRoot,
-  { force = false } = {}
+  { force = false, cwd = process.cwd(), version, env = process.env } = {}
 ) {
-  return {
-    command: process.execPath,
-    args: [
-      resolve(rootDir, "node_modules", "typescript", "bin", "tsc"),
-      "--build",
-      ...(force ? ["--force"] : []),
-    ]
-  };
+  const resolved = getTscCommand({
+    rootDir,
+    startDir: cwd,
+    cwd,
+    version,
+    env,
+    args: ["--build", ...(force ? ["--force"] : [])]
+  });
+  return resolved;
 }
 
 const invokedPath = process.argv[1] ? resolve(process.argv[1]) : null;

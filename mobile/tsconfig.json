@@ -12,6 +12,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    "noUncheckedSideEffectImports": true,
     "noEmit": true,
     "isolatedModules": true,
     "types": [

@@ -13,14 +13,14 @@
     "check": "npm run lint && npm run test",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit",
     "placeholders": "node scripts/make-placeholders.mjs"
   },
   "dependencies": {
     "@nodetool-ai/protocol": "*"
   },
   "devDependencies": {
-    "typescript": "^5.7.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^4.1.2"
   },
   "exports": {

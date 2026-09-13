@@ -92,7 +92,7 @@ const workflowWith = (nodeType: string, data: Record<string, unknown> = {}) =>
     name: "Inputs",
     description: "",
     graph: {
-      nodes: [{ id: "n1", type: nodeType, data: { name: "field", ...data } }],
+      nodes: [{ id: "n1", type: nodeType, sync_mode: "on_any", data: { name: "field", ...data } }],
       edges: [],
     },
     access: "private",

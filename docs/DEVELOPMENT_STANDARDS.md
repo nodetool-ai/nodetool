@@ -25,6 +25,21 @@ When in doubt, the order of precedence is:
 
 NodeTool is TypeScript-first. Strict mode is on everywhere (`tsconfig.base.json`, `web/tsconfig.json`, `electron/tsconfig.json`).
 
+### Compiler roles
+
+NodeTool uses TypeScript 7's native `tsc` for normal builds, type-checks, and
+watch commands. The `typescript` package remains the pinned TypeScript 6
+compatibility package for compiler-API consumers such as language-service,
+Jest, and documentation tooling. `scripts/run-tsc.mjs` is the selection
+boundary, so package scripts must call it instead of invoking `tsc` or a
+compiler path directly.
+
+Set `NODETOOL_TSC_VERSION=6` to run a command through the TypeScript 6
+JavaScript compiler when diagnosing a regression or using the documented
+rollback commands. The default is TypeScript 7. `NODETOOL_TSC_HEAP_MB` applies
+only to that TypeScript 6 child process. It is not passed to the TypeScript 7
+native executable.
+
 ### Rules
 
 - **Strict mode is non-negotiable.** Never turn off `strict`, `noImplicitAny`, `strictNullChecks`, or `strictFunctionTypes` in any tsconfig.

@@ -634,6 +634,14 @@ function appendWrapped(
   input[key] = bucket;
 }
 
+/** Whether a wrapped request entry supplies an image or video reference. */
+function isWrappedVisualReference(value: NodeValue): boolean {
+  if (!isAssetRef(value)) return false;
+  // SAFETY: isAssetRef established a keyed object before this optional read.
+  const kind = (value as { type?: NodeValue }).type;
+  return kind === "image" || kind === "video";
+}
+
 export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
   const nodeType = `atlascloud.${spec.moduleName}.${spec.className}`;
   const title = spec.title || classNameToTitle(spec.className);
@@ -708,13 +716,7 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
         const values = input[group];
         const hasVisualReference =
           Array.isArray(values) &&
-          values.some(
-            (value) =>
-              typeof value === "object" &&
-              value !== null &&
-              "type" in value &&
-              (value.type === "image" || value.type === "video")
-          );
+          values.some((value) => isWrappedVisualReference(value));
         if (!hasVisualReference) {
           throw new Error(
             `${specRef.title}: connect at least one reference image or video`

@@ -15,7 +15,7 @@ React Native / Expo app for browsing and running NodeTool workflows and AI chat 
 cd mobile
 npm test                 # Jest test suite
 npm run test:coverage    # Jest with V8 coverage + thresholds
-npm run typecheck        # tsc --noEmit
+npm run typecheck        # TypeScript 7 native compiler via the shared launcher
 npm run lint             # oxlint src
 npm run lint:fix         # oxlint --fix
 npm start                # Expo dev server
@@ -48,7 +48,7 @@ read the comment at the top of `metro.config.js` before changing any of it.
 
 ## Stack
 
-- React Native 0.85 + Expo SDK 56, React 19, TypeScript 6.
+- React Native 0.85 + Expo SDK 56, React 19, TypeScript 7 native CLI / TypeScript 6 API compatibility.
 - **Server state**: tRPC v11 client + TanStack Query v5. REST goes through the global `fetch`
   (`services/api.ts` — **no Axios**); most domains (workflows, assets, jobs, secrets,
   collections, threads, models) use tRPC.

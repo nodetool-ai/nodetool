@@ -123,6 +123,11 @@ jobs:
           # oxlint + web design-token lint. Neither needs package dist.
           - check: lint
             command: npm run lint
+          # Keep the JavaScript compiler rollback exercised after the native
+          # compiler becomes the default. This is intentionally a separate
+          # static leg so it remains visible in the required quality gate.
+          - check: typescript-6-fallback
+            command: npm run build:tsc6
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

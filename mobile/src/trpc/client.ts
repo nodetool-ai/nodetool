@@ -15,11 +15,13 @@ import { createTRPCClient, httpBatchLink, type TRPCClient, type TRPCLink } from 
 import { createTRPCReact } from '@trpc/react-query';
 import type { inferRouterOutputs } from '@trpc/server';
 import type { AppRouter } from '@nodetool-ai/websocket/trpc';
-import { TRPC_MAX_BATCH_SIZE } from '@nodetool-ai/protocol';
 
 import { getApiHost } from '../services/apiHost';
 import { useAuthStore } from '../stores/AuthStore';
 import { isString } from '../utils/typePredicates';
+
+/** Keep mobile's batch limit aligned with the server policy. */
+const TRPC_MAX_BATCH_SIZE = 20;
 
 /** React Query bindings (`trpc.workflows.list.useQuery(...)`, etc.). */
 export const trpc = createTRPCReact<AppRouter>();

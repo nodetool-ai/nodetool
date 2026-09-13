@@ -9,7 +9,7 @@
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node ../../scripts/run-tsc.mjs --noEmit",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
@@ -28,7 +28,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "typescript": "^5.7.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "wrangler": "^4.85.0"
   }
 }

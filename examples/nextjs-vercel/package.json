@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start --port 3002",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
     "@nodetool-ai/core-nodes": "*",
@@ -25,6 +25,6 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "typescript": "^5.7.2"
+    "typescript": "npm:@typescript/typescript6@6.0.2"
   }
 }
