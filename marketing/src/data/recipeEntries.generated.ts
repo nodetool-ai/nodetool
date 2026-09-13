@@ -294,6 +294,10 @@ export const recipeEntries: RecipeEntry[] = [
       {
         "provider": "openai",
         "env": "OPENAI_API_KEY"
+      },
+      {
+        "provider": "atlascloud",
+        "env": "ATLASCLOUD_API_KEY"
       }
     ],
     "steps": [
@@ -321,7 +325,12 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Choose a compatible native-audio reference-to-video model. Give it image 1 for creator identity and image 2 for product identity, then generate voice, lip-sync, natural phone motion, and the brief 4.5–7.0 second product beat in one pass. The finished sample used Seedance 2.5 on AtlasCloud.",
         "thumbnail": null,
         "nodeCount": 8,
-        "models": [],
+        "models": [
+          {
+            "provider": "atlascloud",
+            "model": "bytedance/seedance-2.5/reference-to-video"
+          }
+        ],
         "alternative": null
       },
       {
