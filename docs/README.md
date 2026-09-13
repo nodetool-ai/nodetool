@@ -166,7 +166,7 @@ To customize colors, edit CSS variables in `assets/css/main.scss`:
 :root {
   --color-bg-primary: #08090A;
   --color-text-primary: #F7F8F8;
-  --color-accent-blue: #6690d4;
+  --color-accent-blue: #3d68a8;
   --color-accent-magenta: #E879F9;
   /* ... more variables */
 }

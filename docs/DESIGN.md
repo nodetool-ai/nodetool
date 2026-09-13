@@ -286,9 +286,9 @@ Colors never appear as hardcoded hex or rgb values in component code. Every colo
 
 | Token | Dark | Light | Use |
 |---|---|---|---|
-| `theme.vars.palette.primary.main` | `#6690d4` | `#2A8077` | Primary actions, links |
-| `theme.vars.palette.primary.light` | `#7aa0e2` | `#4FA59C` | Hover on primary |
-| `theme.vars.palette.primary.dark` | `#3d68a8` | `#1E5F58` | Active / pressed primary |
+| `theme.vars.palette.primary.main` | `#3d68a8` | `#2A8077` | Primary actions, links |
+| `theme.vars.palette.primary.light` | `#5b86c4` | `#4FA59C` | Hover on primary |
+| `theme.vars.palette.primary.dark` | `#2a4d80` | `#1E5F58` | Active / pressed primary |
 | `theme.vars.palette.secondary.main` | `#E879F9` | `#C97C5D` | Secondary actions |
 | `theme.vars.palette.error.main` | `#FF5555` | `#D8615B` | Errors, destructive |
 | `theme.vars.palette.warning.main` | `#FFB86C` | `#D99A3B` | Warnings |

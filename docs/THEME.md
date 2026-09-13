@@ -25,13 +25,13 @@ variables in `assets/css/main.scss`:
 | `--color-text-secondary` | `#D4D6DB` | Secondary text |
 | `--color-text-muted` | `#8A8F98` | Captions, hints |
 | `--color-text-link` | `#93C5FD` | Links |
-| `--color-accent-blue` | `#6690d4` | Primary accent |
+| `--color-accent-blue` | `#3d68a8` | Primary accent |
 | `--color-accent-cyan` | `#22D3EE` | Accent |
 | `--color-accent-magenta` | `#E879F9` | Accent / gradient end |
 | `--color-accent-green` | `#50FA7B` | Success / code accents |
 
 A subtle animated grid (`.cyber-grid`) sits behind the content; accents are used
-sparingly for links, active nav, and gradients (`#6690d4 → #E879F9`).
+sparingly for links, active nav, and gradients (`#3d68a8 → #E879F9`).
 
 ### Typography
 
