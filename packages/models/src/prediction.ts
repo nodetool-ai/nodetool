@@ -24,6 +24,7 @@ import { workflows } from "./schema/workflows.js";
 import {
   DurablePrediction,
   GenerationAttempt,
+  type DurableAttachmentStatus,
   type DurableGenerationInput,
   type DurableGenerationTransition
 } from "./durable-generation.js";
@@ -388,6 +389,16 @@ export class Prediction extends DBModel {
       version,
       providerRequestId
     );
+  }
+
+  static async settleAttachments(
+    id: string,
+    status: Extract<
+      DurableAttachmentStatus,
+      "attached" | "superseded" | "target_deleted"
+    >
+  ): Promise<boolean> {
+    return DurablePrediction.settleAttachments(id, status);
   }
 
   static async transitionDurable(

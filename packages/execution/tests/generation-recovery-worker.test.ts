@@ -21,7 +21,8 @@ const models = vi.hoisted(() => ({
     find: vi.fn(),
     claimGenerationLease: vi.fn(),
     transitionDurable: vi.fn(),
-    renewGenerationLease: vi.fn()
+    renewGenerationLease: vi.fn(),
+    settleAttachments: vi.fn()
   },
   GenerationOutput: {
     upsertOutput: vi.fn(),
@@ -549,5 +550,234 @@ describe("DurableGenerationRecoveryWorker", () => {
     expect(
       transitionCalls.some(([, , , update]) => update.next_check_at === null)
     ).toBe(false);
+  });
+
+  it("repairs a generation from saved outputs without another provider read", async () => {
+    const attempt = {
+      id: "attempt-1",
+      generation_id: "generation-1",
+      provider: "fal_ai",
+      provider_request_id: "request-1",
+      endpoint: "fal-ai/flux/dev",
+      lease_version: 4,
+      cancel_requested_at: null,
+      // What the first pass recorded before it wrote any output row.
+      raw_result_ref: JSON.stringify({
+        images: [{ url: "https://fal.media/out.png" }],
+        seed: 42
+      })
+    };
+    models.GenerationWebhookDelivery.pending.mockResolvedValue([]);
+    models.GenerationAttempt.recoverable.mockResolvedValue([attempt]);
+    models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
+    models.GenerationAttempt.transition.mockResolvedValue(attempt);
+    // The generation-state write was lost, so the row is still nonterminal.
+    models.Prediction.find.mockResolvedValue({
+      id: "generation-1",
+      status: "recovering",
+      provider_status: "succeeded",
+      output_status: "retrying",
+      metadata: null,
+      cancel_requested_at: null
+    });
+    models.Prediction.claimGenerationLease.mockResolvedValue({
+      id: "generation-1",
+      lease_version: 3
+    });
+    models.Prediction.transitionDurable.mockResolvedValue({
+      id: "generation-1"
+    });
+    models.GenerationOutput.forAttempt.mockResolvedValue([
+      {
+        id: "output-1",
+        status: "ready",
+        output_key: "images",
+        output_index: 0,
+        asset_id: "asset-1",
+        storage_key: "generations/generation-1/out.png",
+        provider_ref: "https://fal.media/out.png",
+        raw_result: { url: "https://fal.media/out.png" }
+      },
+      {
+        id: "output-2",
+        status: "ready",
+        output_key: "structured",
+        output_index: 0,
+        asset_id: null,
+        storage_key: null,
+        provider_ref: null,
+        raw_result: { seed: 42 }
+      }
+    ]);
+
+    const queueFor = vi.fn(async () => {
+      throw new Error("fal is unreachable");
+    });
+    const result = await new DurableGenerationRecoveryWorker({
+      provider: { queueFor },
+      finalizeOutput: vi.fn(),
+      now: () => new Date("2026-01-01T00:00:00.000Z")
+    }).runOnce();
+
+    expect(queueFor).not.toHaveBeenCalled();
+    expect(result.completed).toBe(1);
+    expect(models.Prediction.transitionDurable).toHaveBeenCalledWith(
+      "generation-1",
+      expect.any(String),
+      3,
+      expect.objectContaining({
+        status: "completed",
+        output_status: "ready",
+        asset_ids: ["asset-1"],
+        next_check_at: null
+      })
+    );
+    expect(models.GenerationAttempt.transition).toHaveBeenLastCalledWith(
+      "attempt-1",
+      expect.any(String),
+      4,
+      expect.objectContaining({ next_check_at: null })
+    );
+  });
+
+  it("re-reads the provider when the saved outputs miss part of the result", async () => {
+    const attempt = {
+      id: "attempt-1",
+      generation_id: "generation-1",
+      provider: "fal_ai",
+      provider_request_id: "request-1",
+      endpoint: "fal-ai/flux/dev",
+      lease_version: 4,
+      cancel_requested_at: null,
+      raw_result_ref: JSON.stringify({
+        images: [
+          { url: "https://fal.media/one.png" },
+          { url: "https://fal.media/two.png" }
+        ]
+      })
+    };
+    models.GenerationWebhookDelivery.pending.mockResolvedValue([]);
+    models.GenerationAttempt.recoverable.mockResolvedValue([attempt]);
+    models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
+    models.GenerationAttempt.transition.mockResolvedValue(attempt);
+    models.Prediction.find.mockResolvedValue({
+      id: "generation-1",
+      status: "recovering",
+      provider_status: "succeeded",
+      output_status: "retrying",
+      metadata: null,
+      cancel_requested_at: null
+    });
+    models.Prediction.claimGenerationLease.mockResolvedValue({
+      id: "generation-1",
+      lease_version: 3
+    });
+    models.Prediction.transitionDurable.mockResolvedValue({
+      id: "generation-1"
+    });
+    // Only the first of the two outputs the result names was recorded.
+    models.GenerationOutput.forAttempt.mockResolvedValue([
+      {
+        id: "output-1",
+        status: "ready",
+        output_key: "images",
+        output_index: 0,
+        asset_id: "asset-1",
+        storage_key: "generations/generation-1/one.png",
+        provider_ref: "https://fal.media/one.png",
+        raw_result: { url: "https://fal.media/one.png" }
+      }
+    ]);
+
+    const queue = {
+      bind: vi.fn().mockResolvedValue({ bound: true }),
+      wait: vi.fn().mockRejectedValue(new Error("fal is unreachable"))
+    };
+    const queueFor = vi.fn().mockResolvedValue(queue);
+    await new DurableGenerationRecoveryWorker({
+      provider: { queueFor },
+      finalizeOutput: vi.fn(),
+      now: () => new Date("2026-01-01T00:00:00.000Z")
+    }).runOnce();
+
+    expect(queue.wait).toHaveBeenCalledTimes(1);
+    expect(models.Prediction.transitionDurable).not.toHaveBeenCalled();
+  });
+
+  it("leases every item in a slow batch past the moment it is claimed", async () => {
+    let clock = new Date("2026-01-01T00:00:00.000Z").getTime();
+    const attempts = ["attempt-1", "attempt-2", "attempt-3"].map((id) => ({
+      id,
+      generation_id: `generation-${id}`,
+      provider: "fal_ai",
+      provider_request_id: `request-${id}`,
+      endpoint: "fal-ai/flux/dev",
+      lease_version: 4,
+      cancel_requested_at: null
+    }));
+    models.GenerationWebhookDelivery.pending.mockResolvedValue([]);
+    models.GenerationAttempt.recoverable.mockResolvedValue(attempts);
+    const claims: Array<{ at: number; expiresAt: number }> = [];
+    models.GenerationAttempt.claimLease.mockImplementation(
+      async (id: string, _worker: string, _now: string, expiresAt: string) => {
+        claims.push({ at: clock, expiresAt: Date.parse(expiresAt) });
+        return attempts.find((attempt) => attempt.id === id);
+      }
+    );
+    models.GenerationAttempt.transition.mockResolvedValue(attempts[0]);
+    models.GenerationOutput.forAttempt.mockResolvedValue([]);
+    models.Prediction.find.mockImplementation(async (id: string) => ({
+      id,
+      status: "recovering",
+      provider_status: "queued",
+      output_status: "pending",
+      metadata: null,
+      cancel_requested_at: null
+    }));
+    const queue = {
+      bind: vi.fn().mockResolvedValue({ bound: true }),
+      // Each provider read burns more than half of a default 60s lease, so a
+      // window minted once for the batch has expired by the third claim.
+      wait: vi.fn().mockImplementation(async () => {
+        clock += 35_000;
+        throw new Error("status read timed out");
+      })
+    };
+
+    await new DurableGenerationRecoveryWorker({
+      provider: { queueFor: vi.fn().mockResolvedValue(queue) },
+      now: () => new Date(clock)
+    }).runOnce();
+
+    expect(claims).toHaveLength(3);
+    for (const claim of claims) {
+      expect(claim.expiresAt).toBeGreaterThan(claim.at);
+    }
+  });
+
+  it("runs one pass at a time per worker", async () => {
+    let release: (() => void) | undefined;
+    models.GenerationWebhookDelivery.pending.mockImplementation(
+      async () =>
+        new Promise((resolve) => {
+          release = () => resolve([]);
+        })
+    );
+    models.GenerationAttempt.recoverable.mockResolvedValue([]);
+    const worker = new DurableGenerationRecoveryWorker({
+      provider: { queueFor: vi.fn() },
+      now: () => new Date("2026-01-01T00:00:00.000Z")
+    });
+
+    const first = worker.runOnce();
+    const second = worker.runOnce();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    release?.();
+    await Promise.all([first, second]);
+
+    expect(models.GenerationWebhookDelivery.pending).toHaveBeenCalledTimes(1);
+    models.GenerationWebhookDelivery.pending.mockResolvedValue([]);
+    await worker.runOnce();
+    expect(models.GenerationWebhookDelivery.pending).toHaveBeenCalledTimes(2);
   });
 });

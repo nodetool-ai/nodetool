@@ -214,6 +214,45 @@ describe("durable generation persistence", () => {
     ).not.toBeNull();
   });
 
+  it("settles the attachment projection of a leaseless terminal generation", async () => {
+    const { generation } = await Prediction.acceptGeneration({
+      user_id: "u1",
+      provider: "fal_ai",
+      model: "flux",
+      idempotency_key: "attachment-settle",
+      input_fingerprint: "hash"
+    });
+    await generation.update({
+      status: "completed",
+      provider_status: "succeeded",
+      output_status: "ready",
+      next_check_at: "2026-09-13T11:00:00.000Z"
+    });
+    // Terminal and ready: no worker can take a lease on it any more.
+    expect(
+      await Prediction.claimGenerationLease(
+        generation.id,
+        "recovery-worker",
+        "2026-09-13T10:00:00.000Z",
+        "2026-09-13T10:01:00.000Z"
+      )
+    ).toBeNull();
+
+    expect(await Prediction.settleAttachments(generation.id, "attached")).toBe(
+      true
+    );
+    const settled = await Prediction.find(generation.id);
+    expect(settled?.attachment_status).toBe("attached");
+    expect(settled?.next_check_at).toBeNull();
+    // A settled projection never moves again.
+    expect(
+      await Prediction.settleAttachments(generation.id, "target_deleted")
+    ).toBe(false);
+    expect((await Prediction.find(generation.id))?.attachment_status).toBe(
+      "attached"
+    );
+  });
+
   it("rejects a stale worker after an expired lease is reclaimed", async () => {
     const { generation } = await Prediction.acceptGeneration({
       user_id: "u1",
