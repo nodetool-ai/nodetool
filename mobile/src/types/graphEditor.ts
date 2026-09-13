@@ -138,6 +138,7 @@ export function chainToGraph(
   const nodes: Node[] = chain.map((cn, index) => ({
     id: cn.id,
     type: cn.nodeType,
+    sync_mode: 'on_any',
     data: cn.properties,
     dynamic_properties: Object.keys(cn.dynamicProperties).length > 0
       ? cn.dynamicProperties

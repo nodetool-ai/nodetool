@@ -52,6 +52,12 @@ runs:
       env:
         ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
+    # Fail before any build or test work if npm installed the wrong compiler
+    # roles or omitted the native TypeScript package for this platform.
+    - name: Check TypeScript compiler roles
+      shell: bash
+      run: npm run check:typescript
+
     # `npm ci`'s root postinstall already rebuilds better-sqlite3 for this
     # runner's Node ABI (electron/scripts/rebuild-native.mjs). This explicit,
     # idempotent step is belt-and-suspenders in case that hook is ever skipped.

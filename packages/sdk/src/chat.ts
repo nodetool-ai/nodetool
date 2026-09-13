@@ -352,7 +352,9 @@ export class ChatSocket {
       );
       frame = JSON.stringify(payload);
     }
-    this.socket.send(frame);
+    // SAFETY: msgpackr owns encoded frames, so their backing store is an
+    // ArrayBuffer. Its declaration also covers shared buffers supplied by callers.
+    this.socket.send(frame as string | Uint8Array<ArrayBuffer>);
   }
 
   private handleRaw(inbound: InboundFrame): void {

@@ -12,7 +12,7 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit"
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.65",
@@ -27,7 +27,7 @@
     "@nodetool-ai/kernel": "*",
     "@types/node": "^22.0.0",
     "@types/papaparse": "^5.5.2",
-    "typescript": "^5.7.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^4.1.2"
   },
   "exports": {

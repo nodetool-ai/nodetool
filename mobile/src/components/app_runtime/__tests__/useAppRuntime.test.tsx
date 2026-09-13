@@ -66,11 +66,13 @@ const makeWorkflow = (id: string): Workflow =>
         {
           id: "n1",
           type: "nodetool.input.StringInput",
+          sync_mode: "on_any",
           data: { name: "prompt" },
         },
         {
           id: "o1",
           type: "nodetool.output.StringOutput",
+          sync_mode: "on_any",
           data: { name: "result" },
         },
       ],

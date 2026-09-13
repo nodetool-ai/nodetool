@@ -18,7 +18,7 @@ export class IfNode extends BaseNode {
   static readonly inputFields = ["value", "condition"];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     if_true: { kind: "forward", source: "value" },
     if_false: { kind: "forward", source: "value" }
   } satisfies Record<string, OutputCorrelation>;
@@ -68,7 +68,7 @@ export class ForEachNode extends BaseNode {
   static readonly inputFields = ["input_list"];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "iteration", source: "__execution__", group: "items" },
     index: { kind: "iteration", source: "__execution__", group: "items" }
   } satisfies Record<string, OutputCorrelation>;
@@ -122,7 +122,7 @@ export class AssetCollectionNode extends BaseNode {
   static readonly inputFields = [];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "iteration", source: "__execution__", group: "items" },
     index: { kind: "iteration", source: "__execution__", group: "items" }
   } satisfies Record<string, OutputCorrelation>;
@@ -170,7 +170,7 @@ export class RepeatCountNode extends BaseNode {
   static readonly inputFields = [];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "iteration", source: "__execution__", group: "items" },
     index: { kind: "iteration", source: "__execution__", group: "items" }
   } satisfies Record<string, OutputCorrelation>;
@@ -210,7 +210,7 @@ export class RepeatValueStreamNode extends BaseNode {
   static readonly inputFields = ["value"];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "iteration", source: "__execution__", group: "items" },
     index: { kind: "iteration", source: "__execution__", group: "items" }
   } satisfies Record<string, OutputCorrelation>;
@@ -260,7 +260,7 @@ export class TakeNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" },
     index: { kind: "forward", source: "input_item" }
   } satisfies Record<string, OutputCorrelation>;
@@ -323,7 +323,7 @@ export class CollectNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "aggregate", source: "input_item", collapse: "innermost" }
   } satisfies Record<string, OutputCorrelation>;
 
@@ -364,7 +364,7 @@ export class RerouteNode extends BaseNode {
   static readonly inputFields = ["input_value"];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_value" }
   } satisfies Record<string, OutputCorrelation>;
   @prop({
@@ -394,7 +394,7 @@ export class SwitchNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["value", "cases", "input"];
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     matched: { kind: "forward", source: "input" },
     default: { kind: "forward", source: "input" },
     index: { kind: "single", source: "input" }
@@ -454,7 +454,7 @@ export class TryCatchNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["value", "fallback"];
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "value" },
     error: { kind: "single", source: "value" },
     has_error: { kind: "single", source: "value" }
@@ -504,7 +504,7 @@ export class DropNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" },
     index: { kind: "forward", source: "input_item" }
   } satisfies Record<string, OutputCorrelation>;
@@ -574,7 +574,7 @@ export class FilterEqualNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" }
   } satisfies Record<string, OutputCorrelation>;
 
@@ -634,7 +634,7 @@ export class FilterCodeNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" }
   } satisfies Record<string, OutputCorrelation>;
 
@@ -687,7 +687,7 @@ export class ChunkNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "iteration", source: "input_item", group: "batch" },
     index: { kind: "iteration", source: "input_item", group: "batch" }
   } satisfies Record<string, OutputCorrelation>;
@@ -752,7 +752,7 @@ export class LastNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "aggregate", source: "input_item", collapse: "innermost" }
   } satisfies Record<string, OutputCorrelation>;
 
@@ -803,7 +803,7 @@ export class CountStreamNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "aggregate", source: "input_item", collapse: "innermost" }
   } satisfies Record<string, OutputCorrelation>;
 
@@ -877,7 +877,7 @@ export class DistinctNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" }
   } satisfies Record<string, OutputCorrelation>;
 
@@ -933,7 +933,7 @@ export class TakeWhileNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" }
   } satisfies Record<string, OutputCorrelation>;
 
@@ -990,7 +990,7 @@ export class DropWhileNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" }
   } satisfies Record<string, OutputCorrelation>;
 
@@ -1044,7 +1044,7 @@ export class TapNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" }
   } satisfies Record<string, OutputCorrelation>;
 
@@ -1117,7 +1117,7 @@ export class ZipNode extends BaseNode {
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
   static readonly isJoinNode = true;
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     left: { kind: "iteration", source: "__execution__", group: "zip" },
     right: { kind: "iteration", source: "__execution__", group: "zip" },
     index: { kind: "iteration", source: "__execution__", group: "zip" }
@@ -1308,7 +1308,7 @@ export class CrossNode extends BaseNode {
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
   static readonly isJoinNode = true;
-  static readonly outputCorrelation = {
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     left: { kind: "iteration", source: "__execution__", group: "cross" },
     right: { kind: "iteration", source: "__execution__", group: "cross" }
   } satisfies Record<string, OutputCorrelation>;

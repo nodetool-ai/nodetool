@@ -4,6 +4,33 @@ Two setups where a plain `npm install` or a plain test run does not work:
 locked-down containers, and machines without a Vulkan driver. The everyday
 setup is [AGENTS.md § Prerequisites](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#prerequisites).
 
+### TypeScript compiler roles
+
+Normal repository builds and type-checks use the TypeScript 7 native compiler.
+Compiler watch commands use TypeScript 6 because TypeScript 7.0.2 can miss
+filesystem changes on Linux and in containers
+([upstream issue](https://github.com/microsoft/TypeScript/issues/63646)). The
+repository also installs TypeScript 6 as the compatibility package for tools
+that use the TypeScript compiler API, including Jest and documentation tooling.
+The shared launcher keeps these roles explicit and avoids npm bin link order
+deciding which compiler a script runs.
+
+To select a compiler for a command, set `NODETOOL_TSC_VERSION`:
+
+```bash
+NODETOOL_TSC_VERSION=7 npm run typecheck
+NODETOOL_TSC_VERSION=6 npm run typecheck
+```
+
+The named `:ts6` and `:ts7` package commands are the preferred rollback and
+comparison entry points. `NODETOOL_TSC_HEAP_MB` controls the V8 heap only for
+the TypeScript 6 JavaScript compiler. The TypeScript 7 native compiler does not
+receive that Node heap option.
+
+If a compiler-role check fails after install, run `npm run check:typescript`
+before attempting a build. It reports missing or mismatched compiler packages,
+native platform packages, and direct compiler-path drift.
+
 ### `libc` in the lockfile
 
 npm selects a prebuilt native package by the `os`, `cpu` and `libc` recorded in

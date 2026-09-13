@@ -53,7 +53,7 @@ the Jest tests in `src/__tests__/`. Browser-level E2E lives in `web/`.
 |---------|---------|---------|
 | Electron | 39.8.10 | Desktop shell |
 | React | 19.2 | UI framework |
-| TypeScript | 5.9 | Type safety |
+| TypeScript | 7 native CLI / 6 API compatibility | Type safety and compiler tooling |
 | Zustand | 5.0 | State management |
 | Vite | 8.0 | Build tool (main + preload processes) |
 | better-sqlite3 | — | Local SQLite database |

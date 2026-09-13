@@ -84,7 +84,7 @@
     "lint:eslint:fix": "eslint src --fix",
     "lint:design": "eslint --config eslint.design.config.mjs src && node scripts/test-motion-rule.mjs && node scripts/test-media-src-rule.mjs && node scripts/lint-spacing-css.mjs && node scripts/lint-font-color-css.mjs && node scripts/lint-radius-css.mjs && node scripts/lint-motion-css.mjs",
     "lint:design:fix": "eslint --config eslint.design.config.mjs src --fix && node scripts/test-motion-rule.mjs && node scripts/test-media-src-rule.mjs && node scripts/test-media-src-rule.mjs && node scripts/lint-spacing-css.mjs && node scripts/lint-font-color-css.mjs && node scripts/lint-radius-css.mjs && node scripts/lint-motion-css.mjs",
-    "check": "tsc && eslint src && jest",
+    "check": "node ../scripts/run-tsc.mjs && eslint src && jest",
     "test": "node ../scripts/run-jest-utc.mjs --forceExit",
     "test:summary": "node ../scripts/run-jest-utc.mjs --reporters=\"summary\" --forceExit",
     "test:watch": "node ../scripts/run-jest-utc.mjs --watch",
@@ -173,7 +173,7 @@
     "mock-socket": "^9.3.1",
     "storybook": "^10.4.6",
     "ts-jest": "^29.4.11",
-    "typescript": "^5.9.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "vite": "^8.0.16",
     "vite-plugin-svgr": "^4.5.0"
   }

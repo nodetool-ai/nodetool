@@ -254,7 +254,9 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
 
     try {
       const encoded = pack(message);
-      this.ws!.send(encoded);
+      // SAFETY: msgpackr allocates this frame, so its backing store is an
+      // ArrayBuffer. Its declaration also covers shared buffers supplied by callers.
+      this.ws!.send(encoded as Uint8Array<ArrayBuffer>);
       this.emit("messageSent", message);
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -762,4 +764,3 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
     this.state = "disconnected";
   }
 }
-

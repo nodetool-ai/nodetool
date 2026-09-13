@@ -1499,10 +1499,10 @@ describe("runInSandbox workspace binary I/O", () => {
   const withWorkspace = async (
     fn: (ctx: import("@nodetool-ai/runtime").ProcessingContext, dir: string) => Promise<void>
   ): Promise<void> => {
-    const { mkdtemp, rm } = await import("node:fs/promises");
+    const { mkdtemp, realpath, rm } = await import("node:fs/promises");
     const { tmpdir } = await import("node:os");
     const { join, isAbsolute } = await import("node:path");
-    const dir = await mkdtemp(join(tmpdir(), "sbx-bin-"));
+    const dir = await realpath(await mkdtemp(join(tmpdir(), "sbx-bin-")));
     const context = {
       workspace: createLocalWorkspace(dir),
         resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(dir, p))
