@@ -38,7 +38,11 @@ import {
 } from "./SketchInstance";
 import { trpc, trpcClient } from "../../trpc/client";
 import { useNotificationStore } from "../NotificationStore";
-import { registerDocumentSync } from "../documentSync";
+import {
+  createDocumentSyncController,
+  registerDocumentSync,
+  type DocumentSyncController
+} from "../documentSync";
 import { reportDocumentConflicts } from "../documentConflictReporter";
 import type { MergeConflict } from "../documentMerge";
 import type { DocumentOp } from "@nodetool-ai/protocol";
@@ -765,8 +769,9 @@ async function saveSnapshot(
   instance: SketchInstance,
   documentId: string,
   name: string,
+  revisionOverride?: string,
   onSaved?: (response: SketchDocumentResponse) => void
-): Promise<void> {
+): Promise<SketchDocumentResponse> {
   const session = instance.session;
   const layerBindings = Object.values(session.getState().bindings);
   const snapshot = buildSnapshot(instance.editor);
@@ -780,7 +785,12 @@ async function saveSnapshot(
   );
 
   if (nextHash === store.lastServerHash) {
-    return;
+    return {
+      id: documentId,
+      updatedAt: store.baseUpdatedAt ?? "",
+      name,
+      document: { sketch: prepared.sketch, layerBindings }
+    } as SketchDocumentResponse;
   }
 
   if (preparedBytes > MAX_PERSISTED_IMAGE_DOCUMENT_BYTES) {
@@ -793,7 +803,12 @@ async function saveSnapshot(
       dedupeKey: `sketch-autosave-too-large:${documentId}`,
       replaceExisting: true
     });
-    return;
+    return {
+      id: documentId,
+      updatedAt: store.baseUpdatedAt ?? "",
+      name,
+      document: { sketch: prepared.sketch, layerBindings }
+    } as SketchDocumentResponse;
   }
 
   if (prepared.externalizedLayerIds.length > 0) {
@@ -809,14 +824,13 @@ async function saveSnapshot(
 
   session.getState().markSaving();
 
-  try {
-    const response = await trpcClient.sketch.update.mutate({
+  const response = await trpcClient.sketch.update.mutate({
       id: documentId,
       name: session.getState().name || name,
       width: prepared.sketch.canvas.width,
       height: prepared.sketch.canvas.height,
       backgroundColor: prepared.sketch.canvas.backgroundColor,
-      baseUpdatedAt: store.baseUpdatedAt ?? undefined,
+      baseUpdatedAt: revisionOverride ?? store.baseUpdatedAt ?? undefined,
       document: {
         // The editor's `SketchDocument` and the wire schema describe one
         // payload with incompatible types: closed interfaces here
@@ -827,7 +841,7 @@ async function saveSnapshot(
       }
     });
     session.getState().markSaved(response.updatedAt, nextHash, {
-      sketch: sketch as unknown as Record<string, unknown>,
+      sketch: prepared.sketch as unknown as Record<string, unknown>,
       layerBindings
     });
     // Mirror the freshly-saved document into the trpc query cache so a
@@ -836,27 +850,8 @@ async function saveSnapshot(
     // `refetchOnMount: false`) returns the snapshot fetched on first load,
     // so any edits saved during the session vanish on revisit until gcTime
     // expires.
-    onSaved?.(response);
-  } catch (error) {
-    const rawMessage = error instanceof Error ? error.message : String(error);
-    const conflict = rawMessage.toLowerCase().includes("concurrent");
-    // Always log the underlying error so DevTools shows the full cause (zod
-    // path, stack, etc.) — autosave runs in the background and otherwise has
-    // no other channel to surface what went wrong.
-    console.error("[sketch autosave]", error);
-    session.getState().markSaveFailed(conflict);
-    useNotificationStore.getState().addNotification({
-      content: conflict
-        ? "Sketch autosave hit a document conflict — refresh before continuing."
-        : `Sketch autosave failed: ${rawMessage}`,
-      type: "error",
-      alert: true,
-      dedupeKey: conflict
-        ? `sketch-autosave-conflict:${documentId}`
-        : `sketch-autosave-failed:${documentId}`,
-      replaceExisting: true
-    });
-  }
+  onSaved?.(response);
+  return response;
 }
 
 export async function saveSketchDocument(
@@ -864,15 +859,14 @@ export async function saveSketchDocument(
   onSaved?: (response: SketchDocumentResponse) => void
 ): Promise<void> {
   const store = instance.session.getState();
-  if (!store.documentId || instance.saveInFlight.current) {
+  if (!store.documentId) {
     return;
   }
-  instance.saveInFlight.current = true;
-  try {
-    await saveSnapshot(instance, store.documentId, store.name, onSaved);
-  } finally {
-    instance.saveInFlight.current = false;
+  if (instance.documentSync.current) {
+    await instance.documentSync.current.flush();
+    return;
   }
+    await saveSnapshot(instance, store.documentId, store.name, undefined, onSaved);
 }
 
 /** Persist a rename. Sets session.name first so a concurrent autosave cannot clobber it. */
@@ -922,7 +916,6 @@ export function useStandaloneSketchDocument(
   const instance = useSketchInstance();
   const editorStore = instance.editor;
   const sessionStore = instance.session;
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Whether editor/binding state changed since the last save attempt. Store
   // mutations only flip this flag — the expensive serialize/hash runs once
   // inside the debounced save (`saveSnapshot`), never on the mutation path.
@@ -978,58 +971,11 @@ export function useStandaloneSketchDocument(
     }
 
     let alive = true;
-    // Use the instance-level flag so manual saves (saveSketchDocument) share the same guard.
-    const inFlightRef = instance.saveInFlight;
-
     const holdAutosaveRef = { current: false };
-
-    const flush = () => {
-      if (holdAutosaveRef.current) {
-        return;
-      }
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      const store = sessionStore.getState();
-      if (inFlightRef.current || !store.documentId) {
-        // A manual save may be in flight (shared guard). Re-arm the debounce
-        // so a pending change isn't dropped if that save fails — but never
-        // after unmount (cleanup also calls flush()).
-        if (alive && inFlightRef.current && pendingDirtyRef.current) {
-          schedule();
-        }
-        return;
-      }
-      if (!pendingDirtyRef.current) {
-        return;
-      }
-      pendingDirtyRef.current = false;
-      inFlightRef.current = true;
-      const documentId = store.documentId;
-      // `saveSnapshot` serializes + hashes once here and skips the network
-      // call when the document matches the last server hash.
-      void saveSnapshot(instance, documentId, store.name, (saved) => {
-        utilsRef.current.sketch.get.setData({ id: documentId }, saved);
-      }).finally(() => {
-        inFlightRef.current = false;
-        if (!alive) {
-          return;
-        }
-        if (pendingDirtyRef.current) {
-          schedule();
-        }
-      });
-    };
-
-    const schedule = () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      timeoutRef.current = setTimeout(
-        flush,
-        SKETCH_DOCUMENT_AUTOSAVE_DEBOUNCE_MS
-      );
+    let controller: DocumentSyncController;
+    const schedule = (): void => controller.markDirty();
+    const flush = (): void => {
+      if (!holdAutosaveRef.current) void controller.flush();
     };
 
     // Writes from outside this browser (agent doc-ops, CLI, another tab) come
@@ -1038,11 +984,11 @@ export function useStandaloneSketchDocument(
     // past the lifecycle gate. A dirty one merges the external change per
     // merge unit (layer, binding, canvas): draft wins, refused values land in
     // the conflict banner, and no undo entry is recorded for them (ADR 0001).
-    const mergeExternal = (notice: { ops?: DocumentOp[] }): void => {
+    const mergeExternal = (notice: { ops?: DocumentOp[] }): Promise<void> => {
       const session = sessionStore.getState();
       const base = session.lastSavedDocument;
-      if (!base) return;
-      void (async () => {
+      if (!base) return Promise.resolve();
+      return (async () => {
         let fresh: SketchDocumentResponse;
         try {
           fresh = await trpcClient.sketch.get.query({ id: response.id });
@@ -1140,10 +1086,6 @@ export function useStandaloneSketchDocument(
         );
         if (replaced) {
           holdAutosaveRef.current = true;
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-            timeoutRef.current = null;
-          }
         } else {
           holdAutosaveRef.current = false;
           pendingDirtyRef.current = true;
@@ -1241,7 +1183,7 @@ export function useStandaloneSketchDocument(
       localRevision: () => sessionStore.getState().baseUpdatedAt,
       isDirty: () =>
         pendingDirtyRef.current ||
-        instance.saveInFlight.current ||
+        controller.isSaving() ||
         sessionStore.getState().hasConflict,
       reload: () => {
         sessionStore.getState().clearHydrated();
@@ -1249,6 +1191,37 @@ export function useStandaloneSketchDocument(
       },
       merge: mergeExternal
     });
+
+    controller = createDocumentSyncController<SketchPersistenceSnapshot>({
+      debounceMs: SKETCH_DOCUMENT_AUTOSAVE_DEBOUNCE_MS,
+      getDraft: () => buildSnapshot(editorStore),
+      getRevision: () => sessionStore.getState().baseUpdatedAt,
+      isDirty: () => pendingDirtyRef.current,
+      save: async (_draft, revision) => {
+        pendingDirtyRef.current = false;
+        const current = sessionStore.getState();
+        const saved = await saveSnapshot(
+          instance,
+          current.documentId as string,
+          current.name,
+          revision,
+          (response) =>
+            utilsRef.current.sketch.get.setData({ id: response.id }, response)
+        );
+        return { updatedAt: saved.updatedAt };
+      },
+      recoverCasConflict: async () => {
+        await mergeExternal({});
+      },
+      isCasConflict: (error) =>
+        String(error).toLowerCase().includes("concurrent"),
+      onStatus: (status) => {
+        if (status === "error") {
+          sessionStore.getState().markSaveFailed(false);
+        }
+      }
+    });
+    instance.documentSync.current = controller;
 
     type SelectedFields = {
       document: SketchStore["document"];
@@ -1294,7 +1267,8 @@ export function useStandaloneSketchDocument(
       unwatchDocument();
       unsubscribeSketch();
       unsubscribeSession();
-      flush();
+      controller.dispose();
+      instance.documentSync.current = null;
     };
   }, [enabled, initialState, response, editorStore, sessionStore, instance]);
 
