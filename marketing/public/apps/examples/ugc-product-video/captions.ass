@@ -1,0 +1,34 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 768
+PlayResY: 1344
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Inter,36,&H00F6F4EC,&H00F6F4EC,&H001E2414,&H001E2414,0,0,0,0,100,100,0,0,1,0,0,2,0,0,0,1
+Style: Caption,Inter,43,&H00F6F4EC,&H00F6F4EC,&H001E2414,&HCC1E2414,-1,0,0,0,100,100,0,0,3,4,0,2,58,58,505,1
+Style: Bug,Inter,22,&H00F6F4EC,&H00F6F4EC,&H001E2414,&H001E2414,-1,0,0,0,100,100,3,0,3,14,0,7,60,0,0,1
+Style: Ritual,Inter,20,&H008CD2C0,&H008CD2C0,&H001E2414,&H001E2414,-1,0,0,0,100,100,2,0,1,0,0,7,0,0,0,1
+Style: CloseBrand,Inter,54,&H00F6F4EC,&H00F6F4EC,&H001E2414,&H001E2414,-1,0,0,0,100,100,6,0,1,0,0,7,88,0,0,1
+Style: CloseSlogan,Inter,27,&H00F6F4EC,&H00F6F4EC,&H001E2414,&H001E2414,0,0,0,0,100,100,1,0,1,0,0,7,88,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 5,0:00:00.15,0:00:02.70,Bug,,0,0,0,,MORROW
+Dialogue: 3,0:00:01.04,0:00:02.17,Caption,,0,0,0,,I DID NOT {\c&H008CD2C0&}EXPECT{\c&H00F6F4EC&} A
+Dialogue: 3,0:00:02.17,0:00:03.96,Caption,,0,0,0,,{\c&H008CD2C0&}TRAVEL CUP{\c&H00F6F4EC&} TO FIX MY\NMORNINGS
+Dialogue: 3,0:00:04.50,0:00:05.46,Caption,,0,0,0,,BUT {\c&H008CD2C0&}THIS ONE DID
+Dialogue: 4,0:00:05.00,0:00:07.00,Default,,0,0,0,,{\an7\pos(48,995)\c&H001E2414&\alpha&H18&\bord0\p1}m 0 0 l 252 0 l 252 64 l 0 64{\p0}
+Dialogue: 5,0:00:05.00,0:00:07.00,Default,,0,0,0,,{\an7\pos(48,995)\c&H008CD2C0&\alpha&H00&\bord0\p1}m 0 0 l 7 0 l 7 64 l 0 64 m 252 31 l 382 31 l 382 34 l 252 34{\p0}
+Dialogue: 6,0:00:05.00,0:00:07.00,Ritual,,0,0,0,,{\an7\pos(70,1014)}DAILY RITUAL
+Dialogue: 3,0:00:06.83,0:00:08.83,Caption,,0,0,0,,THE LID {\c&H008CD2C0&}NEVER LEAKS{\c&H00F6F4EC&}\NIN MY BAG
+Dialogue: 3,0:00:08.83,0:00:10.12,Caption,,0,0,0,,THE FINISH {\c&H008CD2C0&}FEELS GREAT
+Dialogue: 3,0:00:10.42,0:00:11.71,Caption,,0,0,0,,AND MY COFFEE {\c&H008CD2C0&}STAYS HOT
+Dialogue: 3,0:00:11.71,0:00:12.83,Caption,,0,0,0,,THROUGH MY {\c&H008CD2C0&}FIRST MEETING
+Dialogue: 3,0:00:13.75,0:00:14.67,Caption,,0,0,0,,I USE IT {\c&H008CD2C0&}EVERY DAY
+Dialogue: 7,0:00:11.75,0:00:15.04,Default,,0,0,0,,{\an7\move(0,1344,0,960,0,550)\c&H001E2414&\bord0\p1}m 0 0 l 768 0 l 768 384 l 0 384{\p0}
+Dialogue: 8,0:00:12.22,0:00:15.04,Default,,0,0,0,,{\an7\move(72,1400,72,1026,0,320)\c&H008CD2C0&\bord0\p1}m 0 0 l 7 0 l 7 190 l 0 190{\p0}
+Dialogue: 9,0:00:12.30,0:00:15.04,CloseBrand,,0,0,0,,{\move(88,1390,88,1055,0,320)}MORROW
+Dialogue: 9,0:00:12.52,0:00:15.04,CloseSlogan,,0,0,0,,{\move(88,1440,88,1142,0,280)}Carry the calm.

@@ -1,17 +1,27 @@
 const UGC_FINAL = "/app-preview/media/ugc-product-video/final.mp4";
+const UGC_CREATOR = "/app-preview/media/ugc-product-video/creator.mp4";
+const SEEDANCE_25_MODEL = {
+  type: "video_model",
+  provider: "atlascloud",
+  id: "bytedance/seedance-2.5/reference-to-video",
+  name: "Seedance 2.5 Reference to Video",
+  path: null,
+  supported_tasks: ["reference_to_video"]
+};
 
 export const UGC_PRODUCT_VIDEO_APP = {
   slug: "ugc-product-video",
   name: "UGC Product Video",
   emoji: "🤳",
   featured: true,
-  tagline: "One face. One take. Fifteen seconds.",
+  tagline: "One take. Native voice. A polished social finish.",
   description:
-    "Start with creator and product references plus a 15-second script. MiniMax H3 generates the performance, lip-sync, and voice together, with the product limited to one short middle proof beat.",
-  note: "🔑 Writing uses OpenAI. The testimonial uses MiniMax H3 on AtlasCloud with native audio.",
+    "Create a native-audio Seedance 2.5 testimonial, then turn its spoken words into stable captions, restrained motion graphics, and an exact branded close.",
+  note: "🔑 Writing and caption transcription use OpenAI. The sample uses Seedance 2.5 on AtlasCloud with native audio; choose it below or select another compatible model.",
   workflows: {
     copy: "Ad Copy in Three Registers",
-    creator: "Generate a Native-Audio UGC Testimonial"
+    creator: "Generate a Native-Audio UGC Testimonial",
+    brand: "Brand a UGC Product Video"
   },
   variables: [
     {
@@ -50,12 +60,26 @@ export const UGC_PRODUCT_VIDEO_APP = {
       type: "video"
     },
     {
-      id: "audience",
-      name: "Audience",
+      id: "brand",
+      name: "Brand",
       scope: "user",
       persist: true,
       type: "str",
-      default: "busy professionals who want a calmer start to the day"
+      default: "MORROW"
+    },
+    {
+      id: "slogan",
+      name: "Slogan",
+      scope: "user",
+      persist: true,
+      type: "str",
+      default: "Carry the calm."
+    },
+    {
+      id: "finalVideo",
+      name: "Branded UGC Reel",
+      scope: "instance",
+      type: "video"
     }
   ],
   operations: [
@@ -81,6 +105,20 @@ export const UGC_PRODUCT_VIDEO_APP = {
       outputs: {
         video: { to: "variable", variableId: "creatorClip" }
       }
+    },
+    {
+      id: "brand",
+      name: "Finish the Reel",
+      workflow: "brand",
+      policy: "replace",
+      inputs: {
+        creator_clip: { from: "variable", variableId: "creatorClip" },
+        brand: { from: "variable", variableId: "brand" },
+        slogan: { from: "variable", variableId: "slogan" }
+      },
+      outputs: {
+        video: { to: "variable", variableId: "finalVideo" }
+      }
     }
   ],
   sections: [
@@ -93,8 +131,7 @@ export const UGC_PRODUCT_VIDEO_APP = {
           multiline: true
         },
         {
-          note:
-            "Pick the promise before touching footage. A UGC hook should create curiosity without making a claim the product cannot support."
+          note: "Pick the promise before touching footage. A UGC hook should create curiosity without making a claim the product cannot support."
         },
         {
           run: ["copy"],
@@ -110,8 +147,7 @@ export const UGC_PRODUCT_VIDEO_APP = {
           op: "copy",
           as: "Markdown",
           label: "Angles to adapt",
-          demo:
-            "**Plain**\nA matte cup with a charcoal lid for the morning routine.\n\n**Playful**\nThe cup that makes it out the door with you.\n\n**Premium**\nA quieter start, designed to travel."
+          demo: "**Plain**\nA matte cup with a charcoal lid for the morning routine.\n\n**Playful**\nThe cup that makes it out the door with you.\n\n**Premium**\nA quieter start, designed to travel."
         }
       ]
     },
@@ -119,11 +155,17 @@ export const UGC_PRODUCT_VIDEO_APP = {
       title: "2 · Generate one continuous testimonial",
       controls: [
         {
-          note:
-            "Image 1 anchors the creator and room. Image 2 anchors only the product. MiniMax H3 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
+          note: "Image 1 anchors the creator and room. Image 2 anchors only the product. Seedance 2.5 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
         },
         { image: "creatorImage", label: "Vertical creator image" },
         { image: "productImage", label: "Clean product image" },
+        {
+          model: { node: "generate", prop: "model" },
+          op: "creator",
+          label: "Video model",
+          modelKind: "video_model",
+          default: SEEDANCE_25_MODEL
+        },
         {
           textVar: "creatorScript",
           label: "Complete 15-second script",
@@ -145,25 +187,46 @@ export const UGC_PRODUCT_VIDEO_APP = {
           showVar: "creatorClip",
           as: "Video",
           label: "Continuous creator testimonial",
-          demo: UGC_FINAL
+          demo: UGC_CREATOR
         }
       ]
     },
     {
-      title: "3 · Review the complete Reel",
+      title: "3 · Finish the Reel",
       controls: [
-        { textVar: "audience", label: "Audience", multiline: true },
+        { textVar: "brand", label: "Brand" },
+        { textVar: "slogan", label: "Slogan" },
         {
-          note:
-            "Watch once for voice and lip-sync, then again for product timing. The cup should appear once for no more than about three seconds and be absent from the opening and close."
+          select: "caption_style",
+          op: "brand",
+          label: "Caption style",
+          options: ["Polished", "Minimal"]
+        },
+        {
+          color: "brand_accent",
+          op: "brand",
+          label: "Brand accent (optional)"
+        },
+        {
+          run: ["brand"],
+          label: "Add motion + captions",
+          disabledWhen: "brand"
         }
       ],
       results: [
         {
-          showVar: "creatorClip",
+          progress: "brand",
+          label: "Transcribing the clip and rendering the finish…"
+        },
+        { error: "brand", label: "The Reel finish failed" },
+        {
+          showVar: "finalVideo",
           as: "Video",
-          label: "15-second UGC Reel",
+          label: "Finished 15-second UGC Reel",
           demo: UGC_FINAL
+        },
+        {
+          note: "Captions follow the generated audio and stay reviewable. Watch once with sound, once muted, and check every highlighted word before publishing."
         }
       ]
     }

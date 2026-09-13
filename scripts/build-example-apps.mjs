@@ -203,7 +203,8 @@ function buildControl(control, ctx) {
     return { operation, node };
   };
 
-  // `text`, `select` and `slider` take either an input name or `{ node, prop }`.
+  // `text`, `model`, `select` and `slider` take either an input name or
+  // `{ node, prop }`.
   // An input name binds the template's Input node; `{ node, prop }` binds a
   // property on a node inside the graph, so no Input node is needed.
   const inputTarget = (kind, name) => {
@@ -364,6 +365,23 @@ function buildControl(control, ctx) {
         binding,
         label: control.label,
         multiline: control.multiline === true,
+        events: []
+      }
+    };
+  }
+
+  if (control.model !== undefined) {
+    const { binding, idParts } =
+      typeof control.model === "string"
+        ? inputTarget("model", control.model)
+        : propTarget("model", control.model);
+    return {
+      type: "ModelSelect",
+      props: {
+        id: nextId(idParts),
+        binding,
+        label: control.label,
+        modelKind: control.modelKind,
         events: []
       }
     };

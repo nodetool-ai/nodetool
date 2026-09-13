@@ -2386,6 +2386,244 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/brand-a-ugc-product-video",
+    "title": "Brand a UGC Product Video — NodeTool AI Workflow Template",
+    "description": "Turn one continuous vertical creator clip into a polished branded reel. The workflow extracts the native audio, transcribes it with word timestamps, groups the words into short animated phrases, builds an editable NodeTool timeline with MORROW motion graphics, and renders the finished video.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "brand-a-ugc-product-video",
+    "name": "Brand a UGC Product Video",
+    "summary": "Turn one continuous vertical creator clip into a polished branded reel. The workflow extracts the native audio, transcribes it with word timestamps, groups the words into short animated phrases, builds an editable NodeTool timeline with MORROW motion graphics, and renders the finished video.",
+    "tags": [
+      "video",
+      "marketing",
+      "ugc",
+      "captions",
+      "motion-graphics",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ColorInput",
+        "label": "Color Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.timeline.RenderTimeline",
+        "label": "Render Timeline",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 1
+      },
+      {
+        "type": "openai.audio.Transcribe",
+        "label": "Transcribe",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 10,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": -20,
+          "y": -210,
+          "width": 1860,
+          "isComment": true
+        },
+        {
+          "id": "creator-clip",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 40,
+          "width": 280
+        },
+        {
+          "id": "brand",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 250,
+          "width": 280,
+          "subtitle": "MORROW"
+        },
+        {
+          "id": "slogan",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 450,
+          "width": 280,
+          "subtitle": "Carry the calm."
+        },
+        {
+          "id": "caption-style",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 650,
+          "width": 280,
+          "subtitle": "Polished"
+        },
+        {
+          "id": "brand-accent",
+          "type": "nodetool.input.ColorInput",
+          "title": "Color Input",
+          "x": 0,
+          "y": 850,
+          "width": 280
+        },
+        {
+          "id": "extract-audio",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 360,
+          "y": 40,
+          "width": 280
+        },
+        {
+          "id": "transcribe",
+          "type": "openai.audio.Transcribe",
+          "title": "Transcribe",
+          "x": 700,
+          "y": 40,
+          "width": 300,
+          "subtitle": "Return the creator's exact spoken words. Preserve product and brand terms."
+        },
+        {
+          "id": "build-timeline",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1070,
+          "y": 330,
+          "width": 400
+        },
+        {
+          "id": "render",
+          "type": "nodetool.timeline.RenderTimeline",
+          "title": "Render Timeline",
+          "x": 1540,
+          "y": 390,
+          "width": 300
+        },
+        {
+          "id": "video-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1910,
+          "y": 390,
+          "width": 260
+        }
+      ],
+      "edges": [
+        {
+          "source": "creator-clip",
+          "sourceHandle": "output",
+          "target": "extract-audio",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "extract-audio",
+          "sourceHandle": "output",
+          "target": "transcribe",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "creator-clip",
+          "sourceHandle": "output",
+          "target": "build-timeline",
+          "targetHandle": "creator",
+          "color": "any"
+        },
+        {
+          "source": "transcribe",
+          "sourceHandle": "words",
+          "target": "build-timeline",
+          "targetHandle": "words",
+          "color": "any"
+        },
+        {
+          "source": "brand",
+          "sourceHandle": "output",
+          "target": "build-timeline",
+          "targetHandle": "brand",
+          "color": "any"
+        },
+        {
+          "source": "slogan",
+          "sourceHandle": "output",
+          "target": "build-timeline",
+          "targetHandle": "slogan",
+          "color": "any"
+        },
+        {
+          "source": "caption-style",
+          "sourceHandle": "output",
+          "target": "build-timeline",
+          "targetHandle": "captionStyle",
+          "color": "any"
+        },
+        {
+          "source": "brand-accent",
+          "sourceHandle": "output",
+          "target": "build-timeline",
+          "targetHandle": "brandAccent",
+          "color": "any"
+        },
+        {
+          "source": "build-timeline",
+          "sourceHandle": "timeline",
+          "target": "render",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "render",
+          "sourceHandle": "output",
+          "target": "video-out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/bring-a-still-to-life",
     "title": "Bring a Still to Life — NodeTool AI Workflow Template",
     "description": "Turn one image into a short moving shot. The brief forbids restyling so the model may move the camera and add atmosphere but not redraw the subject - the same constraint the product templates rely on.",
@@ -8551,13 +8789,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/generate-a-native-audio-ugc-testimonial",
     "title": "Generate a Native-Audio UGC Testimonial — NodeTool AI Workflow Template",
-    "description": "Turn creator and product references plus one short script into a continuous 15-second MiniMax H3 testimonial with native voice and lip-sync.",
+    "description": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
     "priority": 0.3,
     "changeFrequency": "monthly",
     "indexable": false,
     "slug": "generate-a-native-audio-ugc-testimonial",
     "name": "Generate a Native-Audio UGC Testimonial",
-    "summary": "Turn creator and product references plus one short script into a continuous 15-second MiniMax H3 testimonial with native voice and lip-sync.",
+    "summary": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
     "tags": [
       "video",
       "marketing",
@@ -8658,8 +8896,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Reference To Video",
           "x": 820,
           "y": 190,
-          "width": 320,
-          "subtitle": "minimax/h3/reference-to-video"
+          "width": 320
         },
         {
           "id": "video-out",

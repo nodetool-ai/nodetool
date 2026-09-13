@@ -2,9 +2,9 @@
   "slug": "ugc-product-video",
   "name": "UGC Product Video",
   "emoji": "🤳",
-  "description": "Start with creator and product references plus a 15-second script. MiniMax H3 generates the performance, lip-sync, and voice together, with the product limited to one short middle proof beat.",
-  "tagline": "One face. One take. Fifteen seconds.",
-  "note": "🔑 Writing uses OpenAI. The testimonial uses MiniMax H3 on AtlasCloud with native audio.",
+  "description": "Create a native-audio Seedance 2.5 testimonial, then turn its spoken words into stable captions, restrained motion graphics, and an exact branded close.",
+  "tagline": "One take. Native voice. A polished social finish.",
+  "note": "🔑 Writing and caption transcription use OpenAI. The sample uses Seedance 2.5 on AtlasCloud with native audio; choose it below or select another compatible model.",
   "featured": true,
   "image": "/app-preview/img/ugc-product-video.jpg",
   "app": {
@@ -26,14 +26,14 @@
           "type": "Text",
           "props": {
             "id": "tagline",
-            "text": "One face. One take. Fifteen seconds."
+            "text": "One take. Native voice. A polished social finish."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Writing uses OpenAI. The testimonial uses MiniMax H3 on AtlasCloud with native audio."
+            "text": "🔑 Writing and caption transcription use OpenAI. The sample uses Seedance 2.5 on AtlasCloud with native audio; choose it below or select another compatible model."
           }
         },
         {
@@ -158,7 +158,7 @@
                       "type": "Text",
                       "props": {
                         "id": "note-2",
-                        "text": "Image 1 anchors the creator and room. Image 2 anchors only the product. MiniMax H3 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
+                        "text": "Image 1 anchors the creator and room. Image 2 anchors only the product. Seedance 2.5 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
                       }
                     },
                     {
@@ -176,6 +176,16 @@
                         "id": "in-productimage",
                         "binding": "var:productImage",
                         "label": "Clean product image",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-creator-generate-model",
+                        "binding": "op:creator/prop:generate#model",
+                        "label": "Video model",
+                        "modelKind": "video_model",
                         "events": []
                       }
                     },
@@ -270,30 +280,81 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-3-review-the-complete-reel",
+            "id": "cols-3-finish-the-reel",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-3-review-the-complete-reel",
-                  "title": "3 · Review the complete Reel",
+                  "id": "panel-3-finish-the-reel",
+                  "title": "3 · Finish the Reel",
                   "content": [
                     {
                       "type": "TextInput",
                       "props": {
-                        "id": "in-audience",
-                        "binding": "var:audience",
-                        "label": "Audience",
-                        "multiline": true,
+                        "id": "in-brand",
+                        "binding": "var:brand",
+                        "label": "Brand",
+                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "Text",
+                      "type": "TextInput",
                       "props": {
-                        "id": "note-3",
-                        "text": "Watch once for voice and lip-sync, then again for product timing. The cup should appear once for no more than about three seconds and be absent from the opening and close."
+                        "id": "in-slogan",
+                        "binding": "var:slogan",
+                        "label": "Slogan",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-brand-caption-style",
+                        "binding": "op:brand/in:caption-style",
+                        "label": "Caption style",
+                        "options": [
+                          {
+                            "value": "Polished"
+                          },
+                          {
+                            "value": "Minimal"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ColorInput",
+                      "props": {
+                        "id": "in-brand-brand-accent",
+                        "binding": "op:brand/in:brand-accent",
+                        "label": "Brand accent (optional)",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-brand",
+                        "label": "Add motion + captions",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "brand",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:brand/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -304,24 +365,53 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-3-review-the-complete-reel-results",
+                  "id": "panel-3-finish-the-reel-results",
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-brand",
+                        "binding": "op:brand/exec#progress",
+                        "label": "Transcribing the clip and rendering the finish…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-brand",
+                        "binding": "op:brand/exec#error",
+                        "title": "The Reel finish failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:brand/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-creatorclip-2",
-                        "text": "15-second UGC Reel",
+                        "id": "lbl-finalvideo",
+                        "text": "Finished 15-second UGC Reel",
                         "level": "3"
                       }
                     },
                     {
                       "type": "Video",
                       "props": {
-                        "id": "out-creatorclip-2",
-                        "binding": "var:creatorClip",
+                        "id": "out-finalvideo",
+                        "binding": "var:finalVideo",
                         "height": 320,
                         "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-3",
+                        "text": "Captions follow the generated audio and stay reviewable. Watch once with sound, once muted, and check every highlighted word before publishing."
                       }
                     }
                   ]
@@ -377,6 +467,32 @@
         },
         "policy": "replace",
         "timeoutMs": 600000
+      },
+      {
+        "id": "brand",
+        "name": "Finish the Reel",
+        "workflowId": "brand",
+        "inputs": {
+          "creator-clip": {
+            "from": "variable",
+            "variableId": "creatorClip"
+          },
+          "brand": {
+            "from": "variable",
+            "variableId": "brand"
+          },
+          "slogan": {
+            "from": "variable",
+            "variableId": "slogan"
+          }
+        },
+        "outputs": {
+          "video-out": {
+            "to": "variable",
+            "variableId": "finalVideo"
+          }
+        },
+        "policy": "replace"
       }
     ],
     "resources": [],
@@ -434,15 +550,36 @@
         "persist": false
       },
       {
-        "id": "audience",
-        "name": "Audience",
+        "id": "brand",
+        "name": "Brand",
         "type": {
           "type": "str",
           "optional": true
         },
-        "default": "busy professionals who want a calmer start to the day",
+        "default": "MORROW",
         "scope": "user",
         "persist": true
+      },
+      {
+        "id": "slogan",
+        "name": "Slogan",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Carry the calm.",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "finalVideo",
+        "name": "Branded UGC Reel",
+        "type": {
+          "type": "video",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
       }
     ]
   },
@@ -607,13 +744,168 @@
         ],
         "edges": []
       }
+    },
+    {
+      "key": "brand",
+      "name": "Brand a UGC Product Video",
+      "graph": {
+        "nodes": [
+          {
+            "id": "creator-clip",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "creator_clip",
+              "value": null,
+              "description": "One continuous 9:16 creator clip with its native audio"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Creator clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brand",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "brand",
+              "value": "MORROW",
+              "description": "Brand name used by the opening bug and closing lockup"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 250
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Brand"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "slogan",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "slogan",
+              "value": "Carry the calm.",
+              "description": "Closing line under the brand"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 450
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Slogan"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "caption-style",
+            "type": "nodetool.input.SelectInput",
+            "data": {
+              "name": "caption_style",
+              "value": "Polished",
+              "options": [
+                "Polished",
+                "Minimal"
+              ],
+              "enum_type_name": "",
+              "description": "Polished adds a restrained forest plate; Minimal keeps the outlined type"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 650
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4  Caption style"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brand-accent",
+            "type": "nodetool.input.ColorInput",
+            "data": {
+              "name": "brand_accent",
+              "value": {
+                "type": "color",
+                "value": "#C0D28C"
+              },
+              "description": "Active-word, underline, bracket, and closing-rule color"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 850
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "5  Brand accent"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "video-out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "video",
+              "description": "Polished vertical UGC reel with editable motion graphics and captions"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1910,
+                "y": 390
+              },
+              "zIndex": 0,
+              "width": 260,
+              "selectable": true,
+              "title": "10  Branded UGC reel"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
     }
   ],
   "values": {
     "op:copy/out:out": "**Plain**\nA matte cup with a charcoal lid for the morning routine.\n\n**Playful**\nThe cup that makes it out the door with you.\n\n**Premium**\nA quieter start, designed to travel.",
-    "var:creatorClip": "/app-preview/media/ugc-product-video/final.mp4",
+    "op:creator/prop:generate#model": {
+      "type": "video_model",
+      "provider": "atlascloud",
+      "id": "bytedance/seedance-2.5/reference-to-video",
+      "name": "Seedance 2.5 Reference to Video",
+      "path": null,
+      "supported_tasks": [
+        "reference_to_video"
+      ]
+    },
+    "var:creatorClip": "/app-preview/media/ugc-product-video/creator.mp4",
+    "op:brand/in:caption-style": "Polished",
+    "var:finalVideo": "/app-preview/media/ugc-product-video/final.mp4",
     "var:offer": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid for a calmer morning routine",
     "var:creatorScript": "I did not expect a travel cup to fix my mornings, but this one did. The lid never leaks in my bag, the finish feels great, and my coffee stays hot through my first meeting. I use it every day.",
-    "var:audience": "busy professionals who want a calmer start to the day"
+    "var:brand": "MORROW",
+    "var:slogan": "Carry the calm."
   }
 }

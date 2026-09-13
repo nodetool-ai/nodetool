@@ -103,23 +103,24 @@ export const recipeGuides = {
   "ugc-product-video": {
     name: "UGC product video",
     outcome:
-      "Turn creator and product references into a 15-second vertical testimonial whose voice and lip movement are generated together.",
+      "Turn creator and product references into a polished 15-second vertical testimonial with native voice, animated captions, and a branded close.",
     audience: "Founder-led brands, creators, and paid social teams",
     guide: {
       entry: "UGC Product Video",
-      stages: ["Angle", "References", "Generate", "Review"],
+      stages: ["Angle", "References", "Generate", "Finish", "Review"],
       introduction:
-        "Keep the creator on camera for the full Reel, generate voice and lip-sync in the same MiniMax H3 pass, and limit the cup to one proof beat of no more than about three seconds.",
+        "Keep the creator on camera for the full Reel, generate voice and lip-sync with a compatible native-audio video model, then finish the recording with captions, restrained graphic beats, and an exact branded close. The finished sample used Seedance 2.5 on AtlasCloud.",
       inputs: [
-        "One vertical creator image you have permission to send to AtlasCloud",
-        "One clean product reference you have permission to send to AtlasCloud",
+        "One vertical creator image you have permission to send to the selected video provider",
+        "One clean product reference you have permission to send to the selected video provider",
         "Approved product facts and one audience",
-        "OpenAI and AtlasCloud providers configured in NodeTool"
+        "An exact brand name and slogan",
+        "An optional brand accent color",
+        "OpenAI and a compatible native-audio video provider configured in NodeTool"
       ],
       brief:
-        "Create a 15-second vertical UGC testimonial with the creator speaking to camera throughout. Generate voice, mouth movement, and picture together in one MiniMax H3 native-audio pass on AtlasCloud. Image 1 controls the creator and room. Image 2 controls only the product. Keep the cup fully out of frame from 0.0 to 4.5 seconds, show it once from 4.5 to 7.0 seconds without blocking the face, and keep it fully out of frame from 7.0 to 15.0 seconds. Preserve the phone-shot character of the source. Do not add generated logos, music, unsupported claims, or cutaway product shots.",
-      note:
-        "The app sends both reference images to AtlasCloud. It does not license a person's likeness or product artwork. The performance and product motion are generative and must be checked before publishing.",
+        "Create a 15-second vertical UGC testimonial with the creator speaking to camera throughout. Choose a native-audio reference-to-video model that accepts two ordered images, then generate voice, mouth movement, and picture together in one pass. Image 1 controls the creator and room. Image 2 controls only the product. Keep the cup fully out of frame from 0.0 to 4.5 seconds, show it once from 4.5 to 7.0 seconds without blocking the face, and keep it fully out of frame from 7.0 to 15.0 seconds. Preserve the phone-shot character of the source. Do not add generated logos, music, unsupported claims, or cutaway product shots.",
+      note: "The app sends both reference images to the selected video provider. The finished sample used Seedance 2.5 on AtlasCloud. The app does not license a person's likeness or product artwork. The performance and product motion are generative and must be checked before publishing.",
       steps: [
         {
           id: "angle",
@@ -154,8 +155,33 @@ export const recipeGuides = {
           stage: "15-second script",
           title: "Write and generate in one pass",
           description:
-            "Keep the hook short enough to land before 4.5 seconds, support it with one or two product truths, and end with one recommendation. MiniMax H3 generates the exact dialogue, native voice, lip-sync, and picture together.",
-          action: "Make the 15-second testimonial"
+            "Keep the hook short enough to land before 4.5 seconds, support it with one or two product truths, and end with one recommendation. The selected native-audio model generates the dialogue, voice, lip-sync, and picture together. The finished sample used Seedance 2.5 on AtlasCloud.",
+          action: "Make the 15-second testimonial",
+          image: {
+            src: "/apps/examples/ugc-product-video/motion-caption.jpg",
+            alt: "MORROW creator Reel with an opening brand bug and word-highlighted animated caption.",
+            caption:
+              "Short caption groups enter on the recorded words. The sage highlight follows the active word without covering the creator's face.",
+            width: 768,
+            height: 1344
+          }
+        },
+        {
+          id: "finish",
+          phase: "Finish",
+          stage: "Motion + captions",
+          title: "Finish the Reel",
+          description:
+            "Choose the polished or minimal caption treatment and an optional accent color. The workflow transcribes the generated audio, animates readable caption groups, adds restrained brand motion, and settles into the closing lockup around 12.8 seconds.",
+          action: "Add motion + captions",
+          image: {
+            src: "/apps/examples/ugc-product-video/final-poster.jpg",
+            alt: "MORROW creator Reel at 12.8 seconds with animated caption styling and the finished brand close.",
+            caption:
+              "The 12.8-second frame shows the finished close. Caption words and timing remain reviewable before publishing.",
+            width: 768,
+            height: 1344
+          }
         },
         {
           id: "inspect",
@@ -163,7 +189,7 @@ export const recipeGuides = {
           stage: "Timing and identity",
           title: "Check the complete Reel",
           description:
-            "Watch once for voice and lip-sync, then scrub the opening, 4.5-second entrance, 7.0-second exit, and close. Reject a take if the cup appears outside the 2.5-second window, blocks the face, or drifts from image 2.",
+            "Watch once for voice and lip-sync, then once muted for caption rhythm and graphic placement. Scrub the product entrance, product exit, and 12.8-second close. Correct any caption that differs from the recorded words before publishing.",
           action: "Approve or regenerate"
         }
       ]

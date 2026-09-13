@@ -1,0 +1,114 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-09-13T00:00:00.000Z",
+  "updated_at": "2026-09-13T00:00:00.000Z",
+  "name": "Assemble a UGC Product Video",
+  "tool_name": null,
+  "description": "Keep the creator on camera for the full vertical testimonial and place the product demonstration over her as a silent picture-in-picture proof moment.",
+  "tags": ["video", "marketing", "ugc", "example"],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "creator",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "creator_clip",
+          "value": null,
+          "description": "Continuous 15-second creator testimonial"
+        },
+        "ui_properties": {
+          "position": { "x": 0, "y": 80 },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Creator testimonial"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "proof",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "product_clip",
+          "value": null,
+          "description": "Silent vertical product proof overlay"
+        },
+        "ui_properties": {
+          "position": { "x": 0, "y": 300 },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Product proof"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "overlay",
+        "type": "nodetool.video.Overlay",
+        "data": {
+          "x": 720,
+          "y": 1010,
+          "scale": 0.28,
+          "overlay_audio_volume": 0
+        },
+        "ui_properties": {
+          "position": { "x": 400, "y": 180 },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true,
+          "title": "3  Add proof without leaving camera"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "video-out",
+        "type": "nodetool.output.Output",
+        "data": { "name": "video" },
+        "ui_properties": {
+          "position": { "x": 820, "y": 180 },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true,
+          "title": "4  UGC Reel"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "creator",
+        "sourceHandle": "output",
+        "target": "overlay",
+        "targetHandle": "main_video"
+      },
+      {
+        "id": "e2",
+        "source": "proof",
+        "sourceHandle": "output",
+        "target": "overlay",
+        "targetHandle": "overlay_video"
+      },
+      {
+        "id": "e3",
+        "source": "overlay",
+        "sourceHandle": "output",
+        "target": "video-out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

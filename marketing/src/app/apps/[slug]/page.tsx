@@ -14,12 +14,14 @@ import {
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import RecipeProductionRun from "@/components/RecipeProductionRun";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import {
   miniAppEntries,
   relatedMiniApps,
   type MiniAppEntry,
 } from "@/data/miniApps";
+import { recipeEntries } from "@/data/recipes";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -78,6 +80,11 @@ export default async function MiniAppPage({
   if (!entry) notFound();
 
   const related = relatedMiniApps(entry, miniAppEntries, 6);
+  const productionRun = entry.productionRecipeSlug
+    ? (recipeEntries.find(
+        (recipe) => recipe.slug === entry.productionRecipeSlug
+      )?.productionRun ?? null)
+    : null;
   const tagline =
     entry.tagline ||
     entry.summary ||
@@ -194,6 +201,8 @@ export default async function MiniAppPage({
             </div>
           </section>
         )}
+
+        {productionRun && <RecipeProductionRun run={productionRun} />}
 
         {/* In / Out */}
         <section className="relative py-12">

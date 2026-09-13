@@ -2,16 +2,18 @@
   "schemaVersion": 1,
   "slug": "ugc-product-video",
   "name": "UGC Product Video",
-  "outcome": "Turn creator and product references into a 15-second vertical testimonial whose voice and lip movement are generated together.",
+  "outcome": "Turn creator and product references into a polished 15-second vertical testimonial with native voice, animated captions, motion graphics, and an exact branded close.",
   "audience": "Founder-led brands, creators, and paid social teams.",
   "summary": [
-    "Choose the message before generating footage. Write one complete 15-second script, keep one creator identity, and give MiniMax H3 a separate product reference.",
-    "Generate picture, voice, and lip-sync together in one AtlasCloud pass. Keep the cup out of the opening, show it only from 4.5 to 7.0 seconds, then return to the creator alone for the close."
+    "Choose the message before generating footage. Write one complete 15-second script, keep one creator identity, and give the selected reference-to-video model a separate product reference.",
+    "Generate picture, voice, and lip-sync together in one native-audio pass. The finished sample used Seedance 2.5 on AtlasCloud. Keep the cup out of the opening, show it only from 4.5 to 7.0 seconds, then return to the creator alone for the close.",
+    "Transcribe the generated audio, group the words into readable captions, and add a restrained motion system with a reviewable branded close."
   ],
   "caveats": [
     "Use a creator image you have permission to send to the selected video provider and publish.",
     "The product demonstration is generative. Check labels, geometry, product timing, and every factual claim before publishing.",
-    "Reference image 1 controls the creator and scene. Reference image 2 controls only the product. Do not let either reference transfer its background into the other."
+    "Reference image 1 controls the creator and scene. Reference image 2 controls only the product. Do not let either reference transfer its background into the other.",
+    "Automatic captions follow the generated recording rather than the requested script. Review every word, highlight, and timing before publishing."
   ],
   "hero": "Generate a Native-Audio UGC Testimonial",
   "apps": [
@@ -37,7 +39,12 @@
     {
       "example": "Generate a Native-Audio UGC Testimonial",
       "role": "Generate the creator testimonial",
-      "handoff": "Give MiniMax H3 image 1 for creator identity and image 2 for product identity. Generate voice, lip-sync, motion, and the brief 4.5–7.0 second product beat in one AtlasCloud pass."
+      "handoff": "Choose a compatible native-audio reference-to-video model. Give it image 1 for creator identity and image 2 for product identity, then generate voice, lip-sync, natural phone motion, and the brief 4.5–7.0 second product beat in one pass. The finished sample used Seedance 2.5 on AtlasCloud."
+    },
+    {
+      "example": "Brand a UGC Product Video",
+      "role": "Finish the Reel",
+      "handoff": "Choose a caption style and optional brand accent. The workflow transcribes the generated clip, adds animated captions and restrained graphic beats, then renders the exact brand and slogan over the close while preserving native audio."
     }
   ]
 }
