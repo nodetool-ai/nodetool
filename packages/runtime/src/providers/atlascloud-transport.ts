@@ -18,7 +18,10 @@
 
 import { isString } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
-import { registerAtlasWebhookWait } from "./atlascloud-webhook-registry.js";
+import {
+  AtlasWebhookWaitTimeout,
+  registerAtlasWebhookWait
+} from "./atlascloud-webhook-registry.js";
 import {
   TERMINAL_FAILURE_STATES,
   TERMINAL_SUCCESS_STATES,
@@ -190,6 +193,18 @@ export interface AtlasPollOptions {
   signal?: AbortSignal;
 }
 
+/**
+ * `atlasPoll` ran out of attempts without seeing a terminal state. Its own
+ * callers treat this as the job timing out; `atlasAwaitResult` does not,
+ * because there the callback wait owns the deadline.
+ */
+export class AtlasPollBudgetExhausted extends Error {
+  constructor(predictionId: string) {
+    super(`AtlasCloud job timed out (predictionId: ${predictionId})`);
+    this.name = "AtlasPollBudgetExhausted";
+  }
+}
+
 export async function atlasPoll(
   apiKey: string,
   predictionId: string,
@@ -234,7 +249,7 @@ export async function atlasPoll(
     }
     if (attempt < maxAttempts - 1) await sleep(pollInterval, opts.signal);
   }
-  throw new Error(`AtlasCloud job timed out (predictionId: ${predictionId})`);
+  throw new AtlasPollBudgetExhausted(predictionId);
 }
 
 /**
@@ -264,24 +279,42 @@ export async function atlasAwaitResult(
   const pollInterval = opts.pollInterval ?? 3000;
   const maxAttempts = opts.maxAttempts ?? 600;
   const windowMs = pollInterval * maxAttempts;
+  // Reconcile on the slow cadence, but never so slowly that a short window
+  // gets one request: a caller asking for 12s deserves real fallback polling
+  // inside it, not a single read and then nothing.
   const reconcileInterval = Math.max(
     pollInterval,
-    ATLAS_WEBHOOK_RECONCILE_INTERVAL_MS
+    Math.min(ATLAS_WEBHOOK_RECONCILE_INTERVAL_MS, Math.floor(windowMs / 2))
   );
+  // `atlasPoll` reads before each sleep, so N attempts span (N-1) intervals.
+  const reconcileAttempts = Math.floor(windowMs / reconcileInterval) + 1;
 
+  // `addEventListener` does not deliver an abort that already happened, so a
+  // caller signal aborted before this call has to compose rather than
+  // subscribe. `AbortSignal.any` carries an already-aborted input through.
   const settled = new AbortController();
-  const onAbort = (): void => settled.abort(opts.signal?.reason);
-  opts.signal?.addEventListener("abort", onAbort, { once: true });
+  const waitSignal = opts.signal
+    ? AbortSignal.any([opts.signal, settled.signal])
+    : settled.signal;
 
   const callback = registerAtlasWebhookWait(
     predictionId,
     windowMs,
-    settled.signal
+    waitSignal
   );
   const reconcile = atlasPoll(apiKey, predictionId, {
     pollInterval: reconcileInterval,
-    maxAttempts: Math.max(1, Math.ceil(windowMs / reconcileInterval)),
-    signal: settled.signal
+    maxAttempts: reconcileAttempts,
+    signal: waitSignal
+  }).catch((error: unknown): Promise<AtlasPollResult> => {
+    // Running out of reconciliation attempts is not a verdict on the job. The
+    // callback wait holds the real deadline and rejects at `windowMs`, so this
+    // half simply stops. Every other rejection — a terminal failure, a 4xx, an
+    // abort — is the answer and propagates.
+    if (error instanceof AtlasPollBudgetExhausted) {
+      return new Promise<AtlasPollResult>(() => undefined);
+    }
+    throw error;
   });
   // Aborting the loser rejects it after the race has been decided. These
   // handlers keep that expected rejection from surfacing as an unhandled one.
@@ -291,12 +324,20 @@ export async function atlasAwaitResult(
   log.debug("Awaiting AtlasCloud prediction", {
     predictionId,
     windowMs,
-    reconcileInterval
+    reconcileInterval,
+    reconcileAttempts
   });
   try {
     return await Promise.race([callback, reconcile]);
+  } catch (error) {
+    // The window ran out with neither a callback nor a terminal poll. That is
+    // the job not finishing, which is what the polling path reports, so both
+    // modes fail a slow prediction the same way.
+    if (error instanceof AtlasWebhookWaitTimeout) {
+      throw new AtlasPollBudgetExhausted(predictionId);
+    }
+    throw error;
   } finally {
-    opts.signal?.removeEventListener("abort", onAbort);
     settled.abort(
       new Error(`AtlasCloud wait settled (predictionId: ${predictionId})`)
     );

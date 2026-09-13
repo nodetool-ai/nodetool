@@ -166,6 +166,155 @@ describe("AtlasCloud webhook verification", () => {
     await app.close();
   });
 
+  it("accepts the signature in the documented fallback header", async () => {
+    // F3: once HMAC is retired AtlasCloud moves the Ed25519 signature to the
+    // bare `-Signature` header, so a delivery using it must verify.
+    const key = fixtureKey();
+    const sink = new TestSink();
+    const app = await makeApp(sink, verifierFor([key.jwk]));
+    const body = terminalBody();
+    const headers = signedHeaders(key.privateKey, body);
+    const signature = headers["x-atlascloud-webhook-signature-ed25519"];
+    delete headers["x-atlascloud-webhook-signature-ed25519"];
+
+    const res = await app.inject({
+      method: "POST",
+      url: PATH,
+      headers: {
+        ...headers,
+        "x-atlascloud-webhook-signature": signature,
+        "content-type": "application/json"
+      },
+      payload: body
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(sink.resolved).toHaveLength(1);
+    await app.close();
+  });
+
+  it("prefers the -Ed25519 header when both are present", async () => {
+    const key = fixtureKey();
+    const sink = new TestSink();
+    const app = await makeApp(sink, verifierFor([key.jwk]));
+    const body = terminalBody();
+
+    const res = await app.inject({
+      method: "POST",
+      url: PATH,
+      headers: {
+        ...signedHeaders(key.privateKey, body),
+        // A migration delivery carries a hex HMAC here. Reading it in
+        // preference to the Ed25519 header would fail the whole callback.
+        "x-atlascloud-webhook-signature": "a".repeat(64),
+        "content-type": "application/json"
+      },
+      payload: body
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(sink.resolved).toHaveLength(1);
+    await app.close();
+  });
+
+  it("rejects a legacy HMAC-only delivery", async () => {
+    // A hex HMAC is not a 64-byte base64url value, so the fallback cannot
+    // smuggle a signature verified under the wrong scheme.
+    const key = fixtureKey();
+    const sink = new TestSink();
+    const app = await makeApp(sink, verifierFor([key.jwk]));
+    const body = terminalBody();
+    const headers = signedHeaders(key.privateKey, body);
+    delete headers["x-atlascloud-webhook-signature-ed25519"];
+
+    const res = await app.inject({
+      method: "POST",
+      url: PATH,
+      headers: {
+        ...headers,
+        "x-atlascloud-webhook-signature": "a".repeat(64),
+        "content-type": "application/json"
+      },
+      payload: body
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body).error).toBe("invalid_header");
+    expect(sink.resolved).toHaveLength(0);
+    await app.close();
+  });
+
+  it("does not refetch the JWKS for a signature that fails a known key", async () => {
+    // F4: this route is unauthenticated, so refetching on any bad signature
+    // let a caller drive one outbound request per attempt.
+    const published = fixtureKey();
+    const attacker = fixtureKey();
+    let fetches = 0;
+    const verifier = new AtlasCloudWebhookVerifier({
+      now: () => NOW,
+      fetchJwks: async () => {
+        fetches += 1;
+        return [published.jwk];
+      }
+    });
+    const sink = new TestSink();
+    const app = await makeApp(sink, verifier);
+    const body = terminalBody();
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const res = await app.inject({
+        method: "POST",
+        url: PATH,
+        headers: {
+          ...signedHeaders(attacker.privateKey, body),
+          "content-type": "application/json"
+        },
+        payload: body
+      });
+      expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body).error).toBe("invalid_signature");
+    }
+
+    // Only the cold-start load. Three bad signatures added nothing.
+    expect(fetches).toBe(1);
+    await app.close();
+  });
+
+  it("allows one rotation refresh per cooldown for unknown key ids", async () => {
+    const published = fixtureKey("key-1");
+    let fetches = 0;
+    const verifier = new AtlasCloudWebhookVerifier({
+      now: () => NOW,
+      fetchJwks: async () => {
+        fetches += 1;
+        return [published.jwk];
+      }
+    });
+    const sink = new TestSink();
+    const app = await makeApp(sink, verifier);
+    const body = terminalBody();
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const res = await app.inject({
+        method: "POST",
+        url: PATH,
+        headers: {
+          ...signedHeaders(published.privateKey, body, {
+            "x-atlascloud-webhook-key-id": `made-up-${attempt}`
+          }),
+          "content-type": "application/json"
+        },
+        payload: body
+      });
+      expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body).error).toBe("unknown_key");
+    }
+
+    // The cold-start load plus exactly one rotation refresh, not one per id.
+    expect(fetches).toBe(2);
+    await app.close();
+  });
+
   it("rejects a body altered after signing", async () => {
     const key = fixtureKey();
     const sink = new TestSink();

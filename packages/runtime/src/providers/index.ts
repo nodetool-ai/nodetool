@@ -187,6 +187,7 @@ export {
   atlasPoll,
   atlasAwaitResult,
   atlasWebhookUrl,
+  AtlasPollBudgetExhausted,
   pickOutputUrl
 } from "./provider-transport.js";
 export type {
@@ -243,6 +244,7 @@ export {
   pendingCount as kieWebhookPendingCount
 } from "./kie-webhook-registry.js";
 export {
+  AtlasWebhookWaitTimeout,
   registerAtlasWebhookWait,
   resolveAtlasWebhook,
   rejectAtlasWebhook,

@@ -173,6 +173,97 @@ describe("atlasAwaitResult", () => {
     expect(hasPendingAtlasWebhook("pred-3")).toBe(false);
   });
 
+  it("keeps waiting when the reconciliation budget runs out first", async () => {
+    // F1: runJob turns a 10s timeout and a 3s interval into maxAttempts 4, so
+    // the window is 12s — shorter than one 15s reconcile interval. The poll
+    // must not end the wait when its attempts run out with time left.
+    process.env["NODETOOL_PUBLIC_URL"] = PUBLIC_URL;
+    const poll = mockPoll([{ status: "processing" }]);
+
+    const waiting = atlasAwaitResult("key", "pred-5", {
+      pollInterval: 3000,
+      maxAttempts: 4
+    });
+    // Let the first poll settle; before the fix it rejected "job timed out"
+    // here and dropped the waiter.
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(poll.calls()).toBeGreaterThan(0);
+    expect(hasPendingAtlasWebhook("pred-5")).toBe(true);
+
+    resolveAtlasWebhook("pred-5", {
+      status: "completed",
+      outputs: ["https://cdn/late.png"]
+    });
+    await expect(waiting).resolves.toEqual({
+      status: "completed",
+      outputs: ["https://cdn/late.png"]
+    });
+  });
+
+  it("reports a window that expires with no terminal state as a timeout", async () => {
+    process.env["NODETOOL_PUBLIC_URL"] = PUBLIC_URL;
+    mockPoll([{ status: "processing" }]);
+
+    // Both halves run out: the poll sees `processing`, no callback arrives.
+    await expect(
+      atlasAwaitResult("key", "pred-6", { pollInterval: 20, maxAttempts: 2 })
+    ).rejects.toThrow("AtlasCloud job timed out (predictionId: pred-6)");
+    expect(hasPendingAtlasWebhook("pred-6")).toBe(false);
+  });
+
+  it("honours a signal that was already aborted before the wait", async () => {
+    // F2: `addEventListener` never fires for an abort that already happened,
+    // so this used to poll and resolve a cancelled request.
+    process.env["NODETOOL_PUBLIC_URL"] = PUBLIC_URL;
+    const poll = mockPoll([
+      { status: "completed", outputs: ["https://cdn/d.png"] }
+    ]);
+    const controller = new AbortController();
+    controller.abort(new Error("cancelled before wait"));
+
+    await expect(
+      atlasAwaitResult("key", "pred-7", {
+        pollInterval: 1,
+        maxAttempts: 100,
+        signal: controller.signal
+      })
+    ).rejects.toThrow("cancelled before wait");
+    expect(poll.calls()).toBe(0);
+    expect(hasPendingAtlasWebhook("pred-7")).toBe(false);
+  });
+
+  it("honours a signal that aborts during the wait", async () => {
+    process.env["NODETOOL_PUBLIC_URL"] = PUBLIC_URL;
+    mockPoll([{ status: "processing" }]);
+    const controller = new AbortController();
+
+    const waiting = atlasAwaitResult("key", "pred-8", {
+      pollInterval: 3000,
+      maxAttempts: 100,
+      signal: controller.signal
+    });
+    expect(hasPendingAtlasWebhook("pred-8")).toBe(true);
+    controller.abort(new Error("cancelled mid-wait"));
+
+    await expect(waiting).rejects.toThrow("cancelled mid-wait");
+    expect(hasPendingAtlasWebhook("pred-8")).toBe(false);
+  });
+
+  it("settles on a poll that turns from processing to completed", async () => {
+    process.env["NODETOOL_PUBLIC_URL"] = PUBLIC_URL;
+    mockPoll([
+      { status: "processing" },
+      { status: "completed", outputs: ["https://cdn/e.png"] }
+    ]);
+
+    await expect(
+      atlasAwaitResult("key", "pred-9", { pollInterval: 20, maxAttempts: 10 })
+    ).resolves.toEqual({
+      status: "completed",
+      outputs: ["https://cdn/e.png"]
+    });
+  });
+
   it("settles on the poll when no callback arrives", async () => {
     process.env["NODETOOL_PUBLIC_URL"] = PUBLIC_URL;
     mockPoll([{ status: "completed", outputs: ["https://cdn/c.png"] }]);

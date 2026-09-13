@@ -24,11 +24,28 @@ export const ATLASCLOUD_WEBHOOK_JWKS_URL =
   "https://api.atlascloud.ai/api/v1/webhooks/jwks.json";
 export const ATLASCLOUD_WEBHOOK_TIMESTAMP_WINDOW_SECONDS = 300;
 export const ATLASCLOUD_WEBHOOK_JWKS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+/**
+ * Shortest gap between two key-rotation refreshes.
+ *
+ * This route is unauthenticated by design, so an unknown key id is something
+ * any caller can present. Without a floor, a stream of made-up key ids would
+ * turn each one into an outbound JWKS request at the route's rate limit. A
+ * real rotation still resolves within one cooldown.
+ */
+export const ATLASCLOUD_WEBHOOK_ROTATION_COOLDOWN_MS = 60 * 1000;
 export const ATLASCLOUD_WEBHOOK_MAX_BODY_BYTES = 1024 * 1024;
 
 const HEADER_ID = "x-atlascloud-webhook-id";
 const HEADER_TIMESTAMP = "x-atlascloud-webhook-timestamp";
 const HEADER_SIGNATURE = "x-atlascloud-webhook-signature-ed25519";
+/**
+ * AtlasCloud's contract: the Ed25519 signature moves to the bare header once
+ * HMAC is retired, so prefer `-Ed25519` and fall back to `-Signature`. During
+ * the migration the bare header carries a hex HMAC, which is not a 64-byte
+ * base64url value and so fails to decode below — legacy HMAC-only deliveries
+ * stay rejected rather than being verified under the wrong scheme.
+ */
+const HEADER_SIGNATURE_FALLBACK = "x-atlascloud-webhook-signature";
 const HEADER_KEY_ID = "x-atlascloud-webhook-key-id";
 
 /** Terminal `payload.status` values that mean the prediction did not produce
@@ -70,6 +87,7 @@ export interface AtlasCloudWebhookVerifierOptions {
   readonly fetchJwks?: () => Promise<readonly AtlasCloudWebhookJwk[]>;
   readonly now?: () => number;
   readonly cacheTtlMs?: number;
+  readonly rotationCooldownMs?: number;
 }
 
 class AtlasCloudWebhookKeyError extends Error {
@@ -99,7 +117,9 @@ function parseAtlasHeaders(
 ): AtlasCloudWebhookHeaders | AtlasCloudWebhookVerificationResult {
   const webhookId = parseHeader(headers, HEADER_ID);
   const timestamp = parseHeader(headers, HEADER_TIMESTAMP);
-  const signature = parseHeader(headers, HEADER_SIGNATURE);
+  const signature =
+    parseHeader(headers, HEADER_SIGNATURE) ??
+    parseHeader(headers, HEADER_SIGNATURE_FALLBACK);
   const keyId = parseHeader(headers, HEADER_KEY_ID);
   if (!webhookId || !timestamp || !signature || !keyId) {
     return { ok: false, retryable: false, reason: "missing_header" };
@@ -178,8 +198,10 @@ export class AtlasCloudWebhookVerifier {
   private readonly fetchJwks: () => Promise<readonly AtlasCloudWebhookJwk[]>;
   private readonly now: () => number;
   private readonly cacheTtlMs: number;
+  private readonly rotationCooldownMs: number;
   private cachedKeys: readonly AtlasCloudWebhookJwk[] | null = null;
   private cacheExpiresAt = 0;
+  private lastRotationRefreshAt = Number.NEGATIVE_INFINITY;
   private refreshPromise: Promise<readonly AtlasCloudWebhookJwk[]> | null = null;
 
   constructor(options: AtlasCloudWebhookVerifierOptions = {}) {
@@ -189,6 +211,8 @@ export class AtlasCloudWebhookVerifier {
       options.cacheTtlMs ?? ATLASCLOUD_WEBHOOK_JWKS_CACHE_TTL_MS,
       ATLASCLOUD_WEBHOOK_JWKS_CACHE_TTL_MS
     );
+    this.rotationCooldownMs =
+      options.rotationCooldownMs ?? ATLASCLOUD_WEBHOOK_ROTATION_COOLDOWN_MS;
   }
 
   private async refreshKeys(): Promise<readonly AtlasCloudWebhookJwk[]> {
@@ -203,6 +227,20 @@ export class AtlasCloudWebhookVerifier {
         this.refreshPromise = null;
       });
     return this.refreshPromise;
+  }
+
+  /**
+   * Claim the one rotation refresh allowed per cooldown. Only refreshes an
+   * unknown key id provoked are counted: the cold-start load and a TTL
+   * expiry are this verifier's own doing and cannot be driven by a caller.
+   */
+  private claimRotationRefresh(): boolean {
+    const now = this.now();
+    if (now - this.lastRotationRefreshAt < this.rotationCooldownMs) {
+      return false;
+    }
+    this.lastRotationRefreshAt = now;
+    return true;
   }
 
   private async keys(): Promise<readonly AtlasCloudWebhookJwk[]> {
@@ -275,9 +313,10 @@ export class AtlasCloudWebhookVerifier {
     };
 
     let outcome = matches(keys);
-    if (outcome !== "signed") {
-      // A signed callback can arrive immediately after AtlasCloud rotates keys.
-      // One bounded refresh handles that while preventing retry storms.
+    // Only an unknown key id can mean the cache is stale. A signature that
+    // fails against a key AtlasCloud does publish is simply wrong, and
+    // refetching on it let any caller drive one outbound request per attempt.
+    if (outcome === "unknown_key" && this.claimRotationRefresh()) {
       try {
         keys = await this.refreshKeys();
       } catch {

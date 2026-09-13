@@ -17,6 +17,17 @@ import type { AtlasPollResult } from "./atlascloud-transport.js";
 
 const log = createLogger("nodetool.runtime.providers.atlascloud-webhook");
 
+/** The wait's own deadline passed with no callback. */
+export class AtlasWebhookWaitTimeout extends Error {
+  constructor(predictionId: string, timeoutMs: number) {
+    super(
+      `AtlasCloud webhook not received within ` +
+        `${Math.round(timeoutMs / 1000)}s (predictionId: ${predictionId})`
+    );
+    this.name = "AtlasWebhookWaitTimeout";
+  }
+}
+
 interface PendingPrediction {
   resolve: (result: AtlasPollResult) => void;
   reject: (error: Error) => void;
@@ -47,12 +58,7 @@ export function registerAtlasWebhookWait(
 
     const timer = setTimeout(() => {
       settle();
-      reject(
-        new Error(
-          `AtlasCloud webhook not received within ` +
-            `${Math.round(timeoutMs / 1000)}s (predictionId: ${predictionId})`
-        )
-      );
+      reject(new AtlasWebhookWaitTimeout(predictionId, timeoutMs));
     }, timeoutMs);
 
     const onAbort = (): void => {
