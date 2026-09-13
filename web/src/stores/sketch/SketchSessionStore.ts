@@ -803,7 +803,12 @@ async function saveSnapshot(
       dedupeKey: `sketch-autosave-too-large:${documentId}`,
       replaceExisting: true
     });
-    return;
+    return {
+      id: documentId,
+      updatedAt: store.baseUpdatedAt ?? "",
+      name,
+      document: { sketch: prepared.sketch, layerBindings }
+    } as SketchDocumentResponse;
   }
 
   if (prepared.externalizedLayerIds.length > 0) {
@@ -836,7 +841,7 @@ async function saveSnapshot(
       }
     });
     session.getState().markSaved(response.updatedAt, nextHash, {
-      sketch: sketch as unknown as Record<string, unknown>,
+      sketch: prepared.sketch as unknown as Record<string, unknown>,
       layerBindings
     });
     // Mirror the freshly-saved document into the trpc query cache so a
