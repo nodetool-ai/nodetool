@@ -17,6 +17,7 @@ export {
   atlasDownload,
   atlasSubmit,
   atlasPoll,
+  atlasAwaitResult,
   pickOutputUrl
 } from "@nodetool-ai/runtime/provider-transport";
 export type {

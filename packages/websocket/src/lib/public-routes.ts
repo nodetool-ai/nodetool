@@ -129,9 +129,24 @@ export function isPublicFalWebhookRequest(
 }
 
 /**
+ * The AtlasCloud callback authenticates itself with the provider's Ed25519
+ * signature over the raw body. Only POSTs to the exact callback path are
+ * exempt; neighbouring provider routes stay behind session auth.
+ */
+export function isPublicAtlasCloudWebhookRequest(
+  pathname: string,
+  method: string
+): boolean {
+  return (
+    method === "POST" && pathname === "/api/providers/atlascloud/webhook"
+  );
+}
+
+/**
  * Paths that skip session auth in the server's `onRequest` hook. Every entry
  * must carry no per-caller private state, or authenticate on its own (webhook
- * secret, OAuth PKCE state, KIE webhook signature, fal Ed25519 signature).
+ * secret, OAuth PKCE state, KIE webhook signature, fal and AtlasCloud Ed25519
+ * signatures).
  * All of these are still
  * covered by the global `@fastify/rate-limit` plugin registered before auth.
  */
@@ -159,6 +174,7 @@ export function isPublicAuthExemptRoute(
     isPublicWorkflowMetadataRequest(pathname, method) ||
     isPublicAppDeploymentRequest(pathname, method) ||
     isPublicFalWebhookRequest(pathname, method) ||
+    isPublicAtlasCloudWebhookRequest(pathname, method) ||
     isPublicMcpOauthAsRequest(pathname)
   );
 }

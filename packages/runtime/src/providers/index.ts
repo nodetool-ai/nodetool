@@ -177,11 +177,16 @@ export {
   pollUntilTerminal,
   imageRefFromBytes,
   ATLAS_BASE,
+  ATLAS_WEBHOOK_PATH,
+  ATLAS_WEBHOOK_MAX_URL_LENGTH,
+  ATLAS_WEBHOOK_RECONCILE_INTERVAL_MS,
   SUBMIT_PATH,
   pollPath,
   atlasDownload,
   atlasSubmit,
   atlasPoll,
+  atlasAwaitResult,
+  atlasWebhookUrl,
   pickOutputUrl
 } from "./provider-transport.js";
 export type {
@@ -237,6 +242,13 @@ export {
   hasPendingWebhook,
   pendingCount as kieWebhookPendingCount
 } from "./kie-webhook-registry.js";
+export {
+  registerAtlasWebhookWait,
+  resolveAtlasWebhook,
+  rejectAtlasWebhook,
+  hasPendingAtlasWebhook,
+  atlasWebhookPendingCount
+} from "./atlascloud-webhook-registry.js";
 export { ElevenLabsProvider };
 export { TopazProvider };
 export { ReveProvider };

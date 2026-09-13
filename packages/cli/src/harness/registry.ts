@@ -142,6 +142,16 @@ const GENERATION_RECOVERY_SUITES =
   "npm run test --workspace=packages/websocket -- fal-webhook";
 
 /**
+ * The AtlasCloud callback suites: the Ed25519 ingress route's verification and
+ * dispatch, the pending-prediction registry, and the submit/wait wiring that
+ * decides whether a run waits for a callback or polls. One constant so the
+ * entry's `command` and its `selfcheck` cannot drift.
+ */
+const ATLASCLOUD_CALLBACK_SUITES =
+  "npm run test --workspace=packages/runtime -- atlascloud-webhook && " +
+  "npm run test --workspace=packages/websocket -- atlascloud-webhook";
+
+/**
  * The 3D-clip suites: the render session `model3d` layers draw through in the
  * browser, and the headless pre-pass that draws them for
  * `preview_timeline_frame`. One constant so the entry's `command` and its
@@ -679,6 +689,15 @@ export const HARNESSES: HarnessEntry[] = [
     selfcheck: { command: GENERATION_RECOVERY_SUITES, cost: "cheap" }
   },
   {
+    id: "atlascloud-callbacks",
+    title: "AtlasCloud prediction callbacks (Ed25519 ingress and the wait it settles)",
+    command: ATLASCLOUD_CALLBACK_SUITES,
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "docs/developer/providers/atlascloud.md § Prediction callbacks (webhooks)",
+    selfcheck: { command: ATLASCLOUD_CALLBACK_SUITES, cost: "cheap" }
+  },
+  {
     id: "graph-resources",
     title:
       "Graph resources (recast, fill, retarget, slot prompts — pure suites plus fake-mode runs of the shipped examples)",
@@ -1002,6 +1021,16 @@ export const SURFACES: SurfaceEntry[] = [
       // response contract as the hosted providers, packaged separately
       // because its weights and native deps are optional.
       "packages/transformers-js-provider/"
+    ]
+  },
+  {
+    id: "atlascloud-callbacks",
+    title: "AtlasCloud prediction callbacks (signed ingress, pending registry)",
+    harnesses: ["atlascloud-callbacks"],
+    paths: [
+      "packages/runtime/src/providers/atlascloud-webhook-registry.ts",
+      "packages/runtime/src/providers/atlascloud-transport.ts",
+      "packages/websocket/src/routes/atlascloud-webhook.ts"
     ]
   },
   {

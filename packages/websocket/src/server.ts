@@ -199,6 +199,7 @@ import kieCreditsRoute from "./routes/kie-credits.js";
 import kiePricingRoute from "./routes/kie-pricing.js";
 import kieWebhookRoute from "./routes/kie-webhook.js";
 import falWebhookRoute from "./routes/fal-webhook.js";
+import atlasCloudWebhookRoute from "./routes/atlascloud-webhook.js";
 import { createIntegrationRoutes } from "./routes/integrations.js";
 import { isNonEmptyString, isString } from "./lib/wire-values.js";
 import { logTrpcRequestError } from "./trpc/error-logging.js";
@@ -1630,6 +1631,9 @@ await app.register(kieWebhookRoute);
 // fal callbacks authenticate with signed headers and commit to the durable
 // generation inbox before the route acknowledges them.
 await app.register(falWebhookRoute);
+// AtlasCloud callbacks authenticate with an Ed25519 signature over the raw
+// body and hand the finished prediction to the run waiting on it.
+await app.register(atlasCloudWebhookRoute);
 // Messaging-integration identity routes (`/api/integrations/:provider/*`).
 // The plugin registers nothing unless NODETOOL_INTEGRATION_TOKEN is set, so a
 // server without it answers 404 on every one of these paths.
