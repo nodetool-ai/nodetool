@@ -27,12 +27,15 @@ NodeTool is TypeScript-first. Strict mode is on everywhere (`tsconfig.base.json`
 
 ### Compiler roles
 
-NodeTool uses TypeScript 7's native `tsc` for normal builds, type-checks, and
-watch commands. The `typescript` package remains the pinned TypeScript 6
-compatibility package for compiler-API consumers such as language-service,
-Jest, and documentation tooling. `scripts/run-tsc.mjs` is the selection
-boundary, so package scripts must call it instead of invoking `tsc` or a
-compiler path directly.
+NodeTool uses TypeScript 7's native `tsc` for normal builds and type-checks.
+Compiler watch commands use the TypeScript 6 fallback because TypeScript 7.0.2
+can start watch mode without detecting later filesystem changes on Linux and in
+containers ([upstream issue](https://github.com/microsoft/TypeScript/issues/63646)).
+The `typescript` package also remains the pinned TypeScript 6 compatibility
+package for compiler-API consumers such as language-service, Jest, and
+documentation tooling. `scripts/run-tsc.mjs` is the selection boundary, so
+package scripts must call it instead of invoking `tsc` or a compiler path
+directly.
 
 Set `NODETOOL_TSC_VERSION=6` to run a command through the TypeScript 6
 JavaScript compiler when diagnosing a regression or using the documented

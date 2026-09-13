@@ -9,6 +9,8 @@ export const TYPESCRIPT_API_SPEC = "npm:@typescript/typescript6@6.0.2";
 export const TYPESCRIPT_NATIVE_SPEC = "npm:typescript@7.0.2";
 export const TYPESCRIPT_6_FALLBACK_BUILD_SCRIPT =
   "node scripts/run-with-tsc-version.mjs 6 npm run build:packages:clean";
+export const TYPESCRIPT_6_FALLBACK_WATCH_SCRIPT =
+  "node ../../scripts/run-with-tsc-version.mjs 6 node ../../scripts/run-tsc.mjs --watch";
 const TYPESCRIPT_API_VERSION = "6.0.2";
 const TYPESCRIPT_NATIVE_VERSION = "7.0.2";
 
@@ -74,6 +76,12 @@ export function auditManifests(entries) {
       errors.push(
         `${path} script build:tsc6 must use the forced dependency-ordered package build`
       );
+    }
+    if (
+      path === "packages/cli/package.json" &&
+      manifest.scripts?.dev !== TYPESCRIPT_6_FALLBACK_WATCH_SCRIPT
+    ) {
+      errors.push(`${path} script dev must use the TypeScript 6 watch fallback`);
     }
   }
   return errors;

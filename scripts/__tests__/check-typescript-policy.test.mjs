@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   TYPESCRIPT_6_FALLBACK_BUILD_SCRIPT,
+  TYPESCRIPT_6_FALLBACK_WATCH_SCRIPT,
   TYPESCRIPT_API_SPEC,
   TYPESCRIPT_NATIVE_SPEC,
   auditLockfile,
@@ -66,6 +67,28 @@ describe("TypeScript policy audit", () => {
         {
           path: "package.json",
           manifest: { scripts: { "build:tsc6": TYPESCRIPT_6_FALLBACK_BUILD_SCRIPT } }
+        }
+      ])
+    ).toEqual([]);
+  });
+
+  it("requires the CLI compiler watch to use the TypeScript 6 fallback", () => {
+    expect(
+      auditManifests([
+        {
+          path: "packages/cli/package.json",
+          manifest: { scripts: { dev: "node ../../scripts/run-tsc.mjs --watch" } }
+        }
+      ])
+    ).toEqual([
+      "packages/cli/package.json script dev must use the TypeScript 6 watch fallback"
+    ]);
+
+    expect(
+      auditManifests([
+        {
+          path: "packages/cli/package.json",
+          manifest: { scripts: { dev: TYPESCRIPT_6_FALLBACK_WATCH_SCRIPT } }
         }
       ])
     ).toEqual([]);

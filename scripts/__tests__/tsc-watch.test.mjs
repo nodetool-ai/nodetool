@@ -34,9 +34,9 @@ function waitForSuccessfulBuild(readOutput, count, timeoutMs = 10_000) {
   });
 }
 
-describe("TypeScript 7 watch mode", () => {
+describe("TypeScript 6 fallback watch mode", () => {
   it("rebuilds after edits, additions, renames, and deletions", async () => {
-    const projectDir = await mkdtemp(join(tmpdir(), "tsc7-watch-"));
+    const projectDir = await mkdtemp(join(tmpdir(), "tsc6-watch-"));
     temporaryDirectories.push(projectDir);
     const srcDir = join(projectDir, "src");
     const mainPath = join(srcDir, "main.ts");
@@ -64,7 +64,7 @@ describe("TypeScript 7 watch mode", () => {
       [runner, "--watch", "--preserveWatchOutput", "-p", "tsconfig.json"],
       {
         cwd: projectDir,
-        env: { ...process.env, NODETOOL_TSC_VERSION: "7" },
+        env: { ...process.env, NODETOOL_TSC_VERSION: "6" },
         stdio: ["ignore", "pipe", "pipe"]
       }
     );

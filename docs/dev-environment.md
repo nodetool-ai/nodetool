@@ -7,10 +7,13 @@ setup is [AGENTS.md § Prerequisites](https://github.com/nodetool-ai/nodetool/bl
 ### TypeScript compiler roles
 
 Normal repository builds and type-checks use the TypeScript 7 native compiler.
-The repository also installs TypeScript 6 as the compatibility package for
-tools that use the TypeScript compiler API, including Jest and documentation
-tooling. The shared launcher keeps these roles explicit and avoids npm bin
-link order deciding which compiler a script runs.
+Compiler watch commands use TypeScript 6 because TypeScript 7.0.2 can miss
+filesystem changes on Linux and in containers
+([upstream issue](https://github.com/microsoft/TypeScript/issues/63646)). The
+repository also installs TypeScript 6 as the compatibility package for tools
+that use the TypeScript compiler API, including Jest and documentation tooling.
+The shared launcher keeps these roles explicit and avoids npm bin link order
+deciding which compiler a script runs.
 
 To select a compiler for a command, set `NODETOOL_TSC_VERSION`:
 
