@@ -1,15 +1,11 @@
 /**
- * The `[+]` menu leads with a project and keeps the blank documents below it.
+ * The `[+]` menu creates blank documents. Starting a project lives on the
+ * project selector.
  */
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
-
-const openNewProject = jest.fn();
-jest.mock("../../../hooks/useProjects", () => ({
-  useOpenNewProjectTab: () => openNewProject
-}));
 
 const createDocument = jest.fn(async () => undefined);
 jest.mock("../newDocumentCatalog", () => ({
@@ -49,14 +45,12 @@ const renderMenu = () =>
 beforeEach(() => jest.clearAllMocks());
 
 describe("OpenMenu projects", () => {
-  it("opens the new-project surface and closes the menu", async () => {
+  it("does not start a project from the New menu", () => {
     renderMenu();
-    await userEvent.click(screen.getByText("Start a project…"));
-    expect(openNewProject).toHaveBeenCalled();
-    expect(onClose).toHaveBeenCalled();
+    expect(screen.queryByText("Start a project…")).not.toBeInTheDocument();
   });
 
-  it("still creates a blank document from the list below", async () => {
+  it("creates a blank document from the list", async () => {
     renderMenu();
     await userEvent.click(screen.getByText("New workflow"));
     expect(createDocument).toHaveBeenCalled();

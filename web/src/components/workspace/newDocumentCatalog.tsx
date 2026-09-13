@@ -201,6 +201,32 @@ export const useNewDocumentCatalog = (
     () => projectId ?? creationProjectId(),
     [projectId]
   );
+  const openCreatedTab = useCallback(
+    (tab: {
+      type: WorkspaceTabType;
+      ref: string;
+      mode?: "view" | "edit";
+      title: string;
+      projectId?: string;
+    }) =>
+      openTab({
+        ...tab,
+        projectId: tab.projectId ?? targetProject()
+      }),
+    [openTab, targetProject]
+  );
+  const createProjectAsset = useCallback(
+    (file: File) =>
+      createAsset(
+        file,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        targetProject()
+      ),
+    [createAsset, targetProject]
+  );
 
   const runCreate = useCallback(
     async (label: string, create: () => Promise<void>) => {
@@ -226,77 +252,79 @@ export const useNewDocumentCatalog = (
   const createWorkflow = useCallback(
     () =>
       runCreate("workflow", async () => {
-        const workflow = await createNew();
-        openTab({
+        const workflow = await createNew(targetProject());
+        openCreatedTab({
           type: "workflow",
           ref: workflow.id,
           mode: "edit",
           title: workflow.name
         });
       }),
-    [runCreate, createNew, openTab]
+    [runCreate, createNew, openCreatedTab, targetProject]
   );
 
   const createChat = useCallback(
     () =>
       runCreate("chat", async () => {
-        const threadId = await createNewThread();
-        openTab({
+        const threadId = await createNewThread(undefined, undefined, {
+          projectId: targetProject()
+        });
+        openCreatedTab({
           type: "chat",
           ref: threadId,
           mode: "view",
           title: "New chat"
         });
       }),
-    [runCreate, createNewThread, openTab]
+    [runCreate, createNewThread, openCreatedTab, targetProject]
   );
 
   const createTextFile = useCallback(
     (template: TextFileTemplate) =>
       runCreate("text file", async () => {
-        const asset = await createAsset(
+        const asset = await createProjectAsset(
           new File([template.content], template.filename, {
             type: template.mimeType
           })
         );
-        openTab({
+        openCreatedTab({
           type: "text",
           ref: asset.id,
           mode: "edit",
           title: asset.name || template.filename
         });
       }),
-    [runCreate, createAsset, openTab]
+    [runCreate, createProjectAsset, openCreatedTab]
   );
 
   const createImage = useCallback(
     () =>
       runCreate("image", async () => {
-        const asset = await createAsset(await createBlankImageFile());
-        openTab({
+        const asset = await createProjectAsset(await createBlankImageFile());
+        openCreatedTab({
           type: "image",
           ref: asset.id,
           mode: "edit",
           title: asset.name || "Untitled image"
         });
       }),
-    [runCreate, createAsset, openTab]
+    [runCreate, createProjectAsset, openCreatedTab]
   );
 
   const createSvg = useCallback(
     () =>
       runCreate("SVG", async () => {
-        const asset = await createAsset(
+        const asset = await createProjectAsset(
           new File([BLANK_SVG], "Untitled.svg", { type: "image/svg+xml" })
         );
-        openTab({
+        openCreatedTab({
           type: "svg",
           ref: asset.id,
           mode: "edit",
           title: asset.name || "Untitled.svg"
         });
       }),
-    [runCreate, createAsset, openTab]
+    [runCreate, createProjectAsset, openCreatedTab]
   );
 
   const createVideo = useCallback(
@@ -431,15 +459,15 @@ export const useNewDocumentCatalog = (
   const createModel = useCallback(
     () =>
       runCreate("3D model", async () => {
-        const asset = await createAsset(await createBlankModelFile());
-        openTab({
+        const asset = await createProjectAsset(await createBlankModelFile());
+        openCreatedTab({
           type: "model3d",
           ref: asset.id,
           mode: "edit",
           title: asset.name || "Untitled model"
         });
       }),
-    [runCreate, createAsset, openTab]
+    [runCreate, createProjectAsset, openCreatedTab]
   );
 
   const entries: NewDocumentEntry[] = [

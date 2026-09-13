@@ -1,12 +1,24 @@
 /**
- * The glyph and color a tab type is drawn with — in the tab bar, in mobile's
- * document selector, and on the cards of the projects list. One table, so the
- * same document reads the same wherever it is listed.
+ * The glyph, color, and label a tab type is drawn with — in the tab bar, in
+ * mobile's document selector, and on the cards of the projects list. One
+ * table, so the same document reads the same wherever it is listed.
  */
 
 import { colorForType } from "../../config/data_types";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "../projects/projectIdentity";
 import type { WorkspaceTabType } from "../../stores/WorkspaceTabsStore";
+
+/**
+ * The project selector already names the open project, so the overview tab
+ * uses a fixed label and a distinct glyph instead of repeating that name.
+ */
+export const PROJECT_HOME_TAB_TITLE = "Home";
+export const PROJECT_HOME_GLYPH = "⌂";
+
+export const tabDisplayTitle = (tab: {
+  type: WorkspaceTabType;
+  title: string;
+}): string => (tab.type === "project" ? PROJECT_HOME_TAB_TITLE : tab.title);
 
 export const TYPE_GLYPH = {
   workflow: "⬡",
@@ -26,7 +38,7 @@ export const TYPE_GLYPH = {
   application: "◧",
   page: "☰",
   "project-list": PROJECT_GLYPH,
-  project: PROJECT_GLYPH,
+  project: PROJECT_HOME_GLYPH,
   "project-new": PROJECT_GLYPH
 } satisfies Record<WorkspaceTabType, string>;
 

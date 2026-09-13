@@ -250,13 +250,13 @@ export const paletteDark: PaletteOptions = {
   c_gray4: "#5C606A",
   c_gray5: "#808590",
   c_gray6: "#9CA0A8",
-  c_hl1: "#6690d4",
-  c_hl2: "#3d68a8",
+  c_hl1: "#3d68a8",
+  c_hl2: "#2a4d80",
 
   primary: {
-    main: "#6690d4",
-    light: "#7aa0e2",
-    dark: "#3d68a8",
+    main: "#3d68a8",
+    light: "#5b86c4",
+    dark: "#2a4d80",
     contrastText: "#fff"
   },
   secondary: {

@@ -97,4 +97,25 @@ describe("MobileDocumentSelector", () => {
     renderSelector({ tabs: [], activeTabId: null });
     expect(screen.getByText("No document open")).toBeInTheDocument();
   });
+
+  it("labels a project overview tab Home", () => {
+    const home: WorkspaceTab = {
+      id: "project:p1",
+      type: "project",
+      ref: "p1",
+      mode: "view",
+      title: "Marketing recipes"
+    };
+    renderSelector({
+      tabs: [home],
+      activeTabId: home.id,
+      typeColor: { ...COLOR, project: "#0ff" },
+      typeGlyph: { ...GLYPH, project: "◆" }
+    });
+    expect(
+      screen.getByRole("button", { name: /Open document: Home/ })
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Marketing recipes")).not.toBeInTheDocument();
+  });
 });
+
