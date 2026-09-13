@@ -625,6 +625,17 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "generate-a-native-audio-ugc-testimonial",
+        "name": "Generate a Native-Audio UGC Testimonial",
+        "description": "Turn creator and product references plus one short script into a continuous 15-second MiniMax H3 testimonial with native voice and lip-sync.",
+        "tags": [
+          "video",
+          "marketing",
+          "ugc",
+          "native-audio"
+        ]
+      },
+      {
         "slug": "inspect-a-clip",
         "name": "Inspect a Clip",
         "description": "Read a clip's duration, dimensions, frame rate and codec straight from its header. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
