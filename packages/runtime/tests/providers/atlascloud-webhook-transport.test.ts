@@ -36,6 +36,17 @@ describe("atlasWebhookUrl", () => {
     );
   });
 
+  it("walks a long slash run in linear time", () => {
+    // The slashes are not at the end, so `replace(/\/+$/, "")` retried the
+    // whole run from every start position before failing: 1.0s for this input
+    // locally, 14.8s at 200k. A regression to that form fails here.
+    const base = `https://nodetool.example.com${"/".repeat(50_000)}x`;
+    const started = performance.now();
+    // Far past AtlasCloud's 1024-character limit, so there is no callback URL.
+    expect(atlasWebhookUrl({ NODETOOL_PUBLIC_URL: base })).toBeUndefined();
+    expect(performance.now() - started).toBeLessThan(250);
+  });
+
   it("is undefined without a public URL", () => {
     expect(atlasWebhookUrl({})).toBeUndefined();
     expect(atlasWebhookUrl({ NODETOOL_PUBLIC_URL: "   " })).toBeUndefined();

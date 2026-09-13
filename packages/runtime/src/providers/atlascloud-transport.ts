@@ -109,12 +109,24 @@ export const ATLAS_WEBHOOK_MAX_URL_LENGTH = 1024;
  * http, loopback, or an RFC1918 address resolves to undefined here: the run
  * polls instead of sending a submission AtlasCloud would refuse.
  */
+/**
+ * Drop trailing slashes in one pass. `replace(/\/+$/, "")` is quadratic in the
+ * length of the slash run, because each start position retries the whole run
+ * (80k slashes took 2.4s locally), and this value comes from configuration
+ * rather than from a constant.
+ */
+function withoutTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") end -= 1;
+  return value.slice(0, end);
+}
+
 export function atlasWebhookUrl(
   env: Record<string, string | undefined> = process.env
 ): string | undefined {
   const base = env["NODETOOL_PUBLIC_URL"]?.trim();
   if (!base) return undefined;
-  const url = `${base.replace(/\/+$/u, "")}${ATLAS_WEBHOOK_PATH}`;
+  const url = `${withoutTrailingSlashes(base)}${ATLAS_WEBHOOK_PATH}`;
   if (url.length > ATLAS_WEBHOOK_MAX_URL_LENGTH) return undefined;
   return isSafePublicHttpsUrl(url) ? url : undefined;
 }
