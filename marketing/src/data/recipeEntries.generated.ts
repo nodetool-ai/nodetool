@@ -249,10 +249,6 @@ export const recipeEntries: RecipeEntry[] = [
       {
         "provider": "openai",
         "env": "OPENAI_API_KEY"
-      },
-      {
-        "provider": "atlascloud",
-        "env": "ATLASCLOUD_API_KEY"
       }
     ],
     "steps": [
@@ -277,15 +273,10 @@ export const recipeEntries: RecipeEntry[] = [
         "name": "Generate a Native-Audio UGC Testimonial",
         "route": "/templates/generate-a-native-audio-ugc-testimonial",
         "role": "Generate the creator testimonial",
-        "handoff": "Give MiniMax H3 image 1 for creator identity and image 2 for product identity. Generate voice, lip-sync, motion, and the brief 4.5–7.0 second product beat in one AtlasCloud pass.",
+        "handoff": "Select Seedance 2.5 on AtlasCloud. Give it image 1 for creator identity and image 2 for product identity, then generate voice, lip-sync, natural phone motion, and the brief 4.5–7.0 second product beat in one pass.",
         "thumbnail": null,
         "nodeCount": 8,
-        "models": [
-          {
-            "provider": "atlascloud",
-            "model": "minimax/h3/reference-to-video"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {

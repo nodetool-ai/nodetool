@@ -2,9 +2,9 @@
   "slug": "ugc-product-video",
   "name": "UGC Product Video",
   "emoji": "🤳",
-  "description": "Create a native-audio MiniMax H3 testimonial, then turn its spoken words into animated captions, restrained motion graphics, and an exact branded close.",
+  "description": "Create a native-audio Seedance 2.5 testimonial, then turn its spoken words into stable captions, restrained motion graphics, and an exact branded close.",
   "tagline": "One take. Native voice. A polished social finish.",
-  "note": "🔑 Writing and caption transcription use OpenAI. MiniMax H3 generates the testimonial on AtlasCloud with native audio.",
+  "note": "🔑 Writing and caption transcription use OpenAI. The sample uses Seedance 2.5 on AtlasCloud with native audio; choose it below or select another compatible model.",
   "featured": true,
   "image": "/app-preview/img/ugc-product-video.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Writing and caption transcription use OpenAI. MiniMax H3 generates the testimonial on AtlasCloud with native audio."
+            "text": "🔑 Writing and caption transcription use OpenAI. The sample uses Seedance 2.5 on AtlasCloud with native audio; choose it below or select another compatible model."
           }
         },
         {
@@ -158,7 +158,7 @@
                       "type": "Text",
                       "props": {
                         "id": "note-2",
-                        "text": "Image 1 anchors the creator and room. Image 2 anchors only the product. MiniMax H3 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
+                        "text": "Image 1 anchors the creator and room. Image 2 anchors only the product. Seedance 2.5 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
                       }
                     },
                     {
@@ -176,6 +176,16 @@
                         "id": "in-productimage",
                         "binding": "var:productImage",
                         "label": "Clean product image",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-creator-generate-model",
+                        "binding": "op:creator/prop:generate#model",
+                        "label": "Video model",
+                        "modelKind": "video_model",
                         "events": []
                       }
                     },
@@ -880,6 +890,16 @@
   ],
   "values": {
     "op:copy/out:out": "**Plain**\nA matte cup with a charcoal lid for the morning routine.\n\n**Playful**\nThe cup that makes it out the door with you.\n\n**Premium**\nA quieter start, designed to travel.",
+    "op:creator/prop:generate#model": {
+      "type": "video_model",
+      "provider": "atlascloud",
+      "id": "bytedance/seedance-2.5/reference-to-video",
+      "name": "Seedance 2.5 Reference to Video",
+      "path": null,
+      "supported_tasks": [
+        "reference_to_video"
+      ]
+    },
     "var:creatorClip": "/app-preview/media/ugc-product-video/creator.mp4",
     "op:brand/in:caption-style": "Polished",
     "var:finalVideo": "/app-preview/media/ugc-product-video/final.mp4",

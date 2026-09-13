@@ -8789,13 +8789,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/generate-a-native-audio-ugc-testimonial",
     "title": "Generate a Native-Audio UGC Testimonial — NodeTool AI Workflow Template",
-    "description": "Turn creator and product references plus one short script into a continuous 15-second MiniMax H3 testimonial with native voice and lip-sync.",
+    "description": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
     "priority": 0.3,
     "changeFrequency": "monthly",
     "indexable": false,
     "slug": "generate-a-native-audio-ugc-testimonial",
     "name": "Generate a Native-Audio UGC Testimonial",
-    "summary": "Turn creator and product references plus one short script into a continuous 15-second MiniMax H3 testimonial with native voice and lip-sync.",
+    "summary": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
     "tags": [
       "video",
       "marketing",
@@ -8896,8 +8896,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Reference To Video",
           "x": 820,
           "y": 190,
-          "width": 320,
-          "subtitle": "minimax/h3/reference-to-video"
+          "width": 320
         },
         {
           "id": "video-out",

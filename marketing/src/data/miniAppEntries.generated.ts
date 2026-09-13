@@ -1686,9 +1686,9 @@ export const miniAppEntries: MiniAppEntry[] = [
     "indexable": true,
     "slug": "ugc-product-video",
     "name": "UGC Product Video",
-    "summary": "Create a native-audio MiniMax H3 testimonial, then turn its spoken words into animated captions, restrained motion graphics, and an exact branded close.",
+    "summary": "Create a native-audio Seedance 2.5 testimonial, then turn its spoken words into stable captions, restrained motion graphics, and an exact branded close.",
     "featured": true,
-    "note": "🔑 Writing and caption transcription use OpenAI. MiniMax H3 generates the testimonial on AtlasCloud with native audio.",
+    "note": "🔑 Writing and caption transcription use OpenAI. The sample uses Seedance 2.5 on AtlasCloud with native audio; choose it below or select another compatible model.",
     "workflows": [
       {
         "name": "Ad Copy in Three Registers",
@@ -1769,7 +1769,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "video"
       }
     ],
-    "widgetCount": 38
+    "widgetCount": 39
   },
   {
     "route": "/apps/upscale-image",

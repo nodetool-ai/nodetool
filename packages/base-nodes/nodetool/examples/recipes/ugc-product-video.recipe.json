@@ -5,7 +5,7 @@
   "outcome": "Turn creator and product references into a polished 15-second vertical testimonial with native voice, animated captions, motion graphics, and an exact branded close.",
   "audience": "Founder-led brands, creators, and paid social teams.",
   "summary": [
-    "Choose the message before generating footage. Write one complete 15-second script, keep one creator identity, and give MiniMax H3 a separate product reference.",
+    "Choose the message before generating footage. Write one complete 15-second script, keep one creator identity, and give Seedance 2.5 a separate product reference.",
     "Generate picture, voice, and lip-sync together in one AtlasCloud pass. Keep the cup out of the opening, show it only from 4.5 to 7.0 seconds, then return to the creator alone for the close.",
     "Transcribe the generated audio, group the words into readable captions, and add a restrained motion system with a reviewable branded close."
   ],
@@ -39,7 +39,7 @@
     {
       "example": "Generate a Native-Audio UGC Testimonial",
       "role": "Generate the creator testimonial",
-      "handoff": "Give MiniMax H3 image 1 for creator identity and image 2 for product identity. Generate voice, lip-sync, motion, and the brief 4.5–7.0 second product beat in one AtlasCloud pass."
+      "handoff": "Select Seedance 2.5 on AtlasCloud. Give it image 1 for creator identity and image 2 for product identity, then generate voice, lip-sync, natural phone motion, and the brief 4.5–7.0 second product beat in one pass."
     },
     {
       "example": "Brand a UGC Product Video",

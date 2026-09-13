@@ -18,10 +18,10 @@
 //   sections   [ { title, op?, controls: [...], results: [...] } ]
 //   content    Optional authored widget tree, used instead of sections.
 //
-// Control kinds: input, text, number, slider, select, image, video, audio,
+// Control kinds: input, text, model, number, slider, select, image, video, audio,
 // switch, color, run, note. Result kinds: progress, error, show, showVar,
 // heading, note.
-// `text`, `select` and `slider` take an input name or `{ node, prop }` to drive
+// `text`, `model`, `select` and `slider` take an input name or `{ node, prop }` to drive
 // a node property inside the graph; `default` seeds the preview value.
 // See buildControl() in the builder for the exact props each one emits.
 

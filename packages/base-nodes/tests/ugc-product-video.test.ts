@@ -12,6 +12,7 @@ interface Component {
     events?: Array<{ kind: string; operationId?: string }>;
     label?: string;
     left?: Component[];
+    modelKind?: string;
     options?: Array<{ value: string }>;
     right?: Component[];
     title?: string;
@@ -127,6 +128,18 @@ describe("UGC Product Video recipe", () => {
     ).toBe(`op:brand/in:${finishInputs.get("brand_accent")?.id}`);
     expect(
       components.find(
+        (component) =>
+          component.type === "ModelSelect" &&
+          component.props.label === "Video model"
+      )
+    ).toMatchObject({
+      props: {
+        binding: "op:creator/prop:generate#model",
+        modelKind: "video_model"
+      }
+    });
+    expect(
+      components.find(
         (component) => component.props.label === "Add motion + captions"
       )?.props.events
     ).toEqual([expect.objectContaining({ kind: "run", operationId: "brand" })]);
@@ -209,7 +222,7 @@ describe("UGC Product Video recipe", () => {
     expect(timelineCode).not.toContain("caption-pop-");
   });
 
-  it("uses MiniMax H3 reference-to-video on AtlasCloud", () => {
+  it("keeps the Seedance-ready reference-to-video model selectable", () => {
     const workflow = read<{
       graph: {
         nodes: Array<{
@@ -241,10 +254,10 @@ describe("UGC Product Video recipe", () => {
     expect(generator?.data).toMatchObject({
       duration: 15,
       aspect_ratio: "9:16",
-      resolution: "768P",
+      resolution: "720p",
       model: {
-        provider: "atlascloud",
-        id: "minimax/h3/reference-to-video",
+        provider: "",
+        id: "",
         supported_tasks: ["reference_to_video"]
       }
     });
@@ -298,8 +311,8 @@ describe("UGC Product Video recipe", () => {
     expect(prompt?.data?.string).toContain(
       "product and hands fully out of frame"
     );
-    expect(generator?.data?.negative_prompt).toContain(
-      "product visible after 7 seconds"
-    );
+    expect(prompt?.data?.string).toContain("product after 7.0s");
+    expect(prompt?.data?.string).toContain("small spontaneous blinks");
+    expect(generator?.data?.negative_prompt).toBe("");
   });
 });

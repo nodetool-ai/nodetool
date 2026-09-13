@@ -5,7 +5,7 @@
   "updated_at": "2026-09-13T00:00:00.000Z",
   "name": "Generate a Native-Audio UGC Testimonial",
   "tool_name": null,
-  "description": "Turn creator and product references plus one short script into a continuous 15-second MiniMax H3 testimonial with native voice and lip-sync.",
+  "description": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
   "tags": ["video", "marketing", "ugc", "native-audio", "example"],
   "thumbnail": null,
   "thumbnail_url": null,
@@ -83,11 +83,11 @@
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
-      {
-        "id": "prompt",
+    {
+      "id": "prompt",
         "type": "nodetool.text.Template",
         "data": {
-          "string": "Create one continuous 15-second vertical phone-shot UGC testimonial. Image 1 controls the exact creator identity, face, room, wardrobe, lighting, and natural skin texture. Image 2 controls only the product silhouette, muted-olive finish, charcoal lid, and proportions. Do not transfer the product image background. Product: {{ product }}. [0.0-4.5s] Tight chest-up framing of the creator alone. No product or hands visible. She begins the exact dialogue below with mild surprise. [4.5-7.0s] Without cutting away from her face, she briefly lifts the Image 2 product from below frame into one lower corner, never blocking her face, then lowers it completely out of frame at 7.0s. [7.0-15.0s] Keep the camera on her face with the product and hands fully out of frame through the final smile. Exact dialogue: {{ script }} No extra words. Generate picture, voice, and lip-sync together in one pass. Natural adult female voice, clear conversational English, warm mid-register, relaxed creator cadence, subtle room tone. No music, voice-over, extra speakers, subtitles, on-screen text, logos, jump cuts, cutaway product shots, product before 4.5s, product after 7.0s, product morphing, beauty-filter skin, or compositing seams."
+          "string": "Use @Image1 only for the creator identity, face, hair, wardrobe, room, and natural skin texture. Use @Image2 only for the product silhouette, muted-olive finish, charcoal lid, and proportions. Do not transfer the product image background. Product: {{ product }}. Create one continuous 15-second vertical 9:16 front-camera phone testimonial. Preserve fine facial asymmetry, small spontaneous blinks, tiny gaze corrections, breathing, imperfect handheld movement, slight autofocus and exposure breathing, and mild phone compression. [0.0-4.5s] Chest-up creator alone. No product or hands visible. She begins the exact dialogue below with mild surprise. [4.5-7.0s] Without cutting away from her face, she briefly lifts the @Image2 product from below frame into the lower-right corner, never blocking her face, then lowers it completely out of frame at 7.0s. [7.0-15.0s] Keep the camera on her face with the product and hands fully out of frame through the final smile. Exact dialogue: {{ script }} No extra words. Generate picture, voice, and lip-sync together in one pass. Natural adult female voice, clear conversational English, warm mid-register, unstaged creator cadence, subtle room tone. No music, voice-over, extra speakers, subtitles, on-screen text, logos, jump cuts, cutaways, beauty-filter skin, waxy texture, rigid posture, repetitive mouth motion, exaggerated expressions, product before 4.5s, product after 7.0s, product morphing, or compositing seams."
         },
         "ui_properties": {
           "position": { "x": 390, "y": 280 },
@@ -96,11 +96,11 @@
           "selectable": true,
           "title": "6  Native-audio direction"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "references",
+      "dynamic_properties": {},
+      "dynamic_outputs": {}
+    },
+    {
+      "id": "references",
         "type": "nodetool.image.ImagesToList",
         "data": {},
         "ui_properties": {
@@ -108,7 +108,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "5  Ordered H3 references"
+          "title": "5  Ordered Seedance references"
         },
         "dynamic_properties": {
           "image_1_creator": null,
@@ -122,18 +122,18 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "atlascloud",
-            "id": "minimax/h3/reference-to-video",
-            "name": "MiniMax H3 Reference to Video",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": ["reference_to_video"]
           },
           "reference_images": [],
           "reference_videos": [],
           "use_reference_video_audio": false,
-          "negative_prompt": "product visible before 4.5 seconds, product visible after 7 seconds, long product shot, subtitles, text, logo, jump cut, voice-over, music, extra speaker, face drift, beauty filter, product morphing",
+          "negative_prompt": "",
           "aspect_ratio": "9:16",
-          "resolution": "768P",
+          "resolution": "720p",
           "duration": 15,
           "timeout_seconds": 1800
         },
@@ -205,9 +205,9 @@
         "target": "generate",
         "targetHandle": "prompt"
       },
-      {
-        "id": "e7",
-        "source": "generate",
+    {
+      "id": "e7",
+      "source": "generate",
         "sourceHandle": "output",
         "target": "video-out",
         "targetHandle": "value"

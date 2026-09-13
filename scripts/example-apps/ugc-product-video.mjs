@@ -1,5 +1,13 @@
 const UGC_FINAL = "/app-preview/media/ugc-product-video/final.mp4";
 const UGC_CREATOR = "/app-preview/media/ugc-product-video/creator.mp4";
+const SEEDANCE_25_MODEL = {
+  type: "video_model",
+  provider: "atlascloud",
+  id: "bytedance/seedance-2.5/reference-to-video",
+  name: "Seedance 2.5 Reference to Video",
+  path: null,
+  supported_tasks: ["reference_to_video"]
+};
 
 export const UGC_PRODUCT_VIDEO_APP = {
   slug: "ugc-product-video",
@@ -8,8 +16,8 @@ export const UGC_PRODUCT_VIDEO_APP = {
   featured: true,
   tagline: "One take. Native voice. A polished social finish.",
   description:
-    "Create a native-audio MiniMax H3 testimonial, then turn its spoken words into animated captions, restrained motion graphics, and an exact branded close.",
-  note: "🔑 Writing and caption transcription use OpenAI. MiniMax H3 generates the testimonial on AtlasCloud with native audio.",
+    "Create a native-audio Seedance 2.5 testimonial, then turn its spoken words into stable captions, restrained motion graphics, and an exact branded close.",
+  note: "🔑 Writing and caption transcription use OpenAI. The sample uses Seedance 2.5 on AtlasCloud with native audio; choose it below or select another compatible model.",
   workflows: {
     copy: "Ad Copy in Three Registers",
     creator: "Generate a Native-Audio UGC Testimonial",
@@ -147,10 +155,17 @@ export const UGC_PRODUCT_VIDEO_APP = {
       title: "2 · Generate one continuous testimonial",
       controls: [
         {
-          note: "Image 1 anchors the creator and room. Image 2 anchors only the product. MiniMax H3 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
+          note: "Image 1 anchors the creator and room. Image 2 anchors only the product. Seedance 2.5 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
         },
         { image: "creatorImage", label: "Vertical creator image" },
         { image: "productImage", label: "Clean product image" },
+        {
+          model: { node: "generate", prop: "model" },
+          op: "creator",
+          label: "Video model",
+          modelKind: "video_model",
+          default: SEEDANCE_25_MODEL
+        },
         {
           textVar: "creatorScript",
           label: "Complete 15-second script",
