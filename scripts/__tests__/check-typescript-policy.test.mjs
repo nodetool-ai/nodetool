@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  TYPESCRIPT_6_FALLBACK_BUILD_SCRIPT,
   TYPESCRIPT_API_SPEC,
   TYPESCRIPT_NATIVE_SPEC,
   auditLockfile,
@@ -38,6 +39,33 @@ describe("TypeScript policy audit", () => {
             },
             scripts: { typecheck: "node ../scripts/run-tsc.mjs --noEmit" }
           }
+        }
+      ])
+    ).toEqual([]);
+  });
+
+  it("requires the TypeScript 6 fallback to build packages in dependency order", () => {
+    expect(
+      auditManifests([
+        {
+          path: "package.json",
+          manifest: {
+            scripts: {
+              "build:tsc6":
+                "node scripts/run-with-tsc-version.mjs 6 npm run build:packages:tsc"
+            }
+          }
+        }
+      ])
+    ).toEqual([
+      "package.json script build:tsc6 must use the forced dependency-ordered package build"
+    ]);
+
+    expect(
+      auditManifests([
+        {
+          path: "package.json",
+          manifest: { scripts: { "build:tsc6": TYPESCRIPT_6_FALLBACK_BUILD_SCRIPT } }
         }
       ])
     ).toEqual([]);

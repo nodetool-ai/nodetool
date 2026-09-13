@@ -84,7 +84,7 @@
     "build:packages:clean": "turbo run build --filter=\"./packages/*\" --force",
     "prebuild:packages:tsc": "node scripts/preflight.mjs",
     "build:packages:tsc": "node scripts/run-tsc.mjs --build tsconfig.build.json && node scripts/copy-manifests.mjs",
-    "build:tsc6": "node scripts/run-with-tsc-version.mjs 6 npm run build:packages:tsc",
+    "build:tsc6": "node scripts/run-with-tsc-version.mjs 6 npm run build:packages:clean",
     "build:tsc7": "node scripts/run-with-tsc-version.mjs 7 npm run build:packages:tsc",
     "build:web": "turbo run build --filter=web",
     "build:mcpb": "node scripts/build-mcpb.mjs --smoke",

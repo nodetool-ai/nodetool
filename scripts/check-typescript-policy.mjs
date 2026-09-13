@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 
 export const TYPESCRIPT_API_SPEC = "npm:@typescript/typescript6@6.0.2";
 export const TYPESCRIPT_NATIVE_SPEC = "npm:typescript@7.0.2";
+export const TYPESCRIPT_6_FALLBACK_BUILD_SCRIPT =
+  "node scripts/run-with-tsc-version.mjs 6 npm run build:packages:clean";
 const TYPESCRIPT_API_VERSION = "6.0.2";
 const TYPESCRIPT_NATIVE_VERSION = "7.0.2";
 
@@ -64,6 +66,14 @@ export function auditManifests(entries) {
       if (/typescript[\\/](?:bin|lib)[\\/]/.test(command)) {
         errors.push(`${path} script ${name}: direct TypeScript compiler paths are forbidden`);
       }
+    }
+    if (
+      path === "package.json" &&
+      manifest.scripts?.["build:tsc6"] !== TYPESCRIPT_6_FALLBACK_BUILD_SCRIPT
+    ) {
+      errors.push(
+        `${path} script build:tsc6 must use the forced dependency-ordered package build`
+      );
     }
   }
   return errors;
