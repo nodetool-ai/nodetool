@@ -99,6 +99,50 @@ describe("OpenRouterProvider", () => {
     expect(models).toEqual([]);
   });
 
+  it("names the upstream reason when an image request fails on a 200", async () => {
+    // The `view_image` and `understand_video` symptom: OpenRouter answers 200
+    // and puts the refusal in the body, so the decoder used to report
+    // "openrouter returned no choices" — a diagnosis that names neither the
+    // image nor the endpoint that refused it.
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        error: {
+          code: 404,
+          message: "No endpoints found that support image input"
+        }
+      })
+    );
+    const provider = new OpenRouterProvider(
+      { OPENROUTER_API_KEY: "k" },
+      { fetchFn: fetchMock as unknown as typeof fetch }
+    );
+
+    const messages: Message[] = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "what is in this image?" },
+          {
+            type: "image_url",
+            image: {
+              uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==",
+              mimeType: "image/png"
+            }
+          }
+        ]
+      }
+    ];
+
+    const error = await provider
+      .generateMessage({ messages, model: "openai/gpt-5.4-mini" })
+      .catch((e) => e);
+
+    expect(String(error)).toContain(
+      "No endpoints found that support image input"
+    );
+    expect(String(error)).not.toContain("returned no choices");
+  });
+
   it("generates non-streaming message via the compat chat client", async () => {
     const fetchMock = mockChatFetch(
       chatJsonResponse({

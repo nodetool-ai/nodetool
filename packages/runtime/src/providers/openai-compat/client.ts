@@ -1,6 +1,7 @@
 import { sseEvents } from "./sse.js";
 import {
   OpenAICompatError,
+  errorFromOkBody,
   errorFromResponse,
   errorFromStreamEvent
 } from "./errors.js";
@@ -153,7 +154,13 @@ export class OpenAICompatClient {
     }
   }
 
-  /** Non-streaming chat completion. */
+  /**
+   * Non-streaming chat completion.
+   *
+   * A 200 is not proof of success: a gateway that routes to an upstream
+   * provider answers 200 and reports a later failure inside the body, so the
+   * body is checked for an `error` before it is handed back as a completion.
+   */
   async chatCompletions(
     request: ChatCompletionsRequest,
     options: RequestOptions = {}
@@ -164,7 +171,10 @@ export class OpenAICompatClient {
       false,
       options
     );
-    return (await response.json()) as ChatCompletionResponse;
+    const body = await response.json();
+    const error = errorFromOkBody(body);
+    if (error) throw error;
+    return body as ChatCompletionResponse;
   }
 
   /**

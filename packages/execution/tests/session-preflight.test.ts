@@ -16,7 +16,7 @@
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { BaseNode, NodeRegistry, prop } from "@nodetool-ai/node-sdk";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { FakeProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import {
   ExecutionSession,
   ExecutionPreflightError,
@@ -158,6 +158,44 @@ describe("ExecutionSession preflight", () => {
       context: contextWith({ OPENAI_API_KEY: "sk-injected" })
     });
     expect((await session.result).status).toBe("completed");
+  });
+
+  it("skips the credential check when the context serves its own providers", async () => {
+    // A fake, a cassette, or the e2e server's scripted provider is resolved by
+    // the context, so `getProvider` never reaches the registry and never reads
+    // a key. Refusing the run for a secret it would not have used is what made
+    // `directed-campaign-kit.test.ts` depend on an ambient OPENAI_API_KEY.
+    const context = contextWith({});
+    context.setProviderResolver(() => new FakeProvider());
+    expect(context.hasProviderResolver).toBe(true);
+
+    const session = await ExecutionSession.create({
+      graph: graphSelecting("openai"),
+      registry: registry(),
+      bridgeFactory: async () => null,
+      context
+    });
+
+    expect((await session.result).status).toBe("completed");
+  });
+
+  it("still refuses a model no provider offers when the context serves providers", async () => {
+    // The resolver answers for credentials, not for whether the selection is
+    // real: a graph naming a model nothing offers is still refused.
+    const context = contextWith({});
+    context.setProviderResolver(() => new FakeProvider());
+
+    const error = await refusalOf({
+      graph: graphSelecting("openai", "totally-not-a-real-model-xyz"),
+      registry: registry(),
+      bridgeFactory: async () => null,
+      catalogs: {
+        listProviderIds: () => ["openai"],
+        listModelIds: () => ["gpt-image-1"]
+      },
+      context
+    });
+    expect(error.issues.map((i) => i.kind)).toEqual(["model"]);
   });
 
   it("reports model issues alone — an unregistered provider has no credential to check", async () => {

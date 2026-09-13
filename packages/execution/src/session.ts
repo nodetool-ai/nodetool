@@ -239,9 +239,19 @@ export class ExecutionSession {
     // `persistence.onAccepted` (a job row), and ahead of the kernel. Without
     // this, a bad model id or a missing key failed at the node that needed it
     // — after the upstream half of the graph had already run and billed.
+    // A context serving providers from its own resolver (a fake, a cassette,
+    // the e2e server's scripted provider) never reaches the registry and never
+    // reads a credential, so the registry's "is this key set" question does not
+    // apply to it — asking anyway refuses the run for a secret it would not
+    // have used. An explicit checker still wins: a host that knows its own
+    // registry says so itself.
+    const providerConfiguration =
+      options.providerConfiguration ??
+      (context.hasProviderResolver ? () => [] : undefined);
+
     await assertPreflight(normalized, {
       catalogs: options.catalogs,
-      providerConfiguration: options.providerConfiguration,
+      providerConfiguration,
       resolveSecret: (key) => context.getSecret(key)
     });
 
