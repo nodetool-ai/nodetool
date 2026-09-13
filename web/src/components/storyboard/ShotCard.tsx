@@ -349,17 +349,17 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       sx={{
         overflow: "hidden",
         position: "relative",
-        "& .shot-card-actions, & .controls": {
+        "& .shot-card-actions": {
           opacity: 0,
           transition: MOTION.opacity,
           ...reducedMotion({ transition: MOTION.none })
         },
-        "&:hover .shot-card-actions, &:focus-within .shot-card-actions, &:hover .controls, &:focus-within .controls": {
+        "&:hover .shot-card-actions, &:focus-within .shot-card-actions": {
           opacity: 1,
           pointerEvents: "auto"
         },
         "@media (pointer: coarse)": {
-          "& .shot-card-actions, & .controls": { opacity: 1, pointerEvents: "auto" }
+          "& .shot-card-actions": { opacity: 1, pointerEvents: "auto" }
         },
         borderRadius: BORDER_RADIUS.lg,
         borderColor:
@@ -433,7 +433,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           sx={{
             position: "absolute",
             right: SPACING.md,
-            bottom: SPACING.md
+            bottom: clipUri ? SPACING.xxxl : SPACING.md
           }}
         />
         {isGenerating && (
@@ -489,9 +489,10 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           className="shot-card-actions"
           sx={{
             position: "absolute",
-            bottom: SPACING.xs,
+            top: SPACING.xs,
+            bottom: "auto",
             left: SPACING.xs,
-            right: SPACING.xs,
+            right: "auto",
             p: SPACING.xs,
             bgcolor: "c_scrim",
             borderRadius: BORDER_RADIUS.sm
