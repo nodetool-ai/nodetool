@@ -138,6 +138,83 @@ describe("OpenAICompatClient.chatCompletions", () => {
     });
   });
 
+  it("throws the upstream reason when a 200 body carries an error", async () => {
+    // A gateway that routes to another provider has already committed the 200
+    // by the time the upstream fails, so the failure rides the body. Without
+    // the check the body reaches the decoder, which reports "no choices" and
+    // names neither the endpoint nor the reason.
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        error: {
+          code: 404,
+          message: "No endpoints found that support image input",
+          metadata: { provider_name: "openrouter" }
+        }
+      })
+    );
+    const client = new OpenAICompatClient({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: "k",
+      fetchFn: fetchMock as unknown as typeof fetch
+    });
+
+    const error = await client.chatCompletions(request).catch((e) => e);
+
+    expect(error).toBeInstanceOf(OpenAICompatError);
+    expect(String(error)).toContain(
+      "No endpoints found that support image input"
+    );
+    expect((error as OpenAICompatError).code).toBe("404");
+  });
+
+  it("throws when a 200 body reports the error inside its first choice", async () => {
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        choices: [
+          {
+            message: { role: "assistant", content: "partial output..." },
+            finish_reason: "error",
+            error: { code: 502, message: "Provider disconnected mid-stream" }
+          }
+        ]
+      })
+    );
+    const client = new OpenAICompatClient({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: "k",
+      fetchFn: fetchMock as unknown as typeof fetch
+    });
+
+    const error = await client.chatCompletions(request).catch((e) => e);
+
+    expect(error).toBeInstanceOf(OpenAICompatError);
+    expect(String(error)).toContain("502 Provider disconnected mid-stream");
+  });
+
+  it("does not mistake a completion with a null error field for a failure", async () => {
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        error: null,
+        choices: [
+          {
+            message: { content: "hello" },
+            finish_reason: "stop",
+            error: null
+          }
+        ]
+      })
+    );
+    const client = new OpenAICompatClient({
+      baseURL: "https://api.example.com/v1",
+      apiKey: "k",
+      fetchFn: fetchMock as unknown as typeof fetch
+    });
+
+    const response = await client.chatCompletions(request);
+
+    expect(response.choices?.[0]?.message?.content).toBe("hello");
+  });
+
   it("maps a 400 with an OpenAI-style error body to a typed error", async () => {
     const fetchMock = mockChatFetch(
       chatErrorResponse(400, "context length exceeded")
@@ -371,6 +448,36 @@ describe("OpenAICompatClient.chatCompletionsStream", () => {
 
     expect(error).toBeInstanceOf(OpenAICompatError);
     expect((error as OpenAICompatError).code).toBe("429");
+  });
+
+  it("throws on a mid-stream choice error with no top-level error field", async () => {
+    // OpenRouter reports a failure that happens after the stream opened as a
+    // `finish_reason: "error"` choice — the 200 is already on the wire.
+    const body =
+      'data: {"choices":[{"index":0,"delta":{"content":""},"finish_reason":"error","error":{"code":502,"message":"upstream refused the image"}}]}\n\n';
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(body, {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" }
+        })
+    );
+
+    const error = await (async () => {
+      try {
+        for await (const chunk of clientFor(fetchMock).chatCompletionsStream(
+          request
+        )) {
+          void chunk;
+        }
+        return null;
+      } catch (e) {
+        return e;
+      }
+    })();
+
+    expect(error).toBeInstanceOf(OpenAICompatError);
+    expect(String(error)).toContain("upstream refused the image");
   });
 
   it("throws on a non-2xx streaming response with the parsed error message", async () => {
