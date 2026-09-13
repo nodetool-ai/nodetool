@@ -165,6 +165,21 @@ function isStringValue(value: NodeValue): value is string {
   return typeof value === "string";
 }
 
+/** Narrow a node property value to an image or video reference. */
+function isVisualReference(
+  value: NodeValue
+): value is { [key: string]: NodeValue; type: "image" | "video" } {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    Array.isArray(value) ||
+    value instanceof Uint8Array
+  ) {
+    return false;
+  }
+  return value.type === "image" || value.type === "video";
+}
+
 /** Narrow a node property value to a number. */
 function isNumberValue(value: NodeValue): value is number {
   return typeof value === "number";
@@ -634,14 +649,6 @@ function appendWrapped(
   input[key] = bucket;
 }
 
-/** Whether a wrapped request entry supplies an image or video reference. */
-function isWrappedVisualReference(value: NodeValue): boolean {
-  if (!isAssetRef(value)) return false;
-  // SAFETY: isAssetRef established a keyed object before this optional read.
-  const kind = (value as { type?: NodeValue }).type;
-  return kind === "image" || kind === "video";
-}
-
 export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
   const nodeType = `atlascloud.${spec.moduleName}.${spec.className}`;
   const title = spec.title || classNameToTitle(spec.className);
@@ -715,8 +722,7 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
       for (const group of requiredGroups) {
         const values = input[group];
         const hasVisualReference =
-          Array.isArray(values) &&
-          values.some((value) => isWrappedVisualReference(value));
+          Array.isArray(values) && values.some(isVisualReference);
         if (!hasVisualReference) {
           throw new Error(
             `${specRef.title}: connect at least one reference image or video`

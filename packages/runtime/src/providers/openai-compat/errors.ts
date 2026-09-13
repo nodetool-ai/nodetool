@@ -93,29 +93,90 @@ export function errorFromResponse(
 }
 
 /**
- * Map a mid-stream SSE `{"error": {...}}` event to an
- * {@link OpenAICompatError}. Returns `null` when the event is not an error.
+ * Map one `error` value — wherever it sat in the payload — to an
+ * {@link OpenAICompatError}. `payload` is the whole body or event, kept for
+ * the error's `body` so a caller logging the failure sees what arrived.
+ * Returns `null` when `err` is absent or not an error shape.
  */
-export function errorFromStreamEvent(
-  event: Record<string, unknown>
+function errorFromErrorValue(
+  err: unknown,
+  payload: unknown,
+  fallbackMessage: string
 ): OpenAICompatError | null {
-  const err = event.error;
   if (err === undefined || err === null) return null;
   if (isString(err)) {
-    return new OpenAICompatError(undefined, err, { body: event });
+    return new OpenAICompatError(undefined, err, { body: payload });
   }
   if (!isRecord(err)) return null;
-  const message = stringOrNull(err.message) ?? "stream error";
+  const message = stringOrNull(err.message) ?? fallbackMessage;
+  // A numeric `code` is the HTTP status on a gateway that reports the failure
+  // in a 200 body (OpenRouter mirrors the status there). Taking it as the
+  // status is what keeps `BaseProvider.isRateLimitError` — which matches on
+  // `String(error)` — working for a 429 that never reached the status line.
+  const codeStatus =
+    isNumber(err.code) && err.code >= 100 && err.code <= 599
+      ? err.code
+      : undefined;
   const status = isNumber(err.status)
     ? err.status
     : isNumber(err.http_status)
       ? err.http_status
-      : undefined;
+      : codeStatus;
   return new OpenAICompatError(status, message, {
     code:
       stringOrNull(err.code) ?? (isNumber(err.code) ? String(err.code) : null),
     type: stringOrNull(err.type),
     param: stringOrNull(err.param),
-    body: event
+    body: payload
   });
+}
+
+/** The `error` carried by the payload's first choice, if any. */
+function choiceError(payload: Record<string, unknown>): unknown {
+  const choices = payload.choices;
+  if (!Array.isArray(choices)) return undefined;
+  const choice = choices[0];
+  if (!isRecord(choice)) return undefined;
+  // Streaming puts it on the delta on some gateways, non-streaming on the
+  // choice itself; the choice's own field wins when both are present.
+  if (choice.error !== undefined && choice.error !== null) return choice.error;
+  const delta = choice.delta;
+  return isRecord(delta) ? delta.error : undefined;
+}
+
+/**
+ * Map a mid-stream SSE error event to an {@link OpenAICompatError}. Returns
+ * `null` when the event is not an error.
+ *
+ * The error rides at the top level (`{"error": {...}}`) or inside the first
+ * choice — OpenRouter reports a failure that happens after the stream opened
+ * as a `finish_reason: "error"` choice, because the 200 status is already on
+ * the wire by then.
+ */
+export function errorFromStreamEvent(
+  event: Record<string, unknown>
+): OpenAICompatError | null {
+  return (
+    errorFromErrorValue(event.error, event, "stream error") ??
+    errorFromErrorValue(choiceError(event), event, "stream error")
+  );
+}
+
+/**
+ * Map an error carried by a *successful* (HTTP 200) chat-completion body to an
+ * {@link OpenAICompatError}. Returns `null` for an ordinary completion.
+ *
+ * A gateway that has already committed a 200 cannot report a later failure in
+ * the status, so it reports it in the body instead — OpenRouter's API
+ * reference says to check the body for an `error` field even on a 200 rather
+ * than relying on the status alone. Without this the body reaches
+ * {@link decodeChatCompletion}, which sees no `choices` and answers "no
+ * choices" — a diagnosis that names neither the endpoint nor the reason.
+ */
+export function errorFromOkBody(body: unknown): OpenAICompatError | null {
+  if (!isRecord(body)) return null;
+  return (
+    errorFromErrorValue(body.error, body, "chat completion failed") ??
+    errorFromErrorValue(choiceError(body), body, "chat completion failed")
+  );
 }
