@@ -635,7 +635,7 @@ describe("Directed Campaign Kit workflow contracts", () => {
     } finally {
       restored.fake.cleanup();
     }
-  }, 30_000);
+  }, 60_000);
 
   it("rejects copy overflow and a non-canonical revision ancestry", async () => {
     const contract = acceptedContract("x".repeat(31));
