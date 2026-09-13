@@ -1063,7 +1063,16 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/app-runtime/",
       "packages/agents/src/app-build/",
       "packages/execution/src/app-debug/",
-      "packages/base-nodes/nodetool/examples/apps/"
+      "packages/base-nodes/nodetool/examples/apps/",
+      // The directed-campaign kit's five stage graphs. They are excluded from
+      // the auto-discovered e2e suite (each consumes the stage before it, so
+      // none runs alone on its defaults), so name them here instead: a diff
+      // touching one still selects the harnesses that cover the app.
+      "packages/base-nodes/nodetool/examples/nodetool-base/Propose Three Campaign Directions.json",
+      "packages/base-nodes/nodetool/examples/nodetool-base/Render a Directed Campaign Hero.json",
+      "packages/base-nodes/nodetool/examples/nodetool-base/Compose Directed Campaign Formats.json",
+      "packages/base-nodes/nodetool/examples/nodetool-base/Revise an Accepted Campaign Hero.json",
+      "packages/base-nodes/nodetool/examples/nodetool-base/Reopen a Directed Campaign.json"
     ]
   },
   {

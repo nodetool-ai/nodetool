@@ -1401,6 +1401,19 @@ export class ProcessingContext {
     this._providerResolver = resolver;
   }
 
+  /**
+   * Whether this context serves providers from an injected resolver rather
+   * than the process-wide registry.
+   *
+   * When it does, {@link getProvider} never reaches the registry and never
+   * reads a credential — so a credential the run will not use is not a reason
+   * to refuse the run. The execution preflight reads this to decide whether
+   * its credential check applies at all.
+   */
+  get hasProviderResolver(): boolean {
+    return this._providerResolver !== null;
+  }
+
   setModelInterfaces(modelInterfaces: ProcessingContextModelInterfaces): void {
     this._modelInterfaces = modelInterfaces;
   }
