@@ -88,6 +88,24 @@ describe("FAL explicit queue adapter", () => {
     );
   });
 
+  it("normalizes repeated boundary slashes without a regular expression", async () => {
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ request_id: "req-slashes" }));
+    const operations = createFalQueueOperations({ apiKey: "secret", fetchFn });
+    const slashes = "/".repeat(4096);
+
+    const submission = await operations.submit({
+      endpoint: `${slashes}fal-ai/flux/dev${slashes}`,
+      input: {}
+    });
+
+    expect(submission.endpoint).toBe("fal-ai/flux/dev");
+    expect(fetchFn.mock.calls[0]?.[0]?.toString()).toBe(
+      "https://queue.fal.run/fal-ai/flux/dev"
+    );
+  });
+
   it("does not retry a failed submission POST", async () => {
     const fetchFn = vi
       .fn<typeof fetch>()

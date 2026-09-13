@@ -73,7 +73,16 @@ function requireString(value: unknown, name: string): string {
 }
 
 function endpointPath(endpoint: string): string {
-  const value = endpoint.trim().replace(/^\/+|\/+$/g, "");
+  const trimmed = endpoint.trim();
+  let start = 0;
+  let end = trimmed.length;
+  while (start < end && trimmed[start] === "/") {
+    start += 1;
+  }
+  while (end > start && trimmed[end - 1] === "/") {
+    end -= 1;
+  }
+  const value = trimmed.slice(start, end);
   if (!value || value.includes("://") || value.includes("\\")) {
     throw new Error(`Invalid FAL endpoint: ${endpoint}`);
   }
