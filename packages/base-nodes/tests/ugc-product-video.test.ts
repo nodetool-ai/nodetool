@@ -205,6 +205,8 @@ describe("UGC Product Video recipe", () => {
     expect(timelineCode).toContain("11_750");
     expect(timelineCode).toContain("12_300");
     expect(timelineCode).toContain("15_083");
+    expect(timelineCode).not.toContain("nextStartMs - 42");
+    expect(timelineCode).not.toContain("caption-pop-");
   });
 
   it("uses MiniMax H3 reference-to-video on AtlasCloud", () => {
