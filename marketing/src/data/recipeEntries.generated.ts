@@ -145,7 +145,52 @@ export const recipeEntries: RecipeEntry[] = [
   },
   {
     "sample": null,
-    "productionRun": null,
+    "productionRun": {
+      "runId": "2026-09-13-ugc-product-video",
+      "status": "accepted",
+      "statusLabel": "15-second native-audio UGC Reel",
+      "proofTitle": "One take, finished for social.",
+      "summary": "A creator testimonial with word-timed captions, restrained brand motion, and a clean MORROW close.",
+      "provider": "Seedance 2.5 via AtlasCloud. Captions and motion finished in NodeTool.",
+      "hero": {
+        "src": "/apps/examples/ugc-product-video/motion-close.jpg",
+        "alt": "MORROW UGC Reel at the finished brand close.",
+        "width": 768,
+        "height": 1344
+      },
+      "card": {
+        "src": "/apps/examples/ugc-product-video/motion-caption.jpg",
+        "alt": "Creator testimonial with a short word-highlighted caption group.",
+        "width": 768,
+        "height": 1344
+      },
+      "ogImage": "/apps/examples/ugc-product-video/motion-close.jpg",
+      "proof": {
+        "src": "/apps/examples/ugc-product-video/motion-caption.jpg",
+        "alt": "MORROW creator Reel with an opening brand bug and word-highlighted caption.",
+        "caption": "The finish follows the recorded words and keeps captions clear of the creator's face.",
+        "width": 768,
+        "height": 1344
+      },
+      "video": {
+        "mp4": "/apps/examples/ugc-product-video/final.mp4",
+        "webm": null,
+        "poster": "/apps/examples/ugc-product-video/final-poster.jpg",
+        "hasAudio": true,
+        "caption": "The finished 15-second MORROW UGC Reel, with native audio, animated captions, and brand motion."
+      },
+      "supportedClaims": [
+        "Seedance 2.5 generated the native-audio testimonial from creator and product references through AtlasCloud.",
+        "The finishing workflow transcribed the recording into word-timed captions and added the opening bug, compact product callout, and brand close.",
+        "The final MP4 is 768×1344 at 24 fps, runs for 15 seconds, and includes audio."
+      ],
+      "essentialLimitation": "Generated product details, lip-sync, factual claims, and caption words still need review before publishing.",
+      "limitations": [
+        "MORROW and the Olive Travel Cup are fictional sample brands.",
+        "The model-generated performance may not reproduce every product detail exactly."
+      ],
+      "reviewLabel": "Reviewed example"
+    },
     "guide": {
       "entry": "UGC Product Video",
       "stages": [
@@ -155,17 +200,17 @@ export const recipeEntries: RecipeEntry[] = [
         "Finish",
         "Review"
       ],
-      "introduction": "Keep the creator on camera for the full Reel, generate voice and lip-sync in one MiniMax H3 pass, then finish the recording with captions, restrained graphic beats, and an exact branded close.",
+      "introduction": "Keep the creator on camera for the full Reel, generate voice and lip-sync with a compatible native-audio video model, then finish the recording with captions, restrained graphic beats, and an exact branded close. The finished sample used Seedance 2.5 on AtlasCloud.",
       "inputs": [
-        "One vertical creator image you have permission to send to AtlasCloud",
-        "One clean product reference you have permission to send to AtlasCloud",
+        "One vertical creator image you have permission to send to the selected video provider",
+        "One clean product reference you have permission to send to the selected video provider",
         "Approved product facts and one audience",
         "An exact brand name and slogan",
         "An optional brand accent color",
-        "OpenAI and AtlasCloud providers configured in NodeTool"
+        "OpenAI and a compatible native-audio video provider configured in NodeTool"
       ],
-      "brief": "Create a 15-second vertical UGC testimonial with the creator speaking to camera throughout. Generate voice, mouth movement, and picture together in one MiniMax H3 native-audio pass on AtlasCloud. Image 1 controls the creator and room. Image 2 controls only the product. Keep the cup fully out of frame from 0.0 to 4.5 seconds, show it once from 4.5 to 7.0 seconds without blocking the face, and keep it fully out of frame from 7.0 to 15.0 seconds. Preserve the phone-shot character of the source. Do not add generated logos, music, unsupported claims, or cutaway product shots.",
-      "note": "The app sends both reference images to AtlasCloud. It does not license a person's likeness or product artwork. The performance and product motion are generative and must be checked before publishing.",
+      "brief": "Create a 15-second vertical UGC testimonial with the creator speaking to camera throughout. Choose a native-audio reference-to-video model that accepts two ordered images, then generate voice, mouth movement, and picture together in one pass. Image 1 controls the creator and room. Image 2 controls only the product. Keep the cup fully out of frame from 0.0 to 4.5 seconds, show it once from 4.5 to 7.0 seconds without blocking the face, and keep it fully out of frame from 7.0 to 15.0 seconds. Preserve the phone-shot character of the source. Do not add generated logos, music, unsupported claims, or cutaway product shots.",
+      "note": "The app sends both reference images to the selected video provider. The finished sample used Seedance 2.5 on AtlasCloud. The app does not license a person's likeness or product artwork. The performance and product motion are generative and must be checked before publishing.",
       "steps": [
         {
           "id": "angle",
@@ -196,7 +241,7 @@ export const recipeEntries: RecipeEntry[] = [
           "phase": "Generate",
           "stage": "15-second script",
           "title": "Write and generate in one pass",
-          "description": "Keep the hook short enough to land before 4.5 seconds, support it with one or two product truths, and end with one recommendation. MiniMax H3 generates the exact dialogue, native voice, lip-sync, and picture together.",
+          "description": "Keep the hook short enough to land before 4.5 seconds, support it with one or two product truths, and end with one recommendation. The selected native-audio model generates the dialogue, voice, lip-sync, and picture together. The finished sample used Seedance 2.5 on AtlasCloud.",
           "action": "Make the 15-second testimonial",
           "image": {
             "src": "/apps/examples/ugc-product-video/motion-caption.jpg",
@@ -273,7 +318,7 @@ export const recipeEntries: RecipeEntry[] = [
         "name": "Generate a Native-Audio UGC Testimonial",
         "route": "/templates/generate-a-native-audio-ugc-testimonial",
         "role": "Generate the creator testimonial",
-        "handoff": "Select Seedance 2.5 on AtlasCloud. Give it image 1 for creator identity and image 2 for product identity, then generate voice, lip-sync, natural phone motion, and the brief 4.5–7.0 second product beat in one pass.",
+        "handoff": "Choose a compatible native-audio reference-to-video model. Give it image 1 for creator identity and image 2 for product identity, then generate voice, lip-sync, natural phone motion, and the brief 4.5–7.0 second product beat in one pass. The finished sample used Seedance 2.5 on AtlasCloud.",
         "thumbnail": null,
         "nodeCount": 8,
         "models": [],

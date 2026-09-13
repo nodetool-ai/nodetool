@@ -214,6 +214,13 @@ describe("UGC Product Video recipe", () => {
     expect(timelineCode).toContain("brandAccent");
     expect(timelineCode).toContain("openingBug");
     expect(timelineCode).toContain("dailyRitual");
+    expect(timelineCode).toContain(
+      "dailyRitual = {startMs: 5_000, endMs: 7_000}"
+    );
+    expect(timelineCode).toContain("dailyRitual compact lower-left panel");
+    expect(timelineCode).toContain("text: 'DAILY RITUAL'");
+    expect(timelineCode).toContain("fontSizePx: 20");
+    expect(timelineCode).not.toContain("dailyRitual cup bracket");
     expect(timelineCode).toContain("closingPanel");
     expect(timelineCode).toContain("11_750");
     expect(timelineCode).toContain("12_300");

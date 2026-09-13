@@ -1686,9 +1686,9 @@ export const miniAppEntries: MiniAppEntry[] = [
     "indexable": true,
     "slug": "ugc-product-video",
     "name": "UGC Product Video",
-    "summary": "Create a native-audio Seedance 2.5 testimonial, then turn its spoken words into stable captions, restrained motion graphics, and an exact branded close.",
+    "summary": "Create a native-audio testimonial with a compatible reference-to-video model, then add word-timed captions, restrained motion graphics, and an exact branded close.",
     "featured": true,
-    "note": "🔑 Writing and caption transcription use OpenAI. The sample uses Seedance 2.5 on AtlasCloud with native audio; choose it below or select another compatible model.",
+    "note": "Writing and caption transcription use OpenAI. The finished sample used Seedance 2.5 on AtlasCloud; choose it or another compatible video model.",
     "workflows": [
       {
         "name": "Ad Copy in Three Registers",
@@ -1707,6 +1707,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/ad-copy-in-three-registers",
+    "productionRecipeSlug": "ugc-product-video",
     "screenshot": "/apps/ugc-product-video.png",
     "tags": [
       "captions",

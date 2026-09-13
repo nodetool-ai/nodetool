@@ -109,18 +109,18 @@ export const recipeGuides = {
       entry: "UGC Product Video",
       stages: ["Angle", "References", "Generate", "Finish", "Review"],
       introduction:
-        "Keep the creator on camera for the full Reel, generate voice and lip-sync in one MiniMax H3 pass, then finish the recording with captions, restrained graphic beats, and an exact branded close.",
+        "Keep the creator on camera for the full Reel, generate voice and lip-sync with a compatible native-audio video model, then finish the recording with captions, restrained graphic beats, and an exact branded close. The finished sample used Seedance 2.5 on AtlasCloud.",
       inputs: [
-        "One vertical creator image you have permission to send to AtlasCloud",
-        "One clean product reference you have permission to send to AtlasCloud",
+        "One vertical creator image you have permission to send to the selected video provider",
+        "One clean product reference you have permission to send to the selected video provider",
         "Approved product facts and one audience",
         "An exact brand name and slogan",
         "An optional brand accent color",
-        "OpenAI and AtlasCloud providers configured in NodeTool"
+        "OpenAI and a compatible native-audio video provider configured in NodeTool"
       ],
       brief:
-        "Create a 15-second vertical UGC testimonial with the creator speaking to camera throughout. Generate voice, mouth movement, and picture together in one MiniMax H3 native-audio pass on AtlasCloud. Image 1 controls the creator and room. Image 2 controls only the product. Keep the cup fully out of frame from 0.0 to 4.5 seconds, show it once from 4.5 to 7.0 seconds without blocking the face, and keep it fully out of frame from 7.0 to 15.0 seconds. Preserve the phone-shot character of the source. Do not add generated logos, music, unsupported claims, or cutaway product shots.",
-      note: "The app sends both reference images to AtlasCloud. It does not license a person's likeness or product artwork. The performance and product motion are generative and must be checked before publishing.",
+        "Create a 15-second vertical UGC testimonial with the creator speaking to camera throughout. Choose a native-audio reference-to-video model that accepts two ordered images, then generate voice, mouth movement, and picture together in one pass. Image 1 controls the creator and room. Image 2 controls only the product. Keep the cup fully out of frame from 0.0 to 4.5 seconds, show it once from 4.5 to 7.0 seconds without blocking the face, and keep it fully out of frame from 7.0 to 15.0 seconds. Preserve the phone-shot character of the source. Do not add generated logos, music, unsupported claims, or cutaway product shots.",
+      note: "The app sends both reference images to the selected video provider. The finished sample used Seedance 2.5 on AtlasCloud. The app does not license a person's likeness or product artwork. The performance and product motion are generative and must be checked before publishing.",
       steps: [
         {
           id: "angle",
@@ -155,7 +155,7 @@ export const recipeGuides = {
           stage: "15-second script",
           title: "Write and generate in one pass",
           description:
-            "Keep the hook short enough to land before 4.5 seconds, support it with one or two product truths, and end with one recommendation. MiniMax H3 generates the exact dialogue, native voice, lip-sync, and picture together.",
+            "Keep the hook short enough to land before 4.5 seconds, support it with one or two product truths, and end with one recommendation. The selected native-audio model generates the dialogue, voice, lip-sync, and picture together. The finished sample used Seedance 2.5 on AtlasCloud.",
           action: "Make the 15-second testimonial",
           image: {
             src: "/apps/examples/ugc-product-video/motion-caption.jpg",
