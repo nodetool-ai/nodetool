@@ -900,7 +900,7 @@ const renderStoryboardClips: CapabilityExport = {
       style: isString(params["style"]) ? params["style"] : doc.style || "",
       scriptLines: scriptLinesById(scriptDoc?.sections ?? [])
     };
-    if (override === "keyframe" || override === "direct") {
+    if (override !== undefined) {
       planOptions.mode = override;
     }
     const plans = planShotRenders(
