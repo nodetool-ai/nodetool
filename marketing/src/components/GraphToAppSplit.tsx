@@ -15,7 +15,7 @@
 import React, { useMemo } from "react";
 import { ArrowDown, Layers, MousePointerClick } from "lucide-react";
 
-import WorkflowGraphFromJson from "./WorkflowGraphFromJson";
+import WorkflowFlowDiagram from "./WorkflowFlowDiagram";
 import { templateEntries } from "../data/templates";
 import { miniAppEntries } from "../data/miniApps";
 
@@ -81,12 +81,10 @@ export default function GraphToAppSplit() {
               {template.name}
             </span>
           </figcaption>
-          <div className="overflow-x-auto">
-            <WorkflowGraphFromJson
-              graph={template.graph}
-              ariaLabel={`${template.name} workflow graph`}
-            />
-          </div>
+          <WorkflowFlowDiagram
+            graph={template.graph}
+            ariaLabel={`${template.name} workflow graph`}
+          />
         </figure>
 
         <div className="flex justify-center py-6" aria-hidden>

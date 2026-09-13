@@ -1,14 +1,14 @@
 import React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, Play, Boxes, Check } from "lucide-react";
+import { ArrowLeft, Download, Play, Boxes, Check, Workflow } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
 import { faqPageSchema, toQaPairs } from "@/lib/jsonld";
 import FeaturesSection from "@/components/FeaturesSection";
 import UseCasesShowcase from "@/components/UseCasesShowcase";
-import WorkflowGraphFromJson from "@/components/WorkflowGraphFromJson";
+import WorkflowFlowDiagram from "@/components/WorkflowFlowDiagram";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import {
   landingEntries,
@@ -149,16 +149,16 @@ export default async function SolutionPage({
                 </h2>
               </div>
               <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 shadow-xl">
-                <div className="flex items-center gap-2 border-b border-white/5 bg-slate-900/80 px-4 py-3">
-                  <div className="h-3 w-3 rounded-full bg-sky-500/40" />
-                  <div className="h-3 w-3 rounded-full bg-amber-500/40" />
-                  <div className="h-3 w-3 rounded-full bg-emerald-500/40" />
-                  <span className="ml-3 text-xs font-medium text-slate-400">Workflow Editor</span>
+                <div className="flex items-center gap-3 border-b border-white/5 bg-slate-900/80 px-5 py-3">
+                  <Workflow className="h-4 w-4 text-sky-400" aria-hidden />
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Data flow
+                  </span>
                   <span className="ml-auto hidden text-xs font-medium text-slate-500 sm:block">
                     {template.name}
                   </span>
                 </div>
-                <WorkflowGraphFromJson
+                <WorkflowFlowDiagram
                   graph={template.graph}
                   ariaLabel={`${template.name} workflow graph`}
                 />
