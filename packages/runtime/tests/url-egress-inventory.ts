@@ -784,6 +784,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "The constant fal JWKS endpoint."
   ),
   fixedHost(
+    "packages/websocket/src/routes/atlascloud-webhook.ts",
+    "AtlasCloud webhook signature verification",
+    "none",
+    "The constant AtlasCloud JWKS endpoint."
+  ),
+  fixedHost(
     "packages/websocket/src/routes/kie-credits.ts",
     "KIE credits route",
     "KIE_API_KEY",

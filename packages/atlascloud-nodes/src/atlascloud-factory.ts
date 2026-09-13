@@ -29,8 +29,8 @@ import type {
   PromptAssetTextField
 } from "@nodetool-ai/runtime";
 import {
+  atlasAwaitResult,
   atlasDownload,
-  atlasPoll,
   atlasSubmit,
   getApiKey,
   pickOutputUrl,
@@ -745,7 +745,7 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
         specRef.modelId,
         input
       );
-      const result = await atlasPoll(apiKey, predictionId, {
+      const result = await atlasAwaitResult(apiKey, predictionId, {
         pollInterval: specRef.pollInterval ?? 3000,
         maxAttempts: specRef.maxAttempts ?? 600
       });
