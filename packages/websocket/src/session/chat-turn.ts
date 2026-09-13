@@ -868,7 +868,10 @@ export class ChatTurnHandler {
     }
   }
 
-  private async buildGenerationBlock(userId: string, threadId: string): Promise<string> {
+  private async buildGenerationBlock(
+    userId: string,
+    threadId: string
+  ): Promise<string> {
     try {
       const [rows, next] = await Prediction.listGenerations(userId, {
         threadId,
@@ -889,8 +892,12 @@ export class ChatTurnHandler {
         "Reuse completed assets. A missing tool response does not mean the generation failed. " +
           "Use get_generation or await_generation to check pending work before starting another paid render. " +
           "An interrupted record does not prove that the provider cancelled its request.",
-        next ? "Older records are available through list_generations with this thread_id." : ""
-      ].filter(Boolean).join("\n");
+        next
+          ? "Older records are available through list_generations with this thread_id."
+          : ""
+      ]
+        .filter(Boolean)
+        .join("\n");
     } catch (error) {
       log.warn("Failed to load conversation generations", {
         threadId,
@@ -1790,6 +1797,7 @@ export class ChatTurnHandler {
         (s) => s.name !== "view_image" && directNames.has(s.name)
       );
       codeactSession = createChatCodeActSession({
+        includeProductKnowledge: false,
         tools: allSchemas
           .filter((s) => s.name !== "view_image")
           .map((s) => ({
@@ -2882,7 +2890,15 @@ export class ChatTurnHandler {
       providerId,
       modelId,
       provider,
-      origin: { surface: "chat", thread_id: threadId || null },
+      origin: {
+        surface: "chat",
+        thread_id: threadId || null,
+        ...(isString(data.request_id)
+          ? { request_id: data.request_id }
+          : requestSeq !== undefined
+            ? { request_id: `chat:${threadId}:${requestSeq}` }
+            : {})
+      },
       threadId,
       workflowId: workflowId ?? null,
       projectId,

@@ -12,7 +12,12 @@
  */
 
 import { stampRenderInputs } from "@nodetool-ai/protocol";
-import type { ClipVersion, ImageRef, KeyframeVersion, Shot } from "@nodetool-ai/protocol";
+import type {
+  ClipVersion,
+  ImageRef,
+  KeyframeVersion,
+  Shot
+} from "@nodetool-ai/protocol";
 import type { StoryboardDocument } from "../document.js";
 import type { ShotRenderPlan } from "../render-plan.js";
 
@@ -21,11 +26,22 @@ export interface RenderGenerationRequest {
   /** Minted by the caller of `runGeneration`, so a background caller has it early. */
   id: string;
   provider: string;
-  capability: "text_to_image" | "image_to_video" | "reference_to_video" | "text_to_video";
+  capability:
+    | "text_to_image"
+    | "image_to_video"
+    | "reference_to_video"
+    | "text_to_video";
   model: string;
   params: Record<string, unknown>;
   /** Save the result as an asset: the board can only reference persisted media. */
   persist: { name: string; mime?: string };
+  /** Server-side destination retained if the caller disappears before attach. */
+  destination: {
+    document_id: string;
+    target_type: "storyboard_keyframe" | "storyboard_clip";
+    target_id: string;
+    selected: boolean;
+  };
 }
 
 export interface RenderGenerationResult {
@@ -41,7 +57,9 @@ export interface StoryboardSnapshot {
 
 export interface StoryboardRenderHost {
   /** Run one generation through the seam that records and persists it. */
-  runGeneration(request: RenderGenerationRequest): Promise<RenderGenerationResult>;
+  runGeneration(
+    request: RenderGenerationRequest
+  ): Promise<RenderGenerationResult>;
   /** Read the board; null when it is gone or not owned. */
   getStoryboard(id: string): Promise<StoryboardSnapshot | null>;
   /**
@@ -163,7 +181,9 @@ const isError = (value: unknown): value is { error: string } =>
   typeof (value as { error?: unknown }).error === "string";
 
 /** The provider capability a plan calls. */
-const capabilityFor = (plan: ShotRenderPlan): RenderGenerationRequest["capability"] =>
+const capabilityFor = (
+  plan: ShotRenderPlan
+): RenderGenerationRequest["capability"] =>
   plan.kind === "keyframe"
     ? "text_to_image"
     : plan.mode === "reference"
@@ -228,14 +248,25 @@ export async function renderShots(
         params["images"] = [seed];
       }
       if (capability === "reference_to_video" && !host.loadMedia) {
-        return { ...base, error: "Entity reference images cannot be read from storage." };
+        return {
+          ...base,
+          error: "Entity reference images cannot be read from storage."
+        };
       }
       if (capability === "reference_to_video" && host.loadMedia) {
         const references = await Promise.all(
           plan.referenceImages.map((reference) => host.loadMedia?.(reference))
         );
-        if (references.some((value) => !(value instanceof Uint8Array) || value.length === 0)) {
-          return { ...base, error: "A storyboard entity reference image could not be read from storage." };
+        if (
+          references.some(
+            (value) => !(value instanceof Uint8Array) || value.length === 0
+          )
+        ) {
+          return {
+            ...base,
+            error:
+              "A storyboard entity reference image could not be read from storage."
+          };
         }
         params["reference_images"] = references;
       }
@@ -250,7 +281,16 @@ export async function renderShots(
         capability,
         model: plan.model.model,
         params,
-        persist
+        persist,
+        destination: {
+          document_id: ref.id,
+          target_type:
+            plan.kind === "keyframe"
+              ? "storyboard_keyframe"
+              : "storyboard_clip",
+          target_id: plan.shotId,
+          selected: true
+        }
       });
       const asset = result.assets[0];
       if (!asset?.asset_id) {
@@ -292,7 +332,8 @@ export async function renderShots(
           const seconds = host.videoDurationSeconds(bytes);
           if (seconds !== null) clip.duration = seconds;
         }
-        const versions = current.clip_versions ?? (current.clip ? [current.clip] : []);
+        const versions =
+          current.clip_versions ?? (current.clip ? [current.clip] : []);
         return {
           ...current,
           clip,

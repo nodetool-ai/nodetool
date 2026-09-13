@@ -15,6 +15,7 @@
 import { randomUUID } from "node:crypto";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { ExecutionSession } from "../session.js";
+import { createFalGenerationLifecycleHooks } from "../generation-lifecycle.js";
 import { isExecutionPreflightError } from "../preflight.js";
 import { collectExecutionSummary } from "../debug/collector.js";
 import type {
@@ -52,7 +53,13 @@ export function createAppServerRunner(
       userId,
       secretResolver: (key: string) => getSecret(key, userId),
       storage: new FileStorageAdapter(getDefaultAssetsPath()),
-      assetStorage: options.assetStorage ?? null
+      assetStorage: options.assetStorage ?? null,
+      generationLifecycle: createFalGenerationLifecycleHooks({
+        userId,
+        jobId,
+        projectId: null,
+        publicUrl: process.env["NODETOOL_PUBLIC_URL"] ?? null
+      })
     });
     const sessionOptions: Parameters<typeof ExecutionSession.create>[0] = {
       graph: input.graph,

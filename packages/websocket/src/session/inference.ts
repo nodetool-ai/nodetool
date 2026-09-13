@@ -5,6 +5,7 @@ import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
 import { Asset, Prediction, Project } from "@nodetool-ai/models";
 import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
 import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
+import { GenerationAlreadyAcceptedError } from "@nodetool-ai/runtime";
 import {
   calculateChatCost,
   detectImageMime,
@@ -18,6 +19,7 @@ import type { GenerationReceipt } from "@nodetool-ai/protocol";
 import { linkGenerationAssets } from "@nodetool-ai/execution";
 import type {
   BaseProvider,
+  GenerationRequest,
   GenerationResult,
   ImageModel as ProviderImageModel,
   ImageToImageParams,
@@ -87,6 +89,13 @@ export interface DirectMediaGenerationRequest {
   useReferenceVideoAudio?: boolean;
   /** Project captured when the request was accepted. */
   projectId?: string | null;
+  destination?: GenerationRequest["destination"];
+}
+
+export interface DirectMediaGenerationResult {
+  asset_ids: string[];
+  /** Set when idempotency found an already accepted generation. */
+  existing_generation_id?: string;
 }
 
 /**
@@ -145,7 +154,10 @@ export function estimateDirectTextSpend(req: {
     req.provider === "nodetool" ? resolveNodetoolDelegate(req.model) : null;
   const modelId = delegate?.model ?? req.model;
   const providerId = delegate?.provider ?? req.provider;
-  const chars = req.messages.reduce((sum, m) => sum + messageChars(m.content), 0);
+  const chars = req.messages.reduce(
+    (sum, m) => sum + messageChars(m.content),
+    0
+  );
   const inputTokens = Math.ceil(chars / ESTIMATE_CHARS_PER_TOKEN);
   const outputTokens = req.maxTokens ?? ESTIMATE_DEFAULT_OUTPUT_TOKENS;
   try {
@@ -179,9 +191,7 @@ export interface DirectTextGenerationRequest {
  * Entity-mention resolver over the Asset model, scoped to one user. Backs
  * `expandEntitiesForGeneration` on every direct-generation surface.
  */
-export function entityRefResolver(
-  userId: string
-): {
+export function entityRefResolver(userId: string): {
   getAssetInfo: (assetId: string) => Promise<{
     id: string;
     content_type: string;
@@ -265,21 +275,30 @@ async function resolveReferenceAssets(
     if (!isRecord(ref) || (ref.type !== undefined && ref.type !== kind)) {
       throw new Error(`reference_to_video requires reference ${kind} objects`);
     }
-    const assetId = isString(ref.asset_id) && ref.asset_id.length > 0
-      ? ref.asset_id
-      : isString(ref.uri) && ref.uri.startsWith("asset://")
-        ? ref.uri.slice("asset://".length).split(".")[0]
-        : "";
+    const assetId =
+      isString(ref.asset_id) && ref.asset_id.length > 0
+        ? ref.asset_id
+        : isString(ref.uri) && ref.uri.startsWith("asset://")
+          ? ref.uri.slice("asset://".length).split(".")[0]
+          : "";
     if (!assetId) {
-      throw new Error(`reference_to_video reference ${kind} is missing an asset id`);
+      throw new Error(
+        `reference_to_video reference ${kind} is missing an asset id`
+      );
     }
     const asset = await Asset.find(userId, assetId);
-    if (!asset) throw new Error(`Reference ${kind} asset ${assetId} was not found`);
+    if (!asset)
+      throw new Error(`Reference ${kind} asset ${assetId} was not found`);
     if (!asset.content_type.startsWith(`${kind}/`)) {
-      throw new Error(`Reference ${kind} asset ${assetId} is not ${kind === "image" ? "an image" : "a video"}`);
+      throw new Error(
+        `Reference ${kind} asset ${assetId} is not ${kind === "image" ? "an image" : "a video"}`
+      );
     }
     const bytes = await retrieveAssetBytes(
-      getAssetAdapter(), userId, asset.id, asset.content_type
+      getAssetAdapter(),
+      userId,
+      asset.id,
+      asset.content_type
     );
     if (!bytes || bytes.length === 0) {
       throw new Error(`Reference ${kind} asset ${assetId} is empty`);
@@ -384,7 +403,10 @@ export class DirectInferenceHandler {
       })
       .filter((t) => t.name.length > 0);
 
-    const provider = await this.session.resolveProvider(providerId, this.session.requireUserId());
+    const provider = await this.session.resolveProvider(
+      providerId,
+      this.session.requireUserId()
+    );
     for await (const item of provider.generateMessagesTraced({
       messages,
       model,
@@ -542,7 +564,7 @@ export class DirectInferenceHandler {
    */
   async runDirectMediaGeneration(
     req: DirectMediaGenerationRequest
-  ): Promise<{ asset_ids: string[] }> {
+  ): Promise<DirectMediaGenerationResult> {
     if (!this.session.resolveProvider) {
       throw new Error("No provider resolver configured");
     }
@@ -557,16 +579,28 @@ export class DirectInferenceHandler {
         throw new Error("reference_to_video requires video mode");
       }
       if (req.sourceAssetId) {
-        throw new Error("reference_to_video uses reference_images and reference_videos, not source_asset_id");
+        throw new Error(
+          "reference_to_video uses reference_images and reference_videos, not source_asset_id"
+        );
       }
       if (!req.referenceImages?.length && !req.referenceVideos?.length) {
-        throw new Error("reference_to_video requires at least one reference image or video");
+        throw new Error(
+          "reference_to_video requires at least one reference image or video"
+        );
       }
       if (req.useReferenceVideoAudio && !req.referenceVideos?.length) {
-        throw new Error("Reference video audio requires at least one reference video");
+        throw new Error(
+          "Reference video audio requires at least one reference video"
+        );
       }
-    } else if (req.referenceImages?.length || req.referenceVideos?.length || req.useReferenceVideoAudio !== undefined) {
-      throw new Error("Reference inputs require the reference_to_video capability");
+    } else if (
+      req.referenceImages?.length ||
+      req.referenceVideos?.length ||
+      req.useReferenceVideoAudio !== undefined
+    ) {
+      throw new Error(
+        "Reference inputs require the reference_to_video capability"
+      );
     }
     const userId = this.session.requireUserId();
     if (req.projectId && req.projectId !== "default") {
@@ -575,7 +609,17 @@ export class DirectInferenceHandler {
     const provider = await this.session.resolveProvider(req.provider, userId);
     if (req.provider !== "nodetool") {
       // BYOK: the user's own keys, never metered.
-      return this.runDirectMediaGenerationInner(req, provider);
+      try {
+        return await this.runDirectMediaGenerationInner(req, provider);
+      } catch (error) {
+        if (error instanceof GenerationAlreadyAcceptedError) {
+          return {
+            asset_ids: [],
+            existing_generation_id: error.generationId
+          };
+        }
+        throw error;
+      }
     }
 
     // NodeTool's managed provider: admit against the balance (including
@@ -616,21 +660,32 @@ export class DirectInferenceHandler {
       // delegates bill per unit and track nothing themselves — and reaches the
       // row as the receipt, which wins over the catalog.
       const generationIds: string[] = [];
-      const result = await this.runDirectMediaGenerationInner(req, provider, {
-        generationIds,
-        statedCost: (tracked) => {
-          const cost = Math.max(tracked, estimatedUsd);
-          return cost > 0
-            ? {
-                amount: cost,
-                currency: "USD",
-                billing_unit: unit?.billing_unit ?? null,
-                quantity: variations,
-                unit_price: cost / variations
-              }
-            : null;
+      let result: DirectMediaGenerationResult;
+      try {
+        result = await this.runDirectMediaGenerationInner(req, provider, {
+          generationIds,
+          statedCost: (tracked) => {
+            const cost = Math.max(tracked, estimatedUsd);
+            return cost > 0
+              ? {
+                  amount: cost,
+                  currency: "USD",
+                  billing_unit: unit?.billing_unit ?? null,
+                  quantity: variations,
+                  unit_price: cost / variations
+                }
+              : null;
+          }
+        });
+      } catch (error) {
+        if (error instanceof GenerationAlreadyAcceptedError) {
+          return {
+            asset_ids: [],
+            existing_generation_id: error.generationId
+          };
         }
-      });
+        throw error;
+      }
       // The tracker writes best-effort and says so in its own log; the
       // managed path is the one that decrements a balance, so a row that did
       // not land is reported on the session as well.
@@ -662,7 +717,7 @@ export class DirectInferenceHandler {
       /** Every generation id this call opened, for the caller to verify. */
       generationIds: string[];
     }
-  ): Promise<{ asset_ids: string[] }> {
+  ): Promise<DirectMediaGenerationResult> {
     const userId = this.session.requireUserId();
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
 
@@ -675,6 +730,7 @@ export class DirectInferenceHandler {
       workflowId: null,
       projectId: req.projectId ?? null,
       assetNamePrefix: req.mode,
+      destination: req.destination,
       // The row names the RPC mode the way it always did.
       nodeType: () => `direct.${req.mode}`,
       // The delegate's running total, read once the assets are stored, as the
@@ -732,8 +788,16 @@ export class DirectInferenceHandler {
       };
       let generated: GenerationResult<Uint8Array>;
       if (req.capability === "reference_to_video") {
-        const referenceImages = await resolveReferenceAssets(userId, req.referenceImages ?? [], "image");
-        const referenceVideos = await resolveReferenceAssets(userId, req.referenceVideos ?? [], "video");
+        const referenceImages = await resolveReferenceAssets(
+          userId,
+          req.referenceImages ?? [],
+          "image"
+        );
+        const referenceVideos = await resolveReferenceAssets(
+          userId,
+          req.referenceVideos ?? [],
+          "video"
+        );
         generated = await generate(
           "reference_to_video",
           {
@@ -743,18 +807,19 @@ export class DirectInferenceHandler {
             use_reference_video_audio: req.useReferenceVideoAudio
           },
           { mime: "video/mp4" },
-          (abort) => provider.referenceToVideo(
-            { images: referenceImages, videos: referenceVideos },
-            {
-              model: videoModel,
-              prompt,
-              durationSeconds: req.durationSeconds ?? null,
-              aspectRatio: req.aspectRatio ?? null,
-              resolution: req.resolution ?? null,
-              useReferenceVideoAudio: req.useReferenceVideoAudio,
-              signal: abort
-            }
-          )
+          (abort) =>
+            provider.referenceToVideo(
+              { images: referenceImages, videos: referenceVideos },
+              {
+                model: videoModel,
+                prompt,
+                durationSeconds: req.durationSeconds ?? null,
+                aspectRatio: req.aspectRatio ?? null,
+                resolution: req.resolution ?? null,
+                useReferenceVideoAudio: req.useReferenceVideoAudio,
+                signal: abort
+              }
+            )
         );
       } else if (req.sourceAssetId) {
         // A source image turns the request into image-to-video: the image is
@@ -1155,7 +1220,10 @@ export class DirectInferenceHandler {
           status: "completed"
         });
       } catch (err) {
-        this.session.logError("direct transcription cost persistence failed", err);
+        this.session.logError(
+          "direct transcription cost persistence failed",
+          err
+        );
       }
     }
 

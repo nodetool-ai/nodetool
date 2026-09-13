@@ -235,6 +235,8 @@ function classifyError(message: string | undefined): string {
   if (m.includes("campaign plan is invalid")) return "missing-input";
   if (m.includes("creative contract is invalid")) return "missing-input";
   if (m.includes("ref with no uri, asset_id, or data")) return "missing-input";
+  if (m.includes("requires at least one reference image or video"))
+    return "missing-input";
   if (m.includes("required")) return "missing-input";
   if (m.includes("is empty")) return "missing-input";
   if (m.includes("no tiles provided")) return "missing-input";

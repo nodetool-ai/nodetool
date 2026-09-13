@@ -310,7 +310,7 @@
           "type": "str",
           "optional": true
         },
-        "default": "Aurora Trail running shoes: a third lighter than last season, grip that holds on wet rock, launching this Friday",
+        "default": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid, launching this Friday",
         "scope": "user",
         "persist": true
       },
@@ -321,7 +321,7 @@
           "type": "str",
           "optional": true
         },
-        "default": "Aurora Trail running shoes on wet black rock after rain. Low camera, restrained slate palette, sharp side light, visible water grip, no text in the image.",
+        "default": "Olive Travel Cup on a pale limestone cafe counter at warm sunrise. Editorial 50mm product photography, restrained sage, charcoal, and cream palette, clean negative space on the upper left, no text in the image.",
         "scope": "instance",
         "persist": false
       }

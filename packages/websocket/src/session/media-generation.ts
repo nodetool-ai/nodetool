@@ -14,14 +14,21 @@
 import { randomUUID } from "node:crypto";
 
 import { createLogger } from "@nodetool-ai/config";
+import { encryptFernet, getMasterKey } from "@nodetool-ai/security";
 import { Asset } from "@nodetool-ai/models";
-import { attachRunCostLedger } from "@nodetool-ai/execution";
+import {
+  attachRunCostLedger,
+  createFalGenerationLifecycleHooks,
+  createDurableGenerationLifecycle,
+  type DurableGenerationLifecycle
+} from "@nodetool-ai/execution";
 import { ProcessingContext as GenerationContext } from "@nodetool-ai/runtime";
 import type {
   BaseProvider,
   GenerationRequest,
   GenerationResult,
-  TextToMusicParams
+  TextToMusicParams,
+  GenerationRunOptions as RuntimeGenerationRunOptions
 } from "@nodetool-ai/runtime";
 import type { GenerationReceipt } from "@nodetool-ai/protocol";
 
@@ -54,6 +61,22 @@ export interface GenerationRunOptions {
   } | null;
   /** Called with every generation id this run opened. */
   onGenerationId?: (id: string) => void;
+  /** Set to null only for an explicitly ephemeral test or local host. */
+  durableLifecycle?: DurableGenerationLifecycle | null;
+  /** Optional destination attachment intent for durable recovery. */
+  destination?: GenerationRequest["destination"];
+}
+
+function publicHttpsBase(): string | null {
+  const configured = process.env["NODETOOL_PUBLIC_URL"]?.trim();
+  if (!configured) return null;
+  try {
+    const url = new URL(configured);
+    if (url.protocol !== "https:" || url.username || url.password) return null;
+    return url.toString().replace(/\/$/u, "");
+  } catch {
+    return null;
+  }
 }
 
 export interface GenerationRun {
@@ -102,11 +125,17 @@ export function createGenerationRun(
     signal,
     nodeType,
     receiptAfterPersist,
-    onGenerationId
+    onGenerationId,
+    durableLifecycle = providerId === "fal_ai" &&
+    process.env["NODETOOL_DISABLE_DURABLE_GENERATIONS"] !== "1"
+      ? createDurableGenerationLifecycle()
+      : null,
+    destination
   } = options;
 
+  const jobId = randomUUID();
   const context = new GenerationContext({
-    jobId: randomUUID(),
+    jobId,
     userId,
     threadId: threadId || null,
     projectId
@@ -121,10 +150,35 @@ export function createGenerationRun(
     ledgerOptions.nodeType = nodeType;
   }
   const ledger = attachRunCostLedger(context, ledgerOptions);
+  const lifecycleHooks =
+    durableLifecycle && providerId === "fal_ai"
+      ? createFalGenerationLifecycleHooks({
+          userId,
+          jobId,
+          projectId,
+          publicUrl: publicHttpsBase(),
+          lifecycle: durableLifecycle,
+          encryptCallbackToken: (token, ownerUserId) =>
+            encryptFernet(getMasterKey(), ownerUserId, token)
+        })
+      : null;
 
   return {
-    async generate(capability, params, persist, call, id) {
-      const result = await context.runGenerationWith(
+    async generate<T>(
+      capability: GenerationRequest["capability"],
+      params: Record<string, unknown>,
+      persist: GenerationRequest["persist"] | null | undefined,
+      call: (abort: AbortSignal) => Promise<T>,
+      id?: string
+    ) {
+      const runOptions: RuntimeGenerationRunOptions = {};
+      if (receiptAfterPersist) {
+        runOptions.receiptAfterPersist = receiptAfterPersist;
+      }
+      if (lifecycleHooks) {
+        Object.assign(runOptions, lifecycleHooks);
+      }
+      const result = await context.runGenerationWith<T>(
         {
           id,
           provider: providerId,
@@ -132,11 +186,12 @@ export function createGenerationRun(
           model: modelId,
           params,
           origin,
+          destination,
           persist: persist ? { ...persist, parentId: userId } : undefined,
           signal
         },
         (_provider, abort) => call(abort),
-        receiptAfterPersist ? { receiptAfterPersist } : undefined
+        runOptions
       );
       onGenerationId?.(result.id);
       await ledger.settled();
@@ -189,7 +244,8 @@ export function pcmToWav(pcm: Uint8Array, sampleRate: number): Uint8Array {
   const header = new ArrayBuffer(44);
   const dv = new DataView(header);
   const writeStr = (pos: number, str: string) => {
-    for (let i = 0; i < str.length; i++) dv.setUint8(pos + i, str.charCodeAt(i));
+    for (let i = 0; i < str.length; i++)
+      dv.setUint8(pos + i, str.charCodeAt(i));
   };
   writeStr(0, "RIFF");
   dv.setUint32(4, 36 + pcm.byteLength, true);
@@ -267,7 +323,11 @@ export async function generateSpeechBytes(
   const encoded = await provider.textToSpeechEncoded(providerRequest);
   if (encoded) {
     const ext = ENCODED_AUDIO_MIME_TO_EXT[encoded.mimeType] ?? "flac";
-    if (requestedFormat && requestedFormat !== ext && requestedFormat !== "pcm") {
+    if (
+      requestedFormat &&
+      requestedFormat !== ext &&
+      requestedFormat !== "pcm"
+    ) {
       log.warn(
         "Requested audio_format not supported by provider; returning native format",
         {

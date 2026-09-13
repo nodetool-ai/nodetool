@@ -2073,6 +2073,21 @@ renders, …) returns the `generation_id` next to the asset. `background: true`
 returns the id at once and leaves the follower to finish the job; at most 16
 may be open per run, and `await_generation` collects them.
 
+#### Durable generation recovery selfcheck
+
+The `generation-recovery` harness exercises durable acceptance, lease fencing,
+FAL queue submission and binding, receipt ordering, and signed webhook inbox
+deduplication with local databases and fake HTTP responses. It never calls a
+paid provider endpoint.
+
+```bash
+npm run dev:nodetool -- harness gate --files packages/execution/src/generation-recovery-worker.ts
+```
+
+The gate selects the focused model, execution, runtime, and websocket suites
+registered in `packages/cli/src/harness/registry.ts`. Live FAL callback and
+billing canaries remain separate operational checks.
+
 ### nodetool storage
 
 Asset objects live at `<userId>/<assetId>.<ext>` so the owner is the leading

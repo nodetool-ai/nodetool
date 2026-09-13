@@ -1,0 +1,619 @@
+{
+  "slug": "ugc-product-video",
+  "name": "UGC Product Video",
+  "emoji": "🤳",
+  "description": "Start with creator and product references plus a 15-second script. MiniMax H3 generates the performance, lip-sync, and voice together, with the product limited to one short middle proof beat.",
+  "tagline": "One face. One take. Fifteen seconds.",
+  "note": "🔑 Writing uses OpenAI. The testimonial uses MiniMax H3 on AtlasCloud with native audio.",
+  "featured": true,
+  "image": "/app-preview/img/ugc-product-video.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🤳 UGC Product Video",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One face. One take. Fifteen seconds."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "🔑 Writing uses OpenAI. The testimonial uses MiniMax H3 on AtlasCloud with native audio."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-1-choose-the-angle",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-1-choose-the-angle",
+                  "title": "1 · Choose the angle",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-offer",
+                        "binding": "var:offer",
+                        "label": "What are you selling?",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "Pick the promise before touching footage. A UGC hook should create curiosity without making a claim the product cannot support."
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-copy",
+                        "label": "Explore three angles",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "copy",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:copy/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-1-choose-the-angle-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-copy",
+                        "binding": "op:copy/exec#progress",
+                        "label": "Writing three routes…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-copy",
+                        "binding": "op:copy/exec#error",
+                        "title": "The angle pass failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:copy/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-copy-variants",
+                        "text": "Angles to adapt",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-copy-variants",
+                        "binding": "op:copy/out:out",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-2-generate-one-continuous-testimonial",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-2-generate-one-continuous-testimonial",
+                  "title": "2 · Generate one continuous testimonial",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-2",
+                        "text": "Image 1 anchors the creator and room. Image 2 anchors only the product. MiniMax H3 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
+                      }
+                    },
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-creatorimage",
+                        "binding": "var:creatorImage",
+                        "label": "Vertical creator image",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-productimage",
+                        "binding": "var:productImage",
+                        "label": "Clean product image",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-creatorscript",
+                        "binding": "var:creatorScript",
+                        "label": "Complete 15-second script",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-creator",
+                        "label": "Make the 15-second testimonial",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "creator",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:creator/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-2-generate-one-continuous-testimonial-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-creator",
+                        "binding": "op:creator/exec#progress",
+                        "label": "Generating voice, lip-sync, and motion together…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-creator",
+                        "binding": "op:creator/exec#error",
+                        "title": "The creator testimonial failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:creator/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-creatorclip",
+                        "text": "Continuous creator testimonial",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-creatorclip",
+                        "binding": "var:creatorClip",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-3-review-the-complete-reel",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-3-review-the-complete-reel",
+                  "title": "3 · Review the complete Reel",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-audience",
+                        "binding": "var:audience",
+                        "label": "Audience",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-3",
+                        "text": "Watch once for voice and lip-sync, then again for product timing. The cup should appear once for no more than about three seconds and be absent from the opening and close."
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-3-review-the-complete-reel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-creatorclip-2",
+                        "text": "15-second UGC Reel",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-creatorclip-2",
+                        "binding": "var:creatorClip",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "copy",
+        "name": "Angles",
+        "workflowId": "copy",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "offer"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "creator",
+        "name": "Creator testimonial",
+        "workflowId": "creator",
+        "inputs": {
+          "creator-image": {
+            "from": "variable",
+            "variableId": "creatorImage"
+          },
+          "product-image": {
+            "from": "variable",
+            "variableId": "productImage"
+          },
+          "script": {
+            "from": "variable",
+            "variableId": "creatorScript"
+          },
+          "product": {
+            "from": "variable",
+            "variableId": "offer"
+          }
+        },
+        "outputs": {
+          "video-out": {
+            "to": "variable",
+            "variableId": "creatorClip"
+          }
+        },
+        "policy": "replace",
+        "timeoutMs": 600000
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "offer",
+        "name": "Offer",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid for a calmer morning routine",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "creatorImage",
+        "name": "Vertical creator reference",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "productImage",
+        "name": "Product reference",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "creatorScript",
+        "name": "15-second creator script",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "I did not expect a travel cup to fix my mornings, but this one did. The lid never leaks in my bag, the finish feels great, and my coffee stays hot through my first meeting. I use it every day.",
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "creatorClip",
+        "name": "Creator testimonial",
+        "type": {
+          "type": "video",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "audience",
+        "name": "Audience",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "busy professionals who want a calmer start to the day",
+        "scope": "user",
+        "persist": true
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "copy",
+      "name": "Ad Copy in Three Registers",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "offer",
+              "value": "",
+              "description": "The offer to advertise"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Input"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "variants"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Output"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "creator",
+      "name": "Generate a Native-Audio UGC Testimonial",
+      "graph": {
+        "nodes": [
+          {
+            "id": "creator-image",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "creator_image",
+              "value": null,
+              "description": "Image 1: vertical reference showing the creator, setting, and wardrobe without the product"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 100
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Creator reference"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "product-image",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "product_image",
+              "value": null,
+              "description": "Image 2: clean product reference used only for the brief middle proof beat"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Product reference"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "script",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "script",
+              "value": "I did not expect a travel cup to fix my mornings, but this one did. The lid never leaks in my bag, the finish feels great, and my coffee stays hot through my first meeting. I use it every day.",
+              "description": "Exact words the video model should voice"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Spoken script"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "product",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "product",
+              "value": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid",
+              "description": "Product description used for the brief middle proof beat"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 770
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4  Product brief"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "video-out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "video"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1240,
+                "y": 220
+              },
+              "zIndex": 0,
+              "width": 260,
+              "selectable": true,
+              "title": "8  Native-audio testimonial"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:copy/out:out": "**Plain**\nA matte cup with a charcoal lid for the morning routine.\n\n**Playful**\nThe cup that makes it out the door with you.\n\n**Premium**\nA quieter start, designed to travel.",
+    "var:creatorClip": "/app-preview/media/ugc-product-video/final.mp4",
+    "var:offer": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid for a calmer morning routine",
+    "var:creatorScript": "I did not expect a travel cup to fix my mornings, but this one did. The lid never leaks in my bag, the finish feels great, and my coffee stays hot through my first meeting. I use it every day.",
+    "var:audience": "busy professionals who want a calmer start to the day"
+  }
+}

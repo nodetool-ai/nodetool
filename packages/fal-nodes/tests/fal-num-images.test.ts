@@ -9,7 +9,19 @@ vi.mock("../src/fal-base.js", () => ({
     uri: image.url
   }),
   falSubmit,
-  falSubmitWithMeta: async (...args) => ({ data: await falSubmit(...args), requestId: "req-test" }),
+  falSubmitWithMeta: async (...args) => ({
+    data: await falSubmit(...args),
+    requestId: "req-test"
+  }),
+  falSubmitWithGeneration: async (
+    apiKey: string,
+    endpoint: string,
+    args: Record<string, unknown>
+  ) => ({
+    data: await falSubmit(apiKey, endpoint, args),
+    requestId: "req-test"
+  }),
+  falCapabilityForOutputType: () => "text_to_image",
   getFalApiKey: () => "test-key",
   imageToDataUrl: vi.fn(async () => null),
   isRefSet: () => false,
@@ -73,7 +85,9 @@ describe("FAL single-output image generation", () => {
     falSubmit.mockResolvedValue({ images: [{ url: "u1" }] });
 
     const NodeClass = makeNode();
-    const instance = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
+    const instance = new (NodeClass as new () => InstanceType<
+      typeof NodeClass
+    >)();
     instance.assign({ prompt: "cat", num_images: 4 });
 
     await instance.process();
@@ -89,7 +103,9 @@ describe("FAL single-output image generation", () => {
     });
 
     const NodeClass = makeNode();
-    const instance = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
+    const instance = new (NodeClass as new () => InstanceType<
+      typeof NodeClass
+    >)();
     instance.assign({ prompt: "cat" });
 
     const result = await instance.process();

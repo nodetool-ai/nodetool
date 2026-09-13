@@ -131,6 +131,17 @@ const GAME_FLOW_SUITES =
   "npm run test --workspace=web -- src/components/setup/game src/hooks/game src/lib/tools/builtin/__tests__/gameSetupTools";
 
 /**
+ * Durable generation recovery without a provider call. These suites exercise
+ * acceptance and lease fencing, explicit FAL queue binding, receipt ordering,
+ * lifecycle persistence, and signed inbox deduplication against local fakes.
+ */
+const GENERATION_RECOVERY_SUITES =
+  "npm run test --workspace=packages/models -- durable-generation prediction-generations schema-parity migration-schema-parity && " +
+  "npm run test --workspace=packages/execution -- durable-generation-lifecycle generation-recovery-worker fal-output-decoder && " +
+  "npm run test --workspace=packages/runtime -- generation-acceptance-order generation-receipt-binding fal-queue && " +
+  "npm run test --workspace=packages/websocket -- fal-webhook";
+
+/**
  * The 3D-clip suites: the render session `model3d` layers draw through in the
  * browser, and the headless pre-pass that draws them for
  * `preview_timeline_frame`. One constant so the entry's `command` and its
@@ -223,7 +234,8 @@ export const HARNESSES: HarnessEntry[] = [
   },
   {
     id: "reliability-ring0",
-    title: "Reliability Ring 0 (golden journeys on the kernel, strict lifecycle)",
+    title:
+      "Reliability Ring 0 (golden journeys on the kernel, strict lifecycle)",
     command: "npm run reliability:ring0",
     kind: "execution",
     capabilities: ["gated:pr"],
@@ -239,14 +251,15 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "docs/harnesses.md § nodetool node run",
     selfcheck: {
       command:
-        "npm run dev:nodetool -- node run nodetool.text.Concat --props '{\"a\":\"harness-\",\"b\":\"gate\"}' --no-secrets",
+        'npm run dev:nodetool -- node run nodetool.text.Concat --props \'{"a":"harness-","b":"gate"}\' --no-secrets',
       cost: "cheap"
     }
   },
   {
     id: "blender",
     title: "Blender headless render (nodetool.blender.* nodes)",
-    command: "nodetool node run nodetool.blender.RenderImage --props '<fixture>'",
+    command:
+      "nodetool node run nodetool.blender.RenderImage --props '<fixture>'",
     kind: "execution",
     capabilities: ["json", "no-db"],
     docs: "docs/blender-headless-integration-design.md",
@@ -255,13 +268,14 @@ export const HARNESSES: HarnessEntry[] = [
       // Expensive on purpose: Blender startup plus a render, and it needs
       // the Blender binary, so the default gate skips it without --expensive.
       command:
-        "npm run dev:nodetool -- node run nodetool.blender.RenderImage --props \"$(cat packages/blender-nodes/tests/fixtures/render-image-props.json)\" --no-secrets",
+        'npm run dev:nodetool -- node run nodetool.blender.RenderImage --props "$(cat packages/blender-nodes/tests/fixtures/render-image-props.json)" --no-secrets',
       cost: "expensive"
     }
   },
   {
     id: "dsl-native-flow",
-    title: "Native flow (call a node as a function, host backend + guest surface)",
+    title:
+      "Native flow (call a node as a function, host backend + guest surface)",
     // No CLI command owns it: the public surface is the sandbox pack
     // @nodetool-ai/sandbox-flow, and the host side is internal to
     // packages/dsl. The checked-in suites are the headless surface — they call
@@ -366,7 +380,8 @@ export const HARNESSES: HarnessEntry[] = [
   },
   {
     id: "timeline-audio-drive",
-    title: "Audio-driven clip motion (bake_audio_animation → the animation fold)",
+    title:
+      "Audio-driven clip motion (bake_audio_animation → the animation fold)",
     // No CLI command owns it: the surface is the `bake_audio_animation`
     // capability plus the compose rule it depends on in the animation engine
     // (`scale: "multiply"` in `ANIMATED_PROPERTY_FOLD` — a baked curve must
@@ -563,7 +578,8 @@ export const HARNESSES: HarnessEntry[] = [
   },
   {
     id: "packs-compile",
-    title: "Sandbox npm module compiler (bundle, scan, probe, cache) and the shipped bridge packs",
+    title:
+      "Sandbox npm module compiler (bundle, scan, probe, cache) and the shipped bridge packs",
     command: "nodetool packs compile [--json] [--force]",
     kind: "static",
     capabilities: ["json", "no-db"],
@@ -600,7 +616,8 @@ export const HARNESSES: HarnessEntry[] = [
   },
   {
     id: "workflow-plan",
-    title: "Workflow plan → graph (planner contract, builder, inspiration chips)",
+    title:
+      "Workflow plan → graph (planner contract, builder, inspiration chips)",
     // No CLI command owns the planner: the surface is a plan on a workflow's
     // `settings.setup` and the graph it builds. The checked-in suites are the
     // headless surface — they build every shipped chip's plan against the real
@@ -615,7 +632,8 @@ export const HARNESSES: HarnessEntry[] = [
   },
   {
     id: "game-flow",
-    title: "Game flow (design contract, slot graph, export node, headless tools)",
+    title:
+      "Game flow (design contract, slot graph, export node, headless tools)",
     // No CLI command owns the flow: the surface is `settings.game` on a
     // workflow and the Godot project the graph it builds writes. The checked-in
     // suites are the headless surface — they build every shipped chip's design
@@ -637,8 +655,7 @@ export const HARNESSES: HarnessEntry[] = [
     // or a model calls. The checked-in suites are the headless surface, and
     // `packages/cli/src/harness/capability-table.ts` says which suite covers
     // which capability — the audit fails on one that names none.
-    command:
-CAPABILITY_SUITES,
+    command: CAPABILITY_SUITES,
     kind: "static",
     // Runs in CI as part of the whole-package `--filter=@nodetool-ai/agents`
     // leg, but no workflow names this filtered command specifically, so it
@@ -648,11 +665,18 @@ CAPABILITY_SUITES,
     selfcheck: {
       // `capabilities:check` re-derives the table from the live registry, so
       // a capability added without a mapping fails here rather than in review.
-      command:
-        "npm run capabilities:check && " +
-CAPABILITY_SUITES,
+      command: "npm run capabilities:check && " + CAPABILITY_SUITES,
       cost: "cheap"
     }
+  },
+  {
+    id: "generation-recovery",
+    title: "Durable generation recovery (leases, FAL queue, and webhook inbox)",
+    command: GENERATION_RECOVERY_SUITES,
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § Durable generation recovery selfcheck",
+    selfcheck: { command: GENERATION_RECOVERY_SUITES, cost: "cheap" }
   },
   {
     id: "graph-resources",
@@ -667,8 +691,7 @@ CAPABILITY_SUITES,
     // sequence, E4's retargets have to leave every clip's start and duration
     // where the approved cut put them, E3's export has to write every slot the
     // platformer manifest declares.
-    command:
-      `${GRAPH_RESOURCES_SUITES} && npm run fixtures:graph-resources`,
+    command: `${GRAPH_RESOURCES_SUITES} && npm run fixtures:graph-resources`,
     kind: "execution",
     capabilities: [],
     docs: "docs/harnesses.md § graph-resource fixtures",
@@ -680,8 +703,7 @@ CAPABILITY_SUITES,
   {
     id: "jtbd",
     title: "Jobs to be done (end-to-end agent jobs, recorded for review)",
-    command:
-      "nodetool jtbd <list|run|optimize> [-p <provider> -m <model>]",
+    command: "nodetool jtbd <list|run|optimize> [-p <provider> -m <model>]",
     kind: "eval",
     capabilities: ["json"],
     docs: "docs/harnesses.md § nodetool jtbd",
@@ -697,8 +719,7 @@ CAPABILITY_SUITES,
   {
     id: "provider-codegen",
     title: "Generated provider metadata drift (FAL and KIE fixture mode)",
-    command:
-      "npm run generate:fal:check && npm run generate:kie:check",
+    command: "npm run generate:fal:check && npm run generate:kie:check",
     kind: "static",
     capabilities: ["json", "no-db", "gated:pr"],
     docs: "AGENTS.md § Common Pitfalls",
@@ -821,7 +842,8 @@ CAPABILITY_SUITES,
     id: "node-pack-parity",
     title:
       "Node-pack example-workflow parity (every shipped node covered by an example)",
-    command: "npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows",
+    command:
+      "npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows",
     kind: "static",
     // Runs in the quality-checks.yml typecheck leg (pull_request-triggered),
     // by this exact command.
@@ -923,8 +945,9 @@ export const SURFACES: SurfaceEntry[] = [
   },
   {
     id: "generation-tracking",
-    title: "Media generation tracking (the seam, the tracker, the generations capabilities)",
-    harnesses: ["capability-suites"],
+    title:
+      "Media generation tracking (the seam, the tracker, the generations capabilities)",
+    harnesses: ["capability-suites", "generation-recovery"],
     // `capability-suites` runs the tracker, seam and capability suites named
     // in the capability table, plus the seam audit that fails on a provider
     // media call outside `runGeneration` (packages/execution/tests/
@@ -932,9 +955,17 @@ export const SURFACES: SurfaceEntry[] = [
     // docs/media-generation-tracking-design.md.
     paths: [
       "packages/execution/src/generation-tracker.ts",
+      "packages/execution/src/generation-lifecycle.ts",
+      "packages/execution/src/generation-recovery-worker.ts",
+      "packages/models/src/durable-generation.ts",
+      "packages/models/src/schema/generation-",
+      "packages/models/src/schema-pg/generation-",
       "packages/runtime/src/generation-receipt.ts",
       "packages/runtime/src/generation-registry.ts",
+      "packages/runtime/src/providers/fal-queue.ts",
+      "packages/runtime/src/providers/provider-queue.ts",
       "packages/runtime/src/redact-params.ts",
+      "packages/websocket/src/routes/fal-webhook.ts",
       "packages/agents/src/capabilities/generations.ts",
       "packages/agents/src/capabilities/generations.specs.ts",
       "packages/cli/src/commands/generations.ts"
@@ -942,7 +973,8 @@ export const SURFACES: SurfaceEntry[] = [
   },
   {
     id: "live-browser",
-    title: "Live browser (browser_* capabilities, CDP, the Chrome extension relay)",
+    title:
+      "Live browser (browser_* capabilities, CDP, the Chrome extension relay)",
     harnesses: ["capability-suites"],
     // `capability-suites` covers the seam — dispatch, classification, and what
     // a process with no action layer answers. The half below it runs in
@@ -957,11 +989,12 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/agents/src/capabilities/browser.ts",
       "packages/agents/src/capabilities/browser.specs.ts",
       "packages/websocket/src/extension-cdp-bridge.ts"
-    ],
+    ]
   },
   {
     id: "provider-clients",
-    title: "LLM and media provider clients (request shaping + response decoding)",
+    title:
+      "LLM and media provider clients (request shaping + response decoding)",
     harnesses: ["provider-contract", "eval"],
     paths: [
       "packages/runtime/src/providers/",
@@ -1078,7 +1111,8 @@ export const SURFACES: SurfaceEntry[] = [
   },
   {
     id: "timeline-audio-drive",
-    title: "Audio-driven timeline motion (bake_audio_animation, audio analysis)",
+    title:
+      "Audio-driven timeline motion (bake_audio_animation, audio analysis)",
     harnesses: ["timeline-audio-drive", "capability-suites"],
     // Overlaps the wholesale claims on `packages/timeline/` (surface
     // `timeline`) and `packages/agents/` (surface `workflow-authoring`), so a
@@ -1228,7 +1262,8 @@ export const SURFACES: SurfaceEntry[] = [
   },
   {
     id: "godot",
-    title: "Godot game pipeline (slot contract, game nodes, project writer, templates, godot capabilities)",
+    title:
+      "Godot game pipeline (slot contract, game nodes, project writer, templates, godot capabilities)",
     harnesses: ["capability-suites"],
     paths: [
       "packages/protocol/src/game-assets.ts",
@@ -1289,7 +1324,8 @@ export const SURFACES: SurfaceEntry[] = [
   },
   {
     id: "sandbox-packages",
-    title: "Sandbox packages (guest modules, host modules, npm compilation, catalog)",
+    title:
+      "Sandbox packages (guest modules, host modules, npm compilation, catalog)",
     harnesses: ["packs-compile", "validate"],
     paths: [
       "packages/sandbox-compiler/",
@@ -1336,7 +1372,8 @@ export const SURFACES: SurfaceEntry[] = [
   },
   {
     id: "provider-codegen",
-    title: "Generated FAL, KIE, and Replicate provider metadata (node manifests, node source)",
+    title:
+      "Generated FAL, KIE, and Replicate provider metadata (node manifests, node source)",
     harnesses: ["provider-codegen"],
     paths: [
       "packages/fal-codegen/",
@@ -1512,7 +1549,7 @@ export const SURFACES: SurfaceEntry[] = [
       "loader against its own tree. The one part the root gate does reach is " +
       "the recipe pages, whose data comes from the shipped manifests — that " +
       "is the `recipes` harness above. A fuller harness would drive the built " +
-      "site the way the debug harness drives the graph canvas.",
+      "site the way the debug harness drives the graph canvas."
   },
   {
     id: "harness-registry",
@@ -1650,7 +1687,10 @@ export function auditPathClaims(
   surfaces: SurfaceEntry[] = SURFACES,
   unclaimed: Record<string, string> = UNCLAIMED_PATHS
 ): string[] {
-  const claims = [...surfaces.flatMap((s) => s.paths), ...Object.keys(unclaimed)];
+  const claims = [
+    ...surfaces.flatMap((s) => s.paths),
+    ...Object.keys(unclaimed)
+  ];
   return rootDirs.filter((dir) => {
     const prefix = dir.endsWith("/") ? dir : `${dir}/`;
     return !claims.some((p) => p.startsWith(prefix) || prefix.startsWith(p));

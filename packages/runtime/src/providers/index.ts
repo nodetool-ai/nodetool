@@ -76,6 +76,29 @@ export {
   providerCapabilities
 } from "./base-provider.js";
 export {
+  FAL_PROVIDER_ID,
+  FAL_QUEUE_ORIGIN,
+  FAL_QUEUE_STATES,
+  createFalQueueOperations,
+  decodeFalQueueResult,
+  falSubmitAndWait,
+  type FalQueueOperations,
+  type FalQueueOperationsOptions,
+  type FalQueueResult,
+  type FalQueueState,
+  type FalQueueSubmission,
+  type FalQueueSubmitInput
+} from "./fal-queue.js";
+export type {
+  ProviderQueueAdapter,
+  ProviderQueueBinding,
+  ProviderQueueObservation,
+  ProviderQueueState,
+  ProviderQueueSubmission,
+  ProviderQueueWaitOptions
+} from "./provider-queue.js";
+export { ProviderQueueTerminalError } from "./provider-queue.js";
+export {
   anthropicContextExceeded,
   geminiContextExceeded,
   openAIContextExceeded,

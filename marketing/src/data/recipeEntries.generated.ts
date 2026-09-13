@@ -145,6 +145,128 @@ export const recipeEntries: RecipeEntry[] = [
   },
   {
     "sample": null,
+    "productionRun": null,
+    "guide": {
+      "entry": "UGC Product Video",
+      "stages": [
+        "Angle",
+        "References",
+        "Generate",
+        "Review"
+      ],
+      "introduction": "Keep the creator on camera for the full Reel, generate voice and lip-sync in the same MiniMax H3 pass, and limit the cup to one proof beat of no more than about three seconds.",
+      "inputs": [
+        "One vertical creator image you have permission to send to AtlasCloud",
+        "One clean product reference you have permission to send to AtlasCloud",
+        "Approved product facts and one audience",
+        "OpenAI and AtlasCloud providers configured in NodeTool"
+      ],
+      "brief": "Create a 15-second vertical UGC testimonial with the creator speaking to camera throughout. Generate voice, mouth movement, and picture together in one MiniMax H3 native-audio pass on AtlasCloud. Image 1 controls the creator and room. Image 2 controls only the product. Keep the cup fully out of frame from 0.0 to 4.5 seconds, show it once from 4.5 to 7.0 seconds without blocking the face, and keep it fully out of frame from 7.0 to 15.0 seconds. Preserve the phone-shot character of the source. Do not add generated logos, music, unsupported claims, or cutaway product shots.",
+      "note": "The app sends both reference images to AtlasCloud. It does not license a person's likeness or product artwork. The performance and product motion are generative and must be checked before publishing.",
+      "steps": [
+        {
+          "id": "angle",
+          "phase": "Angle",
+          "stage": "Three routes",
+          "title": "Choose one believable promise",
+          "description": "Describe the offer and compare the plain, playful, and premium routes. Pick one product truth that can be shown on camera. Rewrite it as a curiosity-led hook and a short verdict rather than reading the ad copy verbatim.",
+          "action": "Explore three angles"
+        },
+        {
+          "id": "creator",
+          "phase": "Creator",
+          "stage": "Reference image",
+          "title": "Lock the creator before generating",
+          "description": "Use a vertical image with a clear face, natural light, and the intended room. Keep the product out of this reference so the opening can begin on the creator alone.",
+          "action": "Add the creator image"
+        },
+        {
+          "id": "product",
+          "phase": "References",
+          "stage": "Product image",
+          "title": "Assign each reference one job",
+          "description": "Add a clean product image as image 2. It controls only silhouette, finish, lid, and proportions. Its background must not transfer to the creator scene.",
+          "action": "Add the product image"
+        },
+        {
+          "id": "dialogue",
+          "phase": "Generate",
+          "stage": "15-second script",
+          "title": "Write and generate in one pass",
+          "description": "Keep the hook short enough to land before 4.5 seconds, support it with one or two product truths, and end with one recommendation. MiniMax H3 generates the exact dialogue, native voice, lip-sync, and picture together.",
+          "action": "Make the 15-second testimonial"
+        },
+        {
+          "id": "inspect",
+          "phase": "Review",
+          "stage": "Timing and identity",
+          "title": "Check the complete Reel",
+          "description": "Watch once for voice and lip-sync, then scrub the opening, 4.5-second entrance, 7.0-second exit, and close. Reject a take if the cup appears outside the 2.5-second window, blocks the face, or drifts from image 2.",
+          "action": "Approve or regenerate"
+        }
+      ]
+    },
+    "route": "/recipes/ugc-product-video",
+    "title": "UGC product video | NodeTool guided recipe",
+    "description": "Turn creator and product references into a 15-second vertical testimonial whose voice and lip movement are generated together.",
+    "priority": 0.8,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "ugc-product-video",
+    "name": "UGC product video",
+    "outcome": "Turn creator and product references into a 15-second vertical testimonial whose voice and lip movement are generated together.",
+    "audience": "Founder-led brands, creators, and paid social teams",
+    "heroThumbnail": "/apps/ugc-product-video.png",
+    "bundle": "/recipes/ugc-product-video.nodetool",
+    "workflowCount": 2,
+    "nodeCount": 11,
+    "keys": [
+      {
+        "provider": "openai",
+        "env": "OPENAI_API_KEY"
+      },
+      {
+        "provider": "atlascloud",
+        "env": "ATLASCLOUD_API_KEY"
+      }
+    ],
+    "steps": [
+      {
+        "template": "ad-copy-in-three-registers",
+        "name": "Ad Copy in Three Registers",
+        "route": "/templates/ad-copy-in-three-registers",
+        "role": "Choose the angle",
+        "handoff": "Compare plain, playful, and premium routes before writing one spoken 15-second testimonial.",
+        "thumbnail": "/templates/ad-copy-in-three-registers.jpg",
+        "nodeCount": 3,
+        "models": [
+          {
+            "provider": "openai",
+            "model": "gpt-5-mini"
+          }
+        ],
+        "alternative": null
+      },
+      {
+        "template": "generate-a-native-audio-ugc-testimonial",
+        "name": "Generate a Native-Audio UGC Testimonial",
+        "route": "/templates/generate-a-native-audio-ugc-testimonial",
+        "role": "Generate the creator testimonial",
+        "handoff": "Give MiniMax H3 image 1 for creator identity and image 2 for product identity. Generate voice, lip-sync, motion, and the brief 4.5–7.0 second product beat in one AtlasCloud pass.",
+        "thumbnail": null,
+        "nodeCount": 8,
+        "models": [
+          {
+            "provider": "atlascloud",
+            "model": "minimax/h3/reference-to-video"
+          }
+        ],
+        "alternative": null
+      }
+    ]
+  },
+  {
+    "sample": null,
     "productionRun": {
       "runId": "2026-09-12-tiny-film-crew",
       "status": "partial",

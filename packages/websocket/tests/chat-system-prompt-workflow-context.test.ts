@@ -1,8 +1,28 @@
 import { describe, expect, it } from "vitest";
+import type { ChatSource } from "@nodetool-ai/protocol";
 
 import { buildChatAgentSystemPrompt } from "../src/websocket-client-session.js";
 
 describe("buildChatAgentSystemPrompt — the workflow the turn is bound to", () => {
+  const sources = [
+    "workspace_chat", "workflow_canvas", "sketch_assistant",
+    "timeline_assistant", "storyboard_assistant", "script_assistant",
+    "jsscript_assistant", "app_builder", "code_assistant", "text_editor",
+    "model3d_assistant"
+  ] as const satisfies readonly ChatSource[];
+
+  it.each(sources)("keeps product knowledge with surface guidance (%s)", (source) => {
+    for (const mode of ["default", "auto", "plan"] as const) {
+      const prompt = buildChatAgentSystemPrompt(mode, "Help edit this document.", { source });
+      expect(prompt.match(/# NodeTool product knowledge/g)).toHaveLength(1);
+      expect(prompt).toContain("A project groups related work");
+      expect(prompt).toContain("A workflow is a saved, repeatable graph");
+      expect(prompt).toContain("characters, locations, styles, and props");
+      expect(prompt).toContain("Help edit this document.");
+      expect(prompt).not.toContain("Chat has no way to create");
+    }
+  });
+
   it("names the bound workflow when the client sends no ui_context", () => {
     const prompt = buildChatAgentSystemPrompt("default", null, null, "wf-42");
     expect(prompt).toContain("wf-42");

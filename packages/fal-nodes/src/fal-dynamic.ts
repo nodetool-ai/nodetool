@@ -23,7 +23,8 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeValue } from "@nodetool-ai/node-sdk";
 import {
-  falSubmitWithMeta,
+  falSubmitWithGeneration,
+  falCapabilityForOutputType,
   getFalApiKey,
   falUpload,
   imageToDataUrl
@@ -529,10 +530,13 @@ export class FalRawNode extends BaseNode {
       throw new Error(`arguments must be valid JSON: ${argsStr}`);
     }
 
-    const { data: result, requestId } = await falSubmitWithMeta(
+    const { data: result, requestId } = await falSubmitWithGeneration(
       apiKey,
       endpointId,
-      args
+      args,
+      context,
+      FalRawNode.nodeType,
+      falCapabilityForOutputType("image")
     );
     reportFalCost(context, FalRawNode.nodeType, result, args, requestId);
     return { result };
@@ -635,10 +639,13 @@ export class FalDynamicNode extends BaseNode {
       if (value !== undefined && value !== null) args[key] = value;
     }
 
-    const { data: result, requestId } = await falSubmitWithMeta(
+    const { data: result, requestId } = await falSubmitWithGeneration(
       apiKey,
       endpointId,
-      args
+      args,
+      context,
+      FalDynamicNode.nodeType,
+      falCapabilityForOutputType("image")
     );
     reportFalCost(context, FalDynamicNode.nodeType, result, args, requestId);
 

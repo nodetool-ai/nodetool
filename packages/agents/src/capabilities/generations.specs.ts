@@ -17,7 +17,16 @@ export const LIST_GENERATIONS_SCHEMA = {
   properties: {
     status: {
       type: "string",
-      enum: ["running", "completed", "failed", "cancelled", "interrupted"],
+      enum: [
+        "pending",
+        "running",
+        "recovering",
+        "completed",
+        "failed",
+        "cancelled",
+        "needs_attention",
+        "interrupted"
+      ],
       description: "Only generations in this state."
     },
     provider: { type: "string", description: "Only this provider." },
@@ -55,8 +64,9 @@ export const listGenerationsSpec: CapabilitySpec = {
   name: "list_generations",
   description:
     "List this account's media generations — image, video, audio and 3D " +
-    "calls to a provider — newest first, with status, cost, and the assets " +
-    "each produced. A running one is still at the provider; a failed, " +
+    "calls to a provider — newest first, with public status, submission, " +
+    "provider, output and attachment state, cost, errors, and the assets " +
+    "each produced. Completed means durable output is ready. A failed, " +
     "cancelled or interrupted one may still have been billed. Filter by " +
     "status, provider, capability, thread or job.",
   inputSchema: LIST_GENERATIONS_SCHEMA,
@@ -71,9 +81,10 @@ export const getGenerationSpec: CapabilitySpec = {
   name: "get_generation",
   description:
     "Read one generation in full: status, provider and model, the request " +
-    "parameters it was given, what it cost and how that price was arrived " +
-    "at, the provider's request id and reconcile state, the assets it " +
-    "produced, and who asked for it. The id is the `generation_id` a " +
+    "parameters it was given, submission, provider, output and attachment " +
+    "state and errors, what it cost and how that price was arrived at, the " +
+    "provider's request id and reconcile state, the assets it produced, and " +
+    "who asked for it. The id is the `generation_id` a " +
     "generation capability returned.",
   inputSchema: {
     type: "object",
@@ -90,9 +101,11 @@ export const awaitGenerationSpec: CapabilitySpec = {
   name: "await_generation",
   description:
     "Wait for a generation started with `background: true` to settle, and " +
-    "return its record — status, cost and assets. Returns " +
-    "`status: \"running\"` with the seconds waited when the timeout passes " +
-    "first; call again to keep waiting.",
+    "return its record — public status, lifecycle state, errors, cost and " +
+    "assets. Completed is returned only after durable output is ready. " +
+    "Recovering work remains waitable; needs_attention, failed, cancelled " +
+    "and interrupted are settled outcomes. A timeout returns the current " +
+    "record with the seconds waited; call again to keep waiting.",
   inputSchema: {
     type: "object",
     properties: {
@@ -112,9 +125,10 @@ export const awaitGenerationSpec: CapabilitySpec = {
 export const cancelGenerationSpec: CapabilitySpec = {
   name: "cancel_generation",
   description:
-    "Stop a running generation. The provider call is aborted and the record " +
-    "closes as cancelled; a provider that bills at submit still bills, so the " +
-    "row keeps its request id and is reconciled. A generation that already " +
+    "Stop a running generation. A local provider call is aborted and closes " +
+    "as cancelled. A durable generation records a cancellation request for " +
+    "its worker to finish safely; this does not claim that the provider has " +
+    "cancelled or that its output row is closed yet. A generation that already " +
     "settled, or one belonging to another user, comes back `cancelled: false`.",
   inputSchema: {
     type: "object",
@@ -172,11 +186,13 @@ export const listProviderGenerationsSpec: CapabilitySpec = {
       status: {
         type: "string",
         enum: ["running", "completed", "failed", "cancelled", "unknown"],
-        description: "Only generations in this state, where the provider filters by it."
+        description:
+          "Only generations in this state, where the provider filters by it."
       },
       since: {
         type: "string",
-        description: "ISO timestamp; generations started before it are left out."
+        description:
+          "ISO timestamp; generations started before it are left out."
       },
       until: {
         type: "string",

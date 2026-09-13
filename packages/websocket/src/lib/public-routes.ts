@@ -114,9 +114,25 @@ export function isPublicAppDeploymentRequest(
 }
 
 /**
+ * The fal callback authenticates itself with the provider's Ed25519
+ * signature. Only POSTs to the exact callback shape are exempt; neighbouring
+ * provider routes and arbitrary path suffixes remain behind session auth.
+ */
+export function isPublicFalWebhookRequest(
+  pathname: string,
+  method: string
+): boolean {
+  const prefix = "/api/providers/fal/webhook/";
+  if (method !== "POST" || !pathname.startsWith(prefix)) return false;
+  const token = pathname.slice(prefix.length);
+  return token.length > 0 && !token.includes("/");
+}
+
+/**
  * Paths that skip session auth in the server's `onRequest` hook. Every entry
  * must carry no per-caller private state, or authenticate on its own (webhook
- * secret, OAuth PKCE state, KIE webhook signature). All of these are still
+ * secret, OAuth PKCE state, KIE webhook signature, fal Ed25519 signature).
+ * All of these are still
  * covered by the global `@fastify/rate-limit` plugin registered before auth.
  */
 export function isPublicAuthExemptRoute(
@@ -142,6 +158,7 @@ export function isPublicAuthExemptRoute(
     pathname.startsWith("/api/integrations/") ||
     isPublicWorkflowMetadataRequest(pathname, method) ||
     isPublicAppDeploymentRequest(pathname, method) ||
+    isPublicFalWebhookRequest(pathname, method) ||
     isPublicMcpOauthAsRequest(pathname)
   );
 }

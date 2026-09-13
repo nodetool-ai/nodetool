@@ -648,6 +648,20 @@ export function getCreateSchemaSql(): string {
       "thread_id" text,
       "tool_call_id" text,
       "request_id" text,
+      "idempotency_key" text,
+      "input_fingerprint" text,
+      "lifecycle_owner" text NOT NULL DEFAULT 'legacy',
+      "submission_status" text NOT NULL DEFAULT 'accepted',
+      "provider_status" text NOT NULL DEFAULT 'unknown',
+      "output_status" text NOT NULL DEFAULT 'pending',
+      "attachment_status" text NOT NULL DEFAULT 'pending',
+      "accepted_at" text,
+      "lease_owner" text,
+      "lease_expires_at" text,
+      "lease_version" integer NOT NULL DEFAULT 0,
+      "next_check_at" text,
+      "attempt_count" integer NOT NULL DEFAULT 0,
+      "cancel_requested_at" text,
       "job_id" text,
       "asset_ids" text,
       "reconciled_at" text,
@@ -666,11 +680,108 @@ export function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_prediction_user_thread" ON "nodetool_predictions" ("user_id", "thread_id");
     CREATE INDEX IF NOT EXISTS "idx_prediction_job" ON "nodetool_predictions" ("job_id");
     CREATE INDEX IF NOT EXISTS "idx_prediction_user_request" ON "nodetool_predictions" ("user_id", "request_id");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_prediction_user_idempotency" ON "nodetool_predictions" ("user_id", "idempotency_key");
+    CREATE INDEX IF NOT EXISTS "idx_prediction_durable_due" ON "nodetool_predictions" ("lifecycle_owner", "next_check_at");
+    CREATE INDEX IF NOT EXISTS "idx_prediction_lease" ON "nodetool_predictions" ("lease_expires_at");
     CREATE INDEX IF NOT EXISTS "idx_predictions_user_id" ON "nodetool_predictions" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_predictions_user_provider" ON "nodetool_predictions" ("user_id", "provider");
     CREATE INDEX IF NOT EXISTS "idx_prediction_created_at" ON "nodetool_predictions" ("created_at");
     CREATE INDEX IF NOT EXISTS "idx_prediction_user_model" ON "nodetool_predictions" ("user_id", "model");
     CREATE INDEX IF NOT EXISTS "idx_prediction_user_project" ON "nodetool_predictions" ("user_id", "project_id");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_generation_attempts" (
+      "id" text PRIMARY KEY NOT NULL,
+      "generation_id" text NOT NULL REFERENCES "nodetool_predictions" ("id") ON DELETE CASCADE,
+      "attempt_number" integer NOT NULL DEFAULT 1,
+      "provider" text NOT NULL,
+      "provider_account_ref" text,
+      "provider_request_id" text,
+      "gateway_request_id" text,
+      "provider_execution_id" text,
+      "endpoint" text,
+      "callback_token_hash" text,
+      "callback_token_ciphertext" text,
+      "decoder_version" text,
+      "input_fingerprint" text,
+      "submission_idempotency_key" text,
+      "submission_status" text NOT NULL DEFAULT 'accepted',
+      "provider_status" text NOT NULL DEFAULT 'unknown',
+      "request_payload" text,
+      "raw_result_ref" text,
+      "lease_owner" text,
+      "lease_expires_at" text,
+      "lease_version" integer NOT NULL DEFAULT 0,
+      "next_check_at" text,
+      "check_attempts" integer NOT NULL DEFAULT 0,
+      "last_error" text,
+      "cancel_requested_at" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_generation_attempt_generation_number" ON "nodetool_generation_attempts" ("generation_id", "attempt_number");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_generation_attempt_provider_request" ON "nodetool_generation_attempts" ("provider", "provider_account_ref", "provider_request_id");
+    CREATE INDEX IF NOT EXISTS "idx_generation_attempt_due" ON "nodetool_generation_attempts" ("submission_status", "next_check_at");
+    CREATE INDEX IF NOT EXISTS "idx_generation_attempt_lease" ON "nodetool_generation_attempts" ("lease_expires_at");
+    CREATE INDEX IF NOT EXISTS "idx_generation_attempt_callback_token" ON "nodetool_generation_attempts" ("callback_token_hash");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_generation_webhook_deliveries" (
+      "id" text PRIMARY KEY NOT NULL,
+      "provider" text NOT NULL,
+      "provider_account_ref" text NOT NULL,
+      "provider_request_id" text NOT NULL,
+      "payload_hash" text NOT NULL,
+      "generation_id" text REFERENCES "nodetool_predictions" ("id") ON DELETE SET NULL,
+      "attempt_id" text REFERENCES "nodetool_generation_attempts" ("id") ON DELETE SET NULL,
+      "raw_payload" text NOT NULL,
+      "signature" text,
+      "observation" text,
+      "status" text NOT NULL DEFAULT 'pending',
+      "lease_owner" text,
+      "lease_expires_at" text,
+      "lease_version" integer NOT NULL DEFAULT 0,
+      "received_at" text NOT NULL,
+      "processed_at" text,
+      "error" text
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_generation_webhook_identity" ON "nodetool_generation_webhook_deliveries" ("provider", "provider_account_ref", "provider_request_id", "payload_hash");
+    CREATE INDEX IF NOT EXISTS "idx_generation_webhook_pending" ON "nodetool_generation_webhook_deliveries" ("status", "received_at");
+    CREATE INDEX IF NOT EXISTS "idx_generation_webhook_generation" ON "nodetool_generation_webhook_deliveries" ("generation_id");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_generation_outputs" (
+      "id" text PRIMARY KEY NOT NULL,
+      "generation_id" text NOT NULL REFERENCES "nodetool_predictions" ("id") ON DELETE CASCADE,
+      "attempt_id" text NOT NULL REFERENCES "nodetool_generation_attempts" ("id") ON DELETE CASCADE,
+      "output_key" text NOT NULL,
+      "output_index" integer NOT NULL DEFAULT 0,
+      "output_type" text NOT NULL DEFAULT 'media',
+      "provider_ref" text,
+      "raw_result" text,
+      "storage_key" text,
+      "asset_id" text,
+      "status" text NOT NULL DEFAULT 'pending',
+      "error" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_generation_output_identity" ON "nodetool_generation_outputs" ("generation_id", "attempt_id", "output_key", "output_index");
+    CREATE INDEX IF NOT EXISTS "idx_generation_output_generation" ON "nodetool_generation_outputs" ("generation_id");
+    CREATE INDEX IF NOT EXISTS "idx_generation_output_status" ON "nodetool_generation_outputs" ("status");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_generation_attachments" (
+      "id" text PRIMARY KEY NOT NULL,
+      "generation_id" text NOT NULL REFERENCES "nodetool_predictions" ("id") ON DELETE CASCADE,
+      "output_id" text NOT NULL REFERENCES "nodetool_generation_outputs" ("id") ON DELETE CASCADE,
+      "target_type" text NOT NULL,
+      "target_id" text NOT NULL,
+      "status" text NOT NULL DEFAULT 'pending',
+      "selected" integer NOT NULL DEFAULT 0,
+      "error" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_generation_attachment_identity" ON "nodetool_generation_attachments" ("generation_id", "output_id", "target_type", "target_id");
+    CREATE INDEX IF NOT EXISTS "idx_generation_attachment_target" ON "nodetool_generation_attachments" ("target_type", "target_id");
+    CREATE INDEX IF NOT EXISTS "idx_generation_attachment_status" ON "nodetool_generation_attachments" ("status");
 
     CREATE TABLE IF NOT EXISTS "run_events" (
       "id" text PRIMARY KEY NOT NULL,

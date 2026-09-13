@@ -13,6 +13,7 @@ import {
   lte,
   ne,
   inArray,
+  sql,
   isNull,
   isNotNull
 } from "drizzle-orm";
@@ -20,6 +21,23 @@ import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { predictions } from "./schema/predictions.js";
 import { workflows } from "./schema/workflows.js";
+import {
+  DurablePrediction,
+  GenerationAttempt,
+  type DurableGenerationInput,
+  type DurableGenerationTransition
+} from "./durable-generation.js";
+
+export { DurableGenerationIdempotencyConflictError } from "./durable-generation.js";
+export type {
+  DurableGenerationInput,
+  DurableGenerationTransition
+} from "./durable-generation.js";
+
+export interface DurableAcceptance {
+  generation: Prediction;
+  created: boolean;
+}
 
 export interface AggregateResult {
   user_id: string;
@@ -49,6 +67,16 @@ export interface GenerationListFilter {
   since?: string | null;
   limit?: number;
   startKey?: string;
+}
+
+export interface PredictionReconciliationPatch {
+  cost?: number | null;
+  currency?: string | null;
+  quantity?: number | null;
+  unit_price?: number | null;
+  reconcile_attempts?: number;
+  reconciled_at?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 /** Statuses a generation row can settle in. `running` is the only open one. */
@@ -216,6 +244,20 @@ export class Prediction extends DBModel {
   declare output_size: number | null;
   declare parameters: Record<string, unknown> | null;
   declare metadata: Record<string, unknown> | null;
+  declare idempotency_key: string | null;
+  declare input_fingerprint: string | null;
+  declare lifecycle_owner: string;
+  declare submission_status: string;
+  declare provider_status: string;
+  declare output_status: string;
+  declare attachment_status: string;
+  declare accepted_at: string | null;
+  declare lease_owner: string | null;
+  declare lease_expires_at: string | null;
+  declare lease_version: number;
+  declare next_check_at: string | null;
+  declare attempt_count: number;
+  declare cancel_requested_at: string | null;
 
   constructor(data: Record<string, unknown>) {
     super(data);
@@ -260,6 +302,143 @@ export class Prediction extends DBModel {
     this.output_size ??= null;
     this.parameters ??= null;
     this.metadata ??= null;
+    this.idempotency_key ??= null;
+    this.input_fingerprint ??= null;
+    this.lifecycle_owner ??= "legacy";
+    this.submission_status ??= "accepted";
+    this.provider_status ??= "unknown";
+    this.output_status ??= "pending";
+    this.attachment_status ??= "pending";
+    this.accepted_at ??= null;
+    this.lease_owner ??= null;
+    this.lease_expires_at ??= null;
+    this.lease_version ??= 0;
+    this.next_check_at ??= null;
+    this.attempt_count ??= 0;
+    this.cancel_requested_at ??= null;
+  }
+
+  static async acceptGeneration(
+    input: DurableGenerationInput
+  ): Promise<DurableAcceptance> {
+    const accepted = await DurablePrediction.acceptGeneration(input);
+    return {
+      generation: new Prediction(accepted.generation),
+      created: accepted.created
+    };
+  }
+
+  static async acceptGenerationWithAttempt(
+    input: DurableGenerationInput
+  ): Promise<DurableAcceptance & { attempt: GenerationAttempt }> {
+    const accepted = await DurablePrediction.acceptGenerationWithAttempt(input);
+    return {
+      generation: new Prediction(accepted.generation),
+      attempt: accepted.attempt,
+      created: accepted.created
+    };
+  }
+
+  static async claimGenerationLease(
+    id: string,
+    workerId: string,
+    now: string,
+    expiresAt: string
+  ): Promise<Prediction | null> {
+    const claimed = await DurablePrediction.claimGenerationLease(
+      id,
+      workerId,
+      now,
+      expiresAt
+    );
+    return claimed ? new Prediction(claimed) : null;
+  }
+
+  static async renewGenerationLease(
+    id: string,
+    workerId: string,
+    version: number,
+    expiresAt: string
+  ): Promise<boolean> {
+    return DurablePrediction.renewGenerationLease(
+      id,
+      workerId,
+      version,
+      expiresAt
+    );
+  }
+
+  static async releaseGenerationLease(
+    id: string,
+    workerId: string,
+    version: number
+  ): Promise<boolean> {
+    return DurablePrediction.releaseGenerationLease(id, workerId, version);
+  }
+
+  static async bindProviderRequest(
+    id: string,
+    workerId: string,
+    version: number,
+    providerRequestId: string
+  ): Promise<boolean> {
+    return DurablePrediction.bindProviderRequest(
+      id,
+      workerId,
+      version,
+      providerRequestId
+    );
+  }
+
+  static async transitionDurable(
+    id: string,
+    workerId: string,
+    version: number,
+    update: DurableGenerationTransition
+  ): Promise<Prediction | null> {
+    const transitioned = await DurablePrediction.transitionDurable(
+      id,
+      workerId,
+      version,
+      update
+    );
+    return transitioned ? new Prediction(transitioned) : null;
+  }
+
+  static async recoverableGenerations(
+    now: string,
+    limit = 100
+  ): Promise<Prediction[]> {
+    const rows = await DurablePrediction.recoverableGenerations(now, limit);
+    return rows.map((value: Record<string, unknown>) => new Prediction(value));
+  }
+
+  static async requestCancellation(
+    id: string,
+    userId: string
+  ): Promise<boolean> {
+    return DurablePrediction.requestCancellation(id, userId);
+  }
+
+  static async patchReconciliation(
+    id: string,
+    patch: PredictionReconciliationPatch,
+    expectedAttempts?: number
+  ): Promise<boolean> {
+    const db = getDb();
+    const updated = await db
+      .update(predictions)
+      .set(patch)
+      .where(
+        expectedAttempts === undefined
+          ? eq(predictions.id, id)
+          : and(
+              eq(predictions.id, id),
+              eq(predictions.reconcile_attempts, expectedAttempts)
+            )
+      )
+      .returning({ id: predictions.id });
+    return updated.length > 0;
   }
 
   /** Find a prediction by ID. */
@@ -298,7 +477,28 @@ export class Prediction extends DBModel {
     const limit = Math.max(1, Math.min(filter.limit ?? 50, 500));
     const db = getDb();
     const conditions = [eq(predictions.user_id, userId)];
-    if (filter.status) conditions.push(eq(predictions.status, filter.status));
+    if (filter.status) {
+      // Filter on the public lifecycle state, not the provider's last raw
+      // status. In particular, a provider success whose output is still
+      // saving is recovering rather than completed.
+      const publicStatus = sql<string>`CASE
+        WHEN ${predictions.status} = 'interrupted' THEN 'interrupted'
+        WHEN ${predictions.lifecycle_owner} <> 'durable' THEN ${predictions.status}
+        WHEN ${predictions.output_status} = 'ready' AND (${predictions.provider_status} IN ('failed', 'cancelled') OR ${predictions.status} = 'failed') THEN 'needs_attention'
+        WHEN ${predictions.provider_status} = 'succeeded' AND ${predictions.output_status} = 'ready' THEN 'completed'
+        WHEN ${predictions.provider_status} = 'cancelled' THEN 'cancelled'
+        WHEN ${predictions.status} = 'cancelled' THEN CASE WHEN ${predictions.provider_status} = 'succeeded' THEN 'recovering' ELSE 'cancelled' END
+        WHEN ${predictions.status} = 'failed' OR ${predictions.provider_status} = 'failed' THEN 'failed'
+        WHEN ${predictions.output_status} = 'unavailable' OR ${predictions.output_status} = 'retrying' OR (${predictions.attachment_status} = 'retrying' AND ${predictions.output_status} = 'pending') OR ${predictions.submission_status} = 'submission_unknown' THEN 'needs_attention'
+        WHEN ${predictions.status} = 'needs_attention' THEN 'needs_attention'
+        WHEN ${predictions.status} = 'recovering' THEN 'recovering'
+        WHEN ${predictions.status} = 'completed' OR ${predictions.provider_status} = 'succeeded' THEN 'recovering'
+        WHEN ${predictions.provider_status} IN ('running', 'queued') OR ${predictions.submission_status} = 'submitted' THEN 'running'
+        WHEN ${predictions.cancel_requested_at} IS NOT NULL THEN 'running'
+        ELSE 'pending'
+      END`;
+      conditions.push(eq(publicStatus, filter.status));
+    }
     if (filter.provider)
       conditions.push(eq(predictions.provider, filter.provider));
     if (filter.capability)
@@ -306,7 +506,8 @@ export class Prediction extends DBModel {
     if (filter.threadId)
       conditions.push(eq(predictions.thread_id, filter.threadId));
     if (filter.jobId) conditions.push(eq(predictions.job_id, filter.jobId));
-    if (filter.since) conditions.push(gte(predictions.created_at, filter.since));
+    if (filter.since)
+      conditions.push(gte(predictions.created_at, filter.since));
     if (filter.startKey) {
       const cursorRow = await Prediction.findForUser(userId, filter.startKey);
       if (cursorRow?.created_at) {
@@ -416,7 +617,9 @@ export class Prediction extends DBModel {
    * is driving started after that process did, so `startedBeforeIso` — the
    * process start — cannot catch a real run. Returns the rows it closed.
    */
-  static async sweepInterrupted(startedBeforeIso: string): Promise<Prediction[]> {
+  static async sweepInterrupted(
+    startedBeforeIso: string
+  ): Promise<Prediction[]> {
     const db = getDb();
     const now = new Date().toISOString();
     const rows = await db
@@ -425,6 +628,7 @@ export class Prediction extends DBModel {
       .where(
         and(
           eq(predictions.status, "running"),
+          ne(predictions.lifecycle_owner, "durable"),
           lt(predictions.started_at, startedBeforeIso)
         )
       )
@@ -521,7 +725,7 @@ export class Prediction extends DBModel {
       .from(predictions)
       .where(and(...conditions))
       .orderBy(desc(predictions.created_at))
-      .limit(limit + 1)
+      .limit(limit + 1);
 
     const items = rows.map((r: Record<string, unknown>) => new Prediction(r));
     if (items.length <= limit) return [items, ""];
@@ -544,7 +748,7 @@ export class Prediction extends DBModel {
       .select()
       .from(predictions)
       .where(and(...conditions))
-      .limit(10000)
+      .limit(10000);
 
     let total_cost = 0;
     let total_input_tokens = 0;
@@ -595,7 +799,7 @@ export class Prediction extends DBModel {
       .where(
         and(eq(predictions.user_id, userId), ne(predictions.status, "running"))
       )
-      .limit(10000)
+      .limit(10000);
 
     const groups = new Map<string, ProviderAggregateResult>();
     for (const p of rows) {
@@ -640,7 +844,7 @@ export class Prediction extends DBModel {
       .select()
       .from(predictions)
       .where(and(...conditions))
-      .limit(10000)
+      .limit(10000);
 
     const groups = new Map<string, ModelAggregateResult>();
     for (const p of rows) {
@@ -697,8 +901,7 @@ export class Prediction extends DBModel {
     const db = getDb();
 
     const nowMs = Date.now();
-    const todayLocalMidnight =
-      Math.floor((nowMs - tzMs) / DAY_MS) * DAY_MS;
+    const todayLocalMidnight = Math.floor((nowMs - tzMs) / DAY_MS) * DAY_MS;
     const startLocal = todayLocalMidnight - (days - 1) * DAY_MS;
     const startUtcMs = startLocal + tzMs;
     const priorStartUtcMs = startUtcMs - days * DAY_MS;
@@ -737,10 +940,13 @@ export class Prediction extends DBModel {
     let prior_total_cost = 0;
     for (const r of priorRows) prior_total_cost += (r.cost as number) ?? 0;
 
-    const daily: DashboardDayResult[] = Array.from({ length: days }, (_, i) => ({
-      date: localDayString(startLocal + i * DAY_MS),
-      totals: {}
-    }));
+    const daily: DashboardDayResult[] = Array.from(
+      { length: days },
+      (_, i) => ({
+        date: localDayString(startLocal + i * DAY_MS),
+        totals: {}
+      })
+    );
 
     const providerMap = new Map<string, DashboardProviderResult>();
     const modelMap = new Map<string, DashboardModelResult>();

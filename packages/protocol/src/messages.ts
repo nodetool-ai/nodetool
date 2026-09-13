@@ -238,15 +238,65 @@ export const generationSurfaceSchema = z.enum([
 ]);
 export type GenerationSurface = z.infer<typeof generationSurfaceSchema>;
 
-/** `interrupted` is written only by the startup sweep, never emitted. */
+/**
+ * Public generation status derived from the durable lifecycle dimensions.
+ * `interrupted` remains readable for rows written by the legacy startup sweep.
+ */
 export const generationStatusSchema = z.enum([
+  "pending",
   "running",
+  "recovering",
   "completed",
   "failed",
   "cancelled",
+  "needs_attention",
   "interrupted"
 ]);
 export type GenerationStatus = z.infer<typeof generationStatusSchema>;
+
+export const generationSubmissionStatusSchema = z.enum([
+  "accepted",
+  "submitting",
+  "submitted",
+  "submission_unknown"
+]);
+export type GenerationSubmissionStatus = z.infer<
+  typeof generationSubmissionStatusSchema
+>;
+
+export const generationProviderStatusSchema = z.enum([
+  "unknown",
+  "queued",
+  "running",
+  "succeeded",
+  "failed",
+  "cancelled"
+]);
+export type GenerationProviderStatus = z.infer<
+  typeof generationProviderStatusSchema
+>;
+
+export const generationOutputStatusSchema = z.enum([
+  "pending",
+  "saving",
+  "ready",
+  "retrying",
+  "unavailable"
+]);
+export type GenerationOutputStatus = z.infer<
+  typeof generationOutputStatusSchema
+>;
+
+export const generationAttachmentStatusSchema = z.enum([
+  "pending",
+  "attached",
+  "superseded",
+  "target_deleted",
+  "retrying"
+]);
+export type GenerationAttachmentStatus = z.infer<
+  typeof generationAttachmentStatusSchema
+>;
 
 /** Who asked for the generation; every field the row carries back. */
 export const generationOriginSchema = z.object({
@@ -667,7 +717,11 @@ export const predictionSchema = z
     capability: z.string().nullable().optional(),
     version: z.string().nullable().optional(),
     node_type: z.string().nullable().optional(),
-    status: z.string(),
+    status: generationStatusSchema,
+    submission_status: generationSubmissionStatusSchema.optional(),
+    provider_status: generationProviderStatusSchema.optional(),
+    output_status: generationOutputStatusSchema.optional(),
+    attachment_status: generationAttachmentStatusSchema.optional(),
     params: z.record(z.string(), z.unknown()).optional(),
     data: z.unknown().nullable().optional(),
     cost: z.number().nullable().optional(),
@@ -757,7 +811,6 @@ export type ProviderCallFailed = z.infer<typeof providerCallFailedSchema>;
 // ---------------------------------------------------------------------------
 
 export type WebSocketMode = "binary" | "text";
-
 
 /**
  * Read-only RPC commands that require a `request_id` and return a single
@@ -852,6 +905,7 @@ export interface GetNodeRequest {
 
 export interface GenerateMediaResponse {
   asset_ids: string[];
+  existing_generation_id?: string;
 }
 
 /**
@@ -1095,4 +1149,3 @@ export function sanitizeMemoryUris<T>(value: T): T {
   }
   return value;
 }
-

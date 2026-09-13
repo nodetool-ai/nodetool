@@ -18,10 +18,7 @@ export { timelineSequenceVersions } from "./timeline-sequence-versions.js";
 export { imageDocuments } from "./image-documents.js";
 export { imageDocumentVersions } from "./image-document-versions.js";
 export { storyboards } from "./storyboards.js";
-export {
-  applications,
-  applicationVersions
-} from "./applications.js";
+export { applications, applicationVersions } from "./applications.js";
 export { applicationDeployments } from "./application-deployments.js";
 export {
   applicationBudgets,
@@ -45,3 +42,7 @@ export {
   mcpOauthGrants,
   mcpOauthTokens
 } from "./mcp-oauth.js";
+export { generationAttempts } from "./generation-attempts.js";
+export { generationWebhookDeliveries } from "./generation-webhook-deliveries.js";
+export { generationOutputs } from "./generation-outputs.js";
+export { generationAttachments } from "./generation-attachments.js";
