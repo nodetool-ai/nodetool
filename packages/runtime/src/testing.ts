@@ -68,6 +68,8 @@ export interface FakeContextOptions {
    * Job id reported to message consumers. Defaults to "fake-job".
    */
   jobId?: string;
+  /** Whether workflow outputs should be persisted as assets. Defaults to true. */
+  persistOutputAssets?: boolean;
 }
 
 export interface FakeContextHandle {
@@ -127,6 +129,7 @@ export function createFakeContext(
     storage: new InMemoryStorageAdapter(),
     workspaceStorage: new InMemoryStorageAdapter(),
     variables: options.variables ?? {},
+    persistOutputAssets: options.persistOutputAssets ?? true,
     fetchFn: options.fetchFn ?? defaultFakeFetch(),
     secretResolver: (key: string) => {
       if (options.secretResolver) {
