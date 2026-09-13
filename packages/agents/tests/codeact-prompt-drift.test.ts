@@ -57,6 +57,32 @@ function undocumented(prompt: string): string[] {
 const VARIANTS = ["step", "chat"] as const;
 
 describe("CodeAct prompt / sandbox drift", () => {
+  it.each(VARIANTS)("includes product knowledge without tools (%s)", (variant) => {
+    const prompt = buildCodeActSystemPrompt({ tools: [], variant });
+    expect(prompt).toContain("# NodeTool product knowledge");
+    expect(prompt).toContain("A project groups related work");
+    expect(prompt).toContain("characters, locations, styles, and props");
+    expect(prompt).toContain("Only call tools exposed in this session");
+  });
+
+  it("gives standalone chat sessions the product knowledge", () => {
+    const session = createChatCodeActSession({
+      tools: [],
+      executeTool: async () => null
+    });
+    expect(session.systemPromptSection).toContain("# NodeTool product knowledge");
+  });
+
+  it("lets a host supply product knowledge without duplicating it in CodeAct", () => {
+    const session = createChatCodeActSession({
+      tools: [],
+      includeProductKnowledge: false,
+      executeTool: async () => null
+    });
+    expect(session.systemPromptSection).not.toContain("# NodeTool product knowledge");
+    expect(session.systemPromptSection).toContain("# CodeAct Execution");
+  });
+
   for (const variant of VARIANTS) {
     it(`names no API the sandbox lacks (${variant})`, () => {
       const prompt = buildCodeActSystemPrompt({ tools: [], variant });

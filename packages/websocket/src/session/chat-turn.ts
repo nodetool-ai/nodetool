@@ -1790,6 +1790,7 @@ export class ChatTurnHandler {
         (s) => s.name !== "view_image" && directNames.has(s.name)
       );
       codeactSession = createChatCodeActSession({
+        includeProductKnowledge: false,
         tools: allSchemas
           .filter((s) => s.name !== "view_image")
           .map((s) => ({
