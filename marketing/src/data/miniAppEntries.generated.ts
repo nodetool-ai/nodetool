@@ -1678,6 +1678,77 @@ export const miniAppEntries: MiniAppEntry[] = [
     "widgetCount": 31
   },
   {
+    "route": "/apps/ugc-product-video",
+    "title": "UGC Product Video — Free AI Mini App | NodeTool",
+    "description": "One face. One take. Fifteen seconds.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "ugc-product-video",
+    "name": "UGC Product Video",
+    "summary": "Start with creator and product references plus a 15-second script. MiniMax H3 generates the performance, lip-sync, and voice together, with the product limited to one short middle proof beat.",
+    "featured": true,
+    "note": "🔑 Writing uses OpenAI. The testimonial uses MiniMax H3 on AtlasCloud with native audio.",
+    "workflows": [
+      {
+        "name": "Ad Copy in Three Registers",
+        "slug": "ad-copy-in-three-registers",
+        "route": "/templates/ad-copy-in-three-registers"
+      },
+      {
+        "name": "Generate a Native-Audio UGC Testimonial",
+        "slug": "generate-a-native-audio-ugc-testimonial",
+        "route": "/templates/generate-a-native-audio-ugc-testimonial"
+      }
+    ],
+    "templateRoute": "/templates/ad-copy-in-three-registers",
+    "screenshot": "/apps/ugc-product-video.png",
+    "tags": [
+      "example",
+      "marketing",
+      "native-audio",
+      "text",
+      "ugc",
+      "video"
+    ],
+    "heading": "🤳 UGC Product Video",
+    "tagline": "One face. One take. Fifteen seconds.",
+    "buttonLabel": "Explore three angles",
+    "inputs": [
+      {
+        "label": "What are you selling?",
+        "kind": "text"
+      },
+      {
+        "label": "Vertical creator image",
+        "kind": "image"
+      },
+      {
+        "label": "Clean product image",
+        "kind": "image"
+      },
+      {
+        "label": "Complete 15-second script",
+        "kind": "text"
+      },
+      {
+        "label": "Audience",
+        "kind": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Angles to adapt",
+        "kind": "text"
+      },
+      {
+        "label": "Continuous creator testimonial",
+        "kind": "video"
+      }
+    ],
+    "widgetCount": 32
+  },
+  {
     "route": "/apps/upscale-image",
     "title": "Upscale Image — Free AI Mini App | NodeTool",
     "description": "Enlarge an image without the softness of a plain resize.",

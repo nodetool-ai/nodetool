@@ -9,6 +9,10 @@ export const recipePresentation = [
     heroThumbnail: "/apps/directed-campaign-kit.png"
   },
   {
+    slug: "ugc-product-video",
+    heroThumbnail: "/apps/ugc-product-video.png"
+  },
+  {
     slug: "viral-video-ad-engine",
     productionRun: {
       runId: "2026-09-12-tiny-film-crew",

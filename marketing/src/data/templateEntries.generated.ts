@@ -1226,6 +1226,102 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/assemble-a-ugc-product-video",
+    "title": "Assemble a UGC Product Video — NodeTool AI Workflow Template",
+    "description": "Keep the creator on camera for the full vertical testimonial and place the product demonstration over her as a silent picture-in-picture proof moment.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "assemble-a-ugc-product-video",
+    "name": "Assemble a UGC Product Video",
+    "summary": "Keep the creator on camera for the full vertical testimonial and place the product demonstration over her as a silent picture-in-picture proof moment.",
+    "tags": [
+      "video",
+      "marketing",
+      "ugc",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Overlay",
+        "label": "Overlay",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "creator",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 80,
+          "width": 280
+        },
+        {
+          "id": "proof",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 300,
+          "width": 280
+        },
+        {
+          "id": "overlay",
+          "type": "nodetool.video.Overlay",
+          "title": "Overlay",
+          "x": 400,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "video-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 820,
+          "y": 180,
+          "width": 260
+        }
+      ],
+      "edges": [
+        {
+          "source": "creator",
+          "sourceHandle": "output",
+          "target": "overlay",
+          "targetHandle": "main_video",
+          "color": "any"
+        },
+        {
+          "source": "proof",
+          "sourceHandle": "output",
+          "target": "overlay",
+          "targetHandle": "overlay_video",
+          "color": "any"
+        },
+        {
+          "source": "overlay",
+          "sourceHandle": "output",
+          "target": "video-out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/audio-to-image",
     "title": "Audio To Image — NodeTool AI Workflow Template",
     "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
@@ -8542,6 +8638,181 @@ export const templateEntries: TemplateEntry[] = [
           "source": "ng",
           "sourceHandle": "output",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/generate-a-native-audio-ugc-testimonial",
+    "title": "Generate a Native-Audio UGC Testimonial — NodeTool AI Workflow Template",
+    "description": "Turn creator and product references plus one short script into a continuous 15-second MiniMax H3 testimonial with native voice and lip-sync.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "generate-a-native-audio-ugc-testimonial",
+    "name": "Generate a Native-Audio UGC Testimonial",
+    "summary": "Turn creator and product references plus one short script into a continuous 15-second MiniMax H3 testimonial with native voice and lip-sync.",
+    "tags": [
+      "video",
+      "marketing",
+      "ugc",
+      "native-audio",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.image.ImagesToList",
+        "label": "Images To List",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ReferenceToVideo",
+        "label": "Reference To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      }
+    ],
+    "nodeCount": 8,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "creator-image",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 100,
+          "width": 280
+        },
+        {
+          "id": "product-image",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 330,
+          "width": 280
+        },
+        {
+          "id": "script",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 560,
+          "width": 280,
+          "subtitle": "I did not expect a travel cup to fix my mornings, but this one did. The lid never leaks in my bag, the finish feels great, and my coffee st…"
+        },
+        {
+          "id": "product",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 770,
+          "width": 280,
+          "subtitle": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid"
+        },
+        {
+          "id": "prompt",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 390,
+          "y": 280,
+          "width": 340
+        },
+        {
+          "id": "references",
+          "type": "nodetool.image.ImagesToList",
+          "title": "Images To List",
+          "x": 390,
+          "y": 100,
+          "width": 280
+        },
+        {
+          "id": "generate",
+          "type": "nodetool.video.ReferenceToVideo",
+          "title": "Reference To Video",
+          "x": 820,
+          "y": 190,
+          "width": 320,
+          "subtitle": "minimax/h3/reference-to-video"
+        },
+        {
+          "id": "video-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1240,
+          "y": 220,
+          "width": 260
+        }
+      ],
+      "edges": [
+        {
+          "source": "creator-image",
+          "sourceHandle": "output",
+          "target": "references",
+          "targetHandle": "image_1_creator",
+          "color": "any"
+        },
+        {
+          "source": "product-image",
+          "sourceHandle": "output",
+          "target": "references",
+          "targetHandle": "image_2_product",
+          "color": "any"
+        },
+        {
+          "source": "script",
+          "sourceHandle": "output",
+          "target": "prompt",
+          "targetHandle": "script",
+          "color": "any"
+        },
+        {
+          "source": "product",
+          "sourceHandle": "output",
+          "target": "prompt",
+          "targetHandle": "product",
+          "color": "any"
+        },
+        {
+          "source": "references",
+          "sourceHandle": "output",
+          "target": "generate",
+          "targetHandle": "reference_images",
+          "color": "any"
+        },
+        {
+          "source": "prompt",
+          "sourceHandle": "output",
+          "target": "generate",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "generate",
+          "sourceHandle": "output",
+          "target": "video-out",
           "targetHandle": "value",
           "color": "any"
         }
