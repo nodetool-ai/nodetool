@@ -534,6 +534,16 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "assemble-a-ugc-product-video",
+        "name": "Assemble a UGC Product Video",
+        "description": "Keep the creator on camera for the full vertical testimonial and place the product demonstration over her as a silent picture-in-picture proof moment.",
+        "tags": [
+          "video",
+          "marketing",
+          "ugc"
+        ]
+      },
+      {
         "slug": "b-roll-reel-from-a-brief",
         "name": "B-Roll Reel from a Brief",
         "description": "One line of direction becomes a two-shot b-roll reel. Prompt nodes expand the brief into a wide establishing shot and a matching detail shot, text-to-video renders both, and a crossfade cuts them together. Two paid video generations per run.",
@@ -549,6 +559,18 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": [
           "video",
           "utility"
+        ]
+      },
+      {
+        "slug": "brand-a-ugc-product-video",
+        "name": "Brand a UGC Product Video",
+        "description": "Turn one continuous vertical creator clip into a polished branded reel. The workflow extracts the native audio, transcribes it with word timestamps, groups the words into short animated phrases, builds an editable NodeTool timeline with MORROW motion graphics, and renders the finished video.",
+        "tags": [
+          "video",
+          "marketing",
+          "ugc",
+          "captions",
+          "motion-graphics"
         ]
       },
       {
@@ -627,7 +649,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "generate-a-native-audio-ugc-testimonial",
         "name": "Generate a Native-Audio UGC Testimonial",
-        "description": "Turn creator and product references plus one short script into a continuous 15-second MiniMax H3 testimonial with native voice and lip-sync.",
+        "description": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
         "tags": [
           "video",
           "marketing",
