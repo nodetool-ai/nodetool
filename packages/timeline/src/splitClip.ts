@@ -197,6 +197,7 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
   };
   // The left half's end is now an interior cut — drop the outgoing fade.
   delete leftClip.fadeOutMs;
+  delete leftClip.fadeOutShape;
   if (captions) {
     leftClip.caption = { words: captions.left };
   }
@@ -216,6 +217,7 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
   // The right half's start is now an interior cut — drop the incoming fade and
   // the incoming transition (the boundary with the left half is a hard cut).
   delete rightClip.fadeInMs;
+  delete rightClip.fadeInShape;
   delete rightClip.transitionIn;
   if (captions) {
     rightClip.caption = { words: captions.right };

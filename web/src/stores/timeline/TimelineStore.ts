@@ -42,6 +42,8 @@ import {
   resolveDrop,
   applyTransitionAtCut,
   removeTransitionAtCut,
+  canClipFade,
+  DEFAULT_CLIP_FADE_MS,
   DEFAULT_TRANSITION_MS,
   setKeyframe,
   removeKeyframe,
@@ -549,6 +551,8 @@ export interface TimelineStoreState {
    * already carries a transition keeps its type. One undo step.
    */
   applyDefaultTransition: (clipIds: ReadonlySet<string>, durationMs?: number) => void;
+  /** Ramps both ends of every audible clip in `clipIds` in and out. */
+  applyFades: (clipIds: ReadonlySet<string>, durationMs?: number) => void;
   /** Resize a clip's incoming transition, growing the predecessor as needed. */
   setTransitionDuration: (clipId: string, durationMs: number) => void;
   removeTransition: (clipId: string) => void;
@@ -2263,6 +2267,27 @@ export const createTimelineStore = (
               clips = applyTransitionAtCut(clips, id, durationMs);
             }
             return clips === state.clips ? state : { clips };
+          }),
+
+        applyFades: (clipIds, durationMs = DEFAULT_CLIP_FADE_MS) =>
+          set((state) => {
+            let changed = false;
+            const clips = state.clips.map((clip) => {
+              if (!clipIds.has(clip.id) || !canClipFade(clip.mediaType)) {
+                return clip;
+              }
+              // Half the clip is the most each end can take without the two
+              // fades crossing, so a clip shorter than two fades gets what
+              // fits rather than nothing.
+              const span = Math.floor(
+                Math.min(durationMs, clip.durationMs / 2)
+              );
+              if (span <= 0) return clip;
+              if (clip.fadeInMs === span && clip.fadeOutMs === span) return clip;
+              changed = true;
+              return { ...clip, fadeInMs: span, fadeOutMs: span };
+            });
+            return changed ? { clips } : state;
           }),
 
         setTransitionDuration: (clipId, durationMs) =>

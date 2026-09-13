@@ -214,6 +214,60 @@ describe("RenderTimelineNode", () => {
     expect(context.resolveAssetBytes).toHaveBeenCalledTimes(3);
   });
 
+  it("fades a clip's audio along the curve the document authored", async () => {
+    const seq = baseSequence();
+    const audio = seq.clips[2] as Record<string, unknown>;
+    audio.fadeInMs = 500;
+    audio.fadeOutMs = 1000;
+    audio.fadeInShape = "plus3dB";
+    audio.fadeOutShape = "sCurve";
+    const context = stubContext(seq);
+    const node = new RenderTimelineNode();
+    node.assign({ timeline: { type: "timeline", id: "seq-1" } });
+    await node.process(context as never);
+
+    const args = ffmpegArgString();
+    // Times are measured from the clip's own start — the fades run before the
+    // delay that puts the clip on the timeline.
+    expect(args).toContain("afade=t=in:st=0.000:d=0.500:curve=qsin");
+    expect(args).toContain("afade=t=out:st=3.000:d=1.000:curve=hsin");
+    expect(args.indexOf("afade=t=out")).toBeLessThan(args.indexOf("adelay=500|500"));
+  });
+
+  it("leaves an unfaded clip's chain alone", async () => {
+    const context = stubContext(baseSequence());
+    const node = new RenderTimelineNode();
+    node.assign({ timeline: { type: "timeline", id: "seq-1" } });
+    await node.process(context as never);
+    expect(ffmpegArgString()).not.toContain("afade");
+  });
+
+  it("fades a remapped clip over its whole span, not one stretch of it", async () => {
+    const seq = baseSequence();
+    const audio = seq.clips[2] as Record<string, unknown>;
+    audio.startMs = 1000;
+    audio.durationMs = 2000;
+    audio.fadeInMs = 400;
+    audio.timeRemap = {
+      keyframes: [
+        { t: 0, sourceMs: 0 },
+        { t: 0.5, sourceMs: 2000 },
+        { t: 1, sourceMs: 3000 }
+      ]
+    };
+    const context = stubContext(seq);
+    const node = new RenderTimelineNode();
+    node.assign({ timeline: { type: "timeline", id: "seq-1" } });
+    await node.process(context as never);
+
+    const args = ffmpegArgString();
+    // The stretches are summed back into one stream first, so the ramp spans
+    // the clip; its start is the clip's own timeline position.
+    expect(args).toContain("amix=inputs=2:duration=longest:normalize=0,afade=");
+    expect(args).toContain("afade=t=in:st=1.000:d=0.400:curve=tri");
+    expect(args).toContain("[a0_fade]");
+  });
+
   it("mixes a time-remapped audio clip one constant-rate stretch at a time", async () => {
     // Two source seconds in the first timeline second, then a hold: the first
     // stretch sounds at 2×, the hold is silent (nothing to advance through).

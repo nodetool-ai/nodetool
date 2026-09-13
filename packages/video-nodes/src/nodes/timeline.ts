@@ -33,7 +33,9 @@ import {
   createTimeOrderedUuid,
   DEFAULT_MIDI_INSTRUMENT,
   encodeWavPcm16,
+  ffmpegFadeCurve,
   fillTimelineText,
+  resolveClipFades,
   retargetSequence,
   hasTimeRemap,
   sourceRate,
@@ -346,7 +348,48 @@ function embeddedAudioClips(seq: TimelineSequence): TimelineClip[] {
     .sort((a, b) => a.startMs - b.startMs);
 }
 
-/** Per-clip audio chain: trim to in/out, apply gain, delay to timeline start. */
+/** Seconds, at millisecond resolution, for an ffmpeg filter argument. */
+function ffSeconds(ms: number): string {
+  return (Math.max(0, ms) / 1000).toFixed(3);
+}
+
+/**
+ * `afade` steps for a clip's fades over a stream in which the clip begins at
+ * `clipStartInStreamMs`. Both edges read the curve the document authored, the
+ * same one the editor draws and the preview sounds: every `ClipFadeShape` maps
+ * to the `afade` curve with that gain function.
+ *
+ * Lengths come from `resolveClipFades`, so two fades longer together than the
+ * clip meet in its middle here exactly as they do on screen.
+ */
+function clipFadeSteps(clip: TimelineClip, clipStartInStreamMs: number): string[] {
+  const fades = resolveClipFades(clip, clip.durationMs);
+  const steps: string[] = [];
+  if (fades.fadeInMs > 0) {
+    steps.push(
+      `afade=t=in:st=${ffSeconds(clipStartInStreamMs)}:d=${ffSeconds(fades.fadeInMs)}:curve=${ffmpegFadeCurve(fades.fadeInShape)}`
+    );
+  }
+  if (fades.fadeOutMs > 0) {
+    const startMs = clipStartInStreamMs + clip.durationMs - fades.fadeOutMs;
+    steps.push(
+      `afade=t=out:st=${ffSeconds(startMs)}:d=${ffSeconds(fades.fadeOutMs)}:curve=${ffmpegFadeCurve(fades.fadeOutShape)}`
+    );
+  }
+  return steps;
+}
+
+/** Whether either edge of the clip carries a fade worth rendering. */
+function hasClipFade(clip: TimelineClip): boolean {
+  const fades = resolveClipFades(clip, clip.durationMs);
+  return fades.fadeInMs > 0 || fades.fadeOutMs > 0;
+}
+
+/**
+ * Per-clip audio chain: trim to in/out, apply gain, fade both edges, delay to
+ * timeline start. The fades precede the delay, so their times are measured
+ * from the clip's own start.
+ */
 function audioClipFilter(
   clip: TimelineClip,
   inputIndex: number,
@@ -367,6 +410,7 @@ function audioClipFilter(
   if (isNumber(clip.volumeDb) && clip.volumeDb !== 0) {
     steps.push(`volume=${clip.volumeDb}dB`);
   }
+  steps.push(...clipFadeSteps(clip, 0));
   const delay = Math.max(0, Math.round(clip.startMs));
   steps.push(`adelay=${delay}|${delay}`);
   return `[${inputIndex}:a]${steps.join(",")}[${label}]`;
@@ -692,14 +736,34 @@ async function mixAudioInto(opts: {
     // constant-rate stretches and each is decoded, retimed and delayed on its
     // own. A stretch the curve runs backwards over — or holds still on — is
     // silent, as it is in the preview.
+    const segmentLabels: string[] = [];
     for (const [j, segment] of timeRemapAudioSegments(clip).entries()) {
       if (segment.reverse || !Number.isFinite(segment.rate)) continue;
       inputs.push("-i", audioPath);
       const label = `a${i}_${j}`;
       filters.push(audioRemapSegmentFilter(clip, segment, inputIndex, label));
-      labels.push(`[${label}]`);
+      segmentLabels.push(`[${label}]`);
       inputIndex += 1;
     }
+    // A fade spans the clip, not one stretch of it, and a stretch that covers
+    // only part of the ramp cannot carry it — `afade` always runs a full 0→1.
+    // So a faded remapped clip is mixed back into one stream first, at its
+    // timeline offsets, and faded there. `normalize=0` keeps the level: the
+    // stretches abut rather than overlap, so nothing is summed.
+    if (segmentLabels.length > 0 && hasClipFade(clip)) {
+      const faded = `a${i}_fade`;
+      const steps =
+        segmentLabels.length > 1
+          ? [
+              `amix=inputs=${segmentLabels.length}:duration=longest:normalize=0`,
+              ...clipFadeSteps(clip, clip.startMs)
+            ]
+          : clipFadeSteps(clip, clip.startMs);
+      filters.push(`${segmentLabels.join("")}${steps.join(",")}[${faded}]`);
+      labels.push(`[${faded}]`);
+      continue;
+    }
+    labels.push(...segmentLabels);
   }
   if (labels.length === 0) return basePath;
 

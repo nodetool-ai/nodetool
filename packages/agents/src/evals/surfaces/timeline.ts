@@ -1756,6 +1756,10 @@ export function createTimelineToolBridge(
         if (patch.volumeDb !== undefined) clip.volumeDb = patch.volumeDb as number;
         if (patch.fadeInMs !== undefined) clip.fadeInMs = patch.fadeInMs as number;
         if (patch.fadeOutMs !== undefined) clip.fadeOutMs = patch.fadeOutMs as number;
+        if (patch.fadeInShape !== undefined)
+          clip.fadeInShape = patch.fadeInShape as TimelineClip["fadeInShape"];
+        if (patch.fadeOutShape !== undefined)
+          clip.fadeOutShape = patch.fadeOutShape as TimelineClip["fadeOutShape"];
         if (patch.blendMode !== undefined)
           clip.blendMode = patch.blendMode as TimelineClip["blendMode"];
         if (patch.borderRadius !== undefined)

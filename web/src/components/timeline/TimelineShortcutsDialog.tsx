@@ -76,6 +76,7 @@ const GROUPS: Group[] = [
       { action: "duplicate", label: "Duplicate (after each source)" },
       { action: "duplicateWithGap", label: "Duplicate with a 1 s gap" },
       { action: "applyDefaultTransition", label: "Cross-fade into selected clips" },
+      { action: "applyFades", label: "Fade selected clips in and out" },
       { action: "selectAll", label: "Select all clips" }
     ]
   },

@@ -3,6 +3,21 @@ import { BLEND_MODE_TUPLE } from "../blend-modes.js";
 
 const blendModeEnum = z.enum(BLEND_MODE_TUPLE);
 
+/**
+ * Curves a clip fade ramps along. The gain functions live in
+ * `@nodetool-ai/timeline` (`audioFade.ts`), which cannot be imported here
+ * without a cycle; `clipFadeShape.protocol.test.ts` there fails if the two
+ * lists drift apart.
+ */
+export const CLIP_FADE_SHAPE_TUPLE = [
+  "linear",
+  "sCurve",
+  "plus3dB",
+  "minus3dB"
+] as const;
+
+export const clipFadeShapeEnum = z.enum(CLIP_FADE_SHAPE_TUPLE);
+
 // ── Shared sub-schemas ───────────────────────────────────────────────────────
 
 export const clipVersion = z.object({
@@ -1232,6 +1247,8 @@ export const timelineClip = z.object({
   volumeDb: z.number().optional(),
   fadeInMs: z.number().optional(),
   fadeOutMs: z.number().optional(),
+  fadeInShape: clipFadeShapeEnum.optional(),
+  fadeOutShape: clipFadeShapeEnum.optional(),
   transform: clipTransform.optional(),
   borderRadius: z.number().optional(),
   /** Without this field Zod strips it on every PATCH and a cropped clip
