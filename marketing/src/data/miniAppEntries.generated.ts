@@ -1680,15 +1680,15 @@ export const miniAppEntries: MiniAppEntry[] = [
   {
     "route": "/apps/ugc-product-video",
     "title": "UGC Product Video — Free AI Mini App | NodeTool",
-    "description": "One face. One take. Fifteen seconds.",
+    "description": "One take. Native voice. A polished social finish.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "ugc-product-video",
     "name": "UGC Product Video",
-    "summary": "Start with creator and product references plus a 15-second script. MiniMax H3 generates the performance, lip-sync, and voice together, with the product limited to one short middle proof beat.",
+    "summary": "Create a native-audio MiniMax H3 testimonial, then turn its spoken words into animated captions, restrained motion graphics, and an exact branded close.",
     "featured": true,
-    "note": "🔑 Writing uses OpenAI. The testimonial uses MiniMax H3 on AtlasCloud with native audio.",
+    "note": "🔑 Writing and caption transcription use OpenAI. MiniMax H3 generates the testimonial on AtlasCloud with native audio.",
     "workflows": [
       {
         "name": "Ad Copy in Three Registers",
@@ -1709,16 +1709,17 @@ export const miniAppEntries: MiniAppEntry[] = [
     "templateRoute": "/templates/ad-copy-in-three-registers",
     "screenshot": "/apps/ugc-product-video.png",
     "tags": [
-      "branding",
+      "captions",
       "example",
       "marketing",
+      "motion-graphics",
       "native-audio",
       "text",
       "ugc",
       "video"
     ],
     "heading": "🤳 UGC Product Video",
-    "tagline": "One face. One take. Fifteen seconds.",
+    "tagline": "One take. Native voice. A polished social finish.",
     "buttonLabel": "Explore three angles",
     "inputs": [
       {
@@ -1744,6 +1745,14 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "Slogan",
         "kind": "text"
+      },
+      {
+        "label": "Caption style",
+        "kind": "choice"
+      },
+      {
+        "label": "Brand accent (optional)",
+        "kind": "color"
       }
     ],
     "outputs": [
@@ -1756,11 +1765,11 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "video"
       },
       {
-        "label": "Branded 15-second UGC Reel",
+        "label": "Finished 15-second UGC Reel",
         "kind": "video"
       }
     ],
-    "widgetCount": 37
+    "widgetCount": 38
   },
   {
     "route": "/apps/upscale-image",

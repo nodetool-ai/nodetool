@@ -10,8 +10,22 @@ interface Component {
     content?: Component[];
     disabledWhen?: { binding?: string; op?: string };
     events?: Array<{ kind: string; operationId?: string }>;
+    label?: string;
     left?: Component[];
+    options?: Array<{ value: string }>;
     right?: Component[];
+    title?: string;
+  };
+}
+
+interface WorkflowNode {
+  id: string;
+  type: string;
+  data?: {
+    code?: string;
+    name?: string;
+    value?: unknown;
+    [key: string]: unknown;
   };
 }
 
@@ -24,6 +38,10 @@ interface AppBundle {
       outputs: Record<string, { variableId?: string }>;
     }>;
   };
+  workflows: Array<{
+    key: string;
+    graph: { nodes: WorkflowNode[] };
+  }>;
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -45,10 +63,19 @@ function flatten(components: Component[]): Component[] {
 }
 
 describe("UGC Product Video recipe", () => {
-  it("carries ordered creator and product references into one testimonial", () => {
+  it("binds the generated testimonial and finish controls", () => {
     const bundle = read<AppBundle>("apps/ugc-product-video.app.json");
     const operations = new Map(
       bundle.app.operations.map((operation) => [operation.id, operation])
+    );
+    const components = flatten(bundle.app.ui.content);
+    const finishWorkflow = bundle.workflows.find(
+      (workflow) => workflow.key === "brand"
+    );
+    const finishInputs = new Map(
+      finishWorkflow?.graph.nodes
+        .filter((node) => node.type.startsWith("nodetool.input."))
+        .map((node) => [node.data?.name, node]) ?? []
     );
 
     expect(operations.get("creator")?.inputs["creator-image"]?.variableId).toBe(
@@ -60,25 +87,65 @@ describe("UGC Product Video recipe", () => {
     expect(operations.get("creator")?.outputs["video-out"]?.variableId).toBe(
       "creatorClip"
     );
-    expect(operations.get("brand")?.inputs["creator-clip"]?.variableId).toBe(
-      "creatorClip"
+    expect(
+      operations.get("brand")?.inputs[
+        finishInputs.get("creator_clip")?.id ?? ""
+      ]?.variableId
+    ).toBe("creatorClip");
+    expect(
+      operations.get("brand")?.inputs[finishInputs.get("brand")?.id ?? ""]
+        ?.variableId
+    ).toBe("brand");
+    expect(
+      operations.get("brand")?.inputs[finishInputs.get("slogan")?.id ?? ""]
+        ?.variableId
+    ).toBe("slogan");
+    const videoOutput = finishWorkflow?.graph.nodes.find(
+      (node) =>
+        node.type === "nodetool.output.Output" && node.data?.name === "video"
     );
-    expect(operations.get("brand")?.inputs["brand"]?.variableId).toBe(
-      "brand"
+    expect(
+      operations.get("brand")?.outputs[videoOutput?.id ?? ""]?.variableId
+    ).toBe("finalVideo");
+
+    const captionStyle = components.find(
+      (component) =>
+        component.type === "Select" && component.props.label === "Caption style"
     );
-    expect(operations.get("brand")?.inputs["slogan"]?.variableId).toBe(
-      "slogan"
-    );
-    expect(operations.get("brand")?.outputs["video-out"]?.variableId).toBe(
-      "finalVideo"
-    );
+    expect(captionStyle).toMatchObject({
+      props: {
+        binding: `op:brand/in:${finishInputs.get("caption_style")?.id}`,
+        options: [{ value: "Polished" }, { value: "Minimal" }]
+      }
+    });
+    expect(
+      components.find(
+        (component) =>
+          component.type === "ColorInput" &&
+          component.props.label === "Brand accent (optional)"
+      )?.props.binding
+    ).toBe(`op:brand/in:${finishInputs.get("brand_accent")?.id}`);
+    expect(
+      components.find(
+        (component) => component.props.label === "Add motion + captions"
+      )?.props.events
+    ).toEqual([expect.objectContaining({ kind: "run", operationId: "brand" })]);
+    expect(
+      components.some(
+        (component) =>
+          component.type === "Container" &&
+          component.props.title === "3 · Finish the Reel"
+      )
+    ).toBe(true);
     expect([...operations.keys()]).toEqual(["copy", "creator", "brand"]);
   });
 
   it("guards every run and exposes every failure", () => {
     const bundle = read<AppBundle>("apps/ugc-product-video.app.json");
     const components = flatten(bundle.app.ui.content);
-    const buttons = components.filter((component) => component.type === "Button");
+    const buttons = components.filter(
+      (component) => component.type === "Button"
+    );
 
     for (const button of buttons) {
       const [run] = (button.props.events ?? []).filter(
@@ -101,32 +168,43 @@ describe("UGC Product Video recipe", () => {
     ]);
   });
 
-  it("adds an exact editable brand and slogan during the closing beat", () => {
+  it("transcribes the clip and builds timed caption and brand motion", () => {
     const workflow = read<{
       graph: {
-        nodes: Array<{
-          id: string;
-          type: string;
-          data?: {
-            code?: string;
-            align?: string;
-            font_size?: number;
-          };
-        }>;
+        nodes: WorkflowNode[];
       };
     }>("nodetool-base/Brand a UGC Product Video.json");
-    const lockup = workflow.graph.nodes.find((node) => node.id === "lockup");
-    const brandVideo = workflow.graph.nodes.find(
-      (node) => node.id === "brand-video"
+    const inputs = new Map(
+      workflow.graph.nodes
+        .filter((node) => node.type.startsWith("nodetool.input."))
+        .map((node) => [node.data?.name, node])
     );
+    const timelineCode = workflow.graph.nodes
+      .map((node) => node.data?.code)
+      .filter((code): code is string => typeof code === "string")
+      .join("\n");
 
-    expect(lockup?.data?.code).toContain("inputs.brand");
-    expect(lockup?.data?.code).toContain("inputs.slogan");
-    expect(lockup?.data?.code).toContain("[11.75, 15.1]");
-    expect(brandVideo).toMatchObject({
-      type: "nodetool.video.AddSubtitles",
-      data: { align: "bottom", font_size: 42 }
+    expect(inputs.get("caption_style")).toMatchObject({
+      type: "nodetool.input.SelectInput",
+      data: { value: "Polished" }
     });
+    expect(inputs.get("brand_accent")).toMatchObject({
+      type: "nodetool.input.ColorInput",
+      data: { value: { type: "color", value: "#C0D28C" } }
+    });
+    expect(
+      workflow.graph.nodes.some(
+        (node) => node.type === "openai.audio.Transcribe"
+      )
+    ).toBe(true);
+    expect(timelineCode).toContain("activeColor");
+    expect(timelineCode).toContain("brandAccent");
+    expect(timelineCode).toContain("openingBug");
+    expect(timelineCode).toContain("dailyRitual");
+    expect(timelineCode).toContain("closingPanel");
+    expect(timelineCode).toContain("11_750");
+    expect(timelineCode).toContain("12_300");
+    expect(timelineCode).toContain("15_083");
   });
 
   it("uses MiniMax H3 reference-to-video on AtlasCloud", () => {
@@ -153,7 +231,9 @@ describe("UGC Product Video recipe", () => {
         }>;
       };
     }>("nodetool-base/Generate a Native-Audio UGC Testimonial.json");
-    const generator = workflow.graph.nodes.find((node) => node.id === "generate");
+    const generator = workflow.graph.nodes.find(
+      (node) => node.id === "generate"
+    );
 
     expect(generator?.type).toBe("nodetool.video.ReferenceToVideo");
     expect(generator?.data).toMatchObject({
@@ -206,12 +286,16 @@ describe("UGC Product Video recipe", () => {
       };
     }>("nodetool-base/Generate a Native-Audio UGC Testimonial.json");
     const prompt = workflow.graph.nodes.find((node) => node.id === "prompt");
-    const generator = workflow.graph.nodes.find((node) => node.id === "generate");
+    const generator = workflow.graph.nodes.find(
+      (node) => node.id === "generate"
+    );
 
     expect(prompt?.data?.string).toContain("[0.0-4.5s]");
     expect(prompt?.data?.string).toContain("[4.5-7.0s]");
     expect(prompt?.data?.string).toContain("[7.0-15.0s]");
-    expect(prompt?.data?.string).toContain("product and hands fully out of frame");
+    expect(prompt?.data?.string).toContain(
+      "product and hands fully out of frame"
+    );
     expect(generator?.data?.negative_prompt).toContain(
       "product visible after 7 seconds"
     );

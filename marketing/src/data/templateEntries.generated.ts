@@ -2388,18 +2388,19 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/brand-a-ugc-product-video",
     "title": "Brand a UGC Product Video — NodeTool AI Workflow Template",
-    "description": "Add an exact editable brand and slogan to the closing seconds of a vertical UGC video while preserving its native audio.",
+    "description": "Turn one continuous vertical creator clip into a polished branded reel. The workflow extracts the native audio, transcribes it with word timestamps, groups the words into short animated phrases, builds an editable NodeTool timeline with MORROW motion graphics, and renders the finished video.",
     "priority": 0.3,
     "changeFrequency": "monthly",
     "indexable": false,
     "slug": "brand-a-ugc-product-video",
     "name": "Brand a UGC Product Video",
-    "summary": "Add an exact editable brand and slogan to the closing seconds of a vertical UGC video while preserving its native audio.",
+    "summary": "Turn one continuous vertical creator clip into a polished branded reel. The workflow extracts the native audio, transcribes it with word timestamps, groups the words into short animated phrases, builds an editable NodeTool timeline with MORROW motion graphics, and renders the finished video.",
     "tags": [
       "video",
       "marketing",
       "ugc",
-      "branding",
+      "captions",
+      "motion-graphics",
       "example"
     ],
     "category": "Video",
@@ -2410,13 +2411,18 @@ export const templateEntries: TemplateEntry[] = [
         "count": 2
       },
       {
-        "type": "nodetool.video.AddSubtitles",
-        "label": "Add Subtitles",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
-        "type": "nodetool.code.Code",
-        "label": "Code",
+        "type": "nodetool.input.ColorInput",
+        "label": "Color Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
         "count": 1
       },
       {
@@ -2425,21 +2431,45 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.timeline.RenderTimeline",
+        "label": "Render Timeline",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 1
+      },
+      {
+        "type": "openai.audio.Transcribe",
+        "label": "Transcribe",
+        "count": 1
+      },
+      {
         "type": "nodetool.input.VideoInput",
         "label": "Video Input",
         "count": 1
       }
     ],
-    "nodeCount": 6,
+    "nodeCount": 10,
     "thumbnail": null,
     "graph": {
       "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": -20,
+          "y": -210,
+          "width": 1860,
+          "isComment": true
+        },
         {
           "id": "creator-clip",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 100,
+          "y": 40,
           "width": 280
         },
         {
@@ -2447,7 +2477,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 330,
+          "y": 250,
           "width": 280,
           "subtitle": "MORROW"
         },
@@ -2456,66 +2486,135 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 540,
+          "y": 450,
           "width": 280,
           "subtitle": "Carry the calm."
         },
         {
-          "id": "lockup",
-          "type": "nodetool.code.Code",
-          "title": "Code",
-          "x": 390,
-          "y": 360,
-          "width": 330
+          "id": "caption-style",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 650,
+          "width": 280,
+          "subtitle": "Polished"
         },
         {
-          "id": "brand-video",
-          "type": "nodetool.video.AddSubtitles",
-          "title": "Add Subtitles",
-          "x": 820,
-          "y": 240,
-          "width": 320
+          "id": "brand-accent",
+          "type": "nodetool.input.ColorInput",
+          "title": "Color Input",
+          "x": 0,
+          "y": 850,
+          "width": 280
+        },
+        {
+          "id": "extract-audio",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 360,
+          "y": 40,
+          "width": 280
+        },
+        {
+          "id": "transcribe",
+          "type": "openai.audio.Transcribe",
+          "title": "Transcribe",
+          "x": 700,
+          "y": 40,
+          "width": 300,
+          "subtitle": "Return the creator's exact spoken words. Preserve product and brand terms."
+        },
+        {
+          "id": "build-timeline",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1070,
+          "y": 330,
+          "width": 400
+        },
+        {
+          "id": "render",
+          "type": "nodetool.timeline.RenderTimeline",
+          "title": "Render Timeline",
+          "x": 1540,
+          "y": 390,
+          "width": 300
         },
         {
           "id": "video-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1240,
-          "y": 260,
+          "x": 1910,
+          "y": 390,
           "width": 260
         }
       ],
       "edges": [
         {
+          "source": "creator-clip",
+          "sourceHandle": "output",
+          "target": "extract-audio",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "extract-audio",
+          "sourceHandle": "output",
+          "target": "transcribe",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "creator-clip",
+          "sourceHandle": "output",
+          "target": "build-timeline",
+          "targetHandle": "creator",
+          "color": "any"
+        },
+        {
+          "source": "transcribe",
+          "sourceHandle": "words",
+          "target": "build-timeline",
+          "targetHandle": "words",
+          "color": "any"
+        },
+        {
           "source": "brand",
           "sourceHandle": "output",
-          "target": "lockup",
+          "target": "build-timeline",
           "targetHandle": "brand",
           "color": "any"
         },
         {
           "source": "slogan",
           "sourceHandle": "output",
-          "target": "lockup",
+          "target": "build-timeline",
           "targetHandle": "slogan",
           "color": "any"
         },
         {
-          "source": "creator-clip",
+          "source": "caption-style",
           "sourceHandle": "output",
-          "target": "brand-video",
-          "targetHandle": "video",
+          "target": "build-timeline",
+          "targetHandle": "captionStyle",
           "color": "any"
         },
         {
-          "source": "lockup",
+          "source": "brand-accent",
           "sourceHandle": "output",
-          "target": "brand-video",
-          "targetHandle": "chunks",
+          "target": "build-timeline",
+          "targetHandle": "brandAccent",
           "color": "any"
         },
         {
-          "source": "brand-video",
+          "source": "build-timeline",
+          "sourceHandle": "timeline",
+          "target": "render",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "render",
           "sourceHandle": "output",
           "target": "video-out",
           "targetHandle": "value",

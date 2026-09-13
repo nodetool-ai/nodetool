@@ -152,15 +152,16 @@ export const recipeEntries: RecipeEntry[] = [
         "Angle",
         "References",
         "Generate",
-        "Brand",
+        "Finish",
         "Review"
       ],
-      "introduction": "Keep the creator on camera for the full Reel, generate voice and lip-sync in the same MiniMax H3 pass, limit the cup to one proof beat of no more than about three seconds, and finish with an exact branded close.",
+      "introduction": "Keep the creator on camera for the full Reel, generate voice and lip-sync in one MiniMax H3 pass, then finish the recording with captions, restrained graphic beats, and an exact branded close.",
       "inputs": [
         "One vertical creator image you have permission to send to AtlasCloud",
         "One clean product reference you have permission to send to AtlasCloud",
         "Approved product facts and one audience",
         "An exact brand name and slogan",
+        "An optional brand accent color",
         "OpenAI and AtlasCloud providers configured in NodeTool"
       ],
       "brief": "Create a 15-second vertical UGC testimonial with the creator speaking to camera throughout. Generate voice, mouth movement, and picture together in one MiniMax H3 native-audio pass on AtlasCloud. Image 1 controls the creator and room. Image 2 controls only the product. Keep the cup fully out of frame from 0.0 to 4.5 seconds, show it once from 4.5 to 7.0 seconds without blocking the face, and keep it fully out of frame from 7.0 to 15.0 seconds. Preserve the phone-shot character of the source. Do not add generated logos, music, unsupported claims, or cutaway product shots.",
@@ -196,40 +197,54 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "15-second script",
           "title": "Write and generate in one pass",
           "description": "Keep the hook short enough to land before 4.5 seconds, support it with one or two product truths, and end with one recommendation. MiniMax H3 generates the exact dialogue, native voice, lip-sync, and picture together.",
-          "action": "Make the 15-second testimonial"
+          "action": "Make the 15-second testimonial",
+          "image": {
+            "src": "/apps/examples/ugc-product-video/motion-caption.jpg",
+            "alt": "MORROW creator Reel with an opening brand bug and word-highlighted animated caption.",
+            "caption": "Short caption groups enter on the recorded words. The sage highlight follows the active word without covering the creator's face.",
+            "width": 768,
+            "height": 1344
+          }
         },
         {
-          "id": "brand",
-          "phase": "Brand",
-          "stage": "Closing lockup",
-          "title": "Add the exact brand and slogan",
-          "description": "Keep generated lettering out of the MiniMax H3 prompt. Add the brand and slogan locally during the final 3.25 seconds so the words remain legible and editable while the native audio stays unchanged.",
-          "action": "Add the closing brand"
+          "id": "finish",
+          "phase": "Finish",
+          "stage": "Motion + captions",
+          "title": "Finish the Reel",
+          "description": "Choose the polished or minimal caption treatment and an optional accent color. The workflow transcribes the generated audio, animates readable caption groups, adds restrained brand motion, and settles into the closing lockup around 12.8 seconds.",
+          "action": "Add motion + captions",
+          "image": {
+            "src": "/apps/examples/ugc-product-video/final-poster.jpg",
+            "alt": "MORROW creator Reel at 12.8 seconds with animated caption styling and the finished brand close.",
+            "caption": "The 12.8-second frame shows the finished close. Caption words and timing remain reviewable before publishing.",
+            "width": 768,
+            "height": 1344
+          }
         },
         {
           "id": "inspect",
           "phase": "Review",
           "stage": "Timing and identity",
           "title": "Check the complete Reel",
-          "description": "Watch once for voice and lip-sync, then scrub the opening, 4.5-second entrance, 7.0-second exit, and close. Reject a take if the cup appears outside the 2.5-second window, blocks the face, or drifts from image 2.",
+          "description": "Watch once for voice and lip-sync, then once muted for caption rhythm and graphic placement. Scrub the product entrance, product exit, and 12.8-second close. Correct any caption that differs from the recorded words before publishing.",
           "action": "Approve or regenerate"
         }
       ]
     },
     "route": "/recipes/ugc-product-video",
     "title": "UGC product video | NodeTool guided recipe",
-    "description": "Turn creator and product references into a branded 15-second vertical testimonial whose voice and lip movement are generated together.",
+    "description": "Turn creator and product references into a polished 15-second vertical testimonial with native voice, animated captions, and a branded close.",
     "priority": 0.8,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "ugc-product-video",
     "name": "UGC product video",
-    "outcome": "Turn creator and product references into a branded 15-second vertical testimonial whose voice and lip movement are generated together.",
+    "outcome": "Turn creator and product references into a polished 15-second vertical testimonial with native voice, animated captions, and a branded close.",
     "audience": "Founder-led brands, creators, and paid social teams",
     "heroThumbnail": "/apps/ugc-product-video.png",
     "bundle": "/recipes/ugc-product-video.nodetool",
     "workflowCount": 3,
-    "nodeCount": 17,
+    "nodeCount": 21,
     "keys": [
       {
         "provider": "openai",
@@ -277,10 +292,10 @@ export const recipeEntries: RecipeEntry[] = [
         "template": "brand-a-ugc-product-video",
         "name": "Brand a UGC Product Video",
         "route": "/templates/brand-a-ugc-product-video",
-        "role": "Add the exact brand ending",
-        "handoff": "Add the brand and slogan locally during the final 3.25 seconds so the lockup stays legible and editable while the native audio remains unchanged.",
+        "role": "Finish the Reel",
+        "handoff": "Choose a caption style and optional brand accent. The workflow transcribes the generated clip, adds animated captions and restrained graphic beats, then renders the exact brand and slogan over the close while preserving native audio.",
         "thumbnail": null,
-        "nodeCount": 6,
+        "nodeCount": 10,
         "models": [],
         "alternative": null
       }

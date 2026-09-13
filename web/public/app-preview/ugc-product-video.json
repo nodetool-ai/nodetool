@@ -2,9 +2,9 @@
   "slug": "ugc-product-video",
   "name": "UGC Product Video",
   "emoji": "🤳",
-  "description": "Start with creator and product references plus a 15-second script. MiniMax H3 generates the performance, lip-sync, and voice together, with the product limited to one short middle proof beat.",
-  "tagline": "One face. One take. Fifteen seconds.",
-  "note": "🔑 Writing uses OpenAI. The testimonial uses MiniMax H3 on AtlasCloud with native audio.",
+  "description": "Create a native-audio MiniMax H3 testimonial, then turn its spoken words into animated captions, restrained motion graphics, and an exact branded close.",
+  "tagline": "One take. Native voice. A polished social finish.",
+  "note": "🔑 Writing and caption transcription use OpenAI. MiniMax H3 generates the testimonial on AtlasCloud with native audio.",
   "featured": true,
   "image": "/app-preview/img/ugc-product-video.jpg",
   "app": {
@@ -26,14 +26,14 @@
           "type": "Text",
           "props": {
             "id": "tagline",
-            "text": "One face. One take. Fifteen seconds."
+            "text": "One take. Native voice. A polished social finish."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Writing uses OpenAI. The testimonial uses MiniMax H3 on AtlasCloud with native audio."
+            "text": "🔑 Writing and caption transcription use OpenAI. MiniMax H3 generates the testimonial on AtlasCloud with native audio."
           }
         },
         {
@@ -270,14 +270,14 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-3-add-the-brand-ending",
+            "id": "cols-3-finish-the-reel",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-3-add-the-brand-ending",
-                  "title": "3 · Add the brand ending",
+                  "id": "panel-3-finish-the-reel",
+                  "title": "3 · Finish the Reel",
                   "content": [
                     {
                       "type": "TextInput",
@@ -300,17 +300,36 @@
                       }
                     },
                     {
-                      "type": "Text",
+                      "type": "Select",
                       "props": {
-                        "id": "note-3",
-                        "text": "Keep generated lettering out of the H3 prompt. Add the exact brand and slogan locally during the final 3.25 seconds so the copy stays legible and editable."
+                        "id": "in-brand-caption-style",
+                        "binding": "op:brand/in:caption-style",
+                        "label": "Caption style",
+                        "options": [
+                          {
+                            "value": "Polished"
+                          },
+                          {
+                            "value": "Minimal"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ColorInput",
+                      "props": {
+                        "id": "in-brand-brand-accent",
+                        "binding": "op:brand/in:brand-accent",
+                        "label": "Brand accent (optional)",
+                        "events": []
                       }
                     },
                     {
                       "type": "Button",
                       "props": {
                         "id": "btn-brand",
-                        "label": "Add the closing brand",
+                        "label": "Add motion + captions",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -336,7 +355,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-3-add-the-brand-ending-results",
+                  "id": "panel-3-finish-the-reel-results",
                   "title": "Results",
                   "content": [
                     {
@@ -344,7 +363,7 @@
                       "props": {
                         "id": "progress-brand",
                         "binding": "op:brand/exec#progress",
-                        "label": "Adding the exact brand lockup…"
+                        "label": "Transcribing the clip and rendering the finish…"
                       }
                     },
                     {
@@ -352,7 +371,7 @@
                       "props": {
                         "id": "error-brand",
                         "binding": "op:brand/exec#error",
-                        "title": "The brand ending failed",
+                        "title": "The Reel finish failed",
                         "text": "",
                         "severity": "error",
                         "visibleWhen": {
@@ -365,7 +384,7 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-finalvideo",
-                        "text": "Branded 15-second UGC Reel",
+                        "text": "Finished 15-second UGC Reel",
                         "level": "3"
                       }
                     },
@@ -381,8 +400,8 @@
                     {
                       "type": "Text",
                       "props": {
-                        "id": "note-4",
-                        "text": "Review the complete Reel once with sound and once muted. The cup should appear once for no more than about three seconds and be absent from the opening and branded close."
+                        "id": "note-3",
+                        "text": "Captions follow the generated audio and stay reviewable. Watch once with sound, once muted, and check every highlighted word before publishing."
                       }
                     }
                   ]
@@ -441,7 +460,7 @@
       },
       {
         "id": "brand",
-        "name": "Brand ending",
+        "name": "Finish the Reel",
         "workflowId": "brand",
         "inputs": {
           "creator-clip": {
@@ -727,17 +746,17 @@
             "data": {
               "name": "creator_clip",
               "value": null,
-              "description": "Continuous 15-second native-audio creator testimonial"
+              "description": "One continuous 9:16 creator clip with its native audio"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 100
+                "y": 40
               },
               "zIndex": 0,
               "width": 280,
               "selectable": true,
-              "title": "1  Creator testimonial"
+              "title": "1  Creator clip"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -748,12 +767,12 @@
             "data": {
               "name": "brand",
               "value": "MORROW",
-              "description": "Exact brand name shown in the closing lockup"
+              "description": "Brand name used by the opening bug and closing lockup"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 330
+                "y": 250
               },
               "zIndex": 0,
               "width": 280,
@@ -769,12 +788,12 @@
             "data": {
               "name": "slogan",
               "value": "Carry the calm.",
-              "description": "Exact slogan shown under the brand"
+              "description": "Closing line under the brand"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 540
+                "y": 450
               },
               "zIndex": 0,
               "width": 280,
@@ -785,20 +804,71 @@
             "dynamic_outputs": {}
           },
           {
-            "id": "video-out",
-            "type": "nodetool.output.Output",
+            "id": "caption-style",
+            "type": "nodetool.input.SelectInput",
             "data": {
-              "name": "video"
+              "name": "caption_style",
+              "value": "Polished",
+              "options": [
+                "Polished",
+                "Minimal"
+              ],
+              "enum_type_name": "",
+              "description": "Polished adds a restrained forest plate; Minimal keeps the outlined type"
             },
             "ui_properties": {
               "position": {
-                "x": 1240,
-                "y": 260
+                "x": 0,
+                "y": 650
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4  Caption style"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brand-accent",
+            "type": "nodetool.input.ColorInput",
+            "data": {
+              "name": "brand_accent",
+              "value": {
+                "type": "color",
+                "value": "#C0D28C"
+              },
+              "description": "Active-word, underline, bracket, and closing-rule color"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 850
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "5  Brand accent"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "video-out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "video",
+              "description": "Polished vertical UGC reel with editable motion graphics and captions"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1910,
+                "y": 390
               },
               "zIndex": 0,
               "width": 260,
               "selectable": true,
-              "title": "6  Branded UGC Reel"
+              "title": "10  Branded UGC reel"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -811,6 +881,7 @@
   "values": {
     "op:copy/out:out": "**Plain**\nA matte cup with a charcoal lid for the morning routine.\n\n**Playful**\nThe cup that makes it out the door with you.\n\n**Premium**\nA quieter start, designed to travel.",
     "var:creatorClip": "/app-preview/media/ugc-product-video/creator.mp4",
+    "op:brand/in:caption-style": "Polished",
     "var:finalVideo": "/app-preview/media/ugc-product-video/final.mp4",
     "var:offer": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid for a calmer morning routine",
     "var:creatorScript": "I did not expect a travel cup to fix my mornings, but this one did. The lid never leaks in my bag, the finish feels great, and my coffee stays hot through my first meeting. I use it every day.",

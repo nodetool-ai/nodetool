@@ -6,10 +6,10 @@ export const UGC_PRODUCT_VIDEO_APP = {
   name: "UGC Product Video",
   emoji: "🤳",
   featured: true,
-  tagline: "One face. One take. Fifteen seconds.",
+  tagline: "One take. Native voice. A polished social finish.",
   description:
-    "Start with creator and product references plus a 15-second script. MiniMax H3 generates the performance, lip-sync, and voice together, with the product limited to one short middle proof beat.",
-  note: "🔑 Writing uses OpenAI. The testimonial uses MiniMax H3 on AtlasCloud with native audio.",
+    "Create a native-audio MiniMax H3 testimonial, then turn its spoken words into animated captions, restrained motion graphics, and an exact branded close.",
+  note: "🔑 Writing and caption transcription use OpenAI. MiniMax H3 generates the testimonial on AtlasCloud with native audio.",
   workflows: {
     copy: "Ad Copy in Three Registers",
     creator: "Generate a Native-Audio UGC Testimonial",
@@ -100,7 +100,7 @@ export const UGC_PRODUCT_VIDEO_APP = {
     },
     {
       id: "brand",
-      name: "Brand ending",
+      name: "Finish the Reel",
       workflow: "brand",
       policy: "replace",
       inputs: {
@@ -123,8 +123,7 @@ export const UGC_PRODUCT_VIDEO_APP = {
           multiline: true
         },
         {
-          note:
-            "Pick the promise before touching footage. A UGC hook should create curiosity without making a claim the product cannot support."
+          note: "Pick the promise before touching footage. A UGC hook should create curiosity without making a claim the product cannot support."
         },
         {
           run: ["copy"],
@@ -140,8 +139,7 @@ export const UGC_PRODUCT_VIDEO_APP = {
           op: "copy",
           as: "Markdown",
           label: "Angles to adapt",
-          demo:
-            "**Plain**\nA matte cup with a charcoal lid for the morning routine.\n\n**Playful**\nThe cup that makes it out the door with you.\n\n**Premium**\nA quieter start, designed to travel."
+          demo: "**Plain**\nA matte cup with a charcoal lid for the morning routine.\n\n**Playful**\nThe cup that makes it out the door with you.\n\n**Premium**\nA quieter start, designed to travel."
         }
       ]
     },
@@ -149,8 +147,7 @@ export const UGC_PRODUCT_VIDEO_APP = {
       title: "2 · Generate one continuous testimonial",
       controls: [
         {
-          note:
-            "Image 1 anchors the creator and room. Image 2 anchors only the product. MiniMax H3 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
+          note: "Image 1 anchors the creator and room. Image 2 anchors only the product. MiniMax H3 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
         },
         { image: "creatorImage", label: "Vertical creator image" },
         { image: "productImage", label: "Clean product image" },
@@ -180,32 +177,41 @@ export const UGC_PRODUCT_VIDEO_APP = {
       ]
     },
     {
-      title: "3 · Add the brand ending",
+      title: "3 · Finish the Reel",
       controls: [
         { textVar: "brand", label: "Brand" },
         { textVar: "slogan", label: "Slogan" },
         {
-          note:
-            "Keep generated lettering out of the H3 prompt. Add the exact brand and slogan locally during the final 3.25 seconds so the copy stays legible and editable."
+          select: "caption_style",
+          op: "brand",
+          label: "Caption style",
+          options: ["Polished", "Minimal"]
+        },
+        {
+          color: "brand_accent",
+          op: "brand",
+          label: "Brand accent (optional)"
         },
         {
           run: ["brand"],
-          label: "Add the closing brand",
+          label: "Add motion + captions",
           disabledWhen: "brand"
         }
       ],
       results: [
-        { progress: "brand", label: "Adding the exact brand lockup…" },
-        { error: "brand", label: "The brand ending failed" },
+        {
+          progress: "brand",
+          label: "Transcribing the clip and rendering the finish…"
+        },
+        { error: "brand", label: "The Reel finish failed" },
         {
           showVar: "finalVideo",
           as: "Video",
-          label: "Branded 15-second UGC Reel",
+          label: "Finished 15-second UGC Reel",
           demo: UGC_FINAL
         },
         {
-          note:
-            "Review the complete Reel once with sound and once muted. The cup should appear once for no more than about three seconds and be absent from the opening and branded close."
+          note: "Captions follow the generated audio and stay reviewable. Watch once with sound, once muted, and check every highlighted word before publishing."
         }
       ]
     }

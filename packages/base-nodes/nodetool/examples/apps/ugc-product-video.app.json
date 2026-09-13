@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "UGC Product Video",
-  "description": "Start with creator and product references plus a 15-second script. MiniMax H3 generates the performance, lip-sync, and voice together, with the product limited to one short middle proof beat.",
+  "description": "Create a native-audio MiniMax H3 testimonial, then turn its spoken words into animated captions, restrained motion graphics, and an exact branded close.",
   "app": {
     "schemaVersion": 3,
     "ui": {
@@ -21,14 +21,14 @@
           "type": "Text",
           "props": {
             "id": "tagline",
-            "text": "One face. One take. Fifteen seconds."
+            "text": "One take. Native voice. A polished social finish."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Writing uses OpenAI. The testimonial uses MiniMax H3 on AtlasCloud with native audio."
+            "text": "🔑 Writing and caption transcription use OpenAI. MiniMax H3 generates the testimonial on AtlasCloud with native audio."
           }
         },
         {
@@ -265,14 +265,14 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-3-add-the-brand-ending",
+            "id": "cols-3-finish-the-reel",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-3-add-the-brand-ending",
-                  "title": "3 · Add the brand ending",
+                  "id": "panel-3-finish-the-reel",
+                  "title": "3 · Finish the Reel",
                   "content": [
                     {
                       "type": "TextInput",
@@ -295,17 +295,36 @@
                       }
                     },
                     {
-                      "type": "Text",
+                      "type": "Select",
                       "props": {
-                        "id": "note-3",
-                        "text": "Keep generated lettering out of the H3 prompt. Add the exact brand and slogan locally during the final 3.25 seconds so the copy stays legible and editable."
+                        "id": "in-brand-caption-style",
+                        "binding": "op:brand/in:caption-style",
+                        "label": "Caption style",
+                        "options": [
+                          {
+                            "value": "Polished"
+                          },
+                          {
+                            "value": "Minimal"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ColorInput",
+                      "props": {
+                        "id": "in-brand-brand-accent",
+                        "binding": "op:brand/in:brand-accent",
+                        "label": "Brand accent (optional)",
+                        "events": []
                       }
                     },
                     {
                       "type": "Button",
                       "props": {
                         "id": "btn-brand",
-                        "label": "Add the closing brand",
+                        "label": "Add motion + captions",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -331,7 +350,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-3-add-the-brand-ending-results",
+                  "id": "panel-3-finish-the-reel-results",
                   "title": "Results",
                   "content": [
                     {
@@ -339,7 +358,7 @@
                       "props": {
                         "id": "progress-brand",
                         "binding": "op:brand/exec#progress",
-                        "label": "Adding the exact brand lockup…"
+                        "label": "Transcribing the clip and rendering the finish…"
                       }
                     },
                     {
@@ -347,7 +366,7 @@
                       "props": {
                         "id": "error-brand",
                         "binding": "op:brand/exec#error",
-                        "title": "The brand ending failed",
+                        "title": "The Reel finish failed",
                         "text": "",
                         "severity": "error",
                         "visibleWhen": {
@@ -360,7 +379,7 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-finalvideo",
-                        "text": "Branded 15-second UGC Reel",
+                        "text": "Finished 15-second UGC Reel",
                         "level": "3"
                       }
                     },
@@ -376,8 +395,8 @@
                     {
                       "type": "Text",
                       "props": {
-                        "id": "note-4",
-                        "text": "Review the complete Reel once with sound and once muted. The cup should appear once for no more than about three seconds and be absent from the opening and branded close."
+                        "id": "note-3",
+                        "text": "Captions follow the generated audio and stay reviewable. Watch once with sound, once muted, and check every highlighted word before publishing."
                       }
                     }
                   ]
@@ -436,7 +455,7 @@
       },
       {
         "id": "brand",
-        "name": "Brand ending",
+        "name": "Finish the Reel",
         "workflowId": "brand",
         "inputs": {
           "creator-clip": {
@@ -897,27 +916,47 @@
     {
       "key": "brand",
       "name": "Brand a UGC Product Video",
-      "description": "Add an exact editable brand and slogan to the closing seconds of a vertical UGC video while preserving its native audio.",
+      "description": "Turn one continuous vertical creator clip into a polished branded reel. The workflow extracts the native audio, transcribes it with word timestamps, groups the words into short animated phrases, builds an editable NodeTool timeline with MORROW motion graphics, and renders the finished video.",
       "sourceId": "nodetool-base/Brand a UGC Product Video",
       "graph": {
         "nodes": [
+          {
+            "id": "intro",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Brand a UGC Product Video\n\nDrop in one continuous, native-audio vertical creator clip. The workflow transcribes the clip, groups the spoken words into 3–5 word phrases, and builds a reusable editable timeline with word highlighting, six-frame phrase entries, a MORROW opening bug, a cup-callout bracket, and an animated closing lockup.\n\n**Pipeline:** Creator clip → Native audio → Word timestamps → Motion-design timeline → Final reel\n\n**Style:** Ivory `#F6F4EC`, sage `#C0D28C`, forest `#14241E`. `Polished` adds a soft caption plate; `Minimal` keeps only type and outline."
+            },
+            "ui_properties": {
+              "position": {
+                "x": -20,
+                "y": -210
+              },
+              "zIndex": -1,
+              "width": 1860,
+              "height": 170,
+              "selectable": true,
+              "title": "MORROW motion finishing"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
           {
             "id": "creator-clip",
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "creator_clip",
               "value": null,
-              "description": "Continuous 15-second native-audio creator testimonial"
+              "description": "One continuous 9:16 creator clip with its native audio"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 100
+                "y": 40
               },
               "zIndex": 0,
               "width": 280,
               "selectable": true,
-              "title": "1  Creator testimonial"
+              "title": "1  Creator clip"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -928,12 +967,12 @@
             "data": {
               "name": "brand",
               "value": "MORROW",
-              "description": "Exact brand name shown in the closing lockup"
+              "description": "Brand name used by the opening bug and closing lockup"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 330
+                "y": 250
               },
               "zIndex": 0,
               "width": 280,
@@ -949,12 +988,12 @@
             "data": {
               "name": "slogan",
               "value": "Carry the calm.",
-              "description": "Exact slogan shown under the brand"
+              "description": "Closing line under the brand"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 540
+                "y": 450
               },
               "zIndex": 0,
               "width": 280,
@@ -965,61 +1004,164 @@
             "dynamic_outputs": {}
           },
           {
-            "id": "lockup",
-            "type": "nodetool.code.Code",
+            "id": "caption-style",
+            "type": "nodetool.input.SelectInput",
             "data": {
-              "code": "const brand = String(inputs.brand ?? \"\").trim().toUpperCase();\nconst slogan = String(inputs.slogan ?? \"\").trim();\nif (!brand) throw new Error(\"Brand is required.\");\nif (!slogan) throw new Error(\"Slogan is required.\");\nreturn { output: [{ text: `${brand}\\n${slogan}`, timestamp: [11.75, 15.1] }] };"
+              "name": "caption_style",
+              "value": "Polished",
+              "options": [
+                "Polished",
+                "Minimal"
+              ],
+              "enum_type_name": "",
+              "description": "Polished adds a restrained forest plate; Minimal keeps the outlined type"
             },
             "ui_properties": {
               "position": {
-                "x": 390,
-                "y": 360
+                "x": 0,
+                "y": 650
               },
               "zIndex": 0,
-              "width": 330,
+              "width": 280,
               "selectable": true,
-              "title": "4  Build exact closing lockup"
+              "title": "4  Caption style"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brand-accent",
+            "type": "nodetool.input.ColorInput",
+            "data": {
+              "name": "brand_accent",
+              "value": {
+                "type": "color",
+                "value": "#C0D28C"
+              },
+              "description": "Active-word, underline, bracket, and closing-rule color"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 850
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "5  Brand accent"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "extract-audio",
+            "type": "nodetool.video.ExtractAudio",
+            "data": {},
+            "ui_properties": {
+              "position": {
+                "x": 360,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "6  Keep the native track"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "transcribe",
+            "type": "openai.audio.Transcribe",
+            "data": {
+              "model": "whisper-1",
+              "language": "auto_detect",
+              "timestamps": true,
+              "prompt": "Return the creator's exact spoken words. Preserve product and brand terms.",
+              "temperature": 0
+            },
+            "ui_properties": {
+              "position": {
+                "x": 700,
+                "y": 40
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "7  Derive word timings"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "build-timeline",
+            "type": "nodetool.code.Code",
+            "data": {
+              "code": "const creator = inputs.creator;\nconst rawWords = Array.isArray(inputs.words) ? inputs.words : [];\nconst brand = String(inputs.brand || 'MORROW').trim().toUpperCase();\nconst slogan = String(inputs.slogan || 'Carry the calm.').trim();\nconst captionStyleName = String(inputs.captionStyle || 'Polished');\nconst brandAccent = String((inputs.brandAccent && inputs.brandAccent.value) || inputs.brandAccent || '#C0D28C');\nconst IVORY = '#F6F4EC';\nconst FOREST = '#14241E';\nconst DURATION_MS = 15_083;\nconst closingPanel = {riseStartMs: 11_750, riseEndMs: 12_300, holdEndMs: 15_083};\nconst openingBug = {startMs: 150, endMs: 2_700};\nconst dailyRitual = {startMs: 5_000, endMs: 8_050};\nif (!creator || typeof creator !== 'object') throw new Error('A creator clip is required.');\nif (rawWords.length === 0) throw new Error('The transcription returned no word timestamps. Use whisper-1 with timestamps enabled.');\nlet assetId = typeof creator.asset_id === 'string' ? creator.asset_id : '';\nif (!assetId) { const saveOptions = creator.uri ? {source: creator.uri, content_type: 'video/mp4'} : {content_base64: creator.data, content_type: 'video/mp4'}; const saved = await nodetool.assets.save(`${brand.toLowerCase()}-creator.mp4`, saveOptions); assetId = String(saved.asset_id || saved.id || ''); }\nif (!assetId) throw new Error('The creator clip could not be stored as a timeline asset.');\nconst words = rawWords.map((item) => { const stamp = Array.isArray(item.timestamp) ? item.timestamp : []; return {text: String(item.text || '').trim(), startMs: Math.max(0, Math.round(Number(stamp[0] || 0) * 1000)), endMs: Math.max(1, Math.round(Number(stamp[1] || stamp[0] || 0) * 1000))}; }).filter((item) => item.text && item.endMs > item.startMs).sort((a, b) => a.startMs - b.startMs);\nconst clauses = []; let clause = [];\nfor (const word of words) { const gap = clause.length ? word.startMs - clause[clause.length - 1].endMs : 0; if (clause.length && gap > 450) { clauses.push(clause); clause = []; } clause.push(word); if (/[.!?]$/.test(word.text)) { clauses.push(clause); clause = []; } }\nif (clause.length) clauses.push(clause);\nfunction countsFor(total) { const counts = []; let left = total; while (left > 5) { const take = left - 5 < 3 ? left - 3 : 5; counts.push(take); left -= take; } if (left > 0) counts.push(left); if (counts.length > 1 && counts[counts.length - 1] < 3) counts[counts.length - 2] += counts.pop(); return counts; }\nconst phrases = [];\nfor (const run of clauses) { let cursor = 0; for (const count of countsFor(run.length)) { const slice = run.slice(cursor, cursor + count); cursor += count; if (slice.length < 3 && phrases.length && phrases[phrases.length - 1].words.length + slice.length <= 5) phrases[phrases.length - 1].words.push(...slice); else phrases.push({words: slice}); } }\nconst clip = (overrides) => ({sourceType: 'imported', status: 'generated', locked: false, versions: [], ...overrides});\nconst pop = (id, durationMs = 250) => ({id, role: 'in', preset: 'pop', durationMs, easing: 'easeOutBack', params: {overshoot: 1.06}});\nconst slideUp = (id, durationMs = 550) => ({id, role: 'in', preset: 'slide', durationMs, easing: 'easeOut', params: {direction: 'down', distance: 0.34}});\nconst captionStyle = {fontFamily: 'Inter', fontSizeFrac: captionStyleName === 'Minimal' ? 0.043 : 0.048, color: IVORY, activeColor: brandAccent, outline: {color: FOREST, widthPx: 4}, bottomMarginFrac: 0.39};\nif (captionStyleName !== 'Minimal') captionStyle.background = {color: '#14241ECC', paddingPx: 16, radiusPx: 14};\nconst captionClips = phrases.map((phrase, index) => { const first = phrase.words[0]; const last = phrase.words[phrase.words.length - 1]; const startMs = first.startMs; const nextStartMs = phrases[index + 1] ? phrases[index + 1].words[0].startMs : DURATION_MS; const nextPhraseBoundaryMs = phrases[index + 1] ? Math.max(startMs + 1, nextStartMs - 42) : DURATION_MS; const endMs = Math.min(DURATION_MS, nextPhraseBoundaryMs, last.endMs + 180); return clip({id: `caption-${index + 1}`, trackId: 'captions', name: `Phrase ${index + 1}`, startMs, durationMs: Math.max(1, endMs - startMs), mediaType: 'text', caption: {words: phrase.words.map((word) => ({word: word.text.toUpperCase(), startMs: word.startMs - startMs, endMs: Math.min(word.endMs - startMs, endMs - startMs)})), style: captionStyle}, animations: [pop(`caption-pop-${index + 1}`)]}); });\nconst clips = [\nclip({id: 'creator-video', trackId: 'video', name: 'Creator clip with native audio', startMs: 0, durationMs: DURATION_MS, mediaType: 'video', sourceType: 'imported', currentAssetId: assetId, volumeDb: 0}),\nclip({id: 'opening-bug-plate', trackId: 'motion-a', name: 'openingBug plate', startMs: openingBug.startMs, durationMs: openingBug.endMs - openingBug.startMs, mediaType: 'shape', shapeStyle: {kind: 'rect', x: 0.081, y: 0.116, width: 0.333, height: 0.054, fill: FOREST, cornerRadius: 0.012}, animations: [pop('opening-bug-pop')]}),\nclip({id: 'opening-bug-accent', trackId: 'motion-b', name: 'openingBug accent', startMs: openingBug.startMs + 80, durationMs: openingBug.endMs - openingBug.startMs - 80, mediaType: 'shape', shapeStyle: {kind: 'line', x: 0.107, y: 0.129, x2: 0.107, y2: 0.157, stroke: brandAccent, strokeWidthPx: 7, lineCap: 'round'}, animations: [pop('opening-accent-pop', 180)]}),\nclip({id: 'opening-bug-brand', trackId: 'motion-c', name: 'openingBug MORROW', startMs: openingBug.startMs + 120, durationMs: openingBug.endMs - openingBug.startMs - 120, mediaType: 'text', textStyle: {text: brand, fontFamily: 'Inter', fontSizePx: 34, fontWeight: 600, color: IVORY, align: 'center', letterSpacingPx: 3, stroke: {color: FOREST, widthPx: 1}}, transform: {position: {x: -194, y: -480}, scale: {x: 1, y: 1}, rotation: 0, anchor: {x: 0.5, y: 0.5}}, animations: [pop('opening-brand-pop', 180)]}),\nclip({id: 'daily-bracket', trackId: 'motion-a', name: 'dailyRitual cup bracket', startMs: dailyRitual.startMs, durationMs: dailyRitual.endMs - dailyRitual.startMs, mediaType: 'shape', shapeStyle: {kind: 'path', d: 'M 0.18 0.70 L 0.12 0.70 L 0.12 0.93 L 0.18 0.93 M 0.82 0.70 L 0.88 0.70 L 0.88 0.93 L 0.82 0.93', stroke: brandAccent, strokeWidthPx: 5, lineCap: 'round', lineJoin: 'round'}, animations: [{id: 'daily-bracket-trim', role: 'in', preset: 'custom', durationMs: 360, custom: {curves: [{property: 'trimEnd', keyframes: [{t: 0, value: 0}, {t: 1, value: 1, easing: 'easeOut'}]}]}}]}),\nclip({id: 'daily-label', trackId: 'motion-b', name: 'dailyRitual label', startMs: dailyRitual.startMs + 180, durationMs: dailyRitual.endMs - dailyRitual.startMs - 180, mediaType: 'text', textStyle: {text: 'DAILY\\nRITUAL', fontFamily: 'Inter', fontSizePx: 34, fontWeight: 600, color: brandAccent, align: 'center', letterSpacingPx: 3, lineHeight: 1.08, stroke: {color: FOREST, widthPx: 2}}, transform: {position: {x: 245, y: 315}, scale: {x: 1, y: 1}, rotation: 0, anchor: {x: 0.5, y: 0.5}}, animations: [pop('daily-label-pop')]}),\nclip({id: 'key-phrase-underline', trackId: 'motion-c', name: 'Key phrase underline', startMs: 5_480, durationMs: 2_150, mediaType: 'shape', shapeStyle: {kind: 'line', x: 0.31, y: 0.635, x2: 0.69, y2: 0.635, stroke: brandAccent, strokeWidthPx: 5, lineCap: 'round'}, animations: [{id: 'underline-draw', role: 'in', preset: 'custom', durationMs: 250, custom: {curves: [{property: 'trimEnd', keyframes: [{t: 0, value: 0}, {t: 1, value: 1, easing: 'easeOut'}]}]}}]}),\nclip({id: 'closing-panel', trackId: 'motion-a', name: 'closingPanel deep-forest rise', startMs: closingPanel.riseStartMs, durationMs: closingPanel.holdEndMs - closingPanel.riseStartMs, mediaType: 'shape', shapeStyle: {kind: 'rect', x: 0, y: 0.715, width: 1, height: 0.285, fill: FOREST}, animations: [slideUp('closing-panel-rise', closingPanel.riseEndMs - closingPanel.riseStartMs)]}),\nclip({id: 'closing-rule', trackId: 'motion-b', name: 'closingPanel sage rule', startMs: 12_220, durationMs: closingPanel.holdEndMs - 12_220, mediaType: 'shape', shapeStyle: {kind: 'line', x: 0.095, y: 0.772, x2: 0.095, y2: 0.914, stroke: brandAccent, strokeWidthPx: 7, lineCap: 'round'}, animations: [{id: 'closing-rule-draw', role: 'in', preset: 'custom', durationMs: 320, custom: {curves: [{property: 'trimEnd', keyframes: [{t: 0, value: 0}, {t: 1, value: 1, easing: 'easeOut'}]}]}}]}),\nclip({id: 'closing-brand', trackId: 'motion-c', name: 'closingPanel MORROW', startMs: closingPanel.riseEndMs, durationMs: closingPanel.holdEndMs - closingPanel.riseEndMs, mediaType: 'text', textStyle: {text: brand, fontFamily: 'Inter', fontSizePx: 72, fontWeight: 600, color: IVORY, align: 'center', letterSpacingPx: 7, stroke: {color: FOREST, widthPx: 1}}, transform: {position: {x: 12, y: 365}, scale: {x: 1, y: 1}, rotation: 0, anchor: {x: 0.5, y: 0.5}}, animations: [slideUp('closing-brand-rise', 320)]}),\nclip({id: 'closing-slogan', trackId: 'motion-d', name: 'closingPanel slogan', startMs: 12_520, durationMs: closingPanel.holdEndMs - 12_520, mediaType: 'text', textStyle: {text: slogan, fontFamily: 'Inter', fontSizePx: 35, fontWeight: 500, color: IVORY, align: 'center', letterSpacingPx: 1, stroke: {color: FOREST, widthPx: 1}}, transform: {position: {x: 0, y: 455}, scale: {x: 1, y: 1}, rotation: 0, anchor: {x: 0.5, y: 0.5}}, animations: [slideUp('closing-slogan-rise', 280)]}),\n...captionClips];\nconst created = await nodetool.timelines.create(`${brand} UGC motion finish`, {fps: 24, width: 768, height: 1344});\nconst timelineId = String(created.timeline_id || created.id || '');\nif (!timelineId) throw new Error('Could not create the motion-design timeline.');\nconst document = {tracks: [{id: 'captions', name: 'Animated phrase captions', type: 'overlay', index: 0, visible: true, locked: false}, {id: 'motion-d', name: 'Motion D', type: 'overlay', index: 1, visible: true, locked: false}, {id: 'motion-c', name: 'Motion C', type: 'overlay', index: 2, visible: true, locked: false}, {id: 'motion-b', name: 'Motion B', type: 'overlay', index: 3, visible: true, locked: false}, {id: 'motion-a', name: 'Motion A', type: 'overlay', index: 4, visible: true, locked: false}, {id: 'video', name: 'Creator + native audio', type: 'video', index: 5, visible: true, locked: false}], clips, markers: [{id: 'opening', timeMs: openingBug.startMs, label: 'Opening bug', color: brandAccent}, {id: 'cup', timeMs: dailyRitual.startMs, label: 'Daily ritual', color: brandAccent}, {id: 'close', timeMs: closingPanel.riseStartMs, label: 'Closing panel', color: brandAccent}]};\nconst written = await nodetool.timelines.setDocument(timelineId, document, {fps: 24, width: 768, height: 1344, snapshot_name: 'MORROW motion finish'});\nif (written && written.error) throw new Error(String(written.error));\nawait output('timeline', {type: 'timeline', id: timelineId});",
+              "timeout": 90,
+              "max_response_mb": 1,
+              "allow_local_network": false,
+              "allow_host_filesystem": false,
+              "secrets": [],
+              "script": {}
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1070,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 400,
+              "height": 520,
+              "selectable": true,
+              "title": "8  Build the editable motion timeline"
             },
             "dynamic_properties": {
+              "creator": null,
+              "words": [],
               "brand": "",
-              "slogan": ""
+              "slogan": "",
+              "captionStyle": "Polished",
+              "brandAccent": {
+                "type": "color",
+                "value": "#C0D28C"
+              }
             },
             "dynamic_outputs": {
-              "output": {
-                "type": "list[audio_chunk]",
+              "timeline": {
+                "type": "timeline",
                 "type_args": [],
                 "optional": false
               }
             }
           },
           {
-            "id": "brand-video",
-            "type": "nodetool.video.AddSubtitles",
+            "id": "render",
+            "type": "nodetool.timeline.RenderTimeline",
             "data": {
-              "chunks": [],
-              "font": {
-                "type": "font",
-                "name": "Arial",
-                "source": "system",
-                "url": "",
-                "weight": "regular"
+              "timeline": {
+                "type": "timeline",
+                "id": null,
+                "data": null
               },
-              "align": "bottom",
-              "font_size": 42,
-              "font_color": {
-                "type": "color",
-                "value": "#FFFFFF"
-              }
+              "include_audio": true,
+              "format": "mp4",
+              "alpha": false,
+              "video_codec": "",
+              "motion_blur_samples": 1,
+              "shutter_angle": 180,
+              "bitrate": 0,
+              "preview_scale": 1
             },
             "ui_properties": {
               "position": {
-                "x": 820,
-                "y": 240
+                "x": 1540,
+                "y": 390
               },
               "zIndex": 0,
-              "width": 320,
+              "width": 300,
               "selectable": true,
-              "title": "5  Add brand to the close"
+              "title": "9  Render the finished reel"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1028,17 +1170,18 @@
             "id": "video-out",
             "type": "nodetool.output.Output",
             "data": {
-              "name": "video"
+              "name": "video",
+              "description": "Polished vertical UGC reel with editable motion graphics and captions"
             },
             "ui_properties": {
               "position": {
-                "x": 1240,
-                "y": 260
+                "x": 1910,
+                "y": 390
               },
               "zIndex": 0,
               "width": 260,
               "selectable": true,
-              "title": "6  Branded UGC Reel"
+              "title": "10  Branded UGC reel"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1047,35 +1190,70 @@
         "edges": [
           {
             "id": "e1",
-            "source": "brand",
+            "source": "creator-clip",
             "sourceHandle": "output",
-            "target": "lockup",
-            "targetHandle": "brand"
+            "target": "extract-audio",
+            "targetHandle": "video"
           },
           {
             "id": "e2",
-            "source": "slogan",
+            "source": "extract-audio",
             "sourceHandle": "output",
-            "target": "lockup",
-            "targetHandle": "slogan"
+            "target": "transcribe",
+            "targetHandle": "audio"
           },
           {
             "id": "e3",
             "source": "creator-clip",
             "sourceHandle": "output",
-            "target": "brand-video",
-            "targetHandle": "video"
+            "target": "build-timeline",
+            "targetHandle": "creator"
           },
           {
             "id": "e4",
-            "source": "lockup",
-            "sourceHandle": "output",
-            "target": "brand-video",
-            "targetHandle": "chunks"
+            "source": "transcribe",
+            "sourceHandle": "words",
+            "target": "build-timeline",
+            "targetHandle": "words"
           },
           {
             "id": "e5",
-            "source": "brand-video",
+            "source": "brand",
+            "sourceHandle": "output",
+            "target": "build-timeline",
+            "targetHandle": "brand"
+          },
+          {
+            "id": "e6",
+            "source": "slogan",
+            "sourceHandle": "output",
+            "target": "build-timeline",
+            "targetHandle": "slogan"
+          },
+          {
+            "id": "e7",
+            "source": "caption-style",
+            "sourceHandle": "output",
+            "target": "build-timeline",
+            "targetHandle": "captionStyle"
+          },
+          {
+            "id": "e8",
+            "source": "brand-accent",
+            "sourceHandle": "output",
+            "target": "build-timeline",
+            "targetHandle": "brandAccent"
+          },
+          {
+            "id": "e9",
+            "source": "build-timeline",
+            "sourceHandle": "timeline",
+            "target": "render",
+            "targetHandle": "timeline"
+          },
+          {
+            "id": "e10",
+            "source": "render",
             "sourceHandle": "output",
             "target": "video-out",
             "targetHandle": "value"
