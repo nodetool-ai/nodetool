@@ -152,13 +152,15 @@ export const recipeEntries: RecipeEntry[] = [
         "Angle",
         "References",
         "Generate",
+        "Brand",
         "Review"
       ],
-      "introduction": "Keep the creator on camera for the full Reel, generate voice and lip-sync in the same MiniMax H3 pass, and limit the cup to one proof beat of no more than about three seconds.",
+      "introduction": "Keep the creator on camera for the full Reel, generate voice and lip-sync in the same MiniMax H3 pass, limit the cup to one proof beat of no more than about three seconds, and finish with an exact branded close.",
       "inputs": [
         "One vertical creator image you have permission to send to AtlasCloud",
         "One clean product reference you have permission to send to AtlasCloud",
         "Approved product facts and one audience",
+        "An exact brand name and slogan",
         "OpenAI and AtlasCloud providers configured in NodeTool"
       ],
       "brief": "Create a 15-second vertical UGC testimonial with the creator speaking to camera throughout. Generate voice, mouth movement, and picture together in one MiniMax H3 native-audio pass on AtlasCloud. Image 1 controls the creator and room. Image 2 controls only the product. Keep the cup fully out of frame from 0.0 to 4.5 seconds, show it once from 4.5 to 7.0 seconds without blocking the face, and keep it fully out of frame from 7.0 to 15.0 seconds. Preserve the phone-shot character of the source. Do not add generated logos, music, unsupported claims, or cutaway product shots.",
@@ -197,6 +199,14 @@ export const recipeEntries: RecipeEntry[] = [
           "action": "Make the 15-second testimonial"
         },
         {
+          "id": "brand",
+          "phase": "Brand",
+          "stage": "Closing lockup",
+          "title": "Add the exact brand and slogan",
+          "description": "Keep generated lettering out of the MiniMax H3 prompt. Add the brand and slogan locally during the final 3.25 seconds so the words remain legible and editable while the native audio stays unchanged.",
+          "action": "Add the closing brand"
+        },
+        {
           "id": "inspect",
           "phase": "Review",
           "stage": "Timing and identity",
@@ -208,18 +218,18 @@ export const recipeEntries: RecipeEntry[] = [
     },
     "route": "/recipes/ugc-product-video",
     "title": "UGC product video | NodeTool guided recipe",
-    "description": "Turn creator and product references into a 15-second vertical testimonial whose voice and lip movement are generated together.",
+    "description": "Turn creator and product references into a branded 15-second vertical testimonial whose voice and lip movement are generated together.",
     "priority": 0.8,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "ugc-product-video",
     "name": "UGC product video",
-    "outcome": "Turn creator and product references into a 15-second vertical testimonial whose voice and lip movement are generated together.",
+    "outcome": "Turn creator and product references into a branded 15-second vertical testimonial whose voice and lip movement are generated together.",
     "audience": "Founder-led brands, creators, and paid social teams",
     "heroThumbnail": "/apps/ugc-product-video.png",
     "bundle": "/recipes/ugc-product-video.nodetool",
-    "workflowCount": 2,
-    "nodeCount": 11,
+    "workflowCount": 3,
+    "nodeCount": 17,
     "keys": [
       {
         "provider": "openai",
@@ -261,6 +271,17 @@ export const recipeEntries: RecipeEntry[] = [
             "model": "minimax/h3/reference-to-video"
           }
         ],
+        "alternative": null
+      },
+      {
+        "template": "brand-a-ugc-product-video",
+        "name": "Brand a UGC Product Video",
+        "route": "/templates/brand-a-ugc-product-video",
+        "role": "Add the exact brand ending",
+        "handoff": "Add the brand and slogan locally during the final 3.25 seconds so the lockup stays legible and editable while the native audio remains unchanged.",
+        "thumbnail": null,
+        "nodeCount": 6,
+        "models": [],
         "alternative": null
       }
     ]

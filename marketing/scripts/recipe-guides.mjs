@@ -103,17 +103,18 @@ export const recipeGuides = {
   "ugc-product-video": {
     name: "UGC product video",
     outcome:
-      "Turn creator and product references into a 15-second vertical testimonial whose voice and lip movement are generated together.",
+      "Turn creator and product references into a branded 15-second vertical testimonial whose voice and lip movement are generated together.",
     audience: "Founder-led brands, creators, and paid social teams",
     guide: {
       entry: "UGC Product Video",
-      stages: ["Angle", "References", "Generate", "Review"],
+      stages: ["Angle", "References", "Generate", "Brand", "Review"],
       introduction:
-        "Keep the creator on camera for the full Reel, generate voice and lip-sync in the same MiniMax H3 pass, and limit the cup to one proof beat of no more than about three seconds.",
+        "Keep the creator on camera for the full Reel, generate voice and lip-sync in the same MiniMax H3 pass, limit the cup to one proof beat of no more than about three seconds, and finish with an exact branded close.",
       inputs: [
         "One vertical creator image you have permission to send to AtlasCloud",
         "One clean product reference you have permission to send to AtlasCloud",
         "Approved product facts and one audience",
+        "An exact brand name and slogan",
         "OpenAI and AtlasCloud providers configured in NodeTool"
       ],
       brief:
@@ -156,6 +157,15 @@ export const recipeGuides = {
           description:
             "Keep the hook short enough to land before 4.5 seconds, support it with one or two product truths, and end with one recommendation. MiniMax H3 generates the exact dialogue, native voice, lip-sync, and picture together.",
           action: "Make the 15-second testimonial"
+        },
+        {
+          id: "brand",
+          phase: "Brand",
+          stage: "Closing lockup",
+          title: "Add the exact brand and slogan",
+          description:
+            "Keep generated lettering out of the MiniMax H3 prompt. Add the brand and slogan locally during the final 3.25 seconds so the words remain legible and editable while the native audio stays unchanged.",
+          action: "Add the closing brand"
         },
         {
           id: "inspect",

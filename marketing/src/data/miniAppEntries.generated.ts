@@ -1699,11 +1699,17 @@ export const miniAppEntries: MiniAppEntry[] = [
         "name": "Generate a Native-Audio UGC Testimonial",
         "slug": "generate-a-native-audio-ugc-testimonial",
         "route": "/templates/generate-a-native-audio-ugc-testimonial"
+      },
+      {
+        "name": "Brand a UGC Product Video",
+        "slug": "brand-a-ugc-product-video",
+        "route": "/templates/brand-a-ugc-product-video"
       }
     ],
     "templateRoute": "/templates/ad-copy-in-three-registers",
     "screenshot": "/apps/ugc-product-video.png",
     "tags": [
+      "branding",
       "example",
       "marketing",
       "native-audio",
@@ -1732,7 +1738,11 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "text"
       },
       {
-        "label": "Audience",
+        "label": "Brand",
+        "kind": "text"
+      },
+      {
+        "label": "Slogan",
         "kind": "text"
       }
     ],
@@ -1744,9 +1754,13 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "Continuous creator testimonial",
         "kind": "video"
+      },
+      {
+        "label": "Branded 15-second UGC Reel",
+        "kind": "video"
       }
     ],
-    "widgetCount": 32
+    "widgetCount": 37
   },
   {
     "route": "/apps/upscale-image",

@@ -60,7 +60,19 @@ describe("UGC Product Video recipe", () => {
     expect(operations.get("creator")?.outputs["video-out"]?.variableId).toBe(
       "creatorClip"
     );
-    expect([...operations.keys()]).toEqual(["copy", "creator"]);
+    expect(operations.get("brand")?.inputs["creator-clip"]?.variableId).toBe(
+      "creatorClip"
+    );
+    expect(operations.get("brand")?.inputs["brand"]?.variableId).toBe(
+      "brand"
+    );
+    expect(operations.get("brand")?.inputs["slogan"]?.variableId).toBe(
+      "slogan"
+    );
+    expect(operations.get("brand")?.outputs["video-out"]?.variableId).toBe(
+      "finalVideo"
+    );
+    expect([...operations.keys()]).toEqual(["copy", "creator", "brand"]);
   });
 
   it("guards every run and exposes every failure", () => {
@@ -84,8 +96,37 @@ describe("UGC Product Video recipe", () => {
       .map((component) => component.props.binding);
     expect(errorBindings).toEqual([
       "op:copy/exec#error",
-      "op:creator/exec#error"
+      "op:creator/exec#error",
+      "op:brand/exec#error"
     ]);
+  });
+
+  it("adds an exact editable brand and slogan during the closing beat", () => {
+    const workflow = read<{
+      graph: {
+        nodes: Array<{
+          id: string;
+          type: string;
+          data?: {
+            code?: string;
+            align?: string;
+            font_size?: number;
+          };
+        }>;
+      };
+    }>("nodetool-base/Brand a UGC Product Video.json");
+    const lockup = workflow.graph.nodes.find((node) => node.id === "lockup");
+    const brandVideo = workflow.graph.nodes.find(
+      (node) => node.id === "brand-video"
+    );
+
+    expect(lockup?.data?.code).toContain("inputs.brand");
+    expect(lockup?.data?.code).toContain("inputs.slogan");
+    expect(lockup?.data?.code).toContain("[11.75, 15.1]");
+    expect(brandVideo).toMatchObject({
+      type: "nodetool.video.AddSubtitles",
+      data: { align: "bottom", font_size: 42 }
+    });
   });
 
   it("uses MiniMax H3 reference-to-video on AtlasCloud", () => {

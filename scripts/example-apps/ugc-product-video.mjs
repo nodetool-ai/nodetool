@@ -1,4 +1,5 @@
 const UGC_FINAL = "/app-preview/media/ugc-product-video/final.mp4";
+const UGC_CREATOR = "/app-preview/media/ugc-product-video/creator.mp4";
 
 export const UGC_PRODUCT_VIDEO_APP = {
   slug: "ugc-product-video",
@@ -11,7 +12,8 @@ export const UGC_PRODUCT_VIDEO_APP = {
   note: "🔑 Writing uses OpenAI. The testimonial uses MiniMax H3 on AtlasCloud with native audio.",
   workflows: {
     copy: "Ad Copy in Three Registers",
-    creator: "Generate a Native-Audio UGC Testimonial"
+    creator: "Generate a Native-Audio UGC Testimonial",
+    brand: "Brand a UGC Product Video"
   },
   variables: [
     {
@@ -50,12 +52,26 @@ export const UGC_PRODUCT_VIDEO_APP = {
       type: "video"
     },
     {
-      id: "audience",
-      name: "Audience",
+      id: "brand",
+      name: "Brand",
       scope: "user",
       persist: true,
       type: "str",
-      default: "busy professionals who want a calmer start to the day"
+      default: "MORROW"
+    },
+    {
+      id: "slogan",
+      name: "Slogan",
+      scope: "user",
+      persist: true,
+      type: "str",
+      default: "Carry the calm."
+    },
+    {
+      id: "finalVideo",
+      name: "Branded UGC Reel",
+      scope: "instance",
+      type: "video"
     }
   ],
   operations: [
@@ -80,6 +96,20 @@ export const UGC_PRODUCT_VIDEO_APP = {
       },
       outputs: {
         video: { to: "variable", variableId: "creatorClip" }
+      }
+    },
+    {
+      id: "brand",
+      name: "Brand ending",
+      workflow: "brand",
+      policy: "replace",
+      inputs: {
+        creator_clip: { from: "variable", variableId: "creatorClip" },
+        brand: { from: "variable", variableId: "brand" },
+        slogan: { from: "variable", variableId: "slogan" }
+      },
+      outputs: {
+        video: { to: "variable", variableId: "finalVideo" }
       }
     }
   ],
@@ -145,25 +175,37 @@ export const UGC_PRODUCT_VIDEO_APP = {
           showVar: "creatorClip",
           as: "Video",
           label: "Continuous creator testimonial",
-          demo: UGC_FINAL
+          demo: UGC_CREATOR
         }
       ]
     },
     {
-      title: "3 · Review the complete Reel",
+      title: "3 · Add the brand ending",
       controls: [
-        { textVar: "audience", label: "Audience", multiline: true },
+        { textVar: "brand", label: "Brand" },
+        { textVar: "slogan", label: "Slogan" },
         {
           note:
-            "Watch once for voice and lip-sync, then again for product timing. The cup should appear once for no more than about three seconds and be absent from the opening and close."
+            "Keep generated lettering out of the H3 prompt. Add the exact brand and slogan locally during the final 3.25 seconds so the copy stays legible and editable."
+        },
+        {
+          run: ["brand"],
+          label: "Add the closing brand",
+          disabledWhen: "brand"
         }
       ],
       results: [
+        { progress: "brand", label: "Adding the exact brand lockup…" },
+        { error: "brand", label: "The brand ending failed" },
         {
-          showVar: "creatorClip",
+          showVar: "finalVideo",
           as: "Video",
-          label: "15-second UGC Reel",
+          label: "Branded 15-second UGC Reel",
           demo: UGC_FINAL
+        },
+        {
+          note:
+            "Review the complete Reel once with sound and once muted. The cup should appear once for no more than about three seconds and be absent from the opening and branded close."
         }
       ]
     }

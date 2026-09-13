@@ -2386,6 +2386,145 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/brand-a-ugc-product-video",
+    "title": "Brand a UGC Product Video — NodeTool AI Workflow Template",
+    "description": "Add an exact editable brand and slogan to the closing seconds of a vertical UGC video while preserving its native audio.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "brand-a-ugc-product-video",
+    "name": "Brand a UGC Product Video",
+    "summary": "Add an exact editable brand and slogan to the closing seconds of a vertical UGC video while preserving its native audio.",
+    "tags": [
+      "video",
+      "marketing",
+      "ugc",
+      "branding",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.video.AddSubtitles",
+        "label": "Add Subtitles",
+        "count": 1
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "creator-clip",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 100,
+          "width": 280
+        },
+        {
+          "id": "brand",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 330,
+          "width": 280,
+          "subtitle": "MORROW"
+        },
+        {
+          "id": "slogan",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 540,
+          "width": 280,
+          "subtitle": "Carry the calm."
+        },
+        {
+          "id": "lockup",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 390,
+          "y": 360,
+          "width": 330
+        },
+        {
+          "id": "brand-video",
+          "type": "nodetool.video.AddSubtitles",
+          "title": "Add Subtitles",
+          "x": 820,
+          "y": 240,
+          "width": 320
+        },
+        {
+          "id": "video-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1240,
+          "y": 260,
+          "width": 260
+        }
+      ],
+      "edges": [
+        {
+          "source": "brand",
+          "sourceHandle": "output",
+          "target": "lockup",
+          "targetHandle": "brand",
+          "color": "any"
+        },
+        {
+          "source": "slogan",
+          "sourceHandle": "output",
+          "target": "lockup",
+          "targetHandle": "slogan",
+          "color": "any"
+        },
+        {
+          "source": "creator-clip",
+          "sourceHandle": "output",
+          "target": "brand-video",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "lockup",
+          "sourceHandle": "output",
+          "target": "brand-video",
+          "targetHandle": "chunks",
+          "color": "any"
+        },
+        {
+          "source": "brand-video",
+          "sourceHandle": "output",
+          "target": "video-out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/bring-a-still-to-life",
     "title": "Bring a Still to Life — NodeTool AI Workflow Template",
     "description": "Turn one image into a short moving shot. The brief forbids restyling so the model may move the camera and add atmosphere but not redraw the subject - the same constraint the product templates rely on.",

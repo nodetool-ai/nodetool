@@ -1,0 +1,181 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-09-13T00:00:00.000Z",
+  "updated_at": "2026-09-13T00:00:00.000Z",
+  "name": "Brand a UGC Product Video",
+  "tool_name": null,
+  "description": "Add an exact editable brand and slogan to the closing seconds of a vertical UGC video while preserving its native audio.",
+  "tags": ["video", "marketing", "ugc", "branding", "example"],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "creator-clip",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "creator_clip",
+          "value": null,
+          "description": "Continuous 15-second native-audio creator testimonial"
+        },
+        "ui_properties": {
+          "position": { "x": 0, "y": 100 },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Creator testimonial"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "brand",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "brand",
+          "value": "MORROW",
+          "description": "Exact brand name shown in the closing lockup"
+        },
+        "ui_properties": {
+          "position": { "x": 0, "y": 330 },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Brand"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "slogan",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "slogan",
+          "value": "Carry the calm.",
+          "description": "Exact slogan shown under the brand"
+        },
+        "ui_properties": {
+          "position": { "x": 0, "y": 540 },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Slogan"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "lockup",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "const brand = String(inputs.brand ?? \"\").trim().toUpperCase();\nconst slogan = String(inputs.slogan ?? \"\").trim();\nif (!brand) throw new Error(\"Brand is required.\");\nif (!slogan) throw new Error(\"Slogan is required.\");\nreturn { output: [{ text: `${brand}\\n${slogan}`, timestamp: [11.75, 15.1] }] };"
+        },
+        "ui_properties": {
+          "position": { "x": 390, "y": 360 },
+          "zIndex": 0,
+          "width": 330,
+          "selectable": true,
+          "title": "4  Build exact closing lockup"
+        },
+        "dynamic_properties": {
+          "brand": "",
+          "slogan": ""
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "list[audio_chunk]",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "brand-video",
+        "type": "nodetool.video.AddSubtitles",
+        "data": {
+          "chunks": [],
+          "font": {
+            "type": "font",
+            "name": "Arial",
+            "source": "system",
+            "url": "",
+            "weight": "regular"
+          },
+          "align": "bottom",
+          "font_size": 42,
+          "font_color": {
+            "type": "color",
+            "value": "#FFFFFF"
+          }
+        },
+        "ui_properties": {
+          "position": { "x": 820, "y": 240 },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true,
+          "title": "5  Add brand to the close"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "video-out",
+        "type": "nodetool.output.Output",
+        "data": { "name": "video" },
+        "ui_properties": {
+          "position": { "x": 1240, "y": 260 },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true,
+          "title": "6  Branded UGC Reel"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "brand",
+        "sourceHandle": "output",
+        "target": "lockup",
+        "targetHandle": "brand"
+      },
+      {
+        "id": "e2",
+        "source": "slogan",
+        "sourceHandle": "output",
+        "target": "lockup",
+        "targetHandle": "slogan"
+      },
+      {
+        "id": "e3",
+        "source": "creator-clip",
+        "sourceHandle": "output",
+        "target": "brand-video",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e4",
+        "source": "lockup",
+        "sourceHandle": "output",
+        "target": "brand-video",
+        "targetHandle": "chunks"
+      },
+      {
+        "id": "e5",
+        "source": "brand-video",
+        "sourceHandle": "output",
+        "target": "video-out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

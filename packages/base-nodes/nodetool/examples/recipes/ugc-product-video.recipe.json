@@ -2,11 +2,12 @@
   "schemaVersion": 1,
   "slug": "ugc-product-video",
   "name": "UGC Product Video",
-  "outcome": "Turn creator and product references into a 15-second vertical testimonial whose voice and lip movement are generated together.",
+  "outcome": "Turn creator and product references into a branded 15-second vertical testimonial whose voice and lip movement are generated together.",
   "audience": "Founder-led brands, creators, and paid social teams.",
   "summary": [
     "Choose the message before generating footage. Write one complete 15-second script, keep one creator identity, and give MiniMax H3 a separate product reference.",
-    "Generate picture, voice, and lip-sync together in one AtlasCloud pass. Keep the cup out of the opening, show it only from 4.5 to 7.0 seconds, then return to the creator alone for the close."
+    "Generate picture, voice, and lip-sync together in one AtlasCloud pass. Keep the cup out of the opening, show it only from 4.5 to 7.0 seconds, then return to the creator alone for the close.",
+    "Add the exact brand and slogan as an editable local overlay during the final 3.25 seconds. This preserves the native MiniMax H3 audio and avoids generated lettering."
   ],
   "caveats": [
     "Use a creator image you have permission to send to the selected video provider and publish.",
@@ -38,6 +39,11 @@
       "example": "Generate a Native-Audio UGC Testimonial",
       "role": "Generate the creator testimonial",
       "handoff": "Give MiniMax H3 image 1 for creator identity and image 2 for product identity. Generate voice, lip-sync, motion, and the brief 4.5–7.0 second product beat in one AtlasCloud pass."
+    },
+    {
+      "example": "Brand a UGC Product Video",
+      "role": "Add the exact brand ending",
+      "handoff": "Add the brand and slogan locally during the final 3.25 seconds so the lockup stays legible and editable while the native audio remains unchanged."
     }
   ]
 }

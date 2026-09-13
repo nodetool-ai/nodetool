@@ -270,22 +270,32 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-3-review-the-complete-reel",
+            "id": "cols-3-add-the-brand-ending",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-3-review-the-complete-reel",
-                  "title": "3 · Review the complete Reel",
+                  "id": "panel-3-add-the-brand-ending",
+                  "title": "3 · Add the brand ending",
                   "content": [
                     {
                       "type": "TextInput",
                       "props": {
-                        "id": "in-audience",
-                        "binding": "var:audience",
-                        "label": "Audience",
-                        "multiline": true,
+                        "id": "in-brand",
+                        "binding": "var:brand",
+                        "label": "Brand",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-slogan",
+                        "binding": "var:slogan",
+                        "label": "Slogan",
+                        "multiline": false,
                         "events": []
                       }
                     },
@@ -293,7 +303,29 @@
                       "type": "Text",
                       "props": {
                         "id": "note-3",
-                        "text": "Watch once for voice and lip-sync, then again for product timing. The cup should appear once for no more than about three seconds and be absent from the opening and close."
+                        "text": "Keep generated lettering out of the H3 prompt. Add the exact brand and slogan locally during the final 3.25 seconds so the copy stays legible and editable."
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-brand",
+                        "label": "Add the closing brand",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "brand",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:brand/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -304,24 +336,53 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-3-review-the-complete-reel-results",
+                  "id": "panel-3-add-the-brand-ending-results",
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-brand",
+                        "binding": "op:brand/exec#progress",
+                        "label": "Adding the exact brand lockup…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-brand",
+                        "binding": "op:brand/exec#error",
+                        "title": "The brand ending failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:brand/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-creatorclip-2",
-                        "text": "15-second UGC Reel",
+                        "id": "lbl-finalvideo",
+                        "text": "Branded 15-second UGC Reel",
                         "level": "3"
                       }
                     },
                     {
                       "type": "Video",
                       "props": {
-                        "id": "out-creatorclip-2",
-                        "binding": "var:creatorClip",
+                        "id": "out-finalvideo",
+                        "binding": "var:finalVideo",
                         "height": 320,
                         "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-4",
+                        "text": "Review the complete Reel once with sound and once muted. The cup should appear once for no more than about three seconds and be absent from the opening and branded close."
                       }
                     }
                   ]
@@ -377,6 +438,32 @@
         },
         "policy": "replace",
         "timeoutMs": 600000
+      },
+      {
+        "id": "brand",
+        "name": "Brand ending",
+        "workflowId": "brand",
+        "inputs": {
+          "creator-clip": {
+            "from": "variable",
+            "variableId": "creatorClip"
+          },
+          "brand": {
+            "from": "variable",
+            "variableId": "brand"
+          },
+          "slogan": {
+            "from": "variable",
+            "variableId": "slogan"
+          }
+        },
+        "outputs": {
+          "video-out": {
+            "to": "variable",
+            "variableId": "finalVideo"
+          }
+        },
+        "policy": "replace"
       }
     ],
     "resources": [],
@@ -434,15 +521,36 @@
         "persist": false
       },
       {
-        "id": "audience",
-        "name": "Audience",
+        "id": "brand",
+        "name": "Brand",
         "type": {
           "type": "str",
           "optional": true
         },
-        "default": "busy professionals who want a calmer start to the day",
+        "default": "MORROW",
         "scope": "user",
         "persist": true
+      },
+      {
+        "id": "slogan",
+        "name": "Slogan",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Carry the calm.",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "finalVideo",
+        "name": "Branded UGC Reel",
+        "type": {
+          "type": "video",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
       }
     ]
   },
@@ -607,13 +715,106 @@
         ],
         "edges": []
       }
+    },
+    {
+      "key": "brand",
+      "name": "Brand a UGC Product Video",
+      "graph": {
+        "nodes": [
+          {
+            "id": "creator-clip",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "creator_clip",
+              "value": null,
+              "description": "Continuous 15-second native-audio creator testimonial"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 100
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Creator testimonial"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brand",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "brand",
+              "value": "MORROW",
+              "description": "Exact brand name shown in the closing lockup"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Brand"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "slogan",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "slogan",
+              "value": "Carry the calm.",
+              "description": "Exact slogan shown under the brand"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 540
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Slogan"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "video-out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "video"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1240,
+                "y": 260
+              },
+              "zIndex": 0,
+              "width": 260,
+              "selectable": true,
+              "title": "6  Branded UGC Reel"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
     }
   ],
   "values": {
     "op:copy/out:out": "**Plain**\nA matte cup with a charcoal lid for the morning routine.\n\n**Playful**\nThe cup that makes it out the door with you.\n\n**Premium**\nA quieter start, designed to travel.",
-    "var:creatorClip": "/app-preview/media/ugc-product-video/final.mp4",
+    "var:creatorClip": "/app-preview/media/ugc-product-video/creator.mp4",
+    "var:finalVideo": "/app-preview/media/ugc-product-video/final.mp4",
     "var:offer": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid for a calmer morning routine",
     "var:creatorScript": "I did not expect a travel cup to fix my mornings, but this one did. The lid never leaks in my bag, the finish feels great, and my coffee stays hot through my first meeting. I use it every day.",
-    "var:audience": "busy professionals who want a calmer start to the day"
+    "var:brand": "MORROW",
+    "var:slogan": "Carry the calm."
   }
 }

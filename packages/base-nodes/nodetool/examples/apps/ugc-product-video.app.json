@@ -265,22 +265,32 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-3-review-the-complete-reel",
+            "id": "cols-3-add-the-brand-ending",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-3-review-the-complete-reel",
-                  "title": "3 · Review the complete Reel",
+                  "id": "panel-3-add-the-brand-ending",
+                  "title": "3 · Add the brand ending",
                   "content": [
                     {
                       "type": "TextInput",
                       "props": {
-                        "id": "in-audience",
-                        "binding": "var:audience",
-                        "label": "Audience",
-                        "multiline": true,
+                        "id": "in-brand",
+                        "binding": "var:brand",
+                        "label": "Brand",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-slogan",
+                        "binding": "var:slogan",
+                        "label": "Slogan",
+                        "multiline": false,
                         "events": []
                       }
                     },
@@ -288,7 +298,29 @@
                       "type": "Text",
                       "props": {
                         "id": "note-3",
-                        "text": "Watch once for voice and lip-sync, then again for product timing. The cup should appear once for no more than about three seconds and be absent from the opening and close."
+                        "text": "Keep generated lettering out of the H3 prompt. Add the exact brand and slogan locally during the final 3.25 seconds so the copy stays legible and editable."
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-brand",
+                        "label": "Add the closing brand",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "brand",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:brand/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -299,24 +331,53 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-3-review-the-complete-reel-results",
+                  "id": "panel-3-add-the-brand-ending-results",
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-brand",
+                        "binding": "op:brand/exec#progress",
+                        "label": "Adding the exact brand lockup…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-brand",
+                        "binding": "op:brand/exec#error",
+                        "title": "The brand ending failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:brand/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-creatorclip-2",
-                        "text": "15-second UGC Reel",
+                        "id": "lbl-finalvideo",
+                        "text": "Branded 15-second UGC Reel",
                         "level": "3"
                       }
                     },
                     {
                       "type": "Video",
                       "props": {
-                        "id": "out-creatorclip-2",
-                        "binding": "var:creatorClip",
+                        "id": "out-finalvideo",
+                        "binding": "var:finalVideo",
                         "height": 320,
                         "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-4",
+                        "text": "Review the complete Reel once with sound and once muted. The cup should appear once for no more than about three seconds and be absent from the opening and branded close."
                       }
                     }
                   ]
@@ -372,6 +433,32 @@
         },
         "policy": "replace",
         "timeoutMs": 600000
+      },
+      {
+        "id": "brand",
+        "name": "Brand ending",
+        "workflowId": "brand",
+        "inputs": {
+          "creator-clip": {
+            "from": "variable",
+            "variableId": "creatorClip"
+          },
+          "brand": {
+            "from": "variable",
+            "variableId": "brand"
+          },
+          "slogan": {
+            "from": "variable",
+            "variableId": "slogan"
+          }
+        },
+        "outputs": {
+          "video-out": {
+            "to": "variable",
+            "variableId": "finalVideo"
+          }
+        },
+        "policy": "replace"
       }
     ],
     "resources": [],
@@ -429,15 +516,36 @@
         "persist": false
       },
       {
-        "id": "audience",
-        "name": "Audience",
+        "id": "brand",
+        "name": "Brand",
         "type": {
           "type": "str",
           "optional": true
         },
-        "default": "busy professionals who want a calmer start to the day",
+        "default": "MORROW",
         "scope": "user",
         "persist": true
+      },
+      {
+        "id": "slogan",
+        "name": "Slogan",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "Carry the calm.",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "finalVideo",
+        "name": "Branded UGC Reel",
+        "type": {
+          "type": "video",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
       }
     ]
   },
@@ -777,6 +885,197 @@
           {
             "id": "e7",
             "source": "generate",
+            "sourceHandle": "output",
+            "target": "video-out",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "brand",
+      "name": "Brand a UGC Product Video",
+      "description": "Add an exact editable brand and slogan to the closing seconds of a vertical UGC video while preserving its native audio.",
+      "sourceId": "nodetool-base/Brand a UGC Product Video",
+      "graph": {
+        "nodes": [
+          {
+            "id": "creator-clip",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "creator_clip",
+              "value": null,
+              "description": "Continuous 15-second native-audio creator testimonial"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 100
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Creator testimonial"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brand",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "brand",
+              "value": "MORROW",
+              "description": "Exact brand name shown in the closing lockup"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Brand"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "slogan",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "slogan",
+              "value": "Carry the calm.",
+              "description": "Exact slogan shown under the brand"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 540
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Slogan"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "lockup",
+            "type": "nodetool.code.Code",
+            "data": {
+              "code": "const brand = String(inputs.brand ?? \"\").trim().toUpperCase();\nconst slogan = String(inputs.slogan ?? \"\").trim();\nif (!brand) throw new Error(\"Brand is required.\");\nif (!slogan) throw new Error(\"Slogan is required.\");\nreturn { output: [{ text: `${brand}\\n${slogan}`, timestamp: [11.75, 15.1] }] };"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 390,
+                "y": 360
+              },
+              "zIndex": 0,
+              "width": 330,
+              "selectable": true,
+              "title": "4  Build exact closing lockup"
+            },
+            "dynamic_properties": {
+              "brand": "",
+              "slogan": ""
+            },
+            "dynamic_outputs": {
+              "output": {
+                "type": "list[audio_chunk]",
+                "type_args": [],
+                "optional": false
+              }
+            }
+          },
+          {
+            "id": "brand-video",
+            "type": "nodetool.video.AddSubtitles",
+            "data": {
+              "chunks": [],
+              "font": {
+                "type": "font",
+                "name": "Arial",
+                "source": "system",
+                "url": "",
+                "weight": "regular"
+              },
+              "align": "bottom",
+              "font_size": 42,
+              "font_color": {
+                "type": "color",
+                "value": "#FFFFFF"
+              }
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 240
+              },
+              "zIndex": 0,
+              "width": 320,
+              "selectable": true,
+              "title": "5  Add brand to the close"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "video-out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "video"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1240,
+                "y": 260
+              },
+              "zIndex": 0,
+              "width": 260,
+              "selectable": true,
+              "title": "6  Branded UGC Reel"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "brand",
+            "sourceHandle": "output",
+            "target": "lockup",
+            "targetHandle": "brand"
+          },
+          {
+            "id": "e2",
+            "source": "slogan",
+            "sourceHandle": "output",
+            "target": "lockup",
+            "targetHandle": "slogan"
+          },
+          {
+            "id": "e3",
+            "source": "creator-clip",
+            "sourceHandle": "output",
+            "target": "brand-video",
+            "targetHandle": "video"
+          },
+          {
+            "id": "e4",
+            "source": "lockup",
+            "sourceHandle": "output",
+            "target": "brand-video",
+            "targetHandle": "chunks"
+          },
+          {
+            "id": "e5",
+            "source": "brand-video",
             "sourceHandle": "output",
             "target": "video-out",
             "targetHandle": "value"
