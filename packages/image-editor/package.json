@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.11"
   },
   "exports": {
     ".": {
