@@ -10,8 +10,8 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
+    "noUncheckedSideEffectImports": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
     "paths": {
       "@web-demo": ["./src/web-demo.d.ts"]
     },

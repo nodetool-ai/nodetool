@@ -186,8 +186,8 @@ Reference: `mockups/project-overview.html`.
 ## Phase 4 — New-project surface
 
 Reference: `mockups/new-project.html`. Full center-view surface, itself a tab
-(`project-new`), opened from `+ New`, the projects list ghost card, and the
-rail.
+(`project-new`), opened from the project selector, the projects list ghost
+card, and the rail.
 
 - **D1 — Layout.** Centered 860px column: "What do you want to make?" (22px),
   one-line promise (13px secondary), prompt card (`background.paper`, 1px
@@ -204,9 +204,9 @@ rail.
   project's agent thread. The agent builds documents through the existing
   headless tools (`create_storyboard`, `voice_script_lines`,
   `assemble_storyboard_timeline`, …) with the project id applied via P4.
-- **D3 — OpenMenu demotion.** The `+ New` button keeps its popover for
-  keyboard/muscle-memory flow, but its first item becomes "Start a project…"
-  opening the D1 tab; the document list stays beneath. `OpenMenu.tsx`.
+- **D3 — Start a project.** The project selector on the tab bar owns
+  "Start a project…", which opens the D1 tab. `+ New` keeps its document
+  catalog. `ProjectSelector.tsx`, `OpenMenu.tsx`.
 
 ## Phase 5 — Cross-document context
 

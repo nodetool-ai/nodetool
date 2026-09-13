@@ -23,8 +23,9 @@ dependent apps.
 
 Run the walkthroughs above in both web and Electron. At a narrow viewport,
 open the selector with Enter, filter with the keyboard, select with Enter, and
-confirm the selected project remains visible above the tab bar. The deterministic
-keyboard check is `web/src/components/projects/__tests__/ProjectSelector.test.tsx`.
+confirm the selected project remains visible left of New on the tab bar. The
+deterministic keyboard check is
+`web/src/components/projects/__tests__/ProjectSelector.test.tsx`.
 
 ## Resolved implementation questions
 

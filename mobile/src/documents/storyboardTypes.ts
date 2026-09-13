@@ -12,13 +12,66 @@
  */
 
 import type {
-  CameraDirection,
   ImageRef,
-  Screenplay,
-  Shot,
-  ShotStatus,
   VideoRef,
 } from '@nodetool-ai/protocol';
+
+/** Shared creative types are not present in the published mobile protocol yet. */
+export type ShotStatus =
+  | 'planned'
+  | 'keyframe_generating'
+  | 'keyframe_ready'
+  | 'approved'
+  | 'clip_generating'
+  | 'rendered'
+  | 'failed';
+
+export interface CameraDirection {
+  framing?: string;
+  lens?: string;
+  angle?: string;
+  movement?: string;
+  equipment?: string;
+}
+
+export interface Shot {
+  type: 'shot';
+  id: string;
+  index: number;
+  slug?: string;
+  action: string;
+  camera?: CameraDirection;
+  motion?: string;
+  dialogue?: string;
+  narration?: string;
+  duration_seconds?: number;
+  entity_ids?: string[];
+  location_id?: string | null;
+  scene_id?: string;
+  keyframe?: ImageRef | null;
+  keyframe_versions?: ImageRef[];
+  clip?: VideoRef | null;
+  clip_versions?: VideoRef[];
+  status: ShotStatus;
+}
+
+export interface Screenplay {
+  type: 'screenplay';
+  id: string;
+  title: string;
+  logline?: string;
+  brief?: string;
+  style_bible?: string;
+  aspect_ratio?: string;
+  shots: Shot[];
+  narration?: string;
+  music_prompt?: string;
+  entity_ids?: string[];
+  genre?: string;
+  script_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
 
 /** A model pick as the web pickers emit it. Mobile only reads these through. */
 interface StoryboardModelSelection {

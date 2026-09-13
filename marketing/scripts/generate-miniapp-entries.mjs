@@ -31,6 +31,15 @@ const EXAMPLES_DIR = path.join(
 const SCREENSHOTS = path.join(MARKETING, "public/apps");
 const OUT_FILE = path.join(MARKETING, "src/data/miniAppEntries.generated.ts");
 
+const MARKETING_OVERRIDES = {
+  "ugc-product-video": {
+    summary:
+      "Create a native-audio testimonial with a compatible reference-to-video model, then add word-timed captions, restrained motion graphics, and an exact branded close.",
+    note: "Writing and caption transcription use OpenAI. The finished sample used Seedance 2.5 on AtlasCloud; choose it or another compatible video model.",
+    productionRecipeSlug: "ugc-product-video"
+  }
+};
+
 const slugify = (name) =>
   name
     .toLowerCase()
@@ -229,10 +238,11 @@ const previews = fs
 const entries = previews.map((preview) => {
   const app = distill(preview);
   const { workflows, tags } = templateInfo(preview);
+  const override = MARKETING_OVERRIDES[preview.slug];
   const screenshot = fs.existsSync(path.join(SCREENSHOTS, `${preview.slug}.png`))
     ? `/apps/${preview.slug}.png`
     : null;
-  const summary = (preview.description || "").trim();
+  const summary = (override?.summary ?? preview.description ?? "").trim();
 
   return {
     route: `/apps/${preview.slug}`,
@@ -248,9 +258,12 @@ const entries = previews.map((preview) => {
     name: preview.name,
     summary,
     featured: preview.featured === true,
-    note: preview.note ? plain(preview.note) : null,
+    note: override?.note ?? (preview.note ? plain(preview.note) : null),
     workflows,
     templateRoute: workflows[0].route,
+    ...(override?.productionRecipeSlug
+      ? { productionRecipeSlug: override.productionRecipeSlug }
+      : {}),
     screenshot,
     tags,
     ...app,

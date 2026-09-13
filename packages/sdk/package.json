@@ -19,7 +19,7 @@
   },
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
-    "lint": "tsc --noEmit"
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
     "@nodetool-ai/protocol": "*",
@@ -30,7 +30,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/ws": "^8.5.13",
-    "typescript": "^5.7.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "ws": "^8.18.0"
   },
   "peerDependencies": {

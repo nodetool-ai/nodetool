@@ -104,6 +104,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | MiniMax image download | `packages/minimax-nodes/src/nodes/text-to-image.ts` | provider response |
 | Gemini node video download | `packages/llm-nodes/src/nodes/gemini.ts` | provider response |
 | provider result downloads | `packages/runtime/src/providers/{fal,replicate,kie,topaz,meshy,rodin,minimax,evolink,gemini,anthropic}-provider.ts` | provider response |
+| durable FAL output recovery | `packages/websocket/src/server.ts` | provider response |
 | MCP OAuth Client ID Metadata Document fetch | `packages/websocket/src/oauth/cimd.ts` | model/client (an MCP client's self-hosted `client_id` URL) |
 | external MCP server (HTTP transport) | `packages/websocket/src/external-mcp.ts` | operator (a user's own MCP server URL; guarded under the cloud profile, loopback allowed on a local install) |
 
@@ -131,7 +132,7 @@ The guest bridge is `packages/agents/src/js-sandbox.ts`.
 
 ## Exemptions
 
-**Fixed provider hosts (43 files).** The URL is a constant in this repo, at most
+**Fixed provider hosts.** The URL is a constant in this repo, at most
 with a path or query interpolated — `api.elevenlabs.io`, `fal.run`,
 `generativelanguage.googleapis.com`, the OAuth token endpoints, the codegen
 schema fetchers. Screening them would refuse nothing and would break an
@@ -139,6 +140,11 @@ install whose configured endpoint is deliberately internal. They carry the
 provider's own credential, so the rule that matters for them is the opposite
 one: a URL that is *not* fixed must not inherit that credential. Each is listed
 in the data module with its auth scope.
+
+FAL webhook verification fetches only
+`https://rest.fal.ai/.well-known/jwks.json`. It sends no credentials, aborts
+after five seconds, coalesces concurrent refreshes, and caps key-cache freshness
+at 24 hours.
 
 **Deliberately private hosts.** Reaching an internal address is the feature:
 

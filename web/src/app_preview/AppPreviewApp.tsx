@@ -144,13 +144,31 @@ async function mediaSettled(el: HTMLElement): Promise<void> {
       img.complete ? Promise.resolve() : img.decode().catch(() => {})
     ),
     ...videos.map(
-      (v) =>
+      (video) =>
         new Promise<void>((resolveVideo) => {
-          if (v.readyState >= 2) return resolveVideo();
-          v.addEventListener("loadeddata", () => resolveVideo(), {
-            once: true
-          });
-          setTimeout(resolveVideo, 4000);
+          let settled = false;
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            resolveVideo();
+          };
+          const seekPosterFrame = () => {
+            video.pause();
+            if (!Number.isFinite(video.duration) || video.duration <= 0.1) {
+              finish();
+              return;
+            }
+            video.addEventListener("seeked", finish, { once: true });
+            video.currentTime = Math.min(0.25, video.duration / 2);
+          };
+          if (video.readyState >= 1) {
+            seekPosterFrame();
+          } else {
+            video.addEventListener("loadedmetadata", seekPosterFrame, {
+              once: true
+            });
+          }
+          setTimeout(finish, 4000);
         })
     )
   ]);

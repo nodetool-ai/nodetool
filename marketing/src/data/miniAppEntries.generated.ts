@@ -1678,6 +1678,101 @@ export const miniAppEntries: MiniAppEntry[] = [
     "widgetCount": 31
   },
   {
+    "route": "/apps/ugc-product-video",
+    "title": "UGC Product Video — Free AI Mini App | NodeTool",
+    "description": "One take. Native voice. A polished social finish.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "ugc-product-video",
+    "name": "UGC Product Video",
+    "summary": "Create a native-audio testimonial with a compatible reference-to-video model, then add word-timed captions, restrained motion graphics, and an exact branded close.",
+    "featured": true,
+    "note": "Writing and caption transcription use OpenAI. The finished sample used Seedance 2.5 on AtlasCloud; choose it or another compatible video model.",
+    "workflows": [
+      {
+        "name": "Ad Copy in Three Registers",
+        "slug": "ad-copy-in-three-registers",
+        "route": "/templates/ad-copy-in-three-registers"
+      },
+      {
+        "name": "Generate a Native-Audio UGC Testimonial",
+        "slug": "generate-a-native-audio-ugc-testimonial",
+        "route": "/templates/generate-a-native-audio-ugc-testimonial"
+      },
+      {
+        "name": "Brand a UGC Product Video",
+        "slug": "brand-a-ugc-product-video",
+        "route": "/templates/brand-a-ugc-product-video"
+      }
+    ],
+    "templateRoute": "/templates/ad-copy-in-three-registers",
+    "productionRecipeSlug": "ugc-product-video",
+    "screenshot": "/apps/ugc-product-video.png",
+    "tags": [
+      "captions",
+      "example",
+      "marketing",
+      "motion-graphics",
+      "native-audio",
+      "text",
+      "ugc",
+      "video"
+    ],
+    "heading": "🤳 UGC Product Video",
+    "tagline": "One take. Native voice. A polished social finish.",
+    "buttonLabel": "Explore three angles",
+    "inputs": [
+      {
+        "label": "What are you selling?",
+        "kind": "text"
+      },
+      {
+        "label": "Vertical creator image",
+        "kind": "image"
+      },
+      {
+        "label": "Clean product image",
+        "kind": "image"
+      },
+      {
+        "label": "Complete 15-second script",
+        "kind": "text"
+      },
+      {
+        "label": "Brand",
+        "kind": "text"
+      },
+      {
+        "label": "Slogan",
+        "kind": "text"
+      },
+      {
+        "label": "Caption style",
+        "kind": "choice"
+      },
+      {
+        "label": "Brand accent (optional)",
+        "kind": "color"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Angles to adapt",
+        "kind": "text"
+      },
+      {
+        "label": "Continuous creator testimonial",
+        "kind": "video"
+      },
+      {
+        "label": "Finished 15-second UGC Reel",
+        "kind": "video"
+      }
+    ],
+    "widgetCount": 39
+  },
+  {
     "route": "/apps/upscale-image",
     "title": "Upscale Image — Free AI Mini App | NodeTool",
     "description": "Enlarge an image without the softness of a plain resize.",

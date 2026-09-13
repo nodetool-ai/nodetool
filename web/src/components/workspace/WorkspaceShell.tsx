@@ -21,7 +21,6 @@ import { MOTION, reducedMotion } from "../ui_primitives";
 import WorkspaceTabBar from "./WorkspaceTabBar";
 import TabContent from "./TabContent";
 import WorkspaceTabLayer from "./WorkspaceTabLayer";
-import ProjectSelector from "../projects/ProjectSelector";
 import { WorkspaceHeaderActionsProvider } from "./WorkspaceHeaderActionsContext";
 
 import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
@@ -45,11 +44,11 @@ const styles = (theme: Theme, isDragging: boolean) =>
     width: "100%",
     height: "100%",
     minHeight: 0,
-    // Publish the unified chrome height so the viewport-fixed side panels
-    // align with the single top bar. PanelRight (inspector) sits below the bar;
-    // the left rail runs full-height to top 0. Legacy layouts set neither var
-    // and keep their own fallback offsets.
-    "--workspace-header-height": `${HEADER_HEIGHT * 2}px`,
+    // Publish the chrome height so the viewport-fixed side panels align with
+    // the tab bar. PanelRight (inspector) sits below the bar; the left rail
+    // runs full-height to top 0. Legacy layouts set neither var and keep
+    // their own fallback offsets.
+    "--workspace-header-height": `${HEADER_HEIGHT}px`,
     "--workspace-rail-top": "0px",
     backgroundColor: "var(--c_editor_bg_color)",
 
@@ -198,7 +197,6 @@ const WorkspaceShell = () => {
           editor chrome — and its own sync — is not mounted. Without this the
           build fails with "Frontend tool runtime state is not initialized". */}
         <FrontendToolRuntimeSync />
-        <ProjectSelector />
         <WorkspaceTabBar />
         <div className="workspace-main">
           <Suspense fallback={null}>

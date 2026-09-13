@@ -12,10 +12,11 @@
 import { getDocumentHandler } from '../agentBridge';
 import { MobileToolRegistry } from './registry';
 import type {
+  CameraDirection,
+  ShotStatus,
   StoryboardAgentHandler,
   StoryboardUpdateShotPatch,
 } from '../storyboardTypes';
-import type { CameraDirection, ShotStatus } from '@nodetool-ai/protocol';
 
 const handlerFor = (storyboardId: string): StoryboardAgentHandler =>
   getDocumentHandler<StoryboardAgentHandler>('storyboard', storyboardId);

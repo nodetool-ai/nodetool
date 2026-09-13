@@ -34,9 +34,9 @@ import { createLogger } from "@nodetool-ai/config";
 import { isBoolean, isNumber } from "@nodetool-ai/protocol";
 import {
   ATLAS_BASE,
+  atlasAwaitResult,
   atlasDownload,
   atlasGetPrediction,
-  atlasPoll,
   atlasSubmit,
   outputUrls,
   pickOutputUrl
@@ -588,19 +588,19 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       input,
       opts.signal
     );
-    // A caller-supplied timeout bounds the polling window; without one the
-    // model's own manifest budget applies.
+    // A caller-supplied timeout bounds the wait; without one the model's own
+    // manifest budget applies.
     const maxAttempts = opts.timeoutSeconds
       ? Math.max(1, Math.ceil((opts.timeoutSeconds * 1000) / info.pollInterval))
       : info.maxAttempts;
-    const pollOptions: Parameters<typeof atlasPoll>[2] = {
+    const waitOptions: Parameters<typeof atlasAwaitResult>[2] = {
       pollInterval: info.pollInterval,
       maxAttempts
     };
     if (opts.signal) {
-      pollOptions.signal = opts.signal;
+      waitOptions.signal = opts.signal;
     }
-    const result = await atlasPoll(apiKey, predictionId, pollOptions);
+    const result = await atlasAwaitResult(apiKey, predictionId, waitOptions);
     return atlasDownload(pickOutputUrl(result), opts.signal);
   }
 

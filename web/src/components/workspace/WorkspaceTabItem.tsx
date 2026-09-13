@@ -19,6 +19,7 @@ import {
   MenuItemPrimitive,
   Tooltip
 } from "../ui_primitives";
+import { tabDisplayTitle } from "./tabTypeIdentity";
 
 // Tabs are scanned, not studied — the title has to land while the pointer is
 // still moving. Well under the 700ms chrome default, and the native `title`
@@ -142,6 +143,8 @@ const WorkspaceTabItem = ({
     [isEditing]
   );
 
+  const displayTitle = tabDisplayTitle(tab);
+
   const handleTabKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       // Keydown from children bubbles here — the rename input needs Space to
@@ -162,7 +165,7 @@ const WorkspaceTabItem = ({
       <div
         className={`tab${isActive ? " active" : ""}${
           inProject ? " in-project" : ""
-        }${dropClass}`}
+        }${tab.type === "project" ? " is-home" : ""}${dropClass}`}
         role="tab"
         aria-selected={isActive}
         tabIndex={0}
@@ -207,12 +210,12 @@ const WorkspaceTabItem = ({
               />
             )}
             <Tooltip
-              title={tab.title}
+              title={displayTitle}
               placement="bottom"
               delay={TAB_TITLE_TOOLTIP_DELAY}
               nextDelay={TAB_TITLE_TOOLTIP_NEXT_DELAY}
             >
-              <span className="tab-name">{tab.title}</span>
+              <span className="tab-name">{displayTitle}</span>
             </Tooltip>
             {isWorkflowDirty && (
               <span
@@ -226,7 +229,7 @@ const WorkspaceTabItem = ({
         <CloseButton
           className="tab-close close-icon"
           buttonSize="small"
-          tooltip={`Close ${tab.title}`}
+          tooltip={`Close ${displayTitle}`}
           onClick={(event) => {
             event.stopPropagation();
             onClose(tab);

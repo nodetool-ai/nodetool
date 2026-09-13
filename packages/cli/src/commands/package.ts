@@ -137,7 +137,7 @@ export function registerPackageCommands(program: Command): void {
           types: "dist/index.d.ts",
           author,
           scripts: {
-            build: "tsc"
+            build: "node ../../scripts/run-tsc.mjs"
           },
           dependencies: {
             "@nodetool-ai/node-sdk": "*",

@@ -12,7 +12,7 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"require('node:fs').mkdirSync('dist/providers',{recursive:true}); require('node:fs').cpSync('src/providers/aki-manifest.json', 'dist/providers/aki-manifest.json')\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit"
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
     "@aki-io/aki-io": "^1.0.1",
@@ -40,7 +40,7 @@
     "@anthropic-ai/claude-agent-sdk": "^0.3.190",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
-    "typescript": "^5.7.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^4.1.2"
   },
   "peerDependencies": {

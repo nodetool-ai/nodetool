@@ -4,6 +4,7 @@
  * would otherwise be overwritten by has loaded.
  */
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { MemoryRouter } from "react-router-dom";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -33,10 +34,12 @@ const sendMessage = jest.fn(
 );
 const fetchThread = jest.fn(async () => null);
 const loadMessages = jest.fn(async () => []);
+const createNewThread = jest.fn(async () => "t-new");
 const chatState = {
   connect: jest.fn(async () => undefined),
   fetchThread,
   loadMessages,
+  createNewThread,
   sendMessage,
   trySendMessage,
   stopGeneration: jest.fn(),
@@ -203,6 +206,24 @@ describe("ProjectAgentPanel", () => {
     expect(loadMessages).toHaveBeenCalledTimes(1);
     expect(fetchThread).toHaveBeenCalledTimes(1);
     expect(ensureThread).toHaveBeenCalledTimes(1);
+  });
+
+  // BUG: `createNewThread(undefined, undefined, …)` inherited the store's
+  // current workflow and defaulted to making the new thread current, so a new
+  // project conversation could carry a canvas workflow's id onto the wire and
+  // replace that workflow's remembered conversation. See the "Workflow
+  // scoping" tests in GlobalChatStore.test.ts for what these arguments mean.
+  it("creates a new project conversation with no workflow and leaves the current thread alone", async () => {
+    render(panel("t1"));
+    await waitFor(() => expect(loadMessages).toHaveBeenCalledWith("t1"));
+
+    await userEvent.click(screen.getByRole("button", { name: "New chat" }));
+
+    await waitFor(() => expect(createNewThread).toHaveBeenCalledTimes(1));
+    expect(createNewThread).toHaveBeenCalledWith(undefined, null, {
+      projectId: "p1",
+      makeCurrent: false
+    });
   });
 
   it("re-binds when the project names a different thread", async () => {

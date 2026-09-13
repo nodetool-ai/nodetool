@@ -143,6 +143,16 @@ describe("chat prompt placement", () => {
     initTestDb();
   });
 
+  it("sends product knowledge once on every turn without loading a skill", async () => {
+    for (const input of ["What is a project?", "How do I reuse a character?"]) {
+      const messages = await runTurn("t-product", input);
+      const system = messages.filter((m) => m.role === "system").map(textOf).join("\n");
+      expect(system.match(/# NodeTool product knowledge/g)).toHaveLength(1);
+      expect(system).toContain("A project groups related work");
+      expect(system).toContain("characters, locations, styles, and props");
+    }
+  });
+
   it("puts the skill catalog in the system message and nothing else there", async () => {
     await makeSkill(
       "release-notes",

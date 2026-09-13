@@ -20,6 +20,9 @@ export {
   type GameTemplateInfo,
   type GenerationRequest,
   type GenerationResult,
+  type GenerationRunOptions,
+  type GenerationLifecycleHooks,
+  GenerationAlreadyAcceptedError,
   type InjectedTool,
   type StorageAdapter,
   type StorageEntry,
@@ -102,9 +105,16 @@ export {
 } from "./invocation-account.js";
 export {
   recordGenerationReceipt,
+  recordGenerationProviderResult,
+  recordGenerationReceiptAsync,
+  recordGenerationBindingAsync,
   runWithGenerationReceipt,
   currentGenerationReceipt,
-  GenerationScopeError
+  currentGenerationProviderRequestOptions,
+  isAuthoritativeProviderTerminalError,
+  GenerationScopeError,
+  type GenerationReceiptScopeOptions,
+  type GenerationProviderRequestOptions
 } from "./generation-receipt.js";
 export {
   generationRegistry,
@@ -141,10 +151,7 @@ export {
   type Counter
 } from "./turn-budget.js";
 export { packContext, type PackedContext } from "./context-packer.js";
-export {
-  resolveEntities,
-  type EntityLibraryContext
-} from "./entities.js";
+export { resolveEntities, type EntityLibraryContext } from "./entities.js";
 // Public API re-export — the source of truth lives in @nodetool-ai/protocol
 export {
   isZodSchema,
@@ -302,7 +309,10 @@ export {
 } from "./host-binaries.js";
 export { RECOMMENDED_MODELS } from "./recommended-models.js";
 export type { RecommendedUnifiedModel } from "./recommended-models.js";
-export { clearProviderCache, getProviderCacheVersion } from "./provider-cache.js";
+export {
+  clearProviderCache,
+  getProviderCacheVersion
+} from "./provider-cache.js";
 export {
   registerCostReconciler,
   getCostReconciler

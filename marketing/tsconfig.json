@@ -13,7 +13,11 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
+    "noUncheckedSideEffectImports": true,
     "isolatedModules": true,
+    "types": [
+      "node"
+    ],
     "jsx": "preserve",
     "incremental": true,
     "plugins": [

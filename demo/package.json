@@ -63,7 +63,7 @@
     "build:3d-scene": "tsx scripts/build-3d-cast-scene.ts",
     "render:tab-chaos": "remotion render src/index.ts Tab-Chaos out/tab-chaos.mp4",
     "still:promo": "remotion still src/index.ts Promo-Master out/promo-frame.jpg --frame=300",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node ../scripts/run-tsc.mjs --noEmit",
     "render:tutorials:all": "tsx scripts/render-tutorials.ts",
     "still:tutorials:all": "tsx scripts/render-tutorials.ts --stills-only",
     "inspect:tutorials": "tsx scripts/render-tutorials.ts --inspect",
@@ -82,6 +82,6 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tsx": "^4.19.2",
-    "typescript": "^5.9.3"
+    "typescript": "npm:@typescript/typescript6@6.0.2"
   }
 }

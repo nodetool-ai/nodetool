@@ -24,7 +24,7 @@
 
   /* Gradients - using nodetool primary/secondary palette */
   --gradient-primary: linear-gradient(137deg,
-      #6690d4 0%,
+      #3d68a8 0%,
       #E879F9);
   --gradient-secondary: linear-gradient(137deg,
       #22D3EE 0%,
@@ -33,7 +33,7 @@
       #FFB86C 0%,
       #E879F9);
   --gradient-header: linear-gradient(137deg,
-      #6690d4 0%,
+      #3d68a8 0%,
       #E879F9);
 
   /* Accents from nodetool palette */
@@ -41,10 +41,10 @@
   --color-accent-green: #50FA7B;
   --color-accent-magenta: #E879F9;
   --color-accent-purple: #C4B5FD;
-  --color-accent-blue: #6690d4;
+  --color-accent-blue: #3d68a8;
 
   --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-glow: rgba(102, 144, 212, 0.2);
+  --color-border-glow: rgba(61, 104, 168, 0.2);
 
   /* Neon Glows */
   --glow-cyan: 0 0 10px rgba(34, 211, 238, 0.3),

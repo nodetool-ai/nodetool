@@ -1226,6 +1226,102 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/assemble-a-ugc-product-video",
+    "title": "Assemble a UGC Product Video — NodeTool AI Workflow Template",
+    "description": "Keep the creator on camera for the full vertical testimonial and place the product demonstration over her as a silent picture-in-picture proof moment.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "assemble-a-ugc-product-video",
+    "name": "Assemble a UGC Product Video",
+    "summary": "Keep the creator on camera for the full vertical testimonial and place the product demonstration over her as a silent picture-in-picture proof moment.",
+    "tags": [
+      "video",
+      "marketing",
+      "ugc",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Overlay",
+        "label": "Overlay",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "creator",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 80,
+          "width": 280
+        },
+        {
+          "id": "proof",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 300,
+          "width": 280
+        },
+        {
+          "id": "overlay",
+          "type": "nodetool.video.Overlay",
+          "title": "Overlay",
+          "x": 400,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "video-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 820,
+          "y": 180,
+          "width": 260
+        }
+      ],
+      "edges": [
+        {
+          "source": "creator",
+          "sourceHandle": "output",
+          "target": "overlay",
+          "targetHandle": "main_video",
+          "color": "any"
+        },
+        {
+          "source": "proof",
+          "sourceHandle": "output",
+          "target": "overlay",
+          "targetHandle": "overlay_video",
+          "color": "any"
+        },
+        {
+          "source": "overlay",
+          "sourceHandle": "output",
+          "target": "video-out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/audio-to-image",
     "title": "Audio To Image — NodeTool AI Workflow Template",
     "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
@@ -2379,6 +2475,244 @@ export const templateEntries: TemplateEntry[] = [
           "source": "brief_agent",
           "sourceHandle": "text",
           "target": "out_brief",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/brand-a-ugc-product-video",
+    "title": "Brand a UGC Product Video — NodeTool AI Workflow Template",
+    "description": "Turn one continuous vertical creator clip into a polished branded reel. The workflow extracts the native audio, transcribes it with word timestamps, groups the words into short animated phrases, builds an editable NodeTool timeline with MORROW motion graphics, and renders the finished video.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "brand-a-ugc-product-video",
+    "name": "Brand a UGC Product Video",
+    "summary": "Turn one continuous vertical creator clip into a polished branded reel. The workflow extracts the native audio, transcribes it with word timestamps, groups the words into short animated phrases, builds an editable NodeTool timeline with MORROW motion graphics, and renders the finished video.",
+    "tags": [
+      "video",
+      "marketing",
+      "ugc",
+      "captions",
+      "motion-graphics",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ColorInput",
+        "label": "Color Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.timeline.RenderTimeline",
+        "label": "Render Timeline",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 1
+      },
+      {
+        "type": "openai.audio.Transcribe",
+        "label": "Transcribe",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 10,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": -20,
+          "y": -210,
+          "width": 1860,
+          "isComment": true
+        },
+        {
+          "id": "creator-clip",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 40,
+          "width": 280
+        },
+        {
+          "id": "brand",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 250,
+          "width": 280,
+          "subtitle": "MORROW"
+        },
+        {
+          "id": "slogan",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 450,
+          "width": 280,
+          "subtitle": "Carry the calm."
+        },
+        {
+          "id": "caption-style",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 650,
+          "width": 280,
+          "subtitle": "Polished"
+        },
+        {
+          "id": "brand-accent",
+          "type": "nodetool.input.ColorInput",
+          "title": "Color Input",
+          "x": 0,
+          "y": 850,
+          "width": 280
+        },
+        {
+          "id": "extract-audio",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 360,
+          "y": 40,
+          "width": 280
+        },
+        {
+          "id": "transcribe",
+          "type": "openai.audio.Transcribe",
+          "title": "Transcribe",
+          "x": 700,
+          "y": 40,
+          "width": 300,
+          "subtitle": "Return the creator's exact spoken words. Preserve product and brand terms."
+        },
+        {
+          "id": "build-timeline",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1070,
+          "y": 330,
+          "width": 400
+        },
+        {
+          "id": "render",
+          "type": "nodetool.timeline.RenderTimeline",
+          "title": "Render Timeline",
+          "x": 1540,
+          "y": 390,
+          "width": 300
+        },
+        {
+          "id": "video-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1910,
+          "y": 390,
+          "width": 260
+        }
+      ],
+      "edges": [
+        {
+          "source": "creator-clip",
+          "sourceHandle": "output",
+          "target": "extract-audio",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "extract-audio",
+          "sourceHandle": "output",
+          "target": "transcribe",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "creator-clip",
+          "sourceHandle": "output",
+          "target": "build-timeline",
+          "targetHandle": "creator",
+          "color": "any"
+        },
+        {
+          "source": "transcribe",
+          "sourceHandle": "words",
+          "target": "build-timeline",
+          "targetHandle": "words",
+          "color": "any"
+        },
+        {
+          "source": "brand",
+          "sourceHandle": "output",
+          "target": "build-timeline",
+          "targetHandle": "brand",
+          "color": "any"
+        },
+        {
+          "source": "slogan",
+          "sourceHandle": "output",
+          "target": "build-timeline",
+          "targetHandle": "slogan",
+          "color": "any"
+        },
+        {
+          "source": "caption-style",
+          "sourceHandle": "output",
+          "target": "build-timeline",
+          "targetHandle": "captionStyle",
+          "color": "any"
+        },
+        {
+          "source": "brand-accent",
+          "sourceHandle": "output",
+          "target": "build-timeline",
+          "targetHandle": "brandAccent",
+          "color": "any"
+        },
+        {
+          "source": "build-timeline",
+          "sourceHandle": "timeline",
+          "target": "render",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "render",
+          "sourceHandle": "output",
+          "target": "video-out",
           "targetHandle": "value",
           "color": "any"
         }
@@ -8542,6 +8876,181 @@ export const templateEntries: TemplateEntry[] = [
           "source": "ng",
           "sourceHandle": "output",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/generate-a-native-audio-ugc-testimonial",
+    "title": "Generate a Native-Audio UGC Testimonial — NodeTool AI Workflow Template",
+    "description": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "generate-a-native-audio-ugc-testimonial",
+    "name": "Generate a Native-Audio UGC Testimonial",
+    "summary": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
+    "tags": [
+      "video",
+      "marketing",
+      "ugc",
+      "native-audio",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.image.ImagesToList",
+        "label": "Images To List",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ReferenceToVideo",
+        "label": "Reference To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      }
+    ],
+    "nodeCount": 8,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "creator-image",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 100,
+          "width": 280
+        },
+        {
+          "id": "product-image",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 330,
+          "width": 280
+        },
+        {
+          "id": "script",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 560,
+          "width": 280,
+          "subtitle": "I did not expect a travel cup to fix my mornings, but this one did. The lid never leaks in my bag, the finish feels great, and my coffee st…"
+        },
+        {
+          "id": "product",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 770,
+          "width": 280,
+          "subtitle": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid"
+        },
+        {
+          "id": "prompt",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 390,
+          "y": 280,
+          "width": 340
+        },
+        {
+          "id": "references",
+          "type": "nodetool.image.ImagesToList",
+          "title": "Images To List",
+          "x": 390,
+          "y": 100,
+          "width": 280
+        },
+        {
+          "id": "generate",
+          "type": "nodetool.video.ReferenceToVideo",
+          "title": "Reference To Video",
+          "x": 820,
+          "y": 190,
+          "width": 320,
+          "subtitle": "bytedance/seedance-2.5/reference-to-video"
+        },
+        {
+          "id": "video-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1240,
+          "y": 220,
+          "width": 260
+        }
+      ],
+      "edges": [
+        {
+          "source": "creator-image",
+          "sourceHandle": "output",
+          "target": "references",
+          "targetHandle": "image_1_creator",
+          "color": "any"
+        },
+        {
+          "source": "product-image",
+          "sourceHandle": "output",
+          "target": "references",
+          "targetHandle": "image_2_product",
+          "color": "any"
+        },
+        {
+          "source": "script",
+          "sourceHandle": "output",
+          "target": "prompt",
+          "targetHandle": "script",
+          "color": "any"
+        },
+        {
+          "source": "product",
+          "sourceHandle": "output",
+          "target": "prompt",
+          "targetHandle": "product",
+          "color": "any"
+        },
+        {
+          "source": "references",
+          "sourceHandle": "output",
+          "target": "generate",
+          "targetHandle": "reference_images",
+          "color": "any"
+        },
+        {
+          "source": "prompt",
+          "sourceHandle": "output",
+          "target": "generate",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "generate",
+          "sourceHandle": "output",
+          "target": "video-out",
           "targetHandle": "value",
           "color": "any"
         }

@@ -10,7 +10,10 @@ import useGlobalChatStore, {
 import useChatDraftStore from "../../stores/ChatDraftStore";
 import useThreadModel from "../../hooks/chat/useThreadModel";
 import type { Message } from "../../stores/ApiTypes";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  creationProjectId,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 import DocumentLoadStatus from "./DocumentLoadStatus";
 
 const whenChatStoreHydrated = (): Promise<void> => {
@@ -186,8 +189,17 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
 
   const handleNewChat = useCallback(async () => {
     try {
-      const threadId = await createNewThread();
-      openTab({ type: "chat", ref: threadId, mode: "view", title: "New chat" });
+      const projectId = creationProjectId();
+      const threadId = await createNewThread(undefined, undefined, {
+        projectId
+      });
+      openTab({
+        type: "chat",
+        ref: threadId,
+        mode: "view",
+        title: "New chat",
+        projectId
+      });
     } catch (error) {
       console.error("Failed to create new chat thread:", error);
     }

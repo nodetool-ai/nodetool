@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:mutation": "stryker run",
-    "lint": "tsc --noEmit",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit",
     "bench:sandbox": "tsx bench/sandbox-boundary.ts"
   },
   "dependencies": {
@@ -41,6 +41,7 @@
     "@nodetool-ai/storage": "*",
     "@nodetool-ai/storyboard": "*",
     "@nodetool-ai/timeline": "*",
+    "@nodetool-ai/video-nodes": "*",
     "@nodetool-ai/vectorstore": "*",
     "@sebastianwessel/quickjs": "^3.0.1",
     "@tensorflow-models/coco-ssd": "^2.2.3",
@@ -81,7 +82,6 @@
   "devDependencies": {
     "@nodetool-ai/audio-nodes": "*",
     "@nodetool-ai/gpu": "*",
-    "@nodetool-ai/video-nodes": "*",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/chrome-remote-interface": "^0.33.0",
@@ -89,7 +89,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
     "@types/turndown": "^5.0.5",
-    "typescript": "^5.7.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^4.1.2"
   },
   "exports": {

@@ -1,6 +1,7 @@
 import { createLogger } from "@nodetool-ai/config";
 import {
   invocationBelongsToApplication,
+  deriveGenerationStatus,
   Prediction
 } from "@nodetool-ai/models";
 import type { RpcErrorPayload, WebSocketMode } from "@nodetool-ai/protocol";
@@ -29,10 +30,7 @@ import type { JobRunExecutionHooks } from "../job-run-registry.js";
 import type { ChatTurnHandler } from "./chat-turn.js";
 import type { ClientSession } from "./client-session.js";
 import type { MessageContent } from "@nodetool-ai/runtime";
-import type {
-  DirectInferenceHandler,
-  DirectTextContent
-} from "./inference.js";
+import type { DirectInferenceHandler, DirectTextContent } from "./inference.js";
 import type { RunJobRequest } from "./job-execution.js";
 
 const log = createLogger("nodetool.websocket.runner");
@@ -42,6 +40,44 @@ const referenceMediaDataSchema = generateMediaDataSchema.pick({
   reference_videos: true,
   use_reference_video_audio: true
 });
+
+const PUBLIC_GENERATION_STATUSES = new Set([
+  "pending",
+  "running",
+  "recovering",
+  "completed",
+  "failed",
+  "cancelled",
+  "needs_attention",
+  "interrupted"
+]);
+
+function publicGenerationStatus(row: Prediction): string {
+  if (row.status === "interrupted") return "interrupted";
+  if (row.lifecycle_owner !== "durable") {
+    return PUBLIC_GENERATION_STATUSES.has(row.status) ? row.status : "pending";
+  }
+  return deriveGenerationStatus(row);
+}
+
+function lifecycleError(row: Prediction, key: string): string | null {
+  const value = row.metadata?.[key];
+  return isString(value) ? value : null;
+}
+
+function durableLifecycleFields(row: Prediction): Record<string, unknown> {
+  if (row.lifecycle_owner !== "durable") return {};
+  return {
+    submission_status: row.submission_status,
+    provider_status: row.provider_status,
+    output_status: row.output_status,
+    attachment_status: row.attachment_status,
+    submission_error: lifecycleError(row, "submission_error"),
+    provider_error: lifecycleError(row, "provider_error"),
+    output_error: lifecycleError(row, "output_error"),
+    attachment_error: lifecycleError(row, "attachment_error")
+  };
+}
 
 /** Highest `job_seq` a resubscribing client claims to already hold. */
 function resumeLastSeq(data: Record<string, unknown>): number {
@@ -716,9 +752,10 @@ export class CommandRouter {
           generations.push({
             request_id: id,
             generation_id: row.id,
-            status: row.status,
+            status: publicGenerationStatus(row),
             asset_ids: row.asset_ids ?? [],
-            error: row.error ?? null
+            error: row.error ?? null,
+            ...durableLifecycleFields(row)
           });
         }
         return { generations };

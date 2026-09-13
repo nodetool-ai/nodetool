@@ -67,6 +67,7 @@ test.describe("marketing smoke", () => {
     await expect(proof.getByText("Still to review")).toHaveCount(0);
 
     const expectedRoutes = [
+      "/recipes/ugc-product-video",
       "/recipes/directed-campaign-kit",
       "/recipes/viral-video-ad-engine",
       "/recipes/impossible-product-worlds",
@@ -139,6 +140,31 @@ test.describe("marketing smoke", () => {
     await expect(video).toHaveJSProperty("duration", 15);
     await expect(page.getByText("Still to review")).toHaveCount(0);
   });
+
+  for (const path of ["/recipes/ugc-product-video", "/apps/ugc-product-video"]) {
+    test(`${path} exposes the playable finished UGC Reel`, async ({ page }) => {
+      await page.goto(path);
+
+      const proof = page.getByRole("region", {
+        name: "One take, finished for social."
+      });
+      const video = proof.locator("video");
+
+      await expect(proof).toBeVisible();
+      await expect(video).toHaveAttribute(
+        "poster",
+        "/apps/examples/ugc-product-video/final-poster.jpg"
+      );
+      await expect(video.locator('source[type="video/mp4"]')).toHaveAttribute(
+        "src",
+        "/apps/examples/ugc-product-video/final.mp4"
+      );
+      await expect(video).toHaveJSProperty("error", null);
+      expect(
+        await video.evaluate((element: HTMLVideoElement) => element.duration)
+      ).toBeCloseTo(15, 1);
+    });
+  }
 
   test("the download page offers an installer for every platform", async ({
     page

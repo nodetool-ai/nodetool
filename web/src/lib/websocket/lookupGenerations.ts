@@ -19,12 +19,15 @@
 
 import { rpcRequest } from "./rpcRequest";
 
-/** The terminal states a row can be read in, plus the one that is not. */
+/** Public lifecycle states returned by generation recovery. */
 export type GenerationLookupStatus =
+  | "pending"
   | "running"
+  | "recovering"
   | "completed"
   | "failed"
   | "cancelled"
+  | "needs_attention"
   | "interrupted";
 
 export interface GenerationLookup {
@@ -34,12 +37,22 @@ export interface GenerationLookup {
   /** The assets the call produced. Empty until it completed. */
   assetIds: string[];
   error: string | null;
+  /** Durable lifecycle dimensions, present when returned by a newer server. */
+  submissionStatus?: string | null;
+  providerStatus?: string | null;
+  outputStatus?: string | null;
+  attachmentStatus?: string | null;
+  submissionError?: string | null;
+  providerError?: string | null;
+  outputError?: string | null;
+  attachmentError?: string | null;
 }
 
 const TERMINAL: ReadonlySet<GenerationLookupStatus> = new Set([
   "completed",
   "failed",
   "cancelled",
+  "needs_attention",
   "interrupted"
 ]);
 
@@ -51,15 +64,24 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 const readStatus = (value: unknown): GenerationLookupStatus =>
+  value === "pending" ||
   value === "completed" ||
+  value === "running" ||
+  value === "recovering" ||
   value === "failed" ||
   value === "cancelled" ||
+  value === "needs_attention" ||
   value === "interrupted"
     ? value
     : "running";
 
 const readAssetIds = (value: unknown): string[] =>
-  Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : [];
+  Array.isArray(value)
+    ? value.filter((id): id is string => typeof id === "string")
+    : [];
+
+const readNullableString = (value: unknown): string | null =>
+  typeof value === "string" ? value : null;
 
 /**
  * Look the request ids up, keyed by request id.
@@ -81,9 +103,13 @@ export async function lookupGenerations(
   for (let offset = 0; offset < ids.length; offset += 128) {
     let result: Record<string, unknown>;
     try {
-      result = await rpcRequest("lookup_generations", {
-        request_ids: ids.slice(offset, offset + 128)
-      }, 15_000);
+      result = await rpcRequest(
+        "lookup_generations",
+        {
+          request_ids: ids.slice(offset, offset + 128)
+        },
+        15_000
+      );
     } catch {
       // A failed lookup leaves this batch unresolved for the next poll.
       continue;
@@ -93,14 +119,41 @@ export async function lookupGenerations(
       if (!isRecord(row) || typeof row.request_id !== "string") {
         continue;
       }
-      found.set(row.request_id, {
+      const lookup: GenerationLookup = {
         requestId: row.request_id,
         generationId:
           typeof row.generation_id === "string" ? row.generation_id : "",
         status: readStatus(row.status),
         assetIds: readAssetIds(row.asset_ids),
         error: typeof row.error === "string" ? row.error : null
-      });
+      };
+      // Keep the legacy object shape for old servers, while preserving null
+      // values for a durable server that explicitly reports an empty state.
+      if ("submission_status" in row) {
+        lookup.submissionStatus = readNullableString(row.submission_status);
+      }
+      if ("provider_status" in row) {
+        lookup.providerStatus = readNullableString(row.provider_status);
+      }
+      if ("output_status" in row) {
+        lookup.outputStatus = readNullableString(row.output_status);
+      }
+      if ("attachment_status" in row) {
+        lookup.attachmentStatus = readNullableString(row.attachment_status);
+      }
+      if ("submission_error" in row) {
+        lookup.submissionError = readNullableString(row.submission_error);
+      }
+      if ("provider_error" in row) {
+        lookup.providerError = readNullableString(row.provider_error);
+      }
+      if ("output_error" in row) {
+        lookup.outputError = readNullableString(row.output_error);
+      }
+      if ("attachment_error" in row) {
+        lookup.attachmentError = readNullableString(row.attachment_error);
+      }
+      found.set(row.request_id, lookup);
     }
   }
   return found;

@@ -189,6 +189,58 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "The billing ledger for model calls: cost, tokens, provider, model, unit price. Those columns are accounting records kept under Art. 17(3)(b) for the statutory retention period, so the row survives. `parameters`, `metadata` and `logs` carry prompt text and provider payloads and have no accounting purpose, so they are nulled. This is the same redaction the retention sweep performs; erasure reuses `cleanupStorage` rather than re-deriving it."
   },
   {
+    table: "nodetool_generation_attempts",
+    schemaExport: "generationAttempts",
+    disposition: "delete",
+    reach: {
+      kind: "indirect",
+      column: "generation_id",
+      parent: "nodetool_predictions"
+    },
+    exported: false,
+    justification:
+      "Provider submission and recovery state for one generation, including endpoint payloads and encrypted callback credentials. It is deleted through the person's prediction and omitted from portability exports because the portable generation inputs and assets are already represented by the redacted prediction and asset records."
+  },
+  {
+    table: "nodetool_generation_outputs",
+    schemaExport: "generationOutputs",
+    disposition: "delete",
+    reach: {
+      kind: "indirect",
+      column: "generation_id",
+      parent: "nodetool_predictions"
+    },
+    exported: false,
+    justification:
+      "Durable staging records for generated media and structured provider output. They are deleted through the person's prediction and omitted from portability exports because saved media is exported through the asset registry."
+  },
+  {
+    table: "nodetool_generation_attachments",
+    schemaExport: "generationAttachments",
+    disposition: "delete",
+    reach: {
+      kind: "indirect",
+      column: "generation_id",
+      parent: "nodetool_predictions"
+    },
+    exported: false,
+    justification:
+      "Delivery state linking a generated output to the person's storyboard or other destination. It is deleted through the person's prediction and adds no portable content beyond the destination and asset records."
+  },
+  {
+    table: "nodetool_generation_webhook_deliveries",
+    schemaExport: "generationWebhookDeliveries",
+    disposition: "delete",
+    reach: {
+      kind: "indirect",
+      column: "generation_id",
+      parent: "nodetool_predictions"
+    },
+    exported: false,
+    justification:
+      "Raw signed provider callbacks and their processing state can contain generated output and provider identifiers. They are deleted through the person's prediction and are operational delivery records rather than portable user content."
+  },
+  {
     table: "nodetool_credit_ledger",
     schemaExport: "creditLedger",
     disposition: "retain",

@@ -2,11 +2,66 @@
 import { recipeGuides } from "./recipe-guides.mjs";
 const tinyCrewRoot = "/recipes/runs/2026-09-12-tiny-film-crew";
 const runRoot = "/recipes/runs/2026-09-10-marketing-recipes-01";
+const ugcRoot = "/apps/examples/ugc-product-video";
 
 export const recipePresentation = [
   {
     slug: "directed-campaign-kit",
     heroThumbnail: "/apps/directed-campaign-kit.png"
+  },
+  {
+    slug: "ugc-product-video",
+    heroThumbnail: "/apps/ugc-product-video.png",
+    productionRun: {
+      runId: "2026-09-13-ugc-product-video",
+      status: "accepted",
+      statusLabel: "15-second native-audio UGC Reel",
+      proofTitle: "One take, finished for social.",
+      summary:
+        "A creator testimonial with word-timed captions, restrained brand motion, and a clean MORROW close.",
+      provider:
+        "Seedance 2.5 via AtlasCloud. Captions and motion finished in NodeTool.",
+      hero: {
+        src: `${ugcRoot}/motion-close.jpg`,
+        alt: "MORROW UGC Reel at the finished brand close.",
+        width: 768,
+        height: 1344
+      },
+      card: {
+        src: `${ugcRoot}/motion-caption.jpg`,
+        alt: "Creator testimonial with a short word-highlighted caption group.",
+        width: 768,
+        height: 1344
+      },
+      ogImage: `${ugcRoot}/motion-close.jpg`,
+      proof: {
+        src: `${ugcRoot}/motion-caption.jpg`,
+        alt: "MORROW creator Reel with an opening brand bug and word-highlighted caption.",
+        caption:
+          "The finish follows the recorded words and keeps captions clear of the creator's face.",
+        width: 768,
+        height: 1344
+      },
+      video: {
+        mp4: `${ugcRoot}/final.mp4`,
+        webm: null,
+        poster: `${ugcRoot}/final-poster.jpg`,
+        hasAudio: true,
+        caption:
+          "The finished 15-second MORROW UGC Reel, with native audio, animated captions, and brand motion."
+      },
+      supportedClaims: [
+        "Seedance 2.5 generated the native-audio testimonial from creator and product references through AtlasCloud.",
+        "The finishing workflow transcribed the recording into word-timed captions and added the opening bug, compact product callout, and brand close.",
+        "The final MP4 is 768×1344 at 24 fps, runs for 15 seconds, and includes audio."
+      ],
+      essentialLimitation:
+        "Generated product details, lip-sync, factual claims, and caption words still need review before publishing.",
+      limitations: [
+        "MORROW and the Olive Travel Cup are fictional sample brands.",
+        "The model-generated performance may not reproduce every product detail exactly."
+      ]
+    }
   },
   {
     slug: "viral-video-ad-engine",

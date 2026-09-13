@@ -286,7 +286,10 @@ export function withoutInlineAssetBytes(
   outputs: Record<string, unknown>
 ): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(outputs).map(([key, value]) => [key, stripInlineBytes(value)])
+    Object.entries(outputs).map(([key, value]) => [
+      key,
+      stripInlineBytes(value)
+    ])
   );
 }
 
@@ -652,7 +655,8 @@ export async function runWorkflow(
           userId,
           workspace,
           storage: environment.storage ?? null,
-          assetStorage: environment.assetStorage ?? null
+          assetStorage: environment.assetStorage ?? null,
+          durableFalGenerations: true
         });
         // The host attaches its model interfaces (asset persistence, …) —
         // without them an Output node that stores an image fails the run.

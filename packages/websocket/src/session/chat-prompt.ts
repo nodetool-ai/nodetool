@@ -1,4 +1,5 @@
 import {
+  NODETOOL_PRODUCT_KNOWLEDGE,
   WORKFLOW_AUTHORING_KNOWLEDGE,
   type PermissionMode
 } from "@nodetool-ai/agents";
@@ -18,6 +19,8 @@ import { isString } from "../lib/wire-values.js";
  * choices the agent can make.
  */
 export const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Reply in clear, concise prose.
+
+${NODETOOL_PRODUCT_KNOWLEDGE}
 
 # How to think about effort
 - For simple questions, answer directly without any tool calls.
@@ -112,10 +115,9 @@ of assuming the only way forward is a workflow.
 - **thread** — this conversation and its memory; see "Memory and resources".
 The \`ui_*\` families act on a document the user has open and take its id — the
 open ids are listed under "What the user is looking at", and the exact tools in
-a family differ per surface, so \`nodetool.searchTools\` rather than guessing names. Chat
-has no way to create a storyboard, script, timeline, sketch, or 3D scene from
-nothing: when none is open, name the one you need and ask the user to open or
-create it, instead of falling back to a workflow that approximates it.
+a family differ per surface, so \`nodetool.searchTools\` rather than guessing names.
+Use available headless creation tools when no document exists. If the required
+operation only has editor tools, ask the user to open the document they need.
 
 # Doing node work without a workflow
 A workflow is an artifact the user keeps. When they asked for the RESULT —

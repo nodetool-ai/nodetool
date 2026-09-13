@@ -76,6 +76,29 @@ export {
   providerCapabilities
 } from "./base-provider.js";
 export {
+  FAL_PROVIDER_ID,
+  FAL_QUEUE_ORIGIN,
+  FAL_QUEUE_STATES,
+  createFalQueueOperations,
+  decodeFalQueueResult,
+  falSubmitAndWait,
+  type FalQueueOperations,
+  type FalQueueOperationsOptions,
+  type FalQueueResult,
+  type FalQueueState,
+  type FalQueueSubmission,
+  type FalQueueSubmitInput
+} from "./fal-queue.js";
+export type {
+  ProviderQueueAdapter,
+  ProviderQueueBinding,
+  ProviderQueueObservation,
+  ProviderQueueState,
+  ProviderQueueSubmission,
+  ProviderQueueWaitOptions
+} from "./provider-queue.js";
+export { ProviderQueueTerminalError } from "./provider-queue.js";
+export {
   anthropicContextExceeded,
   geminiContextExceeded,
   openAIContextExceeded,
@@ -154,11 +177,17 @@ export {
   pollUntilTerminal,
   imageRefFromBytes,
   ATLAS_BASE,
+  ATLAS_WEBHOOK_PATH,
+  ATLAS_WEBHOOK_MAX_URL_LENGTH,
+  ATLAS_WEBHOOK_RECONCILE_INTERVAL_MS,
   SUBMIT_PATH,
   pollPath,
   atlasDownload,
   atlasSubmit,
   atlasPoll,
+  atlasAwaitResult,
+  atlasWebhookUrl,
+  AtlasPollBudgetExhausted,
   pickOutputUrl
 } from "./provider-transport.js";
 export type {
@@ -214,6 +243,14 @@ export {
   hasPendingWebhook,
   pendingCount as kieWebhookPendingCount
 } from "./kie-webhook-registry.js";
+export {
+  AtlasWebhookWaitTimeout,
+  registerAtlasWebhookWait,
+  resolveAtlasWebhook,
+  rejectAtlasWebhook,
+  hasPendingAtlasWebhook,
+  atlasWebhookPendingCount
+} from "./atlascloud-webhook-registry.js";
 export { ElevenLabsProvider };
 export { TopazProvider };
 export { ReveProvider };

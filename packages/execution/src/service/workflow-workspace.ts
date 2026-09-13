@@ -1,5 +1,9 @@
 import { createLogger, workspaceStorageKind } from "@nodetool-ai/config";
-import { Workflow, Workspace as WorkspaceRow, getSecret } from "@nodetool-ai/models";
+import {
+  Workflow,
+  Workspace as WorkspaceRow,
+  getSecret
+} from "@nodetool-ai/models";
 import {
   PERMISSION_GATE_CONTEXT_KEY,
   ProcessingContext,
@@ -11,6 +15,7 @@ import {
   type Workspace,
   type WorkspaceChange
 } from "@nodetool-ai/runtime";
+import { createFalGenerationLifecycleHooks } from "../generation-lifecycle.js";
 
 const log = createLogger("nodetool.execution.workspace");
 
@@ -104,10 +109,7 @@ export async function resolveWorkflowWorkspace(
       const workflow = await Workflow.find(userId, workflowId);
       if (workflow?.workspace_id) {
         const row = await WorkspaceRow.find(userId, workflow.workspace_id);
-        if (
-          row?.isAccessible() &&
-          row.project_id === workflow.project_id
-        ) {
+        if (row?.isAccessible() && row.project_id === workflow.project_id) {
           const workspace = workspaceFromRow(row);
           if (workspace) return workspace;
         }
@@ -187,7 +189,17 @@ export function buildWorkspaceExecutionContext(opts: {
   storage?: StorageAdapter | null;
   /** Asset store `asset://<id>` references resolve through. */
   assetStorage?: StorageAdapter | null;
+  /** Enable the execution-owned FAL durable lifecycle for this host. */
+  durableFalGenerations?: boolean;
 }): ProcessingContext {
+  const generationLifecycle = opts.durableFalGenerations
+    ? createFalGenerationLifecycleHooks({
+        userId: opts.userId,
+        jobId: opts.jobId,
+        projectId: opts.projectId,
+        publicUrl: process.env["NODETOOL_PUBLIC_URL"] ?? null
+      })
+    : undefined;
   const context = new ProcessingContext({
     jobId: opts.jobId,
     workflowId: opts.workflowId ?? null,
@@ -198,7 +210,8 @@ export function buildWorkspaceExecutionContext(opts: {
     assetStorage: opts.assetStorage ?? null,
     secretResolver:
       opts.secretResolver ??
-      ((key: string, userId: string) => getSecret(key, userId))
+      ((key: string, userId: string) => getSecret(key, userId)),
+    generationLifecycle
   });
   context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate(WORKFLOW_RUN_HOST));
   return context;

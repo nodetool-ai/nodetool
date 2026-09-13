@@ -173,6 +173,7 @@ export {
   renderWorkflowAuthoringKnowledge,
   resolveAvailableGenericNodes
 } from "./prompts/workflow-authoring-knowledge.js";
+export { NODETOOL_PRODUCT_KNOWLEDGE } from "./prompts/product-knowledge.js";
 export type {
   GenericAINode,
   GenericNodeCapability,

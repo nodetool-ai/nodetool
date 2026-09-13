@@ -18,6 +18,7 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
+    "noUncheckedSideEffectImports": true,
     "resolveJsonModule": true,
     "useDefineForClassFields": true
   },

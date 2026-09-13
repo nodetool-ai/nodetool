@@ -108,7 +108,7 @@ export function getCategories(value: unknown): string[] {
 }
 
 export function getModelConfig(props: Record<string, unknown>) {
-  const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
+  const model = (props.model ?? {}) as LanguageModelLike;
   return {
     providerId: model.provider ?? "",
     modelId: model.id ?? ""

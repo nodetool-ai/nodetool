@@ -201,6 +201,16 @@ describe("ShotCard hover toolbar (criterion 11)", () => {
 });
 
 describe("ShotCard edit affordances", () => {
+  it("keeps shot actions away from the video playback controls", () => {
+    renderCard(seedShot());
+
+    expect(screen.getByTestId("shot-card-footer")).toHaveStyle({
+      top: "1px",
+      bottom: "auto",
+      right: "auto"
+    });
+  });
+
   it("asks for the fields from Edit, without selecting the card", async () => {
     const onSelect = jest.fn();
     renderCard(seedShot(), { onSelect });

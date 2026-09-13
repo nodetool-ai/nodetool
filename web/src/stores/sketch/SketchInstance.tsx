@@ -49,6 +49,7 @@ import {
   type SketchCanvasRefStoreApi
 } from "./SketchCanvasRefStore";
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
+import type { DocumentSyncController } from "../documentSync";
 
 // ── Instance bundle ─────────────────────────────────────────────────────────
 
@@ -56,8 +57,7 @@ export interface SketchInstance {
   editor: SketchStoreApi;
   session: SketchSessionStoreApi;
   canvasRef: SketchCanvasRefStoreApi;
-  /** Shared save-in-flight guard: prevents autosave and manual save from racing. */
-  saveInFlight: { current: boolean };
+  documentSync: { current: DocumentSyncController | null };
 }
 
 /**
@@ -70,7 +70,7 @@ export const createSketchInstance = (): SketchInstance => ({
   editor: createSketchStore(),
   session: createSketchSessionStore(),
   canvasRef: createSketchCanvasRefStore(),
-  saveInFlight: { current: false }
+  documentSync: { current: null }
 });
 
 // A lazily-built default instance backs hooks used outside any provider
@@ -199,4 +199,3 @@ export const useSketchCanvasRefStore =
     () => useSketchInstance().canvasRef,
     () => currentInstance().canvasRef
   );
-

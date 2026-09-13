@@ -782,7 +782,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "list_generations",
     module: "generations",
     impl: "packages/agents/src/capabilities/generations.ts",
-    contract: "f26a53330b66",
+    contract: "f299e282d127",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-generations.test.ts",
@@ -798,7 +798,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_generation",
     module: "generations",
     impl: "packages/agents/src/capabilities/generations.ts",
-    contract: "68a3753cbb3d",
+    contract: "683305344d3b",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-generations.test.ts",
@@ -808,7 +808,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "await_generation",
     module: "generations",
     impl: "packages/agents/src/capabilities/generations.ts",
-    contract: "224af9d18121",
+    contract: "3f4cf9a0df62",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-generations.test.ts",
@@ -819,7 +819,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "cancel_generation",
     module: "generations",
     impl: "packages/agents/src/capabilities/generations.ts",
-    contract: "f86e81f8ff78",
+    contract: "e1ca3821f7ad",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-generations.test.ts",

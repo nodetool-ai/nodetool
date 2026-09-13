@@ -1,0 +1,223 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-09-13T00:00:00.000Z",
+  "updated_at": "2026-09-13T00:00:00.000Z",
+  "name": "Generate a Native-Audio UGC Testimonial",
+  "tool_name": null,
+  "description": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
+  "tags": ["video", "marketing", "ugc", "native-audio", "example"],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "creator-image",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "creator_image",
+          "value": null,
+          "description": "Image 1: vertical reference showing the creator, setting, and wardrobe without the product"
+        },
+        "ui_properties": {
+          "position": { "x": 0, "y": 100 },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Creator reference"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "product-image",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "product_image",
+          "value": null,
+          "description": "Image 2: clean product reference used only for the brief middle proof beat"
+        },
+        "ui_properties": {
+          "position": { "x": 0, "y": 330 },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Product reference"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "script",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "script",
+          "value": "I did not expect a travel cup to fix my mornings, but this one did. The lid never leaks in my bag, the finish feels great, and my coffee stays hot through my first meeting. I use it every day.",
+          "description": "Exact words the video model should voice"
+        },
+        "ui_properties": {
+          "position": { "x": 0, "y": 560 },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Spoken script"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "product",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "product",
+          "value": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid",
+          "description": "Product description used for the brief middle proof beat"
+        },
+        "ui_properties": {
+          "position": { "x": 0, "y": 770 },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Product brief"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+    {
+      "id": "prompt",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Use @Image1 only for the creator identity, face, hair, wardrobe, room, and natural skin texture. Use @Image2 only for the product silhouette, muted-olive finish, charcoal lid, and proportions. Do not transfer the product image background. Product: {{ product }}. Create one continuous 15-second vertical 9:16 front-camera phone testimonial. Preserve fine facial asymmetry, small spontaneous blinks, tiny gaze corrections, breathing, imperfect handheld movement, slight autofocus and exposure breathing, and mild phone compression. [0.0-4.5s] Chest-up creator alone. No product or hands visible. She begins the exact dialogue below with mild surprise. [4.5-7.0s] Without cutting away from her face, she briefly lifts the @Image2 product from below frame into the lower-right corner, never blocking her face, then lowers it completely out of frame at 7.0s. [7.0-15.0s] Keep the camera on her face with the product and hands fully out of frame through the final smile. Exact dialogue: {{ script }} No extra words. Generate picture, voice, and lip-sync together in one pass. Natural adult female voice, clear conversational English, warm mid-register, unstaged creator cadence, subtle room tone. No music, voice-over, extra speakers, subtitles, on-screen text, logos, jump cuts, cutaways, beauty-filter skin, waxy texture, rigid posture, repetitive mouth motion, exaggerated expressions, product before 4.5s, product after 7.0s, product morphing, or compositing seams."
+        },
+        "ui_properties": {
+          "position": { "x": 390, "y": 280 },
+          "zIndex": 0,
+          "width": 340,
+          "selectable": true,
+          "title": "6  Native-audio direction"
+        },
+      "dynamic_properties": {},
+      "dynamic_outputs": {}
+    },
+    {
+      "id": "references",
+        "type": "nodetool.image.ImagesToList",
+        "data": {},
+        "ui_properties": {
+          "position": { "x": 390, "y": 100 },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Ordered Seedance references"
+        },
+        "dynamic_properties": {
+          "image_1_creator": null,
+          "image_2_product": null
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "generate",
+        "type": "nodetool.video.ReferenceToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "atlascloud",
+            "id": "bytedance/seedance-2.5/reference-to-video",
+            "name": "Seedance 2.5 Reference to Video",
+            "path": null,
+            "supported_tasks": ["reference_to_video"]
+          },
+          "reference_images": [],
+          "reference_videos": [],
+          "use_reference_video_audio": false,
+          "negative_prompt": "",
+          "aspect_ratio": "9:16",
+          "resolution": "720p",
+          "duration": 15,
+          "timeout_seconds": 1800
+        },
+        "ui_properties": {
+          "position": { "x": 820, "y": 190 },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true,
+          "title": "7  Generate picture and voice together"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "video-out",
+        "type": "nodetool.output.Output",
+        "data": { "name": "video" },
+        "ui_properties": {
+          "position": { "x": 1240, "y": 220 },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true,
+          "title": "8  Native-audio testimonial"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "creator-image",
+        "sourceHandle": "output",
+        "target": "references",
+        "targetHandle": "image_1_creator"
+      },
+      {
+        "id": "e2",
+        "source": "product-image",
+        "sourceHandle": "output",
+        "target": "references",
+        "targetHandle": "image_2_product"
+      },
+      {
+        "id": "e3",
+        "source": "script",
+        "sourceHandle": "output",
+        "target": "prompt",
+        "targetHandle": "script"
+      },
+      {
+        "id": "e4",
+        "source": "product",
+        "sourceHandle": "output",
+        "target": "prompt",
+        "targetHandle": "product"
+      },
+      {
+        "id": "e5",
+        "source": "references",
+        "sourceHandle": "output",
+        "target": "generate",
+        "targetHandle": "reference_images"
+      },
+      {
+        "id": "e6",
+        "source": "prompt",
+        "sourceHandle": "output",
+        "target": "generate",
+        "targetHandle": "prompt"
+      },
+    {
+      "id": "e7",
+      "source": "generate",
+        "sourceHandle": "output",
+        "target": "video-out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

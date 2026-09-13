@@ -277,8 +277,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     dnsRebinding: "deployment-egress",
     policy: "guarded",
     guardedBy: ["safeFetch", "assertSafePublicHttpsUrl"],
-    note:
-      "A user's own MCP server URL. Under the cloud profile the MCP transport is handed safeFetch and the URL is checked on save and probe; a local install may reach its own loopback servers and uses the global fetch."
+    note: "A user's own MCP server URL. Under the cloud profile the MCP transport is handed safeFetch and the URL is checked on save and probe; a local install may reach its own loopback servers and uses the global fetch."
   },
 
   // -------------------------------------------- guarded (provider result URLs)
@@ -317,6 +316,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "FAL provider result download",
     "provider-response",
     "The original reason safeFetch exists."
+  ),
+  guardedMedia(
+    "packages/websocket/src/server.ts",
+    "Durable FAL output recovery download",
+    "A persisted FAL result URL is copied into NodeTool storage during recovery.",
+    "provider-response"
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/replicate-provider.ts",
@@ -771,6 +776,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "FAL pricing estimate route",
     "FAL_API_KEY",
     "A constant pricing endpoint."
+  ),
+  fixedHost(
+    "packages/websocket/src/routes/fal-webhook.ts",
+    "FAL webhook signature verification",
+    "none",
+    "The constant fal JWKS endpoint."
+  ),
+  fixedHost(
+    "packages/websocket/src/routes/atlascloud-webhook.ts",
+    "AtlasCloud webhook signature verification",
+    "none",
+    "The constant AtlasCloud JWKS endpoint."
   ),
   fixedHost(
     "packages/websocket/src/routes/kie-credits.ts",

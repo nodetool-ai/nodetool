@@ -140,13 +140,14 @@ describe('WorkflowRunner', () => {
         name: 'Bypass',
         graph: {
           nodes: [
-            { id: 'a', type: 'nodetool.text.Concat', data: {} },
+            { id: 'a', type: 'nodetool.text.Concat', sync_mode: 'on_any', data: {} },
             {
               id: 'b',
               type: 'nodetool.text.Concat',
+              sync_mode: 'on_any',
               data: { bypassed: true },
             },
-            { id: 'c', type: 'nodetool.text.Concat', data: {} },
+            { id: 'c', type: 'nodetool.text.Concat', sync_mode: 'on_any', data: {} },
           ],
           edges: [
             {

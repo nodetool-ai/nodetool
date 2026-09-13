@@ -14,7 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "npm --prefix ../../chrome-extension run build && npx -y @puppeteer/browsers install chrome@stable --path ../../chrome && vitest run --config vitest.integration.config.ts",
-    "lint": "tsc --noEmit"
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
     "@nodetool-ai/config": "*",
@@ -27,7 +27,7 @@
     "@types/chrome-remote-interface": "^0.33.0",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.5.0",
-    "typescript": "^5.7.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^4.1.2"
   },
   "exports": {

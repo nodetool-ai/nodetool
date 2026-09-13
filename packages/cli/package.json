@@ -13,10 +13,10 @@
   },
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
-    "dev": "tsc --watch",
+    "dev": "node ../../scripts/run-with-tsc-version.mjs 6 node ../../scripts/run-tsc.mjs --watch",
     "start": "node dist/index.js",
     "test": "vitest run",
-    "lint": "tsc --noEmit"
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.5.2",
@@ -67,7 +67,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^19.0.0",
     "vitest": "^4.1.2",
-    "typescript": "^5.7.2"
+    "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "exports": {
     ".": {

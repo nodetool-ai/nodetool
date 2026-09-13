@@ -35,10 +35,6 @@ jest.mock("../../../trpc/client", () => ({
   }
 }));
 
-jest.mock("../../timeline/ActivityIndicator", () => ({
-  ActivityIndicator: () => null
-}));
-
 import ProjectSelector from "../ProjectSelector";
 
 const renderSelector = () =>
@@ -109,12 +105,39 @@ describe("ProjectSelector", () => {
     );
   });
 
-  it("keeps the selected project named above the tabs", () => {
+  it("names the selected project on the tab bar", () => {
     useWorkspaceTabsStore.getState().setActiveProjectId("b");
     renderSelector();
 
     expect(
       screen.getByRole("button", { name: "Selected project: Beacon" })
     ).toBeInTheDocument();
+    expect(screen.queryByText("Project")).not.toBeInTheDocument();
+  });
+
+  it("starts a project from the selector menu", async () => {
+    const user = userEvent.setup();
+    renderSelector();
+    await user.click(
+      screen.getByRole("button", { name: "Selected project: Personal" })
+    );
+    await user.click(screen.getByRole("menuitem", { name: /Start a project/ }));
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe("project-new:new");
+    expect(useWorkspaceTabsStore.getState().activeProjectId).toBeNull();
+  });
+
+  it("puts start and manage above the project list", async () => {
+    const user = userEvent.setup();
+    renderSelector();
+    await user.click(
+      screen.getByRole("button", { name: "Selected project: Personal" })
+    );
+    const items = screen.getAllByRole("menuitem").map((item) => item.textContent);
+    const start = items.findIndex((text) => text?.includes("Start a project"));
+    const manage = items.findIndex((text) => text?.includes("Manage projects"));
+    const personal = items.findIndex((text) => text?.includes("Personal"));
+    expect(start).toBe(0);
+    expect(manage).toBe(1);
+    expect(personal).toBeGreaterThan(manage);
   });
 });

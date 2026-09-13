@@ -10,10 +10,12 @@ import {
   type ProcessingContextModelInterfaces,
   type Workspace
 } from "@nodetool-ai/runtime";
+import { encryptFernet, getMasterKey } from "@nodetool-ai/security";
 import {
   createAssetModelInterface,
   updateAssetBytesModelInterface
 } from "../lib/asset-model-interface.js";
+import { createFalGenerationLifecycleHooks } from "@nodetool-ai/execution";
 import { documentModelInterfaces } from "../lib/document-model-interfaces.js";
 import { getAssetAdapter, getTempAdapter } from "../lib/storage.js";
 import { createTempUrlResolver } from "../lib/temp-url-resolver.js";
@@ -171,7 +173,15 @@ export function createRuntimeContext(opts: {
     // cannot tell which and do not branch on it.
     workspace: opts.workspace,
     authToken: opts.authToken,
-    tempUrlResolver: createTempUrlResolver(tempAdapter, storagePath)
+    tempUrlResolver: createTempUrlResolver(tempAdapter, storagePath),
+    generationLifecycle: createFalGenerationLifecycleHooks({
+      userId: opts.userId,
+      jobId: opts.jobId,
+      projectId: opts.projectId ?? null,
+      publicUrl: process.env["NODETOOL_PUBLIC_URL"] ?? null,
+      encryptCallbackToken: (token, userId) =>
+        encryptFernet(getMasterKey(), userId, token)
+    })
   });
 
   ctx.setModelInterfaces(serverModelInterfaces());

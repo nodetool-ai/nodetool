@@ -63,6 +63,10 @@ import { applications, applicationVersions } from "./schema/applications.js";
 import { assets } from "./schema/assets.js";
 import { creditLedger, userSubscriptions } from "./schema/credits.js";
 import { externalIdentities } from "./schema/external-identities.js";
+import { generationAttachments } from "./schema/generation-attachments.js";
+import { generationAttempts } from "./schema/generation-attempts.js";
+import { generationOutputs } from "./schema/generation-outputs.js";
+import { generationWebhookDeliveries } from "./schema/generation-webhook-deliveries.js";
 import { imageDocumentVersions } from "./schema/image-document-versions.js";
 import { imageDocuments } from "./schema/image-documents.js";
 import { jobs } from "./schema/jobs.js";
@@ -87,7 +91,10 @@ import { timelineSequences } from "./schema/timeline-sequences.js";
 import { triggerInputs } from "./schema/trigger-inputs.js";
 import { triggerRegistrations } from "./schema/trigger-registrations.js";
 import { userEvents } from "./schema/user-events.js";
-import { workflowCollaborators, workflowShares } from "./schema/workflow-sharing.js";
+import {
+  workflowCollaborators,
+  workflowShares
+} from "./schema/workflow-sharing.js";
 import { workflowVersions } from "./schema/workflow-versions.js";
 import { workflows } from "./schema/workflows.js";
 import { workspaces as workspacesSchema } from "./schema/workspaces.js";
@@ -178,7 +185,8 @@ const CHUNK = 400;
 
 function chunks<T>(items: readonly T[], size = CHUNK): T[][] {
   const out: T[][] = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  for (let i = 0; i < items.length; i += size)
+    out.push(items.slice(i, i + size));
   return out;
 }
 
@@ -247,6 +255,7 @@ interface ErasureContext {
   readonly applicationIds: readonly string[];
   readonly grantIds: readonly string[];
   readonly workflowIds: readonly string[];
+  readonly generationIds: readonly string[];
   readonly options: ErasureOptions;
 }
 
@@ -277,6 +286,11 @@ async function collectContext(
       workflows,
       workflows.id,
       eq(workflows.user_id, userId)
+    ),
+    generationIds: await selectIds(
+      predictions,
+      predictions.id,
+      eq(predictions.user_id, userId)
     ),
     options
   };
@@ -323,7 +337,11 @@ function indirectStep(
   return {
     table,
     async run(ctx) {
-      return deleted(table, "delete", await deleteByIds(sqlTable, column, ids(ctx)));
+      return deleted(
+        table,
+        "delete",
+        await deleteByIds(sqlTable, column, ids(ctx))
+      );
     }
   };
 }
@@ -468,7 +486,39 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
     timelineSequenceVersions,
     timelineSequenceVersions.user_id
   ),
-  directStep("timeline_sequences", timelineSequences, timelineSequences.user_id),
+  directStep(
+    "timeline_sequences",
+    timelineSequences,
+    timelineSequences.user_id
+  ),
+
+  // Durable generation recovery records contain provider payloads and point
+  // to predictions retained for accounting. Delete the children explicitly
+  // before the prediction payload is redacted.
+  indirectStep(
+    "nodetool_generation_attachments",
+    generationAttachments,
+    generationAttachments.generation_id,
+    (c) => c.generationIds
+  ),
+  indirectStep(
+    "nodetool_generation_outputs",
+    generationOutputs,
+    generationOutputs.generation_id,
+    (c) => c.generationIds
+  ),
+  indirectStep(
+    "nodetool_generation_webhook_deliveries",
+    generationWebhookDeliveries,
+    generationWebhookDeliveries.generation_id,
+    (c) => c.generationIds
+  ),
+  indirectStep(
+    "nodetool_generation_attempts",
+    generationAttempts,
+    generationAttempts.generation_id,
+    (c) => c.generationIds
+  ),
 
   // Kept on a lawful basis that outlives the request.
   {
@@ -775,7 +825,10 @@ export const EXPORT_HANDLERS: Readonly<Record<string, ExportHandler>> = {
     timelineSequenceVersions,
     timelineSequenceVersions.user_id
   ),
-  timeline_sequences: directExport(timelineSequences, timelineSequences.user_id),
+  timeline_sequences: directExport(
+    timelineSequences,
+    timelineSequences.user_id
+  ),
   trigger_inputs: indirectExport(
     triggerInputs,
     triggerInputs.run_id,

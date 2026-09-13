@@ -62,6 +62,43 @@ async function waitForServer(url, timeoutMs = 60000) {
   throw new Error(`Vite dev server did not come up at ${url}`);
 }
 
+async function settleVideoPosters(page) {
+  const videos = page.locator(".app-preview-frame video");
+  for (let index = 0; index < (await videos.count()); index += 1) {
+    const video = videos.nth(index);
+    await video.scrollIntoViewIfNeeded();
+    await video.evaluate(
+      (element) =>
+        new Promise((resolve) => {
+          let settled = false;
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+          };
+          const seek = () => {
+            element.pause();
+            if (!Number.isFinite(element.duration) || element.duration <= 0.1) {
+              finish();
+              return;
+            }
+            element.addEventListener("seeked", finish, { once: true });
+            element.currentTime = Math.min(0.25, element.duration / 2);
+          };
+          if (element.readyState >= 1) {
+            seek();
+          } else {
+            element.addEventListener("loadedmetadata", seek, { once: true });
+            element.load();
+          }
+          setTimeout(finish, 3000);
+        })
+    );
+    await page.waitForTimeout(80);
+  }
+  await page.locator(".app-preview-frame").scrollIntoViewIfNeeded();
+}
+
 const vite = spawn("npx", ["vite", "--port", String(PORT), "--strictPort"], {
   cwd: WEB,
   stdio: ["ignore", "pipe", "pipe"],
@@ -102,6 +139,7 @@ try {
       if (errorEl) {
         throw new Error((await errorEl.textContent()) ?? "preview error");
       }
+      await settleVideoPosters(page);
       // Let layout/animations settle one frame.
       await page.waitForTimeout(150);
       const frame = await page.$(".app-preview-frame");

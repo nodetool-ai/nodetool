@@ -10,6 +10,7 @@ import {
   type SandboxManifest
 } from "../code-gen/sandbox-manifest.js";
 import { extractApiReferences } from "../code-gen/sandbox-prompt.js";
+import { NODETOOL_PRODUCT_KNOWLEDGE } from "../prompts/product-knowledge.js";
 import { NODETOOL_API_SECTION_HEADER } from "./nodetool-api.js";
 import {
   renderToolCatalog,
@@ -285,6 +286,8 @@ function renderSandboxSummary(
 }
 
 interface CodeActPromptOptions {
+  /** False only when the host already includes the shared product knowledge. */
+  includeProductKnowledge?: boolean;
   /** Tools documented in full (signature + description) in the prompt. */
   tools: ToolSignatureSource[];
   /**
@@ -385,6 +388,9 @@ export function buildCodeActSystemPrompt(
     : BOUNDED_FANOUT_PARALLEL_MAP;
   const sections: string[] = [];
   if (options.preamble?.trim()) sections.push(options.preamble.trim());
+  if (options.includeProductKnowledge !== false) {
+    sections.push(NODETOOL_PRODUCT_KNOWLEDGE);
+  }
   sections.push(
     variant === "chat"
       ? actionContractChat(chatUnavailableBridges(manifest), boundedFanout)

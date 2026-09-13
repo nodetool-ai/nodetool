@@ -19,7 +19,11 @@
  * one per id — because a board reattaches a whole batch at once.
  */
 
-import { isSettled, lookupGenerations, type GenerationLookup } from "./lookupGenerations";
+import {
+  isSettled,
+  lookupGenerations,
+  type GenerationLookup
+} from "./lookupGenerations";
 
 /** How long before the first poll. Short: most renders settle in seconds. */
 const FIRST_DELAY_MS = 2_000;
@@ -29,7 +33,7 @@ const MAX_DELAY_MS = 15_000;
 const BACKOFF = 1.5;
 
 interface Watch {
-  /** Called once, with the row's terminal outcome or null on giving up. */
+  /** Called once, with the row's settled outcome or null on giving up. */
   settle: (outcome: GenerationLookup | null) => void;
   /** When to stop asking — the entry's own remaining window. */
   deadline: number | null;
@@ -55,10 +59,7 @@ const finish = (requestId: string, outcome: GenerationLookup | null): void => {
   try {
     watch.settle(outcome);
   } catch (error) {
-    console.error(
-      `generationWatch: settling ${requestId} threw`,
-      error
-    );
+    console.error(`generationWatch: settling ${requestId} threw`, error);
   }
 };
 
@@ -109,7 +110,7 @@ async function tick(): Promise<void> {
  * Watch one request until its row settles, or until `deadline` passes.
  * A null deadline keeps unresolved work recoverable until explicitly cleared.
  *
- * `settle` is called at most once: with the terminal row, or with null when the
+ * `settle` is called at most once: with the settled row, or with null when the
  * window ran out and the row never settled. Returns a canceller for the case
  * the reply arrives on the socket first — whichever gets there wins.
  */

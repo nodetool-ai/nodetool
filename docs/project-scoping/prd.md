@@ -26,10 +26,10 @@ The decision IDs preserve the product discussion's references.
 
 | ID | Decision | Required behavior |
 | --- | --- | --- |
-| D1 | Project selection | A persistent selector sits above document tabs. It supports finding, switching, creating, and managing projects. Lists, search, pickers, and mentions use the selected project. |
+| D1 | Project selection | A persistent selector sits on the tab bar, left of New. It supports finding, switching, creating, and managing projects. Lists, search, pickers, and mentions use the selected project. |
 | D2 | Project session | Each project remembers its open tabs, order, active document, and selected chat. Switching preserves drafts. First opening shows the overview. Closing every tab leaves the project selected. |
 | D3 | Resource ownership | Documents, workflows, assets, entities, project files, chats, and generated outputs belong to a project. |
-| D4 | Creation and execution | New work inherits its originating project. Running generations and agents continue there after a switch. The selector shows background activity. |
+| D4 | Creation and execution | New work inherits its originating project. Running generations and agents continue there after a switch. The tab bar shows background activity. |
 | D5 | Global resources | Account settings, credentials, installed models, and reusable templates remain global. Creating from a template produces project-owned work. |
 | D6 | Personal and migration | Personal is permanent and a project is always selected. A one-time migration assigns only unassigned resources to Personal. Existing project assignments remain intact. |
 | D7 | Project meaning | A named project represents one deliverable. Nested projects and client hierarchies are outside this release. |

@@ -18,7 +18,7 @@
  * Design: docs/media-generation-tracking-design.md § 10.
  */
 
-import type { Prediction } from "@nodetool-ai/models";
+import { deriveGenerationStatus, type Prediction } from "@nodetool-ai/models";
 import {
   generationRegistry,
   isProviderGenerationsUnsupported,
@@ -52,6 +52,10 @@ const AWAIT_POLL_MS = 5_000;
 export interface GenerationRecord {
   generation_id: string;
   status: string;
+  submission_status: string | null;
+  provider_status: string | null;
+  output_status: string | null;
+  attachment_status: string | null;
   provider: string;
   model: string;
   capability: string | null;
@@ -68,6 +72,10 @@ export interface GenerationRecord {
   duration_seconds: number | null;
   /** The generation's own failure, if any. Not a tool failure. */
   generation_error: string | null;
+  submission_error: string | null;
+  provider_error: string | null;
+  output_error: string | null;
+  attachment_error: string | null;
   origin: {
     surface: string | null;
     thread_id: string | null;
@@ -85,6 +93,33 @@ export interface GenerationRecord {
   };
 }
 
+const PUBLIC_STATUSES = new Set([
+  "pending",
+  "running",
+  "recovering",
+  "completed",
+  "failed",
+  "cancelled",
+  "needs_attention",
+  "interrupted"
+]);
+
+function lifecycleError(
+  metadata: Record<string, unknown> | null,
+  key: string
+): string | null {
+  return metaString(metadata, key);
+}
+
+/** Derive the public state without treating a provider success as saved output. */
+export function publicGenerationStatus(row: Prediction): string {
+  if (row.status === "interrupted") return "interrupted";
+  if (row.lifecycle_owner !== "durable") {
+    return PUBLIC_STATUSES.has(row.status) ? row.status : "pending";
+  }
+  return deriveGenerationStatus(row);
+}
+
 function metaString(
   metadata: Record<string, unknown> | null,
   key: string
@@ -99,7 +134,11 @@ export function generationRecord(row: Prediction): GenerationRecord {
     : [];
   return {
     generation_id: row.id,
-    status: row.status,
+    status: publicGenerationStatus(row),
+    submission_status: row.submission_status ?? null,
+    provider_status: row.provider_status ?? null,
+    output_status: row.output_status ?? null,
+    attachment_status: row.attachment_status ?? null,
     provider: row.provider,
     model: row.model,
     capability: row.capability ?? null,
@@ -115,6 +154,10 @@ export function generationRecord(row: Prediction): GenerationRecord {
     completed_at: row.completed_at,
     duration_seconds: row.duration,
     generation_error: row.error,
+    submission_error: lifecycleError(row.metadata, "submission_error"),
+    provider_error: lifecycleError(row.metadata, "provider_error"),
+    output_error: lifecycleError(row.metadata, "output_error"),
+    attachment_error: lifecycleError(row.metadata, "attachment_error"),
     origin: {
       surface: row.surface ?? null,
       thread_id: row.thread_id ?? null,
@@ -179,7 +222,13 @@ const getGeneration: CapabilityExport = {
   }
 };
 
-const TERMINAL = new Set(["completed", "failed", "cancelled", "interrupted"]);
+const TERMINAL = new Set([
+  "completed",
+  "failed",
+  "cancelled",
+  "needs_attention",
+  "interrupted"
+]);
 
 const awaitGeneration: CapabilityExport = {
   spec: awaitGenerationSpec,
@@ -188,12 +237,15 @@ const awaitGeneration: CapabilityExport = {
     const userId = userIdOf(run.context);
     const id = String(params["generation_id"] ?? "");
     const timeoutMs =
-      bounded(params["timeout_seconds"], DEFAULT_AWAIT_SECONDS, MAX_AWAIT_SECONDS) *
-      1000;
+      bounded(
+        params["timeout_seconds"],
+        DEFAULT_AWAIT_SECONDS,
+        MAX_AWAIT_SECONDS
+      ) * 1000;
     const startedAt = Date.now();
     let row = await Prediction.findForUser(userId, id);
     if (!row) return { error: `Generation ${id} was not found.` };
-    if (TERMINAL.has(row.status)) return generationRecord(row);
+    if (TERMINAL.has(publicGenerationStatus(row))) return generationRecord(row);
 
     // In this process the registry settles the moment the call returns; the
     // tracker's row write follows within the same tick, so one re-read after
@@ -212,7 +264,8 @@ const awaitGeneration: CapabilityExport = {
       }
       row = await Prediction.findForUser(userId, id);
       if (!row) return { error: `Generation ${id} was not found.` };
-      if (TERMINAL.has(row.status)) return generationRecord(row);
+      if (TERMINAL.has(publicGenerationStatus(row)))
+        return generationRecord(row);
       if (run.context.signal?.aborted) break;
     }
     return {
@@ -228,9 +281,28 @@ const cancelGeneration: CapabilityExport = {
     const { Prediction } = await import("@nodetool-ai/models");
     const userId = userIdOf(run.context);
     const id = String(params["generation_id"] ?? "");
-    // The abort is what stops the provider call; the row is what the seam
-    // closes when the call unwinds. When the call runs in another process the
-    // registry knows nothing, so the row is closed here instead.
+    // The abort is what stops a local provider call; the row is what the seam
+    // closes when that call unwinds. Durable work belongs to another worker,
+    // so only its cancellation intent is recorded here.
+    const existing = await Prediction.findForUser(userId, id);
+    if (existing?.lifecycle_owner === "durable") {
+      const requested = await Prediction.requestCancellation(id, userId);
+      if (!requested) {
+        return {
+          generation_id: id,
+          cancelled: false,
+          cancellation_requested: false,
+          error: `Generation ${id} is not running — it already settled, or it is not yours.`
+        };
+      }
+      return {
+        generation_id: id,
+        status: publicGenerationStatus(existing),
+        cancelled: false,
+        cancellation_requested: true,
+        note: "Cancellation was requested; the durable worker will close the record after the provider responds."
+      };
+    }
     const aborted = generationRegistry.cancel(id, userId);
     const flipped = aborted
       ? false

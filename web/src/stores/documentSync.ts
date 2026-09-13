@@ -126,6 +126,9 @@ export function createDocumentSyncController<TDraft>(
                 error: recoveryError instanceof Error ? recoveryError.message : String(recoveryError)
               };
             }
+            if (!adapter.isDirty()) {
+              return { ok: true as const, updatedAt: adapter.getRevision() };
+            }
             if (!flush) {
               if (!disposed) {
                 adapter.onStatus?.("unsaved");

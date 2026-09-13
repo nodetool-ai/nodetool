@@ -18,6 +18,7 @@ export type {
 export {
   ATLAS_BASE,
   SUBMIT_PATH,
+  atlasAwaitResult,
   atlasDownload,
   atlasPoll,
   atlasSubmit,

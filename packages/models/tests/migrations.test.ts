@@ -423,7 +423,7 @@ describe("MigrationRunner", () => {
 // ── Built-in migrations smoke test ───────────────────────────────────
 
 describe("Built-in migrations", () => {
-  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 80;
+  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 81;
 
   it("should have correct count of migrations", () => {
     expect(migrations.length).toBe(EXPECTED_BUILT_IN_MIGRATION_COUNT);
@@ -524,9 +524,9 @@ describe("Built-in migrations", () => {
     expect(await adapter.tableExists("image_documents")).toBe(true);
     expect(await adapter.tableExists("worker_profiles")).toBe(true);
     expect(await adapter.tableExists("worker_instances")).toBe(true);
-    expect(
-      await adapter.tableExists("nodetool_workflow_collaborators")
-    ).toBe(true);
+    expect(await adapter.tableExists("nodetool_workflow_collaborators")).toBe(
+      true
+    );
     expect(await adapter.tableExists("nodetool_workflow_shares")).toBe(true);
     expect(await adapter.tableExists("projects")).toBe(true);
 
@@ -553,9 +553,9 @@ describe("Built-in migrations", () => {
     ).toBe(true);
 
     // The owning-instance stamp multi-machine routing reads.
-    expect(
-      await adapter.columnExists("nodetool_jobs", "runner_instance")
-    ).toBe(true);
+    expect(await adapter.columnExists("nodetool_jobs", "runner_instance")).toBe(
+      true
+    );
 
     // The trigger safety counters are added by migration onto a table an
     // earlier migration created.
@@ -566,9 +566,9 @@ describe("Built-in migrations", () => {
       "expires_at",
       "max_runs"
     ]) {
-      expect(
-        await adapter.columnExists("trigger_registrations", column)
-      ).toBe(true);
+      expect(await adapter.columnExists("trigger_registrations", column)).toBe(
+        true
+      );
     }
   });
 
