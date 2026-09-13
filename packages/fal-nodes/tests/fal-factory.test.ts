@@ -6,6 +6,17 @@ const assetToFalUrl = vi.fn(
 );
 const falSubmit = vi.fn(async () => ({ output: "ok" }));
 const imageToDataUrl = vi.fn(async () => null);
+const falSubmitWithGeneration = vi.fn(
+  async (
+    apiKey: string,
+    endpoint: string,
+    args: Record<string, unknown>,
+    _context?: unknown
+  ) => ({
+    data: await falSubmit(apiKey, endpoint, args),
+    requestId: "req-test"
+  })
+);
 
 vi.mock("../src/fal-base.js", () => ({
   assetToFalUrl,
@@ -14,7 +25,12 @@ vi.mock("../src/fal-base.js", () => ({
     uri: image.url
   }),
   falSubmit,
-  falSubmitWithMeta: async (...args) => ({ data: await falSubmit(...args), requestId: "req-test" }),
+  falSubmitWithMeta: async (...args) => ({
+    data: await falSubmit(...args),
+    requestId: "req-test"
+  }),
+  falSubmitWithGeneration,
+  falCapabilityForOutputType: () => "text_to_image",
   getFalApiKey: () => "test-key",
   imageToDataUrl,
   isRefSet: (ref: unknown) => {
@@ -27,7 +43,9 @@ vi.mock("../src/fal-base.js", () => ({
       if (obj[key] == null || obj[key] === "") {
         delete obj[key];
       } else if (typeof obj[key] === "object" && !Array.isArray(obj[key])) {
-        for (const nestedKey of Object.keys(obj[key] as Record<string, unknown>)) {
+        for (const nestedKey of Object.keys(
+          obj[key] as Record<string, unknown>
+        )) {
           const nested = obj[key] as Record<string, unknown>;
           if (nested[nestedKey] == null || nested[nestedKey] === "") {
             delete nested[nestedKey];
@@ -177,7 +195,7 @@ describe("FAL factory argument building", () => {
     });
   });
 
-  it("defaults an asset field to an AssetRef object even when the manifest default is \"\"", () => {
+  it('defaults an asset field to an AssetRef object even when the manifest default is ""', () => {
     // Some manifest entries ship `default: ""` for asset fields (notably inpaint
     // masks). The `""` must not shadow the proper AssetRef default object.
     const NodeClass = createFalNodeClass({
@@ -317,9 +335,13 @@ describe("FAL factory argument building", () => {
 
     await instance.process();
 
-    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/flux-pro/v1/fill", {
-      static_mask_url: "data:image/png;base64,legacy"
-    });
+    expect(falSubmit).toHaveBeenCalledWith(
+      "test-key",
+      "fal-ai/flux-pro/v1/fill",
+      {
+        static_mask_url: "data:image/png;base64,legacy"
+      }
+    );
   });
 
   it("throws a clear error when a required mask asset is missing", async () => {
@@ -418,9 +440,7 @@ describe("FAL factory argument building", () => {
     expect(
       (
         NodeClass as unknown as {
-          validateProperties(
-            properties: Record<string, unknown>
-          ): unknown[];
+          validateProperties(properties: Record<string, unknown>): unknown[];
         }
       ).validateProperties({
         image: { type: "image", uri: "https://example.com/a.png" }
@@ -428,7 +448,9 @@ describe("FAL factory argument building", () => {
     ).toEqual([]);
   });
 
-  const makeNode = (overrides: Partial<Parameters<typeof createFalNodeClass>[0]>) =>
+  const makeNode = (
+    overrides: Partial<Parameters<typeof createFalNodeClass>[0]>
+  ) =>
     createFalNodeClass({
       endpointId: "fal-ai/test",
       className: "OutModel",
@@ -450,7 +472,15 @@ describe("FAL factory argument building", () => {
     const NodeClass = makeNode({
       outputType: "image",
       outputFields: [
-        { name: "image", propType: "image", tsType: "image", default: null, description: "", fieldType: "output", required: true }
+        {
+          name: "image",
+          propType: "image",
+          tsType: "image",
+          default: null,
+          description: "",
+          fieldType: "output",
+          required: true
+        }
       ]
     });
     const result = await new NodeClass({}).process();
@@ -460,11 +490,21 @@ describe("FAL factory argument building", () => {
   });
 
   it("maps a `video_url` string output onto the `output` slot", async () => {
-    falSubmit.mockResolvedValueOnce({ video_url: "https://fal.media/clip.mp4" });
+    falSubmit.mockResolvedValueOnce({
+      video_url: "https://fal.media/clip.mp4"
+    });
     const NodeClass = makeNode({
       outputType: "video",
       outputFields: [
-        { name: "video_url", propType: "video", tsType: "video", default: null, description: "", fieldType: "output", required: true }
+        {
+          name: "video_url",
+          propType: "video",
+          tsType: "video",
+          default: null,
+          description: "",
+          fieldType: "output",
+          required: true
+        }
       ]
     });
     const result = await new NodeClass({}).process();
@@ -481,8 +521,24 @@ describe("FAL factory argument building", () => {
     const NodeClass = makeNode({
       outputType: "video",
       outputFields: [
-        { name: "video", propType: "video", tsType: "video", default: null, description: "", fieldType: "output", required: true },
-        { name: "mask_video", propType: "str", tsType: "string", default: "", description: "", fieldType: "output", required: false }
+        {
+          name: "video",
+          propType: "video",
+          tsType: "video",
+          default: null,
+          description: "",
+          fieldType: "output",
+          required: true
+        },
+        {
+          name: "mask_video",
+          propType: "str",
+          tsType: "string",
+          default: "",
+          description: "",
+          fieldType: "output",
+          required: false
+        }
       ]
     });
     const result = await new NodeClass({}).process();
@@ -493,16 +549,37 @@ describe("FAL factory argument building", () => {
   });
 
   it("omits a secondary output the response left empty", async () => {
-    falSubmit.mockResolvedValueOnce({ video: { url: "https://fal.media/cut.mp4" }, mask_video: "" });
+    falSubmit.mockResolvedValueOnce({
+      video: { url: "https://fal.media/cut.mp4" },
+      mask_video: ""
+    });
     const NodeClass = makeNode({
       outputType: "video",
       outputFields: [
-        { name: "video", propType: "video", tsType: "video", default: null, description: "", fieldType: "output", required: true },
-        { name: "mask_video", propType: "str", tsType: "string", default: "", description: "", fieldType: "output", required: false }
+        {
+          name: "video",
+          propType: "video",
+          tsType: "video",
+          default: null,
+          description: "",
+          fieldType: "output",
+          required: true
+        },
+        {
+          name: "mask_video",
+          propType: "str",
+          tsType: "string",
+          default: "",
+          description: "",
+          fieldType: "output",
+          required: false
+        }
       ]
     });
     const result = await new NodeClass({}).process();
-    expect(result).toEqual({ output: { type: "video", uri: "https://fal.media/cut.mp4" } });
+    expect(result).toEqual({
+      output: { type: "video", uri: "https://fal.media/cut.mp4" }
+    });
   });
 
   it("maps an `audio_file` object output onto the `output` slot", async () => {
@@ -512,7 +589,15 @@ describe("FAL factory argument building", () => {
     const NodeClass = makeNode({
       outputType: "audio",
       outputFields: [
-        { name: "audio_file", propType: "str", tsType: "string", default: null, description: "", fieldType: "output", required: true }
+        {
+          name: "audio_file",
+          propType: "str",
+          tsType: "string",
+          default: null,
+          description: "",
+          fieldType: "output",
+          required: true
+        }
       ]
     });
     const result = await new NodeClass({}).process();
@@ -526,7 +611,15 @@ describe("FAL factory argument building", () => {
     const NodeClass = makeNode({
       outputType: "str",
       outputFields: [
-        { name: "voice_id", propType: "str", tsType: "string", default: "", description: "", fieldType: "output", required: true }
+        {
+          name: "voice_id",
+          propType: "str",
+          tsType: "string",
+          default: "",
+          description: "",
+          fieldType: "output",
+          required: true
+        }
       ]
     });
     const result = await new NodeClass({}).process();

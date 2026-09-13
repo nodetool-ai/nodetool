@@ -32,6 +32,10 @@ export {
   workflowVersions,
   oauthCredentials,
   predictions,
+  generationAttempts,
+  generationWebhookDeliveries,
+  generationOutputs,
+  generationAttachments,
   projects,
   runEvents,
   teamTasks,
@@ -70,6 +74,30 @@ export type {
 // ── Domain Models ────────────────────────────────────────────────────
 export { Job } from "./job.js";
 export type { JobStatus } from "./job.js";
+export {
+  GenerationAttempt,
+  GenerationWebhookDelivery,
+  GenerationOutput,
+  GenerationAttachment
+} from "./durable-generation.js";
+export { deriveGenerationStatus } from "./durable-generation.js";
+export type {
+  DurablePublicGenerationStatus,
+  DurableSubmissionStatus,
+  DurableProviderStatus,
+  DurableOutputStatus,
+  DurableAttachmentStatus,
+  DurableGenerationTransition,
+  GenerationAttemptObservation,
+  GenerationOutputSaveState,
+  GenerationAttachmentTransition,
+  GenerationAttemptLeaseFence
+} from "./durable-generation.js";
+export { DurableGenerationIdempotencyConflictError } from "./prediction.js";
+export type {
+  DurableGenerationInput,
+  DurableAcceptance
+} from "./prediction.js";
 
 export {
   DEFAULT_STORAGE_RETENTION_POLICY,
@@ -354,20 +382,27 @@ export type {
   GenerationListFilter,
   AggregateResult,
   ProviderAggregateResult,
-  ModelAggregateResult
+  ModelAggregateResult,
+  PredictionReconciliationPatch
 } from "./prediction.js";
 
 export { Workspace } from "./workspace.js";
 
 export { RunEvent } from "./run-event.js";
 export type { EventType } from "./run-event.js";
-
-
 export { TriggerInput } from "./trigger-input.js";
 export { RunInboxMessage } from "./run-inbox-message.js";
 export { TriggerRegistration } from "./trigger-registration.js";
-export { AccessToken, isAccessToken, parseAccessToken, ACCESS_TOKEN_PREFIX } from "./access-token.js";
-export type { MintedAccessToken, CreateAccessTokenParams } from "./access-token.js";
+export {
+  AccessToken,
+  isAccessToken,
+  parseAccessToken,
+  ACCESS_TOKEN_PREFIX
+} from "./access-token.js";
+export type {
+  MintedAccessToken,
+  CreateAccessTokenParams
+} from "./access-token.js";
 export { ExternalIdentity } from "./external-identity.js";
 export type { LinkExternalIdentityParams } from "./external-identity.js";
 export {
@@ -401,10 +436,7 @@ export {
   MCP_OAUTH_ACCESS_TOKEN_PREFIX,
   MCP_OAUTH_REFRESH_TOKEN_PREFIX
 } from "./mcp-oauth.js";
-export type {
-  McpOauthClientRow,
-  McpOauthGrantRow
-} from "./mcp-oauth.js";
+export type { McpOauthClientRow, McpOauthGrantRow } from "./mcp-oauth.js";
 
 // ── Seeds ────────────────────────────────────────────────────────────
 export { runSeeds, seedCostData, COST_SEED_USER_ID } from "./seeds/index.js";

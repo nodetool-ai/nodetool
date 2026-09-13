@@ -6,7 +6,12 @@
  * against fal's OpenAI-compatible LLM route.
  */
 
-import { recordGenerationReceipt } from "../generation-receipt.js";
+import {
+  currentGenerationProviderRequestOptions,
+  recordGenerationBindingAsync,
+  recordGenerationProviderResult,
+  recordGenerationReceiptAsync
+} from "../generation-receipt.js";
 import { BaseProvider } from "./base-provider.js";
 import {
   falGetGeneration,
@@ -53,7 +58,10 @@ import type {
   VideoToVideoParams,
   LipSyncParams
 } from "./types.js";
-import type { ReferenceToVideoInputs, ReferenceToVideoParams } from "./types.js";
+import type {
+  ReferenceToVideoInputs,
+  ReferenceToVideoParams
+} from "./types.js";
 import {
   loadImageModels,
   loadManifest,
@@ -65,12 +73,21 @@ import {
   sizeEnumToAspect,
   type ModelImageInput
 } from "./manifest-models.js";
-import { validateReferenceInputs, getModelReferenceInputs } from "./manifest-models.js";
+import {
+  validateReferenceInputs,
+  getModelReferenceInputs
+} from "./manifest-models.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { snapToGptImage2Size } from "./gpt-image-size.js";
 import { detectImageMime } from "./image-mime.js";
 import { sniffMediaMime } from "./media-mime.js";
 import { safeFetch } from "./safe-url.js";
+import {
+  createFalQueueOperations,
+  falSubmitAndWait,
+  type FalQueueSubmission
+} from "./fal-queue.js";
+import type { ProviderQueueBinding } from "./provider-queue.js";
 import {
   isNonEmptyString,
   isObjectLike,
@@ -80,8 +97,14 @@ import {
 
 const log = createLogger("nodetool.runtime.providers.fal");
 
-function combineSignals(signal: AbortSignal | undefined, timeoutSeconds?: number | null): AbortSignal | undefined {
-  const timeout = timeoutSeconds && timeoutSeconds > 0 ? AbortSignal.timeout(timeoutSeconds * 1000) : undefined;
+function combineSignals(
+  signal: AbortSignal | undefined,
+  timeoutSeconds?: number | null
+): AbortSignal | undefined {
+  const timeout =
+    timeoutSeconds && timeoutSeconds > 0
+      ? AbortSignal.timeout(timeoutSeconds * 1000)
+      : undefined;
   if (!signal) return timeout;
   if (!timeout) return signal;
   return AbortSignal.any([signal, timeout]);
@@ -280,10 +303,7 @@ function setOutpaintPadding(
   for (const [side, apiName] of EXPAND_SIDES) {
     const pixels = padding[side];
     if (pixels == null) continue;
-    b.set(
-      apiName,
-      b.propType(apiName) === "bool" ? pixels > 0 : pixels
-    );
+    b.set(apiName, b.propType(apiName) === "bool" ? pixels > 0 : pixels);
   }
 }
 
@@ -496,7 +516,11 @@ class FalArgsBuilder {
   }
 
   referenceAssetInputs(kind: "image" | "video"): ModelImageInput[] {
-    return getModelReferenceInputs(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, this.modelId)
+    return getModelReferenceInputs(
+      FAL_MANIFEST_PKG,
+      FAL_MANIFEST_PATH,
+      this.modelId
+    )
       .filter((field) => field.kind === kind)
       .map(({ kind: _kind, ...field }) => field);
   }
@@ -684,6 +708,13 @@ export class FalProvider extends BaseProvider {
   private _client: FalClient | null = null;
   private _chat: OpenAICompatProvider | null = null;
   private readonly _fetch: typeof fetch;
+  private readonly _webhookUrl: string | undefined;
+  private readonly _onQueueAccepted:
+    | ((submission: FalQueueSubmission) => void | Promise<void>)
+    | undefined;
+  private readonly _onQueueBound:
+    | ((binding: ProviderQueueBinding) => void | Promise<void>)
+    | undefined;
   /** Model ids the catalog says accept `tools`. Filled by the model listing. */
   private _toolCapableModels: Set<string> | null = null;
 
@@ -693,11 +724,21 @@ export class FalProvider extends BaseProvider {
 
   constructor(
     secrets: Record<string, unknown> = {},
-    options: { fetchFn?: typeof fetch } = {}
+    options: {
+      fetchFn?: typeof fetch;
+      webhookUrl?: string;
+      onQueueAccepted?: (
+        submission: FalQueueSubmission
+      ) => void | Promise<void>;
+      onQueueBound?: (binding: ProviderQueueBinding) => void | Promise<void>;
+    } = {}
   ) {
     super("fal_ai");
     this.apiKey = (secrets["FAL_API_KEY"] as string) ?? "";
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
+    this._webhookUrl = options.webhookUrl;
+    this._onQueueAccepted = options.onQueueAccepted;
+    this._onQueueBound = options.onQueueBound;
   }
 
   /** Build an onQueueUpdate callback that forwards progress via emitMessage. */
@@ -737,17 +778,92 @@ export class FalProvider extends BaseProvider {
     const client = createFalClient({
       credentials: this.apiKey
     });
-    // Every queue call passes through here, so this is the one place the
-    // request id is known: the receipt the reconciler looks the charge up by.
+    // The SDK's subscribe() hides submit/bind/wait and enables automatic POST
+    // retries. Use the explicit adapter when this is a queue-capable SDK. The
+    // fallback keeps injected legacy clients and older hosts compatible.
+    const queueCapable =
+      typeof client === "object" &&
+      client !== null &&
+      "queue" in client &&
+      typeof client.queue === "object" &&
+      client.queue !== null;
     this._client = {
       subscribe: async (endpoint, opts) => {
-        const result = await client.subscribe(endpoint, opts);
-        const requestId = (result as { requestId?: unknown } | undefined)
-          ?.requestId;
-        if (typeof requestId === "string" && requestId) {
-          recordGenerationReceipt({ provider_request_id: requestId });
+        if (!queueCapable) {
+          const result = await client.subscribe(endpoint, opts);
+          recordGenerationProviderResult(result.data ?? result);
+          return result;
         }
-        return result;
+        const operations = createFalQueueOperations({
+          apiKey: this.apiKey,
+          fetchFn: this._fetch
+        });
+        const request: {
+          endpoint: string;
+          input: Record<string, unknown>;
+          signal?: AbortSignal;
+          webhookUrl?: string;
+        } = {
+          endpoint,
+          input: opts.input
+        };
+        const providerRequestOptions =
+          currentGenerationProviderRequestOptions();
+        if (opts.abortSignal) request.signal = opts.abortSignal;
+        const webhookUrl =
+          this._webhookUrl ?? providerRequestOptions?.webhookUrl;
+        if (webhookUrl) request.webhookUrl = webhookUrl;
+        const result = await falSubmitAndWait(operations, request, {
+          signal: opts.abortSignal,
+          onAccepted: (submission) => {
+            // The id is recorded immediately after the non-retried POST and
+            // before any status/result wait, so a later wait timeout preserves
+            // the provider identity for a host lifecycle adapter.
+            return (async () => {
+              await recordGenerationReceiptAsync(
+                { provider_request_id: submission.providerRequestId },
+                submission
+              );
+              await this._onQueueAccepted?.(submission);
+            })();
+          },
+          onBound: async (binding) => {
+            await recordGenerationBindingAsync(binding);
+            await this._onQueueBound?.(binding);
+          },
+          onUpdate: (observation) => {
+            const status =
+              typeof observation.rawStatus === "object" &&
+              observation.rawStatus !== null &&
+              "status" in observation.rawStatus &&
+              typeof observation.rawStatus.status === "string"
+                ? observation.rawStatus.status
+                : observation.state === "queued"
+                  ? "IN_QUEUE"
+                  : observation.state === "running"
+                    ? "IN_PROGRESS"
+                    : "COMPLETED";
+            const logs =
+              typeof observation.rawStatus === "object" &&
+              observation.rawStatus !== null &&
+              "logs" in observation.rawStatus &&
+              Array.isArray(observation.rawStatus.logs)
+                ? observation.rawStatus.logs
+                : undefined;
+            opts.onQueueUpdate?.({
+              status,
+              logs: logs?.filter(
+                (entry): entry is { message: string } =>
+                  typeof entry === "object" &&
+                  entry !== null &&
+                  "message" in entry &&
+                  typeof entry.message === "string"
+              )
+            });
+          }
+        });
+        recordGenerationProviderResult(result.data);
+        return { data: result.data, requestId: result.requestId };
       },
       storage: client.storage
     };
@@ -811,8 +927,14 @@ export class FalProvider extends BaseProvider {
     return loadMusicModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai");
   }
 
-  override async getAvailableAudioToAudioModels(): Promise<AudioToAudioModel[]> {
-    return loadAudioToAudioModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai");
+  override async getAvailableAudioToAudioModels(): Promise<
+    AudioToAudioModel[]
+  > {
+    return loadAudioToAudioModels(
+      FAL_MANIFEST_PKG,
+      FAL_MANIFEST_PATH,
+      "fal_ai"
+    );
   }
 
   /**
@@ -1310,7 +1432,16 @@ export class FalProvider extends BaseProvider {
     image: Uint8Array,
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
-    if (!(loadVideoModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai").find((m) => m.id === params.model.id)?.supportedTasks?.includes("image_to_video") ?? false)) throw new Error(`FAL model ${params.model.id} does not support image_to_video`);
+    if (
+      !(
+        loadVideoModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai")
+          .find((m) => m.id === params.model.id)
+          ?.supportedTasks?.includes("image_to_video") ?? false
+      )
+    )
+      throw new Error(
+        `FAL model ${params.model.id} does not support image_to_video`
+      );
     const client = await this.getClient();
     const modelId = params.model.id;
     const args = await this.buildImageToVideoArgs(modelId, [image], params);
@@ -1333,31 +1464,74 @@ export class FalProvider extends BaseProvider {
     const images = inputs.images.filter((b) => b.length > 0);
     const videos = inputs.videos.filter((b) => b.length > 0);
     if (images.length === 0 && videos.length === 0) {
-      throw new Error("reference_to_video requires at least one reference image or video");
+      throw new Error(
+        "reference_to_video requires at least one reference image or video"
+      );
     }
     const modelId = params.model.id;
     const builder = new FalArgsBuilder(modelId);
-    if (!(loadVideoModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai").find((m) => m.id === modelId)?.supportedTasks?.includes("reference_to_video") ?? false)) throw new Error(`FAL model ${modelId} does not support reference_to_video`);
-    validateReferenceInputs("FAL", modelId, inputs, getModelReferenceInputs(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, modelId));
+    if (
+      !(
+        loadVideoModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai")
+          .find((m) => m.id === modelId)
+          ?.supportedTasks?.includes("reference_to_video") ?? false
+      )
+    )
+      throw new Error(
+        `FAL model ${modelId} does not support reference_to_video`
+      );
+    validateReferenceInputs(
+      "FAL",
+      modelId,
+      inputs,
+      getModelReferenceInputs(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, modelId)
+    );
     const imageFields = builder.referenceAssetInputs("image");
     const videoFields = builder.referenceAssetInputs("video");
-    if (images.length > 0 && imageFields.length === 0) throw new Error(`FAL model ${modelId} does not support reference images`);
-    if (videos.length > 0 && videoFields.length === 0) throw new Error(`FAL model ${modelId} does not support reference videos`);
-    if (params.useReferenceVideoAudio === true && videos.length === 0) throw new Error(`FAL model ${modelId} requires a reference video when audio is enabled`);
-    if (params.useReferenceVideoAudio === true && !builder.has("use_reference_video_audio")) throw new Error(`FAL model ${modelId} does not support reference video audio`);
+    if (images.length > 0 && imageFields.length === 0)
+      throw new Error(`FAL model ${modelId} does not support reference images`);
+    if (videos.length > 0 && videoFields.length === 0)
+      throw new Error(`FAL model ${modelId} does not support reference videos`);
+    if (params.useReferenceVideoAudio === true && videos.length === 0)
+      throw new Error(
+        `FAL model ${modelId} requires a reference video when audio is enabled`
+      );
+    if (
+      params.useReferenceVideoAudio === true &&
+      !builder.has("use_reference_video_audio")
+    )
+      throw new Error(
+        `FAL model ${modelId} does not support reference video audio`
+      );
     const signal = combineSignals(params.signal, params.timeoutSeconds);
     signal?.throwIfAborted();
-    const imageUrls = await Promise.all(images.map((b) => this.upload(b, detectImageMime(b))));
-    const videoUrls = await Promise.all(videos.map((b) => this.upload(b, sniffMediaMime(b, "video/mp4"))));
+    const imageUrls = await Promise.all(
+      images.map((b) => this.upload(b, detectImageMime(b)))
+    );
+    const videoUrls = await Promise.all(
+      videos.map((b) => this.upload(b, sniffMediaMime(b, "video/mp4")))
+    );
     signal?.throwIfAborted();
-    builder.attachReferenceAssets("image", imageUrls).attachReferenceAssets("video", videoUrls)
-      .set("prompt", params.prompt).set("negative_prompt", params.negativePrompt)
-      .set("duration", params.durationSeconds).setSize(params.aspectRatio, params.resolution)
+    builder
+      .attachReferenceAssets("image", imageUrls)
+      .attachReferenceAssets("video", videoUrls)
+      .set("prompt", params.prompt)
+      .set("negative_prompt", params.negativePrompt)
+      .set("duration", params.durationSeconds)
+      .setSize(params.aspectRatio, params.resolution)
       .set("use_reference_video_audio", params.useReferenceVideoAudio);
     this.recordRequestPayload(builder.args);
     const client = await this.getClient();
-    const result = await client.subscribe(modelId, { input: builder.args, logs: true, onQueueUpdate: this.makeQueueUpdateHandler(), abortSignal: signal });
-    return downloadBytes(extractVideoUrl((result.data ?? result) as Record<string, unknown>), signal);
+    const result = await client.subscribe(modelId, {
+      input: builder.args,
+      logs: true,
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: signal
+    });
+    return downloadBytes(
+      extractVideoUrl((result.data ?? result) as Record<string, unknown>),
+      signal
+    );
   }
 
   /** Upload raw bytes to FAL storage and return the hosted URL. */
@@ -1661,7 +1835,8 @@ function buildSegmentImageArgs(
   params: SegmentImageParams
 ): Record<string, unknown> {
   const b = new FalArgsBuilder(modelId);
-  const maxMasks = params.maxMasks != null ? Math.max(1, params.maxMasks) : null;
+  const maxMasks =
+    params.maxMasks != null ? Math.max(1, params.maxMasks) : null;
   b.attachAsset("image", imageUrl)
     // The mask images are the answer; a masked copy of the source is not.
     .set("apply_mask", false)
@@ -1975,7 +2150,10 @@ export function extractAudioUrl(result: Record<string, unknown>): string {
   throw new Error(`Unexpected FAL audio response: ${JSON.stringify(result)}`);
 }
 
-async function downloadBytes(url: string, signal?: AbortSignal): Promise<Uint8Array> {
+async function downloadBytes(
+  url: string,
+  signal?: AbortSignal
+): Promise<Uint8Array> {
   const res = await safeFetch(url, signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`Failed to download FAL result: ${res.status}`);
   const buf = await res.arrayBuffer();

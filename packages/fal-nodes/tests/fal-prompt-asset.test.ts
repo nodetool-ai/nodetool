@@ -11,13 +11,30 @@ vi.mock("../src/fal-base.js", () => ({
     uri: image.url
   }),
   falSubmit,
-  falSubmitWithMeta: async (...args) => ({ data: await falSubmit(...args), requestId: "req-test" }),
+  falSubmitWithMeta: async (...args) => ({
+    data: await falSubmit(...args),
+    requestId: "req-test"
+  }),
+  falSubmitWithGeneration: async (
+    apiKey: string,
+    endpoint: string,
+    args: Record<string, unknown>
+  ) => ({
+    data: await falSubmit(apiKey, endpoint, args),
+    requestId: "req-test"
+  }),
+  falCapabilityForOutputType: () => "text_to_image",
   getFalApiKey: () => "test-key",
   imageToDataUrl: vi.fn(async (ref: Record<string, unknown> | undefined) =>
     ref?.data ? `data:image/png;base64,${ref.data as string}` : null
   ),
   isRefSet: (ref: unknown) =>
-    !!ref && typeof ref === "object" && Boolean((ref as Record<string, unknown>).data || (ref as Record<string, unknown>).uri),
+    !!ref &&
+    typeof ref === "object" &&
+    Boolean(
+      (ref as Record<string, unknown>).data ||
+      (ref as Record<string, unknown>).uri
+    ),
   removeNulls: (obj: Record<string, unknown>) => {
     for (const k of Object.keys(obj)) {
       if (obj[k] == null || obj[k] === "") delete obj[k];
@@ -232,7 +249,13 @@ function makeOmniReferenceNode() {
         name: "audio_url",
         propType: "audio",
         tsType: "object",
-        default: { type: "audio", uri: "", asset_id: null, data: null, metadata: null },
+        default: {
+          type: "audio",
+          uri: "",
+          asset_id: null,
+          data: null,
+          metadata: null
+        },
         description: "",
         fieldType: "input",
         required: false
@@ -268,7 +291,8 @@ describe("FAL omni reference-to-video mapping", () => {
     const NodeClass = makeOmniReferenceNode();
     const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
     node.assign({
-      prompt: "drive asset://clip.mp4 with asset://track.wav and asset://ref.png"
+      prompt:
+        "drive asset://clip.mp4 with asset://track.wav and asset://ref.png"
     });
 
     await node.process(ctx as never);

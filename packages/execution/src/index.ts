@@ -2,6 +2,28 @@
  * @nodetool-ai/execution – Public API
  */
 export { ExecutionSession } from "./session.js";
+export {
+  DurableGenerationLifecycle,
+  createDurableGenerationLifecycle,
+  createFalGenerationLifecycleHooks
+} from "./generation-lifecycle.js";
+export { DurableGenerationRecoveryWorker } from "./generation-recovery-worker.js";
+export {
+  decodeFalOutputs,
+  deterministicFalStorageKey,
+  type FalOutputDescriptor
+} from "./fal-output-decoder.js";
+export type {
+  DurableGenerationRecoveryOptions,
+  DurableRecoveryProvider,
+  DurableRecoveryRunResult,
+  DurableRecoverySubmission
+} from "./generation-recovery-worker.js";
+export type {
+  DurableGenerationAcceptance,
+  GenerationLeaseWindow,
+  FalGenerationLifecycleHooksOptions
+} from "./generation-lifecycle.js";
 export { normalizeGraph, toRawGraphInput } from "./normalize-graph.js";
 export {
   assertPreflight,
@@ -80,10 +102,7 @@ export type { NodeTypeResolver, ResolvedNodeType } from "@nodetool-ai/kernel";
 
 // Debug surface: one execution-summary vocabulary + triage for every host that
 // reports on a run (CLI harness, HTTP debug endpoint, agent tools).
-export {
-  collectExecutionSummary,
-  previewValue
-} from "./debug/collector.js";
+export { collectExecutionSummary, previewValue } from "./debug/collector.js";
 export {
   buildRunVerdict,
   collectInterventionWarnings,

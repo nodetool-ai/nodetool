@@ -15,10 +15,7 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
-import {
-  MAX_RECONCILE_ATTEMPTS,
-  Prediction
-} from "@nodetool-ai/models";
+import { MAX_RECONCILE_ATTEMPTS, Prediction } from "@nodetool-ai/models";
 import type {
   GenerationReceipt,
   Prediction as PredictionMessage
@@ -139,6 +136,11 @@ async function openRow(
 ): Promise<void> {
   const origin = msg.origin;
   try {
+    // Durable acceptance owns its row and fencing version. The legacy
+    // message follower must never turn a webhook/recovery row back into a
+    // provider-call-shaped update or overwrite its metadata.
+    const existing = await Prediction.find(msg.id);
+    if (existing?.lifecycle_owner === "durable") return;
     await Prediction.create<Prediction>({
       id: msg.id,
       user_id: options.userId,
@@ -195,9 +197,11 @@ async function closeRow(
     }
     const opened = await Prediction.find(msg.id).catch(() => null);
     if (!opened) return;
+    if (opened.lifecycle_owner === "durable") return;
     await finishRow(opened, msg, options, stated);
     return;
   }
+  if (row.lifecycle_owner === "durable") return;
   await finishRow(row, msg, options, stated);
 }
 
@@ -271,7 +275,10 @@ async function finishRow(
     return;
   }
 
-  if (msg.status === "completed" && (!msg.asset_ids || msg.asset_ids.length === 0)) {
+  if (
+    msg.status === "completed" &&
+    (!msg.asset_ids || msg.asset_ids.length === 0)
+  ) {
     // A node returned an inline ref; the host's autosave links it later.
     const key = nodeKey(msg.origin?.job_id, msg.node_id);
     const pending = unlinkedByNode.get(key) ?? [];
@@ -312,6 +319,7 @@ export async function linkGenerationAssets(
     try {
       const row = await Prediction.find(id);
       if (!row) continue;
+      if (row.lifecycle_owner === "durable") continue;
       const merged = [...new Set([...(row.asset_ids ?? []), ...assetIds])];
       await row.update({ asset_ids: merged });
     } catch (err) {
@@ -350,14 +358,26 @@ export async function reconcileRow(
 ): Promise<ReconcileOutcome> {
   const before = row.cost;
   if (!row.provider_request_id) {
-    return { before, after: before, reconciled: false, reason: "no request id" };
+    return {
+      before,
+      after: before,
+      reconciled: false,
+      reason: "no request id"
+    };
   }
   const reconciler = getCostReconciler(row.provider);
   const now = new Date();
   const metadata = rowMetadata(row);
   if (!reconciler) {
     metadata.reconcile = "unavailable";
-    await row.update({ reconciled_at: now.toISOString(), metadata: { ...metadata } });
+    await Prediction.patchReconciliation(
+      row.id,
+      {
+        reconciled_at: now.toISOString(),
+        metadata: { ...metadata }
+      },
+      row.reconcile_attempts
+    );
     return {
       before,
       after: before,
@@ -383,7 +403,14 @@ export async function reconcileRow(
     });
     if (!actual) {
       metadata.reconcile_error = "provider has no billing record yet";
-      await row.update({ reconcile_attempts: attempts, metadata: { ...metadata } });
+      await Prediction.patchReconciliation(
+        row.id,
+        {
+          reconcile_attempts: attempts,
+          metadata: { ...metadata }
+        },
+        row.reconcile_attempts
+      );
       return {
         before,
         after: before,
@@ -394,22 +421,31 @@ export async function reconcileRow(
     delete metadata.reconcile_error;
     delete metadata.reconcile_next_at;
     metadata.price_source = "provider-billing";
-    await row.update({
-      cost: actual.cost,
-      currency: actual.currency ?? row.currency,
-      quantity: actual.quantity ?? row.quantity,
-      unit_price: actual.unit_price ?? row.unit_price,
-      reconcile_attempts: attempts,
-      reconciled_at: now.toISOString(),
-      metadata: { ...metadata }
-    });
+    await Prediction.patchReconciliation(
+      row.id,
+      {
+        cost: actual.cost,
+        currency: actual.currency ?? row.currency,
+        quantity: actual.quantity ?? row.quantity,
+        unit_price: actual.unit_price ?? row.unit_price,
+        reconcile_attempts: attempts,
+        reconciled_at: now.toISOString(),
+        metadata: { ...metadata }
+      },
+      row.reconcile_attempts
+    );
     return { before, after: actual.cost, reconciled: true };
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     metadata.reconcile_error = reason;
-    await row
-      .update({ reconcile_attempts: attempts, metadata: { ...metadata } })
-      .catch(() => undefined);
+    await Prediction.patchReconciliation(
+      row.id,
+      {
+        reconcile_attempts: attempts,
+        metadata: { ...metadata }
+      },
+      row.reconcile_attempts
+    ).catch(() => undefined);
     log.warn("Failed to reconcile generation cost", {
       generation_id: row.id,
       provider: row.provider,

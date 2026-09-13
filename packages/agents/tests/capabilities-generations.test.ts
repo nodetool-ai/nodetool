@@ -76,11 +76,17 @@ class SlowImageProvider extends BaseProvider {
     await this.pause(undefined);
     return MP4;
   }
-  override async textToMusic(): Promise<{ data: Uint8Array; mimeType: string }> {
+  override async textToMusic(): Promise<{
+    data: Uint8Array;
+    mimeType: string;
+  }> {
     await this.pause(undefined);
     return { data: MP3, mimeType: "audio/mpeg" };
   }
-  override async textToSpeechEncoded(): Promise<{ data: Uint8Array; mimeType: string }> {
+  override async textToSpeechEncoded(): Promise<{
+    data: Uint8Array;
+    mimeType: string;
+  }> {
     await this.pause(undefined);
     return { data: MP3, mimeType: "audio/mpeg" };
   }
@@ -97,7 +103,10 @@ function contextWithAssets(delayMs = 5): ProcessingContext {
   ctx.registerProvider("fake", new SlowImageProvider(delayMs));
   let n = 0;
   ctx.setModelInterfaces({
-    createAsset: async (args) => ({ id: `asset-${++n}`, content_type: args.contentType })
+    createAsset: async (args) => ({
+      id: `asset-${++n}`,
+      content_type: args.contentType
+    })
   });
   attachRunCostLedger(ctx, { userId: USER, workflowId: null });
   return ctx;
@@ -114,21 +123,80 @@ describe("generations capabilities", () => {
   });
 
   it("lists and reads only the caller's generations", async () => {
-    await Prediction.create<Prediction>({ id: "mine", user_id: USER, provider: "fal", model: "m", capability: "text_to_image", status: "completed", cost: 0.1, asset_ids: ["a1"], created_at: new Date().toISOString() });
-    await Prediction.create<Prediction>({ id: "theirs", user_id: "u2", provider: "fal", model: "m", status: "completed", cost: 0.1, created_at: new Date().toISOString() });
-    const run = ungatedCapabilityRun(new ProcessingContext({ jobId: "j", userId: USER }));
+    await Prediction.create<Prediction>({
+      id: "mine",
+      user_id: USER,
+      provider: "fal",
+      model: "m",
+      capability: "text_to_image",
+      status: "completed",
+      cost: 0.1,
+      asset_ids: ["a1"],
+      created_at: new Date().toISOString()
+    });
+    await Prediction.create<Prediction>({
+      id: "theirs",
+      user_id: "u2",
+      provider: "fal",
+      model: "m",
+      status: "completed",
+      cost: 0.1,
+      created_at: new Date().toISOString()
+    });
+    const run = ungatedCapabilityRun(
+      new ProcessingContext({ jobId: "j", userId: USER })
+    );
 
-    const listed = (await capability(generations, "list_generations").impl(run, {})) as {
+    const listed = (await capability(generations, "list_generations").impl(
+      run,
+      {}
+    )) as {
       generations: Array<{ generation_id: string; asset_uris: string[] }>;
     };
     expect(listed.generations.map((g) => g.generation_id)).toEqual(["mine"]);
     expect(listed.generations[0].asset_uris).toEqual(["asset://a1"]);
 
-    const got = (await capability(generations, "get_generation").impl(run, { generation_id: "mine" })) as { generation_id: string; cost: number };
+    const got = (await capability(generations, "get_generation").impl(run, {
+      generation_id: "mine"
+    })) as { generation_id: string; cost: number };
     expect(got.generation_id).toBe("mine");
     expect(got.cost).toBe(0.1);
-    const foreign = await capability(generations, "get_generation").impl(run, { generation_id: "theirs" });
+    const foreign = await capability(generations, "get_generation").impl(run, {
+      generation_id: "theirs"
+    });
     expect(foreign).toEqual({ error: "Generation theirs was not found." });
+  });
+
+  it("exposes durable lifecycle dimensions and only completes when output is ready", async () => {
+    await Prediction.create<Prediction>({
+      id: "durable",
+      user_id: USER,
+      provider: "fal",
+      model: "m",
+      status: "completed",
+      lifecycle_owner: "durable",
+      submission_status: "submitted",
+      provider_status: "succeeded",
+      output_status: "saving",
+      attachment_status: "pending",
+      metadata: { output_error: "write is retryable" },
+      created_at: new Date().toISOString()
+    });
+    const run = ungatedCapabilityRun(
+      new ProcessingContext({ jobId: "j", userId: USER })
+    );
+    const result = (await capability(generations, "get_generation").impl(run, {
+      generation_id: "durable"
+    })) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      status: "recovering",
+      submission_status: "submitted",
+      provider_status: "succeeded",
+      output_status: "saving",
+      attachment_status: "pending",
+      output_error: "write is retryable"
+    });
   });
 
   it("generate_image with background returns the id at once and the row settles on its own", async () => {
@@ -144,10 +212,13 @@ describe("generations capabilities", () => {
     expect(started.background).toBe(true);
     expect(generationRegistry.isRunning(started.generation_id)).toBe(true);
 
-    const awaited = (await capability(generations, "await_generation").impl(run, {
-      generation_id: started.generation_id,
-      timeout_seconds: 5
-    })) as { status: string; asset_ids: string[]; cost: number | null };
+    const awaited = (await capability(generations, "await_generation").impl(
+      run,
+      {
+        generation_id: started.generation_id,
+        timeout_seconds: 5
+      }
+    )) as { status: string; asset_ids: string[]; cost: number | null };
     expect(awaited.status).toBe("completed");
     expect(awaited.asset_ids).toEqual(["asset-1"]);
   });
@@ -159,7 +230,12 @@ describe("generations capabilities", () => {
       provider: "fake",
       model: "m",
       prompt: "a fox"
-    })) as { generation_id: string; asset_id: string; asset_uri: string; mime_type: string };
+    })) as {
+      generation_id: string;
+      asset_id: string;
+      asset_uri: string;
+      mime_type: string;
+    };
     expect(result.asset_id).toBe("asset-1");
     expect(result.asset_uri).toBe("asset://asset-1.png");
     expect(result.mime_type).toBe("image/png");
@@ -180,35 +256,115 @@ describe("generations capabilities", () => {
       background: true
     })) as { generation_id: string };
     await settled();
-    const other = ungatedCapabilityRun(new ProcessingContext({ jobId: "j", userId: "u2" }));
-    const refused = (await capability(generations, "cancel_generation").impl(other, { generation_id: started.generation_id })) as { cancelled?: boolean };
+    const other = ungatedCapabilityRun(
+      new ProcessingContext({ jobId: "j", userId: "u2" })
+    );
+    const refused = (await capability(generations, "cancel_generation").impl(
+      other,
+      { generation_id: started.generation_id }
+    )) as { cancelled?: boolean };
     expect(refused.cancelled).toBe(false);
-    const cancelled = (await capability(generations, "cancel_generation").impl(run, { generation_id: started.generation_id })) as { status: string; aborted: boolean };
+    const cancelled = (await capability(generations, "cancel_generation").impl(
+      run,
+      { generation_id: started.generation_id }
+    )) as { status: string; aborted: boolean };
     expect(cancelled).toMatchObject({ status: "cancelled", aborted: true });
     await settled();
-    expect((await Prediction.find(started.generation_id))?.status).toBe("cancelled");
+    expect((await Prediction.find(started.generation_id))?.status).toBe(
+      "cancelled"
+    );
+  });
+
+  it("requests cancellation for durable work without closing its row", async () => {
+    await Prediction.create<Prediction>({
+      id: "durable-running",
+      user_id: USER,
+      provider: "fal",
+      model: "m",
+      status: "running",
+      lifecycle_owner: "durable",
+      submission_status: "submitted",
+      provider_status: "running",
+      output_status: "pending",
+      attachment_status: "pending",
+      created_at: new Date().toISOString()
+    });
+    const run = ungatedCapabilityRun(
+      new ProcessingContext({ jobId: "j", userId: USER })
+    );
+    const result = (await capability(generations, "cancel_generation").impl(
+      run,
+      {
+        generation_id: "durable-running"
+      }
+    )) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      status: "running",
+      cancelled: false,
+      cancellation_requested: true
+    });
+    const row = await Prediction.find("durable-running");
+    expect(row?.status).toBe("running");
+    expect(row?.cancel_requested_at).toEqual(expect.any(String));
   });
 
   it("cancel_generation closes a row whose call runs elsewhere", async () => {
-    await Prediction.create<Prediction>({ id: "remote", user_id: USER, status: "running", cost: null, created_at: new Date().toISOString() });
-    const run = ungatedCapabilityRun(new ProcessingContext({ jobId: "j", userId: USER }));
-    const result = (await capability(generations, "cancel_generation").impl(run, { generation_id: "remote" })) as { status: string; aborted: boolean };
+    await Prediction.create<Prediction>({
+      id: "remote",
+      user_id: USER,
+      status: "running",
+      cost: null,
+      created_at: new Date().toISOString()
+    });
+    const run = ungatedCapabilityRun(
+      new ProcessingContext({ jobId: "j", userId: USER })
+    );
+    const result = (await capability(generations, "cancel_generation").impl(
+      run,
+      { generation_id: "remote" }
+    )) as { status: string; aborted: boolean };
     expect(result).toMatchObject({ status: "cancelled", aborted: false });
     expect((await Prediction.find("remote"))?.status).toBe("cancelled");
   });
 
   it("reconcile_generation asks the provider now", async () => {
-    registerCostReconciler("acme", async () => ({ cost: 2.5, currency: "USD" }));
-    await Prediction.create<Prediction>({ id: "r1", user_id: USER, provider: "acme", model: "m", status: "completed", cost: 1, provider_request_id: "req", created_at: new Date().toISOString() });
-    const run = ungatedCapabilityRun(new ProcessingContext({ jobId: "j", userId: USER }));
-    const result = await capability(generations, "reconcile_generation").impl(run, { generation_id: "r1" });
-    expect(result).toMatchObject({ generation_id: "r1", before: 1, after: 2.5, reconciled: true });
+    registerCostReconciler("acme", async () => ({
+      cost: 2.5,
+      currency: "USD"
+    }));
+    await Prediction.create<Prediction>({
+      id: "r1",
+      user_id: USER,
+      provider: "acme",
+      model: "m",
+      status: "completed",
+      cost: 1,
+      provider_request_id: "req",
+      created_at: new Date().toISOString()
+    });
+    const run = ungatedCapabilityRun(
+      new ProcessingContext({ jobId: "j", userId: USER })
+    );
+    const result = await capability(generations, "reconcile_generation").impl(
+      run,
+      { generation_id: "r1" }
+    );
+    expect(result).toMatchObject({
+      generation_id: "r1",
+      before: 1,
+      after: 2.5,
+      reconciled: true
+    });
   });
 
   it("every generation capability returns a generation id and accepts background", async () => {
     const ctx = contextWithAssets(1);
     ctx.setModelInterfaces({
-      createAsset: async (args) => ({ id: `asset-${args.contentType.split("/")[0]}`, content_type: args.contentType })
+      createAsset: async (args) => ({
+        id: `asset-${args.contentType.split("/")[0]}`,
+        content_type: args.contentType
+      })
     });
     Object.assign(ctx, {
       resolveAssetBytes: async () => ({ bytes: PNG, contentType: "image/png" })
@@ -216,7 +372,11 @@ describe("generations capabilities", () => {
     const run = ungatedCapabilityRun(ctx);
     const base = { provider: "fake", model: "m" };
     const cases: Array<[string, Record<string, unknown>, string]> = [
-      ["edit_image", { ...base, prompt: "bluer", input_file: "asset://seed.png" }, "image"],
+      [
+        "edit_image",
+        { ...base, prompt: "bluer", input_file: "asset://seed.png" },
+        "image"
+      ],
       ["generate_video", { ...base, prompt: "a fox running" }, "video"],
       ["animate_image", { ...base, input_file: "asset://seed.png" }, "video"],
       ["generate_music", { ...base, prompt: "calm piano" }, "audio"],
@@ -234,17 +394,23 @@ describe("generations capabilities", () => {
       expect(sync.generation_id, name).toBeTruthy();
       expect(sync.asset_id, name).toBe(`asset-${type}`);
 
-      const bg = (await capability(media, name).impl(run, { ...params, background: true })) as {
+      const bg = (await capability(media, name).impl(run, {
+        ...params,
+        background: true
+      })) as {
         status: string;
         generation_id: string;
         background: boolean;
       };
       expect(bg.status, name).toBe("running");
       expect(bg.background, name).toBe(true);
-      const awaited = (await capability(generations, "await_generation").impl(run, {
-        generation_id: bg.generation_id,
-        timeout_seconds: 5
-      })) as { status: string; asset_ids: string[] };
+      const awaited = (await capability(generations, "await_generation").impl(
+        run,
+        {
+          generation_id: bg.generation_id,
+          timeout_seconds: 5
+        }
+      )) as { status: string; asset_ids: string[] };
       expect(awaited.status, name).toBe("completed");
       expect(awaited.asset_ids, name).toEqual([`asset-${type}`]);
     }
@@ -255,11 +421,22 @@ describe("generations capabilities", () => {
     const run = ungatedCapabilityRun(ctx);
     const gen = capability(media, "generate_image");
     for (let i = 0; i < 16; i++) {
-      await gen.impl(run, { provider: "fake", model: "m", prompt: `p${i}`, background: true });
+      await gen.impl(run, {
+        provider: "fake",
+        model: "m",
+        prompt: `p${i}`,
+        background: true
+      });
     }
-    const refused = (await gen.impl(run, { provider: "fake", model: "m", prompt: "one more", background: true })) as { error?: string };
+    const refused = (await gen.impl(run, {
+      provider: "fake",
+      model: "m",
+      prompt: "one more",
+      background: true
+    })) as { error?: string };
     expect(refused.error).toContain("16 background generations");
-    for (const id of generationRegistry.runningFor(USER)) generationRegistry.cancel(id, USER);
+    for (const id of generationRegistry.runningFor(USER))
+      generationRegistry.cancel(id, USER);
   });
 });
 
@@ -354,10 +531,13 @@ describe("provider-side generation capabilities", () => {
 
   it("reads one provider generation, and reports an id the provider lacks", async () => {
     const run = runWith(new HistoryProvider());
-    const found = (await capability(generations, "get_provider_generation").impl(
-      run,
-      { provider: "fake", request_id: "req-1" }
-    )) as ProviderGeneration;
+    const found = (await capability(
+      generations,
+      "get_provider_generation"
+    ).impl(run, {
+      provider: "fake",
+      request_id: "req-1"
+    })) as ProviderGeneration;
     expect(found.output_urls).toEqual(["https://cdn/out.png"]);
 
     const missing = (await capability(

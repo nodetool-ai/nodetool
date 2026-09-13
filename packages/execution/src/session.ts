@@ -222,7 +222,8 @@ export class ExecutionSession {
         jobId,
         workflowId,
         userId: "1",
-        workspace: null
+        workspace: null,
+        durableFalGenerations: true
       });
     // This facade is the workflow host for every caller that builds its own
     // context (`nodetool run`, the WebSocket job runner, the app simulator):

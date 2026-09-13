@@ -33,15 +33,15 @@ const newRowId = (): string => randomUUID().replace(/-/g, "");
  * written against even after the model layer moves on.
  */
 const capabilitiesOf = (document: ApplicationDocument): string => {
-  const workflows = new Map<
-    string,
-    { workflowId: string; version?: number }
-  >();
+  const workflows = new Map<string, { workflowId: string; version?: number }>();
   for (const operation of document.operations) {
-    workflows.set(`${operation.workflowId}@${operation.workflowVersion ?? ""}`, {
-      workflowId: operation.workflowId,
-      version: operation.workflowVersion
-    });
+    workflows.set(
+      `${operation.workflowId}@${operation.workflowVersion ?? ""}`,
+      {
+        workflowId: operation.workflowId,
+        version: operation.workflowVersion
+      }
+    );
   }
   const resources = new Map<string, Set<string>>();
   for (const binding of document.resources) {
@@ -1694,7 +1694,9 @@ export const migrations: MigrationDef[] = [
       `);
     },
     async down(db) {
-      await db.execute("DROP INDEX IF EXISTS idx_worker_instances_profile_name");
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_worker_instances_profile_name"
+      );
       await db.execute("DROP INDEX IF EXISTS idx_worker_instances_status");
       await db.execute("DROP TABLE IF EXISTS worker_instances");
       await db.execute("DROP INDEX IF EXISTS idx_worker_profiles_name");
@@ -2002,9 +2004,7 @@ export const migrations: MigrationDef[] = [
       `);
     },
     async down(db) {
-      await db.execute(
-        "DROP INDEX IF EXISTS idx_thread_memory_thread_created"
-      );
+      await db.execute("DROP INDEX IF EXISTS idx_thread_memory_thread_created");
       await db.execute("DROP INDEX IF EXISTS idx_thread_memory_user");
       await db.execute("DROP TABLE IF EXISTS nodetool_thread_memories");
     }
@@ -2163,7 +2163,9 @@ export const migrations: MigrationDef[] = [
       await db.execute(
         "DROP INDEX IF EXISTS idx_application_invocation_invocation"
       );
-      await db.execute("DROP INDEX IF EXISTS idx_application_invocation_created");
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_application_invocation_created"
+      );
       await db.execute("DROP INDEX IF EXISTS idx_application_invocation_app");
       await db.execute("DROP TABLE IF EXISTS application_invocations");
       await db.execute("DROP TABLE IF EXISTS application_budgets");
@@ -2265,9 +2267,11 @@ export const migrations: MigrationDef[] = [
         "SELECT id, document, created_at FROM applications"
       );
       const appsByWorkflow = new Map<string, string>();
-      for (const row of [...existing].sort((a, b) =>
-        String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")) ||
-        String(a.id).localeCompare(String(b.id))
+      for (const row of [...existing].sort(
+        (a, b) =>
+          String(a.created_at ?? "").localeCompare(
+            String(b.created_at ?? "")
+          ) || String(a.id).localeCompare(String(b.id))
       )) {
         for (const workflowId of boundWorkflowIds(row.document)) {
           if (!appsByWorkflow.has(workflowId)) {
@@ -2499,7 +2503,9 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP INDEX IF EXISTS idx_tsv_timeline_version");
-      await db.execute("DROP INDEX IF EXISTS idx_tsv_timeline_save_type_created");
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_tsv_timeline_save_type_created"
+      );
       await db.execute("DROP INDEX IF EXISTS idx_tsv_user");
       await db.execute("DROP INDEX IF EXISTS idx_tsv_timeline");
       await db.execute("DROP TABLE IF EXISTS timeline_sequence_versions");
@@ -2573,7 +2579,9 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP INDEX IF EXISTS idx_idv_document_version");
-      await db.execute("DROP INDEX IF EXISTS idx_idv_document_save_type_created");
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_idv_document_save_type_created"
+      );
       await db.execute("DROP INDEX IF EXISTS idx_idv_user");
       await db.execute("DROP INDEX IF EXISTS idx_idv_document");
       await db.execute("DROP TABLE IF EXISTS image_document_versions");
@@ -3095,9 +3103,7 @@ export const migrations: MigrationDef[] = [
       `);
     },
     async down(db) {
-      await db.execute(
-        "DROP INDEX IF EXISTS idx_application_deployment_token"
-      );
+      await db.execute("DROP INDEX IF EXISTS idx_application_deployment_token");
       await db.execute("DROP INDEX IF EXISTS idx_application_deployment_app");
       await db.execute("DROP TABLE IF EXISTS application_deployments");
     }
@@ -3423,6 +3429,177 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP INDEX IF EXISTS idx_project_lifecycle");
+    }
+  },
+
+  // ── Durable generation acceptance and recovery records ─────────────
+  {
+    version: "20260913_000000",
+    name: "create_durable_generation_records",
+    createsTables: [
+      "nodetool_generation_attempts",
+      "nodetool_generation_webhook_deliveries",
+      "nodetool_generation_outputs",
+      "nodetool_generation_attachments"
+    ],
+    modifiesTables: ["nodetool_predictions"],
+    async up(db) {
+      if (await db.tableExists("nodetool_predictions")) {
+        const columns: Record<string, string> = {
+          idempotency_key: "TEXT",
+          input_fingerprint: "TEXT",
+          lifecycle_owner: "TEXT NOT NULL DEFAULT 'legacy'",
+          submission_status: "TEXT NOT NULL DEFAULT 'accepted'",
+          provider_status: "TEXT NOT NULL DEFAULT 'unknown'",
+          output_status: "TEXT NOT NULL DEFAULT 'pending'",
+          attachment_status: "TEXT NOT NULL DEFAULT 'pending'",
+          accepted_at: "TEXT",
+          lease_owner: "TEXT",
+          lease_expires_at: "TEXT",
+          lease_version: "INTEGER NOT NULL DEFAULT 0",
+          next_check_at: "TEXT",
+          attempt_count: "INTEGER NOT NULL DEFAULT 0",
+          cancel_requested_at: "TEXT"
+        };
+        for (const [name, type] of Object.entries(columns)) {
+          if (!(await db.columnExists("nodetool_predictions", name))) {
+            await db.execute(
+              `ALTER TABLE nodetool_predictions ADD COLUMN ${name} ${type}`
+            );
+          }
+        }
+        await db.execute(
+          "CREATE UNIQUE INDEX IF NOT EXISTS idx_prediction_user_idempotency ON nodetool_predictions (user_id, idempotency_key)"
+        );
+        await db.execute(
+          "CREATE INDEX IF NOT EXISTS idx_prediction_durable_due ON nodetool_predictions (lifecycle_owner, next_check_at)"
+        );
+        await db.execute(
+          "CREATE INDEX IF NOT EXISTS idx_prediction_lease ON nodetool_predictions (lease_expires_at)"
+        );
+      }
+      await db.execute(`CREATE TABLE IF NOT EXISTS nodetool_generation_attempts (
+        id TEXT PRIMARY KEY NOT NULL,
+        generation_id TEXT NOT NULL REFERENCES nodetool_predictions (id) ON DELETE CASCADE,
+        attempt_number INTEGER NOT NULL DEFAULT 1,
+        provider TEXT NOT NULL,
+        provider_account_ref TEXT,
+        provider_request_id TEXT,
+        gateway_request_id TEXT,
+        provider_execution_id TEXT,
+        endpoint TEXT,
+        callback_token_hash TEXT,
+        callback_token_ciphertext TEXT,
+        decoder_version TEXT,
+        input_fingerprint TEXT,
+        submission_idempotency_key TEXT,
+        submission_status TEXT NOT NULL DEFAULT 'accepted',
+        provider_status TEXT NOT NULL DEFAULT 'unknown',
+        request_payload TEXT,
+        raw_result_ref TEXT,
+        lease_owner TEXT,
+        lease_expires_at TEXT,
+        lease_version INTEGER NOT NULL DEFAULT 0,
+        next_check_at TEXT,
+        check_attempts INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT,
+        cancel_requested_at TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`);
+      await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_generation_attempt_generation_number ON nodetool_generation_attempts (generation_id, attempt_number)"
+      );
+      await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_generation_attempt_provider_request ON nodetool_generation_attempts (provider, provider_account_ref, provider_request_id)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_generation_attempt_due ON nodetool_generation_attempts (submission_status, next_check_at)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_generation_attempt_lease ON nodetool_generation_attempts (lease_expires_at)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_generation_attempt_callback_token ON nodetool_generation_attempts (callback_token_hash)"
+      );
+      await db.execute(`CREATE TABLE IF NOT EXISTS nodetool_generation_webhook_deliveries (
+        id TEXT PRIMARY KEY NOT NULL,
+        provider TEXT NOT NULL,
+        provider_account_ref TEXT NOT NULL,
+        provider_request_id TEXT NOT NULL,
+        payload_hash TEXT NOT NULL,
+        generation_id TEXT REFERENCES nodetool_predictions (id) ON DELETE SET NULL,
+        attempt_id TEXT REFERENCES nodetool_generation_attempts (id) ON DELETE SET NULL,
+        raw_payload TEXT NOT NULL,
+        signature TEXT,
+        observation TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        lease_owner TEXT,
+        lease_expires_at TEXT,
+        lease_version INTEGER NOT NULL DEFAULT 0,
+        received_at TEXT NOT NULL,
+        processed_at TEXT,
+        error TEXT
+      )`);
+      await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_generation_webhook_identity ON nodetool_generation_webhook_deliveries (provider, provider_account_ref, provider_request_id, payload_hash)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_generation_webhook_pending ON nodetool_generation_webhook_deliveries (status, received_at)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_generation_webhook_generation ON nodetool_generation_webhook_deliveries (generation_id)"
+      );
+      await db.execute(`CREATE TABLE IF NOT EXISTS nodetool_generation_outputs (
+        id TEXT PRIMARY KEY NOT NULL,
+        generation_id TEXT NOT NULL REFERENCES nodetool_predictions (id) ON DELETE CASCADE,
+        attempt_id TEXT NOT NULL REFERENCES nodetool_generation_attempts (id) ON DELETE CASCADE,
+        output_key TEXT NOT NULL,
+        output_index INTEGER NOT NULL DEFAULT 0,
+        output_type TEXT NOT NULL DEFAULT 'media',
+        provider_ref TEXT,
+        raw_result TEXT,
+        storage_key TEXT,
+        asset_id TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        error TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`);
+      await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_generation_output_identity ON nodetool_generation_outputs (generation_id, attempt_id, output_key, output_index)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_generation_output_generation ON nodetool_generation_outputs (generation_id)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_generation_output_status ON nodetool_generation_outputs (status)"
+      );
+      await db.execute(`CREATE TABLE IF NOT EXISTS nodetool_generation_attachments (
+        id TEXT PRIMARY KEY NOT NULL,
+        generation_id TEXT NOT NULL REFERENCES nodetool_predictions (id) ON DELETE CASCADE,
+        output_id TEXT NOT NULL REFERENCES nodetool_generation_outputs (id) ON DELETE CASCADE,
+        target_type TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        selected INTEGER NOT NULL DEFAULT 0,
+        error TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`);
+      await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_generation_attachment_identity ON nodetool_generation_attachments (generation_id, output_id, target_type, target_id)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_generation_attachment_target ON nodetool_generation_attachments (target_type, target_id)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_generation_attachment_status ON nodetool_generation_attachments (status)"
+      );
+    },
+    async down() {
+      // Durable rows are retained on rollback. A rollback must not erase a
+      // paid request's provenance or output history.
     }
   }
 ];

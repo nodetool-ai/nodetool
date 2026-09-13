@@ -9,7 +9,14 @@
  * exists in the first place.
  */
 import { beforeEach, describe, expect, it } from "vitest";
-import { Table, count, eq, getTableColumns, getTableName, is } from "drizzle-orm";
+import {
+  Table,
+  count,
+  eq,
+  getTableColumns,
+  getTableName,
+  is
+} from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 
 import * as schema from "../src/schema/index.js";
@@ -43,7 +50,10 @@ interface ColumnMeta {
 const tablesByName = new Map<string, SQLiteTable>();
 for (const value of Object.values(schema)) {
   if (!is(value as object, Table)) continue;
-  tablesByName.set(getTableName(value as unknown as Table), value as SQLiteTable);
+  tablesByName.set(
+    getTableName(value as unknown as Table),
+    value as SQLiteTable
+  );
 }
 
 function columnsOf(table: SQLiteTable): ColumnMeta[] {
@@ -79,7 +89,10 @@ function links(tag: string): Record<string, string> {
     js_script_id: `${tag}-js-script`,
     timeline_id: `${tag}-timeline-sequence`,
     project_id: `${tag}-project`,
-    thread_id: `${tag}-thread`
+    thread_id: `${tag}-thread`,
+    generation_id: `${tag}-generation`,
+    attempt_id: `${tag}-generation-attempt`,
+    output_id: `${tag}-generation-output`
   };
 }
 
@@ -94,7 +107,10 @@ function parentIds(tag: string): Record<string, string> {
     js_scripts: `${tag}-js-script`,
     timeline_sequences: `${tag}-timeline-sequence`,
     projects: `${tag}-project`,
-    nodetool_threads: `${tag}-thread`
+    nodetool_threads: `${tag}-thread`,
+    nodetool_predictions: `${tag}-generation`,
+    nodetool_generation_attempts: `${tag}-generation-attempt`,
+    nodetool_generation_outputs: `${tag}-generation-output`
   };
 }
 
@@ -108,7 +124,10 @@ const SEED_ORDER = [
   "mcp_oauth_grants",
   "image_documents",
   "js_scripts",
-  "timeline_sequences"
+  "timeline_sequences",
+  "nodetool_predictions",
+  "nodetool_generation_attempts",
+  "nodetool_generation_outputs"
 ];
 
 function orderedEntries(): PersonalDataEntry[] {
@@ -186,7 +205,10 @@ async function seedUser(userId: string, tag: string): Promise<void> {
 }
 
 /** How many rows the subject still has in `entry`'s table. */
-async function remaining(entry: PersonalDataEntry, tag: string): Promise<number> {
+async function remaining(
+  entry: PersonalDataEntry,
+  tag: string
+): Promise<number> {
   const table = tablesByName.get(entry.table);
   if (!table || entry.reach.kind === "none") return 0;
   const columns = getTableColumns(table) as Record<string, never>;
@@ -242,6 +264,10 @@ describe("erasePersonalData", () => {
     expect(indirect.map((entry) => entry.table).sort()).toEqual([
       "application_budgets",
       "mcp_oauth_tokens",
+      "nodetool_generation_attachments",
+      "nodetool_generation_attempts",
+      "nodetool_generation_outputs",
+      "nodetool_generation_webhook_deliveries",
       "run_events",
       "run_inbox_messages",
       "trigger_inputs"
@@ -504,6 +530,10 @@ describe("exportPersonalData", () => {
     expect(excluded).toEqual([
       "mcp_oauth_clients",
       "mcp_oauth_tokens",
+      "nodetool_generation_attachments",
+      "nodetool_generation_attempts",
+      "nodetool_generation_outputs",
+      "nodetool_generation_webhook_deliveries",
       "nodetool_team_tasks",
       "run_inbox_messages",
       "worker_instances",

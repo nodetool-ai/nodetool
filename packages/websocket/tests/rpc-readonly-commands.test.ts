@@ -44,10 +44,7 @@ vi.mock("@nodetool-ai/config", async (orig) => {
 });
 
 import { Workflow, Asset, Prediction } from "@nodetool-ai/models";
-import {
-  NodeRegistry,
-  type NodeMetadata
-} from "@nodetool-ai/node-sdk";
+import { NodeRegistry, type NodeMetadata } from "@nodetool-ai/node-sdk";
 
 class MockWebSocket implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -376,9 +373,10 @@ describe("RPC read-only commands", () => {
       // First frame is the set_mode ack (binary, queued before mode flipped).
       // The second frame is the rpc_response which should arrive as text.
       expect(ws.sentText.length).toBeGreaterThan(0);
-      const last = JSON.parse(
-        ws.sentText[ws.sentText.length - 1]
-      ) as Record<string, unknown>;
+      const last = JSON.parse(ws.sentText[ws.sentText.length - 1]) as Record<
+        string,
+        unknown
+      >;
       expect(last.type).toBe("rpc_response");
       expect(last.request_id).toBe("r-9");
     });
@@ -479,6 +477,40 @@ describe("lookup_generations", () => {
     expect(result.generations[0]?.generation_id).toBe("gen-new");
   });
 
+  it("returns durable lifecycle state and errors", async () => {
+    (Prediction.byRequestIds as ReturnType<typeof vi.fn>).mockResolvedValue([
+      rowFor({
+        lifecycle_owner: "durable",
+        status: "completed",
+        submission_status: "submitted",
+        provider_status: "succeeded",
+        output_status: "saving",
+        attachment_status: "pending",
+        metadata: { output_error: "storage unavailable" }
+      })
+    ]);
+
+    const out = await runOne(ws, runner, {
+      command: "lookup_generations",
+      request_id: "r-lifecycle",
+      data: { request_ids: ["req-1"] }
+    });
+
+    expect(
+      (out.result as { generations: Array<Record<string, unknown>> })
+        .generations
+    ).toEqual([
+      expect.objectContaining({
+        status: "recovering",
+        submission_status: "submitted",
+        provider_status: "succeeded",
+        output_status: "saving",
+        attachment_status: "pending",
+        output_error: "storage unavailable"
+      })
+    ]);
+  });
+
   it("asks for nothing and answers empty when given no ids", async () => {
     (Prediction.byRequestIds as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
@@ -489,6 +521,9 @@ describe("lookup_generations", () => {
     });
 
     expect((out.result as { generations: unknown[] }).generations).toEqual([]);
-    expect(Prediction.byRequestIds).toHaveBeenCalledWith(expect.any(String), []);
+    expect(Prediction.byRequestIds).toHaveBeenCalledWith(
+      expect.any(String),
+      []
+    );
   });
 });
