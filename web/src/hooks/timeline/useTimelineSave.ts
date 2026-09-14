@@ -53,6 +53,7 @@ export function useTimelineSave(): UseTimelineSaveResult {
           tracks: state.tracks,
           clips: state.clips,
           markers: state.markers,
+          mediaTracks: state.mediaTracks,
           transcript: state.transcript,
           scriptEnabled: state.scriptEnabled,
           fps: state.fps,

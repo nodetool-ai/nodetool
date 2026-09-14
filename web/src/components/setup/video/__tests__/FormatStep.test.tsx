@@ -24,6 +24,20 @@ jest.mock("../../../../hooks/timeline/useTimelineProjectSettings", () => ({
   useTimelineProjectSettings: () => ({ save, isSaving: false })
 }));
 
+jest.mock("../../../../hooks/useModelsByProvider", () => ({
+  __esModule: true,
+  useLanguageModelsByProvider: () => ({
+    models: languageModels,
+    providers: languageModels.length > 0 ? ["nodetool"] : [],
+    isLoading: false,
+    isFetching: false,
+    error: null,
+    refetch: async () => undefined
+  })
+}));
+
+let languageModels: { id: string; provider: string; name: string }[] = [];
+
 const renderStep = () =>
   render(
     <ThemeProvider theme={mockTheme}>
@@ -33,6 +47,10 @@ const renderStep = () =>
 
 beforeEach(() => {
   save.mockClear();
+  languageModels = [
+    { id: "nodetool/director", provider: "nodetool", name: "NodeTool Director" },
+    { id: "gpt-5", provider: "openai", name: "GPT-5" }
+  ];
   useTimelineStore.getState().reset();
   useTimelineStore.getState().setSetup({ stage: "format", brief: "a boat" });
 });

@@ -90,7 +90,8 @@ import type {
   TimelineTempo,
   TranscriptLine,
   TimelineBeat,
-  TimelineSetup
+  TimelineSetup,
+  MediaTrack
 } from "@nodetool-ai/timeline";
 import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
@@ -140,8 +141,10 @@ const MATTE_POLL_TIMEOUT_MS = 10 * 60_000;
  * knobs, plus the two timings the poll uses (named so a test does not have to
  * wait out a real interval).
  */
-export interface IsolateSubjectOptions
-  extends Omit<IsolateSubjectBody, "clip_id"> {
+export interface IsolateSubjectOptions extends Omit<
+  IsolateSubjectBody,
+  "clip_id"
+> {
   pollIntervalMs?: number;
   timeoutMs?: number;
 }
@@ -251,6 +254,7 @@ export interface TimelineStoreState {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
+  mediaTracks: MediaTrack[];
   /** Studio transcript lines (document state, persisted + undo-able). */
   transcript: TranscriptLine[];
   /**
@@ -285,6 +289,7 @@ export interface TimelineStoreState {
     tracks: TimelineTrack[];
     clips: TimelineClip[];
     markers: TimelineMarker[];
+    mediaTracks: MediaTrack[];
     transcript: TranscriptLine[];
     scriptEnabled: boolean;
     fps: number;
@@ -305,6 +310,7 @@ export interface TimelineStoreState {
     tracks?: TimelineTrack[];
     clips?: TimelineClip[];
     markers?: TimelineMarker[];
+    mediaTracks?: MediaTrack[];
     transcript?: TranscriptLine[];
     scriptEnabled?: boolean;
     fps?: number;
@@ -320,6 +326,7 @@ export interface TimelineStoreState {
     tracks: TimelineTrack[];
     clips: TimelineClip[];
     markers: TimelineMarker[];
+    mediaTracks: MediaTrack[];
   }) => void;
   /** Reset the store to an empty document. */
   reset: () => void;
@@ -342,7 +349,10 @@ export interface TimelineStoreState {
    */
   setSetup: (
     patch: Partial<
-      Pick<TimelineSetup, "stage" | "brief" | "format" | "beats" | "voiceover">
+      Pick<
+        TimelineSetup,
+        "stage" | "brief" | "format" | "beats" | "voiceover" | "directorModel"
+      >
     >
   ) => void;
   /**
@@ -553,7 +563,10 @@ export interface TimelineStoreState {
    * by the transition length so the dissolve has two pictures. A clip that
    * already carries a transition keeps its type. One undo step.
    */
-  applyDefaultTransition: (clipIds: ReadonlySet<string>, durationMs?: number) => void;
+  applyDefaultTransition: (
+    clipIds: ReadonlySet<string>,
+    durationMs?: number
+  ) => void;
   /** Ramps both ends of every audible clip in `clipIds` in and out. */
   applyFades: (clipIds: ReadonlySet<string>, durationMs?: number) => void;
   /** Resize a clip's incoming transition, growing the predecessor as needed. */
@@ -684,6 +697,25 @@ export interface TimelineStoreState {
   selectGeneratedMatteVersion: (clipId: string, assetId: string) => void;
   /** Drop a clip's generated matte, versions and all. */
   clearGeneratedMatte: (clipId: string) => void;
+  /**
+   * Set a clip's `trackBinding` (P0 AI Video, Phase 2) — plain `set()`, so
+   * undo/redo comes for free the way every other clip-field action here gets
+   * it. Refuses (leaves the store untouched) a `mode` other than `"position"`/
+   * `"position_scale"`, the only ones the scene model resolves today.
+   */
+  bindToTrack: (
+    clipId: string,
+    trackId: string,
+    mode: "position" | "position_scale",
+    opts?: {
+      offset?: { x: number; y: number };
+      scale?: number;
+      rotationOffset?: number;
+      smoothing?: number;
+    }
+  ) => void;
+  /** Clear a clip's `trackBinding`. A no-op on an already-unbound clip. */
+  unbindTrack: (clipId: string) => void;
   /**
    * Cut a matte from the clip's own source on the server.
    *
@@ -919,6 +951,7 @@ type PartializedState = Pick<
   | "tracks"
   | "clips"
   | "markers"
+  | "mediaTracks"
   | "durationMs"
   | "transcript"
   | "scriptEnabled"
@@ -975,6 +1008,7 @@ function partializedEqual(
     pastState.tracks === currentState.tracks &&
     pastState.clips === currentState.clips &&
     pastState.markers === currentState.markers &&
+    pastState.mediaTracks === currentState.mediaTracks &&
     pastState.transcript === currentState.transcript
   ) {
     return (
@@ -990,6 +1024,7 @@ function partializedEqual(
     shallowArrayEqual(pastState.tracks, currentState.tracks) &&
     shallowArrayEqual(pastState.clips, currentState.clips) &&
     shallowArrayEqual(pastState.markers, currentState.markers) &&
+    shallowArrayEqual(pastState.mediaTracks, currentState.mediaTracks) &&
     shallowArrayEqual(pastState.transcript, currentState.transcript) &&
     pastState.scriptEnabled === currentState.scriptEnabled &&
     shallowRecordEqual(pastState.tempo, currentState.tempo)
@@ -1320,6 +1355,7 @@ const emptyState = {
   tracks: [],
   clips: [],
   markers: [],
+  mediaTracks: [],
   transcript: [],
   scriptEnabled: false,
   tempo: undefined,
@@ -1336,6 +1372,7 @@ const emptyState = {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
+  mediaTracks: MediaTrack[];
   transcript: TranscriptLine[];
   scriptEnabled: boolean;
   tempo: TimelineTempo | undefined;
@@ -1369,6 +1406,7 @@ const syncedSnapshotOf = (
     | "tracks"
     | "clips"
     | "markers"
+    | "mediaTracks"
     | "transcript"
     | "scriptEnabled"
     | "fps"
@@ -1379,6 +1417,7 @@ const syncedSnapshotOf = (
   tracks: state.tracks,
   clips: state.clips,
   markers: state.markers,
+  mediaTracks: state.mediaTracks,
   transcript: state.transcript,
   scriptEnabled: state.scriptEnabled,
   fps: state.fps,
@@ -1445,6 +1484,7 @@ function adoptServerSequence(
     tracks: state.tracks,
     clips: state.clips,
     markers: state.markers,
+    mediaTracks: state.mediaTracks,
     transcript: state.transcript,
     scriptEnabled: state.scriptEnabled,
     fps: state.fps,
@@ -1457,6 +1497,7 @@ function adoptServerSequence(
     tracks: sequence.tracks ?? base.tracks,
     clips: sequence.clips ?? base.clips,
     markers: sequence.markers ?? base.markers,
+    mediaTracks: sequence.mediaTracks ?? base.mediaTracks,
     transcript: sequence.transcript ?? base.transcript,
     scriptEnabled: sequence.scriptEnabled ?? base.scriptEnabled,
     fps: sequence.fps ?? base.fps,
@@ -1474,7 +1515,8 @@ function adoptServerSequence(
   get().applyAgentEdit({
     tracks: doc.tracks as TimelineTrack[],
     clips: doc.clips as TimelineClip[],
-    markers: doc.markers as TimelineMarker[]
+    markers: doc.markers as TimelineMarker[],
+    mediaTracks: doc.mediaTracks as MediaTrack[]
   });
   // The base for the next external change is what the SERVER holds, minus the
   // slots the draft refused, which keep the base they had — the rule
@@ -1483,6 +1525,7 @@ function adoptServerSequence(
     tracks: nextBase.tracks as TimelineTrack[],
     clips: nextBase.clips as TimelineClip[],
     markers: nextBase.markers as TimelineMarker[],
+    mediaTracks: nextBase.mediaTracks as MediaTrack[],
     transcript: nextBase.transcript as TranscriptLine[],
     scriptEnabled: nextBase.scriptEnabled,
     fps: nextBase.fps,
@@ -1521,7 +1564,10 @@ function adoptServerSequence(
 
 export const createTimelineStore = (
   initial: Partial<
-    Pick<TimelineStoreState, "tracks" | "clips" | "markers" | "durationMs">
+    Pick<
+      TimelineStoreState,
+      "tracks" | "clips" | "markers" | "mediaTracks" | "durationMs"
+    >
   > = {}
 ) =>
   create<TimelineStoreState>()(
@@ -1566,6 +1612,7 @@ export const createTimelineStore = (
               tracks,
               clips,
               markers: seq.markers,
+              mediaTracks: seq.mediaTracks ?? [],
               transcript: [] as TranscriptLine[],
               scriptEnabled: seq.scriptEnabled ?? clips.some(isTranscriptClip),
               tempo: seq.tempo ?? impliedTempo(seq.tracks),
@@ -1588,8 +1635,10 @@ export const createTimelineStore = (
             tracks: seq.tracks,
             clips: seq.clips,
             markers: seq.markers,
+            mediaTracks: seq.mediaTracks ?? [],
             transcript: [],
-            scriptEnabled: seq.scriptEnabled ?? seq.clips.some(isTranscriptClip),
+            scriptEnabled:
+              seq.scriptEnabled ?? seq.clips.some(isTranscriptClip),
             tempo: seq.tempo ?? impliedTempo(seq.tracks),
             setup: seq.setup ?? null
           };
@@ -1627,6 +1676,7 @@ export const createTimelineStore = (
               tracks: next.tracks,
               clips: reflowed.clips,
               markers: next.markers,
+              mediaTracks: next.mediaTracks,
               durationMs: reflowed.durationMs
             };
           });
@@ -2125,7 +2175,9 @@ export const createTimelineStore = (
             // invalid trim throws and leaves the document alone (D4).
             if (isGroupClip(clip)) {
               try {
-                return { clips: trimGroup(state.clips, clipId, "start", deltaMs) };
+                return {
+                  clips: trimGroup(state.clips, clipId, "start", deltaMs)
+                };
               } catch {
                 return state;
               }
@@ -2297,7 +2349,8 @@ export const createTimelineStore = (
                 Math.min(durationMs, clip.durationMs / 2)
               );
               if (span <= 0) return clip;
-              if (clip.fadeInMs === span && clip.fadeOutMs === span) return clip;
+              if (clip.fadeInMs === span && clip.fadeOutMs === span)
+                return clip;
               changed = true;
               return { ...clip, fadeInMs: span, fadeOutMs: span };
             });
@@ -2307,11 +2360,15 @@ export const createTimelineStore = (
         setTransitionDuration: (clipId, durationMs) =>
           set((state) => {
             if (!state.clips.some((c) => c.id === clipId)) return state;
-            return { clips: applyTransitionAtCut(state.clips, clipId, durationMs) };
+            return {
+              clips: applyTransitionAtCut(state.clips, clipId, durationMs)
+            };
           }),
 
         removeTransition: (clipId) =>
-          set((state) => ({ clips: removeTransitionAtCut(state.clips, clipId) })),
+          set((state) => ({
+            clips: removeTransitionAtCut(state.clips, clipId)
+          })),
 
         setClipKeyframe: (clipId, property, atMs, value) =>
           set((state) => {
@@ -2341,7 +2398,10 @@ export const createTimelineStore = (
           const base = assetToClip(asset, trackId, startMs);
           const ranged: TimelineClip =
             base.mediaType === "image"
-              ? { ...base, durationMs: Math.max(1, outMs - inMs) || base.durationMs }
+              ? {
+                  ...base,
+                  durationMs: Math.max(1, outMs - inMs) || base.durationMs
+                }
               : {
                   ...base,
                   inPointMs: inMs,
@@ -2613,10 +2673,7 @@ export const createTimelineStore = (
           const base = syncedSnapshotOf(beforeSave);
           const savedAt = (saved as { updatedAt?: unknown } | undefined)
             ?.updatedAt;
-          if (
-            typeof savedAt === "string" &&
-            get().sequenceId === sequenceId
-          ) {
+          if (typeof savedAt === "string" && get().sequenceId === sequenceId) {
             get().setBaseUpdatedAt(savedAt);
           }
 
@@ -2692,6 +2749,44 @@ export const createTimelineStore = (
             if (next === clip) return state;
             return {
               clips: state.clips.map((c) => (c.id === clipId ? next : c))
+            };
+          }),
+
+        bindToTrack: (clipId, trackId, mode, opts = {}) => {
+          if (mode !== "position" && mode !== "position_scale") return;
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip) return state;
+            const trackBinding: TimelineClip["trackBinding"] = {
+              trackId,
+              mode
+            };
+            if (opts.offset !== undefined) trackBinding.offset = opts.offset;
+            if (opts.scale !== undefined) trackBinding.scale = opts.scale;
+            if (opts.rotationOffset !== undefined) {
+              trackBinding.rotationOffset = opts.rotationOffset;
+            }
+            if (opts.smoothing !== undefined) {
+              trackBinding.smoothing = opts.smoothing;
+            }
+            return {
+              clips: state.clips.map((c) =>
+                c.id === clipId ? { ...c, trackBinding } : c
+              )
+            };
+          });
+        },
+
+        unbindTrack: (clipId) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip || !clip.trackBinding) return state;
+            return {
+              clips: state.clips.map((c) => {
+                if (c.id !== clipId) return c;
+                const { trackBinding: _dropped, ...rest } = c;
+                return rest;
+              })
             };
           }),
 
@@ -2793,7 +2888,10 @@ export const createTimelineStore = (
             });
             const savedAt = (saved as { updatedAt?: unknown } | undefined)
               ?.updatedAt;
-            if (typeof savedAt === "string" && get().sequenceId === sequenceId) {
+            if (
+              typeof savedAt === "string" &&
+              get().sequenceId === sequenceId
+            ) {
               get().setBaseUpdatedAt(savedAt);
             }
 
@@ -3305,6 +3403,7 @@ export const createTimelineStore = (
           tracks: state.tracks,
           clips: state.clips,
           markers: state.markers,
+          mediaTracks: state.mediaTracks,
           durationMs: state.durationMs,
           transcript: state.transcript,
           scriptEnabled: state.scriptEnabled,

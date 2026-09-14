@@ -13,6 +13,7 @@ interface TimelineDocumentPayload {
   tracks: TimelineStoreState["tracks"];
   clips: TimelineStoreState["clips"];
   markers: TimelineStoreState["markers"];
+  mediaTracks: TimelineStoreState["mediaTracks"];
   transcript: TimelineStoreState["transcript"];
   scriptEnabled: TimelineStoreState["scriptEnabled"];
   tempo: TimelineStoreState["tempo"];
@@ -25,7 +26,13 @@ interface TimelineDocumentPayload {
 export function buildTimelineDocumentPayload(
   state: Pick<
     TimelineStoreState,
-    "tracks" | "clips" | "markers" | "transcript" | "scriptEnabled" | "tempo"
+    | "tracks"
+    | "clips"
+    | "markers"
+    | "mediaTracks"
+    | "transcript"
+    | "scriptEnabled"
+    | "tempo"
     // Null on the store, undefined on the payload it produces — so the builder
     // takes either and answers only the payload's shape.
   > & { setup?: TimelineStoreState["setup"] }
@@ -34,6 +41,7 @@ export function buildTimelineDocumentPayload(
     tracks: state.tracks,
     clips: state.clips,
     markers: state.markers,
+    mediaTracks: state.mediaTracks,
     transcript: state.transcript,
     scriptEnabled: state.scriptEnabled,
     tempo: state.tempo,

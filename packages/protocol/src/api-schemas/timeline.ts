@@ -1162,6 +1162,84 @@ export const clipGeneratedMatte = z.object({
 export type ClipGeneratedMatte = z.infer<typeof clipGeneratedMatte>;
 
 /**
+ * One sample of a subject/object track (P0 AI Video, Phase 2), anchored to
+ * the tracked clip's own source clock. Mirrors `MediaTrackSample` in
+ * `@nodetool-ai/timeline`.
+ */
+export const mediaTrackSample = z.object({
+  sourceMs: z.number(),
+  x: z.number().optional(),
+  y: z.number().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  rotation: z.number().optional(),
+  quad: z
+    .tuple([
+      z.number(),
+      z.number(),
+      z.number(),
+      z.number(),
+      z.number(),
+      z.number(),
+      z.number(),
+      z.number()
+    ])
+    .optional(),
+  maskAssetId: z.string().optional(),
+  confidence: z.number().optional()
+});
+export type MediaTrackSample = z.infer<typeof mediaTrackSample>;
+
+/**
+ * A subject/object track: document-level, `clipId`-owned samples of one
+ * subject moving through one clip's source (P0 AI Video, Phase 2). Mirrors
+ * `MediaTrack` in `@nodetool-ai/timeline`.
+ */
+export const mediaTrack = z.object({
+  id: z.string(),
+  clipId: z.string(),
+  sourceAssetId: z.string(),
+  name: z.string(),
+  kind: z.enum(["point", "box", "quad", "mask"]),
+  sourceStartMs: z.number(),
+  sourceEndMs: z.number(),
+  samples: z.array(mediaTrackSample),
+  confidence: z.number().optional(),
+  status: z.enum(["ready", "generating", "stale", "failed"]),
+  provenance: z
+    .object({
+      provider: z.string().optional(),
+      model: z.string().optional(),
+      settings: z.record(z.string(), z.unknown()).optional()
+    })
+    .optional()
+});
+export type MediaTrack = z.infer<typeof mediaTrack>;
+
+/**
+ * A clip following a `MediaTrack` (P0 AI Video, Phase 2). Only
+ * `"position"`/`"position_scale"` are live in the scene model today; the rest
+ * are named so a later phase needs no schema migration — see
+ * `TrackBinding`'s doc comment in `@nodetool-ai/timeline`, which this mirrors.
+ */
+export const trackBinding = z.object({
+  trackId: z.string(),
+  mode: z.enum([
+    "position",
+    "position_scale",
+    "transform",
+    "mask",
+    "effect_region",
+    "reframe"
+  ]),
+  offset: z.object({ x: z.number(), y: z.number() }).optional(),
+  scale: z.number().optional(),
+  rotationOffset: z.number().optional(),
+  smoothing: z.number().optional()
+});
+export type TrackBinding = z.infer<typeof trackBinding>;
+
+/**
  * Retimes a clip's source. `t` is normalized 0..1 over the clip's window and
  * must ascend; `sourceMs` may descend, which is reverse playback.
  */
@@ -1308,6 +1386,10 @@ export const timelineClip = z.object({
    * it on every PATCH, so a cut-out subject reverts to its full frame on the
    * next save and the generation has to be paid for again. */
   generatedMatte: clipGeneratedMatte.optional(),
+  /** Follows a subject/object track (P0 AI Video, Phase 2). Without this
+   * field Zod strips it on every PATCH, so a text/shape clip following a
+   * tracked subject reverts to static on the next save. */
+  trackBinding: trackBinding.optional(),
   /** Time remap. Without this field Zod strips it on every PATCH, so a
    * retimed or reversed clip plays back at its plain rate after one save. */
   timeRemap: clipTimeRemap.optional(),
@@ -1380,7 +1462,21 @@ export const timelineSetup = z
      * them would throw the creator's words away (PRD § 8.3).
      */
     voiceover: z.boolean().optional(),
-    beats: z.array(timelineBeat).optional()
+    beats: z.array(timelineBeat).optional(),
+    /**
+     * The language model that drafts the beats. Absent means the flow picks
+     * one: the curated NodeTool director when this server can serve it, and
+     * otherwise the first model a configured provider reports. Stored so the
+     * creator's pick survives a reload and so a re-plan runs on the same
+     * model the estimate was shown for.
+     */
+    directorModel: z
+      .object({
+        id: z.string(),
+        provider: z.string(),
+        name: z.string().optional()
+      })
+      .optional()
   })
   .passthrough();
 export type TimelineSetup = z.infer<typeof timelineSetup>;
@@ -1399,7 +1495,11 @@ export const timelineDocument = z.object({
   setup: timelineSetup.optional(),
   /** Sequence this one was retargeted from. Without this field Zod strips it
    * on every PATCH and the lineage is lost on the first save. */
-  templateId: z.string().nullable().optional()
+  templateId: z.string().nullable().optional(),
+  /** Subject/object tracks (P0 AI Video, Phase 2). Without this field Zod
+   * strips it on every PATCH, so a track and every clip following it are
+   * lost on the next save. */
+  mediaTracks: z.array(mediaTrack).optional()
 });
 export type TimelineDocument = z.infer<typeof timelineDocument>;
 
@@ -1425,6 +1525,8 @@ export const timelineSequenceResponse = z.object({
   setup: timelineSetup.optional(),
   /** Sequence this one was retargeted from, mirroring the document's. */
   templateId: z.string().nullable().optional(),
+  /** Subject/object tracks, mirroring the document's. */
+  mediaTracks: z.array(mediaTrack).optional(),
   createdAt: z.string(),
   updatedAt: z.string()
 });

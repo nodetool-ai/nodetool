@@ -26,7 +26,8 @@ import {
   resolveAnimatedLayerProps,
   trackZ,
   type AnimationCompileCache,
-  type RenderCanvas
+  type RenderCanvas,
+  type RenderTrackingContext
 } from "@nodetool-ai/timeline/render";
 
 import type {
@@ -67,6 +68,7 @@ export interface BuildCompositeLayersOptions {
   /** The sequence's own resolution: the space animations are sampled in. */
   canvas: RenderCanvas;
   animationCache?: AnimationCompileCache;
+  tracking?: RenderTrackingContext;
   resolveSource: CompositeSourceResolver;
 }
 
@@ -102,7 +104,8 @@ export function buildCompositeLayer(
     layer,
     options.atMs,
     options.canvas,
-    options.animationCache
+    options.animationCache,
+    options.tracking
   );
   const resolved = options.resolveSource(layer, anim);
   if (!resolved) return null;

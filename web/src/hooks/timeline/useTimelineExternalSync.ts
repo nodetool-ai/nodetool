@@ -39,6 +39,7 @@ import {
 import { trpc, trpcClient } from "../../trpc/client";
 import type { DocumentOp } from "@nodetool-ai/protocol";
 import type {
+  MediaTrack,
   TimelineClip,
   TimelineMarker,
   TimelineTrack,
@@ -49,9 +50,7 @@ import { isTimelineDocumentDirty } from "./useTimelineAutosave";
 import { applyTimelineSequenceToStore } from "./useLoadTimelineIntoStore";
 
 /** Name a whole-document replacement so the banner can address it. */
-const listable = (
-  conflicts: MergeConflict[]
-): MergeConflict[] =>
+const listable = (conflicts: MergeConflict[]): MergeConflict[] =>
   conflicts.map((conflict) =>
     conflict.unit.id
       ? conflict
@@ -62,10 +61,7 @@ const listable = (
  * Take one refused external value into the draft through a normal store
  * mutation, so the accept lands on the undo stack (ADR 0001).
  */
-function replaceById<T extends { id: string }>(
-  items: T[],
-  incoming: T
-): T[] {
+function replaceById<T extends { id: string }>(items: T[], incoming: T): T[] {
   return items.some((item) => item.id === incoming.id)
     ? items.map((item) => (item.id === incoming.id ? incoming : item))
     : [...items, incoming];
@@ -76,6 +72,7 @@ type TimelineTypedDocument = Pick<
   | "tracks"
   | "clips"
   | "markers"
+  | "mediaTracks"
   | "transcript"
   | "scriptEnabled"
   | "fps"
@@ -110,6 +107,7 @@ function applyAcceptedConflict(
       tracks: doc.tracks as TimelineTrack[],
       clips: doc.clips as TimelineClip[],
       markers: doc.markers as TimelineMarker[],
+      mediaTracks: doc.mediaTracks as MediaTrack[],
       transcript: doc.transcript as TranscriptLine[],
       scriptEnabled: doc.scriptEnabled,
       fps: doc.fps,
@@ -129,18 +127,21 @@ function applyAcceptedConflict(
   }
   if (conflict.unit.kind === "track" && conflict.external != null) {
     state.applyExternalMerge({
-      tracks: replaceById(
-        state.tracks,
-        conflict.external as TimelineTrack
-      )
+      tracks: replaceById(state.tracks, conflict.external as TimelineTrack)
     });
     return;
   }
   if (conflict.unit.kind === "marker" && conflict.external != null) {
     state.applyExternalMerge({
-      markers: replaceById(
-        state.markers,
-        conflict.external as TimelineMarker
+      markers: replaceById(state.markers, conflict.external as TimelineMarker)
+    });
+    return;
+  }
+  if (conflict.unit.kind === "mediaTrack" && conflict.external != null) {
+    state.applyExternalMerge({
+      mediaTracks: replaceById(
+        state.mediaTracks,
+        conflict.external as MediaTrack
       )
     });
     return;
@@ -180,6 +181,12 @@ function applyAcceptedConflict(
     } else if (conflict.unit.kind === "marker") {
       state.applyExternalMerge({
         markers: state.markers.filter((m) => m.id !== conflict.unit.id)
+      });
+    } else if (conflict.unit.kind === "mediaTrack") {
+      state.applyExternalMerge({
+        mediaTracks: state.mediaTracks.filter(
+          (track) => track.id !== conflict.unit.id
+        )
       });
     } else if (conflict.unit.kind === "transcript") {
       state.applyExternalMerge({
@@ -269,6 +276,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
             tracks: before.tracks,
             clips: before.clips,
             markers: before.markers,
+            mediaTracks: before.mediaTracks,
             transcript: before.transcript,
             scriptEnabled: before.scriptEnabled,
             fps: before.fps,
@@ -279,6 +287,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
             tracks: sequence.tracks ?? [],
             clips: sequence.clips ?? [],
             markers: sequence.markers ?? [],
+            mediaTracks: sequence.mediaTracks ?? [],
             transcript: sequence.transcript ?? [],
             scriptEnabled: sequence.scriptEnabled ?? false,
             fps: sequence.fps,
@@ -287,8 +296,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
           };
           // The document as this editor last read or wrote it; without one
           // (a merge racing the initial load) the draft stands in as base.
-          const base: TimelineMergeDoc =
-            before.syncedDocument ?? draft;
+          const base: TimelineMergeDoc = before.syncedDocument ?? draft;
 
           const { doc, conflicts, nextBase } = mergeTimelineDocuments(
             base,
@@ -316,6 +324,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
             tracks: before.tracks,
             clips: before.clips,
             markers: before.markers,
+            mediaTracks: before.mediaTracks,
             transcript: before.transcript,
             scriptEnabled: before.scriptEnabled,
             fps: before.fps,
@@ -335,6 +344,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
                 tracks: snapshot.tracks,
                 clips: snapshot.clips,
                 markers: snapshot.markers,
+                mediaTracks: snapshot.mediaTracks,
                 transcript: snapshot.transcript,
                 scriptEnabled: snapshot.scriptEnabled,
                 fps: before.fps,
@@ -360,6 +370,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
                 tracks: typedNext.tracks,
                 clips: reflowed.clips,
                 markers: typedNext.markers,
+                mediaTracks: typedNext.mediaTracks,
                 transcript: typedNext.transcript,
                 scriptEnabled: typedNext.scriptEnabled,
                 durationMs: reflowed.durationMs
@@ -386,25 +397,27 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
               timelineTypedDocumentOf(nextBase)
             );
 
-          useConflictStore.getState().addConflicts(
-            timelineConflictKey(sequenceId),
-            listable(conflicts),
-            {
-              onAccept: (unitId) => {
-                const key = timelineConflictKey(sequenceId);
-                const entry = useConflictStore.getState().byKey[key];
-                const conflict = entry?.conflicts.find(
-                  (c) => c.unit.id === unitId
-                );
-                if (!conflict) return;
-                applyAcceptedConflict(store.getState(), conflict);
-              },
-              // Discard keeps the draft exactly as the merge left it, which
-              // for every reason — dangling included — means changing nothing
-              // and dropping the offer.
-              onDiscard: () => {}
-            }
-          );
+          useConflictStore
+            .getState()
+            .addConflicts(
+              timelineConflictKey(sequenceId),
+              listable(conflicts),
+              {
+                onAccept: (unitId) => {
+                  const key = timelineConflictKey(sequenceId);
+                  const entry = useConflictStore.getState().byKey[key];
+                  const conflict = entry?.conflicts.find(
+                    (c) => c.unit.id === unitId
+                  );
+                  if (!conflict) return;
+                  applyAcceptedConflict(store.getState(), conflict);
+                },
+                // Discard keeps the draft exactly as the merge left it, which
+                // for every reason — dangling included — means changing nothing
+                // and dropping the offer.
+                onDiscard: () => {}
+              }
+            );
         })();
       }
     });

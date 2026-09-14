@@ -66,10 +66,16 @@ import {
 } from "../takes.js";
 import { moveTrackOrder, type TrackDestination } from "../trackOrder.js";
 import { trimClip } from "../trimClip.js";
+import {
+  resliceTracksForSplitClip,
+  resliceTracksForTrimmedClip
+} from "../mediaTrack.js";
 import type {
+  MediaTrack,
   TimelineClip,
   TimelineMarker,
-  TimelineTrack
+  TimelineTrack,
+  TrackBinding
 } from "../types.js";
 import type { PropertyCurve } from "../animation/compile.js";
 import type {
@@ -208,6 +214,14 @@ class OpScope {
 
   set clips(next: TimelineClip[]) {
     this.state.clips = next;
+  }
+
+  get mediaTracks(): MediaTrack[] {
+    return this.state.mediaTracks ?? [];
+  }
+
+  set mediaTracks(next: MediaTrack[]) {
+    this.state.mediaTracks = next;
   }
 
   /**
@@ -938,6 +952,13 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
         (id) => id !== clip.id
       );
       scope.touch(clip.id, left.id, right.id);
+      scope.mediaTracks = resliceTracksForSplitClip(
+        scope.mediaTracks,
+        clip.id,
+        left,
+        right,
+        () => scope.ctx.newId("track")
+      );
       return { ok: true, clips: [scope.clipOut(left), scope.clipOut(right)] };
     }
 
@@ -947,6 +968,10 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
         inPointMs: op.inPointMs,
         outPointMs: op.outPointMs
       });
+      scope.mediaTracks = resliceTracksForTrimmedClip(
+        scope.mediaTracks,
+        trimmed
+      );
       return { ok: true, clip: scope.clipOut(trimmed) };
     }
 
@@ -1629,6 +1654,98 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
       return { ok: true, clip: scope.clipOut(next) };
     }
 
+    // Subject/object tracks (P0 AI Video, Phase 2). The async provider call
+    // that fills a track's samples is the `track_object` capability, not an
+    // op — these four are the structural/synchronous surface over it.
+    case "list_tracks": {
+      const clipId = op.target
+        ? scope.resolveClip(op.target).id
+        : undefined;
+      const tracks = scope.mediaTracks.filter(
+        (t) => clipId === undefined || t.clipId === clipId
+      );
+      return {
+        ok: true,
+        tracks: tracks.map((t) => ({
+          id: t.id,
+          clipId: t.clipId,
+          name: t.name,
+          kind: t.kind,
+          status: t.status,
+          sourceStartMs: t.sourceStartMs,
+          sourceEndMs: t.sourceEndMs,
+          sampleCount: t.samples.length,
+          confidence: t.confidence
+        }))
+      };
+    }
+
+    case "delete_track_object": {
+      const track = scope.mediaTracks.find((t) => t.id === op.trackId);
+      if (!track) {
+        throw new Error(
+          `No track "${op.trackId}". ${scope.validUnits(
+            scope.mediaTracks.map((t) => ({ id: t.id, name: t.name })),
+            "track"
+          )}`
+        );
+      }
+      scope.mediaTracks = scope.mediaTracks.filter((t) => t.id !== op.trackId);
+      const unboundClipIds: string[] = [];
+      scope.clips = scope.clips.map((c) => {
+        if (c.trackBinding?.trackId !== op.trackId) return c;
+        unboundClipIds.push(c.id);
+        const { trackBinding: _dropped, ...rest } = c;
+        return rest;
+      });
+      scope.touch(...unboundClipIds);
+      return { ok: true, deleted: { id: track.id, name: track.name } };
+    }
+
+    case "bind_to_track": {
+      const clip = scope.resolveClip(op.target);
+      const track = scope.mediaTracks.find((t) => t.id === op.trackId);
+      if (!track) {
+        throw new Error(
+          `No track "${op.trackId}". ${scope.validUnits(
+            scope.mediaTracks.map((t) => ({ id: t.id, name: t.name })),
+            "track"
+          )}`
+        );
+      }
+      if (op.mode !== "position" && op.mode !== "position_scale") {
+        throw new Error(
+          `bind_to_track mode "${op.mode}" is not implemented yet — only ` +
+            `"position" and "position_scale" affect rendering in this build. ` +
+            "The field accepts the other modes so a document can name the " +
+            "intent without a schema migration later, but binding to one " +
+            "today would be a no-op, so the call is refused instead."
+        );
+      }
+      const binding: TrackBinding = { trackId: op.trackId, mode: op.mode };
+      if (op.offset !== undefined) binding.offset = op.offset;
+      if (op.scale !== undefined) binding.scale = op.scale;
+      if (op.rotationOffset !== undefined) {
+        binding.rotationOffset = op.rotationOffset;
+      }
+      if (op.smoothing !== undefined) binding.smoothing = op.smoothing;
+      const next: TimelineClip = { ...clip, trackBinding: binding };
+      scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
+      scope.touch(clip.id);
+      return { ok: true, clip: scope.clipOut(next) };
+    }
+
+    case "unbind_track": {
+      const clip = scope.resolveClip(op.target);
+      if (!clip.trackBinding) {
+        return { ok: true, clip: scope.clipOut(clip) };
+      }
+      const { trackBinding: _dropped, ...next } = clip;
+      scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
+      scope.touch(clip.id);
+      return { ok: true, clip: scope.clipOut(next) };
+    }
+
     default: {
       const unknown = op as { op: string };
       throw new Error(`Unknown timeline op "${unknown.op}".`);
@@ -1645,6 +1762,7 @@ function cloneState(state: TimelineOpState): TimelineOpState {
     tracks: state.tracks.map((t) => structuredClone(t)),
     clips: state.clips.map((c) => structuredClone(c)),
     markers: state.markers.map((m) => structuredClone(m)),
+    mediaTracks: (state.mediaTracks ?? []).map((t) => structuredClone(t)),
     playheadMs: state.playheadMs,
     selectedClipIds: [...state.selectedClipIds]
   };

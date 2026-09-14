@@ -322,7 +322,14 @@ export type ProviderCapability =
   | "image_to_3d"
   | "render_model3d"
   /** A timeline 3D clip rendered to video through Blender (design §D6). */
-  | "bake_model3d_clip";
+  | "bake_model3d_clip"
+  /**
+   * Subject/object tracking through a clip's source (P0 AI Video, Phase 2):
+   * an initial box plus a direction in, samples of the subject's position out
+   * — the async half of the `track_object` capability
+   * (`timeline-track-object.ts`).
+   */
+  | "track_object";
 
 type PredictionStatus =
   | "pending"

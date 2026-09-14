@@ -855,7 +855,11 @@ export const BROWSER_ONLY_TIMELINE_TOOL_NAMES = [
  * The take ops (`ui_timeline_list_takes`/`select_take`/`rename_take`/
  * `delete_take`, P0 AI Video PRD § 8.10) are the same again: the editor's
  * `ClipVersionHistory` panel writes straight into `TimelineStore` via
- * `restoreVersion`/`renameTake`/`deleteTake`.
+ * `restoreVersion`/`renameTake`/`deleteTake`. So are the track ops
+ * (`ui_timeline_list_tracks`/`delete_track_object`/`bind_to_track`/
+ * `unbind_track`, P0 AI Video Phase 2), whose editor half is the Inspector's
+ * `ClipTracking` panel writing through `TimelineStore.bindToTrack`/
+ * `unbindTrack`.
  */
 export const HEADLESS_ONLY_TIMELINE_TOOL_NAMES = [
   "ui_timeline_insert_composition",
@@ -864,5 +868,9 @@ export const HEADLESS_ONLY_TIMELINE_TOOL_NAMES = [
   "ui_timeline_list_takes",
   "ui_timeline_select_take",
   "ui_timeline_rename_take",
-  "ui_timeline_delete_take"
+  "ui_timeline_delete_take",
+  "ui_timeline_list_tracks",
+  "ui_timeline_delete_track_object",
+  "ui_timeline_bind_to_track",
+  "ui_timeline_unbind_track"
 ] as const;

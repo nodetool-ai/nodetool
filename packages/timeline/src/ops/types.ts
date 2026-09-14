@@ -10,6 +10,7 @@
  */
 
 import type {
+  MediaTrack,
   TimelineClip,
   TimelineMarker,
   TimelineTrack
@@ -30,6 +31,13 @@ export interface TimelineOpState {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
+  /**
+   * Subject/object tracks (P0 AI Video, Phase 2). Optional so a host built
+   * before they existed — every literal `TimelineOpState` in this package's
+   * own tests, notably — need not carry an empty array; every op here treats
+   * an absent array the same as `[]`.
+   */
+  mediaTracks?: MediaTrack[];
   /** Playhead in ms. `split_clip` with no `atMs` cuts here. */
   playheadMs: number;
   /** Ids `target: "selected"` resolves against. */

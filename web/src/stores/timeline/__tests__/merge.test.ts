@@ -37,13 +37,11 @@ const clipOf = (
   ...overrides
 });
 
-const docOf = (
-  tracks: unknown[],
-  clips: unknown[]
-): TimelineMergeDoc => ({
+const docOf = (tracks: unknown[], clips: unknown[]): TimelineMergeDoc => ({
   tracks,
   clips,
   markers: [],
+  mediaTracks: [],
   transcript: [],
   scriptEnabled: false,
   fps: 30,
@@ -80,7 +78,29 @@ describe("timelineUnitsTouchedByOp", () => {
       { kind: "track" },
       { kind: "clip" },
       { kind: "marker" },
+      { kind: "mediaTrack" },
       { kind: "transcript" }
+    ]);
+  });
+
+  it("attributes track binding edits to clips", () => {
+    expect(
+      timelineUnitsTouchedByOp({
+        tool: "ui_timeline_bind_to_track",
+        input: { target: "C1", trackId: "MT1", mode: "position" }
+      })
+    ).toEqual([{ kind: "clip" }]);
+  });
+
+  it("attributes track deletion to the track and clips it unbinds", () => {
+    expect(
+      timelineUnitsTouchedByOp({
+        tool: "ui_timeline_delete_track_object",
+        input: { trackId: "MT1" }
+      })
+    ).toEqual([
+      { kind: "mediaTrack", unitId: "MT1" },
+      { kind: "clip" }
     ]);
   });
 });
@@ -145,9 +165,7 @@ describe("adoptGeneratedClipField", () => {
     overlay: (target, source) => ({ ...target, matte: source.matte })
   };
 
-  const ops = [
-    { tool: "ui_timeline_update_clip", input: { clip_id: "C1" } }
-  ];
+  const ops = [{ tool: "ui_timeline_update_clip", input: { clip_id: "C1" } }];
 
   /** base → draft → server for a clip the route wrote a matte onto. */
   const scenario = (draftClip: Record<string, unknown>) => {

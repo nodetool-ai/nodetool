@@ -296,6 +296,24 @@ describe("usePlanBeats staleness", () => {
     expect(mockStore.getState().setup?.beats).toHaveLength(2);
   });
 
+  it("directs with the model the flow's picker wrote on the sequence", async () => {
+    setup("format");
+    mockStore.getState().setSetup({
+      directorModel: { id: "gpt-5", provider: "openai", name: "GPT-5" }
+    });
+    mockRequest.mockResolvedValue({ data: screenplay });
+    const { result } = renderHook(() => usePlanBeats());
+
+    await act(async () => {
+      await result.current.plan();
+    });
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      "generate_text",
+      expect.objectContaining({ provider: "openai", model: "gpt-5" })
+    );
+  });
+
   it("keeps the draft and the stage when the creator has moved on", async () => {
     setup("review");
     let answer: (value: Record<string, unknown>) => void = () => undefined;

@@ -21,7 +21,12 @@
  */
 
 import { makeClip, makeTrack } from "@nodetool-ai/timeline";
-import type { ClipEffect, TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
+import type {
+  ClipEffect,
+  MediaTrack,
+  TimelineClip,
+  TimelineTrack
+} from "@nodetool-ai/timeline";
 import {
   computeActiveLayersWithHorizon,
   drawTimelineFrame,
@@ -139,10 +144,14 @@ class RecordingContext implements CompositeContext2D<CompositeSource> {
       translateX: this.tx
     });
   }
-  createLinearGradient(): { addColorStop(offset: number, color: string): void } {
+  createLinearGradient(): {
+    addColorStop(offset: number, color: string): void;
+  } {
     return { addColorStop: () => {} };
   }
-  createRadialGradient(): { addColorStop(offset: number, color: string): void } {
+  createRadialGradient(): {
+    addColorStop(offset: number, color: string): void;
+  } {
     return { addColorStop: () => {} };
   }
   getImageData(_x: number, _y: number, w: number, h: number): ImagePixels {
@@ -202,14 +211,17 @@ const neutralGrade: ClipEffect = {
 function browserFrame(
   tracks: TimelineTrack[],
   clips: TimelineClip[],
-  atMs: number
+  atMs: number,
+  mediaTracks: MediaTrack[] = []
 ) {
   const scene = computeActiveLayersWithHorizon(tracks, clips, atMs, {
-    canvas: FRAME
+    canvas: FRAME,
+    mediaTracks
   });
   const layers = buildCompositeLayers(scene.layers, {
     atMs,
     canvas: FRAME,
+    tracking: { mediaTracks, clips },
     resolveSource: (layer) => ({ source: sourceFor(layer) })
   });
   const drawable = layers
@@ -258,6 +270,47 @@ describe("the browser layer list carries what the scene model resolved", () => {
       expect(built.parentMatrix).toBe(active.parentMatrix);
       expect(built.matte?.mode).toBe(active.matte?.mode);
     }
+  });
+
+  it("resolves a track binding through the browser compositor adapter", () => {
+    const tracks = [videoTrack()];
+    const owner = imageClip({
+      id: "owner",
+      mediaType: "video",
+      inPointMs: 5000,
+      durationMs: 4000
+    });
+    const follower = imageClip({
+      id: "follower",
+      durationMs: 4000,
+      trackBinding: { trackId: "subject", mode: "position" }
+    });
+    const mediaTracks: MediaTrack[] = [
+      {
+        id: "subject",
+        clipId: owner.id,
+        sourceAssetId: "asset-1",
+        name: "Subject",
+        kind: "point",
+        sourceStartMs: 5000,
+        sourceEndMs: 9000,
+        samples: [
+          { sourceMs: 5000, x: 0.1, y: 0.5 },
+          { sourceMs: 9000, x: 0.9, y: 0.5 }
+        ],
+        status: "ready"
+      }
+    ];
+
+    const { layers } = browserFrame(
+      tracks,
+      [owner, follower],
+      2000,
+      mediaTracks
+    );
+    const followed = layers.find((layer) => layer.id === "i:follower");
+
+    expect(followed?.transform?.position.x).toBeCloseTo(0);
   });
 });
 
@@ -400,7 +453,11 @@ describe("a track matte drives a layer's alpha and never draws itself", () => {
   ];
 
   it("carries the resolved source and keeps it off the frame", () => {
-    const { scene, layers, drawable } = browserFrame([videoTrack()], clips, 500);
+    const { scene, layers, drawable } = browserFrame(
+      [videoTrack()],
+      clips,
+      500
+    );
 
     // The scene model holds the source back, so it is only reachable through
     // the layer it mattes.
