@@ -68,5 +68,49 @@ describe("fake-runtime conformance gate (RELIABILITY_TASKS.md Track E, E3)", () 
       expect(result.text).toBe("deterministic e2e output");
       expect(result.img).toMatchObject({ type: "image" });
     });
+
+    it("returns deterministic word and segment timestamps for Transcribe", async () => {
+      const executor = fakeExecutor(
+        {
+          node_type: "openai.audio.Transcribe",
+          outputs: [
+            { name: "text", type: { type: "str" } },
+            { name: "words", type: { type: "list" } },
+            { name: "segments", type: { type: "list" } }
+          ]
+        }
+      );
+
+      const result = await executor.process({ timestamps: true });
+
+      expect(result.text).toBe("deterministic e2e response");
+      expect(result.words).toEqual([
+        { text: "deterministic", timestamp: [0, 1] },
+        { text: "e2e", timestamp: [1, 2] },
+        { text: "response", timestamp: [2, 3] }
+      ]);
+      expect(result.segments).toEqual([
+        { text: "deterministic e2e response", timestamp: [0, 3] }
+      ]);
+    });
+
+    it("keeps Transcribe lists empty when timestamps are disabled", async () => {
+      const executor = fakeExecutor(
+        {
+          node_type: "openai.audio.Transcribe",
+          outputs: [
+            { name: "text", type: { type: "str" } },
+            { name: "words", type: { type: "list" } },
+            { name: "segments", type: { type: "list" } }
+          ]
+        }
+      );
+
+      await expect(executor.process({ timestamps: false })).resolves.toEqual({
+        text: "deterministic e2e response",
+        words: [],
+        segments: []
+      });
+    });
   });
 });

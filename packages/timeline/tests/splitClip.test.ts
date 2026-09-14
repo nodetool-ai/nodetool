@@ -91,17 +91,25 @@ describe("splitClip", () => {
       ...makeBaseClip(),
       fadeInMs: 80,
       fadeOutMs: 90,
+      fadeInShape: "plus3dB",
+      fadeOutShape: "sCurve",
       transitionIn: { type: "crossfade", durationMs: 120 }
     };
     const [left, right] = splitClip(clip, 250);
 
     // The real clip start stays on the left, the real clip end on the right.
+    // A dropped fade takes its curve with it, so neither half keeps a shape
+    // with no fade to shape.
     expect(left.fadeInMs).toBe(80);
+    expect(left.fadeInShape).toBe("plus3dB");
     expect(left.fadeOutMs).toBeUndefined();
+    expect(left.fadeOutShape).toBeUndefined();
     expect(left.transitionIn).toEqual(clip.transitionIn);
 
     expect(right.fadeOutMs).toBe(90);
+    expect(right.fadeOutShape).toBe("sCurve");
     expect(right.fadeInMs).toBeUndefined();
+    expect(right.fadeInShape).toBeUndefined();
     expect(right.transitionIn).toBeUndefined();
   });
 

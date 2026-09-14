@@ -1,5 +1,10 @@
-import { timeRemapAudioSegments } from "@nodetool-ai/timeline";
-import type { TimeRemapAudioSegment } from "@nodetool-ai/timeline";
+import {
+  fadeShapeGain,
+  resolveClipFades,
+  sampleFadeShape,
+  timeRemapAudioSegments
+} from "@nodetool-ai/timeline";
+import type { ClipFadeShape, TimeRemapAudioSegment } from "@nodetool-ai/timeline";
 import type {
   TimelineClip,
   TimelineTrack,
@@ -52,6 +57,52 @@ interface TrackChainState {
 }
 
 const DB_TO_LIN = (db: number): number => Math.pow(10, db / 20);
+
+/** Sample spacing for a shaped fade, and the bounds that spacing is held to. */
+const FADE_CURVE_STEP_MS = 5;
+const FADE_CURVE_MIN_STEPS = 16;
+const FADE_CURVE_MAX_STEPS = 1024;
+
+/**
+ * Schedule `param` along a fade `shape`, from progress `from` to progress `to`
+ * scaled by `peak`, over `durationSec` starting at `startAt`.
+ *
+ * A linear fade is a straight ramp, which WebAudio schedules exactly and in
+ * one event. Every other shape is sampled: `setValueCurveAtTime` is the only
+ * automation that follows an arbitrary curve, and sampling it here is what
+ * keeps the preview on the same curve the export renders.
+ */
+function rampAlongFade(
+  param: AudioParam,
+  shape: ClipFadeShape,
+  from: number,
+  to: number,
+  peak: number,
+  startAt: number,
+  durationSec: number
+): void {
+  if (durationSec <= 0) {
+    param.setValueAtTime(peak * fadeShapeGain(shape, to), startAt);
+    return;
+  }
+  if (shape === "linear") {
+    param.setValueAtTime(peak * from, startAt);
+    param.linearRampToValueAtTime(peak * to, startAt + durationSec);
+    return;
+  }
+  const steps = Math.min(
+    FADE_CURVE_MAX_STEPS,
+    Math.max(
+      FADE_CURVE_MIN_STEPS,
+      Math.round((durationSec * 1000) / FADE_CURVE_STEP_MS)
+    )
+  );
+  const curve = sampleFadeShape(shape, from, to, steps);
+  if (peak !== 1) {
+    for (let i = 0; i < curve.length; i += 1) curve[i] *= peak;
+  }
+  param.setValueCurveAtTime(curve, startAt, durationSec);
+}
 
 /**
  * One stretch over a buffer that already is the clip's window: source offset
@@ -563,26 +614,48 @@ export class AudioGraph {
       const remainingWallSec = remainingTimelineSec / g;
       const clipEndAt = startAt + remainingWallSec;
 
-      if (clip.fadeInMs && clip.fadeInMs > 0) {
-        const fadeEndMs = clip.startMs + clip.fadeInMs;
+      // Fades run along the clip's authored curve, clamped so two that would
+      // cross meet in the middle instead — the same resolution the overlay in
+      // the tracks region draws and the ffmpeg export renders.
+      const fades = resolveClipFades(clip, clip.durationMs);
+
+      if (fades.fadeInMs > 0) {
+        const fadeEndMs = clip.startMs + fades.fadeInMs;
         if (currentTimeMs < fadeEndMs) {
-          // Ramp from the interpolated in-progress gain to full volume.
+          // Seeking into a running fade resumes the curve at the progress
+          // already covered rather than restarting it from silence.
           const offsetInFadeMs = Math.max(0, currentTimeMs - clip.startMs);
-          const startGain = volumeLinear * (offsetInFadeMs / clip.fadeInMs);
-          const remainingSec = (fadeEndMs - Math.max(currentTimeMs, clip.startMs)) / 1000 / g;
-          clipGain.gain.setValueAtTime(startGain, startAt);
-          clipGain.gain.linearRampToValueAtTime(volumeLinear, startAt + remainingSec);
+          const remainingSec =
+            (fadeEndMs - Math.max(currentTimeMs, clip.startMs)) / 1000 / g;
+          rampAlongFade(
+            clipGain.gain,
+            fades.fadeInShape,
+            offsetInFadeMs / fades.fadeInMs,
+            1,
+            volumeLinear,
+            startAt,
+            remainingSec
+          );
         } else {
           clipGain.gain.setValueAtTime(volumeLinear, startAt);
         }
       }
 
-      if (clip.fadeOutMs && clip.fadeOutMs > 0) {
-        const fadeSec = clip.fadeOutMs / 1000 / g;
+      if (fades.fadeOutMs > 0) {
+        const fadeSec = fades.fadeOutMs / 1000 / g;
         const fadeOutStartAt = Math.max(startAt, clipEndAt - fadeSec);
         if (fadeOutStartAt < clipEndAt) {
-          clipGain.gain.setValueAtTime(volumeLinear, fadeOutStartAt);
-          clipGain.gain.linearRampToValueAtTime(0, clipEndAt);
+          // A fade-out reads its curve backwards: full volume at the top of
+          // the ramp down to silence at the clip's end.
+          rampAlongFade(
+            clipGain.gain,
+            fades.fadeOutShape,
+            1,
+            0,
+            volumeLinear,
+            fadeOutStartAt,
+            clipEndAt - fadeOutStartAt
+          );
         }
       }
 

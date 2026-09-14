@@ -337,7 +337,15 @@ export function createFalGenerationLifecycleHooks(
 
   const onGenerationTerminal: NonNullable<
     GenerationLifecycleHooks["onGenerationTerminal"]
-  > = async ({ generationId, status, error, receipt, assetIds, output }) => {
+  > = async ({
+    generationId,
+    request,
+    status,
+    error,
+    receipt,
+    assetIds,
+    output
+  }) => {
     if (!generationId) return;
     const state = states.get(generationId);
     if (!state) return;
@@ -360,6 +368,11 @@ export function createFalGenerationLifecycleHooks(
           (assetId): assetId is string => typeof assetId === "string"
         );
         const needsRecovery = savedAssetIds.length < mediaCount;
+        // The caller attaches the asset to its destination after this hook
+        // returns, so the durable intent is still unapplied here. Keeping the
+        // attempt scheduled is what lets recovery finish an attachment the
+        // caller never committed; the attachment pass clears the schedule.
+        const needsAttachment = Boolean(request.destination?.target_id);
         let mediaIndex = 0;
         const fence: GenerationAttemptLeaseFence = {
           attemptId: state.attemptId,
@@ -407,9 +420,10 @@ export function createFalGenerationLifecycleHooks(
             );
           }
         }
-        const nextCheckAt = needsRecovery
-          ? new Date(Date.now() + RECOVERY_RETRY_MS).toISOString()
-          : null;
+        const nextCheckAt =
+          needsRecovery || needsAttachment
+            ? new Date(Date.now() + RECOVERY_RETRY_MS).toISOString()
+            : null;
         if (
           !(await lifecycle.transition(
             state.generationId,

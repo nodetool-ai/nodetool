@@ -480,6 +480,39 @@ describe("OpenAICompatClient.chatCompletionsStream", () => {
     expect(String(error)).toContain("upstream refused the image");
   });
 
+  it("yields content before throwing an error carried by a choice delta", async () => {
+    const body =
+      'data: {"choices":[{"index":0,"delta":{"content":"partial"},"finish_reason":null}]}\n\n' +
+      'data: {"choices":[{"index":0,"delta":{"error":{"code":503,"message":"provider failed after output"}},"finish_reason":"error"}]}\n\n' +
+      "data: [DONE]\n\n";
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(body, {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" }
+        })
+    );
+
+    const seen: string[] = [];
+    const error = await (async () => {
+      try {
+        for await (const chunk of clientFor(fetchMock).chatCompletionsStream(
+          request
+        )) {
+          seen.push(String(chunk.choices?.[0]?.delta?.content));
+        }
+        return null;
+      } catch (e) {
+        return e;
+      }
+    })();
+
+    expect(seen).toEqual(["partial"]);
+    expect(error).toBeInstanceOf(OpenAICompatError);
+    expect(String(error)).toContain("provider failed after output");
+    expect((error as OpenAICompatError).status).toBe(503);
+  });
+
   it("throws on a non-2xx streaming response with the parsed error message", async () => {
     const fetchMock = mockChatFetch(chatErrorResponse(401, "bad key"));
     const error = await (async () => {

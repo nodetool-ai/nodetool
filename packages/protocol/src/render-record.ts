@@ -154,13 +154,22 @@ function renderInputsMatchDraft(
   recorded: RenderInputs,
   current: RenderInputsDraft
 ): boolean {
+  // Records written before render_mode existed still distinguish the two modes
+  // available at the time: keyframe clips name their source still, while direct
+  // clips do not. Reference mode was introduced with the render_mode field.
+  const recordedRenderMode =
+    recorded.kind === "clip" && recorded.render_mode === undefined
+      ? recorded.source_version_id === undefined
+        ? "direct"
+        : "keyframe"
+      : recorded.render_mode;
   return (
     recorded.kind === current.kind &&
     recorded.prompt_hash === current.prompt_hash &&
     recorded.model === current.model &&
     recorded.aspect_ratio === current.aspect_ratio &&
     recorded.style_entity_id === current.style_entity_id &&
-    recorded.render_mode === current.render_mode &&
+    recordedRenderMode === current.render_mode &&
     JSON.stringify(recorded.reference_asset_ids ?? []) ===
       JSON.stringify(current.reference_asset_ids ?? []) &&
     recorded.source_version_id === current.source_version_id

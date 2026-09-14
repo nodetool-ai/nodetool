@@ -6,6 +6,10 @@ interface RecipeProductionRunProps {
 }
 
 export default function RecipeProductionRun({ run }: RecipeProductionRunProps) {
+  const proofIsPortrait = Boolean(
+    run.proof?.width && run.proof.height && run.proof.height > run.proof.width
+  );
+
   return (
     <section
       id="production-proof"
@@ -52,14 +56,20 @@ export default function RecipeProductionRun({ run }: RecipeProductionRunProps) {
             </figure>
           )}
           {run.proof && (
-            <figure className="min-w-0">
+            <figure
+              className={`min-w-0 ${proofIsPortrait ? "mx-auto flex w-full flex-col items-center" : ""}`}
+            >
               <Image
                 src={run.proof.src}
                 alt={run.proof.alt}
-                width={1600}
-                height={900}
-                sizes="(min-width: 1024px) 672px, calc(100vw - 48px)"
-                className="h-auto w-full rounded-xl bg-slate-900/40 object-contain"
+                width={run.proof.width ?? 1600}
+                height={run.proof.height ?? 900}
+                sizes={
+                  proofIsPortrait
+                    ? "(min-width: 1024px) 315px, calc(100vw - 48px)"
+                    : "(min-width: 1024px) 672px, calc(100vw - 48px)"
+                }
+                className={`rounded-xl bg-slate-900/40 object-contain ${proofIsPortrait ? "h-auto max-h-[560px] w-auto max-w-full" : "h-auto w-full"}`}
               />
               {run.proof.caption && (
                 <figcaption className="mt-3 text-sm leading-relaxed text-slate-400">

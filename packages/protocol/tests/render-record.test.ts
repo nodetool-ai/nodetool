@@ -72,7 +72,6 @@ describe("versionId", () => {
     expect(versionId(null)).toBe("");
   });
 });
-
 describe("currentRenderInputs", () => {
   it("names the still a keyframe-mode clip would animate", () => {
     const shot = makeRenderedShot();
@@ -123,25 +122,79 @@ describe("currentRenderInputs", () => {
 });
 
 describe("isVersionStale", () => {
-  it("reads a reference-mode clip as stale after a style edit", () => {
-    const shot = makeShot({ render_mode: "reference" });
-    const clip = {
-      type: "video" as const,
-      asset_id: "asset-clip-1",
-      render_inputs: stampRenderInputs(
-        currentRenderInputs(shot, BOARD, "clip"),
+  const referencePromptChanges: Array<{
+    name: string;
+    board?: Partial<BoardRenderContext>;
+    shot?: Partial<Shot>;
+  }> = [
+    {
+      name: "framing",
+      shot: { camera: { framing: "close", angle: "low angle", lens: "85mm" } }
+    },
+    {
+      name: "scene lighting",
+      board: { scenes: [{ ...SCENE, lighting: "hard noon sun" }] }
+    },
+    { name: "board style text", board: { style: "high-key, clean" } }
+  ];
+
+  for (const change of referencePromptChanges) {
+    it(`reads a reference-mode clip as stale after changing ${change.name}`, () => {
+      const shot = makeShot({ render_mode: "reference" });
+      const clip = {
+        type: "video" as const,
+        asset_id: "asset-clip-1",
+        render_inputs: stampRenderInputs(
+          currentRenderInputs(shot, BOARD, "clip"),
+          "2026-01-01T00:00:00.000Z"
+        )
+      };
+      const rendered: Shot = { ...shot, clip, clip_versions: [clip] };
+      expect(isVersionStale(clip, rendered, BOARD)).toBe(false);
+      expect(
+        isVersionStale(
+          clip,
+          { ...rendered, ...change.shot },
+          { ...BOARD, ...change.board }
+        )
+      ).toBe(true);
+    });
+  }
+
+  it.each([
+    { recordedMode: "keyframe" as const, changedMode: "direct" as const },
+    { recordedMode: "direct" as const, changedMode: "keyframe" as const }
+  ])(
+    "keeps an unchanged legacy $recordedMode clip fresh and detects a change to $changedMode",
+    ({ recordedMode, changedMode }) => {
+      const withStill = makeRenderedShot();
+      const original: Shot = { ...withStill, render_mode: recordedMode };
+      const renderInputs = stampRenderInputs(
+        currentRenderInputs(original, BOARD, "clip"),
         "2026-01-01T00:00:00.000Z"
-      )
-    };
-    const rendered: Shot = { ...shot, clip, clip_versions: [clip] };
-    expect(isVersionStale(clip, rendered, BOARD)).toBe(false);
-    expect(
-      isVersionStale(clip, rendered, { ...BOARD, style: "high-key, clean" })
-    ).toBe(true);
-    expect(
-      isVersionStale(clip, { ...rendered, camera: { framing: "close" } }, BOARD)
-    ).toBe(true);
-  });
+      );
+      delete renderInputs.render_mode;
+      const legacyClip = {
+        type: "video" as const,
+        asset_id: `legacy-${recordedMode}`,
+        render_inputs: renderInputs
+      };
+      const rendered: Shot = {
+        ...original,
+        clip: legacyClip,
+        clip_versions: [legacyClip]
+      };
+
+      expect(isVersionStale(legacyClip, rendered, BOARD)).toBe(false);
+      expect(
+        isVersionStale(
+          legacyClip,
+          { ...rendered, render_mode: changedMode },
+          BOARD
+        )
+      ).toBe(true);
+    }
+  );
 
   it("reads a version rendered from today's inputs as current", () => {
     const shot = makeRenderedShot();

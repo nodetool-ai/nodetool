@@ -66,6 +66,7 @@ export type TimelineAction =
   | "redo"
   | "toggleSnap"
   | "applyDefaultTransition"
+  | "applyFades"
   | "addKeyframe"
   | "nextKeyframe"
   | "prevKeyframe"
@@ -108,6 +109,9 @@ const COMMON: Partial<Keymap> = {
   nextCut: [k("ArrowDown")],
   undo: [k("z", { ctrl: true })],
   redo: [k("z", { ctrl: true, shift: true }), k("y", { ctrl: true })],
+  // Final Cut applies fades to the selection on Option+T; nothing else in
+  // any preset claims it.
+  applyFades: [k("t", { alt: true })],
   addKeyframe: [k("k", { alt: true })],
   nextKeyframe: [k("k", { alt: true, shift: true })],
   prevKeyframe: [k("k", { ctrl: true, alt: true, shift: true })]

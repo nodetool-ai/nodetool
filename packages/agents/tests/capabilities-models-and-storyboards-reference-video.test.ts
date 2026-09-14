@@ -24,7 +24,6 @@ const shot = (overrides: Partial<Shot> & { id: string; index: number }): Shot =>
   status: "planned",
   ...overrides
 });
-
 function renderContext(referenceIds: [string, string]) {
   return withGenerationSeam({
     userId: "u1",
@@ -57,34 +56,51 @@ describe("reference_to_video capability contracts", () => {
     expect(result.results.map((model) => model.model_id)).toEqual(["reference-model"]);
   });
 
-  it("render_storyboard_clips dispatches a reference shot through reference_to_video", async () => {
-    const first = await Asset.create<Asset>({
-      user_id: "u1", name: "ref-a.png", content_type: "image/png",
-      metadata: { nodetool_entity: { kind: "character", name: "A", descriptor: "first" } }
-    });
-    const second = await Asset.create<Asset>({
-      user_id: "u1", name: "ref-b.png", content_type: "image/png",
-      metadata: { nodetool_entity: { kind: "character", name: "B", descriptor: "second" } }
-    });
-    const board = await Storyboard.create<Storyboard>({
-      user_id: "u1", project_id: "default", name: "Reference board",
-      document: JSON.stringify({
-        screenplay: null,
-        shots: [shot({ id: "s1", index: 0, render_mode: "reference", entity_ids: [first.id, second.id] })],
-        brief: "", style: "", entityIds: [first.id, second.id], aspectRatio: "16:9",
-        directorModel: null, imageModel: null,
-        videoModel: { type: "video_model", id: "reference-model", provider: "fal_ai" }
-      })
-    });
-    const context = renderContext([first.id, second.id]);
-    const result = (await toolForCapabilityName("render_storyboard_clips").process(context, {
-      storyboard_id: board.id
-    })) as { rendered: number };
-    expect(result.rendered).toBe(1);
-    expect(context.runProviderPrediction.mock.calls[0][0]).toMatchObject({
-      capability: "reference_to_video",
-      model: "reference-model",
-      params: { reference_images: [new Uint8Array([1, 2]), new Uint8Array([3, 4])] }
-    });
-  });
+  it.each([
+    { name: "a persisted reference mode", shotMode: "reference" as const },
+    { name: "the default keyframe mode", override: "reference" as const },
+    {
+      name: "a persisted direct mode",
+      shotMode: "direct" as const,
+      override: "reference" as const
+    }
+  ])(
+    "render_storyboard_clips dispatches $name through reference_to_video",
+    async ({ shotMode, override }) => {
+      const first = await Asset.create<Asset>({
+        user_id: "u1", name: "ref-a.png", content_type: "image/png",
+        metadata: { nodetool_entity: { kind: "character", name: "A", descriptor: "first" } }
+      });
+      const second = await Asset.create<Asset>({
+        user_id: "u1", name: "ref-b.png", content_type: "image/png",
+        metadata: { nodetool_entity: { kind: "character", name: "B", descriptor: "second" } }
+      });
+      const board = await Storyboard.create<Storyboard>({
+        user_id: "u1", project_id: "default", name: "Reference board",
+        document: JSON.stringify({
+          screenplay: null,
+          shots: [shot({
+            id: "s1",
+            index: 0,
+            ...(shotMode === undefined ? {} : { render_mode: shotMode }),
+            entity_ids: [first.id, second.id]
+          })],
+          brief: "", style: "", entityIds: [first.id, second.id], aspectRatio: "16:9",
+          directorModel: null, imageModel: null,
+          videoModel: { type: "video_model", id: "reference-model", provider: "fal_ai" }
+        })
+      });
+      const context = renderContext([first.id, second.id]);
+      const result = (await toolForCapabilityName("render_storyboard_clips").process(context, {
+        storyboard_id: board.id,
+        ...(override === undefined ? {} : { mode: override })
+      })) as { rendered: number };
+      expect(result.rendered).toBe(1);
+      expect(context.runProviderPrediction.mock.calls[0][0]).toMatchObject({
+        capability: "reference_to_video",
+        model: "reference-model",
+        params: { reference_images: [new Uint8Array([1, 2]), new Uint8Array([3, 4])] }
+      });
+    }
+  );
 });

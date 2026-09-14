@@ -153,18 +153,55 @@ test.describe("marketing smoke", () => {
       await expect(proof).toBeVisible();
       await expect(video).toHaveAttribute(
         "poster",
-        "/apps/examples/ugc-product-video/final-poster.jpg"
+        "/recipes/runs/2026-09-14-ugc-cup/poster.jpg"
       );
       await expect(video.locator('source[type="video/mp4"]')).toHaveAttribute(
         "src",
-        "/apps/examples/ugc-product-video/final.mp4"
+        "/recipes/runs/2026-09-14-ugc-cup/final.mp4"
       );
       await expect(video).toHaveJSProperty("error", null);
       expect(
         await video.evaluate((element: HTMLVideoElement) => element.duration)
-      ).toBeCloseTo(15, 1);
+      ).toBeCloseTo(15.07, 1);
     });
   }
+
+  test("every UGC recipe step shows its NodeTool UI or entity image", async ({
+    page
+  }) => {
+    await page.goto("/recipes/ugc-product-video");
+
+    for (const name of [
+      "01 Angle",
+      "02 Creator",
+      "03 Product",
+      "04 Generate",
+      "05 Captions",
+      "06 Review"
+    ]) {
+      await page.getByRole("button", { name, exact: true }).click();
+      const image = page.locator("#recipe-step-content figure img");
+      await expect(image).toBeVisible();
+      await expect
+        .poll(() =>
+          image.evaluate((element: HTMLImageElement) => element.naturalWidth)
+        )
+        .toBeGreaterThan(0);
+    }
+
+    for (const image of [
+      page.getByRole("img", {
+        name: "Creator holding an olive travel cup with the caption Look how nice."
+      }),
+      page.getByRole("img", {
+        name: "The caption six cups appears above six small cup outlines."
+      })
+    ]) {
+      const box = await image.boundingBox();
+      expect(box?.height ?? Infinity).toBeLessThanOrEqual(560);
+      expect(box?.width ?? Infinity).toBeLessThan(box?.height ?? 0);
+    }
+  });
 
   test("the download page offers an installer for every platform", async ({
     page
@@ -195,17 +232,17 @@ test.describe("marketing smoke", () => {
   }) => {
     await page.goto("/recipes/viral-video-ad-engine");
 
+    const recipe = recipeEntries.find(
+      (entry) => entry.slug === "viral-video-ad-engine"
+    )!;
     const proof = page.getByRole("region", {
-      name: "Big production. Everyday coffee."
+      name: recipe.productionRun!.proofTitle
     });
     const guide = page.getByRole("region", { name: /guide/i });
 
     await expect(proof).toBeVisible();
     await expect(page.getByText("Partial example")).toHaveCount(0);
     await expect(page.getByText("Review notes", { exact: true })).toHaveCount(0);
-    const recipe = recipeEntries.find(
-      (entry) => entry.slug === "viral-video-ad-engine"
-    )!;
     await expect(
       proof.getByText(recipe.productionRun!.essentialLimitation)
     ).toHaveCount(0);

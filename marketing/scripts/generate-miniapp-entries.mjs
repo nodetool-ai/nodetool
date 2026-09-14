@@ -35,7 +35,7 @@ const MARKETING_OVERRIDES = {
   "ugc-product-video": {
     summary:
       "Create a native-audio testimonial with a compatible reference-to-video model, then add word-timed captions, restrained motion graphics, and an exact branded close.",
-    note: "Writing and caption transcription use OpenAI. The finished sample used Seedance 2.5 on AtlasCloud; choose it or another compatible video model.",
+    note: "Writing and caption transcription use OpenAI. Choose a compatible native-audio video model. The featured example uses a supplied Dreamina recording with a custom local animation finish.",
     productionRecipeSlug: "ugc-product-video"
   }
 };

@@ -27,6 +27,7 @@ export * from "./trimClip.js";
 export * from "./rippleEdit.js";
 export * from "./dropResolve.js";
 export * from "./transitionAtCut.js";
+export * from "./audioFade.js";
 export * from "./keyframes.js";
 export * from "./model3d.js";
 export * from "./model3dBake.js";

@@ -11,7 +11,8 @@
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 
-import type { ClipStatus } from "@nodetool-ai/timeline";
+import type { ClipFadeShape, ClipStatus } from "@nodetool-ai/timeline";
+import { parseClipFadeShape } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import {
@@ -33,6 +34,9 @@ import { useClipSourceDuration } from "./useClipSourceDuration";
 import { useClipDrag } from "./useClipDrag";
 import { useClipTrim } from "./useClipTrim";
 import { useTransitionHandle } from "./useTransitionHandle";
+import { useClipFade, useSetClipFadeShape } from "./useClipFade";
+import type { ClipFadeEdge } from "./useClipFade";
+import { ClipFadeShapeMenu } from "./ClipFadeShapeMenu";
 import { keyframeTimesMs as deriveKeyframeTimes } from "@nodetool-ai/timeline";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { ClipBody, CLIP_STATUS_MAP, MIN_CLIP_WIDTH_PX } from "./ClipBody";
@@ -162,6 +166,32 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     handleTransitionPointerEnd
   } = useTransitionHandle(clip, msPerPx, interactionLocked);
 
+  // Right-clicking a fade handle picks the curve that edge ramps along.
+  const [fadeShapeMenu, setFadeShapeMenu] = useState<{
+    edge: ClipFadeEdge;
+    x: number;
+    y: number;
+  } | null>(null);
+  const handleRequestFadeShapeMenu = useCallback(
+    (edge: ClipFadeEdge, x: number, y: number) =>
+      setFadeShapeMenu({ edge, x, y }),
+    []
+  );
+  const handleCloseFadeShapeMenu = useCallback(() => setFadeShapeMenu(null), []);
+  const setFadeShape = useSetClipFadeShape();
+  const handleSelectFadeShape = useCallback(
+    (shape: ClipFadeShape) => {
+      if (fadeShapeMenu) setFadeShape(clipId, fadeShapeMenu.edge, shape);
+    },
+    [clipId, fadeShapeMenu, setFadeShape]
+  );
+  const fade = useClipFade({
+    clip,
+    msPerPx,
+    interactionLocked,
+    onRequestShapeMenu: handleRequestFadeShapeMenu
+  });
+
   const keyframeTimes = useMemo(
     () => (clip ? deriveKeyframeTimes(clip) : []),
     [clip]
@@ -280,6 +310,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         handleTransitionPointerDown={handleTransitionPointerDown}
         handleTransitionPointerMove={handleTransitionPointerMove}
         handleTransitionPointerEnd={handleTransitionPointerEnd}
+        fade={fade}
         keyframeTimesMs={keyframeTimes}
         onKeyframeClick={handleKeyframeClick}
         interactionLocked={interactionLocked}
@@ -294,6 +325,17 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
           onClose={handleCloseContextMenu}
           onRequestReplace={setReplaceAssetId}
           onError={setActionError}
+        />
+      )}
+      {fadeShapeMenu && (
+        <ClipFadeShapeMenu
+          edge={fadeShapeMenu.edge}
+          current={parseClipFadeShape(
+            fadeShapeMenu.edge === "in" ? clip.fadeInShape : clip.fadeOutShape
+          )}
+          position={{ x: fadeShapeMenu.x, y: fadeShapeMenu.y }}
+          onSelect={handleSelectFadeShape}
+          onClose={handleCloseFadeShapeMenu}
         />
       )}
       {replaceAssetId !== null && (

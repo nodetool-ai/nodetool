@@ -9,6 +9,8 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import GradientOutlinedIcon from "@mui/icons-material/GradientOutlined";
+import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
+import { canClipFade } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 
@@ -49,6 +51,16 @@ export function ClipContextMenu({
   );
   const applyDefaultTransition = useTimelineStore((s) => s.applyDefaultTransition);
   const removeTransition = useTimelineStore((s) => s.removeTransition);
+  const canFade = useTimelineStore((s) => {
+    const clip = findClipById(s.clips, clipId);
+    return clip ? canClipFade(clip.mediaType) : false;
+  });
+  const hasFade = useTimelineStore((s) => {
+    const clip = findClipById(s.clips, clipId);
+    return ((clip?.fadeInMs ?? 0) || (clip?.fadeOutMs ?? 0)) > 0;
+  });
+  const applyFades = useTimelineStore((s) => s.applyFades);
+  const patchClip = useTimelineStore((s) => s.patchClip);
 
   const run = (fn: () => void) => () => {
     fn();
@@ -87,6 +99,18 @@ export function ClipContextMenu({
             : applyDefaultTransition(new Set([clipId]))
         )}
       />
+      {canFade && (
+        <MenuItemPrimitive
+          label={hasFade ? "Remove fades" : "Fade in and out"}
+          icon={<GraphicEqOutlinedIcon fontSize="small" />}
+          compact
+          onClick={run(() =>
+            hasFade
+              ? patchClip(clipId, { fadeInMs: 0, fadeOutMs: 0 })
+              : applyFades(new Set([clipId]))
+          )}
+        />
+      )}
       {actions.isGenerated && (
         <MenuItemPrimitive
           label="Regenerate as new clip"

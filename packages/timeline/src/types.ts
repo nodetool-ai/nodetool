@@ -18,6 +18,8 @@ export type ClipStatus =
 // Blend modes are defined once in @nodetool-ai/gpu and shared by the
 // sketch editor, the timeline preview compositor, and the Compositor node.
 import type { BlendMode } from "@nodetool-ai/gpu";
+
+import type { ClipFadeShape } from "./audioFade.js";
 export type { BlendMode };
 
 // Motion-design animations attached to a clip (pure engine in ./animation).
@@ -870,6 +872,10 @@ export interface TimelineClip {
   fadeInMs?: number;
   /** Duration of the fade-out effect in milliseconds. */
   fadeOutMs?: number;
+  /** Curve the fade-in ramps along. Absent is `linear`. */
+  fadeInShape?: ClipFadeShape;
+  /** Curve the fade-out ramps along. Absent is `linear`. */
+  fadeOutShape?: ClipFadeShape;
   /**
    * Word-level caption data carried by the media clip it transcribes — the
    * voiceover audio clip, or an imported audio/video clip. When set, the clip
