@@ -8,6 +8,7 @@ import {
 import { handleDocumentResourceChange } from "../../../stores/documentSync";
 import { useConflictStore } from "../../../stores/ConflictStore";
 import { useScriptServerSync } from "../useScriptServerSync";
+import { useDocumentConflicts } from "../../useDocumentConflicts";
 
 jest.mock("../../../trpc/client", () => ({
   trpc: { useUtils: jest.fn() },
@@ -51,6 +52,106 @@ beforeEach(() => {
 });
 
 describe("useScriptServerSync", () => {
+  it.each(["speaker", "section"] as const)(
+    "accepts an external edit to a locally deleted %s as an undoable restoration",
+    async (kind) => {
+      const document = {
+        cast: [{ id: "speaker-1", name: "Narrator" }, { id: "speaker-2", name: "Guest" }],
+        sections: [{ id: "sec-1", title: "Opening", lines: [] }, { id: "sec-2", title: "Ending", lines: [] }]
+      };
+      const response = {
+        id: "script-1", name: "Saved script", document,
+        createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "rev-1"
+      };
+      getQuery.mockResolvedValue(response);
+      const rendered = renderHook(() => {
+        useScriptServerSync("script-1");
+        return useDocumentConflicts("script", "script-1");
+      });
+      await waitFor(() =>
+        expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-1")
+      );
+      act(() => {
+        const store = useScriptStore.getState();
+        if (kind === "speaker") store.removeSpeaker("script-1", "speaker-1");
+        else store.removeSection("script-1", "sec-1");
+      });
+      const changedDocument = kind === "speaker"
+        ? { ...document, cast: [{ id: "speaker-1", name: "Agent narrator" }, ...document.cast.slice(1)] }
+        : { ...document, sections: [{ id: "sec-1", title: "Opening", lines: [{ id: "line-1", text: "Agent line", takes: [] }] }, ...document.sections.slice(1)] };
+      getQuery.mockResolvedValue({ ...response, document: changedDocument, updatedAt: "rev-2" });
+      await act(async () => {
+        handleDocumentResourceChange("script", {
+          event: "updated", id: "script-1", updatedAt: "rev-2",
+          ops: kind === "speaker"
+            ? [{ tool: "set_speaker", input: { target: "speaker-1" } }]
+            : [{ tool: "add_line", input: { section: "sec-1", text: "Agent line" } }]
+        });
+      });
+      await waitFor(() => expect(rendered.result.current.items).toHaveLength(1));
+      const item = rendered.result.current.items[0];
+      const currentUnits = () => {
+        const script = useScriptStore.getState().scripts["script-1"];
+        return kind === "speaker" ? script.cast : script.sections;
+      };
+      const remaining = (kind === "speaker" ? document.cast : document.sections).slice(1);
+      expect(currentUnits()).toEqual(remaining);
+      act(() => rendered.result.current.accept(item.unitId));
+      expect(currentUnits()).toEqual(
+        kind === "speaker" ? changedDocument.cast : changedDocument.sections
+      );
+      expect(item.label).toContain("changed outside after you deleted it");
+      act(() => useScriptStore.getState().undo("script-1"));
+      expect(currentUnits()).toEqual(remaining);
+      rendered.unmount();
+    }
+  );
+
+  it("accepts an external deletion of a locally edited section and preserves a server addition", async () => {
+    const document = {
+      cast: [],
+      sections: [{ id: "sec-1", title: "Opening", lines: [] }]
+    };
+    const response = {
+      id: "script-1", name: "Saved script", document,
+      createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "rev-1"
+    };
+    getQuery.mockResolvedValue(response);
+    const rendered = renderHook(() => {
+      useScriptServerSync("script-1");
+      return useDocumentConflicts("script", "script-1");
+    });
+    await waitFor(() =>
+      expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-1")
+    );
+    act(() => useScriptStore.getState().setSectionTitle("script-1", "sec-1", "Draft opening"));
+    const changedDocument = {
+      ...document,
+      sections: [{ id: "sec-2", title: "Added elsewhere", lines: [] }]
+    };
+    getQuery.mockResolvedValue({ ...response, document: changedDocument, updatedAt: "rev-2" });
+    await act(async () => {
+      handleDocumentResourceChange("script", {
+        event: "updated", id: "script-1", updatedAt: "rev-2",
+        ops: [{ tool: "add_section", input: { title: "Added elsewhere" } }]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(rendered.result.current.items).toHaveLength(1));
+    expect(useScriptStore.getState().scripts["script-1"]?.sections).toHaveLength(2);
+    act(() => rendered.result.current.accept("sec-1"));
+    expect(useScriptStore.getState().scripts["script-1"]?.sections).toEqual([
+      { id: "sec-2", title: "Added elsewhere", lines: [] }
+    ]);
+    act(() => useScriptStore.getState().undo("script-1"));
+    expect(useScriptStore.getState().scripts["script-1"]?.sections).toEqual([
+      { id: "sec-2", title: "Added elsewhere", lines: [] },
+      { id: "sec-1", title: "Draft opening", lines: [] }
+    ]);
+    rendered.unmount();
+  });
+
   it("flushes a dirty script when its tab unmounts before the debounce fires", async () => {
     const { unmount } = renderHook(() => useScriptServerSync("script-1"));
 

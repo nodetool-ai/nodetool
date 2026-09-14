@@ -56,7 +56,8 @@ describe("addLine", () => {
   it("appends to the last section when one exists", () => {
     const store = useScriptStore.getState();
     store.ensureScript(SCRIPT);
-    store.addLine(SCRIPT);
+    const lineId = store.addLine(SCRIPT);
+    store.patchLine(SCRIPT, lineId, { text: "mine" });
     store.addLine(SCRIPT);
     const s = useScriptStore.getState().scripts[SCRIPT];
     expect(s.sections).toHaveLength(1);
@@ -327,6 +328,79 @@ describe("undo/redo", () => {
     expect(useScriptStore.getState().history[SCRIPT]?.future.length).toBe(1);
     store.addLine(SCRIPT);
     expect(useScriptStore.getState().history[SCRIPT]?.future.length ?? 0).toBe(0);
+  });
+
+  it("rebases external additions across past and future checkpoints", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    const lineId = store.addLine(SCRIPT);
+    store.patchLine(SCRIPT, lineId, { text: "mine" });
+    store.addSpeaker(SCRIPT, { id: "speaker", name: "Speaker" });
+    store.undo(SCRIPT);
+
+    const beforeMerge = useScriptStore.getState().scripts[SCRIPT];
+    const merged = {
+      ...beforeMerge,
+      sections: beforeMerge.sections.map((section) => ({
+        ...section,
+        lines: section.lines.map((line) => ({
+          ...line,
+          takes: [take({ id: "agent-take", assetId: "agent-audio" })]
+        }))
+      }))
+    };
+    store.applyMerged(SCRIPT, merged);
+
+    store.undo(SCRIPT);
+    expect(
+      useScriptStore
+        .getState()
+        .scripts[SCRIPT].sections[0].lines[0].takes.map((item) => item.id)
+    ).toEqual(["agent-take"]);
+    expect(
+      useScriptStore.getState().scripts[SCRIPT].sections[0].lines[0].text
+    ).toBe("");
+    store.redo(SCRIPT);
+    expect(
+      useScriptStore
+        .getState()
+        .scripts[SCRIPT].sections[0].lines[0].takes.map((item) => item.id)
+    ).toEqual(["agent-take"]);
+    expect(
+      useScriptStore.getState().scripts[SCRIPT].sections[0].lines[0].text
+    ).toBe("mine");
+    store.redo(SCRIPT);
+    expect(useScriptStore.getState().scripts[SCRIPT].cast[0]?.name).toBe(
+      "Speaker"
+    );
+    expect(
+      useScriptStore
+        .getState()
+        .scripts[SCRIPT].sections[0].lines[0].takes.map((item) => item.id)
+    ).toEqual(["agent-take"]);
+    expect(
+      useScriptStore.getState().scripts[SCRIPT].sections[0].lines[0].text
+    ).toBe("mine");
+  });
+
+  it("keeps an adopted external deletion out of undo and redo", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    store.addLine(SCRIPT);
+    const before = useScriptStore.getState().scripts[SCRIPT];
+    store.applyMerged(SCRIPT, {
+      ...before,
+      sections: before.sections.map((section) => ({ ...section, lines: [] }))
+    });
+
+    store.undo(SCRIPT);
+    expect(useScriptStore.getState().scripts[SCRIPT].sections[0].lines).toEqual(
+      []
+    );
+    store.redo(SCRIPT);
+    expect(useScriptStore.getState().scripts[SCRIPT].sections[0].lines).toEqual(
+      []
+    );
   });
 
   it("undo is a no-op with an empty history", () => {

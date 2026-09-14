@@ -362,16 +362,23 @@ export const useScriptServerSync = (
         return;
       }
       if (conflict.unit.kind === "speaker" && conflict.external != null) {
-        s.updateSpeaker(
-          scriptId,
-          conflict.unit.id,
-          conflict.external as Record<string, unknown>
-        );
+        const incoming = serverScript.cast.find((speaker) => speaker.id === conflict.unit.id);
+        if (!incoming) return;
+        if (draft.cast.some((speaker) => speaker.id === incoming.id)) {
+          s.updateSpeaker(scriptId, incoming.id, incoming);
+        } else {
+          const cast = [...draft.cast];
+          const index = serverScript.cast.indexOf(incoming);
+          cast.splice(Math.min(index, cast.length), 0, incoming);
+          s.loadScript(scriptId, { ...draft, cast }, { checkpoint: true });
+        }
         return;
       }
       if (conflict.reason === "deleted" && conflict.external === null) {
         if (conflict.unit.kind === "speaker") {
           s.removeSpeaker(scriptId, conflict.unit.id);
+        } else if (conflict.unit.kind === "section") {
+          s.removeSection(scriptId, conflict.unit.id);
         } else if (conflict.unit.kind === "line") {
           s.removeLine(scriptId, conflict.unit.id);
         } else if (conflict.unit.kind === "take") {
@@ -404,21 +411,19 @@ export const useScriptServerSync = (
         return;
       }
       if (conflict.unit.kind === "section") {
-        // Take the server's section fields; the lines merged per line and
-        // stay as the draft holds them.
-        const incoming = conflict.external as Record<string, unknown> | null;
+        const incoming = serverScript.sections.find((section) => section.id === conflict.unit.id);
         if (!incoming) return;
-        const { lines: _lines, ...rest } = incoming;
-        if (!draft.sections.some((section) => section.id === conflict.unit.id)) {
+        if (!draft.sections.some((section) => section.id === incoming.id)) {
+          const sections = [...draft.sections];
+          const index = serverScript.sections.indexOf(incoming);
+          sections.splice(Math.min(index, sections.length), 0, incoming);
+          s.loadScript(scriptId, { ...draft, sections }, { checkpoint: true });
           return;
         }
-        s.patchSection(
-          scriptId,
-          conflict.unit.id,
-          rest as Partial<
-            Omit<ScriptDraft["sections"][number], "id" | "lines">
-          >
-        );
+        // Take the server's section fields; the lines merged per line and
+        // stay as the draft holds them.
+        const { lines: _lines, ...rest } = incoming;
+        s.patchSection(scriptId, conflict.unit.id, rest);
         return;
       }
       if (conflict.unit.kind === "field" && conflict.unit.id === "title") {

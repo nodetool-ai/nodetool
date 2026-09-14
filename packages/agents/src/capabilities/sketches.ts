@@ -955,6 +955,42 @@ interface OpRecord {
   error?: string;
 }
 
+interface EditSketchMutationResult {
+  records: OpRecord[];
+  layerSummary: { id: string; name: string; index: number }[];
+  activeLayerId: string;
+  ops: { tool: string; input: Record<string, unknown> }[];
+}
+
+const LAYER_TARGET_OPS = new Set([
+  "set_layer_props",
+  "set_layer_image",
+  "rename_layer",
+  "duplicate_layer",
+  "remove_layer",
+  "reorder_layer",
+  "select_layer"
+]);
+
+/** Resolve a layer target against the state at this point in the batch. */
+function resolveSketchOp(
+  state: SketchState,
+  parsed: ParsedOp
+): { tool: string; input: Record<string, unknown> } {
+  const rawTarget = parsed.args["target"];
+  if (typeof rawTarget === "string" && LAYER_TARGET_OPS.has(parsed.op)) {
+    const index = findLayerIndex(state.layers, state.activeLayerId, rawTarget);
+    if (index >= 0) {
+      const canonical = state.layers[index].id;
+      return {
+        tool: parsed.op,
+        input: { ...parsed.args, target: canonical, id: canonical }
+      };
+    }
+  }
+  return { tool: parsed.op, input: parsed.args };
+}
+
 /**
  * Asset ids named by an op's `image` that this user has no asset for. Reading
  * them up front turns "the layer is empty" into a message naming the id.
@@ -1018,47 +1054,10 @@ const editSketch: CapabilityExport = {
       };
     }
 
-    let records: OpRecord[] = [];
-    let layerSummary: { id: string; name: string; index: number }[] = [];
-    let activeLayerId = "";
-
-    // Resolve non-id targets (name, "active") to canonical layer ids so the
-    // merge adapter can attribute the write to the real unit.
-    const preData = existing.toDocumentData();
-    const resolvedOps: { tool: string; input: Record<string, unknown> }[] = ops.map(
-      (parsed) => {
-        const rawTarget = parsed.args["target"];
-        if (
-          typeof rawTarget === "string" &&
-          (parsed.op === "set_layer_props" ||
-            parsed.op === "set_layer_image" ||
-            parsed.op === "rename_layer" ||
-            parsed.op === "duplicate_layer" ||
-            parsed.op === "remove_layer" ||
-            parsed.op === "reorder_layer" ||
-            parsed.op === "select_layer")
-        ) {
-          const idx = findLayerIndex(
-            preData.sketch.layers as unknown as SketchLayer[],
-            preData.sketch.activeLayerId,
-            rawTarget
-          );
-          if (idx >= 0) {
-            const canonical = (preData.sketch.layers as unknown as SketchLayer[])[idx].id;
-            return {
-              tool: parsed.op,
-              input: { ...parsed.args, target: canonical, id: canonical }
-            };
-          }
-        }
-        return { tool: parsed.op, input: parsed.args };
-      }
-    );
-
     try {
       const mutated = await ImageDocument.mutateDocumentData(
         sketchId,
-        (data: ImageDocumentData) => {
+        (data: ImageDocumentData): EditSketchMutationResult => {
           const sketch = data.sketch;
           const state: SketchState = {
             layers: [...sketch.layers],
@@ -1070,13 +1069,20 @@ const editSketch: CapabilityExport = {
           // A failing op is recorded and the script continues: stopping at the
           // first error hides every problem behind it.
           const applied: OpRecord[] = [];
+          const resolvedOps: { tool: string; input: Record<string, unknown> }[] = [];
           for (const parsed of ops) {
             try {
+              const resolved = resolveSketchOp(state, parsed);
+              const result = applyOp(state, parsed, SKETCH_BLEND_MODES);
               applied.push({
                 op: parsed.op,
                 ok: true,
-                result: applyOp(state, parsed, SKETCH_BLEND_MODES)
+                result
               });
+              // Only successful operations touched the document. Resolve each
+              // target from the state immediately before that operation, so a
+              // prior select_layer or add/rename changes what "active" means.
+              resolvedOps.push(resolved);
             } catch (e) {
               applied.push({
                 op: parsed.op,
@@ -1093,21 +1099,26 @@ const editSketch: CapabilityExport = {
             setup: state.setup
           };
           data.layerBindings = state.bindings;
-          records = applied;
-          layerSummary = state.layers.map((layer, index) => ({
+          const layerSummary = state.layers.map((layer, index) => ({
             id: layer.id,
             name: layer.name,
             index
           }));
-          activeLayerId = state.activeLayerId;
-          return applied;
+          return {
+            records: applied,
+            layerSummary,
+            activeLayerId: state.activeLayerId,
+            ops: resolvedOps
+          };
         },
         // The ops ride on the write so an open editor merges this change per
         // layer instead of treating the sketch as replaced.
         undefined,
-        { ops: resolvedOps }
+        (mutation) => ({ ops: mutation.ops })
       );
       if (!mutated) return { error: `Sketch ${sketchId} was not found.` };
+
+      const { records, layerSummary, activeLayerId } = mutated.result;
 
       const failed = records.filter((record) => !record.ok);
       return {

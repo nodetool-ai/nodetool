@@ -18,6 +18,9 @@ import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
 interface DocumentSnapshot {
   sequenceId: string | null;
   baseUpdatedAt: string | null;
+  fps: TimelineStoreState["fps"];
+  width: TimelineStoreState["width"];
+  height: TimelineStoreState["height"];
   tracks: TimelineStoreState["tracks"];
   clips: TimelineStoreState["clips"];
   markers: TimelineStoreState["markers"];
@@ -30,6 +33,9 @@ interface DocumentSnapshot {
 const pickSnapshot = (state: TimelineStoreState): DocumentSnapshot => ({
   sequenceId: state.sequenceId,
   baseUpdatedAt: state.baseUpdatedAt,
+  fps: state.fps,
+  width: state.width,
+  height: state.height,
   ...buildTimelineDocumentPayload(state)
 });
 
@@ -107,7 +113,16 @@ export function useTimelineAutosave(options: { debounceMs?: number } = {}): void
           store.getState().sequenceId === snapshot.sequenceId &&
           !isOlderUpdatedAt(updatedAt, store.getState().baseUpdatedAt)
         ) {
-          store.getState().setBaseUpdatedAt(updatedAt);
+          store.getState().setBaseUpdatedAt(updatedAt, {
+            tracks: snapshot.tracks,
+            clips: snapshot.clips,
+            markers: snapshot.markers,
+            transcript: snapshot.transcript,
+            scriptEnabled: snapshot.scriptEnabled,
+            fps: snapshot.fps,
+            width: snapshot.width,
+            height: snapshot.height
+          });
         }
         lastSaved = snapshot;
         return { updatedAt: isString(updatedAt) ? updatedAt : revision };

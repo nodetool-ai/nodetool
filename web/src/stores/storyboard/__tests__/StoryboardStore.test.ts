@@ -273,6 +273,80 @@ describe("undo/redo", () => {
     expect(board()?.shots.find((s) => s.id === "s0")?.action).toBe("shot 0");
   });
 
+  it("keeps an external shot addition through undo and redo", () => {
+    seedShots();
+    const store = useStoryboardStore.getState();
+    store.updateShot(BOARD, "s0", { action: "mine" });
+    store.updateShot(BOARD, "s1", { action: "mine too" });
+    store.undo(BOARD);
+
+    const before = board();
+    expect(before).toBeDefined();
+    store.applyMerged(BOARD, {
+      ...before!,
+      shots: [
+        {
+          type: "shot",
+          id: "agent-shot",
+          index: 0,
+          action: "agent shot",
+          status: "planned"
+        },
+        ...before!.shots
+      ]
+    });
+
+    store.undo(BOARD);
+    expect(board()?.shots.map((shot) => shot.id)).toContain("agent-shot");
+    store.redo(BOARD);
+    expect(board()?.shots.map((shot) => shot.id)).toContain("agent-shot");
+    store.redo(BOARD);
+    expect(board()?.shots.find((shot) => shot.id === "s1")?.action).toBe(
+      "mine too"
+    );
+    expect(board()?.shots.map((shot) => shot.id)).toContain("agent-shot");
+  });
+
+  it("rebases an insertion without overwriting local reorder and deletion history", () => {
+    seedShots();
+    const store = useStoryboardStore.getState();
+    store.reorderShots(BOARD, ["s2", "s0", "s1"]);
+    store.removeShot(BOARD, "s1");
+
+    const before = board();
+    expect(before).toBeDefined();
+    store.applyMerged(BOARD, {
+      ...before!,
+      shots: [
+        {
+          type: "shot",
+          id: "agent-shot",
+          index: 0,
+          action: "agent shot",
+          status: "planned"
+        },
+        ...before!.shots
+      ]
+    });
+
+    store.undo(BOARD);
+    expect(board()?.shots.map((shot) => shot.id)).toEqual([
+      "agent-shot",
+      "s2",
+      "s0",
+      "s1"
+    ]);
+    expect(board()?.shots.map((shot) => shot.index)).toEqual([0, 1, 2, 3]);
+
+    store.redo(BOARD);
+    expect(board()?.shots.map((shot) => shot.id)).toEqual([
+      "agent-shot",
+      "s2",
+      "s0"
+    ]);
+    expect(board()?.shots.map((shot) => shot.index)).toEqual([0, 1, 2]);
+  });
+
   it("selectShot is idempotent, and null clears the selection", () => {
     seedShots();
     const store = useStoryboardStore.getState();

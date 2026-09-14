@@ -22,15 +22,20 @@ import {
   isOlderUpdatedAt,
   timelineTemporalOf,
   useTimelineStoreApi,
+  type TimelinePartializedState,
   type TimelineStoreState
 } from "../../stores/timeline/TimelineStore";
 import {
   mergeTimelineDocuments,
   timelineConflictKey,
+  timelineMergeAdapter,
   type TimelineMergeDoc
 } from "../../stores/timeline/merge";
 import { useConflictStore } from "../../stores/ConflictStore";
-import type { MergeConflict } from "../../stores/documentMerge";
+import {
+  rebaseDocumentSnapshots,
+  type MergeConflict
+} from "../../stores/documentMerge";
 import { trpc, trpcClient } from "../../trpc/client";
 import type { DocumentOp } from "@nodetool-ai/protocol";
 import type {
@@ -39,6 +44,7 @@ import type {
   TimelineTrack,
   TranscriptLine
 } from "@nodetool-ai/timeline";
+import { reflowGenerated } from "../../stores/timeline/transcriptOps";
 import { isTimelineDocumentDirty } from "./useTimelineAutosave";
 import { applyTimelineSequenceToStore } from "./useLoadTimelineIntoStore";
 
@@ -64,6 +70,28 @@ function replaceById<T extends { id: string }>(
     ? items.map((item) => (item.id === incoming.id ? incoming : item))
     : [...items, incoming];
 }
+
+type TimelineTypedDocument = Pick<
+  TimelineStoreState,
+  | "tracks"
+  | "clips"
+  | "markers"
+  | "transcript"
+  | "scriptEnabled"
+  | "fps"
+  | "width"
+  | "height"
+>;
+
+/**
+ * The timeline merge adapter keeps unit values intact, but exposes them as
+ * `unknown[]` so the shared engine can serve other document types. Every
+ * document passed here originated from the typed timeline store or fetched
+ * timeline response, so this is the single conversion back to store types.
+ */
+const timelineTypedDocumentOf = (
+  document: TimelineMergeDoc
+): TimelineTypedDocument => document as unknown as TimelineTypedDocument;
 
 function applyAcceptedConflict(
   state: TimelineStoreState,
@@ -274,19 +302,75 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
           const temporal = timelineTemporalOf(store);
           temporal.pause();
           try {
-            store.getState().applyExternalMerge({
-              tracks: doc.tracks as TimelineStoreState["tracks"],
-              clips: doc.clips as TimelineStoreState["clips"],
-              markers: doc.markers as TimelineStoreState["markers"],
-              transcript: doc.transcript as TimelineStoreState["transcript"],
-              scriptEnabled: doc.scriptEnabled,
-              fps: doc.fps,
-              width: doc.width,
-              height: doc.height
-            });
+            store.getState().applyExternalMerge(timelineTypedDocumentOf(doc));
           } finally {
             temporal.resume();
           }
+
+          // External values adopted by the merge must also be reflected in
+          // both undo directions. Otherwise undo restores a checkpoint from
+          // before the agent write and removes the agent's clips or tracks.
+          // Conflicted units are unchanged in `doc`, so their old checkpoint
+          // values remain available for the user's later accept/discard choice.
+          const beforeDoc: TimelineMergeDoc = {
+            tracks: before.tracks,
+            clips: before.clips,
+            markers: before.markers,
+            transcript: before.transcript,
+            scriptEnabled: before.scriptEnabled,
+            fps: before.fps,
+            width: before.width,
+            height: before.height
+          };
+          // Use the merge result before applyExternalMerge reflows generated
+          // clips. Reflow is derived state and must be applied independently
+          // to every rebased checkpoint, or it would overwrite a user's
+          // historical clip positions with the current merged layout.
+          const afterDoc: TimelineMergeDoc = doc;
+          const rebaseSnapshots = (
+            snapshots: readonly TimelinePartializedState[]
+          ): TimelinePartializedState[] => {
+            const rebased = rebaseDocumentSnapshots(
+              snapshots.map((snapshot) => ({
+                tracks: snapshot.tracks,
+                clips: snapshot.clips,
+                markers: snapshot.markers,
+                transcript: snapshot.transcript,
+                scriptEnabled: snapshot.scriptEnabled,
+                fps: before.fps,
+                width: before.width,
+                height: before.height
+              })),
+              beforeDoc,
+              afterDoc,
+              timelineMergeAdapter
+            );
+            return snapshots.map((snapshot, index) => {
+              const next = rebased[index];
+              if (!next) return snapshot;
+              const typedNext = timelineTypedDocumentOf(next);
+              const trackIds = new Set(
+                typedNext.tracks.map((track) => track.id)
+              );
+              const reflowed = reflowGenerated(
+                typedNext.clips.filter((clip) => trackIds.has(clip.trackId))
+              );
+              return {
+                ...snapshot,
+                tracks: typedNext.tracks,
+                clips: reflowed.clips,
+                markers: typedNext.markers,
+                transcript: typedNext.transcript,
+                scriptEnabled: typedNext.scriptEnabled,
+                durationMs: reflowed.durationMs
+              } satisfies TimelinePartializedState;
+            });
+          };
+          const rebasedTemporal = timelineTemporalOf(store);
+          store.temporal.setState({
+            pastStates: rebaseSnapshots(rebasedTemporal.pastStates),
+            futureStates: rebaseSnapshots(rebasedTemporal.futureStates)
+          });
           // The merge base for the next external change is what the SERVER
           // now holds — not the merged draft; snapshotting the draft here
           // would let a second external write clobber local clip edits —
@@ -297,16 +381,10 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
           // never be taken again.
           store
             .getState()
-            .setBaseUpdatedAt(sequence.updatedAt, {
-              tracks: nextBase.tracks as TimelineStoreState["tracks"],
-              clips: nextBase.clips as TimelineStoreState["clips"],
-              markers: nextBase.markers as TimelineStoreState["markers"],
-              transcript: nextBase.transcript as TimelineStoreState["transcript"],
-              scriptEnabled: nextBase.scriptEnabled,
-              fps: nextBase.fps,
-              width: nextBase.width,
-              height: nextBase.height
-            });
+            .setBaseUpdatedAt(
+              sequence.updatedAt,
+              timelineTypedDocumentOf(nextBase)
+            );
 
           useConflictStore.getState().addConflicts(
             timelineConflictKey(sequenceId),

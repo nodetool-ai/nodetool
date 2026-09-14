@@ -240,6 +240,21 @@ export class Workflow extends DBModel {
   }
 
   /**
+   * Find a workflow the caller may edit. Public access and viewer grants are
+   * deliberately excluded because they only authorize reading and running.
+   */
+  static async findForEdit(
+    userId: string,
+    workflowId: string
+  ): Promise<Workflow | null> {
+    const wf = await Workflow.get<Workflow>(workflowId);
+    if (!wf) return null;
+    if (wf.user_id === userId) return wf;
+    const grant = await WorkflowCollaborator.findFor(wf.id, userId);
+    return grant?.role === "editor" ? wf : null;
+  }
+
+  /**
    * Delete a workflow the caller owns, together with everything that grants
    * access to it.
    *

@@ -26,8 +26,11 @@ import {
   clearHistory,
   canUndo,
   canRedo,
+  rebaseHistoryForMerge,
   type HistoryMap
 } from "../documentHistory";
+import { rebaseDocumentSnapshots } from "../documentMerge";
+import { scriptMergeAdapter, type ScriptMergeDoc } from "./merge";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -459,12 +462,29 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
     }),
 
   applyMerged: (id, script) =>
-    set((state) => ({
-      scripts: {
-        ...state.scripts,
-        [id]: { ...script, id, updatedAt: Date.now() }
-      }
-    })),
+    set((state) => {
+      const previous = state.scripts[id];
+      const rebase = previous
+        ? rebaseHistoryForMerge(state.history, id, (checkpoint) => {
+            // SAFETY: ScriptDraft and ScriptMergeDoc contain the same merged
+            // fields; the former retains store metadata alongside them.
+            const [rebased] = rebaseDocumentSnapshots(
+              [checkpoint as unknown as ScriptMergeDoc],
+              previous as unknown as ScriptMergeDoc,
+              script as unknown as ScriptMergeDoc,
+              scriptMergeAdapter
+            );
+            return rebased as unknown as ScriptDraft;
+          })
+        : state.history;
+      return {
+        scripts: {
+          ...state.scripts,
+          [id]: { ...script, id, updatedAt: Date.now() }
+        },
+        history: rebase
+      };
+    }),
 
   removeScript: (id) =>
     set((state) => {

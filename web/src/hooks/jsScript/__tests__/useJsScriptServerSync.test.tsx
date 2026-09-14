@@ -406,6 +406,96 @@ describe("useJsScriptServerSync merge", () => {
     expect(entry?.document.code).toBe("return 'other tab';");
   });
 
+  it.each(["input", "output", "test"] as const)(
+    "accepts an external deletion of a locally edited %s as an undoable deletion",
+    async (kind) => {
+      const document = emptyJsScriptDocument();
+      document.inputs = [
+        { name: "source", type: "str" },
+        { name: "keep", type: "int" }
+      ];
+      document.outputs = [
+        { name: "result", type: "str" },
+        { name: "keep", type: "int" }
+      ];
+      document.tests = [
+        { name: "case", inputs: {} },
+        { name: "keep", inputs: {} }
+      ];
+      const response = { ...serverScript("rev-1"), document };
+      getQuery.mockResolvedValue(response);
+      const rendered = renderHook(() => {
+        useJsScriptServerSync("js-1");
+        return useConflictStore((state) => state.byKey["jsscript:js-1"]);
+      });
+      await loaded();
+
+      act(() => {
+        const store = useJsScriptStore.getState();
+        if (kind === "input") {
+          store.setPorts("js-1", {
+            inputs: [
+              { name: "source", type: "int" },
+              { name: "keep", type: "int" }
+            ]
+          });
+        } else if (kind === "output") {
+          store.setPorts("js-1", {
+            outputs: [
+              { name: "result", type: "int" },
+              { name: "keep", type: "int" }
+            ]
+          });
+        } else {
+          store.setTests("js-1", [
+            { name: "case", inputs: { value: 1 } },
+            { name: "keep", inputs: {} }
+          ]);
+        }
+      });
+      const changed = structuredClone(document);
+      if (kind === "input") changed.inputs = [changed.inputs[1]];
+      if (kind === "output") changed.outputs = [changed.outputs[1]];
+      if (kind === "test") changed.tests = [changed.tests[1]];
+      getQuery.mockResolvedValue({ ...response, document: changed, updatedAt: "rev-2" });
+      await act(async () => {
+        handleDocumentResourceChange("jsscript", {
+          event: "updated", id: "js-1", updatedAt: "rev-2",
+          ops: [{ tool: kind === "test" ? "set_tests" : "set_ports", input: {} }]
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      await waitFor(() =>
+        expect(rendered.result.current?.conflicts).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              unit: expect.objectContaining({
+                kind,
+                id: kind === "test" ? "case" : kind === "input" ? "source" : "result"
+              }),
+              external: null
+            })
+          ])
+        )
+      );
+      const conflict = rendered.result.current?.conflicts.find((item) => item.unit.kind === kind);
+      expect(conflict).toBeDefined();
+      act(() => useConflictStore.getState().accept("jsscript:js-1", conflict!.unit.id));
+      const current = useJsScriptStore.getState().scripts["js-1"]!.document;
+      const currentUnits = kind === "input" ? current.inputs : kind === "output" ? current.outputs : current.tests;
+      expect(currentUnits.map((unit) => unit.name)).toEqual(["keep"]);
+      act(() => useJsScriptStore.getState().undo("js-1"));
+      const restored = useJsScriptStore.getState().scripts["js-1"]!.document;
+      const restoredUnits = kind === "input" ? restored.inputs : kind === "output" ? restored.outputs : restored.tests;
+      expect(restoredUnits.map((unit) => unit.name)).toEqual([kind === "input" ? "source" : kind === "output" ? "result" : "case", "keep"]);
+      if (kind === "input") expect(restored.inputs[0]?.type).toBe("int");
+      if (kind === "output") expect(restored.outputs[0]?.type).toBe("int");
+      if (kind === "test") expect(restored.tests[0]?.inputs).toEqual({ value: 1 });
+      rendered.unmount();
+    }
+  );
+
   it("rolls the store's CAS token when an unattributed write lands mid-save", async () => {
     let resolveSave: (value: { updatedAt: string }) => void = () => {};
     updateMutate.mockImplementationOnce(

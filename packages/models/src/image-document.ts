@@ -38,6 +38,10 @@ export interface ImageDocumentMutationResult<T> {
   result: T;
 }
 
+type ImageDocumentMutationMeta<T> =
+  | ModelChangeMeta
+  | ((result: T) => ModelChangeMeta | undefined);
+
 export class ImageDocumentConflictError extends Error {
   constructor(id: string) {
     super(`Image document ${id} was modified concurrently`);
@@ -322,7 +326,7 @@ export class ImageDocument extends DBModel {
       document: ImageDocument
     ) => T | Promise<T>,
     maxRetries = 5,
-    meta?: ModelChangeMeta
+    meta?: ImageDocumentMutationMeta<T>
   ): Promise<ImageDocumentMutationResult<T> | null> {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       const doc = await ImageDocument.get<ImageDocument>(id);
@@ -332,11 +336,15 @@ export class ImageDocument extends DBModel {
 
       const data = doc.toDocumentData();
       const result = await mutator(data, doc);
+      // A failed CAS attempt never notifies observers, so its attempt-specific
+      // metadata is discarded along with its document data.
+      const changeMeta =
+        typeof meta === "function" ? meta(result) : meta;
       const updated = await ImageDocument.updateDocumentDataIfUnchanged(
         id,
         doc.updated_at,
         data,
-        meta
+        changeMeta
       );
       if (updated) {
         return { document: updated, result };

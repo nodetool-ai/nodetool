@@ -186,14 +186,24 @@ export function createDocumentSyncController<TDraft>(
     },
     flush: async () => {
       clearTimer();
-      let waitedForSave = false;
-      while (inFlight) {
-        waitedForSave = true;
-        await inFlight;
+      // A flush takes ownership of the current write boundary. A save may
+      // have captured an older draft while the user continued editing, so
+      // wait for its result and then explicitly save the newest dirty draft.
+      // Keep the follow-up flags out of the way while doing that to avoid a
+      // second timer-driven save racing the flush.
+      if (inFlight) {
+        followupRequested = false;
+        const result = await inFlight;
+        if (!result.ok) return result;
+        // A failed active save may have armed the bounded retry timer. Keep
+        // that retry intact when flush reports the failure to its caller.
+        clearTimer();
+        followupRequested = false;
+        if (!adapter.isDirty()) return result;
       }
-      if (waitedForSave) {
-        return { ok: true, updatedAt: adapter.getRevision() };
-      }
+      // One explicit follow-up is enough to cover edits made during the
+      // active save. Adapters report their own dirty state, but a malformed
+      // adapter that leaves it true must not make flush spin forever.
       return save(true);
     },
     dispose: () => {

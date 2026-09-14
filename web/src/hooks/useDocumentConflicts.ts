@@ -25,7 +25,9 @@ function conflictBannerLabel(conflict: MergeConflict): string {
     case "replaced":
       return "The whole document was replaced outside the editor";
     case "deleted":
-      return `${conflict.unit.label} — deleted outside while you were editing it`;
+      return conflict.external === null
+        ? `${conflict.unit.label} — deleted outside while you were editing it`
+        : `${conflict.unit.label} — changed outside after you deleted it`;
     case "dangling":
       return `${conflict.unit.label} — refers to something you deleted`;
     default:
