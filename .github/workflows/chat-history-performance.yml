@@ -48,6 +48,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build workspace packages
+        run: npm run build:packages
+
       - name: Type-check Playwright suites
         working-directory: web
         run: npm run typecheck:playwright

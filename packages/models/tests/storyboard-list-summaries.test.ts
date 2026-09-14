@@ -8,7 +8,7 @@
  * both that the count is right and that the query never hands back a document.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { getDb, initTestDb } from "../src/db.js";
 import { storyboards } from "../src/schema/storyboards.js";
 import {
@@ -68,6 +68,10 @@ async function insertRaw(name: string, document: string): Promise<void> {
 describe("Storyboard.listSummaries", () => {
   beforeEach(async () => {
     await initTestDb();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("counts the shots in the stored document", async () => {
@@ -154,13 +158,24 @@ describe("Storyboard.listSummaries", () => {
   });
 
   it("returns the most recently updated first, within the limit", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
     const first = await seed("first");
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.002Z"));
     await seed("second");
     // A save moves `updated_at` forward, so touching the older row reorders it.
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.002Z"));
     first.name = "first touched";
     await first.save();
 
     const rows = await Storyboard.listSummaries({ userId: OWNER, limit: 1 });
+
+    const allRows = await Storyboard.listSummaries({ userId: OWNER });
+    const touched = allRows.find((row) => row.name === "first touched");
+    const second = allRows.find((row) => row.name === "second");
+    expect(Date.parse(touched!.updatedAt)).toBeGreaterThan(
+      Date.parse(second!.updatedAt)
+    );
 
     expect(rows.map((r) => r.name)).toEqual(["first touched"]);
   });
