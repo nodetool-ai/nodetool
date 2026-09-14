@@ -30,6 +30,7 @@ export interface ReportRecord {
   artifacts: Array<{ name: string; contentType: string; dataUrl?: string; uri?: string }>;
   logs: Array<{ ts: number; level?: string; content: string }>;
   nodeIO: Record<string, { node_type?: string; status?: string; error?: string | null }>;
+  allowedNodeErrors?: string[];
   counts: { nodes: number; outputs: number; errors: number; edgeUpdates: number };
   expectationFailures: string[];
   screenshot?: string;

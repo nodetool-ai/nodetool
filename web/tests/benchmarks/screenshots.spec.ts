@@ -1314,18 +1314,6 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "editor-context-menu.png");
     });
 
-    test("Editor – workflow assistant", async ({ page }) => {
-      test.skip(
-        shouldSkip("editor-workflow-assistant.png"),
-        "Already captured"
-      );
-      await openEditorWithNodes(page, {
-        right: { visible: true, activeView: "assistant" }
-      });
-      await waitForAnimation(page, 800);
-      await saveScreenshot(page, "editor-workflow-assistant.png");
-    });
-
     // ── Entities (ingredients library) ─────────────────────────────────────
     //
     // Entities are image assets tagged as characters / locations / styles /
