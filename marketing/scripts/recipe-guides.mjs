@@ -103,32 +103,32 @@ export const recipeGuides = {
   "ugc-product-video": {
     name: "UGC product video",
     outcome:
-      "Turn creator and product references into a polished 15-second vertical testimonial with native voice, animated captions, and a branded close.",
+      "Turn creator and product references into a casual 15-second vertical video with native voice and playful caption animation.",
     audience: "Founder-led brands, creators, and paid social teams",
     guide: {
       entry: "UGC Product Video",
       stages: ["Angle", "References", "Generate", "Finish", "Review"],
       introduction:
-        "Keep the creator on camera for the full Reel, generate voice and lip-sync with a compatible native-audio video model, then finish the recording with captions, restrained graphic beats, and an exact branded close. The finished sample used Seedance 2.5 on AtlasCloud.",
+        "Start with a small, believable observation. Keep the creator on camera, generate the voice and picture together, then time captions and a visual joke to the recording. In this example, six cup outlines become seven when she admits to buying another.",
       inputs: [
         "One vertical creator image you have permission to send to the selected video provider",
         "One clean product reference you have permission to send to the selected video provider",
         "Approved product facts and one audience",
-        "An exact brand name and slogan",
+        "An optional brand name and closing line",
         "An optional brand accent color",
         "OpenAI and a compatible native-audio video provider configured in NodeTool"
       ],
       brief:
-        "Create a 15-second vertical UGC testimonial with the creator speaking to camera throughout. Choose a native-audio reference-to-video model that accepts two ordered images, then generate voice, mouth movement, and picture together in one pass. Image 1 controls the creator and room. Image 2 controls only the product. Keep the cup fully out of frame from 0.0 to 4.5 seconds, show it once from 4.5 to 7.0 seconds without blocking the face, and keep it fully out of frame from 7.0 to 15.0 seconds. Preserve the phone-shot character of the source. Do not add generated logos, music, unsupported claims, or cutaway product shots.",
-      note: "The app sends both reference images to the selected video provider. The finished sample used Seedance 2.5 on AtlasCloud. The app does not license a person's likeness or product artwork. The performance and product motion are generative and must be checked before publishing.",
+        "Create a 15-second vertical kitchen video with natural phone framing and dry, conversational delivery. Image 1 controls the creator and room. Image 2 controls only the product. She says: \"I bought this because it's green. That's it.\" She lifts the cup to chest height and keeps her mouth visible. Continue: \"I already have, like, six cups.\" Then: \"But apparently I needed a green one.\" End with a small smile: \"Look how nice.\" Generate the voice and picture together in one clip with continuous kitchen room tone and no music. Add captions and cup-count animation afterward.",
+      note: "This example uses a supplied Dreamina recording and a custom local caption and animation pass. The app sends reference images to the selected video provider. The performance and product motion are generative and need review before publishing.",
       steps: [
         {
           id: "angle",
           phase: "Angle",
           stage: "Three routes",
-          title: "Choose one believable promise",
+          title: "Choose one believable observation",
           description:
-            "Describe the offer and compare the plain, playful, and premium routes. Pick one product truth that can be shown on camera. Rewrite it as a curiosity-led hook and a short verdict rather than reading the ad copy verbatim.",
+            "Describe the product and compare the plain, playful, and premium routes. Give the creator something specific to say. Here, buying another cup just because it is green becomes the whole joke.",
           action: "Explore three angles"
         },
         {
@@ -137,7 +137,7 @@ export const recipeGuides = {
           stage: "Reference image",
           title: "Lock the creator before generating",
           description:
-            "Use a vertical image with a clear face, natural light, and the intended room. Keep the product out of this reference so the opening can begin on the creator alone.",
+            "Use a vertical image with a clear face, everyday clothing, ordinary window light, and the intended room. Keep the product out of this reference so its entrance can be directed separately.",
           action: "Add the creator image"
         },
         {
@@ -155,15 +155,15 @@ export const recipeGuides = {
           stage: "15-second script",
           title: "Write and generate in one pass",
           description:
-            "Keep the hook short enough to land before 4.5 seconds, support it with one or two product truths, and end with one recommendation. The selected native-audio model generates the dialogue, voice, lip-sync, and picture together. The finished sample used Seedance 2.5 on AtlasCloud.",
-          action: "Make the 15-second testimonial",
+            "Write short quoted lines and give each one a physical beat. Keep the voice and kitchen sound continuous across the clip. Leave room for a pause before the punchline. The example recording was supplied from Dreamina.",
+          action: "Make the 15-second video",
           image: {
-            src: "/apps/examples/ugc-product-video/motion-caption.jpg",
-            alt: "MORROW creator Reel with an opening brand bug and word-highlighted animated caption.",
+            src: "/recipes/runs/2026-09-14-ugc-cup/captions.jpg",
+            alt: "Creator holding the cup above the caption six cups and six small cup outlines.",
             caption:
-              "Short caption groups enter on the recorded words. The sage highlight follows the active word without covering the creator's face.",
-            width: 768,
-            height: 1344
+              "Short caption groups follow the recorded speech. Six cup outlines arrive with a brief stagger.",
+            width: 720,
+            height: 1280
           }
         },
         {
@@ -172,15 +172,15 @@ export const recipeGuides = {
           stage: "Motion + captions",
           title: "Finish the Reel",
           description:
-            "Choose the polished or minimal caption treatment and an optional accent color. The workflow transcribes the generated audio, animates readable caption groups, adds restrained brand motion, and settles into the closing lockup around 12.8 seconds.",
+            "Time readable caption groups to the recorded words. Add green underlines to the colour references, then bring in a seventh olive cup on the punchline. Keep the graphics below the face and preserve the original voice and room sound.",
           action: "Add motion + captions",
           image: {
-            src: "/apps/examples/ugc-product-video/final-poster.jpg",
-            alt: "MORROW creator Reel at 12.8 seconds with animated caption styling and the finished brand close.",
+            src: "/recipes/runs/2026-09-14-ugc-cup/poster.jpg",
+            alt: "The caption I needed a green one appears above six cup outlines and a seventh olive cup.",
             caption:
-              "The 12.8-second frame shows the finished close. Caption words and timing remain reviewable before publishing.",
-            width: 768,
-            height: 1344
+              "The seventh cup gives the spoken joke a visual payoff. The original performance stays visible.",
+            width: 720,
+            height: 1280
           }
         },
         {
@@ -189,7 +189,7 @@ export const recipeGuides = {
           stage: "Timing and identity",
           title: "Check the complete Reel",
           description:
-            "Watch once for voice and lip-sync, then once muted for caption rhythm and graphic placement. Scrub the product entrance, product exit, and 12.8-second close. Correct any caption that differs from the recorded words before publishing.",
+            "Watch once for voice and lip-sync, then once muted for caption rhythm and graphic placement. Check the cup entrance, the six-to-seven animation, and the final smile. Correct any caption that differs from the recorded words before publishing.",
           action: "Approve or regenerate"
         }
       ]

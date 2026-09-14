@@ -2,7 +2,7 @@
 import { recipeGuides } from "./recipe-guides.mjs";
 const tinyCrewRoot = "/recipes/runs/2026-09-12-tiny-film-crew";
 const runRoot = "/recipes/runs/2026-09-10-marketing-recipes-01";
-const ugcRoot = "/apps/examples/ugc-product-video";
+const ugcRoot = "/recipes/runs/2026-09-14-ugc-cup";
 
 export const recipePresentation = [
   {
@@ -13,52 +13,52 @@ export const recipePresentation = [
     slug: "ugc-product-video",
     heroThumbnail: "/apps/ugc-product-video.png",
     productionRun: {
-      runId: "2026-09-13-ugc-product-video",
+      runId: "2026-09-14-ugc-cup",
       status: "accepted",
       statusLabel: "15-second native-audio UGC Reel",
       proofTitle: "One take, finished for social.",
       summary:
-        "A creator testimonial with word-timed captions, restrained brand motion, and a clean MORROW close.",
+        "A small impulse purchase becomes a playful kitchen video, with animated captions and a seventh cup joining the collection.",
       provider:
-        "Seedance 2.5 via AtlasCloud. Captions and motion finished in NodeTool.",
+        "Seedance video supplied from Dreamina. Captions and animation added locally.",
       hero: {
-        src: `${ugcRoot}/motion-close.jpg`,
-        alt: "MORROW UGC Reel at the finished brand close.",
-        width: 768,
-        height: 1344
+        src: `${ugcRoot}/close.jpg`,
+        alt: "Creator holding an olive travel cup with the caption Look how nice.",
+        width: 720,
+        height: 1280
       },
       card: {
-        src: `${ugcRoot}/motion-caption.jpg`,
-        alt: "Creator testimonial with a short word-highlighted caption group.",
-        width: 768,
-        height: 1344
+        src: `${ugcRoot}/poster.jpg`,
+        alt: "Creator holding an olive cup above animated captions and seven cup icons.",
+        width: 720,
+        height: 1280
       },
-      ogImage: `${ugcRoot}/motion-close.jpg`,
+      ogImage: `${ugcRoot}/poster.jpg`,
       proof: {
-        src: `${ugcRoot}/motion-caption.jpg`,
-        alt: "MORROW creator Reel with an opening brand bug and word-highlighted caption.",
+        src: `${ugcRoot}/captions.jpg`,
+        alt: "The caption six cups appears above six small cup outlines.",
         caption:
-          "The finish follows the recorded words and keeps captions clear of the creator's face.",
-        width: 768,
-        height: 1344
+          "Six cup outlines appear with the joke. A seventh olive cup joins them on the next line.",
+        width: 720,
+        height: 1280
       },
       video: {
         mp4: `${ugcRoot}/final.mp4`,
         webm: null,
-        poster: `${ugcRoot}/final-poster.jpg`,
+        poster: `${ugcRoot}/poster.jpg`,
         hasAudio: true,
         caption:
-          "The finished 15-second MORROW UGC Reel, with native audio, animated captions, and brand motion."
+          "A 15-second kitchen UGC video with animated captions, green underlines, and the original voice and room sound."
       },
       supportedClaims: [
-        "Seedance 2.5 generated the native-audio testimonial from creator and product references through AtlasCloud.",
-        "The finishing workflow transcribed the recording into word-timed captions and added the opening bug, compact product callout, and brand close.",
-        "The final MP4 is 768×1344 at 24 fps, runs for 15 seconds, and includes audio."
+        "The supplied Dreamina recording shows the creator talking about buying another cup because it is green.",
+        "The local finishing pass added timed caption groups, animated green underlines, and six cup outlines followed by a seventh olive cup.",
+        "The final MP4 is 720×1280, runs for 15.07 seconds, and preserves the source audio without re-encoding."
       ],
       essentialLimitation:
         "Generated product details, lip-sync, factual claims, and caption words still need review before publishing.",
       limitations: [
-        "MORROW and the Olive Travel Cup are fictional sample brands.",
+        "The Olive Travel Cup is a fictional demonstration product.",
         "The model-generated performance may not reproduce every product detail exactly."
       ]
     }
