@@ -325,7 +325,6 @@ function buildRecipe(spec, byExampleName) {
       heroThumbnail:
         spec.heroThumbnail ??
         steps.find((s) => s.entry.name === spec.hero).step.thumbnail,
-      bundle: `/recipes/${spec.slug}.nodetool`,
       workflowCount: steps.length,
       nodeCount: steps.reduce((n, s) => n + s.step.nodeCount, 0),
       keys: providers.map((id) => ({ provider: id, env: PROVIDER_ENV[id] })),

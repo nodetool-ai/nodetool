@@ -8,7 +8,46 @@ import type { RecipeEntry } from "./recipes";
 export const recipeEntries: RecipeEntry[] = [
   {
     "sample": null,
-    "productionRun": null,
+    "productionRun": {
+      "runId": "2026-09-14-directed-campaign-kit-gpt25",
+      "status": "accepted",
+      "statusLabel": "Four-format directed campaign",
+      "proofTitle": "Carry the momentum.",
+      "summary": "One clean cup reference becomes a kinetic launch world, two social formats, and a bounded revision.",
+      "provider": "GPT Image 2.5 Sunburst generated and revised the campaign through AtlasCloud in NodeTool.",
+      "hero": {
+        "src": "/recipes/runs/2026-09-14-directed-campaign-kit-gpt25/hero.png",
+        "alt": "Olive travel cup on a cobalt platform above mirrored water at an amber mountain sunrise.",
+        "width": 2048,
+        "height": 1152
+      },
+      "card": {
+        "src": "/recipes/runs/2026-09-14-directed-campaign-kit-gpt25/social-square.png",
+        "alt": "Square campaign image of an olive travel cup against cobalt architecture and an amber sunrise.",
+        "width": 2048,
+        "height": 2048
+      },
+      "ogImage": "/recipes/runs/2026-09-14-directed-campaign-kit-gpt25/hero.png",
+      "proof": {
+        "src": "/recipes/runs/2026-09-14-directed-campaign-kit-gpt25/story.png",
+        "alt": "Vertical campaign image with an olive travel cup framed below a mountain sunrise.",
+        "caption": "The vertical format preserves the approved product, palette, platform, water, and sunrise.",
+        "width": 1152,
+        "height": 2048
+      },
+      "video": null,
+      "supportedClaims": [
+        "GPT Image 2.5 Sunburst generated the 2048×1152 hero through AtlasCloud.",
+        "The matching GPT Image 2.5 edit model produced the square, vertical, clean-reference, and controlled-revision images.",
+        "The revision request changed only splash intensity and left-side copy space while asking the model to preserve the product and set."
+      ],
+      "essentialLimitation": "Generated product geometry and material details still need comparison with a real brand reference before publishing.",
+      "limitations": [
+        "The olive travel cup is a fictional, unbranded demonstration product.",
+        "The example records selected outputs rather than every direction or rejected take."
+      ],
+      "reviewLabel": "Reviewed example"
+    },
     "guide": {
       "entry": "Directed Campaign Kit",
       "stages": [
@@ -18,14 +57,14 @@ export const recipeEntries: RecipeEntry[] = [
         "Formats",
         "Revision"
       ],
-      "introduction": "Upload a product image. The app writes the brief and three directions. Approve the hero, then make formats and revisions.",
+      "introduction": "Start with a clean product reference, choose one bold visual world, then carry it through a hero, social formats, and a controlled revision.",
       "inputs": [
         "One clear product image",
         "Optional campaign steer or reference image",
         "Language and image models configured in NodeTool"
       ],
-      "brief": "Create a campaign for the product in the supplied image. Infer a concise product name, audience, message, headline, and call to action. Propose three distinct visual directions. Keep the product recognizable and avoid unsupported performance claims.",
-      "note": "The product image is the only required input. Add exact copy or audience details before uploading when they must not be inferred. Model selection stays available in the app.",
+      "brief": "Create a premium launch campaign for the fictional olive travel cup in the supplied image. Audience: design-conscious commuters who want everyday objects to feel energizing. Message: carry momentum into the day. Visual direction: an olive cup on a cobalt circular platform above mirrored water, framed by monumental curved architecture and an amber mountain sunrise. Freeze fine droplets and use one diagonal streak of light for motion. Keep the exact cup recognizable. Leave clean dark-blue space for editable copy. No generated text, logos, extra cups, handles, or performance claims. Deliver a 16:9 hero, 1:1 social card, 9:16 story frame, and one controlled hero revision with reduced splash and wider copy space.",
+      "note": "GPT Image 2.5 Sunburst generated the hero through AtlasCloud. The square, story, revision, and clean product-reference frames were derived with the matching GPT Image 2.5 edit model. The cup is a fictional demonstration product and all copy remains editable outside the generated artwork.",
       "steps": [
         {
           "id": "upload",
@@ -33,7 +72,14 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "Product image",
           "title": "Start with the product",
           "description": "Open Directed Campaign Kit. Add an optional campaign steer first, then upload one clear product image. Uploading starts the language-model roundtrip automatically.",
-          "action": "Upload the product image"
+          "action": "Upload the product image",
+          "image": {
+            "src": "/recipes/runs/2026-09-14-directed-campaign-kit-gpt25/steps/01-product.jpg",
+            "width": 1600,
+            "height": 900,
+            "alt": "Clean olive travel cup product reference beside the approved campaign world.",
+            "caption": "A clean reference fixes the cup's olive body, charcoal lid, silhouette, and finish before direction begins."
+          }
         },
         {
           "id": "review",
@@ -41,7 +87,14 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "AI draft",
           "title": "Review the filled brief",
           "description": "Check the inferred product name, audience, message, headline, and call to action. Edit any value that must be exact. The app keeps your non-empty values when you ask it to analyze again.",
-          "action": "Approve or edit the brief"
+          "action": "Approve or edit the brief",
+          "image": {
+            "src": "/recipes/runs/2026-09-14-directed-campaign-kit-gpt25/steps/02-brief.jpg",
+            "width": 1600,
+            "height": 900,
+            "alt": "Directed Campaign Kit interface ready for a product image and campaign steer.",
+            "caption": "The mini app turns one product image and an optional steer into the campaign brief and directions."
+          }
         },
         {
           "id": "direction",
@@ -49,7 +102,14 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "A, B, or C",
           "title": "Choose one visual direction",
           "description": "Compare the three written directions before generating an image. Select the route that best expresses the message and gives the product a clear role in the composition.",
-          "action": "Choose a direction"
+          "action": "Choose a direction",
+          "image": {
+            "src": "/recipes/runs/2026-09-14-directed-campaign-kit-gpt25/steps/03-direction.jpg",
+            "width": 1600,
+            "height": 900,
+            "alt": "Olive cup reference paired with the selected cobalt water and amber sunrise direction.",
+            "caption": "The selected route keeps the product quiet and precise inside a much more energetic world."
+          }
         },
         {
           "id": "hero",
@@ -57,15 +117,29 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "Generate",
           "title": "Generate and approve the hero",
           "description": "Open Optional steering and models if you want a specific image model. Generate the 16:9 hero, compare it with the product image, and accept it only when identity, copy, and composition are sound.",
-          "action": "Accept the hero"
+          "action": "Accept the hero",
+          "image": {
+            "src": "/recipes/runs/2026-09-14-directed-campaign-kit-gpt25/steps/04-hero.jpg",
+            "width": 1600,
+            "height": 900,
+            "alt": "Wide campaign hero with an olive travel cup above mirrored water at sunrise.",
+            "caption": "The accepted 16:9 hero leaves dark-blue space on the left for editable campaign copy."
+          }
         },
         {
           "id": "formats",
           "phase": "Formats",
-          "stage": "4:5 and 9:16",
+          "stage": "1:1 and 9:16",
           "title": "Build the campaign formats",
-          "description": "Create portrait and story versions from the accepted hero. The app keeps the copy editable and exports a campaign record that can reopen the project later.",
-          "action": "Build the formats"
+          "description": "Create square and story versions from the accepted hero. The app keeps the copy editable and exports a campaign record that can reopen the project later.",
+          "action": "Build the formats",
+          "image": {
+            "src": "/recipes/runs/2026-09-14-directed-campaign-kit-gpt25/steps/05-formats.jpg",
+            "width": 1600,
+            "height": 900,
+            "alt": "Square and vertical campaign formats derived from the same olive cup hero.",
+            "caption": "The 1:1 and 9:16 versions preserve the product, cobalt platform, water, and amber sunrise."
+          }
         },
         {
           "id": "revision",
@@ -73,22 +147,28 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "Compare",
           "title": "Direct one bounded revision",
           "description": "Describe one change, what must stay fixed, and what may respond. Choose the revision model if needed, generate the take, then compare it with the accepted original before choosing a final version.",
-          "action": "Accept the original or revision"
+          "action": "Accept the original or revision",
+          "image": {
+            "src": "/recipes/runs/2026-09-14-directed-campaign-kit-gpt25/steps/06-revision.jpg",
+            "width": 1600,
+            "height": 900,
+            "alt": "Original and revised wide campaign heroes shown side by side.",
+            "caption": "The revision changes only the splash intensity and left-side copy space while holding the product and set fixed."
+          }
         }
       ]
     },
     "route": "/recipes/directed-campaign-kit",
     "title": "Directed campaign kit | NodeTool guided recipe",
-    "description": "Turn one product image into an approved campaign hero, two ready-to-edit formats, and one controlled revision.",
+    "description": "Turn one product image into a kinetic campaign hero, coordinated social formats, and one controlled revision.",
     "priority": 0.8,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "directed-campaign-kit",
     "name": "Directed campaign kit",
-    "outcome": "Turn one product image into an approved campaign hero, two ready-to-edit formats, and one controlled revision.",
+    "outcome": "Turn one product image into a kinetic campaign hero, coordinated social formats, and one controlled revision.",
     "audience": "Small brand and social teams",
     "heroThumbnail": "/apps/directed-campaign-kit.png",
-    "bundle": "/recipes/directed-campaign-kit.nodetool",
     "workflowCount": 3,
     "nodeCount": 40,
     "keys": [
@@ -313,7 +393,6 @@ export const recipeEntries: RecipeEntry[] = [
     "outcome": "Turn creator and product references into a 15-second day-in-the-life story where a cup becomes a reassuring companion.",
     "audience": "Founder-led brands, creators, and paid social teams",
     "heroThumbnail": "/apps/ugc-product-video.png",
-    "bundle": "/recipes/ugc-product-video.nodetool",
     "workflowCount": 3,
     "nodeCount": 21,
     "keys": [
@@ -564,7 +643,6 @@ export const recipeEntries: RecipeEntry[] = [
     "outcome": "Give your product a story. Direct the shots, shape the sound, and finish your ad in the timeline.",
     "audience": "Product and brand marketing teams",
     "heroThumbnail": "/templates/hook-and-thumbnail-factory.jpg",
-    "bundle": "/recipes/viral-video-ad-engine.nodetool",
     "workflowCount": 4,
     "nodeCount": 24,
     "keys": [
@@ -832,7 +910,6 @@ export const recipeEntries: RecipeEntry[] = [
     "outcome": "Review a translation, choose a voice, and edit the delivery line by line. Finish with a new-language voiceover or a separate lip-sync pass.",
     "audience": "Teams adapting videos for another language",
     "heroThumbnail": "/templates/ai-spokesperson.jpg",
-    "bundle": "/recipes/multilingual-video-dubber.nodetool",
     "workflowCount": 5,
     "nodeCount": 27,
     "keys": [
@@ -1138,7 +1215,6 @@ export const recipeEntries: RecipeEntry[] = [
     "outcome": "Turn one product reference into a coordinated set of studio images, seasonal scenes, and a short motion clip.",
     "audience": "Ecommerce and catalogue teams",
     "heroThumbnail": "/templates/put-a-product-on-a-studio-backdrop.jpg",
-    "bundle": "/recipes/ecommerce-sku-visual-factory.nodetool",
     "workflowCount": 6,
     "nodeCount": 29,
     "keys": [
@@ -1433,7 +1509,6 @@ export const recipeEntries: RecipeEntry[] = [
     "outcome": "Turn a story idea into a six-shot storyboard, then develop its voice, motion, and edit in the same workspace.",
     "audience": "Filmmakers and small production teams",
     "heroThumbnail": "/templates/movie-trailer-generator.jpg",
-    "bundle": "/recipes/storyboard-to-trailer.nodetool",
     "workflowCount": 4,
     "nodeCount": 26,
     "keys": [
@@ -1762,7 +1837,6 @@ export const recipeEntries: RecipeEntry[] = [
     "outcome": "Chase a swimmer into a pool hidden in a giant cup, then return to human scale as she drinks from it.",
     "audience": "Brand teams and creative studios",
     "heroThumbnail": "/templates/put-a-product-on-a-studio-backdrop.jpg",
-    "bundle": "/recipes/impossible-product-worlds.nodetool",
     "workflowCount": 1,
     "nodeCount": 7,
     "keys": [

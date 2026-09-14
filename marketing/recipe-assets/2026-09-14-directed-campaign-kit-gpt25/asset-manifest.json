@@ -1,0 +1,28 @@
+{
+  "runId": "2026-09-14-directed-campaign-kit-gpt25",
+  "provider": "AtlasCloud",
+  "model": {
+    "hero": "openai/gpt-image-2.5-sunburst/text-to-image",
+    "derived": "openai/gpt-image-2.5-sunburst/edit"
+  },
+  "generationIds": {
+    "hero": "3e36d0d2-cb3e-4e64-ac1f-57325a2526cd",
+    "socialSquare": "978f65ce-21bf-4085-9cc9-c190c31214fa",
+    "story": "d0b91b67-d569-438d-ad6a-44bac36bc3d9",
+    "revision": "d894c6a7-b486-4de0-b4e7-70b55a864ca3",
+    "productReference": "d373a494-1e28-4668-a7a8-71a9a02f7d33"
+  },
+  "outputs": [
+    { "file": "renders/hero.png", "width": 2048, "height": 1152 },
+    { "file": "renders/social-square.png", "width": 2048, "height": 2048 },
+    { "file": "renders/story.png", "width": 1152, "height": 2048 },
+    { "file": "renders/revision.png", "width": 2048, "height": 1152 },
+    { "file": "renders/product-reference.png", "width": 1024, "height": 1536 }
+  ],
+  "derivedPrompts": {
+    "socialSquare": "Recompose the exact campaign into a square 1:1 social image. Preserve the cup, platform, water, sunrise, architecture, droplets, and grade. Keep upper-left copy space. No generated text or extra products.",
+    "story": "Recompose the exact campaign into a vertical 9:16 story image. Preserve the cup and campaign world. Keep the upper third clear for editable copy. No generated text or extra products.",
+    "revision": "Preserve the product, set, palette, and camera. Reduce the water splash by about half and widen the clean dark-blue copy space on the left.",
+    "productReference": "Isolate the exact cup on a warm off-white seamless background with even light, a soft shadow, and the full silhouette visible."
+  }
+}

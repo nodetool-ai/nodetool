@@ -162,10 +162,8 @@ export interface RecipeEntry extends PageEntry {
   outcome: string;
   audience: string;
   heroThumbnail: string | null;
-  /** Public path to the `.nodetool` bundle. */
-  bundle: string;
   workflowCount: number;
-  /** Nodes across every workflow in the bundle. */
+  /** Nodes across every workflow in the recipe. */
   nodeCount: number;
   keys: RecipeKey[];
   steps: RecipeStep[];
