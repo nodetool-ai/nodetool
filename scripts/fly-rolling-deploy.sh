@@ -51,6 +51,14 @@ READY_STATE_GRACE_SECONDS="${READY_STATE_GRACE_SECONDS:-60}"
 # The migration machine boots the image and runs every pending migration.
 MIGRATE_TIMEOUT_SECONDS="${MIGRATE_TIMEOUT_SECONDS:-600}"
 
+# `machine update` competes with any change Fly is already applying to the same
+# machine: an overlapping workflow run, a retried deploy, or Fly replacing the
+# machine on its own. The API then answers "concurrent update in progress" and
+# flyctl exits 1, which ended an otherwise healthy rollout on a conflict that
+# clears in seconds. Those are retried; every other failure still aborts.
+UPDATE_ATTEMPTS="${UPDATE_ATTEMPTS:-5}"
+UPDATE_RETRY_SECONDS="${UPDATE_RETRY_SECONDS:-10}"
+
 # The drain signal, sent by a pure-shell scan of /proc: the server is not PID 1
 # (docker-entrypoint.sh execs it) and the image ships no procps, so there is no
 # pkill to reach for. The scan skips its own pid — the loop's text contains
@@ -68,6 +76,35 @@ MIGRATE_TIMEOUT_SECONDS="${MIGRATE_TIMEOUT_SECONDS:-600}"
 # Single-quoted here on purpose — every $ inside belongs to the remote shell.
 # shellcheck disable=SC2016
 DRAIN_COMMAND='sh -c "self=$$; signalled=0; for p in /proc/[0-9]*; do pid=${p##*/}; [ $pid = $self ] && continue; if grep -qa server.mjs $p/cmdline 2>/dev/null; then kill -USR2 $pid && echo signalled $pid && signalled=$((signalled + 1)); fi; done; [ $signalled -gt 0 ] || { echo no server.mjs process found >&2; exit 1; }"'
+
+# Update one machine to $IMAGE, retrying only the transient Fly conflicts.
+# The output is captured so it can be matched, then printed either way: a
+# failed update must still show flyctl's own message in the job log.
+update_machine() {
+  local id="$1" attempt=1 delay="$UPDATE_RETRY_SECONDS" output status
+  while :; do
+    set +e
+    output="$(flyctl machine update "$id" --image "$IMAGE" --yes 2>&1)"
+    status=$?
+    set -e
+    printf '%s\n' "$output"
+    if [ "$status" -eq 0 ]; then
+      return 0
+    fi
+    case "$output" in
+      *"concurrent update in progress"*|*"machine is replacing"*|*"lease currently held"*) ;;
+      *) return "$status" ;;
+    esac
+    if [ "$attempt" -ge "$UPDATE_ATTEMPTS" ]; then
+      echo "::error::[$id] update still conflicted with another update after $attempt attempts" >&2
+      return "$status"
+    fi
+    echo "::warning::[$id] update conflicted with an update already in progress; retrying in ${delay}s (attempt $attempt/$UPDATE_ATTEMPTS)"
+    sleep "$delay"
+    attempt=$((attempt + 1))
+    delay=$((delay * 2))
+  done
+}
 
 on_machine() {
   local id="$1" command="$2"
@@ -279,7 +316,10 @@ for id in $MACHINES; do
   echo "==> [$id] updating to $IMAGE"
   # No --wait-timeout: its accepted value format differs across flyctl
   # versions, and the health poll below is the real gate anyway.
-  flyctl machine update "$id" --image "$IMAGE" --yes
+  if ! update_machine "$id"; then
+    echo "::error::[$id] could not update to $IMAGE; aborting the rollout" >&2
+    exit 1
+  fi
 
   # `machine update` preserves a stopped machine's state: it rewrites the
   # config and returns without booting anything. A machine bootstrapped out of
