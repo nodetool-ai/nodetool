@@ -234,9 +234,7 @@ export class ChatPage {
   async send(message: string): Promise<void> {
     await this.composer().click();
     await this.composer().fill(message);
-    await this.page
-      .getByRole("button", { name: "Send", exact: true })
-      .click();
+    await this.composer().press("Enter");
   }
 
   /** Resolves once `text` appears anywhere in the transcript. */
@@ -280,12 +278,12 @@ export class MiniAppPage {
   }
 
   runButton(): Locator {
-    return this.page.getByRole("button", { name: "Run echo" });
+    return this.runtime().getByRole("button", { name: "Run echo" });
   }
 
   /** The app's text input — labelled by the seeded input node's description. */
   promptInput(): Locator {
-    return this.page.getByLabel("Text echoed back by the app");
+    return this.runtime().getByLabel("Text echoed back by the app");
   }
 
   async fillPrompt(value: string): Promise<void> {
@@ -298,10 +296,16 @@ export class MiniAppPage {
 
   /** The Output widget's rendered value, once the run streams one back. */
   async waitForOutput(text: string, timeout = 60_000): Promise<void> {
-    await this.page
+    await this.runtime()
       .getByText(text, { exact: false })
       .first()
       .waitFor({ state: "visible", timeout });
+  }
+
+  private runtime(): Locator {
+    return this.page.locator(
+      '.appbuilder-runtime[data-focus-id="app-runtime"]:visible'
+    );
   }
 }
 
