@@ -1276,6 +1276,145 @@ describe("edit_timeline continues past a failing op", () => {
   });
 });
 
+/**
+ * The take ops (P0 AI Video, PRD § 8) through the real `edit_timeline`
+ * capability round trip — DB persistence and the permission gate, not just
+ * the pure op layer `timeline-op-parity.test.ts` already covers.
+ */
+describe("take ops through edit_timeline", () => {
+  beforeEach(() => initTestDb());
+  afterEach(() => ModelObserver.clear());
+
+  const seedDocumentWithTakes = () =>
+    JSON.stringify({
+      tracks: [
+        {
+          id: "track-1",
+          name: "Video 1",
+          type: "video",
+          index: 0,
+          visible: true,
+          locked: false
+        }
+      ],
+      clips: [
+        {
+          id: "clip-1",
+          trackId: "track-1",
+          name: "Hero Shot",
+          startMs: 0,
+          durationMs: 2000,
+          mediaType: "video",
+          sourceType: "generated",
+          status: "generated",
+          locked: false,
+          currentAssetId: "asset-1",
+          activeTakeId: "take-1",
+          versions: [
+            {
+              id: "take-1",
+              createdAt: "2026-01-01T00:00:00.000Z",
+              jobId: "job-1",
+              assetId: "asset-1",
+              workflowUpdatedAt: "2026-01-01T00:00:00.000Z",
+              dependencyHash: "h1",
+              paramOverridesSnapshot: {},
+              status: "success",
+              label: "First pass"
+            },
+            {
+              id: "take-2",
+              createdAt: "2026-01-01T00:01:00.000Z",
+              jobId: "job-2",
+              assetId: "asset-2",
+              workflowUpdatedAt: "2026-01-01T00:01:00.000Z",
+              dependencyHash: "h1",
+              paramOverridesSnapshot: {},
+              status: "success"
+            }
+          ]
+        }
+      ],
+      markers: []
+    });
+
+  async function seedRow() {
+    return TimelineSequence.create<TimelineSequence>({
+      user_id: "u1",
+      project_id: "default",
+      name: "Take ops",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      duration_ms: 2000,
+      document: seedDocumentWithTakes()
+    });
+  }
+
+  it("lists, selects, renames and deletes takes, and persists each change", async () => {
+    const row = await seedRow();
+    const run = createCapabilityRun({
+      context: { userId: "u1" } as unknown as ProcessingContext,
+      gate: UNGATED
+    });
+
+    const listed = (await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [{ op: "list_takes", target: "Hero Shot" }]
+    })) as { ops: { ok: boolean; result?: { takes: { id: string }[] } }[] };
+    expect(listed.ops[0].ok).toBe(true);
+    expect(listed.ops[0].result?.takes.map((t) => t.id)).toEqual([
+      "take-1",
+      "take-2"
+    ]);
+
+    const renamed = (await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        { op: "rename_take", target: "Hero Shot", takeId: "take-2", label: "Wider crop" }
+      ]
+    })) as { ops: { ok: boolean }[] };
+    expect(renamed.ops[0].ok).toBe(true);
+
+    const selected = (await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [{ op: "select_take", target: "Hero Shot", takeId: "take-2" }]
+    })) as { ops: { ok: boolean }[] };
+    expect(selected.ops[0].ok).toBe(true);
+
+    let saved = await TimelineSequence.findById(row.id);
+    let clip = saved!.toDocument().clips.find((c) => c.name === "Hero Shot");
+    expect(clip?.currentAssetId).toBe("asset-2");
+    expect(clip?.activeTakeId).toBe("take-2");
+    // Switching takes must not touch editorial state.
+    expect(clip?.startMs).toBe(0);
+    expect(clip?.durationMs).toBe(2000);
+    expect(
+      clip?.versions?.find((v: { id: string }) => v.id === "take-2")
+    ).toMatchObject({ label: "Wider crop" });
+
+    // The active take cannot be deleted while another take exists.
+    const refused = (await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [{ op: "delete_take", target: "Hero Shot", takeId: "take-2" }]
+    })) as { ops: { ok: boolean; error?: string }[] };
+    expect(refused.ops[0].ok).toBe(false);
+    expect(refused.ops[0].error).toMatch(/active take/);
+
+    const deleted = (await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [{ op: "delete_take", target: "Hero Shot", takeId: "take-1" }]
+    })) as { ops: { ok: boolean }[] };
+    expect(deleted.ops[0].ok).toBe(true);
+
+    saved = await TimelineSequence.findById(row.id);
+    clip = saved!.toDocument().clips.find((c) => c.name === "Hero Shot");
+    expect(clip?.versions?.map((v: { id: string }) => v.id)).toEqual([
+      "take-2"
+    ]);
+  });
+});
+
 describe("marker ops", () => {
   function bridgeWithNoMarkers() {
     const bridge = createTimelineToolBridge({ tracks: [{ type: "video" }] });

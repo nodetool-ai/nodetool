@@ -827,6 +827,13 @@ export interface TimelineClip {
   dependencyHash?: string;
   lastGeneratedHash?: string;
   currentAssetId?: string;
+  /**
+   * Read-only convenience alias: when set, equals the `id` of the entry in
+   * `versions` whose `assetId === currentAssetId` (P0 AI Video, PRD § 8.10).
+   * `currentAssetId` stays the source of truth everywhere else; this field is
+   * kept in sync by `select_take`/`selectTake` and by generation completion.
+   */
+  activeTakeId?: string;
   thumbnailAssetId?: string;
   waveformAssetId?: string;
   /**
@@ -1473,6 +1480,25 @@ export interface ClipVersion {
   durationMs?: number;
   status: "success" | "failed" | "cancelled";
   favorite?: boolean;
+  /** Caller-set display name for this take (P0 AI Video, PRD § 8.10). */
+  label?: string;
+  /**
+   * How this take was produced. Absent means "generated" for a version with a
+   * `jobId`, "imported" otherwise — existing data is not backfilled.
+   */
+  source?:
+    | "imported"
+    | "generated"
+    | "extended"
+    | "inpainted"
+    | "object_replace"
+    | "video_to_video";
+  provider?: string;
+  model?: string;
+  prompt?: string;
+  negativePrompt?: string;
+  /** The take this one was derived from, e.g. an extend or inpaint pass. */
+  parentTakeId?: string;
 }
 
 export interface TimelineMarker {

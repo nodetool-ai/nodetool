@@ -58,6 +58,12 @@ import {
 import { isGroupClip, moveGroup, trimGroup, ungroup } from "../group.js";
 import { isCropUsable } from "../crop.js";
 import { splitClip } from "../splitClip.js";
+import {
+  activeTakeIdOf,
+  deleteTake as deleteTakeOnClip,
+  renameTake as renameTakeOnClip,
+  selectTake
+} from "../takes.js";
 import { moveTrackOrder, type TrackDestination } from "../trackOrder.js";
 import { trimClip } from "../trimClip.js";
 import type {
@@ -1541,6 +1547,86 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
         children: children.map((child) => scope.clipOut(child)),
         params: group.compositionParams ?? {}
       };
+    }
+
+    case "list_takes": {
+      const clip = scope.resolveClip(op.target);
+      const versions = clip.versions ?? [];
+      const activeId = activeTakeIdOf(clip);
+      return {
+        ok: true,
+        takes: versions.map((v) => ({
+          id: v.id,
+          label: v.label,
+          source: v.source,
+          provider: v.provider,
+          model: v.model,
+          createdAt: v.createdAt,
+          costCredits: v.costCredits,
+          durationMs: v.durationMs,
+          status: v.status,
+          favorite: v.favorite,
+          active: v.id === activeId
+        })),
+        activeTakeId: activeId ?? null
+      };
+    }
+
+    case "select_take": {
+      const clip = scope.resolveClip(op.target);
+      if (clip.mediaType === "model3d") {
+        throw new Error(
+          `Clip "${clip.name}" is a 3D clip — its version history includes ` +
+            "bake renders that must not replace the glTF source. Take " +
+            "selection is not available for model3d clips yet."
+        );
+      }
+      const version = (clip.versions ?? []).find((v) => v.id === op.takeId);
+      if (!version) {
+        throw new Error(
+          `No take "${op.takeId}" on "${clip.name}". ${scope.validUnits(
+            (clip.versions ?? []).map((v) => ({ id: v.id, name: v.label ?? v.id })),
+            "take"
+          )}`
+        );
+      }
+      if (version.status !== "success") {
+        throw new Error(
+          `Take "${op.takeId}" on "${clip.name}" did not finish successfully ` +
+            `(status: ${version.status}) — only a successful take can be selected.`
+        );
+      }
+      const next = selectTake(clip, op.takeId);
+      scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
+      scope.touch(clip.id);
+      return { ok: true, clip: scope.clipOut(next) };
+    }
+
+    case "rename_take": {
+      const clip = scope.resolveClip(op.target);
+      if (!(clip.versions ?? []).some((v) => v.id === op.takeId)) {
+        throw new Error(
+          `No take "${op.takeId}" on "${clip.name}". ${scope.validUnits(
+            (clip.versions ?? []).map((v) => ({ id: v.id, name: v.label ?? v.id })),
+            "take"
+          )}`
+        );
+      }
+      const next = renameTakeOnClip(clip, op.takeId, op.label);
+      scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
+      scope.touch(clip.id);
+      return { ok: true, clip: scope.clipOut(next) };
+    }
+
+    case "delete_take": {
+      const clip = scope.resolveClip(op.target);
+      const { clip: next, error } = deleteTakeOnClip(clip, op.takeId);
+      if (error) {
+        throw new Error(error);
+      }
+      scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
+      scope.touch(clip.id);
+      return { ok: true, clip: scope.clipOut(next) };
     }
 
     default: {

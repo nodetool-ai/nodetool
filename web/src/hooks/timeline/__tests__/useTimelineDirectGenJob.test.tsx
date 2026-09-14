@@ -243,6 +243,14 @@ describe("a live send whose reply is lost to a reconnect", () => {
       const clip = doc.getState().clips.find((c) => c.id === "c-blip");
       expect(clip?.currentAssetId).toBe("asset-blip");
       expect(clip?.status).toBe("generated");
+      // activeTakeId must track currentAssetId, or list_takes/delete_take
+      // mis-identify which recorded take is actually playing (PR #5774
+      // review): the version this landing appended is the active one.
+      const activeVersion = clip?.versions?.find(
+        (v) => v.assetId === "asset-blip"
+      );
+      expect(activeVersion).toBeTruthy();
+      expect(clip?.activeTakeId).toBe(activeVersion?.id);
     } finally {
       jest.useRealTimers();
     }

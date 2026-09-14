@@ -361,6 +361,36 @@ export interface InsertCompositionOp {
   params?: Record<string, string | number | boolean>;
 }
 
+/**
+ * The take model (P0 AI Video, PRD § 8.10): a clip's `versions` array is its
+ * take history. `list_takes`/`select_take`/`rename_take`/`delete_take` are
+ * the non-browser-host path for the same editing surface
+ * `ClipVersionHistory.tsx` gives the editor.
+ */
+export interface ListTakesOp {
+  op: "list_takes";
+  target: string;
+}
+
+export interface SelectTakeOp {
+  op: "select_take";
+  target: string;
+  takeId: string;
+}
+
+export interface RenameTakeOp {
+  op: "rename_take";
+  target: string;
+  takeId: string;
+  label: string;
+}
+
+export interface DeleteTakeOp {
+  op: "delete_take";
+  target: string;
+  takeId: string;
+}
+
 export type TimelineOp =
   | GetStateOp
   | AddTrackOp
@@ -398,7 +428,11 @@ export type TimelineOp =
   | DeleteMarkerOp
   | SetMarkersFromBeatsOp
   | SnapToBeatsOp
-  | InsertCompositionOp;
+  | InsertCompositionOp
+  | ListTakesOp
+  | SelectTakeOp
+  | RenameTakeOp
+  | DeleteTakeOp;
 
 export type TimelineOpName = TimelineOp["op"];
 
@@ -443,5 +477,9 @@ export const TIMELINE_OP_NAMES = [
   "delete_marker",
   "set_markers_from_beats",
   "snap_to_beats",
-  "insert_composition"
+  "insert_composition",
+  "list_takes",
+  "select_take",
+  "rename_take",
+  "delete_take"
 ] as const satisfies readonly TimelineOpName[];

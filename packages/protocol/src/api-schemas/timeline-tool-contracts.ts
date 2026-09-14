@@ -852,9 +852,17 @@ export const BROWSER_ONLY_TIMELINE_TOOL_NAMES = [
  * inspector, not through an agent call. `ui_timeline_set_generated_matte` is
  * the same story for the matte `isolate_subject` cuts: the inspector's own
  * controls write the invert, strength and feather straight into the store.
+ * The take ops (`ui_timeline_list_takes`/`select_take`/`rename_take`/
+ * `delete_take`, P0 AI Video PRD § 8.10) are the same again: the editor's
+ * `ClipVersionHistory` panel writes straight into `TimelineStore` via
+ * `restoreVersion`/`renameTake`/`deleteTake`.
  */
 export const HEADLESS_ONLY_TIMELINE_TOOL_NAMES = [
   "ui_timeline_insert_composition",
   "ui_timeline_set_baked_animation",
-  "ui_timeline_set_generated_matte"
+  "ui_timeline_set_generated_matte",
+  "ui_timeline_list_takes",
+  "ui_timeline_select_take",
+  "ui_timeline_rename_take",
+  "ui_timeline_delete_take"
 ] as const;
