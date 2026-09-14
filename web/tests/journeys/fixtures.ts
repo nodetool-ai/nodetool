@@ -7,7 +7,7 @@
  * route never leaves the boot spinner.
  */
 
-import { test as base, expect } from "@playwright/test";
+import { test as base, expect, type Page } from "@playwright/test";
 import {
   collectPageLoadErrors,
   isIgnoredMessage,
@@ -37,6 +37,27 @@ export const FIXTURES = {
 /** The reply every faked provider returns — see `fake-runtime.ts`. */
 export const FAKE_LLM_TEXT = "deterministic e2e response";
 
+/** Select a model accepted by the hermetic provider before the app hydrates. */
+async function seedFakeChatModel(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "global-chat-storage",
+      JSON.stringify({
+        state: {
+          threads: {},
+          selectedModel: {
+            type: "language_model",
+            id: "claude-sonnet-5",
+            name: "Claude Sonnet 5",
+            provider: "anthropic"
+          }
+        },
+        version: 1
+      })
+    );
+  });
+}
+
 type JourneyFixtures = {
   /** Page-load problems recorded since navigation. Assert on this to catch a
    *  journey that "worked" while throwing underneath. */
@@ -52,6 +73,7 @@ export const test = base.extend<JourneyFixtures>({
       );
     }
     await seedReturningUser(page);
+    await seedFakeChatModel(page);
     const errors = collectPageLoadErrors(page, { includeDataRequests: true });
     await use(errors);
     const routeBoundary = await readErrorBoundary(page);

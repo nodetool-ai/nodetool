@@ -232,18 +232,6 @@ export class ChatPage {
   }
 
   async send(message: string): Promise<void> {
-    const modelPicker = this.page.getByRole("button", {
-      name: "Select model",
-      exact: true
-    });
-    if (await modelPicker.isVisible()) {
-      await modelPicker.click();
-      const firstAvailableModel = this.page
-        .locator('.model-menu__model-item[data-available="true"]')
-        .first();
-      await firstAvailableModel.waitFor({ state: "visible", timeout: 30_000 });
-      await firstAvailableModel.click();
-    }
     await this.composer().click();
     await this.composer().fill(message);
     await this.composer().press("Enter");
@@ -315,11 +303,9 @@ export class MiniAppPage {
   }
 
   private runtime(): Locator {
-    // Design and Run remain mounted while the inactive layer is opacity: 0,
-    // which still matches Playwright's `:visible`. Run is mounted last.
     return this.page
-      .locator('.appbuilder-runtime[data-focus-id="app-runtime"]')
-      .last();
+      .getByTestId("application-run-layer")
+      .locator('.appbuilder-runtime[data-focus-id="app-runtime"]');
   }
 }
 
