@@ -129,6 +129,7 @@ describe("timelines capability module", () => {
       "render_timeline",
       "bake_audio_animation",
       "isolate_subject",
+      "track_object",
       "delete_timeline"
     ]);
   });

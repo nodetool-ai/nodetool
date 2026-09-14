@@ -21,6 +21,7 @@ interface DocumentSnapshot {
   tracks: TimelineStoreState["tracks"];
   clips: TimelineStoreState["clips"];
   markers: TimelineStoreState["markers"];
+  mediaTracks: TimelineStoreState["mediaTracks"];
   transcript: TimelineStoreState["transcript"];
   scriptEnabled: TimelineStoreState["scriptEnabled"];
   tempo: TimelineStoreState["tempo"];
@@ -43,6 +44,7 @@ const sameDocument = (
   a.tracks === b.tracks &&
   a.clips === b.clips &&
   a.markers === b.markers &&
+  a.mediaTracks === b.mediaTracks &&
   a.transcript === b.transcript &&
   a.scriptEnabled === b.scriptEnabled &&
   a.tempo === b.tempo &&
@@ -63,7 +65,9 @@ export function isTimelineDocumentDirty(sequenceId: string): boolean {
   return false;
 }
 
-export function useTimelineAutosave(options: { debounceMs?: number } = {}): void {
+export function useTimelineAutosave(
+  options: { debounceMs?: number } = {}
+): void {
   const store = useTimelineStoreApi();
   const debounceMs = options.debounceMs ?? 750;
 
@@ -72,80 +76,86 @@ export function useTimelineAutosave(options: { debounceMs?: number } = {}): void
     let lastSaved: DocumentSnapshot | null = pickSnapshot(initial);
     let lastDocument = lastSaved;
     let lastSequenceId = initial.sequenceId;
-    const currentSnapshot = (): DocumentSnapshot => pickSnapshot(store.getState());
+    const currentSnapshot = (): DocumentSnapshot =>
+      pickSnapshot(store.getState());
     const dirtyProbe: DirtyProbe = (sequenceId) =>
       store.getState().sequenceId === sequenceId &&
       !sameDocument(currentSnapshot(), lastSaved);
     dirtyProbes.add(dirtyProbe);
 
-    const controller: DocumentSyncController = createDocumentSyncController<DocumentSnapshot>({
-      debounceMs,
-      getDraft: () => {
-        const snapshot = currentSnapshot();
-        return snapshot.sequenceId ? snapshot : null;
-      },
-      getRevision: () => store.getState().baseUpdatedAt,
-      isDirty: () => !sameDocument(currentSnapshot(), lastSaved),
-      canSave: (flush) => flush || timelineTemporalOf(store).isTracking,
-      save: async (snapshot, revision) => {
-        if (!snapshot.sequenceId) {
-          return { updatedAt: revision };
-        }
-        const live = store.getState();
-        const baseUpdatedAt =
-          live.sequenceId === snapshot.sequenceId
-            ? live.baseUpdatedAt
-            : snapshot.baseUpdatedAt;
-        const response = await trpcClient.timeline.update.mutate({
-          id: snapshot.sequenceId,
-          baseUpdatedAt: baseUpdatedAt ?? undefined,
-          document: buildTimelineDocumentPayload(snapshot)
-        });
-        const updatedAt = (response as { updatedAt?: unknown }).updatedAt;
-        if (
-          isString(updatedAt) &&
-          store.getState().sequenceId === snapshot.sequenceId &&
-          !isOlderUpdatedAt(updatedAt, store.getState().baseUpdatedAt)
-        ) {
-          store.getState().setBaseUpdatedAt(updatedAt);
-        }
-        lastSaved = snapshot;
-        return { updatedAt: isString(updatedAt) ? updatedAt : revision };
-      },
-      recoverCasConflict: async () => {
-        const sequenceId = store.getState().sequenceId;
-        if (!sequenceId) {
-          return;
-        }
-        const sequence = await trpcClient.timeline.get.query({ id: sequenceId });
-        if (store.getState().sequenceId === sequenceId) {
-          store.getState().setBaseUpdatedAt(sequence.updatedAt, {
-            tracks: sequence.tracks ?? [],
-            clips: sequence.clips ?? [],
-            markers: sequence.markers ?? [],
-            transcript: sequence.transcript ?? [],
-            scriptEnabled: sequence.scriptEnabled ?? false,
-            fps: sequence.fps,
-            width: sequence.width,
-            height: sequence.height
+    const controller: DocumentSyncController =
+      createDocumentSyncController<DocumentSnapshot>({
+        debounceMs,
+        getDraft: () => {
+          const snapshot = currentSnapshot();
+          return snapshot.sequenceId ? snapshot : null;
+        },
+        getRevision: () => store.getState().baseUpdatedAt,
+        isDirty: () => !sameDocument(currentSnapshot(), lastSaved),
+        canSave: (flush) => flush || timelineTemporalOf(store).isTracking,
+        save: async (snapshot, revision) => {
+          if (!snapshot.sequenceId) {
+            return { updatedAt: revision };
+          }
+          const live = store.getState();
+          const baseUpdatedAt =
+            live.sequenceId === snapshot.sequenceId
+              ? live.baseUpdatedAt
+              : snapshot.baseUpdatedAt;
+          const response = await trpcClient.timeline.update.mutate({
+            id: snapshot.sequenceId,
+            baseUpdatedAt: baseUpdatedAt ?? undefined,
+            document: buildTimelineDocumentPayload(snapshot)
           });
-        }
-      },
-      isCasConflict: (error) =>
-        error instanceof Error &&
-        /modified since last (read|load)/i.test(error.message),
-      onStatus: (status) => {
-        if (status === "error") {
-          useNotificationStore.getState().addNotification({
-            content: "Timeline autosave failed — your last edit may not be saved.",
-            type: "warning",
-            alert: false,
-            dedupeKey: "timeline-autosave-failed",
-            replaceExisting: true
+          const updatedAt = (response as { updatedAt?: unknown }).updatedAt;
+          if (
+            isString(updatedAt) &&
+            store.getState().sequenceId === snapshot.sequenceId &&
+            !isOlderUpdatedAt(updatedAt, store.getState().baseUpdatedAt)
+          ) {
+            store.getState().setBaseUpdatedAt(updatedAt);
+          }
+          lastSaved = snapshot;
+          return { updatedAt: isString(updatedAt) ? updatedAt : revision };
+        },
+        recoverCasConflict: async () => {
+          const sequenceId = store.getState().sequenceId;
+          if (!sequenceId) {
+            return;
+          }
+          const sequence = await trpcClient.timeline.get.query({
+            id: sequenceId
           });
+          if (store.getState().sequenceId === sequenceId) {
+            store.getState().setBaseUpdatedAt(sequence.updatedAt, {
+              tracks: sequence.tracks ?? [],
+              clips: sequence.clips ?? [],
+              markers: sequence.markers ?? [],
+              mediaTracks: sequence.mediaTracks ?? [],
+              transcript: sequence.transcript ?? [],
+              scriptEnabled: sequence.scriptEnabled ?? false,
+              fps: sequence.fps,
+              width: sequence.width,
+              height: sequence.height
+            });
+          }
+        },
+        isCasConflict: (error) =>
+          error instanceof Error &&
+          /modified since last (read|load)/i.test(error.message),
+        onStatus: (status) => {
+          if (status === "error") {
+            useNotificationStore.getState().addNotification({
+              content:
+                "Timeline autosave failed — your last edit may not be saved.",
+              type: "warning",
+              alert: false,
+              dedupeKey: "timeline-autosave-failed",
+              replaceExisting: true
+            });
+          }
         }
-      }
-    });
+      });
 
     if (initial.sequenceId && migratedLoads.delete(initial.sequenceId)) {
       lastSaved = null;

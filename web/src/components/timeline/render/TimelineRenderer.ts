@@ -28,6 +28,7 @@ import type {
 } from "mediabunny";
 import { computeModel3DBakeHash } from "@nodetool-ai/timeline";
 import type {
+  MediaTrack,
   TimelineClip,
   TimelineTempo,
   TimelineTrack
@@ -94,6 +95,7 @@ export interface RenderProgress {
 interface RenderTimelineOptions {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
+  mediaTracks?: MediaTrack[];
   /** Sequence resolution in pixels. */
   width: number;
   height: number;
@@ -471,7 +473,8 @@ export async function renderTimeline(
           // Group transforms live in the same space the animations sample in.
           canvas: animCanvas,
           animationCache: animCache,
-          model3dBakeHash
+          model3dBakeHash,
+          mediaTracks: opts.mediaTracks
         }
       );
 
@@ -561,7 +564,10 @@ export async function renderTimeline(
           // call a lookup.
           const source = await sourceFor(
             layer,
-            resolveAnimatedLayerProps(layer, timeMs, animCanvas, animCache)
+            resolveAnimatedLayerProps(layer, timeMs, animCanvas, animCache, {
+              mediaTracks: opts.mediaTracks ?? [],
+              clips
+            })
           );
           if (source) sources.set(layer, source);
         })
@@ -573,6 +579,7 @@ export async function renderTimeline(
           atMs: timeMs,
           canvas: animCanvas,
           animationCache: animCache,
+          tracking: { mediaTracks: opts.mediaTracks ?? [], clips },
           resolveSource: (target) => sources.get(target) ?? null
         });
         if (built) composite.push(built);

@@ -293,7 +293,11 @@ export async function renderTimelineComposited(
         sequence.tracks,
         sequence.clips,
         timeMs,
-        { canvas, animationCache: animCache }
+        {
+          canvas,
+          animationCache: animCache,
+          mediaTracks: sequence.mediaTracks
+        }
       );
       /**
        * A resolved layer as something the compositor can upload: its pixels,
@@ -307,7 +311,13 @@ export async function renderTimelineComposited(
         layer: (typeof active)[number],
         idPrefix = ""
       ): Promise<FrameLayer | null> => {
-        const anim = resolveAnimatedLayerProps(layer, timeMs, canvas, animCache);
+        const anim = resolveAnimatedLayerProps(
+          layer,
+          timeMs,
+          canvas,
+          animCache,
+          { mediaTracks: sequence.mediaTracks ?? [], clips: sequence.clips }
+        );
         const common = {
           opacity: anim.opacity,
           blendMode: layer.blendMode,
@@ -465,7 +475,11 @@ export async function renderTimelineComposited(
         sequence.tracks,
         sequence.clips,
         timeMs,
-        { canvas, animationCache: animCache }
+        {
+          canvas,
+          animationCache: animCache,
+          mediaTracks: sequence.mediaTracks
+        }
       );
       return shutterWindowIsStatic(
         layers,

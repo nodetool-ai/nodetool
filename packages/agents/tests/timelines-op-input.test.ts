@@ -1415,6 +1415,192 @@ describe("take ops through edit_timeline", () => {
   });
 });
 
+describe("track ops through edit_timeline", () => {
+  beforeEach(() => initTestDb());
+  afterEach(() => ModelObserver.clear());
+
+  const seedDocumentWithTrack = () =>
+    JSON.stringify({
+      tracks: [
+        {
+          id: "track-1",
+          name: "Video 1",
+          type: "video",
+          index: 0,
+          visible: true,
+          locked: false
+        }
+      ],
+      clips: [
+        {
+          id: "clip-1",
+          trackId: "track-1",
+          name: "Hero Shot",
+          startMs: 0,
+          durationMs: 4000,
+          mediaType: "video",
+          sourceType: "imported",
+          status: "generated",
+          locked: false,
+          currentAssetId: "asset-1"
+        },
+        {
+          id: "clip-2",
+          trackId: "track-1",
+          name: "Caption",
+          startMs: 0,
+          durationMs: 4000,
+          mediaType: "text",
+          sourceType: "imported",
+          status: "generated",
+          locked: false,
+          textStyle: { text: "Follow me" }
+        }
+      ],
+      markers: [],
+      mediaTracks: [
+        {
+          id: "mtrack-1",
+          clipId: "clip-1",
+          sourceAssetId: "asset-1",
+          name: "Product",
+          kind: "box",
+          sourceStartMs: 0,
+          sourceEndMs: 4000,
+          samples: [
+            { sourceMs: 0, x: 0.1, y: 0.1, width: 0.2, height: 0.2 },
+            { sourceMs: 4000, x: 0.7, y: 0.7, width: 0.2, height: 0.2 }
+          ],
+          status: "ready"
+        }
+      ]
+    });
+
+  async function seedRow() {
+    return TimelineSequence.create<TimelineSequence>({
+      user_id: "u1",
+      project_id: "default",
+      name: "Track ops",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      duration_ms: 4000,
+      document: seedDocumentWithTrack()
+    });
+  }
+
+  it("lists tracks, binds a clip to one, and unbinds it — each persisted", async () => {
+    const row = await seedRow();
+    const run = createCapabilityRun({
+      context: { userId: "u1" } as unknown as ProcessingContext,
+      gate: UNGATED
+    });
+
+    const listed = (await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [{ op: "list_tracks" }]
+    })) as {
+      ops: {
+        ok: boolean;
+        result?: { tracks: { id: string; sampleCount: number }[] };
+      }[];
+    };
+    expect(listed.ops[0].ok).toBe(true);
+    expect(listed.ops[0].result?.tracks).toEqual([
+      expect.objectContaining({ id: "mtrack-1", sampleCount: 2 })
+    ]);
+    // The samples themselves stay out of a listing.
+    expect(listed.ops[0].result?.tracks[0]).not.toHaveProperty("samples");
+
+    const bound = (await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        {
+          op: "bind_to_track",
+          target: "Caption",
+          trackId: "mtrack-1",
+          mode: "position",
+          offset: { x: 8, y: -4 },
+          smoothing: 0.25
+        }
+      ]
+    })) as { ops: { ok: boolean }[] };
+    expect(bound.ops[0].ok).toBe(true);
+
+    let saved = await TimelineSequence.findById(row.id);
+    let doc = saved!.toDocument();
+    expect(
+      doc.clips.find((c) => c.name === "Caption")?.trackBinding
+    ).toEqual({
+      trackId: "mtrack-1",
+      mode: "position",
+      offset: { x: 8, y: -4 },
+      smoothing: 0.25
+    });
+    // The track itself rides along untouched.
+    expect(doc.mediaTracks?.map((t) => t.id)).toEqual(["mtrack-1"]);
+
+    const refused = (await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        {
+          op: "bind_to_track",
+          target: "Caption",
+          trackId: "mtrack-1",
+          mode: "reframe"
+        }
+      ]
+    })) as { ops: { ok: boolean; error?: string }[] };
+    expect(refused.ops[0].ok).toBe(false);
+    expect(refused.ops[0].error).toMatch(/not implemented/i);
+
+    const unbound = (await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [{ op: "unbind_track", target: "Caption" }]
+    })) as { ops: { ok: boolean }[] };
+    expect(unbound.ops[0].ok).toBe(true);
+
+    saved = await TimelineSequence.findById(row.id);
+    doc = saved!.toDocument();
+    expect(
+      doc.clips.find((c) => c.name === "Caption")?.trackBinding
+    ).toBeUndefined();
+  });
+
+  it("deletes a track and unbinds every clip that followed it", async () => {
+    const row = await seedRow();
+    const run = createCapabilityRun({
+      context: { userId: "u1" } as unknown as ProcessingContext,
+      gate: UNGATED
+    });
+
+    await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        {
+          op: "bind_to_track",
+          target: "Caption",
+          trackId: "mtrack-1",
+          mode: "position"
+        }
+      ]
+    });
+
+    const deleted = (await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [{ op: "delete_track_object", trackId: "mtrack-1" }]
+    })) as { ops: { ok: boolean }[] };
+    expect(deleted.ops[0].ok).toBe(true);
+
+    const saved = await TimelineSequence.findById(row.id);
+    const doc = saved!.toDocument();
+    expect(doc.mediaTracks).toEqual([]);
+    expect(
+      doc.clips.find((c) => c.name === "Caption")?.trackBinding
+    ).toBeUndefined();
+  });
+});
+
 describe("marker ops", () => {
   function bridgeWithNoMarkers() {
     const bridge = createTimelineToolBridge({ tracks: [{ type: "video" }] });

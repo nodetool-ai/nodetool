@@ -76,6 +76,28 @@ describe("TimelineStore — project settings", () => {
     });
   });
 
+  it("loadSequence carries media tracks into document state and its sync base", () => {
+    const mediaTracks = [
+      {
+        id: "subject-1",
+        clipId: "source-1",
+        sourceAssetId: "asset-1",
+        name: "Subject",
+        kind: "point" as const,
+        sourceStartMs: 0,
+        sourceEndMs: 1000,
+        samples: [{ sourceMs: 0, x: 0.25, y: 0.5 }],
+        status: "ready" as const
+      }
+    ];
+    const store = createTimelineStore();
+
+    store.getState().loadSequence(makeSequence({ mediaTracks }));
+
+    expect(store.getState().mediaTracks).toBe(mediaTracks);
+    expect(store.getState().syncedDocument?.mediaTracks).toBe(mediaTracks);
+  });
+
   it("a no-op patch leaves the values unchanged", () => {
     const store = createTimelineStore();
     store.getState().setProjectSettings({ width: 1920, height: 1080, fps: 30 });

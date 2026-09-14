@@ -48,6 +48,7 @@ import {
   parseTimecode
 } from "./InspectorPrimitives.helpers";
 import { ClipAdjustments } from "./ClipAdjustments";
+import { ClipTracking } from "./ClipTracking";
 import { ClipCaptionStyle } from "./ClipCaptionStyle";
 import { ClipStoryboardLink } from "./ClipStoryboardLink";
 import { ClipAnimations } from "./ClipAnimations";
@@ -680,6 +681,8 @@ export const TimelineInspector: React.FC = memo(() => {
       <ClipCaptionStyle clip={clip} />
 
       <ClipAdjustments clip={clip} />
+
+      <ClipTracking clip={clip} />
 
       {!isMidi && <ClipTimeRemapSection clip={clip} />}
 

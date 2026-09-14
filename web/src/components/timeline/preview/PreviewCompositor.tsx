@@ -14,10 +14,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 
-import type {
-  ClipModel3DCamera,
-  TimelineClip
-} from "@nodetool-ai/timeline";
+import type { ClipModel3DCamera, TimelineClip } from "@nodetool-ai/timeline";
 import { computeModel3DBakeHash, hasTimeRemap } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
@@ -211,16 +208,23 @@ export const PreviewCompositor: React.FC = memo(() => {
   const [sceneTimeMs, setSceneTimeMs] = useState(reactiveTimeMs);
   const currentTimeMs = sceneTimeMs;
 
-  const { tracks, clips, sequenceWidth, sequenceHeight, sequenceFps } =
-    useTimelineStore(
-      useShallow((s) => ({
-        tracks: s.tracks,
-        clips: s.clips,
-        sequenceWidth: s.width,
-        sequenceHeight: s.height,
-        sequenceFps: s.fps
-      }))
-    );
+  const {
+    tracks,
+    clips,
+    mediaTracks,
+    sequenceWidth,
+    sequenceHeight,
+    sequenceFps
+  } = useTimelineStore(
+    useShallow((s) => ({
+      tracks: s.tracks,
+      clips: s.clips,
+      mediaTracks: s.mediaTracks,
+      sequenceWidth: s.width,
+      sequenceHeight: s.height,
+      sequenceFps: s.fps
+    }))
+  );
 
   const patchClip = useTimelineStore((s) => s.patchClip);
   const selectedClipId = useTimelineUIStore((s) =>
@@ -559,9 +563,7 @@ export const PreviewCompositor: React.FC = memo(() => {
   // returns the change horizon so the loop can skip recomputing this while
   // the query time stays inside the current clip/word boundaries.
   const sceneSignature = useCallback(
-    (
-      timeMs: number
-    ) => {
+    (timeMs: number) => {
       const { layers, nextChangeMs } = computeActiveLayersWithHorizon(
         tracks,
         clips,
@@ -570,7 +572,8 @@ export const PreviewCompositor: React.FC = memo(() => {
           maxVideoLayers: HOT_POOL_SIZE,
           canvas: sceneCanvas,
           animationCache: animCacheRef.current,
-          model3dBakeHash
+          model3dBakeHash,
+          mediaTracks
         }
       );
       let sig = "";
@@ -583,7 +586,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       }
       return { signature: sig, nextChangeMs, layers };
     },
-    [tracks, clips, sceneCanvas, model3dBakeHash]
+    [tracks, clips, mediaTracks, sceneCanvas, model3dBakeHash]
   );
 
   const { sceneLayers, precomposites, activeVideoSlots, placeholderLayers } =
@@ -597,7 +600,8 @@ export const PreviewCompositor: React.FC = memo(() => {
           maxVideoLayers: HOT_POOL_SIZE,
           canvas: sceneCanvas,
           animationCache: animCacheRef.current,
-          model3dBakeHash
+          model3dBakeHash,
+          mediaTracks
         });
       const layers = matteViewEnabled
         ? matteOnlyLayers(composite, selectedClipId)
@@ -661,6 +665,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     }, [
       tracks,
       clips,
+      mediaTracks,
       currentTimeMs,
       resolveUrl,
       urlCacheVersion,
@@ -939,7 +944,8 @@ export const PreviewCompositor: React.FC = memo(() => {
             maxVideoLayers: HOT_POOL_SIZE,
             canvas: sceneCanvas,
             animationCache: cache,
-            model3dBakeHash
+            model3dBakeHash,
+            mediaTracks
           })
         : null;
       const layers =
@@ -1038,6 +1044,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         atMs,
         canvas: sceneCanvas,
         animationCache: cache,
+        tracking: { mediaTracks, clips },
         resolveSource
       });
     },
@@ -1045,6 +1052,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       sceneLayers,
       tracks,
       clips,
+      mediaTracks,
       ensureImageElement,
       resolveUrl,
       model3dSource,
@@ -1332,17 +1340,16 @@ export const PreviewCompositor: React.FC = memo(() => {
           />
         )}
 
-        {selectedClipId && clipById.get(selectedClipId)?.mediaType === "model3d" && (
-          <Model3DOrbitOverlay
-            clip={clipById.get(selectedClipId)!}
-            frameHeight={frameSize.h}
-            onPreviewCamera={(camera) =>
-              setOrbitPose(
-                camera ? { clipId: selectedClipId, camera } : null
-              )
-            }
-          />
-        )}
+        {selectedClipId &&
+          clipById.get(selectedClipId)?.mediaType === "model3d" && (
+            <Model3DOrbitOverlay
+              clip={clipById.get(selectedClipId)!}
+              frameHeight={frameSize.h}
+              onPreviewCamera={(camera) =>
+                setOrbitPose(camera ? { clipId: selectedClipId, camera } : null)
+              }
+            />
+          )}
 
         {placeholderLayers.map((layer) => (
           <div

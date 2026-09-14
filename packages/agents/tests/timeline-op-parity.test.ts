@@ -14,6 +14,7 @@ import {
   DEFAULT_MODEL3D_STYLE,
   makeClip,
   makeTrack,
+  type MediaTrack,
   type TimelineClip,
   type TimelineComposition,
   type TimelineMarker,
@@ -119,7 +120,10 @@ function seedClips(): TimelineClip[] {
       mediaType: "text",
       sourceType: "imported",
       status: "generated",
-      textStyle: { text: "Hello world", fontSizePx: 64 }
+      textStyle: { text: "Hello world", fontSizePx: 64 },
+      // Follows the seeded media track, so `unbind_track` has a binding to
+      // clear and `delete_track_object` has a referencing clip to unbind.
+      trackBinding: { trackId: "mtrack_a", mode: "position" }
     }),
     makeClip({
       id: "clip_c",
@@ -183,6 +187,30 @@ function seedMarkers(): TimelineMarker[] {
   return [{ id: "marker_a", timeMs: 1000, label: "One" }];
 }
 
+/**
+ * One subject/object track on `clip_a`, so the track ops (list_tracks,
+ * bind_to_track, delete_track_object) have something to address, and
+ * `clip_b` follows it so `unbind_track` has a binding to clear.
+ */
+function seedMediaTracks(): MediaTrack[] {
+  return [
+    {
+      id: "mtrack_a",
+      clipId: "clip_a",
+      sourceAssetId: "asset_take_2",
+      name: "Product",
+      kind: "box",
+      sourceStartMs: 0,
+      sourceEndMs: 4000,
+      samples: [
+        { sourceMs: 0, x: 0.1, y: 0.1, width: 0.2, height: 0.2 },
+        { sourceMs: 4000, x: 0.6, y: 0.6, width: 0.2, height: 0.2 }
+      ],
+      status: "ready"
+    }
+  ];
+}
+
 const ASSET = {
   id: "asset_1",
   name: "Clip.mp4",
@@ -198,7 +226,8 @@ function bridgeInit(): TimelineBridgeInitialState {
       height: 1080,
       tracks: seedTracks(),
       clips: seedClips(),
-      markers: seedMarkers()
+      markers: seedMarkers(),
+      mediaTracks: seedMediaTracks()
     },
     resolveAsset: async (ref) => (ref.includes("asset_1") ? ASSET : null),
     loadComposition: {
@@ -249,6 +278,7 @@ function directState(): TimelineOpState {
     tracks: seedTracks(),
     clips: seedClips(),
     markers: seedMarkers(),
+    mediaTracks: seedMediaTracks(),
     playheadMs: 0,
     selectedClipIds: []
   };
@@ -574,6 +604,41 @@ const FIXTURES: Fixture[] = [
     tool: "delete_take",
     args: { target: "clip_a", takeId: "take_1" },
     op: { op: "delete_take", target: "clip_a", takeId: "take_1" }
+  },
+  {
+    tool: "list_tracks",
+    args: { target: "clip_a" },
+    op: { op: "list_tracks", target: "clip_a" }
+  },
+  {
+    tool: "delete_track_object",
+    args: { trackId: "mtrack_a" },
+    op: { op: "delete_track_object", trackId: "mtrack_a" }
+  },
+  {
+    tool: "bind_to_track",
+    args: {
+      target: "clip_b",
+      trackId: "mtrack_a",
+      mode: "position_scale",
+      offset: { x: 12, y: -8 },
+      scale: 1.25,
+      smoothing: 0.3
+    },
+    op: {
+      op: "bind_to_track",
+      target: "clip_b",
+      trackId: "mtrack_a",
+      mode: "position_scale",
+      offset: { x: 12, y: -8 },
+      scale: 1.25,
+      smoothing: 0.3
+    }
+  },
+  {
+    tool: "unbind_track",
+    args: { target: "clip_b" },
+    op: { op: "unbind_track", target: "clip_b" }
   }
 ];
 
@@ -613,6 +678,7 @@ describe("timeline op parity", () => {
       expect(final.documentTracks).toEqual(outcome.state.tracks);
       expect(final.documentClips).toEqual(outcome.state.clips);
       expect(final.markers).toEqual(outcome.state.markers);
+      expect(final.mediaTracks).toEqual(outcome.state.mediaTracks);
     });
   }
 

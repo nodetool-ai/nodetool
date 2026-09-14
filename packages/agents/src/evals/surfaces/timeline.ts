@@ -70,12 +70,16 @@ import {
   type ClipMask,
   type SnapBoundaryMode,
   type SnapAction,
+  type MediaTrack,
+  resliceTracksForSplitClip,
+  resliceTracksForTrimmedClip,
   type TimelineBeat,
   type TimelineClip,
   type TimelineMarker,
   type TimelineSetup,
   type TimelineSetupStage,
   type TimelineTrack,
+  type TrackBinding,
   type ClipAnimation,
   instantiateComposition,
   type TimelineComposition,
@@ -95,6 +99,7 @@ import {
   rescaleClipsForTempo,
   resolveTempo,
   selectGeneratedMatteVersion,
+  activeTakeIdOf,
   selectTake,
   renameTake as renameTakeOnClip,
   deleteTake as deleteTakeOnClip,
@@ -214,6 +219,13 @@ export interface TimelineBridgeSequenceSeed {
   tempo?: TimelineTempo;
   /** Guided video-flow state. Absent reads as a sequence never in the flow. */
   setup?: TimelineSetup;
+  /**
+   * Subject/object tracks (P0 AI Video, Phase 2). Document-level, each owning
+   * one `clipId`. Absent reads as a sequence with none. It is seeded here
+   * rather than on {@link TimelineBridgeInitialState} because it is a field of
+   * the document, exactly like `markers`, `tempo` and `setup`.
+   */
+  mediaTracks?: MediaTrack[];
 }
 
 /**
@@ -347,6 +359,14 @@ export interface TimelineBridgeFinalState {
    * wide, so a predicate and a document reader want the same shape.
    */
   markers: TimelineMarker[];
+  /**
+   * The document's subject/object tracks (P0 AI Video, Phase 2). A host
+   * writing the session back has to store it for the same reason it stores
+   * markers: `delete_track_object` removes one and `bind_to_track` makes a
+   * clip follow one, so dropping the array loses the edit and leaves every
+   * bound clip pointing at an id nothing answers.
+   */
+  mediaTracks: MediaTrack[];
   /**
    * The document's tempo, or undefined when it never carried one. A host
    * writing the session back has to store it: `set_tempo` and the first midi
@@ -713,6 +733,9 @@ export function createTimelineToolBridge(
   const tracks: TimelineTrack[] = [];
   let clips: TimelineClip[] = [];
   let markers: TimelineMarker[] = [];
+  // Document-level, like markers: a track is named by `clipId`, and a clip
+  // follows one through its own `trackBinding` (P0 AI Video, Phase 2).
+  let mediaTracks: MediaTrack[] = [];
   let setup: TimelineSetup | null = seed?.setup
     ? structuredClone(seed.setup)
     : null;
@@ -1199,6 +1222,11 @@ export function createTimelineToolBridge(
       usedIds.add(copy.id);
       markers.push(copy);
     }
+    for (const mediaTrack of seed.mediaTracks ?? []) {
+      const copy = structuredClone(mediaTrack);
+      usedIds.add(copy.id);
+      mediaTracks.push(copy);
+    }
   }
 
   // Seed initial tracks and clips.
@@ -1656,6 +1684,13 @@ export function createTimelineToolBridge(
         const idx = clips.findIndex((c) => c.id === clip.id);
         clips.splice(idx, 1, left, right);
         selectedClipIds = selectedClipIds.filter((id) => id !== clip.id);
+        mediaTracks = resliceTracksForSplitClip(
+          mediaTracks,
+          clip.id,
+          left,
+          right,
+          nextTrackId
+        );
         return { ok: true, clips: [serializeClip(left), serializeClip(right)] };
       }
     ),
@@ -1668,6 +1703,7 @@ export function createTimelineToolBridge(
           inPointMs: inPointMs as number | undefined,
           outPointMs: outPointMs as number | undefined
         });
+        mediaTracks = resliceTracksForTrimmedClip(mediaTracks, trimmed);
         return { ok: true, clip: serializeClip(trimmed) };
       }
     ),
@@ -2797,6 +2833,7 @@ export function createTimelineToolBridge(
       async ({ target }) => {
         const clip = resolveClip(target as string);
         const versions = clip.versions ?? [];
+        const activeId = activeTakeIdOf(clip);
         return {
           ok: true,
           takes: versions.map((v) => ({
@@ -2810,10 +2847,9 @@ export function createTimelineToolBridge(
             durationMs: v.durationMs,
             status: v.status,
             favorite: v.favorite,
-            active:
-              v.id === clip.activeTakeId || v.assetId === clip.currentAssetId
+            active: v.id === activeId
           })),
-          activeTakeId: clip.activeTakeId ?? null
+          activeTakeId: activeId ?? null
         };
       }
     ),
@@ -2829,6 +2865,13 @@ export function createTimelineToolBridge(
       }),
       async ({ target, takeId }) => {
         const clip = resolveClip(target as string);
+        if (clip.mediaType === "model3d") {
+          throw new Error(
+            `Clip "${clip.name}" is a 3D clip — its version history includes ` +
+              "bake renders that must not replace the glTF source. Take " +
+              "selection is not available for model3d clips yet."
+          );
+        }
         const version = (clip.versions ?? []).find((v) => v.id === takeId);
         if (!version) {
           throw new Error(
@@ -2895,6 +2938,149 @@ export function createTimelineToolBridge(
         const clip = resolveClip(target as string);
         const { clip: next, error } = deleteTakeOnClip(clip, takeId as string);
         if (error) throw new Error(error);
+        clips = clips.map((c) => (c.id === clip.id ? next : c));
+        return { ok: true, clip: serializeClip(next) };
+      }
+    ),
+
+    // Subject/object tracks (P0 AI Video, Phase 2). The async provider call
+    // that fills a track's samples is the `track_object` capability, not an
+    // op — these four are the structural half over it, and they carry the
+    // same semantics as `applyTimelineOp`'s own cases so the two hosts cannot
+    // fork (`packages/timeline/src/ops/apply.ts`).
+    tool(
+      "ui_timeline_list_tracks",
+      "List the document's subject/object tracks — id, clipId, name, kind, " +
+        "status, source window and sample count. The samples themselves are " +
+        "not returned: a track carries one per frame it covers, which is a " +
+        "wall of numbers no caller reads through a listing.",
+      z.object({
+        target: z
+          .string()
+          .optional()
+          .describe("A clip id or name to filter by. Omit for every track.")
+      }),
+      async ({ target }) => {
+        const clipId =
+          typeof target === "string" && target.trim() !== ""
+            ? resolveClip(target).id
+            : undefined;
+        const listed = mediaTracks.filter(
+          (t) => clipId === undefined || t.clipId === clipId
+        );
+        return {
+          ok: true,
+          tracks: listed.map((t) => ({
+            id: t.id,
+            clipId: t.clipId,
+            name: t.name,
+            kind: t.kind,
+            status: t.status,
+            sourceStartMs: t.sourceStartMs,
+            sourceEndMs: t.sourceEndMs,
+            sampleCount: t.samples.length,
+            confidence: t.confidence
+          }))
+        };
+      }
+    ),
+
+    tool(
+      "ui_timeline_delete_track_object",
+      "Delete a subject/object track and unbind every clip that was " +
+        "following it — a clip left pointing at a track that is gone reads " +
+        "as bound while following nothing.",
+      z.object({
+        trackId: z.string().describe("A track id, from list_tracks.")
+      }),
+      async ({ trackId }) => {
+        const track = mediaTracks.find((t) => t.id === trackId);
+        if (!track) {
+          throw new Error(
+            `No track "${trackId}". ` + validUnits(mediaTracks, "track")
+          );
+        }
+        mediaTracks = mediaTracks.filter((t) => t.id !== trackId);
+        clips = clips.map((c) => {
+          if (c.trackBinding?.trackId !== trackId) return c;
+          const { trackBinding: _dropped, ...rest } = c;
+          return rest;
+        });
+        return { ok: true, deleted: { id: track.id, name: track.name } };
+      }
+    ),
+
+    tool(
+      "ui_timeline_bind_to_track",
+      "Make a clip follow a subject/object track, so its position moves " +
+        'with the tracked subject. Only "position" and "position_scale" are ' +
+        "implemented; the other modes are named by the document format for a " +
+        "later phase and are refused here rather than silently doing nothing.",
+      z.object({
+        target: z.string().describe("Clip id or name."),
+        trackId: z.string().describe("A track id, from list_tracks."),
+        mode: z
+          .string()
+          .describe('"position" or "position_scale".'),
+        offset: z
+          .object({ x: z.number(), y: z.number() })
+          .optional()
+          .describe("Canvas-pixel offset added on top of the tracked point."),
+        scale: z
+          .number()
+          .optional()
+          .describe('Scale multiplier, "position_scale" only.'),
+        rotationOffset: z
+          .number()
+          .optional()
+          .describe("Radians added to the clip's rotation."),
+        smoothing: z
+          .number()
+          .optional()
+          .describe("0..1; higher follows the track more loosely.")
+      }),
+      async ({ target, trackId, mode, offset, scale, rotationOffset, smoothing }) => {
+        const clip = resolveClip(target as string);
+        if (!mediaTracks.some((t) => t.id === trackId)) {
+          throw new Error(
+            `No track "${trackId}". ` + validUnits(mediaTracks, "track")
+          );
+        }
+        if (mode !== "position" && mode !== "position_scale") {
+          throw new Error(
+            `bind_to_track mode "${String(mode)}" is not implemented yet — ` +
+              `only "position" and "position_scale" affect rendering in this ` +
+              "build. The field accepts the other modes so a document can " +
+              "name the intent without a schema migration later, but binding " +
+              "to one today would be a no-op, so the call is refused instead."
+          );
+        }
+        const binding: TrackBinding = {
+          trackId: trackId as string,
+          mode: mode as TrackBinding["mode"]
+        };
+        if (offset !== undefined) {
+          binding.offset = offset as { x: number; y: number };
+        }
+        if (scale !== undefined) binding.scale = scale as number;
+        if (rotationOffset !== undefined) {
+          binding.rotationOffset = rotationOffset as number;
+        }
+        if (smoothing !== undefined) binding.smoothing = smoothing as number;
+        const next: TimelineClip = { ...clip, trackBinding: binding };
+        clips = clips.map((c) => (c.id === clip.id ? next : c));
+        return { ok: true, clip: serializeClip(next) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_unbind_track",
+      "Stop a clip following a track. A clip that follows none is a no-op.",
+      z.object({ target: z.string().describe("Clip id or name.") }),
+      async ({ target }) => {
+        const clip = resolveClip(target as string);
+        if (!clip.trackBinding) return { ok: true, clip: serializeClip(clip) };
+        const { trackBinding: _dropped, ...next } = clip;
         clips = clips.map((c) => (c.id === clip.id ? next : c));
         return { ok: true, clip: serializeClip(next) };
       }
@@ -2990,6 +3176,7 @@ export function createTimelineToolBridge(
       documentTracks: tracks.map((t) => structuredClone(t)),
       documentClips: clips.map((c) => structuredClone(c)),
       markers: markers.map((m) => structuredClone(m)),
+      mediaTracks: mediaTracks.map((t) => structuredClone(t)),
       tempo: tempo ? structuredClone(tempo) : undefined,
       setup: setup ? structuredClone(setup) : null,
       toolLog: [...toolLog],

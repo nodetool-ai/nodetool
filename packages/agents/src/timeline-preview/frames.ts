@@ -327,6 +327,7 @@ export async function renderTimelineFrames(
   const sceneOptions = {
     canvas: animationCanvas,
     animationCache: animCache,
+    mediaTracks: sequence.mediaTracks,
     model3dBakeHash: (clip: TimelineClip): string =>
       computeModel3DBakeHash(clip, {
         fps: Math.max(1, sequence.fps || 30),
@@ -335,16 +336,16 @@ export async function renderTimelineFrames(
       })
   };
   const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext("2d") as unknown as CompositeContext2D<
-    PreviewSource
-  >;
+  const ctx = canvas.getContext(
+    "2d"
+  ) as unknown as CompositeContext2D<PreviewSource>;
 
   const asSurface = (canvasFor: Canvas): CompositeSurface<PreviewSource> => ({
     // SAFETY: `CompositeContext2D` is the subset of the 2D canvas API the
     // compositing rules use, and a skia context provides all of it.
-    ctx: canvasFor.getContext("2d") as unknown as CompositeContext2D<
-      PreviewSource
-    >,
+    ctx: canvasFor.getContext(
+      "2d"
+    ) as unknown as CompositeContext2D<PreviewSource>,
     surface: canvasFor
   });
 
@@ -471,9 +472,9 @@ export async function renderTimelineFrames(
   const blurCtx = blurAccumulator
     ? // SAFETY: `CompositeContext2D` is the subset of the 2D canvas API the
       // accumulation uses, and a skia context provides all of it.
-      (blurAccumulator.getContext("2d") as unknown as CompositeContext2D<
-        PreviewSource
-      >)
+      (blurAccumulator.getContext(
+        "2d"
+      ) as unknown as CompositeContext2D<PreviewSource>)
     : null;
 
   /**
@@ -532,7 +533,10 @@ export async function renderTimelineFrames(
      */
     const degradedBeforeDraw: PreviewDegradation[] = [];
     /** Which report each drawn layer belongs to, matched by identity. */
-    const reportFor = new Map<Canvas2DLayer<PreviewSource>, PreviewLayerReport>();
+    const reportFor = new Map<
+      Canvas2DLayer<PreviewSource>,
+      PreviewLayerReport
+    >();
 
     /**
      * The pixels a layer draws, and whether it composites frame-sized and
@@ -684,7 +688,10 @@ export async function renderTimelineFrames(
     ): Promise<Canvas2DLayer<PreviewSource> | string> => {
       const anim =
         sampled ??
-        resolveAnimatedLayerProps(layer, timeMs, animationCanvas, animCache);
+        resolveAnimatedLayerProps(layer, timeMs, animationCanvas, animCache, {
+          mediaTracks: sequence.mediaTracks ?? [],
+          clips: sequence.clips
+        });
       const resolved = await sourceForLayer(layer, anim);
       if ("skipped" in resolved) return resolved.skipped;
       const drawn: Canvas2DLayer<PreviewSource> = {
@@ -736,7 +743,8 @@ export async function renderTimelineFrames(
         layer,
         timeMs,
         animationCanvas,
-        animCache
+        animCache,
+        { mediaTracks: sequence.mediaTracks ?? [], clips: sequence.clips }
       );
       const zIndex = trackZ(layer.trackIndex);
       const report: PreviewLayerReport = {
@@ -790,7 +798,6 @@ export async function renderTimelineFrames(
       reportFor.set(drawn, report);
     }
 
-
     const drawReport = drawTimelineFrame(ctx, drawLayers, geometry, {
       maskScratch: scratchFor,
       precomposites: drawPrecomposites,
@@ -816,7 +823,9 @@ export async function renderTimelineFrames(
         ...degradedBeforeDraw,
         ...drawReport.degraded.map((entry) => ({
           clip_id: entry.clipId,
-          clip_name: entry.clipId ? clipName(sequence, entry.clipId) : undefined,
+          clip_name: entry.clipId
+            ? clipName(sequence, entry.clipId)
+            : undefined,
           reason: entry.reason
         }))
       ]
@@ -846,7 +855,8 @@ export async function renderTimelineFrames(
         layer,
         timeMs,
         animationCanvas,
-        animCache
+        animCache,
+        { mediaTracks: sequence.mediaTracks ?? [], clips: sequence.clips }
       );
       model3d.request(
         layer.assetId,
@@ -872,7 +882,13 @@ export async function renderTimelineFrames(
     );
     return shutterWindowIsStatic(
       layers,
-      hasActiveAnimation(layers, timeMs, animationCanvas, animCache, sequence.clips)
+      hasActiveAnimation(
+        layers,
+        timeMs,
+        animationCanvas,
+        animCache,
+        sequence.clips
+      )
     );
   };
 

@@ -6,6 +6,7 @@ describe("buildTimelineDocumentPayload", () => {
     tracks: [{ id: "t1", name: "Track 1", type: "video" as const, clips: [] }],
     clips: { c1: { id: "c1", trackId: "t1", startTime: 0, endTime: 5 } },
     markers: [{ id: "m1", time: 2, label: "Intro" }],
+    mediaTracks: [{ id: "subject-1" }],
     transcript: { segments: [] },
     scriptEnabled: true,
     tempo: {
@@ -20,6 +21,7 @@ describe("buildTimelineDocumentPayload", () => {
     expect(Object.keys(payload).sort()).toEqual([
       "clips",
       "markers",
+      "mediaTracks",
       "scriptEnabled",
       "setup",
       "tempo",
@@ -31,7 +33,9 @@ describe("buildTimelineDocumentPayload", () => {
   it("sends the guided-setup state as undefined when there is none", () => {
     // Undefined, not null: `timelineDocument` reads an absent `setup` as a
     // sequence that never went through the flow, and null would not parse.
-    expect(buildTimelineDocumentPayload(baseState as never).setup).toBeUndefined();
+    expect(
+      buildTimelineDocumentPayload(baseState as never).setup
+    ).toBeUndefined();
   });
 
   it("preserves the tracks array by reference", () => {
@@ -47,6 +51,11 @@ describe("buildTimelineDocumentPayload", () => {
   it("preserves the markers array by reference", () => {
     const payload = buildTimelineDocumentPayload(baseState as never);
     expect(payload.markers).toBe(baseState.markers);
+  });
+
+  it("preserves the media tracks array by reference", () => {
+    const payload = buildTimelineDocumentPayload(baseState as never);
+    expect(payload.mediaTracks).toBe(baseState.mediaTracks);
   });
 
   it("preserves the transcript by reference", () => {

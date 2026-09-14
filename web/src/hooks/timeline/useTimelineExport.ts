@@ -61,11 +61,18 @@ interface UseTimelineExportResult {
 }
 
 function sanitizeFilename(name: string): string {
-  const base = name.trim().replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "");
+  const base = name
+    .trim()
+    .replace(/[^\w.-]+/g, "_")
+    .replace(/^_+|_+$/g, "");
   return base.length > 0 ? base : "timeline";
 }
 
-function downloadBlob(bytes: Uint8Array, mimeType: string, filename: string): void {
+function downloadBlob(
+  bytes: Uint8Array,
+  mimeType: string,
+  filename: string
+): void {
   // `bytes` is always backed by a plain ArrayBuffer from the muxer; the cast
   // satisfies the BlobPart typing under the current TS lib.
   const blob = new Blob([bytes as BlobPart], { type: mimeType });
@@ -173,20 +180,22 @@ export function useTimelineExport(): UseTimelineExportResult {
           throw new Error("Add a clip before exporting.");
         }
 
-        const { bytes, mimeType, extension, degradations } = await renderTimeline({
-          tracks: state.tracks,
-          clips: state.clips,
-          width: state.width,
-          height: state.height,
-          fps: state.fps,
-          durationMs: exportDurationMs,
-          tempo: state.tempo,
-          format: options?.format,
-          alpha: options?.alpha,
-          resolveUrl,
-          signal: controller.signal,
-          onProgress: handleProgress
-        });
+        const { bytes, mimeType, extension, degradations } =
+          await renderTimeline({
+            tracks: state.tracks,
+            clips: state.clips,
+            mediaTracks: state.mediaTracks,
+            width: state.width,
+            height: state.height,
+            fps: state.fps,
+            durationMs: exportDurationMs,
+            tempo: state.tempo,
+            format: options?.format,
+            alpha: options?.alpha,
+            resolveUrl,
+            signal: controller.signal,
+            onProgress: handleProgress
+          });
         // A 3D clip whose alpha bake this browser could not play was drawn
         // from its live proxy instead, so the file is not quite the baked
         // picture — said once, rather than left to be noticed (§R6).
@@ -238,27 +247,31 @@ export function useTimelineExport(): UseTimelineExportResult {
       filename?: string,
       options?: TimelineExportOptions
     ) =>
-      runExport(async (bytes, mimeType, name, extension) => {
-        const file = new File([bytes as BlobPart], `${name}.${extension}`, {
-          type: mimeType
-        });
-        const asset = await createAsset(
-          file,
-          undefined,
-          folderId ?? undefined,
-          undefined,
-          "file"
-        );
-        // Link the exported video back to this timeline so it can be traced.
-        const sequenceId = store.getState().sequenceId;
-        if (sequenceId) {
-          await updateAsset({ id: asset.id, timeline_id: sequenceId });
-        }
-        useNotificationStore.getState().addNotification({
-          type: "success",
-          content: "Saved timeline to assets."
-        });
-      }, filename, options),
+      runExport(
+        async (bytes, mimeType, name, extension) => {
+          const file = new File([bytes as BlobPart], `${name}.${extension}`, {
+            type: mimeType
+          });
+          const asset = await createAsset(
+            file,
+            undefined,
+            folderId ?? undefined,
+            undefined,
+            "file"
+          );
+          // Link the exported video back to this timeline so it can be traced.
+          const sequenceId = store.getState().sequenceId;
+          if (sequenceId) {
+            await updateAsset({ id: asset.id, timeline_id: sequenceId });
+          }
+          useNotificationStore.getState().addNotification({
+            type: "success",
+            content: "Saved timeline to assets."
+          });
+        },
+        filename,
+        options
+      ),
     [runExport, createAsset, updateAsset, store]
   );
 
