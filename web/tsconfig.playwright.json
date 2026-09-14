@@ -3,11 +3,18 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
-    "types": ["@playwright/test", "node"]
+    "types": [
+      "@playwright/test",
+      "@testing-library/jest-dom",
+      "@webgpu/types",
+      "jest",
+      "node"
+    ]
   },
   "include": [
     "playwright*.config.ts",
     "src/**/*.d.ts",
+    "src/components/themes/paletteDark.ts",
     "src/perf/realtimePerfHarness.ts",
     "tests/**/*.ts",
     "tests/**/*.tsx"
