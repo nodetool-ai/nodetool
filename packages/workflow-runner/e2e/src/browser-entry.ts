@@ -18,6 +18,7 @@
 
 import {
   WorkflowRunner,
+  withExplicitNodeFlags,
   type NodeExecutor,
   type RunResult
 } from "@nodetool-ai/kernel";
@@ -178,7 +179,10 @@ window.runWorkflowInBrowser = async (
     }
   });
 
-  const result = await runner.run({ job_id: jobId, params }, graph);
+  const result = await runner.run(
+    { job_id: jobId, params },
+    withExplicitNodeFlags(graph)
+  );
   const messageTypes: string[] = [];
   for (const m of result.messages as ProcessingMessage[]) {
     messageTypes.push(m.type);

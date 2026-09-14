@@ -1,8 +1,7 @@
 {
-  "extends": "./tsconfig.e2e.json",
+  "extends": "./tsconfig.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "moduleResolution": "bundler",
     "types": [
       "@playwright/test",
       "@testing-library/jest-dom",

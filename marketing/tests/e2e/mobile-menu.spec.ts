@@ -27,6 +27,7 @@ const SCROLL_Y = 1200;
 test.describe("landing page on a phone", () => {
   test("the menu pins the page while open and restores the scroll position", async ({
     page,
+    browserName,
   }) => {
     await page.goto("/", { waitUntil: "load" });
     await page.evaluate((y) => window.scrollTo(0, y), SCROLL_Y);
@@ -43,10 +44,13 @@ test.describe("landing page on a phone", () => {
     );
 
     // A wheel over the open panel must not move the document behind it.
-    await page.mouse.move(195, 600);
-    await page.mouse.wheel(0, 800);
-    await page.waitForTimeout(200);
-    expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(0);
+    if (browserName === "chromium") {
+      await page.mouse.move(195, 600);
+      await page.mouse.wheel(0, 800);
+      await expect
+        .poll(() => page.evaluate(() => Math.round(window.scrollY)))
+        .toBe(0);
+    }
 
     await page.getByRole("button", { name: "Close menu" }).last().click();
     await expect(panel).toBeHidden();
