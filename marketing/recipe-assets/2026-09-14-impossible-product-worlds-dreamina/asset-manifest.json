@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-09-14-impossible-product-worlds-dreamina",
+  "recipeSlug": "impossible-product-worlds",
+  "status": "accepted",
+  "product": "Fictional unbranded Olive Travel Cup",
+  "sourceReference": "marketing/recipe-assets/2026-09-10-marketing-recipes-01/shared/product/product-reference.png",
+  "sourcePrompt": "marketing/recipe-assets/2026-09-14-impossible-product-worlds-dreamina/prompt.txt",
+  "models": {
+    "video": {
+      "provider": "dreamina",
+      "id": "not embedded in the supplied MP4"
+    }
+  },
+  "output": {
+    "path": "marketing/public/recipes/runs/2026-09-14-impossible-product-worlds-dreamina/final.mp4",
+    "sha256": "19436ccdc278ca3fecd420838b7208f7d88f71a07d34ff9cda3ad5a7ccd863c3",
+    "bytes": 23904742,
+    "width": 720,
+    "height": 1280,
+    "durationSeconds": 15.071995,
+    "videoCodec": "h264",
+    "videoFrames": 361,
+    "audioCodec": "aac",
+    "audioSampleRate": 44100,
+    "audioChannels": 2
+  },
+  "verification": {
+    "decode": "FFmpeg decoded the complete MP4 without errors.",
+    "visualReview": "The video shows the desert approach, lid-pool reveal, running jump, underwater transition, and closing drink.",
+    "audio": "FFprobe found one AAC stereo stream at 44.1 kHz."
+  },
+  "limitations": [
+    "The supplied MP4 does not record the exact Dreamina model selection.",
+    "The cup proportions differ from the clean product reference in some frames.",
+    "The woman's hairstyle changes between the jump and closing drink."
+  ]
+}

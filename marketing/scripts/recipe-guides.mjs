@@ -20,6 +20,22 @@ const dub = (file, alt, caption) =>
   capture("multilingual-video-dubber", `steps/${file}.png`, alt, caption);
 const trailer = (file, alt, caption) =>
   capture("storyboard-to-trailer", `raw/${file}.png`, alt, caption);
+const emotionalCup = (file, alt, caption) => ({
+  source: `recipe-assets/2026-09-14-emotional-support-cup/captures/${file}.jpg`,
+  src: `/recipes/runs/2026-09-14-emotional-support-cup/steps/${file}.jpg`,
+  width: 1600,
+  height: 900,
+  alt,
+  caption
+});
+const impossible = (file, alt, caption) => ({
+  source: `recipe-assets/2026-09-14-impossible-product-worlds-dreamina/captures/${file}.jpg`,
+  src: `/recipes/runs/2026-09-14-impossible-product-worlds-dreamina/steps/${file}.jpg`,
+  width: 1600,
+  height: 900,
+  alt,
+  caption
+});
 
 export const recipeGuides = {
   "directed-campaign-kit": {
@@ -101,13 +117,13 @@ export const recipeGuides = {
   "ugc-product-video": {
     name: "UGC product video",
     outcome:
-      "Turn creator and product references into a casual 15-second vertical video with native voice and playful caption animation.",
+      "Turn creator and product references into a 15-second day-in-the-life story where a cup becomes a reassuring companion.",
     audience: "Founder-led brands, creators, and paid social teams",
     guide: {
       entry: "UGC Product Video",
       stages: ["Angle", "References", "Generate", "Finish", "Review"],
       introduction:
-        "Choose a simple observation, lock the references, generate one native-audio take, then finish the captions in NodeTool.",
+        "Open with a self-aware product confession, show the cup following a chaotic day, then land on a warm verdict to camera.",
       inputs: [
         "One vertical creator image",
         "One clean product image",
@@ -115,24 +131,22 @@ export const recipeGuides = {
         "A native-audio video provider"
       ],
       brief:
-        "Make a 15-second vertical kitchen video with phone framing, dry delivery, room tone, and no music. Image 1 sets the creator and room. Image 2 sets the cup. Dialogue: \"I bought this because it's green. That's it. I already have, like, six cups. But apparently I needed a green one. Look how nice.\" Add captions and the six-to-seven cup animation afterward.",
-      note: "Dreamina supplied the recording. The caption and cup animation were finished locally.",
+        "Make a 15-second vertical day-in-the-life UGC video with handheld phone framing, natural room tone, and no music. Keep the same woman, charcoal sweatshirt, olive cup, and grey lid throughout. Start with her speaking to camera in the kitchen, follow the cup as she rushes out, carries it through town, drinks at work, pauses outdoors, and ends at home holding it close. Dialogue: \"I bought this because it's green, which is ridiculous because I already have six. But then this morning got a bit chaotic, and suddenly it was my emotional support cup. It kept showing up like, don't worry, I've got you. So yeah, turns out I needed the green one.\" Keep the voice continuous across the cuts. No music, captions, logos, or extra products.",
+      note: "The supplied finished video runs for 15.017 seconds at 1440×2560 with AAC stereo audio. It has no burned-in captions. The MP4 is flattened, so its cuts and speech are not editable on this page.",
       steps: [
         {
           id: "angle",
           phase: "Angle",
           stage: "Angle",
-          title: "Pick the joke",
+          title: "Build a feeling, not just a punchline",
           description:
-            "Compare three angles. Keep the one a creator could say without sounding scripted.",
+            "Start with the slightly ridiculous reason she bought the cup, then let the day prove why she keeps reaching for it. The closing line should resolve the opening thought.",
           action: "Choose an angle",
-          image: {
-            src: "/recipes/runs/2026-09-14-ugc-cup/steps/01-angle.png",
-            alt: "NodeTool UGC Product Video app showing three written angles for the olive travel cup.",
-            caption: "The app turns one product note into three angles.",
-            width: 1960,
-            height: 1050
-          }
+          image: emotionalCup(
+            "01-angle",
+            "Five frames follow the creator from her kitchen through a busy day to a quiet evening with the olive cup.",
+            "The story moves from confession to chaos, companionship, and a warm final verdict."
+          )
         },
         {
           id: "creator",
@@ -140,15 +154,13 @@ export const recipeGuides = {
           stage: "Creator",
           title: "Set the creator",
           description:
-            "Use a vertical frame with a clear face, natural light, and the intended room.",
+            "Use a clear front-camera frame with an unobstructed face and natural window light. Keep her hair, charcoal sweatshirt, and understated delivery consistent across the day.",
           action: "Add the creator",
-          image: {
-            src: "/recipes/runs/2026-09-14-ugc-cup/steps/02-creator.png",
-            alt: "Vertical creator reference showing a woman speaking to camera in a bright kitchen.",
-            caption: "The creator reference fixes the face, framing, and room.",
-            width: 941,
-            height: 720
-          }
+          image: emotionalCup(
+            "02-creator",
+            "The creator speaks directly to a phone camera in a bright kitchen while holding the cup.",
+            "The opening frame fixes the creator, wardrobe, phone look, and conversational tone."
+          )
         },
         {
           id: "product",
@@ -158,45 +170,39 @@ export const recipeGuides = {
           description:
             "Use a clean image that shows the cup silhouette, finish, lid, and proportions.",
           action: "Add the product",
-          image: {
-            src: "/recipes/runs/2026-09-14-ugc-cup/steps/03-product.png",
-            alt: "Olive travel cup product reference used as the second NodeTool entity.",
-            caption: "The product reference controls the cup, not the room.",
-            width: 1024,
-            height: 768
-          }
+          image: emotionalCup(
+            "03-product",
+            "Clean product reference showing the olive cup's tapered body and fitted grey lid.",
+            "The product reference fixes the cup independently from the creator and locations."
+          )
         },
         {
           id: "dialogue",
           phase: "Generate",
           stage: "Generate",
-          title: "Generate one take",
+          title: "Show the cup earning its nickname",
           description:
-            "Generate the voice and picture together. Leave a short pause before the punchline.",
-          action: "Generate the take",
-          image: {
-            src: "/recipes/runs/2026-09-14-ugc-cup/steps/04-generate.png",
-            alt: "NodeTool UGC Product Video app with creator and product inputs, Seedance model selection, and a generated vertical video.",
-            caption: "Both references feed one native-audio Seedance take.",
-            width: 1960,
-            height: 1150
-          }
+            "Direct visible actions instead of generic reactions: she leaves with the cup, carries it through town, drinks during work, and takes it outside for a pause.",
+          action: "Generate the day-in-the-life sequence",
+          image: emotionalCup(
+            "04-generate",
+            "Three vertical frames show the cup leaving home, travelling through town, and joining an outdoor pause.",
+            "The middle earns the emotional-support idea through repeated physical use."
+          )
         },
         {
           id: "finish",
           phase: "Finish",
-          stage: "Captions",
-          title: "Time the captions",
+          stage: "Edit",
+          title: "Let one voice carry the cuts",
           description:
-            "Match each caption to the voice. Add the seventh cup on the punchline.",
+            "Keep the spoken thought continuous while the picture moves from home to street, work, outdoors, and evening. Preserve natural location sound and leave the frame free of captions.",
           action: "Finish in the timeline",
-          image: {
-            src: "/recipes/runs/2026-09-14-ugc-cup/steps/05-captions.png",
-            alt: "NodeTool Studio timeline with separate caption, video, and voice tracks.",
-            caption: "Caption blocks stay editable on the NodeTool timeline.",
-            width: 1920,
-            height: 1080
-          }
+          image: emotionalCup(
+            "05-edit",
+            "Five sequential frames map the kitchen hook, departure, street, work break, and evening close.",
+            "The voice bridges a compact series of everyday moments."
+          )
         },
         {
           id: "inspect",
@@ -204,15 +210,13 @@ export const recipeGuides = {
           stage: "Review",
           title: "Review the reel",
           description:
-            "Watch once with sound, then muted. Check lip-sync, captions, cup identity, and timing.",
+            "Watch once with sound, then muted. Check voice continuity, creator identity, cup geometry, location changes, and whether the final smile completes the opening confession.",
           action: "Approve or regenerate",
-          image: {
-            src: "/recipes/runs/2026-09-14-ugc-cup/steps/06-review.png",
-            alt: "NodeTool UGC Product Video app showing the finished vertical reel and review guidance.",
-            caption: "The finished reel remains beside its review checklist.",
-            width: 1960,
-            height: 1050
-          }
+          image: emotionalCup(
+            "06-review",
+            "The creator smiles at home in warm evening light while holding the olive cup close to camera.",
+            "The quiet closing frame resolves the busier middle of the story."
+          )
         }
       ]
     }
@@ -220,21 +224,22 @@ export const recipeGuides = {
   "impossible-product-worlds": {
     name: "Impossible product worlds",
     outcome:
-      "Fly above a giant product to reveal a luxury pool in its lid, then return to a clean hero shot in a short surreal commercial.",
+      "Chase a swimmer into a pool hidden in a giant cup, then return to human scale as she drinks from it.",
     audience: "Brand teams and creative studios",
     guide: {
       entry: "Storyboard",
       stages: ["Idea", "Story", "Entities", "Look"],
       introduction:
-        "Three shots: one continuous drone flight over a giant cup that reveals a pool in its lid, then ordinary tabletop scale, then a packshot.",
+        "Plan the product world in Storyboard, lock the cup and swimmer as entities, then direct the finished 15-second take in Dreamina.",
       inputs: [
         "One clear product photo with the full silhouette visible",
-        "A product name and approved closing line",
-        "Your chosen image and video providers, plus a music provider if needed"
+        "Dreamina video access with reference-image support",
+        "A product name and approved closing line"
       ],
       brief:
-        "Small object. Big escape. Create a three-shot surreal commercial for the Olive Travel Cup, a fictional unbranded olive-green travel cup with a charcoal lid. Use the supplied product reference throughout.\n\n1. An eight-second continuous drone flight. Begin low in golden dunes facing a monumental cup. Fly forward, rise above its rim, and tilt down to reveal a luxury turquoise pool built into its fitted lid, with pale stone coping, two cream loungers, and a beige parasol. Keep the same cup visible throughout. The pool already exists and is revealed by the camera angle. No cut, lid detachment, or object transformation.\n2. Four seconds at ordinary scale: the cup on a sunlit tabletop with its lid beside it. A small lateral camera slide establishes familiar scale.\n3. Three seconds on a cobalt-blue studio background: cup upright, lid fitted, clear space above for the closing line.\n\nVertical 9:16. Target 15 seconds: 8, 4, and 3. Warm directional light and sharp shadows. No people, generated lettering, extra handles, or product-performance claims. Add Small object. Big escape. as editable text over the final hero.",
-      note: "The example is a silent 15-second concept film, rendered through AtlasCloud and assembled locally. Product proportions vary between shots.",
+        "Create a 15-second vertical 9:16 photorealistic surreal product commercial with energetic, controlled camera motion. @Image1 is only the product identity reference. Preserve the Olive Travel Cup's muted-olive tapered matte body, charcoal fitted flat lid, raised lid rim, and rectangular drinking opening. No handle, logo, lettering, duplication, or changing proportions.\n\n[00:00-00:06] Race low over golden dunes toward the cup at monumental scale. Climb its body, crest the lid rim, and tilt down to reveal a turquoise pool already recessed inside the fitted lid. Continue the same unbroken move as a woman in a cobalt swimsuit and open cream resort shirt runs along the pale stone deck.\n\n[00:06-00:09] Track beside her, orbit as she jumps, and follow her through a large realistic splash into the water.\n\n[00:09-00:15] Match cut through the splash to ordinary scale. Whip-pan to the same woman holding the same cup on a sunny resort terrace. Curve toward her as she raises it and drinks, then settle on a clear product view.\n\nUse warm hard sunlight, crisp shadows, realistic water and fabric, and an original rising percussion-and-bass score with wind, footsteps, splash, and underwater bubbles. Avoid product morphing, detached parts, extra objects, warped limbs, face changes, camera jitter, generated text, subtitles, logos, and watermarks.",
+      note:
+        "Dreamina supplied the finished 15.072-second video. The published file is a 720×1280 H.264 render with AAC stereo audio. The source is a flattened video, so the camera beats and soundtrack are not editable on the recipe page.",
       steps: [
         {
           id: "reference",
@@ -242,8 +247,13 @@ export const recipeGuides = {
           stage: "Product",
           title: "Choose the details that must survive",
           description:
-            "Start with an unobstructed product photo. Note its silhouette, colour, lid, and materials. If you use another product, adapt the hidden pool to a visible feature such as a cap or recess.",
-          action: "Choose your product reference"
+            "Start with an unobstructed product photo. Record the silhouette, colour, lid, opening, and finish before adding the impossible setting.",
+          action: "Choose the product reference",
+          image: impossible(
+            "01-product",
+            "Clean reference image of the matte olive travel cup with its charcoal lid fitted.",
+            "The source image defines the cup's shape, colour, lid, and drinking opening."
+          )
         },
         {
           id: "idea",
@@ -251,88 +261,125 @@ export const recipeGuides = {
           stage: "Idea",
           title: "Give the product an impossible setting",
           description:
-            "Create a project and choose Storyboard. Paste the example brief into Idea, then replace the product details with your own. Keep the drone approach and pool reveal in one continuous opening shot, followed by a tabletop shot and final hero.",
-          action: "Continue"
+            "Create a project and choose Storyboard. Describe the desert approach, the pool inside the giant cup, the woman's jump, and the closing drink as one short commercial.",
+          action: "Continue",
+          image: impossible(
+            "02-prompt",
+            "A monumental olive travel cup standing among sunlit desert dunes.",
+            "The opening establishes the impossible scale before the pool appears."
+          )
         },
         {
           id: "story",
           phase: "Guided setup",
           stage: "Story",
-          title: "Plan a three-shot Commercial",
+          title: "Time the reveal, jump, and drink",
           description:
-            "Select Commercial and 3 shots. Generate the screenplay. Use the 15-second target to keep the concept focused, then set the exact shot lengths when you edit the clips.",
-          action: "Generate screenplay"
+            "Choose Commercial and plan the approach, reveal, jump, splash transition, and closing drink. Keep the whole sequence within the 15-second target.",
+          action: "Review the story",
+          image: impossible(
+            "03-story",
+            "Five frames show the desert approach, lid pool, running jump, underwater splash, and final drink.",
+            "Five frames describe the complete 15-second arc."
+          )
         },
         {
           id: "review",
           phase: "Guided setup",
           stage: "Review",
-          title: "Make the scale change readable",
+          title: "Make every scale change readable",
           description:
-            "Keep the cup visible while the camera rises above its rim. The pool should already exist inside the fitted lid and become visible as the camera tilts down. Use the next cut to return to ordinary tabletop scale.",
-          action: "Set up entities"
+            "Keep the cup monumental through the splash, then use that splash as the cut to human scale. Do not let the product resize inside a shot.",
+          action: "Check the transition",
+          image: impossible(
+            "04-review",
+            "Five review frames show the giant cup, pool reveal, airborne woman, water transition, and final drink.",
+            "The review strip makes the scale change and final payoff visible."
+          )
         },
         {
           id: "entities",
           phase: "Guided setup",
           stage: "Entities",
-          title: "Anchor every world to one product",
+          title: "Give each reference one job",
           description:
-            "Create or select a product entity using your photo and assign it to all three shots. Describe the fitted lid, its rim, and drinking opening so the pool reveal retains the product's identity.",
-          action: "Choose the look"
+            "Create a product entity from the cup photo and a character entity for the swimmer. Reuse both through the jump and the closing drink before sending the direction to Dreamina.",
+          action: "Choose the entities",
+          image: impossible(
+            "05-reference",
+            "The clean olive cup reference beside the woman holding the generated cup at the pool.",
+            "Compare the source product with the returned person-and-product frame."
+          )
         },
         {
           id: "look",
           phase: "Guided setup",
           stage: "Look",
-          title: "Make the impossible feel photographed",
+          title: "Keep the impossible world photographic",
           description:
-            "Choose 9:16 and a photographic style with warm directional light, sharp shadows, golden sand, and deep blue backgrounds. Select an image model that supports entity references, then generate the board.",
-          action: "Generate your storyboard"
+            "Choose 9:16, warm hard sunlight, crisp shadows, turquoise water, pale stone, and realistic fabric. Keep the palette consistent across both scales.",
+          action: "Generate the storyboard",
+          image: impossible(
+            "06-look",
+            "A sunlit turquoise pool recessed into the charcoal lid of the giant cup.",
+            "Warm sand, charcoal, olive, cream, and turquoise define the finished look."
+          )
         },
         {
           id: "stills",
           phase: "Storyboard",
           stage: "Stills",
-          title: "Review the product before the spectacle",
+          title: "Check three frames before judging motion",
           description:
-            "Compare every still with the source photo. Check the silhouette, lid geometry, and colour. Begin the drone shot below the lid rim so the pool is hidden. Keep the lid attached throughout the reveal. Regenerate a still if it changes the product's silhouette.",
-          action: "Accept one still per shot"
+            "Compare the approach, pool reveal, and final drink. Check the cup silhouette, lid colour, wardrobe, light direction, and clear product read.",
+          action: "Review the key frames",
+          image: impossible(
+            "07-frames",
+            "Three tall frames show the giant desert cup, the lid pool, and the woman drinking from the cup.",
+            "The three anchor frames cover setup, reveal, and payoff."
+          )
         },
         {
           id: "motion",
           phase: "Finish",
           stage: "Motion",
-          title: "Move the camera through each scene",
+          title: "Direct the camera around the action",
           description:
-            "Render the opening as one eight-second clip: approach the cup, ascend above its rim, then tilt down to reveal the luxury pool, narrow deck, loungers, and parasol. Keep the cup stationary and the camera path continuous. Render the tabletop slide and near-static hero separately.",
-          action: "Render and review each clip",
-          image: {
-            src: "/recipes/runs/2026-09-11-impossible-product-worlds/pool-poster.webp",
-            alt: "The drone camera reveals a luxury pool inside the giant cup's fitted lid.",
-            caption:
-              "A frame from the continuous drone reveal in the rendered example.",
-            width: 540,
-            height: 960
-          }
+            "Use a low desert chase, steep climb, rim reveal, lateral run, midair orbit, and underwater follow. Give each move a subject and destination.",
+          action: "Generate the full take",
+          image: impossible(
+            "08-motion",
+            "The woman is airborne above the turquoise pool during the generated camera orbit.",
+            "The jump gives the camera move a physical action to follow."
+          )
         },
         {
           id: "edit",
           phase: "Finish",
           stage: "Timeline",
-          title: "Cut from impossible to familiar",
+          title: "Inspect the returned rhythm",
           description:
-            "Assemble the three accepted clips and trim them to 8, 4, and 3 seconds. Use a direct cut for the return to tabletop scale. Add your approved closing line as editable text over the final hero and check its position in the vertical frame.",
-          action: "Assemble the 15-second edit"
+            "Check the approach, reveal, jump, splash, and drink in order. If a beat is unclear, revise that time range before changing the whole direction.",
+          action: "Review the five beats",
+          image: impossible(
+            "09-timeline",
+            "Five sequential frames lay out the full video from desert approach to the closing drink.",
+            "The frame strip is the edit map for the flattened Dreamina render."
+          )
         },
         {
           id: "delivery",
           phase: "Finish",
           stage: "Delivery",
-          title: "Finish with sound and a clear product read",
+          title: "End on the product action",
           description:
-            "If the cut needs music, ask the agent for a sparse instrumental score covering the full edit, with a change at the tabletop reveal. Balance it in the timeline. Watch once with sound and once muted, check the final product and closing line, then export the vertical film.",
-          action: "Review and export"
+            "Watch once with sound and once muted. Check the final cup, the drink, the soundtrack ending, and the 9:16 crop before publishing.",
+          action: "Approve the final video",
+          image: impossible(
+            "10-delivery",
+            "Close view of the woman drinking from the olive travel cup beside the desert pool.",
+            "The final seconds return the impossible setting to a familiar product action."
+          )
         }
       ]
     }

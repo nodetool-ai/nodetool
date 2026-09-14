@@ -126,47 +126,100 @@ test.describe("marketing smoke", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   });
 
-  test("advertising showcase opens the impossible product worlds recipe", async ({ page }) => {
+  test("advertising showcase opens the impossible product worlds recipe", async ({
+    page
+  }) => {
     await page.goto("/marketing");
-    await page.getByRole("link", {
-      name: "Explore the Impossible product worlds project"
-    }).click();
+    await page
+      .getByRole("link", {
+        name: "Explore the Impossible product worlds project"
+      })
+      .click();
     await expect(page).toHaveURL(/\/recipes\/impossible-product-worlds$/);
-    await expect(page.getByRole("heading", {
-      name: "Impossible product worlds", exact: true
-    })).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: "Impossible product worlds",
+        exact: true
+      })
+    ).toBeVisible();
     const video = page.locator("#production-proof video");
+    await expect(video).toHaveAttribute(
+      "poster",
+      "/recipes/runs/2026-09-14-impossible-product-worlds-dreamina/poster.webp"
+    );
+    await expect(video.locator('source[type="video/mp4"]')).toHaveAttribute(
+      "src",
+      "/recipes/runs/2026-09-14-impossible-product-worlds-dreamina/final.mp4"
+    );
     await expect(video).toHaveJSProperty("error", null);
-    await expect(video).toHaveJSProperty("duration", 15);
+    expect(
+      await video.evaluate((element: HTMLVideoElement) => element.duration)
+    ).toBeCloseTo(15.072, 2);
     await expect(page.getByText("Still to review")).toHaveCount(0);
   });
 
+  test("every impossible product worlds step shows a source visual", async ({
+    page
+  }) => {
+    await page.goto("/recipes/impossible-product-worlds");
+
+    await expect(
+      page.locator("#guided-flow ol").first().locator("li span:last-child")
+    ).toHaveText(["Idea", "Story", "Entities", "Look"]);
+
+    for (const name of [
+      "01 Product",
+      "02 Idea",
+      "03 Story",
+      "04 Review",
+      "05 Entities",
+      "06 Look",
+      "07 Stills",
+      "08 Motion",
+      "09 Timeline",
+      "10 Delivery"
+    ]) {
+      await page.getByRole("button", { name, exact: true }).click();
+      const image = page.locator(
+        '#recipe-step-content img[src*="impossible-product-worlds-dreamina/steps/"]'
+      );
+      await expect(image).toBeVisible();
+      await expect
+        .poll(() =>
+          image.evaluate((element: HTMLImageElement) => element.naturalWidth)
+        )
+        .toBeGreaterThan(0);
+    }
+  });
+
   for (const path of ["/recipes/ugc-product-video", "/apps/ugc-product-video"]) {
-    test(`${path} exposes the playable finished UGC Reel`, async ({ page }) => {
+    test(`${path} exposes the playable emotional-support UGC story`, async ({
+      page
+    }) => {
       await page.goto(path);
 
       const proof = page.getByRole("region", {
-        name: "One take, finished for social."
+        name: "Turns out I needed the green one."
       });
       const video = proof.locator("video");
 
       await expect(proof).toBeVisible();
       await expect(video).toHaveAttribute(
         "poster",
-        "/recipes/runs/2026-09-14-ugc-cup/poster.jpg"
+        "/recipes/runs/2026-09-14-emotional-support-cup/poster.jpg"
       );
       await expect(video.locator('source[type="video/mp4"]')).toHaveAttribute(
         "src",
-        "/recipes/runs/2026-09-14-ugc-cup/final.mp4"
+        "/recipes/runs/2026-09-14-emotional-support-cup/final.mp4"
       );
       await expect(video).toHaveJSProperty("error", null);
       expect(
         await video.evaluate((element: HTMLVideoElement) => element.duration)
-      ).toBeCloseTo(15.02, 1);
+      ).toBeCloseTo(15.017, 2);
     });
   }
 
-  test("every UGC recipe step shows its NodeTool UI or entity image", async ({
+  test("every UGC recipe step shows its source visual", async ({
     page
   }) => {
     await page.goto("/recipes/ugc-product-video");
@@ -176,7 +229,7 @@ test.describe("marketing smoke", () => {
       "02 Creator",
       "03 Product",
       "04 Generate",
-      "05 Captions",
+      "05 Edit",
       "06 Review"
     ]) {
       await page.getByRole("button", { name, exact: true }).click();
@@ -189,18 +242,16 @@ test.describe("marketing smoke", () => {
         .toBeGreaterThan(0);
     }
 
-    for (const image of [
-      page.getByRole("img", {
-        name: "Creator holding an olive travel cup with the caption Look how nice."
-      }),
-      page.getByRole("img", {
-        name: "The caption six cups appears above six small cup outlines."
-      })
-    ]) {
-      const box = await image.boundingBox();
-      expect(box?.height ?? Infinity).toBeLessThanOrEqual(560);
-      expect(box?.width ?? Infinity).toBeLessThan(box?.height ?? 0);
-    }
+    const hero = page.getByRole("img", {
+      name: "Creator speaking to camera in her kitchen while holding an olive travel cup."
+    });
+    const proof = page.getByRole("img", {
+      name: "Five frames follow the creator and olive cup from morning at home through work to evening."
+    });
+    const heroBox = await hero.boundingBox();
+    const proofBox = await proof.boundingBox();
+    expect(heroBox?.width ?? Infinity).toBeLessThan(heroBox?.height ?? 0);
+    expect(proofBox?.height ?? Infinity).toBeLessThan(proofBox?.width ?? 0);
   });
 
   test("the download page offers an installer for every platform", async ({
