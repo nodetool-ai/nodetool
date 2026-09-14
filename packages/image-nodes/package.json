@@ -28,7 +28,7 @@
     "@types/node": "^22.0.0",
     "@webgpu/types": "^0.1.70",
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.11"
   },
   "exports": {
     ".": {
