@@ -1,0 +1,9 @@
+{
+  "source_file": "/Users/mg/workspace/nodetool/marketing/recipe-assets/product-commercial-realism-v2/generation/take2/commercial-original.mp4",
+  "sha256": "aa499a8d9037f21a5d2899739973f12e015a5b97f3bb4caa2b34b51d96295500",
+  "start_frame": 77,
+  "end_frame_exclusive": 173,
+  "fps": 24,
+  "duration_seconds": 4,
+  "instructions": "Keep this exact approved footage. Do not regenerate, reframe or retime it."
+}

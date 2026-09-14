@@ -1,0 +1,478 @@
+{
+	"systeminfo": "WHISPER : COREML = 0 | OPENVINO = 0 | Metal : EMBED_LIBRARY = 1 | CPU : NEON = 1 | ARM_FMA = 1 | FP16_VA = 1 | DOTPROD = 1 | ACCELERATE = 1 | REPACK = 1 | ",
+	"model": {
+		"type": "base",
+		"multilingual": false,
+		"vocab": 51864,
+		"audio": {
+			"ctx": 1500,
+			"state": 512,
+			"head": 8,
+			"layer": 6
+		},
+		"text": {
+			"ctx": 448,
+			"state": 512,
+			"head": 8,
+			"layer": 6
+		},
+		"mels": 80,
+		"ftype": 1
+	},
+	"params": {
+		"model": "/private/tmp/ugc-ggml-base.en.bin",
+		"language": "en",
+		"translate": false
+	},
+	"result": {
+		"language": "en"
+	},
+	"transcription": [
+		{
+			"timestamps": {
+				"from": "00:00:00,000",
+				"to": "00:00:06,880"
+			},
+			"offsets": {
+				"from": 0,
+				"to": 6880
+			},
+			"text": " I bought this because it's green, that's it I already have like six cups",
+			"tokens": [
+				{
+					"text": "[_BEG_]",
+					"timestamps": {
+						"from": "00:00:00,000",
+						"to": "00:00:00,000"
+					},
+					"offsets": {
+						"from": 0,
+						"to": 0
+					},
+					"id": 50363,
+					"p": 0.901377,
+					"t_dtw": -1
+				},
+				{
+					"text": " I",
+					"timestamps": {
+						"from": "00:00:00,000",
+						"to": "00:00:00,070"
+					},
+					"offsets": {
+						"from": 0,
+						"to": 70
+					},
+					"id": 314,
+					"p": 0.955141,
+					"t_dtw": 28
+				},
+				{
+					"text": " bought",
+					"timestamps": {
+						"from": "00:00:00,210",
+						"to": "00:00:00,460"
+					},
+					"offsets": {
+						"from": 210,
+						"to": 460
+					},
+					"id": 5839,
+					"p": 0.99467,
+					"t_dtw": 40
+				},
+				{
+					"text": " this",
+					"timestamps": {
+						"from": "00:00:00,560",
+						"to": "00:00:00,700"
+					},
+					"offsets": {
+						"from": 560,
+						"to": 700
+					},
+					"id": 428,
+					"p": 0.998563,
+					"t_dtw": 66
+				},
+				{
+					"text": " because",
+					"timestamps": {
+						"from": "00:00:00,790",
+						"to": "00:00:01,310"
+					},
+					"offsets": {
+						"from": 790,
+						"to": 1310
+					},
+					"id": 780,
+					"p": 0.868847,
+					"t_dtw": 126
+				},
+				{
+					"text": " it",
+					"timestamps": {
+						"from": "00:00:01,310",
+						"to": "00:00:01,450"
+					},
+					"offsets": {
+						"from": 1310,
+						"to": 1450
+					},
+					"id": 340,
+					"p": 0.991081,
+					"t_dtw": 152
+				},
+				{
+					"text": "'s",
+					"timestamps": {
+						"from": "00:00:01,450",
+						"to": "00:00:01,590"
+					},
+					"offsets": {
+						"from": 1450,
+						"to": 1590
+					},
+					"id": 338,
+					"p": 0.993599,
+					"t_dtw": 158
+				},
+				{
+					"text": " green",
+					"timestamps": {
+						"from": "00:00:01,590",
+						"to": "00:00:01,960"
+					},
+					"offsets": {
+						"from": 1590,
+						"to": 1960
+					},
+					"id": 4077,
+					"p": 0.993598,
+					"t_dtw": 178
+				},
+				{
+					"text": ",",
+					"timestamps": {
+						"from": "00:00:01,980",
+						"to": "00:00:02,390"
+					},
+					"offsets": {
+						"from": 1980,
+						"to": 2390
+					},
+					"id": 11,
+					"p": 0.0975935,
+					"t_dtw": 240
+				},
+				{
+					"text": " that",
+					"timestamps": {
+						"from": "00:00:02,390",
+						"to": "00:00:03,180"
+					},
+					"offsets": {
+						"from": 2390,
+						"to": 3180
+					},
+					"id": 326,
+					"p": 0.861054,
+					"t_dtw": 344
+				},
+				{
+					"text": "'s",
+					"timestamps": {
+						"from": "00:00:03,380",
+						"to": "00:00:03,580"
+					},
+					"offsets": {
+						"from": 3380,
+						"to": 3580
+					},
+					"id": 338,
+					"p": 0.998753,
+					"t_dtw": 356
+				},
+				{
+					"text": " it",
+					"timestamps": {
+						"from": "00:00:03,580",
+						"to": "00:00:03,980"
+					},
+					"offsets": {
+						"from": 3580,
+						"to": 3980
+					},
+					"id": 340,
+					"p": 0.998192,
+					"t_dtw": 364
+				},
+				{
+					"text": " I",
+					"timestamps": {
+						"from": "00:00:03,990",
+						"to": "00:00:04,160"
+					},
+					"offsets": {
+						"from": 3990,
+						"to": 4160
+					},
+					"id": 314,
+					"p": 0.0214322,
+					"t_dtw": 520
+				},
+				{
+					"text": " already",
+					"timestamps": {
+						"from": "00:00:04,180",
+						"to": "00:00:05,270"
+					},
+					"offsets": {
+						"from": 4180,
+						"to": 5270
+					},
+					"id": 1541,
+					"p": 0.988203,
+					"t_dtw": 534
+				},
+				{
+					"text": " have",
+					"timestamps": {
+						"from": "00:00:05,270",
+						"to": "00:00:05,790"
+					},
+					"offsets": {
+						"from": 5270,
+						"to": 5790
+					},
+					"id": 423,
+					"p": 0.992598,
+					"t_dtw": 566
+				},
+				{
+					"text": " like",
+					"timestamps": {
+						"from": "00:00:05,950",
+						"to": "00:00:06,260"
+					},
+					"offsets": {
+						"from": 5950,
+						"to": 6260
+					},
+					"id": 588,
+					"p": 0.901817,
+					"t_dtw": 610
+				},
+				{
+					"text": " six",
+					"timestamps": {
+						"from": "00:00:06,330",
+						"to": "00:00:06,510"
+					},
+					"offsets": {
+						"from": 6330,
+						"to": 6510
+					},
+					"id": 2237,
+					"p": 0.838621,
+					"t_dtw": 648
+				},
+				{
+					"text": " cups",
+					"timestamps": {
+						"from": "00:00:06,520",
+						"to": "00:00:06,820"
+					},
+					"offsets": {
+						"from": 6520,
+						"to": 6820
+					},
+					"id": 14180,
+					"p": 0.983285,
+					"t_dtw": 678
+				},
+				{
+					"text": "[_TT_344]",
+					"timestamps": {
+						"from": "00:00:06,880",
+						"to": "00:00:06,880"
+					},
+					"offsets": {
+						"from": 6880,
+						"to": 6880
+					},
+					"id": 50707,
+					"p": 0.119788,
+					"t_dtw": -1
+				}
+			]
+		},
+		{
+			"timestamps": {
+				"from": "00:00:06,880",
+				"to": "00:00:14,880"
+			},
+			"offsets": {
+				"from": 6880,
+				"to": 14880
+			},
+			"text": " but apparently I needed a green one look how nice",
+			"tokens": [
+				{
+					"text": " but",
+					"timestamps": {
+						"from": "00:00:07,090",
+						"to": "00:00:07,310"
+					},
+					"offsets": {
+						"from": 7090,
+						"to": 7310
+					},
+					"id": 475,
+					"p": 0.889181,
+					"t_dtw": 842
+				},
+				{
+					"text": " apparently",
+					"timestamps": {
+						"from": "00:00:07,310",
+						"to": "00:00:08,770"
+					},
+					"offsets": {
+						"from": 7310,
+						"to": 8770
+					},
+					"id": 5729,
+					"p": 0.99774,
+					"t_dtw": 1002
+				},
+				{
+					"text": " I",
+					"timestamps": {
+						"from": "00:00:08,770",
+						"to": "00:00:08,840"
+					},
+					"offsets": {
+						"from": 8770,
+						"to": 8840
+					},
+					"id": 314,
+					"p": 0.904756,
+					"t_dtw": 1036
+				},
+				{
+					"text": " needed",
+					"timestamps": {
+						"from": "00:00:08,840",
+						"to": "00:00:09,780"
+					},
+					"offsets": {
+						"from": 8840,
+						"to": 9780
+					},
+					"id": 2622,
+					"p": 0.992447,
+					"t_dtw": 1054
+				},
+				{
+					"text": " a",
+					"timestamps": {
+						"from": "00:00:09,780",
+						"to": "00:00:09,910"
+					},
+					"offsets": {
+						"from": 9780,
+						"to": 9910
+					},
+					"id": 257,
+					"p": 0.99843,
+					"t_dtw": 1070
+				},
+				{
+					"text": " green",
+					"timestamps": {
+						"from": "00:00:09,960",
+						"to": "00:00:10,600"
+					},
+					"offsets": {
+						"from": 9960,
+						"to": 10600
+					},
+					"id": 4077,
+					"p": 0.996881,
+					"t_dtw": 1088
+				},
+				{
+					"text": " one",
+					"timestamps": {
+						"from": "00:00:10,640",
+						"to": "00:00:11,120"
+					},
+					"offsets": {
+						"from": 10640,
+						"to": 11120
+					},
+					"id": 530,
+					"p": 0.999256,
+					"t_dtw": 1128
+				},
+				{
+					"text": " look",
+					"timestamps": {
+						"from": "00:00:11,150",
+						"to": "00:00:12,480"
+					},
+					"offsets": {
+						"from": 11150,
+						"to": 12480
+					},
+					"id": 804,
+					"p": 0.532277,
+					"t_dtw": 1360
+				},
+				{
+					"text": " how",
+					"timestamps": {
+						"from": "00:00:12,480",
+						"to": "00:00:13,470"
+					},
+					"offsets": {
+						"from": 12480,
+						"to": 13470
+					},
+					"id": 703,
+					"p": 0.991913,
+					"t_dtw": 1372
+				},
+				{
+					"text": " nice",
+					"timestamps": {
+						"from": "00:00:13,500",
+						"to": "00:00:14,870"
+					},
+					"offsets": {
+						"from": 13500,
+						"to": 14870
+					},
+					"id": 3621,
+					"p": 0.998233,
+					"t_dtw": 1398
+				},
+				{
+					"text": "[_TT_744]",
+					"timestamps": {
+						"from": "00:00:14,880",
+						"to": "00:00:14,880"
+					},
+					"offsets": {
+						"from": 14880,
+						"to": 14880
+					},
+					"id": 51107,
+					"p": 0.190877,
+					"t_dtw": -1
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,39 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 720
+PlayResY: 1280
+ScaledBorderAndShadow: yes
+WrapStyle: 2
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Caption,Arial,46,&H00FFFFFF,&H00FFFFFF,&H001A1A1A,&H60000000,-1,0,0,0,100,100,0,0,1,3,1,5,45,70,0,1
+Style: Shape,Arial,46,&H00FFFFFF,&H00FFFFFF,&H001A1A1A,&H60000000,0,0,0,0,100,100,0,0,1,2,0,7,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 2,0:00:00.06,0:00:01.18,Caption,,0,0,0,,{\an5\pos(344,995)\fad(80,120)\fscx96\fscy96\t(0,130,0.6,\fscx102\fscy102)\t(130,260,\fscx100\fscy100)}I bought this
+Dialogue: 2,0:00:01.19,0:00:03.05,Caption,,0,0,0,,{\an5\pos(344,995)\fad(80,120)\fscx96\fscy96\t(0,130,0.6,\fscx102\fscy102)\t(130,260,\fscx100\fscy100)}because it's {\c&HA7D8CE&}green.{\c&HFFFFFF&}
+Dialogue: 2,0:00:03.32,0:00:04.72,Caption,,0,0,0,,{\an5\pos(344,995)\fad(80,120)\fscx96\fscy96\t(0,130,0.6,\fscx102\fscy102)\t(130,260,\fscx100\fscy100)}That's it.
+Dialogue: 2,0:00:05.00,0:00:06.33,Caption,,0,0,0,,{\an5\pos(344,995)\fad(80,120)\fscx96\fscy96\t(0,130,0.6,\fscx102\fscy102)\t(130,260,\fscx100\fscy100)}I already have, like,
+Dialogue: 2,0:00:06.34,0:00:08.20,Caption,,0,0,0,,{\an5\pos(344,995)\fad(80,120)\fscx96\fscy96\t(0,130,0.6,\fscx102\fscy102)\t(130,260,\fscx100\fscy100)}six cups.
+Dialogue: 2,0:00:08.28,0:00:10.33,Caption,,0,0,0,,{\an5\pos(344,995)\fad(80,120)\fscx96\fscy96\t(0,130,0.6,\fscx102\fscy102)\t(130,260,\fscx100\fscy100)}But apparently
+Dialogue: 2,0:00:10.34,0:00:12.65,Caption,,0,0,0,,{\an5\pos(344,995)\fad(80,120)\fscx96\fscy96\t(0,130,0.6,\fscx102\fscy102)\t(130,260,\fscx100\fscy100)}I needed a {\c&HA7D8CE&}green one.{\c&HFFFFFF&}
+Dialogue: 2,0:00:13.38,0:00:15.01,Caption,,0,0,0,,{\an5\pos(344,995)\fad(80,120)\fscx96\fscy96\t(0,130,0.6,\fscx102\fscy102)\t(130,260,\fscx100\fscy100)}Look how nice.
+Dialogue: 1,0:00:01.72,0:00:03.05,Shape,,0,0,0,,{\an7\pos(442,1028)\p1\bord0\c&HA7D8CE&\fad(40,120)\clip(442,1026,442,1040)\t(0,220,0.5,\clip(442,1026,561,1040))}m 0 3 b 39 0 79 2 119 1 l 119 5 b 79 6 39 4 0 7
+Dialogue: 1,0:00:10.90,0:00:12.65,Shape,,0,0,0,,{\an7\pos(401,1028)\p1\bord0\c&HA7D8CE&\fad(40,120)\clip(401,1026,401,1040)\t(0,220,0.5,\clip(401,1026,579,1040))}m 0 3 b 59 0 118 2 178 1 l 178 5 b 118 6 59 4 0 7
+Dialogue: 1,0:00:06.52,0:00:08.18,Shape,,0,0,0,,{\an7\move(172,1073,172,1065,0,220)\fad(70,130)\p1\c&HF5F5F5&\bord1.2\shad1}m 3 11 l 35 11 l 30 49 b 29 53 9 53 8 49 l 3 11 m 7 15 l 12 47 b 14 49 26 49 27 47 l 31 15 l 7 15 m 0 7 l 38 7 l 38 12 l 0 12 m 5 1 l 33 1 l 35 7 l 3 7
+Dialogue: 1,0:00:06.58,0:00:08.18,Shape,,0,0,0,,{\an7\move(222,1073,222,1065,0,220)\fad(70,130)\p1\c&HF5F5F5&\bord1.2\shad1}m 3 11 l 35 11 l 30 49 b 29 53 9 53 8 49 l 3 11 m 7 15 l 12 47 b 14 49 26 49 27 47 l 31 15 l 7 15 m 0 7 l 38 7 l 38 12 l 0 12 m 5 1 l 33 1 l 35 7 l 3 7
+Dialogue: 1,0:00:06.65,0:00:08.18,Shape,,0,0,0,,{\an7\move(272,1073,272,1065,0,220)\fad(70,130)\p1\c&HF5F5F5&\bord1.2\shad1}m 3 11 l 35 11 l 30 49 b 29 53 9 53 8 49 l 3 11 m 7 15 l 12 47 b 14 49 26 49 27 47 l 31 15 l 7 15 m 0 7 l 38 7 l 38 12 l 0 12 m 5 1 l 33 1 l 35 7 l 3 7
+Dialogue: 1,0:00:06.72,0:00:08.18,Shape,,0,0,0,,{\an7\move(322,1073,322,1065,0,220)\fad(70,130)\p1\c&HF5F5F5&\bord1.2\shad1}m 3 11 l 35 11 l 30 49 b 29 53 9 53 8 49 l 3 11 m 7 15 l 12 47 b 14 49 26 49 27 47 l 31 15 l 7 15 m 0 7 l 38 7 l 38 12 l 0 12 m 5 1 l 33 1 l 35 7 l 3 7
+Dialogue: 1,0:00:06.78,0:00:08.18,Shape,,0,0,0,,{\an7\move(372,1073,372,1065,0,220)\fad(70,130)\p1\c&HF5F5F5&\bord1.2\shad1}m 3 11 l 35 11 l 30 49 b 29 53 9 53 8 49 l 3 11 m 7 15 l 12 47 b 14 49 26 49 27 47 l 31 15 l 7 15 m 0 7 l 38 7 l 38 12 l 0 12 m 5 1 l 33 1 l 35 7 l 3 7
+Dialogue: 1,0:00:06.84,0:00:08.18,Shape,,0,0,0,,{\an7\move(422,1073,422,1065,0,220)\fad(70,130)\p1\c&HF5F5F5&\bord1.2\shad1}m 3 11 l 35 11 l 30 49 b 29 53 9 53 8 49 l 3 11 m 7 15 l 12 47 b 14 49 26 49 27 47 l 31 15 l 7 15 m 0 7 l 38 7 l 38 12 l 0 12 m 5 1 l 33 1 l 35 7 l 3 7
+Dialogue: 1,0:00:10.50,0:00:12.66,Shape,,0,0,0,,{\an7\move(172,1073,172,1065,0,220)\fad(70,130)\p1\c&HF5F5F5&\bord1.2\shad1}m 3 11 l 35 11 l 30 49 b 29 53 9 53 8 49 l 3 11 m 7 15 l 12 47 b 14 49 26 49 27 47 l 31 15 l 7 15 m 0 7 l 38 7 l 38 12 l 0 12 m 5 1 l 33 1 l 35 7 l 3 7
+Dialogue: 1,0:00:10.50,0:00:12.66,Shape,,0,0,0,,{\an7\move(222,1073,222,1065,0,220)\fad(70,130)\p1\c&HF5F5F5&\bord1.2\shad1}m 3 11 l 35 11 l 30 49 b 29 53 9 53 8 49 l 3 11 m 7 15 l 12 47 b 14 49 26 49 27 47 l 31 15 l 7 15 m 0 7 l 38 7 l 38 12 l 0 12 m 5 1 l 33 1 l 35 7 l 3 7
+Dialogue: 1,0:00:10.50,0:00:12.66,Shape,,0,0,0,,{\an7\move(272,1073,272,1065,0,220)\fad(70,130)\p1\c&HF5F5F5&\bord1.2\shad1}m 3 11 l 35 11 l 30 49 b 29 53 9 53 8 49 l 3 11 m 7 15 l 12 47 b 14 49 26 49 27 47 l 31 15 l 7 15 m 0 7 l 38 7 l 38 12 l 0 12 m 5 1 l 33 1 l 35 7 l 3 7
+Dialogue: 1,0:00:10.50,0:00:12.66,Shape,,0,0,0,,{\an7\move(322,1073,322,1065,0,220)\fad(70,130)\p1\c&HF5F5F5&\bord1.2\shad1}m 3 11 l 35 11 l 30 49 b 29 53 9 53 8 49 l 3 11 m 7 15 l 12 47 b 14 49 26 49 27 47 l 31 15 l 7 15 m 0 7 l 38 7 l 38 12 l 0 12 m 5 1 l 33 1 l 35 7 l 3 7
+Dialogue: 1,0:00:10.50,0:00:12.66,Shape,,0,0,0,,{\an7\move(372,1073,372,1065,0,220)\fad(70,130)\p1\c&HF5F5F5&\bord1.2\shad1}m 3 11 l 35 11 l 30 49 b 29 53 9 53 8 49 l 3 11 m 7 15 l 12 47 b 14 49 26 49 27 47 l 31 15 l 7 15 m 0 7 l 38 7 l 38 12 l 0 12 m 5 1 l 33 1 l 35 7 l 3 7
+Dialogue: 1,0:00:10.50,0:00:12.66,Shape,,0,0,0,,{\an7\move(422,1073,422,1065,0,220)\fad(70,130)\p1\c&HF5F5F5&\bord1.2\shad1}m 3 11 l 35 11 l 30 49 b 29 53 9 53 8 49 l 3 11 m 7 15 l 12 47 b 14 49 26 49 27 47 l 31 15 l 7 15 m 0 7 l 38 7 l 38 12 l 0 12 m 5 1 l 33 1 l 35 7 l 3 7
+Dialogue: 1,0:00:10.90,0:00:12.66,Shape,,0,0,0,,{\an7\move(472,1078,472,1065,0,240)\fad(70,130)\p1\c&HA7D8CE&\bord1.2\shad1\fscx75\fscy75\t(0,180,0.6,\fscx108\fscy108)\t(180,320,\fscx100\fscy100)}m 3 11 l 35 11 l 30 49 b 29 53 9 53 8 49 l 3 11 m 0 7 l 38 7 l 38 12 l 0 12 m 5 1 l 33 1 l 35 7 l 3 7
+Dialogue: 1,0:00:13.60,0:00:14.70,Shape,,0,0,0,,{\an7\pos(130,960)\p1\bord0\c&HA7D8CE&\fad(100,180)\fscx70\fscy70\t(0,200,\fscx100\fscy100)}m 12 0 l 15 9 l 25 12 l 15 15 l 12 25 l 9 15 l 0 12 l 9 9
+Dialogue: 1,0:00:13.70,0:00:14.70,Shape,,0,0,0,,{\an7\pos(553,970)\p1\bord0\c&HA7D8CE&\fad(100,180)\fscx70\fscy70\t(0,200,\fscx100\fscy100)}m 12 0 l 15 9 l 25 12 l 15 15 l 12 25 l 9 15 l 0 12 l 9 9

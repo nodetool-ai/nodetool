@@ -1,0 +1,57 @@
+{
+  "export": {
+    "status": "passed",
+    "duration_seconds": 13,
+    "frames": 312,
+    "resolution": "1920x1080",
+    "fps": 24,
+    "audio_sample_rate": 48000,
+    "integrated_lufs": -24.17,
+    "true_peak_dbtp": -1.82,
+    "black_intervals_detected": false
+  },
+  "middle_shot": {
+    "frames": 96,
+    "ssim": 0.991488,
+    "note": "Same source footage, framing and timing, with normal export re-encoding."
+  },
+  "timeline": {
+    "status": "passed",
+    "id": "34268b81135441b6bf5b60cd587386d5",
+    "errors": 0,
+    "warnings": 0
+  },
+  "recipe_check": {
+    "command": "npm --prefix marketing run gen:recipes -- --check",
+    "exit_code": 0
+  },
+  "marketing_typecheck": {
+    "command": "npm --prefix marketing run typecheck",
+    "exit_code": 0
+  },
+  "lint": {
+    "command": "npm run lint",
+    "exit_code": 0
+  },
+  "root_typecheck": {
+    "command": "npm run typecheck",
+    "exit_code": 1,
+    "reason": "Existing TS2367 at web/src/stores/workflowUpdates.ts:1583. Unchanged by this commercial edit."
+  },
+  "affected_tests": {
+    "command": "npm run test:affected",
+    "exit_code": 1,
+    "reason": "DSL setup/import timeouts and consequent cleanup errors. No DSL files changed by this edit."
+  },
+  "harness_gate": {
+    "command": "npm run dev:nodetool -- harness gate --base origin/main",
+    "exit_code": 1,
+    "reason": "Capability-suite timeouts and validation errors in the separate UGC testimonial fixtures (video model selection). Recipe selfcheck passed."
+  },
+  "tailnet": {
+    "recipe_http": 200,
+    "movie_http": 200,
+    "recipe_url": "http://100.123.170.119:3001/recipes/viral-video-ad-engine",
+    "movie_url": "http://100.123.170.119:3001/recipes/runs/2026-09-14-photographic-commercial/commercial.mp4"
+  }
+}

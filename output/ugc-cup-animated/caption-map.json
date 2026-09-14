@@ -1,0 +1,42 @@
+[
+  {
+    "start": 0.06,
+    "end": 1.18,
+    "text": "I bought this"
+  },
+  {
+    "start": 1.19,
+    "end": 3.05,
+    "text": "because it's green."
+  },
+  {
+    "start": 3.32,
+    "end": 4.72,
+    "text": "That's it."
+  },
+  {
+    "start": 5.0,
+    "end": 6.33,
+    "text": "I already have, like,"
+  },
+  {
+    "start": 6.34,
+    "end": 8.2,
+    "text": "six cups."
+  },
+  {
+    "start": 8.28,
+    "end": 10.33,
+    "text": "But apparently"
+  },
+  {
+    "start": 10.34,
+    "end": 12.65,
+    "text": "I needed a green one."
+  },
+  {
+    "start": 13.38,
+    "end": 15.01,
+    "text": "Look how nice."
+  }
+]

@@ -1,0 +1,69 @@
+{
+  "id": "0b846e38056440baa96e45d5c24e7d89",
+  "name": "A moment before the day — revised action",
+  "brief": "A 13-second commercial: four seconds of coffee pouring into the cup, the approved four-second portrait, then five seconds of leaving home. Final source files supplied from Dreamina for shots 1 and 3; preserve the existing Fal portrait.",
+  "style": "Photographic realism, exact cup proportions and wardrobe, soft natural daylight, neutral color, real skin and fabric detail. No generated typography.",
+  "aspect_ratio": "16:9",
+  "image_model": null,
+  "video_model": null,
+  "entity_ids": [
+    "382922e1ca1543468d59f0af5575350e",
+    "86cb715023ed442b880983fa021d093d"
+  ],
+  "script_id": null,
+  "script_link": {
+    "linked": false,
+    "script_id": null,
+    "script_found": false,
+    "drifted_shot_ids": [],
+    "orphan_line_ids": [],
+    "issues": []
+  },
+  "shots": [
+    {
+      "id": "shot_1_mu042jxs",
+      "index": 0,
+      "slug": "1-pour",
+      "action": "A close-up of coffee pouring from the glass carafe into the Olive Travel Cup on the kitchen counter. Preserve the cup reference exactly.",
+      "motion": "Locked camera. Coffee enters, visibly raising the liquid level and covering more of the inner wall. The hand tilts the carafe upright before overflow. The stream narrows and stops, then the surface settles. Natural pouring sound, a final drip and quiet kitchen ambience. No music or dialogue.",
+      "duration_seconds": 4,
+      "status": "planned",
+      "has_keyframe": false,
+      "has_clip": false,
+      "covered_by": null,
+      "render_mode": "direct",
+      "script_line_ids": [],
+      "script_drifted": false
+    },
+    {
+      "id": "shot_2_mu042jxs",
+      "index": 1,
+      "slug": "2-pause-approved",
+      "action": "Keep the existing approved second shot: the Morning kitchen woman holds the Olive Travel Cup below her chin, breathes and looks toward the window.",
+      "motion": "REUSE ONLY. Existing source video asset 1c1a2480842842d29390a8eaf8c09771, source frames 77 through 172 inclusive at 24fps. No regeneration, reframing, retiming or new effects.",
+      "duration_seconds": 4,
+      "status": "planned",
+      "has_keyframe": false,
+      "has_clip": false,
+      "covered_by": null,
+      "render_mode": "direct",
+      "script_line_ids": [],
+      "script_drifted": false
+    },
+    {
+      "id": "shot_3_mu042jxs",
+      "index": 2,
+      "slug": "3-departure",
+      "action": "Rear three-quarter view from inside the hallway. The Morning kitchen woman walks forward away from camera and out through the open doorway, carrying the Olive Travel Cup upright in her right hand.",
+      "motion": "Two natural forward steps across the threshold toward the exterior. Back remains toward camera. Cup stays visible near right hip. Gentle forward camera follow, natural cloth motion, footsteps and quiet outdoor ambience. No backwards movement, turning to camera or dialogue.",
+      "duration_seconds": 5,
+      "status": "planned",
+      "has_keyframe": false,
+      "has_clip": false,
+      "covered_by": null,
+      "render_mode": "direct",
+      "script_line_ids": [],
+      "script_drifted": false
+    }
+  ]
+}

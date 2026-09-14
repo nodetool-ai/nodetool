@@ -261,6 +261,7 @@ lazy implementation table disagree.
 | `entities` | `list_entities`, `get_entity`, `apply_entities`, `create_entity`, `update_entity`, `delete_entity` |
 | `memory` | `memory_save`, `memory_list`, `memory_search`, `memory_update`, `memory_delete` — durable notes scoped to the **user**, not the thread. A memory saved in one conversation is readable from every later one; `memory_search` is a keyword match over title and content — every word must appear. The turn's prompt block carries this thread's memories in full plus a count of the ones held elsewhere. |
 | `threads` | `list_threads`, `get_thread`, `get_message` |
+| `projects` | `list_projects`, `search_projects`, `update_project`, `delete_project` — `delete_project` runs the server's full delete, injected as `deleteProject` through `getAllMcpTools`, and refuses the Personal project and the run's own project |
 | `shared` | `list_shared`, `read_shared`, `share_result` |
 | `agents` | `run_subtask`, `run_search`, `start_subtask`, `wait_subtasks`, `create_plan`, `execute_plan` |
 | `google` | `google_drive_*`, `gmail_*`, `google_docs_*`, `google_sheets_*`, `google_calendar_*` |

@@ -1,0 +1,99 @@
+{
+  "timeline": {
+    "id": "34268b81135441b6bf5b60cd587386d5",
+    "projectId": "personal:1",
+    "name": "A moment before the day | pour, pause, leave",
+    "fps": 24,
+    "width": 1920,
+    "height": 1080,
+    "durationMs": 13000,
+    "tracks": [
+      {
+        "id": "picture",
+        "name": "Selected picture",
+        "type": "video",
+        "index": 0,
+        "visible": true,
+        "locked": false
+      },
+      {
+        "id": "sound",
+        "name": "Location sound",
+        "type": "audio",
+        "index": 1,
+        "visible": true,
+        "locked": false
+      }
+    ],
+    "clips": [
+      {
+        "id": "pour",
+        "name": "Fresh coffee fills the cup",
+        "startMs": 0,
+        "durationMs": 4000,
+        "inPointMs": 0,
+        "outPointMs": 4000,
+        "trackId": "picture",
+        "mediaType": "video",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "currentAssetId": "c8e8e60b15db486f9b2c7d48720ee903",
+        "muted": true
+      },
+      {
+        "id": "portrait",
+        "name": "A quiet reaction",
+        "startMs": 4000,
+        "durationMs": 4000,
+        "inPointMs": 3208.3333333333335,
+        "outPointMs": 7208.333333333333,
+        "trackId": "picture",
+        "mediaType": "video",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": true,
+        "versions": [],
+        "currentAssetId": "1c1a2480842842d29390a8eaf8c09771",
+        "muted": true
+      },
+      {
+        "id": "departure",
+        "name": "Leaves with the cup",
+        "startMs": 8000,
+        "durationMs": 5000,
+        "inPointMs": 0,
+        "outPointMs": 5000,
+        "trackId": "picture",
+        "mediaType": "video",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "currentAssetId": "d1ed65af451b4c4f9e51856d28f82c4c",
+        "muted": true
+      },
+      {
+        "id": "continuous-sound",
+        "name": "Edited and balanced location sound",
+        "trackId": "sound",
+        "mediaType": "audio",
+        "startMs": 0,
+        "durationMs": 13000,
+        "inPointMs": 0,
+        "outPointMs": 13000,
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "currentAssetId": "a1d01a4269884f60951c9cc3f117cc3f",
+        "volumeDb": 0
+      }
+    ],
+    "markers": [],
+    "transcript": [],
+    "createdAt": "2026-09-13T22:25:46.237Z",
+    "updatedAt": "2026-09-13T22:25:46.284Z"
+  }
+}

@@ -351,16 +351,16 @@ export const recipeGuides = {
         "Look"
       ],
       introduction:
-        "Build a photographic reference, direct a physical moment, then judge the moving film. This example follows one woman and one travel cup through a quiet morning.",
+        "Plan three shots, lock the cast and product, render the clips, then finish the ad in NodeTool.",
       inputs: [
         "A clear product photograph",
-        "A person and location reference for a lifestyle scene",
-        "A reference-capable image model and a video model with native audio"
+        "A person and location reference",
+        "Image and video models"
       ],
       brief:
-        "Make a photographic commercial for the Olive Travel Cup. An adult woman in an oatmeal shirt pauses in a naturally lit kitchen before starting her day. The final edit should be about 13 seconds: coffee pouring into the cup, a quiet reaction with the cup below her chin, then leaving home with it. Preserve the same cup, woman, clothes and home. Soft overcast window light, natural skin and fabric texture, restrained camera moves. Widescreen 16:9, with kitchen ambience, breath and cloth movement. No generated lettering or product-performance claims.",
+        "Make a 13-second photographic commercial for the Olive Travel Cup: pour coffee, pause, then leave home. Keep the same woman, cup, clothes, and room. Use soft window light, restrained camera movement, and natural location sound. Widescreen 16:9. No generated lettering or product claims.",
       note:
-        "The opening and exit were rendered in Dreamina and supplied as video files. The middle shot was selected from a Seedance 2.0 scene generated through Fal. The edit and balanced sound are saved in NodeTool, and the final movie was encoded locally.",
+        "Dreamina supplied the opening and exit. Seedance 2.0 supplied the middle shot. The edit and sound were finished in NodeTool.",
       steps: [
         {
           id: "idea",
@@ -368,8 +368,15 @@ export const recipeGuides = {
           stage: "Idea",
           title: "Choose a moment the product belongs in",
           description:
-            "Create a project and choose Storyboard. Describe who uses the product, where the scene happens, and the small action that gives the ad a beginning and an ending. Include the intended format and sound.",
-          action: "Write the brief"
+            "Describe the person, place, product action, format, and sound.",
+          action: "Write the brief",
+          image: {
+            src: "/recipes/runs/2026-09-14-photographic-commercial/steps/01-idea.jpg",
+            alt: "NodeTool Storyboard setup showing the commercial idea prompt.",
+            caption: "Start the commercial from one clear product moment.",
+            width: 1960,
+            height: 1225
+          }
         },
         {
           id: "story",
@@ -377,8 +384,15 @@ export const recipeGuides = {
           stage: "Story",
           title: "Plan the cuts and the sound together",
           description:
-            "Choose Commercial. Give each shot an action: fill the cup, pause, then leave. Write what changes physically and what the audience hears. Allow each action to finish before cutting. When revising separate clips, plan how their ambience will join in the edit.",
-          action: "Review the scene direction"
+            "Give each shot one action: pour, pause, leave. Add the sound heard in each cut.",
+          action: "Review the story",
+          image: {
+            src: "/recipes/runs/2026-09-14-photographic-commercial/steps/02-story.jpg",
+            alt: "NodeTool Storyboard showing a generated commercial story and shot plan.",
+            caption: "The story turns the brief into a short sequence of shots.",
+            width: 1960,
+            height: 1225
+          }
         },
         {
           id: "entities",
@@ -386,8 +400,15 @@ export const recipeGuides = {
           stage: "Entities",
           title: "Keep the product, person and room consistent",
           description:
-            "Attach the original product entity. Prepare consistent character and kitchen references, then references for the pour and the doorway exit. Assign the relevant entities to the scene. Preserve the product's proportions, lid and colour in every image.",
-          action: "Attach the references"
+            "Attach the cup, woman, and kitchen as reusable entities before rendering.",
+          action: "Choose the entities",
+          image: {
+            src: "/recipes/runs/2026-09-14-photographic-commercial/steps/03-entities.jpg",
+            alt: "NodeTool Entities step with product and character references selected for the commercial.",
+            caption: "Shared entities keep the cast and product available across shots.",
+            width: 1960,
+            height: 1225
+          }
         },
         {
           id: "look",
@@ -395,15 +416,14 @@ export const recipeGuides = {
           stage: "Look",
           title: "Make the reference look photographed",
           description:
-            "Use 16:9 and a reference-capable image model. Specify the actual light source, lens, skin detail, fabric weave and product finish. Here the light comes from a broad kitchen window. Inspect the reference before spending on video.",
-          action: "Review the master frame",
+            "Choose 16:9, soft window light, natural texture, and a restrained camera style.",
+          action: "Set the look",
           image: {
-            src: "/recipes/runs/2026-09-14-photographic-commercial/reference.webp",
-            alt:
-              "Generated photographic reference of a woman and the olive travel cup in a naturally lit kitchen.",
-            caption: "The master reference fixes the person, wardrobe, room and daylight.",
-            width: 1672,
-            height: 941
+            src: "/recipes/runs/2026-09-14-photographic-commercial/steps/04-look.jpg",
+            alt: "NodeTool Look step showing visual style choices for the product commercial.",
+            caption: "The Look step sets one visual language for every shot.",
+            width: 1960,
+            height: 1225
           }
         },
         {
@@ -412,15 +432,14 @@ export const recipeGuides = {
           stage: "References",
           title: "Check the physical interaction at close range",
           description:
-            "Preserve the cup from the reference and describe the action with concrete verbs. As coffee enters, the level rises and covers more of the inner wall. The stream stops before overflow. Avoid re-describing the product in ways that invite a redesign.",
-          action: "Inspect the product and hand",
+            "Review the board before video. Check the cup, hand, framing, and continuity.",
+          action: "Approve the board",
           image: {
-            src: "/recipes/runs/2026-09-14-photographic-commercial/insert.webp",
-            alt: "Generated reference of coffee pouring from a glass carafe into the open olive cup.",
-            caption:
-              "The opening reference establishes the cup, carafe, light and point where the stream meets the coffee.",
-            width: 1672,
-            height: 941
+            src: "/recipes/runs/2026-09-14-photographic-commercial/steps/05-board.jpg",
+            alt: "NodeTool storyboard showing generated reference frames for the olive cup commercial.",
+            caption: "Reference frames make continuity problems visible before motion.",
+            width: 1960,
+            height: 1225
           }
         },
         {
@@ -429,8 +448,15 @@ export const recipeGuides = {
           stage: "Clips",
           title: "Render a directed scene",
           description:
-            "Use a video model that supports image references and native audio. Direct the subject, movement, camera and sound. The opening and exit in this example were rendered in Dreamina. Preserve an approved shot by reusing its source footage instead of regenerating it.",
-          action: "Render the scene"
+            "Render each approved frame with simple subject, camera, and sound direction.",
+          action: "Render the clips",
+          image: {
+            src: "/recipes/runs/2026-09-14-photographic-commercial/steps/06-clips.jpg",
+            alt: "NodeTool storyboard showing rendered video clips beside their source frames.",
+            caption: "Rendered clips stay connected to their storyboard shots.",
+            width: 1960,
+            height: 1225
+          }
         },
         {
           id: "review",
@@ -438,8 +464,15 @@ export const recipeGuides = {
           stage: "Review",
           title: "Judge movement as carefully as the still",
           description:
-            "Watch the clip with sound. Check whether the action is convincing: coffee must accumulate as it pours, and a departure must show movement out of the home. Here the doorway reference was corrected to show her back from inside the hallway. Inspect product geometry, hands and each cut.",
-          action: "Select a usable take"
+            "Watch every take with sound. Check motion, hands, cup shape, and continuity.",
+          action: "Select the takes",
+          image: {
+            src: "/recipes/runs/2026-09-14-photographic-commercial/steps/07-review.jpg",
+            alt: "NodeTool review view showing the selected commercial clips before editing.",
+            caption: "Review the returned footage before committing it to the edit.",
+            width: 1960,
+            height: 1225
+          }
         },
         {
           id: "timeline",
@@ -447,8 +480,15 @@ export const recipeGuides = {
           stage: "Timeline",
           title: "Finish the actual returned footage",
           description:
-            "Import the sources and assemble four seconds of pouring, the approved four-second reaction, and five seconds of departure. Balance the pouring, breath, footsteps and ambience, smoothing the sound at each join. Verify the 13-second export at 1080p and 24 fps. Add approved copy as editable text if needed.",
-          action: "Review and export the commercial"
+            "Trim the three shots, balance their sound, and export the 13-second commercial.",
+          action: "Finish the timeline",
+          image: {
+            src: "/recipes/runs/2026-09-14-photographic-commercial/steps/08-timeline.jpg",
+            alt: "NodeTool timeline with the product commercial clips arranged for export.",
+            caption: "The timeline holds the final picture and sound edit.",
+            width: 1960,
+            height: 1225
+          }
         }
       ]
     }

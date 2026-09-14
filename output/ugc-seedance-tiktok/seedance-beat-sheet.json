@@ -1,0 +1,39 @@
+{
+  "duration": "15s",
+  "aspect_ratio": "9:16",
+  "references": {
+    "image_1": "Preserve this exact woman, her age, face, loosely tied hair, charcoal sweatshirt and kitchen. Use its framing as the opening composition.",
+    "image_2": "Use only for the travel cup: matte olive body, tapered proportions and charcoal lid. Keep its studio background out of the video."
+  },
+  "camera": "Phone propped on the kitchen counter, slightly below eye level. Casual front-camera perspective. Two simple jump cuts within this single generated clip, from the same phone position, as if pauses were trimmed. No camera moves or zooms.",
+  "light": "Ordinary overcast window daylight, slightly uneven exposure. Keep the same light throughout.",
+  "style": "An informal TikTok about an impulse purchase. Natural skin, flyaway hair, readable kitchen background, modest phone sharpness and faint noise in shadows. She speaks conversationally with dry humour and small pauses. Let the joke land through the words.",
+  "negative_prompt": "No face morphing, extra fingers, floating cup, changing lid, flicker, beauty filter, portrait-mode blur, captions, logos or graphics. No exaggerated reactions or constant smiling.",
+  "audio_note": "Generate picture, English dialogue and synchronized lip movement together in ONE clip. The same close phone-microphone voice throughout. Continuous quiet kitchen room tone and faint refrigerator hum under every beat and across both cuts. Natural breaths, subtle sweatshirt rustle. No music, narrator or extra speech. Finish speaking by 14 seconds.",
+  "timeline": [
+    {
+      "t": "0:00-0:04",
+      "fn": "Hook / Confession",
+      "visual": "Start speaking immediately, cup below frame. On 'green', she lifts the reference cup once to chest height, fingers wrapped around its lower body, keeping her mouth visible. She holds it there.",
+      "audio": "Matter-of-fact delivery: \"I bought this because it's green. That's it.\" Small pause after 'green'. Quiet clothing rustle as she lifts the cup."
+    },
+    {
+      "t": "0:04-0:08",
+      "fn": "Setup / Unnecessary Purchase",
+      "visual": "Cut to the same phone angle a moment later. The cup remains in the same hand at chest height. She glances down at it, then back to the lens.",
+      "audio": "\"I already have, like, six cups.\" A brief thinking pause around 'like'. Keep the room tone continuous across the cut."
+    },
+    {
+      "t": "0:08-0:12",
+      "fn": "Turn / Justification",
+      "visual": "Stay in this shot. She looks at the cup again, shifts her thumb against the matte body and gives one small shrug. The cup retains its shape and stays below her face.",
+      "audio": "After a short breath, she says: \"But apparently I needed a green one.\" Dry delivery, slight emphasis on 'green'. Faint sleeve rustle."
+    },
+    {
+      "t": "0:12-0:15",
+      "fn": "Button / Small Delight",
+      "visual": "Cut to the same phone angle. She lifts the cup a few centimetres, looks at it with a small smile, then looks back into the lens. Hold the final moment without a posed end-card freeze.",
+      "audio": "Softer, pleased: \"Look how nice.\" Finish by 14 seconds. Leave the last second for a quiet breath and the same kitchen room tone."
+    }
+  ]
+}

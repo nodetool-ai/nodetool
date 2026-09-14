@@ -1,0 +1,44 @@
+{
+  "title": "A moment before the day — purposeful actions",
+  "status": "references_ready_waiting_for_video_provider",
+  "model_candidate": "bytedance/seedance-2.0/reference-to-video",
+  "provider": "fal",
+  "resolution": "4k",
+  "aspect_ratio": "16:9",
+  "approved_middle": {
+    "source_asset": "1c1a2480842842d29390a8eaf8c09771",
+    "source_file": "../product-commercial-realism-v2/generation/take2/commercial-original.mp4",
+    "source_frames": [
+      77,
+      173
+    ],
+    "fps": 24,
+    "locked": true
+  },
+  "audio_plan": "Keep the approved middle audio. Edit replacement-shot effects over a continuous quiet room-tone track and use short overlapping ambience transitions. Do not concatenate independent native-audio beds without checking the joins.",
+  "shots": [
+    {
+      "slug": "1-pour",
+      "duration_seconds": 2.5,
+      "source_generation_seconds": 5,
+      "reference_asset": "ca6750d5cb7d4da9abb20e852fd4033f",
+      "action": "Close 90mm shot of the Olive Travel Cup on the existing stone kitchen worktop. Its charcoal lid rests beside it. A narrow stream of black coffee enters the open cup from the glass carafe. Preserve the reference geometry and soft window light. Real liquid ripples, tiny bubbles and faint steam. No text.",
+      "motion": "One continuous take. The pour is already underway on frame one. Within the first 1.5 seconds the hand gently tilts the glass carafe upright, the stream tapers and stops, and the carafe moves upward out of the composition. Coffee remains below the rim. The camera makes a restrained 8cm lateral move past the rim so the stream and ripples have real parallax. No spill, no suspended droplets, no artificial slow motion. Audio: close coffee pour and a soft settling drip over quiet kitchen room tone. No voice or music."
+    },
+    {
+      "slug": "2-pause-approved",
+      "duration_seconds": 4,
+      "source_generation_seconds": null,
+      "action": "Keep the existing approved second shot: the Morning kitchen woman holds the Olive Travel Cup below her chin, breathes and looks toward the window.",
+      "motion": "REUSE ONLY. Existing source video asset 1c1a2480842842d29390a8eaf8c09771, source frames 77 through 172 inclusive at 24fps. No regeneration, reframing, retiming or new effects."
+    },
+    {
+      "slug": "3-departure",
+      "duration_seconds": 3.5,
+      "source_generation_seconds": 5,
+      "reference_asset": "b850d538a9724fa5a91232dcf1794b9f",
+      "action": "The same Morning kitchen woman, in the same oatmeal shirt and jeans, takes the Olive Travel Cup through the already-open front door of her home. Photographic 50mm waist-height three-quarter view. Preserve the cup, face, wardrobe and neutral overcast morning grade. No text.",
+      "motion": "One continuous 5-second take, not a posed product hold. She turns naturally toward the exterior, releases the door edge with her left hand, and takes one unhurried step across the threshold. The cup stays upright in a stable right-hand grip near her hip. Camera travels 30cm alongside her right forearm, keeping the cup readable as the doorway moves behind it. Natural shoulder and hip rotation, gravity in the loose shirt, a normal single step. Do not reverse direction or move back inside. Cut while she is still going out, before she disappears. No hand swaps, cup morphing or walking in place. Audio: a soft footstep, cloth movement, the quiet hinge and subdued exterior air, with no dialogue or music."
+    }
+  ]
+}

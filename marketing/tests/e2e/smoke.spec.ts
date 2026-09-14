@@ -162,7 +162,7 @@ test.describe("marketing smoke", () => {
       await expect(video).toHaveJSProperty("error", null);
       expect(
         await video.evaluate((element: HTMLVideoElement) => element.duration)
-      ).toBeCloseTo(15.07, 1);
+      ).toBeCloseTo(15.02, 1);
     });
   }
 
@@ -273,6 +273,26 @@ test.describe("marketing smoke", () => {
       );
     });
     expect(inputsPrecedeSteps).toBe(true);
+
+    for (const step of [
+      "01 Idea",
+      "02 Story",
+      "03 Entities",
+      "04 Look",
+      "05 References",
+      "06 Clips",
+      "07 Review",
+      "08 Timeline"
+    ]) {
+      await guide.getByRole("button", { name: step }).click();
+      const image = guide.locator('img[src*="photographic-commercial/steps/"]');
+      await expect(image).toBeVisible();
+      await expect
+        .poll(() =>
+          image.evaluate((node) => (node as HTMLImageElement).naturalWidth)
+        )
+        .toBeGreaterThan(0);
+    }
   });
 
   for (const recipe of recipeEntries.filter((entry) => entry.productionRun)) {

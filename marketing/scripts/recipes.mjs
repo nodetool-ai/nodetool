@@ -20,18 +20,18 @@ export const recipePresentation = [
       summary:
         "A small impulse purchase becomes a playful kitchen video, with animated captions and a seventh cup joining the collection.",
       provider:
-        "Seedance video supplied from Dreamina. Captions and animation added locally.",
+        "Seedance video supplied from Dreamina. Captions and animation added locally, then the final media was upscaled with AtlasCloud.",
       hero: {
         src: `${ugcRoot}/close.jpg`,
         alt: "Creator holding an olive travel cup with the caption Look how nice.",
-        width: 720,
-        height: 1280
+        width: 1440,
+        height: 2560
       },
       card: {
         src: `${ugcRoot}/poster.jpg`,
         alt: "Creator holding an olive cup above animated captions and seven cup icons.",
-        width: 720,
-        height: 1280
+        width: 1440,
+        height: 2560
       },
       ogImage: `${ugcRoot}/poster.jpg`,
       proof: {
@@ -39,8 +39,8 @@ export const recipePresentation = [
         alt: "The caption six cups appears above six small cup outlines.",
         caption:
           "Six cup outlines appear with the joke. A seventh olive cup joins them on the next line.",
-        width: 720,
-        height: 1280
+        width: 1440,
+        height: 2560
       },
       video: {
         mp4: `${ugcRoot}/final.mp4`,
@@ -53,7 +53,7 @@ export const recipePresentation = [
       supportedClaims: [
         "The supplied Dreamina recording shows the creator talking about buying another cup because it is green.",
         "The local finishing pass added timed caption groups, animated green underlines, and six cup outlines followed by a seventh olive cup.",
-        "The final MP4 is 720×1280, runs for 15.07 seconds, and preserves the source audio without re-encoding."
+        "The final MP4 was enhanced to 1440×2560 with AtlasCloud, runs for 15.02 seconds, and includes the original voice and room sound."
       ],
       essentialLimitation:
         "Generated product details, lip-sync, factual claims, and caption words still need review before publishing.",
@@ -73,18 +73,18 @@ export const recipePresentation = [
       summary:
         "Fresh coffee pours, she takes a quiet moment, then heads out with her cup. Three shots follow one morning ritual.",
       provider:
-        "Opening and exit supplied from Dreamina. Middle shot generated with Seedance 2.0 via Fal. Edited in NodeTool and encoded locally.",
+        "Opening and exit supplied from Dreamina. Middle shot generated with Seedance 2.0 via Fal. Edited in NodeTool, then enhanced to 2K with AtlasCloud.",
       hero: {
         src: `${commercialRoot}/card.jpg`,
         alt: "Woman holding an olive travel cup in a softly lit kitchen.",
-        width: 1200,
-        height: 630
+        width: 2400,
+        height: 1260
       },
       card: {
         src: `${commercialRoot}/card.jpg`,
         alt: "Woman holding an olive travel cup in a softly lit kitchen.",
-        width: 1200,
-        height: 630
+        width: 2400,
+        height: 1260
       },
       ogImage: `${commercialRoot}/card.jpg`,
       proof: null,
@@ -99,7 +99,7 @@ export const recipePresentation = [
       supportedClaims: [
         "The opening shows coffee filling the cup. The closing shot follows the woman out through her front door.",
         "The approved four-second middle shot is preserved between the two new shots in an editable NodeTool timeline.",
-        "The final MP4 is 1920×1080 at 24 fps, runs for 13 seconds, and includes balanced location sound."
+        "The final MP4 was enhanced to 2560×1440 with AtlasCloud, runs for 13 seconds at 24 fps, and includes balanced stereo location sound."
       ],
       essentialLimitation:
         "Generated product geometry and human motion need review before use in a brand campaign.",

@@ -1,0 +1,53 @@
+{
+  "title": "A moment before the day",
+  "status": "final_exported",
+  "resolution": "1920x1080",
+  "fps": 24,
+  "duration_seconds": 13,
+  "shots": [
+    {
+      "id": "pour",
+      "start": 0,
+      "duration": 4,
+      "source": "generation/shot1-dreamina.mp4",
+      "source_start": 0,
+      "provenance": "User-supplied shot1.mp4 from Dreamina"
+    },
+    {
+      "id": "portrait",
+      "start": 4,
+      "duration": 4,
+      "source": "../product-commercial-realism-v2/masters/commercial-1080p.mp4",
+      "source_start": 2.5,
+      "approved": true,
+      "note": "Same 96 frames and framing as the approved middle shot. Only normal export re-encoding."
+    },
+    {
+      "id": "departure",
+      "start": 8,
+      "duration": 5,
+      "source": "generation/shot3-dreamina.mp4",
+      "source_start": 0,
+      "provenance": "User-supplied shot3.mp4 from Dreamina"
+    }
+  ],
+  "audio": "Native shot audio balanced and edited with short edge fades. No added score or voiceover.",
+  "nodetool": {
+    "pour": "ca6750d5cb7d4da9abb20e852fd4033f",
+    "doorway": "b850d538a9724fa5a91232dcf1794b9f",
+    "storyboard": "0b846e38056440baa96e45d5c24e7d89",
+    "departureVideo": "d1ed65af451b4c4f9e51856d28f82c4c",
+    "revisionSound": "4c71557820e04d138d6bdcaac8a6990b",
+    "revisionTimeline": "09f7ac82b49e483e8340a3cf656381b8",
+    "pourVideo": "c8e8e60b15db486f9b2c7d48720ee903",
+    "finalSound": "a1d01a4269884f60951c9cc3f117cc3f",
+    "finalTimeline": "34268b81135441b6bf5b60cd587386d5"
+  },
+  "source_sha256": {
+    "opening": "aeb4329dae2bb901fc5cb0c0be3eb39f91e51ee5036c3be340b229e397b640e3",
+    "middle": "03dbeb071b4fbecc2de2f3dd3a260a6da9d2a5ca7d56208a37dfa47d9dc08809",
+    "departure": "477348b01e1fc80f3af5b8328ee06672e43d98adb108af5e5b17fd2382657229"
+  },
+  "master": "masters/commercial-final-1080p.mp4",
+  "review": "Sampled source and final frames, full-file decoding, stream metadata, middle-shot frame comparison and editable timeline validation. No claim of independent listening review."
+}
