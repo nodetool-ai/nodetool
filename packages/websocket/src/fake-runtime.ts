@@ -35,7 +35,7 @@ import {
 } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
-import { chunkSchema } from "@nodetool-ai/protocol";
+import { chunkSchema, type NodeDescriptor } from "@nodetool-ai/protocol";
 
 /** Valid 1x1 transparent PNG — bytes for faked image/media outputs, so
  *  downstream nodes that decode them don't choke. */
@@ -338,7 +338,7 @@ export function shouldFakeNode(
 export function createFakeExecutorResolver(
   getRegistry: () => NodeRegistry | null,
   { passthrough = true }: { passthrough?: boolean } = {}
-): (node: { id: string; type: string }) => NodeExecutor {
+): (node: NodeDescriptor) => NodeExecutor {
   const echo = {
     async process(inputs: Record<string, unknown>) {
       return inputs;

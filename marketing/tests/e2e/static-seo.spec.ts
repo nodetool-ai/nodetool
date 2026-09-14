@@ -16,22 +16,13 @@ const MEDIA_MAGIC: Record<string, string> = {
   webm: "\x1a\x45\xdf\xa3"
 };
 
-function decodeHtml(value: string): string {
-  return value
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
-}
-
 function tagText(html: string, tag: string): string[] {
   return [
     ...html.matchAll(
       new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)</${tag}>`, "gi")
     )
   ]
-    .map((match) => decodeHtml(match[1] ?? "").replace(/<[^>]+>/g, "").trim())
+    .map((match) => (match[1] ?? "").replace(/<[^>]+>/g, "").trim())
     .filter(Boolean);
 }
 
@@ -39,7 +30,7 @@ function mediaPaths(html: string): string[] {
   const paths: string[] = [];
   for (const tag of html.matchAll(/<(?:img|video|source)\b[^>]*>/gi)) {
     for (const match of tag[0].matchAll(/\b(?:src|poster)=["']([^"']+)["']/gi)) {
-      const value = decodeHtml(match[1] ?? "");
+      const value = match[1] ?? "";
       if (value.startsWith("/") && !value.startsWith("//")) paths.push(value);
     }
   }
@@ -64,7 +55,7 @@ test.describe("static marketing output", () => {
         ...html.matchAll(
           /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
         )
-      ].map((match) => decodeHtml(match[1] ?? "").trim());
+      ].map((match) => (match[1] ?? "").trim());
       for (const block of jsonLd) {
         expect(() => JSON.parse(block), `${route} JSON-LD`).not.toThrow();
       }
