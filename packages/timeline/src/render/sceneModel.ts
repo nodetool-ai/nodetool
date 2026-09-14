@@ -23,10 +23,7 @@ import type {
   TrackEffect
 } from "../types.js";
 import { isClipGrainEffect } from "../types.js";
-import {
-  applySmoothingToSample,
-  sampleMediaTrackAt
-} from "../mediaTrack.js";
+import { applySmoothingToSample, sampleMediaTrackAt } from "../mediaTrack.js";
 import type { Model3DCameraChannels } from "../model3d.js";
 import type {
   AnimationSample,
@@ -138,8 +135,10 @@ export function crossfadeOpacity(
   sameTrackClips: TimelineClip[],
   currentTimeMs: number
 ): number {
-  return resolveTransition(clip, sameTrackClips, currentTimeMs)?.incoming
-    .opacity ?? 1;
+  return (
+    resolveTransition(clip, sameTrackClips, currentTimeMs)?.incoming.opacity ??
+    1
+  );
 }
 
 /**
@@ -176,7 +175,10 @@ function resolveTrackTransitions(
     byClipId.set(
       clip.id,
       existing
-        ? { ...pair.incoming, opacity: pair.incoming.opacity * existing.opacity }
+        ? {
+            ...pair.incoming,
+            opacity: pair.incoming.opacity * existing.opacity
+          }
         : pair.incoming
     );
   }
@@ -352,7 +354,12 @@ function groupProps(
     opacity: group.opacity ?? 1
   };
   if (!canvas) return layer;
-  const animated = resolveAnimatedLayerProps(layer, currentTimeMs, canvas, cache);
+  const animated = resolveAnimatedLayerProps(
+    layer,
+    currentTimeMs,
+    canvas,
+    cache
+  );
   return { transform: animated.transform, opacity: animated.opacity };
 }
 
@@ -1071,7 +1078,10 @@ export function computeActiveLayersWithHorizon(
         if (bake && options.model3dBakeHash?.(clip) === bake.dependencyHash) {
           if (!matteSourceIds.has(clip.id)) {
             if (videoCount >= maxVideoLayers) {
-              droppedLayers.push({ clipId: clip.id, reason: "video_layer_cap" });
+              droppedLayers.push({
+                clipId: clip.id,
+                reason: "video_layer_cap"
+              });
               continue;
             }
             videoCount += 1;
@@ -1092,7 +1102,10 @@ export function computeActiveLayersWithHorizon(
         const glbAssetId = effectiveAssetId(clip);
         if (glbAssetId !== undefined) {
           if (model3dCount >= MAX_MODEL3D_LAYERS) {
-            droppedLayers.push({ clipId: clip.id, reason: "model3d_layer_cap" });
+            droppedLayers.push({
+              clipId: clip.id,
+              reason: "model3d_layer_cap"
+            });
             continue;
           }
           model3dCount += 1;
@@ -1152,12 +1165,7 @@ export function computeActiveLayersWithHorizon(
     }
   }
 
-  const drawn = attachMattes(
-    mediaLayers,
-    matteLayers,
-    clipById,
-    droppedLayers
-  );
+  const drawn = attachMattes(mediaLayers, matteLayers, clipById, droppedLayers);
 
   const precomposites = collectPrecomposites(
     clips,
@@ -1520,10 +1528,15 @@ function compiledFor(
     ) {
       return hit.compiled;
     }
-    const compiled = compileClipAnimations(animations, clip.durationMs, canvas, {
-      staggerCount,
-      staggerUnit
-    });
+    const compiled = compileClipAnimations(
+      animations,
+      clip.durationMs,
+      canvas,
+      {
+        staggerCount,
+        staggerUnit
+      }
+    );
     cache.set(clip.id, {
       animationsRef: animations,
       durationMs: clip.durationMs,
@@ -1576,18 +1589,22 @@ const IDENTITY_TRANSFORM: ClipTransform = {
  */
 function resolveTrackBindingOffset(
   clip: TimelineClip,
-  mediaTracks: MediaTrack[] | undefined,
+  tracking: RenderTrackingContext | undefined,
   currentTimeMs: number,
   canvas: RenderCanvas
 ): { x: number; y: number; scale: number; rotation: number } | undefined {
   const binding = clip.trackBinding;
-  if (!binding || !mediaTracks) return undefined;
+  if (!binding || !tracking) return undefined;
   if (binding.mode !== "position" && binding.mode !== "position_scale") {
     return undefined;
   }
-  const track = mediaTracks.find((t) => t.id === binding.trackId);
+  const track = tracking.mediaTracks.find((t) => t.id === binding.trackId);
   if (!track) return undefined;
-  const sourceMs = clipSourceMsAt(clip, currentTimeMs);
+  const owner = tracking.clips.find(
+    (candidate) => candidate.id === track.clipId
+  );
+  if (!owner) return undefined;
+  const sourceMs = clipSourceMsAt(owner, currentTimeMs);
   const sample =
     binding.smoothing !== undefined && binding.smoothing > 0
       ? applySmoothingToSample(track, sourceMs, binding.smoothing)
@@ -1600,9 +1617,15 @@ function resolveTrackBindingOffset(
   return {
     x: px + (binding.offset?.x ?? 0),
     y: py + (binding.offset?.y ?? 0),
-    scale: binding.mode === "position_scale" ? binding.scale ?? 1 : 1,
+    scale: binding.mode === "position_scale" ? (binding.scale ?? 1) : 1,
     rotation: binding.rotationOffset ?? 0
   };
+}
+
+/** Document context needed to resolve a clip's source-time track binding. */
+export interface RenderTrackingContext {
+  mediaTracks: readonly MediaTrack[];
+  clips: readonly TimelineClip[];
 }
 
 export function resolveAnimatedLayerProps(
@@ -1610,12 +1633,12 @@ export function resolveAnimatedLayerProps(
   currentTimeMs: number,
   canvas: RenderCanvas,
   cache?: AnimationCompileCache,
-  mediaTracks?: MediaTrack[]
+  tracking?: RenderTrackingContext
 ): AnimatedLayerProps {
   const clip = layer.clip;
   const trackOffset = resolveTrackBindingOffset(
     clip,
-    mediaTracks,
+    tracking,
     currentTimeMs,
     canvas
   );

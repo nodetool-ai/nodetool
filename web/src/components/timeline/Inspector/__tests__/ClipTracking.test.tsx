@@ -5,12 +5,16 @@
  */
 
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { makeClip } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { ClipTracking } from "../ClipTracking";
-import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
+import {
+  getTimelineTemporal,
+  useTimelineStore
+} from "../../../../stores/timeline/TimelineStore";
 
 beforeEach(() => {
   localStorage.clear();
@@ -115,5 +119,34 @@ describe("ClipTracking on a text clip", () => {
       .getState()
       .clips.find((c) => c.id === "clip_text")!;
     expect(clip.trackBinding).toBeUndefined();
+  });
+
+  it("commits track and mode edits for an existing binding with undo history", async () => {
+    const user = userEvent.setup();
+    seedTextClip({
+      trackBinding: { trackId: "track_media_1", mode: "position" }
+    });
+    getTimelineTemporal().clear();
+    renderTracking("clip_text");
+
+    const trackId = screen.getByRole("textbox", {
+      name: /track id to follow/i
+    });
+    await user.clear(trackId);
+    await user.type(trackId, "track_media_2");
+    await user.tab();
+    await user.click(screen.getByRole("combobox", { name: /follow mode/i }));
+    await user.click(
+      screen.getByRole("option", { name: /position \+ scale/i })
+    );
+
+    expect(
+      useTimelineStore.getState().clips.find((clip) => clip.id === "clip_text")
+        ?.trackBinding
+    ).toMatchObject({
+      trackId: "track_media_2",
+      mode: "position_scale"
+    });
+    expect(getTimelineTemporal().pastStates).toHaveLength(2);
   });
 });

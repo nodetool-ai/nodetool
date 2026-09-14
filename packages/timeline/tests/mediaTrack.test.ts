@@ -97,6 +97,24 @@ describe("applySmoothingToSample", () => {
     const exact = sampleMediaTrackAt(t, 1000);
     expect(smoothed?.x).toBeLessThan(exact?.x ?? 1);
   });
+
+  it("stays continuous as playback crosses a recorded sample", () => {
+    const t = track({
+      samples: [
+        { sourceMs: 0, x: 0, y: 0 },
+        { sourceMs: 1000, x: 1, y: 1 },
+        { sourceMs: 2000, x: 0, y: 0 }
+      ]
+    });
+
+    const before = applySmoothingToSample(t, 999.999, 0.5);
+    const at = applySmoothingToSample(t, 1000, 0.5);
+    const after = applySmoothingToSample(t, 1000.001, 0.5);
+
+    expect(at?.x).toBeCloseTo(0.5);
+    expect(before?.x).toBeCloseTo(at?.x ?? 0, 5);
+    expect(after?.x).toBeCloseTo(at?.x ?? 0, 5);
+  });
 });
 
 describe("resliceMediaTrackSamples", () => {

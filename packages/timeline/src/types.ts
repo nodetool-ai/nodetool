@@ -1160,8 +1160,9 @@ export interface TrackBinding {
   rotationOffset?: number;
   /**
    * 0..1. Applied as an exponential moving average over the track's own
-   * samples up to the sampled source time (`applySmoothingToSample`), not as
-   * a frame-to-frame filter — `resolveAnimatedLayerProps` is a pure,
+   * recorded samples, then interpolated at the sampled source time
+   * (`applySmoothingToSample`), not as a frame-to-frame filter —
+   * `resolveAnimatedLayerProps` is a pure,
    * stateless function of `(clip, timeMs)` with no memory of the previous
    * frame, so smoothing is a property of the curve read at a point rather
    * than of playback. 0 or absent samples the track exactly.

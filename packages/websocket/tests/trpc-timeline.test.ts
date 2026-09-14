@@ -46,7 +46,9 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     // cascade in one call, so this double stays honest about what the route
     // now delegates. The route no longer does any of it itself.
     static async deleteOwned(userId: string, id: string): Promise<boolean> {
-      const row = (await StubTimelineSequence.findById(id)) as StubTimelineSequence | null;
+      const row = (await StubTimelineSequence.findById(
+        id
+      )) as StubTimelineSequence | null;
       if (!row || row.user_id !== userId) return false;
       await row.delete();
       await StubTimelineSequenceVersion.deleteForTimeline(id);
@@ -250,7 +252,9 @@ describe("timeline router", () => {
     });
 
     it("hides another user's sequence behind a 404 rather than overwriting it", async () => {
-      TS.findById.mockResolvedValue(makeSeq({ id: "theirs", user_id: "other" }));
+      TS.findById.mockResolvedValue(
+        makeSeq({ id: "theirs", user_id: "other" })
+      );
       const caller = createCaller(makeCtx());
       await expect(
         caller.timeline.create({ id: "theirs", name: "Mine", projectId: "p-1" })
@@ -376,6 +380,46 @@ describe("timeline router", () => {
         TS.update.mock.calls[0][1].document as string
       );
       expect(savedDocument.transcript).toEqual(transcript);
+    });
+
+    it("preserves media tracks on unrelated patches and accepts an explicit replacement", async () => {
+      const seededTrack = {
+        id: "subject-1",
+        clipId: "source-1",
+        sourceAssetId: "asset-1",
+        name: "Subject",
+        kind: "point" as const,
+        sourceStartMs: 0,
+        sourceEndMs: 1000,
+        samples: [{ sourceMs: 0, x: 0.25, y: 0.5 }],
+        status: "ready" as const
+      };
+      let savedDocumentJson = JSON.stringify({
+        tracks: [],
+        clips: [],
+        markers: [],
+        mediaTracks: [seededTrack]
+      });
+      const sequence = makeSeq({ document: savedDocumentJson });
+      TS.findById.mockResolvedValue(sequence);
+      TS.update.mockImplementation((_id, fields) => {
+        savedDocumentJson = (fields as { document: string }).document;
+        sequence.document = savedDocumentJson;
+        return Promise.resolve(sequence);
+      });
+      const caller = createCaller(makeCtx());
+
+      await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], clips: [], markers: [], scriptEnabled: true }
+      });
+      expect(JSON.parse(savedDocumentJson).mediaTracks).toEqual([seededTrack]);
+
+      await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], clips: [], markers: [], mediaTracks: [] }
+      });
+      expect(JSON.parse(savedDocumentJson).mediaTracks).toEqual([]);
     });
 
     it("persists a clip's word-level caption through the round-trip", async () => {

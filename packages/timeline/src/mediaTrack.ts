@@ -88,8 +88,9 @@ export function sampleMediaTrackAt(
 }
 
 /**
- * `sampleMediaTrackAt`, with an exponential moving average folded over the
- * samples at or before `sourceMs` first. Not a frame-to-frame filter — see
+ * `sampleMediaTrackAt`, after computing an exponential moving average once at
+ * each recorded sample and interpolating those filtered values. Not a
+ * frame-to-frame filter — see
  * `TrackBinding.smoothing`'s doc comment for why — so it is O(n) in the
  * samples up to `sourceMs` and meant for a binding resolution step, not a
  * tight per-pixel loop.
@@ -109,41 +110,37 @@ export function applySmoothingToSample(
   const exact = sampleMediaTrackAt(track, sourceMs);
   if (!exact || factor <= 0) return exact;
   const clampedFactor = Math.min(1, factor);
-  const upTo = track.samples.filter((s) => s.sourceMs <= sourceMs);
-  const history = upTo.length > 0 ? upTo : [track.samples[0]!];
-  let smoothed: MediaTrackSample = { ...history[0]!, sourceMs };
-  for (let i = 1; i < history.length; i++) {
-    const s = history[i]!;
-    const blend = (a: number | undefined, b: number | undefined) =>
-      a === undefined ? b : b === undefined ? a : a * clampedFactor + b * (1 - clampedFactor);
-    smoothed = {
-      sourceMs,
-      x: blend(smoothed.x, s.x),
-      y: blend(smoothed.y, s.y),
-      width: blend(smoothed.width, s.width),
-      height: blend(smoothed.height, s.height),
-      rotation: blend(smoothed.rotation, s.rotation),
-      quad: s.quad ?? smoothed.quad,
-      maskAssetId: s.maskAssetId ?? smoothed.maskAssetId,
-      confidence: blend(smoothed.confidence, s.confidence)
-    };
+  const blend = (a: number | undefined, b: number | undefined) =>
+    a === undefined
+      ? b
+      : b === undefined
+        ? a
+        : a * clampedFactor + b * (1 - clampedFactor);
+  const smoothedSamples: MediaTrackSample[] = [{ ...track.samples[0]! }];
+  if (sourceMs <= track.samples[0]!.sourceMs) {
+    return { ...smoothedSamples[0]!, sourceMs };
   }
-  // The exact sample at sourceMs itself still gets one more blend pass, so a
-  // track sampled past its own last recorded point holds the smoothed value
-  // rather than snapping back to the raw last sample `sampleMediaTrackAt` held.
-  const blendExact = (a: number | undefined, b: number | undefined) =>
-    a === undefined ? b : b === undefined ? a : a * clampedFactor + b * (1 - clampedFactor);
-  return {
-    sourceMs,
-    x: blendExact(smoothed.x, exact.x),
-    y: blendExact(smoothed.y, exact.y),
-    width: blendExact(smoothed.width, exact.width),
-    height: blendExact(smoothed.height, exact.height),
-    rotation: blendExact(smoothed.rotation, exact.rotation),
-    quad: exact.quad ?? smoothed.quad,
-    maskAssetId: exact.maskAssetId ?? smoothed.maskAssetId,
-    confidence: blendExact(smoothed.confidence, exact.confidence)
-  };
+  for (let i = 1; i < track.samples.length; i++) {
+    const previous = smoothedSamples[i - 1]!;
+    const sample = track.samples[i]!;
+    smoothedSamples.push({
+      sourceMs: sample.sourceMs,
+      x: blend(previous.x, sample.x),
+      y: blend(previous.y, sample.y),
+      width: blend(previous.width, sample.width),
+      height: blend(previous.height, sample.height),
+      rotation: blend(previous.rotation, sample.rotation),
+      quad: sample.quad ?? previous.quad,
+      maskAssetId: sample.maskAssetId ?? previous.maskAssetId,
+      confidence: blend(previous.confidence, sample.confidence)
+    });
+    if (sample.sourceMs >= sourceMs) break;
+  }
+  const smoothed = sampleMediaTrackAt(
+    { ...track, samples: smoothedSamples },
+    sourceMs
+  );
+  return smoothed ? { ...smoothed, sourceMs } : undefined;
 }
 
 /**
@@ -175,13 +172,17 @@ export function resliceMediaTrackSamples(
     if (boundary) sliced.push({ ...boundary, sourceMs: fromMs });
   }
   sliced.push(...kept);
-  const lastKeptMs =
-    kept.length > 0 ? kept[kept.length - 1]!.sourceMs : null;
+  const lastKeptMs = kept.length > 0 ? kept[kept.length - 1]!.sourceMs : null;
   if (lastKeptMs === null || lastKeptMs < toMs) {
     const boundary = sampleMediaTrackAt(track, toMs);
     if (boundary) sliced.push({ ...boundary, sourceMs: toMs });
   }
-  return { ...track, sourceStartMs: fromMs, sourceEndMs: toMs, samples: sliced };
+  return {
+    ...track,
+    sourceStartMs: fromMs,
+    sourceEndMs: toMs,
+    samples: sliced
+  };
 }
 
 /**

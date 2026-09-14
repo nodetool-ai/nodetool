@@ -97,9 +97,8 @@ const TrackingSection: React.FC<{ clip: TimelineClip }> = memo(({ clip }) => {
       >
         <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
           <Caption color="muted">
-            Starting region, as a fraction of the source frame (0..1). There
-            is no rectangle-select tool yet — type the box the subject starts
-            in.
+            Starting region, as a fraction of the source frame (0..1). There is
+            no rectangle-select tool yet — type the box the subject starts in.
           </Caption>
           <InspectorRow label="X">
             <InspectorPillInput
@@ -163,10 +162,10 @@ const TrackingSection: React.FC<{ clip: TimelineClip }> = memo(({ clip }) => {
             Track subject
           </EditorButton>
           <Caption color="muted">
-            No tracking provider is configured in this build yet — this
-            starts nothing. The track_object capability exists as a
-            documented seam (packages/agents/src/capabilities/
-            timeline-track-object.ts) for a provider to be wired into.
+            No tracking provider is configured in this build yet — this starts
+            nothing. The track_object capability exists as a documented seam
+            in packages/agents/src/capabilities/timeline-track-object.ts for a
+            provider to be wired into.
           </Caption>
         </FlexColumn>
       </CollapsibleSection>
@@ -185,15 +184,45 @@ const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
     const bindToTrack = useTimelineStore((s) => s.bindToTrack);
     const unbindTrack = useTimelineStore((s) => s.unbindTrack);
 
-    const binding = clip.trackBinding;
+    const storedClip = useTimelineStore((s) =>
+      s.clips.find((candidate) => candidate.id === clip.id)
+    );
+    const binding = storedClip ? storedClip.trackBinding : clip.trackBinding;
     const [trackIdInput, setTrackIdInput] = useState(binding?.trackId ?? "");
     const [mode, setMode] = useState<LiveBindMode>(
       binding?.mode === "position_scale" ? "position_scale" : "position"
     );
 
-    const handleModeChange = useCallback((value: string) => {
-      if (value === "position" || value === "position_scale") setMode(value);
-    }, []);
+    const handleModeChange = useCallback(
+      (value: string) => {
+        if (value !== "position" && value !== "position_scale") return;
+        setMode(value);
+        const trackId = trackIdInput.trim();
+        if (!binding || !trackId) return;
+        bindToTrack(clip.id, trackId, value, {
+          offset: binding.offset,
+          scale: binding.scale,
+          rotationOffset: binding.rotationOffset,
+          smoothing: binding.smoothing
+        });
+      },
+      [binding, bindToTrack, clip.id, trackIdInput]
+    );
+
+    const handleTrackIdCommit = useCallback(
+      (value: string) => {
+        setTrackIdInput(value);
+        const trackId = value.trim();
+        if (!binding || !trackId) return;
+        bindToTrack(clip.id, trackId, mode, {
+          offset: binding.offset,
+          scale: binding.scale,
+          rotationOffset: binding.rotationOffset,
+          smoothing: binding.smoothing
+        });
+      },
+      [binding, bindToTrack, clip.id, mode]
+    );
 
     const handleBind = useCallback(() => {
       const trackId = trackIdInput.trim();
@@ -216,41 +245,44 @@ const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
         if (!binding) return;
         const value = Number(raw);
         if (!Number.isFinite(value)) return;
-        bindToTrack(clip.id, binding.trackId, mode, {
+        bindToTrack(clip.id, trackIdInput.trim() || binding.trackId, mode, {
           ...binding,
           offset: { x: value, y: binding.offset?.y ?? 0 }
         });
       },
-      [binding, bindToTrack, clip.id, mode]
+      [binding, bindToTrack, clip.id, mode, trackIdInput]
     );
     const handleOffsetY = useCallback(
       (raw: string) => {
         if (!binding) return;
         const value = Number(raw);
         if (!Number.isFinite(value)) return;
-        bindToTrack(clip.id, binding.trackId, mode, {
+        bindToTrack(clip.id, trackIdInput.trim() || binding.trackId, mode, {
           ...binding,
           offset: { x: binding.offset?.x ?? 0, y: value }
         });
       },
-      [binding, bindToTrack, clip.id, mode]
+      [binding, bindToTrack, clip.id, mode, trackIdInput]
     );
     const handleScale = useCallback(
       (value: number) => {
         if (!binding) return;
-        bindToTrack(clip.id, binding.trackId, mode, { ...binding, scale: value });
+        bindToTrack(clip.id, trackIdInput.trim() || binding.trackId, mode, {
+          ...binding,
+          scale: value
+        });
       },
-      [binding, bindToTrack, clip.id, mode]
+      [binding, bindToTrack, clip.id, mode, trackIdInput]
     );
     const handleSmoothing = useCallback(
       (value: number) => {
         if (!binding) return;
-        bindToTrack(clip.id, binding.trackId, mode, {
+        bindToTrack(clip.id, trackIdInput.trim() || binding.trackId, mode, {
           ...binding,
           smoothing: value
         });
       },
-      [binding, bindToTrack, clip.id, mode]
+      [binding, bindToTrack, clip.id, mode, trackIdInput]
     );
 
     return (
@@ -275,7 +307,7 @@ const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
             <InspectorRow label="Track id">
               <InspectorPillInput
                 value={trackIdInput}
-                onCommit={setTrackIdInput}
+                onCommit={handleTrackIdCommit}
                 ariaLabel="Track id to follow"
               />
             </InspectorRow>

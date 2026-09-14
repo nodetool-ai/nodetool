@@ -26,6 +26,7 @@ export interface TimelineMergeDoc {
   tracks: unknown[];
   clips: unknown[];
   markers: unknown[];
+  mediaTracks: unknown[];
   transcript: unknown[];
   scriptEnabled: boolean;
   fps: number;
@@ -57,12 +58,18 @@ const collectionOf = <T>(
   ) => string
 });
 
-type TimelineUnitKind = "track" | "clip" | "marker" | "transcript";
+type TimelineUnitKind =
+  | "track"
+  | "clip"
+  | "marker"
+  | "mediaTrack"
+  | "transcript";
 
 const ALL_UNIT_KINDS: readonly TimelineUnitKind[] = [
   "track",
   "clip",
   "marker",
+  "mediaTrack",
   "transcript"
 ];
 
@@ -115,6 +122,18 @@ export const timelineUnitsTouchedByOp = (
   op: DocumentOp
 ): { kind: string; unitId?: string }[] => {
   const input = (op.input ?? {}) as Record<string, unknown>;
+  const tool = op.tool.replace(/^ui_timeline_/, "");
+  if (tool === "delete_track_object") {
+    return [
+      ...(typeof input.trackId === "string"
+        ? [{ kind: "mediaTrack", unitId: input.trackId }]
+        : [{ kind: "mediaTrack" }]),
+      { kind: "clip" }
+    ];
+  }
+  if (tool === "bind_to_track" || tool === "unbind_track") {
+    return [{ kind: "clip" }];
+  }
   const ownKind = opUnitKind(op.tool);
   const hits: { kind: string; unitId?: string }[] = [];
 
@@ -144,6 +163,7 @@ const timelineMergeAdapter: DocumentMergeAdapter<TimelineMergeDoc> = {
       (c) => (c as { name?: string }).name || (c as { id: string }).id
     ),
     collectionOf("marker", "markers", (m) => (m as { id: string }).id),
+    collectionOf("mediaTrack", "mediaTracks", (t) => (t as { id: string }).id),
     collectionOf("transcript", "transcript", (l) => (l as { id: string }).id)
   ],
   scalars: [
@@ -186,7 +206,9 @@ export function mergeTimelineDocuments(
   });
 
   const trackIds = new Set(
-    result.doc.tracks.map((t) => asClip(t as unknown).id || (t as { id: string }).id)
+    result.doc.tracks.map(
+      (t) => asClip(t as unknown).id || (t as { id: string }).id
+    )
   );
   const clips = result.doc.clips.map(asClip);
   const dangling = clips.filter((clip) => !trackIds.has(clip.trackId));
@@ -202,12 +224,14 @@ export function mergeTimelineDocuments(
           conflict.reason === "deleted"
         )
     ),
-    ...dangling.map((clip): MergeConflict => ({
-      unit: { kind: "clip", id: clip.id, label: clip.name || clip.id },
-      external: null,
-      draft: clip,
-      reason: "dangling"
-    }))
+    ...dangling.map(
+      (clip): MergeConflict => ({
+        unit: { kind: "clip", id: clip.id, label: clip.name || clip.id },
+        external: null,
+        draft: clip,
+        reason: "dangling"
+      })
+    )
   ];
   return {
     doc: {
@@ -325,8 +349,7 @@ export function adoptGeneratedClipField<TClip extends AdoptableClip>(
     // hand over and no reason to disturb what the unit merge decided.
     if (structuralEqual(field.valueOf(baseClip), generated)) continue;
 
-    const target =
-      mergedClips.find((clip) => clip.id === clipId) ?? draftClip;
+    const target = mergedClips.find((clip) => clip.id === clipId) ?? draftClip;
 
     const drafted = field.valueOf(draftClip);
     if (structuralEqual(drafted, field.valueOf(baseClip))) {

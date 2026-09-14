@@ -45,6 +45,19 @@ function track(overrides: Partial<MediaTrack> = {}): MediaTrack {
   };
 }
 
+function trackingContext(
+  mediaTrack = track(),
+  ownerOverrides: Partial<TimelineClip> = {}
+) {
+  const owner = clip({
+    id: mediaTrack.clipId,
+    mediaType: "video",
+    durationMs: 10_000,
+    ...ownerOverrides
+  });
+  return { mediaTracks: [mediaTrack], clips: [owner] };
+}
+
 describe("resolveAnimatedLayerProps with a trackBinding", () => {
   it("offsets the transform by the track sample at the current time", () => {
     const bound = clip({
@@ -55,7 +68,7 @@ describe("resolveAnimatedLayerProps with a trackBinding", () => {
       2000,
       CANVAS,
       undefined,
-      [track()]
+      trackingContext()
     );
     // sample.x = 0.9 → (0.9 - 0.5) * 1000 = 400px offset from center.
     expect(props.transform?.position.x).toBeCloseTo(400);
@@ -75,7 +88,7 @@ describe("resolveAnimatedLayerProps with a trackBinding", () => {
       2000,
       CANVAS,
       undefined,
-      [track()]
+      trackingContext()
     );
     expect(props.transform?.position.x).toBeCloseTo(410);
     expect(props.transform?.position.y).toBeCloseTo(380);
@@ -94,7 +107,7 @@ describe("resolveAnimatedLayerProps with a trackBinding", () => {
       0,
       CANVAS,
       undefined,
-      [track()]
+      trackingContext()
     );
     expect(props.transform?.scale).toEqual({ x: 2, y: 2 });
   });
@@ -108,7 +121,7 @@ describe("resolveAnimatedLayerProps with a trackBinding", () => {
       0,
       CANVAS,
       undefined,
-      [track()]
+      trackingContext()
     );
     expect(props.transform?.scale).toEqual({ x: 1, y: 1 });
   });
@@ -120,7 +133,7 @@ describe("resolveAnimatedLayerProps with a trackBinding", () => {
       2000,
       CANVAS,
       undefined,
-      [track()]
+      trackingContext()
     );
     expect(props.transform).toEqual(unbound.transform);
   });
@@ -134,7 +147,7 @@ describe("resolveAnimatedLayerProps with a trackBinding", () => {
       2000,
       CANVAS,
       undefined,
-      [track()]
+      trackingContext()
     );
     expect(props.transform).toEqual(bound.transform);
   });
@@ -148,8 +161,66 @@ describe("resolveAnimatedLayerProps with a trackBinding", () => {
       2000,
       CANVAS,
       undefined,
-      [track()]
+      trackingContext()
     );
     expect(props.transform).toEqual(bound.transform);
+  });
+
+  it("samples the tracked owner's source clock rather than the follower's", () => {
+    const bound = clip({
+      id: "follower",
+      startMs: 1000,
+      trackBinding: { trackId: "track_1", mode: "position" }
+    });
+    const mediaTrack = track({
+      sourceStartMs: 5000,
+      sourceEndMs: 9000,
+      samples: [
+        { sourceMs: 5000, x: 0.1, y: 0.5 },
+        { sourceMs: 9000, x: 0.9, y: 0.5 }
+      ]
+    });
+
+    const props = resolveAnimatedLayerProps(
+      { clip: bound, transform: bound.transform, opacity: 1 },
+      2000,
+      CANVAS,
+      undefined,
+      trackingContext(mediaTrack, { startMs: 0, inPointMs: 5000 })
+    );
+
+    expect(props.transform?.position.x).toBeCloseTo(0);
+  });
+
+  it("samples a retimed tracked owner", () => {
+    const bound = clip({
+      id: "follower",
+      trackBinding: { trackId: "track_1", mode: "position" }
+    });
+    const mediaTrack = track({
+      sourceEndMs: 4000,
+      samples: [
+        { sourceMs: 0, x: 0.1, y: 0.5 },
+        { sourceMs: 4000, x: 0.9, y: 0.5 }
+      ]
+    });
+
+    const props = resolveAnimatedLayerProps(
+      { clip: bound, transform: bound.transform, opacity: 1 },
+      1000,
+      CANVAS,
+      undefined,
+      trackingContext(mediaTrack, {
+        timeRemap: {
+          keyframes: [
+            { t: 0, sourceMs: 0 },
+            { t: 1, sourceMs: 4000 }
+          ]
+        },
+        durationMs: 2000
+      })
+    );
+
+    expect(props.transform?.position.x).toBeCloseTo(0);
   });
 });
