@@ -76,6 +76,17 @@ function geminiAudioMime(mime: string | undefined): string {
   return mime;
 }
 
+/**
+ * Gemini's native/custom tool combination contract is versioned by model
+ * family. Keep this check deliberately based on the model id supplied for the
+ * request: model discovery is optional and callers may use a newly released
+ * Gemini 3 id before it appears in the catalog.
+ */
+function isGemini3Model(model: string): boolean {
+  const modelId = model.split("/").pop()?.toLowerCase() ?? model.toLowerCase();
+  return /^gemini-3(?:[.-]|$)/.test(modelId);
+}
+
 interface GeminiProviderOptions {
   fetchFn?: typeof fetch;
   /** Delay between Files API polls — overridden in tests to run them back to back. */
@@ -1159,6 +1170,10 @@ export class GeminiProvider extends BaseProvider {
   }
 
   formatTools(tools: ProviderTool[]) {
+    return this.formatToolsForModel(tools, "gemini-3");
+  }
+
+  private formatToolsForModel(tools: ProviderTool[], model: string) {
     const nameMap = new Map<string, string>();
     const reverseMap = new Map<string, string>();
     const usedNames = new Set<string>();
@@ -1166,7 +1181,8 @@ export class GeminiProvider extends BaseProvider {
 
     for (const tool of tools) {
       if (
-        tool.name === WEB_SEARCH_TOOL_NAME ||
+        (tool.name === WEB_SEARCH_TOOL_NAME &&
+          this.usesNativeWebSearch(model, tools)) ||
         tool.type === "code_interpreter"
       ) {
         continue;
@@ -1207,6 +1223,44 @@ export class GeminiProvider extends BaseProvider {
     };
   }
 
+  private usesNativeWebSearch(
+    model: string,
+    tools: ProviderTool[]
+  ): boolean {
+    const hasWebSearch = tools.some(
+      (tool) => tool.name === WEB_SEARCH_TOOL_NAME
+    );
+    if (!hasWebSearch) return false;
+
+    const hasCustomTools = this.hasCustomFunctionTools(tools);
+    return !hasCustomTools || isGemini3Model(model);
+  }
+
+  private hasCustomFunctionTools(tools: ProviderTool[]): boolean {
+    return tools.some(
+      (tool) =>
+        tool.name !== WEB_SEARCH_TOOL_NAME &&
+        tool.type !== "code_interpreter"
+    );
+  }
+
+  private validateToolCombination(
+    model: string,
+    tools: ProviderTool[]
+  ): void {
+    if (isGemini3Model(model)) return;
+
+    const hasCodeExecution = tools.some(
+      (tool) => tool.type === "code_interpreter"
+    );
+    if (hasCodeExecution && this.hasCustomFunctionTools(tools)) {
+      throw new Error(
+        `Gemini code execution cannot be combined with other tools on ${model}; ` +
+          "only Gemini 3 models support this combination"
+      );
+    }
+  }
+
   /**
    * Fill in `tools` and `toolConfig` on a request body.
    *
@@ -1218,6 +1272,7 @@ export class GeminiProvider extends BaseProvider {
    */
   private applyTools(
     body: GeminiRequest,
+    model: string,
     tools: ProviderTool[],
     geminiTools: Array<{
       functionDeclarations: Array<Record<string, unknown>>;
@@ -1230,7 +1285,7 @@ export class GeminiProvider extends BaseProvider {
     }
 
     let hasBuiltIn = false;
-    if (tools.some((tool) => tool.name === WEB_SEARCH_TOOL_NAME)) {
+    if (this.usesNativeWebSearch(model, tools)) {
       body.tools = [...(body.tools ?? []), { googleSearch: {} }];
       hasBuiltIn = true;
     }
@@ -1297,7 +1352,11 @@ export class GeminiProvider extends BaseProvider {
       frequencyPenalty
     } = args;
 
-    const { geminiTools, nameMap, reverseMap } = this.formatTools(tools);
+    this.validateToolCombination(model, tools);
+    const { geminiTools, nameMap, reverseMap } = this.formatToolsForModel(
+      tools,
+      model
+    );
     const { contents, systemInstruction } = await this.convertMessages(
       args.messages,
       nameMap
@@ -1309,7 +1368,7 @@ export class GeminiProvider extends BaseProvider {
       body.systemInstruction = { parts: [{ text: systemInstruction }] };
     }
 
-    this.applyTools(body, tools, geminiTools, nameMap, args.toolChoice);
+    this.applyTools(body, model, tools, geminiTools, nameMap, args.toolChoice);
 
     const generationConfig: Record<string, unknown> = {
       maxOutputTokens: maxTokens
@@ -1390,7 +1449,11 @@ export class GeminiProvider extends BaseProvider {
       frequencyPenalty
     } = args;
 
-    const { geminiTools, nameMap, reverseMap } = this.formatTools(tools);
+    this.validateToolCombination(model, tools);
+    const { geminiTools, nameMap, reverseMap } = this.formatToolsForModel(
+      tools,
+      model
+    );
     const { contents, systemInstruction } = await this.convertMessages(
       args.messages,
       nameMap
@@ -1402,7 +1465,7 @@ export class GeminiProvider extends BaseProvider {
       body.systemInstruction = { parts: [{ text: systemInstruction }] };
     }
 
-    this.applyTools(body, tools, geminiTools, nameMap, args.toolChoice);
+    this.applyTools(body, model, tools, geminiTools, nameMap, args.toolChoice);
 
     const generationConfig: Record<string, unknown> = {
       maxOutputTokens: maxTokens

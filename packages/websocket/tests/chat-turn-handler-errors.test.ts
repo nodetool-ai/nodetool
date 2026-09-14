@@ -9,6 +9,10 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { initTestDb, Memory, Message, Prediction } from "@nodetool-ai/models";
+import {
+  annotateGroqRequestFailure,
+  annotateProviderError
+} from "@nodetool-ai/runtime";
 import { SUPERSEDED_TOOL_RESULT } from "../src/chat-tool-call-repair.js";
 import { unroutableToolMessage } from "../src/session/chat-prompt.js";
 import {
@@ -66,9 +70,7 @@ describe("provider error classification", () => {
     expect(
       harness.session.messagesOfType("chunk").some((c) => c.done === true)
     ).toBe(true);
-    expect(await assistantErrorRow("t-err-conn")).toContain(
-      "connection error"
-    );
+    expect(await assistantErrorRow("t-err-conn")).toContain("connection error");
   });
 
   it("explains an unresolvable hostname", async () => {
@@ -85,7 +87,7 @@ describe("provider error classification", () => {
     [400, /^Bad request: /],
     [401, /^Authentication failed/],
     [403, /^Access forbidden/],
-    [404, /^Not found/],
+    [404, /^Model .* was not found/],
     [429, /^Rate limited/],
     [503, /^Server error \(503\)/],
     [418, /^HTTP error \(418\)/]
@@ -124,6 +126,170 @@ describe("provider error classification", () => {
     expect(frame.message).toBe("the provider said no");
     expect(await assistantErrorRow("t-err-string")).toContain(
       "I encountered an error: the provider said no"
+    );
+  });
+
+  it("does not treat an undefined status as an HTTP status", async () => {
+    const harness = throwingProvider(
+      Object.assign(new Error("provider stream failed"), {
+        status: undefined
+      })
+    );
+    await harness.handler.handleChatMessage(chatTurn("t-err-no-status"));
+    const frame = errorFrame(harness);
+    expect(frame.error_type).toBe("error");
+    expect(frame.status_code).toBeUndefined();
+    expect(String(frame.message)).not.toContain("undefined");
+  });
+
+  it.each([false, true])(
+    "explains organization verification with provider annotation %s",
+    async (annotated) => {
+      const error = Object.assign(
+        new Error("Your organization must be verified to use the model gpt-5."),
+        {
+          status: 403,
+          body: {
+            error: {
+              message:
+                "Your organization must be verified to use the model gpt-5."
+            }
+          }
+        }
+      );
+      if (annotated) {
+        annotateProviderError(error, { provider: "openai", model: "gpt-5" });
+      }
+      const harness = throwingProvider(error);
+      await harness.handler.handleChatMessage({
+        ...chatTurn("t-err-verification"),
+        provider: "openai",
+        model: "gpt-5"
+      });
+      const frame = errorFrame(harness);
+      expect(frame.message).toContain("Verify your provider organization");
+      expect(frame.status_code).toBe(403);
+      expect(await assistantErrorRow("t-err-verification")).toContain(
+        "Verify your provider organization"
+      );
+    }
+  );
+
+  it("does not send database diagnostics in a generic error", async () => {
+    const harness = throwingProvider(
+      new Error("SQLITE_ERROR: SELECT token FROM secrets WHERE id = ?")
+    );
+    await harness.handler.handleChatMessage(chatTurn("t-err-internal"));
+    const frame = errorFrame(harness);
+    expect(frame.message).toBe(
+      "Something went wrong while processing your request. Please try again."
+    );
+    expect(String(frame.message)).not.toContain("SELECT");
+    expect(await assistantErrorRow("t-err-internal")).not.toContain("SELECT");
+  });
+
+  it("suppresses provider failures raised after cancellation", async () => {
+    const controller = new AbortController();
+    const harness = makeChatTurnHarness({
+      session: {
+        resolveProvider: async () =>
+          fakeProvider({
+            // eslint-disable-next-line require-yield
+            generateLoop: async function* () {
+              controller.abort();
+              throw new Error("request was aborted");
+            }
+          })
+      }
+    });
+    await harness.handler.handleChatMessage(
+      chatTurn("t-err-cancelled"),
+      undefined,
+      controller.signal
+    );
+    expect(harness.session.messagesOfType("error")).toHaveLength(0);
+    expect(
+      harness.session.messagesOfType("chunk").filter((chunk) => chunk.done)
+    ).toHaveLength(0);
+    const [rows] = await Message.paginate("t-err-cancelled", { limit: 10 });
+    expect(rows.filter((row) => row.role === "assistant")).toHaveLength(0);
+  });
+
+  it("extracts actionable quota details from Gemini's wrapped JSON error", async () => {
+    const payload = JSON.stringify({
+      error: {
+        code: 429,
+        status: "RESOURCE_EXHAUSTED",
+        message:
+          "Quota exceeded for quota metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0"
+      }
+    });
+    const harness = throwingProvider(
+      new Error(`Gemini API error 429: ${payload}`)
+    );
+    await harness.handler.handleChatMessage({
+      ...chatTurn("t-err-gemini-quota"),
+      provider: "gemini",
+      model: "gemini-2.5-flash"
+    });
+    const frame = errorFrame(harness);
+    expect(frame.status_code).toBe(429);
+    expect(String(frame.message)).toContain("quota exhausted");
+    expect(String(frame.message)).not.toContain(
+      "generativelanguage.googleapis"
+    );
+    expect(await assistantErrorRow("t-err-gemini-quota")).not.toContain(
+      "RESOURCE_EXHAUSTED"
+    );
+  });
+
+  it("keeps Groq's bounded token diagnostic over a generic body message", async () => {
+    const harness = throwingProvider(
+      annotateGroqRequestFailure(
+        Object.assign(new Error("429 rate limit reached"), {
+          status: 429,
+          body: { error: { message: "rate limit reached" } }
+        }),
+        {
+          kind: "quota_exhausted",
+          requestedTokens: 8000,
+          limitTokens: 10000,
+          estimate: {
+            inputTokens: 8000,
+            systemTokens: 100,
+            messageTokens: 7500,
+            toolTokens: 400
+          }
+        }
+      )
+    );
+    await harness.handler.handleChatMessage({
+      ...chatTurn("t-err-groq-diagnostic"),
+      provider: "groq",
+      model: "llama-3.3-70b"
+    });
+    const frame = errorFrame(harness);
+    expect(String(frame.message)).toContain("local estimate 8,000");
+    expect(String(frame.message)).toContain("tools 400");
+    expect(String(frame.message)).not.toBe(
+      "Rate limited: Too many requests or insufficient provider quota. Check your provider plan and try again later."
+    );
+  });
+
+  it("does not trust a provider string that imitates a Groq diagnostic", async () => {
+    const harness = throwingProvider(
+      Object.assign(
+        new Error("Groq rejected an oversized request API_KEY=private-value"),
+        { status: 413 }
+      )
+    );
+    await harness.handler.handleChatMessage({
+      ...chatTurn("t-err-groq-untrusted"),
+      provider: "groq"
+    });
+    expect(String(errorFrame(harness).message)).not.toContain("private-value");
+    expect(await assistantErrorRow("t-err-groq-untrusted")).not.toContain(
+      "private-value"
     );
   });
 });
@@ -252,9 +418,7 @@ describe("superseded turn drain cap", () => {
                 message: {
                   role: "assistant",
                   content: null,
-                  toolCalls: [
-                    { id: "call_open", name: "some_tool", args: {} }
-                  ]
+                  toolCalls: [{ id: "call_open", name: "some_tool", args: {} }]
                 }
               };
               announceCall();
@@ -340,7 +504,6 @@ describe("the turn's volatile memory block", () => {
   });
 });
 
-
 describe("generation recovery on a later agent turn", () => {
   beforeEach(() => initTestDb());
 
@@ -353,30 +516,42 @@ describe("generation recovery on a later agent turn", () => {
       ["gen-other-thread", "1", "elsewhere", "completed"]
     ]) {
       await Prediction.create({
-        id, user_id: userId, thread_id: thread, status,
-        provider: "fal", model: "video", capability: "text_to_video",
+        id,
+        user_id: userId,
+        thread_id: thread,
+        status,
+        provider: "fal",
+        model: "video",
+        capability: "text_to_video",
         asset_ids: status === "completed" ? [`asset-${id}`] : []
       });
     }
     let seen: GenerateLoopArgs["messages"] = [];
     const harness = makeChatTurnHarness({
-      session: { resolveProvider: async () => fakeProvider({
-        generateLoop: async function* (args: GenerateLoopArgs) {
-          seen = args.messages;
-          yield { type: "chunk", content: "ok", done: true };
-        }
-      }) }
+      session: {
+        resolveProvider: async () =>
+          fakeProvider({
+            generateLoop: async function* (args: GenerateLoopArgs) {
+              seen = args.messages;
+              yield { type: "chunk", content: "ok", done: true };
+            }
+          })
+      }
     });
-    await harness.handler.handleChatMessage(chatTurn(threadId, "Recover my renders"));
+    await harness.handler.handleChatMessage(
+      chatTurn(threadId, "Recover my renders")
+    );
     const wire = JSON.stringify(seen);
     expect(wire).toContain("asset://asset-gen-completed");
     expect(wire).toContain("gen-running");
     expect(wire).not.toContain("gen-other-user");
     expect(wire).not.toContain("gen-other-thread");
-    expect(JSON.stringify(seen.filter((message) => message.role === "system")))
-      .not.toContain("gen-completed");
+    expect(
+      JSON.stringify(seen.filter((message) => message.role === "system"))
+    ).not.toContain("gen-completed");
     const [history] = await Message.paginate(threadId, { limit: 10 });
-    expect(JSON.stringify(history.map((message) => message.content)))
-      .not.toContain("asset-gen-completed");
+    expect(
+      JSON.stringify(history.map((message) => message.content))
+    ).not.toContain("asset-gen-completed");
   });
 });

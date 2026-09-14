@@ -105,6 +105,15 @@ export {
   type ContextExceededSignal
 } from "./context-exceeded.js";
 export {
+  annotateGroqRequestFailure,
+  estimateGroqRequestTokens,
+  groqRequestFailureMessage,
+  groqRequestFailureDiagnostic,
+  type GroqRequestFailureDiagnostic,
+  type GroqRequestFailureKind,
+  type GroqRequestTokenEstimate
+} from "./groq-request.js";
+export {
   generateStructured,
   extractJson,
   messageText

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { GroqProvider } from "../../src/providers/groq-provider.js";
-import type { Message } from "../../src/providers/types.js";
+import type { Message, ProviderTool } from "../../src/providers/types.js";
 import {
+  chatErrorResponse,
   chatJsonResponse,
   chatSSEResponse,
   mockChatFetch
@@ -116,6 +117,138 @@ describe("GroqProvider", () => {
         headers: expect.objectContaining({ Authorization: "Bearer k" })
       })
     );
+  });
+
+  it("reproduces Groq oversized TPM requests with reported counts", async () => {
+    const fetchMock = mockChatFetch(
+      chatErrorResponse(
+        413,
+        "Request too large for model llama-3.1-70b on tokens per minute (TPM): Limit 6000, Requested 27151"
+      )
+    );
+    const provider = new GroqProvider(
+      { GROQ_API_KEY: "k" },
+      { fetchFn: fetchMock as unknown as typeof fetch }
+    );
+
+    await expect(
+      provider.generateMessage({
+        messages: [{ role: "user", content: "hi" }],
+        model: "llama-3.1-70b"
+      })
+    ).rejects.toThrow("reduce the prompt");
+  });
+
+  it("reports the final converted request breakdown and preserves HTTP details", async () => {
+    const fetchMock = mockChatFetch(
+      chatErrorResponse(
+        413,
+        "Request too large for model llama-3.1-70b on tokens per minute (TPM): Limit 6000, Requested 27151"
+      )
+    );
+    const provider = new GroqProvider(
+      { GROQ_API_KEY: "k" },
+      { fetchFn: fetchMock as unknown as typeof fetch }
+    );
+    const tools: ProviderTool[] = [
+      {
+        name: "lookup",
+        description: "Look up a value",
+        inputSchema: { type: "object", properties: { key: { type: "string" } } }
+      }
+    ];
+
+    try {
+      await provider.generateMessage({
+        messages: [
+          { role: "system", content: "Be concise." },
+          { role: "user", content: "hi" }
+        ],
+        model: "llama-3.1-70b",
+        tools
+      });
+      throw new Error("expected Groq request to fail");
+    } catch (error) {
+      expect(error).toMatchObject({
+        status: 413,
+        body: {
+          error: {
+            message: expect.stringContaining("Request too large")
+          }
+        }
+      });
+      expect(error).toHaveProperty(
+        "message",
+        expect.stringMatching(
+          /requested 27,151 input tokens against a 6,000 token limit; local estimate \d+ \(system \d+, messages \d+, tools \d+\)/
+        )
+      );
+    }
+  });
+
+  it("distinguishes temporary TPM exhaustion from an oversized request", async () => {
+    const fetchMock = mockChatFetch(
+      chatErrorResponse(
+        400,
+        "Rate limit reached for model llama-3.1-70b on input tokens per minute (ITPM): Limit 6000, Requested 100"
+      )
+    );
+    const provider = new GroqProvider(
+      { GROQ_API_KEY: "k" },
+      { fetchFn: fetchMock as unknown as typeof fetch }
+    );
+
+    await expect(
+      provider.generateMessage({
+        messages: [{ role: "user", content: "hi" }],
+        model: "llama-3.1-70b"
+      })
+    ).rejects.toThrow(/temporarily exhausted.*requested 100 input tokens.*6,000/);
+  });
+
+  it("preserves structured context-length detection", () => {
+    const provider = new GroqProvider({ GROQ_API_KEY: "k" });
+    const error = Object.assign(
+      new Error("Please reduce the length of the messages."),
+      { status: 400, code: "context_length_exceeded" }
+    );
+
+    expect(provider.isContextExceededError(error)).toBe(true);
+  });
+
+  it("does not classify a TPM allowance failure as context overflow", () => {
+    const provider = new GroqProvider({ GROQ_API_KEY: "k" });
+    const error = Object.assign(
+      new Error(
+        "Request too large on input tokens per minute (ITPM): Limit 6000, Requested 100"
+      ),
+      { status: 413, code: "context_length_exceeded" }
+    );
+
+    expect(provider.isContextExceededError(error)).toBe(false);
+  });
+
+  it("reports oversized TPM failures from the streaming path", async () => {
+    const fetchMock = mockChatFetch(
+      chatErrorResponse(
+        413,
+        "Request too large for model llama-3.1-70b on tokens per minute (TPM): Limit 6000, Requested 27151"
+      )
+    );
+    const provider = new GroqProvider(
+      { GROQ_API_KEY: "k" },
+      { fetchFn: fetchMock as unknown as typeof fetch }
+    );
+
+    const collect = async () => {
+      for await (const item of provider.generateMessages({
+        messages: [{ role: "user", content: "hi" }],
+        model: "llama-3.1-70b"
+      })) {
+        void item;
+      }
+    };
+    await expect(collect()).rejects.toThrow("reduce the prompt");
   });
 
   it("streams messages via the compat chat client", async () => {

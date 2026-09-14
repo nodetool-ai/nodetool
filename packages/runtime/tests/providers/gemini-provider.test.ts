@@ -829,6 +829,164 @@ describe("GeminiProvider", () => {
     });
   });
 
+  it("uses function web search for mixed tools on Gemini 2.5 and unknown models", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      makeFetchResponse({
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
+      })
+    );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    const tools = [
+      {
+        name: "web_search",
+        description: "Search the web",
+        inputSchema: { type: "object", properties: { query: { type: "string" } } }
+      },
+      { name: "custom_tool", description: "A custom tool" }
+    ];
+
+    for (const model of ["gemini-2.5-flash-preview", "unknown-preview"]) {
+      fetchFn.mockClear();
+      await provider.generateMessage({
+        model,
+        messages: [{ role: "user", content: "search" }],
+        tools
+      });
+      const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+      expect(body.tools).toEqual([
+        {
+          functionDeclarations: [
+            expect.objectContaining({ name: "web_search", parameters: tools[0].inputSchema }),
+            expect.objectContaining({ name: "custom_tool" })
+          ]
+        }
+      ]);
+      expect(body.toolConfig).toBeUndefined();
+    }
+  });
+
+  it("keeps the mixed web-search fallback consistent for streaming", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      makeSSEStream([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }])
+    );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    await expect(
+      (async () => {
+        for await (const _item of provider.generateMessages({
+          model: "gemini-2.5-flash-preview",
+          messages: [{ role: "user", content: "search" }],
+          tools: [{ name: "web_search" }, { name: "custom_tool" }]
+        })) {
+          // Exhaust the stream.
+        }
+      })()
+    ).resolves.toBeUndefined();
+
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.tools[0].functionDeclarations.map((tool: { name: string }) => tool.name)).toEqual([
+      "web_search",
+      "custom_tool"
+    ]);
+    expect(body.toolConfig).toBeUndefined();
+  });
+
+  it("round-trips fallback web search through the normal tool callback", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeSSEStream([
+          {
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    {
+                      functionCall: {
+                        id: "search-call-1",
+                        name: "web_search",
+                        args: { query: "latest news" }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ])
+      )
+      .mockResolvedValueOnce(
+        makeSSEStream([
+          { candidates: [{ content: { parts: [{ text: "result" }] } }] }
+        ])
+      );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    const executeTool = vi.fn().mockResolvedValue("search result");
+    const items: unknown[] = [];
+
+    for await (const item of provider.generateLoop({
+      model: "gemini-2.5-flash-preview",
+      messages: [{ role: "user", content: "search" }],
+      tools: [
+        { name: "web_search", inputSchema: { type: "object" } },
+        { name: "custom_tool" }
+      ],
+      executeTool
+    })) {
+      items.push(item);
+    }
+
+    expect(items.length).toBeGreaterThan(0);
+    expect(executeTool).toHaveBeenCalledWith({
+      id: "search-call-1",
+      name: "web_search",
+      args: { query: "latest news" }
+    });
+    const secondBody = JSON.parse(fetchFn.mock.calls[1][1].body);
+    expect(secondBody.contents.at(-1)).toEqual({
+      role: "user",
+      parts: [
+        {
+          functionResponse: {
+            id: "search-call-1",
+            name: "web_search",
+            response: { result: "search result" }
+          }
+        }
+      ]
+    });
+  });
+
+  it("rejects mixed code execution before fetching on non-Gemini 3 models", async () => {
+    const fetchFn = vi.fn();
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    const tools = [
+      { name: "python", type: "code_interpreter" as const },
+      { name: "custom_tool" }
+    ];
+
+    await expect(
+      provider.generateMessage({
+        model: "gemini-2.5-flash-preview",
+        messages: [{ role: "user", content: "calculate" }],
+        tools
+      })
+    ).rejects.toThrow(/Gemini 3/);
+    expect(fetchFn).not.toHaveBeenCalled();
+
+    await expect(
+      (async () => {
+        for await (const _item of provider.generateMessages({
+          model: "unknown-preview",
+          messages: [{ role: "user", content: "calculate" }],
+          tools
+        })) {
+          // The preflight should reject before a stream starts.
+        }
+      })()
+    ).rejects.toThrow(/Gemini 3/);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
   it("enables server-side tool invocations when built-ins ride along with function tools", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
@@ -896,6 +1054,28 @@ describe("GeminiProvider", () => {
     expect(JSON.parse(fetchFn.mock.calls[0][1].body).tools).toEqual([
       { codeExecution: {} }
     ]);
+  });
+
+  it("keeps native-only search and code execution on non-Gemini 3 models", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      makeFetchResponse({
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
+      })
+    );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+
+    await provider.generateMessage({
+      model: "gemini-2.5-flash-preview",
+      messages: [{ role: "user", content: "search and calculate" }],
+      tools: [
+        { name: "web_search" },
+        { name: "python", type: "code_interpreter" }
+      ]
+    });
+
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.tools).toEqual([{ googleSearch: {} }, { codeExecution: {} }]);
+    expect(body.toolConfig).toBeUndefined();
   });
 
   it("passes the caller AbortSignal to chat fetch", async () => {
