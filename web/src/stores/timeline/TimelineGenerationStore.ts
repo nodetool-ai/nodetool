@@ -328,21 +328,20 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
           // Apply the completed contract: append a ClipVersion, set
           // currentAssetId and lastGeneratedHash (unless the clip is locked),
           // and settle the clip's status.
+          const version = makeClipVersion({
+            jobId,
+            assetId,
+            workflowUpdatedAt: new Date().toISOString(),
+            dependencyHash: clip.dependencyHash ?? "",
+            paramOverridesSnapshot: clip.paramOverrides ?? {}
+          });
           const patch: Partial<TimelineClip> = {
             status: "generated",
-            versions: [
-              ...(clip.versions ?? []),
-              makeClipVersion({
-                jobId,
-                assetId,
-                workflowUpdatedAt: new Date().toISOString(),
-                dependencyHash: clip.dependencyHash ?? "",
-                paramOverridesSnapshot: clip.paramOverrides ?? {}
-              })
-            ]
+            versions: [...(clip.versions ?? []), version]
           };
           if (!clip.locked) {
             patch.currentAssetId = assetId;
+            patch.activeTakeId = version.id;
             patch.lastGeneratedHash = clip.dependencyHash;
           }
           timeline.patchClip(clipId, patch);

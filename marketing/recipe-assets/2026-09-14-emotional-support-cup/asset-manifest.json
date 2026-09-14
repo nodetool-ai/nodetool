@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-09-14-emotional-support-cup",
+  "recipeSlug": "ugc-product-video",
+  "status": "accepted",
+  "product": "Fictional unbranded Olive Travel Cup",
+  "sourceReference": "marketing/recipe-assets/2026-09-10-marketing-recipes-01/shared/product/product-reference.png",
+  "sourceTranscript": "marketing/recipe-assets/2026-09-14-emotional-support-cup/transcript.txt",
+  "models": {
+    "video": {
+      "provider": "not embedded in the supplied MP4",
+      "id": "not embedded in the supplied MP4"
+    }
+  },
+  "output": {
+    "path": "marketing/public/recipes/runs/2026-09-14-emotional-support-cup/final.mp4",
+    "sha256": "7383eff665766816102a6ab365c578fac5b7d34438c9e0100e7f5a43d35cedea",
+    "bytes": 11960089,
+    "width": 1440,
+    "height": 2560,
+    "durationSeconds": 15.016667,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "audioSampleRate": 44100,
+    "audioChannels": 2
+  },
+  "verification": {
+    "decode": "FFmpeg decoded the complete MP4 without errors.",
+    "visualReview": "The video follows the same creator and cup from a kitchen hook through travel, work, an outdoor pause, and an evening close.",
+    "audio": "The spoken track was transcribed locally with Whisper base English. FFprobe found one AAC stereo stream at 44.1 kHz."
+  },
+  "limitations": [
+    "The supplied MP4 does not record the provider, model, prompt, or editable project metadata.",
+    "The cup's lid and body shift slightly with lighting and framing across the generated scenes."
+  ]
+}

@@ -95,6 +95,9 @@ import {
   rescaleClipsForTempo,
   resolveTempo,
   selectGeneratedMatteVersion,
+  selectTake,
+  renameTake as renameTakeOnClip,
+  deleteTake as deleteTakeOnClip,
   type MidiInstrument,
   type MidiNote,
   type QuantizeDivision,
@@ -2777,6 +2780,123 @@ export function createTimelineToolBridge(
           children: children.map((child) => serializeClip(child)),
           params: group.compositionParams ?? {}
         };
+      }
+    ),
+
+    // Headless-only: the editor's ClipVersionHistory panel writes take
+    // switches, renames and deletes straight into TimelineStore via
+    // restoreVersion/renameTake/deleteTake. This op reaches the same
+    // `selectTake`/`renameTake`/`deleteTake` helpers, so the take list cannot
+    // fork between the two hosts (P0 AI Video, PRD § 8.10).
+    tool(
+      "ui_timeline_list_takes",
+      "List a clip's take history (clip.versions): id, label, source, " +
+        "provider, model, createdAt, costCredits, durationMs, status, " +
+        "favorite, and which one is active.",
+      z.object({ target: z.string().describe("Clip id or name.") }),
+      async ({ target }) => {
+        const clip = resolveClip(target as string);
+        const versions = clip.versions ?? [];
+        return {
+          ok: true,
+          takes: versions.map((v) => ({
+            id: v.id,
+            label: v.label,
+            source: v.source,
+            provider: v.provider,
+            model: v.model,
+            createdAt: v.createdAt,
+            costCredits: v.costCredits,
+            durationMs: v.durationMs,
+            status: v.status,
+            favorite: v.favorite,
+            active:
+              v.id === clip.activeTakeId || v.assetId === clip.currentAssetId
+          })),
+          activeTakeId: clip.activeTakeId ?? null
+        };
+      }
+    ),
+
+    tool(
+      "ui_timeline_select_take",
+      "Make a stored take current on a clip — the same switch " +
+        "restoreVersion does in the editor. Refuses a take that is not " +
+        '`status: "success"`.',
+      z.object({
+        target: z.string().describe("Clip id or name."),
+        takeId: z.string().describe("A take id, from list_takes.")
+      }),
+      async ({ target, takeId }) => {
+        const clip = resolveClip(target as string);
+        const version = (clip.versions ?? []).find((v) => v.id === takeId);
+        if (!version) {
+          throw new Error(
+            `No take "${takeId}" on "${clip.name}". ` +
+              validUnits(
+                (clip.versions ?? []).map((v) => ({
+                  id: v.id,
+                  name: v.label ?? v.id
+                })),
+                "take"
+              )
+          );
+        }
+        if (version.status !== "success") {
+          throw new Error(
+            `Take "${takeId}" on "${clip.name}" did not finish successfully ` +
+              `(status: ${version.status}) — only a successful take can be selected.`
+          );
+        }
+        const next = selectTake(clip, takeId as string);
+        clips = clips.map((c) => (c.id === clip.id ? next : c));
+        return { ok: true, clip: serializeClip(next) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_rename_take",
+      "Set a take's display label.",
+      z.object({
+        target: z.string().describe("Clip id or name."),
+        takeId: z.string().describe("A take id, from list_takes."),
+        label: z.string().describe("The new display label.")
+      }),
+      async ({ target, takeId, label }) => {
+        const clip = resolveClip(target as string);
+        if (!(clip.versions ?? []).some((v) => v.id === takeId)) {
+          throw new Error(
+            `No take "${takeId}" on "${clip.name}". ` +
+              validUnits(
+                (clip.versions ?? []).map((v) => ({
+                  id: v.id,
+                  name: v.label ?? v.id
+                })),
+                "take"
+              )
+          );
+        }
+        const next = renameTakeOnClip(clip, takeId as string, label as string);
+        clips = clips.map((c) => (c.id === clip.id ? next : c));
+        return { ok: true, clip: serializeClip(next) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_delete_take",
+      "Remove a take from a clip's history. Refuses when `takeId` is the " +
+        "active take — select_take a different take first, then delete the " +
+        "one you no longer want; a clip must always keep at least one take.",
+      z.object({
+        target: z.string().describe("Clip id or name."),
+        takeId: z.string().describe("A take id, from list_takes.")
+      }),
+      async ({ target, takeId }) => {
+        const clip = resolveClip(target as string);
+        const { clip: next, error } = deleteTakeOnClip(clip, takeId as string);
+        if (error) throw new Error(error);
+        clips = clips.map((c) => (c.id === clip.id ? next : c));
+        return { ok: true, clip: serializeClip(next) };
       }
     )
   ];

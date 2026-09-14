@@ -73,6 +73,7 @@ Guidelines](docs/BRAND.md).
 - **[Electron](electron/src/AGENTS.md)** — Desktop app
 - **[Mobile](mobile/AGENTS.md)** — React Native / Expo app
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
+- **[Marketing site](marketing/AGENTS.md)** — Recipe pages, production media, generated catalog data, and media verification
 - **[Workflow Runner Example](examples/workflow_runner/AGENTS.md)** — Embeddable workflow-runner example app
 - **[URL Egress Inventory](docs/url-egress-inventory.md)** — Every surface that fetches a caller-provided URL, the one address table, and the SSRF policy each surface applies
 - **[Writing Style](docs/WRITING_STYLE.md)** — Anti-slop prose rules and the forbidden-expressions list for all docs and Markdown

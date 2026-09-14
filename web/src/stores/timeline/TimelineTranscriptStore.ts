@@ -392,16 +392,15 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
           const existing = timeline
             .getState()
             .clips.find((c) => c.id === clipId);
+          const version = makeClipVersion({
+            assetId: audioAssetId,
+            paramOverridesSnapshot: { prompt }
+          });
           patchClip(clipId, {
             status: "generated",
             currentAssetId: audioAssetId,
-            versions: [
-              ...(existing?.versions ?? []),
-              makeClipVersion({
-                assetId: audioAssetId,
-                paramOverridesSnapshot: { prompt }
-              })
-            ]
+            activeTakeId: version.id,
+            versions: [...(existing?.versions ?? []), version]
           });
 
           // 2. Probe the real audio duration → beat length.

@@ -66,7 +66,10 @@ import {
   clearGeneratedMatte as clearMatteOnClip,
   selectGeneratedMatteVersion as selectMatteVersionOnClip,
   findBakedAnimationIndex,
-  AUDIO_BAKED_ANIMATION_KIND
+  AUDIO_BAKED_ANIMATION_KIND,
+  selectTake,
+  renameTake as renameTakeOnClip,
+  deleteTake as deleteTakeOnClip
 } from "@nodetool-ai/timeline";
 import type {
   AnimatedProperty,
@@ -703,6 +706,17 @@ export interface TimelineStoreState {
 
   /** Restore a clip to a previously generated version (purely local; autosave persists on next save cycle). */
   restoreVersion: (clipId: string, versionId: string) => void;
+
+  /** Set a take's display label (purely local; autosave persists on next save cycle). */
+  renameTake: (clipId: string, versionId: string, label: string) => void;
+
+  /**
+   * Remove a take from a clip's history. Refuses (see `deleteTake` in
+   * `@nodetool-ai/timeline`) when `versionId` is the active take — select a
+   * different take first. Returns an error message on refusal, `null` on
+   * success.
+   */
+  deleteTake: (clipId: string, versionId: string) => string | null;
 
   /**
    * Duplicate a clip. Both the source and the duplicate reference the same
@@ -2886,29 +2900,34 @@ export const createTimelineStore = (
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
             if (!clip) return state;
-            const version = (clip.versions ?? []).find(
-              (v) => v.id === versionId
-            );
-            if (!version || version.status !== "success") return state;
-
-            const restoredHash = version.dependencyHash;
-            const status: TimelineClip["status"] =
-              clip.dependencyHash === restoredHash ? "generated" : "stale";
-
+            const next = selectTake(clip, versionId);
+            if (next === clip) return state;
             return {
-              clips: state.clips.map((c) =>
-                c.id === clipId
-                  ? {
-                      ...c,
-                      currentAssetId: version.assetId,
-                      paramOverrides: version.paramOverridesSnapshot,
-                      lastGeneratedHash: restoredHash,
-                      status
-                    }
-                  : c
-              )
+              clips: state.clips.map((c) => (c.id === clipId ? next : c))
             };
           }),
+
+        renameTake: (clipId, versionId, label) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip) return state;
+            const next = renameTakeOnClip(clip, versionId, label);
+            if (next === clip) return state;
+            return {
+              clips: state.clips.map((c) => (c.id === clipId ? next : c))
+            };
+          }),
+
+        deleteTake: (clipId, versionId) => {
+          const clip = get().clips.find((c) => c.id === clipId);
+          if (!clip) return `Clip ${clipId} not found`;
+          const { clip: next, error } = deleteTakeOnClip(clip, versionId);
+          if (error) return error;
+          set((state) => ({
+            clips: state.clips.map((c) => (c.id === clipId ? next : c))
+          }));
+          return null;
+        },
 
         duplicateClip: async (clipId, deltaMs = 0) => {
           const src = get().clips.find((c) => c.id === clipId);

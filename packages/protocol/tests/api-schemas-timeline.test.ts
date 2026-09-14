@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  clipVersion,
   timelineClip,
   timelineDocument,
   timelineSequenceResponse,
   timelineSetup,
   timelineSetupStage,
   type ClipModel3DStyle,
+  type ClipVersion,
   type TimelineSetupStage
 } from "../src/api-schemas/timeline.js";
 
@@ -194,5 +196,81 @@ describe("model3d clips", () => {
         }
       })
     ).toThrow();
+  });
+});
+
+/** A take with every optional take field set (P0 AI Video, PRD § 8.10). */
+const fullTake = {
+  id: "take_1",
+  createdAt: "2026-01-01T00:00:00.000Z",
+  jobId: "job_1",
+  assetId: "asset_1",
+  workflowUpdatedAt: "2026-01-01T00:00:00.000Z",
+  dependencyHash: "hash_1",
+  paramOverridesSnapshot: { prompt: "a cat" },
+  costCredits: 4,
+  durationMs: 5000,
+  status: "success",
+  favorite: true,
+  label: "Wide shot",
+  source: "extended",
+  provider: "fal_ai",
+  model: "wan/2.6",
+  prompt: "a cat on a pier",
+  negativePrompt: "blurry",
+  parentTakeId: "take_0"
+} satisfies Record<string, unknown> & { status: ClipVersion["status"] };
+
+describe("take fields (P0 AI Video, PRD § 8.10)", () => {
+  it("keeps every take field through a ClipVersion parse", () => {
+    const parsed = clipVersion.parse(fullTake);
+    expect(parsed).toEqual(fullTake);
+  });
+
+  it("keeps a legacy take with none of the new fields", () => {
+    const legacyTake = {
+      id: "take_legacy",
+      createdAt: "2025-01-01T00:00:00.000Z",
+      jobId: "",
+      assetId: "asset_legacy",
+      workflowUpdatedAt: "2025-01-01T00:00:00.000Z",
+      dependencyHash: "",
+      paramOverridesSnapshot: {},
+      status: "success"
+    };
+    const parsed = clipVersion.parse(legacyTake);
+    expect(parsed.label).toBeUndefined();
+    expect(parsed.source).toBeUndefined();
+    expect(parsed.assetId).toBe("asset_legacy");
+  });
+
+  it("refuses a source outside the declared union", () => {
+    expect(() =>
+      clipVersion.parse({ ...fullTake, source: "cloned" })
+    ).toThrow();
+  });
+
+  it("keeps a clip's activeTakeId and its takes' fields through the whole document — the PATCH round-trip", () => {
+    const clip = {
+      id: "clip_take",
+      trackId: "track_1",
+      name: "Shot A",
+      startMs: 0,
+      durationMs: 5000,
+      mediaType: "video",
+      sourceType: "generated",
+      status: "generated",
+      locked: false,
+      currentAssetId: "asset_1",
+      activeTakeId: "take_1",
+      versions: [fullTake]
+    };
+    const parsed = timelineDocument.parse({
+      tracks: [],
+      clips: [clip],
+      markers: []
+    });
+    expect(parsed.clips[0].activeTakeId).toBe("take_1");
+    expect(parsed.clips[0].versions).toEqual([fullTake]);
   });
 });

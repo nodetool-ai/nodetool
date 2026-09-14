@@ -100,6 +100,12 @@ These are not obvious and each one caused a failed deploy:
 - **`fly.toml` sets `auto_stop_machines = "off"`.** Nothing stops an app machine
   on purpose, so a stopped one is always a machine to repair, whatever its exit
   code — including no exit event at all, which reads back as `unknown`.
+- **`machine update` can collide with an update Fly is already applying.** An
+  overlapping run, a retried deploy, or Fly replacing a machine on its own makes
+  the API answer `aborted: machine is replacing: concurrent update in progress`
+  and flyctl exit 1. That conflict clears on its own, so the update is retried
+  `UPDATE_ATTEMPTS` times with a doubling delay; any other update failure still
+  aborts the rollout on the first attempt.
 - **A machine mid-boot is not a machine that failed.** `machine update` returns
   before the new process is up, so the post-update state check waits
   `READY_STATE_GRACE_SECONDS` (60) before a non-running state counts as a
@@ -117,6 +123,8 @@ re-run with a different budget without editing the script:
 | `DRAIN_TIMEOUT_SECONDS` | 2700 | turns and jobs reaching zero |
 | `READY_STATE_GRACE_SECONDS` | 60 | booting before a non-running state is a failure |
 | `READY_TIMEOUT_SECONDS` | 300 | `/health` answering 200 after the update |
+| `UPDATE_ATTEMPTS` | 5 | attempts at an update that conflicts with another |
+| `UPDATE_RETRY_SECONDS` | 10 | the first delay between those attempts, doubling |
 
 `FLY_APP` (`nodetool`) and `FLY_REGION` (`fra`) are overridable the same way.
 

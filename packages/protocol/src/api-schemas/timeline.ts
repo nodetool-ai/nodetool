@@ -31,7 +31,25 @@ export const clipVersion = z.object({
   costCredits: z.number().optional(),
   durationMs: z.number().optional(),
   status: z.enum(["success", "failed", "cancelled"]),
-  favorite: z.boolean().optional()
+  favorite: z.boolean().optional(),
+  /** Take metadata (P0 AI Video, PRD § 8.10). Without these fields Zod
+   * strips them on every PATCH, breaking take labels/provenance round-trips. */
+  label: z.string().optional(),
+  source: z
+    .enum([
+      "imported",
+      "generated",
+      "extended",
+      "inpainted",
+      "object_replace",
+      "video_to_video"
+    ])
+    .optional(),
+  provider: z.string().optional(),
+  model: z.string().optional(),
+  prompt: z.string().optional(),
+  negativePrompt: z.string().optional(),
+  parentTakeId: z.string().optional()
 });
 export type ClipVersion = z.infer<typeof clipVersion>;
 
@@ -1212,6 +1230,9 @@ export const timelineClip = z.object({
   dependencyHash: z.string().optional(),
   lastGeneratedHash: z.string().optional(),
   currentAssetId: z.string().optional(),
+  /** Read-only convenience alias for the active take's id (P0 AI Video, PRD
+   * § 8.10). Without this field Zod strips it on every PATCH. */
+  activeTakeId: z.string().optional(),
   thumbnailAssetId: z.string().optional(),
   waveformAssetId: z.string().optional(),
   /** Storyboard provenance (assemble bridge). Without these fields Zod

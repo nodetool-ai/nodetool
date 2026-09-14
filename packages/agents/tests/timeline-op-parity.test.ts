@@ -81,7 +81,34 @@ function seedClips(): TimelineClip[] {
       durationMs: 4000,
       mediaType: "video",
       sourceType: "imported",
-      status: "generated"
+      status: "generated",
+      // Two finished takes, the second active, so the take ops
+      // (list/select/rename/delete_take) have something to work with.
+      currentAssetId: "asset_take_2",
+      activeTakeId: "take_2",
+      dependencyHash: "hash_take_2",
+      versions: [
+        {
+          id: "take_1",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          jobId: "job_1",
+          assetId: "asset_take_1",
+          workflowUpdatedAt: "2026-01-01T00:00:00.000Z",
+          dependencyHash: "hash_take_1",
+          paramOverridesSnapshot: {},
+          status: "success"
+        },
+        {
+          id: "take_2",
+          createdAt: "2026-01-02T00:00:00.000Z",
+          jobId: "job_2",
+          assetId: "asset_take_2",
+          workflowUpdatedAt: "2026-01-02T00:00:00.000Z",
+          dependencyHash: "hash_take_2",
+          paramOverridesSnapshot: {},
+          status: "success"
+        }
+      ]
     }),
     makeClip({
       id: "clip_b",
@@ -527,6 +554,26 @@ const FIXTURES: Fixture[] = [
     tool: "insert_composition",
     args: { composition_id: "lower_third", startMs: 1000 },
     op: { op: "insert_composition", composition_id: "lower_third", startMs: 1000 }
+  },
+  {
+    tool: "list_takes",
+    args: { target: "clip_a" },
+    op: { op: "list_takes", target: "clip_a" }
+  },
+  {
+    tool: "select_take",
+    args: { target: "clip_a", takeId: "take_1" },
+    op: { op: "select_take", target: "clip_a", takeId: "take_1" }
+  },
+  {
+    tool: "rename_take",
+    args: { target: "clip_a", takeId: "take_1", label: "Wide" },
+    op: { op: "rename_take", target: "clip_a", takeId: "take_1", label: "Wide" }
+  },
+  {
+    tool: "delete_take",
+    args: { target: "clip_a", takeId: "take_1" },
+    op: { op: "delete_take", target: "clip_a", takeId: "take_1" }
   }
 ];
 

@@ -348,6 +348,36 @@ describe("bake_model3d_clip", () => {
       /no glTF asset/
     );
   });
+
+  it("cannot be overwritten by generic take selection (P0 AI Video PR #5774 review)", async () => {
+    // bake_model3d_clip pushes the rendered movie into `versions` while
+    // deliberately leaving `currentAssetId` on the glTF. select_take has no
+    // bake-aware path, so it must refuse rather than swap the glTF out for
+    // the bake's video — reproducing and pinning the reviewer's finding.
+    const baked = await applyTimelineOp(withClip(), bake, {
+      ...context(),
+      bakeModel3DClip: async () => ({ assetId: "asset_mp4", jobId: "job_1" })
+    });
+    expect(baked.error).toBeUndefined();
+    const bakeTakeId = baked.state.clips[0].versions?.[0]?.id;
+    expect(bakeTakeId).toBeTruthy();
+
+    const listed = await applyTimelineOp(
+      baked.state,
+      { op: "list_takes", target: "clip_m" },
+      context()
+    );
+    expect(listed.error).toBeUndefined();
+    expect(listed.result.takes).toHaveLength(1);
+
+    const selected = await applyTimelineOp(
+      baked.state,
+      { op: "select_take", target: "clip_m", takeId: bakeTakeId },
+      context()
+    );
+    expect(selected.error).toMatch(/3D clip/);
+    expect(selected.state.clips[0].currentAssetId).toBe("asset_glb");
+  });
 });
 
 describe("list_animation_presets", () => {

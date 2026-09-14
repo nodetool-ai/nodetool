@@ -2,7 +2,7 @@
 import { recipeGuides } from "./recipe-guides.mjs";
 const commercialRoot = "/recipes/runs/2026-09-14-photographic-commercial";
 const runRoot = "/recipes/runs/2026-09-10-marketing-recipes-01";
-const ugcRoot = "/recipes/runs/2026-09-14-ugc-cup";
+const ugcRoot = "/recipes/runs/2026-09-14-emotional-support-cup";
 
 export const recipePresentation = [
   {
@@ -13,34 +13,34 @@ export const recipePresentation = [
     slug: "ugc-product-video",
     heroThumbnail: "/apps/ugc-product-video.png",
     productionRun: {
-      runId: "2026-09-14-ugc-cup",
+      runId: "2026-09-14-emotional-support-cup",
       status: "accepted",
-      statusLabel: "15-second native-audio UGC Reel",
-      proofTitle: "One take, finished for social.",
+      statusLabel: "15-second emotional-support UGC story",
+      proofTitle: "Turns out I needed the green one.",
       summary:
-        "A small impulse purchase becomes a playful kitchen video, with animated captions and a seventh cup joining the collection.",
+        "A self-aware purchase becomes a small source of reassurance as the same cup follows one chaotic day.",
       provider:
-        "Seedance video supplied from Dreamina. Captions and animation added locally, then the final media was upscaled with AtlasCloud.",
+        "Finished UGC video supplied by the user. Transcript and media measurements verified locally.",
       hero: {
-        src: `${ugcRoot}/close.jpg`,
-        alt: "Creator holding an olive travel cup with the caption Look how nice.",
+        src: `${ugcRoot}/hero.jpg`,
+        alt: "Creator speaking to camera in her kitchen while holding an olive travel cup.",
         width: 1440,
         height: 2560
       },
       card: {
         src: `${ugcRoot}/poster.jpg`,
-        alt: "Creator holding an olive cup above animated captions and seven cup icons.",
+        alt: "Creator smiling in warm evening light while holding the olive cup.",
         width: 1440,
         height: 2560
       },
       ogImage: `${ugcRoot}/poster.jpg`,
       proof: {
-        src: `${ugcRoot}/captions.jpg`,
-        alt: "The caption six cups appears above six small cup outlines.",
+        src: `${ugcRoot}/story-strip.jpg`,
+        alt: "Five frames follow the creator and olive cup from morning at home through work to evening.",
         caption:
-          "Six cup outlines appear with the joke. A seventh olive cup joins them on the next line.",
-        width: 1440,
-        height: 2560
+          "The cup moves through the day before the creator returns to the opening thought.",
+        width: 1600,
+        height: 900
       },
       video: {
         mp4: `${ugcRoot}/final.mp4`,
@@ -48,18 +48,18 @@ export const recipePresentation = [
         poster: `${ugcRoot}/poster.jpg`,
         hasAudio: true,
         caption:
-          "A 15-second kitchen UGC video with animated captions, green underlines, and the original voice and room sound."
+          "A 15.017-second vertical UGC story with continuous first-person narration and natural location sound."
       },
       supportedClaims: [
-        "The supplied Dreamina recording shows the creator talking about buying another cup because it is green.",
-        "The local finishing pass added timed caption groups, animated green underlines, and six cup outlines followed by a seventh olive cup.",
-        "The final MP4 was enhanced to 1440×2560 with AtlasCloud, runs for 15.02 seconds, and includes the original voice and room sound."
+        "The creator says she bought the cup because it was green even though she already owned six cups.",
+        "The picture follows the same creator and cup from home through travel, work, an outdoor pause, and an evening close.",
+        "The supplied MP4 is 1440×2560, runs for 15.017 seconds, and contains H.264 video with AAC stereo audio."
       ],
       essentialLimitation:
         "Generated product details, lip-sync, factual claims, and caption words still need review before publishing.",
       limitations: [
         "The Olive Travel Cup is a fictional demonstration product.",
-        "The model-generated performance may not reproduce every product detail exactly."
+        "The supplied MP4 does not include provider, model, or editable project metadata."
       ]
     }
   },
@@ -245,42 +245,50 @@ export const recipePresentation = [
   {
     slug: "impossible-product-worlds",
     productionRun: {
-      runId: "2026-09-11-impossible-product-worlds",
-      status: "partial",
-      statusLabel: "15-second drone reveal",
+      runId: "2026-09-14-impossible-product-worlds-dreamina",
+      status: "accepted",
+      statusLabel: "15-second Dreamina product world",
       proofTitle: "Small object. Big escape.",
       summary:
-        "A giant cup in the desert. A hidden pool in its lid. One continuous drone shot reveals an impossible escape.",
-      provider: "GPT Image 2 stills and Kling v3 Turbo clips generated with AtlasCloud through NodeTool",
+        "A desert flight reveals a pool in a giant cup. A woman jumps in, then drinks from the same product at human scale.",
+      provider: "Finished video supplied from Dreamina",
       hero: {
-        src: "/recipes/runs/2026-09-11-impossible-product-worlds/pool-poster.webp",
-        alt: "A giant olive travel cup in the desert with a turquoise pool and loungers inside its lid.",
-        width: 540,
-        height: 960
+        src: "/recipes/runs/2026-09-14-impossible-product-worlds-dreamina/poster.webp",
+        alt: "A woman jumping into a turquoise pool inside the lid of a giant olive travel cup.",
+        width: 720,
+        height: 1280
       },
       card: {
-        src: "/recipes/runs/2026-09-11-impossible-product-worlds/pool-poster.webp",
-        alt: "A giant olive travel cup in the desert with a turquoise pool and loungers inside its lid.",
-        width: 540,
-        height: 960
+        src: "/recipes/runs/2026-09-14-impossible-product-worlds-dreamina/poster.webp",
+        alt: "A woman jumping into a turquoise pool inside the lid of a giant olive travel cup.",
+        width: 720,
+        height: 1280
       },
-      ogImage: "/recipes/runs/2026-09-11-impossible-product-worlds/pool-poster.jpg",
-      proof: null,
+      ogImage: "/recipes/runs/2026-09-14-impossible-product-worlds-dreamina/poster.jpg",
+      proof: {
+        src: "/recipes/runs/2026-09-14-impossible-product-worlds-dreamina/story-strip.jpg",
+        alt: "Five frames show the giant cup, lid pool, running jump, underwater splash, and final drink.",
+        caption:
+          "The accepted Dreamina render moves from monumental scale to a familiar product action.",
+        width: 1600,
+        height: 900
+      },
       video: {
-        mp4: "/recipes/runs/2026-09-11-impossible-product-worlds/drone-reveal-final.mp4",
+        mp4: "/recipes/runs/2026-09-14-impossible-product-worlds-dreamina/final.mp4",
         webm: null,
-        poster: "/recipes/runs/2026-09-11-impossible-product-worlds/pool-poster.webp",
-        hasAudio: false,
-        caption: "A silent 15-second concept film at 1080×1920. The first eight seconds are one continuous generated drone shot."
+        poster: "/recipes/runs/2026-09-14-impossible-product-worlds-dreamina/poster.webp",
+        hasAudio: true,
+        caption:
+          "A 15.072-second Dreamina product film at 720×1280 with stereo sound."
       },
       supportedClaims: [
-        "The opening camera move keeps the cup in view while revealing a pool inside its fitted lid.",
-        "The final MP4 contains 450 frames at 30 fps and was visually reviewed."
+        "The video shows a desert approach, a pool reveal, a jump and underwater transition, then a woman drinking from the cup.",
+        "The published MP4 is 720×1280, contains 361 H.264 video frames, and carries AAC stereo audio."
       ],
-      essentialLimitation: "Product proportions vary between generated shots.",
+      essentialLimitation: "The Dreamina source is a flattened 720×1280 video.",
       limitations: [
-        "The fictional product changes proportions between generated shots. The result demonstrates a creative direction, not exact product reproduction.",
-        "Final playback was assembled locally after the timeline renderer omitted the revised opening clip. No recorded UI walkthrough or soundtrack is included."
+        "The cup's lid and body proportions differ from the clean product reference in some frames.",
+        "The woman's hair is tied back before the jump and worn down in the closing drink, so the character continuity is not exact."
       ]
     }
   }

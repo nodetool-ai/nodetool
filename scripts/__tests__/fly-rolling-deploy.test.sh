@@ -59,11 +59,28 @@ case "$*" in
     esac
     if [ -f "$TEST_STATE/updated" ]; then
       printf '%s\n' '{"status":"ok","turns":0,"jobs":0}'
+    elif [ "$TEST_SCENARIO" = "update_conflict" ] || [ "$TEST_SCENARIO" = "update_rejected" ]; then
+      printf '%s\n' '{"status":"draining","turns":0,"jobs":0}'
     elif [ "$TEST_SCENARIO" = "legacy_sigusr2_exit" ] || [ "$TEST_SCENARIO" = "no_drain_handler" ]; then
       printf '%s\n' '{"status":"ok","turns":0,"jobs":0}'
     fi
     ;;
   machine\ update\ bbbb\ *)
+    attempts=$(cat "$TEST_STATE/update_attempts" 2>/dev/null || printf 0)
+    attempts=$((attempts + 1))
+    printf '%s\n' "$attempts" > "$TEST_STATE/update_attempts"
+    case "$TEST_SCENARIO" in
+      update_conflict)
+        if [ "$attempts" -lt 3 ]; then
+          echo "Error: could not update machine bbbb: failed to update VM bbbb: aborted: machine is replacing: concurrent update in progress" >&2
+          exit 1
+        fi
+        ;;
+      update_rejected)
+        echo "Error: could not update machine bbbb: image not found" >&2
+        exit 1
+        ;;
+    esac
     touch "$TEST_STATE/updated"
     ;;
   machine\ start\ bbbb\ *)
@@ -98,6 +115,8 @@ case "$url" in
       else
         printf '%s\n' '{"state":"started","events":[{"type":"exit","request":{"exit_event":{"exit_code":140}}}]}'
       fi
+    elif [ "$TEST_SCENARIO" = "update_conflict" ] || [ "$TEST_SCENARIO" = "update_rejected" ]; then
+      printf '%s\n' '{"state":"started","events":[{"type":"exit","request":{"exit_event":{"exit_code":1}}}]}'
     elif [ "$TEST_SCENARIO" = "no_drain_handler" ]; then
       printf '%s\n' '{"state":"started","events":[{"type":"exit","request":{"exit_event":{"exit_code":1}}}]}'
     elif [ "$TEST_SCENARIO" = "previously_stopped_legacy" ]; then
@@ -153,6 +172,7 @@ run_scenario() {
     DRAIN_TIMEOUT_SECONDS=2 \
     DRAIN_START_TIMEOUT_SECONDS=1 \
     READY_TIMEOUT_SECONDS=2 \
+    UPDATE_RETRY_SECONDS=1 \
     bash "$DEPLOY_SCRIPT" "registry.example/nodetool:test" \
       > "$state_dir/output" 2>&1
   scenario_status=$?
@@ -188,6 +208,15 @@ assert_equal 1 "$(cat "$TEST_ROOT/terminal_failed/state_requests" 2>/dev/null ||
 assert_equal 0 "$(cat "$TEST_ROOT/terminal_failed/health_requests" 2>/dev/null || printf 0)" "a terminal machine is not health-polled until timeout"
 assert_equal 0 "$(cat "$TEST_ROOT/terminal_failed/signals" 2>/dev/null || printf 0)" "a terminal machine is not signalled"
 assert_equal no "$([ -f "$TEST_ROOT/terminal_failed/updated" ] && printf yes || printf no)" "a terminal machine is not updated"
+
+run_scenario update_conflict
+assert_equal 0 "$scenario_status" "an update that conflicts with an update in progress is retried until it succeeds"
+assert_equal 3 "$(cat "$TEST_ROOT/update_conflict/update_attempts" 2>/dev/null || printf 0)" "the conflicting update is retried"
+assert_equal yes "$([ -f "$TEST_ROOT/update_conflict/updated" ] && printf yes || printf no)" "the machine ends up on the new image"
+
+run_scenario update_rejected
+assert_equal 1 "$scenario_status" "an update rejected for another reason aborts the rollout"
+assert_equal 1 "$(cat "$TEST_ROOT/update_rejected/update_attempts" 2>/dev/null || printf 0)" "a non-conflict update failure is not retried"
 
 if [ "$failures" -ne 0 ]; then
   echo "$failures assertion(s) failed" >&2
