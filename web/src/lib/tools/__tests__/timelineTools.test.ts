@@ -63,11 +63,20 @@ const snapshot = (): TimelineSnapshot => ({
   tracks: [trackNode()],
   clips: [clipNode()],
   markers: [],
-  tempo: { bpm: 120, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } }
+  mediaTracks: [],
+  tempo: {
+    bpm: 120,
+    offsetMs: 0,
+    timeSignature: { beatsPerBar: 4, beatUnit: 4 }
+  }
 });
 
 const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   getSnapshot: jest.fn(),
+  retargetFormat: jest.fn(),
+  setReframeSubject: jest.fn(),
+  addReframeKeyframe: jest.fn(),
+  clearReframe: jest.fn(),
   addTrack: jest.fn(),
   moveTrack: jest.fn(),
   deleteTrack: jest.fn(),
@@ -334,9 +343,7 @@ describe("ui_timeline_* tools", () => {
 
   it("places a 3D clip and patches its style through the handler", async () => {
     const handler = createMockHandler();
-    handler.addModel3DClip.mockReturnValue(
-      clipNode({ mediaType: "model3d" })
-    );
+    handler.addModel3DClip.mockReturnValue(clipNode({ mediaType: "model3d" }));
     handler.setModel3DStyle.mockReturnValue(clipNode({ mediaType: "model3d" }));
     setTimelineAgentHandler(SEQ_ID, handler);
 
@@ -764,7 +771,9 @@ describe("ui_timeline_edit (batch)", () => {
     };
 
     expect(result).toMatchObject({ applied: 1, failed: 2 });
-    expect(result.results[0].error).toContain('No timeline operation named "frobnicate"');
+    expect(result.results[0].error).toContain(
+      'No timeline operation named "frobnicate"'
+    );
     // The refusal names what it could have called instead.
     expect(result.results[0].error).toContain("seek");
     expect(result.results[1].error).toContain('named "edit"');
@@ -977,7 +986,13 @@ describe("ui_timeline_set_time_remap", () => {
         timeline_id: SEQ_ID,
         clip: "Riff",
         notes: [
-          { id: "n1", pitch: 62, velocity: 80, start_tick: 240, duration_tick: 240 }
+          {
+            id: "n1",
+            pitch: 62,
+            velocity: 80,
+            start_tick: 240,
+            duration_tick: 240
+          }
         ]
       },
       "tc-midi-2",
@@ -1045,7 +1060,11 @@ describe("ui_timeline_set_time_remap", () => {
 
     await FrontendToolRegistry.call(
       "ui_timeline_set_track_instrument",
-      { timeline_id: SEQ_ID, track: "Bass", instrument: { preset: "soft-pad" } },
+      {
+        timeline_id: SEQ_ID,
+        track: "Bass",
+        instrument: { preset: "soft-pad" }
+      },
       "tc-midi-5",
       ctx
     );
@@ -1171,5 +1190,84 @@ describe("ui_timeline_set_time_remap", () => {
       )
     ).rejects.toThrow();
     expect(handler.scaleClipVelocity).not.toHaveBeenCalled();
+  });
+
+  it("routes nondestructive reframe tools through the open timeline", async () => {
+    const handler = createMockHandler();
+    handler.retargetFormat.mockResolvedValue({
+      sequenceId: "derived-1",
+      name: "Campaign — 9:16"
+    });
+    handler.setReframeSubject.mockReturnValue(clipNode());
+    handler.addReframeKeyframe.mockReturnValue(clipNode());
+    handler.clearReframe.mockReturnValue(clipNode());
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const retargeted = await FrontendToolRegistry.call(
+      "ui_timeline_retarget_format",
+      {
+        timeline_id: SEQ_ID,
+        aspect_ratio: "9:16",
+        strategy: "track",
+        safe_margin: 0.1,
+        track_ids: { "clip-1": "subject-1" }
+      },
+      "tc-reframe-1",
+      ctx
+    );
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_reframe_subject",
+      {
+        timeline_id: SEQ_ID,
+        clip_id: "clip-1",
+        track_id: "subject-1",
+        safe_margin: 0.1,
+        smoothing: 0.25
+      },
+      "tc-reframe-2",
+      ctx
+    );
+    await FrontendToolRegistry.call(
+      "ui_timeline_add_reframe_keyframe",
+      {
+        timeline_id: SEQ_ID,
+        clip_id: "clip-1",
+        source_ms: 500,
+        x: 0.6,
+        y: 0.4,
+        zoom: 1.2
+      },
+      "tc-reframe-3",
+      ctx
+    );
+    await FrontendToolRegistry.call(
+      "ui_timeline_clear_reframe",
+      { timeline_id: SEQ_ID, clip_id: "clip-1" },
+      "tc-reframe-4",
+      ctx
+    );
+
+    expect(retargeted).toMatchObject({
+      ok: true,
+      timeline_id: "derived-1"
+    });
+    expect(handler.retargetFormat).toHaveBeenCalledWith({
+      aspectRatio: "9:16",
+      strategy: "track",
+      safeMargin: 0.1,
+      trackIds: { "clip-1": "subject-1" }
+    });
+    expect(handler.setReframeSubject).toHaveBeenCalledWith(
+      "clip-1",
+      "subject-1",
+      { safeMargin: 0.1, smoothing: 0.25 }
+    );
+    expect(handler.addReframeKeyframe).toHaveBeenCalledWith("clip-1", {
+      sourceMs: 500,
+      x: 0.6,
+      y: 0.4,
+      zoom: 1.2
+    });
+    expect(handler.clearReframe).toHaveBeenCalledWith("clip-1");
   });
 });

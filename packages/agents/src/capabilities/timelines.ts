@@ -626,6 +626,8 @@ async function applyOps(
     await import("../evals/surfaces/timeline.js");
   const bridge = createTimelineToolBridge({
     sequenceId: sequence.id,
+    sequenceName: sequence.name,
+    projectId: sequence.project_id,
     sequence: {
       fps: sequence.fps,
       width: sequence.width,
@@ -633,6 +635,9 @@ async function applyOps(
       tracks: document.tracks,
       clips: document.clips,
       markers: document.markers,
+      transcript: document.transcript,
+      scriptEnabled: document.scriptEnabled,
+      templateId: document.templateId,
       tempo: document.tempo,
       setup: document.setup,
       mediaTracks: document.mediaTracks
@@ -642,6 +647,41 @@ async function applyOps(
     bakeModel3DClip: async (request) => {
       const { bakeModel3DClipOnServer } = await import("./timeline-bake.js");
       return bakeModel3DClipOnServer(run.context, request);
+    },
+    retargetFormat: async (adapted) => {
+      const { TimelineSequence } = await import("@nodetool-ai/models");
+      const derivedDocument: TimelineDocument = {
+        tracks: adapted.tracks,
+        clips: adapted.clips,
+        markers: adapted.markers
+      };
+      if (adapted.transcript !== undefined) {
+        derivedDocument.transcript = adapted.transcript;
+      }
+      if (adapted.scriptEnabled !== undefined) {
+        derivedDocument.scriptEnabled = adapted.scriptEnabled;
+      }
+      if (adapted.tempo !== undefined) derivedDocument.tempo = adapted.tempo;
+      if (adapted.setup !== undefined) derivedDocument.setup = adapted.setup;
+      if (adapted.templateId !== undefined) {
+        derivedDocument.templateId = adapted.templateId;
+      }
+      if (adapted.mediaTracks !== undefined) {
+        derivedDocument.mediaTracks = adapted.mediaTracks;
+      }
+      const name = `${sequence.name} (${adapted.width}×${adapted.height})`;
+      const created = await TimelineSequence.create({
+        user_id: run.context.userId,
+        project_id: sequence.project_id,
+        workflow_id: sequence.workflow_id,
+        name,
+        fps: adapted.fps,
+        width: adapted.width,
+        height: adapted.height,
+        duration_ms: adapted.durationMs,
+        document: JSON.stringify(derivedDocument)
+      });
+      return { sequenceId: created.id, name };
     },
     loadComposition: {
       get: async (id) => {
@@ -812,6 +852,17 @@ const editTimeline: CapabilityExport = {
     }
     const ops = parseOps(params["ops"]);
     if (isError(ops)) return ops;
+    if (
+      ops.length > 1 &&
+      ops.some((entry) => entry.op === `${TOOL_PREFIX}retarget_format`)
+    ) {
+      return {
+        error:
+          "retarget_format creates a new sequence and must be the only op in " +
+          "an edit_timeline call. Call it once per target format, then edit " +
+          "the returned timeline id."
+      };
+    }
 
     const { TimelineSequence } = await import("@nodetool-ai/models");
     for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
@@ -862,6 +913,29 @@ const editTimeline: CapabilityExport = {
           timeline_id: timelineId,
           updated_at: sequence.updated_at,
           applied: 0,
+          failed: failed.length,
+          ops: records,
+          tracks: state.tracks,
+          clips: state.clips.map((clip) => ({
+            id: clip.id,
+            name: clip.name,
+            track_id: clip.trackId,
+            media_type: clip.mediaType,
+            start_ms: clip.startMs,
+            duration_ms: clip.durationMs,
+            animations: clip.animations
+          }))
+        };
+      }
+
+      // retarget_format has already created a derived row through the bridge's
+      // host callback. It deliberately leaves this source document untouched,
+      // including its revision and updated_at timestamp.
+      if (appliedOps[0]?.parsed.op === `${TOOL_PREFIX}retarget_format`) {
+        return {
+          timeline_id: timelineId,
+          updated_at: sequence.updated_at,
+          applied: 1,
           failed: failed.length,
           ops: records,
           tracks: state.tracks,

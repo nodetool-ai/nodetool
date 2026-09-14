@@ -61,6 +61,7 @@ import { BottomStatusBar } from "./BottomStatusBar";
 import { PlayheadReadout } from "./PlayheadReadout";
 import { useTimelineCostEstimate } from "../../hooks/timeline/useTimelineCostEstimate";
 import { ProjectSettingsDialog } from "./ProjectSettingsDialog";
+import { AdaptFormatDialog } from "./AdaptFormatDialog";
 import { ExportVideoDialog } from "./ExportVideoDialog";
 import type { ExportVideoChoice } from "./ExportVideoDialog";
 import SaveToFolderMenu from "../assets/SaveToFolderMenu";
@@ -639,6 +640,10 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
   const handleCloseSettings = useCallback(() => setSettingsOpen(false), []);
+  const [adaptFormatOpen, setAdaptFormatOpen] = useState(false);
+  const handleOpenAdaptFormat = useCallback(() => setAdaptFormatOpen(true), []);
+  const handleCloseAdaptFormat = useCallback(() => setAdaptFormatOpen(false), []);
+  const mediaTracks = useTimelineStore((state) => state.mediaTracks);
   // Stable element so `activitySlot` doesn't defeat TopBar's memo every render.
   const activitySlot = useMemo(() => <ActivityIndicator />, []);
 
@@ -826,6 +831,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         isSaving={isSaving}
         onSaveToAssets={sequenceUnavailable ? undefined : handleSaveToAssets}
         onOpenSettings={sequenceUnavailable ? undefined : handleOpenSettings}
+        onAdaptFormat={sequenceUnavailable ? undefined : handleOpenAdaptFormat}
         activitySlot={activitySlot}
       />
     ),
@@ -834,6 +840,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       handleExportBundle,
       handleExportVideo,
       handleOpenSettings,
+      handleOpenAdaptFormat,
       handleSave,
       handleSaveToAssets,
       isExporting,
@@ -1012,6 +1019,12 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       <ProjectSettingsDialog
         open={settingsOpen}
         onClose={handleCloseSettings}
+      />
+      <AdaptFormatDialog
+        open={adaptFormatOpen}
+        onClose={handleCloseAdaptFormat}
+        sequence={sequence}
+        mediaTracks={mediaTracks}
       />
 
       {/* ── Export format choice ──────────────────────────────────── */}

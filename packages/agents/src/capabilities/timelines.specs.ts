@@ -132,7 +132,10 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "insert_composition, list_takes, select_take, rename_take, " +
         "delete_take, add_midi_clip, set_notes, set_tempo, " +
         "set_track_instrument, transpose_clip, quantize_notes, " +
-        "scale_velocity. " +
+        "scale_velocity, retarget_format, set_reframe_subject, " +
+        "add_reframe_keyframe, clear_reframe. retarget_format creates a new " +
+        "sequence and must be the only op in its call; call it once per " +
+        "target format. " +
         "Start with get_state to " +
         "read track and clip ids. To lay existing videos end to end, call " +
         'add_media_clip once per asset ({"op": "add_media_clip", "asset": ' +

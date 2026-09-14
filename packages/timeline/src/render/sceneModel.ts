@@ -24,6 +24,7 @@ import type {
 } from "../types.js";
 import { isClipGrainEffect } from "../types.js";
 import { applySmoothingToSample, sampleMediaTrackAt } from "../mediaTrack.js";
+import { renderableReframe, resolveReframeCrop } from "../reframe.js";
 import type { Model3DCameraChannels } from "../model3d.js";
 import type {
   AnimationSample,
@@ -1125,6 +1126,31 @@ export function computeActiveLayersWithHorizon(
       // A caption-only clip (no drawable asset) contributes just its caption.
       if (caption && assetId === undefined) continue;
 
+      const reframeTrack = clip.reframe?.trackId
+        ? options.mediaTracks?.find(
+            (candidate) => candidate.id === clip.reframe?.trackId
+          )
+        : undefined;
+      const activeReframe = renderableReframe(clip, reframeTrack);
+      const reframeCrop =
+        activeReframe && options.canvas
+          ? resolveReframeCrop(
+              activeReframe,
+              clipSourceMsAt(clip, currentTimeMs),
+              {
+                width:
+                  activeReframe.sourceWidth ??
+                  clip.width ??
+                  options.canvas.width,
+                height:
+                  activeReframe.sourceHeight ??
+                  clip.height ??
+                  options.canvas.height
+              },
+              options.canvas,
+              reframeTrack
+            )
+          : undefined;
       const common = {
         clip,
         clipId: clip.id,
@@ -1136,7 +1162,9 @@ export function computeActiveLayersWithHorizon(
         parentMatrix,
         precomposeGroupId,
         borderRadius: clip.borderRadius,
-        crop: clip.crop,
+        // Reframe is a time-varying authored crop. Clearing it reveals the
+        // clip's prior static crop unchanged.
+        crop: reframeCrop ?? clip.crop,
         effects: clip.effects,
         trackEffects: track.effects,
         shapeMask: clip.mask,
@@ -1575,7 +1603,9 @@ const IDENTITY_TRANSFORM: ClipTransform = {
  * binding, names a track not in `mediaTracks`, or binds in a mode not yet
  * live (see `TrackBinding.mode`'s doc comment — only `"position"` and
  * `"position_scale"` are folded here; `"transform"`, `"mask"`,
- * `"effect_region"` and `"reframe"` are Phase 3+ and contribute nothing).
+ * `"effect_region"` and `"reframe"` contribute nothing here; Smart Reframe
+ * resolves through the clip's first-class `reframe` field during scene
+ * construction instead.
  *
  * The track's normalized `x`/`y` (0..1 over the SOURCE frame) is read as a
  * fraction of the canvas the same way a transform's own position is

@@ -17,6 +17,8 @@ import {
   DEFAULT_MODEL3D_CLIP_DURATION_MS,
   DEFAULT_MODEL3D_CLIP_NAME,
   makeClip,
+  isMediaTrackStale,
+  mediaTrackCanDriveReframe,
   model3dStyleWithPatch,
   moveTrackOrder,
   presetIdForInstrument,
@@ -88,6 +90,8 @@ import {
 } from "../../components/timeline/timelineAgentBridge";
 import { extractVideoFrames } from "../../components/timeline/Tracks/clipThumbnails";
 import { renderRasterClipFrames } from "../../components/timeline/preview/rasterClipFrames";
+import { persistFormatAdaptations } from "./useCreateFormatAdaptation";
+import { trpcClient } from "../../trpc/client";
 
 const KIND_TO_MODEL_KIND = {
   "text-to-video": "video",
@@ -99,7 +103,10 @@ const KIND_TO_MEDIA_TYPE = {
   "text-to-video": "video",
   "text-to-image": "image",
   "text-to-audio": "audio"
-} satisfies Record<TimelineGenerateKind, "image" | "video" | "audio" | "overlay">;
+} satisfies Record<
+  TimelineGenerateKind,
+  "image" | "video" | "audio" | "overlay"
+>;
 
 /** Velocity a note gets when the agent names none — mirrors
  *  `DEFAULT_MIDI_VELOCITY` in `@nodetool-ai/timeline`, which `createMidiNote`
@@ -207,6 +214,16 @@ function toClipNode(
     textStyle: clip.textStyle,
     shapeStyle: clip.shapeStyle,
     parentId: clip.parentId,
+    reframe: clip.reframe
+      ? {
+          mode: clip.reframe.mode,
+          trackId: clip.reframe.trackId,
+          safeMargin: clip.reframe.safeMargin,
+          smoothing: clip.reframe.smoothing,
+          sampleCount: clip.reframe.samples?.length ?? 0,
+          keyframeCount: clip.reframe.keyframes?.length ?? 0
+        }
+      : undefined,
     noteCount: clip.mediaType === "midi" ? (clip.notes?.length ?? 0) : undefined
   };
 }
@@ -381,7 +398,11 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       if (problems.length > 0) {
         throw new Error(
           `These notes cannot be stored: ${problems
-            .map((p) => (p.index !== undefined ? `note ${p.index}: ${p.message}` : p.message))
+            .map((p) =>
+              p.index !== undefined
+                ? `note ${p.index}: ${p.message}`
+                : p.message
+            )
             .join(" ")}`
         );
       }
@@ -431,8 +452,81 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           ),
           clips: state.clips.map((c) => toClipNode(c, map)),
           markers: state.markers.map(toMarkerNode),
+          mediaTracks: state.mediaTracks.map((track) => ({
+            id: track.id,
+            clipId: track.clipId,
+            name: track.name,
+            kind: track.kind,
+            status: track.status
+          })),
           tempo: resolveTempo(state)
         };
+      },
+
+      async retargetFormat(options) {
+        if (!sequenceId) {
+          throw new Error("No timeline sequence is open.");
+        }
+        const source = await trpcClient.timeline.get.query({ id: sequenceId });
+        const ids = await persistFormatAdaptations(source, doc.getState(), {
+          aspectRatios: [options.aspectRatio],
+          strategy: options.strategy,
+          safeMargin: options.safeMargin ?? 0.1,
+          trackIdByClipId: options.trackIds
+        });
+        const createdId = ids[0];
+        if (!createdId) throw new Error("Could not create format adaptation.");
+        return {
+          sequenceId: createdId,
+          name: `${source.name} — ${options.aspectRatio}`.substring(0, 200)
+        };
+      },
+
+      setReframeSubject(target, trackId, options) {
+        const clip = requireClip(target);
+        const track = doc
+          .getState()
+          .mediaTracks.find(
+            (candidate) =>
+              candidate.id === trackId && candidate.clipId === clip.id
+          );
+        if (!track) {
+          throw new Error(
+            `Track ${trackId} does not belong to clip ${clip.id}.`
+          );
+        }
+        if (
+          !mediaTrackCanDriveReframe(track) ||
+          isMediaTrackStale(track, clip)
+        ) {
+          throw new Error(
+            `Track ${trackId} has no current ready analysis for clip ${clip.id}.`
+          );
+        }
+        doc
+          .getState()
+          .setClipReframeSubject(clip.id, "track", track.id, options);
+        return clipNode(reReadClip(clip.id));
+      },
+
+      addReframeKeyframe(target, keyframe) {
+        const clip = requireClip(target);
+        doc
+          .getState()
+          .addClipReframeKeyframe(
+            clip.id,
+            keyframe.sourceMs,
+            keyframe.x,
+            keyframe.y,
+            keyframe.zoom
+          );
+        return clipNode(reReadClip(clip.id));
+      },
+
+      clearReframe(target) {
+        const clip = requireClip(target);
+        doc.getState().clearClipReframe(clip.id);
+        return clipNode(reReadClip(clip.id));
       },
 
       addTrack(type, name) {
@@ -584,7 +678,9 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
 
       async addMediaClip(opts: TimelineAddMediaClipOptions) {
         const assetId = opts.asset.startsWith("asset://")
-          ? opts.asset.slice("asset://".length).replace(/\.[A-Za-z0-9]{1,8}$/, "")
+          ? opts.asset
+              .slice("asset://".length)
+              .replace(/\.[A-Za-z0-9]{1,8}$/, "")
           : opts.asset;
         const asset = await useAssetStore.getState().get(assetId);
         if (!asset) {
@@ -822,7 +918,9 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         // the store shifts its children by the same delta. Writing `startMs`
         // straight onto the clip left them behind.
         const toTrackId =
-          patch.trackId !== undefined ? requireTrack(patch.trackId).id : undefined;
+          patch.trackId !== undefined
+            ? requireTrack(patch.trackId).id
+            : undefined;
         const deltaMs =
           patch.startMs === undefined
             ? 0
@@ -1268,7 +1366,8 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         }
         doc.getState().setTrackInstrument(track.id, instrument);
         const next = doc.getState().tracks.find((t) => t.id === track.id);
-        if (!next) throw new Error(`Track ${track.id} disappeared after the edit.`);
+        if (!next)
+          throw new Error(`Track ${track.id} disappeared after the edit.`);
         return toTrackNode(
           next,
           doc.getState().clips.filter((c) => c.trackId === next.id).length
@@ -1347,7 +1446,7 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       }
     };
     return handlerImpl;
-  }, [doc, ui, playback, startDirectGen, bakeClip]);
+  }, [doc, ui, playback, startDirectGen, bakeClip, sequenceId]);
 
   useEffect(() => {
     if (!sequenceId) return;

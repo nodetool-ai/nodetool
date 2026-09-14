@@ -964,6 +964,12 @@ export interface TimelineClip {
    * follows one track while its mask follows another is out of scope.
    */
   trackBinding?: TrackBinding;
+  /**
+   * Source-time framing instructions for format adaptations. The resolved crop
+   * is derived during scene construction, so preview and export consume the
+   * same ordinary {@link ClipCrop} at each frame.
+   */
+  reframe?: ClipReframe;
   /** Retime the clip's source. Replaces `speedMultiplier` when set. */
   timeRemap?: ClipTimeRemap;
   /** Composition provenance, stamped by `insert_composition`. */
@@ -1142,9 +1148,9 @@ export interface MediaTrack {
  * A clip following a `MediaTrack` (P0 AI Video, Phase 2). Only
  * `"position"`/`"position_scale"` are folded into the scene model in this
  * pass (`render/sceneModel.ts`'s `resolveAnimatedLayerProps`); `"transform"`,
- * `"mask"`, `"effect_region"` and `"reframe"` are named here so a later phase
- * needs no schema migration, but binding to one of them today is a no-op the
- * `bind_to_track` op refuses rather than silently accepting.
+ * `"mask"` and `"effect_region"` remain reserved. Smart Reframe uses the
+ * first-class `clip.reframe` model instead of this binding so it can combine a
+ * track, an automatic path and manual source-time corrections.
  */
 export interface TrackBinding {
   trackId: string;
@@ -1168,6 +1174,56 @@ export interface TrackBinding {
    * than of playback. 0 or absent samples the track exactly.
    */
   smoothing?: number;
+}
+
+/** One point in an automatically solved framing path, in source time. */
+export interface ReframeSample {
+  sourceMs: number;
+  /** Desired crop centre, normalized to the source frame. */
+  x: number;
+  /** Desired crop centre, normalized to the source frame. */
+  y: number;
+  /** Optional normalized subject bounds used by inspection and future solvers. */
+  width?: number;
+  height?: number;
+  confidence?: number;
+}
+
+/** A user-authored correction to the automatic framing path. */
+export interface ReframeKeyframe {
+  sourceMs: number;
+  /** Desired crop centre, normalized to the source frame. */
+  x: number;
+  /** Desired crop centre, normalized to the source frame. */
+  y: number;
+  /** Crop zoom, where 1 keeps the largest target-aspect crop. */
+  zoom?: number;
+}
+
+export type ReframeMode = "center" | "auto" | "track";
+
+/**
+ * Nondestructive smart-framing state. Automatic samples and manual keyframes
+ * are anchored to source time, so trims, speed changes and time remaps all
+ * resolve through the same source clock as video seeking.
+ */
+export interface ClipReframe {
+  mode: ReframeMode;
+  /** Required by `track`; absent on centre and provider-solved auto paths. */
+  trackId?: string;
+  /** Fraction of the target crop reserved around the followed subject. */
+  safeMargin?: number;
+  /** Exponential moving-average factor applied to a source MediaTrack. */
+  smoothing?: number;
+  /** Provider- or heuristic-produced importance path, in source time. */
+  samples?: ReframeSample[];
+  /** User corrections. They offset, rather than replace, the automatic path. */
+  keyframes?: ReframeKeyframe[];
+  /** Asset whose analysis produced `samples`; used only for staleness. */
+  sourceAssetId?: string;
+  /** Source dimensions captured when an adaptation is derived. */
+  sourceWidth?: number;
+  sourceHeight?: number;
 }
 
 /**
