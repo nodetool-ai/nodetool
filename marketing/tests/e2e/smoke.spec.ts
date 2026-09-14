@@ -153,16 +153,16 @@ test.describe("marketing smoke", () => {
       await expect(proof).toBeVisible();
       await expect(video).toHaveAttribute(
         "poster",
-        "/apps/examples/ugc-product-video/final-poster.jpg"
+        "/recipes/runs/2026-09-14-ugc-cup/poster.jpg"
       );
       await expect(video.locator('source[type="video/mp4"]')).toHaveAttribute(
         "src",
-        "/apps/examples/ugc-product-video/final.mp4"
+        "/recipes/runs/2026-09-14-ugc-cup/final.mp4"
       );
       await expect(video).toHaveJSProperty("error", null);
       expect(
         await video.evaluate((element: HTMLVideoElement) => element.duration)
-      ).toBeCloseTo(15, 1);
+      ).toBeCloseTo(15.07, 1);
     });
   }
 
