@@ -234,7 +234,9 @@ export class ChatPage {
   async send(message: string): Promise<void> {
     await this.composer().click();
     await this.composer().fill(message);
-    await this.page.getByRole("button", { name: "Send" }).click();
+    await this.page
+      .getByRole("button", { name: "Send", exact: true })
+      .click();
   }
 
   /** Resolves once `text` appears anywhere in the transcript. */
@@ -259,7 +261,10 @@ export class MiniAppPage {
   /** Open the app named `appName` and switch its tab to Run. */
   async open(appName: string): Promise<void> {
     await goto(this.page, "/workspace");
-    await this.page.getByRole("button", { name: "Apps" }).first().click();
+    await this.page
+      .getByRole("button", { name: "More", exact: true })
+      .click();
+    await this.page.getByRole("button", { name: /^Apps\b/ }).click();
     await this.page
       .getByRole("button", { name: appName })
       .first()
@@ -315,7 +320,10 @@ export class LibraryPage {
   async open(workflowId: string): Promise<void> {
     const editor = new EditorPage(this.page);
     await editor.open(workflowId);
-    await this.page.getByRole("button", { name: "Workflows" }).first().click();
+    await this.page
+      .getByRole("button", { name: "More", exact: true })
+      .click();
+    await this.page.getByRole("button", { name: /^Workflows\b/ }).click();
     await this.searchBox().waitFor({ state: "visible", timeout: 30_000 });
   }
 

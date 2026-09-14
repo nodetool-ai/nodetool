@@ -523,6 +523,13 @@ const MOCK_THREADS = [
     title: "LinkedIn posts for the week",
     created_at: "2024-12-04T16:30:00Z",
     updated_at: "2024-12-04T16:42:00Z"
+  },
+  {
+    id: "thread-mobile-welcome",
+    user_id: USER_ID,
+    title: "New conversation",
+    created_at: "2024-12-16T09:00:00Z",
+    updated_at: "2024-12-16T09:00:00Z"
   }
 ];
 

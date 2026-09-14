@@ -1439,7 +1439,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
       return;
     }
     if (
-      /^\/api\/storage\/asset-photo1(?:_thumb)?\.(?:jpg|jpeg|png)$/i.test(
+      /^\/api\/storage\/(?:[^/]+\/)?(?:asset-photo[1-4](?:_thumb)?\.(?:jpg|jpeg|png)|asset-doc1_thumb\.jpg)$/i.test(
         url.pathname
       )
     ) {
@@ -1452,7 +1452,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     {
       // Entity reference images (color swatches) for the seeded entities.
       const entityMatch = url.pathname.match(
-        /^\/api\/storage\/(entity-[a-z]+)(?:_thumb)?\.(?:jpg|jpeg|png)$/i
+        /^\/api\/storage\/(?:[^/]+\/)?(entity-[a-z]+)(?:_thumb)?\.(?:jpg|jpeg|png)$/i
       );
       const entityPng = entityMatch ? ENTITY_IMAGE_PNGS[entityMatch[1]] : null;
       if (entityPng) {
