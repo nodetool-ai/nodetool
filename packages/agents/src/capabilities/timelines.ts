@@ -73,13 +73,17 @@ import {
   MAX_PREVIEW_RANGE_COUNT,
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT,
+  trackObjectSpec,
+  TRACK_OBJECT_DIRECTIONS,
   deleteTimelineSpec
 } from "./timelines.specs.js";
 import {
   AUDIO_BAKED_ANIMATION_KIND,
   normalizeAuthoredDocument,
-  type AuthoredRenderSettings
+  type AuthoredRenderSettings,
+  type MediaTrack
 } from "@nodetool-ai/timeline";
+import type { TrackObjectInput } from "./timeline-track-object.js";
 import { clipSourceWindowMs } from "./timeline-audio-bake.js";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
 
@@ -630,7 +634,8 @@ async function applyOps(
       clips: document.clips,
       markers: document.markers,
       tempo: document.tempo,
-      setup: document.setup
+      setup: document.setup,
+      mediaTracks: document.mediaTracks
     },
     resolveAsset: (ref) => resolveTimelineAsset(run, ref),
     bakeAnimation: (request) => bakeTimelineAnimation(run, request),
@@ -837,6 +842,13 @@ const editTimeline: CapabilityExport = {
       // or the next surface to open the sequence resumes at the old step.
       if (state.setup) {
         next.setup = state.setup;
+      }
+      // Subject/object tracks come back from the bridge the way markers do.
+      // A document that never carried one keeps the field absent rather than
+      // growing an empty array; one that did keeps what the ops left it with,
+      // including the empty array `delete_track_object` leaves behind.
+      if (state.mediaTracks.length > 0 || document.mediaTracks !== undefined) {
+        next.mediaTracks = state.mediaTracks;
       }
       const failed = records.filter((record) => !record.ok);
       // Only the ops that landed describe the write, and a script where none
@@ -2466,6 +2478,119 @@ const isolateSubject: CapabilityExport = {
   }
 };
 
+// ---------------------------------------------------------------------------
+// track_object
+// ---------------------------------------------------------------------------
+
+/**
+ * Follow a subject through a clip's source. The document work is
+ * `trackObjectOnDocument`; everything here is the wiring it refuses to know
+ * about — the sequence row and the CAS save. There is no provider runner to
+ * wire in (see `notImplementedTrackObjectRunner`'s own doc comment), so this
+ * call fails cleanly rather than fabricating a result.
+ */
+const trackObject: CapabilityExport = {
+  spec: trackObjectSpec,
+  impl: async (run, params) => {
+    const timelineId = params["timeline_id"];
+    if (!isString(timelineId) || !timelineId) {
+      return {
+        error: "timeline_id is required (use list_timelines to find one)."
+      };
+    }
+    const region = params["initial_region"];
+    if (!isRecord(region)) {
+      return { error: "initial_region is required: {x, y, width, height}." };
+    }
+    const regionFields = ["x", "y", "width", "height"] as const;
+    for (const field of regionFields) {
+      if (!isFiniteNumber(region[field])) {
+        return { error: `initial_region.${field} must be a number.` };
+      }
+    }
+    const startMs = params["start_ms"];
+    const endMs = params["end_ms"];
+    if (!isFiniteNumber(startMs) || !isFiniteNumber(endMs)) {
+      return { error: "start_ms and end_ms are required numbers." };
+    }
+    const directionRaw = params["direction"];
+    const direction =
+      isString(directionRaw) &&
+      (TRACK_OBJECT_DIRECTIONS as readonly string[]).includes(directionRaw)
+        ? (directionRaw as (typeof TRACK_OBJECT_DIRECTIONS)[number])
+        : "forward";
+
+    const { TimelineSequence } = await import("@nodetool-ai/models");
+    const sequence = await TimelineSequence.findById(timelineId);
+    if (!sequence || sequence.user_id !== run.context.userId) {
+      return { error: `Timeline ${timelineId} was not found.` };
+    }
+    const document: TimelineDocument = sequence.toDocument();
+    const clip = findClip(document.clips, params["clip_id"], "clip_id");
+    if (isError(clip)) return clip;
+
+    const { randomUUID } = await import("node:crypto");
+    const trackId = isString(params["track_id"])
+      ? params["track_id"]
+      : `track_${randomUUID()}`;
+    const name = isString(params["name"]) ? params["name"] : "Tracked subject";
+
+    let expectedUpdatedAt = sequence.updated_at;
+    let mediaTracks: MediaTrack[] = document.mediaTracks ?? [];
+    const persist = async (next: MediaTrack[]): Promise<boolean> => {
+      const saved = await TimelineSequence.updateDocumentIfUnchanged(
+        timelineId,
+        expectedUpdatedAt,
+        { ...document, mediaTracks: next },
+        { ops: [{ tool: "track_object", input: { clip_id: clip.id, track_id: trackId } }] }
+      );
+      if (!saved) return false;
+      mediaTracks = next;
+      expectedUpdatedAt = saved.updated_at;
+      return true;
+    };
+
+    const { notImplementedTrackObjectRunner, trackObjectOnDocument } =
+      await import("./timeline-track-object.js");
+
+    const input: TrackObjectInput = {
+      clip,
+      mediaTracks,
+      name,
+      initialRegion: {
+        x: region["x"] as number,
+        y: region["y"] as number,
+        width: region["width"] as number,
+        height: region["height"] as number
+      },
+      startMs,
+      endMs,
+      direction,
+      regenerate: params["regenerate"] === true,
+      trackId
+    };
+    const settled = await trackObjectOnDocument(
+      { runner: notImplementedTrackObjectRunner, persist },
+      input
+    );
+    if (!("status" in settled)) return settled;
+
+    const result: Record<string, unknown> = {
+      timeline_id: timelineId,
+      clip_id: clip.id,
+      track_id: settled.track.id,
+      status: settled.status,
+      reused: settled.reused
+    };
+    if (settled.generationId !== undefined) {
+      result["generation_id"] = settled.generationId;
+    }
+    if (settled.costUsd !== undefined) result["cost_usd"] = settled.costUsd;
+    if (settled.error !== undefined) result["error"] = settled.error;
+    return result;
+  }
+};
+
 const deleteTimeline: CapabilityExport = {
   spec: deleteTimelineSpec,
   impl: async (run, params) => {
@@ -2496,6 +2621,7 @@ export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   renderTimeline,
   bakeAudioAnimation,
   isolateSubject,
+  trackObject,
   deleteTimeline
 ];
 
@@ -2521,5 +2647,6 @@ export {
   renderTimeline,
   bakeAudioAnimation,
   isolateSubject,
+  trackObject,
   deleteTimeline
 };

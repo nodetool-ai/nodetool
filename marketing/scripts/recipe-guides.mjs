@@ -36,26 +36,34 @@ const impossible = (file, alt, caption) => ({
   alt,
   caption
 });
+const campaign = (file, alt, caption) => ({
+  source: `recipe-assets/2026-09-14-directed-campaign-kit-gpt25/captures/${file}.jpg`,
+  src: `/recipes/runs/2026-09-14-directed-campaign-kit-gpt25/steps/${file}.jpg`,
+  width: 1600,
+  height: 900,
+  alt,
+  caption
+});
 
 export const recipeGuides = {
   "directed-campaign-kit": {
     name: "Directed campaign kit",
     outcome:
-      "Turn one product image into an approved campaign hero, two ready-to-edit formats, and one controlled revision.",
+      "Turn one product image into a kinetic campaign hero, coordinated social formats, and one controlled revision.",
     audience: "Small brand and social teams",
     guide: {
       entry: "Directed Campaign Kit",
       stages: ["Brief", "Direction", "Hero", "Formats", "Revision"],
       introduction:
-        "Upload a product image. The app writes the brief and three directions. Approve the hero, then make formats and revisions.",
+        "Start with a clean product reference, choose one bold visual world, then carry it through a hero, social formats, and a controlled revision.",
       inputs: [
         "One clear product image",
         "Optional campaign steer or reference image",
         "Language and image models configured in NodeTool"
       ],
       brief:
-        "Create a campaign for the product in the supplied image. Infer a concise product name, audience, message, headline, and call to action. Propose three distinct visual directions. Keep the product recognizable and avoid unsupported performance claims.",
-      note: "The product image is the only required input. Add exact copy or audience details before uploading when they must not be inferred. Model selection stays available in the app.",
+        "Create a premium launch campaign for the fictional olive travel cup in the supplied image. Audience: design-conscious commuters who want everyday objects to feel energizing. Message: carry momentum into the day. Visual direction: an olive cup on a cobalt circular platform above mirrored water, framed by monumental curved architecture and an amber mountain sunrise. Freeze fine droplets and use one diagonal streak of light for motion. Keep the exact cup recognizable. Leave clean dark-blue space for editable copy. No generated text, logos, extra cups, handles, or performance claims. Deliver a 16:9 hero, 1:1 social card, 9:16 story frame, and one controlled hero revision with reduced splash and wider copy space.",
+      note: "GPT Image 2.5 Sunburst generated the hero through AtlasCloud. The square, story, revision, and clean product-reference frames were derived with the matching GPT Image 2.5 edit model. The cup is a fictional demonstration product and all copy remains editable outside the generated artwork.",
       steps: [
         {
           id: "upload",
@@ -64,7 +72,12 @@ export const recipeGuides = {
           title: "Start with the product",
           description:
             "Open Directed Campaign Kit. Add an optional campaign steer first, then upload one clear product image. Uploading starts the language-model roundtrip automatically.",
-          action: "Upload the product image"
+          action: "Upload the product image",
+          image: campaign(
+            "01-product",
+            "Clean olive travel cup product reference beside the approved campaign world.",
+            "A clean reference fixes the cup's olive body, charcoal lid, silhouette, and finish before direction begins."
+          )
         },
         {
           id: "review",
@@ -73,7 +86,12 @@ export const recipeGuides = {
           title: "Review the filled brief",
           description:
             "Check the inferred product name, audience, message, headline, and call to action. Edit any value that must be exact. The app keeps your non-empty values when you ask it to analyze again.",
-          action: "Approve or edit the brief"
+          action: "Approve or edit the brief",
+          image: campaign(
+            "02-brief",
+            "Directed Campaign Kit interface ready for a product image and campaign steer.",
+            "The mini app turns one product image and an optional steer into the campaign brief and directions."
+          )
         },
         {
           id: "direction",
@@ -82,7 +100,12 @@ export const recipeGuides = {
           title: "Choose one visual direction",
           description:
             "Compare the three written directions before generating an image. Select the route that best expresses the message and gives the product a clear role in the composition.",
-          action: "Choose a direction"
+          action: "Choose a direction",
+          image: campaign(
+            "03-direction",
+            "Olive cup reference paired with the selected cobalt water and amber sunrise direction.",
+            "The selected route keeps the product quiet and precise inside a much more energetic world."
+          )
         },
         {
           id: "hero",
@@ -91,16 +114,26 @@ export const recipeGuides = {
           title: "Generate and approve the hero",
           description:
             "Open Optional steering and models if you want a specific image model. Generate the 16:9 hero, compare it with the product image, and accept it only when identity, copy, and composition are sound.",
-          action: "Accept the hero"
+          action: "Accept the hero",
+          image: campaign(
+            "04-hero",
+            "Wide campaign hero with an olive travel cup above mirrored water at sunrise.",
+            "The accepted 16:9 hero leaves dark-blue space on the left for editable campaign copy."
+          )
         },
         {
           id: "formats",
           phase: "Formats",
-          stage: "4:5 and 9:16",
+          stage: "1:1 and 9:16",
           title: "Build the campaign formats",
           description:
-            "Create portrait and story versions from the accepted hero. The app keeps the copy editable and exports a campaign record that can reopen the project later.",
-          action: "Build the formats"
+            "Create square and story versions from the accepted hero. The app keeps the copy editable and exports a campaign record that can reopen the project later.",
+          action: "Build the formats",
+          image: campaign(
+            "05-formats",
+            "Square and vertical campaign formats derived from the same olive cup hero.",
+            "The 1:1 and 9:16 versions preserve the product, cobalt platform, water, and amber sunrise."
+          )
         },
         {
           id: "revision",
@@ -109,7 +142,12 @@ export const recipeGuides = {
           title: "Direct one bounded revision",
           description:
             "Describe one change, what must stay fixed, and what may respond. Choose the revision model if needed, generate the take, then compare it with the accepted original before choosing a final version.",
-          action: "Accept the original or revision"
+          action: "Accept the original or revision",
+          image: campaign(
+            "06-revision",
+            "Original and revised wide campaign heroes shown side by side.",
+            "The revision changes only the splash intensity and left-side copy space while holding the product and set fixed."
+          )
         }
       ]
     }

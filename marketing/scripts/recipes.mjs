@@ -3,11 +3,56 @@ import { recipeGuides } from "./recipe-guides.mjs";
 const commercialRoot = "/recipes/runs/2026-09-14-photographic-commercial";
 const runRoot = "/recipes/runs/2026-09-10-marketing-recipes-01";
 const ugcRoot = "/recipes/runs/2026-09-14-emotional-support-cup";
+const campaignRoot =
+  "/recipes/runs/2026-09-14-directed-campaign-kit-gpt25";
 
 export const recipePresentation = [
   {
     slug: "directed-campaign-kit",
-    heroThumbnail: "/apps/directed-campaign-kit.png"
+    heroThumbnail: "/apps/directed-campaign-kit.png",
+    productionRun: {
+      runId: "2026-09-14-directed-campaign-kit-gpt25",
+      status: "accepted",
+      statusLabel: "Four-format directed campaign",
+      proofTitle: "Carry the momentum.",
+      summary:
+        "One clean cup reference becomes a kinetic launch world, two social formats, and a bounded revision.",
+      provider:
+        "GPT Image 2.5 Sunburst generated and revised the campaign through AtlasCloud in NodeTool.",
+      hero: {
+        src: `${campaignRoot}/hero.png`,
+        alt: "Olive travel cup on a cobalt platform above mirrored water at an amber mountain sunrise.",
+        width: 2048,
+        height: 1152
+      },
+      card: {
+        src: `${campaignRoot}/social-square.png`,
+        alt: "Square campaign image of an olive travel cup against cobalt architecture and an amber sunrise.",
+        width: 2048,
+        height: 2048
+      },
+      ogImage: `${campaignRoot}/hero.png`,
+      proof: {
+        src: `${campaignRoot}/story.png`,
+        alt: "Vertical campaign image with an olive travel cup framed below a mountain sunrise.",
+        caption:
+          "The vertical format preserves the approved product, palette, platform, water, and sunrise.",
+        width: 1152,
+        height: 2048
+      },
+      video: null,
+      supportedClaims: [
+        "GPT Image 2.5 Sunburst generated the 2048×1152 hero through AtlasCloud.",
+        "The matching GPT Image 2.5 edit model produced the square, vertical, clean-reference, and controlled-revision images.",
+        "The revision request changed only splash intensity and left-side copy space while asking the model to preserve the product and set."
+      ],
+      essentialLimitation:
+        "Generated product geometry and material details still need comparison with a real brand reference before publishing.",
+      limitations: [
+        "The olive travel cup is a fictional, unbranded demonstration product.",
+        "The example records selected outputs rather than every direction or rejected take."
+      ]
+    }
   },
   {
     slug: "ugc-product-video",

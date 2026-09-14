@@ -446,7 +446,9 @@ describe("useTimelineAutosave", () => {
     // to the exact saved document references must NOT produce a second PATCH:
     // the debounced flush sees the pending snapshot equals the last-saved one.
     act(() => {
-      useTimelineStore.setState({ tracks: [...savedTracks, makeTrack({ type: "audio" })] });
+      useTimelineStore.setState({
+        tracks: [...savedTracks, makeTrack({ type: "audio" })]
+      });
     });
     act(() => {
       useTimelineStore.setState({ tracks: savedTracks, clips: savedClips });
@@ -471,9 +473,9 @@ describe("useTimelineAutosave", () => {
 
     await waitFor(() => {
       const notifications = useNotificationStore.getState().notifications;
-      expect(
-        notifications.some((n) => n.content.includes("autosave"))
-      ).toBe(true);
+      expect(notifications.some((n) => n.content.includes("autosave"))).toBe(
+        true
+      );
     });
   });
 
@@ -530,6 +532,7 @@ describe("useTimelineAutosave", () => {
       tracks: [],
       clips: [],
       markers: [],
+      mediaTracks: [],
       transcript: [],
       scriptEnabled: false,
       fps: 30,

@@ -6,7 +6,8 @@ import type {
   TimelineMarker,
   TimelineTempo,
   TimelineSetup,
-  TranscriptLine
+  TranscriptLine,
+  MediaTrack
 } from "@nodetool-ai/timeline";
 import {
   DBModel,
@@ -83,6 +84,8 @@ export interface TimelineDocument {
   setup?: TimelineSetup;
   /** Sequence this one was retargeted from. Unset on a sequence built directly. */
   templateId?: string | null;
+  /** Subject/object tracks (P0 AI Video, Phase 2). Unset on a document with none. */
+  mediaTracks?: MediaTrack[];
 }
 
 export class TimelineSequence extends DBModel {
@@ -160,6 +163,7 @@ export class TimelineSequence extends DBModel {
       tempo: doc.tempo,
       setup: doc.setup,
       templateId: doc.templateId,
+      mediaTracks: doc.mediaTracks,
       createdAt: this.created_at,
       updatedAt: this.updated_at
     };
@@ -177,7 +181,8 @@ export class TimelineSequence extends DBModel {
       scriptEnabled: seq.scriptEnabled,
       tempo: seq.tempo,
       setup: seq.setup,
-      templateId: seq.templateId
+      templateId: seq.templateId,
+      mediaTracks: seq.mediaTracks
     };
     return new TimelineSequence({
       id: seq.id,

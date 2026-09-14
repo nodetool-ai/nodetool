@@ -1,0 +1,7 @@
+Model: AtlasCloud / OpenAI GPT Image 2.5 Sunburst
+
+Hero prompt
+
+Photoreal premium campaign hero for a fictional unbranded olive-green insulated travel cup with a precise cylindrical body, soft matte powder-coat finish, charcoal screw lid, small rectangular drinking tab, no handle and no logo. The cup stands at the center of an impossible kinetic set: a cobalt-blue circular platform suspended above rippling mirrored water, a sharp amber sunrise exploding through a monumental curved opening behind it, fine mist and suspended droplets frozen in the air, long hard shadows and one fast diagonal streak of light suggesting forward momentum. Product remains fully visible, geometrically clean and unmistakably the hero. Sophisticated sports-fashion art direction, rich cobalt, olive, charcoal and amber palette, tactile material detail, crisp commercial photography, cinematic wide composition with deliberate negative space on the left for editable campaign copy. No people, no words, no letters, no logo, no watermark, no extra cups, no duplicate objects.
+
+Square, story, revision, and product-reference prompts are recorded in asset-manifest.json.

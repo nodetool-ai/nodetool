@@ -19,7 +19,12 @@ import type {
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import type { ClipFadeShape } from "../audioFade.js";
 import type { ClipModel3DStylePatch } from "../authoredStyles.js";
-import type { ClipCrop, TimelineClip, TimelineTrack } from "../types.js";
+import type {
+  ClipCrop,
+  TimelineClip,
+  TimelineTrack,
+  TrackBinding
+} from "../types.js";
 import type { ClipAnimation } from "../animation/types.js";
 import type { TimelineAnimationInput } from "./types.js";
 
@@ -391,6 +396,38 @@ export interface DeleteTakeOp {
   takeId: string;
 }
 
+/**
+ * Subject/object tracks (P0 AI Video, Phase 2). Structural/synchronous only —
+ * the async provider call that fills a track's samples is the `track_object`
+ * capability, not an op.
+ */
+export interface ListTracksOp {
+  op: "list_tracks";
+  /** A clip id/name, or absent for every track on the document. */
+  target?: string;
+}
+
+export interface DeleteTrackObjectOp {
+  op: "delete_track_object";
+  trackId: string;
+}
+
+export interface BindToTrackOp {
+  op: "bind_to_track";
+  target: string;
+  trackId: string;
+  mode: TrackBinding["mode"];
+  offset?: { x: number; y: number };
+  scale?: number;
+  rotationOffset?: number;
+  smoothing?: number;
+}
+
+export interface UnbindTrackOp {
+  op: "unbind_track";
+  target: string;
+}
+
 export type TimelineOp =
   | GetStateOp
   | AddTrackOp
@@ -432,7 +469,11 @@ export type TimelineOp =
   | ListTakesOp
   | SelectTakeOp
   | RenameTakeOp
-  | DeleteTakeOp;
+  | DeleteTakeOp
+  | ListTracksOp
+  | DeleteTrackObjectOp
+  | BindToTrackOp
+  | UnbindTrackOp;
 
 export type TimelineOpName = TimelineOp["op"];
 
@@ -481,5 +522,9 @@ export const TIMELINE_OP_NAMES = [
   "list_takes",
   "select_take",
   "rename_take",
-  "delete_take"
+  "delete_take",
+  "list_tracks",
+  "delete_track_object",
+  "bind_to_track",
+  "unbind_track"
 ] as const satisfies readonly TimelineOpName[];

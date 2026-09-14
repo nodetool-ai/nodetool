@@ -102,7 +102,7 @@ test.describe("marketing smoke", () => {
       has: page.locator('a[href="/recipes/directed-campaign-kit"]')
     });
     const campaignImage = campaignProject.getByRole("img", {
-      name: /directed campaign kit mini app/i
+      name: /square campaign image of an olive travel cup/i
     });
     await expect(campaignImage).toHaveCount(1);
 
@@ -238,6 +238,30 @@ test.describe("marketing smoke", () => {
     const proofBox = await proof.boundingBox();
     expect(heroBox?.width ?? Infinity).toBeLessThan(heroBox?.height ?? 0);
     expect(proofBox?.height ?? Infinity).toBeLessThan(proofBox?.width ?? 0);
+  });
+
+  test("every directed campaign step shows its source visual", async ({
+    page
+  }) => {
+    await page.goto("/recipes/directed-campaign-kit");
+
+    for (const name of [
+      "01 Product image",
+      "02 AI draft",
+      "03 A, B, or C",
+      "04 Generate",
+      "05 1:1 and 9:16",
+      "06 Compare"
+    ]) {
+      await page.getByRole("button", { name, exact: true }).click();
+      const image = page.locator("#recipe-step-content figure img");
+      await expect(image).toBeVisible();
+      await expect
+        .poll(() =>
+          image.evaluate((element: HTMLImageElement) => element.naturalWidth)
+        )
+        .toBeGreaterThan(0);
+    }
   });
 
   test("the download page offers an installer for every platform", async ({
