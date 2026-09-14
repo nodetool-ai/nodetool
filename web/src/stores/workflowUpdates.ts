@@ -1579,13 +1579,6 @@ export const handleUpdate = (
         severity: "info",
         timestamp: Date.now()
       });
-      const predictionJobId =
-        String(data.status) === "booting" ? extractJobId(data) : undefined;
-      if (predictionJobId) {
-        useStatusStore
-          .getState()
-          .setStatus(workflow.id, predictionJobId, data.node_id, "booting");
-      }
       break;
     }
 

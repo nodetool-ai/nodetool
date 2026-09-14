@@ -60,7 +60,10 @@ export const storyboardMergeAdapter: DocumentMergeAdapter<StoryboardBoard> = {
           shot.slug ||
           (shot.action ? shot.action.slice(0, 60) : `Shot ${shot.index + 1}`)
         );
-      }
+      },
+      // Index is derived from shot order. Keeping it field-level prevents an
+      // external insertion from replacing a user's shot content in history.
+      unitFields: [{ field: "index" }]
     }
   ],
   scalars: [
@@ -77,4 +80,3 @@ export const storyboardMergeAdapter: DocumentMergeAdapter<StoryboardBoard> = {
   ],
   unitsTouchedByOp: storyboardUnitsTouchedByOp
 };
-

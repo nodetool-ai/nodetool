@@ -12,7 +12,6 @@
 import { createElement, useCallback, useEffect, useMemo, useState } from "react";
 import type { TimelineSetupStage } from "@nodetool-ai/timeline";
 
-import { STUDIO_DIRECTOR_MODEL } from "../../../studio/curatedModels";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { usePlanBeats } from "../../../hooks/timeline/usePlanBeats";
 import type { SetupFlowConfig, SetupStep } from "../types";
@@ -27,6 +26,7 @@ import { IdeaStep } from "./IdeaStep";
 import { LookStep, useLookStep } from "./LookStep";
 import { ReviewStep } from "./ReviewStep";
 import { videoFormatById } from "./formats";
+import { toLanguageModelValue, useDirectorModel } from "./directorModel";
 
 /**
  * A sequence's stage, with the field's absence read as `done` — an old
@@ -104,6 +104,9 @@ export const useVideoSetupFlow = ({
   const beats = useTimelineStore((state) => state.setup?.beats);
   const updateBeat = useTimelineStore((state) => state.updateBeat);
   const { plan, planning } = usePlanBeats();
+  // The beats are drafted by whichever model the format step picked, so the
+  // estimate, the block and the run all read the one field it writes.
+  const director = useDirectorModel();
 
   // The two look choices, read off the document so a remount resumes with the
   // choices the creator made (F17). Voiceover is a field of its own: absent
@@ -225,8 +228,12 @@ export const useVideoSetupFlow = ({
           : hasPlan
             ? "Re-plan the beats"
             : "Plan the beats",
-        canAdvance: videoFormatById(formatId) !== null,
-        blockedReason: "Pick a video template",
+        canAdvance:
+          videoFormatById(formatId) !== null && director.model !== null,
+        blockedReason:
+          videoFormatById(formatId) === null
+            ? "Pick a video template"
+            : "Pick a model to draft the beats",
         generation: planIsCurrent
           ? undefined
           : {
@@ -234,7 +241,9 @@ export const useVideoSetupFlow = ({
               next: hasPlan
                 ? "The brief or the template changed, so the beats are drafted again with your edited plan as context. No generated clips, voice or music yet."
                 : "Review the beat descriptions and timing next. No generated clips, voice or music yet; media generation is a separate step in Look.",
-              model: STUDIO_DIRECTOR_MODEL,
+              model: director.model
+                ? toLanguageModelValue(director.model)
+                : null,
               brief,
               maxOutputTokens: 8192
             },
@@ -290,6 +299,7 @@ export const useVideoSetupFlow = ({
     ],
     [
       brief,
+      director.model,
       emptyBeats,
       finish,
       formatId,
