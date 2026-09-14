@@ -234,7 +234,7 @@ export class ChatPage {
   async send(message: string): Promise<void> {
     await this.composer().click();
     await this.composer().fill(message);
-    await this.page.getByRole("button", { name: "Send" }).click();
+    await this.composer().press("Enter");
   }
 
   /** Resolves once `text` appears anywhere in the transcript. */
@@ -259,7 +259,10 @@ export class MiniAppPage {
   /** Open the app named `appName` and switch its tab to Run. */
   async open(appName: string): Promise<void> {
     await goto(this.page, "/workspace");
-    await this.page.getByRole("button", { name: "Apps" }).first().click();
+    await this.page
+      .getByRole("button", { name: "More", exact: true })
+      .click();
+    await this.page.getByRole("button", { name: /^Apps\b/ }).click();
     await this.page
       .getByRole("button", { name: appName })
       .first()
@@ -275,12 +278,12 @@ export class MiniAppPage {
   }
 
   runButton(): Locator {
-    return this.page.getByRole("button", { name: "Run echo" });
+    return this.runtime().getByRole("button", { name: "Run echo" });
   }
 
-  /** The app's text input — labelled by the seeded input node's description. */
+  /** The app's text input within the active Run layer. */
   promptInput(): Locator {
-    return this.page.getByLabel("Text echoed back by the app");
+    return this.runtime().getByRole("textbox").first();
   }
 
   async fillPrompt(value: string): Promise<void> {
@@ -293,10 +296,16 @@ export class MiniAppPage {
 
   /** The Output widget's rendered value, once the run streams one back. */
   async waitForOutput(text: string, timeout = 60_000): Promise<void> {
-    await this.page
+    await this.runtime()
       .getByText(text, { exact: false })
       .first()
       .waitFor({ state: "visible", timeout });
+  }
+
+  private runtime(): Locator {
+    return this.page
+      .getByTestId("application-run-layer")
+      .locator('.appbuilder-runtime[data-focus-id="app-runtime"]');
   }
 }
 
@@ -315,7 +324,10 @@ export class LibraryPage {
   async open(workflowId: string): Promise<void> {
     const editor = new EditorPage(this.page);
     await editor.open(workflowId);
-    await this.page.getByRole("button", { name: "Workflows" }).first().click();
+    await this.page
+      .getByRole("button", { name: "More", exact: true })
+      .click();
+    await this.page.getByRole("button", { name: /^Workflows\b/ }).click();
     await this.searchBox().waitFor({ state: "visible", timeout: 30_000 });
   }
 

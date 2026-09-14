@@ -188,13 +188,18 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: packages/workflow-runner
 
+      - name: Type-check workflow-runner browser suite
+        run: npm run typecheck:e2e --workspace=@nodetool-ai/workflow-runner
+
       - name: Run workflow-runner browser E2E tests
         run: npm run test:e2e --workspace=@nodetool-ai/workflow-runner
 
-      - name: Upload Playwright report on failure
-        if: failure()
+      - name: Upload Playwright diagnostics
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: workflow-runner-playwright-report
-          path: packages/workflow-runner/playwright-report
+          path: |
+            packages/workflow-runner/playwright-report/
+            packages/workflow-runner/test-results/
           retention-days: 7

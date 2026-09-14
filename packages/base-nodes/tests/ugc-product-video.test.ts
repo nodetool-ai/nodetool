@@ -205,11 +205,11 @@ describe("UGC Product Video recipe", () => {
       type: "nodetool.input.ColorInput",
       data: { value: { type: "color", value: "#C0D28C" } }
     });
-    expect(
-      workflow.graph.nodes.some(
-        (node) => node.type === "openai.audio.Transcribe"
-      )
-    ).toBe(true);
+    const transcribe = workflow.graph.nodes.find(
+      (node) => node.type === "openai.audio.Transcribe"
+    );
+    expect(transcribe).toBeDefined();
+    expect(transcribe?.data?.timestamps).toBe(true);
     expect(timelineCode).toContain("activeColor");
     expect(timelineCode).toContain("brandAccent");
     expect(timelineCode).toContain("openingBug");

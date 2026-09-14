@@ -10,6 +10,8 @@ on:
       - "web/src/e2e_runner/**"
       - "web/tests/e2e-runner/**"
       - "web/playwright.e2e-runner.config.ts"
+      - "web/tsconfig.playwright.json"
+      - "web/package.json"
       # The suite exercises the whole backend execution stack, so trigger on any
       # package change (kernel, runtime, node-sdk, base-nodes, agents, chat,
       # websocket, …) — not just the harness's own server files.
@@ -24,6 +26,8 @@ on:
       - "web/src/e2e_runner/**"
       - "web/tests/e2e-runner/**"
       - "web/playwright.e2e-runner.config.ts"
+      - "web/tsconfig.playwright.json"
+      - "web/package.json"
       # The suite exercises the whole backend execution stack, so trigger on any
       # package change (kernel, runtime, node-sdk, base-nodes, agents, chat,
       # websocket, …) — not just the harness's own server files.
@@ -68,6 +72,10 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: web
 
+      - name: Type-check Playwright suites
+        run: npm run typecheck:playwright
+        working-directory: web
+
       - name: Run E2E workflow suite
         run: npm run test:e2e-runner
         working-directory: web
@@ -84,5 +92,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: e2e-workflow-report
-          path: web/test-results/e2e-runner
+          path: |
+            web/playwright-report/
+            web/test-results/
           retention-days: 14

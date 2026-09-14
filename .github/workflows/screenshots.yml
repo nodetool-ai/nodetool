@@ -46,9 +46,14 @@ jobs:
         working-directory: web
         run: npx playwright install chromium --with-deps
 
+      - name: Type-check Playwright suites
+        working-directory: web
+        run: npm run typecheck:playwright
+
       - name: Run screenshot tests
         working-directory: web
         env:
+          CI: "true"
           # Pass the force flag through so screenshots:force logic works
           FORCE_SCREENSHOTS: ${{ inputs.force }}
           # Use the same deterministic test-only master key that is already
@@ -79,10 +84,12 @@ jobs:
           path: docs/assets/screenshots/
           retention-days: 30
 
-      - name: Upload Playwright report on failure
+      - name: Upload Playwright diagnostics
         uses: actions/upload-artifact@v7
-        if: failure()
+        if: always()
         with:
           name: playwright-report
-          path: web/playwright-report/
+          path: |
+            web/playwright-report/
+            web/test-results/
           retention-days: 7

@@ -12,6 +12,12 @@ export const metadata: Metadata = {
   title: solutionsHubEntry.title,
   description: solutionsHubEntry.description,
   alternates: { canonical: `${BASE_URL}/solutions` },
+  openGraph: {
+    title: solutionsHubEntry.title,
+    description: solutionsHubEntry.description,
+    url: `${BASE_URL}/solutions`,
+    type: "website",
+  },
 };
 
 const GROUPS: { kind: "use-case" | "persona"; label: string }[] = [

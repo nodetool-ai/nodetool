@@ -12,6 +12,12 @@ export const metadata: Metadata = {
   title: tasksHubEntry.title,
   description: tasksHubEntry.description,
   alternates: { canonical: `${BASE_URL}/tasks` },
+  openGraph: {
+    title: tasksHubEntry.title,
+    description: tasksHubEntry.description,
+    url: `${BASE_URL}/tasks`,
+    type: "website",
+  },
 };
 
 export default function TasksHub() {

@@ -105,8 +105,18 @@ jobs:
       - name: Build (Next.js)
         run: npx next build
 
+      - name: Store production build for E2E
+        uses: actions/upload-artifact@v7
+        with:
+          name: marketing-next-build
+          path: marketing/.next
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
   e2e:
     name: Playwright smoke tests
+    needs: build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -125,18 +135,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Type-check Playwright suite
+        run: npm run typecheck
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Reuse production build
+        uses: actions/download-artifact@v8
+        with:
+          name: marketing-next-build
+          path: marketing/.next
 
       - name: Run smoke tests
         run: npm run test:e2e
+        env:
+          MARKETING_REUSE_BUILD: "true"
 
-      - name: Upload Playwright report on failure
-        if: failure()
+      - name: Upload Playwright diagnostics
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: marketing-playwright-report
-          path: marketing/playwright-report
+          path: |
+            marketing/playwright-report/
+            marketing/test-results/
           retention-days: 7
 
   lighthouse:

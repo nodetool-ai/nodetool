@@ -1,12 +1,14 @@
 /**
  * Playwright global setup for the user-journey suite.
  *
- * Same seeded backend the smoke and visual suites use, with one difference:
+ * Same seeded backend the smoke and visual suites use, with two differences:
  * `NODETOOL_FAKE_PROVIDERS=1` puts `screenshot-server.ts` in hermetic mode, so
  * every LLM provider and every external/media node resolves to a deterministic
  * fake. Journeys can therefore send a chat message and run a workflow with no
  * API keys and no network, while structural and pure-compute nodes still run
- * for real — a run that produces the wrong value still fails.
+ * for real — a run that produces the wrong value still fails. The journey
+ * fixture resets the seeded database before each test through the test-only
+ * reset endpoint.
  *
  * The env var is set here rather than in the config so it applies only to this
  * suite: the screenshot and visual suites render pages and must keep the real

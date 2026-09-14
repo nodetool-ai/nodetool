@@ -73,6 +73,7 @@ function emptyRecord(ref: WorkflowRef): RunRecord {
     logs: [],
     artifacts: [],
     nodeIO: {},
+    allowedNodeErrors: ref.expect?.allowNodeErrors,
     events: [],
     counts: { nodes: 0, outputs: 0, errors: 0, edgeUpdates: 0 },
     expectationFailures: []
@@ -193,7 +194,12 @@ function reduceRecordEvent(
             (msg as { result?: unknown }).result ?? rec.nodeIO[nodeId]?.result,
           // Only treat a node as errored when its status says so — a
           // node_update can carry a stale/empty error field while completing.
-          error: isError ? (message ?? status) : null
+          // Keep an observed node failure sticky even if a later completion
+          // frame is emitted. A completed job can still contain a failed node,
+          // and clearing this value would make the workflow suite falsely green.
+          error: isError
+            ? (message ?? status)
+            : (rec.nodeIO[nodeId]?.error ?? null)
         };
       }
       break;

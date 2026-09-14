@@ -23,8 +23,12 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   reporter: process.env.CI
-    ? [["github"], ["list"]]
-    : [["list"]],
+    ? [
+        ["github"],
+        ["list"],
+        ["html", { outputFolder: "playwright-report", open: "never" }]
+      ]
+    : [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
   outputDir: "./test-results/e2e-runner/playwright",
   globalSetup: "./tests/e2e-runner/globalSetup.ts",
 

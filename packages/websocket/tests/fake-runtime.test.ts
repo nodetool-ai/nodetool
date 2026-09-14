@@ -112,5 +112,31 @@ describe("fake-runtime conformance gate (RELIABILITY_TASKS.md Track E, E3)", () 
         segments: []
       });
     });
+
+    it("honors timestamp properties saved on the node descriptor", async () => {
+      const executor = fakeExecutor(
+        {
+          node_type: "openai.audio.Transcribe",
+          outputs: [
+            { name: "text", type: { type: "str" } },
+            { name: "words", type: { type: "list" } },
+            { name: "segments", type: { type: "list" } }
+          ]
+        },
+        "openai.audio.Transcribe",
+        { timestamps: true }
+      );
+
+      const result = await executor.process({});
+
+      expect(result.words).toEqual([
+        { text: "deterministic", timestamp: [0, 1] },
+        { text: "e2e", timestamp: [1, 2] },
+        { text: "response", timestamp: [2, 3] }
+      ]);
+      expect(result.segments).toEqual([
+        { text: "deterministic e2e response", timestamp: [0, 3] }
+      ]);
+    });
   });
 });

@@ -29,7 +29,8 @@ import {
   ImageDocument,
   TimelineSequence,
   Storyboard,
-  secrets
+  secrets,
+  closeDb
 } from "@nodetool-ai/models";
 import {
   initMasterKey,
@@ -307,9 +308,8 @@ const MOCK_WORKFLOWS = [
     MINI_APP_GRAPH,
     MINI_APP_DOC
   ),
-  // Same echo graph, but a separate row: the editor journey adds nodes and runs
-  // against this one, so its mutations can't disturb the mini-app journey (the
-  // seeded DB is in-memory and shared by every test in a suite run).
+  // Same echo graph, but a separate row so each journey has an explicit fixture
+  // identity even though the backend is reset before every test.
   makeWorkflow(
     "wf-editor-journey",
     "Editor Journey Fixture",
@@ -523,6 +523,13 @@ const MOCK_THREADS = [
     title: "LinkedIn posts for the week",
     created_at: "2024-12-04T16:30:00Z",
     updated_at: "2024-12-04T16:42:00Z"
+  },
+  {
+    id: "thread-mobile-welcome",
+    user_id: USER_ID,
+    title: "New conversation",
+    created_at: "2024-12-16T09:00:00Z",
+    updated_at: "2024-12-16T09:00:00Z"
   }
 ];
 
@@ -1563,6 +1570,13 @@ async function seedDatabase(): Promise<void> {
   );
 }
 
+/** Recreate the seeded in-memory database between independent journey tests. */
+async function resetSeededDatabase(): Promise<void> {
+  await closeDb();
+  initTestDb();
+  await seedDatabase();
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 // Initialize in-memory SQLite database
@@ -1604,7 +1618,8 @@ if (HERMETIC) {
 // Start the actual backend server
 const serverOptions: Parameters<typeof createTestUiServer>[0] = {
   port: PORT,
-  host: HOST
+  host: HOST,
+  resetDatabase: resetSeededDatabase
 };
 if (existsSync(EXAMPLES_DIR)) {
   serverOptions.examplesDir = EXAMPLES_DIR;

@@ -34,6 +34,8 @@ export interface WorkflowRef {
     outputContains?: string;
     /** Minimum number of output_update messages expected. */
     minOutputs?: number;
+    /** Explicit node ids or types whose errors are part of this fixture. */
+    allowNodeErrors?: string[];
   };
   tags?: string[];
   /** Where the graph came from (cli-fixtures | shipped-examples | custom). */
@@ -105,6 +107,8 @@ export interface RunRecord {
   artifacts: CapturedArtifact[];
   /** Per-node final status + result, keyed by node id. */
   nodeIO: Record<string, NodeIO>;
+  /** Explicit node ids or types whose errors are expected for this fixture. */
+  allowedNodeErrors?: string[];
   /** Full ordered event log (raw decoded messages). */
   events: WsEvent[];
   counts: {

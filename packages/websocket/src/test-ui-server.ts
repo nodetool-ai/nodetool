@@ -1003,6 +1003,8 @@ export interface TestUiServerOptions extends HttpApiOptions {
    * reliability harness needs it to read `jobs.slotCounters` for leak accounting.
    */
   onRunnerCreated?: (runner: WebSocketClientSession) => void;
+  /** Reset a hermetic test server to its initial fixture state. */
+  resetDatabase?: () => Promise<void>;
 }
 
 function detectMetadataRootsFromPip(): string[] {
@@ -1369,6 +1371,30 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
 
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? "/", `http://${host}:${port}`);
+    if (url.pathname === "/api/test/reset") {
+      if (req.method !== "POST" || !options.resetDatabase) {
+        res.statusCode = 404;
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify({ detail: "Not found" }));
+        return;
+      }
+      void options
+        .resetDatabase()
+        .then(() => {
+          res.statusCode = 204;
+          res.end();
+        })
+        .catch((error: unknown) => {
+          res.statusCode = 500;
+          res.setHeader("content-type", "application/json");
+          res.end(
+            JSON.stringify({
+              detail: error instanceof Error ? error.message : String(error)
+            })
+          );
+        });
+      return;
+    }
     if (url.pathname === "/" || url.pathname === "/test-ui") {
       res.statusCode = 200;
       res.setHeader("content-type", "text/html; charset=utf-8");
@@ -1413,7 +1439,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
       return;
     }
     if (
-      /^\/api\/storage\/asset-photo1(?:_thumb)?\.(?:jpg|jpeg|png)$/i.test(
+      /^\/api\/storage\/(?:[^/]+\/)?(?:asset-photo[1-4](?:_thumb)?\.(?:jpg|jpeg|png)|asset-doc1_thumb\.jpg)$/i.test(
         url.pathname
       )
     ) {
@@ -1426,7 +1452,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     {
       // Entity reference images (color swatches) for the seeded entities.
       const entityMatch = url.pathname.match(
-        /^\/api\/storage\/(entity-[a-z]+)(?:_thumb)?\.(?:jpg|jpeg|png)$/i
+        /^\/api\/storage\/(?:[^/]+\/)?(entity-[a-z]+)(?:_thumb)?\.(?:jpg|jpeg|png)$/i
       );
       const entityPng = entityMatch ? ENTITY_IMAGE_PNGS[entityMatch[1]] : null;
       if (entityPng) {
