@@ -166,6 +166,43 @@ test.describe("marketing smoke", () => {
     });
   }
 
+  test("every UGC recipe step shows its NodeTool UI or entity image", async ({
+    page
+  }) => {
+    await page.goto("/recipes/ugc-product-video");
+
+    for (const name of [
+      "01 Angle",
+      "02 Creator",
+      "03 Product",
+      "04 Generate",
+      "05 Captions",
+      "06 Review"
+    ]) {
+      await page.getByRole("button", { name, exact: true }).click();
+      const image = page.locator("#recipe-step-content figure img");
+      await expect(image).toBeVisible();
+      await expect
+        .poll(() =>
+          image.evaluate((element: HTMLImageElement) => element.naturalWidth)
+        )
+        .toBeGreaterThan(0);
+    }
+
+    for (const image of [
+      page.getByRole("img", {
+        name: "Creator holding an olive travel cup with the caption Look how nice."
+      }),
+      page.getByRole("img", {
+        name: "The caption six cups appears above six small cup outlines."
+      })
+    ]) {
+      const box = await image.boundingBox();
+      expect(box?.height ?? Infinity).toBeLessThanOrEqual(560);
+      expect(box?.width ?? Infinity).toBeLessThan(box?.height ?? 0);
+    }
+  });
+
   test("the download page offers an installer for every platform", async ({
     page
   }) => {

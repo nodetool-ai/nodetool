@@ -200,79 +200,105 @@ export const recipeEntries: RecipeEntry[] = [
         "Finish",
         "Review"
       ],
-      "introduction": "Start with a small, believable observation. Keep the creator on camera, generate the voice and picture together, then time captions and a visual joke to the recording. In this example, six cup outlines become seven when she admits to buying another.",
+      "introduction": "Choose a simple observation, lock the references, generate one native-audio take, then finish the captions in NodeTool.",
       "inputs": [
-        "One vertical creator image you have permission to send to the selected video provider",
-        "One clean product reference you have permission to send to the selected video provider",
-        "Approved product facts and one audience",
-        "An optional brand name and closing line",
-        "An optional brand accent color",
-        "OpenAI and a compatible native-audio video provider configured in NodeTool"
+        "One vertical creator image",
+        "One clean product image",
+        "Approved product facts",
+        "A native-audio video provider"
       ],
-      "brief": "Create a 15-second vertical kitchen video with natural phone framing and dry, conversational delivery. Image 1 controls the creator and room. Image 2 controls only the product. She says: \"I bought this because it's green. That's it.\" She lifts the cup to chest height and keeps her mouth visible. Continue: \"I already have, like, six cups.\" Then: \"But apparently I needed a green one.\" End with a small smile: \"Look how nice.\" Generate the voice and picture together in one clip with continuous kitchen room tone and no music. Add captions and cup-count animation afterward.",
-      "note": "This example uses a supplied Dreamina recording and a custom local caption and animation pass. The app sends reference images to the selected video provider. The performance and product motion are generative and need review before publishing.",
+      "brief": "Make a 15-second vertical kitchen video with phone framing, dry delivery, room tone, and no music. Image 1 sets the creator and room. Image 2 sets the cup. Dialogue: \"I bought this because it's green. That's it. I already have, like, six cups. But apparently I needed a green one. Look how nice.\" Add captions and the six-to-seven cup animation afterward.",
+      "note": "Dreamina supplied the recording. The caption and cup animation were finished locally.",
       "steps": [
         {
           "id": "angle",
           "phase": "Angle",
-          "stage": "Three routes",
-          "title": "Choose one believable observation",
-          "description": "Describe the product and compare the plain, playful, and premium routes. Give the creator something specific to say. Here, buying another cup just because it is green becomes the whole joke.",
-          "action": "Explore three angles"
+          "stage": "Angle",
+          "title": "Pick the joke",
+          "description": "Compare three angles. Keep the one a creator could say without sounding scripted.",
+          "action": "Choose an angle",
+          "image": {
+            "src": "/recipes/runs/2026-09-14-ugc-cup/steps/01-angle.png",
+            "alt": "NodeTool UGC Product Video app showing three written angles for the olive travel cup.",
+            "caption": "The app turns one product note into three angles.",
+            "width": 1960,
+            "height": 1050
+          }
         },
         {
           "id": "creator",
           "phase": "Creator",
-          "stage": "Reference image",
-          "title": "Lock the creator before generating",
-          "description": "Use a vertical image with a clear face, everyday clothing, ordinary window light, and the intended room. Keep the product out of this reference so its entrance can be directed separately.",
-          "action": "Add the creator image"
+          "stage": "Creator",
+          "title": "Set the creator",
+          "description": "Use a vertical frame with a clear face, natural light, and the intended room.",
+          "action": "Add the creator",
+          "image": {
+            "src": "/recipes/runs/2026-09-14-ugc-cup/steps/02-creator.png",
+            "alt": "Vertical creator reference showing a woman speaking to camera in a bright kitchen.",
+            "caption": "The creator reference fixes the face, framing, and room.",
+            "width": 941,
+            "height": 720
+          }
         },
         {
           "id": "product",
           "phase": "References",
-          "stage": "Product image",
-          "title": "Assign each reference one job",
-          "description": "Add a clean product image as image 2. It controls only silhouette, finish, lid, and proportions. Its background must not transfer to the creator scene.",
-          "action": "Add the product image"
+          "stage": "Product",
+          "title": "Set the product",
+          "description": "Use a clean image that shows the cup silhouette, finish, lid, and proportions.",
+          "action": "Add the product",
+          "image": {
+            "src": "/recipes/runs/2026-09-14-ugc-cup/steps/03-product.png",
+            "alt": "Olive travel cup product reference used as the second NodeTool entity.",
+            "caption": "The product reference controls the cup, not the room.",
+            "width": 1024,
+            "height": 768
+          }
         },
         {
           "id": "dialogue",
           "phase": "Generate",
-          "stage": "15-second script",
-          "title": "Write and generate in one pass",
-          "description": "Write short quoted lines and give each one a physical beat. Keep the voice and kitchen sound continuous across the clip. Leave room for a pause before the punchline. The example recording was supplied from Dreamina.",
-          "action": "Make the 15-second video",
+          "stage": "Generate",
+          "title": "Generate one take",
+          "description": "Generate the voice and picture together. Leave a short pause before the punchline.",
+          "action": "Generate the take",
           "image": {
-            "src": "/recipes/runs/2026-09-14-ugc-cup/captions.jpg",
-            "alt": "Creator holding the cup above the caption six cups and six small cup outlines.",
-            "caption": "Short caption groups follow the recorded speech. Six cup outlines arrive with a brief stagger.",
-            "width": 720,
-            "height": 1280
+            "src": "/recipes/runs/2026-09-14-ugc-cup/steps/04-generate.png",
+            "alt": "NodeTool UGC Product Video app with creator and product inputs, Seedance model selection, and a generated vertical video.",
+            "caption": "Both references feed one native-audio Seedance take.",
+            "width": 1960,
+            "height": 1150
           }
         },
         {
           "id": "finish",
           "phase": "Finish",
-          "stage": "Motion + captions",
-          "title": "Finish the Reel",
-          "description": "Time readable caption groups to the recorded words. Add green underlines to the colour references, then bring in a seventh olive cup on the punchline. Keep the graphics below the face and preserve the original voice and room sound.",
-          "action": "Add motion + captions",
+          "stage": "Captions",
+          "title": "Time the captions",
+          "description": "Match each caption to the voice. Add the seventh cup on the punchline.",
+          "action": "Finish in the timeline",
           "image": {
-            "src": "/recipes/runs/2026-09-14-ugc-cup/poster.jpg",
-            "alt": "The caption I needed a green one appears above six cup outlines and a seventh olive cup.",
-            "caption": "The seventh cup gives the spoken joke a visual payoff. The original performance stays visible.",
-            "width": 720,
-            "height": 1280
+            "src": "/recipes/runs/2026-09-14-ugc-cup/steps/05-captions.png",
+            "alt": "NodeTool Studio timeline with separate caption, video, and voice tracks.",
+            "caption": "Caption blocks stay editable on the NodeTool timeline.",
+            "width": 1920,
+            "height": 1080
           }
         },
         {
           "id": "inspect",
           "phase": "Review",
-          "stage": "Timing and identity",
-          "title": "Check the complete Reel",
-          "description": "Watch once for voice and lip-sync, then once muted for caption rhythm and graphic placement. Check the cup entrance, the six-to-seven animation, and the final smile. Correct any caption that differs from the recorded words before publishing.",
-          "action": "Approve or regenerate"
+          "stage": "Review",
+          "title": "Review the reel",
+          "description": "Watch once with sound, then muted. Check lip-sync, captions, cup identity, and timing.",
+          "action": "Approve or regenerate",
+          "image": {
+            "src": "/recipes/runs/2026-09-14-ugc-cup/steps/06-review.png",
+            "alt": "NodeTool UGC Product Video app showing the finished vertical reel and review guidance.",
+            "caption": "The finished reel remains beside its review checklist.",
+            "width": 1960,
+            "height": 1050
+          }
         }
       ]
     },

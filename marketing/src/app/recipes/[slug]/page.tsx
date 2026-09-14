@@ -50,6 +50,9 @@ export default async function RecipePage({ params }: RecipePageProps) {
     (step) => step.stage === "Entities" || step.stage === "Voices"
   )?.image;
   const hero = entry.productionRun?.hero ?? preview;
+  const heroIsPortrait = Boolean(
+    hero?.width && hero.height && hero.height > hero.width
+  );
   const howToLd = {
     "@context": "https://schema.org",
     "@type": "HowTo",
@@ -96,16 +99,22 @@ export default async function RecipePage({ params }: RecipePageProps) {
                 </p>
               </div>
               {hero && (
-                <figure className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
+                <figure
+                  className={`min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center ${heroIsPortrait ? "flex justify-center" : ""}`}
+                >
                   <Image
                     src={hero.src}
                     alt={hero.alt}
                     width={hero.width ?? (entry.productionRun ? 1600 : 3200)}
                     height={hero.height ?? (entry.productionRun ? 900 : 2000)}
                     quality={90}
-                    sizes="(min-width: 1024px) 640px, calc(100vw - 48px)"
+                    sizes={
+                      heroIsPortrait
+                        ? "(min-width: 1024px) 315px, calc(100vw - 48px)"
+                        : "(min-width: 1024px) 640px, calc(100vw - 48px)"
+                    }
                     priority
-                    className="h-auto w-full rounded-xl border border-white/15 bg-slate-950"
+                    className={`rounded-xl border border-white/15 bg-slate-950 ${heroIsPortrait ? "h-auto max-h-[560px] w-auto max-w-full object-contain" : "h-auto w-full"}`}
                   />
                 </figure>
               )}
