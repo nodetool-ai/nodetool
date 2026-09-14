@@ -23,6 +23,7 @@ import {
   type HttpApiOptions
 } from "./http-api.js";
 import { listPackageAssets } from "./lib/package-assets.js";
+import { deleteProjectForUser } from "./lib/project-delete.js";
 
 /** Match the free-text filter `/api/workflows/examples/search` applies. */
 function matchesQuery(workflow: unknown, query: string): boolean {
@@ -69,6 +70,7 @@ export function mcpToolHostDeps(
   | "examples"
   | "exportDsl"
   | "listPackageAssets"
+  | "deleteProject"
   | "workflowEnvironment"
   | "secretAvailability"
 > {
@@ -84,6 +86,9 @@ export function mcpToolHostDeps(
       ),
     listPackageAssets: async ({ limit }) =>
       listPackageAssets(options, ...(limit === undefined ? [] : [{ limit }])),
+    // The same delete the projects router runs, so stored bytes and live runs
+    // go with the rows.
+    deleteProject: deleteProjectForUser,
     // The same lazy Python-aware runtime the HTTP run route uses — an
     // agent-run workflow must execute exactly like an HTTP-run one.
     workflowEnvironment: () => getWorkflowRuntimeEnvironment(options)

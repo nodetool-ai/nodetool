@@ -53,6 +53,8 @@ interface WorkflowCapabilityDeps {
   modelCatalogs?: ModelCatalogs;
   /** `list_assets` with `source: "package"`. */
   listPackageAssets?: PackageAssetLister;
+  /** `delete_project`. */
+  deleteProject?: ProjectDeleter;
 }
 
 /** A run over one call's context, carrying the injected dependencies. */
@@ -69,7 +71,8 @@ function workflowCapabilityRun(
     exportDsl: deps.exportDsl,
     workflowEnvironment: deps.workflowEnvironment,
     modelCatalogs: deps.modelCatalogs,
-    listPackageAssets: deps.listPackageAssets
+    listPackageAssets: deps.listPackageAssets,
+    deleteProject: deps.deleteProject
   });
 }
 
@@ -129,6 +132,15 @@ export type WorkflowDslExporter = (
   options: { workflowName?: string }
 ) => string;
 
+/**
+ * Deletes a project with everything in it, including stored bytes and live
+ * runs. `personal` and `not_found` are refusals, and nothing is removed.
+ */
+export type ProjectDeleter = (
+  userId: string,
+  projectId: string
+) => Promise<"deleted" | "not_found" | "personal">;
+
 /** Lists the assets shipped inside the installed node packages. */
 export type PackageAssetLister = (opts: {
   limit?: number;
@@ -156,6 +168,12 @@ export interface GetAllMcpToolsOptions {
   exportDsl?: WorkflowDslExporter;
   /** Package assets for `list_assets` with `source: "package"`. */
   listPackageAssets?: PackageAssetLister;
+  /**
+   * The full project delete. Asset storage, workspace files and the live run
+   * registries live in the server, so `delete_project` takes it by injection
+   * and refuses without it.
+   */
+  deleteProject?: ProjectDeleter;
   /**
    * The full workflow-run environment (Python bridge, executor resolution),
    * resolved lazily. The server injects this so an agent-run workflow executes
@@ -207,6 +225,7 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
       exportDsl: options.exportDsl,
       workflowEnvironment: options.workflowEnvironment,
       listPackageAssets: options.listPackageAssets,
+      deleteProject: options.deleteProject,
       secretAvailability: options.secretAvailability
     });
 
@@ -253,6 +272,11 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     "edit_app",
     "debug_app",
     "delete_app",
+    // projects. `delete_project` reads the host's injected deleter off the run.
+    "list_projects",
+    "search_projects",
+    "update_project",
+    "delete_project",
     // jobs
     "list_jobs",
     "get_job",

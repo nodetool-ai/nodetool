@@ -238,7 +238,7 @@ export class Project extends DBModel {
     const [updated] = await db
       .update(projects)
       .set({ deleted_at: now, archived_at: null, updated_at: now })
-      .where(and(eq(projects.id, id), eq(projects.user_id, userId)))
+      .where(and(eq(projects.id, row.id), eq(projects.user_id, userId)))
       .returning();
     return updated ? new Project(updated) : null;
   }
@@ -337,17 +337,15 @@ export class Project extends DBModel {
 
   /** Delete all project-owned rows and leave a tombstone for late run writes. */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
-    const db = getDb();
-    const rows = await db
-      .select()
-      .from(projects)
-      .where(and(eq(projects.id, id), eq(projects.user_id, userId)))
-      .limit(1);
-    const row = rows[0] ? new Project(rows[0]) : null;
+    // `get` resolves a short resource id. Every write below must use the full
+    // id, or it matches no row and the delete silently does nothing.
+    const row = await Project.findOwnedIncludingDeleted(userId, id);
     if (!row) return false;
     if (row.kind === PERSONAL_PROJECT_KIND) return false;
+    const projectId = row.id;
+    const db = getDb();
     const now = new Date().toISOString();
-    await Project.tombstoneOwned(userId, id);
+    await Project.tombstoneOwned(userId, projectId);
 
     // Mark active jobs before removing them. Their runner observes
     // cancellation, and the tombstone blocks delayed output writes.
@@ -357,13 +355,13 @@ export class Project extends DBModel {
       .where(
         and(
           eq(jobs.user_id, userId),
-          eq(jobs.project_id, id),
+          eq(jobs.project_id, projectId),
           notInArray(jobs.status, ["completed", "failed", "cancelled"])
         )
       );
 
     const owner = userId.replace(/'/g, "''");
-    const project = id.replace(/'/g, "''");
+    const project = projectId.replace(/'/g, "''");
     await executeRaw(
       `DELETE FROM nodetool_messages WHERE thread_id IN (SELECT id FROM nodetool_threads WHERE user_id = '${owner}' AND project_id = '${project}') RETURNING id`
     );
@@ -439,7 +437,7 @@ export class Project extends DBModel {
       .set({ thread_id: thread.id })
       .where(
         and(
-          eq(projects.id, id),
+          eq(projects.id, project.id),
           eq(projects.user_id, userId),
           isNull(projects.thread_id)
         )
@@ -478,7 +476,7 @@ export class Project extends DBModel {
     const rows = await db
       .update(projects)
       .set({ ...fields, updated_at: new Date().toISOString() })
-      .where(and(eq(projects.id, id), eq(projects.user_id, userId)))
+      .where(and(eq(projects.id, existing.id), eq(projects.user_id, userId)))
       .returning();
     const row = rows[0];
     return row ? new Project(row) : null;

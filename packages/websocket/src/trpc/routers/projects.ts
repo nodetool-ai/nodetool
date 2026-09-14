@@ -22,10 +22,8 @@
 import { z } from "zod";
 import {
   LOOSE_PROJECT_ID,
-  PERSONAL_PROJECT_KIND,
   Project,
   Asset,
-  Job,
   Thread,
   Workspace,
   Workflow,
@@ -59,11 +57,7 @@ import {
   copyProjectDocument,
   ProjectCopyError
 } from "../../lib/project-document-copy.js";
-import { assetKeyCandidates } from "@nodetool-ai/storage";
-import { assetFileNameCandidates } from "../../lib/asset-paths.js";
-import { thumbnailKey } from "../../lib/thumbnail.js";
-import { jobRunRegistry } from "../../job-run-registry.js";
-import { chatTurnRegistry } from "../../chat-turn-registry.js";
+import { deleteProjectForUser } from "../../lib/project-delete.js";
 import { workspaceFromRow } from "../../lib/workflow-workspace.js";
 
 const listInput = z.object({});
@@ -151,36 +145,6 @@ async function isOwnedRestorableTab(
     }
   }
   return row?.user_id === userId && row.project_id === projectId;
-}
-
-/** Stored asset bytes are project content too; database deletion alone leaks them. */
-async function deleteProjectAssetObjects(
-  assets: readonly Asset[]
-): Promise<void> {
-  const storage = getAssetAdapter();
-  await Promise.all(
-    assets
-      .filter((asset) => asset.content_type !== "folder")
-      .flatMap((asset) =>
-        [
-          ...assetFileNameCandidates(asset.id, asset.content_type),
-          thumbnailKey(asset.id)
-        ].flatMap((fileName) =>
-          assetKeyCandidates(asset.user_id, fileName).map(async (key) => {
-            const uri = storage.uriForKey(key);
-            if (await storage.exists(uri)) await storage.delete(uri);
-          })
-        )
-      )
-  );
-}
-
-async function deleteProjectWorkspaceFiles(
-  workspaces: readonly Workspace[]
-): Promise<void> {
-  await Promise.all(
-    workspaces.map(async (row) => workspaceFromRow(row)?.deleteAll(""))
-  );
 }
 
 async function prepareUser(userId: string): Promise<void> {
@@ -381,34 +345,13 @@ export const projectsRouter = router({
     .output(okOutput)
     .mutation(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      const target = await Project.findOwnedIncludingDeleted(
-        ctx.userId,
-        input.id
-      );
-      if (!target) await loadOwned(ctx.userId, input.id);
-      if (target?.kind === PERSONAL_PROJECT_KIND) {
+      const outcome = await deleteProjectForUser(ctx.userId, input.id);
+      if (outcome === "personal") {
         throwApiError(ApiErrorCode.INVALID_INPUT, "Personal cannot be deleted");
       }
-      await Project.tombstoneOwned(ctx.userId, input.id);
-      const [jobs, threads, assets, workspaces] = await Promise.all([
-        Job.listByProject(ctx.userId, input.id),
-        Thread.listByProject(ctx.userId, input.id),
-        Asset.listByProject(ctx.userId, input.id),
-        Workspace.listByProject(ctx.userId, input.id)
-      ]);
-      jobRunRegistry.cancelJobs(ctx.userId, new Set(jobs.map((job) => job.id)));
-      chatTurnRegistry.abortThreads(
-        ctx.userId,
-        new Set(threads.map((thread) => thread.id))
-      );
-      // Keep the rows behind the tombstone until external cleanup succeeds.
-      // A failed request can then be retried with every object identifier intact.
-      await Promise.all([
-        deleteProjectAssetObjects(assets),
-        deleteProjectWorkspaceFiles(workspaces)
-      ]);
-      const deleted = await Project.deleteOwned(ctx.userId, input.id);
-      if (!deleted) await loadOwned(ctx.userId, input.id);
+      if (outcome === "not_found") {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+      }
       return { ok: true as const };
     }),
 

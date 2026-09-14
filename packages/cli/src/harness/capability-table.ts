@@ -1926,6 +1926,46 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "list_projects",
+    module: "projects",
+    impl: "packages/agents/src/capabilities/projects.ts",
+    contract: "3f85c7749274",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-projects.test.ts",
+    ],
+  },
+  {
+    name: "search_projects",
+    module: "projects",
+    impl: "packages/agents/src/capabilities/projects.ts",
+    contract: "5530734b8198",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-projects.test.ts",
+    ],
+  },
+  {
+    name: "update_project",
+    module: "projects",
+    impl: "packages/agents/src/capabilities/projects.ts",
+    contract: "27411eee910e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-projects.test.ts",
+    ],
+  },
+  {
+    name: "delete_project",
+    module: "projects",
+    impl: "packages/agents/src/capabilities/projects.ts",
+    contract: "d1c6eda0786e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-projects.test.ts",
+    ],
+  },
+  {
     name: "list_timelines",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",

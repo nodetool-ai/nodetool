@@ -53,6 +53,7 @@ import { godotSpecs } from "./godot.specs.js";
 import { modelsSpecs } from "./models.specs.js";
 import { nodesSpecs } from "./nodes.specs.js";
 import { packsSpecs } from "./packs.specs.js";
+import { projectsSpecs } from "./projects.specs.js";
 import { scriptsSpecs } from "./scripts.specs.js";
 import { serpApiSpecs } from "./serpapi.specs.js";
 import { settingsSpecs } from "./settings.specs.js";
@@ -168,6 +169,10 @@ const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
   threads: {
     loader: () => import("./threads.js").then((m) => m.module),
     specs: threadsSpecs
+  },
+  projects: {
+    loader: () => import("./projects.js").then((m) => m.module),
+    specs: projectsSpecs
   },
   timelines: {
     loader: () => import("./timelines.js").then((m) => m.module),

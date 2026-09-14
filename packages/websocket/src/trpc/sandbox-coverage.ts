@@ -647,14 +647,10 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "caller's own rows."
   },
   "projects.archive": {
-    gap:
-      "Project lifecycle management is not exposed through a sandbox " +
-      "capability yet. Archiving only changes the project's visibility."
+    elsewhere: "`update_project` with `archived: true` archives a project."
   },
   "projects.archived": {
-    gap:
-      "Lists archived project metadata. Sandbox capabilities do not expose " +
-      "project lifecycle management yet."
+    elsewhere: "`list_projects` with `archived: true` lists archived projects."
   },
   "projects.copyDocument": {
     gap:
@@ -671,12 +667,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "boundary: nothing here is a credential, another tenant, or host " +
       "control."
   },
-  "projects.delete": {
-    withheld:
-      "Deleting a project permanently removes its documents, conversations, " +
-      "assets, jobs and workspace files. Irreversible bulk loss stays behind " +
-      "the human-facing project lifecycle surface."
-  },
+  "projects.delete": { capability: "delete_project" },
   "projects.documents": {
     gap:
       "Lists the documents in a project. A run enumerates each kind " +
@@ -688,18 +679,14 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Same grouping surface as `projects.create`. Carries the derived " +
       "status and the spend rollup, both over rows the caller owns."
   },
-  "projects.list": {
-    gap: "Same grouping surface as `projects.create`."
-  },
+  "projects.list": { capability: "list_projects" },
   "projects.summaries": {
     gap:
       "Same grouping surface as `projects.create`. The whole list of " +
       "rollups `projects.get` returns one at a time."
   },
   "projects.restore": {
-    gap:
-      "Project lifecycle management is not exposed through a sandbox " +
-      "capability yet. Restoring changes a project's visibility."
+    elsewhere: "`update_project` with `archived: false` restores a project."
   },
   "projects.restoreTabs": {
     elsewhere:
@@ -719,9 +706,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Lists the documents in no project. Same grouping surface as " +
       "`projects.documents`, other side of the same column."
   },
-  "projects.update": {
-    gap: "Same grouping surface as `projects.create`. Renames a project."
-  },
+  "projects.update": { capability: "update_project" },
   "resources.create": {
     elsewhere:
       "One envelope over assets, timelines, storyboards and image " +

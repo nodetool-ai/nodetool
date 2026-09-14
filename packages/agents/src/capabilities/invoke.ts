@@ -42,6 +42,7 @@ import type {
   ExampleWorkflowCatalog,
   ModelCatalogs,
   PackageAssetLister,
+  ProjectDeleter,
   WorkflowDslExporter,
   WorkflowEnvironmentProvider
 } from "../tools/mcp-tools.js";
@@ -120,6 +121,8 @@ export interface CreateCapabilityRunOptions {
   exportDsl?: WorkflowDslExporter;
   modelCatalogs?: ModelCatalogs;
   listPackageAssets?: PackageAssetLister;
+  /** See {@link CapabilityRun.deleteProject}. */
+  deleteProject?: ProjectDeleter;
   /** The collection the `vector_*` capabilities act on; see {@link CapabilityRun}. */
   vectorCollection?: VectorCollection;
   workflowEnvironment?: WorkflowEnvironmentProvider;
@@ -157,6 +160,7 @@ export function createCapabilityRun(
     exportDsl: options.exportDsl,
     modelCatalogs: options.modelCatalogs,
     listPackageAssets: options.listPackageAssets,
+    deleteProject: options.deleteProject,
     vectorCollection: options.vectorCollection,
     workflowEnvironment: options.workflowEnvironment,
     loaders: options.loaders,

@@ -26,6 +26,7 @@ import type {
   ExampleWorkflowCatalog,
   ModelCatalogs,
   PackageAssetLister,
+  ProjectDeleter,
   SketchLoader,
   TimelineLoader,
   WorkflowDslExporter,
@@ -198,6 +199,11 @@ export interface CapabilityRun {
    */
   readonly modelCatalogs?: ModelCatalogs;
   readonly listPackageAssets?: PackageAssetLister;
+  /**
+   * The full project delete, which also removes stored bytes and stops live
+   * runs. Only the server can do that, so `delete_project` refuses without it.
+   */
+  readonly deleteProject?: ProjectDeleter;
   /**
    * The vector collection the `vector_*` capabilities act on. It was a
    * constructor argument (`new VecIndexTool(collection)`); the capabilities
