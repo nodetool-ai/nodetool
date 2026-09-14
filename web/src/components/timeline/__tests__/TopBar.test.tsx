@@ -46,6 +46,18 @@ describe("TopBar project archive action", () => {
     ).toHaveAttribute("aria-disabled", "true");
   });
 
+  it("opens Adapt format from the timeline actions", async () => {
+    const onAdaptFormat = jest.fn();
+    renderTopBar({ onAdaptFormat });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "More timeline actions" })
+    );
+    await userEvent.click(await screen.findByText("Adapt format"));
+
+    expect(onAdaptFormat).toHaveBeenCalledTimes(1);
+  });
+
   it("omits the action when no handler is given", () => {
     renderTopBar({ onSave: jest.fn() });
     expect(

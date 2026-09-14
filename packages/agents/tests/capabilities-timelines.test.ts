@@ -251,6 +251,129 @@ describe("timelines capability behaviour", () => {
     expect(afterGenerate.timeline.clips.length).toBeGreaterThanOrEqual(2);
   });
 
+  it("persists clip reframing and creates format adaptations as new sequences", async () => {
+    const source = await makeTimeline({
+      document: JSON.stringify({
+        ...JSON.parse(document()),
+        clips: [
+          {
+            ...JSON.parse(document()).clips[0],
+            currentAssetId: "asset_source",
+            width: 1920,
+            height: 1080
+          }
+        ],
+        mediaTracks: [
+          {
+            id: "track_subject",
+            clipId: "clip-1",
+            sourceAssetId: "asset_source",
+            name: "Speaker",
+            kind: "box",
+            sourceStartMs: 0,
+            sourceEndMs: 2000,
+            samples: [
+              {
+                sourceMs: 0,
+                x: 0.25,
+                y: 0.5,
+                width: 0.2,
+                height: 0.4
+              },
+              {
+                sourceMs: 2000,
+                x: 0.75,
+                y: 0.5,
+                width: 0.2,
+                height: 0.4
+              }
+            ],
+            status: "ready"
+          }
+        ],
+        transcript: [
+          {
+            id: "line-1",
+            text: "Keep the speaker framed",
+            startMs: 0,
+            endMs: 2000
+          }
+        ],
+        scriptEnabled: true
+      })
+    });
+
+    const framed = (await run().invoke("edit_timeline", {
+      timeline_id: source.id,
+      ops: [
+        {
+          op: "set_reframe_subject",
+          clip_id: "clip-1",
+          track_id: "track_subject",
+          safe_margin: 0.1
+        },
+        {
+          op: "add_reframe_keyframe",
+          clip_id: "clip-1",
+          source_ms: 1000,
+          x: 0.6,
+          y: 0.45,
+          zoom: 1.2
+        }
+      ]
+    })) as { applied: number; failed: number };
+    expect(framed).toMatchObject({ applied: 2, failed: 0 });
+
+    const afterFraming = await TimelineSequence.findById(source.id);
+    expect(afterFraming?.toDocument().clips[0]?.reframe).toMatchObject({
+      mode: "track",
+      trackId: "track_subject",
+      keyframes: [{ sourceMs: 1000, x: 0.6, y: 0.45, zoom: 1.2 }]
+    });
+    const sourceUpdatedAt = afterFraming?.updated_at;
+
+    const retargeted = (await run().invoke("edit_timeline", {
+      timeline_id: source.id,
+      ops: [
+        {
+          op: "retarget_format",
+          aspect_ratio: "9:16",
+          strategy: "track",
+          track_ids: { "clip-1": "track_subject" }
+        }
+      ]
+    })) as {
+      applied: number;
+      failed: number;
+      ops: Array<{ result?: { sequenceId?: string } }>;
+    };
+    expect(retargeted).toMatchObject({ applied: 1, failed: 0 });
+    const derivedId = retargeted.ops[0]?.result?.sequenceId;
+    expect(derivedId).toBeTruthy();
+
+    const unchangedSource = await TimelineSequence.findById(source.id);
+    expect(unchangedSource?.updated_at).toBe(sourceUpdatedAt);
+    expect(unchangedSource?.width).toBe(1920);
+    expect(unchangedSource?.height).toBe(1080);
+
+    const derived = await TimelineSequence.findById(derivedId!);
+    expect(derived).toMatchObject({ width: 1080, height: 1920 });
+    expect(derived?.toDocument().templateId).toBe(source.id);
+    expect(derived?.toDocument().transcript).toEqual([
+      {
+        id: "line-1",
+        text: "Keep the speaker framed",
+        startMs: 0,
+        endMs: 2000
+      }
+    ]);
+    expect(derived?.toDocument().scriptEnabled).toBe(true);
+    expect(derived?.toDocument().clips[0]?.reframe).toMatchObject({
+      mode: "track",
+      trackId: "track_subject"
+    });
+  });
+
   // D8: a 3D clip is placed and restyled through the same op script every
   // other clip edit goes through. Nothing invoked the capability with the two
   // ops, so the description advertised a surface no test reached.

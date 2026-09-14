@@ -35,6 +35,7 @@ export * from "./sourceRate.js";
 export * from "./timeRemap.js";
 export * from "./generatedMatte.js";
 export * from "./mediaTrack.js";
+export * from "./reframe.js";
 export * from "./takes.js";
 export * from "./snap.js";
 export * from "./beats.js";

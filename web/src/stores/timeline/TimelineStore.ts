@@ -69,7 +69,9 @@ import {
   AUDIO_BAKED_ANIMATION_KIND,
   selectTake,
   renameTake as renameTakeOnClip,
-  deleteTake as deleteTakeOnClip
+  deleteTake as deleteTakeOnClip,
+  addReframeKeyframe as addReframeKeyframeOnClip,
+  clearReframe as clearReframeOnClip
 } from "@nodetool-ai/timeline";
 import type {
   AnimatedProperty,
@@ -91,7 +93,8 @@ import type {
   TranscriptLine,
   TimelineBeat,
   TimelineSetup,
-  MediaTrack
+  MediaTrack,
+  ReframeMode
 } from "@nodetool-ai/timeline";
 import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
@@ -713,6 +716,24 @@ export interface TimelineStoreState {
   ) => void;
   /** Clear a clip's `trackBinding`. A no-op on an already-unbound clip. */
   unbindTrack: (clipId: string) => void;
+
+  /** Choose the signal that drives a visual clip's nondestructive crop. */
+  setClipReframeSubject: (
+    clipId: string,
+    mode: ReframeMode,
+    trackId?: string,
+    options?: { safeMargin?: number; smoothing?: number }
+  ) => void;
+  /** Pin the desired framing at a source-media time. */
+  addClipReframeKeyframe: (
+    clipId: string,
+    sourceMs: number,
+    x: number,
+    y: number,
+    zoom?: number
+  ) => void;
+  /** Remove automatic and manual framing without changing the clip transform. */
+  clearClipReframe: (clipId: string) => void;
   /**
    * Cut a matte from the clip's own source on the server.
    *
@@ -2786,6 +2807,51 @@ export const createTimelineStore = (
               })
             };
           }),
+
+        setClipReframeSubject: (clipId, mode, trackId, options = {}) =>
+          set((state) => ({
+            clips: state.clips.map((clip) => {
+              if (clip.id !== clipId) return clip;
+              const reframe = {
+                ...(clip.reframe ?? { mode }),
+                mode,
+                ...options
+              };
+              if (mode === "track" && trackId) {
+                return { ...clip, reframe: { ...reframe, trackId } };
+              }
+              const { trackId: _trackId, ...withoutTrack } = reframe;
+              return { ...clip, reframe: withoutTrack };
+            })
+          })),
+
+        addClipReframeKeyframe: (clipId, sourceMs, x, y, zoom) =>
+          set((state) => ({
+            clips: state.clips.map((clip) => {
+              if (clip.id !== clipId) return clip;
+              const reframe = clip.reframe ?? { mode: "auto" as const };
+              const keyframe: {
+                sourceMs: number;
+                x: number;
+                y: number;
+                zoom?: number;
+              } = { sourceMs, x, y };
+              if (zoom !== undefined) {
+                keyframe.zoom = zoom;
+              }
+              return {
+                ...clip,
+                reframe: addReframeKeyframeOnClip(reframe, keyframe)
+              };
+            })
+          })),
+
+        clearClipReframe: (clipId) =>
+          set((state) => ({
+            clips: state.clips.map((clip) =>
+              clip.id === clipId ? clearReframeOnClip(clip) : clip
+            )
+          })),
 
         isolateSubject: async (clipId, options = {}) => {
           const sequenceId = get().sequenceId;

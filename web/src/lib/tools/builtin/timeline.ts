@@ -162,6 +162,64 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  ...shared("ui_timeline_retarget_format"),
+  async execute({
+    timeline_id,
+    aspect_ratio,
+    strategy,
+    safe_margin,
+    track_ids
+  }) {
+    const result = await getTimelineAgentHandler(timeline_id).retargetFormat({
+      aspectRatio: aspect_ratio,
+      strategy,
+      safeMargin: safe_margin,
+      trackIds: track_ids
+    });
+    return {
+      ok: true,
+      timeline_id: result.sequenceId,
+      name: result.name,
+      url: docUrl("timeline", result.sequenceId)
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_set_reframe_subject"),
+  async execute({ timeline_id, clip_id, track_id, safe_margin, smoothing }) {
+    const options: { safeMargin?: number; smoothing?: number } = {};
+    if (safe_margin !== undefined) options.safeMargin = safe_margin;
+    if (smoothing !== undefined) options.smoothing = smoothing;
+    const clip = getTimelineAgentHandler(timeline_id).setReframeSubject(
+      clip_id,
+      track_id,
+      options
+    );
+    return { ok: true, clip, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_add_reframe_keyframe"),
+  async execute({ timeline_id, clip_id, source_ms, x, y, zoom }) {
+    const clip = getTimelineAgentHandler(timeline_id).addReframeKeyframe(
+      clip_id,
+      { sourceMs: source_ms, x, y, zoom }
+    );
+    return { ok: true, clip, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_clear_reframe"),
+  async execute({ timeline_id, clip_id }) {
+    const clip = getTimelineAgentHandler(timeline_id).clearReframe(clip_id);
+    return { ok: true, clip, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
   ...shared("ui_timeline_add_track"),
   async execute({ timeline_id, type, name }) {
     const track = getTimelineAgentHandler(timeline_id).addTrack(type, name);
@@ -959,7 +1017,8 @@ FrontendToolRegistry.register({
     action
   }) {
     const handler = getTimelineAgentHandler(timeline_id);
-    const named = targets === undefined || targets === "all" ? undefined : targets;
+    const named =
+      targets === undefined || targets === "all" ? undefined : targets;
     const { clips: targeted, missing } = resolveSnapTargets(
       handler.getSnapshot().clips,
       named
@@ -976,7 +1035,8 @@ FrontendToolRegistry.register({
       onsetsMs: onsets_ms,
       bpm,
       offsetMs: offset_ms,
-      count: bpm === undefined ? undefined : beatCountToCover(bpm, offsetMs, reachMs)
+      count:
+        bpm === undefined ? undefined : beatCountToCover(bpm, offsetMs, reachMs)
     });
 
     const options: {
@@ -1014,7 +1074,9 @@ FrontendToolRegistry.register({
           handler.moveClip(entry.clipId, { startMs: entry.after.startMs });
         }
         if (entry.after.durationMs !== entry.before.durationMs) {
-          handler.trimClip(entry.clipId, { durationMs: entry.after.durationMs });
+          handler.trimClip(entry.clipId, {
+            durationMs: entry.after.durationMs
+          });
         }
         applied += 1;
         reported.push({ ...entry, clipName: clip?.name ?? null });

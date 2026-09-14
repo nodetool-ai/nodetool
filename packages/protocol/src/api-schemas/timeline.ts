@@ -273,13 +273,7 @@ export const midiEnvelope = z.object({
 export type MidiEnvelope = z.infer<typeof midiEnvelope>;
 
 /** The filter shapes the FableSynth-derived voices offer. */
-export const midiFilterType = z.enum([
-  "lp12",
-  "lp24",
-  "bp12",
-  "hp12",
-  "notch"
-]);
+export const midiFilterType = z.enum(["lp12", "lp24", "bp12", "hp12", "notch"]);
 export type MidiFilterType = z.infer<typeof midiFilterType>;
 
 /** The tonal wavetables WT-1 and BL-1 play. */
@@ -844,9 +838,7 @@ export const customClipAnimation = z.object({
    * Required when a curve drives `wipeProgress`: direction and softness never
    * animate, so they ride here rather than on a curve.
    */
-  mask: z
-    .object({ direction: z.string(), softness: z.number() })
-    .optional(),
+  mask: z.object({ direction: z.string(), softness: z.number() }).optional(),
   /**
    * What produced these curves when a hand edit did not — an audio bake, a
    * tracker. Provenance to re-bake from, never something to execute, so `kind`
@@ -1083,9 +1075,7 @@ export const clipModel3DStyle = z.object({
    * as video while `dependencyHash` matches the live style; a style edit makes
    * it stale and the live 3D layer draws again.
    */
-  bake: z
-    .object({ assetId: z.string(), dependencyHash: z.string() })
-    .optional()
+  bake: z.object({ assetId: z.string(), dependencyHash: z.string() }).optional()
 });
 export type ClipModel3DStyle = z.infer<typeof clipModel3DStyle>;
 
@@ -1218,9 +1208,9 @@ export type MediaTrack = z.infer<typeof mediaTrack>;
 
 /**
  * A clip following a `MediaTrack` (P0 AI Video, Phase 2). Only
- * `"position"`/`"position_scale"` are live in the scene model today; the rest
- * are named so a later phase needs no schema migration — see
- * `TrackBinding`'s doc comment in `@nodetool-ai/timeline`, which this mirrors.
+ * `"position"`/`"position_scale"` are live in the scene model today. Smart
+ * Reframe uses `clipReframe` rather than this binding so manual source-time
+ * corrections remain first-class; the other modes stay reserved.
  */
 export const trackBinding = z.object({
   trackId: z.string(),
@@ -1238,6 +1228,37 @@ export const trackBinding = z.object({
   smoothing: z.number().optional()
 });
 export type TrackBinding = z.infer<typeof trackBinding>;
+
+export const reframeSample = z.object({
+  sourceMs: z.number(),
+  x: z.number(),
+  y: z.number(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  confidence: z.number().optional()
+});
+export type ReframeSample = z.infer<typeof reframeSample>;
+
+export const reframeKeyframe = z.object({
+  sourceMs: z.number(),
+  x: z.number(),
+  y: z.number(),
+  zoom: z.number().optional()
+});
+export type ReframeKeyframe = z.infer<typeof reframeKeyframe>;
+
+export const clipReframe = z.object({
+  mode: z.enum(["center", "auto", "track"]),
+  trackId: z.string().optional(),
+  safeMargin: z.number().optional(),
+  smoothing: z.number().optional(),
+  samples: z.array(reframeSample).optional(),
+  keyframes: z.array(reframeKeyframe).optional(),
+  sourceAssetId: z.string().optional(),
+  sourceWidth: z.number().positive().optional(),
+  sourceHeight: z.number().positive().optional()
+});
+export type ClipReframe = z.infer<typeof clipReframe>;
 
 /**
  * Retimes a clip's source. `t` is normalized 0..1 over the clip's window and
@@ -1390,6 +1411,9 @@ export const timelineClip = z.object({
    * field Zod strips it on every PATCH, so a text/shape clip following a
    * tracked subject reverts to static on the next save. */
   trackBinding: trackBinding.optional(),
+  /** Source-time Smart Reframe state. Without this field Zod strips the
+   * framing path and manual corrections on every PATCH. */
+  reframe: clipReframe.optional(),
   /** Time remap. Without this field Zod strips it on every PATCH, so a
    * retimed or reversed clip plays back at its plain rate after one save. */
   timeRemap: clipTimeRemap.optional(),

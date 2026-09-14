@@ -29,6 +29,7 @@ import {
   resolveCustomMask,
   computeModel3DBakeHash,
   isGeneratedMatteStale,
+  isReframeStale,
   isCropUsable,
   sourceRate,
   DEFAULT_TEMPO,
@@ -978,6 +979,28 @@ function checkGeneratedMattes(doc: TimelineDocument): TimelineDebugIssue[] {
   return issues;
 }
 
+/** Report automatic framing whose analysis no longer matches the active source. */
+function checkReframes(doc: TimelineDocument): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  const mediaTracks = doc.mediaTracks ?? [];
+  for (const clip of doc.clips) {
+    if (!clip.reframe) continue;
+    const track = clip.reframe.trackId
+      ? mediaTracks.find((candidate) => candidate.id === clip.reframe?.trackId)
+      : undefined;
+    if (!isReframeStale(clip, track)) continue;
+    issues.push({
+      severity: "warning",
+      code: "reframe_stale",
+      message: `Clip "${clipLabel(clip)}" has automatic framing that no longer matches its active source. Rendering falls back to centred framing until it is regenerated.`,
+      path: "reframe",
+      clipId: clip.id,
+      trackId: clip.trackId
+    });
+  }
+  return issues;
+}
+
 /**
  * Parent links (D4). A `parentId` must name a clip the document contains, that
  * clip must be a group, and the chain must reach a root.
@@ -1446,6 +1469,7 @@ export function validateTimelineSequence(
     ...checkParents(doc),
     ...checkMattes(doc),
     ...checkGeneratedMattes(doc),
+    ...checkReframes(doc),
     ...checkMatteSourceAdjustment(doc),
     ...checkAdjustmentEffects(doc),
     ...checkAdjustmentTargets(doc),

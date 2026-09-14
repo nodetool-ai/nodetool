@@ -83,7 +83,11 @@ import type {
   ClipAnimation,
   CustomClipAnimation
 } from "../animation/types.js";
-import { serializeClip, serializeTrack } from "./serialize.js";
+import {
+  serializeClip,
+  serializeMediaTrack,
+  serializeTrack
+} from "./serialize.js";
 import type { TimelineOp } from "./op.js";
 import type {
   TimelineAnimationInput,
@@ -146,7 +150,6 @@ function listUnits(
     ? `Valid ${kind}s: ${shown}, and ${rest} more — call get_state for the full list.`
     : `Valid ${kind}s: ${shown}.`;
 }
-
 
 /** Timing and geometry are their own ops; name the op that does the job. */
 const CLIP_PARAM_ELSEWHERE: Record<string, string> = {
@@ -229,7 +232,10 @@ class OpScope {
    * lookup throws. Capped: a long cut has hundreds of clips and an error
    * listing all of them is one an agent stops reading.
    */
-  validUnits(units: readonly { id: string; name: string }[], kind: string): string {
+  validUnits(
+    units: readonly { id: string; name: string }[],
+    kind: string
+  ): string {
     return listUnits(units, kind);
   }
 
@@ -297,7 +303,9 @@ class OpScope {
         patch.durationMs - clip.durationMs
       );
       const next = this.clips.find((c) => c.id === clip.id)!;
-      this.touch(...this.clips.filter((c) => c.parentId === clip.id).map((c) => c.id));
+      this.touch(
+        ...this.clips.filter((c) => c.parentId === clip.id).map((c) => c.id)
+      );
       this.touch(next.id);
       return next;
     }
@@ -562,7 +570,10 @@ async function buildCustomAnimation(
 }
 
 /** Dispatch one op against `scope`. Throws on refusal; the caller maps it. */
-async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> {
+async function runOp(
+  scope: OpScope,
+  op: TimelineOp
+): Promise<TimelineOpResult> {
   const state = scope.state;
   switch (op.op) {
     case "get_state": {
@@ -580,6 +591,7 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
         selectedClipIds: [...state.selectedClipIds],
         tracks: scope.tracks.map((t) => scope.trackOut(t)),
         clips: scope.clips.map((c) => scope.clipOut(c)),
+        mediaTracks: scope.mediaTracks.map(serializeMediaTrack),
         markers: state.markers.map((m) => ({ ...m }))
       };
     }
@@ -594,8 +606,10 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
       const track = scope.resolveTrack(target);
       const destination: TrackDestination = {};
       if (toIndex !== undefined) destination.toIndex = toIndex;
-      if (before !== undefined) destination.beforeId = scope.resolveTrack(before).id;
-      if (after !== undefined) destination.afterId = scope.resolveTrack(after).id;
+      if (before !== undefined)
+        destination.beforeId = scope.resolveTrack(before).id;
+      if (after !== undefined)
+        destination.afterId = scope.resolveTrack(after).id;
       const orderedIds = moveTrackOrder(scope.tracks, track.id, destination);
       const byId = new Map(scope.tracks.map((t) => [t.id, t]));
       // The array order is what `get_state` prints, so keep it and the indices
@@ -715,7 +729,8 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
         status: "generated",
         currentAssetId: found.id
       };
-      if (found.thumbnailAssetId) init.thumbnailAssetId = found.thumbnailAssetId;
+      if (found.thumbnailAssetId)
+        init.thumbnailAssetId = found.thumbnailAssetId;
       const clip = makeClip(init);
       scope.clips.push(clip);
       state.selectedClipIds = [clip.id];
@@ -991,10 +1006,14 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
       const wasChild = scope.clips
         .filter((c) => c.parentId === clip.id)
         .map((c) => c.id);
-      const remaining = isGroupClip(clip) ? ungroup(scope.clips, clip.id) : scope.clips;
+      const remaining = isGroupClip(clip)
+        ? ungroup(scope.clips, clip.id)
+        : scope.clips;
       const out = scope.clipOut(clip);
       scope.clips = remaining.filter((c) => c.id !== clip.id);
-      state.selectedClipIds = state.selectedClipIds.filter((id) => id !== clip.id);
+      state.selectedClipIds = state.selectedClipIds.filter(
+        (id) => id !== clip.id
+      );
       scope.touch(clip.id, ...wasChild);
       return { ok: true, deleted: out };
     }
@@ -1058,7 +1077,8 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
       if (patch.blendMode !== undefined) {
         clip.blendMode = patch.blendMode as TimelineClip["blendMode"];
       }
-      if (patch.borderRadius !== undefined) clip.borderRadius = patch.borderRadius;
+      if (patch.borderRadius !== undefined)
+        clip.borderRadius = patch.borderRadius;
       if (patch.crop !== undefined) {
         // Null is how a caller puts the whole source back; leaving the field
         // with all-zero insets would store a crop that means nothing.
@@ -1231,7 +1251,8 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
         );
       }
       if (op.prompt !== undefined) clip.prompt = op.prompt;
-      if (op.negativePrompt !== undefined) clip.negativePrompt = op.negativePrompt;
+      if (op.negativePrompt !== undefined)
+        clip.negativePrompt = op.negativePrompt;
       if (op.provider !== undefined) clip.provider = op.provider;
       if (op.model !== undefined) clip.model = op.model;
       if (op.voice !== undefined) clip.voice = op.voice;
@@ -1255,7 +1276,9 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
         if (input.preset === CUSTOM_ANIMATION_PRESET_ID) {
           // `{preset: "custom", custom: {curves}}` reads as naturally as the
           // flat form, so lift it rather than refusing it.
-          built.push(await buildCustomAnimation(scope, clip, liftCustom(input)));
+          built.push(
+            await buildCustomAnimation(scope, clip, liftCustom(input))
+          );
           continue;
         }
         const preset = ANIMATION_PRESETS.find((p) => p.id === input.preset);
@@ -1298,7 +1321,8 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
         ok: true,
         clip: scope.clipOut(clip),
         animationId: outcome.animationId,
-        keyframeCount: outcome.animation.custom?.curves[0]?.keyframes.length ?? 0,
+        keyframeCount:
+          outcome.animation.custom?.curves[0]?.keyframes.length ?? 0,
         replaced: outcome.replaced
       };
     }
@@ -1405,7 +1429,9 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
 
     case "snap_to_beats": {
       const named =
-        op.targets === undefined || op.targets === "all" ? undefined : op.targets;
+        op.targets === undefined || op.targets === "all"
+          ? undefined
+          : op.targets;
       const { clips: targeted, missing } = scope.resolveSnapTargets(named);
 
       const offsetMs = op.offset_ms ?? 0;
@@ -1610,7 +1636,10 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
       if (!version) {
         throw new Error(
           `No take "${op.takeId}" on "${clip.name}". ${scope.validUnits(
-            (clip.versions ?? []).map((v) => ({ id: v.id, name: v.label ?? v.id })),
+            (clip.versions ?? []).map((v) => ({
+              id: v.id,
+              name: v.label ?? v.id
+            })),
             "take"
           )}`
         );
@@ -1632,7 +1661,10 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
       if (!(clip.versions ?? []).some((v) => v.id === op.takeId)) {
         throw new Error(
           `No take "${op.takeId}" on "${clip.name}". ${scope.validUnits(
-            (clip.versions ?? []).map((v) => ({ id: v.id, name: v.label ?? v.id })),
+            (clip.versions ?? []).map((v) => ({
+              id: v.id,
+              name: v.label ?? v.id
+            })),
             "take"
           )}`
         );
@@ -1658,9 +1690,7 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
     // that fills a track's samples is the `track_object` capability, not an
     // op — these four are the structural/synchronous surface over it.
     case "list_tracks": {
-      const clipId = op.target
-        ? scope.resolveClip(op.target).id
-        : undefined;
+      const clipId = op.target ? scope.resolveClip(op.target).id : undefined;
       const tracks = scope.mediaTracks.filter(
         (t) => clipId === undefined || t.clipId === clipId
       );

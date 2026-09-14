@@ -8,6 +8,10 @@ import type { TimelineAgentHandler } from "../timelineAgentBridge";
 
 const makeMockHandler = (): TimelineAgentHandler => ({
   getSnapshot: jest.fn(),
+  retargetFormat: jest.fn(),
+  setReframeSubject: jest.fn(),
+  addReframeKeyframe: jest.fn(),
+  clearReframe: jest.fn(),
   addTrack: jest.fn(),
   moveTrack: jest.fn(),
   deleteTrack: jest.fn(),

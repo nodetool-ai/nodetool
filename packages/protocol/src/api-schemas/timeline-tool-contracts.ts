@@ -61,6 +61,10 @@ import {
   targetParam,
   textStyleParams,
   transitionParams,
+  retargetFormatParams,
+  setReframeSubjectParams,
+  addReframeKeyframeParams,
+  clearReframeParams,
   withTextClipRemedies
 } from "./timeline-tool-params.js";
 import {
@@ -574,7 +578,10 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         timeMs: z
           .number()
           .describe("Absolute position on the timeline in ms. Must be >= 0."),
-        label: z.string().optional().describe("Short label shown on the ruler."),
+        label: z
+          .string()
+          .optional()
+          .describe("Short label shown on the ruler."),
         color: z.string().optional().describe("CSS colour for the marker dot."),
         note: z
           .string()
@@ -598,7 +605,9 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         onsets_ms: z
           .array(z.number())
           .optional()
-          .describe("Absolute beat times in ms. Exactly one of this and `bpm`."),
+          .describe(
+            "Absolute beat times in ms. Exactly one of this and `bpm`."
+          ),
         bpm: z.number().optional().describe("Tempo. Needs `count`."),
         offset_ms: z
           .number()
@@ -627,7 +636,9 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         onsets_ms: z
           .array(z.number())
           .optional()
-          .describe("Absolute beat times in ms. Exactly one of this and `bpm`."),
+          .describe(
+            "Absolute beat times in ms. Exactly one of this and `bpm`."
+          ),
         bpm: z
           .number()
           .optional()
@@ -756,11 +767,11 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         music: z
           .boolean()
           .optional()
-          .describe("Add the music clip. Default: whether any beat asks for it.")
+          .describe(
+            "Add the music clip. Default: whether any beat asks for it."
+          )
       }
-    }
-,
-
+    },
     ui_timeline_add_midi_clip: {
       description:
         "Place a midi clip — a phrase played by the track's synth — on a midi track. The notes ride inside the clip in ticks from its content start (960 ticks = one quarter note, read against the document tempo), so trimming the clip hides notes rather than deleting them. `duration_ms` is the window: a note running past its end is gated there. Set the voice with ui_timeline_set_track_instrument and the tempo with ui_timeline_set_tempo.",
@@ -796,12 +807,41 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
     ui_timeline_scale_velocity: {
       description: SCALE_VELOCITY_DESCRIPTION,
       shape: scaleVelocityParams.shape
+    },
+
+    ui_timeline_retarget_format: {
+      description:
+        "Create a new sequence adapted to another aspect ratio without changing the source sequence. Center uses a static centered crop. Smart derives source-time framing paths from current subject tracks or authored framing and refuses clips with neither signal. Track follows the per-clip MediaTrack ids in `track_ids`. Timing, audio, cuts, effects, takes, captions, markers and tracking are preserved.",
+      shape: retargetFormatParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_set_reframe_subject: {
+      description:
+        "Set the subject track that drives one clip's source-time Smart Reframe crop. The clip and MediaTrack must belong to the current sequence. This changes editorial framing only and does not alter or regenerate the source asset.",
+      shape: setReframeSubjectParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_add_reframe_keyframe: {
+      description:
+        "Add or replace a manual Smart Reframe correction on one clip. `source_ms` is absolute time on the clip's source clock, x and y are normalized source-frame coordinates, and optional zoom is 1 or greater. Corrections interpolate around the automatic path and do not overwrite its analysis.",
+      shape: addReframeKeyframeParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_clear_reframe: {
+      description:
+        "Remove Smart Reframe state from one clip while leaving its source asset, timing, static crop, transform and every other editorial property unchanged.",
+      shape: clearReframeParams.shape,
+      finalize: strictParams
     }
   } satisfies Record<string, UiToolContract>;
 }
 
-
-export type TimelineToolContracts = ReturnType<typeof makeTimelineToolContracts>;
+export type TimelineToolContracts = ReturnType<
+  typeof makeTimelineToolContracts
+>;
 
 export type TimelineToolName = keyof TimelineToolContracts;
 
