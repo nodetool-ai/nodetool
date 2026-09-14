@@ -49,7 +49,7 @@
     "framer-motion": "^12.23.12",
     "lodash": "^4.17.21",
     "lucide-react": "^0.341.0",
-    "next": "^15.5.21",
+    "next": "^16.3.5",
     "openapi-fetch": "^0.7.1",
     "react": "^18",
     "react-dom": "^18",
@@ -81,6 +81,6 @@
     "tailwindcss": "^3.3.0",
     "tsx": "^4.0.0",
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "wrangler": "^4.106.0"
+    "wrangler": "^4.131.2"
   }
 }

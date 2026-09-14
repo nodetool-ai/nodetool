@@ -26,6 +26,6 @@
     "@vitejs/plugin-react": "4.7.0",
     "@typescript/native": "npm:typescript@7.0.2",
     "vite": "6.4.3",
-    "vitest": "1.6.1"
+    "vitest": "4.1.11"
   }
 }
