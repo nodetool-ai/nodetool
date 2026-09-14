@@ -176,6 +176,65 @@ describe("Multi-edge list type validation (T-K-10)", () => {
     expect(sorted).toEqual([[1, 2], [3, 4]]);
   });
 
+  it("flattens a list-typed upstream's contents into a list[image] handle (Image List into Image List)", async () => {
+    // Reproduces the "ImageListIntoImageList" bug: one edge comes from a
+    // plain image source, another from an upstream Image List node whose
+    // output is itself list[image]. Since the target handle's declared type
+    // is list[image] (not list[list[image]]), the upstream list's items must
+    // propagate into the aggregated list rather than nesting as one entry.
+    const consumerCalls: Array<Record<string, unknown>> = [];
+    const nodes: NodeDescriptor[] = [
+      { id: "single", type: "test.Source", name: "single" },
+      { id: "list", type: "test.ListSource", name: "list" },
+      {
+        id: "imageList",
+        type: "test.ImageListConsumer",
+        name: "imageList",
+        propertyTypes: { value: "list[image]" }
+      }
+    ];
+    const edges: Edge[] = [
+      {
+        source: "single",
+        sourceHandle: "out",
+        target: "imageList",
+        targetHandle: "value"
+      },
+      {
+        source: "list",
+        sourceHandle: "out",
+        target: "imageList",
+        targetHandle: "value"
+      }
+    ];
+
+    const runner = makeRunner({
+      single: simpleExecutor(() => ({ out: { type: "image", uri: "solo.png" } })),
+      list: simpleExecutor(() => ({
+        out: [
+          { type: "image", uri: "a.png" },
+          { type: "image", uri: "b.png" }
+        ]
+      })),
+      imageList: simpleExecutor((inputs) => {
+        consumerCalls.push(inputs);
+        return {};
+      })
+    });
+
+    const result = await runner.run(
+      { job_id: "j-image-list-into-image-list", params: {} },
+      { nodes, edges }
+    );
+
+    expect(result.status).toBe("completed");
+    expect(consumerCalls).toHaveLength(1);
+    const value = consumerCalls[0].value;
+    expect(Array.isArray(value)).toBe(true);
+    const uris = (value as Array<{ uri: string }>).map((i) => i.uri).sort();
+    expect(uris).toEqual(["a.png", "b.png", "solo.png"]);
+  });
+
   it("marks list-typed handle with multiple edges for aggregation", async () => {
     // Node C has a "values" handle typed as list[int]
     const nodes: NodeDescriptor[] = [
