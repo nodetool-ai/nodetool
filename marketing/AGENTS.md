@@ -72,6 +72,40 @@ For AtlasCloud enhancement:
 - Update `scripts/recipes.mjs` with the actual enhanced dimensions and measured
   media facts, then regenerate the recipe catalog.
 
+## Product Commercial Direction
+
+Build product commercials around a short sequence of consequential actions.
+Each shot must change the scene or advance the subject. A polished still with
+minor camera movement is not enough when the shot is meant to sell taste,
+texture, use, or intent.
+
+- Lock the product from its reference image. Describe its identity once, then
+  direct the action without adding shape, lid, material, colour, or branding
+  details that could cause the video model to redesign it.
+- Write physical changes in observable terms. For a pour, state that the liquid
+  level rises against the inner wall, the stream stops before overflow, and the
+  final level remains visible. Do not rely on words such as `realistic` or
+  `cinematic` to supply the physics.
+- Give food and drink shots sensory evidence: fresh steam, surface movement,
+  condensation, controlled highlights, close sound, and a clear serving action.
+  Keep the product clean and plausible rather than exaggerating the effect.
+- State screen direction and body orientation for entrances and exits. For a
+  departure, identify where the camera is, which way the subject faces, what
+  crosses the threshold first, and where the subject ends the shot. Check the
+  last frame as well as the first.
+- Keep an approved shot's source, in and out points, framing, speed, and order
+  fixed while replacing other shots. Normal export encoding may change pixels,
+  so describe the footage as preserved only when those editorial choices match.
+- Direct one primary action per shot. Let it complete before the cut. Use the
+  sequence to create appetite or desire: preparation, human response, then the
+  product continuing into the subject's day.
+- Treat image quality and shot effectiveness as separate reviews. Inspect the
+  reference for detail and consistency, then inspect the video for believable
+  motion, cause and effect, hand contact, gaze, and narrative direction.
+- Plan sound per shot before assembly. Keep useful native sound, balance it
+  across cuts, and add short fades at joins. Add music, narration, and titles
+  only when the brief calls for them.
+
 ## Local Development and Verification
 
 The development server and a production build both write `marketing/.next`.
