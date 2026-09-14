@@ -195,17 +195,17 @@ test.describe("marketing smoke", () => {
   }) => {
     await page.goto("/recipes/viral-video-ad-engine");
 
+    const recipe = recipeEntries.find(
+      (entry) => entry.slug === "viral-video-ad-engine"
+    )!;
     const proof = page.getByRole("region", {
-      name: "Big production. Everyday coffee."
+      name: recipe.productionRun!.proofTitle
     });
     const guide = page.getByRole("region", { name: /guide/i });
 
     await expect(proof).toBeVisible();
     await expect(page.getByText("Partial example")).toHaveCount(0);
     await expect(page.getByText("Review notes", { exact: true })).toHaveCount(0);
-    const recipe = recipeEntries.find(
-      (entry) => entry.slug === "viral-video-ad-engine"
-    )!;
     await expect(
       proof.getByText(recipe.productionRun!.essentialLimitation)
     ).toHaveCount(0);
