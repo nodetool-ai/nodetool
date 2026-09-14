@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import { ACTIVE_MODEL_CONTEXT_KEY } from "@nodetool-ai/runtime";
-import { Asset, Job, Project, Workflow, initTestDb } from "@nodetool-ai/models";
+import {
+  Asset,
+  Job,
+  Project,
+  Workflow,
+  WorkflowCollaborator,
+  initTestDb
+} from "@nodetool-ai/models";
 import {
   debugSessions,
   InteractiveEscalationHandle
@@ -193,6 +200,109 @@ describe("get_workflow", () => {
 
   it("userMessage includes workflow_id", () => {
     expect(tool.userMessage({ workflow_id: "wf-1" })).toContain("wf-1");
+  });
+});
+
+describe("headless workflow document tools", () => {
+  const graph = {
+    nodes: [
+      {
+        id: "n1",
+        type: "nodetool.text.Value",
+        data: {},
+        position: { x: 0, y: 0 }
+      }
+    ],
+    edges: []
+  };
+
+  it("allows a public viewer to read but not mutate the graph", async () => {
+    const workflow = (await Workflow.create<Workflow>({
+      user_id: "owner",
+      name: "Shared",
+      access: "public",
+      graph
+    })) as Workflow;
+
+    const read = (await capTool("ui_get_graph").process(ctx, {
+      workflow_id: workflow.id
+    })) as Record<string, unknown>;
+    expect(read.nodes).toBeDefined();
+
+    const write = (await capTool("ui_set_node_title").process(ctx, {
+      workflow_id: workflow.id,
+      node_id: "n1",
+      title: "Overwritten"
+    })) as Record<string, unknown>;
+    expect(String(write.error)).toMatch(/not found|permission|access/i);
+    expect((await Workflow.get<Workflow>(workflow.id))?.graph).toEqual(graph);
+  });
+
+  it("allows an editor collaborator to mutate the graph", async () => {
+    const workflow = (await Workflow.create<Workflow>({
+      user_id: "owner",
+      name: "Shared",
+      access: "private",
+      graph
+    })) as Workflow;
+    await WorkflowCollaborator.create({
+      workflow_id: workflow.id,
+      user_id: USER,
+      role: "editor",
+      invited_by: "owner"
+    });
+
+    const result = (await capTool("ui_set_node_title").process(ctx, {
+      workflow_id: workflow.id.slice(0, 12),
+      node_id: "n1",
+      title: "Edited"
+    })) as Record<string, unknown>;
+    expect(result).toMatchObject({ ok: true });
+    expect(
+      (await Workflow.get<Workflow>(workflow.id))?.graph.nodes[0]
+    ).toMatchObject({ ui_properties: { title: "Edited" } });
+  });
+
+  it("allows the owner to mutate the graph by short workflow id", async () => {
+    const workflow = (await Workflow.create<Workflow>({
+      user_id: USER,
+      name: "Mine",
+      access: "private",
+      graph
+    })) as Workflow;
+
+    const result = (await capTool("ui_set_node_title").process(ctx, {
+      workflow_id: workflow.id.slice(0, 12),
+      node_id: "n1",
+      title: "Edited"
+    })) as Record<string, unknown>;
+    expect(result).toMatchObject({ ok: true });
+    expect(
+      (await Workflow.get<Workflow>(workflow.id))?.graph.nodes[0]
+    ).toMatchObject({ ui_properties: { title: "Edited" } });
+  });
+
+  it("rejects a private viewer collaborator from mutating the graph", async () => {
+    const workflow = (await Workflow.create<Workflow>({
+      user_id: "owner",
+      name: "Shared",
+      access: "private",
+      graph
+    })) as Workflow;
+    await WorkflowCollaborator.create({
+      workflow_id: workflow.id,
+      user_id: USER,
+      role: "viewer",
+      invited_by: "owner"
+    });
+
+    const result = (await capTool("ui_set_node_title").process(ctx, {
+      workflow_id: workflow.id,
+      node_id: "n1",
+      title: "Overwritten"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toMatch(/not found|permission|access/i);
+    expect((await Workflow.get<Workflow>(workflow.id))?.graph).toEqual(graph);
   });
 });
 

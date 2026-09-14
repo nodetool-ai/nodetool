@@ -119,11 +119,11 @@ describe("handleUpdate message dispatch", () => {
     ).toMatchObject({ title: "Research" });
   });
 
-  it("logs a prediction and marks the node booting", () => {
+  it("logs a prediction without changing node status", () => {
     dispatch({
       type: "prediction",
       node_id: "n1",
-      status: "booting",
+      status: "running",
       logs: "cold start",
       job_id: "job-1"
     });
@@ -131,21 +131,6 @@ describe("handleUpdate message dispatch", () => {
     expect(useLogsStore.getState().getLogs("wf-1", "n1")[0].content).toBe(
       "cold start"
     );
-    expect(useStatusStore.getState().getStatus("wf-1", "job-1", "n1")).toBe(
-      "booting"
-    );
-  });
-
-  it("logs a non-booting prediction without touching status", () => {
-    dispatch({
-      type: "prediction",
-      node_id: "n1",
-      status: "running",
-      logs: "still going",
-      job_id: "job-1"
-    });
-
-    expect(useLogsStore.getState().getLogs("wf-1", "n1")).toHaveLength(1);
     expect(
       useStatusStore.getState().getStatus("wf-1", "job-1", "n1")
     ).toBeUndefined();

@@ -308,6 +308,28 @@ export const useJsScriptServerSync = (
           scriptId,
           isInput ? { inputs: next } : { outputs: next }
         );
+        return;
+      }
+      if (conflict.reason === "deleted" && conflict.external === null) {
+        const doc = s.getScript(scriptId)?.document;
+        if (!doc) return;
+        if (conflict.unit.kind === "test") {
+          s.setTests(
+            scriptId,
+            doc.tests.filter((test) => test.name !== conflict.unit.id)
+          );
+        } else if (
+          conflict.unit.kind === "input" ||
+          conflict.unit.kind === "output"
+        ) {
+          const isInput = conflict.unit.kind === "input";
+          const ports = isInput ? doc.inputs : doc.outputs;
+          const next = ports.filter((port) => port.name !== conflict.unit.id);
+          s.setPorts(
+            scriptId,
+            isInput ? { inputs: next } : { outputs: next }
+          );
+        }
       }
     };
 

@@ -143,6 +143,25 @@ describe("useTimelineExternalSync merge", () => {
     // the stack.
     expect(getTimelineTemporal().pastStates.length).toBe(undoCountBefore);
 
+    // The agent's new clip is rebased into both history directions. Undoing
+    // the user's trim must not remove work that arrived from the server.
+    act(() => {
+      getTimelineTemporal().undo();
+    });
+    expect(useTimelineStore.getState().clips.map((c) => c.id)).toEqual([
+      "C1",
+      "C2"
+    ]);
+    expect(useTimelineStore.getState().clips[0]?.durationMs).toBe(1000);
+    act(() => {
+      getTimelineTemporal().redo();
+    });
+    expect(useTimelineStore.getState().clips.map((c) => c.id)).toEqual([
+      "C1",
+      "C2"
+    ]);
+    expect(useTimelineStore.getState().clips[0]?.durationMs).toBe(400);
+
     rendered.unmount();
     useConflictStore.getState().clear("timelinesequence:seq-1");
   });
@@ -192,6 +211,20 @@ describe("useTimelineExternalSync merge", () => {
       "clip:dangling"
     ]);
 
+    // The external track deletion must survive both directions of the user's
+    // earlier trim, including the historical checkpoint that still contained
+    // the clip.
+    act(() => {
+      getTimelineTemporal().undo();
+    });
+    expect(useTimelineStore.getState().tracks).toHaveLength(0);
+    expect(useTimelineStore.getState().clips).toHaveLength(0);
+    act(() => {
+      getTimelineTemporal().redo();
+    });
+    expect(useTimelineStore.getState().tracks).toHaveLength(0);
+    expect(useTimelineStore.getState().clips).toHaveLength(0);
+
     // Neither resolution puts the clip back on a track the document lacks:
     // accept has nothing to take and discard keeps the draft as merged. Both
     // only unlist the offer.
@@ -228,9 +261,7 @@ describe("useTimelineExternalSync merge — token ordering", () => {
   });
 
   it("aborts the merge when the fetched copy predates the user's own save", async () => {
-    (
-      getQuery as unknown as { mockResolvedValue: (v: unknown) => void }
-    ).mockResolvedValue(seqDoc(T0, [clip("C1", "T1")]));
+    (getQuery as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue(seqDoc(T0, [clip("C1", "T1")]));
     const rendered = renderHook(() => {
       useTimelineAutosave({ debounceMs: 60_000 });
       useTimelineExternalSync("seq-1");
@@ -315,9 +346,7 @@ describe("useTimelineExternalSync merge — token ordering", () => {
         .patchClip("C1", { durationMs: 400 } as Partial<TimelineClip>);
     });
 
-    (
-      getQuery as unknown as { mockResolvedValue: (v: unknown) => void }
-    ).mockResolvedValue(
+    (getQuery as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue(
       seqDoc(T1, [clip("C1", "T1"), clip("C2", "T1", { name: "Title" })])
     );
     await act(async () => {
@@ -341,6 +370,127 @@ describe("useTimelineExternalSync merge — token ordering", () => {
     expect(state.clips.find((c) => c.id === "C1")?.durationMs).toBe(400);
     expect(state.baseUpdatedAt).toBe(T1);
 
+    rendered.unmount();
+  });
+
+  it("keeps edits made during autosave when a later agent write merges", async () => {
+    jest.useFakeTimers();
+    useTimelineStore.getState().loadSequence(seqDoc(T0, [clip("C1", "T1")]));
+    let finish!: (value: unknown) => void;
+    (
+      updateMutate as unknown as {
+        mockImplementationOnce: (fn: () => Promise<unknown>) => void;
+      }
+    ).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+
+    const rendered = renderHook(() => {
+      useTimelineAutosave({ debounceMs: 100 });
+      useTimelineExternalSync("seq-1");
+    });
+    act(() => {
+      useTimelineStore.getState().patchClip("C1", { durationMs: 800 });
+      jest.advanceTimersByTime(100);
+    });
+    expect(updateMutate).toHaveBeenCalledTimes(1);
+
+    // This edit is newer than the snapshot sent by the active autosave.
+    act(() => {
+      useTimelineStore.getState().patchClip("C1", { durationMs: 400 });
+    });
+    await act(async () => {
+      finish({ updatedAt: T1 });
+      await Promise.resolve();
+    });
+
+    (
+      getQuery as unknown as { mockResolvedValue: (value: unknown) => void }
+    ).mockResolvedValue(
+      seqDoc(T2, [clip("C1", "T1", { durationMs: 800 }), clip("C2", "T1")])
+    );
+    await act(async () => {
+      handleDocumentResourceChange("timelinesequence", {
+        event: "updated",
+        id: "seq-1",
+        updatedAt: T2,
+        ops: [
+          {
+            tool: "ui_timeline_add_text_clip",
+            input: { track_id: "T1", text: "Title" }
+          }
+        ]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(
+      useTimelineStore.getState().clips.find((c) => c.id === "C1")?.durationMs
+    ).toBe(400);
+    expect(useTimelineStore.getState().clips.map((c) => c.id)).toEqual([
+      "C1",
+      "C2"
+    ]);
+    rendered.unmount();
+    jest.useRealTimers();
+  });
+
+  it("preserves the user's redo branch when an external clip is added", async () => {
+    (
+      getQuery as unknown as { mockResolvedValue: (v: unknown) => void }
+    ).mockResolvedValue(seqDoc(T0, [clip("C1", "T1")]));
+    const rendered = renderHook(() => {
+      useTimelineAutosave({ debounceMs: 60_000 });
+      useTimelineExternalSync("seq-1");
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => {
+      useTimelineStore.getState().loadSequence(seqDoc(T0, [clip("C1", "T1")]));
+      getTimelineTemporal().clear();
+      useTimelineStore.getState().patchClip("C1", { durationMs: 400 });
+      getTimelineTemporal().undo();
+    });
+    expect(useTimelineStore.getState().clips[0]?.durationMs).toBe(1000);
+
+    (
+      getQuery as unknown as { mockResolvedValue: (v: unknown) => void }
+    ).mockResolvedValue(seqDoc(T1, [clip("C1", "T1"), clip("C2", "T1")]));
+    await act(async () => {
+      handleDocumentResourceChange("timelinesequence", {
+        event: "updated",
+        id: "seq-1",
+        updatedAt: T1,
+        ops: [
+          {
+            tool: "ui_timeline_add_text_clip",
+            input: { track_id: "T1", text: "Title" }
+          }
+        ]
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(useTimelineStore.getState().clips.map((c) => c.id)).toEqual([
+      "C1",
+      "C2"
+    ]);
+    act(() => {
+      getTimelineTemporal().redo();
+    });
+    expect(
+      useTimelineStore.getState().clips.find((c) => c.id === "C1")?.durationMs
+    ).toBe(400);
+    expect(useTimelineStore.getState().clips.map((c) => c.id)).toEqual([
+      "C1",
+      "C2"
+    ]);
     rendered.unmount();
   });
 
@@ -422,7 +572,9 @@ describe("useTimelineExternalSync conflict resolution", () => {
 
   it("puts an accepted track on the undo stack, and undo restores the draft", async () => {
     const t1 = { ...track, name: "V1" };
-    (getQuery as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue(
+    (
+      getQuery as unknown as { mockResolvedValue: (v: unknown) => void }
+    ).mockResolvedValue(
       seqDoc("rev-1", [clip("C1", "T1")], [t1] as TimelineSequence["tracks"])
     );
     const rendered = renderHook(() => {
@@ -433,9 +585,7 @@ describe("useTimelineExternalSync conflict resolution", () => {
       await Promise.resolve();
     });
     act(() => {
-      useTimelineStore
-        .getState()
-        .loadSequence(seqDoc("rev-1", [clip("C1", "T1")], [t1] as TimelineSequence["tracks"]));
+      useTimelineStore.getState().loadSequence(seqDoc("rev-1", [clip("C1", "T1")], [t1] as TimelineSequence["tracks"]));
     });
 
     // The user renames the track; the draft is dirty on T1.

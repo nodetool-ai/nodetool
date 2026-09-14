@@ -23,8 +23,14 @@ import {
   undoHistory,
   redoHistory,
   clearHistory,
+  rebaseHistoryForMerge,
   type HistoryMap
 } from "../documentHistory";
+import { rebaseDocumentSnapshots } from "../documentMerge";
+import {
+  jsScriptMergeAdapter,
+  type JsScriptMergeDoc
+} from "./merge";
 
 export type JsScriptDocument = jsScripts.JsScriptDocument;
 export type JsScriptPort = jsScripts.JsScriptPort;
@@ -281,12 +287,38 @@ export const useJsScriptStore = create<JsScriptStoreState>((set, get) => ({
     }),
 
   applyMerged: (id, entry) =>
-    set((state) => ({
-      scripts: {
-        ...state.scripts,
-        [id]: { ...entry, id, updatedAt: Date.now() }
-      }
-    })),
+    set((state) => {
+      const previous = state.scripts[id];
+      const toMergeDoc = (value: JsScriptEntry): JsScriptMergeDoc => ({
+        ...value.document,
+        name: value.name
+      });
+      const rebasedHistory = previous
+        ? rebaseHistoryForMerge(state.history, id, (checkpoint) => {
+            const [rebased] = rebaseDocumentSnapshots(
+              [toMergeDoc(checkpoint)],
+              toMergeDoc(previous),
+              toMergeDoc(entry),
+              jsScriptMergeAdapter
+            );
+            const { name, ...document } = rebased;
+            return {
+              ...checkpoint,
+              name,
+              // The merge adapter operates on the parsed protocol document;
+              // dropping its temporary `name` field restores that shape.
+              document: document as unknown as JsScriptDocument
+            };
+          })
+        : state.history;
+      return {
+        scripts: {
+          ...state.scripts,
+          [id]: { ...entry, id, updatedAt: Date.now() }
+        },
+        history: rebasedHistory
+      };
+    }),
 
   removeScript: (id) =>
     set((state) => {

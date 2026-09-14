@@ -31,6 +31,33 @@ interface DocHistory<Doc> {
 
 export type HistoryMap<Doc> = Record<string, DocHistory<Doc>>;
 
+/**
+ * Rebase both undo directions after an external merge. The callback receives
+ * each checkpoint and must apply only the external values adopted by the
+ * merge. Keeping the projection at the caller lets each document surface
+ * preserve its own wrapper fields while this helper owns stack bookkeeping.
+ */
+export const rebaseHistoryForMerge = <Doc>(
+  history: HistoryMap<Doc>,
+  id: string,
+  rebase: (checkpoint: Doc) => Doc
+): HistoryMap<Doc> => {
+  const entry = history[id];
+  if (!entry) return history;
+
+  const past = entry.past.map(rebase);
+  const future = entry.future.map(rebase);
+  const changed =
+    past.some((checkpoint, index) => checkpoint !== entry.past[index]) ||
+    future.some((checkpoint, index) => checkpoint !== entry.future[index]);
+  if (!changed) return history;
+
+  return {
+    ...history,
+    [id]: { ...entry, past, future }
+  };
+};
+
 /** Max checkpoints retained per document; oldest dropped first. */
 export const HISTORY_LIMIT = 100;
 /** Same-field edits within this window fold into one checkpoint. */

@@ -68,7 +68,10 @@ function documentCore(name: WorkflowDocumentToolName): CapabilityImpl {
     }
 
     const userId = userIdOf(run.context);
-    const stored = await Workflow.find(userId, workflowId);
+    const stored =
+      name === "ui_get_graph"
+        ? await Workflow.find(userId, workflowId)
+        : await Workflow.findForEdit(userId, workflowId);
     if (!stored) return { error: `Workflow ${workflowId} was not found.` };
     const workflow = workflowRecord(stored);
     const parsedGraph = workflowGraphSchema.safeParse(workflow["graph"]);
@@ -101,7 +104,7 @@ function documentCore(name: WorkflowDocumentToolName): CapabilityImpl {
     }
 
     const applied = applyWorkflowDocumentTool(parsedGraph.data, name, params, {
-      workflowId,
+      workflowId: stored.id,
       resolveMetadata: (nodeType) => metadataByType.get(nodeType)
     });
     if (!applied.changed) return applied.result;
@@ -110,7 +113,7 @@ function documentCore(name: WorkflowDocumentToolName): CapabilityImpl {
     // above pinned `updated_at`, so a concurrent editor's save is a conflict
     // rather than a silent clobber.
     const persisted = await Workflow.updateFieldsIfUnchanged(
-      workflowId,
+      stored.id,
       stored.updated_at,
       { graph: applied.graph },
       // The tool name rides on the write so an open editor can attribute the
