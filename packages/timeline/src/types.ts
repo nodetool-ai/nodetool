@@ -76,6 +76,12 @@ export interface TimelineSequence {
    * directly.
    */
   templateId?: string | null;
+  /**
+   * Subject/object tracks (P0 AI Video, Phase 2). Document-level rather than
+   * per-clip because a track is the reusable primitive `TrackBinding`
+   * attaches to; each track still owns exactly one `clipId`.
+   */
+  mediaTracks?: MediaTrack[];
   createdAt: string;
   updatedAt: string;
 }
@@ -952,6 +958,12 @@ export interface TimelineClip {
    * construction, so every trim, split and move keeps it aligned.
    */
   generatedMatte?: ClipGeneratedMatte;
+  /**
+   * Follows a `MediaTrack` on the document (P0 AI Video, Phase 2). A clip
+   * follows at most one track in this pass — a text clip whose position
+   * follows one track while its mask follows another is out of scope.
+   */
+  trackBinding?: TrackBinding;
   /** Retime the clip's source. Replaces `speedMultiplier` when set. */
   timeRemap?: ClipTimeRemap;
   /** Composition provenance, stamped by `insert_composition`. */
@@ -1059,6 +1071,102 @@ export interface ClipGeneratedMatte {
     settings: Record<string, number | string | boolean>;
   }[];
   status?: "ready" | "generating" | "failed";
+}
+
+/**
+ * One sample of a subject/object track (P0 AI Video, Phase 2), anchored to
+ * the tracked clip's source clock — the same clock `ClipGeneratedMatte` and a
+ * source-anchored custom animation curve use, and read back at
+ * `clipSourceMsAt` for the same reason: so speed changes and a time remap
+ * move the tracked point the way they move the footage.
+ *
+ * `kind: "box"` tracks read `x`/`y`/`width`/`height`; `"point"` reads `x`/`y`
+ * only; `"quad"` reads the four corners; `"mask"` reads `maskAssetId`, a
+ * per-sample matte rather than a per-track one. A sample carries only the
+ * fields its track's `kind` uses — the validator's job, not this shape's.
+ */
+export interface MediaTrackSample {
+  sourceMs: number;
+  /** Normalized 0..1, box/point tracks. */
+  x?: number;
+  /** Normalized 0..1, box/point tracks. */
+  y?: number;
+  /** Normalized 0..1, box tracks. */
+  width?: number;
+  /** Normalized 0..1, box tracks. */
+  height?: number;
+  /** Radians. */
+  rotation?: number;
+  /** Four corners, normalized 0..1, `[x0,y0,x1,y1,x2,y2,x3,y3]`. `"quad"` tracks. */
+  quad?: [number, number, number, number, number, number, number, number];
+  /** A per-sample matte asset. `"mask"` tracks. */
+  maskAssetId?: string;
+  /** 0..1, this sample's own confidence, when the provider stated one. */
+  confidence?: number;
+}
+
+/**
+ * A subject/object track: source-time-anchored samples of one subject moving
+ * through one clip's source (P0 AI Video, Phase 2). Document-level (`clipId`
+ * names the clip it was cut from) rather than a clip attribute, because it is
+ * the reusable primitive `TrackBinding` names — unlike `ClipGeneratedMatte`,
+ * which stays a clip attribute because nothing else ever points at it.
+ *
+ * `sourceAssetId` is for staleness detection the same way `ClipGeneratedMatte`
+ * uses it: a mismatch with the clip's current asset means the track describes
+ * a picture the clip no longer shows.
+ */
+export interface MediaTrack {
+  id: string;
+  /** The clip this track was cut from. Exactly one track per `clipId` slot —
+   * a clip split in two gets one resliced track per half, not a shared one. */
+  clipId: string;
+  sourceAssetId: string;
+  name: string;
+  kind: "point" | "box" | "quad" | "mask";
+  sourceStartMs: number;
+  sourceEndMs: number;
+  /** Sorted ascending by `sourceMs`. */
+  samples: MediaTrackSample[];
+  /** Overall track confidence, when the provider stated one. */
+  confidence?: number;
+  status: "ready" | "generating" | "stale" | "failed";
+  provenance?: {
+    provider?: string;
+    model?: string;
+    settings?: Record<string, unknown>;
+  };
+}
+
+/**
+ * A clip following a `MediaTrack` (P0 AI Video, Phase 2). Only
+ * `"position"`/`"position_scale"` are folded into the scene model in this
+ * pass (`render/sceneModel.ts`'s `resolveAnimatedLayerProps`); `"transform"`,
+ * `"mask"`, `"effect_region"` and `"reframe"` are named here so a later phase
+ * needs no schema migration, but binding to one of them today is a no-op the
+ * `bind_to_track` op refuses rather than silently accepting.
+ */
+export interface TrackBinding {
+  trackId: string;
+  mode:
+    | "position"
+    | "position_scale"
+    | "transform"
+    | "mask"
+    | "effect_region"
+    | "reframe";
+  offset?: { x: number; y: number };
+  scale?: number;
+  rotationOffset?: number;
+  /**
+   * 0..1. Applied as an exponential moving average over the track's own
+   * samples up to the sampled source time (`applySmoothingToSample`), not as
+   * a frame-to-frame filter — `resolveAnimatedLayerProps` is a pure,
+   * stateless function of `(clip, timeMs)` with no memory of the previous
+   * frame, so smoothing is a property of the curve read at a point rather
+   * than of playback. 0 or absent samples the track exactly.
+   */
+  smoothing?: number;
 }
 
 /**

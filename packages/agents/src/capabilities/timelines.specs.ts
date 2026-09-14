@@ -1106,6 +1106,84 @@ export const isolateSubjectSpec: CapabilitySpec = {
     `Isolating the subject in ${String(params["clip_id"])}`
 };
 
+// ---------------------------------------------------------------------------
+// track_object
+// ---------------------------------------------------------------------------
+
+export const TRACK_OBJECT_DIRECTIONS = ["forward", "backward", "both"] as const;
+
+export const TRACK_OBJECT_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: { type: "string", description: "Timeline sequence id." },
+    clip_id: {
+      type: "string",
+      description:
+        'The video clip to track a subject through — id, name, or "selected". ' +
+        "The result is carried as a document-level track, not on the clip."
+    },
+    name: {
+      type: "string",
+      description: 'Label for the resulting track, e.g. "Product".'
+    },
+    initial_region: {
+      type: "object",
+      description:
+        "The subject's starting box, normalized 0..1 over the source frame.",
+      properties: {
+        x: { type: "number" },
+        y: { type: "number" },
+        width: { type: "number" },
+        height: { type: "number" }
+      },
+      required: ["x", "y", "width", "height"]
+    },
+    start_ms: {
+      type: "number",
+      description: "Source ms the tracking window starts at."
+    },
+    end_ms: {
+      type: "number",
+      description: "Source ms the tracking window ends at."
+    },
+    direction: {
+      type: "string",
+      enum: [...TRACK_OBJECT_DIRECTIONS],
+      description:
+        'Which way to track from the initial region. Default "forward".'
+    },
+    track_id: {
+      type: "string",
+      description:
+        "An existing track's id, to regenerate it in place. Absent mints a " +
+        "new track."
+    },
+    regenerate: {
+      type: "boolean",
+      description:
+        "Default false: an existing track named by track_id that is ready " +
+        "and current is handed back without spending anything. True always " +
+        "runs the provider."
+    }
+  },
+  required: ["timeline_id", "clip_id", "initial_region", "start_ms", "end_ms"]
+};
+
+export const trackObjectSpec: CapabilitySpec = {
+  name: "track_object",
+  description:
+    "Follow a subject through a clip's source, starting from a box you " +
+    "name, and carry the result as a document-level MediaTrack samples list " +
+    "other clips can bind to (bind_to_track). Box-kind tracks only in this " +
+    "build. There is no tracking-capable provider wired up yet — this call " +
+    "fails naming that until one is, so treat it as a documented seam, not " +
+    "a working integration.",
+  inputSchema: TRACK_OBJECT_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Tracking a subject through ${String(params["clip_id"])}`
+};
+
 export const deleteTimelineSpec: CapabilitySpec = {
   name: "delete_timeline",
   description:
@@ -1144,5 +1222,6 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   renderTimelineSpec,
   bakeAudioAnimationSpec,
   isolateSubjectSpec,
+  trackObjectSpec,
   deleteTimelineSpec
 ];

@@ -684,7 +684,7 @@ export async function renderTimelineFrames(
     ): Promise<Canvas2DLayer<PreviewSource> | string> => {
       const anim =
         sampled ??
-        resolveAnimatedLayerProps(layer, timeMs, animationCanvas, animCache);
+        resolveAnimatedLayerProps(layer, timeMs, animationCanvas, animCache, sequence.mediaTracks);
       const resolved = await sourceForLayer(layer, anim);
       if ("skipped" in resolved) return resolved.skipped;
       const drawn: Canvas2DLayer<PreviewSource> = {
@@ -736,7 +736,8 @@ export async function renderTimelineFrames(
         layer,
         timeMs,
         animationCanvas,
-        animCache
+        animCache,
+        sequence.mediaTracks
       );
       const zIndex = trackZ(layer.trackIndex);
       const report: PreviewLayerReport = {
@@ -846,7 +847,8 @@ export async function renderTimelineFrames(
         layer,
         timeMs,
         animationCanvas,
-        animCache
+        animCache,
+        sequence.mediaTracks
       );
       model3d.request(
         layer.assetId,

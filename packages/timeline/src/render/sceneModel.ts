@@ -17,11 +17,16 @@ import type {
   ClipMask,
   ClipModel3DStyle,
   ClipTransform,
+  MediaTrack,
   TimelineClip,
   TimelineTrack,
   TrackEffect
 } from "../types.js";
 import { isClipGrainEffect } from "../types.js";
+import {
+  applySmoothingToSample,
+  sampleMediaTrackAt
+} from "../mediaTrack.js";
 import type { Model3DCameraChannels } from "../model3d.js";
 import type {
   AnimationSample,
@@ -616,6 +621,13 @@ export interface ComputeActiveLayersOptions {
    * is never played on the strength of not having checked it (D6).
    */
   model3dBakeHash?: (clip: TimelineClip) => string | undefined;
+  /**
+   * The document's subject/object tracks (P0 AI Video, Phase 2), so a clip
+   * carrying a `trackBinding` resolves against them. Absent means no host
+   * data was supplied — every bound clip then resolves as unbound, the same
+   * as a host that predates `mediaTracks` reading a document that has none.
+   */
+  mediaTracks?: MediaTrack[];
 }
 
 /** Why a clip that was active at the query time contributed no layer. */
@@ -1544,16 +1556,72 @@ const IDENTITY_TRANSFORM: ClipTransform = {
  * `sample.opacity` multiplies the already-resolved layer opacity (base ×
  * crossfade), so animations compose with `transitionIn` rather than fight it.
  */
+/**
+ * The offset/scale/rotation a clip's `trackBinding` contributes to its
+ * transform at `currentTimeMs`, or `undefined` when the clip carries no
+ * binding, names a track not in `mediaTracks`, or binds in a mode not yet
+ * live (see `TrackBinding.mode`'s doc comment — only `"position"` and
+ * `"position_scale"` are folded here; `"transform"`, `"mask"`,
+ * `"effect_region"` and `"reframe"` are Phase 3+ and contribute nothing).
+ *
+ * The track's normalized `x`/`y` (0..1 over the SOURCE frame) is read as a
+ * fraction of the canvas the same way a transform's own position is
+ * authored — offset from center in canvas pixels — which is exact when the
+ * clip's source and the sequence share an aspect ratio and an approximation
+ * otherwise (a cropped or letterboxed source has no stored mapping back to
+ * canvas space here). `mode: "position_scale"` additionally applies
+ * `binding.scale` as an explicit multiplier; it does NOT derive a scale from
+ * the tracked box's own width/height, since no baseline size is recorded to
+ * normalize against.
+ */
+function resolveTrackBindingOffset(
+  clip: TimelineClip,
+  mediaTracks: MediaTrack[] | undefined,
+  currentTimeMs: number,
+  canvas: RenderCanvas
+): { x: number; y: number; scale: number; rotation: number } | undefined {
+  const binding = clip.trackBinding;
+  if (!binding || !mediaTracks) return undefined;
+  if (binding.mode !== "position" && binding.mode !== "position_scale") {
+    return undefined;
+  }
+  const track = mediaTracks.find((t) => t.id === binding.trackId);
+  if (!track) return undefined;
+  const sourceMs = clipSourceMsAt(clip, currentTimeMs);
+  const sample =
+    binding.smoothing !== undefined && binding.smoothing > 0
+      ? applySmoothingToSample(track, sourceMs, binding.smoothing)
+      : sampleMediaTrackAt(track, sourceMs);
+  if (!sample || sample.x === undefined || sample.y === undefined) {
+    return undefined;
+  }
+  const px = (sample.x - 0.5) * canvas.width;
+  const py = (sample.y - 0.5) * canvas.height;
+  return {
+    x: px + (binding.offset?.x ?? 0),
+    y: py + (binding.offset?.y ?? 0),
+    scale: binding.mode === "position_scale" ? binding.scale ?? 1 : 1,
+    rotation: binding.rotationOffset ?? 0
+  };
+}
+
 export function resolveAnimatedLayerProps(
   layer: { clip: TimelineClip; transform?: ClipTransform; opacity: number },
   currentTimeMs: number,
   canvas: RenderCanvas,
-  cache?: AnimationCompileCache
+  cache?: AnimationCompileCache,
+  mediaTracks?: MediaTrack[]
 ): AnimatedLayerProps {
   const clip = layer.clip;
+  const trackOffset = resolveTrackBindingOffset(
+    clip,
+    mediaTracks,
+    currentTimeMs,
+    canvas
+  );
   const compiled = compiledFor(clip, canvas, cache);
   if (compiled.length === 0) {
-    return staticProps(layer, currentTimeMs);
+    return staticProps(layer, currentTimeMs, trackOffset);
   }
 
   const s = sampleAnimations(
@@ -1562,24 +1630,25 @@ export function resolveAnimatedLayerProps(
     undefined,
     clipSourceMsAt(clip, currentTimeMs)
   );
-  if (isIdentitySample(s)) {
-    return staticProps(layer, currentTimeMs);
+  if (isIdentitySample(s) && !trackOffset) {
+    return staticProps(layer, currentTimeMs, trackOffset);
   }
 
   const base = layer.transform ?? IDENTITY_TRANSFORM;
   // `positionX/Y` and `anchorX/Y` replace the clip's own value when driven;
   // `offsetX/Y` still add on top, so an offset animation composes with a
-  // position one instead of fighting it.
+  // position one instead of fighting it. The track binding's offset folds in
+  // the same way `offsetX/Y` does — additive, not replacing.
   const transform: ClipTransform = {
     position: {
-      x: (s.positionX ?? base.position.x) + s.offsetX,
-      y: (s.positionY ?? base.position.y) + s.offsetY
+      x: (s.positionX ?? base.position.x) + s.offsetX + (trackOffset?.x ?? 0),
+      y: (s.positionY ?? base.position.y) + s.offsetY + (trackOffset?.y ?? 0)
     },
     scale: {
-      x: base.scale.x * s.scale * s.scaleX,
-      y: base.scale.y * s.scale * s.scaleY
+      x: base.scale.x * s.scale * s.scaleX * (trackOffset?.scale ?? 1),
+      y: base.scale.y * s.scale * s.scaleY * (trackOffset?.scale ?? 1)
     },
-    rotation: base.rotation + s.rotation,
+    rotation: base.rotation + s.rotation + (trackOffset?.rotation ?? 0),
     anchor:
       s.anchorX === undefined && s.anchorY === undefined
         ? base.anchor
@@ -1603,17 +1672,38 @@ export function resolveAnimatedLayerProps(
   };
 }
 
-/** The layer's own values, for a clip with no animation in flight. */
+/**
+ * The layer's own values, for a clip with no animation in flight. `trackOffset`
+ * — when a `trackBinding` is live — folds into `transform` the same additive
+ * way it does in the animated path, so a bound layer with no animations still
+ * follows its track.
+ */
 function staticProps(
   layer: {
     clip: TimelineClip;
     transform?: ClipTransform;
     opacity: number;
   },
-  currentTimeMs: number
+  currentTimeMs: number,
+  trackOffset?: { x: number; y: number; scale: number; rotation: number }
 ): AnimatedLayerProps {
+  const base = layer.transform ?? IDENTITY_TRANSFORM;
+  const transform: ClipTransform | undefined = trackOffset
+    ? {
+        position: {
+          x: base.position.x + trackOffset.x,
+          y: base.position.y + trackOffset.y
+        },
+        scale: {
+          x: base.scale.x * trackOffset.scale,
+          y: base.scale.y * trackOffset.scale
+        },
+        rotation: base.rotation + trackOffset.rotation,
+        anchor: base.anchor
+      }
+    : layer.transform;
   return {
-    transform: layer.transform,
+    transform,
     opacity: layer.opacity,
     effects: seedAnimatedGrain(layer.clip.effects, currentTimeMs),
     shapeStyle: layer.clip.shapeStyle,

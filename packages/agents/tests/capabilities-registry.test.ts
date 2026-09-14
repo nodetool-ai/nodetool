@@ -289,6 +289,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   memory_search: "read",
   memory_update: "write",
   todo_write: "read",
+  track_object: "write",
   transcribe_audio: "write",
   ui_add_node: "write",
   ui_connect_nodes: "write",

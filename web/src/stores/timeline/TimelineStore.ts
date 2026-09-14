@@ -685,6 +685,25 @@ export interface TimelineStoreState {
   /** Drop a clip's generated matte, versions and all. */
   clearGeneratedMatte: (clipId: string) => void;
   /**
+   * Set a clip's `trackBinding` (P0 AI Video, Phase 2) — plain `set()`, so
+   * undo/redo comes for free the way every other clip-field action here gets
+   * it. Refuses (leaves the store untouched) a `mode` other than `"position"`/
+   * `"position_scale"`, the only ones the scene model resolves today.
+   */
+  bindToTrack: (
+    clipId: string,
+    trackId: string,
+    mode: "position" | "position_scale",
+    opts?: {
+      offset?: { x: number; y: number };
+      scale?: number;
+      rotationOffset?: number;
+      smoothing?: number;
+    }
+  ) => void;
+  /** Clear a clip's `trackBinding`. A no-op on an already-unbound clip. */
+  unbindTrack: (clipId: string) => void;
+  /**
    * Cut a matte from the clip's own source on the server.
    *
    * The segmentation reads the STORED document and writes the result onto the
@@ -2692,6 +2711,44 @@ export const createTimelineStore = (
             if (next === clip) return state;
             return {
               clips: state.clips.map((c) => (c.id === clipId ? next : c))
+            };
+          }),
+
+        bindToTrack: (clipId, trackId, mode, opts = {}) => {
+          if (mode !== "position" && mode !== "position_scale") return;
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip) return state;
+            const trackBinding: TimelineClip["trackBinding"] = {
+              trackId,
+              mode
+            };
+            if (opts.offset !== undefined) trackBinding.offset = opts.offset;
+            if (opts.scale !== undefined) trackBinding.scale = opts.scale;
+            if (opts.rotationOffset !== undefined) {
+              trackBinding.rotationOffset = opts.rotationOffset;
+            }
+            if (opts.smoothing !== undefined) {
+              trackBinding.smoothing = opts.smoothing;
+            }
+            return {
+              clips: state.clips.map((c) =>
+                c.id === clipId ? { ...c, trackBinding } : c
+              )
+            };
+          });
+        },
+
+        unbindTrack: (clipId) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip || !clip.trackBinding) return state;
+            return {
+              clips: state.clips.map((c) => {
+                if (c.id !== clipId) return c;
+                const { trackBinding: _dropped, ...rest } = c;
+                return rest;
+              })
             };
           }),
 
