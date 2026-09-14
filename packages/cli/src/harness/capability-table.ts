@@ -2966,6 +2966,10 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
     contract: "c758c2ba012f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
     evals: [
       {
         file: "packages/agents/src/evals/tool-loop-cases.ts",
@@ -3058,6 +3062,10 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
     contract: "b8500a8d6207",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
     evals: [
       {
         file: "packages/agents/src/evals/tool-loop-cases.ts",

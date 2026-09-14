@@ -11,7 +11,10 @@
  */
 import { useCallback, useState } from "react";
 
-import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
+import {
+  isOlderUpdatedAt,
+  useTimelineStoreApi
+} from "../../stores/timeline/TimelineStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
 import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
@@ -39,13 +42,24 @@ export function useTimelineSave(): UseTimelineSaveResult {
       });
       const updatedAt = (response as { updatedAt?: unknown } | undefined)
         ?.updatedAt;
-      // Only roll the token forward while the store still holds the saved
-      // sequence — otherwise we'd poison a newly loaded sequence's token.
+      // A delayed response must not replace a different sequence's merge
+      // base or one that already incorporates a newer external write.
       if (
         isString(updatedAt) &&
-        store.getState().sequenceId === state.sequenceId
+        store.getState().sequenceId === state.sequenceId &&
+        !isOlderUpdatedAt(updatedAt, store.getState().baseUpdatedAt)
       ) {
-        store.getState().setBaseUpdatedAt(updatedAt);
+        store.getState().setBaseUpdatedAt(updatedAt, {
+          tracks: state.tracks,
+          clips: state.clips,
+          markers: state.markers,
+          mediaTracks: state.mediaTracks,
+          transcript: state.transcript,
+          scriptEnabled: state.scriptEnabled,
+          fps: state.fps,
+          width: state.width,
+          height: state.height
+        });
       }
     } catch (error) {
       console.error("Timeline save failed:", error);

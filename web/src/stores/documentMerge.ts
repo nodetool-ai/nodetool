@@ -19,6 +19,7 @@
  * Pure functions, no store access. Surfaces provide the adapter.
  */
 import type { DocumentOp } from "@nodetool-ai/protocol";
+import { isRecord } from "../utils/typePredicates";
 
 /** Why the draft refused an external value. */
 type MergeConflictReason = "edited" | "deleted" | "dangling" | "replaced";
@@ -252,6 +253,250 @@ const nextBaseSlot = (
   contested: boolean
 ): unknown => (contested ? baseValue : serverValue);
 
+const recordOf = (value: unknown): Record<string, unknown> =>
+  isRecord(value) ? value : {};
+
+const restOf = (
+  value: unknown,
+  fields: MergeUnitField[]
+): Record<string, unknown> => {
+  const declared = new Set(fields.map((field) => field.field));
+  return Object.fromEntries(
+    Object.entries(recordOf(value)).filter(([key]) => !declared.has(key))
+  );
+};
+
+/** Apply one adopted external unit delta to a history checkpoint unit. */
+const rebaseUnit = (
+  snapshotUnit: unknown,
+  beforeUnit: unknown,
+  afterUnit: unknown,
+  fields: MergeUnitField[]
+): unknown => {
+  if (fields.length === 0) return afterUnit;
+  const beforeRest = restOf(beforeUnit, fields);
+  const afterRest = restOf(afterUnit, fields);
+  const snapshot = recordOf(snapshotUnit);
+  let next = snapshot;
+  if (!structuralEqual(beforeRest, afterRest)) {
+    const withoutOldRest = { ...next };
+    for (const key of Object.keys(beforeRest)) {
+      if (!(key in afterRest)) delete withoutOldRest[key];
+    }
+    next = { ...withoutOldRest, ...afterRest };
+  }
+
+  for (const field of fields) {
+    const beforeValue = recordOf(beforeUnit)[field.field];
+    const afterValue = recordOf(afterUnit)[field.field];
+    if (field.itemId) {
+      if (structuralEqual(beforeValue, afterValue)) continue;
+      const snapshotValue = snapshot[field.field];
+      const rebased = rebaseNestedList(
+        snapshotValue,
+        beforeValue,
+        afterValue,
+        field
+      );
+      if (rebased !== snapshotValue) next = { ...next, [field.field]: rebased };
+      continue;
+    }
+    if (!structuralEqual(beforeValue, afterValue)) {
+      next = { ...next, [field.field]: afterValue };
+    }
+  }
+  return next === snapshot ? snapshotUnit : next;
+};
+
+/** Rebase a collection while retaining a checkpoint's own item order. */
+const rebaseList = (
+  snapshot: unknown[],
+  before: unknown[],
+  after: unknown[],
+  itemId: (item: unknown) => string,
+  applyChanged: (
+    snapshotItem: unknown,
+    beforeItem: unknown,
+    afterItem: unknown
+  ) => unknown
+): unknown[] => {
+  const beforeMap = listById(before, itemId);
+  const afterMap = listById(after, itemId);
+  const snapshotMap = listById(snapshot, itemId);
+  const pendingBeforeAnchor = new Map<string, unknown[]>();
+  const pendingAfterAnchor = new Map<string, unknown[]>();
+  const pendingAtEnd: unknown[] = [];
+  const isRemoved = (id: string): boolean =>
+    beforeMap.has(id) && !afterMap.has(id);
+  const isAdopted = (id: string): boolean => {
+    const beforeEntry = beforeMap.get(id);
+    const afterEntry = afterMap.get(id);
+    return (
+      afterEntry !== undefined &&
+      (!beforeEntry || !structuralEqual(beforeEntry.item, afterEntry.item))
+    );
+  };
+
+  // Additions and changed external units that this checkpoint predates are
+  // inserted against the next surviving after-list anchor. This keeps a
+  // server insertion between the same neighboring units through undo/redo.
+  const nextAnchor: Array<string | null> = Array(after.length).fill(null);
+  let anchor: string | null = null;
+  for (let i = after.length - 1; i >= 0; i--) {
+    const id = itemId(after[i]);
+    if (snapshotMap.has(id) && !isRemoved(id)) anchor = id;
+    nextAnchor[i] = anchor;
+  }
+  let previousAnchor: string | null = null;
+  for (let i = 0; i < after.length; i++) {
+    const id = itemId(after[i]);
+    if (snapshotMap.has(id) && !isRemoved(id)) {
+      previousAnchor = id;
+      continue;
+    }
+    if (!isAdopted(id)) continue;
+    const insertionBefore = nextAnchor[i];
+    if (insertionBefore) {
+      const pending = pendingBeforeAnchor.get(insertionBefore) ?? [];
+      pending.push(afterMap.get(id)?.item ?? after[i]);
+      pendingBeforeAnchor.set(insertionBefore, pending);
+    } else if (previousAnchor) {
+      const pending = pendingAfterAnchor.get(previousAnchor) ?? [];
+      pending.push(afterMap.get(id)?.item ?? after[i]);
+      pendingAfterAnchor.set(previousAnchor, pending);
+    } else {
+      pendingAtEnd.push(afterMap.get(id)?.item ?? after[i]);
+    }
+  }
+
+  let changed =
+    pendingAtEnd.length > 0 ||
+    pendingBeforeAnchor.size > 0 ||
+    pendingAfterAnchor.size > 0;
+  const next: unknown[] = [];
+  const appendPendingAfter = (id: string): void => {
+    const pending = pendingAfterAnchor.get(id);
+    if (!pending) return;
+    for (const pendingItem of pending) next.push(pendingItem);
+  };
+
+  for (const item of snapshot) {
+    const id = itemId(item);
+    const pending = pendingBeforeAnchor.get(id);
+    if (pending) {
+      for (const pendingItem of pending) next.push(pendingItem);
+    }
+    if (beforeMap.has(id) && !afterMap.has(id)) {
+      changed = true;
+      continue;
+    }
+    const afterEntry = afterMap.get(id);
+    const beforeEntry = beforeMap.get(id);
+    if (
+      afterEntry &&
+      beforeEntry &&
+      !structuralEqual(beforeEntry.item, afterEntry.item)
+    ) {
+      const nextItem = applyChanged(item, beforeEntry.item, afterEntry.item);
+      next.push(nextItem);
+      changed = changed || nextItem !== item;
+      appendPendingAfter(id);
+      continue;
+    }
+    if (afterEntry && !beforeEntry) {
+      next.push(afterEntry.item);
+      changed = changed || afterEntry.item !== item;
+      appendPendingAfter(id);
+      continue;
+    }
+    next.push(item);
+    appendPendingAfter(id);
+  }
+  for (const pendingItem of pendingAtEnd) next.push(pendingItem);
+  return changed ? next : snapshot;
+};
+
+const rebaseNestedList = (
+  snapshotValue: unknown,
+  beforeValue: unknown,
+  afterValue: unknown,
+  field: MergeUnitField
+): unknown[] => {
+  const itemId = field.itemId;
+  if (!itemId) return [];
+  return rebaseList(
+    Array.isArray(snapshotValue) ? snapshotValue : [],
+    Array.isArray(beforeValue) ? beforeValue : [],
+    Array.isArray(afterValue) ? afterValue : [],
+    itemId,
+    field.fields
+      ? (snapshotItem, beforeItem, afterItem) =>
+          rebaseUnit(snapshotItem, beforeItem, afterItem, field.fields ?? [])
+      : (_snapshotItem, _beforeItem, afterItem) => afterItem
+  );
+};
+
+const rebaseCollectionSnapshot = (
+  snapshot: unknown[],
+  before: unknown[],
+  after: unknown[],
+  collection: MergeCollection<unknown>
+): unknown[] => {
+  return rebaseList(
+    snapshot,
+    before,
+    after,
+    collection.unitId,
+    (snapshotItem, beforeItem, afterItem) =>
+      rebaseUnit(
+        snapshotItem,
+        beforeItem,
+        afterItem,
+        collection.unitFields ?? []
+      )
+  );
+};
+
+/**
+ * Rebase document history checkpoints with the external values a merge
+ * adopted. The current draft and merged document define the delta, so a
+ * refused conflict has no delta and cannot leak into undo or redo.
+ */
+export function rebaseDocumentSnapshots<TDoc>(
+  snapshots: readonly TDoc[],
+  before: TDoc,
+  after: TDoc,
+  adapter: DocumentMergeAdapter<TDoc>
+): TDoc[] {
+  const collectionDeltas = adapter.collections.map((collection) => ({
+    collection,
+    before: collection.read(before) ?? [],
+    after: collection.read(after) ?? []
+  }));
+  const scalarDeltas = (adapter.scalars ?? []).filter(
+    (scalar) => !structuralEqual(scalar.read(before), scalar.read(after))
+  );
+  return snapshots.map((snapshot) => {
+    let next = snapshot;
+    for (const delta of collectionDeltas) {
+      const snapshotList = delta.collection.read(next) ?? [];
+      const rebased = rebaseCollectionSnapshot(
+        snapshotList,
+        delta.before,
+        delta.after,
+        delta.collection
+      );
+      if (rebased !== snapshotList) {
+        next = delta.collection.write(next, rebased);
+      }
+    }
+    for (const scalar of scalarDeltas) {
+      next = scalar.write(next, scalar.read(after));
+    }
+    return next;
+  });
+}
+
 /**
  * One refused external sub-item, reported by a field spec that declares
  * `conflictKind`. Shaped like a MergeConflict minus the label bookkeeping.
@@ -405,6 +650,11 @@ function mergeByFieldSpecs(
         const bEntry = baseSub.get(id);
         const sEntry = serverSub.get(id);
         if (!sEntry) {
+          if (!bEntry) {
+            // Draft-only creation: the server has never seen this nested
+            // item, so preserve it for the next autosave to create.
+            continue;
+          }
           if (bEntry && !structuralEqual(bEntry.item, draftItem)) {
             // External delete against a dirty item.
             refusedItems.add(id);
@@ -678,7 +928,23 @@ function mergeCollection(
   const placed = new Set(result.map((u) => collection.unitId(u)));
   for (const [id, sEntry] of serverMap) {
     if (placed.has(id)) continue;
-    if (baseMap.has(id)) continue; // draft deleted it; deletion stands
+    const bEntry = baseMap.get(id);
+    if (bEntry) {
+      // The draft deleted this unit. The deletion wins, but a server edit to
+      // the deleted value is still a conflict when this write touched it.
+      if (!structuralEqual(bEntry.item, sEntry.item)) {
+        refused.add(id);
+        if (touchesSlot(collection.kind, id)) {
+          conflict(
+            id,
+            collection.unitLabel(sEntry.item),
+            sEntry.item,
+            "deleted"
+          );
+        }
+      }
+      continue;
+    }
     result.splice(Math.min(sEntry.index, result.length), 0, sEntry.item);
     placed.add(id);
   }

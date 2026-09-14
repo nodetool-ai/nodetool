@@ -1161,6 +1161,65 @@ describe("createNodeStore Type Compatibility", () => {
     expect(store.temporal.getState().pastStates.length).toBe(pastBefore);
     expect(store.getState().nodes.map((n) => n.id)).toEqual(["n2"]);
   });
+
+  test("rebases external graph work and tokens through undo and redo", () => {
+    const store = createNodeStore();
+    const n1 = makeNode("n1", store.getState().workflow.id);
+    store.getState().addNode(n1);
+    const pastBefore = store.temporal.getState().pastStates.length;
+
+    store
+      .getState()
+      .applyExternalGraph(
+        [
+          ...store.getState().nodes,
+          makeNode("n2", store.getState().workflow.id)
+        ],
+        [],
+        { etag: "etag-2", updatedAt: "2026-01-01T00:00:02.000Z" }
+      );
+    expect(store.temporal.getState().pastStates.length).toBe(pastBefore);
+
+    store.temporal.getState().undo();
+    expect(store.getState().nodes.map((n) => n.id)).toEqual(["n2"]);
+    expect(store.getState().workflow.etag).toBe("etag-2");
+    expect(store.getState().workflow.updated_at).toBe(
+      "2026-01-01T00:00:02.000Z"
+    );
+
+    store.temporal.getState().redo();
+    expect(store.getState().nodes.map((n) => n.id)).toEqual(["n1", "n2"]);
+    expect(store.getState().workflow.etag).toBe("etag-2");
+    expect(store.getState().workflow.updated_at).toBe(
+      "2026-01-01T00:00:02.000Z"
+    );
+  });
+
+  test("filters a historical dangling edge after an external node deletion", () => {
+    const store = createNodeStore();
+    const n1 = makeNode("n1", store.getState().workflow.id);
+    const n2 = makeNode("n2", store.getState().workflow.id);
+    store.getState().addNode(n1);
+    store.getState().addNode(n2);
+    const e1 = makeEdge("n1", "n2", "output1", "input1");
+    store.setState({ edges: [e1] });
+    store.getState().deleteEdge(e1.id);
+
+    store
+      .getState()
+      .applyExternalGraph([store.getState().nodes[1]!], [], {
+        etag: "etag-3",
+        updatedAt: "2026-01-01T00:00:03.000Z"
+      });
+
+    store.temporal.getState().undo();
+    expect(store.getState().nodes.map((node) => node.id)).toEqual(["n2"]);
+    expect(store.getState().edges).toEqual([]);
+
+    store.temporal.getState().redo();
+    expect(store.getState().nodes.map((node) => node.id)).toEqual(["n2"]);
+    expect(store.getState().edges).toEqual([]);
+  });
 });
 
 describe("Input Node Name Generation", () => {

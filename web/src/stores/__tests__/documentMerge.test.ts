@@ -5,6 +5,7 @@
  */
 import {
   mergeByUnits,
+  rebaseDocumentSnapshots,
   type DocumentMergeAdapter,
   type MergeCollection,
   type MergeUnitField
@@ -188,7 +189,7 @@ describe("mergeByUnits", () => {
       };
 
       const result = mergeByUnits(base, draftDeleted, server, adapter(), {
-        ops: [{ tool: "update_unit", input: { id: "b" } }]
+        ops: [{ tool: "update_unit", input: { id: "a" } }]
       });
 
       expect(result.doc.units.map((u) => u.id)).toEqual(["a"]);
@@ -755,6 +756,156 @@ describe("mergeByUnits", () => {
       });
       expect(result.conflicts).toEqual([]);
     });
+
+    it("preserves draft-only nested lines and takes", () => {
+      interface Take {
+        id: string;
+        audio: string;
+      }
+      interface NestedLine {
+        id: string;
+        text: string;
+        takes: Take[];
+      }
+      interface NestedUnit {
+        id: string;
+        label: string;
+        lines: NestedLine[];
+      }
+      interface NestedDoc {
+        name: string;
+        sections: NestedUnit[];
+      }
+      const nestedAdapter: DocumentMergeAdapter<NestedDoc> = {
+        collections: [
+          {
+            kind: "section",
+            read: (doc) => doc.sections,
+            write: (doc, sections) => ({
+              ...doc,
+              sections: sections as NestedUnit[]
+            }),
+            unitId: (unit) => (unit as NestedUnit).id,
+            unitLabel: (unit) => (unit as NestedUnit).label,
+            unitFields: [
+              {
+                field: "lines",
+                itemId: (item) => (item as NestedLine).id,
+                fields: [
+                  {
+                    field: "takes",
+                    itemId: (item) => (item as Take).id
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        unitsTouchedByOp: () => [{ kind: "section", unitId: "s1" }]
+      };
+      const baseDoc: NestedDoc = {
+        name: "script",
+        sections: [
+          {
+            id: "s1",
+            label: "s1",
+            lines: [{ id: "l1", text: "base", takes: [] }]
+          }
+        ]
+      };
+      const draftDoc: NestedDoc = {
+        name: "script",
+        sections: [
+          {
+            id: "s1",
+            label: "s1",
+            lines: [
+              { id: "l1", text: "base", takes: [{ id: "t-local", audio: "local.wav" }] },
+              { id: "l-local", text: "local line", takes: [] }
+            ]
+          }
+        ]
+      };
+      const serverDoc: NestedDoc = {
+        name: "script",
+        sections: [
+          {
+            id: "s1",
+            label: "s1",
+            lines: [{ id: "l1", text: "agent text", takes: [] }]
+          }
+        ]
+      };
+
+      const result = mergeByUnits(
+        baseDoc,
+        draftDoc,
+        serverDoc,
+        nestedAdapter,
+        { ops: [{ tool: "update_section", input: { id: "s1" } }] }
+      );
+
+      expect(result.doc.sections[0].lines).toEqual([
+        { id: "l1", text: "agent text", takes: [{ id: "t-local", audio: "local.wav" }] },
+        { id: "l-local", text: "local line", takes: [] }
+      ]);
+      expect(result.conflicts).toEqual([]);
+    });
+  });
+
+  describe("draft deletions versus server edits", () => {
+    it("reports a touched server edit and preserves the deletion in nextBase", () => {
+      const draftDeleted: Doc = {
+        ...base,
+        units: [base.units[0]]
+      };
+      const serverEdited: Doc = {
+        ...base,
+        units: [base.units[0], { ...base.units[1], value: "agent-b" }]
+      };
+      const ops: DocumentOp[] = [
+        { tool: "update_unit", input: { id: "b" } }
+      ];
+
+      const first = mergeByUnits(base, draftDeleted, serverEdited, adapter(), {
+        ops
+      });
+
+      expect(first.doc.units.map((unit) => unit.id)).toEqual(["a"]);
+      expect(first.conflicts).toEqual([
+        {
+          unit: { kind: "unit", id: "b", label: "Unit B" },
+          external: { id: "b", label: "Unit B", value: "agent-b" },
+          reason: "deleted"
+        }
+      ]);
+      expect(first.nextBase.units).toEqual(base.units);
+
+      const second = mergeByUnits(
+        first.nextBase,
+        first.doc,
+        serverEdited,
+        adapter(),
+        { ops }
+      );
+      expect(second.conflicts).toEqual(first.conflicts);
+    });
+
+    it("keeps an untouched server edit silent while preserving the deletion", () => {
+      const draftDeleted: Doc = { ...base, units: [base.units[0]] };
+      const serverEdited: Doc = {
+        ...base,
+        units: [base.units[0], { ...base.units[1], value: "agent-b" }]
+      };
+
+      const result = mergeByUnits(base, draftDeleted, serverEdited, adapter(), {
+        ops: [{ tool: "update_unit", input: { id: "a" } }]
+      });
+
+      expect(result.doc.units.map((unit) => unit.id)).toEqual(["a"]);
+      expect(result.conflicts).toEqual([]);
+      expect(result.nextBase.units).toEqual(base.units);
+    });
   });
 
   describe("nextBase — the base for the write after this one", () => {
@@ -876,5 +1027,106 @@ describe("mergeByUnits", () => {
 
     expect(draft).toEqual(draftCopy);
     expect(server).toEqual(serverCopy);
+  });
+});
+
+describe("rebaseDocumentSnapshots", () => {
+  it("keeps an adopted changed unit after an older checkpoint's anchor", () => {
+    const rebaseAdapter: DocumentMergeAdapter<Doc> = {
+      collections: [collection]
+    };
+    const before: Doc = {
+      ...base,
+      units: [base.units[0], { ...base.units[1], value: "draft" }]
+    };
+    const after: Doc = {
+      ...before,
+      units: [base.units[0], { ...base.units[1], value: "agent" }]
+    };
+    const [rebased] = rebaseDocumentSnapshots(
+      [{ ...base, units: [base.units[0]] }],
+      before,
+      after,
+      rebaseAdapter
+    );
+
+    expect(rebased.units).toEqual([
+      base.units[0],
+      { ...base.units[1], value: "agent" }
+    ]);
+  });
+
+  it("retains the order of multiple adopted nested additions", () => {
+    const rebaseAdapter: DocumentMergeAdapter<Doc> = {
+      collections: [
+        {
+          ...collection,
+          unitFields: [
+            {
+              field: "items",
+              itemId: (item) => (item as SubItem).id
+            }
+          ]
+        }
+      ]
+    };
+    const before: Doc = {
+      ...base,
+      units: [{ ...base.units[0], items: [] }, base.units[1]]
+    };
+    const after: Doc = {
+      ...before,
+      units: [
+        {
+          ...base.units[0],
+          items: [
+            { id: "agent-1", text: "first" },
+            { id: "agent-2", text: "second" }
+          ]
+        },
+        base.units[1]
+      ]
+    };
+    const [rebased] = rebaseDocumentSnapshots(
+      [{ ...base, units: [{ ...base.units[0], items: [] }, base.units[1]] }],
+      before,
+      after,
+      rebaseAdapter
+    );
+
+    expect(rebased.units[0].items).toEqual([
+      { id: "agent-1", text: "first" },
+      { id: "agent-2", text: "second" }
+    ]);
+  });
+
+  it("deletes adopted rest fields from older checkpoints", () => {
+    const rebaseAdapter: DocumentMergeAdapter<Doc> = {
+      collections: [
+        {
+          ...collection,
+          unitFields: [{ field: "label" }]
+        }
+      ]
+    };
+    const before: Doc = {
+      ...base,
+      units: [{ ...base.units[0], value: "draft" }, base.units[1]]
+    };
+    const after: Doc = {
+      ...base,
+      units: [{ id: base.units[0].id, label: base.units[0].label }, base.units[1]]
+    };
+    const [rebased] = rebaseDocumentSnapshots(
+      [{ ...base, units: [{ ...base.units[0], value: "draft" }, base.units[1]] }],
+      before,
+      after,
+      rebaseAdapter
+    );
+
+    expect(rebased.units[0]).toEqual({
+      id: base.units[0].id,
+      label: base.units[0].label
+    });
   });
 });

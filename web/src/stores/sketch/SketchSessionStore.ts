@@ -78,6 +78,7 @@ type ImageDocumentData = sketch.ImageDocumentData;
 export type { LayerWorkflowBinding };
 
 type SketchDocumentResponse = Awaited<ReturnType<typeof trpcClient.sketch.get.query>>;
+type SketchSaveResult = Pick<SketchDocumentResponse, "updatedAt">;
 
 interface ExternalizationResult {
   sketch: PersistedSketchEditorState;
@@ -771,7 +772,7 @@ async function saveSnapshot(
   name: string,
   revisionOverride?: string,
   onSaved?: (response: SketchDocumentResponse) => void
-): Promise<SketchDocumentResponse> {
+): Promise<SketchSaveResult> {
   const session = instance.session;
   const layerBindings = Object.values(session.getState().bindings);
   const snapshot = buildSnapshot(instance.editor);
@@ -785,12 +786,7 @@ async function saveSnapshot(
   );
 
   if (nextHash === store.lastServerHash) {
-    return {
-      id: documentId,
-      updatedAt: store.baseUpdatedAt ?? "",
-      name,
-      document: { sketch: prepared.sketch, layerBindings }
-    } as SketchDocumentResponse;
+    return { updatedAt: store.baseUpdatedAt ?? "" };
   }
 
   if (preparedBytes > MAX_PERSISTED_IMAGE_DOCUMENT_BYTES) {
@@ -803,12 +799,7 @@ async function saveSnapshot(
       dedupeKey: `sketch-autosave-too-large:${documentId}`,
       replaceExisting: true
     });
-    return {
-      id: documentId,
-      updatedAt: store.baseUpdatedAt ?? "",
-      name,
-      document: { sketch: prepared.sketch, layerBindings }
-    } as SketchDocumentResponse;
+    return { updatedAt: store.baseUpdatedAt ?? "" };
   }
 
   if (prepared.externalizedLayerIds.length > 0) {
@@ -850,8 +841,8 @@ async function saveSnapshot(
     // `refetchOnMount: false`) returns the snapshot fetched on first load,
     // so any edits saved during the session vanish on revisit until gcTime
     // expires.
-  onSaved?.(response);
-  return response;
+    onSaved?.(response);
+    return { updatedAt: response.updatedAt };
 }
 
 export async function saveSketchDocument(

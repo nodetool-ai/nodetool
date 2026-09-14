@@ -57,6 +57,8 @@ import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
 import { edgesFrom, edgesTargeting } from "../hooks/nodes/edgeIndex";
 import { isFunction } from "../utils/typePredicates";
+import { rebaseDocumentSnapshots } from "./documentMerge";
+import { workflowMergeAdapter, type WorkflowMergeDoc } from "./workflowMerge";
 
 // Preserve node object identity when the class doesn't actually change.
 // React Flow skips re-adopting a node whose object identity is unchanged
@@ -1131,6 +1133,68 @@ export const createNodeStore = (
                 temporal?: StoreApi<TemporalState<PartializedNodeStore>>;
               }
             ).temporal;
+            const current = get();
+            const before: WorkflowMergeDoc = {
+              nodes: current.nodes,
+              edges: current.edges
+            };
+            const after: WorkflowMergeDoc = { nodes, edges };
+            const temporalState = temporalApi?.getState();
+            if (temporalApi && temporalState) {
+              const rebaseGraphs = (
+                snapshots: readonly PartializedNodeStore[]
+              ): PartializedNodeStore[] => {
+                const rebased = rebaseDocumentSnapshots(
+                  snapshots.map((snapshot) => ({
+                    nodes: snapshot.nodes,
+                    edges: snapshot.edges
+                  })),
+                  before,
+                  after,
+                  workflowMergeAdapter
+                );
+                return snapshots.map((snapshot, index) => {
+                  const graph = rebased[index];
+                  if (!graph) return snapshot;
+                  // A user may have deleted an edge while an external write
+                  // removed one of its endpoint nodes. The edge is absent
+                  // from the current before/after delta, but older history
+                  // can still contain it. Preserve the graph invariant in
+                  // every rebased checkpoint.
+                  // SAFETY: the workflow adapter preserves ReactFlow node and
+                  // edge values while the generic merge engine exposes them
+                  // as unknown units.
+                  const typedGraph = graph as unknown as Pick<
+                    PartializedNodeStore,
+                    "nodes" | "edges"
+                  >;
+                  const nodeIds = new Set(
+                    typedGraph.nodes.map((node) => node.id)
+                  );
+                  const edges = typedGraph.edges.filter(
+                    (edge) =>
+                      nodeIds.has(edge.source) && nodeIds.has(edge.target)
+                  );
+                  const workflow = { ...snapshot.workflow };
+                  if (token?.etag !== undefined) {
+                    workflow.etag = token.etag;
+                  }
+                  if (token?.updatedAt !== undefined) {
+                    workflow.updated_at = token.updatedAt;
+                  }
+                  return {
+                    ...snapshot,
+                    nodes: typedGraph.nodes,
+                    edges,
+                    workflow
+                  };
+                });
+              };
+              temporalApi.setState({
+                pastStates: rebaseGraphs(temporalState.pastStates),
+                futureStates: rebaseGraphs(temporalState.futureStates)
+              });
+            }
             temporalApi?.getState().pause();
             try {
               set({ nodes, edges });

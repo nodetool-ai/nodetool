@@ -118,6 +118,31 @@ describe("JsScriptStore", () => {
     expect(doc()?.code).toBe("second");
   });
 
+  it("keeps an external test addition through undo and redo", () => {
+    store().ensureScript(ID);
+    store().setCode(ID, "first");
+    store().setDescription(ID, "mine");
+    store().undo(ID);
+
+    const before = store().getScript(ID);
+    expect(before).toBeDefined();
+    store().applyMerged(ID, {
+      ...before!,
+      document: {
+        ...before!.document,
+        tests: [{ name: "agent", inputs: {} }]
+      }
+    });
+
+    store().undo(ID);
+    expect(doc()?.tests).toEqual([{ name: "agent", inputs: {} }]);
+    store().redo(ID);
+    expect(doc()?.tests).toEqual([{ name: "agent", inputs: {} }]);
+    store().redo(ID);
+    expect(store().getScript(ID)?.document.description).toBe("mine");
+    expect(doc()?.tests).toEqual([{ name: "agent", inputs: {} }]);
+  });
+
   it("removeScript drops the entry, its revision, status and results", () => {
     store().ensureScript(ID);
     store().setServerRevision(ID, "rev-1");

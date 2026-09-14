@@ -34,8 +34,11 @@ import {
   clearHistory,
   canUndo,
   canRedo,
+  rebaseHistoryForMerge,
   type HistoryMap
 } from "../documentHistory";
+import { rebaseDocumentSnapshots } from "../documentMerge";
+import { storyboardMergeAdapter } from "./merge";
 import type {
   ImageModelValue,
   LanguageModelValue,
@@ -674,19 +677,32 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
     ),
 
   applyMerged: (id, board) =>
-    set((state) => ({
-      boards: {
-        ...state.boards,
-        [id]: {
-          ...board,
-          id,
-          updatedAt: Date.now(),
-          // Merged shots keep the draft's order but can carry stale or
-          // duplicate indices; renumber so shot N is always index N.
-          shots: renumberShots(board.shots)
-        }
-      }
-    })),
+    set((state) => {
+      const previous = state.boards[id];
+      const nextBoard = {
+        ...board,
+        id,
+        updatedAt: Date.now(),
+        // Merged shots keep the draft's order but can carry stale or
+        // duplicate indices; renumber so shot N is always index N.
+        shots: renumberShots(board.shots)
+      };
+      const rebasedHistory = previous
+        ? rebaseHistoryForMerge(state.history, id, (checkpoint) => {
+            const [rebased] = rebaseDocumentSnapshots(
+              [checkpoint],
+              previous,
+              nextBoard,
+              storyboardMergeAdapter
+            );
+            return { ...rebased, shots: renumberShots(rebased.shots) };
+          })
+        : state.history;
+      return {
+        boards: { ...state.boards, [id]: nextBoard },
+        history: rebasedHistory
+      };
+    }),
 
   removeBoard: (id) =>
     set((state) => {

@@ -7,7 +7,7 @@
  * and `tests/document-edit-tools.test.ts` run unmodified against those classes.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { ImageDocument, ModelObserver, initTestDb } from "@nodetool-ai/models";
 import { decodeSketchLayerData } from "@nodetool-ai/protocol/api-schemas/sketch.js";
@@ -284,6 +284,133 @@ describe("sketches capability behaviour", () => {
     expect(result).toMatchObject({ applied: 1, failed: 0 });
     expect(result.layers.map((l) => l.name)).toEqual(["Background", "Shadow"]);
     expect(result.active_layer_id).not.toBe("layer-1");
+  });
+
+  it("attributes active-layer edits after selection to the selected layer", async () => {
+    const row = await makeSketch({
+      document: JSON.stringify({
+        ...documentData(),
+        sketch: {
+          ...documentData().sketch,
+          layers: [
+            documentData().sketch.layers[0],
+            { ...documentData().sketch.layers[0], id: "layer-2", name: "Foreground" }
+          ]
+        }
+      })
+    });
+    let metadata: unknown[] | undefined;
+    ModelObserver.subscribe(
+      (_instance, _event, meta) => {
+        metadata = meta?.ops;
+      },
+      "ImageDocument"
+    );
+
+    const result = (await run().invoke("edit_sketch", {
+      image_document_id: row.id,
+      ops: [
+        { op: "select_layer", target: "Foreground" },
+        { op: "set_layer_props", target: "active", opacity: 0.5 }
+      ]
+    })) as { applied: number; failed: number };
+    expect(result).toMatchObject({ applied: 2, failed: 0 });
+    expect(metadata?.[1]).toMatchObject({
+      tool: "set_layer_props",
+      input: { target: "layer-2" }
+    });
+  });
+
+  it("resolves metadata again when a CAS retry sees a new active layer", async () => {
+    const row = await makeSketch({
+      document: JSON.stringify({
+        ...documentData(),
+        sketch: {
+          ...documentData().sketch,
+          layers: [
+            documentData().sketch.layers[0],
+            { ...documentData().sketch.layers[0], id: "layer-2", name: "Foreground" }
+          ]
+        }
+      })
+    });
+    let metadata: unknown[] | undefined;
+    ModelObserver.subscribe(
+      (_instance, _event, meta) => {
+        metadata = meta?.ops;
+      },
+      "ImageDocument"
+    );
+
+    const originalUpdate = ImageDocument.updateDocumentDataIfUnchanged;
+    let calls = 0;
+    const spy = vi
+      .spyOn(ImageDocument, "updateDocumentDataIfUnchanged")
+      .mockImplementation(async (id, expectedUpdatedAt, data, meta) => {
+        calls += 1;
+        if (calls === 1) {
+          const concurrent = await ImageDocument.findById(id);
+          const concurrentData = concurrent!.toDocumentData();
+          concurrentData.sketch = {
+            ...concurrentData.sketch,
+            activeLayerId: "layer-2"
+          };
+          await originalUpdate.call(
+            ImageDocument,
+            id,
+            expectedUpdatedAt,
+            concurrentData
+          );
+          return null;
+        }
+        return originalUpdate.call(
+          ImageDocument,
+          id,
+          expectedUpdatedAt,
+          data,
+          meta
+        );
+      });
+
+    try {
+      const result = (await run().invoke("edit_sketch", {
+        image_document_id: row.id,
+        ops: [{ op: "set_layer_props", target: "active", opacity: 0.5 }]
+      })) as { applied: number; failed: number };
+      expect(result).toMatchObject({ applied: 1, failed: 0 });
+      expect(spy).toHaveBeenCalledTimes(2);
+      expect(metadata?.[0]).toMatchObject({
+        tool: "set_layer_props",
+        input: { target: "layer-2" }
+      });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("does not attribute failed sketch operations to merge units", async () => {
+    const row = await makeSketch();
+    let metadata: unknown[] | undefined;
+    ModelObserver.subscribe(
+      (_instance, _event, meta) => {
+        metadata = meta?.ops;
+      },
+      "ImageDocument"
+    );
+
+    const result = (await run().invoke("edit_sketch", {
+      image_document_id: row.id,
+      ops: [
+        { op: "set_layer_props", target: "Missing", opacity: 0.5 },
+        { op: "set_layer_props", target: "Background", opacity: 0.4 }
+      ]
+    })) as { applied: number; failed: number };
+    expect(result).toMatchObject({ applied: 1, failed: 1 });
+    expect(metadata).toHaveLength(1);
+    expect(metadata?.[0]).toMatchObject({
+      tool: "set_layer_props",
+      input: { target: "layer-1" }
+    });
   });
 
   it("puts an asset on a layer, so the editor has something to draw", async () => {
