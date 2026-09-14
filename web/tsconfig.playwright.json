@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "esnext", "webworker"],
     "types": [
       "@playwright/test",
       "@testing-library/jest-dom",
@@ -12,9 +13,7 @@
   },
   "include": [
     "playwright*.config.ts",
-    "src/**/*.d.ts",
-    "src/components/themes/paletteDark.ts",
-    "src/perf/realtimePerfHarness.ts",
+    "src",
     "tests/**/*.ts",
     "tests/**/*.tsx"
   ]
