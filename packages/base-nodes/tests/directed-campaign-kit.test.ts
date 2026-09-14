@@ -179,7 +179,8 @@ async function runWorkflow(
   registerBaseNodes(registry);
   const fake = createFakeContext({
     providers: { openai: provider },
-    jobId: `directed-campaign-${workflow.id}`
+    jobId: `directed-campaign-${workflow.id}`,
+    persistOutputAssets: false
   });
   const session = await ExecutionSession.create({
     graph: workflow.graph,
@@ -510,14 +511,88 @@ describe("Directed Campaign Kit workflow contracts", () => {
     });
   });
 
-  it("executes deterministic layouts, escapes exact copy, preserves original artifacts, and restores the portable record", async () => {
+  it("executes every stage graph with the previous stage's handoff", async () => {
     const specialHeadline = 'Olive & Co. says "go" <outside>\nDéjà vu home.';
     const specialCta = "Meet Olive & roam";
-    const originalContract = acceptedContract(specialHeadline, specialCta);
-    const originalHero = imageRef(TINY_PNG);
+    const directionProvider = new FakeProvider({
+      textResponse: JSON.stringify(DIRECTIONS),
+      shouldStream: false
+    });
+    const directionsRun = await runWorkflow(
+      FILES.directions,
+      {
+        product_image: imageRef(TINY_PNG),
+        product_name: "Olive Travel Cup",
+        campaign_message: "Take everyday travel beyond the direct route.",
+        audience: "Commuters who spend weekends outdoors",
+        headline: specialHeadline,
+        cta: specialCta,
+        reference_image: imageRef(TINY_PNG),
+        reference_role: "lighting",
+        reference_use: "Use the low angle of the light",
+        reference_ignore: "Ignore the depicted objects"
+      },
+      directionProvider
+    );
+    let plan: string;
+    try {
+      expect(directionsRun.result.status, directionsRun.result.error).toBe(
+        "completed"
+      );
+      expect(oneString(directionsRun.result, "phase")).toBe(
+        "directions_ready"
+      );
+      expect(oneString(directionsRun.result, "directions")).toContain(
+        "### B — Long way home"
+      );
+      plan = oneString(directionsRun.result, "plan");
+      expect(JSON.parse(plan)).toMatchObject({
+        schemaVersion: 1,
+        brief: {
+          productName: "Olive Travel Cup",
+          headline: specialHeadline,
+          cta: specialCta,
+          referenceRole: "lighting"
+        },
+        directions: [{ id: "A" }, { id: "B" }, { id: "C" }]
+      });
+      expect(directionProvider.callCount).toBe(1);
+    } finally {
+      directionsRun.fake.cleanup();
+    }
+
+    const heroRun = await runWorkflow(FILES.hero, { plan, choice: "B" });
+    let originalHero: unknown;
+    let originalContractText: string;
+    try {
+      expect(heroRun.result.status, heroRun.result.error).toBe("completed");
+      expect(oneString(heroRun.result, "phase")).toBe("hero_ready");
+      originalHero = one(heroRun.result, "hero");
+      expect(originalHero).toMatchObject({
+        type: "image",
+        mimeType: "image/png"
+      });
+      originalContractText = oneString(heroRun.result, "contract");
+      expect(JSON.parse(originalContractText)).toMatchObject({
+        schemaVersion: 1,
+        kind: "hero",
+        selectedDirection: { id: "B", title: "Long way home" },
+        copy: {
+          productName: "Olive Travel Cup",
+          headline: specialHeadline,
+          cta: specialCta
+        },
+        sourceOrder: ["product identity", "optional lighting reference"]
+      });
+      expect(heroRun.provider.callCount).toBe(1);
+    } finally {
+      heroRun.fake.cleanup();
+    }
+
+    const originalContract = JSON.parse(originalContractText);
     const originalRun = await runWorkflow(FILES.layouts, {
       hero: originalHero,
-      contract: JSON.stringify(originalContract),
+      contract: originalContractText,
       version: "original"
     });
     let originalRecordText: string;
@@ -567,17 +642,45 @@ describe("Directed Campaign Kit workflow contracts", () => {
       "System font fallback: Arial, Helvetica, sans-serif"
     );
 
-    const revisionPrepared = await runCode(FILES.revision, "revision-prepare", {
+    const revisionStage = await runWorkflow(FILES.revision, {
       hero: originalHero,
-      contract: JSON.stringify(originalContract),
+      contract: originalContractText,
       change: "Move the scene from late afternoon to blue hour.",
       preserve: "Keep product geometry and composition.",
       allow: "Let shadows respond."
     });
-    const revisedHero = imageRef(TINY_PNG);
+    let revisedHero: unknown;
+    let revisedContractText: string;
+    try {
+      expect(revisionStage.result.status, revisionStage.result.error).toBe(
+        "completed"
+      );
+      expect(oneString(revisionStage.result, "phase")).toBe("revision_review");
+      revisedHero = one(revisionStage.result, "hero");
+      expect(revisedHero).toMatchObject({
+        type: "image",
+        mimeType: "image/png"
+      });
+      revisedContractText = oneString(revisionStage.result, "contract");
+      expect(JSON.parse(revisedContractText)).toMatchObject({
+        schemaVersion: 1,
+        kind: "revision",
+        parentContract: originalContract,
+        revisionRequest: {
+          change: "Move the scene from late afternoon to blue hour.",
+          preserve: "Keep product geometry and composition.",
+          allow: "Let shadows respond."
+        },
+        sourceOrder: ["accepted campaign hero"]
+      });
+      expect(revisionStage.provider.callCount).toBe(1);
+    } finally {
+      revisionStage.fake.cleanup();
+    }
+
     const revisionRun = await runWorkflow(FILES.layouts, {
       hero: revisedHero,
-      contract: revisionPrepared.contract,
+      contract: revisedContractText,
       version: "revision",
       original_record: documentRef(originalRecordText)
     });

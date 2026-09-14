@@ -101,6 +101,23 @@ describe("ClipBody fades and transitions", () => {
     expect(screen.queryByTestId("clip-fade-in-c1")).toBeNull();
   });
 
+  it("skips fades on media that draws but makes no sound", () => {
+    // A fade is an audio envelope: the compositor draws nothing from it, so a
+    // ramp over a still or an overlay would promise something it cannot do.
+    renderBody(makeClip({ mediaType: "image", fadeInMs: 500 }));
+    expect(screen.queryByTestId("clip-fade-in-c1")).toBeNull();
+    renderBody(makeClip({ mediaType: "overlay", fadeInMs: 500 }));
+    expect(screen.queryByTestId("clip-fade-in-c1")).toBeNull();
+  });
+
+  it("draws a fade ramp along the shape the clip authored", () => {
+    renderBody(makeClip({ fadeInMs: 500, fadeInShape: "sCurve" }));
+    expect(screen.getByTestId("clip-fade-in-c1")).toHaveAttribute(
+      "data-fade-shape",
+      "sCurve"
+    );
+  });
+
   it("draws the incoming transition with its type when wide enough", () => {
     renderBody(
       makeClip({ transitionIn: { type: "crossfade", durationMs: 800 } })

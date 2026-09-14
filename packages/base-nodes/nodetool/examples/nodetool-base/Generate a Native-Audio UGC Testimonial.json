@@ -122,9 +122,9 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "",
-            "id": "",
-            "name": "",
+            "provider": "atlascloud",
+            "id": "bytedance/seedance-2.5/reference-to-video",
+            "name": "Seedance 2.5 Reference to Video",
             "path": null,
             "supported_tasks": ["reference_to_video"]
           },

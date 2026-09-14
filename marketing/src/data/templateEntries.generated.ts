@@ -1226,6 +1226,102 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/assemble-a-ugc-product-video",
+    "title": "Assemble a UGC Product Video — NodeTool AI Workflow Template",
+    "description": "Keep the creator on camera for the full vertical testimonial and place the product demonstration over her as a silent picture-in-picture proof moment.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "assemble-a-ugc-product-video",
+    "name": "Assemble a UGC Product Video",
+    "summary": "Keep the creator on camera for the full vertical testimonial and place the product demonstration over her as a silent picture-in-picture proof moment.",
+    "tags": [
+      "video",
+      "marketing",
+      "ugc",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Overlay",
+        "label": "Overlay",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "creator",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 80,
+          "width": 280
+        },
+        {
+          "id": "proof",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 300,
+          "width": 280
+        },
+        {
+          "id": "overlay",
+          "type": "nodetool.video.Overlay",
+          "title": "Overlay",
+          "x": 400,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "video-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 820,
+          "y": 180,
+          "width": 260
+        }
+      ],
+      "edges": [
+        {
+          "source": "creator",
+          "sourceHandle": "output",
+          "target": "overlay",
+          "targetHandle": "main_video",
+          "color": "any"
+        },
+        {
+          "source": "proof",
+          "sourceHandle": "output",
+          "target": "overlay",
+          "targetHandle": "overlay_video",
+          "color": "any"
+        },
+        {
+          "source": "overlay",
+          "sourceHandle": "output",
+          "target": "video-out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/audio-to-image",
     "title": "Audio To Image — NodeTool AI Workflow Template",
     "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
@@ -8896,7 +8992,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Reference To Video",
           "x": 820,
           "y": 190,
-          "width": 320
+          "width": 320,
+          "subtitle": "bytedance/seedance-2.5/reference-to-video"
         },
         {
           "id": "video-out",

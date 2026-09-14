@@ -26,6 +26,11 @@ npm install @nodetool-ai/timeline
 | `splitClip` | function | Split a clip at a time into two clips |
 | `trimClip` | function | Trim a clip's in/out points |
 | `snap` | function | Snap a time value to nearby points |
+| `ClipFadeShape` | type | `linear`, `sCurve`, `plus3dB`, `minus3dB` |
+| `fadeShapeGain` / `sampleFadeShape` | function | A fade curve's gain at a point, or sampled across a span |
+| `resolveClipFades` / `clipFadeGain` | function | A clip's fade lengths clamped to it, and its envelope gain |
+| `ffmpegFadeCurve` | function | The `afade` curve matching a shape |
+| `canClipFade` | function | Whether a media type has sound to fade |
 | `sourceRate` | function | Compute a clip's source playback rate |
 | `resolveSnap` / `buildSnapPoints` | function | Snapping resolution and snap-point construction |
 | `resolveTrackPlacement` | function | Resolve where a clip lands across tracks |

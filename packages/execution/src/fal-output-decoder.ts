@@ -39,13 +39,30 @@ function isUrl(value: unknown): value is string {
   return typeof value === "string" && /^https?:\/\//u.test(value);
 }
 
-function mediaType(value: Record<string, unknown>): boolean {
-  return (
-    isUrl(value.url) ||
-    isUrl(value.uri) ||
-    isUrl(value.video) ||
-    isUrl(value.audio)
-  );
+/**
+ * Field names that carry a media URL inside one fal envelope. These are the
+ * same names the live provider extractors read (`extractImageUrls`,
+ * `extractVideoUrl`, `extractAudioUrl` in `@nodetool-ai/runtime`), so a
+ * response shape the live path saves is also a media output during recovery.
+ * `packages/execution/tests/fal-media-shape-parity.test.ts` holds them level.
+ */
+export const FAL_MEDIA_URL_FIELDS = [
+  "url",
+  "uri",
+  "image",
+  "image_url",
+  "video",
+  "video_url",
+  "audio",
+  "audio_url"
+] as const;
+
+function mediaUrl(value: Record<string, unknown>): string | null {
+  for (const field of FAL_MEDIA_URL_FIELDS) {
+    const candidate = value[field];
+    if (isUrl(candidate)) return candidate;
+  }
+  return null;
 }
 
 function descriptor(
@@ -54,10 +71,46 @@ function descriptor(
   outputType: "media" | "structured",
   value: Record<string, unknown>
 ): FalOutputDescriptor {
-  const providerRef =
-    [value.url, value.uri, value.video, value.audio].find(isUrl) ?? null;
-  return { outputKey, outputIndex, outputType, providerRef, rawResult: value };
+  return {
+    outputKey,
+    outputIndex,
+    outputType,
+    providerRef: mediaUrl(value),
+    rawResult: value
+  };
 }
+
+/** Keys whose value is a media envelope, or an array of them. */
+export const FAL_MEDIA_ENVELOPE_KEYS = [
+  "image",
+  "images",
+  "video",
+  "videos",
+  "audio",
+  "audio_file",
+  "file",
+  "files",
+  "model_mesh",
+  "model_glb",
+  "mesh",
+  "outputs",
+  "results"
+] as const;
+
+/** Keys whose value is a bare media URL, or an array of them. */
+export const FAL_MEDIA_URL_ALIAS_KEYS = [
+  "image_url",
+  "image_urls",
+  "video_url",
+  "video_urls",
+  "audio_url",
+  "audio_urls"
+] as const;
+
+const FAL_MEDIA_KEYS = new Set<string>([
+  ...FAL_MEDIA_ENVELOPE_KEYS,
+  ...FAL_MEDIA_URL_ALIAS_KEYS
+]);
 
 /**
  * Decode common fal image/video/audio/file envelopes without throwing away
@@ -68,45 +121,45 @@ export function decodeFalOutputs(
   payload: Record<string, unknown>
 ): FalOutputDescriptor[] {
   const outputs: FalOutputDescriptor[] = [];
-  const add = (key: string, value: unknown, index = 0): void => {
+  const seen = new Set<string>();
+  const add = (
+    key: string,
+    value: unknown,
+    index = 0,
+    dedupe = false
+  ): void => {
     if (isRecord(value)) {
-      outputs.push(
-        descriptor(key, index, mediaType(value) ? "media" : "structured", value)
-      );
+      const url = mediaUrl(value);
+      if (url && dedupe && seen.has(url)) return;
+      if (url) seen.add(url);
+      outputs.push(descriptor(key, index, url ? "media" : "structured", value));
       return;
     }
     if (isUrl(value)) {
+      if (dedupe && seen.has(value)) return;
+      seen.add(value);
       outputs.push(descriptor(key, index, "media", { url: value }));
     }
   };
-
-  const mediaKeys = [
-    "image",
-    "images",
-    "video",
-    "videos",
-    "audio",
-    "audio_file",
-    "file",
-    "files",
-    "model_mesh",
-    "model_glb",
-    "mesh",
-    "outputs",
-    "results"
-  ];
-  for (const key of mediaKeys) {
-    const value = payload[key];
-    if (Array.isArray(value)) {
-      value.forEach((item, index) => add(key, item, index));
-    } else if (value !== undefined) {
-      add(key, value);
+  const collect = (keys: readonly string[], dedupe: boolean): void => {
+    for (const key of keys) {
+      const value = payload[key];
+      if (Array.isArray(value)) {
+        value.forEach((item, index) => add(key, item, index, dedupe));
+      } else if (value !== undefined) {
+        add(key, value, 0, dedupe);
+      }
     }
-  }
+  };
+
+  collect(FAL_MEDIA_ENVELOPE_KEYS, false);
+  // The flat aliases name the same file as the envelope above them, so a
+  // payload carrying both must not be downloaded and billed as two assets.
+  collect(FAL_MEDIA_URL_ALIAS_KEYS, true);
 
   if (outputs.length > 0) {
     const structured = Object.fromEntries(
-      Object.entries(payload).filter(([key]) => !mediaKeys.includes(key))
+      Object.entries(payload).filter(([key]) => !FAL_MEDIA_KEYS.has(key))
     );
     if (Object.keys(structured).length > 0) {
       outputs.push(descriptor("structured", 0, "structured", structured));
@@ -114,11 +167,6 @@ export function decodeFalOutputs(
     return outputs;
   }
   return [
-    descriptor(
-      "result",
-      0,
-      mediaType(payload) ? "media" : "structured",
-      payload
-    )
+    descriptor("result", 0, mediaUrl(payload) ? "media" : "structured", payload)
   ];
 }

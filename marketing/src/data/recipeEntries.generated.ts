@@ -146,47 +146,47 @@ export const recipeEntries: RecipeEntry[] = [
   {
     "sample": null,
     "productionRun": {
-      "runId": "2026-09-13-ugc-product-video",
+      "runId": "2026-09-14-ugc-cup",
       "status": "accepted",
       "statusLabel": "15-second native-audio UGC Reel",
       "proofTitle": "One take, finished for social.",
-      "summary": "A creator testimonial with word-timed captions, restrained brand motion, and a clean MORROW close.",
-      "provider": "Seedance 2.5 via AtlasCloud. Captions and motion finished in NodeTool.",
+      "summary": "A small impulse purchase becomes a playful kitchen video, with animated captions and a seventh cup joining the collection.",
+      "provider": "Seedance video supplied from Dreamina. Captions and animation added locally.",
       "hero": {
-        "src": "/apps/examples/ugc-product-video/motion-close.jpg",
-        "alt": "MORROW UGC Reel at the finished brand close.",
-        "width": 768,
-        "height": 1344
+        "src": "/recipes/runs/2026-09-14-ugc-cup/close.jpg",
+        "alt": "Creator holding an olive travel cup with the caption Look how nice.",
+        "width": 720,
+        "height": 1280
       },
       "card": {
-        "src": "/apps/examples/ugc-product-video/motion-caption.jpg",
-        "alt": "Creator testimonial with a short word-highlighted caption group.",
-        "width": 768,
-        "height": 1344
+        "src": "/recipes/runs/2026-09-14-ugc-cup/poster.jpg",
+        "alt": "Creator holding an olive cup above animated captions and seven cup icons.",
+        "width": 720,
+        "height": 1280
       },
-      "ogImage": "/apps/examples/ugc-product-video/motion-close.jpg",
+      "ogImage": "/recipes/runs/2026-09-14-ugc-cup/poster.jpg",
       "proof": {
-        "src": "/apps/examples/ugc-product-video/motion-caption.jpg",
-        "alt": "MORROW creator Reel with an opening brand bug and word-highlighted caption.",
-        "caption": "The finish follows the recorded words and keeps captions clear of the creator's face.",
-        "width": 768,
-        "height": 1344
+        "src": "/recipes/runs/2026-09-14-ugc-cup/captions.jpg",
+        "alt": "The caption six cups appears above six small cup outlines.",
+        "caption": "Six cup outlines appear with the joke. A seventh olive cup joins them on the next line.",
+        "width": 720,
+        "height": 1280
       },
       "video": {
-        "mp4": "/apps/examples/ugc-product-video/final.mp4",
+        "mp4": "/recipes/runs/2026-09-14-ugc-cup/final.mp4",
         "webm": null,
-        "poster": "/apps/examples/ugc-product-video/final-poster.jpg",
+        "poster": "/recipes/runs/2026-09-14-ugc-cup/poster.jpg",
         "hasAudio": true,
-        "caption": "The finished 15-second MORROW UGC Reel, with native audio, animated captions, and brand motion."
+        "caption": "A 15-second kitchen UGC video with animated captions, green underlines, and the original voice and room sound."
       },
       "supportedClaims": [
-        "Seedance 2.5 generated the native-audio testimonial from creator and product references through AtlasCloud.",
-        "The finishing workflow transcribed the recording into word-timed captions and added the opening bug, compact product callout, and brand close.",
-        "The final MP4 is 768×1344 at 24 fps, runs for 15 seconds, and includes audio."
+        "The supplied Dreamina recording shows the creator talking about buying another cup because it is green.",
+        "The local finishing pass added timed caption groups, animated green underlines, and six cup outlines followed by a seventh olive cup.",
+        "The final MP4 is 720×1280, runs for 15.07 seconds, and preserves the source audio without re-encoding."
       ],
       "essentialLimitation": "Generated product details, lip-sync, factual claims, and caption words still need review before publishing.",
       "limitations": [
-        "MORROW and the Olive Travel Cup are fictional sample brands.",
+        "The Olive Travel Cup is a fictional demonstration product.",
         "The model-generated performance may not reproduce every product detail exactly."
       ],
       "reviewLabel": "Reviewed example"
@@ -200,24 +200,24 @@ export const recipeEntries: RecipeEntry[] = [
         "Finish",
         "Review"
       ],
-      "introduction": "Keep the creator on camera for the full Reel, generate voice and lip-sync with a compatible native-audio video model, then finish the recording with captions, restrained graphic beats, and an exact branded close. The finished sample used Seedance 2.5 on AtlasCloud.",
+      "introduction": "Start with a small, believable observation. Keep the creator on camera, generate the voice and picture together, then time captions and a visual joke to the recording. In this example, six cup outlines become seven when she admits to buying another.",
       "inputs": [
         "One vertical creator image you have permission to send to the selected video provider",
         "One clean product reference you have permission to send to the selected video provider",
         "Approved product facts and one audience",
-        "An exact brand name and slogan",
+        "An optional brand name and closing line",
         "An optional brand accent color",
         "OpenAI and a compatible native-audio video provider configured in NodeTool"
       ],
-      "brief": "Create a 15-second vertical UGC testimonial with the creator speaking to camera throughout. Choose a native-audio reference-to-video model that accepts two ordered images, then generate voice, mouth movement, and picture together in one pass. Image 1 controls the creator and room. Image 2 controls only the product. Keep the cup fully out of frame from 0.0 to 4.5 seconds, show it once from 4.5 to 7.0 seconds without blocking the face, and keep it fully out of frame from 7.0 to 15.0 seconds. Preserve the phone-shot character of the source. Do not add generated logos, music, unsupported claims, or cutaway product shots.",
-      "note": "The app sends both reference images to the selected video provider. The finished sample used Seedance 2.5 on AtlasCloud. The app does not license a person's likeness or product artwork. The performance and product motion are generative and must be checked before publishing.",
+      "brief": "Create a 15-second vertical kitchen video with natural phone framing and dry, conversational delivery. Image 1 controls the creator and room. Image 2 controls only the product. She says: \"I bought this because it's green. That's it.\" She lifts the cup to chest height and keeps her mouth visible. Continue: \"I already have, like, six cups.\" Then: \"But apparently I needed a green one.\" End with a small smile: \"Look how nice.\" Generate the voice and picture together in one clip with continuous kitchen room tone and no music. Add captions and cup-count animation afterward.",
+      "note": "This example uses a supplied Dreamina recording and a custom local caption and animation pass. The app sends reference images to the selected video provider. The performance and product motion are generative and need review before publishing.",
       "steps": [
         {
           "id": "angle",
           "phase": "Angle",
           "stage": "Three routes",
-          "title": "Choose one believable promise",
-          "description": "Describe the offer and compare the plain, playful, and premium routes. Pick one product truth that can be shown on camera. Rewrite it as a curiosity-led hook and a short verdict rather than reading the ad copy verbatim.",
+          "title": "Choose one believable observation",
+          "description": "Describe the product and compare the plain, playful, and premium routes. Give the creator something specific to say. Here, buying another cup just because it is green becomes the whole joke.",
           "action": "Explore three angles"
         },
         {
@@ -225,7 +225,7 @@ export const recipeEntries: RecipeEntry[] = [
           "phase": "Creator",
           "stage": "Reference image",
           "title": "Lock the creator before generating",
-          "description": "Use a vertical image with a clear face, natural light, and the intended room. Keep the product out of this reference so the opening can begin on the creator alone.",
+          "description": "Use a vertical image with a clear face, everyday clothing, ordinary window light, and the intended room. Keep the product out of this reference so its entrance can be directed separately.",
           "action": "Add the creator image"
         },
         {
@@ -241,14 +241,14 @@ export const recipeEntries: RecipeEntry[] = [
           "phase": "Generate",
           "stage": "15-second script",
           "title": "Write and generate in one pass",
-          "description": "Keep the hook short enough to land before 4.5 seconds, support it with one or two product truths, and end with one recommendation. The selected native-audio model generates the dialogue, voice, lip-sync, and picture together. The finished sample used Seedance 2.5 on AtlasCloud.",
-          "action": "Make the 15-second testimonial",
+          "description": "Write short quoted lines and give each one a physical beat. Keep the voice and kitchen sound continuous across the clip. Leave room for a pause before the punchline. The example recording was supplied from Dreamina.",
+          "action": "Make the 15-second video",
           "image": {
-            "src": "/apps/examples/ugc-product-video/motion-caption.jpg",
-            "alt": "MORROW creator Reel with an opening brand bug and word-highlighted animated caption.",
-            "caption": "Short caption groups enter on the recorded words. The sage highlight follows the active word without covering the creator's face.",
-            "width": 768,
-            "height": 1344
+            "src": "/recipes/runs/2026-09-14-ugc-cup/captions.jpg",
+            "alt": "Creator holding the cup above the caption six cups and six small cup outlines.",
+            "caption": "Short caption groups follow the recorded speech. Six cup outlines arrive with a brief stagger.",
+            "width": 720,
+            "height": 1280
           }
         },
         {
@@ -256,14 +256,14 @@ export const recipeEntries: RecipeEntry[] = [
           "phase": "Finish",
           "stage": "Motion + captions",
           "title": "Finish the Reel",
-          "description": "Choose the polished or minimal caption treatment and an optional accent color. The workflow transcribes the generated audio, animates readable caption groups, adds restrained brand motion, and settles into the closing lockup around 12.8 seconds.",
+          "description": "Time readable caption groups to the recorded words. Add green underlines to the colour references, then bring in a seventh olive cup on the punchline. Keep the graphics below the face and preserve the original voice and room sound.",
           "action": "Add motion + captions",
           "image": {
-            "src": "/apps/examples/ugc-product-video/final-poster.jpg",
-            "alt": "MORROW creator Reel at 12.8 seconds with animated caption styling and the finished brand close.",
-            "caption": "The 12.8-second frame shows the finished close. Caption words and timing remain reviewable before publishing.",
-            "width": 768,
-            "height": 1344
+            "src": "/recipes/runs/2026-09-14-ugc-cup/poster.jpg",
+            "alt": "The caption I needed a green one appears above six cup outlines and a seventh olive cup.",
+            "caption": "The seventh cup gives the spoken joke a visual payoff. The original performance stays visible.",
+            "width": 720,
+            "height": 1280
           }
         },
         {
@@ -271,20 +271,20 @@ export const recipeEntries: RecipeEntry[] = [
           "phase": "Review",
           "stage": "Timing and identity",
           "title": "Check the complete Reel",
-          "description": "Watch once for voice and lip-sync, then once muted for caption rhythm and graphic placement. Scrub the product entrance, product exit, and 12.8-second close. Correct any caption that differs from the recorded words before publishing.",
+          "description": "Watch once for voice and lip-sync, then once muted for caption rhythm and graphic placement. Check the cup entrance, the six-to-seven animation, and the final smile. Correct any caption that differs from the recorded words before publishing.",
           "action": "Approve or regenerate"
         }
       ]
     },
     "route": "/recipes/ugc-product-video",
     "title": "UGC product video | NodeTool guided recipe",
-    "description": "Turn creator and product references into a polished 15-second vertical testimonial with native voice, animated captions, and a branded close.",
+    "description": "Turn creator and product references into a casual 15-second vertical video with native voice and playful caption animation.",
     "priority": 0.8,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "ugc-product-video",
     "name": "UGC product video",
-    "outcome": "Turn creator and product references into a polished 15-second vertical testimonial with native voice, animated captions, and a branded close.",
+    "outcome": "Turn creator and product references into a casual 15-second vertical video with native voice and playful caption animation.",
     "audience": "Founder-led brands, creators, and paid social teams",
     "heroThumbnail": "/apps/ugc-product-video.png",
     "bundle": "/recipes/ugc-product-video.nodetool",
@@ -294,6 +294,10 @@ export const recipeEntries: RecipeEntry[] = [
       {
         "provider": "openai",
         "env": "OPENAI_API_KEY"
+      },
+      {
+        "provider": "atlascloud",
+        "env": "ATLASCLOUD_API_KEY"
       }
     ],
     "steps": [
@@ -321,7 +325,12 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Choose a compatible native-audio reference-to-video model. Give it image 1 for creator identity and image 2 for product identity, then generate voice, lip-sync, natural phone motion, and the brief 4.5–7.0 second product beat in one pass. The finished sample used Seedance 2.5 on AtlasCloud.",
         "thumbnail": null,
         "nodeCount": 8,
-        "models": [],
+        "models": [
+          {
+            "provider": "atlascloud",
+            "model": "bytedance/seedance-2.5/reference-to-video"
+          }
+        ],
         "alternative": null
       },
       {
@@ -340,43 +349,44 @@ export const recipeEntries: RecipeEntry[] = [
   {
     "sample": null,
     "productionRun": {
-      "runId": "2026-09-12-tiny-film-crew",
-      "status": "partial",
-      "statusLabel": "15-second product commercial",
-      "proofTitle": "Big production. Everyday coffee.",
-      "summary": "A tiny film crew sets up the perfect coffee shot. Then a human hand steals the star of the show.",
-      "provider": "MiniMax H3 via AtlasCloud. Edited in NodeTool.",
+      "runId": "2026-09-14-photographic-commercial",
+      "status": "accepted",
+      "statusLabel": "13-second photographic commercial",
+      "proofTitle": "A moment before the day.",
+      "summary": "Fresh coffee pours, she takes a quiet moment, then heads out with her cup. Three shots follow one morning ritual.",
+      "provider": "Opening and exit supplied from Dreamina. Middle shot generated with Seedance 2.0 via Fal. Edited in NodeTool and encoded locally.",
       "hero": {
-        "src": "/recipes/runs/2026-09-12-tiny-film-crew/card.jpg",
-        "alt": "Miniature film crew directing a commercial around an oversized olive travel cup.",
+        "src": "/recipes/runs/2026-09-14-photographic-commercial/card.jpg",
+        "alt": "Woman holding an olive travel cup in a softly lit kitchen.",
         "width": 1200,
         "height": 630
       },
       "card": {
-        "src": "/recipes/runs/2026-09-12-tiny-film-crew/card.jpg",
-        "alt": "Miniature film crew directing a commercial around an oversized olive travel cup.",
+        "src": "/recipes/runs/2026-09-14-photographic-commercial/card.jpg",
+        "alt": "Woman holding an olive travel cup in a softly lit kitchen.",
         "width": 1200,
         "height": 630
       },
-      "ogImage": "/recipes/runs/2026-09-12-tiny-film-crew/card.jpg",
+      "ogImage": "/recipes/runs/2026-09-14-photographic-commercial/card.jpg",
       "proof": null,
       "video": {
-        "mp4": "/recipes/runs/2026-09-12-tiny-film-crew/tiny-film-crew.mp4",
+        "mp4": "/recipes/runs/2026-09-14-photographic-commercial/commercial.mp4",
         "webm": null,
-        "poster": "/recipes/runs/2026-09-12-tiny-film-crew/poster.webp",
+        "poster": "/recipes/runs/2026-09-14-photographic-commercial/poster.webp",
         "hasAudio": true,
-        "caption": "Tiny Film Crew. A 15-second ad for the fictional Olive Travel Cup, with dialogue and a closing title."
+        "caption": "A moment before the day. A 13-second commercial for the fictional Olive Travel Cup, with location sound."
       },
       "supportedClaims": [
-        "MiniMax H3 generated the five-beat scene from the product reference through NodeTool.",
-        "The editable timeline adds the closing title and adjusts audio level.",
-        "The exported 1080×1920 ad is 15 seconds long with dialogue and music."
+        "The opening shows coffee filling the cup. The closing shot follows the woman out through her front door.",
+        "The approved four-second middle shot is preserved between the two new shots in an editable NodeTool timeline.",
+        "The final MP4 is 1920×1080 at 24 fps, runs for 13 seconds, and includes balanced location sound."
       ],
-      "essentialLimitation": "The guide below demonstrates a separate four-shot commercial, not the Tiny Film Crew render.",
+      "essentialLimitation": "Generated product geometry and human motion need review before use in a brand campaign.",
       "limitations": [
-        "Verification used local frame inspection, transcription, and media checks."
+        "The Olive Travel Cup is a fictional, unbranded demonstration product.",
+        "The master was encoded locally from the saved edit. Frame inspection and media checks do not establish parity with a filmed commercial."
       ],
-      "reviewLabel": "Partial example"
+      "reviewLabel": "Reviewed example"
     },
     "guide": {
       "entry": "Storyboard",
@@ -386,164 +396,92 @@ export const recipeEntries: RecipeEntry[] = [
         "Entities",
         "Look"
       ],
-      "introduction": "A quiet-morning example: four shots, one product, three opening variations.",
+      "introduction": "Build a photographic reference, direct a physical moment, then judge the moving film. This example follows one woman and one travel cup through a quiet morning.",
       "inputs": [
-        "One clear product photo",
-        "A short creative brief",
-        "Your chosen image, video, and voice providers"
+        "A clear product photograph",
+        "A person and location reference for a lifestyle scene",
+        "A reference-capable image model and a video model with native audio"
       ],
-      "brief": "Create a quiet morning commercial for the Olive Travel Cup. Four shots: a cup on a pale kitchen worktop, a close view of the lid, the cup beside a plain cream book, and a final hero view. Warm window light. Keep the cup's shape and colour consistent. Vertical 9:16, for a 15-second ad. No generated lettering or product-performance claims.",
-      "note": "These steps show the quiet-morning commercial, a separate example from Tiny Film Crew above.",
+      "brief": "Make a photographic commercial for the Olive Travel Cup. An adult woman in an oatmeal shirt pauses in a naturally lit kitchen before starting her day. The final edit should be about 13 seconds: coffee pouring into the cup, a quiet reaction with the cup below her chin, then leaving home with it. Preserve the same cup, woman, clothes and home. Soft overcast window light, natural skin and fabric texture, restrained camera moves. Widescreen 16:9, with kitchen ambience, breath and cloth movement. No generated lettering or product-performance claims.",
+      "note": "The opening and exit were rendered in Dreamina and supplied as video files. The middle shot was selected from a Seedance 2.0 scene generated through Fal. The edit and balanced sound are saved in NodeTool, and the final movie was encoded locally.",
       "steps": [
         {
           "id": "idea",
           "phase": "Guided setup",
           "stage": "Idea",
-          "title": "Describe the ad",
-          "description": "Create a project and choose Storyboard. Paste the brief below into Idea. Describe the setting, product, and feeling you want.",
-          "action": "Continue",
-          "image": {
-            "src": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/steps/ad-c1.png",
-            "width": 3200,
-            "height": 2000,
-            "alt": "Storyboard Idea step containing the quiet morning Olive Travel Cup commercial brief.",
-            "caption": "The ad starts as a specific product, setting, mood, and format brief."
-          }
+          "title": "Choose a moment the product belongs in",
+          "description": "Create a project and choose Storyboard. Describe who uses the product, where the scene happens, and the small action that gives the ad a beginning and an ending. Include the intended format and sound.",
+          "action": "Write the brief"
         },
         {
           "id": "story",
           "phase": "Guided setup",
           "stage": "Story",
-          "title": "Choose Commercial and four shots",
-          "description": "Select Commercial and set the shot count to 4. NodeTool drafts the scenes and shot descriptions before making any images.",
-          "action": "Generate screenplay",
-          "image": {
-            "src": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/steps/ad-c2.png",
-            "width": 3200,
-            "height": 2000,
-            "alt": "Storyboard Story step with Commercial selected, four shots, and GPT-5.6-Sol as the screenplay model.",
-            "caption": "Commercial framing and four shots are chosen before any still is rendered."
-          }
-        },
-        {
-          "id": "review",
-          "phase": "Guided setup",
-          "stage": "Story",
-          "title": "Review the shot list",
-          "description": "Keep one action per shot: opening, lid detail, cup beside a book, and the closing hero. Edit the descriptions and remove any invented product claims.",
-          "action": "Set up entities",
-          "image": {
-            "src": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/steps/ad-c3.png",
-            "width": 3200,
-            "height": 2000,
-            "alt": "Storyboard review showing the four-shot Olive Travel Cup screenplay.",
-            "caption": "The four planned shots are reviewed as editable text before generation."
-          }
+          "title": "Plan the cuts and the sound together",
+          "description": "Choose Commercial. Give each shot an action: fill the cup, pause, then leave. Write what changes physically and what the audience hears. Allow each action to finish before cutting. When revising separate clips, plan how their ambience will join in the edit.",
+          "action": "Review the scene direction"
         },
         {
           "id": "entities",
           "phase": "Guided setup",
           "stage": "Entities",
-          "title": "Give every shot the same product",
-          "description": "Create a product entity from your photo, or select an existing one. Assign it to all four shots so the image model has the same visual reference.",
-          "action": "Choose the look",
-          "image": {
-            "src": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/steps/ad-c4.png",
-            "width": 3200,
-            "height": 2000,
-            "alt": "Storyboard Entities step with the Olive Travel Cup assigned to the product shots.",
-            "caption": "One product entity supplies the visual reference across the storyboard."
-          }
+          "title": "Keep the product, person and room consistent",
+          "description": "Attach the original product entity. Prepare consistent character and kitchen references, then references for the pour and the doorway exit. Assign the relevant entities to the scene. Preserve the product's proportions, lid and colour in every image.",
+          "action": "Attach the references"
         },
         {
           "id": "look",
           "phase": "Guided setup",
           "stage": "Look",
-          "title": "Set the vertical look",
-          "description": "Choose 9:16, a photographic style, and an image model that supports references. Use warm window light and a pale worktop throughout.",
-          "action": "Generate your storyboard",
+          "title": "Make the reference look photographed",
+          "description": "Use 16:9 and a reference-capable image model. Specify the actual light source, lens, skin detail, fabric weave and product finish. Here the light comes from a broad kitchen window. Inspect the reference before spending on video.",
+          "action": "Review the master frame",
           "image": {
-            "src": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/steps/ad-c5.png",
-            "width": 3200,
-            "height": 2000,
-            "alt": "Storyboard Look step configured for a portrait photographic product commercial with a FAL image model.",
-            "caption": "The portrait format, photographic treatment, and FAL image model are fixed together."
+            "src": "/recipes/runs/2026-09-14-photographic-commercial/reference.webp",
+            "alt": "Generated photographic reference of a woman and the olive travel cup in a naturally lit kitchen.",
+            "caption": "The master reference fixes the person, wardrobe, room and daylight.",
+            "width": 1672,
+            "height": 941
           }
         },
         {
-          "id": "stills",
+          "id": "detail",
           "phase": "Storyboard",
-          "stage": "Stills",
-          "title": "Choose the pictures",
-          "description": "Check the cup silhouette, lid, lighting, and space for captions. Revise individual shots until the four pictures belong together.",
-          "action": "Review each shot",
+          "stage": "References",
+          "title": "Check the physical interaction at close range",
+          "description": "Preserve the cup from the reference and describe the action with concrete verbs. As coffee enters, the level rises and covers more of the inner wall. The stream stops before overflow. Avoid re-describing the product in ways that invite a redesign.",
+          "action": "Inspect the product and hand",
           "image": {
-            "src": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/steps/ad-c6.png",
-            "width": 3200,
-            "height": 2000,
-            "alt": "Storyboard board showing six generated Olive Travel Cup stills in a warm kitchen setting.",
-            "caption": "The core sequence and alternate openings are reviewed on one storyboard."
-          }
-        },
-        {
-          "id": "script",
-          "phase": "Finish",
-          "stage": "Script",
-          "title": "Write and voice the short script",
-          "description": "Open the linked script, or use Extract script. Try the opening “Make a little room for your morning.” Choose a narrator, audition the voice, and check each line before generating the rest.",
-          "action": "Open script",
-          "image": {
-            "src": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/steps/ad-c7.png",
-            "width": 3200,
-            "height": 2000,
-            "alt": "Script editor showing four short narrator lines for the Olive Travel Cup ad.",
-            "caption": "The short voiceover remains editable line by line before delivery."
+            "src": "/recipes/runs/2026-09-14-photographic-commercial/insert.webp",
+            "alt": "Generated reference of coffee pouring from a glass carafe into the open olive cup.",
+            "caption": "The opening reference establishes the cup, carafe, light and point where the stream meets the coffee.",
+            "width": 1672,
+            "height": 941
           }
         },
         {
           "id": "motion",
           "phase": "Finish",
           "stage": "Clips",
-          "title": "Add a little movement",
-          "description": "Animate the chosen stills with a slow push-in or a small camera move. Keep product motion simple and review each clip for changes in shape.",
-          "action": "Render clips",
-          "image": {
-            "src": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/steps/ad-c8.png",
-            "width": 3200,
-            "height": 2000,
-            "alt": "Storyboard clip review with the first Olive Travel Cup shot selected.",
-            "caption": "Rendered clips are checked against the selected stills and restrained motion directions."
-          }
+          "title": "Render a directed scene",
+          "description": "Use a video model that supports image references and native audio. Direct the subject, movement, camera and sound. The opening and exit in this example were rendered in Dreamina. Preserve an approved shot by reusing its source footage instead of regenerating it.",
+          "action": "Render the scene"
+        },
+        {
+          "id": "review",
+          "phase": "Finish",
+          "stage": "Review",
+          "title": "Judge movement as carefully as the still",
+          "description": "Watch the clip with sound. Check whether the action is convincing: coffee must accumulate as it pours, and a departure must show movement out of the home. Here the doorway reference was corrected to show her back from inside the hallway. Inspect product geometry, hands and each cut.",
+          "action": "Select a usable take"
         },
         {
           "id": "timeline",
           "phase": "Finish",
           "stage": "Timeline",
-          "title": "Make the first 15-second cut",
-          "description": "Assemble the shots in the timeline. Arrange picture and voice, trim to 15 seconds, and add editable captions and the closing line “Take it with you.” Play the full cut before exporting.",
-          "action": "Assemble timeline",
-          "image": {
-            "src": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/steps/ad-c9.png",
-            "width": 3200,
-            "height": 2000,
-            "alt": "Timeline A showing portrait product clips, voice waveforms, and a 15-second sequence.",
-            "caption": "Picture, voice, and the end card are arranged in the first 15-second cut."
-          }
-        },
-        {
-          "id": "variants",
-          "phase": "Finish",
-          "stage": "Variants",
-          "title": "Change the opening, keep the rest",
-          "description": "Ask the agent for two alternate openings: a wider shadow composition and an elevated lid view. Make two more cuts using those openings and new hook lines, reusing the remaining footage and voice.",
-          "action": "Create two alternate cuts",
-          "image": {
-            "src": "/recipes/runs/2026-09-10-marketing-recipes-01/viral-video-ad-engine/steps/ad-c11.png",
-            "width": 3200,
-            "height": 2000,
-            "alt": "Timeline C showing the elevated Olive Travel Cup opening with the shared remaining edit.",
-            "caption": "The third cut changes its opening and hook while retaining the shared sequence structure."
-          }
+          "title": "Finish the actual returned footage",
+          "description": "Import the sources and assemble four seconds of pouring, the approved four-second reaction, and five seconds of departure. Balance the pouring, breath, footsteps and ambience, smoothing the sound at each join. Verify the 13-second export at 1080p and 24 fps. Add approved copy as editable text if needed.",
+          "action": "Review and export the commercial"
         }
       ]
     },
@@ -556,7 +494,7 @@ export const recipeEntries: RecipeEntry[] = [
     "slug": "viral-video-ad-engine",
     "name": "Product commercials",
     "outcome": "Give your product a story. Direct the shots, shape the sound, and finish your ad in the timeline.",
-    "audience": "Social and performance marketing teams",
+    "audience": "Product and brand marketing teams",
     "heroThumbnail": "/templates/hook-and-thumbnail-factory.jpg",
     "bundle": "/recipes/viral-video-ad-engine.nodetool",
     "workflowCount": 4,

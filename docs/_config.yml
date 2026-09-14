@@ -202,6 +202,7 @@ exclude:
   - COMPONENT_STREAMLINE_PLAN.md
   - plans/directed-campaign-kit-mini-app.md
   - plans/generation-recovery.md
+  - plans/provider-webhooks.md
   - superpowers/
   # Marketing-site audits. They cite repository source under marketing/ and
   # docs excluded above, which no built page can resolve, and nothing links

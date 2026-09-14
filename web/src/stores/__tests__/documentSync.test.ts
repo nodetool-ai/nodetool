@@ -237,6 +237,7 @@ describe("createDocumentSyncController", () => {
     revision = "rev-2";
     for (let attempt = 0; attempt < 5 && save.mock.calls.length < 2; attempt += 1) {
       await Promise.resolve();
+      jest.advanceTimersByTime(0);
     }
     expect(save).toHaveBeenCalledTimes(2);
     resolveSave({ updatedAt: "rev-3" });
