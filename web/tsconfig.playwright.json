@@ -13,7 +13,9 @@
   },
   "include": [
     "playwright*.config.ts",
-    "src",
+    "src/**/*.d.ts",
+    "src/components/themes/paletteDark.ts",
+    "src/perf/realtimePerfHarness.ts",
     "tests/**/*.ts",
     "tests/**/*.tsx"
   ]

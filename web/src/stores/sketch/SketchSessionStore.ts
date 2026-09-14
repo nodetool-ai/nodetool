@@ -790,7 +790,7 @@ async function saveSnapshot(
       updatedAt: store.baseUpdatedAt ?? "",
       name,
       document: { sketch: prepared.sketch, layerBindings }
-    } as SketchDocumentResponse;
+    } as unknown as SketchDocumentResponse;
   }
 
   if (preparedBytes > MAX_PERSISTED_IMAGE_DOCUMENT_BYTES) {
@@ -808,7 +808,7 @@ async function saveSnapshot(
       updatedAt: store.baseUpdatedAt ?? "",
       name,
       document: { sketch: prepared.sketch, layerBindings }
-    } as SketchDocumentResponse;
+    } as unknown as SketchDocumentResponse;
   }
 
   if (prepared.externalizedLayerIds.length > 0) {

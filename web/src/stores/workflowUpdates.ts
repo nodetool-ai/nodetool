@@ -1580,7 +1580,7 @@ export const handleUpdate = (
         timestamp: Date.now()
       });
       const predictionJobId =
-        data.status === "booting" ? extractJobId(data) : undefined;
+        String(data.status) === "booting" ? extractJobId(data) : undefined;
       if (predictionJobId) {
         useStatusStore
           .getState()
