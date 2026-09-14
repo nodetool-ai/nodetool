@@ -11,7 +11,14 @@ export const metadata: Metadata = {
   title: "Guided AI recipes | NodeTool",
   description:
     "Make product ads, multilingual videos, catalogue images, and storyboards with NodeTool's guided flows. Follow each step with real UI examples.",
-  alternates: { canonical: `${BASE_URL}/recipes` }
+  alternates: { canonical: `${BASE_URL}/recipes` },
+  openGraph: {
+    title: "Guided AI recipes | NodeTool",
+    description:
+      "Make product ads, multilingual videos, catalogue images, and storyboards with NodeTool's guided flows. Follow each step with real UI examples.",
+    url: `${BASE_URL}/recipes`,
+    type: "website",
+  },
 };
 
 export default function RecipesHub() {

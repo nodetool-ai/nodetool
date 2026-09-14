@@ -17,6 +17,13 @@ export const metadata: Metadata = {
   description:
     "Browse editable NodeTool workflow templates for image, video, audio, agents, and marketing. Open any in Studio, or explore simplified runnable mini apps.",
   alternates: { canonical: `${BASE_URL}/templates` },
+  openGraph: {
+    title: "AI Workflow Templates — NodeTool",
+    description:
+      "Browse editable NodeTool workflow templates for image, video, audio, agents, and marketing. Open any in Studio, or explore simplified runnable mini apps.",
+    url: `${BASE_URL}/templates`,
+    type: "website",
+  },
 };
 
 // Hub grouping order — most visual categories first.

@@ -454,8 +454,21 @@ async function waitForScreenshotReady(
     }
     case "mini-app-page.png":
     case "standalone-mini-app.png": {
-      // The route may render a workflow form or an empty-state, but it must
-      // finish loading before either is captured.
+      // A screenshot of the app shell is only useful when the seeded app is
+      // actually mounted. The runtime is scoped because the Design layer stays
+      // mounted in the workspace while Run is active.
+      const runtime = page
+        .getByTestId("application-run-layer")
+        .locator('.appbuilder-runtime[data-focus-id="app-runtime"]');
+      await expect(runtime, "mini-app runtime must be mounted").toBeVisible({
+        timeout: 15_000
+      });
+      await expect(runtime.getByRole("textbox").first()).toBeVisible({
+        timeout: 15_000
+      });
+      await expect(
+        runtime.getByRole("button", { name: /^run echo$/i }).first()
+      ).toBeVisible({ timeout: 15_000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 800);
       break;
@@ -496,6 +509,26 @@ async function waitForScreenshotReady(
     case "models-list.png":
     case "collections-explorer.png": {
       await ensureNoVisibleProgress(page);
+      if (screenshotName === "models-list.png") {
+        // The screenshot backend has no local model cache, so the manager
+        // intentionally transitions to its first-run guidance. Assert on its
+        // content instead of accepting a blank manager shell.
+        await page
+          .getByText("Get started with local models", { exact: true })
+          .waitFor({ state: "visible", timeout: 15_000 });
+        await expect(
+          page.getByText("Recommended models", { exact: true }).first()
+        ).toBeVisible();
+      } else {
+        // Collections are empty in the deterministic screenshot fixture. The
+        // instructional empty state is still meaningful content and catches a
+        // request that never resolves or a route that renders only chrome.
+        await page
+          .getByText("No collections found. Create one to get started.", {
+            exact: true
+          })
+          .waitFor({ state: "visible", timeout: 15_000 });
+      }
       break;
     }
     case "sketch-editor.png": {
@@ -777,17 +810,24 @@ if (process.env.JEST_WORKER_ID) {
     // ── Mini-apps ───────────────────────────────────────────────────────────
     test("Mini-app page", async ({ page }) => {
       test.skip(shouldSkip("mini-app-page.png"), "Already captured");
-      // The /apps route wraps MiniAppPage in panels that often spin
-      // indefinitely in the test backend; fall back to the standalone
-      // /miniapp variant which renders the same form-and-graph layout.
-      await gotoPage(page, "/miniapp/wf-story-generator");
+      // Open the seeded application resource. The legacy workflow URL now
+      // redirects only when an app is actually bound to that workflow.
+      await openMiniApp(page);
+      const runMode = page
+        .getByRole("button", { name: "Run", exact: true })
+        .first();
+      await runMode.click();
       await waitForScreenshotReady(page, "mini-app-page.png");
       await saveScreenshot(page, "mini-app-page.png");
     });
 
     test("Standalone mini-app", async ({ page }) => {
       test.skip(shouldSkip("standalone-mini-app.png"), "Already captured");
-      await gotoPage(page, "/miniapp/wf-story-generator");
+      await openMiniApp(page);
+      const runMode = page
+        .getByRole("button", { name: "Run", exact: true })
+        .first();
+      await runMode.click();
       await waitForScreenshotReady(page, "standalone-mini-app.png");
       await saveScreenshot(page, "standalone-mini-app.png");
     });
@@ -914,6 +954,10 @@ if (process.env.JEST_WORKER_ID) {
         .getByText(text, { exact: true })
         .first()
         .click({ force: true });
+      await page
+        .locator(RIGHT_SIDEBAR)
+        .first()
+        .waitFor({ state: "visible", timeout: 15_000 });
       await waitForAnimation(page, 1000);
     }
 
@@ -930,8 +974,15 @@ if (process.env.JEST_WORKER_ID) {
         .first()
         .getByRole("combobox")
         .first()
+        .waitFor({ state: "visible", timeout: 10_000 });
+      await page
+        .locator(RIGHT_SIDEBAR)
+        .first()
+        .getByRole("combobox")
+        .first()
         .click({ force: true });
       await waitForAnimation(page, 800);
+      await expect(page.getByRole("listbox").first()).toBeVisible();
       await saveScreenshot(page, "mini-app-binding-picker.png");
     });
 
@@ -944,8 +995,17 @@ if (process.env.JEST_WORKER_ID) {
         .first()
         .getByText("run", { exact: true })
         .first()
+        .waitFor({ state: "visible", timeout: 10_000 });
+      await page
+        .locator(RIGHT_SIDEBAR)
+        .first()
+        .getByText("run", { exact: true })
+        .first()
         .click({ force: true });
       await waitForAnimation(page, 1000);
+      await expect(
+        page.locator(RIGHT_SIDEBAR).first().getByText(/run workflow/i).first()
+      ).toBeVisible();
       await saveScreenshot(page, "mini-app-button-action.png");
     });
 

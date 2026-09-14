@@ -72,6 +72,7 @@ hatch. The same workflow's **`reliability-ring1`** job runs on every push to
 | `quality-assurance.yaml` | Scheduled agent fixes failing typecheck/lint/tests | none/maintenance | Advisory (`continue-on-error`) |
 | `quality-guard.yml` | Reusable pre/post quality-gate wrapper for the scheduled agent workflows | none/maintenance | Infra |
 | `screenshots.yml` | Capture and commit documentation screenshots | none/maintenance | Manual |
+| `chat-history-performance.yml` | Deterministic Playwright chat-history virtualization regression | 0 | Required when chat-history code changes |
 | `security-audit.yaml` | Manual scan for dependency CVEs, dangerous patterns, Electron misconfig | none/maintenance | Advisory (`continue-on-error`) |
 | `seo-seed.yml` | Seed SEO showcase assets via generation providers | none/maintenance | Manual |
 | `shipped-feature-inliner.yaml` | Scheduled agent inlines flags whose feature has fully shipped | none/maintenance | Advisory (`continue-on-error`) |

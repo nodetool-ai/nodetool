@@ -95,6 +95,7 @@
     "test:e2e-runner": "playwright test -c playwright.e2e-runner.config.ts",
     "test:e2e-runner:headed": "playwright test -c playwright.e2e-runner.config.ts --headed",
     "test:benchmark": "playwright test -c playwright.benchmark.config.ts",
+    "test:benchmark:chat-history": "playwright test -c playwright.benchmark.config.ts tests/benchmarks/chat-history-scroll.spec.ts",
     "test:debug-harness": "playwright test -c playwright.debug-harness.config.ts",
     "e2e-suite:prepare": "tsx tests/e2e-runner/prepareSuite.ts",
     "test:smoke": "playwright test -c playwright.smoke.config.ts",
@@ -142,6 +143,7 @@
     "ajv": ">=6.14.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@emotion/babel-plugin": "^11.13.5",
     "@eslint/compat": "^2.1.0",
     "@eslint/eslintrc": "^3.3.5",

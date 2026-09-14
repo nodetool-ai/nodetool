@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/terms",
   },
+  openGraph: {
+    title: "Terms of Use | NodeTool",
+    description:
+      "Terms of use for the NodeTool website, desktop application, and related services.",
+    url: "https://nodetool.ai/terms",
+    type: "website",
+  },
   robots: { index: true, follow: true },
 };
 
