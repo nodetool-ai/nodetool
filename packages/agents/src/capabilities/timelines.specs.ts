@@ -129,7 +129,8 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "set_baked_animation, " +
         "clear_animations, list_animation_presets, select_clip, seek, " +
         "add_marker, delete_marker, set_markers_from_beats, snap_to_beats, " +
-        "insert_composition, add_midi_clip, set_notes, set_tempo, " +
+        "insert_composition, list_takes, select_take, rename_take, " +
+        "delete_take, add_midi_clip, set_notes, set_tempo, " +
         "set_track_instrument, transpose_clip, quantize_notes, " +
         "scale_velocity. " +
         "Start with get_state to " +
@@ -212,6 +213,17 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "becoming an overlay track of its own so the layering survives. " +
         "`params` overrides the template's defaults by name; list_compositions " +
         "reports the ids and what each one takes. " +
+        "Every generated or imported result a clip has ever carried is a take " +
+        '— clip.versions. list_takes {"target"} reports each one (id, label, ' +
+        "source, provider, model, createdAt, costCredits, durationMs, status, " +
+        'favorite) plus which is active. select_take {"target", "takeId"} ' +
+        "makes a stored take current — the same switch restoreVersion does in " +
+        "the editor — refusing a take that is not `status: \"success\"`. " +
+        'rename_take {"target", "takeId", "label"} sets a take\'s display ' +
+        'label. delete_take {"target", "takeId"} removes a take from the ' +
+        "history and refuses when `takeId` is the active take: select_take a " +
+        "different take first, then delete the one you no longer want — a " +
+        "clip must always keep at least one take. " +
         'A played part is midi: add_track {"type": "midi"} makes a track that ' +
         "owns the synth (and gives the document a 120 BPM tempo if it had " +
         'none), add_midi_clip takes {"track", "start_ms", "duration_ms", ' +
