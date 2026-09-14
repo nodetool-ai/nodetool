@@ -17,6 +17,7 @@ import {
   useQueryClient,
   type UseQueryResult
 } from "@tanstack/react-query";
+import type { Entity } from "@nodetool-ai/protocol";
 
 import { trpcClient } from "../trpc/client";
 
@@ -34,6 +35,30 @@ export interface StylePresetEntity {
 }
 
 export const STYLE_PRESETS_QUERY_KEY = ["style-presets"] as const;
+
+/** Add shipped system styles to a project-scoped entity list. */
+export function mergeStylePresetEntities(
+  projectEntities: readonly Entity[] = [],
+  presets: readonly StylePresetEntity[] = []
+): Entity[] {
+  const entities = [...projectEntities];
+  const knownIds = new Set(entities.map((entity) => entity.id));
+  for (const preset of presets) {
+    if (knownIds.has(preset.entityId)) {
+      continue;
+    }
+    entities.push({
+      type: "entity",
+      id: preset.entityId,
+      project_id: "default",
+      kind: "style",
+      name: preset.name,
+      descriptor: preset.descriptor,
+      reference_images: [{ type: "image", uri: preset.thumbnail }]
+    });
+  }
+  return entities;
+}
 
 export function useStylePresets(): UseQueryResult<StylePresetEntity[], Error> {
   const queryClient = useQueryClient();

@@ -21,7 +21,10 @@ import {
 } from "../ui_primitives";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useEntities } from "../../serverState/useEntities";
-import { useStylePresets } from "../../serverState/useStylePresets";
+import {
+  mergeStylePresetEntities,
+  useStylePresets
+} from "../../serverState/useStylePresets";
 import { PresetTileGrid, type PresetTile } from "../setup/PresetTileGrid";
 
 export interface BoardStyleDialogProps {
@@ -48,7 +51,11 @@ const BoardStyleDialogInner: React.FC<BoardStyleDialogProps> = ({
     )
   );
   const { data: presets } = useStylePresets();
-  const { data: entities } = useEntities();
+  const { data: projectEntities } = useEntities();
+  const entities = useMemo(
+    () => mergeStylePresetEntities(projectEntities, presets),
+    [projectEntities, presets]
+  );
 
   const tiles = useMemo<PresetTile[]>(
     () =>
@@ -64,14 +71,14 @@ const BoardStyleDialogInner: React.FC<BoardStyleDialogProps> = ({
   // which is the one `setStylePreset` appended.
   const selectedId = useMemo(() => {
     const styleIds = new Set(
-      (entities ?? []).filter((e) => e.kind === "style").map((e) => e.id)
+      entities.filter((e) => e.kind === "style").map((e) => e.id)
     );
     return [...entityIds].reverse().find((id) => styleIds.has(id)) ?? null;
   }, [entities, entityIds]);
 
   const handleSelect = useCallback(
     (entityId: string) => {
-      setStylePreset(boardId, entityId, entities ?? []);
+      setStylePreset(boardId, entityId, entities);
       onClose();
     },
     [boardId, entities, setStylePreset, onClose]

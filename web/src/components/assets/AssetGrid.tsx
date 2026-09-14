@@ -126,8 +126,13 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isMobile = false,
   forceGlobalAssets = false
 }) => {
-  const { error, folderFilesFiltered, folderTree, refetchAssetsAndFolders } =
-    useAssets();
+  const {
+    error,
+    folderFilesFiltered,
+    folderTree,
+    navigateToFolderId,
+    refetchAssetsAndFolders
+  } = useAssets();
   const {
     setOpenAsset,
     setSelectedAssetIds,
@@ -256,8 +261,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     },
     [currentFolderId, uploadAsset]
   );
-
-  const { navigateToFolderId } = useAssets();
 
   if (selectedFolderId === null) {
     if (user) {

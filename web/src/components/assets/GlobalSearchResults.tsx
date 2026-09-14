@@ -24,7 +24,11 @@ import { useDragDropStore } from "../../lib/dragdrop/store";
 interface GlobalSearchResultsProps {
   results: AssetWithPath[];
   onAssetDoubleClick?: (asset: AssetWithPath) => void;
-  onNavigateToFolder?: (folderId: string, folderPath: string) => void;
+  onNavigateToFolder?: (
+    folderId: string,
+    folderPath: string,
+    projectId?: string
+  ) => void;
   containerWidth?: number;
 }
 
@@ -540,7 +544,8 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                             e.stopPropagation();
                             onNavigateToFolder(
                               asset.folder_id,
-                              asset.folder_path
+                              asset.folder_path,
+                              asset.project_id
                             );
                           }}
                           data-testid="global-search-navigate-folder"

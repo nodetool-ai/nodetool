@@ -6,6 +6,7 @@ import AssetGridContent from "../AssetGridContent";
 import BreadcrumbNav from "../BreadcrumbNav";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { Asset, AssetWithPath } from "../../../stores/ApiTypes";
+import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import { useTheme } from "@mui/material/styles";
 
 interface AssetFilesPanelProps {
@@ -37,6 +38,13 @@ const AssetFilesPanel: React.FC<AssetFilesPanelProps> = ({
   const setCurrentFolderIdLocal = useAssetGridStore(
     (state) => state.setCurrentFolderId
   );
+  const resetForProject = useAssetGridStore((state) => state.resetForProject);
+  const activeProjectId = useWorkspaceTabsStore(
+    (state) => state.activeProjectId
+  );
+  const setActiveProjectId = useWorkspaceTabsStore(
+    (state) => state.setActiveProjectId
+  );
 
   const handleDoubleClick = useCallback(
     (asset: Asset) => {
@@ -53,12 +61,21 @@ const AssetFilesPanel: React.FC<AssetFilesPanelProps> = ({
   );
 
   const handleNavigateToFolder = useCallback(
-    (folderId: string, _folderPath: string) => {
-      setCurrentFolderIdLocal(folderId);
+    (folderId: string, _folderPath: string, projectId?: string) => {
+      if (projectId && projectId !== activeProjectId) {
+        resetForProject(projectId);
+        setCurrentFolderIdLocal(folderId);
+        setActiveProjectId(projectId);
+      } else {
+        setCurrentFolderIdLocal(folderId);
+      }
       setIsGlobalSearchActiveLocal(false);
       setIsGlobalSearchModeLocal(false);
     },
     [
+      activeProjectId,
+      resetForProject,
+      setActiveProjectId,
       setCurrentFolderIdLocal,
       setIsGlobalSearchActiveLocal,
       setIsGlobalSearchModeLocal

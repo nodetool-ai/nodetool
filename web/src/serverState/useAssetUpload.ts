@@ -48,6 +48,7 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
     const fileWithId: UploadFile = {
       ...file,
       id: file.id || crypto.randomUUID(),
+      project_id: file.project_id ?? creationProjectId()
     };
     set({
       files: [...files, fileWithId],
@@ -106,7 +107,7 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
         get().updateStatus(nextUploadIndex, progress, "uploading");
       },
       uploadFile.source,
-      uploadFile.project_id ?? creationProjectId()
+      uploadFile.project_id
     )
       .then((asset: Asset) => {
         get().updateStatus(nextUploadIndex, 100, "completed");
