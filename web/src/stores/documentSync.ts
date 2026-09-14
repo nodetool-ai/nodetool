@@ -41,6 +41,8 @@ export interface DocumentSyncLifecycle<TDraft> {
   readonly onStatus?: (status: "saved" | "unsaved" | "saving" | "error" | "reloaded") => void;
   readonly isCasConflict?: (error: unknown) => boolean;
   readonly isRetryableError?: (error: unknown) => boolean;
+  /** Whether a pending save may start now, for editors batching gestures. */
+  readonly canSave?: (flush: boolean) => boolean;
 }
 
 /**
@@ -66,6 +68,7 @@ export function createDocumentSyncController<TDraft>(
   let timer: ReturnType<typeof setTimeout> | null = null;
   let inFlight: Promise<{ ok: true; updatedAt: string | null } | { ok: false; error: string }> | null = null;
   let flushRequested = false;
+  let followupRequested = false;
   let disposed = false;
   let retries = 0;
 
@@ -91,6 +94,10 @@ export function createDocumentSyncController<TDraft>(
     const draft = adapter.getDraft();
     const revision = adapter.getRevision();
     if ((!flush && disposed) || !draft || !revision || !adapter.isDirty()) {
+      return Promise.resolve({ ok: true, updatedAt: revision });
+    }
+    if (adapter.canSave && !adapter.canSave(flush)) {
+      if (!disposed) schedule();
       return Promise.resolve({ ok: true, updatedAt: revision });
     }
 
@@ -147,8 +154,9 @@ export function createDocumentSyncController<TDraft>(
         }
       } finally {
         inFlight = null;
-        if (flushRequested) {
+        if (flushRequested || followupRequested) {
           flushRequested = false;
+          followupRequested = false;
           void save(true);
         }
       }
@@ -163,11 +171,21 @@ export function createDocumentSyncController<TDraft>(
       if (disposed) return;
       retries = 0;
       adapter.onStatus?.("unsaved");
+      if (inFlight) {
+        followupRequested = true;
+      }
       schedule();
     },
     flush: async () => {
       clearTimer();
-      while (inFlight) await inFlight;
+      let waitedForSave = false;
+      while (inFlight) {
+        waitedForSave = true;
+        await inFlight;
+      }
+      if (waitedForSave) {
+        return { ok: true, updatedAt: adapter.getRevision() };
+      }
       return save(true);
     },
     dispose: () => {
