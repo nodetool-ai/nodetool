@@ -20,6 +20,11 @@
  *     unit (`merge`). Where both sides touched the same unit the draft wins
  *     and the refused value lands in the conflict banner. A write with no ops
  *     counts as a whole-document replacement.
+ *
+ * This is the canonical editor synchronization seam. New editors compose this
+ * controller and registry rather than implementing their own debounce,
+ * serialization, flush, CAS-recovery, or external-change lifecycle. The
+ * checked inventory is documented in `docs/document-sync.md`.
  */
 import type { DocumentOp } from "@nodetool-ai/protocol";
 
