@@ -16,13 +16,13 @@ const MEDIA_MAGIC: Record<string, string> = {
   webm: "\x1a\x45\xdf\xa3"
 };
 
-function tagText(html: string, tag: string): string[] {
+function tagContents(html: string, tag: string): string[] {
   return [
     ...html.matchAll(
       new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)</${tag}>`, "gi")
     )
   ]
-    .map((match) => (match[1] ?? "").replace(/<[^>]+>/g, "").trim())
+    .map((match) => (match[1] ?? "").trim())
     .filter(Boolean);
 }
 
@@ -44,11 +44,11 @@ test.describe("static marketing output", () => {
       expect(response.status(), `${route} status`).toBeLessThan(400);
       const html = await response.text();
 
-      const titles = tagText(html, "title");
+      const titles = tagContents(html, "title");
       expect(titles, `${route} title`).toHaveLength(1);
       expect(titles[0]).toMatch(/NodeTool/i);
 
-      const headings = tagText(html, "h1");
+      const headings = tagContents(html, "h1");
       expect(headings, `${route} h1`).toHaveLength(1);
 
       const jsonLd = [
