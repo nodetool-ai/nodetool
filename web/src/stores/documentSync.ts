@@ -139,7 +139,7 @@ export function createDocumentSyncController<TDraft>(
             if (!flush) {
               if (!disposed) {
                 adapter.onStatus?.("unsaved");
-                schedule(0);
+                schedule();
               }
               return { ok: false as const, error: error instanceof Error ? error.message : String(error) };
             }
@@ -154,10 +154,13 @@ export function createDocumentSyncController<TDraft>(
         }
       } finally {
         inFlight = null;
-        if (flushRequested || followupRequested) {
+        if (flushRequested) {
           flushRequested = false;
           followupRequested = false;
           void save(true);
+        } else if (followupRequested) {
+          followupRequested = false;
+          schedule(0);
         }
       }
     })();

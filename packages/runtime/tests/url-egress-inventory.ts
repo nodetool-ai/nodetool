@@ -318,7 +318,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "The original reason safeFetch exists."
   ),
   guardedMedia(
-    "packages/websocket/src/server.ts",
+    "packages/websocket/src/generation-recovery.ts",
     "Durable FAL output recovery download",
     "A persisted FAL result URL is copied into NodeTool storage during recovery.",
     "provider-response"
