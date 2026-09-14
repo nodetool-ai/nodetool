@@ -72,6 +72,8 @@ import {
   isProviderSessionUpdate,
   isProviderMessageEvent,
   isProviderStop,
+  httpStatusFromError,
+  groqRequestFailureMessage,
   mediaResolverFor,
   providerFailureDetail,
   type ActiveModelSelection,
@@ -173,6 +175,205 @@ import type {
 } from "../websocket-client-session.js";
 
 const log = createLogger("nodetool.websocket.runner");
+
+const GENERIC_CHAT_ERROR =
+  "Something went wrong while processing your request. Please try again.";
+
+/**
+ * Keep implementation details out of the client error envelope. Provider
+ * messages remain useful when they are short and user-facing, but database
+ * diagnostics and query arguments can contain schema details or secrets.
+ */
+function safeClientErrorText(error: unknown): string {
+  const text = error instanceof Error ? error.message : String(error);
+  if (
+    text.length > 500 ||
+    /\b(?:select|insert|update|delete)\b[\s\S]*\b(?:from|where|into|set)\b/i.test(
+      text
+    ) ||
+    /(?:sqlite|sqlstate|drizzle|query\s+(?:failed|parameter)|bind\s+parameter|database\s+error|stack\s+trace|\bparams?\s*[:=]|\bparameters?\s*[:=]|\b(?:api[_ -]?key|authorization|bearer)\s*[:=]|https?:\/\/\S*\?\S*=)/i.test(
+      text
+    )
+  ) {
+    return GENERIC_CHAT_ERROR;
+  }
+  return text || GENERIC_CHAT_ERROR;
+}
+
+type GeminiFailureKind = "quota" | "model" | "tools";
+
+interface GeminiFailureSummary {
+  readonly status: number | null;
+  readonly kind: GeminiFailureKind | null;
+  readonly message: string | null;
+}
+
+/**
+ * Gemini wraps JSON failures in a plain Error (`Gemini API error 429: …`), so
+ * the shared status helper cannot see the status when the wrapper says
+ * `API error` instead of `HTTP`. Parse only that known wrapper and retain a
+ * bounded, user-actionable classification rather than forwarding the JSON.
+ */
+function geminiFailureSummary(
+  error: unknown,
+  providerId: string
+): GeminiFailureSummary | null {
+  if (providerId.toLowerCase() !== "gemini") {
+    return null;
+  }
+  const text = error instanceof Error ? error.message : "";
+  const wrapper = text.match(/^Gemini API error(?:\s+(\d{3}))?:\s*([\s\S]+)$/i);
+  if (!wrapper) {
+    return null;
+  }
+
+  const wrapperStatus = Number(wrapper[1]);
+  let status = wrapperStatus >= 100 && wrapperStatus <= 599 ? wrapperStatus : null;
+  let message = wrapper[2].trim();
+  try {
+    const parsed: unknown = JSON.parse(wrapper[2]);
+    if (isObjectLike(parsed)) {
+      const root = parsed;
+      const nested = isObjectLike(root.error) ? root.error : root;
+      if (isObjectLike(nested)) {
+        const code = nested.code;
+        if (
+          status === null &&
+          isNumber(code) &&
+          Number.isInteger(code) &&
+          code >= 100 &&
+          code <= 599
+        ) {
+          status = code;
+        }
+        if (isString(nested.message)) {
+          message = nested.message;
+        }
+      }
+    }
+  } catch {
+    // The provider sometimes returns plain text after the same wrapper.
+  }
+
+  const lower = message.toLowerCase();
+  let kind: GeminiFailureKind | null = null;
+  if (
+    /quota|resource_exhausted|rate limit|billing|credit|limit exceeded|daily limit/.test(
+      lower
+    )
+  ) {
+    kind = "quota";
+  } else if (
+    /no longer available|model[^.]{0,80}(?:not found|unavailable|unsupported|does not exist)|(?:not found|unavailable|unsupported)[^.]{0,80}model/.test(
+      lower
+    )
+  ) {
+    kind = "model";
+  } else if (
+    /tool|function call|function calling|function_declaration/.test(lower) &&
+    /not support|unsupported|invalid|disable|not enabled/.test(lower)
+  ) {
+    kind = "tools";
+  }
+
+  const safeMessage = safeClientErrorText(message);
+  return {
+    status,
+    kind,
+    message: safeMessage === GENERIC_CHAT_ERROR ? null : safeMessage
+  };
+}
+
+function providerFailureMessage(
+  error: unknown,
+  providerId: string,
+  model: string
+): { errorType: string; message: string; statusCode: number | undefined } {
+  const gemini = geminiFailureSummary(error, providerId);
+  const groq = groqRequestFailureMessage(error);
+  const status = httpStatusFromError(error) ?? gemini?.status ?? null;
+  const rawMessage = groq ?? gemini?.message ?? safeClientErrorText(error);
+  let bodyMessage: string | null = null;
+  if (isObjectLike(error)) {
+    const body = error.body ?? error.response;
+    if (isObjectLike(body)) {
+      const bodyError = isObjectLike(body.error) ? body.error : body;
+      if (isObjectLike(bodyError) && isString(bodyError.message)) {
+        const safe = safeClientErrorText(bodyError.message);
+        bodyMessage = safe === GENERIC_CHAT_ERROR ? null : safe;
+      }
+    }
+  }
+  if (
+    providerId.toLowerCase() === "openai" &&
+    /\borganization must be verified\b/i.test(bodyMessage ?? rawMessage)
+  ) {
+    return {
+      errorType: status === null ? "error" : "http_status_error",
+      message: "This model requires a verified OpenAI organization. Verify your provider organization or choose a model your account can access.",
+      statusCode: status ?? undefined
+    };
+  }
+  const detail = providerFailureDetail(error);
+  if (detail?.code === "context_exceeded") {
+    const target = model ? `${providerId}/${model}` : providerId;
+    return {
+      errorType: "error",
+      message: `The ${target} request is too large for the model context window. Shorten the conversation or remove some attachments and try again.`,
+      statusCode: status ?? undefined
+    };
+  }
+  if (detail?.code === "provider_auth") {
+    return {
+      errorType: "error",
+      message: `Authentication failed: ${detail.provider} rejected the configured credentials. Check the API key in Settings → Models & Providers.`,
+      statusCode: status ?? undefined
+    };
+  }
+  if (status === null) {
+    return { errorType: "error", message: rawMessage, statusCode: undefined };
+  }
+
+  let message = rawMessage;
+  if (gemini?.kind === "quota") {
+    message = `Account quota exhausted for ${providerId}/${model}. Check your ${providerId} quota or billing and try again later.`;
+  } else if (gemini?.kind === "model") {
+    message = `Model ${model || "requested"} is unavailable on ${providerId}. Choose another model or check that your account has access to it.`;
+  } else if (gemini?.kind === "tools") {
+    message = `Model ${model || "requested"} does not support the requested tools on ${providerId}. Choose a model with tool support or disable tools.`;
+  } else if (status === 400) {
+    message = `Bad request: ${groq ?? bodyMessage ?? rawMessage}`;
+  } else if (status === 401) {
+    message = "Authentication failed: Invalid API key or token";
+  } else if (status === 402) {
+    message = `Account billing or credit limit reached for ${providerId}. Check your ${providerId} plan or billing.`;
+  } else if (status === 403) {
+    message =
+      "Access forbidden: You don't have permission for this resource. Check the provider key's model and account access.";
+  } else if (status === 404) {
+    message = `Model ${model || "requested"} was not found or is unavailable on ${providerId}. Choose another model or check account access.`;
+  } else if (status === 413) {
+    const detail = groq ?? bodyMessage ?? rawMessage;
+    message =
+      groq ??
+      (detail === GENERIC_CHAT_ERROR
+        ? "Request is too large for the provider. Shorten the conversation or remove some attachments and try again."
+        : `Request is too large for the provider (${detail}). Shorten the conversation or remove some attachments and try again.`);
+  } else if (status === 429) {
+    message = groq
+      ? groq
+      : "Rate limited: Too many requests or insufficient provider quota. Check your provider plan and try again later.";
+  } else if (status >= 500) {
+    message =
+      groq ??
+      bodyMessage ??
+      `Server error (${status}): The service is temporarily unavailable`;
+  } else {
+    message = `HTTP error (${status}): ${rawMessage}`;
+  }
+
+  return { errorType: "http_status_error", message, statusCode: status };
+}
 
 /**
  * How many of a user's newest memories the turn reads to build its block. The
@@ -2062,6 +2263,17 @@ export class ChatTurnHandler {
     // the client and only rescues the results still coming.
     let superseded = false;
     let drainedItems = 0;
+    let terminalDoneSent = false;
+    const sendTerminalDone = async (): Promise<void> => {
+      if (terminalDoneSent) return;
+      terminalDoneSent = true;
+      await this.session.send({
+        type: "chunk",
+        content: "",
+        done: true,
+        thread_id: threadId
+      });
+    };
 
     /**
      * Write one message this turn produced. `echo` is false for a superseded
@@ -2456,8 +2668,13 @@ export class ChatTurnHandler {
         // it drops the native-`Float32Array` audio chunks the client decodes.
         // `type === "chunk"` is Chunk's alone in this union, so test that.
         if (item.type === "chunk") {
+          // The provider loop emits a terminal chunk for its completion, and
+          // this handler emits the turn terminal below. Keep one envelope
+          // terminal even when a provider double emits its own `done` item.
           if (!item.thread_id) item.thread_id = threadId;
-          await this.session.send({ ...item });
+          await this.session.send(
+            item.done === true ? { ...item, done: false } : { ...item }
+          );
         }
       }
     };
@@ -2527,12 +2744,7 @@ export class ChatTurnHandler {
       });
 
       // Signal completion — matches Python's done chunk.
-      await this.session.send({
-        type: "chunk",
-        content: "",
-        done: true,
-        thread_id: threadId
-      });
+      await sendTerminalDone();
 
       log.debug("Chat complete", {
         threadId,
@@ -2543,13 +2755,20 @@ export class ChatTurnHandler {
         stoppedBy: turnBudget.exhausted?.kind ?? null
       });
     } catch (err) {
+      // Stop and supersede are expected control flow. Their provider errors
+      // must not become durable assistant failures or a second terminal frame.
+      if (
+        signal?.aborted === true ||
+        (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
+      ) {
+        return;
+      }
       const errMsg = err instanceof Error ? err.message : String(err);
       log.error("Chat processing error", { threadId, error: errMsg });
 
-      // Detect error type — matches Python's separate ConnectError / HTTPStatusError handlers
       let errorType = "error";
       let statusCode: number | undefined;
-      let formattedMsg = errMsg;
+      let formattedMsg = safeClientErrorText(err);
 
       // Connection errors (ECONNREFUSED, ENOTFOUND, etc.)
       if (
@@ -2566,50 +2785,13 @@ export class ChatTurnHandler {
           formattedMsg =
             "Connection error: Unable to resolve hostname. Please check your network connection and API endpoint configuration.";
         } else {
-          formattedMsg = `Connection error: ${errMsg}`;
+          formattedMsg = `Connection error: ${safeClientErrorText(err)}`;
         }
-      }
-      // HTTP status errors — check for status code in error
-      else if (isObjectLike(err) && "status" in err) {
-        const status = (err as { status: number }).status;
-        errorType = "http_status_error";
-        statusCode = status;
-
-        // Try to extract error message from response body
-        let bodyMsg: string | null = null;
-        try {
-          if ("body" in err || "response" in err) {
-            const errObj = err as Record<string, unknown>;
-            const body = errObj.body ?? errObj.response;
-            if (isObjectLike(body) && "error" in body) {
-              const errorDetail = body.error;
-              if (isObjectLike(errorDetail) && "message" in errorDetail) {
-                bodyMsg = String(errorDetail.message);
-              }
-            }
-          }
-        } catch {
-          // Intentional: best-effort extraction of error message from response body
-        }
-
-        if (bodyMsg) {
-          formattedMsg = bodyMsg;
-        } else if (status === 400) {
-          formattedMsg = `Bad request: ${errMsg}`;
-        } else if (status === 401) {
-          formattedMsg = "Authentication failed: Invalid API key or token";
-        } else if (status === 403) {
-          formattedMsg =
-            "Access forbidden: You don't have permission for this resource";
-        } else if (status === 404) {
-          formattedMsg = "Not found: The requested resource was not found";
-        } else if (status === 429) {
-          formattedMsg = "Rate limited: Too many requests, please slow down";
-        } else if (status >= 500) {
-          formattedMsg = `Server error (${status}): The service is temporarily unavailable`;
-        } else {
-          formattedMsg = `HTTP error (${status}): ${errMsg}`;
-        }
+      } else {
+        const providerFailure = providerFailureMessage(err, providerId, model);
+        errorType = providerFailure.errorType;
+        statusCode = providerFailure.statusCode;
+        formattedMsg = providerFailure.message;
       }
 
       type ErrorMessageFields = {
@@ -2632,12 +2814,7 @@ export class ChatTurnHandler {
       errorMessage.workflow_id = workflowId;
       await this.session.send(errorMessage);
       // Signal completion even on error — matches Python
-      await this.session.send({
-        type: "chunk",
-        content: "",
-        done: true,
-        thread_id: threadId
-      });
+      await sendTerminalDone();
       const errorMsgData = {
         type: "message",
         role: "assistant",
@@ -2797,8 +2974,6 @@ export class ChatTurnHandler {
     const threadId = isString(data.thread_id) ? data.thread_id : "";
     const workflowId = isString(data.workflow_id) ? data.workflow_id : null;
     const userId = this.session.requireUserId();
-    const projectId =
-      (await Project.findByThread(userId, threadId))?.id ?? null;
     const mode = String(mediaGeneration.mode ?? "");
     // The media composer's own selection first; a client without a separate
     // media picker (mobile) sends only the message-level one. The built-in
@@ -2817,6 +2992,17 @@ export class ChatTurnHandler {
     const cancelled = (): boolean =>
       signal?.aborted === true ||
       (requestSeq !== undefined && requestSeq !== this.chatRequestSeq);
+    let terminalDoneSent = false;
+    const sendTerminalDone = async (): Promise<void> => {
+      if (terminalDoneSent) return;
+      terminalDoneSent = true;
+      await this.session.send({
+        type: "chunk",
+        thread_id: threadId,
+        content: "",
+        done: true
+      });
+    };
 
     log.info("Media generation", {
       threadId,
@@ -2825,15 +3011,6 @@ export class ChatTurnHandler {
       model: modelId,
       promptLen: prompt.length
     });
-
-    if (!this.session.resolveProvider) {
-      await this.session.send({
-        type: "error",
-        message: "No provider resolver configured",
-        thread_id: threadId
-      });
-      return;
-    }
 
     if (!isModelSelection(providerId, modelId)) {
       await this.session.send({
@@ -2855,58 +3032,57 @@ export class ChatTurnHandler {
 
     if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
 
-    // Entity mentions in the prompt (`entity://<id>`, written by @-mention
-    // pickers) expand against the library here, exactly as the generate_media
-    // RPC expands them: name inline, descriptor into a Consistency references
-    // block, reference image routed into the generation inputs below. A
-    // mention that resolves to no entity drops.
-    const { prompt: expandedPrompt, referenceImages } =
-      await expandEntitiesForGeneration(
-        prompt,
-        this.deps.entityRefResolver(userId)
-      );
-    const entityImageBytes = await this.deps.resolveEntityReferenceImages(
-      userId,
-      referenceImages
-    );
-
-    const provider = await this.session.resolveProvider(providerId, userId);
-    // Wire up progress forwarding so provider.emitMessage() reaches the client.
-    provider.setMessageEmitter((msg) => {
-      this.session.sendDetached(msg as Record<string, unknown>);
-    });
-
-    // Every provider call below runs inside the generation seam, so each
-    // render is a ledger row opened before the call and closed with its cost
-    // and asset ids (docs/media-generation-tracking-design.md § 8, S5). The
-    // seam saves the asset; `storeMediaAsset` is the fallback when it could
-    // not.
-    const {
-      generate,
-      seamAssetId,
-      storeAsset: storeMediaAsset
-    } = createGenerationRun({
-      userId,
-      providerId,
-      modelId,
-      provider,
-      origin: {
-        surface: "chat",
-        thread_id: threadId || null,
-        ...(isString(data.request_id)
-          ? { request_id: data.request_id }
-          : requestSeq !== undefined
-            ? { request_id: `chat:${threadId}:${requestSeq}` }
-            : {})
-      },
-      threadId,
-      workflowId: workflowId ?? null,
-      projectId,
-      assetNamePrefix: mode,
-      signal
-    });
-
+    let projectId: string | null = null;
     try {
+      projectId = (await Project.findByThread(userId, threadId))?.id ?? null;
+
+      if (!this.session.resolveProvider) {
+        throw new Error("No provider resolver configured");
+      }
+
+      // Entity expansion and provider resolution are part of the guarded
+      // setup. A missing entity or provider must follow the same error path as
+      // a provider call and leave a durable assistant failure row.
+      const { prompt: expandedPrompt, referenceImages } =
+        await expandEntitiesForGeneration(
+          prompt,
+          this.deps.entityRefResolver(userId)
+        );
+      const entityImageBytes = await this.deps.resolveEntityReferenceImages(
+        userId,
+        referenceImages
+      );
+
+      const provider = await this.session.resolveProvider(providerId, userId);
+      provider.setMessageEmitter((msg) => {
+        this.session.sendDetached(msg as Record<string, unknown>);
+      });
+
+      const {
+        generate,
+        seamAssetId,
+        storeAsset: storeMediaAsset
+      } = createGenerationRun({
+        userId,
+        providerId,
+        modelId,
+        provider,
+        origin: {
+          surface: "chat",
+          thread_id: threadId || null,
+          ...(isString(data.request_id)
+            ? { request_id: data.request_id }
+            : requestSeq !== undefined
+              ? { request_id: `chat:${threadId}:${requestSeq}` }
+              : {})
+        },
+        threadId,
+        workflowId: workflowId ?? null,
+        projectId,
+        assetNamePrefix: mode,
+        signal
+      });
+
       if (mode === "image") {
         const variations = Math.max(
           1,
@@ -3004,12 +3180,7 @@ export class ChatTurnHandler {
           });
         }
 
-        await this.session.send({
-          type: "chunk",
-          thread_id: threadId,
-          content: "",
-          done: true
-        });
+        await sendTerminalDone();
 
         const assistantMsgData: Record<string, unknown> = {
           type: "message",
@@ -3490,12 +3661,7 @@ export class ChatTurnHandler {
               }
             });
           }
-          await this.session.send({
-            type: "chunk",
-            thread_id: threadId,
-            content: "",
-            done: true
-          });
+          await sendTerminalDone();
           const assistantMsgData: Record<string, unknown> = {
             type: "message",
             role: "assistant",
@@ -3558,12 +3724,7 @@ export class ChatTurnHandler {
         const assetId =
           seamAssetId(generated) ??
           (await storeMediaAsset(generated.output, "video/mp4", "mp4"));
-        await this.session.send({
-          type: "chunk",
-          thread_id: threadId,
-          content: "",
-          done: true
-        });
+        await sendTerminalDone();
         const assistantMsgData: Record<string, unknown> = {
           type: "message",
           role: "assistant",
@@ -3599,13 +3760,33 @@ export class ChatTurnHandler {
         thread_id: threadId
       });
     } catch (err) {
+      if (cancelled()) return;
       const errMsg = err instanceof Error ? err.message : String(err);
       log.error("Media generation error", { threadId, mode, error: errMsg });
+      const failure = providerFailureMessage(err, providerId, modelId);
+      const failureMessage = `Generation failed: ${failure.message}`;
+      const assistantMsgData: Record<string, unknown> = {
+        type: "message",
+        role: "assistant",
+        content: failureMessage,
+        thread_id: threadId,
+        workflow_id: workflowId,
+        provider: providerId,
+        model: modelId,
+        media_generation: mediaGeneration
+      };
+      try {
+        await this.saveMessageToDb(assistantMsgData);
+      } catch (persistError) {
+        this.session.logError("media failure message save failed", persistError);
+      }
       await this.session.send({
         type: "error",
-        message: `Generation failed: ${errMsg}`,
+        message: failureMessage,
         thread_id: threadId
       });
+      await sendTerminalDone();
+      await this.session.send(assistantMsgData);
     }
   }
 

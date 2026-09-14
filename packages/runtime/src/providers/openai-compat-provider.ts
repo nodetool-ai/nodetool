@@ -238,6 +238,18 @@ export class OpenAICompatProvider extends OpenAIProvider {
     return request;
   }
 
+  /**
+   * Provider-specific classification for an OpenAI-compatible failure. The
+   * request is the final converted wire payload, so subclasses can diagnose
+   * vendor limits without rebuilding or logging caller messages.
+   */
+  protected handleCompatError(
+    error: unknown,
+    _request: ChatCompletionsRequest
+  ): unknown {
+    return error;
+  }
+
   override async *generateMessages(
     args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
@@ -250,82 +262,85 @@ export class OpenAICompatProvider extends OpenAIProvider {
     });
 
     this.recordRequestPayload(request);
-    const stream = this.getCompatClient().chatCompletionsStream(request, {
-      signal: args.signal
-    });
-
     const deltaToolCalls = new Map<number, MutableToolCall>();
 
-    for await (const chunk of stream) {
-      if (chunk.usage) {
-        this.trackUsage(model, {
-          inputTokens: chunk.usage.prompt_tokens ?? 0,
-          outputTokens: chunk.usage.completion_tokens ?? 0,
-          cachedTokens: chunk.usage.prompt_tokens_details?.cached_tokens ?? 0
-        });
-      }
+    try {
+      const stream = this.getCompatClient().chatCompletionsStream(request, {
+        signal: args.signal
+      });
+      for await (const chunk of stream) {
+        if (chunk.usage) {
+          this.trackUsage(model, {
+            inputTokens: chunk.usage.prompt_tokens ?? 0,
+            outputTokens: chunk.usage.completion_tokens ?? 0,
+            cachedTokens: chunk.usage.prompt_tokens_details?.cached_tokens ?? 0
+          });
+        }
 
-      const choice = chunk.choices?.[0];
-      if (!choice) continue;
+        const choice = chunk.choices?.[0];
+        if (!choice) continue;
 
-      const delta = choice.delta;
+        const delta = choice.delta;
 
-      if (delta?.audio?.data) {
-        const audioChunk: Chunk = {
-          type: "chunk",
-          content_type: "audio",
-          content: String(delta.audio.data)
-        };
-        yield audioChunk;
-      }
-
-      if (Array.isArray(delta?.tool_calls)) {
-        for (const tc of delta.tool_calls) {
-          const index = Number(tc.index ?? 0);
-          const current = deltaToolCalls.get(index) ?? {
-            id: String(tc.id ?? ""),
-            name: String(tc.function?.name ?? ""),
-            arguments: ""
+        if (delta?.audio?.data) {
+          const audioChunk: Chunk = {
+            type: "chunk",
+            content_type: "audio",
+            content: String(delta.audio.data)
           };
+          yield audioChunk;
+        }
 
-          if (tc.id) current.id = String(tc.id);
-          if (tc.function?.name) current.name = String(tc.function.name);
-          if (tc.function?.arguments)
-            current.arguments += String(tc.function.arguments);
+        if (Array.isArray(delta?.tool_calls)) {
+          for (const tc of delta.tool_calls) {
+            const index = Number(tc.index ?? 0);
+            const current = deltaToolCalls.get(index) ?? {
+              id: String(tc.id ?? ""),
+              name: String(tc.function?.name ?? ""),
+              arguments: ""
+            };
 
-          deltaToolCalls.set(index, current);
+            if (tc.id) current.id = String(tc.id);
+            if (tc.function?.name) current.name = String(tc.function.name);
+            if (tc.function?.arguments)
+              current.arguments += String(tc.function.arguments);
+
+            deltaToolCalls.set(index, current);
+          }
+        }
+
+        if (delta?.content !== undefined || choice.finish_reason === "stop") {
+          const item: Chunk = {
+            type: "chunk",
+            content: String(delta?.content ?? ""),
+            done: choice.finish_reason === "stop"
+          };
+          yield item;
+        }
+
+        if (choice.finish_reason && deltaToolCalls.size > 0) {
+          for (const call of deltaToolCalls.values()) {
+            const toolCall: ToolCall = this.buildToolCall(
+              call.id,
+              call.name,
+              call.arguments
+            );
+            yield toolCall;
+          }
+          deltaToolCalls.clear();
+        }
+
+        // Always emit a terminal `done: true` chunk when the completion
+        // finishes, regardless of reason. "stop" already emits one above; for
+        // every other terminal reason (tool_calls, length, content_filter)
+        // emit one here so consumers get a consistent end-of-stream marker.
+        if (choice.finish_reason && choice.finish_reason !== "stop") {
+          const doneChunk: Chunk = { type: "chunk", content: "", done: true };
+          yield doneChunk;
         }
       }
-
-      if (delta?.content !== undefined || choice.finish_reason === "stop") {
-        const item: Chunk = {
-          type: "chunk",
-          content: String(delta?.content ?? ""),
-          done: choice.finish_reason === "stop"
-        };
-        yield item;
-      }
-
-      if (choice.finish_reason && deltaToolCalls.size > 0) {
-        for (const call of deltaToolCalls.values()) {
-          const toolCall: ToolCall = this.buildToolCall(
-            call.id,
-            call.name,
-            call.arguments
-          );
-          yield toolCall;
-        }
-        deltaToolCalls.clear();
-      }
-
-      // Always emit a terminal `done: true` chunk when the completion
-      // finishes, regardless of reason. "stop" already emits one above; for
-      // every other terminal reason (tool_calls, length, content_filter)
-      // emit one here so consumers get a consistent end-of-stream marker.
-      if (choice.finish_reason && choice.finish_reason !== "stop") {
-        const doneChunk: Chunk = { type: "chunk", content: "", done: true };
-        yield doneChunk;
-      }
+    } catch (error) {
+      throw this.handleCompatError(error, request);
     }
   }
 
@@ -341,9 +356,14 @@ export class OpenAICompatProvider extends OpenAIProvider {
     });
 
     this.recordRequestPayload(request);
-    const completion = await this.getCompatClient().chatCompletions(request, {
-      signal: args.signal
-    });
+    let completion: Awaited<ReturnType<OpenAICompatClient["chatCompletions"]>>;
+    try {
+      completion = await this.getCompatClient().chatCompletions(request, {
+        signal: args.signal
+      });
+    } catch (error) {
+      throw this.handleCompatError(error, request);
+    }
 
     let decoded;
     try {

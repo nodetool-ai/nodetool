@@ -2,6 +2,13 @@ import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
+import type { ChatCompletionsRequest } from "./openai-compat/index.js";
+import {
+  annotateGroqRequestFailure,
+  estimateGroqRequestTokens,
+  groqContextExceeded,
+  groqRequestFailureDiagnostic
+} from "./groq-request.js";
 import type { LanguageModel } from "./types.js";
 
 export class GroqProvider extends OpenAICompatProvider {
@@ -34,6 +41,21 @@ export class GroqProvider extends OpenAICompatProvider {
 
   override async hasToolSupport(_model: string): Promise<boolean> {
     return true;
+  }
+
+  protected override handleCompatError(
+    error: unknown,
+    request: ChatCompletionsRequest
+  ): unknown {
+    const estimate = estimateGroqRequestTokens(request);
+    const diagnostic = groqRequestFailureDiagnostic(error, estimate);
+    return diagnostic
+      ? annotateGroqRequestFailure(error, diagnostic)
+      : error;
+  }
+
+  override isContextExceededError(error: unknown): boolean {
+    return groqContextExceeded(error);
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {

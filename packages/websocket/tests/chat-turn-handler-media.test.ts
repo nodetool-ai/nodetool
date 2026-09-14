@@ -114,7 +114,46 @@ describe("media generation refusals", () => {
     );
     const [err] = harness.session.messagesOfType("error");
     expect(err.message).toBe("Generation failed: model melted");
-    expect(assistantFrames(harness)).toHaveLength(0);
+    const [assistant] = assistantFrames(harness);
+    expect(assistant.content).toBe("Generation failed: model melted");
+    expect(assistant.provider).toBe("mock");
+    expect(assistant.model).toBe("img-1");
+    expect(
+      (assistant.media_generation as Record<string, unknown>).mode
+    ).toBe("image");
+    expect(
+      harness.session.messagesOfType("chunk").filter((chunk) => chunk.done)
+    ).toHaveLength(1);
+  });
+
+  it("persists setup failures with media correlation", async () => {
+    const harness = makeChatTurnHarness({
+      session: {
+        resolveProvider: async () => {
+          throw new Error("provider setup failed");
+        }
+      }
+    });
+    await harness.handler.handleChatMessage(
+      mediaTurn("t-media-setup-fail", {
+        mode: "image",
+        provider: "mock",
+        model: "img-setup"
+      })
+    );
+    expect(harness.session.messagesOfType("error")[0].message).toBe(
+      "Generation failed: provider setup failed"
+    );
+    const [rows] = await Message.paginate("t-media-setup-fail", {
+      limit: 10
+    });
+    const assistant = rows.find((row) => row.role === "assistant");
+    expect(assistant?.provider).toBe("mock");
+    expect(assistant?.model).toBe("img-setup");
+    expect(assistant?.media_generation?.mode).toBe("image");
+    expect(
+      harness.session.messagesOfType("chunk").filter((chunk) => chunk.done)
+    ).toHaveLength(1);
   });
 });
 
@@ -547,7 +586,12 @@ describe("music generation", () => {
     expect(harness.session.messagesOfType("error")[0].message).toBe(
       "Generation failed: Provider returned no audio data"
     );
-    expect(assistantFrames(harness)).toHaveLength(0);
+    const [assistant] = assistantFrames(harness);
+    expect(assistant.provider).toBe("mock");
+    expect(assistant.model).toBe("music-1");
+    expect(
+      (assistant.media_generation as Record<string, unknown>).mode
+    ).toBe("music");
   });
 });
 
