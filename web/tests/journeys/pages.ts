@@ -281,9 +281,9 @@ export class MiniAppPage {
     return this.runtime().getByRole("button", { name: "Run echo" });
   }
 
-  /** The app's text input — labelled by the seeded input node's description. */
+  /** The app's text input within the active Run layer. */
   promptInput(): Locator {
-    return this.runtime().getByLabel("Text echoed back by the app");
+    return this.runtime().getByRole("textbox").first();
   }
 
   async fillPrompt(value: string): Promise<void> {
