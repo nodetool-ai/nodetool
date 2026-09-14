@@ -59,6 +59,7 @@ import { isGroupClip, moveGroup, trimGroup, ungroup } from "../group.js";
 import { isCropUsable } from "../crop.js";
 import { splitClip } from "../splitClip.js";
 import {
+  activeTakeIdOf,
   deleteTake as deleteTakeOnClip,
   renameTake as renameTakeOnClip,
   selectTake
@@ -1551,6 +1552,7 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
     case "list_takes": {
       const clip = scope.resolveClip(op.target);
       const versions = clip.versions ?? [];
+      const activeId = activeTakeIdOf(clip);
       return {
         ok: true,
         takes: versions.map((v) => ({
@@ -1564,14 +1566,21 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
           durationMs: v.durationMs,
           status: v.status,
           favorite: v.favorite,
-          active: v.id === clip.activeTakeId || v.assetId === clip.currentAssetId
+          active: v.id === activeId
         })),
-        activeTakeId: clip.activeTakeId ?? null
+        activeTakeId: activeId ?? null
       };
     }
 
     case "select_take": {
       const clip = scope.resolveClip(op.target);
+      if (clip.mediaType === "model3d") {
+        throw new Error(
+          `Clip "${clip.name}" is a 3D clip — its version history includes ` +
+            "bake renders that must not replace the glTF source. Take " +
+            "selection is not available for model3d clips yet."
+        );
+      }
       const version = (clip.versions ?? []).find((v) => v.id === op.takeId);
       if (!version) {
         throw new Error(

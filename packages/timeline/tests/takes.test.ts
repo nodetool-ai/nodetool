@@ -4,7 +4,12 @@
 import { describe, expect, it } from "vitest";
 
 import { makeClip } from "../src/defaults.js";
-import { deleteTake, renameTake, selectTake } from "../src/takes.js";
+import {
+  activeTakeIdOf,
+  deleteTake,
+  renameTake,
+  selectTake
+} from "../src/takes.js";
 import type { ClipVersion, TimelineClip } from "../src/types.js";
 
 function version(overrides: Partial<ClipVersion> = {}): ClipVersion {
@@ -89,6 +94,46 @@ describe("selectTake", () => {
     const next = selectTake(clip, "take_3");
     expect(next).toBe(clip);
   });
+
+  it("is a no-op for a model3d clip, so a bake render never replaces the glTF source", () => {
+    // Reproduces the reviewer's finding on PR #5774: bake_model3d_clip pushes
+    // the rendered movie into `versions` while deliberately leaving
+    // `currentAssetId` pointing at the glTF. Generic take selection has no
+    // bake-aware path, so it must refuse rather than swap the source out from
+    // under `model3dStyle`.
+    const clip: TimelineClip = {
+      ...clipWithTwoTakes(),
+      mediaType: "model3d",
+      currentAssetId: "gltf_1",
+      versions: [version({ id: "bake_1", assetId: "movie_1" })]
+    };
+    const next = selectTake(clip, "bake_1");
+    expect(next).toBe(clip);
+    expect(next.currentAssetId).toBe("gltf_1");
+  });
+});
+
+describe("activeTakeIdOf", () => {
+  it("prefers the take whose assetId matches currentAssetId over a stale activeTakeId alias", () => {
+    // Reproduces the reviewer's finding: a writer that patches
+    // currentAssetId without updating activeTakeId (direct generation before
+    // this fix) must not leave two takes reading as active, and must not let
+    // the take that is actually playing be deleted.
+    const clip = clipWithTwoTakes();
+    clip.activeTakeId = "take_1"; // stale — currentAssetId already moved on
+    clip.currentAssetId = "asset_2"; // take_2's asset
+    expect(activeTakeIdOf(clip)).toBe("take_2");
+  });
+
+  it("falls back to the stored alias when no version's assetId matches currentAssetId", () => {
+    // A model3d clip's currentAssetId (the glTF) is never a recorded take's
+    // assetId, so there is nothing to derive from — fall back rather than
+    // report no active take at all.
+    const clip = clipWithTwoTakes();
+    clip.currentAssetId = "gltf_1";
+    clip.activeTakeId = "take_2";
+    expect(activeTakeIdOf(clip)).toBe("take_2");
+  });
 });
 
 describe("renameTake", () => {
@@ -140,6 +185,19 @@ describe("deleteTake", () => {
   it("reports an error for an unknown take id", () => {
     const clip = clipWithTwoTakes();
     const { clip: next, error } = deleteTake(clip, "nope");
+    expect(error).toBeTruthy();
+    expect(next).toBe(clip);
+  });
+
+  it("refuses to delete the take actually playing even when activeTakeId is stale", () => {
+    // Reproduces the reviewer's finding: activeTakeId names take_1, but
+    // currentAssetId already moved on to take_2's asset (e.g. a direct
+    // generation that landed without updating the alias). Deleting take_2 —
+    // the asset on screen — must still be refused.
+    const clip = clipWithTwoTakes();
+    clip.activeTakeId = "take_1";
+    clip.currentAssetId = "asset_2"; // take_2's asset
+    const { clip: next, error } = deleteTake(clip, "take_2");
     expect(error).toBeTruthy();
     expect(next).toBe(clip);
   });

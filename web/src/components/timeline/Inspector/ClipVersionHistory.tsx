@@ -26,6 +26,7 @@ import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
+import { activeTakeIdOf } from "@nodetool-ai/timeline";
 import type { ClipVersion, TimelineClip } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
@@ -380,10 +381,7 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
             <VersionTile
               key={version.id}
               version={version}
-              active={
-                version.id === clip.activeTakeId ||
-                version.assetId === clip.currentAssetId
-              }
+              active={version.id === activeTakeIdOf(clip)}
               index={index}
               total={successVersions.length}
               mediaType={clip.mediaType}

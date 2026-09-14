@@ -148,35 +148,36 @@ export function landDirectGen(
 
   const current = store.clips.find((c) => c.id === clipId);
   if (!current) return;
+  const newVersion = makeClipVersion({
+    jobId: requestId,
+    assetId: first,
+    workflowUpdatedAt: new Date().toISOString(),
+    dependencyHash: "",
+    paramOverridesSnapshot: {
+      prompt: current.prompt,
+      provider: current.provider,
+      model: current.model,
+      strength: current.strength,
+      numInferenceSteps: current.numInferenceSteps,
+      width: current.width,
+      height: current.height,
+      voice: current.voice,
+      aspectRatio: current.aspectRatio,
+      resolution: current.resolution,
+      negativePrompt: current.negativePrompt
+    }
+  });
   // Locked clips don't get their currentAssetId replaced — but the version
   // is still recorded so the user can restore it later.
   const patch: Partial<TimelineClip> = {
     status: "generated",
-    versions: [
-      ...(current.versions ?? []),
-      makeClipVersion({
-        jobId: requestId,
-        assetId: first,
-        workflowUpdatedAt: new Date().toISOString(),
-        dependencyHash: "",
-        paramOverridesSnapshot: {
-          prompt: current.prompt,
-          provider: current.provider,
-          model: current.model,
-          strength: current.strength,
-          numInferenceSteps: current.numInferenceSteps,
-          width: current.width,
-          height: current.height,
-          voice: current.voice,
-          aspectRatio: current.aspectRatio,
-          resolution: current.resolution,
-          negativePrompt: current.negativePrompt
-        }
-      })
-    ]
+    versions: [...(current.versions ?? []), newVersion]
   };
   if (!current.locked) {
     patch.currentAssetId = first;
+    // Every asset writer must keep this alias in sync with currentAssetId,
+    // or list_takes/delete_take mis-identify which take is actually playing.
+    patch.activeTakeId = newVersion.id;
     // Reset trim window — a fresh roll is a fresh source.
     patch.inPointMs = undefined;
     patch.outPointMs = undefined;

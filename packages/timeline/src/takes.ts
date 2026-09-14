@@ -8,16 +8,44 @@
 import type { TimelineClip } from "./types.js";
 
 /**
+ * The take actually playing, derived rather than trusted from the stored
+ * alias. `activeTakeId` is a convenience field several asset writers besides
+ * `selectTake` can set `currentAssetId` without updating (direct generation,
+ * imports, agent ops) — `currentAssetId` is the field every renderer and
+ * export path actually reads, so a version whose `assetId` matches it is the
+ * active take even when `activeTakeId` still names an older one. Falls back
+ * to the stored alias only when no version's `assetId` matches at all (e.g.
+ * the current asset isn't a recorded take, or a 3D clip's bake history).
+ */
+export function activeTakeIdOf(clip: TimelineClip): string | undefined {
+  const versions = clip.versions ?? [];
+  if (clip.currentAssetId !== undefined) {
+    const match = versions.find((v) => v.assetId === clip.currentAssetId);
+    if (match) return match.id;
+  }
+  return clip.activeTakeId;
+}
+
+/**
  * Make a stored take current on a clip. Mirrors `TimelineStore.restoreVersion`
  * so the browser store and the headless op run one rule for what switching a
  * take does — `currentAssetId`, `activeTakeId`, `paramOverrides`,
  * `lastGeneratedHash` and `status` — and, just as importantly, does not touch
  * anything else (position, duration, effects, animations, ...).
  *
- * A no-op (returns `clip` unchanged) for a missing take or one that did not
- * finish successfully, matching the existing `restoreVersion` guard.
+ * A no-op (returns `clip` unchanged) for a missing take, one that did not
+ * finish successfully, or a `model3d` clip — matching the existing
+ * `restoreVersion` guard. `ClipVersion` also carries `bake_model3d_clip`'s
+ * render history for a 3D clip: the baked movie lives in `versions` while
+ * `currentAssetId` deliberately stays the glTF `model3dStyle` renders from
+ * (`ops/apply.ts`'s `bake_model3d_clip` case never touches it). Generic take
+ * selection has no bake-aware path, so applying it here would overwrite the
+ * glTF with a rendered video and leave `model3dStyle.bake` pointing at a
+ * dependency hash the clip no longer matches. Bake-history selection needs
+ * its own op; this one refuses model3d clips until it exists.
  */
 export function selectTake(clip: TimelineClip, takeId: string): TimelineClip {
+  if (clip.mediaType === "model3d") return clip;
   const version = (clip.versions ?? []).find((v) => v.id === takeId);
   if (!version || version.status !== "success") return clip;
 
@@ -73,11 +101,7 @@ export function deleteTake(
   if (index === -1) {
     return { clip, error: `No take "${takeId}" on this clip.` };
   }
-  const version = versions[index]!;
-  const isActive = clip.activeTakeId
-    ? clip.activeTakeId === takeId
-    : clip.currentAssetId !== undefined &&
-      clip.currentAssetId === version.assetId;
+  const isActive = activeTakeIdOf(clip) === takeId;
 
   if (isActive) {
     if (versions.length === 1) {
