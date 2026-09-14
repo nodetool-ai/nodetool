@@ -1462,7 +1462,21 @@ export const timelineSetup = z
      * them would throw the creator's words away (PRD § 8.3).
      */
     voiceover: z.boolean().optional(),
-    beats: z.array(timelineBeat).optional()
+    beats: z.array(timelineBeat).optional(),
+    /**
+     * The language model that drafts the beats. Absent means the flow picks
+     * one: the curated NodeTool director when this server can serve it, and
+     * otherwise the first model a configured provider reports. Stored so the
+     * creator's pick survives a reload and so a re-plan runs on the same
+     * model the estimate was shown for.
+     */
+    directorModel: z
+      .object({
+        id: z.string(),
+        provider: z.string(),
+        name: z.string().optional()
+      })
+      .optional()
   })
   .passthrough();
 export type TimelineSetup = z.infer<typeof timelineSetup>;
