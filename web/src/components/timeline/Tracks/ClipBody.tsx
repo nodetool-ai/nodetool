@@ -16,7 +16,7 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LoopOutlinedIcon from "@mui/icons-material/LoopOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
-import { resolveTempo } from "@nodetool-ai/timeline";
+import { canClipFade, resolveTempo } from "@nodetool-ai/timeline";
 import type { TimelineClip, ClipStatus } from "@nodetool-ai/timeline";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -40,6 +40,7 @@ import { GroupBracket } from "./GroupBracket";
 import { MidiNotesCanvas } from "./MidiNotesCanvas";
 import { deriveClipAnimationMarkers } from "./clipAnimationMarkers";
 import { deriveClipFadeMarkers } from "./clipFadeGeometry";
+import type { ClipFadeHandlers } from "./useClipFade";
 import {
   beyondSourceFraction,
   clipSourceWindow,
@@ -62,13 +63,9 @@ const COMPACT_THRESHOLD_PX = 96;
 const TRANSITION_LABEL_MIN_PX = 48;
 /** openreel uses ~60px per filmstrip cell; matches their visual density. */
 const FILMSTRIP_CELL_PX = 60;
-/** Media whose clip carries an audible or visible fade ramp. */
-const FADE_MEDIA_TYPES: ReadonlySet<TimelineClip["mediaType"]> = new Set([
-  "audio",
-  "video",
-  "image",
-  "overlay"
-]);
+/** Below this a clip has no room for a fade handle at each end. */
+const MIN_FADE_HANDLE_CLIP_WIDTH_PX = 32;
+const FADE_HANDLE_SIZE_PX = 9;
 
 // Status mapping (PRD §5.5)
 export const CLIP_STATUS_MAP = {
@@ -117,6 +114,14 @@ const clipStyles = (
     // selected state and coarse pointers reveal them in `trimHandleStyles`.
     "&:hover [data-clip-trim-handle]": {
       opacity: 1
+    },
+    // Fade handles follow the same rule, and stay up on a selected clip so
+    // the fade being edited keeps its grips while the pointer is elsewhere.
+    "&:hover [data-clip-fade-handle], [data-clip-fade-handle]:focus-visible": {
+      opacity: 1
+    },
+    "@media (pointer: coarse)": {
+      "[data-clip-fade-handle]": { opacity: 1 }
     }
   });
 
@@ -414,6 +419,39 @@ const keyframeDiamondStyles = (theme: Theme) =>
     zIndex: Z_INDEX.base + 3
   });
 
+/**
+ * The grip that sets a fade's length: a small dot riding the top edge at the
+ * point the ramp reaches full volume, as Final Cut draws it. With no fade it
+ * rests on the clip's corner, so dragging inward is how a fade is made.
+ */
+const fadeHandleStyles = (theme: Theme, interactionLocked: boolean) =>
+  css({
+    position: "absolute",
+    top: 0,
+    width: FADE_HANDLE_SIZE_PX,
+    height: FADE_HANDLE_SIZE_PX,
+    marginLeft: -FADE_HANDLE_SIZE_PX / 2,
+    padding: 0,
+    border: `1px solid ${theme.vars.palette.background.paper}`,
+    borderRadius: BORDER_RADIUS.circle,
+    background: theme.vars.palette.text.primary,
+    cursor: interactionLocked ? "not-allowed" : "ew-resize",
+    opacity: 0,
+    transition: `opacity ${MOTION.fast}`,
+    pointerEvents: "auto",
+    zIndex: Z_INDEX.base + 3,
+    // A fingertip needs more than 9px of target; widen the hit area without
+    // widening the dot.
+    "&::after": {
+      content: '""',
+      position: "absolute",
+      inset: -6
+    },
+    "&:hover, &:focus-visible": {
+      background: theme.vars.palette.primary.main
+    }
+  });
+
 /** The draggable right edge of the transition wedge. */
 const transitionHandleStyles = css({
   position: "absolute",
@@ -557,6 +595,8 @@ export interface ClipBodyProps {
   handleTransitionPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTransitionPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTransitionPointerEnd: () => void;
+  /** Fade-handle drag and shape-menu handlers; absent hides the handles. */
+  fade?: ClipFadeHandlers;
   /** Clip-relative times of hand-set keyframes, drawn as diamonds. */
   keyframeTimesMs: readonly number[];
   onKeyframeClick: (clipRelativeMs: number) => void;
@@ -589,6 +629,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     handleTransitionPointerDown,
     handleTransitionPointerMove,
     handleTransitionPointerEnd,
+    fade,
     keyframeTimesMs,
     onKeyframeClick,
     interactionLocked
@@ -685,7 +726,26 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
       widthPx
     );
     const fadeMarkers = deriveClipFadeMarkers(clip, msPerPx, widthPx);
-    const showFades = FADE_MEDIA_TYPES.has(clip.mediaType);
+    const showFades = canClipFade(clip.mediaType);
+    const showFadeHandles =
+      showFades && !!fade && widthPx >= MIN_FADE_HANDLE_CLIP_WIDTH_PX;
+    // Each grip rides the point its ramp reaches full volume, kept far enough
+    // from the corner that the dot is not half-clipped by the clip's edge.
+    const fadeHandlePositions = (
+      [
+        { edge: "in" as const, lengthMs: clip.fadeInMs ?? 0 },
+        { edge: "out" as const, lengthMs: clip.fadeOutMs ?? 0 }
+      ]
+    ).map(({ edge, lengthMs }) => {
+      const offsetPx = Math.min(lengthMs / msPerPx, widthPx);
+      const x = edge === "in" ? offsetPx : widthPx - offsetPx;
+      const inset = FADE_HANDLE_SIZE_PX / 2;
+      return {
+        edge,
+        lengthMs,
+        leftPx: Math.min(Math.max(x, inset), widthPx - inset)
+      };
+    });
     const trimHandleStyle =
       widthPx < MIN_TRIM_HANDLE_CLIP_WIDTH_PX
         ? HIDDEN_TRIM_HANDLE_STYLE
@@ -776,6 +836,10 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
       [theme, mediaType, accent]
     );
     const fadeColor = theme.vars.palette.text.primary;
+    const fadeHandleCss = useMemo(
+      () => fadeHandleStyles(theme, interactionLocked),
+      [theme, interactionLocked]
+    );
 
     return (
       <div
@@ -821,13 +885,16 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
             preserveAspectRatio="none"
             aria-hidden
             data-testid={`clip-fade-in-${clipId}`}
+            data-fade-shape={fadeMarkers.fadeIn.shape}
           >
-            <polygon points="0,0 1,0 0,1" fill={fadeColor} fillOpacity="0.25" />
-            <line
-              x1="0"
-              y1="1"
-              x2="1"
-              y2="0"
+            <path
+              d={fadeMarkers.fadeIn.fillPath}
+              fill={fadeColor}
+              fillOpacity="0.25"
+            />
+            <path
+              d={fadeMarkers.fadeIn.rampPath}
+              fill="none"
               stroke={fadeColor}
               strokeWidth="1"
               vectorEffect="non-scaling-stroke"
@@ -843,19 +910,45 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
             preserveAspectRatio="none"
             aria-hidden
             data-testid={`clip-fade-out-${clipId}`}
+            data-fade-shape={fadeMarkers.fadeOut.shape}
           >
-            <polygon points="0,0 1,0 1,1" fill={fadeColor} fillOpacity="0.25" />
-            <line
-              x1="0"
-              y1="0"
-              x2="1"
-              y2="1"
+            <path
+              d={fadeMarkers.fadeOut.fillPath}
+              fill={fadeColor}
+              fillOpacity="0.25"
+            />
+            <path
+              d={fadeMarkers.fadeOut.rampPath}
+              fill="none"
               stroke={fadeColor}
               strokeWidth="1"
               vectorEffect="non-scaling-stroke"
             />
           </svg>
         )}
+
+        {showFadeHandles &&
+          fadeHandlePositions.map(({ edge, leftPx: handleLeftPx, lengthMs }) => (
+            <button
+              key={edge}
+              type="button"
+              css={fadeHandleCss}
+              style={{ left: handleLeftPx }}
+              data-clip-fade-handle
+              data-testid={`clip-fade-handle-${edge}-${clipId}`}
+              aria-label={`${edge === "in" ? "Fade in" : "Fade out"} ${(
+                lengthMs / 1000
+              ).toFixed(2)} seconds`}
+              onPointerDown={(e) => fade?.onFadePointerDown(edge, e)}
+              onPointerMove={fade?.onFadePointerMove}
+              onPointerUp={fade?.onFadePointerEnd}
+              onPointerCancel={fade?.onFadePointerEnd}
+              onContextMenu={(e) => fade?.onFadeContextMenu(edge, e)}
+              onKeyDown={(e) => fade?.onFadeKeyDown(edge, e)}
+              onClick={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+            />
+          ))}
 
         {fadeMarkers.transitionIn && (
           <div

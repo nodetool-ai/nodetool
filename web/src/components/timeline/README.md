@@ -22,6 +22,13 @@ a keyboard layout the user picks in the shortcut sheet (`?`):
 - **Transitions on the cut**: drag the wedge's right edge for length,
   Ctrl+T cross-fades into the selected clips (the predecessor is extended
   under them), the clip menu adds or removes one.
+- **Audio fades**: a clip the mixer sounds (audio, video, midi) carries a grip
+  at each top corner — drag it inward for a fade in or out, back to the corner
+  to remove it. Right-clicking a grip picks the curve: Linear, S-curve, +3 dB
+  or -3 dB, the same four Final Cut offers. Alt+T fades the selection in and
+  out by half a second, the clip menu does the same for one clip, and the
+  inspector's Audio section edits both lengths and both curves. The preview
+  and the ffmpeg export ramp along the same curve.
 - **Keyframes**: the inspector's Keyframes section keys a property at the
   playhead; the clip draws them as diamonds. Alt+K keys the armed property.
 - **Source viewer** (Source tab): mark in and out on the explorer's selected

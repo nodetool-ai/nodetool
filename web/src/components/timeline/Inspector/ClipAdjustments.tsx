@@ -31,10 +31,11 @@ import type {
   ClipTransform,
   TimelineClip
 } from "@nodetool-ai/timeline";
-import { hasCrop, isCropUsable } from "@nodetool-ai/timeline";
+import { hasCrop, isCropUsable, parseClipFadeShape } from "@nodetool-ai/timeline";
 import { BLEND_MODES } from "@nodetool-ai/gpu";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { CLIP_FADE_SHAPE_OPTIONS } from "../fadeShapes";
 import {
   CollapsibleSection,
   FlexColumn,
@@ -210,6 +211,16 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
         );
       },
       [onPatchNumber]
+    );
+    const handleFadeInShapeChange = useCallback(
+      (value: string) =>
+        patchClip(clip.id, { fadeInShape: parseClipFadeShape(value) }),
+      [clip.id, patchClip]
+    );
+    const handleFadeOutShapeChange = useCallback(
+      (value: string) =>
+        patchClip(clip.id, { fadeOutShape: parseClipFadeShape(value) }),
+      [clip.id, patchClip]
     );
     const handleFadeOutCommit = useCallback(
       (raw: string) => {
@@ -517,6 +528,12 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                     onCommit={handleFadeInCommit}
                     ariaLabel="Fade in (seconds)"
                   />
+                  <InspectorSelect
+                    label="Fade-in shape"
+                    value={parseClipFadeShape(clip.fadeInShape)}
+                    options={CLIP_FADE_SHAPE_OPTIONS}
+                    onChange={handleFadeInShapeChange}
+                  />
                 </InspectorRow>
                 <InspectorRow label="Fade out">
                   <InspectorPillInput
@@ -525,6 +542,12 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                     scrub={SCRUB_SECONDS}
                     onCommit={handleFadeOutCommit}
                     ariaLabel="Fade out (seconds)"
+                  />
+                  <InspectorSelect
+                    label="Fade-out shape"
+                    value={parseClipFadeShape(clip.fadeOutShape)}
+                    options={CLIP_FADE_SHAPE_OPTIONS}
+                    onChange={handleFadeOutShapeChange}
                   />
                 </InspectorRow>
               </>

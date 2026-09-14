@@ -158,6 +158,8 @@ const CLIP_PARAM_KEYS = [
   "volumeDb",
   "fadeInMs",
   "fadeOutMs",
+  "fadeInShape",
+  "fadeOutShape",
   "blendMode",
   "borderRadius",
   "crop",
@@ -1018,6 +1020,10 @@ async function runOp(scope: OpScope, op: TimelineOp): Promise<TimelineOpResult> 
       if (patch.volumeDb !== undefined) clip.volumeDb = patch.volumeDb;
       if (patch.fadeInMs !== undefined) clip.fadeInMs = patch.fadeInMs;
       if (patch.fadeOutMs !== undefined) clip.fadeOutMs = patch.fadeOutMs;
+      if (patch.fadeInShape !== undefined) clip.fadeInShape = patch.fadeInShape;
+      if (patch.fadeOutShape !== undefined) {
+        clip.fadeOutShape = patch.fadeOutShape;
+      }
       if (patch.blendMode !== undefined) {
         clip.blendMode = patch.blendMode as TimelineClip["blendMode"];
       }
