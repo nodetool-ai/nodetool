@@ -1,6 +1,6 @@
 # Document synchronization
 
-[`web/src/stores/documentSync.ts`](../web/src/stores/documentSync.ts) is the
+[`web/src/stores/documentSync.ts`](https://github.com/nodetool-ai/nodetool/blob/main/web/src/stores/documentSync.ts) is the
 canonical seam for editor synchronization. It owns save debounce, serialization,
 flush behavior, compare-and-swap recovery, and routing external changes. Editor
 integrations supply document conversion, persistence, dirty-state detection, and
