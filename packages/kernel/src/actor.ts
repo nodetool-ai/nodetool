@@ -22,7 +22,7 @@ import type {
   ControlEvent,
   NodeErrorDetail
 } from "@nodetool-ai/protocol";
-import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
+import { EMPTY_LINEAGE, TypeMetadata } from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.actor");
@@ -739,6 +739,34 @@ export class NodeActor {
 
     const isListInput = (h: string): boolean => this._listInputHandles.has(h);
 
+    // A list-typed handle's declared element type is itself a list only for
+    // deliberate batch-of-batches properties (e.g. "list[list[int]]"); per-edge
+    // list values stay nested as one entry each in that case.
+    const isNestedListHandle = (h: string): boolean => {
+      const typeStr = this.node.propertyTypes?.[h];
+      if (!typeStr) return false;
+      const meta = TypeMetadata.fromString(typeStr);
+      return meta.isListType() && meta.args.length > 0 && meta.args[0].isListType();
+    };
+
+    // Aggregate per-edge values into one list for a list-typed handle. A list
+    // value arriving on a single edge (e.g. an upstream Image List's Output
+    // feeding another Image List's collect input) is spread into the result
+    // so its items propagate, rather than nesting the whole list as a single
+    // entry — unless the handle's declared type is itself a list of lists.
+    const aggregateListValues = (h: string, items: unknown[]): unknown[] => {
+      if (isNestedListHandle(h)) return items;
+      const out: unknown[] = [];
+      for (const item of items) {
+        if (Array.isArray(item)) {
+          out.push(...item);
+        } else {
+          out.push(item);
+        }
+      }
+      return out;
+    };
+
     for (const h of dataHandles) {
       const cls = handleClass.get(h);
       if (cls === "max") maxBuckets.set(h, new Map());
@@ -812,7 +840,10 @@ export class NodeActor {
             // Drain every envelope into a list; pick the last for lineage.
             const drained = bucket.splice(0);
             envelopes.set(h, drained[drained.length - 1]);
-            values[h] = drained.map((e) => e.data);
+            values[h] = aggregateListValues(
+              h,
+              drained.map((e) => e.data)
+            );
             maxBuckets.get(h)!.delete(key);
           } else {
             const stickySideInput = driverHandle !== null && h !== driverHandle;
@@ -830,7 +861,10 @@ export class NodeActor {
             const bucket = prefixListBuckets.get(h)!.get(parentKey);
             if (bucket && bucket.length > 0) {
               envelopes.set(h, bucket[bucket.length - 1]);
-              values[h] = bucket.map((e) => e.data);
+              values[h] = aggregateListValues(
+                h,
+                bucket.map((e) => e.data)
+              );
             }
           } else {
             const env = prefixSticky.get(h)!.get(parentKey);
@@ -844,7 +878,10 @@ export class NodeActor {
             const envs = emptyListEnvelopes.get(h) ?? [];
             if (envs.length > 0) {
               envelopes.set(h, envs[envs.length - 1]);
-              values[h] = envs.map((e) => e.data);
+              values[h] = aggregateListValues(
+                h,
+                envs.map((e) => e.data)
+              );
             }
           } else {
             const env = emptySticky.get(h);
@@ -994,7 +1031,10 @@ export class NodeActor {
             }
             if (drained.length === 0) continue;
             envelopes.set(h, drained[drained.length - 1]);
-            values[h] = drained.map((e) => e.data);
+            values[h] = aggregateListValues(
+              h,
+              drained.map((e) => e.data)
+            );
           } else {
             // Use the only sticky entry, if any.
             const sticky = prefixSticky.get(h)!;
@@ -1010,7 +1050,10 @@ export class NodeActor {
           const envs = emptyListEnvelopes.get(h) ?? [];
           if (envs.length > 0) {
             envelopes.set(h, envs[envs.length - 1]);
-            values[h] = envs.map((e) => e.data);
+            values[h] = aggregateListValues(
+              h,
+              envs.map((e) => e.data)
+            );
           } else if (this.inbox.isOpen(h)) {
             readyOrAllowed = false;
           }
