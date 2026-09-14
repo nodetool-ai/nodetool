@@ -39,11 +39,27 @@ jest.mock("../../../../hooks/useModelsByProvider", () => ({
     isFetching: false,
     error: null,
     refetch: async () => undefined
+  }),
+  // The format step's model picker reads the same catalogs. One servable
+  // language model keeps the plan button live; what an empty catalog does to
+  // it is pinned below.
+  useLanguageModelsByProvider: () => ({
+    models: languageModels,
+    providers: languageModels.length > 0 ? ["nodetool"] : [],
+    isLoading: false,
+    isFetching: false,
+    error: null,
+    refetch: async () => undefined
   })
 }));
 
+let languageModels: { id: string; provider: string; name: string }[] = [];
+
 beforeEach(() => {
   useTimelineStore.getState().reset();
+  languageModels = [
+    { id: "nodetool/director", provider: "nodetool", name: "NodeTool Director" }
+  ];
 });
 
 const seed = (
@@ -117,6 +133,25 @@ describe("useVideoSetupFlow (criterion 2)", () => {
       "No generated clips"
     );
     expect(result.current.steps[1].generation?.model?.id).toBeTruthy();
+  });
+
+  it("holds Plan the beats when no provider offers a language model", () => {
+    // Otherwise the step reaches the button and the run fails there, which is
+    // what the hardcoded curated director did on a server with no platform key.
+    languageModels = [];
+    seed("format");
+    const { result } = renderHook(() => useVideoSetupFlow());
+    expect(result.current.steps[1].canAdvance).toBe(false);
+    expect(result.current.steps[1].blockedReason).toBe(
+      "Pick a model to draft the beats"
+    );
+  });
+
+  it("estimates the step on the model the picker wrote, not a fixed one", () => {
+    languageModels = [{ id: "gpt-5", provider: "openai", name: "GPT-5" }];
+    seed("format");
+    const { result } = renderHook(() => useVideoSetupFlow());
+    expect(result.current.steps[1].generation?.model?.id).toBe("gpt-5");
   });
 
   it("writes the stage back onto the document when the shell moves", () => {

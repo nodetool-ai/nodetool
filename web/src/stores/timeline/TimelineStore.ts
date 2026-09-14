@@ -352,7 +352,10 @@ export interface TimelineStoreState {
    */
   setSetup: (
     patch: Partial<
-      Pick<TimelineSetup, "stage" | "brief" | "format" | "beats" | "voiceover">
+      Pick<
+        TimelineSetup,
+        "stage" | "brief" | "format" | "beats" | "voiceover" | "directorModel"
+      >
     >
   ) => void;
   /**

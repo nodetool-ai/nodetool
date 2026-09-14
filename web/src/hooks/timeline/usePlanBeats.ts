@@ -317,6 +317,16 @@ export function usePlanBeats(): UsePlanBeatsResult {
         const beats = await planBeats({
           brief: setup?.brief ?? "",
           format,
+          // The flow's format step writes the creator's pick here, so a
+          // re-plan and the estimate they saw run on the same model. Absent —
+          // an agent-driven sequence, or a document older than the picker —
+          // keeps the curated director.
+          model: setup?.directorModel
+            ? {
+                id: setup.directorModel.id,
+                provider: setup.directorModel.provider
+              }
+            : undefined,
           previous: replan ? setup?.beats : undefined,
           context: context ?? planContextOf(store)
         });
