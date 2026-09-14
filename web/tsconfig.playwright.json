@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.e2e.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "moduleResolution": "bundler",
+    "types": ["@playwright/test", "node"]
+  },
+  "include": [
+    "playwright*.config.ts",
+    "tests/**/*.ts",
+    "tests/**/*.tsx"
+  ]
+}

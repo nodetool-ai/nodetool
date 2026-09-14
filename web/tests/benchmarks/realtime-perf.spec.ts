@@ -22,7 +22,7 @@
  * Knobs: PERF_VOICES (default 8), PERF_DURATION_MS (default 60000).
  *
  * Run:
- *   cd web && npx playwright test tests/benchmarks/realtime-perf.spec.ts --project=chromium
+ *   cd web && npm run test:benchmark
  *
  * Skipped in CI — perf numbers on shared runners are noise.
  */

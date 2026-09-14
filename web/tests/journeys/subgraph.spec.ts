@@ -14,46 +14,14 @@
  * Runs against the real backend started by `tests/globalSetup.ts`.
  */
 
-import { test, expect, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { test, expect, waitForAppReady } from "./fixtures";
 
 const EDITOR_URL = "/editor/wf-story-generator";
 
-const seedLocalStorage = async (page: Page): Promise<void> => {
-  await page.addInitScript(() => {
-    try {
-      window.localStorage.setItem(
-        "onboarding",
-        JSON.stringify({
-          state: {
-            completed: {
-              welcome: true,
-              providers: true,
-              chat: true,
-              image: true,
-              nodes: true,
-              connect: true,
-              run: true
-            },
-            dismissed: true
-          },
-          version: 2
-        })
-      );
-    } catch {
-      /* ignore */
-    }
-  });
-};
-
 const gotoEditor = async (page: Page): Promise<void> => {
-  await seedLocalStorage(page);
   await page.goto(EDITOR_URL);
-  const loading = page.locator(
-    '[role="status"][aria-label="Loading NodeTool"]'
-  );
-  if ((await loading.count()) > 0) {
-    await loading.first().waitFor({ state: "hidden", timeout: 30_000 });
-  }
+  await waitForAppReady(page);
   // Wait until at least the canvas has mounted
   await page.locator(".react-flow").first().waitFor({
     state: "visible",
@@ -62,8 +30,6 @@ const gotoEditor = async (page: Page): Promise<void> => {
 };
 
 const openPaneContextMenu = async (page: Page): Promise<void> => {
-  // Snapshot for debug
-  await page.screenshot({ path: "/tmp/before-rc.png" });
   const pane = page.locator(".react-flow__pane").first();
   await pane.waitFor({ state: "visible", timeout: 10_000 });
 
@@ -82,7 +48,6 @@ const openPaneContextMenu = async (page: Page): Promise<void> => {
     .catch(() => false);
 
   if (!visible) {
-    await page.screenshot({ path: "/tmp/no-menu.png" });
     const paneInfo = await pane.evaluate((el) => {
       const rect = (el as HTMLElement).getBoundingClientRect();
       const cls = (el as HTMLElement).className;
@@ -116,8 +81,17 @@ const openSubgraphTab = async (page: Page): Promise<void> => {
  * centre of the editor area lands on the subgraph's pane.
  */
 const addStringInputToSubgraph = async (page: Page): Promise<void> => {
-  await page.mouse.move(960, 540);
-  await page.mouse.click(960, 540, { button: "right" });
+  const pane = page
+    .locator("[data-testid='subgraph-tab-content'] .react-flow__pane")
+    .first();
+  await pane.waitFor({ state: "visible", timeout: 10_000 });
+  const box = await pane.boundingBox();
+  if (!box) {
+    throw new Error("subgraph canvas has no bounding box");
+  }
+  const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.click(point.x, point.y, { button: "right" });
 
   await page
     .locator(".pane-context-menu")

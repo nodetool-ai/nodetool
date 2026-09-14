@@ -18,7 +18,13 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: 1,
-  reporter: "list",
+  reporter: process.env.CI
+    ? [
+        ["github"],
+        ["list"],
+        ["html", { outputFolder: "playwright-report", open: "never" }]
+      ]
+    : [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
 
   globalSetup: "./tests/e2e-runner/globalSetup.ts",
 

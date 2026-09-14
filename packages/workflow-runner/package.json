@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
+    "typecheck:e2e": "node ../../scripts/run-tsc.mjs --noEmit -p e2e/tsconfig.json",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {

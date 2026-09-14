@@ -15,14 +15,13 @@ import { test, expect, FIXTURES } from "./fixtures";
 import { MiniAppPage } from "./pages";
 
 test.describe("Mini app", () => {
-  test("renders the app document's widgets", async ({ page, pageErrors }) => {
+  test("renders the app document's widgets", async ({ page }) => {
     const app = new MiniAppPage(page);
     await app.open(FIXTURES.miniAppName);
 
     await expect(app.runButton()).toBeVisible();
     await expect(app.promptInput().first()).toBeVisible();
 
-    expect(pageErrors, "mini app loaded with page errors").toEqual([]);
   });
 
   test("runs with the seeded input value", async ({ page }) => {

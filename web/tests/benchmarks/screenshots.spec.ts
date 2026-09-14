@@ -13,7 +13,7 @@
  * playwright.config.ts auto-starts the Vite dev server and the real backend.
  */
 
-import { test, Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import * as path from "path";
 import * as fs from "fs";
 import { fileURLToPath } from "url";
@@ -42,6 +42,20 @@ async function saveScreenshot(
   filename: string,
   fullPage = false
 ): Promise<void> {
+  await assertNoErrorBoundary(page);
+  await ensureNoVisibleProgress(page);
+  await page.waitForFunction(
+    () =>
+      Array.from(document.images)
+        .filter((image) => {
+          const style = getComputedStyle(image);
+          return style.visibility !== "hidden" && style.display !== "none";
+        })
+        .every((image) => image.complete && image.naturalWidth > 0),
+    undefined,
+    { timeout: 15_000 }
+  );
+  await expect(page.locator("body")).toBeVisible();
   const filepath = path.join(SCREENSHOT_DIR, filename);
   await page.screenshot({ path: filepath, fullPage });
   console.log(`  📸 ${filename}`);
@@ -53,21 +67,15 @@ async function saveElementScreenshot(
   selector: string,
   filename: string,
   timeout = 5000
-): Promise<boolean> {
+): Promise<void> {
+  await assertNoErrorBoundary(page);
+  await ensureNoVisibleProgress(page);
+  await waitForImages(page, timeout);
   const element = page.locator(selector).first();
-  if ((await element.count()) === 0) {
-    console.warn(`  ⚠ Element not found: ${selector}`);
-    return false;
-  }
-  try {
-    const filepath = path.join(SCREENSHOT_DIR, filename);
-    await element.screenshot({ path: filepath, timeout });
-    console.log(`  📸 ${filename} (${selector})`);
-    return true;
-  } catch {
-    console.warn(`  ⚠ Element screenshot failed for ${selector}`);
-    return false;
-  }
+  await expect(element, `required screenshot landmark: ${selector}`).toBeVisible({ timeout });
+  const filepath = path.join(SCREENSHOT_DIR, filename);
+  await element.screenshot({ path: filepath, timeout });
+  console.log(`  📸 ${filename} (${selector})`);
 }
 
 /**
@@ -76,27 +84,22 @@ async function saveElementScreenshot(
  *   0 → mode (Chat / Generate Images / …)
  *   1 → language model
  *   2 → permission mode (Plan / Default / Auto)
- * Returns false if the requested chip never appears (composer not mounted).
+ * Throws if the requested chip never appears because the composer is required
+ * for these interaction captures.
  */
 async function openComposerChip(
   page: Page,
   which: "mode" | "model" | "permission"
-): Promise<boolean> {
+): Promise<void> {
   const selector =
     which === "permission"
       ? ".permission-selector-trigger"
       : ".media-chip-main .media-control-chip";
   const index = which === "mode" ? 0 : which === "model" ? 1 : 0;
   const chip = page.locator(selector).nth(index);
-  try {
-    await chip.waitFor({ state: "visible", timeout: 15000 });
-    await chip.click();
-    await waitForAnimation(page, 500);
-    return true;
-  } catch {
-    console.warn(`  ⚠ Composer chip not found: ${which}`);
-    return false;
-  }
+  await chip.waitFor({ state: "visible", timeout: 15000 });
+  await chip.click();
+  await waitForAnimation(page, 500);
 }
 
 /** Skip a test if the screenshot already exists and FORCE_SCREENSHOTS is not set */
@@ -401,14 +404,7 @@ async function gotoPage(
     '[role="status"][aria-label="Loading NodeTool"]'
   );
   if ((await loadingOverlay.count()) > 0) {
-    await loadingOverlay
-      .first()
-      .waitFor({ state: "hidden", timeout: 30_000 })
-      .catch(() => {
-        console.warn(
-          "  ⚠ Loading NodeTool overlay never disappeared — capturing anyway"
-        );
-      });
+    await loadingOverlay.first().waitFor({ state: "hidden", timeout: 30_000 });
   }
 
   // Best-effort networkidle wait, capped so retries (HMR, polling) don't hang.
@@ -423,18 +419,14 @@ async function gotoPage(
  * the seeded frames exist to avoid.
  */
 async function waitForImages(page: Page, timeout = 15000): Promise<void> {
-  await page
-    .waitForFunction(
-      () =>
-        Array.from(document.images).every(
-          (image) => image.complete && image.naturalWidth > 0
-        ),
-      undefined,
-      { timeout }
-    )
-    .catch(() => {
-      console.warn("  ⚠ Some images never decoded — capturing anyway");
-    });
+  await page.waitForFunction(
+    () =>
+      Array.from(document.images).every(
+        (image) => image.complete && image.naturalWidth > 0
+      ),
+    undefined,
+    { timeout }
+  );
 }
 
 /**
@@ -443,13 +435,10 @@ async function waitForImages(page: Page, timeout = 15000): Promise<void> {
  * quickly; if they do not, the screenshot should fail fast.
  */
 async function ensureNoVisibleProgress(page: Page, timeout = 12000): Promise<void> {
-  const progress = page.locator('[role="progressbar"], .MuiCircularProgress-root');
-  if ((await progress.count()) === 0) {
-    return;
-  }
-  await progress.first().waitFor({ state: "hidden", timeout }).catch((error) => {
-    console.warn(`  ⚠ Progress indicator remained visible: ${String(error)}`);
-  });
+  const progress = page.locator(
+    '[role="progressbar"]:visible, .MuiCircularProgress-root:visible'
+  );
+  await expect(progress).toHaveCount(0, { timeout });
 }
 
 async function waitForScreenshotReady(
@@ -465,50 +454,34 @@ async function waitForScreenshotReady(
     }
     case "mini-app-page.png":
     case "standalone-mini-app.png": {
-      // Wait for the spinner to clear; the page might render either the
-      // workflow form, an output panel, or an empty-state — all are valid
-      // captures, so tolerate any of them.
+      // The route may render a workflow form or an empty-state, but it must
+      // finish loading before either is captured.
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 800);
       break;
     }
     case "workflow-graph-view.png": {
       // The standalone graph view sets data-ready="true" once nodes are laid
-      // out; tolerate it not arriving (lazy chunks may still be downloading)
-      // and rely on a node-count check as a fallback.
-      await page
-        .locator('[data-ready="true"]')
-        .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
-      await page
-        .waitForFunction(
-          () => document.querySelectorAll(".react-flow__node").length > 0,
-          undefined,
-          { timeout: 10000 }
-        )
-        .catch(() => {});
+      // out. A screenshot without the graph is an invalid fixture.
+      await page.locator('[data-ready="true"]').first().waitFor({ state: "visible", timeout: 15000 });
+      await page.waitForFunction(
+        () => document.querySelectorAll(".react-flow__node").length > 0,
+        undefined,
+        { timeout: 10000 }
+      );
       await waitForAnimation(page, 600);
       break;
     }
     case "asset-explorer.png": {
       // Either the folder list or one of the seeded files should appear.
-      await page
-        .getByText(/portrait_sunset\.jpg|images|documents/i)
-        .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+      await page.getByText(/portrait_sunset\.jpg|images|documents/i).first().waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       break;
     }
     case "global-chat-interface.png":
     case "chat-mobile.png": {
       // The chat input composer is the most stable landmark on every chat view.
-      await page
-        .locator('textarea, [contenteditable="true"]')
-        .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+      await page.locator('textarea, [contenteditable="true"]').first().waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       break;
     }
@@ -516,11 +489,7 @@ async function waitForScreenshotReady(
     case "dashboard-mobile.png":
     case "dashboard-tablet.png": {
       // Portal renders an AppHeader and the chat composer. Wait for either.
-      await page
-        .locator('header, [role="banner"], textarea')
-        .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+      await page.locator('header, [role="banner"], textarea').first().waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       break;
     }
@@ -534,16 +503,8 @@ async function waitForScreenshotReady(
       // panel with Color / Layers / Canvas sections. Wait for the editor shell
       // and the Layers section to appear; the WebGL canvas may not paint in
       // headless mode but the editor chrome is the documentation surface.
-      await page
-        .locator(".sketch-editor, .sketch-editor__body")
-        .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
-      await page
-        .getByText(/layers/i)
-        .first()
-        .waitFor({ state: "visible", timeout: 8000 })
-        .catch(() => {});
+      await page.locator(".sketch-editor, .sketch-editor__body").first().waitFor({ state: "visible", timeout: 15000 });
+      await page.getByText(/layers/i).first().waitFor({ state: "visible", timeout: 8000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 800);
       break;
@@ -552,11 +513,7 @@ async function waitForScreenshotReady(
       // The timeline route mounts a TopBar, a tracks region (with a resize
       // separator), and a status bar even before the sequence finishes
       // loading. Wait for the tracks separator as a stable landmark.
-      await page
-        .locator('[aria-label="Resize tracks panel"]')
-        .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+      await page.locator('[aria-label="Resize tracks panel"]').first().waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 800);
       break;
@@ -585,8 +542,12 @@ async function assertNoErrorBoundary(page: Page): Promise<void> {
     await page.waitForTimeout(300);
     const detailText = await page.locator('.details-section').innerText().catch(() => "");
     // Capture a failure screenshot for diagnostics
-    const failPath = path.join(SCREENSHOT_DIR, "_error_" + Date.now() + ".png");
-    await page.screenshot({ path: failPath }).catch(() => {});
+    const failPath = test.info().outputPath(`error-${Date.now()}.png`);
+    await page.screenshot({ path: failPath });
+    await test.info().attach("error-boundary-screenshot", {
+      path: failPath,
+      contentType: "image/png"
+    });
     throw new Error(
       `React ErrorBoundary is visible — the page crashed.\nURL: ${page.url()}\nError: ${errorText.substring(0, 200)}\nDetails: ${detailText.substring(0, 600)}`
     );
@@ -645,8 +606,7 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .getByText(/what do you want to make today/i)
         .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       // The four track cards rise in with staggered delays up to 480ms.
       await waitForAnimation(page, 1200);
@@ -661,19 +621,15 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .locator(checklist)
         .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 800);
-      const ok = await saveElementScreenshot(
+      await saveElementScreenshot(
         page,
         checklist,
         "onboarding-checklist.png",
         8000
       );
-      if (!ok) {
-        await saveScreenshot(page, "onboarding-checklist.png");
-      }
     });
 
     test("Onboarding – empty workspace", async ({ page }) => {
@@ -688,13 +644,11 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .locator(".workspace-empty")
         .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 15000 });
       await page
         .getByText(/turns a prompt into an image/i)
         .first()
-        .waitFor({ state: "visible", timeout: 10000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 10000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "onboarding-empty-workspace.png");
@@ -712,8 +666,7 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .getByText(/connect an ai provider/i)
         .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "provider-onboarding-dialog.png");
@@ -727,8 +680,7 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .getByRole("button", { name: /^test$/i })
         .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "settings-providers-test.png");
@@ -744,8 +696,7 @@ if (process.env.JEST_WORKER_ID) {
           () => document.querySelectorAll(".react-flow__node").length > 0,
           undefined,
           { timeout: 15000 }
-        )
-        .catch(() => {});
+        );
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "editor-empty-state.png");
     });
@@ -771,13 +722,8 @@ if (process.env.JEST_WORKER_ID) {
       test.skip(shouldSkip("chat-model-selector.png"), "Already captured");
       await gotoPage(page, "/chat/thread-story");
       await waitForScreenshotReady(page, "global-chat-interface.png");
-      if (await openComposerChip(page, "model")) {
-        await page
-          .getByText(/select language model/i)
-          .first()
-          .waitFor({ state: "visible", timeout: 8000 })
-          .catch(() => {});
-      }
+      await openComposerChip(page, "model");
+      await page.getByText(/select language model/i).first().waitFor({ state: "visible", timeout: 8000 });
       await saveScreenshot(page, "chat-model-selector.png");
     });
 
@@ -787,13 +733,8 @@ if (process.env.JEST_WORKER_ID) {
       test.skip(shouldSkip("chat-composer-modes.png"), "Already captured");
       await gotoPage(page, "/chat/thread-story");
       await waitForScreenshotReady(page, "global-chat-interface.png");
-      if (await openComposerChip(page, "mode")) {
-        await page
-          .getByRole("menu", { name: /generation mode/i })
-          .first()
-          .waitFor({ state: "visible", timeout: 8000 })
-          .catch(() => {});
-      }
+      await openComposerChip(page, "mode");
+      await page.getByRole("menu", { name: /generation mode/i }).first().waitFor({ state: "visible", timeout: 8000 });
       await saveScreenshot(page, "chat-composer-modes.png");
     });
 
@@ -803,13 +744,8 @@ if (process.env.JEST_WORKER_ID) {
       test.skip(shouldSkip("chat-permission-modes.png"), "Already captured");
       await gotoPage(page, "/chat/thread-story");
       await waitForScreenshotReady(page, "global-chat-interface.png");
-      if (await openComposerChip(page, "permission")) {
-        await page
-          .getByRole("menu", { name: /permission mode/i })
-          .first()
-          .waitFor({ state: "visible", timeout: 8000 })
-          .catch(() => {});
-      }
+      await openComposerChip(page, "permission");
+      await page.getByRole("menu", { name: /permission mode/i }).first().waitFor({ state: "visible", timeout: 8000 });
       await saveScreenshot(page, "chat-permission-modes.png");
     });
 
@@ -833,8 +769,7 @@ if (process.env.JEST_WORKER_ID) {
           () => document.querySelectorAll(".react-flow__node").length > 0,
           undefined,
           { timeout: 15000 }
-        )
-        .catch(() => {});
+        );
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "workflow-graph-view.png");
     });
@@ -888,8 +823,7 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .getByText("Included packs")
         .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 600);
       await saveScreenshot(page, "packages-manager.png");
@@ -902,8 +836,7 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .getByText("Start from a template")
         .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "examples-page.png");
@@ -943,8 +876,7 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .getByRole("button", { name: "Design", exact: true })
         .first()
-        .waitFor({ state: "visible", timeout: 20000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 20000 });
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "mini-app-design.png");
     });
@@ -955,13 +887,12 @@ if (process.env.JEST_WORKER_ID) {
       const runMode = page
         .getByRole("button", { name: "Run", exact: true })
         .first();
-      await runMode.waitFor({ state: "visible", timeout: 20000 }).catch(() => {});
-      await runMode.click().catch(() => {});
+      await runMode.waitFor({ state: "visible", timeout: 20000 });
+      await runMode.click();
       await page
         .getByRole("button", { name: /^run echo$/i })
         .first()
-        .waitFor({ state: "visible", timeout: 20000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 20000 });
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "mini-app-run.png");
     });
@@ -977,14 +908,12 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .getByRole("button", { name: "Design", exact: true })
         .first()
-        .waitFor({ state: "visible", timeout: 20000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 20000 });
       await waitForAnimation(page, 2000);
       await page
         .getByText(text, { exact: true })
         .first()
-        .click({ force: true })
-        .catch(() => {});
+        .click({ force: true });
       await waitForAnimation(page, 1000);
     }
 
@@ -1001,8 +930,7 @@ if (process.env.JEST_WORKER_ID) {
         .first()
         .getByRole("combobox")
         .first()
-        .click({ force: true })
-        .catch(() => {});
+        .click({ force: true });
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "mini-app-binding-picker.png");
     });
@@ -1016,8 +944,7 @@ if (process.env.JEST_WORKER_ID) {
         .first()
         .getByText("run", { exact: true })
         .first()
-        .click({ force: true })
-        .catch(() => {});
+        .click({ force: true });
       await waitForAnimation(page, 1000);
       await saveScreenshot(page, "mini-app-button-action.png");
     });
@@ -1059,10 +986,9 @@ if (process.env.JEST_WORKER_ID) {
         .getByRole("tab")
         .filter({ hasText: /api.*key|secret/i })
         .first();
-      if ((await apiKeysTab.count()) > 0) {
-        await apiKeysTab.click();
-        await waitForAnimation(page, 400);
-      }
+      await apiKeysTab.waitFor({ state: "visible", timeout: 10000 });
+      await apiKeysTab.click();
+      await waitForAnimation(page, 400);
       await saveScreenshot(page, "settings-api-keys.png");
     });
 
@@ -1073,8 +999,7 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .locator('[data-preview="models"]')
         .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 15000 });
       // ModelListIndex renders cards with a fade-in animation; wait for it
       // to settle so the captured frame doesn't show ghosted text.
       await waitForAnimation(page, 1500);
@@ -1097,8 +1022,7 @@ if (process.env.JEST_WORKER_ID) {
           () => document.querySelectorAll(".react-flow__node").length > 0,
           undefined,
           { timeout: 15000 }
-        )
-        .catch(() => {});
+        );
       await waitForAnimation(page, 800);
     }
 
@@ -1181,17 +1105,13 @@ if (process.env.JEST_WORKER_ID) {
       test.skip(shouldSkip("editor-node-canvas.png"), "Already captured");
       await openEditorWithNodes(page);
       // Element-screenshot the ReactFlow viewport for a clean canvas-only
-      // image, which is what the docs page wants. Fallback to full page if
-      // the element isn't found.
-      const ok = await saveElementScreenshot(
+      // image, which is what the docs page wants.
+      await saveElementScreenshot(
         page,
         ".react-flow",
         "editor-node-canvas.png",
         8000
       );
-      if (!ok) {
-        await saveScreenshot(page, "editor-node-canvas.png");
-      }
     });
 
     test("Editor – floating toolbar", async ({ page }) => {
@@ -1200,17 +1120,13 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .locator(".floating-toolbar")
         .first()
-        .waitFor({ state: "visible", timeout: 10000 })
-        .catch(() => {});
-      const ok = await saveElementScreenshot(
+        .waitFor({ state: "visible", timeout: 10000 });
+      await saveElementScreenshot(
         page,
         ".floating-toolbar",
         "editor-floating-toolbar.png",
         8000
       );
-      if (!ok) {
-        await saveScreenshot(page, "editor-floating-toolbar.png");
-      }
     });
 
     test("Editor – tabs bar", async ({ page }) => {
@@ -1218,6 +1134,12 @@ if (process.env.JEST_WORKER_ID) {
       await openEditorWithNodes(page);
       // The header strip with workflow tabs sits at the top of the editor
       // chrome. We capture a thin strip from the top of the viewport.
+      await assertNoErrorBoundary(page);
+      await ensureNoVisibleProgress(page);
+      await waitForImages(page);
+      await expect(
+        page.locator('[role="tab"], [data-testid*="tab"]').first()
+      ).toBeVisible();
       const fullPath = path.join(SCREENSHOT_DIR, "editor-tabs-bar.png");
       await page.screenshot({
         path: fullPath,
@@ -1232,17 +1154,15 @@ if (process.env.JEST_WORKER_ID) {
       // Trigger the global Command Menu shortcut. Using both modifiers covers
       // Mac (Meta) and Linux/Windows (Control) so the test works regardless
       // of how Playwright reports the platform.
-      await page.keyboard.press("Control+K").catch(() => {});
+      await page.keyboard.press("Control+K");
       const dialog = page.locator(".command-menu-dialog");
       const opened = await dialog
         .waitFor({ state: "visible", timeout: 5000 })
         .then(() => true)
         .catch(() => false);
       if (!opened) {
-        await page.keyboard.press("Meta+K").catch(() => {});
-        await dialog
-          .waitFor({ state: "visible", timeout: 5000 })
-          .catch(() => {});
+        await page.keyboard.press("Meta+K");
+        await dialog.waitFor({ state: "visible", timeout: 5000 });
       }
       await waitForAnimation(page, 400);
       await saveScreenshot(page, "editor-command-menu.png");
@@ -1251,7 +1171,7 @@ if (process.env.JEST_WORKER_ID) {
     test("Editor – quick add node (Cmd/Ctrl+Shift+A)", async ({ page }) => {
       test.skip(shouldSkip("editor-quick-add-node.png"), "Already captured");
       await openEditorWithNodes(page);
-      await page.keyboard.press("Control+Shift+A").catch(() => {});
+      await page.keyboard.press("Control+Shift+A");
       const fallbackKey = "Meta+Shift+A";
       // Wait for any modal/dialog/role=dialog to appear
       const dialog = page
@@ -1264,10 +1184,8 @@ if (process.env.JEST_WORKER_ID) {
         .then(() => true)
         .catch(() => false);
       if (!opened) {
-        await page.keyboard.press(fallbackKey).catch(() => {});
-        await dialog
-          .waitFor({ state: "visible", timeout: 5000 })
-          .catch(() => {});
+        await page.keyboard.press(fallbackKey);
+        await dialog.waitFor({ state: "visible", timeout: 5000 });
       }
       await waitForAnimation(page, 400);
       await saveScreenshot(page, "editor-quick-add-node.png");
@@ -1305,10 +1223,9 @@ if (process.env.JEST_WORKER_ID) {
         .getByRole("tab")
         .filter({ hasText: /model|provider/i })
         .first();
-      if ((await target.count()) > 0) {
-        await target.click().catch(() => {});
-        await waitForAnimation(page, 400);
-      }
+      await target.waitFor({ state: "visible", timeout: 10000 });
+      await target.click();
+      await waitForAnimation(page, 400);
       await saveScreenshot(page, "mobile-language-model-selection.png");
     });
 
@@ -1330,16 +1247,13 @@ if (process.env.JEST_WORKER_ID) {
       // menu at the cursor.
       const canvas = page.locator(".react-flow").first();
       const box = await canvas.boundingBox();
-      if (box) {
-        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-      }
-      await page.keyboard.press(" ").catch(() => {});
+      if (!box) throw new Error("Editor canvas has no geometry");
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.keyboard.press(" ");
       const menu = page
         .locator('.node-menu, [class*="NodeMenu"], [data-testid="node-menu"]')
         .first();
-      await menu
-        .waitFor({ state: "visible", timeout: 5000 })
-        .catch(() => {});
+      await menu.waitFor({ state: "visible", timeout: 5000 });
       await waitForAnimation(page, 500);
       await saveScreenshot(page, "editor-node-menu.png");
     });
@@ -1350,21 +1264,14 @@ if (process.env.JEST_WORKER_ID) {
       // Anchor the node menu at the canvas centre.
       const canvas = page.locator(".react-flow").first();
       const box = await canvas.boundingBox();
-      if (box) {
-        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-      }
-      await page.keyboard.press(" ").catch(() => {});
+      if (!box) throw new Error("Editor canvas has no geometry");
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.keyboard.press(" ");
       const trigger = page.locator(".optional-packs-trigger").first();
-      await trigger
-        .waitFor({ state: "visible", timeout: 8000 })
-        .catch(() => {});
+      await trigger.waitFor({ state: "visible", timeout: 8000 });
       // Open the Optional packs popover (Categories + Providers).
-      await trigger.click().catch(() => {});
-      await page
-        .getByText("Optional node packs")
-        .first()
-        .waitFor({ state: "visible", timeout: 5000 })
-        .catch(() => {});
+      await trigger.click();
+      await page.getByText("Optional node packs").first().waitFor({ state: "visible", timeout: 5000 });
       await waitForAnimation(page, 500);
       await saveScreenshot(page, "node-menu-optional-packs.png");
     });
@@ -1376,8 +1283,8 @@ if (process.env.JEST_WORKER_ID) {
       );
       await openEditorWithNodes(page);
       // Click the canvas so the editor has focus before sending the shortcut.
-      await page.locator(".react-flow").first().click().catch(() => {});
-      await page.keyboard.press("Control+F").catch(() => {});
+      await page.locator(".react-flow").first().click();
+      await page.keyboard.press("Control+F");
       const dialog = page
         .locator('[class*="findInWorkflow"], [class*="FindInWorkflow"], [role="dialog"]')
         .first();
@@ -1386,10 +1293,8 @@ if (process.env.JEST_WORKER_ID) {
         .then(() => true)
         .catch(() => false);
       if (!opened) {
-        await page.keyboard.press("Meta+F").catch(() => {});
-        await dialog
-          .waitFor({ state: "visible", timeout: 4000 })
-          .catch(() => {});
+        await page.keyboard.press("Meta+F");
+        await dialog.waitFor({ state: "visible", timeout: 4000 });
       }
       await waitForAnimation(page, 400);
       await saveScreenshot(page, "editor-find-in-workflow.png");
@@ -1399,14 +1304,12 @@ if (process.env.JEST_WORKER_ID) {
       test.skip(shouldSkip("editor-context-menu.png"), "Already captured");
       await openEditorWithNodes(page);
       const node = page.locator(".react-flow__node").first();
-      await node.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
-      await node.click({ button: "right" }).catch(() => {});
+      await node.waitFor({ state: "visible", timeout: 8000 });
+      await node.click({ button: "right" });
       const menu = page
         .locator('.MuiMenu-paper, [role="menu"], [class*="ContextMenu"]')
         .first();
-      await menu
-        .waitFor({ state: "visible", timeout: 4000 })
-        .catch(() => {});
+      await menu.waitFor({ state: "visible", timeout: 4000 });
       await waitForAnimation(page, 300);
       await saveScreenshot(page, "editor-context-menu.png");
     });
@@ -1442,8 +1345,7 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .getByText("Marta")
         .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 600);
       await saveScreenshot(page, "entity-library.png");
@@ -1462,13 +1364,11 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .locator(".asset-mention-menu")
         .first()
-        .waitFor({ state: "visible", timeout: 10000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 10000 });
       await page
         .locator(".mention-entity-tile")
         .first()
-        .waitFor({ state: "visible", timeout: 10000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 10000 });
       await waitForAnimation(page, 500);
       await saveScreenshot(page, "chat-mention-entities.png");
     });
@@ -1493,8 +1393,7 @@ if (process.env.JEST_WORKER_ID) {
       const shotCards = page.locator(".shot-card");
       await shotCards
         .first()
-        .waitFor({ state: "visible", timeout: 20000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 20000 });
       const settings = page.getByRole("button", { name: /board settings/i });
       if ((await settings.getAttribute("aria-expanded")) === "false") {
         await settings.click();
@@ -1502,8 +1401,7 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .getByText("Neon Noir")
         .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "storyboard-board.png");
@@ -1531,8 +1429,7 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .getByText("SCRAPHEART — Trailer")
         .first()
-        .waitFor({ state: "visible", timeout: 20000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 20000 });
       await ensureNoVisibleProgress(page);
       await waitForImages(page);
       await waitForAnimation(page, 800);
@@ -1553,21 +1450,18 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .getByText("What do you want to make?")
         .first()
-        .waitFor({ state: "visible", timeout: 20000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 20000 });
       // The estimate is read off past projects of the shape being started, and
       // the two the fixture prices are trailers — so pick that shape to shoot
       // the surface with the line it exists to show.
       await page
         .getByRole("button", { name: "Trailer", exact: true })
         .first()
-        .click()
-        .catch(() => {});
+        .click();
       await page
         .getByText(/from 2 past projects/i)
         .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 600);
       await saveScreenshot(page, "project-new.png");
@@ -1613,13 +1507,11 @@ if (process.env.JEST_WORKER_ID) {
       await page
         .getByText("SCRAPHEART — shot board")
         .first()
-        .waitFor({ state: "visible", timeout: 20000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 20000 });
       await page
         .getByText(/six shots, all on long lenses/i)
         .first()
-        .waitFor({ state: "visible", timeout: 20000 })
-        .catch(() => {});
+        .waitFor({ state: "visible", timeout: 20000 });
       await ensureNoVisibleProgress(page);
       await waitForImages(page);
       await waitForAnimation(page, 1000);
@@ -1646,8 +1538,7 @@ if (process.env.JEST_WORKER_ID) {
           await p
             .getByRole("button", { name: /delete|confirm/i })
             .first()
-            .waitFor({ state: "visible", timeout: 8000 })
-            .catch(() => {});
+            .waitFor({ state: "visible", timeout: 8000 });
         }
       },
       {
@@ -1657,8 +1548,7 @@ if (process.env.JEST_WORKER_ID) {
           await p
             .getByText(/swatches|harmony|gradient/i)
             .first()
-            .waitFor({ state: "visible", timeout: 8000 })
-            .catch(() => {});
+            .waitFor({ state: "visible", timeout: 8000 });
         }
       },
       {
@@ -1670,8 +1560,7 @@ if (process.env.JEST_WORKER_ID) {
           await p
             .locator(".monaco-editor, .view-lines, textarea")
             .first()
-            .waitFor({ state: "visible", timeout: 15000 })
-            .catch(() => {});
+            .waitFor({ state: "visible", timeout: 15000 });
           await waitForAnimation(p, 600);
         }
       },
@@ -1682,8 +1571,7 @@ if (process.env.JEST_WORKER_ID) {
           await p
             .getByText(/Wireless Headphones|Yoga Mat|Hooded Sweatshirt/i)
             .first()
-            .waitFor({ state: "visible", timeout: 8000 })
-            .catch(() => {});
+            .waitFor({ state: "visible", timeout: 8000 });
         }
       },
       {
@@ -1693,8 +1581,7 @@ if (process.env.JEST_WORKER_ID) {
           await p
             .locator('img[alt="Before"], img[alt="After"]')
             .first()
-            .waitFor({ state: "visible", timeout: 12000 })
-            .catch(() => {});
+            .waitFor({ state: "visible", timeout: 12000 });
           await waitForAnimation(p, 400);
         }
       },
@@ -1705,8 +1592,7 @@ if (process.env.JEST_WORKER_ID) {
           await p
             .getByText(/Stable Diffusion XL Base|FLUX\.1 Schnell/i)
             .first()
-            .waitFor({ state: "visible", timeout: 8000 })
-            .catch(() => {});
+            .waitFor({ state: "visible", timeout: 8000 });
         }
       },
       {
@@ -1716,8 +1602,7 @@ if (process.env.JEST_WORKER_ID) {
           await p
             .getByText(/Confirm Deletion|Delete .*stable-diffusion/i)
             .first()
-            .waitFor({ state: "visible", timeout: 8000 })
-            .catch(() => {});
+            .waitFor({ state: "visible", timeout: 8000 });
         }
       },
       {
@@ -1727,8 +1612,7 @@ if (process.env.JEST_WORKER_ID) {
           await p
             .getByText(/Model Downloads|Download Progress|Recommended Models/i)
             .first()
-            .waitFor({ state: "visible", timeout: 8000 })
-            .catch(() => {});
+            .waitFor({ state: "visible", timeout: 8000 });
         }
       },
       {
@@ -1739,8 +1623,7 @@ if (process.env.JEST_WORKER_ID) {
           await p
             .locator('[data-preview="node-readme"]')
             .first()
-            .waitFor({ state: "visible", timeout: 8000 })
-            .catch(() => {});
+            .waitFor({ state: "visible", timeout: 8000 });
           await waitForAnimation(p, 400);
         }
       },
@@ -1751,8 +1634,7 @@ if (process.env.JEST_WORKER_ID) {
           await p
             .getByLabel(/name|description/i)
             .first()
-            .waitFor({ state: "visible", timeout: 8000 })
-            .catch(() => {});
+            .waitFor({ state: "visible", timeout: 8000 });
         }
       },
       {
@@ -1762,8 +1644,7 @@ if (process.env.JEST_WORKER_ID) {
           await p
             .getByRole("button", { name: /delete|confirm/i })
             .first()
-            .waitFor({ state: "visible", timeout: 8000 })
-            .catch(() => {});
+            .waitFor({ state: "visible", timeout: 8000 });
         }
       }
     ];

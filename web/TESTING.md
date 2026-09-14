@@ -34,7 +34,7 @@ npm run test:coverage
 # Run tests with summary output only
 npm run test:summary
 
-# Run end-to-end tests (Playwright)
+# Run the default documentation screenshot suite (Playwright)
 npm run test:e2e
 
 # Run E2E tests with UI mode
@@ -143,19 +143,33 @@ web/tests/
 └── benchmarks/       # Screenshot and performance suites
 ```
 
+The former `performance-test.spec.ts` and `profiling.spec.ts` ReactFlow
+benchmarks were retired. They depended on deleted helpers, created nodes
+conditionally, and used wall-clock sleeps, so a passing run did not prove the
+claimed graph was present. The maintained browser-runner and editor journeys
+cover functional graph execution. `realtime-perf.spec.ts` remains an explicit,
+opt-in performance benchmark and is not part of the default functional command.
+
 ### Configuration
 
 Each suite has its own config; all of them run Chromium only and serve the app
 from Vite on port 3000 by default.
 
-- `playwright.config.ts` — the screenshot/benchmark config. Test directory
-  `./tests`, ignoring `**/e2e-runner/**` and `**/journeys/**`. Base URL
+- `playwright.config.ts` — the documentation screenshot config. Test directory
+  `./tests`, matching only the screenshot specs. Base URL
   `http://localhost:3000`. Retries 0, a single worker. `tests/globalSetup.ts`
-  starts the real backend on port 7777.
-- `playwright.journeys.config.ts` — `./tests/journeys`, retries 1 in CI, 0 locally.
-- `playwright.smoke.config.ts` — `./tests/smoke`, retries 1 in CI, 0 locally.
+  starts the real backend on port 7777. Other suites must select their own
+  config explicitly so unrelated tests cannot be discovered accidentally.
+- `playwright.journeys.config.ts` — `./tests/journeys`, retries 0.
+- `playwright.smoke.config.ts` — `./tests/smoke`, retries 0.
 - `playwright.e2e-runner.config.ts` — `./tests/e2e-runner`, retries 0.
 - `playwright.debug-harness.config.ts` — `./tests/debug-harness`, retries 0.
+- `playwright.benchmark.config.ts` — opt-in realtime benchmark, retries 0.
+
+`npm run typecheck:playwright` type-checks every Playwright config, fixture,
+helper, and spec under `web/tests/`. CI runs this check alongside each browser
+suite so a suite-specific path change cannot leave its TypeScript outside the
+build.
 
 ### Running E2E Tests
 
@@ -177,7 +191,7 @@ npx playwright install --with-deps chromium
 #### Running Tests
 
 ```bash
-# Run all E2E tests
+# Run the default documentation screenshot suite
 npm run test:e2e
 
 # Run with UI mode (recommended for development)

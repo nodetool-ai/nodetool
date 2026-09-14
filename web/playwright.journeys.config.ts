@@ -30,18 +30,20 @@ export default defineConfig({
   timeout: 120_000,
   expect: { timeout: 20_000 },
 
-  forbidOnly: !!process.env.CI,
-  /* One retry in CI absorbs a cold-start blip; a real regression fails both
-     attempts. */
-  retries: process.env.CI ? 1 : 0,
-  /* Sequential: the suite shares one seeded in-memory backend, and journeys
-     mutate it (adding nodes, sending messages). Parallel workers would race on
-     that shared state. */
+  forbidOnly: true,
+  /* Functional tests must expose flakes instead of retrying them green. */
+  retries: 0,
+  /* The reset endpoint is serialized by one worker so each test starts from a
+     fresh seeded database without concurrent resets racing active sessions. */
   workers: 1,
 
   reporter: process.env.CI
-    ? [["github"], ["list"], ["html", { open: "never" }]]
-    : "list",
+    ? [
+        ["github"],
+        ["list"],
+        ["html", { outputFolder: "playwright-report", open: "never" }]
+      ]
+    : [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
 
   globalSetup: "./tests/journeys/globalSetup.ts",
 

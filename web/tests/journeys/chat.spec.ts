@@ -11,14 +11,13 @@ import { test, expect, FIXTURES, FAKE_LLM_TEXT } from "./fixtures";
 import { ChatPage } from "./pages";
 
 test.describe("Chat", () => {
-  test("renders the seeded thread history", async ({ page, pageErrors }) => {
+  test("renders the seeded thread history", async ({ page }) => {
     const chat = new ChatPage(page);
     await chat.open(FIXTURES.thread);
 
     // Seeded assistant message from `screenshot-server.ts`.
     await chat.waitForMessage("dreams of silicon");
 
-    expect(pageErrors, "chat loaded with page errors").toEqual([]);
   });
 
   test("sends a message and streams back a reply", async ({ page }) => {

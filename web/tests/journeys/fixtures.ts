@@ -1,17 +1,18 @@
 /**
  * Shared fixtures for the user-journey suite.
  *
- * Every journey starts from the same place: a returning user (onboarding
- * dismissed, dark mode) on a booted app, with console errors being recorded so
- * a spec can assert the journey completed *cleanly* rather than merely
- * completing. `waitForAppReady` throws if a route never leaves the boot
- * spinner, so a hung page fails where it happens instead of at the assertion.
+ * Every journey starts from the same place: a reset backend and a returning
+ * user (onboarding dismissed, dark mode). Browser errors and error boundaries
+ * are checked automatically after each test. `waitForAppReady` throws if a
+ * route never leaves the boot spinner.
  */
 
 import { test as base, expect } from "@playwright/test";
 import {
   collectPageLoadErrors,
   isIgnoredMessage,
+  readErrorBoundary,
+  readVisibleErrorBoundaries,
   seedReturningUser,
   waitForAppReady,
   type PageLoadError
@@ -25,7 +26,7 @@ export const FIXTURES = {
   miniAppId: "app-mini-app",
   /** Its display name — how a user picks it out of the Apps panel. */
   miniAppName: "Echo Mini App",
-  /** Same graph, separate row — the editor journey mutates this one. */
+  /** Same graph, separate row — keeps the editor fixture distinct by identity. */
   editorGraph: "wf-editor-journey",
   /** Seeded thread with existing messages. */
   thread: "thread-story",
@@ -43,11 +44,31 @@ type JourneyFixtures = {
 };
 
 export const test = base.extend<JourneyFixtures>({
-  pageErrors: async ({ page }, use) => {
+  pageErrors: [async ({ page, request }, use, testInfo) => {
+    const reset = await request.post("/api/test/reset");
+    if (!reset.ok()) {
+      throw new Error(
+        `journey fixture reset failed (${reset.status()}): ${await reset.text()}`
+      );
+    }
     await seedReturningUser(page);
-    const errors = collectPageLoadErrors(page);
+    const errors = collectPageLoadErrors(page, { includeDataRequests: true });
     await use(errors);
-  }
+    const routeBoundary = await readErrorBoundary(page);
+    if (routeBoundary) {
+      errors.push({ kind: "errorboundary", text: routeBoundary });
+    }
+    const embeddedBoundaries = await readVisibleErrorBoundaries(page);
+    for (const text of embeddedBoundaries) {
+      errors.push({ kind: "errorboundary", text });
+    }
+    expect(
+      errors,
+      `Journey ${testInfo.title} observed browser errors:\n${errors
+        .map((error) => `  [${error.kind}] ${error.text.split("\n")[0]}`)
+        .join("\n")}`
+    ).toEqual([]);
+  }, { auto: true }]
 });
 
 export { expect, waitForAppReady, isIgnoredMessage };

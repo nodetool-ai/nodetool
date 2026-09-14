@@ -271,7 +271,8 @@ export function fakeValueForType(type: string): FakeSlotValue {
 /** An executor that emits placeholder outputs for a node's declared slots. */
 export function fakeExecutor(
   meta: FakeMeta | undefined,
-  nodeType?: string
+  nodeType?: string,
+  staticProperties: Record<string, unknown> = {}
 ): NodeExecutor {
   return {
     async process(
@@ -283,7 +284,7 @@ export function fakeExecutor(
       const effectiveNodeType = nodeType ?? meta?.node_type;
       const transcribeWithTimestamps =
         effectiveNodeType === "openai.audio.Transcribe" &&
-        inputs.timestamps === true;
+        { ...staticProperties, ...inputs }.timestamps === true;
       for (const slot of outputs) {
         if (effectiveNodeType === "openai.audio.Transcribe") {
           if (slot.name === "text") {
@@ -355,6 +356,8 @@ export function createFakeExecutorResolver(
     const meta = registry.getMetadata(node.type);
     const fake = shouldFakeNode(node.type, meta);
     debug(`[fake-runtime] ${node.id} ${node.type} -> ${fake ? "FAKE" : "REAL"}`);
-    return fake ? fakeExecutor(meta, node.type) : registry.resolve(node);
+    return fake
+      ? fakeExecutor(meta, node.type, node.properties ?? {})
+      : registry.resolve(node);
   };
 }

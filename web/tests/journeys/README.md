@@ -67,11 +67,12 @@ Take selectors from the running app rather than from source: several
 plausible-looking ones don't exist at runtime, and a few exist but sit inside an
 empty state, which will make an assertion pass for the wrong reason.
 
-## State is shared
+## State isolation
 
-The suite runs with `workers: 1` against one in-memory backend, and journeys
-mutate it — adding nodes, sending messages. Assert against a measured baseline
-(`before + 1`) rather than an absolute count, and don't assume a pristine graph.
+The suite runs with `workers: 1` against one in-memory backend. The journey
+fixture resets that backend and reseeds it before every test, so a test can be
+run alone, in any order, or as part of the full suite without inheriting
+mutations from another test.
 
 ## Known gaps
 

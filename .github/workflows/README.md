@@ -21,15 +21,10 @@ marketing site builds, packaging side-channels (AUR, Flatpak, EAS), and
 one-off maintenance triggers — is **none/maintenance**: useful, but not
 part of the release gate and not held to the Ring 0 flake budget.
 
-**Promotion tracked here**: `user-journeys.yml`'s legacy `journeys` job (the
-browser suite) runs nightly today with `continue-on-error: true` so a flaky
-night doesn't page anyone while the suite earns trust. It becomes a
-**required** Ring 1 check, and `continue-on-error` flips to `false`, **from
-2026-08-15**. That date lives in this file and in the workflow's own header
-comment — update both together if it moves. The same workflow's
-**`reliability-ring1`** job (added by F2) is a *separate* job with no such
-grace period: it runs on every push to `main` and is required from day one —
-see below.
+`user-journeys.yml`'s browser suite runs on pull requests, nightly, and manual
+dispatch. It is a required check and has no retry or `continue-on-error` escape
+hatch. The same workflow's **`reliability-ring1`** job runs on every push to
+`main` and remains the merge-to-main gate described below.
 
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
@@ -40,7 +35,7 @@ see below.
 | `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |
 | `fly-deploy.yml` | Deploy the GHCR image to Fly.io, gated on `docker.yml` + `user-journeys.yml`'s `reliability-ring1` both succeeding for the same commit | 1 | Required |
 | `web-deploy.yml` | Build the web app and deploy to Cloudflare Pages | 1 | Required |
-| `user-journeys.yml` | `journeys`: nightly Playwright journey suite (build a graph and run it, chat, mini app, library). `reliability-ring1` (on push to `main`, schedule, dispatch): full `reliability/journeys/*` suite on kernel+ws-server with `--diff`, plus one packaged-backend journey — gates `fly-deploy.yml` | 1 | `journeys`: advisory until 2026-08-15, then required. `reliability-ring1`: required |
+| `user-journeys.yml` | `journeys`: Playwright journey suite on pull requests, nightly, and dispatch (build a graph and run it, chat, mini app, library). `reliability-ring1` (on push to `main`, schedule, dispatch): full `reliability/journeys/*` suite on kernel+ws-server with `--diff`, plus one packaged-backend journey — gates `fly-deploy.yml` | 1 | Required |
 | `release.yaml` | Cross-platform signed release artifacts, packed-tree smoke, a packed-backend reliability journey per OS, updater assets | 2 | Required |
 | `example-smoke-debug.yml` | Nightly + manual real-provider smoke via `nodetool debug` | 2 | Nightly (spend-capped), also dispatch-only |
 | `abstraction-improver.yaml` | Scheduled agent flattens single-implementation interfaces, forwarding wrappers, re-export-only barrels | none/maintenance | Advisory (`continue-on-error`) |

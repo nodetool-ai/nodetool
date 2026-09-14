@@ -11,6 +11,7 @@ on:
       - "web/tests/benchmarks/helpers/**"
       - "web/playwright.smoke.config.ts"
       - "web/tsconfig.smoke.json"
+      - "web/tsconfig.playwright.json"
       - "web/tsconfig.e2e.json"
       - "web/package.json"
       - "packages/**"
@@ -24,6 +25,7 @@ on:
       - "web/tests/benchmarks/helpers/**"
       - "web/playwright.smoke.config.ts"
       - "web/tsconfig.smoke.json"
+      - "web/tsconfig.playwright.json"
       - "web/tsconfig.e2e.json"
       - "web/package.json"
       - "packages/**"
@@ -65,7 +67,7 @@ jobs:
 
       - name: Type-check smoke suite
         working-directory: web
-        run: npm run typecheck:smoke
+        run: npm run typecheck:playwright
 
       - name: Install Playwright Chromium browser
         # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless

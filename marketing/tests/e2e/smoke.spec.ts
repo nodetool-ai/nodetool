@@ -1,27 +1,13 @@
 import { test, expect } from "@playwright/test";
-import { registryModules } from "../../src/data/registry";
 import { recipeEntries } from "../../src/data/recipes";
 
-// Coverage is derived from the page-data registry: every indexable route is
-// smoke-tested, except that engines flagged with `sample` (hundreds of pages)
-// contribute only their first N indexable entries — hub pages first.
-const ROUTES = registryModules.flatMap((m) => {
-  const indexable = m.entries.filter((e) => e.indexable);
-  const sampled = m.sample ? indexable.slice(0, m.sample) : indexable;
-  return sampled.map((e) => e.route);
-});
-
-const MEDIA_MAGIC: Record<string, string> = {
-  jpg: "\xff\xd8\xff",
-  jpeg: "\xff\xd8\xff",
-  png: "\x89PNG",
-  webp: "RIFF",
-  mp4: "ftyp",
-  webm: "\x1a\x45\xdf\xa3"
-};
+// Static route/metadata/media coverage lives in static-seo.spec.ts and uses
+// HTTP responses. Browser work stays representative so hydration and user
+// navigation are exercised without opening a page for every prerendered route.
+const HYDRATION_ROUTES = ["/", "/models", "/recipes/ugc-product-video", "/download"];
 
 test.describe("marketing smoke", () => {
-  for (const path of ROUTES) {
+  for (const path of HYDRATION_ROUTES) {
     test(`${path} renders with a NodeTool title and exactly one h1`, async ({
       page
     }) => {
@@ -294,36 +280,6 @@ test.describe("marketing smoke", () => {
         .toBeGreaterThan(0);
     }
   });
-
-  for (const recipe of recipeEntries.filter((entry) => entry.productionRun)) {
-    test(`${recipe.route} serves its production proof media`, async ({
-      request
-    }) => {
-      const run = recipe.productionRun!;
-      const files = [
-        run.hero.src,
-        run.card.src,
-        run.ogImage,
-        run.proof?.src,
-        run.video?.mp4,
-        run.video?.webm,
-        run.video?.poster
-      ].filter((file): file is string => Boolean(file));
-
-      expect(files.length).toBeGreaterThan(0);
-      for (const file of files) {
-        const response = await request.get(file);
-        expect(response.status(), `${file} status`).toBe(200);
-        const body = await response.body();
-        expect(body.byteLength, `${file} bytes`).toBeGreaterThan(0);
-        const extension = file.split(".").pop()!;
-        expect(
-          body.subarray(0, 12).toString("latin1"),
-          `${file} signature`
-        ).toContain(MEDIA_MAGIC[extension]);
-      }
-    });
-  }
 
   test("no hidden duplicate-H1 SEO block remains", async ({ page }) => {
     await page.goto("/");
