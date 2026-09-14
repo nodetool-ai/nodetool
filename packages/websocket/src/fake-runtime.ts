@@ -48,6 +48,21 @@ export const FAKE_LLM_TEXT = "deterministic e2e response";
 /** The value every faked non-media output slot returns. */
 export const FAKE_OUTPUT_TEXT = "deterministic e2e output";
 
+const FAKE_TRANSCRIPTION_TEXT = FAKE_LLM_TEXT;
+type FakeTimestamp = [number, number];
+const FAKE_TRANSCRIPTION_WORDS: Array<{
+  text: string;
+  timestamp: FakeTimestamp;
+}> = [
+  { text: "deterministic", timestamp: [0, 1] },
+  { text: "e2e", timestamp: [1, 2] },
+  { text: "response", timestamp: [2, 3] }
+];
+const FAKE_TRANSCRIPTION_SEGMENTS: Array<{
+  text: string;
+  timestamp: FakeTimestamp;
+}> = [{ text: FAKE_TRANSCRIPTION_TEXT, timestamp: [0, 3] }];
+
 const debugEnabled = (): boolean => process.env.NODETOOL_FAKE_DEBUG === "1";
 
 function debug(message: string): void {
@@ -254,7 +269,10 @@ export function fakeValueForType(type: string): FakeSlotValue {
 }
 
 /** An executor that emits placeholder outputs for a node's declared slots. */
-export function fakeExecutor(meta: FakeMeta | undefined): NodeExecutor {
+export function fakeExecutor(
+  meta: FakeMeta | undefined,
+  nodeType?: string
+): NodeExecutor {
   return {
     async process(
       inputs: Record<string, unknown>
@@ -262,7 +280,25 @@ export function fakeExecutor(meta: FakeMeta | undefined): NodeExecutor {
       const outputs = meta?.outputs ?? [];
       if (outputs.length === 0) return inputs;
       const result: Record<string, unknown> = {};
+      const effectiveNodeType = nodeType ?? meta?.node_type;
+      const transcribeWithTimestamps =
+        effectiveNodeType === "openai.audio.Transcribe" &&
+        inputs.timestamps === true;
       for (const slot of outputs) {
+        if (effectiveNodeType === "openai.audio.Transcribe") {
+          if (slot.name === "text") {
+            result[slot.name] = FAKE_TRANSCRIPTION_TEXT;
+            continue;
+          }
+          if (transcribeWithTimestamps && slot.name === "words") {
+            result[slot.name] = FAKE_TRANSCRIPTION_WORDS;
+            continue;
+          }
+          if (transcribeWithTimestamps && slot.name === "segments") {
+            result[slot.name] = FAKE_TRANSCRIPTION_SEGMENTS;
+            continue;
+          }
+        }
         result[slot.name] = fakeValueForType(baseType(slot));
       }
       return result;
@@ -319,6 +355,6 @@ export function createFakeExecutorResolver(
     const meta = registry.getMetadata(node.type);
     const fake = shouldFakeNode(node.type, meta);
     debug(`[fake-runtime] ${node.id} ${node.type} -> ${fake ? "FAKE" : "REAL"}`);
-    return fake ? fakeExecutor(meta) : registry.resolve(node);
+    return fake ? fakeExecutor(meta, node.type) : registry.resolve(node);
   };
 }

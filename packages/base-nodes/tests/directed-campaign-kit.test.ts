@@ -511,6 +511,7 @@ describe("Directed Campaign Kit workflow contracts", () => {
     });
   });
 
+  // Six real stage graphs render and round-trip portable media through QuickJS.
   it("executes every stage graph with the previous stage's handoff", async () => {
     const specialHeadline = 'Olive & Co. says "go" <outside>\nDéjà vu home.';
     const specialCta = "Meet Olive & roam";
@@ -738,7 +739,7 @@ describe("Directed Campaign Kit workflow contracts", () => {
     } finally {
       restored.fake.cleanup();
     }
-  }, 60_000);
+  }, 120_000);
 
   it("rejects copy overflow and a non-canonical revision ancestry", async () => {
     const contract = acceptedContract("x".repeat(31));

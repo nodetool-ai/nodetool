@@ -409,7 +409,19 @@ describe("chat compaction", () => {
     expect(record.summarized).toHaveLength(1);
     expect(await compactionRows(threadId)).toHaveLength(1);
     expect(errors).toHaveLength(1);
-    expect(String(errors[0].message)).toContain("prompt is too long");
+    const expectedError =
+      "The mock/m request is too large for the model context window. Shorten the conversation or remove some attachments and try again.";
+    expect(errors[0].message).toBe(expectedError);
+
+    const [rows] = await Message.paginate(threadId, { limit: 100 });
+    const assistantError = rows.find(
+      (row) =>
+        row.role === "assistant" &&
+        String(row.content).startsWith("I encountered an error:")
+    );
+    expect(assistantError?.content).toBe(
+      `I encountered an error: ${expectedError}`
+    );
   });
 
   it("does not compact a thread under the threshold", async () => {
