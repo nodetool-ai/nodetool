@@ -1,6 +1,6 @@
 // Page order and recorded examples. Guided instructions live beside this file.
 import { recipeGuides } from "./recipe-guides.mjs";
-const tinyCrewRoot = "/recipes/runs/2026-09-12-tiny-film-crew";
+const commercialRoot = "/recipes/runs/2026-09-14-photographic-commercial";
 const runRoot = "/recipes/runs/2026-09-10-marketing-recipes-01";
 const ugcRoot = "/recipes/runs/2026-09-14-ugc-cup";
 
@@ -66,43 +66,46 @@ export const recipePresentation = [
   {
     slug: "viral-video-ad-engine",
     productionRun: {
-      runId: "2026-09-12-tiny-film-crew",
-      status: "partial",
-      statusLabel: "15-second product commercial",
-      proofTitle: "Big production. Everyday coffee.",
+      runId: "2026-09-14-photographic-commercial",
+      status: "accepted",
+      statusLabel: "13-second photographic commercial",
+      proofTitle: "A moment before the day.",
       summary:
-        "A tiny film crew sets up the perfect coffee shot. Then a human hand steals the star of the show.",
-      provider: "MiniMax H3 via AtlasCloud. Edited in NodeTool.",
+        "Fresh coffee pours, she takes a quiet moment, then heads out with her cup. Three shots follow one morning ritual.",
+      provider:
+        "Opening and exit supplied from Dreamina. Middle shot generated with Seedance 2.0 via Fal. Edited in NodeTool and encoded locally.",
       hero: {
-        src: `${tinyCrewRoot}/card.jpg`,
-        alt: "Miniature film crew directing a commercial around an oversized olive travel cup.",
+        src: `${commercialRoot}/card.jpg`,
+        alt: "Woman holding an olive travel cup in a softly lit kitchen.",
         width: 1200,
         height: 630
       },
       card: {
-        src: `${tinyCrewRoot}/card.jpg`,
-        alt: "Miniature film crew directing a commercial around an oversized olive travel cup.",
+        src: `${commercialRoot}/card.jpg`,
+        alt: "Woman holding an olive travel cup in a softly lit kitchen.",
         width: 1200,
         height: 630
       },
-      ogImage: `${tinyCrewRoot}/card.jpg`,
+      ogImage: `${commercialRoot}/card.jpg`,
       proof: null,
       video: {
-        mp4: `${tinyCrewRoot}/tiny-film-crew.mp4`,
+        mp4: `${commercialRoot}/commercial.mp4`,
         webm: null,
-        poster: `${tinyCrewRoot}/poster.webp`,
+        poster: `${commercialRoot}/poster.webp`,
         hasAudio: true,
-        caption: "Tiny Film Crew. A 15-second ad for the fictional Olive Travel Cup, with dialogue and a closing title."
+        caption:
+          "A moment before the day. A 13-second commercial for the fictional Olive Travel Cup, with location sound."
       },
       supportedClaims: [
-        "MiniMax H3 generated the five-beat scene from the product reference through NodeTool.",
-        "The editable timeline adds the closing title and adjusts audio level.",
-        "The exported 1080×1920 ad is 15 seconds long with dialogue and music."
+        "The opening shows coffee filling the cup. The closing shot follows the woman out through her front door.",
+        "The approved four-second middle shot is preserved between the two new shots in an editable NodeTool timeline.",
+        "The final MP4 is 1920×1080 at 24 fps, runs for 13 seconds, and includes balanced location sound."
       ],
       essentialLimitation:
-        "The guide below demonstrates a separate four-shot commercial, not the Tiny Film Crew render.",
+        "Generated product geometry and human motion need review before use in a brand campaign.",
       limitations: [
-        "Verification used local frame inspection, transcription, and media checks."
+        "The Olive Travel Cup is a fictional, unbranded demonstration product.",
+        "The master was encoded locally from the saved edit. Frame inspection and media checks do not establish parity with a filmed commercial."
       ]
     }
   },
