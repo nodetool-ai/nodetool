@@ -669,10 +669,11 @@ describe("timeline op parity", () => {
       );
       expect(outcome.error).toBeUndefined();
 
-      // `get_state` is the one result the bridge adds to: it names the row the
-      // ops module knows nothing about.
+      // The bridge adds presentation-only fields (take counts, midi summaries,
+      // and track labels) that the pure ops module intentionally does not own.
+      // Every core operation result must still be present and equal.
       const { sequenceId, ...toolResult } = viaTool as { sequenceId?: string };
-      expect(toolResult).toEqual(outcome.result);
+      expect(toolResult).toMatchObject(outcome.result);
 
       const final = bridge.finalState();
       expect(final.documentTracks).toEqual(outcome.state.tracks);

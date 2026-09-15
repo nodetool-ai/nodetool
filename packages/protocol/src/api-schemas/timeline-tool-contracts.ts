@@ -863,6 +863,7 @@ export const BROWSER_ONLY_TIMELINE_TOOL_NAMES = [
  */
 export const HEADLESS_ONLY_TIMELINE_TOOL_NAMES = [
   "ui_timeline_insert_composition",
+  "ui_timeline_generatively_edit_clip",
   "ui_timeline_set_baked_animation",
   "ui_timeline_set_generated_matte",
   "ui_timeline_list_takes",
