@@ -169,6 +169,13 @@ Preview and export sample the same animation resolver, so transforms and opacity
 - Audio is mixed offline and muxed with the encoded video.
 - A progress dialog reports the phase (audio mix → video encode → finalize) and the export can be cancelled.
 
+## AI timeline editing
+
+Generated clips can hold multiple takes, source-time media tracks, derived
+reframes, and nondestructive generative edits. Use them to compare a result,
+follow a subject, make another aspect-ratio cut, or repair a shot without
+changing the original edit. See [AI Timeline Editing](ai-timeline-editing.md).
+
 ---
 
 ## Keyboard Shortcuts
@@ -215,6 +222,7 @@ Preview and export sample the same animation resolver, so transforms and opacity
 
 - **[Workflow Editor](workflow-editor.md)** — build the workflows you bind to generated clips
 - **[Asset Management](asset-management.md)** — organize the media you import as clips
+- **[AI Timeline Editing](ai-timeline-editing.md)** — takes, tracking, reframing, generative edits, and interchange
 - **[Sketch Editor](sketch-editor.md)** — edit stills before or after they land on the timeline
 - **[User Interface](user-interface.md)** — tour of the main NodeTool views
 
