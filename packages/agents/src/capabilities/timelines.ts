@@ -479,7 +479,8 @@ const TOOL_PREFIX = "ui_timeline_";
 /** Tools the bridge exposes that this surface must not offer headlessly. */
 const EXCLUDED_OPS = new Set([
   `${TOOL_PREFIX}get_clip_frames`,
-  `${TOOL_PREFIX}generate_clip`
+  `${TOOL_PREFIX}generate_clip`,
+  `${TOOL_PREFIX}generatively_edit_clip`
 ]);
 
 /** `add_track`, `ui_add_track`, and `ui_timeline_add_track` all name one tool. */

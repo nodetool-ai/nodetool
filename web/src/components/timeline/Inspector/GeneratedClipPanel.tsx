@@ -47,11 +47,6 @@ import { GeneratedClipTopBar } from "./GeneratedClipTopBar";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
 import { ClipAdjustments } from "./ClipAdjustments";
 import { ClipVersionHistory } from "./ClipVersionHistory";
-import {
-  AIEditControl,
-  emitTimelineGenerativeEdit,
-  type AIEditOperation
-} from "./AIEditControl";
 
 interface GeneratedClipPanelProps {
   clipId: string;
@@ -168,12 +163,6 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
       // Errors surface via the clip's status badge / generation store.
       action.catch(() => undefined);
     }, [isActive, cancelClipGeneration, generateClip]);
-    const handleAIEdit = useCallback(
-      (_operation: AIEditOperation, instruction: string) => {
-        if (clip) emitTimelineGenerativeEdit(clip, _operation, instruction);
-      },
-      [clip]
-    );
 
     if (!clip) {
       return null;
@@ -261,10 +250,6 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
               >
                 {isActive ? "Cancel" : generateLabel}
               </EditorButton>
-              <AIEditControl
-                disabled={isActive || !canGenerate || clip.locked}
-                onSubmit={handleAIEdit}
-              />
               {isFailed && (
                 <Caption color="error" sx={{ textAlign: "center" }}>
                   Generation failed.

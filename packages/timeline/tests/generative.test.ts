@@ -115,6 +115,21 @@ describe("generative timeline operations", () => {
     expect(patched.activeTakeId).toBe("clip-1:2025-01-02");
   });
 
+  it("keeps stale and locked clips unchanged while appending a candidate", () => {
+    for (const original of [
+      clip({ status: "stale" }),
+      clip({ locked: true, status: "generated" })
+    ]) {
+      const patched = composeGenerativeTakePatch(original, "restyle", {
+        assetId: "asset-2",
+        createdAt: "2025-01-02"
+      });
+      expect(patched.status).toBe(original.status);
+      expect(patched.locked).toBe(original.locked);
+      expect(patched.currentAssetId).toBe(original.currentAssetId);
+    }
+  });
+
   it("maps every operation to existing take provenance", () => {
     expect(takeSourceForOperation("extend")).toBe("extended");
     expect(takeSourceForOperation("remove_object")).toBe("inpainted");

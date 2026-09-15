@@ -78,11 +78,6 @@ import { GeneratedClipTopBar } from "./GeneratedClipTopBar";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
 import { ClipAdjustments } from "./ClipAdjustments";
 import { ClipVersionHistory } from "./ClipVersionHistory";
-import {
-  AIEditControl,
-  emitTimelineGenerativeEdit,
-  type AIEditOperation
-} from "./AIEditControl";
 
 interface VideoModelChange {
   type: "video_model";
@@ -361,12 +356,6 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
       });
     });
   }, [isActive, cancelClipGeneration, generateClip, addNotification]);
-  const handleAIEdit = useCallback(
-    (_operation: AIEditOperation, instruction: string) => {
-      if (clip) emitTimelineGenerativeEdit(clip, _operation, instruction);
-    },
-    [clip]
-  );
 
   if (!clip) {
     return null;
@@ -597,10 +586,6 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
             >
               {isActive ? "Cancel" : generateLabel}
             </EditorButton>
-            <AIEditControl
-              disabled={isActive || !canGenerate || clip.locked}
-              onSubmit={handleAIEdit}
-            />
             {isFailed && (
               <Caption color="error" sx={{ textAlign: "center" }}>
                 Generation failed.

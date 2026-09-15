@@ -249,8 +249,7 @@ export function composeGenerativeTakePatch(
   };
   const next: TimelineClip = {
     ...clip,
-    versions: [...(clip.versions ?? []), version],
-    status: version.status === "success" ? "generated" : clip.status
+    versions: [...(clip.versions ?? []), version]
   };
   if (result.activate) {
     next.currentAssetId = result.assetId;

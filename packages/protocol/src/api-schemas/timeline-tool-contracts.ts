@@ -872,6 +872,5 @@ export const HEADLESS_ONLY_TIMELINE_TOOL_NAMES = [
   "ui_timeline_list_tracks",
   "ui_timeline_delete_track_object",
   "ui_timeline_bind_to_track",
-  "ui_timeline_unbind_track",
-  "ui_timeline_generatively_edit_clip"
+  "ui_timeline_unbind_track"
 ] as const;
