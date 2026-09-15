@@ -33,6 +33,7 @@ import type { ClipErrorState } from "../status/clipStatusReducer";
 import { useClipSourceDuration } from "./useClipSourceDuration";
 import { useClipDrag } from "./useClipDrag";
 import { useClipTrim } from "./useClipTrim";
+import { useClipSourceSlip } from "./useClipSourceSlip";
 import { useTransitionHandle } from "./useTransitionHandle";
 import { useClipFade, useSetClipFadeShape } from "./useClipFade";
 import type { ClipFadeEdge } from "./useClipFade";
@@ -79,6 +80,12 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   // Source-duration cap for trim-end (audio decoded, video probed; nothing
   // for image/text/shape clips).
   const sourceDurationMs = useClipSourceDuration(clip);
+  const sourceSlipRef = useClipSourceSlip({
+    clip,
+    interactionLocked,
+    msPerPx,
+    sourceDurationMs
+  });
 
   // Derived status (PRD §5.5).
   // Node-level errors from ErrorStore. Error keys are scoped per run
@@ -300,6 +307,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         handleDoubleClick={handleDoubleClick}
         handleKeyDown={handleKeyDown}
         handleContextMenu={handleContextMenu}
+        rootRef={sourceSlipRef}
         handleTrimStartPointerDown={handleTrimStartPointerDown}
         handleTrimStartPointerMove={handleTrimStartPointerMove}
         handleTrimEndPointerDown={handleTrimEndPointerDown}

@@ -584,6 +584,7 @@ export interface ClipBodyProps {
   handleDoubleClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   handleContextMenu: (e: React.MouseEvent<HTMLDivElement>) => void;
+  rootRef?: (element: HTMLDivElement | null) => void;
   handleTrimStartPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimStartPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimEndPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
@@ -619,6 +620,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     handleDoubleClick,
     handleKeyDown,
     handleContextMenu,
+    rootRef,
     handleTrimStartPointerDown,
     handleTrimStartPointerMove,
     handleTrimEndPointerDown,
@@ -843,6 +845,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
 
     return (
       <div
+        ref={rootRef}
         css={rootCss}
         style={positionStyle}
         onPointerDown={handleDragPointerDown}

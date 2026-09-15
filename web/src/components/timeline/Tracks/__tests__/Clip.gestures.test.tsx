@@ -279,6 +279,30 @@ describe("Clip trim", () => {
   });
 });
 
+describe("Clip source slip", () => {
+  it("moves a media clip's source window with a horizontal two-finger swipe", () => {
+    renderLanes();
+    const clip = screen.getByTestId("clip-a1");
+    fireEvent.wheel(clip, { deltaX: DRAG_PX, deltaY: 1 });
+    const edited = useTimelineStore
+      .getState()
+      .clips.find((candidate) => candidate.id === "a1");
+    expect(edited?.startMs).toBe(2000);
+    expect(edited?.durationMs).toBe(1000);
+    expect(edited?.inPointMs).toBe(DRAG_MS);
+  });
+
+  it("leaves vertical wheel scrolling to the track list", () => {
+    renderLanes();
+    const clip = screen.getByTestId("clip-a1");
+    fireEvent.wheel(clip, { deltaX: 1, deltaY: DRAG_PX });
+    expect(
+      useTimelineStore.getState().clips.find((candidate) => candidate.id === "a1")
+        ?.inPointMs
+    ).toBeUndefined();
+  });
+});
+
 describe("Clip lock", () => {
   it("a clip on a locked track neither moves nor trims", () => {
     seed({ lockTrackB: true });
