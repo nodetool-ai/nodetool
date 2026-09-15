@@ -357,6 +357,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://api.reve.com/"
   },
   {
+    key: "MUAPI_API_KEY",
+    providerId: PROVIDER_IDS.MUAPI,
+    name: "MuAPI",
+    description: "Text to video and image to video generation.",
+    section: "media",
+    docsUrl: "https://muapi.ai/docs/api-reference"
+  },
+  {
     key: "MESHY_API_KEY",
     providerId: PROVIDER_IDS.MESHY,
     name: "Meshy",
