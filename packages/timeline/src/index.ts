@@ -36,6 +36,7 @@ export * from "./timeRemap.js";
 export * from "./generatedMatte.js";
 export * from "./mediaTrack.js";
 export * from "./takes.js";
+export * from "./generative.js";
 export * from "./snap.js";
 export * from "./beats.js";
 export * from "./staleSet.js";
