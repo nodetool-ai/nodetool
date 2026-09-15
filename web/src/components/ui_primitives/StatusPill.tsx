@@ -2,9 +2,9 @@
  * StatusPill
  *
  * The one status vocabulary the app's media surfaces speak: a mono pill in the
- * corner of a thumbnail or beside a name. Four tones — a finished render
+ * corner of a thumbnail or beside a name. Five tones — a finished render
  * (success green), a render in flight (`accent`, the caller's own colour), a
- * step still waiting (neutral), and a failure (error).
+ * step still waiting (neutral), a warning, and a failure (error).
  *
  * @example
  * <StatusPill tone="done">clip · 38s</StatusPill>
@@ -21,7 +21,12 @@ import { SPACING } from "./spacing";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { brighten, toHex } from "../../utils/colorMath";
 
-export type StatusPillTone = "done" | "rendering" | "neutral" | "failed";
+export type StatusPillTone =
+  | "done"
+  | "rendering"
+  | "neutral"
+  | "warning"
+  | "failed";
 
 export interface StatusPillProps {
   tone: StatusPillTone;
@@ -67,6 +72,14 @@ export const statusPillColors = (
         color: red,
         border: hexToRgba(red, 0.5),
         background: hexToRgba(red, 0.12)
+      };
+    }
+    case "warning": {
+      const amber = theme.palette.warning.main;
+      return {
+        color: amber,
+        border: hexToRgba(amber, 0.5),
+        background: hexToRgba(amber, 0.12)
       };
     }
     default:

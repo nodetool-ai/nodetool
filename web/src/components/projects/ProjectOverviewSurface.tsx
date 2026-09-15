@@ -39,6 +39,7 @@ import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import ProjectAgentPanel from "./ProjectAgentPanel";
 import ProjectDocumentCard from "./ProjectDocumentCard";
 import ProjectEntitiesSection from "./ProjectEntitiesSection";
+import ProjectLifecycleActions from "./ProjectLifecycleActions";
 import ProjectSpendBar from "./ProjectSpendBar";
 import {
   formatSpend,
@@ -202,6 +203,7 @@ const ProjectOverviewSurface = ({ refId }: ProjectOverviewSurfaceProps) => {
             {nextStep.label}
           </EditorButton>
         )}
+        <ProjectLifecycleActions project={project} />
       </FlexRow>
 
       <FlexRow sx={{ flex: 1, minHeight: 0 }}>

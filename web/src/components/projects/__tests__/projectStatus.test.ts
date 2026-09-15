@@ -183,7 +183,7 @@ describe("documentProgress", () => {
   it("calls a board done only when every shot has a clip", () => {
     expect(documentProgress(board(8, 6))).toEqual({
       label: "clips 6/8",
-      tone: "neutral"
+      tone: "rendering"
     });
     expect(documentProgress(board(8, 8))).toEqual({
       label: "clips 8/8",
@@ -194,7 +194,7 @@ describe("documentProgress", () => {
   it("leads with a script's drift, and calls it voiced only with none", () => {
     expect(documentProgress(script(5, 1))).toEqual({
       label: "1 line stale",
-      tone: "neutral"
+      tone: "warning"
     });
     expect(documentProgress(script(6, 0))).toEqual({
       label: "voiced",
@@ -205,7 +205,7 @@ describe("documentProgress", () => {
   it("reports a cut's length, never that it was rendered", () => {
     expect(documentProgress(cut(102_000))).toEqual({
       label: "1:42",
-      tone: "neutral"
+      tone: "rendering"
     });
   });
 });

@@ -63,7 +63,13 @@ const ProjectDocumentCard = ({
           </Box>
           <Label sx={{ flex: 1, minWidth: 0 }}>{document.name}</Label>
           {progress && (
-            <StatusPill tone={progress.tone}>{progress.label}</StatusPill>
+            <StatusPill
+              tone={progress.tone}
+              accent={TYPE_COLOR[document.type]}
+              sx={{ borderRadius: BORDER_RADIUS.xs }}
+            >
+              {progress.label}
+            </StatusPill>
           )}
         </FlexRow>
         <FlexRow align="baseline" gap={SPACING.md}>

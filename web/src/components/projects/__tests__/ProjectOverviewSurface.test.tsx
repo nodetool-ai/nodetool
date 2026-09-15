@@ -18,6 +18,8 @@ const detail = {
     id: "p1",
     name: "Aurora",
     kind: "spot",
+    isPersonal: false,
+    archivedAt: null,
     threadId: null,
     createdAt: "",
     updatedAt: ""
@@ -105,9 +107,26 @@ jest.mock("../ProjectAgentPanel", () => ({
 }));
 
 const openTab = jest.fn();
+const mockArchiveProject = jest.fn();
+const mockRestoreProject = jest.fn();
+const mockDeleteProject = jest.fn();
+
+jest.mock("../../../hooks/useProjects", () => ({
+  useArchiveProject: () => ({ mutate: mockArchiveProject, isPending: false }),
+  useRestoreProject: () => ({ mutate: mockRestoreProject, isPending: false }),
+  useDeleteProject: () => ({ mutate: mockDeleteProject, isPending: false })
+}));
+
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
-  useWorkspaceTabsStore: <T,>(selector: (s: { openTab: jest.Mock }) => T) =>
-    selector({ openTab })
+  useWorkspaceTabsStore: <T,>(
+    selector: (s: { openTab: jest.Mock; closeProject: jest.Mock }) => T
+  ) => selector({ openTab, closeProject: jest.fn() })
+}));
+
+jest.mock("../../../stores/NotificationStore", () => ({
+  useNotificationStore: <T,>(
+    selector: (s: { addNotification: jest.Mock }) => T
+  ) => selector({ addNotification: jest.fn() })
 }));
 
 import ProjectOverviewSurface from "../ProjectOverviewSurface";
@@ -148,6 +167,24 @@ describe("ProjectOverviewSurface", () => {
       title: "Board",
       projectId: "p1"
     });
+  });
+
+  it("offers a confirmed deletion from the project header", async () => {
+    renderSurface();
+
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(screen.getByText("Delete Aurora?")).toBeInTheDocument();
+    expect(
+      screen.getByText(/all of its documents, conversations, generated outputs/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Delete project" })
+    );
+    expect(mockDeleteProject).toHaveBeenCalledWith(
+      { id: "p1" },
+      expect.anything()
+    );
   });
 
   it("splits the spend bar by category and shows the unpriced calls", () => {

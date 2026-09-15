@@ -134,7 +134,7 @@ export const documentStatusLine = (document: ProjectDocument): string => {
 
 interface DocumentProgress {
   label: string;
-  tone: "done" | "neutral" | "rendering";
+  tone: "done" | "rendering" | "warning";
 }
 
 /**
@@ -152,12 +152,12 @@ export const documentProgress = (
       if (status.shots === 0) return null;
       return {
         label: `clips ${status.clips}/${status.shots}`,
-        tone: status.clips === status.shots ? "done" : "neutral"
+        tone: status.clips === status.shots ? "done" : "rendering"
       };
     case "script":
       if (status.stale > 0) {
         const lines = status.stale === 1 ? "line" : "lines";
-        return { label: `${status.stale} ${lines} stale`, tone: "neutral" };
+        return { label: `${status.stale} ${lines} stale`, tone: "warning" };
       }
       if (status.lines > 0 && status.voiced === status.lines) {
         return { label: "voiced", tone: "done" };
@@ -166,7 +166,7 @@ export const documentProgress = (
     case "timeline":
       // Whether a cut has been rendered is not recorded, so the pill reports
       // its length — the one thing the sequence row does know.
-      return { label: formatDuration(status.durationMs), tone: "neutral" };
+      return { label: formatDuration(status.durationMs), tone: "rendering" };
     default: {
       const exhaustive: never = status;
       return exhaustive;
