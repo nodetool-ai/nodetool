@@ -41,6 +41,10 @@ let library: Entity[] = [];
 jest.mock("../../../../serverState/useEntities", () => ({
   useEntities: () => ({ data: library })
 }));
+jest.mock("../../../../serverState/useStylePresets", () => ({
+  ...jest.requireActual("../../../../serverState/useStylePresets"),
+  useStylePresets: () => ({ data: [] })
+}));
 
 const rpcRequest = jest.fn();
 jest.mock("../../../websocket/rpcRequest", () => ({
