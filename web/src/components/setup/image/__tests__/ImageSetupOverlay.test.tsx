@@ -23,6 +23,7 @@ jest.mock("../../../../lib/websocket/rpcRequest", () => ({
 }));
 
 jest.mock("../../../../serverState/useStylePresets", () => ({
+  ...jest.requireActual("../../../../serverState/useStylePresets"),
   useStylePresets: () => ({ data: [] })
 }));
 jest.mock("../../../../serverState/useEntities", () => ({

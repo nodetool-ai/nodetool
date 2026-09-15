@@ -42,7 +42,10 @@ import { ASPECT_OPTIONS } from "../../storyboard/aspectOptions";
 import { useInStudio } from "../../../studio/StudioContext";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useEntities } from "../../../serverState/useEntities";
-import { useStylePresets } from "../../../serverState/useStylePresets";
+import {
+  mergeStylePresetEntities,
+  useStylePresets
+} from "../../../serverState/useStylePresets";
 import { useGenerateShot } from "../../../hooks/storyboard/useGenerateShot";
 import { useRenderBatchCostEstimate } from "../../../hooks/storyboard/useRenderBatchCostEstimate";
 import { STYLE_DESCRIPTIONS } from "../styleDescriptions";
@@ -228,7 +231,11 @@ export const LookStep: React.FC<LookStepProps> = ({ boardId }) => {
   // The descriptors `setStylePreset` copies onto the board come from the
   // library, not from the tile: the same query the board and the agent bridge
   // read, so a preset means the same thing whichever surface applied it.
-  const { data: entities } = useEntities();
+  const { data: projectEntities } = useEntities();
+  const entities = useMemo(
+    () => mergeStylePresetEntities(projectEntities, presets),
+    [projectEntities, presets]
+  );
 
   const presetTiles = useMemo<PresetTile[]>(
     () =>
@@ -244,7 +251,7 @@ export const LookStep: React.FC<LookStepProps> = ({ boardId }) => {
 
   const selectedId = useMemo(() => {
     const styleIds = new Set(
-      (entities ?? []).filter((e) => e.kind === "style").map((e) => e.id)
+      entities.filter((e) => e.kind === "style").map((e) => e.id)
     );
     return [...entityIds].reverse().find((id) => styleIds.has(id)) ?? null;
   }, [entities, entityIds]);
@@ -254,7 +261,7 @@ export const LookStep: React.FC<LookStepProps> = ({ boardId }) => {
     () =>
       selectedId === null
         ? null
-        : ((entities ?? []).find((entity) => entity.id === selectedId) ?? null),
+        : (entities.find((entity) => entity.id === selectedId) ?? null),
     [entities, selectedId]
   );
 
@@ -281,7 +288,7 @@ export const LookStep: React.FC<LookStepProps> = ({ boardId }) => {
 
   const handleSelect = useCallback(
     (entityId: string) => {
-      setStylePreset(boardId, entityId, entities ?? []);
+      setStylePreset(boardId, entityId, entities);
     },
     [boardId, entities, setStylePreset]
   );

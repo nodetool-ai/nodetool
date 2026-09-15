@@ -1,6 +1,7 @@
 import React from "react";
 import "@testing-library/jest-dom";
 import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import GlobalSearchResults from "../../../components/assets/GlobalSearchResults";
 import { AssetWithPath } from "../../../stores/ApiTypes";
@@ -47,7 +48,9 @@ jest.mock("../../../stores/ContextMenuStore", () => ({
 }));
 
 jest.mock("../../../stores/AssetGridStore", () => ({
-  useAssetGridStore: (selector: (state: { globalSearchQuery: string }) => unknown) => {
+  useAssetGridStore: (
+    selector: (state: { globalSearchQuery: string }) => unknown
+  ) => {
     const mockState = {
       globalSearchQuery: "test"
     };
@@ -74,7 +77,8 @@ describe("GlobalSearchResults - Stability", () => {
       thumb_url: "/api/assets/1/thumb",
       folder_name: "Test Folder",
       folder_path: "Home / Test Folder",
-      folder_id: "folder1"
+      folder_id: "folder1",
+      project_id: "project-b"
     }
   ];
 
@@ -115,6 +119,24 @@ describe("GlobalSearchResults - Stability", () => {
         fireEvent.doubleClick(resultItem);
       }
     }).not.toThrow();
+  });
+
+  it("preserves the result project when navigating to its folder", async () => {
+    const onNavigateToFolder = jest.fn();
+    renderWithTheme(
+      <GlobalSearchResults
+        results={mockAssets}
+        onNavigateToFolder={onNavigateToFolder}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Go to folder" }));
+
+    expect(onNavigateToFolder).toHaveBeenCalledWith(
+      "folder1",
+      "Home / Test Folder",
+      "project-b"
+    );
   });
 
   it("should handle large result sets without freezing", () => {
