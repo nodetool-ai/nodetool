@@ -58,36 +58,56 @@ export function escapeXml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => XML_ESCAPE[character]!);
 }
 
-function frameDuration(fps: number): string {
-  const rounded = Math.max(1, Math.round(fps));
-  return `1/${rounded}s`;
+interface FrameRate {
+  numerator: number;
+  denominator: number;
+  timebase: number;
+  ntsc: boolean;
 }
 
-function time(ms: number, fps: number): string {
-  const frames = Math.round((ms / 1000) * fps);
-  return `${frames}/${Math.max(1, Math.round(fps))}s`;
+function frameRate(fps: number): FrameRate {
+  const ntscRates = [
+    [23.976, 24_000, 1_001, 24],
+    [29.97, 30_000, 1_001, 30],
+    [59.94, 60_000, 1_001, 60]
+  ] as const;
+  const matchingRate = ntscRates.find(([value]) => Math.abs(fps - value) < 0.01);
+  if (matchingRate) {
+    return { numerator: matchingRate[1], denominator: matchingRate[2], timebase: matchingRate[3], ntsc: true };
+  }
+  const timebase = Math.max(1, Math.round(fps));
+  return { numerator: timebase, denominator: 1, timebase, ntsc: false };
 }
 
-function exportableClips(sequence: InterchangeSequence): {
-  track: TimelineTrack;
+function frames(ms: number, rate: FrameRate): number {
+  return Math.round((ms * rate.numerator) / (1000 * rate.denominator));
+}
+
+function frameDuration(rate: FrameRate): string {
+  return `${rate.denominator}/${rate.numerator}s`;
+}
+
+function time(ms: number, rate: FrameRate): string {
+  return `${frames(ms, rate) * rate.denominator}/${rate.numerator}s`;
+}
+
+function sequencedClips(sequence: InterchangeSequence): {
+  track?: TimelineTrack;
   clip: TimelineClip;
 }[] {
   const byId = new Map(sequence.tracks.map((track) => [track.id, track]));
   return sequence.clips
-    .filter((clip) => clip.mediaType === "video" || clip.mediaType === "audio")
-    .flatMap((clip) => {
-      const track = byId.get(clip.trackId);
-      return track ? [{ track, clip }] : [];
-    })
+    .map((clip) => ({ track: byId.get(clip.trackId), clip }))
     .sort((left, right) =>
-      left.track.index - right.track.index || left.clip.startMs - right.clip.startMs
+      (left.track?.index ?? Number.MAX_SAFE_INTEGER) - (right.track?.index ?? Number.MAX_SAFE_INTEGER) || left.clip.startMs - right.clip.startMs
     );
 }
 
 function activeAssetId(clip: TimelineClip): string | undefined {
-  const takeId = activeTakeIdOf(clip);
+  if (clip.currentAssetId !== undefined) return clip.currentAssetId;
+  const takeId = activeTakeIdOf({ ...clip, currentAssetId: undefined });
   const take = clip.versions.find((version) => version.id === takeId);
-  return take?.assetId ?? clip.currentAssetId;
+  return take?.assetId;
 }
 
 function unsupported(clip: TimelineClip, track: TimelineTrack): string[] {
@@ -100,6 +120,11 @@ function unsupported(clip: TimelineClip, track: TimelineTrack): string[] {
   if (clip.opacity !== undefined && clip.opacity !== 1) issues.push("opacity requires baking");
   if (clip.transitionIn) issues.push("transitions require baking");
   if (clip.hidden || clip.muted || !track.visible || track.muted) issues.push("disabled media cannot be represented");
+  if (clip.speedMultiplier !== undefined && clip.speedMultiplier !== 1 && !clip.speedBaked) issues.push("playback speed requires baking");
+  if (clip.timeRemap) issues.push("time remap requires baking");
+  if (clip.volumeDb !== undefined && clip.volumeDb !== 0) issues.push("audio volume requires baking");
+  if (clip.fadeInMs || clip.fadeOutMs) issues.push("audio fades require baking");
+  if (clip.caption) issues.push("captions require baking");
   return issues;
 }
 
@@ -109,27 +134,28 @@ function renderFcpXml(sequence: InterchangeSequence, items: readonly {
   asset: InterchangeAsset;
   ref: string;
 }[]): string {
+  const rate = frameRate(sequence.fps);
   const assetLines = items
     .map(({ clip, asset, ref }) =>
-      `      <asset id="${ref}" name="${escapeXml(asset.id)}" src="${escapeXml(asset.uri)}" duration="${time(asset.durationMs ?? 0, sequence.fps)}" hasVideo="${clip.mediaType === "video" ? "1" : "0"}" hasAudio="${clip.mediaType === "audio" || asset.hasAudio ? "1" : "0"}"/>`
+      `      <asset id="${ref}" name="${escapeXml(asset.id)}" duration="${time(asset.durationMs ?? (clip.inPointMs ?? 0) + clip.durationMs, rate)}" hasVideo="${clip.mediaType === "video" ? "1" : "0"}" hasAudio="${clip.mediaType === "audio" || asset.hasAudio ? "1" : "0"}"><media-rep kind="original-media" src="${escapeXml(asset.uri)}"/></asset>`
     )
     .join("\n");
   const spine = items
     .filter(({ clip }) => clip.mediaType === "video")
     .map(({ track, clip, ref }) =>
-      `        <asset-clip ref="${ref}" name="${escapeXml(clip.name)}" offset="${time(clip.startMs, sequence.fps)}" duration="${time(clip.durationMs, sequence.fps)}" start="${time(clip.inPointMs ?? 0, sequence.fps)}" lane="${track.index + 1}"/>`
+      `        <asset-clip ref="${ref}" name="${escapeXml(clip.name)}" offset="${time(clip.startMs, rate)}" duration="${time(clip.durationMs, rate)}" start="${time(clip.inPointMs ?? 0, rate)}" lane="${track.index + 1}"/>`
     )
     .join("\n");
   const audio = items
     .filter(({ clip }) => clip.mediaType === "audio")
     .map(({ track, clip, ref }) =>
-      `        <asset-clip ref="${ref}" name="${escapeXml(clip.name)}" offset="${time(clip.startMs, sequence.fps)}" duration="${time(clip.durationMs, sequence.fps)}" start="${time(clip.inPointMs ?? 0, sequence.fps)}" lane="${track.index + 1}"/>`
+      `        <asset-clip ref="${ref}" name="${escapeXml(clip.name)}" offset="${time(clip.startMs, rate)}" duration="${time(clip.durationMs, rate)}" start="${time(clip.inPointMs ?? 0, rate)}" lane="-${track.index + 1}"/>`
     )
     .join("\n");
   const markers = (sequence.markers ?? [])
-    .map((marker) => `        <marker start="${time(marker.timeMs, sequence.fps)}" value="${escapeXml(marker.label)}"/>`)
+    .map((marker) => `        <gap name="Marker" offset="${time(marker.timeMs, rate)}" duration="0s"><marker start="0s" duration="0s" value="${escapeXml(marker.label)}"/></gap>`)
     .join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<fcpxml version="1.10">\n  <resources>\n    <format id="r1" name="FFVideoFormat" frameDuration="${frameDuration(sequence.fps)}" width="${sequence.width}" height="${sequence.height}"/>\n${assetLines}\n  </resources>\n  <library><event name="NodeTool"><project name="${escapeXml(sequence.name)}"><sequence format="r1"><spine>\n${spine}\n${audio}\n${markers}\n      </spine></sequence></project></event></library>\n</fcpxml>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<fcpxml version="1.10">\n  <resources>\n    <format id="r1" name="FFVideoFormat" frameDuration="${frameDuration(rate)}" width="${sequence.width}" height="${sequence.height}"/>\n${assetLines}\n  </resources>\n  <library><event name="NodeTool"><project name="${escapeXml(sequence.name)}"><sequence format="r1"><spine>\n${spine}\n${audio}\n${markers}\n      </spine></sequence></project></event></library>\n</fcpxml>\n`;
 }
 
 function renderPremiereXml(sequence: InterchangeSequence, items: readonly {
@@ -138,20 +164,24 @@ function renderPremiereXml(sequence: InterchangeSequence, items: readonly {
   asset: InterchangeAsset;
   ref: string;
 }[]): string {
+  const rate = frameRate(sequence.fps);
   const tracks = (mediaType: "video" | "audio") => sequence.tracks
     .filter((track) => items.some((item) => item.track.id === track.id && item.clip.mediaType === mediaType))
     .sort((left, right) => left.index - right.index)
     .map((track) => {
       const clips = items.filter((item) => item.track.id === track.id).map(({ clip, asset, ref }) => {
-      const start = Math.round((clip.startMs / 1000) * sequence.fps);
-      const end = Math.round(((clip.startMs + clip.durationMs) / 1000) * sequence.fps);
-      const inPoint = Math.round(((clip.inPointMs ?? 0) / 1000) * sequence.fps);
-      return `        <clipitem id="${ref}"><name>${escapeXml(clip.name)}</name><start>${start}</start><end>${end}</end><in>${inPoint}</in><out>${inPoint + end - start}</out><file id="file-${ref}"><name>${escapeXml(asset.id)}</name><pathurl>${escapeXml(asset.uri)}</pathurl></file></clipitem>`;
+        const start = frames(clip.startMs, rate);
+        const end = frames(clip.startMs + clip.durationMs, rate);
+        const inPoint = frames(clip.inPointMs ?? 0, rate);
+        return `        <clipitem id="${ref}"><name>${escapeXml(clip.name)}</name><start>${start}</start><end>${end}</end><in>${inPoint}</in><out>${inPoint + end - start}</out><file id="file-${ref}"><name>${escapeXml(asset.id)}</name><pathurl>${escapeXml(asset.uri)}</pathurl></file></clipitem>`;
       }).join("\n");
       return `      <track><name>${escapeXml(track.name)}</name>\n${clips}\n      </track>`;
     })
     .join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<xmeml version="5"><sequence><name>${escapeXml(sequence.name)}</name><rate><timebase>${Math.round(sequence.fps)}</timebase><ntsc>FALSE</ntsc></rate><media><video><format><samplecharacteristics><width>${sequence.width}</width><height>${sequence.height}</height></samplecharacteristics></format>\n${tracks("video")}\n    </video><audio>\n${tracks("audio")}\n    </audio></media></sequence></xmeml>\n`;
+  const markers = (sequence.markers ?? [])
+    .map((marker) => `    <marker><name>${escapeXml(marker.label)}</name><in>${frames(marker.timeMs, rate)}</in><out>${frames(marker.timeMs, rate)}</out></marker>`)
+    .join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<xmeml version="5"><sequence><name>${escapeXml(sequence.name)}</name><rate><timebase>${rate.timebase}</timebase><ntsc>${rate.ntsc ? "TRUE" : "FALSE"}</ntsc></rate>\n${markers}\n  <media><video><format><samplecharacteristics><width>${sequence.width}</width><height>${sequence.height}</height></samplecharacteristics></format>\n${tracks("video")}\n    </video><audio>\n${tracks("audio")}\n    </audio></media></sequence></xmeml>\n`;
 }
 
 /**
@@ -165,7 +195,15 @@ export function exportInterchange(
 ): InterchangeExport {
   const warnings: InterchangeWarning[] = [];
   const items: { track: TimelineTrack; clip: TimelineClip; asset: InterchangeAsset; ref: string }[] = [];
-  for (const { track, clip } of exportableClips(sequence)) {
+  for (const { track, clip } of sequencedClips(sequence)) {
+    if (!track) {
+      warnings.push({ clipId: clip.id, message: `${clip.name}: timeline track is missing.` });
+      continue;
+    }
+    if (clip.mediaType !== "video" && clip.mediaType !== "audio") {
+      warnings.push({ clipId: clip.id, message: `${clip.name}: ${clip.mediaType} media requires baking.` });
+      continue;
+    }
     for (const issue of unsupported(clip, track)) {
       warnings.push({ clipId: clip.id, message: `${clip.name}: ${issue}.` });
     }
@@ -174,6 +212,9 @@ export function exportInterchange(
     if (!asset) {
       warnings.push({ clipId: clip.id, message: `${clip.name}: active media is missing.` });
       continue;
+    }
+    if (options.target === "premiere_xml" && clip.mediaType === "video" && asset.hasAudio) {
+      warnings.push({ clipId: clip.id, message: `${clip.name}: embedded audio requires baking or a separate audio clip.` });
     }
     items.push({ track, clip, asset, ref: `r${items.length + 2}` });
   }
