@@ -11,7 +11,9 @@ const PROVIDER_CREDENTIALS: Array<[envVar: string, readBy: string]> = [
   ["JINA_API_KEY", "packages/runtime/src/providers/jina-provider.ts"],
   ["VOYAGE_API_KEY", "packages/runtime/src/providers/voyage-provider.ts"],
   ["EVOLINK_API_KEY", "packages/runtime/src/providers/evolink-provider.ts"],
-  ["VAST_API_KEY", "packages/compute/src/manager.ts"]
+  ["VAST_API_KEY", "packages/compute/src/manager.ts"],
+  ["VERDA_CLIENT_ID", "packages/compute/src/manager.ts"],
+  ["VERDA_CLIENT_SECRET", "packages/compute/src/manager.ts"]
 ];
 
 describe("setting catalog", () => {

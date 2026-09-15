@@ -12,7 +12,7 @@ import { createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workerProfiles } from "./schema/workers.js";
 
-export type WorkerTarget = "runpod" | "vast";
+export type WorkerTarget = "runpod" | "vast" | "verda";
 export type TokenPolicy = "generate" | "fixed";
 
 export interface WorkerProfile {
