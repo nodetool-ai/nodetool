@@ -37,17 +37,26 @@
  */
 
 import { findKeyframeAnimation } from "./keyframes.js";
+import { isMediaTrackStale } from "./mediaTrack.js";
 import { frameSizeForAspect } from "./storyboard.js";
 import { createTimeOrderedUuid } from "./defaults.js";
+import {
+  isReframeStale,
+  mediaTrackCanDriveReframe,
+  solveReframeSamples
+} from "./reframe.js";
 import type { ClipAnimation } from "./animation/types.js";
-import type {
-  ClipTransform,
-  TimelineClip,
-  TimelineSequence
-} from "./types.js";
+import type { ClipTransform, TimelineClip, TimelineSequence } from "./types.js";
 
 /** Media types that draw a picture, and can therefore be cropped by the frame. */
-const VISUAL_MEDIA = new Set(["video", "image", "overlay", "text", "shape", "group"]);
+const VISUAL_MEDIA = new Set([
+  "video",
+  "image",
+  "overlay",
+  "text",
+  "shape",
+  "group"
+]);
 
 /**
  * Layers rasterized at the frame's own size rather than from media: authored
@@ -77,6 +86,60 @@ export interface RetargetResult {
   sequence: TimelineSequence;
   /** Clips whose picture no longer fits inside the frame, in document order. */
   croppedClipIds: string[];
+}
+
+export type AdaptFormatStrategy = "center" | "smart" | "track";
+
+export interface AdaptSequenceFormatOptions {
+  strategy: AdaptFormatStrategy;
+  safeMargin?: number;
+  /** Preferred subject track for each visual clip. */
+  trackIdByClipId?: Readonly<Record<string, string>>;
+}
+
+function freshReframeTrack(
+  seq: TimelineSequence,
+  clip: TimelineClip,
+  preferredTrackId?: string
+) {
+  return seq.mediaTracks?.find(
+    (track) =>
+      (preferredTrackId === undefined || track.id === preferredTrackId) &&
+      track.clipId === clip.id &&
+      mediaTrackCanDriveReframe(track) &&
+      !isMediaTrackStale(track, clip)
+  );
+}
+
+/** Visual clips that have no honest input from which Smart Reframe can derive a path. */
+export function smartReframeUnavailableClipIds(
+  seq: TimelineSequence,
+  trackIdByClipId?: Readonly<Record<string, string>>
+): string[] {
+  return seq.clips
+    .filter(
+      (clip) =>
+        VISUAL_MEDIA.has(clip.mediaType) &&
+        !FRAME_NATIVE_MEDIA.has(clip.mediaType)
+    )
+    .filter((clip) => {
+      const track = freshReframeTrack(
+        seq,
+        clip,
+        trackIdByClipId?.[clip.id]
+      );
+      const hasFreshSamples =
+        clip.reframe?.mode === "auto" &&
+        Boolean(clip.reframe.samples?.length) &&
+        !isReframeStale(clip);
+      return (
+        !track &&
+        !hasFreshSamples &&
+        clip.crop === undefined &&
+        !clip.reframe?.keyframes?.length
+      );
+    })
+    .map((clip) => clip.id);
 }
 
 /** How the canvas changed, and what that means for scale and font size. */
@@ -142,7 +205,10 @@ function retargetKeyframes(
     if (factor === null) return curve;
     return {
       ...curve,
-      keyframes: curve.keyframes.map((kf) => ({ ...kf, value: kf.value * factor }))
+      keyframes: curve.keyframes.map((kf) => ({
+        ...kf,
+        value: kf.value * factor
+      }))
     };
   });
   const next: ClipAnimation = {
@@ -221,9 +287,7 @@ export function retargetSequence(
     );
     const next: TimelineClip = { ...clip, transform };
 
-    const keyframed = clip.animations
-      ? findKeyframeAnimation(clip)
-      : undefined;
+    const keyframed = clip.animations ? findKeyframeAnimation(clip) : undefined;
     if (clip.animations && keyframed) {
       next.animations = retargetKeyframes(clip.animations, keyframed, rescale);
     }
@@ -256,6 +320,104 @@ export function retargetSequence(
       createdAt: now,
       updatedAt: now
     },
+    croppedClipIds
+  };
+}
+
+/**
+ * Derive a format adaptation with source-time Smart Reframe state.
+ *
+ * The source sequence and its media are never changed. Timing, cuts, audio,
+ * takes, effects and document-level MediaTracks are inherited by the new
+ * sequence. Picture clips receive a reframe instruction whose per-frame crop
+ * the shared scene model resolves during both preview and export.
+ */
+export function adaptSequenceFormat(
+  seq: TimelineSequence,
+  aspectRatio: string,
+  options: AdaptSequenceFormatOptions
+): RetargetResult {
+  if (options.strategy === "smart") {
+    const unavailable = smartReframeUnavailableClipIds(
+      seq,
+      options.trackIdByClipId
+    );
+    if (unavailable.length > 0) {
+      throw new Error(
+        `Smart Reframe needs a current subject track or authored framing for every visual clip. Missing: ${unavailable.join(
+          ", "
+        )}. Track a subject, add a crop or framing keyframe, or use Center.`
+      );
+    }
+  }
+  // A reframe crop is itself re-fit to the target canvas, so the underlying
+  // transform stays on the contain path. Applying cover as well would zoom the
+  // already-cropped source twice.
+  const derived = retargetSequence(seq, aspectRatio, "contain");
+  const targetAspect = derived.sequence.width / derived.sequence.height;
+  const sourceAspect = seq.width / seq.height;
+  const croppedClipIds: string[] = [];
+  const clips = derived.sequence.clips.map((clip) => {
+    if (
+      !VISUAL_MEDIA.has(clip.mediaType) ||
+      FRAME_NATIVE_MEDIA.has(clip.mediaType)
+    ) {
+      return clip;
+    }
+    const preferredTrackId = options.trackIdByClipId?.[clip.id];
+    const track = freshReframeTrack(seq, clip, preferredTrackId);
+    const safeMargin = Math.min(0.5, Math.max(0, options.safeMargin ?? 0.1));
+    const base: Omit<NonNullable<TimelineClip["reframe"]>, "mode"> = {
+      safeMargin,
+      sourceWidth: clip.reframe?.sourceWidth ?? clip.width ?? seq.width,
+      sourceHeight: clip.reframe?.sourceHeight ?? clip.height ?? seq.height
+    };
+    if (clip.currentAssetId !== undefined) {
+      base.sourceAssetId = clip.currentAssetId;
+    }
+    if (clip.reframe?.keyframes) {
+      base.keyframes = structuredClone(clip.reframe.keyframes);
+    }
+    const preservedSamples =
+      clip.reframe?.mode === "auto" &&
+      clip.reframe.samples &&
+      !isReframeStale(clip)
+        ? structuredClone(clip.reframe.samples)
+        : undefined;
+    const authoredFocus = clip.crop
+      ? [
+          {
+            sourceMs: clip.inPointMs ?? 0,
+            x: clip.crop.left + (1 - clip.crop.left - clip.crop.right) / 2,
+            y: clip.crop.top + (1 - clip.crop.top - clip.crop.bottom) / 2
+          }
+        ]
+      : [{ sourceMs: clip.inPointMs ?? 0, x: 0.5, y: 0.5 }];
+    const reframe =
+      options.strategy === "center"
+        ? { ...base, mode: "center" as const }
+        : options.strategy === "track"
+          ? track
+            ? { ...base, mode: "track" as const, trackId: track.id }
+            : { ...base, mode: "center" as const }
+          : track
+            ? {
+                ...base,
+                mode: "auto" as const,
+                samples: solveReframeSamples(track)
+              }
+            : {
+                ...base,
+                mode: "auto" as const,
+                samples: preservedSamples ?? authoredFocus
+              };
+    if (Math.abs(targetAspect - sourceAspect) > Number.EPSILON) {
+      croppedClipIds.push(clip.id);
+    }
+    return { ...clip, reframe };
+  });
+  return {
+    sequence: { ...derived.sequence, clips },
     croppedClipIds
   };
 }

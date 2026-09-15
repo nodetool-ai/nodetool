@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/privacy",
   },
+  openGraph: {
+    title: "Privacy Policy | NodeTool",
+    description:
+      "How NodeTool collects, processes, and protects your personal data. GDPR privacy policy for nodetool.ai, the NodeTool desktop application, and the hosted service at app.nodetool.ai.",
+    url: "https://nodetool.ai/privacy",
+    type: "website",
+  },
   robots: { index: true, follow: true },
 };
 

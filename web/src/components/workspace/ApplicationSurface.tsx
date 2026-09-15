@@ -184,7 +184,10 @@ const ApplicationSurface = ({ refId }: ApplicationSurfaceProps) => {
             </Box>
           )}
           {opened.includes("run") && (
-            <Box sx={view === "run" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}>
+            <Box
+              data-testid="application-run-layer"
+              sx={view === "run" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}
+            >
               <ApplicationRunView applicationId={application.id} />
             </Box>
           )}

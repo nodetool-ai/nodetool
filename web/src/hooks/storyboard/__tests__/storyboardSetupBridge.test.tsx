@@ -39,6 +39,10 @@ jest.mock("../useDirectScreenplay", () => ({
 jest.mock("../../../serverState/useEntities", () => ({
   useEntities: () => ({ data: mockEntities })
 }));
+jest.mock("../../../serverState/useStylePresets", () => ({
+  ...jest.requireActual("../../../serverState/useStylePresets"),
+  useStylePresets: () => ({ data: [] })
+}));
 
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
 import type { FrontendToolState } from "../../../lib/tools/frontendTools";

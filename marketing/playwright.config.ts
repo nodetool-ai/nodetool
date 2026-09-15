@@ -9,16 +9,31 @@ const PORT = 3210;
  */
 export default defineConfig({
   testDir: "./tests/e2e",
+  testMatch: /.*\.spec\.ts$/,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  retries: 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? "github" : "list",
+  reporter: process.env.CI
+    ? [
+        ["github"],
+        ["list"],
+        ["html", { outputFolder: "playwright-report", open: "never" }]
+      ]
+    : [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
   use: {
     baseURL: `http://localhost:${PORT}`,
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "webkit-mobile",
+      testMatch: /(?:mobile-menu|surface-loops)\.spec\.ts$/,
+      use: { ...devices["iPhone 13"] }
+    }
+  ],
   webServer: {
     // This budget covers a full production build, not just server startup. The
     // site prerenders 658 pages — one per template, mini-app, comparison and
@@ -26,7 +41,7 @@ export default defineConfig({
     // on the build rather than on anything a test asserted. Sized against a
     // ~3m30s local build with headroom for a slower CI runner; raise it again
     // if the page count grows rather than trimming what gets prerendered.
-    command: `npx next build && npx next start -p ${PORT}`,
+    command: `${process.env.MARKETING_REUSE_BUILD === "true" ? "" : "npx next build && "}npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}`,
     timeout: 600_000,
     reuseExistingServer: !process.env.CI,

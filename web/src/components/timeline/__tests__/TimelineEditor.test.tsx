@@ -8,6 +8,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
+import { makeSequence } from "@nodetool-ai/timeline";
 import mockTheme from "../../../__mocks__/themeMock";
 import { TimelineEditor } from "../TimelineEditor";
 
@@ -225,7 +226,10 @@ describe("TimelineEditor", () => {
   });
 
   describe("loaded state", () => {
-    const sequence = { id: "seq-1", name: "My Sequence" };
+    const sequence = makeSequence({
+      id: "seq-1",
+      name: "My Sequence"
+    });
 
     beforeEach(() => {
       (useTimeline as jest.Mock).mockReturnValue({

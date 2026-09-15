@@ -39,6 +39,10 @@ import { useExtractScriptFromBoard } from "./useExtractScriptFromBoard";
 import { useReprojectShots } from "./useReprojectShots";
 import { useDirectScreenplay } from "./useDirectScreenplay";
 import { useEntities } from "../../serverState/useEntities";
+import {
+  mergeStylePresetEntities,
+  useStylePresets
+} from "../../serverState/useStylePresets";
 import { sceneOrder } from "../../lib/storyboard/sceneOrder";
 import { linkedScriptId } from "../../lib/scriptStoryboardLink";
 import { assetLocator } from "../../utils/mediaRef";
@@ -77,10 +81,14 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
   const { reproject } = useReprojectShots();
   const { direct } = useDirectScreenplay();
   const { data: allEntities } = useEntities();
+  const { data: stylePresets } = useStylePresets();
 
   const handler = useMemo<StoryboardAgentHandler>(() => {
     const store = () => useStoryboardStore.getState();
-    const entities: readonly Entity[] = allEntities ?? [];
+    const entities: readonly Entity[] = mergeStylePresetEntities(
+      allEntities,
+      stylePresets
+    );
 
     const requireBoard = (): StoryboardBoard => {
       const board = store().getBoard(boardId);
@@ -518,6 +526,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
   }, [
     boardId,
     allEntities,
+    stylePresets,
     direct,
     generateKeyframe,
     generateClip,

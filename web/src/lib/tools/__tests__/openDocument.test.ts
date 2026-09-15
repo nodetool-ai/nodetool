@@ -24,6 +24,7 @@ const snapshot = (sequenceId: string | null): TimelineSnapshot => ({
   tracks: [],
   clips: [],
   markers: [],
+  mediaTracks: [],
   tempo: { bpm: 120, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } }
 });
 

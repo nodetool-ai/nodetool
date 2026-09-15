@@ -31,8 +31,7 @@ test("workflow suite executes and records artifacts", async ({ page }) => {
   await page
     .waitForFunction(() => (window.__E2E__?.manifest().length ?? 0) > 0, undefined, {
       timeout: 90_000
-    })
-    .catch(() => {});
+    });
 
   const total = await page.evaluate(() => window.__E2E__?.manifest().length ?? 0);
   expect(total, "manifest should list workflows").toBeGreaterThan(0);
@@ -40,12 +39,17 @@ test("workflow suite executes and records artifacts", async ({ page }) => {
   const screenshotsDir = resolve(ARTIFACT_DIR, "screenshots");
   mkdirSync(screenshotsDir, { recursive: true });
   const records: ReportRecord[] = [];
+  let earlyTermination: string | null = null;
 
   for (let i = 0; i < total; i++) {
     const rec = (await page.evaluate(() => window.__E2E__!.runNext())) as
       | RunRecord
       | null;
-    if (!rec) break;
+    if (!rec) {
+      earlyTermination =
+        `Workflow runner ended early at index ${i}; manifest contains ${total} workflows`;
+      break;
+    }
 
     // Let the canvas settle on the finished graph before capturing.
     await page.waitForTimeout(400);
@@ -107,12 +111,31 @@ test("workflow suite executes and records artifacts", async ({ page }) => {
   console.log(`[e2e suite] Report written to ${reportPath}`);
 
   // Assertions — written after artifacts so the report is always produced.
+  expect(
+    records,
+    "the runner must collect exactly one record for every manifest entry"
+  ).toHaveLength(total);
+  expect(
+    earlyTermination,
+    "runNext() must not return null before the manifest is exhausted"
+  ).toBeNull();
   const hardFailures = records.filter(
     (r) => r.status !== "completed" && r.status !== "skipped"
   );
   const expectationFailures = records.filter(
     (r) => r.expectationFailures.length > 0
   );
+  const unexpectedNodeErrors = records.flatMap((rec) => {
+    const allowed = new Set(rec.allowedNodeErrors ?? []);
+    return Object.entries(rec.nodeIO)
+      .filter(([, io]) => io.error)
+      .filter(([nodeId, io]) => {
+        return !allowed.has(nodeId) && !allowed.has(io.node_type ?? "");
+      })
+      .map(([nodeId, io]) =>
+        `${rec.id} · ${io.node_type ?? nodeId}: ${io.error}`
+      );
+  });
 
   expect(
     hardFailures.map((r) => `${r.id}: ${r.status}${r.error ? ` (${r.error})` : ""}`),
@@ -122,4 +145,5 @@ test("workflow suite executes and records artifacts", async ({ page }) => {
     expectationFailures.map((r) => `${r.id}: ${r.expectationFailures.join("; ")}`),
     "all expectations should be met"
   ).toEqual([]);
+  expect(unexpectedNodeErrors, "completed workflows must not hide node errors").toEqual([]);
 });

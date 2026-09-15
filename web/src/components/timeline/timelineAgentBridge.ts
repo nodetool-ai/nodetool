@@ -124,6 +124,14 @@ export interface TimelineClipNode {
   shapeStyle?: TimelineShapeStyle;
   /** The group clip this one inherits from, when it is in one. */
   parentId?: string;
+  reframe?: {
+    mode: "center" | "auto" | "track";
+    trackId?: string;
+    safeMargin?: number;
+    smoothing?: number;
+    sampleCount: number;
+    keyframeCount: number;
+  };
   /**
    * How many notes a midi clip carries. A snapshot names the count rather than
    * the notes: a phrase runs to thousands of them and the agent asks for the
@@ -153,6 +161,14 @@ export interface TimelineMarkerNode {
   note?: string;
 }
 
+export interface TimelineMediaTrackNode {
+  id: string;
+  clipId: string;
+  name: string;
+  kind: "point" | "box" | "quad" | "mask";
+  status: "ready" | "generating" | "stale" | "failed";
+}
+
 /** What `addMarker` places. */
 export interface TimelineAddMarkerOptions {
   timeMs: number;
@@ -176,6 +192,7 @@ export interface TimelineSnapshot {
   tracks: TimelineTrackNode[];
   clips: TimelineClipNode[];
   markers: TimelineMarkerNode[];
+  mediaTracks: TimelineMediaTrackNode[];
   /** The tempo the midi clips are read against — always resolved, so a
    *  document that stores none still reports the 120 BPM it plays at. */
   tempo: TimelineTempo;
@@ -397,6 +414,23 @@ type ClipAnimationMode = "add" | "replace";
  */
 export interface TimelineAgentHandler {
   getSnapshot: () => TimelineSnapshot;
+  /** Create another sequence in a target format, leaving this one untouched. */
+  retargetFormat: (options: {
+    aspectRatio: string;
+    strategy: "center" | "smart" | "track";
+    safeMargin?: number;
+    trackIds?: Record<string, string>;
+  }) => Promise<{ sequenceId: string; name: string }>;
+  setReframeSubject: (
+    target: string,
+    trackId: string,
+    options?: { safeMargin?: number; smoothing?: number }
+  ) => TimelineClipNode;
+  addReframeKeyframe: (
+    target: string,
+    keyframe: { sourceMs: number; x: number; y: number; zoom?: number }
+  ) => TimelineClipNode;
+  clearReframe: (target: string) => TimelineClipNode;
   addTrack: (
     type: TimelineTrackNode["type"],
     name?: string
@@ -419,7 +453,11 @@ export interface TimelineAgentHandler {
   deleteTrack: (
     target: string,
     deleteClips: boolean
-  ) => { deleted: TimelineTrackNode; deletedClipIds: string[]; tracks: TimelineTrackNode[] };
+  ) => {
+    deleted: TimelineTrackNode;
+    deletedClipIds: string[];
+    tracks: TimelineTrackNode[];
+  };
   generateClip: (
     opts: TimelineGenerateOptions
   ) => Promise<TimelineGenerateResult>;
@@ -533,10 +571,7 @@ export interface TimelineAgentHandler {
    */
   transposeClip: (target: string, semitones: number) => TimelineClipNode;
   /** Snap a midi clip's onsets (and optionally lengths) to a note grid. */
-  quantizeClip: (
-    target: string,
-    options: QuantizeOptions
-  ) => TimelineClipNode;
+  quantizeClip: (target: string, options: QuantizeOptions) => TimelineClipNode;
   /** Scale every velocity in a midi clip, clamped to 1..127. */
   scaleClipVelocity: (target: string, factor: number) => TimelineClipNode;
 

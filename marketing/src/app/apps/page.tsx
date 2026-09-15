@@ -15,6 +15,13 @@ export const metadata: Metadata = {
   description:
     "Ready-to-use AI mini apps built with NodeTool's app builder: fill in a field, press Run, and get your result. Each one is powered by a visual workflow you can open and change.",
   alternates: { canonical: `${BASE_URL}/apps` },
+  openGraph: {
+    title: "AI Mini Apps — NodeTool",
+    description:
+      "Ready-to-use AI mini apps built with NodeTool's app builder: fill in a field, press Run, and get your result. Each one is powered by a visual workflow you can open and change.",
+    url: `${BASE_URL}/apps`,
+    type: "website",
+  },
 };
 
 function AppCard({ entry }: { entry: MiniAppEntry }) {

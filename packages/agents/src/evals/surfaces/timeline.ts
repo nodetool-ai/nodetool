@@ -66,8 +66,6 @@ import {
   type AnimationRole,
   type CustomClipAnimation,
   type PropertyCurve,
-  type ClipEffect,
-  type ClipMask,
   type SnapBoundaryMode,
   type SnapAction,
   type MediaTrack,
@@ -78,6 +76,7 @@ import {
   type TimelineMarker,
   type TimelineSetup,
   type TimelineSetupStage,
+  type TimelineSequence,
   type TimelineTrack,
   type TrackBinding,
   type ClipAnimation,
@@ -103,6 +102,12 @@ import {
   selectTake,
   renameTake as renameTakeOnClip,
   deleteTake as deleteTakeOnClip,
+  adaptSequenceFormat,
+  addReframeKeyframe,
+  clearReframe,
+  isMediaTrackStale,
+  mediaTrackCanDriveReframe,
+  type ClipReframe,
   type MidiInstrument,
   type MidiNote,
   type QuantizeDivision,
@@ -153,8 +158,7 @@ import { uiToolParams } from "@nodetool-ai/protocol/api-schemas/ui-tool-contract
 import type { HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
-  ToolLoopEvalCase,
-  ToolLoopStatePredicate
+  ToolLoopEvalCase
 } from "../tool-loop-eval.js";
 import { findSystemSkill } from "../../system-skills.js";
 
@@ -202,6 +206,11 @@ export type TimelineAssetResolver = (
   ref: string
 ) => Promise<TimelineBridgeAsset | null>;
 
+/** Persist one derived format without modifying the source sequence. */
+export type TimelineFormatRetargeter = (
+  sequence: TimelineSequence
+) => Promise<{ sequenceId: string; name?: string }>;
+
 /** A whole sequence handed to the bridge as-is, fields and all. */
 export interface TimelineBridgeSequenceSeed {
   fps?: number;
@@ -211,6 +220,10 @@ export interface TimelineBridgeSequenceSeed {
   clips: TimelineClip[];
   /** The document's markers. Absent reads as a sequence with none. */
   markers?: TimelineMarker[];
+  /** Script/transcript state copied into derived format adaptations. */
+  transcript?: TimelineSequence["transcript"];
+  scriptEnabled?: TimelineSequence["scriptEnabled"];
+  templateId?: TimelineSequence["templateId"];
   /**
    * The document's tempo. Absent is a document that has never carried one:
    * midi clips read at {@link DEFAULT_TEMPO} until a midi track is added or
@@ -302,6 +315,12 @@ export interface TimelineBridgeInitialState {
    */
   loadComposition?: TimelineCompositionLoader;
   /**
+   * Store a sequence created by `ui_timeline_retarget_format`. The bridge
+   * computes the complete adapted sequence first, then hands it to the host;
+   * a database-backed host creates a new row while an eval keeps it in memory.
+   */
+  retargetFormat?: TimelineFormatRetargeter;
+  /**
    * Offer `preview_timeline_frame` — a look at the layer stack at a timecode.
    * Off by default: `edit_timeline` builds this bridge too and reads its ops
    * off the `ui_timeline_` prefix, so a tool outside it would sit in that
@@ -316,6 +335,9 @@ export interface TimelineBridgeInitialState {
    * exist.
    */
   sequenceId?: string;
+  /** Source sequence name/project, used when a format adaptation is derived. */
+  sequenceName?: string;
+  projectId?: string;
   tracks?: {
     name?: string;
     type: "video" | "audio" | "overlay" | "subtitle" | "midi";
@@ -367,6 +389,8 @@ export interface TimelineBridgeFinalState {
    * bound clip pointing at an id nothing answers.
    */
   mediaTracks: MediaTrack[];
+  /** Derived formats created during this session. The source state stays put. */
+  derivedSequences: TimelineSequence[];
   /**
    * The document's tempo, or undefined when it never carried one. A host
    * writing the session back has to store it: `set_tempo` and the first midi
@@ -715,7 +739,10 @@ export function createTimelineToolBridge(
   const bakeAnimation = initial.bakeAnimation;
   const bakeModel3DClip = initial.bakeModel3DClip;
   const loadComposition = initial.loadComposition;
+  const retargetFormat = initial.retargetFormat;
   const sequenceId = initial.sequenceId ?? "seq_eval";
+  const sequenceName = initial.sequenceName ?? "Sequence";
+  const projectId = initial.projectId ?? "";
   const fps = seed?.fps ?? initial.fps ?? 30;
   const width = seed?.width ?? initial.width ?? 1920;
   const height = seed?.height ?? initial.height ?? 1080;
@@ -736,6 +763,7 @@ export function createTimelineToolBridge(
   // Document-level, like markers: a track is named by `clipId`, and a clip
   // follows one through its own `trackBinding` (P0 AI Video, Phase 2).
   let mediaTracks: MediaTrack[] = [];
+  const derivedSequences: TimelineSequence[] = [];
   let setup: TimelineSetup | null = seed?.setup
     ? structuredClone(seed.setup)
     : null;
@@ -1214,6 +1242,16 @@ export function createTimelineToolBridge(
       timeRemap: c.timeRemap,
       effects: c.effects,
       parentId: c.parentId,
+      reframe: c.reframe
+        ? {
+            mode: c.reframe.mode,
+            trackId: c.reframe.trackId,
+            safeMargin: c.reframe.safeMargin,
+            smoothing: c.reframe.smoothing,
+            sampleCount: c.reframe.samples?.length ?? 0,
+            keyframeCount: c.reframe.keyframes?.length ?? 0
+          }
+        : undefined,
       // The notes themselves are the clip's bulk — a phrase is hundreds of
       // them — so state reports how many there are and how many the window
       // actually plays. `set_notes` sends the list; nothing reads it back.
@@ -1321,6 +1359,19 @@ export function createTimelineToolBridge(
           tempo,
           tracks: tracks.map(serializeTrack),
           clips: clips.map(serializeClip),
+          mediaTracks: mediaTracks.map((track) => ({
+            id: track.id,
+            clipId: track.clipId,
+            sourceAssetId: track.sourceAssetId,
+            name: track.name,
+            kind: track.kind,
+            sourceStartMs: track.sourceStartMs,
+            sourceEndMs: track.sourceEndMs,
+            sampleCount: track.samples.length,
+            confidence: track.confidence,
+            status: track.status,
+            provenance: track.provenance
+          })),
           markers: markers.map((m) => ({ ...m }))
         };
       }
@@ -3270,6 +3321,194 @@ export function createTimelineToolBridge(
         clips = clips.map((c) => (c.id === clip.id ? next : c));
         return { ok: true, clip: serializeClip(next) };
       }
+    ),
+
+    sharedTool(
+      "ui_timeline_retarget_format",
+      async ({ aspect_ratio, strategy, safe_margin, track_ids }) => {
+        if (track_ids) {
+          for (const [clipId, trackId] of Object.entries(
+            track_ids as Record<string, string>
+          )) {
+            const clip = clips.find((candidate) => candidate.id === clipId);
+            if (!clip) {
+              throw new Error(
+                `track_ids names unknown clip "${clipId}". ` +
+                  validUnits(clips, "clip")
+              );
+            }
+            const track = mediaTracks.find(
+              (candidate) => candidate.id === trackId
+            );
+            if (!track || track.clipId !== clip.id) {
+              throw new Error(
+                `Track "${trackId}" does not belong to clip "${clip.name}". ` +
+                  validUnits(
+                    mediaTracks.filter(
+                      (candidate) => candidate.clipId === clip.id
+                    ),
+                    "track"
+                  )
+              );
+            }
+            if (track.status !== "ready") {
+              throw new Error(
+                `Track "${track.name}" is ${track.status}; a format adaptation can only follow a ready track.`
+              );
+            }
+          }
+        }
+        const now = new Date().toISOString();
+        const source: TimelineSequence = {
+          id: sequenceId,
+          projectId,
+          name: sequenceName,
+          fps,
+          width,
+          height,
+          durationMs: clips.reduce(
+            (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
+            0
+          ),
+          tracks: tracks.map((track) => structuredClone(track)),
+          clips: clips.map((clip) => structuredClone(clip)),
+          markers: markers.map((marker) => structuredClone(marker)),
+          mediaTracks: mediaTracks.map((track) => structuredClone(track)),
+          createdAt: now,
+          updatedAt: now
+        };
+        if (seed?.transcript !== undefined) {
+          source.transcript = structuredClone(seed.transcript);
+        }
+        if (seed?.scriptEnabled !== undefined) {
+          source.scriptEnabled = seed.scriptEnabled;
+        }
+        if (seed?.templateId !== undefined) source.templateId = seed.templateId;
+        if (tempo) source.tempo = structuredClone(tempo);
+        if (setup) source.setup = structuredClone(setup);
+        const adapted = adaptSequenceFormat(source, aspect_ratio as string, {
+          strategy: strategy as "center" | "smart" | "track",
+          safeMargin: safe_margin as number | undefined,
+          trackIdByClipId: track_ids as Record<string, string> | undefined
+        });
+        const stored = retargetFormat
+          ? await retargetFormat(structuredClone(adapted.sequence))
+          : { sequenceId: adapted.sequence.id, name: adapted.sequence.name };
+        derivedSequences.push(structuredClone(adapted.sequence));
+        return {
+          ok: true,
+          sourceSequenceId: sequenceId,
+          sequenceId: stored.sequenceId,
+          name: stored.name ?? adapted.sequence.name,
+          width: adapted.sequence.width,
+          height: adapted.sequence.height,
+          strategy,
+          croppedClipIds: adapted.croppedClipIds
+        };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_set_reframe_subject",
+      async ({ clip_id, track_id, safe_margin, smoothing }) => {
+        const clip = resolveClip(clip_id as string);
+        const track = mediaTracks.find((candidate) => candidate.id === track_id);
+        if (!track || track.clipId !== clip.id) {
+          throw new Error(
+            `No track "${String(track_id)}" belongs to clip "${clip.name}". ` +
+              validUnits(
+                mediaTracks.filter((candidate) => candidate.clipId === clip.id),
+                "track"
+              )
+          );
+        }
+        if (track.status !== "ready") {
+          throw new Error(
+            `Track "${track.name}" is ${track.status}; Smart Reframe can only follow a ready track.`
+          );
+        }
+        if (
+          !mediaTrackCanDriveReframe(track) ||
+          isMediaTrackStale(track, clip)
+        ) {
+          throw new Error(
+            `Track "${track.name}" has no current analysis for clip "${clip.name}".`
+          );
+        }
+        const previous = clip.reframe;
+        const reframe: ClipReframe = {
+          mode: "track",
+          trackId: track.id,
+          sourceAssetId: clip.currentAssetId
+        };
+        if (safe_margin !== undefined) reframe.safeMargin = safe_margin as number;
+        else if (previous?.safeMargin !== undefined) {
+          reframe.safeMargin = previous.safeMargin;
+        }
+        if (smoothing !== undefined) reframe.smoothing = smoothing as number;
+        else if (previous?.smoothing !== undefined) {
+          reframe.smoothing = previous.smoothing;
+        }
+        if (previous?.keyframes) {
+          reframe.keyframes = structuredClone(previous.keyframes);
+        }
+        if (previous?.sourceWidth !== undefined) {
+          reframe.sourceWidth = previous.sourceWidth;
+        }
+        if (previous?.sourceHeight !== undefined) {
+          reframe.sourceHeight = previous.sourceHeight;
+        }
+        const next: TimelineClip = { ...clip, reframe };
+        clips = clips.map((candidate) =>
+          candidate.id === clip.id ? next : candidate
+        );
+        return { ok: true, clip: serializeClip(next) };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_add_reframe_keyframe",
+      async ({ clip_id, source_ms, x, y, zoom }) => {
+        const clip = resolveClip(clip_id as string);
+        if (!clip.reframe) {
+          throw new Error(
+            `Clip "${clip.name}" has no Smart Reframe path. Retarget the format or set_reframe_subject first.`
+          );
+        }
+        const keyframe: {
+          sourceMs: number;
+          x: number;
+          y: number;
+          zoom?: number;
+        } = {
+          sourceMs: source_ms as number,
+          x: x as number,
+          y: y as number
+        };
+        if (zoom !== undefined) {
+          keyframe.zoom = zoom as number;
+        }
+        const next: TimelineClip = {
+          ...clip,
+          reframe: addReframeKeyframe(clip.reframe, keyframe)
+        };
+        clips = clips.map((candidate) =>
+          candidate.id === clip.id ? next : candidate
+        );
+        return { ok: true, clip: serializeClip(next), keyframe };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_clear_reframe",
+      async ({ clip_id }) => {
+        const clip = resolveClip(clip_id as string);
+        const next = clearReframe(clip);
+        clips = clips.map((candidate) =>
+          candidate.id === clip.id ? next : candidate
+        );
+        return { ok: true, clip: serializeClip(next) };
+      }
     )
   ];
 
@@ -3363,6 +3602,9 @@ export function createTimelineToolBridge(
       documentClips: clips.map((c) => structuredClone(c)),
       markers: markers.map((m) => structuredClone(m)),
       mediaTracks: mediaTracks.map((t) => structuredClone(t)),
+      derivedSequences: derivedSequences.map((sequence) =>
+        structuredClone(sequence)
+      ),
       tempo: tempo ? structuredClone(tempo) : undefined,
       setup: setup ? structuredClone(setup) : null,
       toolLog: [...toolLog],
@@ -3382,6 +3624,8 @@ Use the ui_timeline_* tools to inspect and modify the sequence:
 - Before animating a clip, call ui_timeline_list_animation_presets to discover the exact preset ids, allowed roles, and params.
 - For motion no preset covers, animate with preset "custom" and pass curves — [{property, keyframes: [{t, value}]}], where t runs 0..1 over the animation window. list_animation_presets reports which properties a curve may drive.
 - ui_timeline_seek moves the playhead (useful before a playhead-relative split).
+- Use ui_timeline_list_tracks to inspect source-time subject tracks. ui_timeline_set_reframe_subject makes one ready track drive a clip's crop; ui_timeline_add_reframe_keyframe adds a manual source-time correction, and ui_timeline_clear_reframe removes only that framing state.
+- ui_timeline_retarget_format creates a new sequence for one target aspect ratio and leaves this sequence unchanged. Run it once per portrait, square, or other adaptation, then continue editing the returned sequence id.
 - For a played part: add a midi track, place phrases with ui_timeline_add_midi_clip (notes in ticks from the clip's content start, 960 ticks = a quarter note), rewrite them with ui_timeline_set_notes, pick the synth with ui_timeline_set_track_instrument — either a named voice ({"preset": "bass"}: saw-lead, square-lead, soft-pad, pluck, bass, bell) or every field spelled out — and set the speed once with ui_timeline_set_tempo, which rescales the midi clips and leaves picture and audio where they are.
 - Edit a phrase you already placed without resending it: ui_timeline_transpose_clip moves every note by whole semitones, ui_timeline_quantize_notes snaps onsets to a note grid (1/4, 1/8, 1/16, 1/32, 1/8T, 1/16T; strength below 1 keeps some of the feel) and reports how many notes moved, ui_timeline_scale_velocity multiplies how hard they are struck. get_state reports each midi clip's startBarsBeats, so the next phrase goes on a bar line.
 - Flag moments with ui_timeline_add_marker / ui_timeline_delete_marker. To cut to music, lay the grid down with ui_timeline_set_markers_from_beats and put clip boundaries on it with ui_timeline_snap_to_beats, then read its per-clip report — a clip further than the tolerance from every beat is left alone and says so.

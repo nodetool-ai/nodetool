@@ -140,7 +140,7 @@ async function getAllAssetsRecursive(
   if (visited.has(folderId)) return [];
   visited.add(folderId);
 
-  if (projectId !== undefined) {
+  if (projectId !== undefined && folderId !== userId) {
     const folder = await Asset.find(userId, folderId);
     if (!folder || folder.project_id !== projectId) return [];
   }

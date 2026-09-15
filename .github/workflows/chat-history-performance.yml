@@ -1,0 +1,76 @@
+name: Chat History Performance
+
+on:
+  pull_request:
+    paths:
+      - "web/src/components/chat/thread/**"
+      - "web/src/components/ui_primitives/spacing.ts"
+      - "web/tests/benchmarks/chat-history-*"
+      - "web/playwright.benchmark.config.ts"
+      - "web/tsconfig.playwright.json"
+      - "web/package.json"
+      - ".github/workflows/chat-history-performance.yml"
+  push:
+    branches: [main]
+    paths:
+      - "web/src/components/chat/thread/**"
+      - "web/src/components/ui_primitives/spacing.ts"
+      - "web/tests/benchmarks/chat-history-*"
+      - "web/playwright.benchmark.config.ts"
+      - "web/tsconfig.playwright.json"
+      - "web/package.json"
+      - ".github/workflows/chat-history-performance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chat-history:
+    name: Preserve chat history viewport
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build workspace packages
+        run: npm run build:packages
+
+      - name: Type-check Playwright suites
+        working-directory: web
+        run: npm run typecheck:playwright
+
+      - name: Install Playwright Chromium browser
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Run chat-history regression
+        working-directory: web
+        env:
+          CI: "true"
+        run: npm run test:benchmark:chat-history
+
+      - name: Upload Playwright diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: chat-history-playwright-report
+          path: |
+            web/playwright-report/
+            web/test-results/
+          retention-days: 14

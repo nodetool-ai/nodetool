@@ -212,24 +212,28 @@ const createAssetGridStore = (
   workflowFilter: null,
   scopeProjectId: null,
   resetForProject: (projectId) =>
-    set({
-      scopeProjectId: projectId,
-      assetSearchTerm: null,
-      currentAudioAsset: null,
-      currentFolder: null,
-      currentFolderId: null,
-      globalSearchResults: [],
-      globalSearchQuery: "",
-      isGlobalSearchActive: false,
-      isGlobalSearchMode: false,
-      openAsset: null,
-      parentFolder: null,
-      selectedAssetIds: [],
-      selectedAssets: [],
-      selectedFolderId: null,
-      selectedFolderIds: [],
-      workflowFilter: null
-    }),
+    set((state) =>
+      state.scopeProjectId === projectId
+        ? state
+        : {
+            scopeProjectId: projectId,
+            assetSearchTerm: null,
+            currentAudioAsset: null,
+            currentFolder: null,
+            currentFolderId: null,
+            globalSearchResults: [],
+            globalSearchQuery: "",
+            isGlobalSearchActive: false,
+            isGlobalSearchMode: false,
+            openAsset: null,
+            parentFolder: null,
+            selectedAssetIds: [],
+            selectedAssets: [],
+            selectedFolderId: null,
+            selectedFolderIds: [],
+            workflowFilter: null
+          }
+    ),
   setWorkflowFilter: (workflowId) => set({ workflowFilter: workflowId })
 }),
       {

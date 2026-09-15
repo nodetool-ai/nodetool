@@ -27,8 +27,12 @@ test.describe("model pages", () => {
   test("a zero-showcase model page builds with a thumbnail fallback", async ({
     page,
   }) => {
-    // With no seeded showcase, every model falls back; pick the first available.
-    const model = emptyModel ?? modelEntries[0];
+    expect(
+      emptyModel,
+      "model fixture must include a genuine zero-showcase model"
+    ).toBeDefined();
+    if (!emptyModel) throw new Error("No zero-showcase model fixture is available");
+    const model = emptyModel;
     const res = await page.goto(model.route);
     expect(res?.status() ?? 0).toBeLessThan(400);
     await expect(page.locator("h1")).toHaveCount(1);
@@ -52,11 +56,18 @@ test.describe("model pages", () => {
   });
 
   test("pair page renders both outputs side by side", async ({ page }) => {
-    // Pick a comparison that has same-prompt pairs (fixtures guarantee some).
-    const pair =
-      modelComparisonEntries.find(
-        (c) => duelPairsForComparison(c.a, c.b).length > 0
-      ) ?? modelComparisonEntries[0];
+    const pair = modelComparisonEntries.find(
+      (c) => duelPairsForComparison(c.a, c.b).length > 0
+    );
+    expect(
+      pair,
+      "comparison fixture must include a paired same-prompt media fixture"
+    ).toBeDefined();
+    if (!pair) throw new Error("No comparison media fixture is available");
+    const fixture = duelPairsForComparison(pair.a, pair.b)[0];
+    expect(fixture?.duelId, "comparison fixture duel id").toBeTruthy();
+    expect(fixture?.first.params?.duelId).toBe(fixture?.duelId);
+    expect(fixture?.second.params?.duelId).toBe(fixture?.duelId);
     const res = await page.goto(pair.route);
     expect(res?.status() ?? 0).toBeLessThan(400);
     await expect(page.locator("h1")).toHaveCount(1);

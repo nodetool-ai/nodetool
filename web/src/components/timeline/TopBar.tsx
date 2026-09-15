@@ -15,6 +15,7 @@ import FolderZipOutlinedIcon from "@mui/icons-material/FolderZipOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
+import AspectRatioOutlinedIcon from "@mui/icons-material/AspectRatioOutlined";
 import VideoLibraryOutlinedIcon from "@mui/icons-material/VideoLibraryOutlined";
 
 interface TopBarProps {
@@ -26,6 +27,7 @@ interface TopBarProps {
   isSaving?: boolean;
   onSaveToAssets?: (anchorEl: HTMLElement) => void;
   onOpenSettings?: () => void;
+  onAdaptFormat?: () => void;
   activitySlot?: React.ReactNode;
 }
 
@@ -39,6 +41,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
     isSaving = false,
     onSaveToAssets,
     onOpenSettings,
+    onAdaptFormat,
     activitySlot
   }) => {
     const overflowButtonRef = useRef<HTMLButtonElement>(null);
@@ -54,7 +57,10 @@ export const TopBar: React.FC<TopBarProps> = memo(
       [closeOverflow]
     );
     const hasOverflowActions =
-      !!onOpenSettings || !!onSaveToAssets || !!onExportBundle;
+      !!onOpenSettings ||
+      !!onAdaptFormat ||
+      !!onSaveToAssets ||
+      !!onExportBundle;
 
     return (
       <FlexRow align="center" gap={SPACING.micro}>
@@ -101,6 +107,13 @@ export const TopBar: React.FC<TopBarProps> = memo(
                   icon={<TuneIcon fontSize="small" />}
                   label="Project settings"
                   onClick={runFromMenu(onOpenSettings)}
+                />
+              )}
+              {onAdaptFormat && (
+                <MenuItemPrimitive
+                  icon={<AspectRatioOutlinedIcon fontSize="small" />}
+                  label="Adapt format"
+                  onClick={runFromMenu(onAdaptFormat)}
                 />
               )}
               {onSaveToAssets && (

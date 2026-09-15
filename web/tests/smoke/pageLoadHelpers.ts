@@ -31,6 +31,16 @@ export type PageLoadError = {
   text: string;
 };
 
+export type PageLoadErrorOptions = {
+  /**
+   * Include API and tRPC failures in addition to document/script/style loads.
+   * Journey tests use this because a successful shell with a failed data
+   * request is still a broken user journey. The smoke suite keeps its narrower
+   * page-mount scope.
+   */
+  includeDataRequests?: boolean;
+};
+
 /**
  * Resource types whose 4xx/5xx responses actually break page load: a missing
  * HTML document, JS chunk, or stylesheet white-screens the app. A 404 for an
@@ -92,8 +102,24 @@ export function isIgnoredMessage(text: string): boolean {
  * Call this BEFORE `page.goto` so nothing that fires during the initial paint
  * is missed.
  */
-export function collectPageLoadErrors(page: Page): PageLoadError[] {
+export function collectPageLoadErrors(
+  page: Page,
+  options: PageLoadErrorOptions = {}
+): PageLoadError[] {
   const errors: PageLoadError[] = [];
+
+  // These are the only seeded-server capability gaps journeys may encounter:
+  // runtime config and worker-manager polling are optional for this backend.
+  const isExpectedDataRequest = (url: string): boolean =>
+    /\/api\/config(?:[/?]|$)/i.test(url) ||
+    /\/trpc\/worker\.(?:apiKeyStatus|profiles\.list|instances\.list)/i.test(
+      url
+    );
+
+  const isCriticalRequest = (resourceType: string, url: string): boolean =>
+    CRITICAL_RESOURCE_TYPES.has(resourceType) ||
+    (options.includeDataRequests === true &&
+      (/\/api(?:\/|$)/i.test(url) || /\/trpc(?:\/|$)/i.test(url)));
 
   page.on("pageerror", (err) => {
     const text = err.stack || String(err);
@@ -111,14 +137,19 @@ export function collectPageLoadErrors(page: Page): PageLoadError[] {
   });
 
   page.on("requestfailed", (request) => {
-    // Only a failed document/script/stylesheet load white-screens a page. A
-    // failed xhr/fetch/websocket is
-    // data-level and handled elsewhere, so scope this to the same critical
-    // resource types as the `response` listener. Once scoped, always record:
+    // A failed document/script/stylesheet load always matters. Journey mode
+    // also treats API and tRPC requests as critical because data failures
+    // otherwise leave a convincing but non-functional shell. Once scoped,
+    // always record:
     // the console allowlist is for noisy non-critical logs, and applying it
     // here could mask a real script/document failure (e.g. net::ERR_ABORTED
     // on a JS chunk).
-    if (!CRITICAL_RESOURCE_TYPES.has(request.resourceType())) return;
+    if (!isCriticalRequest(request.resourceType(), request.url())) {
+      return;
+    }
+    if (options.includeDataRequests && isExpectedDataRequest(request.url())) {
+      return;
+    }
     const failure = request.failure();
     errors.push({
       kind: "requestfailed",
@@ -131,7 +162,20 @@ export function collectPageLoadErrors(page: Page): PageLoadError[] {
   page.on("response", (response) => {
     const status = response.status();
     if (status < 400) return;
-    if (!CRITICAL_RESOURCE_TYPES.has(response.request().resourceType())) return;
+    if (
+      !isCriticalRequest(
+        response.request().resourceType(),
+        response.request().url()
+      )
+    ) {
+      return;
+    }
+    if (
+      options.includeDataRequests &&
+      isExpectedDataRequest(response.request().url())
+    ) {
+      return;
+    }
     // Scoped to critical resources — a 4xx/5xx here is always actionable, so
     // don't run it through the console allowlist.
     errors.push({
@@ -202,6 +246,23 @@ export async function readErrorBoundary(page: Page): Promise<string | null> {
     ? (await summary.innerText().catch(() => "")).trim()
     : "";
   return `Something went wrong${detail ? ` — ${detail.slice(0, 300)}` : ""}`;
+}
+
+/**
+ * Read the smaller boundaries embedded in panels (the route boundary above is
+ * identified by its Reload page button). These selectors are the stable
+ * user-facing markers emitted by PanelErrorBoundary and SearchErrorBoundary.
+ */
+export async function readVisibleErrorBoundaries(
+  page: Page
+): Promise<string[]> {
+  const [searchMessages, panelMessages] = await Promise.all([
+    page.locator(".error-title:visible, .error-message:visible").allTextContents(),
+    page.getByText(/failed to render\.$/i).allTextContents()
+  ]);
+  return [...searchMessages, ...panelMessages]
+    .map((message) => message.trim())
+    .filter(Boolean);
 }
 
 /**

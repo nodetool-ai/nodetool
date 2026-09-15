@@ -28,13 +28,18 @@ export default defineConfig({
   expect: { timeout: 15_000 },
 
   forbidOnly: !!process.env.CI,
-  /* One retry in CI absorbs a rare cold-start blip without hiding real
-     crashes (a genuinely broken page fails both attempts). */
-  retries: process.env.CI ? 1 : 0,
+  /* Functional tests must expose flakes instead of retrying them green. */
+  retries: 0,
   /* Sequential: the single shared backend isn't built for concurrent browsers. */
   workers: 1,
 
-  reporter: process.env.CI ? [["github"], ["list"]] : "list",
+  reporter: process.env.CI
+    ? [
+        ["github"],
+        ["list"],
+        ["html", { outputFolder: "playwright-report", open: "never" }]
+      ]
+    : [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
 
   /** Reuse the seeded real backend the visual/screenshot suites use. */
   globalSetup: "./tests/globalSetup.ts",

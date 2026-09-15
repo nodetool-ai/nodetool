@@ -15,7 +15,14 @@ import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 
 import type { ClipModel3DCamera, TimelineClip } from "@nodetool-ai/timeline";
-import { computeModel3DBakeHash, hasTimeRemap } from "@nodetool-ai/timeline";
+import {
+  clipSourceMsAt,
+  computeModel3DBakeHash,
+  hasTimeRemap,
+  renderableReframe,
+  resolveReframeCrop,
+  sampleReframeAt
+} from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -33,6 +40,7 @@ import {
 import { createCompositor } from "./gpu/createCompositor";
 import type { CompositeLayer, TimelineCompositor } from "./gpu/types";
 import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
+import { ReframeFocusOverlay } from "./ReframeFocusOverlay";
 import { Model3DOrbitOverlay } from "./Model3DOrbitOverlay";
 import {
   bakedClipSourceTimeSec,
@@ -90,6 +98,16 @@ const PRELOAD_LOOKAHEAD_MS = 30_000;
 /** LRU cap on cached decoded <img> elements. Keeps memory bounded in long
  *  sessions that touch many unique image assets. */
 const IMAGE_CACHE_MAX = 64;
+const UNCROPPED = { left: 0, right: 0, top: 0, bottom: 0 } as const;
+
+/** Scene properties that the shared model, rather than animation sampling, resolves. */
+export function sceneRequiresPerFrameResolution(
+  layers: readonly ActiveLayer[]
+): boolean {
+  return layers.some(
+    (layer) => layer.transition !== undefined || layer.clip.reframe !== undefined
+  );
+}
 
 const compositorStyles = css({
   position: "absolute",
@@ -227,6 +245,9 @@ export const PreviewCompositor: React.FC = memo(() => {
   );
 
   const patchClip = useTimelineStore((s) => s.patchClip);
+  const addClipReframeKeyframe = useTimelineStore(
+    (s) => s.addClipReframeKeyframe
+  );
   const selectedClipId = useTimelineUIStore((s) =>
     s.selectedClipIds.size === 1 ? [...s.selectedClipIds][0] : null
   );
@@ -728,6 +749,54 @@ export const PreviewCompositor: React.FC = memo(() => {
     };
   }, [selectedClipId, clipById, sceneLayers, resolveUrl, urlCacheVersion]);
 
+  const selectedReframe = useMemo(() => {
+    if (!selectedClipId) return null;
+    const clip = clipById.get(selectedClipId);
+    if (!clip?.reframe || !isClipActive(clip, currentTimeMs)) return null;
+    const sourceMs = clipSourceMsAt(clip, currentTimeMs);
+    const track = clip.reframe.trackId
+      ? mediaTracks.find((candidate) => candidate.id === clip.reframe?.trackId)
+      : undefined;
+    const activeReframe = renderableReframe(clip, track);
+    if (!activeReframe) return null;
+    const sampled = sampleReframeAt(activeReframe, sourceMs, track);
+    const sourceWidth = activeReframe.sourceWidth ?? clip.width ?? sequenceWidth;
+    const sourceHeight =
+      activeReframe.sourceHeight ?? clip.height ?? sequenceHeight;
+    const crop =
+      resolveReframeCrop(
+        activeReframe,
+        sourceMs,
+        { width: sourceWidth, height: sourceHeight },
+        sceneCanvas,
+        track
+      ) ??
+      clip.crop ??
+      UNCROPPED;
+    const layer = sceneLayers.find((candidate) => candidate.clipId === clip.id);
+    return {
+      clipId: clip.id,
+      sourceMs,
+      x: sampled.x,
+      y: sampled.y,
+      zoom: sampled.zoom,
+      crop,
+      transform: layer?.transform,
+      parentMatrix: layer?.parentMatrix,
+      sourceWidth,
+      sourceHeight
+    };
+  }, [
+    clipById,
+    currentTimeMs,
+    mediaTracks,
+    sceneCanvas,
+    sceneLayers,
+    selectedClipId,
+    sequenceHeight,
+    sequenceWidth
+  ]);
+
   // The pool effect below is keyed on `currentTimeMs` (React state), which
   // only advances on scene bumps — so during one long clip, an upcoming
   // clip's cold-pool preload would never fire before its boundary. This
@@ -939,7 +1008,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       // active clip set stands still, and its record is resolved by the scene
       // model rather than sampled here — so while one is running the scene is
       // re-derived at the drawn time instead of reused from the last boundary.
-      const recomputed = sceneLayers.some((layer) => layer.transition)
+      const recomputed = sceneRequiresPerFrameResolution(sceneLayers)
         ? computeActiveLayers(tracks, clips, atMs, {
             maxVideoLayers: HOT_POOL_SIZE,
             canvas: sceneCanvas,
@@ -1232,12 +1301,11 @@ export const PreviewCompositor: React.FC = memo(() => {
           }
         }
       }
-      // A cut in flight moves, scales or fades its two clips every tick, the
-      // way an animation does — and neither shows up as a decoding video, so a
-      // scene of stills would otherwise hold one frame through the whole cut.
+      // Cuts and Smart Reframe paths are resolved by the scene model. Neither
+      // necessarily has a decoding video, so still scenes must also redraw.
       if (
         !dirty &&
-        (lastLayersRef.current.some((layer) => layer.transition) ||
+        (sceneRequiresPerFrameResolution(lastLayersRef.current) ||
           hasActiveAnimation(
             lastLayersRef.current,
             liveMs,
@@ -1321,7 +1389,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           }}
         />
 
-        {selectedGizmo && (
+        {selectedGizmo && !selectedReframe && (
           <TransformGizmoOverlay
             clipId={selectedGizmo.clipId}
             transform={selectedGizmo.transform}
@@ -1333,6 +1401,34 @@ export const PreviewCompositor: React.FC = memo(() => {
             frameHeight={frameSize.h}
             onChange={(id, next) => {
               patchClip(id, { transform: next });
+              gizmoHistory.mark();
+            }}
+            onDragStart={gizmoHistory.begin}
+            onDragEnd={gizmoHistory.end}
+          />
+        )}
+
+        {selectedReframe && (
+          <ReframeFocusOverlay
+            x={selectedReframe.x}
+            y={selectedReframe.y}
+            crop={selectedReframe.crop}
+            transform={selectedReframe.transform}
+            parentMatrix={selectedReframe.parentMatrix}
+            sourceWidth={selectedReframe.sourceWidth}
+            sourceHeight={selectedReframe.sourceHeight}
+            sequenceWidth={sequenceWidth}
+            sequenceHeight={sequenceHeight}
+            frameWidth={frameSize.w}
+            frameHeight={frameSize.h}
+            onChange={(x, y) => {
+              addClipReframeKeyframe(
+                selectedReframe.clipId,
+                selectedReframe.sourceMs,
+                x,
+                y,
+                selectedReframe.zoom
+              );
               gizmoHistory.mark();
             }}
             onDragStart={gizmoHistory.begin}

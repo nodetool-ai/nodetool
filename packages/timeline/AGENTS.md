@@ -21,7 +21,7 @@
   normalized over the clip's own window, so neither `speedMultiplier` nor
   `inPointMs` applies on top; `clipSourceTimeSec` asks `clipRemapSourceMs`
   first and falls back to `sourceRate` only when there is no curve. The
-  interpolation is `evalCurve`'s — the segment is eased by its *ending*
+  interpolation is `evalCurve`'s — the segment is eased by its _ending_
   keyframe and held flat past both ends — so one keyframe is a freeze frame
   and the easing grammar is the one the rest of the document speaks.
 - **A custom animation can be anchored to the media instead of the clip**
@@ -53,7 +53,7 @@
 
 - **When you split or clone by spreading `...clip`, explicitly clear the
   properties that belong only to the original outer boundary** — `delete
-  leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
+leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   duplicates boundary fades/crossfades onto the new interior hard cut.
 - **Partition time-positioned children, don't copy them to both halves.**
   `splitClip` must assign each caption word to exactly one side (clamping the
@@ -69,7 +69,7 @@
   followed by it, so the "what moves" rule lives in one place.
 - **A ripple head-trim keeps the clip parked.** `rippleTrim(..., "start", d)`
   moves the in-point and the duration and puts `startMs` back; the downstream
-  shift is measured from the clip's *old* end. The web trim gesture
+  shift is measured from the clip's _old_ end. The web trim gesture
   (`useClipTrim`) measures a head-trim against the duration at pointerdown for
   the same reason.
 - **A roll is two trims that sum to zero.** `rollEdit` finds the neighbour
@@ -171,7 +171,7 @@
   into the untreated one by its coverage — resolved opacity × mask × wipe —
   rather than compositing it over: `out = original * (1 - c) + treated * c` on
   every premultiplied channel, alpha included, so a fully applied treatment
-  *replaces* what it covers (1 fully treated, 0 a no-op). Blending it over
+  _replaces_ what it covers (1 fully treated, 0 a no-op). Blending it over
   instead added the copy's alpha to its own, and a neutral chain thickened every
   translucent pixel — 50% opaque came back at 75% — which only a group surface
   or an alpha export can see. Both compositors say so in one place each:
@@ -192,6 +192,16 @@
   and draws (`packages/agents`) imports `./scene`; a caller that wants the GPU
   compositor imports `./render`. Both re-export the same modules, so the paths
   cannot drift.
+- **Smart Reframe resolves to an ordinary crop in the scene model.** A clip's
+  `reframe` path and manual corrections are stored in source time and sampled
+  at `clipSourceMsAt`; `computeActiveLayers` calls `resolveReframeCrop` once
+  and puts that crop on the `ActiveLayer`, so preview, browser export, server
+  render and agent frame preview do not each implement framing. Format
+  adaptation is `adaptSequenceFormat`: it creates a new sequence, keeps the
+  source sequence and media untouched, and records `templateId` lineage.
+  Subject bounds and `safeMargin` choose the automatic crop size. When the
+  source or track no longer matches, `renderableReframe` ignores stale
+  automatic data and keeps manual corrections around a centred fallback.
 - **A frame's shutter window is decided in one place.** Motion blur is N
   sub-frame instants averaged (D10), and every surface asks
   `motionBlurSampleTimes` for those instants — the browser export, the server
@@ -276,7 +286,7 @@
 ## Crop (`src/crop.ts`)
 
 - **A crop reframes; it does not knock out.** `clip.crop` is four normalized
-  insets, and the rectangle they keep *becomes* the layer's picture: the contain
+  insets, and the rectangle they keep _becomes_ the layer's picture: the contain
   fit is recomputed from the cropped size, the transform places the cropped
   frame, the border radius rounds its corners, and the effect chain and masks
   run on its pixels. Cropping a 16:9 shot to 1:1 therefore fills the frame the
@@ -297,7 +307,7 @@
   id (an axis-aligned region of whole texels has nothing to filter, so a copy is
   exact and cheaper than a pass); Canvas 2D blits the whole source at a negative
   offset onto a crop-sized surface, which is the 5-argument `drawImage` spelling
-  of a sub-rectangle. A clip that *was* cropped and is not any more must drop the
+  of a sub-rectangle. A clip that _was_ cropped and is not any more must drop the
   cached copy, or it keeps drawing the stale one.
 - **A crop is source-space and says nothing about time**, so `trimClip` and
   `splitClip` carry it across untouched — the same argument `generatedMatte`
@@ -315,7 +325,7 @@
   alpha — invisible on an opaque layer, a bright fringe wherever it is
   translucent. A per-channel gain saturated against alpha preserves the
   invariant, and it is also how stock behaves: grain bites in the midtones and
-  leaves black black. The case that catches the additive version is a *dark*
+  leaves black black. The case that catches the additive version is a _dark_
   half-opaque source; on a bright one the readback's own saturation hides it,
   which is why `render.grain.gpu.test.ts` says so where it picks its fixture.
 - **The pattern is a hash of the grain cell and a seed — no clock, no

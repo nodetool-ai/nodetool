@@ -28,6 +28,12 @@ export async function generateMetadata({
     title: `${label} showcase — AI generations on NodeTool`,
     description: `Every showcase image and video generated with ${label} on NodeTool.`,
     alternates: { canonical: `/showcase/model/${slug}` },
+    openGraph: {
+      title: `${label} showcase — AI generations on NodeTool`,
+      description: `Every showcase image and video generated with ${label} on NodeTool.`,
+      url: `${BASE_URL}/showcase/model/${slug}`,
+      type: "website",
+    },
   };
 }
 

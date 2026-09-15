@@ -1,26 +1,28 @@
 name: User Journeys
 
-# Nightly + on demand (browser journeys) and on every push to main (the new
-# reliability-ring1 job) — the browser suite is deliberately NOT a
-# pull-request gate; the reliability-ring1 job IS a merge-to-main gate (see
-# below), which is why this workflow now also triggers on `push`.
+# Pull requests, nightly and on demand (browser journeys), plus every push to
+# main for the reliability-ring1 job below.
 #
 # The journey suite drives whole flows through a real browser (build a graph and
 # run it, send a chat message, run a mini app, browse the library), so it is
-# slower and has more moving parts than the page-load smoke suite. Running it
-# nightly first lets it prove it is stable before it is allowed to block a
-# merge.
-#
-# Required from 2026-08-15 as a Ring 1 (merge-to-main) check — flip
-# continue-on-error to false then. Tracked in .github/workflows/README.md.
+# slower and has more moving parts than the page-load smoke suite.
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "web/src/**"
+      - "web/tests/journeys/**"
+      - "web/tests/globalSetup.ts"
+      - "web/tests/benchmarks/helpers/**"
+      - "web/playwright.journeys.config.ts"
+      - "web/tsconfig.playwright.json"
+      - "web/package.json"
+      - "packages/**"
+      - ".github/workflows/user-journeys.yml"
   schedule:
     # 03:30 UTC daily.
     - cron: "30 3 * * *"
   push:
-    # Only to run the reliability-ring1 job (below) as a merge-to-main gate —
-    # the legacy `journeys` job below skips on `push` and stays nightly/manual
-    # until its own 2026-08-15 promotion.
     branches: [main]
   workflow_dispatch:
 
@@ -41,15 +43,6 @@ jobs:
     name: Drive the app the way a user does
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    # Nightly/manual only — `push` fires this workflow purely for
-    # reliability-ring1 (below), which gates fly-deploy.yml on its own. Keeps
-    # this job's cadence unchanged by that addition.
-    if: github.event_name != 'push'
-    # Report failures without failing the workflow run, so a flaky night does
-    # not page anyone while the suite is still earning trust. Required from
-    # 2026-08-15 — flip this to false then. Tracked in
-    # .github/workflows/README.md.
-    continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -72,7 +65,7 @@ jobs:
 
       - name: Type-check journey suite
         working-directory: web
-        run: npm run typecheck:journeys
+        run: npm run typecheck:playwright
 
       - name: Install Playwright Chromium browser
         # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless
@@ -106,6 +99,7 @@ jobs:
     name: Reliability Ring 1 (full hermetic suite + differential + packaged)
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    if: github.event_name != 'pull_request'
     # Runs on every push to main, on schedule (alongside the nightly browser
     # suite), and on manual dispatch. Never `continue-on-error`: this job is
     # the Ring 1 gate docs/RELIABILITY_ARCHITECTURE.md §11 describes — a

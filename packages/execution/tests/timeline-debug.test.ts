@@ -74,6 +74,35 @@ describe("validateTimelineSequence — schema", () => {
   });
 });
 
+describe("validateTimelineSequence — Smart Reframe", () => {
+  it("warns when automatic framing belongs to a replaced source", () => {
+    const result = validateTimelineSequence(
+      doc({
+        clips: [
+          clip({
+            currentAssetId: "asset-2",
+            reframe: {
+              mode: "auto",
+              sourceAssetId: "asset-1",
+              samples: [{ sourceMs: 0, x: 0.8, y: 0.5 }]
+            }
+          })
+        ]
+      })
+    );
+
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "reframe_stale",
+          clipId: "clip-1",
+          path: "reframe"
+        })
+      ])
+    );
+  });
+});
+
 describe("validateTimelineSequence — field_stripped", () => {
   it("flags an unknown top-level key", () => {
     const result = validateTimelineSequence(doc({ notes: "keep me" }));

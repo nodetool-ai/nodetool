@@ -29,10 +29,9 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests",
 
-  /* The E2E workflow runner and the journeys suite each have their own config +
-     project selection; exclude them from this (documentation screenshot) config
-     so `npx playwright test` doesn't pick them up. */
-  testIgnore: ["**/e2e-runner/**", "**/journeys/**"],
+  /* The default command is the documentation screenshot suite. Every other
+     browser suite has its own config and must be opted into explicitly. */
+  testMatch: /benchmarks\/(?:screenshots|studio-screenshots)\.spec\.ts$/,
 
   /* Maximum time one test can run */
   timeout: 60_000,
@@ -49,7 +48,13 @@ export default defineConfig({
   /* Sequential execution to avoid races when writing screenshot files */
   workers: 1,
 
-  reporter: process.env.CI ? "github" : "list",
+  reporter: process.env.CI
+    ? [
+        ["github"],
+        ["list"],
+        ["html", { outputFolder: "playwright-report", open: "never" }]
+      ]
+    : [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
 
   /**
    * Start the real backend server before any tests run, and tear it down after.
@@ -59,7 +64,7 @@ export default defineConfig({
 
   use: {
     baseURL: "http://localhost:3000",
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
     screenshot: "only-on-failure",
     ignoreHTTPSErrors: true
   },

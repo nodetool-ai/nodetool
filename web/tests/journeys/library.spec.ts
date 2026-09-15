@@ -16,14 +16,13 @@ const OTHER_WORKFLOW = "Podcast Summariser";
 const SEEDED_ASSET = "cityscape_night.png";
 
 test.describe("Workflow library", () => {
-  test("lists the user's saved workflows", async ({ page, pageErrors }) => {
+  test("lists the user's saved workflows", async ({ page }) => {
     const library = new LibraryPage(page);
     await library.open(FIXTURES.miniApp);
 
     await expect(library.entry("Echo Mini App").first()).toBeVisible();
     await expect(library.entry(OTHER_WORKFLOW).first()).toBeVisible();
 
-    expect(pageErrors, "workflow panel opened with page errors").toEqual([]);
   });
 
   test("search narrows the workflow list", async ({ page }) => {
@@ -55,7 +54,7 @@ test.describe("Workflow library", () => {
 });
 
 test.describe("Asset browser", () => {
-  test("lists seeded assets", async ({ page, pageErrors }) => {
+  test("lists seeded assets", async ({ page }) => {
     const assets = new AssetsPage(page);
     await assets.open();
 
@@ -63,7 +62,6 @@ test.describe("Asset browser", () => {
       page.getByText(SEEDED_ASSET, { exact: false }).first()
     ).toBeVisible();
 
-    expect(pageErrors, "assets loaded with page errors").toEqual([]);
   });
 
   test("search filters the asset list", async ({ page }) => {

@@ -90,13 +90,18 @@ function assertValidDocument(doc: StoryboardDocument): void {
   }
 }
 
+let lastUpdatedAtMs = 0;
+
 function nextUpdatedAtAfter(previous: string): string {
-  const now = new Date();
+  const nowMs = Date.now();
   const previousMs = Date.parse(previous);
-  if (Number.isFinite(previousMs) && now.getTime() <= previousMs) {
-    return new Date(previousMs + 1).toISOString();
-  }
-  return now.toISOString();
+  const nextMs = Math.max(
+    nowMs,
+    Number.isFinite(previousMs) ? previousMs + 1 : nowMs,
+    lastUpdatedAtMs + 1
+  );
+  lastUpdatedAtMs = nextMs;
+  return new Date(nextMs).toISOString();
 }
 
 export class Storyboard extends DBModel {

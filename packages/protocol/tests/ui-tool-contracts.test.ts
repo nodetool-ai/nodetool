@@ -57,6 +57,46 @@ describe("timeline tool contracts", () => {
 });
 
 describe("uiToolParams", () => {
+  it("validates the shared Smart Reframe arguments", () => {
+    expect(
+      uiToolParams(contracts.ui_timeline_retarget_format).parse({
+        aspect_ratio: "9:16",
+        strategy: "smart",
+        safe_margin: 0.1,
+        track_ids: { "clip-1": "track-1" }
+      })
+    ).toMatchObject({ aspect_ratio: "9:16", strategy: "smart" });
+    expect(
+      uiToolParams(contracts.ui_timeline_set_reframe_subject).parse({
+        clip_id: "clip-1",
+        track_id: "track-1",
+        smoothing: 0.25
+      })
+    ).toMatchObject({ clip_id: "clip-1", track_id: "track-1" });
+    expect(
+      uiToolParams(contracts.ui_timeline_add_reframe_keyframe).parse({
+        clip_id: "clip-1",
+        source_ms: 500,
+        x: 0.4,
+        y: 0.6,
+        zoom: 1.2
+      })
+    ).toMatchObject({ source_ms: 500, x: 0.4, y: 0.6 });
+    expect(
+      uiToolParams(contracts.ui_timeline_clear_reframe).parse({
+        clip_id: "clip-1"
+      })
+    ).toEqual({ clip_id: "clip-1" });
+    expect(() =>
+      uiToolParams(contracts.ui_timeline_add_reframe_keyframe).parse({
+        clip_id: "clip-1",
+        source_ms: 500,
+        x: 2,
+        y: 0.5
+      })
+    ).toThrow();
+  });
+
   it("adds the host's own fields in front of the shared ones", () => {
     const schema = uiToolParams(contracts.ui_timeline_split_clip, {
       timeline_id: z.string()

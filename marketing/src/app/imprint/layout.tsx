@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/imprint",
   },
+  openGraph: {
+    title: "Imprint | NodeTool",
+    description:
+      "Legal information about NodeTool B.V. pursuant to § 5 DDG and Art. 13 GDPR.",
+    url: "https://nodetool.ai/imprint",
+    type: "website",
+  },
   robots: { index: true, follow: true },
 };
 

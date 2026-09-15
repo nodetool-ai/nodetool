@@ -24,6 +24,7 @@ const PROVIDER_DOMAINS = {
   // aggregators
   fal_ai: "fal.ai",
   replicate: "replicate.com",
+  meta: "meta.com",
   kie: "kie.ai",
   together: "together.ai",
   atlascloud: "atlascloud.ai",

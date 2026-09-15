@@ -15,10 +15,9 @@ import { showcasePageEntries } from "./showcasePages";
 import { blogPageEntries } from "./blogEntries";
 
 /**
- * A page engine's contribution to the registry. `sample`, when set, tells the
- * smoke suite to walk only the first N indexable entries of this module (for
- * engines with hundreds of pages — place hub pages first so they're covered).
- * Modules without `sample` are walked in full.
+ * A page engine's contribution to the registry. `sample`, when set, is a
+ * hint for consumers that intentionally sample large engines. Static SEO
+ * checks still walk every indexable route.
  */
 export type RegistryModule = {
   name: string;
@@ -45,8 +44,8 @@ export const registryModules: RegistryModule[] = [
   { name: "solutions", entries: solutionRegistryEntries },
   { name: "tasks", entries: taskRegistryEntries },
   { name: "blog", entries: blogPageEntries },
-  // Showcase pages can grow into the hundreds once W-1 seeds real batches, so
-  // the smoke suite samples the first 12 — hub + filter pages are ordered first.
+  // Consumers that need a bounded interactive sample can use the first 12
+  // showcase entries, with hub + filter pages ordered first.
   { name: "showcase", entries: showcasePageEntries, sample: 12 },
 ];
 

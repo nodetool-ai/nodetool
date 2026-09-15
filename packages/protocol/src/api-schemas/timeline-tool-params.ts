@@ -305,7 +305,12 @@ const FONT_WEIGHT_KEYWORDS: Readonly<Record<string, number>> = {
 /** A weight written as a word (or a quoted number), as its number. */
 const writtenFontWeight = z
   .string()
-  .transform((raw) => raw.trim().toLowerCase().replace(/[\s_-]/g, ""))
+  .transform((raw) =>
+    raw
+      .trim()
+      .toLowerCase()
+      .replace(/[\s_-]/g, "")
+  )
   .refine(
     (key) => FONT_WEIGHT_KEYWORDS[key] !== undefined || isFiniteWeight(key),
     {
@@ -333,7 +338,7 @@ export const textStyleParams = withFieldNotes(clipTextStyle, {
   lineHeight: "Line advance as a multiple of the font size. Default 1.2.",
   maxWidthFrac: "Wrap width as a fraction of frame width.",
   fill:
-    "Gradient or solid fill, {type: \"solid\"|\"linear\"|\"radial\", ...}. " +
+    'Gradient or solid fill, {type: "solid"|"linear"|"radial", ...}. ' +
     "Wins over `color` when set."
 }).extend({
   /**
@@ -453,7 +458,8 @@ export const shapeStyleParams = withFieldNotes(clipShapeStyle, {
   dash: "Dash pattern in normalized units, as ctx.setLineDash takes it.",
   lineCap: '"butt", "round" or "square".',
   lineJoin: '"miter", "round" or "bevel".',
-  trimStart: "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1.",
+  trimStart:
+    "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1.",
   trimEnd: "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1."
   // Strict for the same reason the text bags are: a geometry key spelled
   // wrong inside `shape` was stripped, and the shape drew at its default
@@ -493,7 +499,7 @@ export const ADD_SHAPE_CLIP_DESCRIPTION =
   "no stroke unless you ask for one. `fill` is opaque unless its colour " +
   "carries alpha, so a scrim over picture needs 8-digit hex (#05070CCC) or " +
   'rgba(); for a gradient scrim use fillStyle: {type: "linear", angle, ' +
-  'stops: [{offset, color}]} with a transparent stop (#05070C00) at one end. ' +
+  "stops: [{offset, color}]} with a transparent stop (#05070C00) at one end. " +
   "A key this tool does not know is refused by name rather than ignored. " +
   "`opacity` (0..1) sets the clip's own opacity, which is the other way to " +
   "author a scrim. " +
@@ -553,7 +559,7 @@ export function resolveShapeArg(
   );
   if (!parsed.success) {
     throw new Error(
-      'add_shape_clip takes the geometry in `shape` (or `shapeStyle`): ' +
+      "add_shape_clip takes the geometry in `shape` (or `shapeStyle`): " +
         '{kind: "rect"|"ellipse"|"line"|"polygon"|"star"|"path", x, y, ' +
         "width, height, fill?, fillStyle?, stroke?, strokeWidthPx?}, with " +
         "x/y/width/height as 0..1 fractions of the frame. " +
@@ -1451,7 +1457,7 @@ export const setTrackInstrumentParams = z.object({
   instrument: z
     .union([midiInstrument, midiInstrumentPresetRef])
     .describe(
-      "The voice this track's clips play, either way round. Named: `{\"preset\": \"soft-pad\"}` — one of saw-lead, square-lead, soft-pad, pluck, bass, bell, wt1-prime-lead, wt1-bloom-pad, wt1-vox-morph, wt1-chime-bell, bl1-acid, bl1-deep, bl1-rubber, dr1-tr-void. Spelled out, there are four synths. `subtractive` is one oscillator through a lowpass filter and an ADSR envelope: `waveform` saw/square/triangle/sine, `attackMs`/`decayMs`/`releaseMs` in milliseconds, `sustain` 0..1 of the peak, `cutoffHz` the filter frequency in Hz, `resonance` its Q, `gainDb` the output level in dB. The other three are the FableSynth instruments: `wavetable` (WT-1) is two morphing wavetable oscillators plus a sub and noise through one filter swept by `modEnv`; `bass` (BL-1) is a monophonic acid line where a note at or above `accentVelocity` hits harder and a note overlapping the one before it glides over `slideMs`; `drum` (DR-1) is a kit of pads played one per note from `baseNote`, each ringing for its own decay however short the note is."
+      'The voice this track\'s clips play, either way round. Named: `{"preset": "soft-pad"}` — one of saw-lead, square-lead, soft-pad, pluck, bass, bell, wt1-prime-lead, wt1-bloom-pad, wt1-vox-morph, wt1-chime-bell, bl1-acid, bl1-deep, bl1-rubber, dr1-tr-void. Spelled out, there are four synths. `subtractive` is one oscillator through a lowpass filter and an ADSR envelope: `waveform` saw/square/triangle/sine, `attackMs`/`decayMs`/`releaseMs` in milliseconds, `sustain` 0..1 of the peak, `cutoffHz` the filter frequency in Hz, `resonance` its Q, `gainDb` the output level in dB. The other three are the FableSynth instruments: `wavetable` (WT-1) is two morphing wavetable oscillators plus a sub and noise through one filter swept by `modEnv`; `bass` (BL-1) is a monophonic acid line where a note at or above `accentVelocity` hits harder and a note overlapping the one before it glides over `slideMs`; `drum` (DR-1) is a kit of pads played one per note from `baseNote`, each ringing for its own decay however short the note is.'
     )
 });
 export type SetTrackInstrumentParams = z.infer<typeof setTrackInstrumentParams>;
@@ -1546,6 +1552,57 @@ export const SCALE_VELOCITY_DESCRIPTION =
   "to 1..127, so a large factor flattens the part's dynamics rather than " +
   "making it louder — set the track's `gainDb` for level.";
 
+// ── Smart Reframe ───────────────────────────────────────────────────────────
+
+const safeMarginParam = z
+  .number()
+  .min(0)
+  .max(0.5)
+  .optional()
+  .describe("Safe margin around the followed subject, as a 0..0.5 fraction.");
+
+export const retargetFormatParams = z
+  .object({
+    aspect_ratio: z
+      .string()
+      .regex(/^\s*\d+(?:\.\d+)?\s*:\s*\d+(?:\.\d+)?\s*$/)
+      .describe('Target display aspect, for example "9:16", "1:1" or "4:5".'),
+    strategy: z.enum(["center", "smart", "track"]),
+    safe_margin: safeMarginParam,
+    track_ids: z
+      .record(z.string(), z.string())
+      .optional()
+      .describe("Optional map of clip id to preferred MediaTrack id.")
+  })
+  .strict();
+export type RetargetFormatParams = z.infer<typeof retargetFormatParams>;
+
+export const setReframeSubjectParams = z
+  .object({
+    clip_id: z.string().min(1),
+    track_id: z.string().min(1),
+    safe_margin: safeMarginParam,
+    smoothing: z.number().min(0).max(1).optional()
+  })
+  .strict();
+export type SetReframeSubjectParams = z.infer<typeof setReframeSubjectParams>;
+
+export const addReframeKeyframeParams = z
+  .object({
+    clip_id: z.string().min(1),
+    source_ms: z.number().nonnegative(),
+    x: z.number().min(0).max(1),
+    y: z.number().min(0).max(1),
+    zoom: z.number().min(1).optional()
+  })
+  .strict();
+export type AddReframeKeyframeParams = z.infer<typeof addReframeKeyframeParams>;
+
+export const clearReframeParams = z
+  .object({ clip_id: z.string().min(1) })
+  .strict();
+export type ClearReframeParams = z.infer<typeof clearReframeParams>;
+
 // ── The shared tool surface ─────────────────────────────────────────────────
 
 /**
@@ -1619,5 +1676,11 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_plan_beats",
   "ui_timeline_update_beat",
   "ui_timeline_remove_beat",
-  "ui_timeline_generate_from_beats"
+  "ui_timeline_generate_from_beats",
+  // Smart Reframe is one shared edit surface: both hosts derive a sequence or
+  // mutate the same persisted clip.reframe model through these contracts.
+  "ui_timeline_retarget_format",
+  "ui_timeline_set_reframe_subject",
+  "ui_timeline_add_reframe_keyframe",
+  "ui_timeline_clear_reframe"
 ] as const;

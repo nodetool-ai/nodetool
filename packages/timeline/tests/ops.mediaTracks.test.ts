@@ -69,6 +69,40 @@ function mediaTrack(overrides: Partial<MediaTrack> = {}): MediaTrack {
 }
 
 describe("list_tracks", () => {
+  it("summarizes tracks and reframe state in get_state without sample arrays", async () => {
+    const clip = videoClip({
+      reframe: {
+        mode: "track",
+        trackId: "track_media_1",
+        safeMargin: 0.1,
+        samples: [{ sourceMs: 0, x: 0.5, y: 0.5 }],
+        keyframes: [{ sourceMs: 1000, x: 0.6, y: 0.5 }]
+      }
+    });
+    const out = await applyTimelineOp(
+      state([clip], [mediaTrack()]),
+      { op: "get_state" },
+      context()
+    );
+    const result = out.result as {
+      clips: Array<Record<string, unknown>>;
+      mediaTracks: Array<Record<string, unknown>>;
+    };
+    expect(result.clips[0]?.reframe).toEqual({
+      mode: "track",
+      trackId: "track_media_1",
+      safeMargin: 0.1,
+      smoothing: undefined,
+      sampleCount: 1,
+      keyframeCount: 1
+    });
+    expect(result.mediaTracks[0]).toMatchObject({
+      id: "track_media_1",
+      sampleCount: 3
+    });
+    expect(result.mediaTracks[0]).not.toHaveProperty("samples");
+  });
+
   it("lists every document track when no target is given, without samples", async () => {
     const out = await applyTimelineOp(
       state([videoClip()], [mediaTrack()]),
@@ -227,9 +261,9 @@ describe("trim_clip reslices a matching MediaTrack", () => {
     const track = out.state.mediaTracks?.find((t) => t.clipId === "clip_1");
     expect(track).toBeDefined();
     expect(track!.sourceEndMs).toBeLessThanOrEqual(2000);
-    expect(
-      track!.samples.every((s) => s.sourceMs <= track!.sourceEndMs)
-    ).toBe(true);
+    expect(track!.samples.every((s) => s.sourceMs <= track!.sourceEndMs)).toBe(
+      true
+    );
   });
 });
 

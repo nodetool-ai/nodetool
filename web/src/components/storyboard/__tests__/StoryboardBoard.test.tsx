@@ -187,6 +187,7 @@ let mockPresets: Array<{
   thumbnail: string;
 }> = [];
 jest.mock("../../../serverState/useStylePresets", () => ({
+  ...jest.requireActual("../../../serverState/useStylePresets"),
   useStylePresets: () => ({ data: mockPresets })
 }));
 

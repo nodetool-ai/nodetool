@@ -1,6 +1,6 @@
 /** The clip and track shapes an op result reports. */
 
-import type { TimelineClip, TimelineTrack } from "../types.js";
+import type { MediaTrack, TimelineClip, TimelineTrack } from "../types.js";
 import type { TimelineOpState } from "./types.js";
 
 export function serializeTrack(state: TimelineOpState, t: TimelineTrack) {
@@ -19,6 +19,16 @@ export function serializeTrack(state: TimelineOpState, t: TimelineTrack) {
 
 export function serializeClip(state: TimelineOpState, c: TimelineClip) {
   const track = state.tracks.find((t) => t.id === c.trackId);
+  const reframe = c.reframe
+    ? {
+        mode: c.reframe.mode,
+        trackId: c.reframe.trackId,
+        safeMargin: c.reframe.safeMargin,
+        smoothing: c.reframe.smoothing,
+        sampleCount: c.reframe.samples?.length ?? 0,
+        keyframeCount: c.reframe.keyframes?.length ?? 0
+      }
+    : undefined;
   return {
     id: c.id,
     name: c.name,
@@ -52,6 +62,24 @@ export function serializeClip(state: TimelineOpState, c: TimelineClip) {
     matte: c.matte,
     timeRemap: c.timeRemap,
     effects: c.effects,
-    parentId: c.parentId
+    parentId: c.parentId,
+    reframe
+  };
+}
+
+/** Compact source-analysis summary for get_state; sample arrays stay lazy. */
+export function serializeMediaTrack(track: MediaTrack) {
+  return {
+    id: track.id,
+    clipId: track.clipId,
+    sourceAssetId: track.sourceAssetId,
+    name: track.name,
+    kind: track.kind,
+    sourceStartMs: track.sourceStartMs,
+    sourceEndMs: track.sourceEndMs,
+    sampleCount: track.samples.length,
+    confidence: track.confidence,
+    status: track.status,
+    provenance: track.provenance
   };
 }

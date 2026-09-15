@@ -111,6 +111,11 @@ test("a server-only node type is rejected before execution", async ({
     })
   );
 
-  // Not in the browser registry → the run fails fast rather than producing output.
-  expect(result.status).not.toBe("completed");
+  // Platform validation rejects server-only nodes before execution.
+  expect(result.status).toBe("failed");
+  expect(result.error).toContain("Graph validation failed");
+  expect(result.error).toContain(
+    "Node nodetool.image.Scale is not supported on platform 'browser' (supports: node)"
+  );
+  expect(result.outputs).toEqual({});
 });
