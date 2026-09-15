@@ -236,6 +236,11 @@ style, clips, lines, nodes) is read as progress.
 
 ### 6.5 Headless parity
 
+For AI-video production, generated media is a candidate until the creator
+explicitly previews and accepts it. Setup completion, generation completion,
+candidate audition, and take acceptance remain separate events. The shared
+contract and destination-specific apply rules live in [AI Video Production](ai-video-production-prd.md).
+
 Parity means: every document operation a flow performs has a `ui_*` tool that
 performs the same store operation with the same outcome, and the acceptance
 criteria hold when driven through tools. Each setup host registers the

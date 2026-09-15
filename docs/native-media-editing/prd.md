@@ -164,6 +164,11 @@ P0 covers timeline clips and storyboard shots only.
 **Edit video**, but does not offer **New take** unless NodeTool has an explicit
 reproducible generation recipe.
 
+The initial reference-conditioned production route and the production-flow
+definition of **New take** are specified in [AI Video Production](../creation-flows/ai-video-production-prd.md).
+This document owns the independently shippable P0 **Edit video** path,
+including its source-window rules and candidate application semantics.
+
 ## 7. P0 requirements: Edit video
 
 ### 7.1 Eligibility
