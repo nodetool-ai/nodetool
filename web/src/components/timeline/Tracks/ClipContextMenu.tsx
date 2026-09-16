@@ -10,6 +10,7 @@ import LinkOffIcon from "@mui/icons-material/LinkOff";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import GradientOutlinedIcon from "@mui/icons-material/GradientOutlined";
 import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import { canClipFade } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
@@ -81,6 +82,14 @@ export function ClipContextMenu({
           icon={<MusicNoteOutlinedIcon fontSize="small" />}
           compact
           onClick={run(actions.editNotes)}
+        />
+      )}
+      {actions.canEditVideo && (
+        <MenuItemPrimitive
+          label="Edit video…"
+          icon={<AutoAwesomeOutlinedIcon fontSize="small" />}
+          compact
+          onClick={run(actions.openAiEdit)}
         />
       )}
       <MenuItemPrimitive

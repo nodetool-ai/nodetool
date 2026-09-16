@@ -47,8 +47,7 @@ import {
 import {
   deterministicFingerprint,
   productionRequirementsFrom,
-  type CreativeContext,
-  type ProductionRequirements
+  type CreativeContext
 } from "../storyboard/productionContext";
 
 /** What asks the model. Injectable so the planner is testable without a socket. */
@@ -138,7 +137,7 @@ const beatFromShot = (
 ): TimelineBeat => {
   const seconds = shot.duration_seconds;
   const production = productionRequirementsFrom(shot);
-  return {
+  const beat: TimelineBeat = {
     id: createTimeOrderedUuid(),
     prompt: directClipPrompt(shot, {
       scene: sceneForShot(shot, screenplay.scenes),
@@ -152,9 +151,12 @@ const beatFromShot = (
     // a directorial choice in the plan that nobody made. A beat with none is a
     // straight cut; the review is where a creator asks for a dissolve.
     voiceover: voiceoverFor(shot, format),
-    music: wantsMusic,
-    ...(production ? { production } : {})
+    music: wantsMusic
   };
+  if (production) {
+    beat.production = production;
+  }
+  return beat;
 };
 
 /**
@@ -293,11 +295,17 @@ export function applyBeatPlan(
   beats: readonly TimelineBeat[],
   planFingerprint?: string
 ): void {
-  const patch = {
+  const patch: {
+    beats: TimelineBeat[];
+    stage: "review";
+    planFingerprint?: string;
+  } = {
     beats: [...beats],
-    stage: "review" as const,
-    ...(planFingerprint ? { planFingerprint } : {})
+    stage: "review"
   };
+  if (planFingerprint) {
+    patch.planFingerprint = planFingerprint;
+  }
   // `timelineSetup` is intentionally passthrough, but the store action's
   // public patch type predates this additive persisted field. Keep the cast at
   // this one boundary until the shared store contract is widened.

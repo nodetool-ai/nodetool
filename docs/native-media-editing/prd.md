@@ -3,7 +3,7 @@
 **Status:** Draft
 **Baseline:** `main` at `1d16ec8`
 **Tasks:** [tasks.md](tasks.md)
-**Related:** [AI Timeline Editing](../ai-timeline-editing.md), [Video Editor](../video-editor.md), [Media Generation Tracking](../media-generation-tracking-design.md), [Timeline Editor PRD](../timeline-editor-prd.md)
+**Related:** [AI Timeline Editing](../ai-timeline-editing.md), [Video Editor](../video-editor.md), [Media Generation Tracking](../media-generation-tracking-design.md), `docs/timeline-editor-prd.md`
 
 ## 1. Summary
 

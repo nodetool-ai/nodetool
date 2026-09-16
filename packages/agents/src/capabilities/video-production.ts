@@ -142,7 +142,6 @@ export interface VideoProductionAcceptanceManifestResult {
   readonly acceptance_manifest: VideoProductionAcceptanceManifest;
   readonly message: string;
 }
-
 export type VideoProductionPreflight =
   | { readonly ok: true; readonly request: VideoProductionRequest }
   | { readonly ok: false; readonly error: VideoProductionValidationError };
@@ -176,7 +175,15 @@ function error(
   message: string,
   field?: string
 ): ParseFailure {
-  return { ok: false, error: { code, message, ...(field ? { field } : {}) } };
+  const validationError: {
+    code: string;
+    message: string;
+    field?: string;
+  } = { code, message };
+  if (field) {
+    validationError.field = field;
+  }
+  return { ok: false, error: validationError };
 }
 
 function nonBlankField(
@@ -235,14 +242,22 @@ function destinationOf(value: unknown):
     );
   }
   const targetRevision = nonBlankField(value, "target_revision");
+  const destination: {
+    document_id: string;
+    target_type: string;
+    target_id: string;
+    target_revision?: string;
+  } = {
+    document_id: documentId,
+    target_type: targetType,
+    target_id: targetId
+  };
+  if (targetRevision) {
+    destination.target_revision = targetRevision;
+  }
   return {
     ok: true,
-    value: {
-      document_id: documentId,
-      target_type: targetType,
-      target_id: targetId,
-      ...(targetRevision ? { target_revision: targetRevision } : {})
-    }
+    value: destination
   };
 }
 
@@ -514,21 +529,40 @@ function candidateFromSubmission(
   }
 ): VideoProductionCandidate {
   const assetIds = result.asset_ids ?? [];
-  return {
+  const candidate: {
+    candidate_id: string;
+    batch_id: string;
+    request_id: string;
+    variation_index: number;
+    generation_id?: string;
+    destination: VideoProductionDestination;
+    route: VideoProductionRoute;
+    provider: string;
+    model: string;
+    asset_ids: readonly string[];
+    status: VideoProductionCandidateStatus;
+    accepted: false;
+    error?: string;
+  } = {
     candidate_id: candidateRequest.candidate_id,
     batch_id: prepared.batch_id,
     request_id: candidateRequest.request_id,
     variation_index: candidateRequest.variation_index,
-    ...(result.generation_id ? { generation_id: result.generation_id } : {}),
     destination: prepared.request.destination,
     route: prepared.request.route,
     provider: prepared.request.provider,
     model: prepared.request.model,
     asset_ids: assetIds,
     status: result.status ?? (assetIds.length > 0 ? "ready" : "submitted"),
-    accepted: false,
-    ...(result.error ? { error: result.error } : {})
+    accepted: false
   };
+  if (result.generation_id) {
+    candidate.generation_id = result.generation_id;
+  }
+  if (result.error) {
+    candidate.error = result.error;
+  }
+  return candidate;
 }
 
 async function submitPrepared(
@@ -778,7 +812,6 @@ function protocolCandidateOf(
   }
   return parsed.data;
 }
-
 /** Validate an explicit one-candidate-per-slot acceptance map. */
 export function validateVideoProductionAcceptance(
   candidates: readonly VideoProductionCandidate[],
@@ -922,7 +955,6 @@ function acceptanceManifest(
     }))
   };
 }
-
 const prepareVideoProductionCapability: CapabilityExport = {
   spec: prepareVideoProductionSpec,
   impl: async (_run, params) => {

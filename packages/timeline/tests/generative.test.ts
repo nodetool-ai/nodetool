@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  captureMediaEditSourceContext,
   composeGenerativeTakePatch,
+  createMediaEditRequest,
   planGenerativeOperation,
   takeSourceForOperation
 } from "../src/generative.js";
@@ -37,6 +39,79 @@ const track: MediaTrack = {
 };
 
 describe("generative timeline operations", () => {
+  it("captures a trimmed constant-speed source window immutably", () => {
+    const result = captureMediaEditSourceContext(
+      "sequence-1",
+      clip({
+        inPointMs: 40000,
+        outPointMs: 44000,
+        durationMs: 4000,
+        activeTakeId: "take-1",
+        versions: [
+          {
+            id: "take-1",
+            createdAt: "2025-01-01",
+            jobId: "job-1",
+            assetId: "asset-1",
+            workflowUpdatedAt: "2025-01-01",
+            dependencyHash: "hash-1",
+            paramOverridesSnapshot: {},
+            status: "success"
+          }
+        ]
+      })
+    );
+    expect(result).toEqual({
+      ok: true,
+      context: {
+        sequenceId: "sequence-1",
+        clipId: "clip-1",
+        sourceAssetId: "asset-1",
+        sourceTakeId: "take-1",
+        sourceStartMs: 40000,
+        sourceEndMs: 44000,
+        timelineStartMs: 1000,
+        timelineDurationMs: 4000,
+        speedMultiplier: 1
+      }
+    });
+  });
+
+  it("rejects remapped and non-positive playable clips before dispatch", () => {
+    expect(
+      captureMediaEditSourceContext(
+        "sequence-1",
+        clip({ timeRemap: { keyframes: [{ timelineMs: 0, sourceMs: 0 }] } })
+      ).ok
+    ).toBe(false);
+    expect(
+      captureMediaEditSourceContext("sequence-1", clip({ durationMs: 0 })).ok
+    ).toBe(false);
+    expect(
+      captureMediaEditSourceContext("sequence-1", clip({ speedMultiplier: -1 }))
+        .ok
+    ).toBe(false);
+  });
+
+  it("freezes the submission snapshot", () => {
+    const sourceContext = captureMediaEditSourceContext(
+      "sequence-1",
+      clip()
+    ).context;
+    if (!sourceContext) throw new Error("expected source context");
+    const request = createMediaEditRequest({
+      sourceContext,
+      instruction: "add fog",
+      provider: "fake",
+      model: "video-edit"
+    });
+    expect(Object.isFrozen(request)).toBe(true);
+    expect(Object.isFrozen(request.sourceContext)).toBe(true);
+    expect(() => {
+      (request.sourceContext as { sourceStartMs: number }).sourceStartMs = 12;
+    }).toThrow();
+  });
+
   it("builds capability-routed extend requests", () => {
     const result = planGenerativeOperation({
       clip: clip(),
@@ -48,24 +123,70 @@ describe("generative timeline operations", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.request.requiredCapabilities).toEqual(["video.extend"]);
-      expect(result.request.optionalCapabilities).toContain("video.first_last_frame");
+      expect(result.request.optionalCapabilities).toContain(
+        "video.first_last_frame"
+      );
       expect(result.request.sourceAssetId).toBe("asset-1");
     }
   });
 
   it("rejects invalid ranges and extension arguments", () => {
-    expect(planGenerativeOperation({ clip: clip(), operation: "extend", direction: "end" }).ok).toBe(false);
-    expect(planGenerativeOperation({ clip: clip(), operation: "extend", direction: "end", durationMs: 10, range: { startMs: 1, endMs: 2 } }).ok).toBe(false);
-    expect(planGenerativeOperation({ clip: clip(), operation: "regenerate", range: { startMs: 0, endMs: 5001 } }).ok).toBe(false);
-    expect(planGenerativeOperation({ clip: clip(), operation: "replace_range", range: { startMs: 4, endMs: 4 } }).ok).toBe(false);
+    expect(
+      planGenerativeOperation({
+        clip: clip(),
+        operation: "extend",
+        direction: "end"
+      }).ok
+    ).toBe(false);
+    expect(
+      planGenerativeOperation({
+        clip: clip(),
+        operation: "extend",
+        direction: "end",
+        durationMs: 10,
+        range: { startMs: 1, endMs: 2 }
+      }).ok
+    ).toBe(false);
+    expect(
+      planGenerativeOperation({
+        clip: clip(),
+        operation: "regenerate",
+        range: { startMs: 0, endMs: 5001 }
+      }).ok
+    ).toBe(false);
+    expect(
+      planGenerativeOperation({
+        clip: clip(),
+        operation: "replace_range",
+        range: { startMs: 4, endMs: 4 }
+      }).ok
+    ).toBe(false);
   });
 
   it("requires a ready, current-asset track for object operations", () => {
-    const base = { clip: clip(), operation: "remove_object" as const, range: { startMs: 100, endMs: 900 }, trackId: "track-object", mediaTracks: [track] };
+    const base = {
+      clip: clip(),
+      operation: "remove_object" as const,
+      range: { startMs: 100, endMs: 900 },
+      trackId: "track-object",
+      mediaTracks: [track]
+    };
     expect(planGenerativeOperation(base).ok).toBe(true);
-    expect(planGenerativeOperation({ ...base, trackId: "missing" }).ok).toBe(false);
-    expect(planGenerativeOperation({ ...base, mediaTracks: [{ ...track, sourceAssetId: "old" }] }).ok).toBe(false);
-    expect(planGenerativeOperation({ ...base, mediaTracks: [{ ...track, status: "stale" }] }).ok).toBe(false);
+    expect(planGenerativeOperation({ ...base, trackId: "missing" }).ok).toBe(
+      false
+    );
+    expect(
+      planGenerativeOperation({
+        ...base,
+        mediaTracks: [{ ...track, sourceAssetId: "old" }]
+      }).ok
+    ).toBe(false);
+    expect(
+      planGenerativeOperation({
+        ...base,
+        mediaTracks: [{ ...track, status: "stale" }]
+      }).ok
+    ).toBe(false);
   });
 
   it("routes object replacement with mask and optional references", () => {
@@ -79,19 +200,37 @@ describe("generative timeline operations", () => {
     });
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.request.requiredCapabilities).toEqual(["video.object_replace", "video.mask_input"]);
+      expect(result.request.requiredCapabilities).toEqual([
+        "video.object_replace",
+        "video.mask_input"
+      ]);
       expect(result.request.referenceAssetIds).toEqual(["bottle.png"]);
     }
   });
 
   it("adds a completed take without changing editorial fields", () => {
-    const original = clip({ versions: [{
-      id: "take-1", createdAt: "2025-01-01", jobId: "job-1", assetId: "asset-1",
-      workflowUpdatedAt: "2025-01-01", dependencyHash: "hash-1", paramOverridesSnapshot: {}, status: "success"
-    }] });
+    const original = clip({
+      versions: [
+        {
+          id: "take-1",
+          createdAt: "2025-01-01",
+          jobId: "job-1",
+          assetId: "asset-1",
+          workflowUpdatedAt: "2025-01-01",
+          dependencyHash: "hash-1",
+          paramOverridesSnapshot: {},
+          status: "success"
+        }
+      ]
+    });
     const patched = composeGenerativeTakePatch(original, "replace_object", {
-      assetId: "asset-2", jobId: "job-2", createdAt: "2025-01-02", dependencyHash: "hash-2",
-      provider: "provider", model: "model", prompt: "a bottle"
+      assetId: "asset-2",
+      jobId: "job-2",
+      createdAt: "2025-01-02",
+      dependencyHash: "hash-2",
+      provider: "provider",
+      model: "model",
+      prompt: "a bottle"
     });
     expect(patched.startMs).toBe(original.startMs);
     expect(patched.durationMs).toBe(original.durationMs);
@@ -100,8 +239,18 @@ describe("generative timeline operations", () => {
     expect(patched.currentAssetId).toBe("asset-1");
     expect(patched.activeTakeId).toBeUndefined();
     expect(patched.versions).toHaveLength(2);
-    expect(patched.versions[1]).toMatchObject({ source: "object_replace", parentTakeId: "take-1", provider: "provider" });
-    expect(composeGenerativeTakePatch(original, "regenerate", { assetId: "asset-failed", createdAt: "2025-01-03", status: "failed" })).toBe(original);
+    expect(patched.versions[1]).toMatchObject({
+      source: "object_replace",
+      parentTakeId: "take-1",
+      provider: "provider"
+    });
+    expect(
+      composeGenerativeTakePatch(original, "regenerate", {
+        assetId: "asset-failed",
+        createdAt: "2025-01-03",
+        status: "failed"
+      })
+    ).toBe(original);
   });
 
   it("makes a new take active only after an explicit selection", () => {
@@ -113,6 +262,48 @@ describe("generative timeline operations", () => {
     });
     expect(patched.currentAssetId).toBe("asset-2");
     expect(patched.activeTakeId).toBe("clip-1:2025-01-02");
+  });
+
+  it("records an edit candidate and baseline without changing the accepted cut", () => {
+    const original = clip({
+      inPointMs: 40000,
+      outPointMs: 44000,
+      durationMs: 4000,
+      versions: []
+    });
+    const context = captureMediaEditSourceContext("sequence-1", original);
+    if (!context.ok) throw new Error(context.error);
+    const request = createMediaEditRequest({
+      sourceContext: context.context,
+      instruction: "add fog",
+      provider: "fake",
+      model: "video-edit"
+    });
+    const result = composeGenerativeTakePatch(original, "restyle", {
+      assetId: "asset-2",
+      jobId: "request-1",
+      createdAt: "2025-01-02",
+      durationMs: 4000,
+      mediaEdit: request
+    });
+    expect(result.currentAssetId).toBe("asset-1");
+    expect(result.inPointMs).toBe(40000);
+    expect(result.outPointMs).toBe(44000);
+    expect(result.versions).toHaveLength(2);
+    expect(result.versions[0]).toMatchObject({ assetId: "asset-1" });
+    expect(result.versions[1]).toMatchObject({
+      assetId: "asset-2",
+      parentTakeId: result.versions[0].id,
+      mediaEdit: { requestId: "request-1", instruction: "add fog" }
+    });
+    expect(
+      composeGenerativeTakePatch(result, "restyle", {
+        assetId: "asset-2",
+        jobId: "request-1",
+        createdAt: "2025-01-02",
+        mediaEdit: request
+      })
+    ).toBe(result);
   });
 
   it("keeps stale and locked clips unchanged while appending a candidate", () => {

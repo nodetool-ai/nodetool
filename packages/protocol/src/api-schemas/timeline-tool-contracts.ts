@@ -65,6 +65,9 @@ import {
   setReframeSubjectParams,
   addReframeKeyframeParams,
   clearReframeParams,
+  generativelyEditClipParams,
+  strictGenerativelyEditClipParams,
+  applyTakeParams,
   withTextClipRemedies
 } from "./timeline-tool-params.js";
 import {
@@ -377,6 +380,20 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         resolution: z.string().optional(),
         autoGenerate: z.boolean().optional()
       }
+    },
+
+    ui_timeline_generatively_edit_clip: {
+      description:
+        "Start a nondestructive video edit for an existing clip. `clip_id` is explicit and `instruction` describes the change. The request uses the clip's submitted playable source window and returns a candidate take when generation completes; it never applies the candidate. Provide `provider` and `model` together for a known video-to-video model, or omit both to use the last-used video-edit model. The clip's generic model is never used as an edit model.",
+      shape: generativelyEditClipParams.shape,
+      finalize: strictGenerativelyEditClipParams
+    },
+
+    ui_timeline_apply_take: {
+      description:
+        "Apply one completed candidate take to an existing clip. This is the explicit acceptance step for ui_timeline_generatively_edit_clip and is one undoable editorial operation. `clip_id` and `take_id` must identify a successful take on the same clip.",
+      shape: applyTakeParams.shape,
+      finalize: strictParams
     },
 
     ui_timeline_split_clip: {
@@ -903,7 +920,6 @@ export const BROWSER_ONLY_TIMELINE_TOOL_NAMES = [
  */
 export const HEADLESS_ONLY_TIMELINE_TOOL_NAMES = [
   "ui_timeline_insert_composition",
-  "ui_timeline_generatively_edit_clip",
   "ui_timeline_set_baked_animation",
   "ui_timeline_set_generated_matte",
   "ui_timeline_list_takes",

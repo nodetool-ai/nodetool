@@ -1,8 +1,256 @@
 import type { ProductionGenerationSnapshot } from "@nodetool-ai/protocol";
 
 import { landProductionCandidate } from "./production.js";
-import { activeTakeIdOf, preserveBaselineTake } from "./takes.js";
 import type { ClipVersion, MediaTrack, TimelineClip } from "./types.js";
+import { activeTakeIdOf, ensureBaselineTake } from "./takes.js";
+import { sourceRate } from "./sourceRate.js";
+
+export interface MediaEditSourceContext {
+  readonly sequenceId: string;
+  readonly clipId: string;
+  readonly sourceAssetId: string;
+  readonly sourceTakeId?: string;
+  readonly sourceStartMs: number;
+  readonly sourceEndMs: number;
+  readonly timelineStartMs: number;
+  readonly timelineDurationMs: number;
+  readonly speedMultiplier: number;
+}
+
+export const MEDIA_EDIT_ACTION = "video_edit" as const;
+export const MEDIA_EDIT_MODEL_TASK = "video_to_video" as const;
+
+export interface MediaEditRequest {
+  readonly action: typeof MEDIA_EDIT_ACTION;
+  readonly modelTask: typeof MEDIA_EDIT_MODEL_TASK;
+  readonly sourceContext: MediaEditSourceContext;
+  readonly instruction: string;
+  readonly provider: string;
+  readonly model: string;
+  readonly strength?: number;
+  readonly resolution?: string;
+}
+
+export interface MediaEditSourceContextInput {
+  sequenceId: string;
+  clipId: string;
+  sourceAssetId: string;
+  sourceTakeId?: string;
+  sourceStartMs: number;
+  sourceEndMs: number;
+  timelineStartMs: number;
+  timelineDurationMs: number;
+  speedMultiplier: number;
+}
+
+/** Validate a host-neutral source snapshot before a video edit is submitted. */
+export function createMediaEditSourceContext(
+  input: MediaEditSourceContextInput
+): MediaEditSourceContextResult {
+  if (!input.sequenceId || !input.clipId || !input.sourceAssetId) {
+    return { ok: false, error: "Edit video requires a complete source context." };
+  }
+  if (
+    !Number.isFinite(input.sourceStartMs) ||
+    !Number.isFinite(input.sourceEndMs) ||
+    input.sourceStartMs < 0 ||
+    input.sourceEndMs <= input.sourceStartMs
+  ) {
+    return {
+      ok: false,
+      error: "Edit video could not resolve a positive constant source window."
+    };
+  }
+  if (
+    !Number.isFinite(input.timelineStartMs) ||
+    !Number.isFinite(input.timelineDurationMs) ||
+    input.timelineDurationMs <= 0
+  ) {
+    return {
+      ok: false,
+      error: "Edit video requires a positive playable duration."
+    };
+  }
+  if (!Number.isFinite(input.speedMultiplier) || input.speedMultiplier !== 1) {
+    return {
+      ok: false,
+      error:
+        "Edit video currently supports 1x playback only. Bake the speed change first."
+    };
+  }
+  return { ok: true, context: Object.freeze({ ...input }) };
+}
+
+/** The direct-generation payload shared by timeline and storyboard hosts. */
+export function mediaEditGenerateMediaData(
+  request: MediaEditRequest
+): Record<string, unknown> {
+  const context = request.sourceContext;
+  const sourceContext: Record<string, unknown> = {
+    sequence_id: context.sequenceId,
+    clip_id: context.clipId,
+    source_asset_id: context.sourceAssetId,
+    source_start_ms: context.sourceStartMs,
+    source_end_ms: context.sourceEndMs,
+    timeline_start_ms: context.timelineStartMs,
+    timeline_duration_ms: context.timelineDurationMs,
+    speed_multiplier: context.speedMultiplier
+  };
+  if (context.sourceTakeId !== undefined) {
+    sourceContext.source_take_id = context.sourceTakeId;
+  }
+  return {
+    mode: request.action,
+    provider: request.provider,
+    model: request.model,
+    prompt: request.instruction,
+    source_asset_id: context.sourceAssetId,
+    source_context: sourceContext,
+    strength: request.strength,
+    resolution: request.resolution,
+    duration: Math.round(context.timelineDurationMs / 1000),
+    variations: 1
+  };
+}
+
+/** Shared provenance payload stored on every host's accepted take record. */
+export function mediaEditTakeMetadata(
+  request: MediaEditRequest,
+  requestId: string
+): MediaEditRequest & { requestId: string } {
+  return { ...request, requestId };
+}
+
+export function createMediaEditRequest(input: {
+  sourceContext: MediaEditSourceContext;
+  instruction: string;
+  provider: string;
+  model: string;
+  strength?: number;
+  resolution?: string;
+}): MediaEditRequest {
+  const sourceContext = Object.freeze({ ...input.sourceContext });
+  const request: {
+    action: typeof MEDIA_EDIT_ACTION;
+    modelTask: typeof MEDIA_EDIT_MODEL_TASK;
+    sourceContext: MediaEditSourceContext;
+    instruction: string;
+    provider: string;
+    model: string;
+    strength?: number;
+    resolution?: string;
+  } = {
+    action: MEDIA_EDIT_ACTION,
+    modelTask: MEDIA_EDIT_MODEL_TASK,
+    sourceContext,
+    instruction: input.instruction,
+    provider: input.provider,
+    model: input.model
+  };
+  if (input.strength !== undefined) request.strength = input.strength;
+  if (input.resolution !== undefined) request.resolution = input.resolution;
+  return Object.freeze(request);
+}
+
+export interface MediaEditSourceContextError {
+  ok: false;
+  error: string;
+}
+
+export interface MediaEditSourceContextSuccess {
+  ok: true;
+  context: MediaEditSourceContext;
+}
+
+export type MediaEditSourceContextResult =
+  | MediaEditSourceContextSuccess
+  | MediaEditSourceContextError;
+
+/** Capture the constant-speed playable window before an edit is dispatched. */
+export function captureMediaEditSourceContext(
+  sequenceId: string,
+  clip: TimelineClip
+): MediaEditSourceContextResult {
+  if (clip.mediaType !== "video") {
+    return { ok: false, error: "Edit video requires a video clip." };
+  }
+  if (!clip.currentAssetId) {
+    return { ok: false, error: "Edit video requires an active video asset." };
+  }
+  if (!Number.isFinite(clip.durationMs) || clip.durationMs <= 0) {
+    return {
+      ok: false,
+      error: "Edit video requires a positive playable duration."
+    };
+  }
+  if (clip.timeRemap && clip.timeRemap.keyframes.length > 0) {
+    return {
+      ok: false,
+      error:
+        "Edit video does not support time-remapped clips. Bake the retime first."
+    };
+  }
+  if (
+    !clip.speedBaked &&
+    clip.speedMultiplier !== undefined &&
+    (!Number.isFinite(clip.speedMultiplier) || clip.speedMultiplier <= 0)
+  ) {
+    return {
+      ok: false,
+      error: "Edit video supports constant positive playback speed only."
+    };
+  }
+  const speedMultiplier = sourceRate(clip);
+  if (!Number.isFinite(speedMultiplier) || speedMultiplier <= 0) {
+    return {
+      ok: false,
+      error: "Edit video supports constant positive playback speed only."
+    };
+  }
+  if (speedMultiplier !== 1) {
+    return {
+      ok: false,
+      error:
+        "Edit video currently supports 1x playback only. Bake the speed change first."
+    };
+  }
+  const sourceStartMs = clip.inPointMs ?? 0;
+  const expectedSourceEndMs = sourceStartMs + clip.durationMs * speedMultiplier;
+  const sourceEndMs = clip.outPointMs ?? expectedSourceEndMs;
+  if (
+    !Number.isFinite(sourceStartMs) ||
+    !Number.isFinite(sourceEndMs) ||
+    sourceStartMs < 0 ||
+    sourceEndMs <= sourceStartMs
+  ) {
+    return {
+      ok: false,
+      error: "Edit video could not resolve a positive constant source window."
+    };
+  }
+  if (Math.abs(sourceEndMs - expectedSourceEndMs) > 0.5) {
+    return {
+      ok: false,
+      error:
+        "Edit video source bounds do not match the clip's constant playback speed."
+    };
+  }
+  const sourceTakeId = (clip.versions ?? []).find(
+    (version) => version.assetId === clip.currentAssetId
+  )?.id;
+  const context: MediaEditSourceContextInput = {
+    sequenceId,
+    clipId: clip.id,
+    sourceAssetId: clip.currentAssetId,
+    sourceStartMs,
+    sourceEndMs,
+    timelineStartMs: clip.startMs,
+    timelineDurationMs: clip.durationMs,
+    speedMultiplier
+  };
+  if (sourceTakeId !== undefined) context.sourceTakeId = sourceTakeId;
+  return createMediaEditSourceContext(context);
+}
 
 /** Capabilities are deliberately provider-independent model registry keys. */
 export type GenerativeCapability =
@@ -73,7 +321,10 @@ export type GenerativePlanResult = GenerativePlan | GenerativePlanError;
 
 const CAPABILITIES: Record<
   GenerativeOperation,
-  { required: readonly GenerativeCapability[]; optional: readonly GenerativeCapability[] }
+  {
+    required: readonly GenerativeCapability[];
+    optional: readonly GenerativeCapability[];
+  }
 > = {
   extend: {
     required: ["video.extend"],
@@ -123,43 +374,77 @@ function validateRange(
 }
 
 /** Validate editorial preconditions and build a provider-agnostic request. */
-export function planGenerativeOperation(input: GenerativeEditInput): GenerativePlanResult {
+export function planGenerativeOperation(
+  input: GenerativeEditInput
+): GenerativePlanResult {
   const { clip, operation } = input;
   if (clip.mediaType !== "video") {
-    return { ok: false, error: `Generative operation requires a video clip, got ${clip.mediaType}.` };
+    return {
+      ok: false,
+      error: `Generative operation requires a video clip, got ${clip.mediaType}.`
+    };
   }
   if (!clip.currentAssetId) {
-    return { ok: false, error: "Generative operation requires a clip with a current asset." };
+    return {
+      ok: false,
+      error: "Generative operation requires a clip with a current asset."
+    };
   }
   if (!validNumber(clip.durationMs) || clip.durationMs <= 0) {
-    return { ok: false, error: "Generative operation requires a positive clip duration." };
+    return {
+      ok: false,
+      error: "Generative operation requires a positive clip duration."
+    };
   }
 
   const rangeError = validateRange(input.range, clip.durationMs);
   if (rangeError) return { ok: false, error: rangeError };
 
   if (operation === "extend") {
-    if (input.range) return { ok: false, error: "Extend does not accept an internal range." };
-    if (!input.direction) return { ok: false, error: "Extend requires direction start or end." };
+    if (input.range)
+      return { ok: false, error: "Extend does not accept an internal range." };
+    if (!input.direction)
+      return { ok: false, error: "Extend requires direction start or end." };
     if (!validNumber(input.durationMs) || input.durationMs <= 0) {
       return { ok: false, error: "Extend requires a positive durationMs." };
     }
   } else if (operation === "replace_range") {
-    if (!input.range) return { ok: false, error: `${operation} requires a range.` };
+    if (!input.range)
+      return { ok: false, error: `${operation} requires a range.` };
   }
 
-  const needsTrack = operation === "remove_object" || operation === "replace_object";
+  const needsTrack =
+    operation === "remove_object" || operation === "replace_object";
   if (needsTrack) {
-    if (!input.trackId) return { ok: false, error: `${operation} requires trackId.` };
-    const track = (input.mediaTracks ?? []).find((candidate) => candidate.id === input.trackId);
-    if (!track) return { ok: false, error: `Media track "${input.trackId}" was not found.` };
-    if (track.clipId !== clip.id) return { ok: false, error: "Media track belongs to a different clip." };
-    if (track.status !== "ready") return { ok: false, error: "Media track must be ready." };
+    if (!input.trackId)
+      return { ok: false, error: `${operation} requires trackId.` };
+    const track = (input.mediaTracks ?? []).find(
+      (candidate) => candidate.id === input.trackId
+    );
+    if (!track)
+      return {
+        ok: false,
+        error: `Media track "${input.trackId}" was not found.`
+      };
+    if (track.clipId !== clip.id)
+      return { ok: false, error: "Media track belongs to a different clip." };
+    if (track.status !== "ready")
+      return { ok: false, error: "Media track must be ready." };
     if (track.sourceAssetId !== clip.currentAssetId) {
-      return { ok: false, error: "Media track is stale for the clip's current asset." };
+      return {
+        ok: false,
+        error: "Media track is stale for the clip's current asset."
+      };
     }
-    if (operation === "replace_object" && !input.prompt && !(input.referenceAssetIds?.length ?? 0)) {
-      return { ok: false, error: "replace_object requires a prompt or reference asset." };
+    if (
+      operation === "replace_object" &&
+      !input.prompt &&
+      !(input.referenceAssetIds?.length ?? 0)
+    ) {
+      return {
+        ok: false,
+        error: "replace_object requires a prompt or reference asset."
+      };
     }
   }
 
@@ -205,17 +490,24 @@ export interface GenerativeTakeResult {
    * after an explicit "Use Take" choice.
    */
   activate?: boolean;
+  mediaEdit?: MediaEditRequest;
 }
 
 /** The provenance source recorded in the existing ClipVersion/take model. */
-export function takeSourceForOperation(operation: GenerativeOperation): NonNullable<ClipVersion["source"]> {
+export function takeSourceForOperation(
+  operation: GenerativeOperation
+): NonNullable<ClipVersion["source"]> {
   switch (operation) {
-    case "extend": return "extended";
-    case "remove_object": return "inpainted";
-    case "replace_object": return "object_replace";
+    case "extend":
+      return "extended";
+    case "remove_object":
+      return "inpainted";
+    case "replace_object":
+      return "object_replace";
     case "replace_range":
     case "restyle":
-    case "regenerate": return operation === "regenerate" ? "generated" : "video_to_video";
+    case "regenerate":
+      return operation === "regenerate" ? "generated" : "video_to_video";
   }
 }
 
@@ -230,14 +522,49 @@ export function composeGenerativeTakePatch(
   operation: GenerativeOperation,
   result: GenerativeTakeResult
 ): TimelineClip {
-  if (!result.assetId) throw new Error("A generated take must include assetId.");
+  if (!result.assetId)
+    throw new Error("A generated take must include assetId.");
   // A failed or cancelled job must never displace the playable active take.
   if (result.status && result.status !== "success") return clip;
-  const withBaseline = preserveBaselineTake(clip, result.createdAt);
   const snapshot = result.productionSnapshot;
-  const parentTakeId = snapshot?.parentTakeId ?? activeTakeIdOf(withBaseline);
+  const existingVersions = clip.versions ?? [];
+  const versionId = result.jobId ?? `${clip.id}:${result.createdAt}`;
+  if (
+    snapshot === undefined && existingVersions.some(
+      (version) =>
+        version.id === versionId ||
+        (result.jobId !== undefined && version.jobId === result.jobId)
+    )
+  ) {
+    return clip;
+  }
+  const sourceAssetId =
+    result.mediaEdit?.sourceContext.sourceAssetId ?? clip.currentAssetId;
+  const activeTakeId = result.mediaEdit
+    ? result.mediaEdit.sourceContext.sourceTakeId
+    : activeTakeIdOf(clip);
+  const baselineCandidate =
+    sourceAssetId && !existingVersions.some((version) => version.assetId === sourceAssetId)
+      ? ensureBaselineTake(
+          { ...clip, currentAssetId: sourceAssetId },
+          result.createdAt
+        )
+      : clip;
+  const baseline = baselineCandidate.versions?.find(
+    (version) =>
+      version.assetId === sourceAssetId &&
+      !existingVersions.some((existing) => existing.id === version.id)
+  );
+  const parentTakeId =
+    snapshot?.parentTakeId ??
+    activeTakeId ??
+    existingVersions.find((version) => version.assetId === sourceAssetId)?.id ??
+    baseline?.id;
+  const withBaseline: TimelineClip = baseline
+    ? { ...clip, versions: [...existingVersions, baseline] }
+    : clip;
   const version: ClipVersion = {
-    id: result.jobId ?? `${clip.id}:${result.createdAt}`,
+    id: versionId,
     createdAt: result.createdAt,
     jobId: result.jobId ?? "",
     assetId: result.assetId,
@@ -253,7 +580,10 @@ export function composeGenerativeTakePatch(
     model: snapshot?.model ?? result.model,
     prompt: snapshot?.prompt ?? result.prompt,
     negativePrompt: result.negativePrompt,
-    parentTakeId
+    parentTakeId,
+    mediaEdit: result.mediaEdit
+      ? mediaEditTakeMetadata(result.mediaEdit, versionId)
+      : undefined
   };
   const next = snapshot
     ? landProductionCandidate(withBaseline, {

@@ -2,11 +2,12 @@
  * @jest-environment jsdom
  */
 import { renderHook } from "@testing-library/react";
-import { makeClip } from "@nodetool-ai/timeline";
+import { createMediaEditRequest, makeClip } from "@nodetool-ai/timeline";
 import type { MidiInstrument, TimelineClip } from "@nodetool-ai/timeline";
 
 import {
   createTimelineStore,
+  timelineTemporalOf,
   type TimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
 import {
@@ -19,6 +20,7 @@ import {
 } from "../../../stores/timeline/TimelinePlaybackStore";
 import { getTimelineAgentHandler } from "../../../components/timeline/timelineAgentBridge";
 import { useTimelineAgentBridge } from "../useTimelineAgentBridge";
+import { useLastModelStore } from "../../../stores/lastModelStore";
 
 /** The waveform of a voice, when the voice is the built-in synth. */
 const waveformOf = (instrument: MidiInstrument | undefined) =>
@@ -27,6 +29,7 @@ const waveformOf = (instrument: MidiInstrument | undefined) =>
 let mockDoc: TimelineStoreApi;
 let mockUi: TimelineUIStoreApi;
 let mockPlayback: TimelinePlaybackStoreApi;
+const mockStartEdit = jest.fn();
 
 // The hook reads its three stores off the surrounding editor's contexts; a test
 // hands it standalone instances instead of mounting a whole TimelineEditor.
@@ -43,8 +46,13 @@ jest.mock("../../../stores/timeline/TimelinePlaybackStore", () => ({
   useTimelinePlaybackStoreApi: () => mockPlayback
 }));
 jest.mock("../useTimelineDirectGenJob", () => ({
-  useTimelineDirectGenJob: () => ({ start: jest.fn() })
+  ...jest.requireActual("../useTimelineDirectGenJob"),
+  useTimelineDirectGenJob: () => ({ start: jest.fn(), startEdit: mockStartEdit })
 }));
+
+const { landMediaEdit } = jest.requireActual<
+  typeof import("../useTimelineDirectGenJob")
+>("../useTimelineDirectGenJob");
 
 const SEQ_ID = "seq-1";
 
@@ -89,6 +97,169 @@ beforeEach(() => {
   mockDoc = createTimelineStore();
   mockUi = createTimelineUIStore();
   mockPlayback = createTimelinePlaybackStore();
+  mockStartEdit.mockReset();
+  useLastModelStore.setState({ byKind: {}, byTask: {} });
+});
+
+describe("useTimelineAgentBridge AI edit", () => {
+  it("keeps a trimmed source active until explicit apply, then undoes once", async () => {
+    mockDoc.getState().addTrack("video", "Video 1");
+    const trackId = mockDoc.getState().tracks[0].id;
+    const original = makeClip({
+      id: "clip-edit",
+      name: "Station",
+      trackId,
+      mediaType: "video",
+      sourceType: "imported",
+      startMs: 1200,
+      durationMs: 4000,
+      currentAssetId: "asset-original",
+      activeTakeId: "take-original",
+      inPointMs: 40000,
+      outPointMs: 44000,
+      versions: [
+        {
+          id: "take-original",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          jobId: "original-job",
+          assetId: "asset-original",
+          workflowUpdatedAt: "2026-01-01T00:00:00.000Z",
+          dependencyHash: "",
+          paramOverridesSnapshot: {},
+          durationMs: 4000,
+          status: "success"
+        }
+      ]
+    });
+    mockDoc.getState().addClip(original);
+    mockStartEdit.mockResolvedValue("generation-edit");
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const handler = getTimelineAgentHandler(SEQ_ID);
+
+    const submitted = await handler.generativelyEditClip({
+      clipId: original.id,
+      instruction: "Make this station deserted at night",
+      provider: "fal",
+      model: "video-edit-model"
+    });
+
+    expect(mockStartEdit).toHaveBeenCalledWith({
+      clipId: original.id,
+      instruction: "Make this station deserted at night",
+      provider: "fal",
+      model: "video-edit-model"
+    });
+    expect(submitted).toMatchObject({
+      generationId: "generation-edit",
+      activeTakeId: "take-original",
+      candidate: { id: "generation-edit", status: "pending" }
+    });
+    expect(clipById(original.id).currentAssetId).toBe("asset-original");
+
+    // The production landing path rejects a stale destination. This store is
+    // assembled directly for the bridge test, so give it the same sequence id
+    // the mounted editor registered under before settling the request.
+    mockDoc.setState({ sequenceId: SEQ_ID });
+
+    // Settle through the production edit landing path. Directly patching a
+    // take here would let this selfcheck pass without exercising candidate
+    // creation, destination validation, or its inactive state.
+    landMediaEdit(
+      mockDoc,
+      original.id,
+      "generation-edit",
+      SEQ_ID,
+      createMediaEditRequest({
+        sourceContext: {
+          sequenceId: SEQ_ID,
+          clipId: original.id,
+          sourceAssetId: "asset-original",
+          sourceStartMs: 40000,
+          sourceEndMs: 44000,
+          timelineStartMs: 1200,
+          timelineDurationMs: 4000,
+          speedMultiplier: 1
+        },
+        instruction: "Make this station deserted at night",
+        provider: "fal",
+        model: "video-edit-model"
+      }),
+      { assetIds: ["asset-edited"], errored: false }
+    );
+    timelineTemporalOf(mockDoc).clear();
+
+    const inactiveCandidate = clipById(original.id).versions?.find(
+      (take) => take.id === "generation-edit"
+    );
+    expect(inactiveCandidate).toMatchObject({
+      assetId: "asset-edited",
+      status: "success",
+      mediaEdit: {
+        requestId: "generation-edit",
+        sourceContext: { sourceStartMs: 40000, sourceEndMs: 44000 }
+      }
+    });
+    expect(clipById(original.id).activeTakeId).toBe("take-original");
+
+    handler.applyTake(original.id, "generation-edit");
+    expect(clipById(original.id)).toMatchObject({
+      currentAssetId: "asset-edited",
+      activeTakeId: "generation-edit",
+      inPointMs: 0,
+      outPointMs: 4000
+    });
+    expect(timelineTemporalOf(mockDoc).pastStates).toHaveLength(1);
+
+    timelineTemporalOf(mockDoc).undo();
+    expect(clipById(original.id)).toEqual({
+      ...original,
+      versions: expect.any(Array)
+    });
+    expect(clipById(original.id).currentAssetId).toBe("asset-original");
+    expect(clipById(original.id).inPointMs).toBe(40000);
+    expect(clipById(original.id).outPointMs).toBe(44000);
+  });
+
+  it("uses the remembered video-to-video pair instead of a clip's text-to-video model", async () => {
+    mockDoc.getState().addTrack("video", "Video 1");
+    const trackId = mockDoc.getState().tracks[0].id;
+    const clip = makeClip({
+      id: "clip-text-to-video",
+      name: "Generated station",
+      trackId,
+      mediaType: "video",
+      sourceType: "generated",
+      bindingKind: "text-to-video",
+      startMs: 0,
+      durationMs: 4000,
+      currentAssetId: "asset-text-to-video",
+      provider: "fal",
+      model: "text-to-video-only"
+    });
+    mockDoc.getState().addClip(clip);
+    useLastModelStore.getState().remember("video", {
+      provider: "fal",
+      model: "text-to-video-only"
+    });
+    useLastModelStore.getState().rememberForTask("video", "video_to_video", {
+      provider: "fal",
+      model: "video-edit-model"
+    });
+    mockStartEdit.mockResolvedValue("generation-edit");
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+
+    await getTimelineAgentHandler(SEQ_ID).generativelyEditClip({
+      clipId: clip.id,
+      instruction: "Make it nighttime"
+    });
+
+    expect(mockStartEdit).toHaveBeenCalledWith({
+      clipId: clip.id,
+      instruction: "Make it nighttime",
+      provider: "fal",
+      model: "video-edit-model"
+    });
+  });
 });
 
 describe("useTimelineAgentBridge group-aware edits", () => {

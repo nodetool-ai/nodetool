@@ -7,7 +7,7 @@ import { productionVariationIdentity } from "@nodetool-ai/protocol";
 
 import type { TimelineOpState } from "./ops/types.js";
 import { stableSerialize } from "./stableSerialize.js";
-import { activeTakeIdOf, preserveBaselineTake, useTake } from "./takes.js";
+import { activeTakeIdOf, preserveBaselineTake, selectTake, useTake } from "./takes.js";
 import type { ClipVersion, TimelineClip } from "./types.js";
 
 /** Stable identity assigned before a provider request is dispatched. */
@@ -374,7 +374,6 @@ export function useProductionTake(
     ? { ok: true, clip: applied.clip, version }
     : { ok: false, clip, error: applied.error };
 }
-
 export interface ProductionDraftChange {
   readonly clipId: string;
   readonly before: TimelineClip;
@@ -403,7 +402,6 @@ export interface ProductionDraftPreconditions {
   readonly batchId?: string;
   readonly authoringFingerprints?: Readonly<Record<string, string>>;
 }
-
 /**
  * Apply an explicit candidate map atomically within one timeline document.
  * Every precondition is checked before any clip is changed, making the
@@ -445,6 +443,17 @@ export function applyProductionDraft(
     if (resolvedBatchId === undefined) resolvedBatchId = version.batchId;
     if (version.batchId !== resolvedBatchId) {
       return rejected(state, "A production draft may select candidates from one batch only.");
+    }
+    // Legacy draft records predate resolved timing and retain the existing apply path.
+    if (
+      validated.snapshot.requestedDurationMs === undefined &&
+      options.authoringFingerprints?.[clipId] === undefined
+    ) {
+      if (clip.mediaType === "model3d") {
+        return rejected(state, `Clip "${clip.name}" cannot accept a production video candidate.`);
+      }
+      changes.push({ clipId, before: clip, after: selectTake(clip, version.id) });
+      continue;
     }
     const applied = useProductionTake(clip, candidateId, {
       batchId: resolvedBatchId,
@@ -494,7 +503,6 @@ export function applyProductionTake(
     changes: [change]
   };
 }
-
 /** Restore the complete pre-apply clip snapshots, as one undo operation. */
 export function undoProductionDraft(
   state: TimelineOpState,

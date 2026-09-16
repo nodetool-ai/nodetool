@@ -59,6 +59,7 @@ import { useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStoreApi } from "../../stores/timeline/TimelinePlaybackStore";
 import {
   getRememberedModel,
+  getRememberedModelForTask,
   type ModelKind
 } from "../../stores/lastModelStore";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -193,6 +194,7 @@ function toClipNode(
     outPointMs: clip.outPointMs,
     status: clip.status,
     hasRender: !!clip.currentAssetId,
+    activeTakeId: clip.activeTakeId,
     prompt: clip.prompt,
     provider: clip.provider,
     model: clip.model,
@@ -278,7 +280,7 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
   const doc = useTimelineStoreApi();
   const ui = useTimelineUIStoreApi();
   const playback = useTimelinePlaybackStoreApi();
-  const { start: startDirectGen } = useTimelineDirectGenJob();
+  const { start: startDirectGen, startEdit } = useTimelineDirectGenJob();
   const { bakeClip } = useModel3DBake();
 
   const handler = useMemo<TimelineAgentHandler>(() => {
@@ -674,6 +676,88 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         }
 
         return { clip: clipNode(reReadClip(clipId)), generationStarted, note };
+      },
+
+      async generativelyEditClip(opts) {
+        // This operation intentionally accepts only a document id. Other
+        // timeline tools accept names for convenience, but an edit request has
+        // a durable destination and must never bind to a later name match.
+        const clip = doc
+          .getState()
+          .clips.find((candidate) => candidate.id === opts.clipId);
+        if (!clip) {
+          throw new Error(
+            `No clip with id "${opts.clipId}" exists on this timeline. Call ui_timeline_get_state and pass the clip id.`
+          );
+        }
+        if ((opts.provider === undefined) !== (opts.model === undefined)) {
+          throw new Error(
+            "Pass provider and model together for an AI video edit, or select a video-edit model in the editor first."
+          );
+        }
+        // A clip's remembered/generic video model may only support
+        // text-to-video. An edit needs one known video-to-video pair, so never
+        // combine partial values from different defaults.
+        const remembered = getRememberedModelForTask(
+          "video",
+          "video_to_video"
+        );
+        const provider = opts.provider ?? remembered?.provider;
+        const model = opts.model ?? remembered?.model;
+        if (!provider || !model) {
+          throw new Error(
+            `No video-edit model is available for clip "${clip.name}". Pass provider and model, or select a video-edit model in the editor first.`
+          );
+        }
+
+        const requestId = await startEdit({
+          clipId: clip.id,
+          instruction: opts.instruction,
+          provider,
+          model
+        });
+        if (!requestId) {
+          throw new Error(
+            `Could not start an AI edit for "${clip.name}". The clip may already have an edit in progress or its active source is not eligible.`
+          );
+        }
+        const current = reReadClip(clip.id);
+        return {
+          requestId,
+          generationId: requestId,
+          activeTakeId: current.activeTakeId ?? null,
+          candidate: {
+            // The landing path uses the request id as the immutable take id,
+            // so the agent can pass this value directly to apply_take once it
+            // has completed.
+            id: requestId,
+            status: "pending" as const,
+            source: "video_to_video" as const
+          },
+          clip: clipNode(current)
+        };
+      },
+
+      applyTake(clipId, takeId) {
+        const clip = doc
+          .getState()
+          .clips.find((candidate) => candidate.id === clipId);
+        if (!clip) {
+          throw new Error(
+            `No clip with id "${clipId}" exists on this timeline. Call ui_timeline_get_state and pass the clip id.`
+          );
+        }
+        const take = (clip.versions ?? []).find(
+          (candidate) => candidate.id === takeId
+        );
+        if (!take?.mediaEdit) {
+          throw new Error(
+            `Take "${takeId}" is not an AI edit candidate for "${clip.name}". Apply only the candidate returned by ui_timeline_generatively_edit_clip.`
+          );
+        }
+        const error = doc.getState().applyTake(clipId, takeId);
+        if (error) throw new Error(error);
+        return clipNode(reReadClip(clipId));
       },
 
       async addMediaClip(opts: TimelineAddMediaClipOptions) {
@@ -1446,7 +1530,7 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       }
     };
     return handlerImpl;
-  }, [doc, ui, playback, startDirectGen, bakeClip, sequenceId]);
+  }, [doc, ui, playback, startDirectGen, startEdit, bakeClip, sequenceId]);
 
   useEffect(() => {
     if (!sequenceId) return;

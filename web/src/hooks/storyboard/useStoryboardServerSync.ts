@@ -39,8 +39,8 @@ type StoryboardResponse = Awaited<
 >;
 type StoryboardWireDocument = StoryboardResponse["document"];
 
-const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument =>
-  ({
+const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument => {
+  const document = {
     screenplay: board.screenplay,
     shots: board.shots,
     brief: board.brief,
@@ -58,13 +58,18 @@ const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument =>
     importSource: board.importSource ?? null,
     setupShotCount: board.setupShotCount,
     setupDirectedFrom: board.setupDirectedFrom ?? null
-  }) as StoryboardWireDocument;
+  } as StoryboardWireDocument;
+  if (board.creativeContext) {
+    document.creative_context = board.creativeContext;
+  }
+  return document;
+};
 
 const responseToBoard = (
   res: StoryboardResponse
 ): Omit<StoryboardBoard, "id" | "updatedAt"> => {
   const doc = res.document;
-  return {
+  const board = {
     screenplay: doc.screenplay as Screenplay | null,
     shots: doc.shots as Shot[],
     title: res.name === "Untitled storyboard" ? "" : res.name,
@@ -85,7 +90,11 @@ const responseToBoard = (
     setupDirectedFrom: doc.setupDirectedFrom ?? null,
     activeShotId: null,
     timelineId: res.timelineId ?? null
-  };
+  } as Omit<StoryboardBoard, "id" | "updatedAt">;
+  if (doc.creative_context) {
+    board.creativeContext = doc.creative_context;
+  }
+  return board;
 };
 
 const isNotFound = (error: unknown): boolean =>

@@ -435,6 +435,39 @@ describe("TIMELINE_TOOL_LOOP_CASES", () => {
     expect(report.cases[0].accepted).toBe(true);
     expect(report.cases[0].score).toBe(1);
   });
+
+  it("trimmed-video-edit-candidate-apply: inspect the inactive take before applying it", async () => {
+    const editCase = TIMELINE_TOOL_LOOP_CASES.find(
+      (candidate) => candidate.id === "trimmed-video-edit-candidate-apply"
+    );
+    if (!editCase) throw new Error("missing trimmed video edit eval case");
+
+    const provider = createScriptedProvider([
+      { name: "ui_timeline_get_state", args: {} },
+      {
+        name: "ui_timeline_generatively_edit_clip",
+        args: {
+          clip_id: "clip-trimmed",
+          instruction: "Make this station deserted at night",
+          provider: "fal",
+          model: "video-edit-model"
+        }
+      },
+      { name: "ui_timeline_list_takes", args: { target: "clip-trimmed" } },
+      {
+        name: "ui_timeline_apply_take",
+        args: { clip_id: "clip-trimmed", take_id: "version_1" }
+      }
+    ]);
+    const report = await runToolLoopEval({
+      provider,
+      model: "test-model",
+      cases: [editCase]
+    });
+
+    expect(report.cases[0].accepted).toBe(true);
+    expect(report.cases[0].score).toBe(1);
+  });
 });
 
 // --- motion predicates (hand-built final states) ------------------------------
@@ -521,6 +554,8 @@ describe("the timeline eval system prompt", () => {
     const prompt = TIMELINE_TOOL_LOOP_CASES[0].systemPrompt ?? "";
     expect(prompt).toContain("# Motion Graphics");
     expect(prompt).toContain("preview_timeline_frame");
+    expect(prompt).toContain("ui_timeline_apply_take");
+    expect(prompt).toContain("exact clip_id");
   });
 });
 

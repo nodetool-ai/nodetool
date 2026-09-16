@@ -372,7 +372,33 @@ export type VersionRef<T> = T & {
 };
 
 export type KeyframeVersion = VersionRef<ImageRef>;
-export type ClipVersion = VersionRef<VideoRef>;
+
+/** Immutable provenance shared by timeline and storyboard video-edit takes. */
+export interface MediaEditTakeMetadata {
+  action: "video_edit";
+  modelTask: "video_to_video";
+  requestId: string;
+  instruction: string;
+  provider: string;
+  model: string;
+  sourceContext: {
+    sequenceId: string;
+    clipId: string;
+    sourceAssetId: string;
+    sourceTakeId?: string;
+    sourceStartMs: number;
+    sourceEndMs: number;
+    timelineStartMs: number;
+    timelineDurationMs: number;
+    speedMultiplier: number;
+  };
+  strength?: number;
+  resolution?: string;
+}
+
+export type ClipVersion = VersionRef<VideoRef> & {
+  mediaEdit?: MediaEditTakeMetadata;
+};
 
 /** A render model remembered on one shot for fast re-renders. */
 export interface ShotModelRef {

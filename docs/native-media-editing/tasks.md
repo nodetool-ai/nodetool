@@ -17,7 +17,7 @@
 
 ## P0: Edit video
 
-- [ ] **T01: Edit one trimmed clip into an inactive candidate.** Add a shared
+- [x] **T01: Edit one trimmed clip into an inactive candidate.** Add a shared
       media-edit request that captures sequence, clip, active take, source
       asset, playable source window, timeline placement, and constant speed
       before dispatch. Map `video_edit` to model task support, submit through
@@ -37,7 +37,7 @@
       mutates the clip before completion, reloads, and receives exactly one
       inactive take with the submitted provenance. (PRD § 7.1 to § 7.4)
 
-- [ ] **T02: Expose Edit video in the selected clip UI.** Add an **AI Edit**
+- [x] **T02: Expose Edit video in the selected clip UI.** Add an **AI Edit**
       section outside the generation-panel `bindingKind` dispatch in
       `web/src/components/timeline/Inspector/TimelineInspector.tsx`. Add the
       same action to

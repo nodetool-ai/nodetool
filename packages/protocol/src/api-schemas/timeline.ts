@@ -59,7 +59,38 @@ export const clipVersion = z.object({
   variationIndex: z.number().int().min(1).max(3).optional(),
   /** Immutable resolved production inputs. Never rewritten on completion. */
   productionSnapshot: productionGenerationSnapshot.optional(),
-  productionResult: productionGenerationResult.optional()
+  productionResult: productionGenerationResult.optional(),
+  sourceMapping: z
+    .object({
+      inPointMs: z.number().optional(),
+      outPointMs: z.number().optional(),
+      speedMultiplier: z.number().optional(),
+      speedBaked: z.boolean().optional()
+    })
+    .optional(),
+  mediaEdit: z
+    .object({
+      action: z.literal("video_edit"),
+      modelTask: z.literal("video_to_video"),
+      requestId: z.string(),
+      instruction: z.string(),
+      provider: z.string(),
+      model: z.string(),
+      sourceContext: z.object({
+        sequenceId: z.string(),
+        clipId: z.string(),
+        sourceAssetId: z.string(),
+        sourceTakeId: z.string().optional(),
+        sourceStartMs: z.number(),
+        sourceEndMs: z.number(),
+        timelineStartMs: z.number(),
+        timelineDurationMs: z.number(),
+        speedMultiplier: z.number()
+      }),
+      strength: z.number().optional(),
+      resolution: z.string().optional()
+    })
+    .optional()
 });
 export type ClipVersion = z.infer<typeof clipVersion>;
 

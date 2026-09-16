@@ -75,20 +75,25 @@ export const newVideoSetupDocument = (
     carried.entityIds = [...context.entityIds];
   }
   if (context.creativeContext) {
-    carried.creative_context = {
-      ...context.creativeContext,
-      ...(context.creativeContext.approved_claims
-        ? { approved_claims: [...context.creativeContext.approved_claims] }
-        : {}),
-      ...(context.creativeContext.prohibited_claims
-        ? { prohibited_claims: [...context.creativeContext.prohibited_claims] }
-        : {}),
-      ...(context.creativeContext.reference_bindings
-        ? {
-            reference_bindings: [...context.creativeContext.reference_bindings]
-          }
-        : {})
+    const creativeContext: NonNullable<VideoSetupContext["creativeContext"]> = {
+      ...context.creativeContext
     };
+    if (context.creativeContext.approved_claims) {
+      creativeContext.approved_claims = [
+        ...context.creativeContext.approved_claims
+      ];
+    }
+    if (context.creativeContext.prohibited_claims) {
+      creativeContext.prohibited_claims = [
+        ...context.creativeContext.prohibited_claims
+      ];
+    }
+    if (context.creativeContext.reference_bindings) {
+      creativeContext.reference_bindings = [
+        ...context.creativeContext.reference_bindings
+      ];
+    }
+    carried.creative_context = creativeContext;
   }
   return {
     tracks: [],

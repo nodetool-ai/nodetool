@@ -16,8 +16,15 @@ import {
 } from "../../lib/websocket/GlobalWebSocketManager";
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import type { TimelineStoreApi } from "../../stores/timeline/TimelineStore";
-import { makeClipVersion } from "@nodetool-ai/timeline";
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import {
+  captureMediaEditSourceContext,
+  composeGenerativeTakePatch,
+  createMediaEditRequest,
+  ensureBaselineTake,
+  mediaEditGenerateMediaData,
+  makeClipVersion
+} from "@nodetool-ai/timeline";
+import type { MediaEditRequest, TimelineClip } from "@nodetool-ai/timeline";
 import { deriveIdleClipStatus } from "./useGenerateClip";
 import {
   durationBucketKey,
@@ -26,7 +33,8 @@ import {
 } from "./directGenPending";
 import {
   isSettled,
-  lookupGenerations
+  lookupGenerations,
+  type GenerationLookupStatus
 } from "../../lib/websocket/lookupGenerations";
 import { watchGeneration } from "../../lib/websocket/generationWatch";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -41,31 +49,71 @@ interface DirectGenRpcResponse extends WebSocketMessage {
   error?: { code?: string; message?: string };
 }
 
+type TimelineStoreHandle = Pick<TimelineStoreApi, "getState">;
+
 interface UseTimelineDirectGenJobApi {
   /** Returns the requestId once the RPC has been dispatched (or null on validation failure). */
   start: (clipId: string) => Promise<string | null>;
+  startEdit: (input: {
+    clipId: string;
+    instruction: string;
+    provider: string;
+    model: string;
+    strength?: number;
+    resolution?: string;
+  }) => Promise<string | null>;
   cancel: (clipId: string) => void;
+  cancelEdit: (clipId: string) => void;
 }
 
 // Module-level so cancel() can tear down an in-flight subscription started by
 // start() in a different render. Otherwise the response handler would still
 // overwrite the user-set "draft" status after cancel.
-const inFlight = new Map<string, () => void>();
+interface InFlightJob {
+  requestId: string;
+  sequenceId: string | null;
+  clipId: string;
+  cleanup: () => void;
+  mediaEdit?: MediaEditRequest;
+}
 
-const clearInFlight = (clipId: string): void => {
-  const teardown = inFlight.get(clipId);
-  if (teardown) {
-    teardown();
-    inFlight.delete(clipId);
+const inFlight = new Map<string, InFlightJob>();
+
+const findInFlight = (
+  sequenceId: string | null,
+  clipId: string
+): InFlightJob | undefined =>
+  [...inFlight.values()].find(
+    (job) => job.sequenceId === sequenceId && job.clipId === clipId
+  );
+
+const clearInFlight = (
+  sequenceId: string | null,
+  clipId: string,
+  requestId?: string
+): InFlightJob | undefined => {
+  const job = requestId
+    ? inFlight.get(requestId)
+    : findInFlight(sequenceId, clipId);
+  if (
+    job &&
+    job.clipId === clipId &&
+    job.sequenceId === sequenceId &&
+    (requestId === undefined || job.requestId === requestId)
+  ) {
+    job.cleanup();
+    inFlight.delete(job.requestId);
+    return job;
   }
+  return undefined;
 };
 
-function fail(timeline: TimelineStoreApi, clipId: string): void {
+function fail(timeline: TimelineStoreHandle, clipId: string): void {
   timeline.getState().patchClip(clipId, { status: "failed" });
 }
 
 async function fitGeneratedAudio(
-  timeline: TimelineStoreApi,
+  timeline: TimelineStoreHandle,
   clip: TimelineClip,
   assetId: string
 ): Promise<void> {
@@ -105,6 +153,7 @@ async function fitGeneratedAudio(
 export interface DirectGenOutcome {
   assetIds: readonly string[];
   errored: boolean;
+  status?: GenerationLookupStatus;
 }
 
 /**
@@ -116,7 +165,7 @@ export interface DirectGenOutcome {
  * paid for and cannot see.
  */
 export function landDirectGen(
-  timeline: TimelineStoreApi,
+  timeline: TimelineStoreHandle,
   clipId: string,
   requestId: string,
   sequenceId: string | null,
@@ -124,7 +173,7 @@ export function landDirectGen(
 ): void {
   // Any subscription still open for this clip is done: it would settle a
   // second time on the reply and append the same version twice.
-  clearInFlight(clipId);
+  clearInFlight(sequenceId, clipId, requestId);
   const store = timeline.getState();
   const first = outcome.errored ? undefined : outcome.assetIds[0];
   if (!first) {
@@ -192,6 +241,104 @@ export function landDirectGen(
   }
 }
 
+const applyMediaEditCandidate = (
+  timeline: TimelineStoreHandle,
+  clipId: string,
+  requestId: string,
+  request: MediaEditRequest,
+  assetId: string
+): boolean => {
+  const state = timeline.getState();
+  if (state.sequenceId !== request.sourceContext.sequenceId) {
+    return false;
+  }
+  const current = state.clips.find(
+    (clip) =>
+      clip.id === request.sourceContext.clipId && clip.id === clipId
+  );
+  if (!current) {
+    useDirectGenPendingStore.getState().markEditOrphaned(requestId);
+    return false;
+  }
+  const next = composeGenerativeTakePatch(current, "restyle", {
+    assetId,
+    jobId: requestId,
+    createdAt: new Date().toISOString(),
+    provider: request.provider,
+    model: request.model,
+    prompt: request.instruction,
+    durationMs: request.sourceContext.timelineDurationMs,
+    mediaEdit: request
+  });
+  if (next !== current) {
+    timeline.getState().patchClip(clipId, { versions: next.versions });
+  }
+  return true;
+};
+
+const mediaEditSettlementStatus = (
+  outcome: DirectGenOutcome
+): "completed" | "failed" | "cancelled" => {
+  if (outcome.status === "cancelled") return "cancelled";
+  if (
+    outcome.status === "failed" ||
+    outcome.status === "needs_attention" ||
+    outcome.status === "interrupted"
+  ) {
+    return "failed";
+  }
+  return outcome.assetIds[0] ? "completed" : "failed";
+};
+
+/** Land an edit as an inactive take using only its submission snapshot. */
+export function landMediaEdit(
+  timeline: TimelineStoreHandle,
+  clipId: string,
+  requestId: string,
+  sequenceId: string | null,
+  request: MediaEditRequest,
+  outcome: DirectGenOutcome
+): void {
+  clearInFlight(sequenceId, clipId, requestId);
+  const destinationSequenceId = request.sourceContext.sequenceId;
+  const assetId = outcome.errored ? undefined : outcome.assetIds[0];
+  const status = mediaEditSettlementStatus(outcome);
+  if (status === "failed") {
+    useDirectGenPendingStore
+      .getState()
+      .markEditFailure(
+        destinationSequenceId,
+        request.sourceContext.clipId,
+        "The video edit failed before producing a candidate."
+      );
+  }
+  const claimed = useDirectGenPendingStore.getState().settleEdit({
+    sequenceId: destinationSequenceId,
+    clipId: request.sourceContext.clipId,
+    requestId,
+    mediaEdit: request,
+    status,
+    assetIds: assetId ? [assetId] : [],
+    finishedAt: Date.now()
+  });
+  if (!claimed) return;
+  if (!assetId) {
+    useDirectGenPendingStore
+      .getState()
+      .markEditFailure(
+        destinationSequenceId,
+        request.sourceContext.clipId,
+        "The video edit failed before producing a candidate."
+      );
+    return;
+  }
+  // `sequenceId` is retained for callers that still pass the captured
+  // destination separately. The request snapshot is authoritative, and the
+  // explicit comparison prevents a stale adapter from redirecting a result.
+  if (sequenceId !== null && sequenceId !== destinationSequenceId) return;
+  applyMediaEditCandidate(timeline, clipId, requestId, request, assetId);
+}
+
 /**
  * Subscribe to one request's reply and write the result onto the clip.
  *
@@ -201,7 +348,7 @@ export function landDirectGen(
  * place for "locked clips keep their asset" to be got wrong.
  */
 export function subscribeDirectGen(
-  timeline: TimelineStoreApi,
+  timeline: TimelineStoreHandle,
   clipId: string,
   requestId: string,
   /**
@@ -227,9 +374,10 @@ export function subscribeDirectGen(
    * follows it. The subscription only gets there faster, when the socket is
    * the same one the request went out on.
    */
-  watchUntil?: number
+  watchUntil?: number,
+  mediaEdit?: MediaEditRequest
 ): () => void {
-  clearInFlight(clipId);
+  clearInFlight(sequenceId, clipId);
   let unsubscribe: (() => void) | undefined;
   let stopWatch: (() => void) | undefined;
   const cleanup = () => {
@@ -241,7 +389,7 @@ export function subscribeDirectGen(
       stopWatch();
       stopWatch = undefined;
     }
-    inFlight.delete(clipId);
+    inFlight.delete(requestId);
   };
 
   const settle = (msg: DirectGenRpcResponse) => {
@@ -250,10 +398,23 @@ export function subscribeDirectGen(
           (v): v is string => typeof v === "string"
         )
       : [];
-    landDirectGen(timeline, clipId, requestId, sequenceId, {
+    const outcome = {
       assetIds,
-      errored: Boolean(msg.error)
-    });
+      errored: Boolean(msg.error),
+      status: msg.error ? ("failed" as const) : ("completed" as const)
+    };
+    if (mediaEdit) {
+      landMediaEdit(
+        timeline,
+        clipId,
+        requestId,
+        sequenceId,
+        mediaEdit,
+        outcome
+      );
+    } else {
+      landDirectGen(timeline, clipId, requestId, sequenceId, outcome);
+    }
   };
 
   unsubscribe = globalWebSocketManager.subscribe(requestId, (msg) => {
@@ -269,20 +430,93 @@ export function subscribeDirectGen(
         // than rendering forever.
         cleanup();
         if (sequenceId) {
-          useDirectGenPendingStore.getState().settle(sequenceId, clipId);
+          if (mediaEdit) {
+            useDirectGenPendingStore.getState().settleEdit({
+              sequenceId: mediaEdit.sourceContext.sequenceId,
+              clipId: mediaEdit.sourceContext.clipId,
+              requestId,
+              mediaEdit,
+              status: "expired",
+              assetIds: []
+            });
+            useDirectGenPendingStore
+              .getState()
+              .markEditFailure(
+                mediaEdit.sourceContext.sequenceId,
+                mediaEdit.sourceContext.clipId,
+                "The video edit expired before producing a candidate."
+              );
+          } else {
+            useDirectGenPendingStore.getState().settle(sequenceId, clipId);
+          }
         }
-        fail(timeline, clipId);
+        if (!mediaEdit) fail(timeline, clipId);
         return;
       }
-      landDirectGen(timeline, clipId, requestId, sequenceId, {
+      const directOutcome = {
         assetIds: outcome.assetIds,
-        errored: outcome.status !== "completed"
-      });
+        errored: outcome.status !== "completed",
+        status: outcome.status
+      };
+      if (mediaEdit) {
+        landMediaEdit(
+          timeline,
+          clipId,
+          requestId,
+          sequenceId,
+          mediaEdit,
+          directOutcome
+        );
+      } else {
+        landDirectGen(timeline, clipId, requestId, sequenceId, directOutcome);
+      }
     });
   }
-  inFlight.set(clipId, cleanup);
+  inFlight.set(requestId, {
+    requestId,
+    sequenceId,
+    clipId,
+    cleanup,
+    mediaEdit
+  });
   return cleanup;
 }
+
+const recoverSettledMediaEdits = (
+  timeline: TimelineStoreHandle,
+  sequenceId: string
+): void => {
+  const state = timeline.getState();
+  if (state.sequenceId !== sequenceId) return;
+  const settlements = Object.values(
+    useDirectGenPendingStore.getState().editSettlements
+  ).filter(
+    (settlement) =>
+      settlement.sequenceId === sequenceId &&
+      settlement.status === "completed" &&
+      settlement.acknowledgedAt === undefined
+  );
+  for (const settlement of settlements) {
+    const assetId = settlement.assetIds[0];
+    if (!assetId) continue;
+    const current = timeline
+      .getState()
+      .clips.find((clip) => clip.id === settlement.clipId);
+    if (!current) {
+      useDirectGenPendingStore
+        .getState()
+        .markEditOrphaned(settlement.requestId);
+      continue;
+    }
+    applyMediaEditCandidate(
+      timeline,
+      settlement.clipId,
+      settlement.requestId,
+      settlement.mediaEdit,
+      assetId
+    );
+  }
+};
 
 /**
  * Recover the requests this sequence had in flight when it was closed
@@ -301,13 +535,12 @@ export function subscribeDirectGen(
  * dropped rather than recovered either way.
  */
 export async function reattachSequenceJobs(
-  timeline: TimelineStoreApi,
+  timeline: TimelineStoreHandle,
   sequenceId: string
 ): Promise<void> {
   const restored = useDirectGenPendingStore.getState().restore(sequenceId);
-  if (restored.length === 0) {
-    return;
-  }
+  recoverSettledMediaEdits(timeline, sequenceId);
+  if (restored.length === 0) return;
   await globalWebSocketManager.ensureConnection();
 
   const clips = timeline.getState().clips;
@@ -315,7 +548,18 @@ export async function reattachSequenceJobs(
     if (clips.some((candidate) => candidate.id === job.clipId)) {
       return true;
     }
-    useDirectGenPendingStore.getState().settle(sequenceId, job.clipId);
+    if (job.mediaEdit) {
+      useDirectGenPendingStore.getState().settleEdit({
+        sequenceId: job.mediaEdit.sourceContext.sequenceId,
+        clipId: job.mediaEdit.sourceContext.clipId,
+        requestId: job.requestId,
+        mediaEdit: job.mediaEdit,
+        status: "orphaned",
+        assetIds: []
+      });
+    } else {
+      useDirectGenPendingStore.getState().settle(sequenceId, job.clipId);
+    }
     return false;
   });
   if (live.length === 0) {
@@ -329,23 +573,45 @@ export async function reattachSequenceJobs(
     if (outcome && isSettled(outcome.status)) {
       // The row settled while this client was away. Land it from the row: the
       // frame that would have carried it went to a socket that is gone.
-      landDirectGen(timeline, job.clipId, job.requestId, sequenceId, {
+      const directOutcome = {
         assetIds: outcome.assetIds,
-        errored: outcome.status !== "completed"
-      });
+        errored: outcome.status !== "completed",
+        status: outcome.status
+      };
+      if (job.mediaEdit) {
+        landMediaEdit(
+          timeline,
+          job.clipId,
+          job.requestId,
+          sequenceId,
+          job.mediaEdit,
+          directOutcome
+        );
+      } else {
+        landDirectGen(
+          timeline,
+          job.clipId,
+          job.requestId,
+          sequenceId,
+          directOutcome
+        );
+      }
       continue;
     }
     // Still running, or no row to read yet. The clip goes back to
     // `generating`, and the row is watched until it settles — bounded by what
     // is left of this entry's own window, after which the clip fails and
     // offers Retry rather than rendering forever.
-    timeline.getState().patchClip(job.clipId, { status: "generating" });
+    if (!job.mediaEdit) {
+      timeline.getState().patchClip(job.clipId, { status: "generating" });
+    }
     subscribeDirectGen(
       timeline,
       job.clipId,
       job.requestId,
       sequenceId,
-      job.startedAt + PENDING_TTL_MS
+      job.startedAt + PENDING_TTL_MS,
+      job.mediaEdit
     );
   }
 }
@@ -497,10 +763,119 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
     [timeline]
   );
 
+  const startEdit = useCallback(
+    async (input: {
+      clipId: string;
+      instruction: string;
+      provider: string;
+      model: string;
+      strength?: number;
+      resolution?: string;
+    }): Promise<string | null> => {
+      const clip = timeline
+        .getState()
+        .clips.find((candidate) => candidate.id === input.clipId);
+      const sequenceId = timeline.getState().sequenceId;
+      if (!clip || !sequenceId || findInFlight(sequenceId, input.clipId)) {
+        return null;
+      }
+      const source = captureMediaEditSourceContext(sequenceId, clip);
+      if (
+        !source.ok ||
+        !input.instruction.trim() ||
+        !input.provider ||
+        !input.model
+      ) {
+        return null;
+      }
+      const baseline = ensureBaselineTake(clip);
+      if (baseline !== clip) {
+        timeline.getState().patchClip(input.clipId, {
+          versions: baseline.versions,
+          activeTakeId: baseline.activeTakeId
+        });
+      }
+      const editSource = captureMediaEditSourceContext(sequenceId, baseline);
+      if (!editSource.ok) return null;
+      const requestId = crypto.randomUUID();
+      const request = createMediaEditRequest({
+        sourceContext: editSource.context,
+        instruction: input.instruction.trim(),
+        provider: input.provider,
+        model: input.model,
+        strength: input.strength,
+        resolution: input.resolution
+      });
+      subscribeDirectGen(
+        timeline,
+        input.clipId,
+        requestId,
+        sequenceId,
+        Date.now() + PENDING_TTL_MS,
+        request
+      );
+      useDirectGenPendingStore.getState().remember(sequenceId, {
+        clipId: input.clipId,
+        requestId,
+        startedAt: Date.now(),
+        bucket: durationBucketKey("video_edit", input.model),
+        mediaEdit: request
+      });
+      try {
+        await globalWebSocketManager.send({
+          command: "generate_media",
+          request_id: requestId,
+          data: mediaEditGenerateMediaData(request)
+        });
+        return requestId;
+      } catch {
+        clearInFlight(sequenceId, input.clipId, requestId);
+        useDirectGenPendingStore
+          .getState()
+          .markEditFailure(
+            sequenceId,
+            input.clipId,
+            "The edit could not be submitted. Check the connection and try again."
+          );
+        useDirectGenPendingStore.getState().settleEdit({
+          sequenceId: request.sourceContext.sequenceId,
+          clipId: request.sourceContext.clipId,
+          requestId,
+          mediaEdit: request,
+          status: "failed",
+          assetIds: []
+        });
+        return null;
+      }
+    },
+    [timeline]
+  );
+
   const cancel = useCallback(
     (clipId: string) => {
-      clearInFlight(clipId);
       const sequenceId = timeline.getState().sequenceId;
+      const inFlightJob = clearInFlight(sequenceId, clipId);
+      const pendingEditJob = sequenceId
+        ? useDirectGenPendingStore
+            .getState()
+            .pending[sequenceId]?.find(
+              (job) => job.clipId === clipId && job.mediaEdit
+            )
+        : undefined;
+      const mediaEdit = inFlightJob?.mediaEdit ?? pendingEditJob?.mediaEdit;
+      const mediaEditRequestId =
+        inFlightJob?.requestId ?? pendingEditJob?.requestId;
+      if (mediaEdit && mediaEditRequestId) {
+        useDirectGenPendingStore.getState().settleEdit({
+          sequenceId: mediaEdit.sourceContext.sequenceId,
+          clipId: mediaEdit.sourceContext.clipId,
+          requestId: mediaEditRequestId,
+          mediaEdit,
+          status: "cancelled",
+          assetIds: []
+        });
+        return;
+      }
       if (sequenceId) {
         useDirectGenPendingStore.getState().settle(sequenceId, clipId);
       }
@@ -517,5 +892,15 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
     [timeline]
   );
 
-  return { start, cancel };
+  const cancelEdit = useCallback(
+    (clipId: string) => {
+      const sequenceId = timeline.getState().sequenceId;
+      if (!sequenceId) return;
+      useDirectGenPendingStore.getState().clearEditFailure(sequenceId, clipId);
+      cancel(clipId);
+    },
+    [cancel, timeline]
+  );
+
+  return { start, startEdit, cancel, cancelEdit };
 }

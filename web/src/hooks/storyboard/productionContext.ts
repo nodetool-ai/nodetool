@@ -105,12 +105,17 @@ const referenceBindings = (value: unknown): ProductionReferenceBinding[] | undef
     if (!isOneOf(kind, ["product", "character", "location", "style"] as const) || typeof assetId !== "string") {
       return [];
     }
-    return [{
+    const binding: ProductionReferenceBinding = {
       kind,
-      asset_id: assetId,
-      ...(typeof item.entity_id === "string" ? { entity_id: item.entity_id } : {}),
-      ...(typeof item.label === "string" ? { label: item.label } : {})
-    }];
+      asset_id: assetId
+    };
+    if (typeof item.entity_id === "string") {
+      binding.entity_id = item.entity_id;
+    }
+    if (typeof item.label === "string") {
+      binding.label = item.label;
+    }
+    return [binding];
   });
   return result.length > 0 ? result : undefined;
 };
@@ -123,11 +128,14 @@ const references = (value: unknown): ProductionReference[] | undefined => {
     if (!isRecord(item) || typeof item.uri !== "string" || item.uri.trim() === "") {
       return [];
     }
-    return [{
-      uri: item.uri,
-      ...(typeof item.name === "string" ? { name: item.name } : {}),
-      ...(typeof item.revision === "string" ? { revision: item.revision } : {})
-    }];
+    const reference: ProductionReference = { uri: item.uri };
+    if (typeof item.name === "string") {
+      reference.name = item.name;
+    }
+    if (typeof item.revision === "string") {
+      reference.revision = item.revision;
+    }
+    return [reference];
   });
   return result.length > 0 ? result : undefined;
 };
@@ -159,7 +167,6 @@ export function readProductionRequirements(
       visualTreatments
     ) ? visualTreatment : undefined,
     speech_mode: isOneOf(speechMode, speechModes) ? speechMode : "none",
-    ...(speechBinding ? { speech_binding: speechBinding } : {}),
     reference_bindings: referenceBindings(
       value.reference_bindings ?? value.referenceBindings
     ),
@@ -174,6 +181,9 @@ export function readProductionRequirements(
         ? requestedTakeCount
         : 1
   };
+  if (speechBinding) {
+    production.speech_binding = speechBinding;
+  }
   const hasValue = Object.values(production).some((item) => item !== undefined);
   return hasValue ? production : undefined;
 }

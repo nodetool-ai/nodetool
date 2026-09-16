@@ -5,7 +5,8 @@
  * take; `clip.versions` is the take list.
  */
 
-import type { ClipVersion, TimelineClip } from "./types.js";
+import { makeClipVersion } from "./defaults.js";
+import type { TimelineClip } from "./types.js";
 
 /**
  * The take actually playing, derived rather than trusted from the stored
@@ -27,35 +28,52 @@ export function activeTakeIdOf(clip: TimelineClip): string | undefined {
 }
 
 /**
- * Record the media already playing before the first generated alternative is
- * appended. Imported clips and older direct generations can have an active
- * asset without a corresponding `ClipVersion`; without this baseline, Use
- * take would make the original impossible to select again.
+ * Record the clip's accepted asset as a take before an edit is submitted.
+ * Imported clips commonly have no version history, so the first candidate
+ * would otherwise have no explicit Original take to audition against.
  */
+export function ensureBaselineTake(
+  clip: TimelineClip,
+  createdAt = new Date().toISOString()
+): TimelineClip {
+  const assetId = clip.currentAssetId;
+  if (!assetId || (clip.versions ?? []).some((take) => take.assetId === assetId)) {
+    return clip;
+  }
+
+  const baseline = makeClipVersion({
+    id: `${clip.id}:baseline:${assetId}`,
+    createdAt,
+    workflowUpdatedAt: createdAt,
+    assetId,
+    dependencyHash: clip.dependencyHash ?? "",
+    paramOverridesSnapshot: { ...(clip.paramOverrides ?? {}) },
+    durationMs: clip.durationMs,
+    source: clip.sourceType === "imported" ? "imported" : "generated",
+    sourceMapping: {
+      ...(clip.inPointMs !== undefined && { inPointMs: clip.inPointMs }),
+      ...(clip.outPointMs !== undefined && { outPointMs: clip.outPointMs }),
+      ...(clip.speedMultiplier !== undefined && {
+        speedMultiplier: clip.speedMultiplier
+      }),
+      ...(clip.speedBaked !== undefined && { speedBaked: clip.speedBaked })
+    },
+  });
+  return {
+    ...clip,
+    versions: [...(clip.versions ?? []), baseline],
+    activeTakeId: baseline.id
+  };
+}
+
+/** Preserve the original media without changing the accepted take alias. */
 export function preserveBaselineTake(
   clip: TimelineClip,
   recordedAt: string
 ): TimelineClip {
-  const assetId = clip.currentAssetId;
-  if (
-    assetId === undefined ||
-    (clip.versions ?? []).some((version) => version.assetId === assetId)
-  ) {
-    return clip;
-  }
-
-  const baseline: ClipVersion = {
-    id: `baseline:${clip.id}:${assetId}`,
-    createdAt: recordedAt,
-    jobId: "",
-    assetId,
-    workflowUpdatedAt: recordedAt,
-    dependencyHash: clip.lastGeneratedHash ?? clip.dependencyHash ?? "",
-    paramOverridesSnapshot: { ...(clip.paramOverrides ?? {}) },
-    status: "success",
-    source: clip.sourceType
-  };
-  return { ...clip, versions: [...(clip.versions ?? []), baseline] };
+  const preserved = ensureBaselineTake(clip, recordedAt);
+  if (preserved === clip) return clip;
+  return { ...clip, versions: preserved.versions };
 }
 
 export interface TakeSourceWindow {
@@ -138,6 +156,97 @@ export function useTake(
   };
 }
 
+/** Return a preview-only clip projection for a successful take. */
+export function previewTake(
+  clip: TimelineClip,
+  takeId: string
+): TimelineClip | null {
+  const take = (clip.versions ?? []).find(
+    (candidate) => candidate.id === takeId && candidate.status === "success"
+  );
+  if (!take) return null;
+  if (!take.mediaEdit) {
+    return { ...clip, currentAssetId: take.assetId };
+  }
+  return {
+    ...clip,
+    currentAssetId: take.assetId,
+    // Generated edit results represent the selected source window from zero.
+    inPointMs: 0,
+    outPointMs: take.durationMs ?? clip.durationMs,
+    speedMultiplier: 1,
+    speedBaked: true,
+    timeRemap: undefined
+  };
+}
+
+export interface ApplyTakeResult {
+  clip: TimelineClip;
+  error?: string;
+}
+
+/**
+ * Apply a successful take while preserving the editorial shape of its clip.
+ *
+ * Video-edit results are rendered from the submitted source window, so their
+ * source clock starts at zero. The result may be longer than the cut, but the
+ * cut keeps its existing duration and uses the remainder as handles. A result
+ * that cannot cover the cut is refused before the caller writes the document.
+ */
+export function applyTakeToClip(
+  clip: TimelineClip,
+  takeId: string
+): ApplyTakeResult {
+  if (clip.mediaType === "model3d") {
+    return {
+      clip,
+      error:
+        `Clip "${clip.name}" is a 3D clip — take application is not available.`
+    };
+  }
+
+  const version = (clip.versions ?? []).find((take) => take.id === takeId);
+  if (!version) {
+    return { clip, error: `No take "${takeId}" on "${clip.name}".` };
+  }
+  if (version.status !== "success") {
+    return {
+      clip,
+      error:
+        `Take "${takeId}" on "${clip.name}" did not finish successfully.`
+    };
+  }
+
+  if (clip.mediaType === "video") {
+    const resultDurationMs = version.durationMs;
+    if (
+      resultDurationMs === undefined ||
+      !Number.isFinite(resultDurationMs) ||
+      resultDurationMs < clip.durationMs
+    ) {
+      return {
+        clip,
+        error:
+          `Take "${takeId}" is shorter than the current ${clip.durationMs}ms cut.`
+      };
+    }
+  }
+
+  const selected = selectTake(clip, takeId);
+  if (selected === clip) {
+    return { clip, error: `Take "${takeId}" cannot be applied.` };
+  }
+  if (!version.mediaEdit) return { clip: selected };
+
+  const applied: TimelineClip = { ...selected };
+  applied.inPointMs = 0;
+  applied.outPointMs = clip.durationMs;
+  applied.speedMultiplier = 1;
+  applied.speedBaked = true;
+  delete applied.timeRemap;
+  return { clip: applied };
+}
+
 /**
  * Make a stored take current on a clip. Mirrors `TimelineStore.restoreVersion`
  * so the browser store and the headless op run one rule for what switching a
@@ -164,8 +273,9 @@ export function selectTake(clip: TimelineClip, takeId: string): TimelineClip {
   const restoredHash = version.dependencyHash;
   const status: TimelineClip["status"] =
     clip.dependencyHash === restoredHash ? "generated" : "stale";
+  const mapped = version.sourceMapping;
 
-  return {
+  const next: TimelineClip = {
     ...clip,
     currentAssetId: version.assetId,
     activeTakeId: version.id,
@@ -173,6 +283,20 @@ export function selectTake(clip: TimelineClip, takeId: string): TimelineClip {
     lastGeneratedHash: restoredHash,
     status
   };
+  if (mapped) {
+    next.inPointMs = mapped.inPointMs;
+    next.outPointMs = mapped.outPointMs;
+    next.speedMultiplier = mapped.speedMultiplier;
+    next.speedBaked = mapped.speedBaked;
+  }
+  if (version.mediaEdit) {
+    next.inPointMs = 0;
+    next.outPointMs = version.durationMs ?? clip.durationMs;
+    next.speedMultiplier = 1;
+    next.speedBaked = true;
+    delete next.timeRemap;
+  }
+  return next;
 }
 
 /** Set a take's display label. A no-op for a take id not on this clip. */

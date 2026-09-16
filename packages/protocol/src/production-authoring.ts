@@ -431,7 +431,6 @@ export const productionGenerationResult = z.strictObject({
   path: ["playableWindow"], message: "Generated source is too short for the playable window."
 });
 export type ProductionGenerationResult = z.infer<typeof productionGenerationResult>;
-
 export const productionCandidateStatus = z.enum([
   "planned",
   "queued",

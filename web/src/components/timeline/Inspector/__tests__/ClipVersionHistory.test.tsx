@@ -6,12 +6,17 @@
 
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { beforeEach } from "@jest/globals";
 import { ThemeProvider } from "@mui/material/styles";
 import { makeClip } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { ClipVersionHistory } from "../ClipVersionHistory";
-import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
+import {
+  getTimelineTemporal,
+  useTimelineStore
+} from "../../../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 
 jest.mock("../../../../stores/AssetStore", () => ({
   useAssetStore: (selector: (state: { get: () => Promise<never> }) => unknown) =>
@@ -46,6 +51,7 @@ function seedClipWithTwoTakes(): string {
         workflowUpdatedAt: "2026-01-01T00:00:00.000Z",
         dependencyHash: "hash_1",
         paramOverridesSnapshot: {},
+        durationMs: 4000,
         status: "success"
       },
       {
@@ -56,6 +62,7 @@ function seedClipWithTwoTakes(): string {
         workflowUpdatedAt: "2026-01-02T00:00:00.000Z",
         dependencyHash: "hash_2",
         paramOverridesSnapshot: {},
+        durationMs: 4000,
         status: "success",
         label: "Hero take"
       }
@@ -68,6 +75,11 @@ function seedClipWithTwoTakes(): string {
 }
 
 describe("ClipVersionHistory", () => {
+  beforeEach(() => {
+    useTimelineUIStore.setState({ audition: null, selectedClipIds: new Set() });
+    getTimelineTemporal().clear();
+  });
+
   it("shows a take's label when set, and falls back to the ordinal otherwise", () => {
     const clipId = seedClipWithTwoTakes();
     renderHistory(clipId);
@@ -114,5 +126,40 @@ describe("ClipVersionHistory", () => {
 
     const clip = useTimelineStore.getState().clips.find((c) => c.id === clipId)!;
     expect(clip.versions.find((v) => v.id === "take_1")?.label).toBe("Wide");
+  });
+
+  it("previews a candidate without restoring the clip or recording undo", () => {
+    const clipId = seedClipWithTwoTakes();
+    getTimelineTemporal().clear();
+    renderHistory(clipId);
+
+    fireEvent.click(screen.getAllByLabelText("Preview Candidate")[0]!);
+
+    const clip = useTimelineStore.getState().clips.find((c) => c.id === clipId)!;
+    expect(clip.currentAssetId).toBe("asset_2");
+    expect(useTimelineUIStore.getState().audition).toEqual({
+      clipId,
+      takeId: "take_1"
+    });
+    expect(getTimelineTemporal().pastStates).toHaveLength(0);
+  });
+
+  it("returns to the original preview when the explicit Original control is used", () => {
+    const clipId = seedClipWithTwoTakes();
+    renderHistory(clipId);
+    fireEvent.click(screen.getAllByLabelText("Preview Candidate")[0]!);
+    fireEvent.click(screen.getByLabelText("Preview Original"));
+
+    expect(useTimelineUIStore.getState().audition).toBeNull();
+  });
+
+  it("uses a candidate only through the explicit Use take control", () => {
+    const clipId = seedClipWithTwoTakes();
+    renderHistory(clipId);
+    fireEvent.click(screen.getByLabelText("Use take #1"));
+
+    expect(
+      useTimelineStore.getState().clips.find((c) => c.id === clipId)?.currentAssetId
+    ).toBe("asset_1");
   });
 });

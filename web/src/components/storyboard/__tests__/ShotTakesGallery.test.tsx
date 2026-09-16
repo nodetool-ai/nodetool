@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
-import type { ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
+import type { ClipVersion, ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
 
 // The gallery reuses the node-results renderer; stub it so this test asserts
@@ -51,6 +51,28 @@ const video = (n: number): VideoRef => ({
   type: "video",
   uri: `http://example.com/clip-${n}.mp4`,
   asset_id: `vid-${n}`
+});
+
+const editVideo = (n: number): ClipVersion => ({
+  ...video(n),
+  mediaEdit: {
+    action: "video_edit",
+    modelTask: "video_to_video",
+    requestId: `request-${n}`,
+    instruction: "make it warmer",
+    provider: "test-provider",
+    model: "test-model",
+    sourceContext: {
+      sequenceId: BOARD,
+      clipId: "shot-1",
+      sourceAssetId: `vid-${n}`,
+      sourceStartMs: 0,
+      sourceEndMs: 4_000,
+      timelineStartMs: 0,
+      timelineDurationMs: 4_000,
+      speedMultiplier: 1
+    }
+  }
 });
 
 const makeShot = (overrides: Partial<Shot> = {}): Shot => ({
@@ -162,6 +184,24 @@ describe("ShotTakesGallery", () => {
       shot.id,
       "vid-1"
     );
+  });
+
+  it("selects a media-edit candidate without syncing the linked timeline", async () => {
+    const candidate = editVideo(1);
+    const shot = makeShot({
+      clip: video(2),
+      clip_versions: [candidate, video(2)]
+    });
+    seedShot(shot);
+    renderGallery(shot);
+
+    await userEvent.click(screen.getByText("Take 1"));
+
+    const updated = useStoryboardStore
+      .getState()
+      .boards[BOARD]?.shots.find((s) => s.id === shot.id);
+    expect(updated?.clip).toEqual(candidate);
+    expect(syncShotClipToTimelineMock).not.toHaveBeenCalled();
   });
 
   it("opens a still take fullscreen without changing the selection", async () => {
