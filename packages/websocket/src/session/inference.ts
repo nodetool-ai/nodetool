@@ -36,6 +36,7 @@ import type {
 
 import { admitSpend, releaseSpend, reserveSpend } from "../credit-gate.js";
 import { retrieveAssetBytes } from "../lib/asset-paths.js";
+import { trimVideoWindow } from "../lib/media.js";
 import { resolveImageSize } from "../lib/media-size.js";
 import { getAssetAdapter } from "../lib/storage.js";
 import { isFiniteNumber, isRecord, isString } from "../lib/wire-values.js";
@@ -83,6 +84,8 @@ export interface DirectMediaGenerationRequest {
    * a frame that was already delivered to a dead socket.
    */
   requestId?: string;
+  /** Submission-time timeline mapping for a native video edit. */
+  sourceContext?: DirectMediaSourceContext;
   capability?: "reference_to_video";
   referenceImages?: unknown[];
   referenceVideos?: unknown[];
@@ -90,6 +93,18 @@ export interface DirectMediaGenerationRequest {
   /** Project captured when the request was accepted. */
   projectId?: string | null;
   destination?: GenerationRequest["destination"];
+}
+
+export interface DirectMediaSourceContext {
+  sequenceId: string;
+  clipId: string;
+  sourceAssetId: string;
+  sourceTakeId?: string;
+  sourceStartMs: number;
+  sourceEndMs: number;
+  timelineStartMs: number;
+  timelineDurationMs: number;
+  speedMultiplier: number;
 }
 
 export interface DirectMediaGenerationResult {
@@ -607,6 +622,54 @@ export class DirectInferenceHandler {
       await Project.requireOwned(userId, req.projectId);
     }
     const provider = await this.session.resolveProvider(req.provider, userId);
+    if (req.mode === "video_edit") {
+      const context = req.sourceContext;
+      if (!req.sourceAssetId) {
+        throw new Error("source_asset_id is required for video_edit");
+      }
+      if (context && context.sourceAssetId !== req.sourceAssetId) {
+        throw new Error("source_context does not match source_asset_id");
+      }
+      if (
+        context &&
+        (!Number.isFinite(context.sourceStartMs) ||
+          !Number.isFinite(context.sourceEndMs) ||
+          context.sourceStartMs < 0 ||
+          context.sourceEndMs <= context.sourceStartMs ||
+          !Number.isFinite(context.timelineDurationMs) ||
+          context.timelineDurationMs <= 0 ||
+          !Number.isFinite(context.speedMultiplier) ||
+          context.speedMultiplier <= 0 ||
+          context.speedMultiplier !== 1 ||
+          Math.abs(
+            context.sourceEndMs -
+              (context.sourceStartMs +
+                context.timelineDurationMs * context.speedMultiplier)
+          ) > 0.5)
+      ) {
+        throw new Error(
+          "source_context contains an invalid constant-speed window"
+        );
+      }
+      if (
+        typeof provider.getCapabilities === "function" &&
+        !provider.getCapabilities().includes("video_to_video")
+      ) {
+        throw new Error(
+          `Provider ${req.provider} does not support the video_to_video task`
+        );
+      }
+      if (typeof provider.getAvailableVideoModels === "function") {
+        const model = (await provider.getAvailableVideoModels()).find(
+          (candidate) => candidate.id === req.model
+        );
+        if (!model?.supportedTasks?.includes("video_to_video")) {
+          throw new Error(
+            `Model ${req.model} does not support the video_to_video task`
+          );
+        }
+      }
+    }
     if (req.provider !== "nodetool") {
       // BYOK: the user's own keys, never metered.
       try {
@@ -629,12 +692,15 @@ export class DirectInferenceHandler {
     // tracked cost and the unit-price estimate — fal-style delegates bill
     // per unit and track nothing themselves.
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
+    const effectiveDurationSeconds = req.sourceContext
+      ? req.sourceContext.timelineDurationMs / 1000
+      : req.durationSeconds;
     // What the request states about the job, in the vocabulary the catalogs
     // bill in — a per-second video model prices the clip asked for, not one
     // second of it.
     const priceParams = extractPricingParams({
       resolution: req.resolution,
-      duration_seconds: req.durationSeconds,
+      duration_seconds: effectiveDurationSeconds,
       width: req.width,
       height: req.height
     });
@@ -869,27 +935,42 @@ export class DirectInferenceHandler {
         userId,
         req.sourceAssetId
       );
+      const editSource = req.sourceContext
+        ? await trimVideoWindow(
+            sourceBytes,
+            req.sourceContext.sourceStartMs,
+            req.sourceContext.sourceEndMs
+          )
+        : sourceBytes;
       const videoModel: ProviderVideoModel = {
         id: req.model,
         name: req.model,
         provider: req.provider
       };
+      const editParams: Record<string, unknown> = {
+        prompt,
+        strength: req.strength ?? null,
+        duration_seconds: req.sourceContext
+          ? req.sourceContext.timelineDurationMs / 1000
+          : (req.durationSeconds ?? null),
+        resolution: req.resolution ?? null,
+        video: editSource
+      };
+      if (req.sourceContext) {
+        editParams.source_context = req.sourceContext;
+      }
       const generated = await generate(
         "video_to_video",
-        {
-          prompt,
-          strength: req.strength ?? null,
-          duration_seconds: req.durationSeconds ?? null,
-          resolution: req.resolution ?? null,
-          video: sourceBytes
-        },
+        editParams,
         { mime: "video/mp4" },
         () =>
-          provider.videoToVideo(sourceBytes, {
+          provider.videoToVideo(editSource, {
             model: videoModel,
             prompt,
             strength: req.strength ?? null,
-            durationSeconds: req.durationSeconds ?? null,
+            durationSeconds: req.sourceContext
+              ? req.sourceContext.timelineDurationMs / 1000
+              : (req.durationSeconds ?? null),
             resolution: req.resolution ?? null
           })
       );

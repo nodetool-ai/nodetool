@@ -1674,6 +1674,27 @@ export interface ClipVersion {
   variationIndex?: number;
   /** Immutable resolved production inputs captured before provider dispatch. */
   productionSnapshot?: ProductionGenerationSnapshot;
+  mediaEdit?: {
+    action: "video_edit";
+    modelTask: "video_to_video";
+    requestId: string;
+    instruction: string;
+    provider: string;
+    model: string;
+    sourceContext: {
+      sequenceId: string;
+      clipId: string;
+      sourceAssetId: string;
+      sourceTakeId?: string;
+      sourceStartMs: number;
+      sourceEndMs: number;
+      timelineStartMs: number;
+      timelineDurationMs: number;
+      speedMultiplier: number;
+    };
+    strength?: number;
+    resolution?: string;
+  };
 }
 
 export interface TimelineMarker {

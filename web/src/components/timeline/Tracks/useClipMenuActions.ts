@@ -13,6 +13,7 @@
 
 import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { captureMediaEditSourceContext } from "@nodetool-ai/timeline";
 
 import {
   useTimelineStore,
@@ -34,6 +35,7 @@ export interface ClipMenuActions {
    * its own, so there is nothing to replace.
    */
   canReplace: boolean;
+  canEditVideo: boolean;
 
   splitAtPlayhead: () => void;
   duplicate: () => void;
@@ -42,6 +44,7 @@ export interface ClipMenuActions {
   toggleLock: () => void;
   openReplace: () => void;
   openInNodeEditor: () => void;
+  openAiEdit: () => void;
 }
 
 export interface ClipMenuActionCallbacks {
@@ -117,6 +120,18 @@ export function useClipMenuActions(
     navigate(`/editor/${clip.workflowId}?from=timeline:${sequenceId}:${clipId}`);
   }, [clip?.workflowId, clipId, navigate, sequenceId]);
 
+  const openAiEdit = useCallback(() => {
+    selectClip(clipId);
+  }, [clipId, selectClip]);
+
+  const canEditVideo = useMemo(
+    () =>
+      clip !== undefined &&
+      sequenceId !== null &&
+      captureMediaEditSourceContext(sequenceId, clip).ok,
+    [clip, sequenceId]
+  );
+
   return useMemo(
     () => ({
       isGenerated: clip?.sourceType === "generated",
@@ -124,13 +139,15 @@ export function useClipMenuActions(
       canOpenInNodeEditor: Boolean(clip?.workflowId && sequenceId),
       isMidi: clip?.mediaType === "midi",
       canReplace: clip?.mediaType !== "adjustment",
+      canEditVideo,
       splitAtPlayhead,
       duplicate,
       editNotes,
       regenerateAsCopy,
       toggleLock,
       openReplace,
-      openInNodeEditor
+      openInNodeEditor,
+      openAiEdit
     }),
     [
       clip?.sourceType,
@@ -144,7 +161,9 @@ export function useClipMenuActions(
       regenerateAsCopy,
       toggleLock,
       openReplace,
-      openInNodeEditor
+      openInNodeEditor,
+      openAiEdit,
+      canEditVideo
     ]
   );
 }

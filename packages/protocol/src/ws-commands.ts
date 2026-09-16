@@ -193,26 +193,55 @@ export const generateMediaDataSchema = z
      * "video" = text-to-video; "audio" = text-to-speech.
      */
     mode: z
-      .enum(["image", "image_edit", "inpaint", "video", "audio", "music"])
+      .enum([
+        "image",
+        "image_edit",
+        "inpaint",
+        "video",
+        "video_edit",
+        "audio",
+        "music"
+      ])
       .optional(),
     provider: z.string().optional(),
     model: z.string().optional(),
     prompt: z.string().optional(),
     capability: z.literal("reference_to_video").optional(),
     /** Ordered, owned assets with distinct image-reference and video-reference roles. */
-    reference_images: z.array(z.object({
-      type: z.literal("image").optional(),
-      asset_id: z.string().nullable().optional(),
-      uri: z.string().optional()
-    })).optional(),
-    reference_videos: z.array(z.object({
-      type: z.literal("video").optional(),
-      asset_id: z.string().nullable().optional(),
-      uri: z.string().optional()
-    })).optional(),
+    reference_images: z
+      .array(
+        z.object({
+          type: z.literal("image").optional(),
+          asset_id: z.string().nullable().optional(),
+          uri: z.string().optional()
+        })
+      )
+      .optional(),
+    reference_videos: z
+      .array(
+        z.object({
+          type: z.literal("video").optional(),
+          asset_id: z.string().nullable().optional(),
+          uri: z.string().optional()
+        })
+      )
+      .optional(),
     use_reference_video_audio: z.boolean().optional(),
     /** Required for "image_edit" and "inpaint". Bytes are loaded server-side. */
     source_asset_id: z.string().optional(),
+    source_context: z
+      .object({
+        sequence_id: z.string(),
+        clip_id: z.string(),
+        source_asset_id: z.string(),
+        source_take_id: z.string().optional(),
+        source_start_ms: z.number(),
+        source_end_ms: z.number(),
+        timeline_start_ms: z.number(),
+        timeline_duration_ms: z.number(),
+        speed_multiplier: z.number()
+      })
+      .optional(),
     /** The region to repaint, for "inpaint". */
     mask_asset_id: z.string().optional(),
     width: z.number().optional(),
@@ -419,31 +448,30 @@ export const toolResultMessageInSchema = z
   .passthrough();
 
 /** Result of a server/MCP request to execute a frontend tool in this renderer. */
-export const rendererToolResultMessageInSchema = z
-  .discriminatedUnion("ok", [
-    z
-      .object({
-        type: z.literal("renderer_tool_result"),
-        renderer_id: z.string().min(1),
-        tool_call_id: z.string().min(1),
-        ok: z.literal(true),
-        result: z.unknown().optional(),
-        error: z.never().optional(),
-        elapsed_ms: z.number().nonnegative().optional()
-      })
-      .passthrough(),
-    z
-      .object({
-        type: z.literal("renderer_tool_result"),
-        renderer_id: z.string().min(1),
-        tool_call_id: z.string().min(1),
-        ok: z.literal(false),
-        result: z.never().optional(),
-        error: z.string().min(1),
-        elapsed_ms: z.number().nonnegative().optional()
-      })
-      .passthrough()
-  ]);
+export const rendererToolResultMessageInSchema = z.discriminatedUnion("ok", [
+  z
+    .object({
+      type: z.literal("renderer_tool_result"),
+      renderer_id: z.string().min(1),
+      tool_call_id: z.string().min(1),
+      ok: z.literal(true),
+      result: z.unknown().optional(),
+      error: z.never().optional(),
+      elapsed_ms: z.number().nonnegative().optional()
+    })
+    .passthrough(),
+  z
+    .object({
+      type: z.literal("renderer_tool_result"),
+      renderer_id: z.string().min(1),
+      tool_call_id: z.string().min(1),
+      ok: z.literal(false),
+      result: z.never().optional(),
+      error: z.string().min(1),
+      elapsed_ms: z.number().nonnegative().optional()
+    })
+    .passthrough()
+]);
 
 export const toolApprovalResponseMessageInSchema = z
   .object({

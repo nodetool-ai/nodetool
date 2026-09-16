@@ -1529,7 +1529,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "accept_video_production_candidates",
     module: "video-production",
     impl: "packages/agents/src/capabilities/video-production.ts",
-    contract: "070221a2198a",
+    contract: "65af9427723a",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-video-production.test.ts",
