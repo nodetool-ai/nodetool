@@ -283,6 +283,7 @@ describe("AI-video production capability contract", () => {
       error: string;
     };
     expect(result).toMatchObject({ ok: false, code: "acceptance_adapter_unavailable" });
+    expect(result).not.toHaveProperty("accepted");
     expect(result.error).toContain("no destination-specific apply adapter");
     expect(updateTimelineSequence).not.toHaveBeenCalled();
   });
