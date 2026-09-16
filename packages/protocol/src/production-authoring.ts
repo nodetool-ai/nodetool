@@ -396,3 +396,88 @@ export const productionCandidate = z
     }
   });
 export type ProductionCandidate = z.infer<typeof productionCandidate>;
+
+/** A live destination that may receive one selected production candidate. */
+export interface ProductionAcceptanceTarget {
+  readonly destinationKind: ProductionDestinationKind;
+  readonly destinationId: string;
+  readonly acceptedCandidateId?: string;
+}
+
+export type ProductionAcceptanceValidation =
+  | { readonly valid: true; readonly candidates: readonly ProductionCandidate[] }
+  | { readonly valid: false; readonly issues: readonly string[] };
+
+/**
+ * Validate a complete acceptance selection against the live destinations.
+ * Selection keys are checked in both directions so a destination deleted
+ * after generation cannot be accepted just because its candidate still exists.
+ */
+export function validateProductionAcceptance(input: {
+  readonly candidates: readonly ProductionCandidate[];
+  readonly targets: readonly ProductionAcceptanceTarget[];
+  readonly selection: Readonly<Record<string, string>>;
+  readonly batchId: string;
+}): ProductionAcceptanceValidation {
+  const byId = new Map(
+    input.candidates.map((candidate) => [candidate.candidateId, candidate])
+  );
+  const liveTargets = new Map<string, ProductionAcceptanceTarget>();
+  const liveDestinationIds = new Set<string>();
+  const issues: string[] = [];
+  const selected: ProductionCandidate[] = [];
+
+  for (const target of input.targets) {
+    const targetKey = `${target.destinationKind}:${target.destinationId}`;
+    if (liveTargets.has(targetKey)) {
+      issues.push(`${target.destinationId}: duplicate acceptance target`);
+      continue;
+    }
+    liveTargets.set(targetKey, target);
+    liveDestinationIds.add(target.destinationId);
+
+    const candidateId = input.selection[target.destinationId];
+    if (candidateId === undefined || candidateId.trim() === "") {
+      issues.push(`${target.destinationId}: no candidate selected`);
+      continue;
+    }
+
+    const candidate = byId.get(candidateId);
+    if (candidate === undefined) {
+      issues.push(`${target.destinationId}: candidate is missing`);
+      continue;
+    }
+
+    let candidateIsValid = true;
+    if (candidate.batchId !== input.batchId) {
+      issues.push(`${target.destinationId}: candidate belongs to another production`);
+      candidateIsValid = false;
+    }
+    if (
+      candidate.destinationKind !== target.destinationKind ||
+      candidate.destinationId !== target.destinationId
+    ) {
+      issues.push(`${target.destinationId}: candidate targets another destination`);
+      candidateIsValid = false;
+    }
+    if (candidate.status !== "ready" || candidate.assetId === undefined) {
+      issues.push(`${target.destinationId}: candidate is not ready`);
+      candidateIsValid = false;
+    }
+    if (target.acceptedCandidateId !== undefined) {
+      issues.push(`${target.destinationId}: target already has accepted media`);
+      candidateIsValid = false;
+    }
+    if (candidateIsValid) selected.push(candidate);
+  }
+
+  for (const destinationId of Object.keys(input.selection)) {
+    if (!liveDestinationIds.has(destinationId)) {
+      issues.push(`${destinationId}: selected destination is missing`);
+    }
+  }
+
+  return issues.length > 0
+    ? { valid: false, issues }
+    : { valid: true, candidates: selected };
+}
