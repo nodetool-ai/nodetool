@@ -80,6 +80,36 @@ describe("removeScript", () => {
   });
 });
 
+describe("creative context", () => {
+  it("persists optional production context without changing script text", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    const lineId = store.addLine(SCRIPT);
+    store.patchLine(SCRIPT, lineId, { text: "Keep these words" });
+
+    store.setCreativeContext(SCRIPT, {
+      schema_version: 1,
+      product_name: "Tide Clock",
+      approved_claims: ["One hand"],
+      prohibited_claims: ["Guaranteed results"]
+    });
+
+    const script = useScriptStore.getState().scripts[SCRIPT];
+    expect(script.creativeContext).toEqual({
+      schema_version: 1,
+      product_name: "Tide Clock",
+      approved_claims: ["One hand"],
+      prohibited_claims: ["Guaranteed results"]
+    });
+    expect(script.sections[0].lines[0].text).toBe("Keep these words");
+
+    store.setCreativeContext(SCRIPT, undefined);
+    expect(
+      useScriptStore.getState().scripts[SCRIPT].creativeContext
+    ).toBeUndefined();
+  });
+});
+
 describe("insertLine", () => {
   const seed = (n: number): string => {
     const store = useScriptStore.getState();

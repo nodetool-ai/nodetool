@@ -75,6 +75,53 @@ describe("production authoring contract", () => {
     ).toBe(false);
   });
 
+  it("keeps linked words owned by the Script and permits local speech without one", () => {
+    expect(
+      production.safeParse({
+        speech_mode: "on_camera",
+        speech_binding: {
+          script_line_id: "line-1",
+          text: "A second editable copy"
+        }
+      }).success
+    ).toBe(false);
+    expect(
+      production.safeParse({
+        speech_mode: "on_camera",
+        speech_binding: {
+          text: "Locally owned",
+          voice: { provider: "test", model: "tts", voice: "actor" }
+        }
+      }).success
+    ).toBe(true);
+  });
+
+  it("rejects disagreement between a candidate and every captured identity field", () => {
+    const identity = productionVariationIdentity({
+      batchId: "batch-1",
+      destinationKind: "timeline_clip",
+      destinationId: "clip-1",
+      variationIndex: 1
+    });
+    for (const change of [
+      { batchId: "other" },
+      { requestId: "other" },
+      { variationId: "other" },
+      { variationIndex: 2 },
+      { destinationKind: "storyboard_shot" },
+      { destinationId: "other" }
+    ]) {
+      expect(
+        productionCandidate.safeParse({
+          ...identity,
+          status: "planned",
+          snapshot: { ...identity, operation: "initial_generation", ...change }
+        }).success,
+        JSON.stringify(change)
+      ).toBe(false);
+    }
+  });
+
   it("enforces candidate lifecycle transitions", () => {
     const identity = productionVariationIdentity({
       batchId: "batch-1",
@@ -104,9 +151,7 @@ describe("production authoring contract", () => {
     });
 
     expect(canTransitionProductionCandidate("planned", "queued")).toBe(true);
-    expect(canTransitionProductionCandidate("ready", "generating")).toBe(
-      false
-    );
+    expect(canTransitionProductionCandidate("ready", "generating")).toBe(false);
     expect(isTerminalProductionCandidateStatus("failed")).toBe(true);
     expect(
       transitionProductionCandidate(
@@ -152,9 +197,7 @@ describe("production authoring contract", () => {
   it("rejects a live destination whose selected candidate is missing", () => {
     const result = validateProductionAcceptance({
       candidates: [],
-      targets: [
-        { destinationKind: "timeline_clip", destinationId: "clip-1" }
-      ],
+      targets: [{ destinationKind: "timeline_clip", destinationId: "clip-1" }],
       selection: { "clip-1": "missing-candidate" },
       batchId: "batch-1"
     });

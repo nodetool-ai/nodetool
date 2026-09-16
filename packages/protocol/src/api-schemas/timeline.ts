@@ -2,9 +2,11 @@ import { z } from "zod";
 import { BLEND_MODE_TUPLE } from "../blend-modes.js";
 import {
   creativeContext,
-  productionGenerationSnapshot,
+  productionTakeMetadata,
   productionRequirement
 } from "../production-authoring.js";
+import { captionWord } from "../caption-word.js";
+export { captionWord, type CaptionWord } from "../caption-word.js";
 
 const blendModeEnum = z.enum(BLEND_MODE_TUPLE);
 
@@ -56,13 +58,7 @@ export const clipVersion = z.object({
   negativePrompt: z.string().optional(),
   parentTakeId: z.string().optional(),
   /** Stable production candidate identity captured before dispatch. */
-  candidateId: z.string().optional(),
-  batchId: z.string().optional(),
-  requestId: z.string().optional(),
-  variationId: z.string().optional(),
-  variationIndex: z.number().int().min(1).max(3).optional(),
-  /** Immutable resolved production inputs. Never rewritten on completion. */
-  productionSnapshot: productionGenerationSnapshot.optional(),
+  ...productionTakeMetadata.shape,
   /** Immutable direct-generation inputs for recipe-based New take replay. */
   generationRecipe: z
     .object({
@@ -152,24 +148,6 @@ export const timelineMarker = z.object({
 export type TimelineMarker = z.infer<typeof timelineMarker>;
 
 // ── Captions ─────────────────────────────────────────────────────────────────
-
-/**
- * One word of a caption with its timing relative to the *clip start* (beat
- * local), not absolute timeline time. Keeping it clip-local means re-flowing a
- * beat (changing `clip.startMs`) never requires rewriting word timings.
- */
-export const captionWord = z.object({
-  word: z.string(),
-  startMs: z.number(),
-  endMs: z.number(),
-  /** Token classification; absent means a normal spoken word. Without this
-   * field Zod strips it on every PATCH, so filler-word removal — which reads
-   * `kind` — stops finding anything after one save. */
-  kind: z.enum(["word", "filler", "pause"]).optional(),
-  /** ASR confidence 0..1. Without this field Zod strips it on every PATCH. */
-  confidence: z.number().min(0).max(1).optional()
-});
-export type CaptionWord = z.infer<typeof captionWord>;
 
 /**
  * Authored look of a caption layer. Every field is optional: an absent one
@@ -1579,6 +1557,8 @@ export const timelineSetup = z
     voiceover: z.boolean().optional(),
     /** Optional shared product, audience, and reference context. */
     creative_context: creativeContext.optional(),
+    /** Fingerprint of the reviewed production requirements. */
+    production_review_fingerprint: z.string().optional(),
     beats: z.array(timelineBeat).optional(),
     /**
      * The language model that drafts the beats. Absent means the flow picks
@@ -1693,6 +1673,7 @@ export type PatchTimelineInput = z.infer<typeof patchTimelineInput>;
 // ── append clip version (POST /api/timeline/:id/clips/:clipId/versions) ──────
 
 export const appendClipVersionInput = z.object({
+  ...productionTakeMetadata.shape,
   jobId: z.string(),
   assetId: z.string(),
   dependencyHash: z.string(),

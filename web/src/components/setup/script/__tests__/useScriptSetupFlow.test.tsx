@@ -379,4 +379,24 @@ describe("useScriptSetupFlow", () => {
     expect(carried?.attributed).toBe(true);
     expect(carried?.lines[0].targetDurationMs).toBe(2750);
   });
+
+  it("carries creative context without making a second script owner", () => {
+    const document = newScriptSetupDocument("a product launch", {
+      creativeContext: {
+        schema_version: 1,
+        product_name: "Tide Clock",
+        objective: "Explain the product"
+      }
+    });
+
+    expect(document.creative_context).toEqual({
+      schema_version: 1,
+      product_name: "Tide Clock",
+      objective: "Explain the product"
+    });
+    expect(document.setup).toEqual({
+      stage: "idea",
+      brief: "a product launch"
+    });
+  });
 });

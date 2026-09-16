@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyProductionDraft,
   auditionProductionCandidate,
+  compileProductionCandidates,
   landProductionCandidate,
   productionCandidateIdentity,
   productionCandidatesForClip,
@@ -31,7 +32,11 @@ function landing(
   variationIndex: number,
   assetId: string
 ) {
-  const identity = productionCandidateIdentity("batch-1", destinationId, variationIndex);
+  const identity = productionCandidateIdentity(
+    "batch-1",
+    destinationId,
+    variationIndex
+  );
   const snapshot = {
     schemaVersion: 1 as const,
     batchId: identity.batchId,
@@ -44,7 +49,15 @@ function landing(
     operation: "initial_generation" as const,
     prompt: `candidate ${variationIndex}`
   };
-  const version: Omit<ClipVersion, "candidateId" | "batchId" | "requestId" | "variationId" | "variationIndex" | "productionSnapshot"> & {
+  const version: Omit<
+    ClipVersion,
+    | "candidateId"
+    | "batchId"
+    | "requestId"
+    | "variationId"
+    | "variationIndex"
+    | "productionSnapshot"
+  > & {
     productionSnapshot: typeof snapshot;
   } = {
     id: `${destinationId}-take-${variationIndex}`,
@@ -74,6 +87,94 @@ function state(clips: TimelineClip[]): TimelineOpState {
 }
 
 describe("production candidate lifecycle", () => {
+  it("compiles resolved references and stable take identities before dispatch", () => {
+    const candidates = compileProductionCandidates({
+      batchId: "batch-1",
+      destinationId: "clip-1",
+      destinationKind: "timeline_clip",
+      operation: "initial_generation",
+      prompt: "A spokesperson demonstrates the product",
+      requirement: {
+        schema_version: 1,
+        speech_mode: "off_camera",
+        speech_binding: {
+          audio_asset_id: "audio-1"
+        },
+        reference_bindings: [
+          {
+            kind: "product",
+            asset_id: "product-1"
+          }
+        ],
+        requested_take_count: 3
+      },
+      referenceAssetIds: ["character-1", "product-1"],
+      requestedDurationMs: 4_000,
+      routeSupport: {
+        referenceToVideo: true,
+        audioDrivenPerformance: false
+      }
+    });
+
+    expect(
+      candidates.map((candidate) => candidate.identity.variationIndex)
+    ).toEqual([1, 2, 3]);
+    expect(candidates.map((candidate) => candidate.identity.requestId)).toEqual(
+      [
+        "request:candidate:variation:batch-1:timeline_clip:clip-1:1",
+        "request:candidate:variation:batch-1:timeline_clip:clip-1:2",
+        "request:candidate:variation:batch-1:timeline_clip:clip-1:3"
+      ]
+    );
+    expect(candidates[0]?.referenceAssetIds).toEqual([
+      "character-1",
+      "product-1"
+    ]);
+    expect(candidates[0]?.snapshot.speech?.audioAssetId).toBe("audio-1");
+    expect(candidates[0]?.executionRoute).toBe("reference_to_video");
+  });
+
+  it("rejects timing mismatches and unsupported on-camera performance before dispatch", () => {
+    const base = {
+      batchId: "batch-1",
+      destinationId: "clip-1",
+      destinationKind: "timeline_clip" as const,
+      operation: "initial_generation" as const,
+      prompt: "A spokesperson talks to camera",
+      routeSupport: {
+        referenceToVideo: true,
+        audioDrivenPerformance: false
+      }
+    };
+
+    expect(() =>
+      compileProductionCandidates({
+        ...base,
+        requirement: {
+          schema_version: 1,
+          speech_mode: "off_camera",
+          speech_binding: { audio_asset_id: "audio-1" },
+          duration_ms: 2_000,
+          speech_duration_ms: 2_500,
+          requested_take_count: 1
+        }
+      })
+    ).toThrow(/speech duration/i);
+
+    expect(() =>
+      compileProductionCandidates({
+        ...base,
+        requirement: {
+          schema_version: 1,
+          speech_mode: "on_camera",
+          speech_binding: { audio_asset_id: "audio-1" },
+          reference_bindings: [{ kind: "character", asset_id: "character-1" }],
+          requested_take_count: 1
+        }
+      })
+    ).toThrow(/does not support audio-driven/i);
+  });
+
   it("assigns stable identities and lists landed candidates by variation, not completion order", () => {
     const original = clip("clip-1");
     const third = landing("clip-1", 3, "asset-3");
@@ -89,10 +190,9 @@ describe("production candidate lifecycle", () => {
     expect(landed.currentAssetId).toBeUndefined();
     expect(landed.activeTakeId).toBeUndefined();
     expect(landed.startMs).toBe(original.startMs);
-    expect(productionCandidatesForClip(landed).map((v) => v.variationIndex)).toEqual([
-      1,
-      3
-    ]);
+    expect(
+      productionCandidatesForClip(landed).map((v) => v.variationIndex)
+    ).toEqual([1, 3]);
   });
 
   it("updates audition selection without mutating document or audition state", () => {
@@ -128,17 +228,19 @@ describe("production candidate lifecycle", () => {
       "asset-1",
       "asset-2"
     ]);
-    expect(before.clips.every((item) => item.currentAssetId === undefined)).toBe(
-      true
-    );
+    expect(
+      before.clips.every((item) => item.currentAssetId === undefined)
+    ).toBe(true);
 
     const undone = undoProductionDraft(applied.state, applied);
     expect(undone.ok).toBe(true);
     if (!undone.ok) return;
-    expect(undone.state.clips.every((item) => item.currentAssetId === undefined)).toBe(
-      true
-    );
-    expect(undone.state.clips.map((item) => item.versions.length)).toEqual([1, 1]);
+    expect(
+      undone.state.clips.every((item) => item.currentAssetId === undefined)
+    ).toBe(true);
+    expect(undone.state.clips.map((item) => item.versions.length)).toEqual([
+      1, 1
+    ]);
   });
 
   it("rejects a conflicting draft before changing any selected clip", () => {

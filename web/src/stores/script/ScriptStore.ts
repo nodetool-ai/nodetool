@@ -18,6 +18,7 @@
 
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import type { CreativeContext } from "@nodetool-ai/protocol";
 import type { ScriptSetup } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 import {
   pushHistory,
@@ -97,8 +98,10 @@ export interface ScriptDraft {
    * Persisted storyboard this script is linked to (`scripts.storyboard_id`).
    * The board owns the link (`Screenplay.script_id`); this is the back-pointer
    * the script editor navigates by, so it survives a reload.
-   */
+  */
   storyboardId: string | null;
+  /** Optional shared product, audience, and reference context. */
+  creativeContext?: CreativeContext;
   /**
    * Where the script sits in the guided setup, and the answers each step wrote
    * (PRD § 9.5). Null on a script written before the flow existed, which is
@@ -167,6 +170,11 @@ export interface ScriptStoreState {
   getScript: (id: string) => ScriptDraft | undefined;
 
   setTitle: (scriptId: string, title: string) => void;
+  /** Replace the optional production context without changing script ownership. */
+  setCreativeContext: (
+    scriptId: string,
+    creativeContext: CreativeContext | undefined
+  ) => void;
   /**
    * Merge fields into the guided setup, seeding one at stage `idea` when the
    * script has none. Every step writes through here, so the flow's state is
@@ -520,6 +528,29 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
         scriptId,
         (s) => (s.title === title ? s : { ...s, title }),
         { coalesceKey: "title" }
+      )
+    ),
+
+  setCreativeContext: (scriptId, creativeContext) =>
+    set((state) =>
+      withScript(
+        state,
+        scriptId,
+        (script) => {
+          if (
+            JSON.stringify(script.creativeContext ?? null) ===
+            JSON.stringify(creativeContext ?? null)
+          ) {
+            return script;
+          }
+          if (creativeContext === undefined) {
+            const next = { ...script };
+            delete next.creativeContext;
+            return next;
+          }
+          return { ...script, creativeContext };
+        },
+        { coalesceKey: "creative-context" }
       )
     ),
 

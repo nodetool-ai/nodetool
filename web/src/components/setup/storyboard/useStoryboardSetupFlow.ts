@@ -13,7 +13,7 @@
  * creator can leave a screenplay that is being replaced under them (F2).
  */
 
-import { createElement, useCallback, useMemo } from "react";
+import { createElement, useCallback, useMemo, useState } from "react";
 import type {
   StoryboardDocumentSchema,
   StoryboardSetupStage
@@ -42,6 +42,13 @@ import {
   storyboardCreativeContextOf,
   storyboardProductionOf
 } from "../../../hooks/storyboard/directionFingerprint";
+import {
+  productionAuthoringBlocker,
+  productionGenerationBlocker,
+  productionReviewFingerprint,
+  reviewFingerprintOf,
+  REVIEW_REQUIRED
+} from "../video/productionAuthoring";
 
 /**
  * A board's stage, with the field's absence read as `done` — an old board has
@@ -108,6 +115,8 @@ export const useStoryboardSetupFlow = ({
   onReviewed
 }: StoryboardSetupFlowOptions): SetupFlowConfig<StoryboardSetupStage> => {
   const stage = useStoryboardSetupStage(boardId);
+  const [reviewError, setReviewError] = useState<string>();
+  const [contextError, setContextError] = useState<string>();
   const setSetup = useStoryboardStore((state) => state.setSetup);
   // The values a step writes before its button means anything. Read off the
   // document, so the button follows what the step actually wrote.
@@ -126,6 +135,11 @@ export const useStoryboardSetupFlow = ({
   const screenplay = useStoryboardStore(
     (state) => state.boards[boardId]?.screenplay
   );
+  const storedCreativeContext = useStoryboardStore(
+    (state) => state.boards[boardId]?.creativeContext
+  );
+  const creativeContext =
+    storedCreativeContext ?? storyboardCreativeContextOf(screenplay);
   const shots = useStoryboardStore((state) => state.boards[boardId]?.shots);
   const entityIds = useStoryboardStore(
     (state) => state.boards[boardId]?.entityIds ?? EMPTY_ENTITY_IDS
@@ -185,23 +199,39 @@ export const useStoryboardSetupFlow = ({
         style,
         aspectRatio,
         entityIds,
-        creativeContext: storyboardCreativeContextOf(screenplay),
+        creativeContext,
         production: storyboardProductionOf(shots ?? [])
       }),
     [
       aspectRatio,
       brief,
+      creativeContext,
       directorModel?.id,
       entityIds,
       genre,
       imported?.kind,
-      screenplay,
       shotCount,
       shots,
       style
     ]
   );
   const upToDate = hasScreenplay && directedFrom === fingerprint;
+  const reviewKey = productionReviewFingerprint({
+    brief,
+    genre,
+    creativeContext,
+    shots
+  });
+  const hasProductionContext =
+    creativeContext !== undefined ||
+    storyboardProductionOf(shots ?? []).length > 0;
+  const productionBlocker =
+    hasProductionContext && reviewFingerprintOf(screenplay) !== reviewKey
+      ? REVIEW_REQUIRED
+      : productionGenerationBlocker(
+          shots ?? [],
+          (creativeContext?.reference_bindings?.length ?? 0) > 0
+        );
 
   /**
    * Run the Director, keeping the screenplay it replaces so the review step
@@ -212,9 +242,14 @@ export const useStoryboardSetupFlow = ({
     async (requestedShots: number): Promise<boolean> => {
       const board = useStoryboardStore.getState().getBoard(boardId);
       keepPreviousScreenplay(boardId, boardScreenplaySnapshot(board));
+      // The Director currently reads context from the screenplay envelope.
+      // Mirror the canonical root value through the setup action before planning.
+      if (board?.creativeContext) {
+        setSetup(boardId, { creative_context: board.creativeContext });
+      }
       return direct(boardId, requestedShots);
     },
-    [boardId, direct]
+    [boardId, direct, setSetup]
   );
 
   // The review step's own rewrite. It asks for the shot count the board
@@ -229,11 +264,14 @@ export const useStoryboardSetupFlow = ({
   const emptyShots = (shots ?? []).filter(
     (shot) => shot.action.trim().length === 0
   ).length;
-  const reviewBlockedReason = !hasScreenplay
-    ? "Write at least one shot"
-    : emptyShots > 0
-      ? `Describe ${emptyShots === 1 ? "the shot" : `the ${emptyShots} shots`} with an empty action line`
-      : undefined;
+  const reviewBlockedReason =
+    reviewError ??
+    productionAuthoringBlocker(shots ?? []) ??
+    (!hasScreenplay
+      ? "Write at least one shot"
+      : emptyShots > 0
+        ? `Describe ${emptyShots === 1 ? "the shot" : `the ${emptyShots} shots`} with an empty action line`
+        : undefined);
 
   const steps = useMemo<SetupStep<StoryboardSetupStage>[]>(
     () => [
@@ -243,15 +281,19 @@ export const useStoryboardSetupFlow = ({
         primaryLabel: "Continue",
         // An imported script that is kept verbatim is the story, so the brief
         // beside it is optional (F3).
-        canAdvance: brief.trim().length > 0 || imported?.preserveWords === true,
-        blockedReason: "Write a sentence, or bring your own script",
+        canAdvance:
+          !contextError &&
+          (brief.trim().length > 0 || imported?.preserveWords === true),
+        blockedReason:
+          contextError ?? "Write a sentence, or bring your own script",
         render: () =>
           createElement(IdeaStep, {
             boardId,
             // The blank escape hatch and the last step land in the same
             // place: stage `done` and the board (PRD § 7.1).
             onStartBlank: finish,
-            onOpenTutorial: openTutorial
+            onOpenTutorial: openTutorial,
+            onValidationChange: setContextError
           })
       },
       {
@@ -327,9 +369,13 @@ export const useStoryboardSetupFlow = ({
             usedFallback,
             onKeepFallback: acceptFallback,
             model: directorModel,
-            maxOutputTokens: DIRECTOR_MAX_OUTPUT_TOKENS
+            maxOutputTokens: DIRECTOR_MAX_OUTPUT_TOKENS,
+            onValidationChange: setReviewError
           }),
-        onAdvance: onReviewed
+        onAdvance: async () => {
+          await onReviewed?.();
+          setSetup(boardId, { production_review_fingerprint: reviewKey });
+        }
       },
       {
         stage: "entities",
@@ -348,13 +394,16 @@ export const useStoryboardSetupFlow = ({
         // grows a dollar amount is a label nobody can scan (F23).
         primaryLabel: "Generate your storyboard",
         primaryDetail: look.primaryDetail,
-        canAdvance: look.canAdvance,
-        blockedReason: look.blockedReason,
+        canAdvance: !productionBlocker && look.canAdvance,
+        blockedReason: productionBlocker ?? look.blockedReason,
         render: () => createElement(LookStep, { boardId }),
         // `generate` writes the terminal stage itself, before it enqueues
         // anything (PRD § 7.3, D3); the host opens the board once the jobs are
         // away.
         onAdvance: async () => {
+          if (productionBlocker) {
+            throw new Error(productionBlocker);
+          }
           await look.generate();
           onFinish?.();
         }
@@ -363,6 +412,7 @@ export const useStoryboardSetupFlow = ({
     [
       acceptFallback,
       boardId,
+      contextError,
       brief,
       directError,
       directErrorRef,
@@ -377,6 +427,9 @@ export const useStoryboardSetupFlow = ({
       onFinish,
       onReviewed,
       openTutorial,
+      productionBlocker,
+      reviewKey,
+      setSetup,
       reviewBlockedReason,
       rewrite,
       runDirector,

@@ -18,6 +18,10 @@
 import { z } from "zod";
 
 import type { ImageRef, Provider, VideoRef } from "./api-types.js";
+import type {
+  ProductionRequirement,
+  ProductionTakeMetadata
+} from "./production-authoring.js";
 import { ENTITY_METADATA_KEY } from "./style-presets.js";
 
 // ---------------------------------------------------------------------------
@@ -359,7 +363,8 @@ export interface RenderInputs {
  * (the storyboard schemas are passthrough, so it survives a round trip) rather
  * than in a parallel array that a reorder or a delete could desynchronize.
  */
-export type VersionRef<T> = T & { render_inputs?: RenderInputs };
+export type VersionRef<T> = T &
+  ProductionTakeMetadata & { render_inputs?: RenderInputs };
 
 export type KeyframeVersion = VersionRef<ImageRef>;
 
@@ -418,6 +423,7 @@ export function renderInputsMatch(a: RenderInputs, b: RenderInputs): boolean {
 
 /** One shot in a {@link Screenplay}. */
 export interface Shot {
+  production?: ProductionRequirement;
   type: "shot";
   id: string;
   /** 0-based order within the screenplay. */

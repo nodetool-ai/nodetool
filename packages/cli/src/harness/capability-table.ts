@@ -1499,7 +1499,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "prepare_video_production",
     module: "video-production",
     impl: "packages/agents/src/capabilities/video-production.ts",
-    contract: "c91089de6d62",
+    contract: "feff1e70ec45",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-video-production.test.ts",
@@ -1509,7 +1509,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "submit_video_production",
     module: "video-production",
     impl: "packages/agents/src/capabilities/video-production.ts",
-    contract: "fb05bf5394f6",
+    contract: "352f5fc11f02",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-video-production.test.ts",
@@ -1519,7 +1519,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "inspect_video_production_candidates",
     module: "video-production",
     impl: "packages/agents/src/capabilities/video-production.ts",
-    contract: "107c92ae1dc8",
+    contract: "c26a15aef594",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-video-production.test.ts",
@@ -1529,7 +1529,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "accept_video_production_candidates",
     module: "video-production",
     impl: "packages/agents/src/capabilities/video-production.ts",
-    contract: "65af9427723a",
+    contract: "bd68db05252c",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-video-production.test.ts",

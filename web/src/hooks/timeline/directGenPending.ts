@@ -27,11 +27,17 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type {
+  CompiledProductionCandidate,
   MediaEditRequest,
   LineDeliveryRequest,
   TimelineClip,
   VideoGenerationRecipe
 } from "@nodetool-ai/timeline";
+
+export interface PendingProductionRequest extends CompiledProductionCandidate {
+  /** The provider attempt id. The first attempt equals identity.requestId. */
+  readonly attemptId: string;
+}
 
 /**
  * How long a persisted request is worth recovering.
@@ -60,6 +66,8 @@ export interface PendingClipJob {
   bucket: string;
   /** Immutable edit request captured before dispatch, when this is an edit. */
   mediaEdit?: MediaEditRequest;
+  /** Immutable production request captured before dispatch. */
+  production?: PendingProductionRequest;
   /** Immutable recipe for a candidate-only New take request. */
   generationRecipe?: VideoGenerationRecipe;
   /** Immutable Script context for a candidate-only line delivery request. */
@@ -86,6 +94,25 @@ export interface MediaEditSettlement {
   mediaEdit: MediaEditRequest;
   /** Set only after an autosave accepted the candidate version. */
   acknowledgedAt?: number;
+}
+
+export type ProductionSettlementStatus =
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "expired"
+  | "orphaned";
+
+/** Durable result for one production attempt and its original destination. */
+export interface ProductionSettlement {
+  requestId: string;
+  sequenceId: string;
+  clipId: string;
+  status: ProductionSettlementStatus;
+  settledAt: number;
+  assetIds: readonly string[];
+  production: PendingProductionRequest;
+  errorMessage?: string;
 }
 
 /** One bucket per model and kind: a clip and a voice line are not comparable. */
@@ -126,10 +153,16 @@ interface DirectGenPendingState {
   durationSamples: Record<string, number[]>;
   /** Terminal edit outcomes kept for inspection and deferred destination landing. */
   editSettlements: Record<string, MediaEditSettlement>;
+  /** Terminal production outcomes retained for retry and destination recovery. */
+  productionSettlements: Record<string, ProductionSettlement>;
   /** sequenceId → clipId → terminal edit error, retained for Retry. */
   editFailures: Record<string, Record<string, string>>;
   remember: (sequenceId: string, job: PendingClipJob) => void;
-  markEditFailure: (sequenceId: string, clipId: string, message: string) => void;
+  markEditFailure: (
+    sequenceId: string,
+    clipId: string,
+    message: string
+  ) => void;
   clearEditFailure: (sequenceId: string, clipId: string) => void;
   /** Drop a clip's entry and, when it finished, file how long it took. */
   settle: (
@@ -148,6 +181,17 @@ interface DirectGenPendingState {
     assetIds: readonly string[];
     finishedAt?: number;
   }) => boolean;
+  /** Claim one production attempt exactly once without affecting its siblings. */
+  settleProduction: (input: {
+    sequenceId: string;
+    clipId: string;
+    requestId: string;
+    production: PendingProductionRequest;
+    status: ProductionSettlementStatus;
+    assetIds: readonly string[];
+    errorMessage?: string;
+    finishedAt?: number;
+  }) => boolean;
   /** Retain a completed edit without ever recreating a deleted destination. */
   markEditOrphaned: (requestId: string) => void;
   /** Mark a completed edit as durably present without removing its tombstone. */
@@ -162,6 +206,7 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
       pending: {},
       durationSamples: {},
       editSettlements: {},
+      productionSettlements: {},
       editFailures: {},
 
       remember: (sequenceId, job) =>
@@ -170,8 +215,10 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
             ...state.pending,
             [sequenceId]: prune(
               [
-                ...(state.pending[sequenceId] ?? []).filter(
-                  (entry) => entry.clipId !== job.clipId
+                ...(state.pending[sequenceId] ?? []).filter((entry) =>
+                  job.production || job.candidateOnly
+                    ? entry.requestId !== job.requestId
+                    : entry.clipId !== job.clipId
                 ),
                 job
               ],
@@ -179,7 +226,9 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
             )
           };
           if (!job.mediaEdit) return { pending };
-          const sequenceFailures = { ...(state.editFailures[sequenceId] ?? {}) };
+          const sequenceFailures = {
+            ...(state.editFailures[sequenceId] ?? {})
+          };
           delete sequenceFailures[job.clipId];
           const editFailures = { ...state.editFailures };
           if (Object.keys(sequenceFailures).length === 0) {
@@ -203,7 +252,9 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
 
       clearEditFailure: (sequenceId, clipId) =>
         set((state) => {
-          const sequenceFailures = { ...(state.editFailures[sequenceId] ?? {}) };
+          const sequenceFailures = {
+            ...(state.editFailures[sequenceId] ?? {})
+          };
           delete sequenceFailures[clipId];
           const editFailures = { ...state.editFailures };
           if (Object.keys(sequenceFailures).length === 0) {
@@ -268,8 +319,7 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
           claimed = true;
           const existing = state.pending[sequenceId] ?? [];
           const job = existing.find(
-            (entry) =>
-              entry.clipId === clipId && entry.requestId === requestId
+            (entry) => entry.clipId === clipId && entry.requestId === requestId
           );
           const pending = { ...state.pending };
           const rest = existing.filter((entry) => entry !== job);
@@ -300,15 +350,67 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
                 editSettlements,
                 durationSamples: {
                   ...state.durationSamples,
-                  [job?.bucket ?? durationBucketKey("video_edit", mediaEdit.model)]: [
+                  [job?.bucket ??
+                  durationBucketKey("video_edit", mediaEdit.model)]: [
                     ...(state.durationSamples[
-                      job?.bucket ?? durationBucketKey("video_edit", mediaEdit.model)
+                      job?.bucket ??
+                        durationBucketKey("video_edit", mediaEdit.model)
                     ] ?? []),
                     took
                   ].slice(-DURATION_SAMPLE_CAP)
                 }
               }
             : { pending, editSettlements };
+        });
+        return claimed;
+      },
+
+      settleProduction: ({
+        sequenceId,
+        clipId,
+        requestId,
+        production,
+        status,
+        assetIds,
+        errorMessage,
+        finishedAt
+      }) => {
+        let claimed = false;
+        set((state) => {
+          if (state.productionSettlements[requestId]) {
+            return state;
+          }
+          claimed = true;
+          const existing = state.pending[sequenceId] ?? [];
+          const job = existing.find(
+            (entry) => entry.clipId === clipId && entry.requestId === requestId
+          );
+          const rest = existing.filter((entry) => entry !== job);
+          const pending = { ...state.pending };
+          if (rest.length === 0) {
+            delete pending[sequenceId];
+          } else {
+            pending[sequenceId] = rest;
+          }
+          const settlement: ProductionSettlement = {
+            requestId,
+            sequenceId,
+            clipId,
+            status,
+            settledAt: finishedAt ?? Date.now(),
+            assetIds: [...assetIds],
+            production
+          };
+          if (errorMessage) {
+            settlement.errorMessage = errorMessage;
+          }
+          return {
+            pending,
+            productionSettlements: {
+              ...state.productionSettlements,
+              [requestId]: settlement
+            }
+          };
         });
         return claimed;
       },
@@ -370,6 +472,7 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
         pending: state.pending,
         durationSamples: state.durationSamples,
         editSettlements: state.editSettlements,
+        productionSettlements: state.productionSettlements,
         editFailures: state.editFailures
       })
     }
@@ -402,8 +505,7 @@ export function acknowledgePersistedMediaEdits(
     const clip = clips.find((candidate) => candidate.id === settlement.clipId);
     const candidatePersisted = clip?.versions?.some(
       (version) =>
-        version.jobId === settlement.requestId &&
-        version.assetId === assetId
+        version.jobId === settlement.requestId && version.assetId === assetId
     );
     if (candidatePersisted) {
       useDirectGenPendingStore

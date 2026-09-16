@@ -29,11 +29,15 @@ import type {
   ShotStatus
 } from "@nodetool-ai/protocol";
 import {
+  compileProductionCandidates,
   createMediaEditRequest,
   createMediaEditSourceContext,
   mediaEditGenerateMediaData
 } from "@nodetool-ai/timeline";
-import type { MediaEditRequest } from "@nodetool-ai/timeline";
+import type {
+  CompiledProductionCandidate,
+  MediaEditRequest
+} from "@nodetool-ai/timeline";
 import {
   clipPromptFor,
   entitiesForShot,
@@ -176,21 +180,23 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       kind: ShotJobKind,
       data: Record<string, unknown>,
       board?: BoardRenderContext,
-      mediaEdit?: MediaEditRequest
+      mediaEdit?: MediaEditRequest,
+      production?: CompiledProductionCandidate
     ): Promise<void> => {
       // Single-flight per shot: skip when a job is active or a start is
       // already in the pre-registration window.
-      if (isShotBusy(shot.id)) {
+      if (!production && isShotBusy(shot.id)) {
         return;
       }
       startingShots.add(shot.id);
-      const requestId = crypto.randomUUID();
-      const acceptedShotStatus = mediaEdit
-        ? useStoryboardStore
-            .getState()
-            .getBoard(boardId)
-            ?.shots.find((candidate) => candidate.id === shot.id)?.status
-        : undefined;
+      const requestId = production?.identity.requestId ?? crypto.randomUUID();
+      const acceptedShotStatus =
+        mediaEdit || production
+          ? useStoryboardStore
+              .getState()
+              .getBoard(boardId)
+              ?.shots.find((candidate) => candidate.id === shot.id)?.status
+          : undefined;
       try {
         registerJob(
           shot.id,
@@ -199,17 +205,22 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           kind,
           board ? { shot, board } : undefined,
           mediaEdit,
-          acceptedShotStatus
+          acceptedShotStatus,
+          production
         );
         // Watched from the send, not only from a reattach. A socket that
         // drops and reconnects without a reload — a network blip — leaves the
         // reply addressed to a server session that is gone, exactly as a
         // reload does, and nothing re-runs reattachment in that case. The row
         // is the authority; the subscription just gets there faster.
-        await subscribeDirectShotJob(
-          requestId,
-          { shotId: shot.id, boardId, kind, mediaEdit, acceptedShotStatus }
-        );
+        await subscribeDirectShotJob(requestId, {
+          shotId: shot.id,
+          boardId,
+          kind,
+          mediaEdit,
+          acceptedShotStatus,
+          production
+        });
         try {
           await globalWebSocketManager.send({
             command: "generate_media",
@@ -219,7 +230,18 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         } catch (error) {
           // The request never left: drop the registration and subscription so
           // a retry is not blocked by a phantom queued job.
-          useStoryboardGenerationStore.getState().clear(shot.id);
+          if (production) {
+            useStoryboardGenerationStore
+              .getState()
+              .updateJobStatus(requestId, "failed", {
+                errorMessage: getErrorMessage(
+                  error,
+                  "Could not submit the production candidate."
+                )
+              });
+          } else {
+            useStoryboardGenerationStore.getState().clear(shot.id);
+          }
           unsubscribeShotJob(requestId);
           throw error;
         }
@@ -227,14 +249,16 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         // A start that throws has no job and therefore no message stream to
         // report on: record the reason on the shot so the card and a toast
         // can show it, then rethrow for callers that await (the agent tools).
-        recordStartFailure(
-          shot.id,
-          boardId,
-          kind,
-          getErrorMessage(error, "Could not start the render."),
-          mediaEdit,
-          acceptedShotStatus
-        );
+        if (!production) {
+          recordStartFailure(
+            shot.id,
+            boardId,
+            kind,
+            getErrorMessage(error, "Could not start the render."),
+            mediaEdit,
+            acceptedShotStatus
+          );
+        }
         throw error;
       } finally {
         startingShots.delete(shot.id);
@@ -312,29 +336,18 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       shot: Shot,
       modelOverride?: ShotModelRef
     ): Promise<void> => {
+      if (isShotBusy(shot.id)) {
+        return;
+      }
       const board = useStoryboardStore.getState().getBoard(boardId);
       const model = modelOverride ?? shot.clip_model ?? board?.videoModel;
       const renderMode = shotRenderMode(shot);
-      const requiredTask =
-        renderMode === "reference"
-          ? "reference_to_video"
-          : renderMode === "direct"
-            ? "text_to_video"
-            : "image_to_video";
       const selectedModel = videoModels.find(
         (candidate) =>
           candidate.id === model?.id && candidate.provider === model.provider
       );
       if (model && !selectedModel) {
         const message = `The remembered clip model ${model.name ?? model.id} is no longer available. Choose another model.`;
-        recordStartFailure(shot.id, boardId, "clip", message);
-        throw new Error(message);
-      }
-      if (
-        selectedModel &&
-        !modelMatchesTask(selectedModel.supported_tasks, requiredTask)
-      ) {
-        const message = `Choose a clip model that supports ${requiredTask.replaceAll("_", " ")} for this shot.`;
         recordStartFailure(shot.id, boardId, "clip", message);
         throw new Error(message);
       }
@@ -368,26 +381,84 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         renderMode
       );
       const entities = entitiesForShot(shot, boardEntities(board?.entityIds));
+      const entityIds = entities.map((entity) => entity.id);
+      const referenceAssetIds = [
+        ...new Set(
+          [
+            ...(renderMode === "reference"
+              ? entities
+                  .flatMap((entity) => entity.reference_images ?? [])
+                  .map(assetIdFromRef)
+              : []),
+            ...(board?.creativeContext?.reference_bindings ?? []).map(
+              (binding) => binding.asset_id
+            )
+          ].filter((id): id is string => id !== undefined)
+        )
+      ];
+      const referenceBindings = [
+        ...(board?.creativeContext?.reference_bindings ?? []),
+        ...(shot.production?.reference_bindings ?? [])
+      ];
+      const productionCandidates = compileProductionCandidates({
+        batchId: crypto.randomUUID(),
+        destinationId: shot.id,
+        destinationKind: "storyboard_shot",
+        operation: "initial_generation",
+        prompt,
+        requirement: shot.production,
+        entityIds,
+        ...(referenceAssetIds.length > 0 && { referenceAssetIds }),
+        ...(referenceBindings.length > 0 && { referenceBindings }),
+        ...(model != null && {
+          provider: model.provider,
+          model: model.id
+        }),
+        ...(durationSeconds !== undefined && {
+          requestedDurationMs: Math.round(durationSeconds * 1000)
+        }),
+        routeSupport: {
+          referenceToVideo: true,
+          audioDrivenPerformance: false
+        }
+      });
+      if (
+        renderMode === "reference" &&
+        productionCandidates[0]?.referenceAssetIds.length === 0
+      ) {
+        throw new Error(
+          "Reference mode requires at least one resolved reference image."
+        );
+      }
+      const productionRoute = productionCandidates[0]?.executionRoute;
+      const requiredTask =
+        productionRoute === "reference_to_video"
+          ? "reference_to_video"
+          : renderMode === "direct"
+            ? "text_to_video"
+            : "image_to_video";
+      if (
+        selectedModel &&
+        !modelMatchesTask(selectedModel.supported_tasks, requiredTask)
+      ) {
+        const message = `Choose a clip model that supports ${requiredTask.replaceAll("_", " ")} for this shot.`;
+        recordStartFailure(shot.id, boardId, "clip", message);
+        throw new Error(message);
+      }
       const data: Record<string, unknown> = {
         mode: "video",
-        prompt: `${prompt}${entityTokenSuffix(entities)}`,
+        prompt: `${productionCandidates[0]?.snapshot.prompt ?? prompt}${entityTokenSuffix(entities)}`,
         aspect_ratio: aspectRatio,
         resolution: CLIP_RESOLUTION,
         variations: 1
       };
-      if (renderMode === "reference") {
-        const referenceImages = entities.flatMap(
-          (entity) => entity.reference_images ?? []
+      if (productionRoute === "reference_to_video") {
+        data.reference_images = productionCandidates[0]?.referenceAssetIds.map(
+          (assetId) => ({ type: "image", asset_id: assetId })
         );
-        if (referenceImages.length === 0) {
-          throw new Error(
-            "Reference mode requires at least one entity reference image."
-          );
-        }
-        data.reference_images = referenceImages;
         data.capability = "reference_to_video";
       }
-      if (sourceAssetId) {
+      if (sourceAssetId && productionRoute !== "reference_to_video") {
         data.source_asset_id = sourceAssetId;
       }
       if (durationSeconds !== undefined) {
@@ -409,12 +480,18 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         });
       }
       const renderShot = model ? { ...shot, clip_model: model } : shot;
-      await startDirectGeneration(
-        boardId,
-        renderShot,
-        "clip",
-        data,
-        renderContext(board, renderShot)
+      await Promise.all(
+        productionCandidates.map((production) =>
+          startDirectGeneration(
+            boardId,
+            renderShot,
+            "clip",
+            data,
+            renderContext(board, renderShot),
+            undefined,
+            production
+          )
+        )
       );
     },
     [
@@ -498,7 +575,9 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         throw new Error(message);
       };
       if (!shot.clip) {
-        return failPreflight("Shot has no clip to revise — generate one first.");
+        return failPreflight(
+          "Shot has no clip to revise — generate one first."
+        );
       }
       if (prompt.length === 0) {
         return failPreflight("A revision instruction is required.");
@@ -516,8 +595,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           candidate.id === model.id && candidate.provider === model.provider
       );
       if (videoModels.length > 0 && !selectedModel) {
-        const message =
-          `The remembered clip model ${model.name ?? model.id} is no longer available. Choose another model.`;
+        const message = `The remembered clip model ${model.name ?? model.id} is no longer available. Choose another model.`;
         return failPreflight(message);
       }
       if (

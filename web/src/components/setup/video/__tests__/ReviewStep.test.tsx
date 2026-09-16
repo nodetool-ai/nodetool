@@ -43,6 +43,66 @@ beforeEach(() => {
 });
 
 describe("video ReviewStep (criterion 4)", () => {
+  it("persists production direction, speech binding and exactly three takes", async () => {
+    seed(beats());
+    renderStep();
+    await userEvent.type(
+      screen.getAllByLabelText("Production direction")[1],
+      "Look at camera"
+    );
+    await userEvent.click(screen.getAllByLabelText("Speech mode")[1]);
+    await userEvent.click(
+      await screen.findByRole("option", { name: "On-camera" })
+    );
+    await userEvent.click(screen.getAllByLabelText("Requested takes")[1]);
+    expect(
+      (await screen.findAllByRole("option")).map((option) => option.textContent)
+    ).toEqual(["1", "2", "3"]);
+    await userEvent.click(screen.getByRole("option", { name: "3" }));
+    expect(
+      useTimelineStore.getState().setup?.beats?.[1].production
+    ).toMatchObject({
+      local_direction: "Look at camera",
+      speech_mode: "on_camera",
+      speech_binding: { text: "Gone." },
+      requested_take_count: 3
+    });
+  });
+
+  it("retains the binding while a local line is cleared and blocks review until repaired", async () => {
+    seed(
+      beats([
+        {},
+        {
+          production: {
+            schema_version: 1,
+            speech_mode: "off_camera",
+            speech_binding: { text: "Gone." },
+            requested_take_count: 1
+          }
+        }
+      ])
+    );
+    const onValidationChange = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ReviewStep
+          onReplan={jest.fn()}
+          onValidationChange={onValidationChange}
+        />
+      </ThemeProvider>
+    );
+    await userEvent.clear(screen.getAllByLabelText("Voiceover")[1]);
+    expect(onValidationChange).toHaveBeenLastCalledWith(
+      expect.stringContaining("Add the local speech line")
+    );
+    await userEvent.type(screen.getAllByLabelText("Voiceover")[1], "New line");
+    expect(
+      useTimelineStore.getState().setup?.beats?.[1].production?.speech_binding
+        ?.text
+    ).toBe("New line");
+    expect(onValidationChange).toHaveBeenLastCalledWith(undefined);
+  });
   it("shows the beat total against the format's length", () => {
     seed(beats());
     renderStep();
@@ -54,9 +114,7 @@ describe("video ReviewStep (criterion 4)", () => {
     seed(beats([{ duration_ms: 20_000 }]));
     renderStep();
     expect(screen.getByText("24s of 15s")).toBeInTheDocument();
-    expect(
-      screen.getByText(/Longer than the format/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Longer than the format/i)).toBeInTheDocument();
   });
 
   it("says nothing about length when the plan fits", () => {
@@ -126,7 +184,9 @@ describe("video ReviewStep (criterion 4)", () => {
     const field = screen.getAllByLabelText("Seconds")[0];
     await userEvent.clear(field);
     expect(field).toHaveValue("");
-    expect(useTimelineStore.getState().setup?.beats?.[0].duration_ms).toBe(3000);
+    expect(useTimelineStore.getState().setup?.beats?.[0].duration_ms).toBe(
+      3000
+    );
     expect(screen.getByText(/outside 0.5–15s/)).toBeInTheDocument();
   });
 
@@ -139,9 +199,13 @@ describe("video ReviewStep (criterion 4)", () => {
     expect(field).toHaveValue("3.5");
     // Nothing is written until the entry has settled: mid-word, "3" is a
     // perfectly good three seconds and is not what the creator is typing.
-    expect(useTimelineStore.getState().setup?.beats?.[0].duration_ms).toBe(3000);
+    expect(useTimelineStore.getState().setup?.beats?.[0].duration_ms).toBe(
+      3000
+    );
     await userEvent.tab();
-    expect(useTimelineStore.getState().setup?.beats?.[0].duration_ms).toBe(3500);
+    expect(useTimelineStore.getState().setup?.beats?.[0].duration_ms).toBe(
+      3500
+    );
   });
 
   it("shows the length the plan will actually render", () => {
@@ -158,7 +222,9 @@ describe("video ReviewStep (criterion 4)", () => {
     await userEvent.clear(field);
     await userEvent.type(field, "900");
     await userEvent.tab();
-    expect(useTimelineStore.getState().setup?.beats?.[0].duration_ms).toBe(3000);
+    expect(useTimelineStore.getState().setup?.beats?.[0].duration_ms).toBe(
+      3000
+    );
     expect(screen.getByText(/outside 0.5–15s/)).toBeInTheDocument();
   });
 
@@ -200,7 +266,9 @@ describe("video ReviewStep (criterion 4)", () => {
       screen.getByRole("button", { name: "Remove beat 1" })
     );
     expect(screen.getAllByLabelText("Seconds")[0]).toHaveValue("0.1");
-    expect(useTimelineStore.getState().setup?.beats?.[0].duration_ms).toBe(4000);
+    expect(useTimelineStore.getState().setup?.beats?.[0].duration_ms).toBe(
+      4000
+    );
   });
 
   it("advises dropping a beat, now that it offers a way to (F20)", () => {
