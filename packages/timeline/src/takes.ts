@@ -5,7 +5,7 @@
  * take; `clip.versions` is the take list.
  */
 
-import type { TimelineClip } from "./types.js";
+import type { ClipVersion, TimelineClip } from "./types.js";
 
 /**
  * The take actually playing, derived rather than trusted from the stored
@@ -24,6 +24,118 @@ export function activeTakeIdOf(clip: TimelineClip): string | undefined {
     if (match) return match.id;
   }
   return clip.activeTakeId;
+}
+
+/**
+ * Record the media already playing before the first generated alternative is
+ * appended. Imported clips and older direct generations can have an active
+ * asset without a corresponding `ClipVersion`; without this baseline, Use
+ * take would make the original impossible to select again.
+ */
+export function preserveBaselineTake(
+  clip: TimelineClip,
+  recordedAt: string
+): TimelineClip {
+  const assetId = clip.currentAssetId;
+  if (
+    assetId === undefined ||
+    (clip.versions ?? []).some((version) => version.assetId === assetId)
+  ) {
+    return clip;
+  }
+
+  const baseline: ClipVersion = {
+    id: `baseline:${clip.id}:${assetId}`,
+    createdAt: recordedAt,
+    jobId: "",
+    assetId,
+    workflowUpdatedAt: recordedAt,
+    dependencyHash: clip.lastGeneratedHash ?? clip.dependencyHash ?? "",
+    paramOverridesSnapshot: { ...(clip.paramOverrides ?? {}) },
+    status: "success",
+    source: clip.sourceType
+  };
+  return { ...clip, versions: [...(clip.versions ?? []), baseline] };
+}
+
+export interface TakeSourceWindow {
+  /** First source millisecond in the replacement asset. */
+  readonly inPointMs: number;
+  /** Source duration available in the replacement asset. */
+  readonly sourceDurationMs: number;
+  /** Amount of source media that must cover the unchanged timeline slot. */
+  readonly playableDurationMs: number;
+}
+
+export type UseTakeResult =
+  | { readonly ok: true; readonly clip: TimelineClip }
+  | { readonly ok: false; readonly clip: TimelineClip; readonly error: string };
+
+/**
+ * Apply one take with an explicit source-time mapping.
+ *
+ * This is the persisted half of Use take. Candidate auditioning never calls
+ * it. The cut stays where it is while invalid trims from the previous source
+ * are replaced by the new asset's declared playable window.
+ */
+export function useTake(
+  clip: TimelineClip,
+  takeId: string,
+  sourceWindow: TakeSourceWindow
+): UseTakeResult {
+  if (clip.mediaType === "model3d") {
+    return {
+      ok: false,
+      clip,
+      error: `Clip "${clip.name}" cannot use a video take.`
+    };
+  }
+  const version = (clip.versions ?? []).find((item) => item.id === takeId);
+  if (version === undefined) {
+    return { ok: false, clip, error: `Take "${takeId}" is missing.` };
+  }
+  if (version.status !== "success") {
+    return { ok: false, clip, error: `Take "${takeId}" is not ready.` };
+  }
+
+  const { inPointMs, playableDurationMs, sourceDurationMs } = sourceWindow;
+  if (
+    !Number.isFinite(inPointMs) ||
+    !Number.isFinite(playableDurationMs) ||
+    !Number.isFinite(sourceDurationMs) ||
+    inPointMs < 0 ||
+    playableDurationMs <= 0 ||
+    sourceDurationMs <= 0
+  ) {
+    return { ok: false, clip, error: "Take timing must use positive finite milliseconds." };
+  }
+  if (playableDurationMs !== clip.durationMs) {
+    return {
+      ok: false,
+      clip,
+      error: `Take timing targets ${playableDurationMs}ms, but the clip is ${clip.durationMs}ms.`
+    };
+  }
+  if (inPointMs + playableDurationMs > sourceDurationMs) {
+    return {
+      ok: false,
+      clip,
+      error: `Take "${takeId}" is shorter than the clip's playable window.`
+    };
+  }
+
+  const selected = selectTake(clip, takeId);
+  if (selected === clip) {
+    return { ok: false, clip, error: `Take "${takeId}" could not be selected.` };
+  }
+  return {
+    ok: true,
+    clip: {
+      ...selected,
+      inPointMs,
+      outPointMs: inPointMs + playableDurationMs
+    }
+  };
 }
 
 /**

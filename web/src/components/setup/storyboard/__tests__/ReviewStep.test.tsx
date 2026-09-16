@@ -215,6 +215,26 @@ describe("ReviewStep", () => {
     expect(board()?.shots[1].dialogue).toBe("Hold fast.");
   });
 
+  it("writes production treatment and speech mode onto a shot", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(screen.getAllByLabelText("Visual treatment")[0]);
+    await user.click(
+      await screen.findByRole("option", { name: "Actor to camera" })
+    );
+    await user.click(screen.getAllByLabelText("Speech mode")[0]);
+    await user.click(
+      await screen.findByRole("option", { name: "On-camera speech" })
+    );
+
+    expect(board()?.shots[0].production).toMatchObject({
+      visual_treatment: "actor_to_camera",
+      speech_mode: "on_camera",
+      speech_binding: { text: "Not tonight." }
+    });
+  });
+
   it("writes slugline and lighting through updateScene", async () => {
     const user = userEvent.setup();
     renderStep();

@@ -46,6 +46,7 @@ import type { ScriptSetupAttachment } from "./scriptSetupContext";
 import { ExampleBriefs } from "../ExampleBriefs";
 import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
+import { CreativeContextFields } from "../CreativeContextFields";
 import {
   SCRIPT_SUBTITLE_ACCEPT,
   SCRIPT_TEXT_ACCEPT,
@@ -192,6 +193,12 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
 }) => {
   const setup = useScriptSetup(scriptId);
   const setSetup = useScriptStore((state) => state.setSetup);
+  const creativeContext = useScriptStore(
+    (state) => state.scripts[scriptId]?.creativeContext
+  );
+  const setCreativeContext = useScriptStore(
+    (state) => state.setCreativeContext
+  );
   const imports = useScriptFileImport(scriptId);
   const textInput = useRef<HTMLInputElement>(null);
   const subtitleInput = useRef<HTMLInputElement>(null);
@@ -331,6 +338,11 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
               : "Text entered here is a writing brief and may be rewritten. Use Paste your script or Upload a file to preserve existing words."
           }
           onChange={handleChange}
+        />
+
+        <CreativeContextFields
+          value={creativeContext}
+          onChange={(next) => setCreativeContext(scriptId, next)}
         />
 
         {imports.error ? (

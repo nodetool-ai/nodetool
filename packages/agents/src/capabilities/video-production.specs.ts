@@ -97,11 +97,14 @@ export const ACCEPT_VIDEO_PRODUCTION_CANDIDATES_SCHEMA: JsonSchema = {
   properties: {
     candidates: {
       type: "array",
+      minItems: 1,
       description: "Candidate manifest entries to validate against the target."
     },
     candidate_ids: {
       type: "array",
       items: { type: "string" },
+      minItems: 1,
+      uniqueItems: true,
       description:
         "Explicit candidate selection map. One candidate per destination slot."
     },
@@ -152,8 +155,13 @@ export const inspectVideoProductionCandidatesSpec: CapabilitySpec = {
 export const acceptVideoProductionCandidatesSpec: CapabilitySpec = {
   name: "accept_video_production_candidates",
   description:
-    "Disabled until a destination-specific apply adapter is available. This " +
-    "operation rejects clearly and never reports candidate acceptance.",
+    "Validate an explicit one-candidate-per-slot selection using the shared " +
+    "production acceptance contract. Candidates must be ready, belong to one " +
+    "batch and document, target supported destination kinds, and match the " +
+    "requested revision. Until a destination-specific apply adapter is " +
+    "available, this returns a headless acceptance manifest with " +
+    "mutation_applied and live_target_validated both false. It never reports " +
+    "a candidate as accepted, and the destination must revalidate before apply.",
   inputSchema: ACCEPT_VIDEO_PRODUCTION_CANDIDATES_SCHEMA,
   category: "write",
   userMessage: () => "Validating AI-video candidate acceptance"

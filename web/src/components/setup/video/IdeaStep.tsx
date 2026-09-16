@@ -40,6 +40,7 @@ import type { SetupMediaImportResult } from "../../../hooks/timeline/useSetupMed
 import { ExampleBriefs } from "../ExampleBriefs";
 import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
+import { CreativeContextFields } from "../CreativeContextFields";
 import { useVideoSetupContext } from "./setupContext";
 
 /** How wide a carried reference thumbnail is drawn. */
@@ -81,7 +82,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   const { data: examples } = useExampleStoryboards();
   // What the project composer was holding when the Video card was clicked
   // (F4). Shown so the creator can see it arrived rather than guessing.
-  const { references, entityIds } = useVideoSetupContext();
+  const { references, entityIds, creativeContext } = useVideoSetupContext();
   const { data: entities } = useEntities();
   const carriedEntities = useMemo(
     () => (entities ?? []).filter((entity) => entityIds.includes(entity.id)),
@@ -233,6 +234,11 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           placeholder="One sentence is enough."
           onChange={handleChange}
           inputRef={briefField}
+        />
+
+        <CreativeContextFields
+          value={creativeContext}
+          onChange={(next) => setSetup({ creative_context: next })}
         />
 
         {dragging ? (

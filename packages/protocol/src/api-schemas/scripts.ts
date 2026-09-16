@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { captionWord } from "./timeline.js";
-import { creativeContext } from "../production-authoring.js";
+import { creativeContext, productionGenerationSnapshot, productionGenerationResult } from "../production-authoring.js";
 
 // ── Cast / voices ────────────────────────────────────────────────────────────
 // A Script owns its text; audio is derived. The cast binds each speaker to a
@@ -45,7 +45,9 @@ export const take = z.object({
   voiceSnapshot: voiceBinding.nullable(),
   createdAt: z.string(),
   favorite: z.boolean().optional(),
-  costCredits: z.number().optional()
+  costCredits: z.number().optional(),
+  productionSnapshot: productionGenerationSnapshot.optional(),
+  productionResult: productionGenerationResult.optional()
 });
 export type Take = z.infer<typeof take>;
 

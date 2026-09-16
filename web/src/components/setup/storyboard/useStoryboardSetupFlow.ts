@@ -18,6 +18,7 @@ import type {
   StoryboardDocumentSchema,
   StoryboardSetupStage
 } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
+import type { CreativeContext } from "../../../hooks/storyboard/productionContext";
 
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useDirectScreenplay } from "../../../hooks/storyboard/useDirectScreenplay";
@@ -59,7 +60,8 @@ export const useStoryboardSetupStage = (
  * already the one the creator asked for.
  */
 export const newStoryboardSetupDocument = (
-  brief: string
+  brief: string,
+  creativeContext?: CreativeContext
 ): StoryboardDocumentSchema => ({
   screenplay: null,
   shots: [],
@@ -71,7 +73,8 @@ export const newStoryboardSetupDocument = (
   genre: "",
   directorModel: null,
   imageModel: null,
-  videoModel: null
+  videoModel: null,
+  ...(creativeContext ? { creative_context: creativeContext } : {})
 });
 
 /**

@@ -1,5 +1,8 @@
+import type { ProductionGenerationSnapshot } from "@nodetool-ai/protocol";
+
+import { landProductionCandidate } from "./production.js";
+import { activeTakeIdOf, preserveBaselineTake } from "./takes.js";
 import type { ClipVersion, MediaTrack, TimelineClip } from "./types.js";
-import { activeTakeIdOf } from "./takes.js";
 
 /** Capabilities are deliberately provider-independent model registry keys. */
 export type GenerativeCapability =
@@ -195,6 +198,8 @@ export interface GenerativeTakeResult {
   costCredits?: number;
   durationMs?: number;
   status?: ClipVersion["status"];
+  /** Frozen submission inputs. When present, these are the provenance source. */
+  productionSnapshot?: ProductionGenerationSnapshot;
   /**
    * A successful generative edit is an audition by default. Set this only
    * after an explicit "Use Take" choice.
@@ -228,7 +233,9 @@ export function composeGenerativeTakePatch(
   if (!result.assetId) throw new Error("A generated take must include assetId.");
   // A failed or cancelled job must never displace the playable active take.
   if (result.status && result.status !== "success") return clip;
-  const parentTakeId = activeTakeIdOf(clip);
+  const withBaseline = preserveBaselineTake(clip, result.createdAt);
+  const snapshot = result.productionSnapshot;
+  const parentTakeId = snapshot?.parentTakeId ?? activeTakeIdOf(withBaseline);
   const version: ClipVersion = {
     id: result.jobId ?? `${clip.id}:${result.createdAt}`,
     createdAt: result.createdAt,
@@ -236,25 +243,58 @@ export function composeGenerativeTakePatch(
     assetId: result.assetId,
     workflowUpdatedAt: result.workflowUpdatedAt ?? result.createdAt,
     dependencyHash: result.dependencyHash ?? "",
-    paramOverridesSnapshot: result.paramOverridesSnapshot ?? clip.paramOverrides ?? {},
+    paramOverridesSnapshot:
+      result.paramOverridesSnapshot ?? snapshot?.parameters ?? clip.paramOverrides ?? {},
     costCredits: result.costCredits,
     durationMs: result.durationMs,
     status: result.status ?? "success",
     source: takeSourceForOperation(operation),
-    provider: result.provider,
-    model: result.model,
-    prompt: result.prompt,
+    provider: snapshot?.provider ?? result.provider,
+    model: snapshot?.model ?? result.model,
+    prompt: snapshot?.prompt ?? result.prompt,
     negativePrompt: result.negativePrompt,
     parentTakeId
   };
-  const next: TimelineClip = {
-    ...clip,
-    versions: [...(clip.versions ?? []), version]
-  };
+  const next = snapshot
+    ? landProductionCandidate(withBaseline, {
+        identity: {
+          batchId: snapshot.batchId,
+          requestId: snapshot.requestId,
+          candidateId: snapshot.candidateId,
+          variationId: snapshot.variationId,
+          variationIndex: snapshot.variationIndex,
+          destinationId: snapshot.destinationId,
+          destinationKind: snapshot.destinationKind
+        },
+        version: { ...version, productionSnapshot: snapshot }
+      })
+    : appendGenerativeTake(withBaseline, version);
   if (result.activate) {
+    if (snapshot !== undefined) {
+      throw new Error(
+        "A production candidate must be accepted through Use take after landing."
+      );
+    }
     next.currentAssetId = result.assetId;
     next.activeTakeId = version.id;
     next.lastGeneratedHash = version.dependencyHash;
   }
   return next;
+}
+
+function appendGenerativeTake(
+  clip: TimelineClip,
+  version: ClipVersion
+): TimelineClip {
+  const existing = (clip.versions ?? []).find(
+    (item) => item.id === version.id ||
+      (version.jobId.length > 0 && item.jobId === version.jobId)
+  );
+  if (existing !== undefined) {
+    if (existing.assetId === version.assetId) return clip;
+    throw new Error(
+      `Generation "${version.jobId || version.id}" already landed with another asset.`
+    );
+  }
+  return { ...clip, versions: [...(clip.versions ?? []), version] };
 }

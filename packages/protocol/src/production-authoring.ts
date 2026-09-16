@@ -17,13 +17,15 @@ export const productionReferenceKind = z.enum([
 ]);
 export type ProductionReferenceKind = z.infer<typeof productionReferenceKind>;
 
-/** An authorized asset binding used by a production plan. */
+/** Asset identity only. Authorization must be checked by the submitting server. */
 export const productionReferenceBinding = z
   .object({
     kind: productionReferenceKind,
     asset_id: identifier,
     entity_id: identifier.optional(),
-    label: nonEmptyText.optional()
+    label: nonEmptyText.optional(),
+    required: z.boolean().optional(),
+    revision: identifier.optional()
   })
   .passthrough();
 export type ProductionReferenceBinding = z.infer<
@@ -53,7 +55,13 @@ export const creativeContext = z
     tone: nonEmptyText.optional(),
     approved_claims: z.array(nonEmptyText).max(64).optional(),
     prohibited_claims: z.array(nonEmptyText).max(64).optional(),
-    reference_bindings: z.array(productionReferenceBinding).max(32).optional()
+    reference_bindings: z.array(productionReferenceBinding).max(32).optional(),
+    /** Copy provenance, not a live link to another document's context. */
+    origin: z.strictObject({
+      document_kind: z.enum(["timeline", "storyboard", "script"]),
+      document_id: identifier,
+      fingerprint: identifier
+    }).optional()
   })
   .passthrough();
 export type CreativeContext = z.infer<typeof creativeContext>;
@@ -90,11 +98,13 @@ export type ProductionSpeechMode = z.infer<typeof productionSpeechMode>;
 /** Local or linked speech context. The Script still owns linked line text. */
 export const productionSpeechBinding = z
   .object({
+    script_id: identifier.optional(),
     script_line_id: identifier.optional(),
     speaker_id: identifier.optional(),
     text: nonEmptyText.optional(),
     direction: nonEmptyText.optional(),
     audio_asset_id: identifier.optional(),
+    take_id: identifier.optional(),
     voice: z
       .object({
         provider: identifier,
@@ -107,6 +117,20 @@ export const productionSpeechBinding = z
   })
   .passthrough()
   .superRefine((binding, context) => {
+    if (binding.script_line_id !== undefined &&
+        (binding.text !== undefined || binding.voice !== undefined)) {
+      context.addIssue({
+        code: "custom",
+        message: "Linked speech resolves text and voice from the Script, not local copies."
+      });
+    }
+    if (binding.script_id !== undefined && binding.script_line_id === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["script_line_id"],
+        message: "A linked script needs a line identity."
+      });
+    }
     if (
       binding.script_line_id === undefined &&
       binding.text === undefined &&
@@ -180,7 +204,89 @@ export const productionOperation = z.enum([
 ]);
 export type ProductionOperation = z.infer<typeof productionOperation>;
 
-/** Frozen inputs for one candidate, captured before provider dispatch. */
+/** Source-relative milliseconds. Provider seconds must be converted by adapters. */
+export const productionPlayableWindow = z.strictObject({
+  startMs: z.number().int().nonnegative(),
+  durationMs: z.number().int().positive()
+}).readonly();
+export type ProductionPlayableWindow = z.infer<typeof productionPlayableWindow>;
+
+/** Native editing's constant-speed source window, captured before dispatch. */
+export const productionSourceContext = z.strictObject({
+  sequenceId: identifier,
+  clipId: identifier,
+  sourceAssetId: identifier,
+  sourceTakeId: identifier.optional(),
+  sourceStartMs: z.number().int().nonnegative(),
+  sourceEndMs: z.number().int().positive(),
+  timelineStartMs: z.number().int().nonnegative(),
+  timelineDurationMs: z.number().int().positive(),
+  speedMultiplier: z.number().positive()
+}).refine((source) => source.sourceEndMs > source.sourceStartMs, {
+  path: ["sourceEndMs"], message: "Source end must follow source start."
+}).readonly();
+export type ProductionSourceContext = z.infer<typeof productionSourceContext>;
+
+export const resolvedProductionReference = z.strictObject({
+  kind: productionReferenceKind,
+  assetId: identifier,
+  entityId: identifier.optional(),
+  descriptor: nonEmptyText,
+  revision: identifier.optional()
+}).readonly();
+export type ResolvedProductionReference = z.infer<typeof resolvedProductionReference>;
+
+// Resolved text must preserve the exact provider input, including whitespace.
+const resolvedText = z.string().refine((value) => value.trim().length > 0, {
+  message: "Resolved text must not be empty."
+});
+const recipeSettings = z.record(z.string(), z.json()).superRefine((settings, context) => {
+  const visit = (value: unknown, path: (string | number)[]): void => {
+    if (typeof value === "string" && /^(?:https?:|data:|file:)/i.test(value)) {
+      context.addIssue({ code: "custom", path, message: "Recipes use authorized asset IDs, not access URLs." });
+    } else if (Array.isArray(value)) {
+      value.forEach((child, index) => visit(child, [...path, index]));
+    } else if (value !== null && typeof value === "object") {
+      for (const [key, child] of Object.entries(value)) {
+        if (/^(?:api[_-]?key|access[_-]?token|authorization|credentials?|password|secret)$/i.test(key)) {
+          context.addIssue({ code: "custom", path: [...path, key], message: "Credentials do not belong in a production recipe." });
+        }
+        visit(child, [...path, key]);
+      }
+    }
+  };
+  visit(settings, []);
+}).readonly();
+const resolvedVoice = z.strictObject({
+  provider: identifier,
+  model: identifier,
+  voice: identifier,
+  settings: recipeSettings
+}).readonly();
+
+export const resolvedProductionSpeech = z.strictObject({
+  mode: z.enum(["off_camera", "on_camera"]),
+  text: resolvedText,
+  direction: z.string(),
+  voice: resolvedVoice,
+  scriptId: identifier.optional(),
+  scriptLineId: identifier.optional(),
+  speakerId: identifier.optional(),
+  selectedTakeId: identifier.optional(),
+  audioAssetId: identifier.optional(),
+  /** Measured input audio, known before dispatching a dependent performance. */
+  audioDurationMs: z.number().int().positive().optional()
+}).readonly();
+export type ResolvedProductionSpeech = z.infer<typeof resolvedProductionSpeech>;
+
+const productionOrigin = z.strictObject({
+  kind: z.enum(["beat", "shot", "script_line"]),
+  documentId: identifier,
+  recordId: identifier,
+  fingerprint: identifier
+}).readonly();
+
+/** Persisted inputs, including incomplete legacy recipes. Use the resolved schema for dispatch. */
 export const productionGenerationSnapshot = z
   .object({
     schemaVersion: z
@@ -193,15 +299,23 @@ export const productionGenerationSnapshot = z
     variationIndex: z.number().int().min(1).max(3),
     destinationKind: productionDestinationKind,
     destinationId: identifier,
+    ownerId: identifier.optional(),
+    projectId: identifier.optional(),
+    documentId: identifier.optional(),
+    origin: productionOrigin.optional(),
     operation: productionOperation,
     authoringFingerprint: identifier.optional(),
-    entityIds: z.array(identifier).optional(),
-    referenceAssetIds: z.array(identifier).optional(),
-    prompt: nonEmptyText.optional(),
+    entityIds: z.array(identifier).readonly().optional(),
+    referenceAssetIds: z.array(identifier).readonly().optional(),
+    resolvedReferences: z.array(resolvedProductionReference).readonly().optional(),
+    requiredCapabilities: z.array(identifier).min(1).readonly().optional(),
+    executionRoute: identifier.optional(),
+    playableWindow: productionPlayableWindow.optional(),
+    prompt: resolvedText.optional(),
     speech: z
       .object({
-        text: nonEmptyText.optional(),
-        direction: nonEmptyText.optional(),
+        text: resolvedText.optional(),
+        direction: z.string().optional(),
         voice: z.record(z.string(), z.unknown()).optional(),
         audioAssetId: identifier.optional()
       })
@@ -219,6 +333,104 @@ export const productionGenerationSnapshot = z
 export type ProductionGenerationSnapshot = z.infer<
   typeof productionGenerationSnapshot
 >;
+
+/** Complete inputs for a new submission or recipe-based replay. Does not authorize IDs. */
+export const resolvedProductionGenerationSnapshot = productionGenerationSnapshot
+  .extend({
+    schemaVersion: z.literal(PRODUCTION_SNAPSHOT_SCHEMA_VERSION),
+    ownerId: identifier,
+    projectId: identifier,
+    documentId: identifier,
+    origin: productionOrigin,
+    authoringFingerprint: identifier,
+    entityIds: z.array(identifier).readonly(),
+    referenceAssetIds: z.array(identifier).readonly(),
+    resolvedReferences: z.array(resolvedProductionReference).readonly(),
+    requiredCapabilities: z.array(identifier).min(1).readonly(),
+    executionRoute: identifier,
+    prompt: resolvedText,
+    speech: resolvedProductionSpeech.optional(),
+    provider: identifier,
+    model: identifier,
+    parameters: recipeSettings,
+    outputFormat: identifier,
+    requestedDurationMs: z.number().int().positive(),
+    playableWindow: productionPlayableWindow,
+    sourceContext: productionSourceContext.optional()
+  })
+  .strict()
+  .superRefine((snapshot, context) => {
+    const issue = (path: string, message: string): void => {
+      context.addIssue({ code: "custom", path: [path], message });
+    };
+    const assets = new Set(snapshot.referenceAssetIds);
+    const entities = new Set(snapshot.entityIds);
+    const resolvedAssets = new Set(snapshot.resolvedReferences.map((ref) => ref.assetId));
+    if (snapshot.resolvedReferences.some((ref) =>
+      !assets.has(ref.assetId) || (ref.entityId !== undefined && !entities.has(ref.entityId))) ||
+      snapshot.referenceAssetIds.some((id) => !resolvedAssets.has(id))) {
+      issue("resolvedReferences", "Reference descriptors must match the resolved asset and entity IDs.");
+    }
+    if (snapshot.playableWindow.startMs + snapshot.playableWindow.durationMs > snapshot.requestedDurationMs) {
+      issue("playableWindow", "Playable window exceeds requested duration.");
+    }
+    const speech = snapshot.speech;
+    if (speech?.mode === "on_camera" &&
+        (speech.audioAssetId === undefined || speech.audioDurationMs === undefined)) {
+      issue("speech", "On-camera speech requires the exact measured input audio before dispatch.");
+    }
+    if (speech !== undefined) {
+      if ((speech.audioAssetId === undefined) !== (speech.audioDurationMs === undefined)) {
+        issue("speech", "Audio identity and measured duration must be captured together.");
+      }
+      if ((speech.scriptId === undefined) !== (speech.scriptLineId === undefined)) {
+        issue("speech", "Linked speech requires both Script and line identities.");
+      }
+      if (speech.audioDurationMs !== undefined && speech.audioDurationMs > snapshot.playableWindow.durationMs) {
+        issue("speech", "Speech exceeds the playable slot. Review timing or speech before dispatch.");
+      }
+    }
+    if (snapshot.operation === "edit_video") {
+      if (snapshot.parentTakeId === undefined || snapshot.sourceContext === undefined) {
+        issue("sourceContext", "Video transformation requires a parent take and native source context.");
+      } else if (snapshot.destinationKind !== "timeline_clip" ||
+        snapshot.sourceContext.sequenceId !== snapshot.documentId ||
+        snapshot.sourceContext.clipId !== snapshot.destinationId ||
+        (snapshot.sourceContext.sourceTakeId !== undefined && snapshot.sourceContext.sourceTakeId !== snapshot.parentTakeId)) {
+        issue("sourceContext", "Native source context must identify the destination and parent take.");
+      }
+    }
+  })
+  .readonly();
+export type ResolvedProductionGenerationSnapshot = z.infer<typeof resolvedProductionGenerationSnapshot>;
+
+function freezeSnapshotValue(value: unknown): void {
+  if (value === null || typeof value !== "object") {
+    return;
+  }
+  for (const child of Object.values(value)) {
+    freezeSnapshotValue(child);
+  }
+  Object.freeze(value);
+}
+
+/** Parse an independent copy and freeze nested settings before provider dispatch. */
+export function captureProductionGenerationSnapshot(input: unknown): ResolvedProductionGenerationSnapshot {
+  const snapshot = resolvedProductionGenerationSnapshot.parse(input);
+  freezeSnapshotValue(snapshot);
+  return snapshot;
+}
+
+/** Measured output belongs on a result record, never on submitted inputs. */
+export const productionGenerationResult = z.strictObject({
+  assetId: identifier,
+  measuredDurationMs: z.number().int().positive(),
+  playableWindow: productionPlayableWindow
+}).refine((result) =>
+  result.playableWindow.startMs + result.playableWindow.durationMs <= result.measuredDurationMs, {
+  path: ["playableWindow"], message: "Generated source is too short for the playable window."
+});
+export type ProductionGenerationResult = z.infer<typeof productionGenerationResult>;
 
 export const productionCandidateStatus = z.enum([
   "planned",
@@ -380,12 +592,14 @@ export const productionCandidate = z
   })
   .passthrough()
   .superRefine((candidate, context) => {
-    if (candidate.snapshot.candidateId !== candidate.candidateId) {
-      context.addIssue({
-        code: "custom",
-        path: ["snapshot", "candidateId"],
-        message: "Candidate and snapshot ids must match."
-      });
+    for (const key of ["candidateId", "batchId", "requestId", "variationId", "variationIndex", "destinationKind", "destinationId"] as const) {
+      if (candidate.snapshot[key] !== candidate[key]) {
+        context.addIssue({
+          code: "custom",
+          path: ["snapshot", key],
+          message: "Candidate and snapshot identities must match."
+        });
+      }
     }
     if (candidate.status === "ready" && candidate.assetId === undefined) {
       context.addIssue({

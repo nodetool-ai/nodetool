@@ -46,6 +46,8 @@ import type {
   PlanReviewGroup,
   PlanReviewSection
 } from "../PlanReview";
+import { productionPlanFields } from "../productionPlanFields";
+import { readProductionRequirements } from "../../../hooks/storyboard/productionContext";
 
 // The estimate pulls in the provider price tables, which nothing on this step
 // needs until it is on screen — the shell lazy-loads it the same way.
@@ -286,7 +288,14 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                     duration_source: "manual"
                   });
                 }
-              }
+              },
+              ...productionPlanFields({
+                idPrefix: shot.id,
+                production: readProductionRequirements(shot.production),
+                speechText: shot.dialogue ?? "",
+                onChange: (production) =>
+                  updateShot(boardId, shot.id, { production })
+              })
             ]
           })
         );

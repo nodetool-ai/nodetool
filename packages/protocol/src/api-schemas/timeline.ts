@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { BLEND_MODE_TUPLE } from "../blend-modes.js";
-import { productionGenerationSnapshot, productionRequirement, creativeContext } from "../production-authoring.js";
+import { productionGenerationSnapshot, productionGenerationResult, productionRequirement, creativeContext } from "../production-authoring.js";
 
 const blendModeEnum = z.enum(BLEND_MODE_TUPLE);
 
@@ -58,7 +58,8 @@ export const clipVersion = z.object({
   variationId: z.string().optional(),
   variationIndex: z.number().int().min(1).max(3).optional(),
   /** Immutable resolved production inputs. Never rewritten on completion. */
-  productionSnapshot: productionGenerationSnapshot.optional()
+  productionSnapshot: productionGenerationSnapshot.optional(),
+  productionResult: productionGenerationResult.optional()
 });
 export type ClipVersion = z.infer<typeof clipVersion>;
 

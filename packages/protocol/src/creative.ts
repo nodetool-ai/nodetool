@@ -19,6 +19,11 @@ import { z } from "zod";
 
 import type { ImageRef, Provider, VideoRef } from "./api-types.js";
 import { ENTITY_METADATA_KEY } from "./style-presets.js";
+import {
+  productionGenerationSnapshot,
+  type ProductionGenerationResult,
+  type ProductionRequirement
+} from "./production-authoring.js";
 
 // ---------------------------------------------------------------------------
 // Entities ("ingredients")
@@ -339,27 +344,32 @@ export interface CameraDirection {
  * version with no record (legacy, upload, flip, image-editor edit) is never
  * stale.
  */
-export interface RenderInputs {
-  kind: "keyframe" | "clip";
+export const renderInputs = z.object({
+  kind: z.enum(["keyframe", "clip"]),
   /** sha-256 of the composed prompt (PRD 7.7.5). */
-  prompt_hash: string;
+  prompt_hash: z.string(),
   /** provider/model id. */
-  model: string;
-  aspect_ratio: string;
-  style_entity_id: string | null;
+  model: z.string(),
+  aspect_ratio: z.string(),
+  style_entity_id: z.string().nullable(),
   /** The still a keyframe-mode clip animated. */
-  source_version_id?: string;
-  reference_asset_ids?: string[];
-  render_mode?: ShotRenderMode;
-  recorded_at: string;
-}
+  source_version_id: z.string().optional(),
+  reference_asset_ids: z.array(z.string()).optional(),
+  render_mode: z.enum(["keyframe", "direct", "reference"]).optional(),
+  recorded_at: z.string(),
+  production_snapshot: productionGenerationSnapshot.optional()
+});
+export type RenderInputs = z.infer<typeof renderInputs>;
 
 /**
  * A media ref carrying its render record. The record rides on the ref itself
  * (the storyboard schemas are passthrough, so it survives a round trip) rather
  * than in a parallel array that a reorder or a delete could desynchronize.
  */
-export type VersionRef<T> = T & { render_inputs?: RenderInputs };
+export type VersionRef<T> = T & {
+  render_inputs?: RenderInputs;
+  production_result?: ProductionGenerationResult;
+};
 
 export type KeyframeVersion = VersionRef<ImageRef>;
 export type ClipVersion = VersionRef<VideoRef>;
@@ -400,6 +410,7 @@ export interface Shot {
   slug?: string;
   /** The concrete visual: subject + setting, reusing entity descriptors. */
   action: string;
+  production?: ProductionRequirement;
   camera?: CameraDirection;
   /** What moves in the shot (and how the camera moves). */
   motion?: string;

@@ -15,6 +15,7 @@ import type {
   ScriptSetup,
   ScriptSetupStage
 } from "@nodetool-ai/protocol/api-schemas/scripts.js";
+import type { CreativeContext } from "../../../hooks/storyboard/productionContext";
 
 import {
   useScriptStore,
@@ -60,6 +61,7 @@ export const useScriptSetupStage = (scriptId: string): ScriptSetupStage => {
 export interface NewScriptContext extends Partial<ScriptSetupContext> {
   /** A handed-over script file, already read by `importedFromFile`. */
   source?: ImportedScript;
+  creativeContext?: CreativeContext;
 }
 
 /**
@@ -85,7 +87,14 @@ export const newScriptSetupDocument = (
   if (context?.source !== undefined) {
     Object.assign(setup, scriptSourcePatch(context.source));
   }
-  return { cast: [], sections: [], setup };
+  return {
+    cast: [],
+    sections: [],
+    setup,
+    ...(context?.creativeContext
+      ? { creative_context: context.creativeContext }
+      : {})
+  };
 };
 
 /**

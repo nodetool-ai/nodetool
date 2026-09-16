@@ -20,6 +20,8 @@ import { FlexColumn, FlexRow, GAP, Text } from "../../ui_primitives";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { PlanReview } from "../PlanReview";
 import type { PlanReviewSection } from "../PlanReview";
+import { productionPlanFields } from "../productionPlanFields";
+import { readProductionRequirements } from "../../../hooks/storyboard/productionContext";
 import { videoFormatById } from "./formats";
 
 /** "12s", "1m 04s" — a length as a creator reads it. */
@@ -187,7 +189,13 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             placeholder: "Leave empty for no line over this beat",
             onChange: (value: string) =>
               updateBeat(beat.id, { voiceover: value })
-          }
+          },
+          ...productionPlanFields({
+            idPrefix: beat.id,
+            production: readProductionRequirements(beat.production),
+            speechText: beat.voiceover ?? "",
+            onChange: (production) => updateBeat(beat.id, { production })
+          })
         ]
       })),
     [beats, commitLength, handleLength, lengths, rangeText, updateBeat]

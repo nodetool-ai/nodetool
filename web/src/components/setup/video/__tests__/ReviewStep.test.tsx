@@ -85,6 +85,27 @@ describe("video ReviewStep (criterion 4)", () => {
     );
   });
 
+  it("writes production direction and alternatives onto the reviewed beat", async () => {
+    const user = userEvent.setup();
+    seed(beats());
+    renderStep();
+
+    await user.click(screen.getAllByLabelText("Editorial purpose")[0]);
+    await user.click(await screen.findByRole("option", { name: "Hook" }));
+    await user.click(screen.getAllByLabelText("Alternatives")[0]);
+    await user.click(await screen.findByRole("option", { name: "3 takes" }));
+    await user.type(
+      screen.getAllByLabelText("Production direction")[0],
+      "Show the product opening in one motion."
+    );
+
+    expect(useTimelineStore.getState().setup?.beats?.[0].production).toMatchObject({
+      editorial_purpose: "hook",
+      requested_take_count: 3,
+      local_direction: "Show the product opening in one motion."
+    });
+  });
+
   // The transition is a closed set, so the row is a select and "Cut" is the
   // empty value — picking it clears the beat's transition.
   it("clears a transition when the row is set back to Cut", async () => {

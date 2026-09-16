@@ -44,6 +44,7 @@ import { useExampleStoryboards } from "../../../hooks/storyboard/useStoryboards"
 import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
 import { ExampleBriefs } from "../ExampleBriefs";
+import { CreativeContextFields } from "../CreativeContextFields";
 import { ShotlistReport } from "./ShotlistReport";
 import { SCRIPT_ACCEPT, useScriptImport } from "./useScriptImport";
 import {
@@ -72,6 +73,12 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
     (state) => state.boards[boardId]?.brief ?? ""
   );
   const setSetup = useStoryboardStore((state) => state.setSetup);
+  const creativeContext = useStoryboardStore(
+    (state) => state.boards[boardId]?.creativeContext
+  );
+  const setCreativeContext = useStoryboardStore(
+    (state) => state.setCreativeContext
+  );
   const { data: examples } = useExampleStoryboards();
   const script = useScriptImport(boardId);
   const shotlist = useShotlistImport(boardId);
@@ -231,6 +238,11 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
               ? "Held while your file is the script. Edit as text to change the words here."
               : undefined
           }
+        />
+
+        <CreativeContextFields
+          value={creativeContext}
+          onChange={(next) => setCreativeContext(boardId, next)}
         />
 
         {script.error ? (

@@ -233,7 +233,7 @@ describe("AI-video production capability contract", () => {
     ]);
   });
 
-  it("rejects acceptance while no destination adapter is wired", async () => {
+  it("returns a validated non-mutating acceptance manifest", async () => {
     const updateTimelineSequence = vi.fn();
     const context = asContext({
       userId: "u1",
@@ -263,15 +263,54 @@ describe("AI-video production capability contract", () => {
       expected_target_revision: "rev-1"
     })) as {
       ok: boolean;
-      code: string;
-      error: string;
+      outcome: string;
+      mutation_applied: boolean;
+      live_target_validated: boolean;
+      requires_destination_apply: boolean;
+      accepted_candidate_ids: string[];
+      acceptance_manifest: {
+        schema_version: string;
+        document_id: string;
+        batch_id: string;
+        expected_target_revision: string;
+        selection: Array<{
+          candidate_id: string;
+          asset_id: string;
+          destination: typeof REQUEST.destination;
+        }>;
+      };
+      message: string;
     };
-    expect(result).toMatchObject({ ok: false, code: "acceptance_adapter_unavailable" });
-    expect(result.error).toContain("no destination-specific apply adapter");
+    expect(result).toEqual({
+      ok: true,
+      outcome: "validated_acceptance_manifest",
+      mutation_applied: false,
+      live_target_validated: false,
+      requires_destination_apply: true,
+      accepted_candidate_ids: [],
+      acceptance_manifest: {
+        schema_version: "ai-video-production.acceptance.v1",
+        document_id: "storyboard-1",
+        batch_id: "batch-1",
+        expected_target_revision: "rev-1",
+        selection: [
+          {
+            candidate_id: "batch-1:candidate:1",
+            request_id: "batch-1:request:1",
+            generation_id: "generation-1",
+            variation_index: 0,
+            asset_id: "generated-1",
+            destination: REQUEST.destination
+          }
+        ]
+      },
+      message:
+        "The candidate manifest is internally valid for destination handoff. No live target was validated, no document was mutated, and no candidate was marked accepted. The destination-specific apply adapter must revalidate the live target before applying it."
+    });
     expect(updateTimelineSequence).not.toHaveBeenCalled();
   });
 
-  it("rejects acceptance before examining a candidate selection", async () => {
+  it("rejects two candidates for one destination without claiming mutation", async () => {
     const context = asContext({ userId: "u1" });
     const candidate = {
       candidate_id: "batch-1:candidate:1",
@@ -293,7 +332,100 @@ describe("AI-video production capability contract", () => {
     ).process(context, {
       candidates: [candidate, other],
       candidate_ids: [candidate.candidate_id, other.candidate_id]
+    })) as {
+      ok: boolean;
+      code: string;
+      mutation_applied: boolean;
+      live_target_validated: boolean;
+      accepted_candidate_ids: string[];
+    };
+    expect(result).toMatchObject({
+      ok: false,
+      code: "multiple_candidates_for_slot",
+      mutation_applied: false,
+      live_target_validated: false,
+      accepted_candidate_ids: []
+    });
+  });
+
+  it("rejects unsupported protocol destinations", async () => {
+    const context = asContext({ userId: "u1" });
+    const candidate = {
+      candidate_id: "batch-1:candidate:1",
+      batch_id: "batch-1",
+      request_id: "batch-1:request:1",
+      variation_index: 0,
+      destination: { ...REQUEST.destination, target_type: "unknown_surface" },
+      route: "reference_to_video",
+      provider: "fake",
+      model: "reference-model",
+      asset_ids: ["generated-1"],
+      status: "ready",
+      accepted: false
+    };
+    const result = (await tool(
+      "accept_video_production_candidates",
+      context
+    ).process(context, {
+      candidates: [candidate],
+      candidate_ids: [candidate.candidate_id]
+    })) as { code: string; mutation_applied: boolean };
+
+    expect(result).toMatchObject({
+      code: "unsupported_destination_type",
+      mutation_applied: false
+    });
+  });
+
+  it("rejects selections spanning batches or documents", async () => {
+    const context = asContext({ userId: "u1" });
+    const candidate = {
+      candidate_id: "batch-1:candidate:1",
+      batch_id: "batch-1",
+      request_id: "batch-1:request:1",
+      variation_index: 0,
+      destination: REQUEST.destination,
+      route: "reference_to_video",
+      provider: "fake",
+      model: "reference-model",
+      asset_ids: ["generated-1"],
+      status: "ready",
+      accepted: false
+    };
+    const otherBatch = {
+      ...candidate,
+      candidate_id: "batch-2:candidate:1",
+      batch_id: "batch-2",
+      request_id: "batch-2:request:1",
+      destination: { ...REQUEST.destination, target_id: "shot-2" }
+    };
+    const batchResult = (await tool(
+      "accept_video_production_candidates",
+      context
+    ).process(context, {
+      candidates: [candidate, otherBatch],
+      candidate_ids: [candidate.candidate_id, otherBatch.candidate_id]
     })) as { code: string };
-    expect(result.code).toBe("acceptance_adapter_unavailable");
+    expect(batchResult.code).toBe("multiple_batches_selected");
+
+    const otherDocument = {
+      ...candidate,
+      candidate_id: "batch-1:candidate:2",
+      request_id: "batch-1:request:2",
+      variation_index: 1,
+      destination: {
+        ...REQUEST.destination,
+        document_id: "storyboard-2",
+        target_id: "shot-2"
+      }
+    };
+    const documentResult = (await tool(
+      "accept_video_production_candidates",
+      context
+    ).process(context, {
+      candidates: [candidate, otherDocument],
+      candidate_ids: [candidate.candidate_id, otherDocument.candidate_id]
+    })) as { code: string };
+    expect(documentResult.code).toBe("multiple_documents_selected");
   });
 });

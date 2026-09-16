@@ -136,6 +136,22 @@ describe("script IdeaStep", () => {
     expect(setupNow()?.brief).toBe("tide clocks");
   });
 
+  it("stores optional creative context on the script document", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.type(screen.getByLabelText("Product name"), "Harbor Clock");
+    await user.type(
+      screen.getByLabelText("Approved claims"),
+      "Runs on tidal movement"
+    );
+
+    expect(useScriptStore.getState().scripts[SCRIPT_ID].creativeContext).toMatchObject({
+      product_name: "Harbor Clock",
+      approved_claims: ["Runs on tidal movement"]
+    });
+  });
+
   it("fills the brief from an inspiration chip", async () => {
     const user = userEvent.setup();
     renderStep();

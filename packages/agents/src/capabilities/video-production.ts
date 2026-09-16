@@ -7,12 +7,19 @@
  * cancellation, recovery, and asset persistence remain one system. Candidate
  * landing and destination-specific acceptance are intentionally not recreated
  * here because the agent package has no shared apply adapter for those
- * surfaces yet.
+ * surfaces yet. Acceptance therefore returns an explicit, non-mutating handoff
+ * manifest instead of claiming that an editor document changed.
  */
 
 import { randomUUID } from "node:crypto";
 import type { GenerationRequest, ProcessingContext } from "@nodetool-ai/runtime";
 import { Prediction } from "@nodetool-ai/models";
+import {
+  productionCandidate,
+  productionDestinationKind,
+  validateProductionAcceptance,
+  type ProductionCandidate
+} from "@nodetool-ai/protocol";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -34,6 +41,8 @@ import {
 } from "../utils/type-guards.js";
 
 export const VIDEO_PRODUCTION_SCHEMA_VERSION = "ai-video-production.v1" as const;
+export const VIDEO_PRODUCTION_ACCEPTANCE_SCHEMA_VERSION =
+  "ai-video-production.acceptance.v1" as const;
 
 export type VideoProductionRoute =
   | "reference_to_video"
@@ -100,6 +109,38 @@ export interface VideoProductionValidationError {
   readonly code: string;
   readonly message: string;
   readonly field?: string;
+}
+
+export interface VideoProductionAcceptanceSelection {
+  readonly candidate_id: string;
+  readonly request_id: string;
+  readonly generation_id?: string;
+  readonly variation_index: number;
+  readonly asset_id: string;
+  readonly destination: VideoProductionDestination;
+}
+
+/**
+ * A validated handoff for a destination-owned apply operation. This manifest
+ * is not evidence that accepted media or document state changed.
+ */
+export interface VideoProductionAcceptanceManifest {
+  readonly schema_version: typeof VIDEO_PRODUCTION_ACCEPTANCE_SCHEMA_VERSION;
+  readonly document_id: string;
+  readonly batch_id: string;
+  readonly expected_target_revision?: string;
+  readonly selection: readonly VideoProductionAcceptanceSelection[];
+}
+
+export interface VideoProductionAcceptanceManifestResult {
+  readonly ok: true;
+  readonly outcome: "validated_acceptance_manifest";
+  readonly mutation_applied: false;
+  readonly live_target_validated: false;
+  readonly requires_destination_apply: true;
+  readonly accepted_candidate_ids: readonly [];
+  readonly acceptance_manifest: VideoProductionAcceptanceManifest;
+  readonly message: string;
 }
 
 export type VideoProductionPreflight =
@@ -621,6 +662,12 @@ function candidateOf(value: unknown): ParsedCandidate | ParseFailure {
       `Candidate ${candidateId} is already accepted and cannot be accepted again.`
     );
   }
+  if (new Set(assetIds.map((id) => id.trim())).size !== assetIds.length) {
+    return error(
+      "candidate_asset_ids_not_unique",
+      `Candidate ${candidateId} has duplicate asset ids.`
+    );
+  }
   return {
     ok: true,
     value: {
@@ -654,7 +701,82 @@ function candidatesOf(value: unknown):
     if (!candidate.ok) return candidate;
     candidates.push(candidate.value);
   }
+  if (
+    new Set(candidates.map((candidate) => candidate.candidate_id)).size !==
+    candidates.length
+  ) {
+    return error(
+      "candidate_ids_not_unique",
+      "candidates must contain unique candidate_id values."
+    );
+  }
   return { ok: true, value: candidates };
+}
+
+function protocolCandidateOf(
+  candidate: VideoProductionCandidate
+): ProductionCandidate | VideoProductionValidationError {
+  const destinationKind = productionDestinationKind.safeParse(
+    candidate.destination.target_type
+  );
+  if (!destinationKind.success) {
+    return {
+      code: "unsupported_destination_type",
+      message:
+        `Candidate ${candidate.candidate_id} targets unsupported destination type ` +
+        `${candidate.destination.target_type}.`,
+      field: "candidates"
+    };
+  }
+  if (candidate.asset_ids.length !== 1) {
+    return {
+      code: "candidate_asset_ambiguous",
+      message:
+        `Candidate ${candidate.candidate_id} must identify exactly one persisted asset ` +
+        "before acceptance.",
+      field: "candidates"
+    };
+  }
+
+  const variationIndex = candidate.variation_index + 1;
+  const variationId = [
+    "variation",
+    candidate.batch_id,
+    destinationKind.data,
+    candidate.destination.target_id,
+    variationIndex
+  ].join(":");
+  const parsed = productionCandidate.safeParse({
+    candidateId: candidate.candidate_id,
+    batchId: candidate.batch_id,
+    requestId: candidate.request_id,
+    variationId,
+    variationIndex,
+    destinationKind: destinationKind.data,
+    destinationId: candidate.destination.target_id,
+    status: "ready",
+    assetId: candidate.asset_ids[0],
+    snapshot: {
+      batchId: candidate.batch_id,
+      requestId: candidate.request_id,
+      candidateId: candidate.candidate_id,
+      variationId,
+      variationIndex,
+      destinationKind: destinationKind.data,
+      destinationId: candidate.destination.target_id,
+      operation: "initial_generation"
+    }
+  });
+  if (!parsed.success) {
+    return {
+      code: "candidate_protocol_invalid",
+      message:
+        `Candidate ${candidate.candidate_id} does not satisfy the production ` +
+        `protocol: ${parsed.error.issues.map((issue) => issue.message).join("; ")}.`,
+      field: "candidates"
+    };
+  }
+  return parsed.data;
 }
 
 /** Validate an explicit one-candidate-per-slot acceptance map. */
@@ -666,9 +788,25 @@ export function validateVideoProductionAcceptance(
   if (selectedCandidateIds.length === 0) {
     return error("candidate_selection_required", "candidate_ids must not be empty.");
   }
+  if (
+    new Set(candidates.map((candidate) => candidate.candidate_id)).size !==
+    candidates.length
+  ) {
+    return error(
+      "candidate_ids_not_unique",
+      "candidates must contain unique candidate_id values."
+    );
+  }
+  if (new Set(selectedCandidateIds).size !== selectedCandidateIds.length) {
+    return error(
+      "candidate_selection_not_unique",
+      "candidate_ids must not contain duplicates."
+    );
+  }
   const byId = new Map(candidates.map((candidate) => [candidate.candidate_id, candidate]));
   const selected: VideoProductionCandidate[] = [];
   const slots = new Set<string>();
+  const destinationIds = new Set<string>();
   for (const id of selectedCandidateIds) {
     const candidate = byId.get(id);
     if (!candidate) {
@@ -688,6 +826,13 @@ export function validateVideoProductionAcceptance(
       );
     }
     slots.add(slot);
+    if (destinationIds.has(candidate.destination.target_id)) {
+      return error(
+        "destination_ids_not_unique",
+        `Destination id ${candidate.destination.target_id} is ambiguous across selected slots.`
+      );
+    }
+    destinationIds.add(candidate.destination.target_id);
     if (
       expectedTargetRevision !== undefined &&
       candidate.destination.target_revision !== expectedTargetRevision
@@ -699,7 +844,83 @@ export function validateVideoProductionAcceptance(
     }
     selected.push(candidate);
   }
+
+  const batchIds = new Set(selected.map((candidate) => candidate.batch_id));
+  if (batchIds.size !== 1) {
+    return error(
+      "multiple_batches_selected",
+      "An acceptance manifest may select candidates from one production batch only."
+    );
+  }
+  const documentIds = new Set(
+    selected.map((candidate) => candidate.destination.document_id)
+  );
+  if (documentIds.size !== 1) {
+    return error(
+      "multiple_documents_selected",
+      "An acceptance manifest may target one document only."
+    );
+  }
+
+  const protocolCandidates: ProductionCandidate[] = [];
+  for (const candidate of selected) {
+    const parsed = protocolCandidateOf(candidate);
+    if ("code" in parsed) return { ok: false, error: parsed };
+    protocolCandidates.push(parsed);
+  }
+  const batchId = selected[0]?.batch_id;
+  if (!batchId) {
+    return error("candidate_selection_required", "candidate_ids must not be empty.");
+  }
+  const protocolValidation = validateProductionAcceptance({
+    candidates: protocolCandidates,
+    targets: protocolCandidates.map((candidate) => ({
+      destinationKind: candidate.destinationKind,
+      destinationId: candidate.destinationId
+    })),
+    selection: Object.fromEntries(
+      protocolCandidates.map((candidate) => [
+        candidate.destinationId,
+        candidate.candidateId
+      ])
+    ),
+    batchId
+  });
+  if (!protocolValidation.valid) {
+    return error(
+      "production_acceptance_invalid",
+      `Production acceptance validation failed: ${protocolValidation.issues.join("; ")}.`
+    );
+  }
   return { ok: true, candidates: selected };
+}
+
+function acceptanceManifest(
+  candidates: readonly VideoProductionCandidate[],
+  expectedTargetRevision?: string
+): VideoProductionAcceptanceManifest {
+  const first = candidates[0];
+  if (!first) {
+    throw new Error("A validated acceptance selection cannot be empty.");
+  }
+  return {
+    schema_version: VIDEO_PRODUCTION_ACCEPTANCE_SCHEMA_VERSION,
+    document_id: first.destination.document_id,
+    batch_id: first.batch_id,
+    ...(expectedTargetRevision
+      ? { expected_target_revision: expectedTargetRevision }
+      : {}),
+    selection: candidates.map((candidate) => ({
+      candidate_id: candidate.candidate_id,
+      request_id: candidate.request_id,
+      ...(candidate.generation_id
+        ? { generation_id: candidate.generation_id }
+        : {}),
+      variation_index: candidate.variation_index,
+      asset_id: candidate.asset_ids[0] ?? "",
+      destination: candidate.destination
+    }))
+  };
 }
 
 const prepareVideoProductionCapability: CapabilityExport = {
@@ -776,13 +997,87 @@ const inspectVideoProductionCandidatesCapability: CapabilityExport = {
 
 const acceptVideoProductionCandidatesCapability: CapabilityExport = {
   spec: acceptVideoProductionCandidatesSpec,
-  impl: async () => {
-    return {
-      ok: false,
-      code: "acceptance_adapter_unavailable",
-      error:
-        "Video production acceptance is disabled because no destination-specific apply adapter is wired. Use the owning timeline, storyboard, or script surface to apply a candidate."
+  impl: async (_run, params) => {
+    const parsed = candidatesOf(params["candidates"]);
+    if (!parsed.ok) {
+      return {
+        ok: false,
+        outcome: "rejected",
+        mutation_applied: false,
+        live_target_validated: false,
+        accepted_candidate_ids: [],
+        code: parsed.error.code,
+        error: parsed.error.message,
+        ...(parsed.error.field ? { field: parsed.error.field } : {})
+      };
+    }
+    const candidateIds = stringList(params, "candidate_ids");
+    if (!candidateIds.ok) {
+      return {
+        ok: false,
+        outcome: "rejected",
+        mutation_applied: false,
+        live_target_validated: false,
+        accepted_candidate_ids: [],
+        code: candidateIds.error.code,
+        error: candidateIds.error.message,
+        ...(candidateIds.error.field
+          ? { field: candidateIds.error.field }
+          : {})
+      };
+    }
+    const rawExpectedRevision = params["expected_target_revision"];
+    if (
+      rawExpectedRevision !== undefined &&
+      !isNonBlankString(rawExpectedRevision)
+    ) {
+      return {
+        ok: false,
+        outcome: "rejected",
+        mutation_applied: false,
+        live_target_validated: false,
+        accepted_candidate_ids: [],
+        code: "expected_target_revision_invalid",
+        error: "expected_target_revision must be a non-empty string when provided.",
+        field: "expected_target_revision"
+      };
+    }
+    const expectedTargetRevision = isNonBlankString(rawExpectedRevision)
+      ? rawExpectedRevision.trim()
+      : undefined;
+    const validation = validateVideoProductionAcceptance(
+      parsed.value,
+      candidateIds.value,
+      expectedTargetRevision
+    );
+    if (!validation.ok) {
+      return {
+        ok: false,
+        outcome: "rejected",
+        mutation_applied: false,
+        live_target_validated: false,
+        accepted_candidate_ids: [],
+        code: validation.error.code,
+        error: validation.error.message,
+        ...(validation.error.field ? { field: validation.error.field } : {})
+      };
+    }
+
+    const result: VideoProductionAcceptanceManifestResult = {
+      ok: true,
+      outcome: "validated_acceptance_manifest",
+      mutation_applied: false,
+      live_target_validated: false,
+      requires_destination_apply: true,
+      accepted_candidate_ids: [],
+      acceptance_manifest: acceptanceManifest(
+        validation.candidates,
+        expectedTargetRevision
+      ),
+      message:
+        "The candidate manifest is internally valid for destination handoff. No live target was validated, no document was mutated, and no candidate was marked accepted. The destination-specific apply adapter must revalidate the live target before applying it."
     };
+    return result;
   }
 };
 

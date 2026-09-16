@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Screenplay, Shot } from "../creative.js";
-import { creativeContext, productionRequirement } from "../production-authoring.js";
+import { renderInputs } from "../creative.js";
+import { creativeContext, productionGenerationResult, productionRequirement } from "../production-authoring.js";
 import {
   isNonEmptyString,
   isNumber,
@@ -17,7 +18,9 @@ const mediaRef = z
   .object({
     type: z.string(),
     uri: z.string().optional(),
-    asset_id: z.string().nullable().optional()
+    asset_id: z.string().nullable().optional(),
+    render_inputs: renderInputs.optional(),
+    production_result: productionGenerationResult.optional()
   })
   .passthrough();
 
@@ -39,6 +42,8 @@ export const storyboardShot = z
     duration_seconds: z.number().optional(),
     keyframe: mediaRef.nullable().optional(),
     clip: mediaRef.nullable().optional(),
+    keyframe_versions: z.array(mediaRef).optional(),
+    clip_versions: z.array(mediaRef).optional(),
     still_model: shotModelRef.optional(),
     clip_model: shotModelRef.optional(),
     /** Ordered ids of the linked script's lines this shot covers. */

@@ -18,6 +18,7 @@
 
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import type { CreativeContext } from "@nodetool-ai/protocol";
 import type { ScriptSetup } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 import {
   pushHistory,
@@ -105,6 +106,8 @@ export interface ScriptDraft {
    * what makes such a script open as the editor rather than as step 1 (D3).
    */
   setup?: ScriptSetup | null;
+  /** Optional shared product, audience, and reference direction. */
+  creativeContext?: CreativeContext;
   /** Epoch ms of the last mutation; drives the sidebar's recency sort. */
   updatedAt: number;
 }
@@ -167,6 +170,10 @@ export interface ScriptStoreState {
   getScript: (id: string) => ScriptDraft | undefined;
 
   setTitle: (scriptId: string, title: string) => void;
+  setCreativeContext: (
+    scriptId: string,
+    creativeContext: CreativeContext | undefined
+  ) => void;
   /**
    * Merge fields into the guided setup, seeding one at stage `idea` when the
    * script has none. Every step writes through here, so the flow's state is
@@ -521,6 +528,19 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
         (s) => (s.title === title ? s : { ...s, title }),
         { coalesceKey: "title" }
       )
+    ),
+
+  setCreativeContext: (scriptId, creativeContext) =>
+    set((state) =>
+      withScript(state, scriptId, (script) => {
+        if (script.creativeContext === creativeContext) return null;
+        if (creativeContext === undefined) {
+          const next = { ...script };
+          delete next.creativeContext;
+          return next;
+        }
+        return { ...script, creativeContext };
+      })
     ),
 
   setSetup: (scriptId, patch) =>

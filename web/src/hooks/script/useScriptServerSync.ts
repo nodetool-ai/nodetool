@@ -42,7 +42,10 @@ const scriptToDocument = (script: ScriptDraft): ScriptWireDocument => ({
   sections: script.sections,
   // Omitted when the script has none, so a script written before the guided
   // flow existed is saved back exactly as it was read (PRD § 9.5).
-  setup: script.setup ?? undefined
+  setup: script.setup ?? undefined,
+  ...(script.creativeContext
+    ? { creative_context: script.creativeContext }
+    : {})
 });
 
 const responseToScript = (
@@ -54,6 +57,9 @@ const responseToScript = (
     cast: doc.cast,
     sections: doc.sections,
     setup: doc.setup ?? null,
+    ...(doc.creative_context
+      ? { creativeContext: doc.creative_context }
+      : {}),
     timelineId: res.timelineId ?? null,
     storyboardId: res.storyboardId ?? null
   };

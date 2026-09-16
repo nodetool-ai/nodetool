@@ -19,12 +19,216 @@
  * player, where a board that is only half rendered still has to play.
  */
 
-import type { Shot } from "@nodetool-ai/protocol";
+import {
+  productionCandidate,
+  type ProductionCandidate,
+  type ProductionGenerationSnapshot,
+  type Shot
+} from "@nodetool-ai/protocol";
 import { createTimeOrderedUuid, makeClip, makeTrack } from "./defaults.js";
-import type { TimelineClip, TimelineTrack } from "./types.js";
+import {
+  productionCandidateIdentityForDestination,
+  type ProductionAuditionMap,
+  type ProductionCandidateIdentity
+} from "./production.js";
+import { stableSerialize } from "./stableSerialize.js";
+import type {
+  ClipVersion as TimelineClipVersion,
+  TimelineClip,
+  TimelineTrack
+} from "./types.js";
 
 /** Clip length used for a shot that carries no duration. */
 export const DEFAULT_SHOT_MS = 4000;
+
+export interface StoryboardProductionResultRecord {
+  readonly createdAt: string;
+  readonly measuredDurationMs: number;
+  readonly jobId?: string;
+  readonly costCredits?: number;
+}
+
+interface StoryboardProductionCandidateRecord {
+  readonly clip: NonNullable<Shot["clip"]>;
+  readonly candidate: ProductionCandidate;
+  readonly result: StoryboardProductionResultRecord;
+}
+
+export interface StoryboardProductionCandidateLanding {
+  readonly identity: ProductionCandidateIdentity;
+  readonly snapshot: ProductionGenerationSnapshot;
+  readonly clip: NonNullable<Shot["clip"]>;
+  readonly createdAt: string;
+  readonly measuredDurationMs: number;
+  readonly takeId?: string;
+  readonly jobId?: string;
+  readonly costCredits?: number;
+}
+
+/** Stable storyboard identity assigned before provider dispatch. */
+export function storyboardProductionCandidateIdentity(
+  batchId: string,
+  shotId: string,
+  variationIndex: number
+): ProductionCandidateIdentity {
+  return productionCandidateIdentityForDestination(
+    "storyboard_shot",
+    batchId,
+    shotId,
+    variationIndex
+  );
+}
+
+function productionRecordOf(
+  clip: NonNullable<Shot["clip"]> | null | undefined
+): StoryboardProductionCandidateRecord | null {
+  if (clip === null || clip === undefined) return null;
+  const candidateValue =
+    "production_candidate" in clip
+      ? clip.production_candidate
+      : undefined;
+  const parsedCandidate = productionCandidate.safeParse(candidateValue);
+  if (!parsedCandidate.success) return null;
+
+  const resultValue =
+    "production_result" in clip
+      ? clip.production_result
+      : undefined;
+  if (
+    resultValue === null ||
+    typeof resultValue !== "object" ||
+    !("createdAt" in resultValue) ||
+    typeof resultValue.createdAt !== "string" ||
+    !("measuredDurationMs" in resultValue) ||
+    typeof resultValue.measuredDurationMs !== "number"
+  ) {
+    return null;
+  }
+  const jobId =
+    "jobId" in resultValue && typeof resultValue.jobId === "string"
+      ? resultValue.jobId
+      : undefined;
+  const costCredits =
+    "costCredits" in resultValue && typeof resultValue.costCredits === "number"
+      ? resultValue.costCredits
+      : undefined;
+  return {
+    clip,
+    candidate: parsedCandidate.data,
+    result: {
+      createdAt: resultValue.createdAt,
+      measuredDurationMs: resultValue.measuredDurationMs,
+      ...(jobId === undefined ? {} : { jobId }),
+      ...(costCredits === undefined ? {} : { costCredits })
+    }
+  };
+}
+
+function storyboardCandidateForShot(
+  shot: Shot,
+  candidateId: string
+): StoryboardProductionCandidateRecord | null {
+  for (const clip of shot.clip_versions ?? []) {
+    const record = productionRecordOf(clip);
+    if (record?.candidate.candidateId === candidateId) return record;
+  }
+  return null;
+}
+
+/** Return storyboard video candidates in requested variation order. */
+export function storyboardProductionCandidatesForShot(
+  shot: Shot,
+  batchId?: string
+): ProductionCandidate[] {
+  return (shot.clip_versions ?? [])
+    .map((clip) => productionRecordOf(clip))
+    .filter(
+      (record): record is StoryboardProductionCandidateRecord =>
+        record !== null &&
+        (batchId === undefined || record.candidate.batchId === batchId)
+    )
+    .map((record) => record.candidate)
+    .sort(
+      (left, right) =>
+        left.variationIndex - right.variationIndex ||
+        left.candidateId.localeCompare(right.candidateId)
+    );
+}
+
+/** Land a completed storyboard video as an inactive clip candidate. */
+export function landStoryboardProductionCandidate(
+  shot: Shot,
+  landing: StoryboardProductionCandidateLanding
+): Shot {
+  const { identity, snapshot } = landing;
+  if (
+    identity.destinationKind !== "storyboard_shot" ||
+    identity.destinationId !== shot.id
+  ) {
+    throw new Error("A storyboard candidate must land on its requested shot.");
+  }
+  if (
+    snapshot.candidateId !== identity.candidateId ||
+    snapshot.batchId !== identity.batchId ||
+    snapshot.requestId !== identity.requestId ||
+    snapshot.variationId !== identity.variationId ||
+    snapshot.variationIndex !== identity.variationIndex ||
+    snapshot.destinationId !== identity.destinationId ||
+    snapshot.destinationKind !== identity.destinationKind
+  ) {
+    throw new Error("Storyboard candidate identity does not match its snapshot.");
+  }
+  const assetId = assetIdOf(landing.clip);
+  if (assetId === undefined) {
+    throw new Error("A ready storyboard candidate needs a persisted asset id.");
+  }
+  if (
+    !Number.isFinite(landing.measuredDurationMs) ||
+    landing.measuredDurationMs <= 0
+  ) {
+    throw new Error("A storyboard candidate needs a measured duration in milliseconds.");
+  }
+
+  const versions =
+    shot.clip_versions ?? (shot.clip === null || shot.clip === undefined ? [] : [shot.clip]);
+  const existing = versions
+    .map((clip) => productionRecordOf(clip))
+    .find((record) => record?.candidate.candidateId === identity.candidateId);
+  if (existing !== undefined && existing !== null) {
+    if (
+      existing.candidate.requestId === identity.requestId &&
+      existing.candidate.assetId === assetId &&
+      stableSerialize(existing.candidate.snapshot) === stableSerialize(snapshot)
+    ) {
+      return shot;
+    }
+    throw new Error(
+      `Candidate "${identity.candidateId}" already exists with different inputs.`
+    );
+  }
+
+  const candidate: ProductionCandidate = {
+    ...identity,
+    status: "ready",
+    assetId,
+    takeId: landing.takeId ?? identity.candidateId,
+    snapshot
+  };
+  const productionResult: StoryboardProductionResultRecord = {
+    createdAt: landing.createdAt,
+    measuredDurationMs: landing.measuredDurationMs,
+    ...(landing.jobId === undefined ? {} : { jobId: landing.jobId }),
+    ...(landing.costCredits === undefined
+      ? {}
+      : { costCredits: landing.costCredits })
+  };
+  const clip = {
+    ...landing.clip,
+    production_candidate: candidate,
+    production_result: productionResult
+  };
+  return { ...shot, clip_versions: [...versions, clip] };
+}
 
 /**
  * Frame size for an aspect ratio, at a 1080px short edge.
@@ -156,11 +360,333 @@ export const shotDurationMs = (shot: Shot): number =>
 
 /** Length of the footage a shot's selected clip actually holds, when known. */
 export const shotSourceDurationMs = (shot: Shot): number | null => {
+  const production = productionRecordOf(shot.clip);
+  if (
+    production !== null &&
+    Number.isFinite(production.result.measuredDurationMs) &&
+    production.result.measuredDurationMs > 0
+  ) {
+    return production.result.measuredDurationMs;
+  }
   const seconds = shot.clip?.duration;
   return typeof seconds === "number" && seconds > 0
     ? Math.round(seconds * 1000)
     : null;
 };
+
+/** Intended playable window for an accepted production candidate. */
+export function storyboardProductionPlayableDurationMs(
+  shot: Shot
+): number | null {
+  const record = productionRecordOf(shot.clip);
+  const requestedDurationMs = record?.candidate.snapshot.requestedDurationMs;
+  return typeof requestedDurationMs === "number" && requestedDurationMs > 0
+    ? requestedDurationMs
+    : null;
+}
+
+function validatedStoryboardCandidate(
+  shot: Shot,
+  candidateId: string
+): StoryboardProductionCandidateRecord | string {
+  const record = storyboardCandidateForShot(shot, candidateId);
+  if (record === null) {
+    return `Candidate "${candidateId}" is not on shot "${shot.id}".`;
+  }
+  const { candidate } = record;
+  const snapshot = candidate.snapshot;
+  if (
+    candidate.status !== "ready" ||
+    candidate.assetId === undefined ||
+    candidate.assetId !== assetIdOf(record.clip)
+  ) {
+    return `Candidate "${candidateId}" is not ready.`;
+  }
+  if (
+    candidate.destinationKind !== "storyboard_shot" ||
+    candidate.destinationId !== shot.id ||
+    snapshot.candidateId !== candidate.candidateId ||
+    snapshot.batchId !== candidate.batchId ||
+    snapshot.requestId !== candidate.requestId ||
+    snapshot.variationId !== candidate.variationId ||
+    snapshot.variationIndex !== candidate.variationIndex ||
+    snapshot.destinationKind !== candidate.destinationKind ||
+    snapshot.destinationId !== candidate.destinationId
+  ) {
+    return `Candidate "${candidateId}" has invalid production provenance.`;
+  }
+  return record;
+}
+
+export interface StoryboardCandidatePreview {
+  readonly candidateId: string;
+  readonly assetId: string;
+  readonly sourceTimeMs: number;
+  readonly sourceDurationMs: number;
+}
+
+export type StoryboardCandidatePreviewResult =
+  | { readonly ok: true; readonly preview: StoryboardCandidatePreview }
+  | { readonly ok: false; readonly error: string };
+
+/** Preview one storyboard take without selecting it on the shot. */
+export function previewStoryboardProductionCandidate(
+  shot: Shot,
+  candidateId: string,
+  relativeTimeMs: number
+): StoryboardCandidatePreviewResult {
+  const validated = validatedStoryboardCandidate(shot, candidateId);
+  if (typeof validated === "string") {
+    return { ok: false, error: validated };
+  }
+  const sourceDurationMs = validated.result.measuredDurationMs;
+  return {
+    ok: true,
+    preview: {
+      candidateId,
+      assetId: validated.candidate.assetId ?? "",
+      sourceTimeMs: Math.min(
+        sourceDurationMs,
+        Math.max(0, Number.isFinite(relativeTimeMs) ? relativeTimeMs : 0)
+      ),
+      sourceDurationMs
+    }
+  };
+}
+
+export interface StoryboardDraftPreview {
+  readonly candidates: Readonly<Record<string, StoryboardCandidatePreview>>;
+  readonly unresolvedShotIds: readonly string[];
+}
+
+/** Resolve a preview-only candidate map. Missing results remain unresolved. */
+export function previewStoryboardProductionDraft(
+  shots: readonly Shot[],
+  audition: ProductionAuditionMap
+): StoryboardDraftPreview {
+  const candidates: Record<string, StoryboardCandidatePreview> = {};
+  const unresolvedShotIds: string[] = [];
+  for (const shotId of Object.keys(audition).sort()) {
+    const shot = shots.find((item) => item.id === shotId);
+    const candidateId = audition[shotId];
+    if (shot === undefined || candidateId === undefined) {
+      unresolvedShotIds.push(shotId);
+      continue;
+    }
+    const preview = previewStoryboardProductionCandidate(shot, candidateId, 0);
+    if (!preview.ok) {
+      unresolvedShotIds.push(shotId);
+      continue;
+    }
+    candidates[shotId] = preview.preview;
+  }
+  return { candidates, unresolvedShotIds };
+}
+
+export interface StoryboardTakePreconditions {
+  readonly batchId?: string;
+  readonly authoringFingerprint?: string;
+}
+
+export type StoryboardTakeResult =
+  | {
+      readonly ok: true;
+      readonly shot: Shot;
+      readonly candidate: ProductionCandidate;
+    }
+  | { readonly ok: false; readonly shot: Shot; readonly error: string };
+
+function storyboardSourceAssetIdOf(
+  snapshot: ProductionGenerationSnapshot
+): string | undefined {
+  const context = snapshot.sourceContext;
+  if (context === undefined) return undefined;
+  const camel = context["sourceAssetId"];
+  if (typeof camel === "string" && camel.length > 0) return camel;
+  const snake = context["source_asset_id"];
+  return typeof snake === "string" && snake.length > 0 ? snake : undefined;
+}
+
+/** Validate and persist one explicit storyboard Use take choice. */
+export function useStoryboardProductionTake(
+  shot: Shot,
+  candidateId: string,
+  preconditions: StoryboardTakePreconditions = {}
+): StoryboardTakeResult {
+  const validated = validatedStoryboardCandidate(shot, candidateId);
+  if (typeof validated === "string") {
+    return { ok: false, shot, error: validated };
+  }
+  const { candidate, result } = validated;
+  const snapshot = candidate.snapshot;
+  if (
+    preconditions.batchId !== undefined &&
+    candidate.batchId !== preconditions.batchId
+  ) {
+    return {
+      ok: false,
+      shot,
+      error: `Candidate "${candidateId}" belongs to another production batch.`
+    };
+  }
+  if (
+    preconditions.authoringFingerprint !== undefined &&
+    snapshot.authoringFingerprint !== preconditions.authoringFingerprint
+  ) {
+    return {
+      ok: false,
+      shot,
+      error: `Shot "${shot.id}" changed after the candidate was prepared.`
+    };
+  }
+  const sourceAssetId = storyboardSourceAssetIdOf(snapshot);
+  if (sourceAssetId !== undefined && assetIdOf(shot.clip) !== sourceAssetId) {
+    return {
+      ok: false,
+      shot,
+      error: `Candidate "${candidateId}" was generated from another source asset.`
+    };
+  }
+  const playableDurationMs = shotDurationMs(shot);
+  if (snapshot.requestedDurationMs !== playableDurationMs) {
+    return {
+      ok: false,
+      shot,
+      error: `Candidate "${candidateId}" does not match the shot's current timing.`
+    };
+  }
+  if (result.measuredDurationMs < playableDurationMs) {
+    return {
+      ok: false,
+      shot,
+      error: `Candidate "${candidateId}" is shorter than the shot's playable window.`
+    };
+  }
+  return {
+    ok: true,
+    shot: { ...shot, clip: validated.clip, status: "rendered" },
+    candidate
+  };
+}
+
+export interface StoryboardDraftChange {
+  readonly shotId: string;
+  readonly before: Shot;
+  readonly after: Shot;
+}
+
+export type StoryboardDraftResult =
+  | {
+      readonly ok: true;
+      readonly shots: readonly Shot[];
+      readonly changes: readonly StoryboardDraftChange[];
+    }
+  | {
+      readonly ok: false;
+      readonly shots: readonly Shot[];
+      readonly error: string;
+    };
+
+export interface StoryboardDraftPreconditions {
+  readonly batchId?: string;
+  readonly authoringFingerprints?: Readonly<Record<string, string>>;
+}
+
+function rejectedStoryboardDraft(
+  shots: readonly Shot[],
+  error: string
+): StoryboardDraftResult {
+  return { ok: false, shots, error };
+}
+
+/** Atomically accept an explicit ready subset of one storyboard batch. */
+export function applyStoryboardProductionDraft(
+  shots: readonly Shot[],
+  audition: ProductionAuditionMap,
+  preconditions: StoryboardDraftPreconditions = {}
+): StoryboardDraftResult {
+  const shotIds = Object.keys(audition).sort();
+  if (shotIds.length === 0) {
+    return rejectedStoryboardDraft(
+      shots,
+      "A storyboard production draft needs at least one candidate selection."
+    );
+  }
+
+  let batchId = preconditions.batchId;
+  const changes: StoryboardDraftChange[] = [];
+  for (const shotId of shotIds) {
+    const shot = shots.find((item) => item.id === shotId);
+    if (shot === undefined) {
+      return rejectedStoryboardDraft(shots, `Shot "${shotId}" no longer exists.`);
+    }
+    if (assetIdOf(shot.clip) !== undefined) {
+      return rejectedStoryboardDraft(
+        shots,
+        `Shot "${shotId}" already has accepted video.`
+      );
+    }
+    const candidateId = audition[shotId];
+    if (candidateId === undefined) {
+      return rejectedStoryboardDraft(shots, `No candidate was selected for shot "${shotId}".`);
+    }
+    const validated = validatedStoryboardCandidate(shot, candidateId);
+    if (typeof validated === "string") {
+      return rejectedStoryboardDraft(shots, validated);
+    }
+    batchId ??= validated.candidate.batchId;
+    if (validated.candidate.batchId !== batchId) {
+      return rejectedStoryboardDraft(
+        shots,
+        "A storyboard production draft may select candidates from one batch only."
+      );
+    }
+    const applied = useStoryboardProductionTake(shot, candidateId, {
+      batchId,
+      authoringFingerprint: preconditions.authoringFingerprints?.[shotId]
+    });
+    if (!applied.ok) return rejectedStoryboardDraft(shots, applied.error);
+    changes.push({ shotId, before: shot, after: applied.shot });
+  }
+
+  const changed = new Map(changes.map((change) => [change.shotId, change.after]));
+  return {
+    ok: true,
+    shots: shots.map((shot) => changed.get(shot.id) ?? shot),
+    changes
+  };
+}
+
+/** Restore one atomic storyboard draft acceptance. */
+export function undoStoryboardProductionDraft(
+  shots: readonly Shot[],
+  applied: Extract<StoryboardDraftResult, { readonly ok: true }>
+): StoryboardDraftResult {
+  for (const change of applied.changes) {
+    const current = shots.find((shot) => shot.id === change.shotId);
+    if (
+      current === undefined ||
+      stableSerialize(current) !== stableSerialize(change.after)
+    ) {
+      return rejectedStoryboardDraft(
+        shots,
+        `Cannot undo production draft for shot "${change.shotId}" after it changed.`
+      );
+    }
+  }
+  const before = new Map(
+    applied.changes.map((change) => [change.shotId, change.before])
+  );
+  return {
+    ok: true,
+    shots: shots.map((shot) => before.get(shot.id) ?? shot),
+    changes: applied.changes.map((change) => ({
+      shotId: change.shotId,
+      before: change.after,
+      after: change.before
+    }))
+  };
+}
 
 /** Shots by id, for resolving {@link Shot.covered_by}. */
 export const shotsById = (shots: readonly Shot[]): Map<string, Shot> =>
@@ -261,19 +787,26 @@ export function shotSource(
     playableShot(candidate, options);
   if (playable(shot)) {
     const sourceMs = shotSourceDurationMs(shot);
+    const productionWindowMs = storyboardProductionPlayableDurationMs(shot);
     // The head of the clip, when other shots cover the rest of it.
     const claimMs = options?.claims?.get(shot.id) ?? null;
+    const windowMs =
+      claimMs === null
+        ? productionWindowMs
+        : productionWindowMs === null
+          ? claimMs
+          : Math.min(claimMs, productionWindowMs);
     return {
       assetId: shot.clip!.asset_id as string,
       sourceShotId: shot.id,
       inPointMs: 0,
       availableMs:
-        claimMs === null
+        windowMs === null
           ? sourceMs
           : sourceMs === null
-            ? claimMs
-            : Math.min(sourceMs, claimMs),
-      windowMs: claimMs
+            ? windowMs
+            : Math.min(sourceMs, windowMs),
+      windowMs
     };
   }
   const coverage = shot.covered_by;
@@ -375,10 +908,50 @@ export function layoutShot(shot: Shot, source?: ShotSource | null): ShotLayout {
   };
 }
 
+function timelineVersionFromStoryboardShot(
+  shot: Shot | undefined
+): TimelineClipVersion | undefined {
+  const record = productionRecordOf(shot?.clip);
+  if (record === null) return undefined;
+  const { candidate, result } = record;
+  if (candidate.status !== "ready" || candidate.assetId === undefined) {
+    return undefined;
+  }
+  return {
+    id: candidate.takeId ?? candidate.candidateId,
+    createdAt: result.createdAt,
+    jobId: result.jobId ?? candidate.requestId,
+    assetId: candidate.assetId,
+    workflowUpdatedAt: result.createdAt,
+    dependencyHash: candidate.snapshot.authoringFingerprint ?? "",
+    paramOverridesSnapshot: { ...(candidate.snapshot.parameters ?? {}) },
+    durationMs: result.measuredDurationMs,
+    status: "success",
+    source: "generated",
+    productionSnapshot: candidate.snapshot,
+    ...(result.costCredits === undefined
+      ? {}
+      : { costCredits: result.costCredits }),
+    ...(candidate.snapshot.provider === undefined
+      ? {}
+      : { provider: candidate.snapshot.provider }),
+    ...(candidate.snapshot.model === undefined
+      ? {}
+      : { model: candidate.snapshot.model }),
+    ...(candidate.snapshot.prompt === undefined
+      ? {}
+      : { prompt: candidate.snapshot.prompt }),
+    ...(candidate.snapshot.parentTakeId === undefined
+      ? {}
+      : { parentTakeId: candidate.snapshot.parentTakeId })
+  };
+}
+
 export function buildStoryboardTimeline(
   input: StoryboardAssemblyInput
 ): AssembledTimeline {
   const ordered = [...input.shots].sort((a, b) => a.index - b.index);
+  const inputShotsById = shotsById(input.shots);
   const sources = shotSources(input.shots);
   const assemblable = ordered.filter((s) => sources.get(s.id) != null);
   const skippedShotIds = ordered
@@ -410,6 +983,9 @@ export function buildStoryboardTimeline(
         directedMs: layout.directedMs
       });
     }
+    const acceptedVersion = timelineVersionFromStoryboardShot(
+      source === null ? undefined : inputShotsById.get(source.sourceShotId)
+    );
     const videoClip = makeClip({
       trackId: shotTrack.id,
       name: shot.slug ?? `Shot ${shot.index + 1}`,
@@ -422,7 +998,10 @@ export function buildStoryboardTimeline(
       linkId: createTimeOrderedUuid(),
       storyboardBoardId: input.boardId,
       storyboardShotId: shot.id,
-      versions: []
+      versions: acceptedVersion === undefined ? [] : [acceptedVersion],
+      ...(acceptedVersion === undefined
+        ? {}
+        : { activeTakeId: acceptedVersion.id })
     });
     // The window is written only when the source length is known: an unknown
     // length leaves the clip exactly as it was before assembly could read one.
@@ -530,6 +1109,7 @@ export function buildStoryboardPreviewTimeline(
   input: StoryboardPreviewInput
 ): StoryboardPreviewTimeline {
   const ordered = [...input.shots].sort((a, b) => a.index - b.index);
+  const inputShotsById = shotsById(input.shots);
 
   const shotTrack = makeTrack({ type: "video", name: "Shots", index: 0 });
   const shotAudioTrack = makeTrack({
@@ -565,6 +1145,11 @@ export function buildStoryboardPreviewTimeline(
       ? layoutShot(shot, source)
       : { durationMs: directedMs, directedMs };
     const durationMs = layout.durationMs;
+    const acceptedVersion = clipAssetId
+      ? timelineVersionFromStoryboardShot(
+          source === null ? undefined : inputShotsById.get(source.sourceShotId)
+        )
+      : undefined;
     const shotClip = makeClip({
       trackId: shotTrack.id,
       name: shot.slug ?? `Shot ${shot.index + 1}`,
@@ -577,7 +1162,10 @@ export function buildStoryboardPreviewTimeline(
       linkId: clipAssetId ? createTimeOrderedUuid() : undefined,
       storyboardBoardId: input.boardId,
       storyboardShotId: shot.id,
-      versions: []
+      versions: acceptedVersion === undefined ? [] : [acceptedVersion],
+      ...(acceptedVersion === undefined
+        ? {}
+        : { activeTakeId: acceptedVersion.id })
     });
     if (layout.inPointMs !== undefined) {
       shotClip.inPointMs = layout.inPointMs;
