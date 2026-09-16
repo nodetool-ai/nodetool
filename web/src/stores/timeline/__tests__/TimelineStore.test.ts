@@ -738,6 +738,191 @@ describe("TimelineStore — restoreVersion", () => {
   });
 });
 
+describe("TimelineStore — applyTake", () => {
+  it("applies an edit as one undoable operation and preserves the cut", () => {
+    const store = mkStore();
+    const videoTrack = makeTrack({ type: "video", name: "Video" });
+    const audioTrack = makeTrack({ type: "audio", name: "Audio" });
+    const original = makeClip({
+      id: "clip-edit",
+      trackId: videoTrack.id,
+      name: "Trimmed shot",
+      startMs: 1200,
+      durationMs: 4000,
+      mediaType: "video",
+      sourceType: "imported",
+      currentAssetId: "asset-original",
+      activeTakeId: "original",
+      inPointMs: 40000,
+      outPointMs: 44000,
+      muted: true,
+      linkId: "av-link",
+      caption: {
+        words: [{ word: "hello", startMs: 100, endMs: 500 }],
+        style: { color: "#fff" }
+      },
+      transform: {
+        position: { x: 12, y: -8 },
+        scale: { x: 1.2, y: 0.8 },
+        rotation: 0.2,
+        anchor: { x: 0.25, y: 0.75 }
+      },
+      effects: [{ id: "effect-1", type: "vignette", enabled: true, amount: 0.4 }],
+      animations: [
+        {
+          id: "animation-1",
+          role: "in",
+          preset: "fade",
+          durationMs: 300,
+          enabled: true
+        }
+      ],
+      versions: [
+        {
+          id: "original",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          jobId: "job-original",
+          assetId: "asset-original",
+          workflowUpdatedAt: "2026-01-01T00:00:00.000Z",
+          dependencyHash: "hash-original",
+          paramOverridesSnapshot: {},
+          durationMs: 4000,
+          sourceMapping: {
+            inPointMs: 40000,
+            outPointMs: 44000,
+            speedMultiplier: 1,
+            speedBaked: false
+          },
+          status: "success"
+        },
+        {
+          id: "candidate",
+          createdAt: "2026-01-02T00:00:00.000Z",
+          jobId: "job-candidate",
+          assetId: "asset-candidate",
+          workflowUpdatedAt: "2026-01-02T00:00:00.000Z",
+          dependencyHash: "hash-candidate",
+          paramOverridesSnapshot: {},
+          durationMs: 5000,
+          status: "success",
+          mediaEdit: {
+            action: "video_edit",
+            modelTask: "video_to_video",
+            requestId: "request-1",
+            instruction: "make it warmer",
+            provider: "provider-1",
+            model: "model-1",
+            sourceContext: {
+              sequenceId: "sequence-1",
+              clipId: "clip-edit",
+              sourceAssetId: "asset-original",
+              sourceStartMs: 40000,
+              sourceEndMs: 44000,
+              timelineStartMs: 1200,
+              timelineDurationMs: 4000,
+              speedMultiplier: 1
+            }
+          }
+        }
+      ]
+    });
+    const unrelatedAudio = makeClip({
+      id: "unrelated-audio",
+      trackId: audioTrack.id,
+      mediaType: "audio",
+      sourceType: "imported",
+      startMs: 0,
+      durationMs: 12000,
+      currentAssetId: "audio-asset",
+      muted: false
+    });
+    store.setState({
+      tracks: [videoTrack, audioTrack],
+      clips: [original, unrelatedAudio]
+    });
+    timelineTemporalOf(store).clear();
+
+    expect(store.getState().applyTake(original.id, "candidate")).toBeNull();
+
+    const applied = store.getState().clips.find((clip) => clip.id === original.id)!;
+    expect(applied.currentAssetId).toBe("asset-candidate");
+    expect(applied.activeTakeId).toBe("candidate");
+    expect(applied.inPointMs).toBe(0);
+    expect(applied.outPointMs).toBe(original.durationMs);
+    expect(applied.startMs).toBe(original.startMs);
+    expect(applied.durationMs).toBe(original.durationMs);
+    expect(applied.trackId).toBe(original.trackId);
+    expect(applied.effects).toBe(original.effects);
+    expect(applied.transform).toBe(original.transform);
+    expect(applied.animations).toBe(original.animations);
+    expect(applied.caption).toBe(original.caption);
+    expect(applied.linkId).toBe(original.linkId);
+    expect(applied.muted).toBe(original.muted);
+    expect(store.getState().clips.find((clip) => clip.id === unrelatedAudio.id)).toEqual(
+      unrelatedAudio
+    );
+    expect(timelineTemporalOf(store).pastStates).toHaveLength(1);
+
+    timelineTemporalOf(store).undo();
+    expect(store.getState().clips).toEqual([original, unrelatedAudio]);
+
+    timelineTemporalOf(store).redo();
+    const redone = store.getState().clips.find((clip) => clip.id === original.id)!;
+    expect(redone.currentAssetId).toBe("asset-candidate");
+    expect(redone.activeTakeId).toBe("candidate");
+    expect(redone.inPointMs).toBe(0);
+    expect(redone.outPointMs).toBe(original.durationMs);
+  });
+
+  it("rejects a short candidate without changing the document or history", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    const clip = makeClip({
+      id: "short-clip",
+      trackId: track.id,
+      durationMs: 4000,
+      currentAssetId: "asset-original",
+      versions: [
+        {
+          id: "short-candidate",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          jobId: "job-short",
+          assetId: "asset-short",
+          workflowUpdatedAt: "2026-01-01T00:00:00.000Z",
+          dependencyHash: "hash-short",
+          paramOverridesSnapshot: {},
+          durationMs: 3999,
+          status: "success",
+          mediaEdit: {
+            action: "video_edit",
+            modelTask: "video_to_video",
+            requestId: "request-short",
+            instruction: "short",
+            provider: "provider-1",
+            model: "model-1",
+            sourceContext: {
+              sequenceId: "sequence-1",
+              clipId: "short-clip",
+              sourceAssetId: "asset-original",
+              sourceStartMs: 0,
+              sourceEndMs: 4000,
+              timelineStartMs: 0,
+              timelineDurationMs: 4000,
+              speedMultiplier: 1
+            }
+          }
+        }
+      ]
+    });
+    store.setState({ tracks: [track], clips: [clip] });
+    timelineTemporalOf(store).clear();
+
+    expect(store.getState().applyTake(clip.id, "short-candidate")).toMatch(/shorter/i);
+    expect(store.getState().clips).toEqual([clip]);
+    expect(timelineTemporalOf(store).pastStates).toHaveLength(0);
+  });
+});
+
 describe("TimelineStore — duplicateClip", () => {
   it("creates a second clip with a new id", async () => {
     const store = mkStore();
