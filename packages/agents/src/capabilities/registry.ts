@@ -65,6 +65,7 @@ import { threadsSpecs } from "./threads.specs.js";
 import { timelinesSpecs } from "./timelines.specs.js";
 import { uiSpecs } from "./ui.specs.js";
 import { webSpecs } from "./web.specs.js";
+import { videoProductionSpecs } from "./video-production.specs.js";
 import { workflowsSpecs } from "./workflows.specs.js";
 import { isFunction, isString } from "../utils/type-guards.js";
 
@@ -153,6 +154,10 @@ const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
   web: {
     loader: () => import("./web.js").then((m) => m.module),
     specs: webSpecs
+  },
+  "video-production": {
+    loader: () => import("./video-production.js").then((m) => m.module),
+    specs: videoProductionSpecs
   },
   files: {
     loader: () => import("./files.js").then((m) => m.module),

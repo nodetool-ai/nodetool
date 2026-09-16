@@ -322,7 +322,11 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   web_search: "read",
   write_file: "write",
   write_script: "write",
-  yt_dlp: "external"
+  yt_dlp: "external",
+  prepare_video_production: "write",
+  submit_video_production: "write",
+  inspect_video_production_candidates: "read",
+  accept_video_production_candidates: "write"
 };
 
 describe("capability registry walk", () => {

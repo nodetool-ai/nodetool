@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { captionWord } from "./timeline.js";
+import { creativeContext } from "../production-authoring.js";
 
 // ── Cast / voices ────────────────────────────────────────────────────────────
 // A Script owns its text; audio is derived. The cast binds each speaker to a
@@ -129,7 +130,9 @@ export const scriptDocument = z.object({
   sections: z.array(scriptSection).default([]),
   setup: scriptSetup.optional(),
   /** Script this one was filled from. Absent on a script written directly. */
-  templateId: z.string().nullable().optional()
+  templateId: z.string().nullable().optional(),
+  /** Optional shared product, audience, and reference context. */
+  creative_context: creativeContext.optional()
 });
 export type ScriptDocumentSchema = z.infer<typeof scriptDocument>;
 

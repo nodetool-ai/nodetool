@@ -44,6 +44,11 @@ import {
   readVideoSetupContext,
   type VideoSetupReference
 } from "../../components/setup/video/setupContext";
+import {
+  deterministicFingerprint,
+  productionRequirementsFrom,
+  type CreativeContext
+} from "../storyboard/productionContext";
 
 /** What asks the model. Injectable so the planner is testable without a socket. */
 export type PlanRequest = (
@@ -64,8 +69,32 @@ export type PlanRequest = (
 export interface PlanBeatsContext {
   references?: readonly VideoSetupReference[];
   entityIds?: readonly string[];
+  creativeContext?: CreativeContext;
   /** Names of the clips already placed, in timeline order. */
   clips?: readonly string[];
+}
+
+export interface VideoPlanFingerprintInputs {
+  brief: string;
+  formatId: string | undefined;
+  modelId: string;
+  context: PlanBeatsContext;
+}
+
+/** The persisted identity of the inputs answered by one Video plan. */
+export function videoPlanFingerprint({
+  brief,
+  formatId,
+  modelId,
+  context
+}: VideoPlanFingerprintInputs): string {
+  return deterministicFingerprint({
+    kind: "video-plan",
+    brief: brief.trim(),
+    formatId: formatId ?? "",
+    modelId,
+    context
+  });
 }
 
 export interface PlanBeatsOptions {
@@ -107,7 +136,8 @@ const beatFromShot = (
   wantsMusic: boolean
 ): TimelineBeat => {
   const seconds = shot.duration_seconds;
-  return {
+  const production = productionRequirementsFrom(shot);
+  const beat: TimelineBeat = {
     id: createTimeOrderedUuid(),
     prompt: directClipPrompt(shot, {
       scene: sceneForShot(shot, screenplay.scenes),
@@ -123,6 +153,10 @@ const beatFromShot = (
     voiceover: voiceoverFor(shot, format),
     music: wantsMusic
   };
+  if (production) {
+    beat.production = production;
+  }
+  return beat;
 };
 
 /**
@@ -133,7 +167,8 @@ const beatFromShot = (
 const contextNote = ({
   clips = [],
   references = [],
-  entityIds = []
+  entityIds = [],
+  creativeContext
 }: PlanBeatsContext): string => {
   const lines: string[] = [];
   if (clips.length > 0) {
@@ -150,6 +185,25 @@ const contextNote = ({
   }
   if (entityIds.length > 0) {
     lines.push(`Keep these entities consistent: ${entityIds.join(", ")}`);
+  }
+  if (creativeContext) {
+    const creative = creativeContext;
+    lines.push(
+      "Creative context — use only the approved product facts:",
+      ...(creative.product_name ? [`Product: ${creative.product_name}`] : []),
+      ...(creative.product_description
+        ? [`Description: ${creative.product_description}`]
+        : []),
+      ...(creative.audience ? [`Audience: ${creative.audience}`] : []),
+      ...(creative.objective ? [`Objective: ${creative.objective}`] : []),
+      ...(creative.tone ? [`Tone: ${creative.tone}`] : []),
+      ...(creative.approved_claims?.length
+        ? [`Approved claims: ${creative.approved_claims.join("; ")}`]
+        : []),
+      ...(creative.prohibited_claims?.length
+        ? [`Do not assert: ${creative.prohibited_claims.join("; ")}`]
+        : [])
+    );
   }
   return lines.length > 0 ? ["", ...lines].join("\n") : "";
 };
@@ -238,9 +292,26 @@ export async function planBeats({
 /** Write a drafted plan onto the sequence and stop at the review (PRD § 8.2). */
 export function applyBeatPlan(
   store: TimelineStoreApi,
-  beats: readonly TimelineBeat[]
+  beats: readonly TimelineBeat[],
+  planFingerprint?: string
 ): void {
-  store.getState().setSetup({ beats: [...beats], stage: "review" });
+  const patch: {
+    beats: TimelineBeat[];
+    stage: "review";
+    planFingerprint?: string;
+  } = {
+    beats: [...beats],
+    stage: "review"
+  };
+  if (planFingerprint) {
+    patch.planFingerprint = planFingerprint;
+  }
+  // `timelineSetup` is intentionally passthrough, but the store action's
+  // public patch type predates this additive persisted field. Keep the cast at
+  // this one boundary until the shared store contract is widened.
+  store
+    .getState()
+    .setSetup(patch as unknown as Parameters<ReturnType<TimelineStoreApi["getState"]>["setSetup"]>[0]);
 }
 
 /**
@@ -259,10 +330,13 @@ const SHOT_MEDIA_TYPES = new Set(["video", "image"]);
  */
 export const planContextOf = (store: TimelineStoreApi): PlanBeatsContext => {
   const state = store.getState();
-  const { references, entityIds } = readVideoSetupContext(state.setup);
+  const { references, entityIds, creativeContext } = readVideoSetupContext(
+    state.setup
+  );
   return {
     references,
     entityIds,
+    creativeContext,
     clips: state.clips
       .filter(
         (clip) =>
@@ -311,6 +385,19 @@ export function usePlanBeats(): UsePlanBeatsResult {
       }
       const token = (requestRef.current += 1);
       const originStage = setup?.stage;
+      const selectedModel = setup?.directorModel
+        ? {
+            id: setup.directorModel.id,
+            provider: setup.directorModel.provider
+          }
+        : STUDIO_DIRECTOR_MODEL;
+      const planContext = context ?? planContextOf(store);
+      const fingerprint = videoPlanFingerprint({
+        brief: setup?.brief ?? "",
+        formatId: setup?.format,
+        modelId: selectedModel.id,
+        context: planContext
+      });
       setError(null);
       setPlanning(true);
       try {
@@ -321,14 +408,9 @@ export function usePlanBeats(): UsePlanBeatsResult {
           // re-plan and the estimate they saw run on the same model. Absent —
           // an agent-driven sequence, or a document older than the picker —
           // keeps the curated director.
-          model: setup?.directorModel
-            ? {
-                id: setup.directorModel.id,
-                provider: setup.directorModel.provider
-              }
-            : undefined,
+          model: selectedModel,
           previous: replan ? setup?.beats : undefined,
-          context: context ?? planContextOf(store)
+          context: planContext
         });
         // The creator left the stage this plan was asked from, so the plan
         // they are looking at now stays: a late answer neither replaces their
@@ -339,7 +421,7 @@ export function usePlanBeats(): UsePlanBeatsResult {
         ) {
           return;
         }
-        applyBeatPlan(store, beats);
+        applyBeatPlan(store, beats, fingerprint);
       } catch (cause) {
         if (token !== requestRef.current) {
           return;
