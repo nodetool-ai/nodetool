@@ -51,7 +51,7 @@
       fixtures explain why it is unavailable. Blocked by T01. (PRD § 5.1,
       § 7.1, § 7.3)
 
-- [ ] **T03: Preserve a baseline and audition candidates without changing the
+- [x] **T03: Preserve a baseline and audition candidates without changing the
       cut.** Before the first edit, add the active imported or generated asset
       as a baseline take when no version represents it. Extend
       `ClipVersionHistory` with explicit Preview, Original, Candidate, and Use
@@ -61,7 +61,7 @@
       `restoreVersion`, change `currentAssetId`, or create an undo entry.
       Blocked by T01. (PRD § 5.2, § 7.4, § 7.5)
 
-- [ ] **T04: Apply a candidate as one editorial operation.** Add a shared take
+- [x] **T04: Apply a candidate as one editorial operation.** Add a shared take
       apply helper and one TimelineStore action that sets `currentAssetId` and
       `activeTakeId`, maps the window-relative result to source time zero, and
       preserves placement, duration, track, effects, transform, animation,
@@ -71,7 +71,7 @@
       this operation. Tests use a fully populated clip and verify every
       preserved field plus undo and redo. Blocked by T03. (PRD § 7.5)
 
-- [ ] **T05: Make request lifecycle destination-safe.** Persist destination
+- [x] **T05: Make request lifecycle destination-safe.** Persist destination
       sequence and clip identifiers with the submitted snapshot. A result
       cannot land on the sequence open at completion, recreate a deleted clip,
       or append twice after socket response and generation lookup race. Keep
@@ -80,7 +80,7 @@
       duplicate-settlement tests beside the current direct-generation recovery
       coverage. Blocked by T01. (PRD § 7.6)
 
-- [ ] **T06: Route storyboard Revise take through the shared edit path.** Replace
+- [x] **T06: Route storyboard Revise take through the shared edit path.** Replace
       the private request construction in
       `web/src/hooks/storyboard/useGenerateShot.ts` with the P0 request builder
       and generation lifecycle adapter. Land the result in the shot's existing
@@ -90,7 +90,7 @@
       submitted request and take metadata from both hosts. Blocked by T01 and
       T04. (PRD § 5.3, § 8)
 
-- [ ] **T07: Give the timeline agent the same edit and apply operations.** Add
+- [x] **T07: Give the timeline agent the same edit and apply operations.** Add
       explicit target and instruction contracts to the existing timeline
       frontend tool and handler bridge. Default to returning a candidate take
       and generation id without applying it. An explicit apply call uses the
@@ -99,7 +99,7 @@
       harness selfcheck that edits a trimmed clip, inspects the inactive take,
       applies it, then undoes once. Blocked by T04 and T05. (PRD § 9)
 
-- [ ] **T08: Add the P0 vertical acceptance journey.** Run a fake-provider
+- [x] **T08: Add the P0 vertical acceptance journey.** Run a fake-provider
       journey from an imported trimmed clip through inspector submission,
       reload recovery, candidate comparison, Use take, render selection, and
       undo. Assert no workflow is created and no other clip or storyboard shot
@@ -185,10 +185,10 @@
 
 ## Completion checks
 
-- [ ] Every visible action has an executable provider task and an apply rule.
-- [ ] Every action stores submission-time provenance on its result.
-- [ ] Browser and agent paths call the same validation and application logic.
-- [ ] No action creates or exposes a workflow.
-- [ ] Existing assets, other timeline instances, storyboard shots, Entities,
+- [x] Every visible action has an executable provider task and an apply rule.
+- [x] Every action stores submission-time provenance on its result.
+- [x] Browser and agent paths call the same validation and application logic.
+- [x] No action creates or exposes a workflow.
+- [x] Existing assets, other timeline instances, storyboard shots, Entities,
       voices, and sequence dimensions remain unchanged unless the creator
       invokes a separate scoped operation.
