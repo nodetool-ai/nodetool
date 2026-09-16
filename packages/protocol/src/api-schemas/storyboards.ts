@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Screenplay, Shot } from "../creative.js";
+import { creativeContext, productionRequirement } from "../production-authoring.js";
 import {
   isNonEmptyString,
   isNumber,
@@ -48,7 +49,9 @@ export const storyboardShot = z
     /** Animate a still, generate from text, or use entity reference images. */
     render_mode: z.enum(["keyframe", "direct", "reference"]).optional(),
     /** The scene this shot belongs to. Absent on legacy, unscened shots. */
-    scene_id: z.string().optional()
+    scene_id: z.string().optional(),
+    /** Optional production requirements reviewed before generation. */
+    production: productionRequirement.optional()
   })
   .passthrough();
 export type StoryboardShot = z.infer<typeof storyboardShot>;
@@ -357,7 +360,9 @@ export const storyboardDocument = z.object({
    * screenplay rather than paying for the same one twice. A missing or stale
    * value only offers an explicit re-direct; it never spends on its own.
    */
-  setupDirectedFrom: z.string().nullable().optional()
+  setupDirectedFrom: z.string().nullable().optional(),
+  /** Optional shared product, audience, and reference context. */
+  creative_context: creativeContext.optional()
 });
 export type StoryboardDocumentSchema = z.infer<typeof storyboardDocument>;
 
