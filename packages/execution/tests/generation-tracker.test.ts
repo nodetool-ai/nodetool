@@ -70,6 +70,54 @@ describe("generation tracker", () => {
   });
   afterEach(() => resetGenerationTrackerState());
 
+  it("tracks video-to-audio assets and the provider charge through completion", async () => {
+    const state = createTrackerState();
+    const running = prediction({
+      id: "video-audio-generation",
+      status: "running",
+      capability: "video_to_audio",
+      model: "sound-model"
+    });
+    await recordFromMessage(running, OPTIONS, state);
+    expect(await Prediction.find(running.id)).toMatchObject({
+      status: "running",
+      capability: "video_to_audio",
+      cost: null
+    });
+
+    await recordFromMessage(
+      {
+        ...running,
+        status: "completed",
+        asset_ids: ["audio-asset"],
+        receipt: {
+          provider_request_id: "audio-request",
+          cost: {
+            amount: 0.2,
+            currency: "USD",
+            billing_unit: "seconds",
+            quantity: 4,
+            unit_price: 0.05
+          }
+        }
+      },
+      OPTIONS,
+      state
+    );
+    expect(await Prediction.find(running.id)).toMatchObject({
+      status: "completed",
+      capability: "video_to_audio",
+      asset_ids: ["audio-asset"],
+      provider_request_id: "audio-request",
+      cost: 0.2,
+      currency: "USD",
+      billing_unit: "seconds",
+      quantity: 4,
+      unit_price: 0.05,
+      metadata: { capability: "video_to_audio", price_source: "provider" }
+    });
+  });
+
   it("opens the row on running and closes it on completed with the same id", async () => {
     const state = createTrackerState();
     await recordFromMessage(prediction({ id: "g1", status: "running" }), OPTIONS, state);

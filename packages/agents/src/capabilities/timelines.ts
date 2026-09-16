@@ -2568,9 +2568,7 @@ const isolateSubject: CapabilityExport = {
 /**
  * Follow a subject through a clip's source. The document work is
  * `trackObjectOnDocument`; everything here is the wiring it refuses to know
- * about — the sequence row and the CAS save. There is no provider runner to
- * wire in (see `notImplementedTrackObjectRunner`'s own doc comment), so this
- * call fails cleanly rather than fabricating a result.
+ * about: the sequence row, provider selection and the CAS save.
  */
 const trackObject: CapabilityExport = {
   spec: trackObjectSpec,
@@ -2633,8 +2631,13 @@ const trackObject: CapabilityExport = {
       return true;
     };
 
-    const { notImplementedTrackObjectRunner, trackObjectOnDocument } =
+    const { contextTrackObjectRunner, trackObjectOnDocument } =
       await import("./timeline-track-object.js");
+    const runner = await contextTrackObjectRunner(
+      run.context,
+      isString(params["provider"]) ? params["provider"] : undefined,
+      isString(params["model"]) ? params["model"] : undefined
+    );
 
     const input: TrackObjectInput = {
       clip,
@@ -2653,7 +2656,7 @@ const trackObject: CapabilityExport = {
       trackId
     };
     const settled = await trackObjectOnDocument(
-      { runner: notImplementedTrackObjectRunner, persist },
+      { runner, persist },
       input
     );
     if (!("status" in settled)) return settled;

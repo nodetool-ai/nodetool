@@ -40,6 +40,7 @@ const MEDIA_METHODS = [
   "textToSpeechEncoded",
   "textToMusic",
   "audioToAudio",
+  "videoToAudio",
   "textToVideo",
   "imageToVideo",
   "referenceToVideo",

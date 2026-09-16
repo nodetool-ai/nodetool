@@ -587,6 +587,7 @@ const ENTITY_URI_RE = /entity:\/\/[A-Za-z0-9._~-]+/g;
 interface EntityMarkerLike {
   name: string;
   descriptor: string;
+  referenceAssetId: string;
 }
 
 /** Read the entity marker off asset metadata, or null when absent/malformed. */
@@ -600,7 +601,8 @@ function readEntityMarker(
   if (!name) return null;
   const descriptor =
     isString(obj.descriptor) ? obj.descriptor.trim() : "";
-  return { name, descriptor };
+  const referenceAssetId = isString(obj.reference_asset_id) ? obj.reference_asset_id.trim() : "";
+  return { name, descriptor, referenceAssetId };
 }
 
 /**
@@ -665,10 +667,15 @@ export async function expandEntityRefs(
       resolved.set(token.id, null);
       continue;
     }
-    const ext = extForContentType(info.content_type);
+    const image = includeImageRefs && marker.referenceAssetId && marker.referenceAssetId !== info.id
+      ? await context?.getAssetInfo(marker.referenceAssetId)
+      : info;
+    const ext = image?.content_type.startsWith("image/")
+      ? extForContentType(image.content_type)
+      : null;
     resolved.set(token.id, {
       marker,
-      imageToken: ext ? `asset://${info.id}.${ext}` : null
+      imageToken: image && ext ? `asset://${image.id}.${ext}` : null
     });
   }
 

@@ -218,6 +218,17 @@ export interface SetTransitionOp {
   transition: TransitionParams | null;
 }
 
+/** Apply a generated transition to an explicit adjacent cut in one op. */
+export interface ApplyTransitionAtCutOp
+  extends Omit<TransitionParams, "durationMs" | "type"> {
+  op: "apply_transition_at_cut";
+  outgoingClipId: string;
+  incomingClipId: string;
+  durationMs?: number;
+  overlapMs?: number;
+  type?: TransitionParams["type"];
+}
+
 export interface SetMaskOp {
   op: "set_mask";
   target: string;
@@ -449,6 +460,7 @@ export type TimelineOp =
   | SetClipParamsOp
   | SetParentOp
   | SetTransitionOp
+  | ApplyTransitionAtCutOp
   | SetMaskOp
   | SetMatteOp
   | SetGeneratedMatteOp
@@ -502,6 +514,7 @@ export const TIMELINE_OP_NAMES = [
   "set_clip_params",
   "set_parent",
   "set_transition",
+  "apply_transition_at_cut",
   "set_mask",
   "set_matte",
   "set_generated_matte",

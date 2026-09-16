@@ -24,6 +24,7 @@ jest.mock("../../../lib/websocket/lookupGenerations", () => ({
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 
 import type { BoardRenderContext, Shot } from "@nodetool-ai/protocol";
+import { createMediaEditRequest } from "@nodetool-ai/timeline";
 
 import {
   durationBucketKey,
@@ -146,6 +147,39 @@ describe("pending-job persistence", () => {
 });
 
 describe("a board closed mid-batch and reopened", () => {
+  it.each(["reply", "recovery"])("records server-resolved references on an edit candidate via %s", async (path) => {
+    const target = seedBoard(`reference-edit-${path}`);
+    const mediaEdit = createMediaEditRequest({
+      instruction: "Keep entity://hero", provider: "fal_ai", model: "edit",
+      sourceContext: {
+        sequenceId: BOARD, clipId: target.id, sourceAssetId: "source",
+        sourceStartMs: 0, sourceEndMs: 4000, timelineStartMs: 0,
+        timelineDurationMs: 4000, speedMultiplier: 1
+      }
+    });
+    const references = { referenceAssetIds: ["portrait"], entityIds: ["hero"] };
+    useStoryboardGenerationStore.getState().registerJob(
+      target.id, BOARD, "reference-request", "clip", undefined, mediaEdit
+    );
+    if (path === "reply") {
+      __handleShotJobMessageForTests("reference-request", {
+        shotId: target.id, boardId: BOARD, kind: "clip", mediaEdit
+      }, {
+        type: "rpc_response", request_id: "reference-request",
+        result: { asset_ids: ["candidate"], media_edit_references: references }
+      });
+    } else {
+      useStoryboardGenerationStore.setState({ shotJobs: {}, jobToShot: {} });
+      lookupMock.mockResolvedValue(new Map([["reference-request", {
+        requestId: "reference-request", generationId: "generation", status: "completed",
+        assetIds: ["candidate"], error: null, mediaEditReferences: references
+      }]]));
+      await reattachBoardJobs(BOARD);
+    }
+    expect(boardShot(target.id)?.clip_versions?.at(-1)?.mediaEdit).toMatchObject(references);
+    expect(mediaEdit.referenceAssetIds).toBeUndefined();
+  });
+
   it("shows the version whose reply arrived after the reopen", async () => {
     // 1. The batch starts, then the board (and the whole tab) goes away.
     const target = seedBoard("s-reattach");

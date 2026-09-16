@@ -25,6 +25,7 @@ import {
   ensureBaselineTake,
   getReplayRecipe,
   mediaEditGenerateMediaData,
+  withResolvedMediaEditReferences,
   makeClipVersion
 } from "@nodetool-ai/timeline";
 import type {
@@ -54,7 +55,7 @@ interface DirectGenRpcResponse extends WebSocketMessage {
   type: "rpc_response";
   request_id: string;
   command: string;
-  result?: { asset_ids?: unknown };
+  result?: { asset_ids?: unknown; media_edit_references?: unknown };
   error?: { code?: string; message?: string };
 }
 
@@ -171,6 +172,7 @@ export interface DirectGenOutcome {
   assetIds: readonly string[];
   errored: boolean;
   status?: GenerationLookupStatus;
+  mediaEditReferences?: unknown;
 }
 
 /**
@@ -381,6 +383,7 @@ export function landMediaEdit(
   request: MediaEditRequest,
   outcome: DirectGenOutcome
 ): void {
+  request = withResolvedMediaEditReferences(request, outcome.mediaEditReferences);
   clearInFlight(sequenceId, clipId, requestId);
   const destinationSequenceId = request.sourceContext.sequenceId;
   const assetId = outcome.errored ? undefined : outcome.assetIds[0];
@@ -485,6 +488,7 @@ export function subscribeDirectGen(
       : [];
     const outcome = {
       assetIds,
+      mediaEditReferences: msg.result?.media_edit_references,
       errored: Boolean(msg.error),
       status: msg.error ? ("failed" as const) : ("completed" as const)
     };
@@ -549,6 +553,7 @@ export function subscribeDirectGen(
       }
       const directOutcome = {
         assetIds: outcome.assetIds,
+        mediaEditReferences: outcome.mediaEditReferences,
         errored: outcome.status !== "completed",
         status: outcome.status
       };
@@ -681,6 +686,7 @@ export async function reattachSequenceJobs(
       // frame that would have carried it went to a socket that is gone.
       const directOutcome = {
         assetIds: outcome.assetIds,
+        mediaEditReferences: outcome.mediaEditReferences,
         errored: outcome.status !== "completed",
         status: outcome.status
       };

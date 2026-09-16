@@ -499,6 +499,27 @@ const marta = {
 };
 
 describe("expandEntityRefs", () => {
+  it.each(["missing", "video"])("keeps the descriptor without substituting the entity image for a %s reference", async (referenceId) => {
+    const out = await expandEntitiesForGeneration("entity://e1", entityContext({
+      e1: { ...marta, metadata: { nodetool_entity: {
+        ...marta.metadata.nodetool_entity, reference_asset_id: referenceId
+      } } },
+      video: { content_type: "video/mp4", name: "Video", metadata: null }
+    }));
+    expect(out.referenceImages).toEqual([]);
+    expect(out.prompt).toContain("Marta: red-haired detective");
+  });
+  it("uses the owned marker reference image instead of the entity asset", async () => {
+    const out = await expandEntitiesForGeneration("entity://e1", entityContext({
+      e1: { ...marta, metadata: { nodetool_entity: {
+        ...marta.metadata.nodetool_entity, reference_asset_id: "portrait"
+      } } },
+      portrait: { content_type: "image/jpeg", name: "Portrait", metadata: null }
+    }));
+    expect(out.referenceImages.map((ref) => ref.uri)).toEqual(["asset://portrait.jpeg"]);
+    expect(out.prompt).toContain("Marta: red-haired detective");
+  });
+
   it("inlines the name and appends descriptor + reference image token", async () => {
     const out = await expandEntityRefs(
       "A shot of entity://e1 walking away.",

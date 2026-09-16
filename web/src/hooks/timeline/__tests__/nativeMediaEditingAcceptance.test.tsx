@@ -73,6 +73,10 @@ jest.mock("../../../hooks/useModelsByProvider", () => ({
   })
 }));
 
+jest.mock("../../../hooks/useProviders", () => ({
+  useProvidersByCapability: () => ({ providers: [], isLoading: false })
+}));
+
 jest.mock("../../../lib/env", () => ({
   isElectron: false,
   isLocalhost: true,

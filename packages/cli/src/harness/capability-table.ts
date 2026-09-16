@@ -2202,7 +2202,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "track_object",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "13355e3f0ddc",
+    contract: "80e63cd3e227",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-track-object.test.ts",

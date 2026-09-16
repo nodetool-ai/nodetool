@@ -35,6 +35,14 @@ describe("isSettled", () => {
 });
 
 describe("lookupGenerations", () => {
+  it("preserves resolved edit references from the generation row", async () => {
+    const references = { referenceAssetIds: ["portrait"], entityIds: ["hero"] };
+    rpcRequestMock.mockResolvedValue({ generations: [{
+      request_id: "req", status: "completed", asset_ids: ["candidate"],
+      media_edit_references: references
+    }] });
+    expect((await lookupGenerations(["req"])).get("req")?.mediaEditReferences).toEqual(references);
+  });
   it("keys the rows it got by request id", async () => {
     rpcRequestMock.mockResolvedValue({
       generations: [

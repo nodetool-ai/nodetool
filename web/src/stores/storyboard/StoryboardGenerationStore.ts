@@ -27,7 +27,7 @@ import type {
   VideoRef
 } from "@nodetool-ai/protocol";
 import type { MediaEditRequest } from "@nodetool-ai/timeline";
-import { mediaEditTakeMetadata } from "@nodetool-ai/timeline";
+import { mediaEditTakeMetadata, withResolvedMediaEditReferences } from "@nodetool-ai/timeline";
 import { currentRenderInputs, stampRenderInputs } from "@nodetool-ai/protocol";
 import {
   globalWebSocketManager,
@@ -130,7 +130,7 @@ export interface PendingShotJob {
 interface DirectGenRpcResponse extends WebSocketMessage {
   type: "rpc_response";
   request_id: string;
-  result?: { asset_ids?: unknown };
+  result?: { asset_ids?: unknown; media_edit_references?: unknown };
   error?: { code?: string; message?: string };
 }
 
@@ -849,7 +849,7 @@ const settleShotAsset = (
 const settleDirectShotJob = (
   requestId: string,
   context: DirectShotJobContext,
-  outcome: { assetIds: readonly string[]; errorMessage: string }
+  outcome: { assetIds: readonly string[]; errorMessage: string; mediaEditReferences?: unknown }
 ): void => {
   const generationStore = useStoryboardGenerationStore.getState();
   if (generationStore.shotJobs[context.shotId]?.jobId !== requestId) {
@@ -877,7 +877,10 @@ const settleDirectShotJob = (
   // newer render already replaced does not lend its record to this one.
   const job = generationStore.shotJobs[context.shotId];
   settleShotAsset(
-    context,
+    context.mediaEdit ? {
+      ...context,
+      mediaEdit: withResolvedMediaEditReferences(context.mediaEdit, outcome.mediaEditReferences)
+    } : context,
     ref,
     assetId,
     job?.jobId === requestId ? job.renderInputs : undefined,
@@ -917,6 +920,7 @@ const handleShotJobMessage = (
       : [];
     settleDirectShotJob(requestId, context, {
       assetIds,
+      mediaEditReferences: response.result?.media_edit_references,
       errorMessage: response.error?.message ?? ""
     });
   }
@@ -953,6 +957,7 @@ export const subscribeDirectShotJob = async (
     }
     settleDirectShotJob(requestId, jobContexts.get(requestId) ?? context, {
       assetIds: outcome.assetIds,
+      mediaEditReferences: outcome.mediaEditReferences,
       errorMessage: outcome.status === "completed" ? "" : (outcome.error ?? "")
     });
   });
@@ -1003,6 +1008,7 @@ export const reattachBoardJobs = async (boardId: string): Promise<void> => {
         // the frame that would have carried it went to a socket that is gone.
         settleDirectShotJob(job.jobId, context, {
           assetIds: outcome.assetIds,
+          mediaEditReferences: outcome.mediaEditReferences,
           errorMessage:
             outcome.status === "completed" ? "" : (outcome.error ?? "")
         });

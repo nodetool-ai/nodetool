@@ -1118,6 +1118,8 @@ export const TRACK_OBJECT_DIRECTIONS = ["forward", "backward", "both"] as const;
 export const TRACK_OBJECT_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
+    provider: { type: "string", description: "Provider with executable track_object support. Required for a new run." },
+    model: { type: "string", description: "Tracking model id. Required for a new run." },
     timeline_id: { type: "string", description: "Timeline sequence id." },
     clip_id: {
       type: "string",
@@ -1178,9 +1180,10 @@ export const trackObjectSpec: CapabilitySpec = {
     "Follow a subject through a clip's source, starting from a box you " +
     "name, and carry the result as a document-level MediaTrack samples list " +
     "other clips can bind to (bind_to_track). Box-kind tracks only in this " +
-    "build. There is no tracking-capable provider wired up yet — this call " +
-    "fails naming that until one is, so treat it as a documented seam, not " +
-    "a working integration.",
+    "build. New runs require provider and model, and are refused before " +
+    "saving or spending unless the provider implements track_object. " +
+    "Samples use absolute source milliseconds. The initial box is at start_ms " +
+    "for forward/both tracking and end_ms for backward tracking.",
   inputSchema: TRACK_OBJECT_SCHEMA,
   category: "write",
   userMessage: (params) =>

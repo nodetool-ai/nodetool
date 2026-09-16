@@ -80,6 +80,9 @@ import {
   type TimelineTrack,
   type TrackBinding,
   type ClipAnimation,
+  applyTransitionAtCutCandidate,
+  planTransitionAtCut,
+  type TransitionAtCutInput,
   instantiateComposition,
   type TimelineComposition,
   DEFAULT_MIDI_INSTRUMENT,
@@ -130,6 +133,8 @@ import {
   type RenderCanvas
 } from "@nodetool-ai/timeline/scene";
 import {
+  APPLY_TRANSITION_AT_CUT_DESCRIPTION,
+  applyTransitionAtCutParams,
   buildEffect,
   buildMask,
   buildTimeRemap,
@@ -2064,6 +2069,47 @@ export function createTimelineToolBridge(
           );
         }
         return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_apply_transition_at_cut",
+      APPLY_TRANSITION_AT_CUT_DESCRIPTION,
+      applyTransitionAtCutParams,
+      async ({
+        outgoingClipId,
+        incomingClipId,
+        durationMs,
+        overlapMs,
+        type,
+        easing,
+        color,
+        direction,
+        softness
+      }) => {
+        const outgoing = resolveClip(outgoingClipId as string);
+        const incoming = resolveClip(incomingClipId as string);
+        const planned = planTransitionAtCut(clips, {
+          outgoingClipId: outgoing.id,
+          incomingClipId: incoming.id,
+          durationMs: durationMs as number | undefined,
+          overlapMs: overlapMs as number | undefined,
+          type: type as TransitionAtCutInput["type"],
+          easing: easing as string | undefined,
+          color: color as string | undefined,
+          direction: direction as TransitionAtCutInput["direction"],
+          softness: softness as number | undefined
+        });
+        if (!planned.ok) throw new Error(planned.error);
+        const applied = applyTransitionAtCutCandidate(clips, planned.candidate);
+        if (!applied.ok) throw new Error(applied.error);
+        clips.splice(0, clips.length, ...applied.clips);
+        return {
+          ok: true,
+          candidate: planned.candidate,
+          operation: planned.candidate.operation,
+          description: applied.description
+        };
       }
     ),
 

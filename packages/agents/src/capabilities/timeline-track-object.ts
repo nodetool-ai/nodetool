@@ -1,33 +1,4 @@
-/**
- * `track_object`: follow a subject through a clip's source and carry the
- * result as a document-level `MediaTrack` (P0 AI Video, Phase 2).
- *
- * Cloned from `timeline-isolate-subject.ts`'s three-part shape, because the
- * same separation applies here: only one part costs money, and only the
- * other two can be tested without a provider key.
- *
- * 1. {@link trackObjectOnDocument} — the state machine over one track. It
- *    marks the track (or a placeholder) in flight, asks the runner for
- *    samples, applies the result, and persists at every step. Everything it
- *    cannot do itself arrives on {@link TrackObjectDeps}.
- * 2. A real provider runner — see the bottom of this file. Unlike
- *    `falIsolateSubjectRunner`, there is no tracking-capable node registered
- *    in this build today (checked: no fal/replicate/video node declares
- *    anything close to `track_object`), so {@link notImplementedTrackObjectRunner}
- *    is a clearly-labeled seam that throws rather than fabricating a result —
- *    see its own doc comment.
- * 3. Nothing else: a track's samples are small JSON, not a media asset, so
- *    there is no download/store step the way a matte's mask video needs one.
- *
- * **This pass tracks box-kind subjects only.** `MediaTrack.kind` supports
- * `"point"`/`"quad"`/`"mask"` too, but nothing here calls a provider for
- * them yet — see `MediaTrackResult`'s shape below.
- *
- * **A failure never loses a working track.** A clip that already had a ready
- * track for this trackId keeps it, selected, with its status back at
- * `ready`; only a track with no prior ready result is left `failed`. Mirrors
- * `isolateSubjectOnClip`'s rule exactly.
- */
+/** Subject tracking over a source window, persisted with compare-and-swap writes. */
 
 import {
   applyMediaTrackResult,
@@ -39,6 +10,12 @@ import {
   type TimelineClip
 } from "@nodetool-ai/timeline";
 import { isString } from "../utils/type-guards.js";
+import {
+  BaseProvider,
+  objectTrackingRequestSchema,
+  parseObjectTrackingResult,
+  type ProcessingContext
+} from "@nodetool-ai/runtime";
 
 export type TrackObjectDirection = "forward" | "backward" | "both";
 
@@ -66,6 +43,7 @@ export interface TrackObjectRunResult {
   /** The generation row, so the caller can poll or reconcile it. */
   generationId?: string;
   costUsd?: number;
+  provenance?: MediaTrack["provenance"];
 }
 
 /**
@@ -83,7 +61,7 @@ export type TrackObjectRunner = (
 export type PersistTracks = (mediaTracks: MediaTrack[]) => Promise<boolean>;
 
 export interface TrackObjectDeps {
-  runner: TrackObjectRunner;
+  runner: TrackObjectRunner | null;
   persist: PersistTracks;
 }
 
@@ -141,7 +119,15 @@ export async function trackObjectOnDocument(
         "before tracking a subject in it."
     };
   }
-  if (input.endMs <= input.startMs) {
+  if (clip.mediaType !== "video") {
+    return { error: "Subject tracking requires a video clip." };
+  }
+  if (
+    !Number.isFinite(input.startMs) ||
+    input.startMs < 0 ||
+    !Number.isFinite(input.endMs) ||
+    input.endMs <= input.startMs
+  ) {
     return {
       error: `end_ms (${input.endMs}) must be greater than start_ms (${input.startMs}).`
     };
@@ -160,12 +146,33 @@ export async function trackObjectOnDocument(
       };
     }
   }
+  if (
+    initialRegion.width <= 0 ||
+    initialRegion.height <= 0 ||
+    initialRegion.x + initialRegion.width > 1 ||
+    initialRegion.y + initialRegion.height > 1
+  ) {
+    return {
+      error:
+        "The tracking rectangle must have positive dimensions and fit inside the source frame."
+    };
+  }
 
   const previous = input.mediaTracks.find((t) => t.id === input.trackId);
+  if (previous && previous.clipId !== clip.id) {
+    return { error: "This track belongs to a different clip." };
+  }
+  if (previous && previous.kind !== "box") {
+    return { error: "This action can only regenerate a box track." };
+  }
 
   if (previous && !input.regenerate && previous.status === "ready") {
     const stale = isMediaTrackStale(previous, clip);
-    if (!stale) {
+    if (
+      !stale &&
+      previous.sourceStartMs === input.startMs &&
+      previous.sourceEndMs === input.endMs
+    ) {
       return {
         mediaTracks: input.mediaTracks,
         track: previous,
@@ -174,9 +181,25 @@ export async function trackObjectOnDocument(
       };
     }
   }
+  if (!deps.runner || deps.runner === notImplementedTrackObjectRunner) {
+    return { error: "No executable subject-tracking provider is available." };
+  }
+  const request = objectTrackingRequestSchema.parse({
+    sourceAssetId,
+    initialRegion: { ...initialRegion },
+    startMs: input.startMs,
+    endMs: input.endMs,
+    direction: input.direction
+  });
 
   const placeholder: MediaTrack = previous
-    ? { ...markMediaTrackGenerating(previous), sourceAssetId }
+    ? {
+        ...markMediaTrackGenerating(previous),
+        sourceAssetId,
+        sourceStartMs: input.startMs,
+        sourceEndMs: input.endMs,
+        samples: []
+      }
     : {
         id: input.trackId,
         clipId: clip.id,
@@ -197,20 +220,16 @@ export async function trackObjectOnDocument(
   }
 
   try {
-    const run = await deps.runner({
-      sourceAssetId,
-      initialRegion,
-      startMs: input.startMs,
-      endMs: input.endMs,
-      direction: input.direction
-    });
+    const run = await deps.runner(request);
+    const validated = parseObjectTrackingResult(run, request);
     const result: MediaTrackResult = {
-      samples: run.samples,
-      sourceStartMs: input.startMs,
-      sourceEndMs: input.endMs,
+      samples: validated.samples,
+      sourceStartMs: request.startMs,
+      sourceEndMs: request.endMs,
       sourceAssetId
     };
     if (run.confidence !== undefined) result.confidence = run.confidence;
+    if (run.provenance !== undefined) result.provenance = run.provenance;
     const settledTrack = applyMediaTrackResult(placeholder, result);
     const settled = [
       ...input.mediaTracks.filter((t) => t.id !== input.trackId),
@@ -230,6 +249,9 @@ export async function trackObjectOnDocument(
     return outcome;
   } catch (error) {
     const revertedTrack = mediaTrackAfterFailure(placeholder, previous);
+    if (isMediaTrackStale(revertedTrack, clip)) {
+      revertedTrack.status = "stale";
+    }
     const reverted = [
       ...input.mediaTracks.filter((t) => t.id !== input.trackId),
       revertedTrack
@@ -247,21 +269,39 @@ export async function trackObjectOnDocument(
   }
 }
 
-/**
- * The default runner: there is no tracking-capable provider node registered
- * in this build. Checked against fal-nodes, replicate-nodes and video-nodes
- * for anything declaring segmentation-and-track, SAM-video, or cutout-style
- * tracking endpoints — none exists. Rather than fabricate a plausible-looking
- * result, this throws a clear, named error so a caller sees "not implemented"
- * instead of a silent no-op or invented samples. `Deps` injection is the seam
- * a future provider wiring (or a test) replaces this with.
- */
+/** Compatibility refusal for hosts that have not supplied a tracking provider. */
 export const notImplementedTrackObjectRunner: TrackObjectRunner = async () => {
-  throw new Error(
-    "track_object has no provider wired up in this build: no installed " +
-      "node package declares a subject-tracking capability. This is a " +
-      "documented seam (TrackObjectDeps.runner), not a working integration " +
-      "— wire a real provider through context.runGenerationWith with " +
-      'capability: "track_object" before enabling this in production.'
-  );
+  throw new Error("No executable subject-tracking provider is available.");
 };
+
+/** Resolve an executable provider before changing the timeline or spending. */
+export async function contextTrackObjectRunner(
+  context: ProcessingContext,
+  providerId: string | undefined,
+  model: string | undefined
+): Promise<TrackObjectRunner | null> {
+  if (!providerId || !model) {
+    return null;
+  }
+  const provider = await context.getProvider(providerId);
+  if (
+    !provider.getCapabilities().includes("track_object") ||
+    provider.trackObject === BaseProvider.prototype.trackObject
+  ) {
+    return null;
+  }
+  return async (request) => {
+    const run = await context.runGeneration({
+      provider: providerId,
+      model,
+      capability: "track_object",
+      params: { ...request },
+      origin: { surface: "capability" }
+    });
+    return {
+      ...parseObjectTrackingResult(run.output, request),
+      generationId: run.id,
+      provenance: { provider: providerId, model, settings: { ...request } }
+    };
+  };
+}

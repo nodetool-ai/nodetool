@@ -75,19 +75,29 @@ export function previewTake(
     (candidate) => candidate.id === takeId && candidate.status === "success"
   );
   if (!take) return null;
-  if (!take.mediaEdit) {
-    return { ...clip, currentAssetId: take.assetId };
+  if (take.mediaEdit) {
+    return {
+      ...clip,
+      currentAssetId: take.assetId,
+      // Generated edit results represent the selected source window from zero.
+      inPointMs: 0,
+      outPointMs: take.durationMs ?? clip.durationMs,
+      speedMultiplier: 1,
+      speedBaked: true,
+      timeRemap: undefined
+    };
   }
-  return {
+  const preview = {
     ...clip,
-    currentAssetId: take.assetId,
-    // Generated edit results represent the selected source window from zero.
-    inPointMs: 0,
-    outPointMs: take.durationMs ?? clip.durationMs,
-    speedMultiplier: 1,
-    speedBaked: true,
-    timeRemap: undefined
+    currentAssetId: take.assetId
   };
+  if (take.sourceMapping) {
+    preview.inPointMs = take.sourceMapping.inPointMs;
+    preview.outPointMs = take.sourceMapping.outPointMs;
+    preview.speedMultiplier = take.sourceMapping.speedMultiplier;
+    preview.speedBaked = take.sourceMapping.speedBaked;
+  }
+  return preview;
 }
 
 export interface ApplyTakeResult {

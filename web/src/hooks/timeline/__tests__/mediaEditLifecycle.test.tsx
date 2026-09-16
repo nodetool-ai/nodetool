@@ -152,6 +152,7 @@ describe("native media edit destination lifecycle", () => {
             generationId: "gen-1",
             status: "completed",
             assetIds: ["asset-candidate"],
+            mediaEditReferences: { referenceAssetIds: ["portrait"], entityIds: ["hero"] },
             error: null
           }
         ]
@@ -162,6 +163,9 @@ describe("native media edit destination lifecycle", () => {
 
     expect(subscribeMock).not.toHaveBeenCalled();
     expect(store.getState().clips[0].versions).toHaveLength(2);
+    expect(store.getState().clips[0].versions?.at(-1)?.mediaEdit).toMatchObject({
+      referenceAssetIds: ["portrait"], entityIds: ["hero"]
+    });
     expect(
       store.getState().clips[0].versions?.some(
         (version) => version.assetId === "asset-candidate"

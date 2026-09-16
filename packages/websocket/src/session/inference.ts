@@ -92,6 +92,8 @@ export interface DirectMediaGenerationRequest {
   sourceContext?: DirectMediaSourceContext;
   capability?: "reference_to_video";
   referenceImages?: unknown[];
+  referenceAssetIds?: readonly string[];
+  entityIds?: readonly string[];
   referenceVideos?: unknown[];
   useReferenceVideoAudio?: boolean;
   /** Project captured when the request was accepted. */
@@ -113,8 +115,74 @@ export interface DirectMediaSourceContext {
 
 export interface DirectMediaGenerationResult {
   asset_ids: string[];
+  media_edit_references?: { referenceAssetIds: string[]; entityIds: string[] };
   /** Set when idempotency found an already accepted generation. */
   existing_generation_id?: string;
+}
+
+interface VideoEditReferences {
+  prompt: string;
+  assetIds: string[];
+  entityIds: string[];
+  images: Uint8Array[];
+}
+
+async function resolveVideoEditReferences(
+  userId: string,
+  req: DirectMediaGenerationRequest
+): Promise<VideoEditReferences> {
+  const ownedResolver = entityRefResolver(userId);
+  const assets = new Map<string, ReturnType<typeof ownedResolver.getAssetInfo>>();
+  const requestedEntities = new Set([
+    ...(req.entityIds ?? []),
+    ...Array.from(req.prompt.matchAll(/entity:\/\/([A-Za-z0-9._~-]+)/g),
+      (match) => match[1].replace(/\.+$/, ""))
+  ]);
+  const resolvedEntityIds = new Set<string>();
+  const resolver: ReturnType<typeof entityRefResolver> = {
+    getAssetInfo: async (id) => {
+      let pending = assets.get(id);
+      if (!pending) {
+        pending = ownedResolver.getAssetInfo(id);
+        assets.set(id, pending);
+      }
+      const asset = await pending;
+      const marker = asset?.metadata?.nodetool_entity;
+      if (requestedEntities.has(id) && isRecord(marker) && isString(marker.name) && marker.name.trim()) {
+        resolvedEntityIds.add(id);
+      }
+      return asset;
+    }
+  };
+  const entityIds = [...new Set(req.entityIds ?? [])];
+  const entityReferenceAssetIds: string[] = [];
+  for (const id of entityIds) {
+    const asset = await resolver.getAssetInfo(id);
+    const marker = asset?.metadata?.nodetool_entity;
+    if (!isRecord(marker) || !isString(marker.name) || !marker.name.trim()) {
+      throw new Error(`Entity reference ${id} was not found`);
+    }
+    const referenceAssetId = isString(marker.reference_asset_id)
+      ? marker.reference_asset_id.trim()
+      : "";
+    entityReferenceAssetIds.push(referenceAssetId || id);
+  }
+  const expanded = await expandEntitiesForGeneration(
+    [req.prompt, ...entityIds.map((id) => `entity://${id}`)].join(" "),
+    resolver
+  );
+  const assetIds = [...new Set([
+    ...(req.referenceAssetIds ?? []),
+    ...(req.referenceImages ?? []).map((ref) => referenceAssetId(ref, "image")),
+    ...entityReferenceAssetIds,
+    ...expanded.referenceImages.map((ref) =>
+      ref.uri.slice("asset://".length, ref.uri.lastIndexOf("."))
+    )
+  ])];
+  const images = assetIds.length
+    ? await resolveReferenceAssets(userId, assetIds.map((asset_id) => ({ asset_id })), "image")
+    : [];
+  return { prompt: expanded.prompt, assetIds, entityIds: [...resolvedEntityIds], images };
 }
 
 /**
@@ -291,20 +359,7 @@ async function resolveReferenceAssets(
 ): Promise<Uint8Array[]> {
   const resolved: Uint8Array[] = [];
   for (const ref of refs) {
-    if (!isRecord(ref) || (ref.type !== undefined && ref.type !== kind)) {
-      throw new Error(`reference_to_video requires reference ${kind} objects`);
-    }
-    const assetId =
-      isString(ref.asset_id) && ref.asset_id.length > 0
-        ? ref.asset_id
-        : isString(ref.uri) && ref.uri.startsWith("asset://")
-          ? ref.uri.slice("asset://".length).split(".")[0]
-          : "";
-    if (!assetId) {
-      throw new Error(
-        `reference_to_video reference ${kind} is missing an asset id`
-      );
-    }
+    const assetId = referenceAssetId(ref, kind);
     const asset = await Asset.find(userId, assetId);
     if (!asset)
       throw new Error(`Reference ${kind} asset ${assetId} was not found`);
@@ -325,6 +380,21 @@ async function resolveReferenceAssets(
     resolved.push(bytes);
   }
   return resolved;
+}
+
+function referenceAssetId(ref: unknown, kind: "image" | "video"): string {
+  if (!isRecord(ref) || (ref.type !== undefined && ref.type !== kind)) {
+    throw new Error(`Expected reference ${kind} objects`);
+  }
+  const assetId = isString(ref.asset_id) && ref.asset_id.length > 0
+    ? ref.asset_id
+    : isString(ref.uri) && ref.uri.startsWith("asset://")
+      ? ref.uri.slice("asset://".length).split(".")[0]
+      : "";
+  if (!assetId) {
+    throw new Error(`Reference ${kind} is missing an asset id`);
+  }
+  return assetId;
 }
 
 /**
@@ -593,6 +663,9 @@ export class DirectInferenceHandler {
     if (!req.prompt || !req.prompt.trim()) {
       throw new Error("prompt is required");
     }
+    if (req.mode !== "video_edit" && (req.referenceAssetIds?.length || req.entityIds?.length)) {
+      throw new Error("Entity and reference asset ids require video_edit mode");
+    }
     if (req.capability === "reference_to_video") {
       if (req.mode !== "video") {
         throw new Error("reference_to_video requires video mode");
@@ -613,7 +686,7 @@ export class DirectInferenceHandler {
         );
       }
     } else if (
-      req.referenceImages?.length ||
+      (req.referenceImages?.length && req.mode !== "video_edit") ||
       req.referenceVideos?.length ||
       req.useReferenceVideoAudio !== undefined
     ) {
@@ -626,6 +699,9 @@ export class DirectInferenceHandler {
       await Project.requireOwned(userId, req.projectId);
     }
     const provider = await this.session.resolveProvider(req.provider, userId);
+    const videoEditReferences = req.mode === "video_edit"
+      ? await resolveVideoEditReferences(userId, req)
+      : undefined;
     if (req.mode === "video_edit" || req.mode === "video_extend") {
       const extension = req.mode === "video_extend";
       const task = extension ? "extend_video" : "video_to_video";
@@ -686,6 +762,10 @@ export class DirectInferenceHandler {
             `Model ${req.model} does not support the ${task} task`
           );
         }
+        if (videoEditReferences?.assetIds.length &&
+            !model.supportedTasks.includes("video_to_video_reference")) {
+          throw new Error(`Model ${req.model} does not support video edit reference images`);
+        }
         if (
           extension &&
           model.durations?.length &&
@@ -693,12 +773,14 @@ export class DirectInferenceHandler {
         ) {
           throw new Error("Choose a supported extension duration.");
         }
+      } else if (videoEditReferences?.assetIds.length) {
+        throw new Error(`Model ${req.model} has no video edit reference capabilities`);
       }
     }
     if (req.provider !== "nodetool") {
       // BYOK: the user's own keys, never metered.
       try {
-        return await this.runDirectMediaGenerationInner(req, provider);
+        return await this.runDirectMediaGenerationInner(req, provider, undefined, videoEditReferences);
       } catch (error) {
         if (error instanceof GenerationAlreadyAcceptedError) {
           return {
@@ -770,7 +852,7 @@ export class DirectInferenceHandler {
                 }
               : null;
           }
-        });
+        }, videoEditReferences);
       } catch (error) {
         if (error instanceof GenerationAlreadyAcceptedError) {
           return {
@@ -810,7 +892,8 @@ export class DirectInferenceHandler {
       ) => NonNullable<GenerationReceipt["cost"]> | null;
       /** Every generation id this call opened, for the caller to verify. */
       generationIds: string[];
-    }
+    },
+    videoEditReferences?: VideoEditReferences
   ): Promise<DirectMediaGenerationResult> {
     const userId = this.session.requireUserId();
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
@@ -848,10 +931,9 @@ export class DirectInferenceHandler {
     // a Consistency references block, reference image routed into the
     // generation inputs below — the same rule node prompts get through
     // mapPromptAssetsToInputs. A mention that resolves to no entity drops.
-    const { prompt, referenceImages } = await expandEntitiesForGeneration(
-      req.prompt,
-      entityRefResolver(userId)
-    );
+    const { prompt, referenceImages } = videoEditReferences
+      ? { prompt: videoEditReferences.prompt, referenceImages: [] }
+      : await expandEntitiesForGeneration(req.prompt, entityRefResolver(userId));
     const entityImageBytes = await resolveEntityReferenceImages(
       userId,
       referenceImages
@@ -1014,12 +1096,30 @@ export class DirectInferenceHandler {
       if (req.sourceContext) {
         editParams.source_context = req.sourceContext;
       }
+      const references = videoEditReferences?.assetIds.length
+        ? {
+            referenceImages: videoEditReferences.images,
+            referenceAssetIds: videoEditReferences.assetIds
+          }
+        : {};
+      if (videoEditReferences?.assetIds.length) {
+        editParams.reference_images = videoEditReferences.images;
+        editParams.reference_asset_ids = videoEditReferences.assetIds;
+      }
+      const referenceProvenance = {
+        referenceAssetIds: videoEditReferences?.assetIds ?? [],
+        entityIds: videoEditReferences?.entityIds ?? []
+      };
+      editParams.entity_ids = referenceProvenance.entityIds;
+      editParams.media_edit_references = referenceProvenance;
       const generated = await generate(
         "video_to_video",
         editParams,
         { mime: "video/mp4" },
-        () =>
+        (signal) =>
           provider.videoToVideo(editSource, {
+            ...references,
+            signal,
             model: videoModel,
             prompt,
             strength: req.strength ?? null,
@@ -1032,7 +1132,11 @@ export class DirectInferenceHandler {
       const assetId =
         seamAssetId(generated) ??
         (await storeAsset(generated.output, "video/mp4", "mp4"));
-      return { asset_ids: [assetId] };
+      const result: DirectMediaGenerationResult = { asset_ids: [assetId] };
+      if (referenceProvenance.referenceAssetIds.length || referenceProvenance.entityIds.length) {
+        result.media_edit_references = referenceProvenance;
+      }
+      return result;
     }
 
     if (req.mode === "audio" || req.mode === "music") {

@@ -1,34 +1,17 @@
-/**
- * Subject/object tracking (P0 AI Video, Phase 2).
- *
- * Two sections, shown depending on the clip's own `mediaType`:
- *
- * - `TrackingSection` (video clips): starts a `track_object` run on this
- *   clip's own source. There is no interactive rectangle-select tool in this
- *   pass — building a canvas drag-to-select UI is a separate, larger
- *   interactive-canvas feature — so the initial region is four numeric 0..1
- *   fraction inputs instead of a drawn box. There is also no tracking
- *   provider wired up in this build (`track_object`'s own doc comment), so
- *   the button is disabled with a caption saying so rather than pretending a
- *   call would do anything.
- * - `FollowObjectSection` (text/shape/image clips): sets/clears the clip's
- *   `trackBinding`. This is fully wired — `TimelineStore.bindToTrack`/
- *   `unbindTrack` are plain `set()` calls the same way every other
- *   clip-field action here is, so undo/redo comes for free. The track
- *   picker is a manually-typed id rather than a populated dropdown: the
- *   store does not carry the document's `mediaTracks` list in this pass (no
- *   provider ever produces one to show), so there is nothing to list yet.
- *   Only `"position"`/`"position_scale"` are offered — the only modes the
- *   scene model resolves (`TrackBinding.mode`'s doc comment).
- */
-
 import React, { memo, useCallback, useState } from "react";
 import TrackChangesOutlinedIcon from "@mui/icons-material/TrackChangesOutlined";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import LinkOffOutlinedIcon from "@mui/icons-material/LinkOffOutlined";
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import {
+  clipSourceMsAt,
+  isMediaTrackStale,
+  type TimelineClip
+} from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { useProvidersByCapability } from "../../../hooks/useProviders";
 import {
   Caption,
   CollapsibleSection,
@@ -36,6 +19,7 @@ import {
   FlexColumn,
   SPACING
 } from "../../ui_primitives";
+import { useTrackingSelection } from "../preview/useTrackingSelection";
 import { usePersistedFold } from "./usePersistedFold";
 import {
   InspectorDivider,
@@ -46,9 +30,6 @@ import {
   InspectorSliderRow
 } from "./InspectorPrimitives";
 
-const SCRUB_UNIT = { step: 0.01, min: 0, max: 1 };
-const SCRUB_MS = { step: 100, min: 0 };
-
 const BIND_MODE_OPTIONS = [
   { value: "position", label: "Position" },
   { value: "position_scale", label: "Position + scale" }
@@ -56,31 +37,40 @@ const BIND_MODE_OPTIONS = [
 
 type LiveBindMode = (typeof BIND_MODE_OPTIONS)[number]["value"];
 
-function commitUnit(raw: string, apply: (value: number) => void): void {
-  const value = Number(raw);
-  if (!Number.isFinite(value)) return;
-  apply(Math.min(1, Math.max(0, value)));
+interface ClipTrackingProps {
+  clip: TimelineClip;
 }
 
-function commitMs(raw: string, apply: (value: number) => void): void {
-  const value = Number(raw);
-  if (!Number.isFinite(value) || value < 0) return;
-  apply(value);
-}
-
-/**
- * Numeric-input `track_object` starter on a video clip. No canvas
- * rectangle-select, no working provider call — see this file's doc comment.
- */
-const TrackingSection: React.FC<{ clip: TimelineClip }> = memo(({ clip }) => {
+const TrackingSection: React.FC<ClipTrackingProps> = ({ clip }) => {
   const [open, setOpen] = usePersistedFold("tracking");
-  const [x, setX] = useState(0.1);
-  const [y, setY] = useState(0.1);
-  const [width, setWidth] = useState(0.2);
-  const [height, setHeight] = useState(0.2);
-  const [startMs, setStartMs] = useState(0);
-  const [endMs, setEndMs] = useState(Math.max(1000, clip.durationMs));
-
+  const { selection, select } = useTrackingSelection();
+  const tracks = useTimelineStore((state) => state.mediaTracks);
+  const pause = useTimelinePlaybackStore((state) => state.pause);
+  const seek = useTimelinePlaybackStore((state) => state.seek);
+  const clearAudition = useTimelineUIStore((state) => state.clearAudition);
+  const { providers, isLoading } = useProvidersByCapability("track_object");
+  const active =
+    selection?.clipId === clip.id &&
+    selection.sourceAssetId === clip.currentAssetId
+      ? selection
+      : null;
+  const stale = tracks.some(
+    (track) => track.clipId === clip.id && isMediaTrackStale(track, clip)
+  );
+  const startSelection = (): void => {
+    if (!clip.currentAssetId) {
+      return;
+    }
+    pause();
+    clearAudition();
+    seek(clip.startMs);
+    select({
+      clipId: clip.id,
+      sourceAssetId: clip.currentAssetId,
+      sourceMs: clipSourceMsAt(clip, clip.startMs),
+      region: null
+    });
+  };
   return (
     <>
       <InspectorDivider />
@@ -96,83 +86,56 @@ const TrackingSection: React.FC<{ clip: TimelineClip }> = memo(({ clip }) => {
         unmountOnExit
       >
         <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
+          <EditorButton
+            fullWidth
+            onClick={startSelection}
+            disabled={!clip.currentAssetId}
+          >
+            Select subject in preview
+          </EditorButton>
           <Caption color="muted">
-            Starting region, as a fraction of the source frame (0..1). There is
-            no rectangle-select tool yet — type the box the subject starts in.
+            Drag a rectangle around the subject. With the preview focused, press
+            Enter to create a box, use arrow keys to move it, or Alt and arrow
+            keys to resize it. Shift uses larger steps. Delete clears the box.
+            Escape stops selection.
           </Caption>
-          <InspectorRow label="X">
-            <InspectorPillInput
-              value={String(x)}
-              scrub={SCRUB_UNIT}
-              onCommit={(raw) => commitUnit(raw, setX)}
-              ariaLabel="Initial region X"
-            />
-          </InspectorRow>
-          <InspectorRow label="Y">
-            <InspectorPillInput
-              value={String(y)}
-              scrub={SCRUB_UNIT}
-              onCommit={(raw) => commitUnit(raw, setY)}
-              ariaLabel="Initial region Y"
-            />
-          </InspectorRow>
-          <InspectorRow label="Width">
-            <InspectorPillInput
-              value={String(width)}
-              scrub={SCRUB_UNIT}
-              onCommit={(raw) => commitUnit(raw, setWidth)}
-              ariaLabel="Initial region width"
-            />
-          </InspectorRow>
-          <InspectorRow label="Height">
-            <InspectorPillInput
-              value={String(height)}
-              scrub={SCRUB_UNIT}
-              onCommit={(raw) => commitUnit(raw, setHeight)}
-              ariaLabel="Initial region height"
-            />
-          </InspectorRow>
-          <InspectorRow label="Start">
-            <InspectorPillInput
-              value={String(startMs)}
-              unit="ms"
-              scrub={SCRUB_MS}
-              onCommit={(raw) => commitMs(raw, setStartMs)}
-              ariaLabel="Tracking window start, source ms"
-            />
-          </InspectorRow>
-          <InspectorRow label="End">
-            <InspectorPillInput
-              value={String(endMs)}
-              unit="ms"
-              scrub={SCRUB_MS}
-              onCommit={(raw) => commitMs(raw, setEndMs)}
-              ariaLabel="Tracking window end, source ms"
-            />
-          </InspectorRow>
-
+          <Caption color="muted" aria-live="polite">
+            {active?.region
+              ? `Selected at ${active.sourceMs} source ms: ${Math.round(active.region.x * 100)}%, ${Math.round(active.region.y * 100)}%, ${Math.round(active.region.width * 100)}% wide, ${Math.round(active.region.height * 100)}% high.`
+              : "No subject selected."}
+          </Caption>
+          {active && (
+            <EditorButton onClick={() => select(null)}>
+              Stop selecting
+            </EditorButton>
+          )}
+          {stale && (
+            <Caption color="warning">
+              The source changed. Previous tracking samples are unavailable for
+              this take. Select the subject again.
+            </Caption>
+          )}
           <EditorButton
             fullWidth
             variant="contained"
             color="primary"
-            startIcon={<TrackChangesOutlinedIcon />}
             disabled
             data-testid="track-object"
           >
             Track subject
           </EditorButton>
           <Caption color="muted">
-            No tracking provider is configured in this build yet — this starts
-            nothing. The track_object capability exists as a documented seam
-            in packages/agents/src/capabilities/timeline-track-object.ts for a
-            provider to be wired into.
+            {isLoading
+              ? "Checking tracking providers."
+              : providers.length === 0
+                ? "No subject-tracking provider is available."
+                : "Tracking is available through the timeline agent. Preview submission is not connected yet."}
           </Caption>
         </FlexColumn>
       </CollapsibleSection>
     </>
   );
-});
-TrackingSection.displayName = "TrackingSection";
+};
 
 /**
  * "Follow object": sets/clears a clip's `trackBinding` so it follows a

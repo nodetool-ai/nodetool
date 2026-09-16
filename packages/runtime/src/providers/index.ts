@@ -19,6 +19,12 @@ export {
   extForImageMime
 } from "./image-mime.js";
 export { sniffAudioMime, sniffAudioMimeOrNull } from "./audio-mime.js";
+export {
+  VIDEO_TO_AUDIO_TASK,
+  VideoToAudioRequest,
+  requestVideoToAudio
+} from "./video-to-audio.js";
+export type { VideoToAudioParams } from "./video-to-audio.js";
 export { sniffVideoMime, sniffVideoMimeOrNull } from "./video-mime.js";
 export { sniffMedia, sniffMediaMime, MEDIA_KINDS } from "./media-mime.js";
 export type { MediaKind } from "./media-mime.js";
@@ -672,3 +678,5 @@ if (_cloudProfile) {
     if (!isSelfServeProvider(id)) unregisterBuiltinProvider(id);
   }
 }
+export { objectTrackingRequestSchema, trackingRegionSchema, parseObjectTrackingResult } from "./object-tracking.js";
+export type { ObjectTrackingRequest, ObjectTrackingResult, ObjectTrackingParams, TrackingRegion } from "./object-tracking.js";

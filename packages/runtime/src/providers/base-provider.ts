@@ -62,6 +62,8 @@ import type {
   ProviderGenerationQuery
 } from "./provider-generations.js";
 import { ProviderGenerationsUnsupportedError } from "./provider-generations.js";
+import type { VideoToAudioParams } from "./video-to-audio.js";
+import type { ObjectTrackingParams, ObjectTrackingResult } from "./object-tracking.js";
 import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
 import { getTracer } from "../telemetry.js";
@@ -226,12 +228,14 @@ export type ProviderCapability =
   | "text_to_speech"
   | "text_to_music"
   | "audio_to_audio"
+  | "video_to_audio"
   | "automatic_speech_recognition"
   | "generate_embedding"
   | "text_to_3d"
   | "image_to_3d"
   | "list_generations"
-  | "get_generation";
+  | "get_generation"
+  | "track_object";
 
 /**
  * Derive a provider's capability set by checking which optional `getAvailable*`
@@ -294,6 +298,12 @@ export function providerCapabilities(
   }
   if (instance.videoToVideo !== BaseProvider.prototype.videoToVideo) {
     capabilities.push("video_to_video");
+  }
+  if (instance.videoToAudio !== BaseProvider.prototype.videoToAudio) {
+    capabilities.push("video_to_audio");
+  }
+  if (instance.trackObject !== BaseProvider.prototype.trackObject) {
+    capabilities.push("track_object");
   }
   if (instance.extendVideo !== BaseProvider.prototype.extendVideo) {
     capabilities.push("extend_video");
@@ -1885,6 +1895,17 @@ export abstract class BaseProvider {
   }
 
   /**
+   * Optional video-conditioned sound task. Call through requestVideoToAudio
+   * for input and capability validation before dispatch.
+   */
+  async videoToAudio(
+    _video: Uint8Array,
+    _params: VideoToAudioParams
+  ): Promise<EncodedAudioResult> {
+    throw new Error(`${this.provider} does not support videoToAudio`);
+  }
+
+  /**
    * Rewrite a recording: convert the voice, isolate or denoise it, separate a
    * stem, raise its sample rate. The source bytes are passed positionally, the
    * direction rides in the params. Like {@link textToMusic} this resolves to an
@@ -1931,6 +1952,14 @@ export abstract class BaseProvider {
     _params: ReferenceToVideoParams
   ): Promise<Uint8Array> {
     throw new Error(`${this.provider} does not support referenceToVideo`);
+  }
+
+  /** Track a source-frame box and return samples in absolute source milliseconds. */
+  async trackObject(
+    _video: Uint8Array,
+    _params: ObjectTrackingParams
+  ): Promise<ObjectTrackingResult> {
+    throw new Error(`${this.provider} does not support object tracking`);
   }
 
   /** Restyle / edit an existing video, guided by a prompt. */
@@ -2222,11 +2251,13 @@ const MODALITY_PROMISE_METHODS = [
   "segmentImage",
   "textToSpeechEncoded",
   "textToMusic",
+  "videoToAudio",
   "automaticSpeechRecognition",
   "textToVideo",
   "imageToVideo",
   "referenceToVideo",
   "videoToVideo",
+  "trackObject",
   "extendVideo",
   "upscaleVideo",
   "interpolateVideo",

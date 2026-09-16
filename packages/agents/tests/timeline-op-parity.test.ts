@@ -430,6 +430,26 @@ const FIXTURES: Fixture[] = [
     }
   },
   {
+    tool: "apply_transition_at_cut",
+    args: {
+      outgoingClipId: "clip_a",
+      incomingClipId: "clip_c",
+      durationMs: 500,
+      type: "wipe",
+      direction: "right",
+      softness: 0.2
+    },
+    op: {
+      op: "apply_transition_at_cut",
+      outgoingClipId: "clip_a",
+      incomingClipId: "clip_c",
+      durationMs: 500,
+      type: "wipe",
+      direction: "right",
+      softness: 0.2
+    }
+  },
+  {
     tool: "set_mask",
     args: { target: "clip_a", mask: { kind: "ellipse", featherPx: 4 } },
     op: {

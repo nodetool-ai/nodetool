@@ -1260,18 +1260,31 @@ export class ReplicateProvider extends BaseProvider {
     video: Uint8Array,
     params: VideoToVideoParams
   ): Promise<Uint8Array> {
+    const images = params.referenceImages ?? [];
+    const fields = getModelReferenceInputs("@nodetool-ai/replicate-nodes", "replicate-manifest.json", params.model.id);
+    if (images.length) {
+      validateReferenceInputs("Replicate", params.model.id, { images, videos: [] }, fields);
+    }
+    params.signal?.throwIfAborted();
     const input: Record<string, unknown> = {
       video: this.dataUri(video, "video/mp4")
     };
+    if (images.length) {
+      const urls = images.map((image) => this.imageDataUri(image));
+      for (const field of fields.filter((candidate) => candidate.kind === "image")) {
+        input[field.apiName] = field.isList ? urls : urls[0];
+      }
+    }
     if (params.prompt) input.prompt = params.prompt;
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
     if (params.strength != null) input.strength = params.strength;
     if (params.seed != null) input.seed = params.seed;
     log.debug("videoToVideo", { model: params.model.id });
-    return this.runWithInput(
+    return this._fetchOutputBytes(await this.runModel(
       params.model.id,
-      this.pruneToDeclaredInputs(params.model.id, input)
-    );
+      this.pruneToDeclaredInputs(params.model.id, input),
+      params.signal
+    ), params.signal);
   }
 
   override async upscaleVideo(

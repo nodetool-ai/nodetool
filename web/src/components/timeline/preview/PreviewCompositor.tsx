@@ -35,13 +35,15 @@ import {
   FONT_WEIGHT,
   BORDER_RADIUS,
   Z_INDEX,
-  MagicGenerationFill
+  MagicGenerationFill,
+  SPACING
 } from "../../ui_primitives";
 
 import { createCompositor } from "./gpu/createCompositor";
 import type { CompositeLayer, TimelineCompositor } from "./gpu/types";
 import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
 import { ReframeFocusOverlay } from "./ReframeFocusOverlay";
+import { ClipTrackingOverlay } from "./ClipTrackingOverlay";
 import { Model3DOrbitOverlay } from "./Model3DOrbitOverlay";
 import {
   bakedClipSourceTimeSec,
@@ -110,10 +112,10 @@ export function sceneRequiresPerFrameResolution(
   );
 }
 
-const compositorStyles = css({
+const compositorStyles = (theme: Theme) => css({
   position: "absolute",
   inset: 0,
-  backgroundColor: "#000",
+  backgroundColor: theme.vars.palette.common.black,
   overflow: "hidden",
   display: "flex",
   alignItems: "center",
@@ -139,15 +141,15 @@ const canvasStyles = css({
 const overlayBadgeStyles = (theme: Theme, color: string) =>
   css({
     position: "absolute",
-    top: 4,
-    left: 4,
+    top: theme.spacing(SPACING.xs),
+    left: theme.spacing(SPACING.xs),
     zIndex: PREVIEW_OVERLAY_Z.badge,
     fontSize: FONT_SIZE_SANS.caption,
     lineHeight: 1,
-    padding: theme.spacing(0.5, 1.5),
+    padding: theme.spacing(SPACING.xs, SPACING.lg),
     borderRadius: BORDER_RADIUS.xs,
     backgroundColor: color,
-    color: "#fff",
+    color: theme.vars.palette.common.white,
     pointerEvents: "none",
     fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: 0.5,
@@ -162,7 +164,7 @@ const placeholderLayerStyles = (theme: Theme) =>
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "column",
-    gap: 4,
+    gap: theme.spacing(SPACING.xs),
     color: theme.vars.palette.text.disabled,
     fontSize: FONT_SIZE_SANS.label,
     userSelect: "none",
@@ -1398,7 +1400,7 @@ export const PreviewCompositor: React.FC = memo(() => {
   return (
     <div
       ref={containerRef}
-      css={compositorStyles}
+      css={compositorStyles(theme)}
       data-testid="preview-compositor"
     >
       <div ref={frameRef} css={frameStyles}>
@@ -1462,6 +1464,25 @@ export const PreviewCompositor: React.FC = memo(() => {
           />
         )}
 
+        {selectedGizmo && !audition && sceneLayers.filter((layer) =>
+          layer.clipId === selectedClipId && layer.kind === "video" &&
+          layer.assetId === clipById.get(selectedClipId)?.currentAssetId
+        ).map((layer) => (
+          <ClipTrackingOverlay
+            key={`${layer.clipId}:${layer.assetId}`}
+            clip={layer.clip}
+            crop={layer.crop}
+            transform={layer.transform}
+            parentMatrix={layer.parentMatrix}
+            sourceWidth={selectedGizmo.sourceWidth}
+            sourceHeight={selectedGizmo.sourceHeight}
+            sequenceWidth={sequenceWidth}
+            sequenceHeight={sequenceHeight}
+            frameWidth={frameSize.w}
+            frameHeight={frameSize.h}
+          />
+        ))}
+
         {selectedClipId &&
           clipById.get(selectedClipId)?.mediaType === "model3d" && (
             <Model3DOrbitOverlay
@@ -1483,7 +1504,7 @@ export const PreviewCompositor: React.FC = memo(() => {
             }}
           >
             <div css={placeholderLayerStyles(theme)}>
-              <span style={{ fontSize: 24, opacity: 0.4 }}>▭</span>
+              <span style={{ fontSize: FONT_SIZE_SANS.title, opacity: 0.4 }}>▭</span>
               <span style={{ fontSize: theme.fontSizeSmaller, opacity: 0.5 }}>
                 {layer.name}
               </span>
@@ -1494,7 +1515,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         {staleActiveClips.map((c) => (
           <div
             key={`stale-${c.id}`}
-            css={overlayBadgeStyles(theme, "#c08000")}
+            css={overlayBadgeStyles(theme, theme.vars.palette.warning.dark)}
             style={{ zIndex: PREVIEW_OVERLAY_Z.badge }}
           >
             stale
@@ -1504,7 +1525,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         {proxiedBakeClips.map((c) => (
           <div
             key={`bake-${c.id}`}
-            css={overlayBadgeStyles(theme, "#c08000")}
+            css={overlayBadgeStyles(theme, theme.vars.palette.warning.dark)}
             style={{ zIndex: PREVIEW_OVERLAY_Z.badge }}
           >
             bake unplayable — live 3D
@@ -1520,7 +1541,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         {generatingClips.map((c) => (
           <div
             key={`gen-${c.id}`}
-            css={overlayBadgeStyles(theme, "#0055aa")}
+            css={overlayBadgeStyles(theme, theme.vars.palette.info.dark)}
             style={{ zIndex: PREVIEW_OVERLAY_Z.badge }}
           >
             generating…
@@ -1530,7 +1551,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         {gpuFailed && (
           <div
             css={placeholderLayerStyles(theme)}
-            style={{ zIndex: Z_INDEX.raised, color: "#c08000" }}
+            style={{ zIndex: Z_INDEX.raised, color: theme.vars.palette.warning.dark }}
           >
             <span style={{ fontSize: theme.fontSizeSmall }}>
               Preview rendering unavailable
@@ -1543,7 +1564,7 @@ export const PreviewCompositor: React.FC = memo(() => {
             css={placeholderLayerStyles(theme)}
             style={{ zIndex: Z_INDEX.raised }}
           >
-            <span style={{ fontSize: 32, opacity: 0.15 }}>▶</span>
+            <span style={{ fontSize: FONT_SIZE_SANS.title, opacity: 0.15 }}>▶</span>
             <span style={{ fontSize: theme.fontSizeSmall, opacity: 0.25 }}>
               No media at {Math.round(currentTimeMs / 1000)}s
             </span>

@@ -23,7 +23,7 @@ import type {
   TrackEffect
 } from "../types.js";
 import { isClipGrainEffect } from "../types.js";
-import { applySmoothingToSample, sampleMediaTrackAt } from "../mediaTrack.js";
+import { applySmoothingToSample, isMediaTrackStale, sampleMediaTrackAt } from "../mediaTrack.js";
 import { renderableReframe, resolveReframeCrop } from "../reframe.js";
 import type { Model3DCameraChannels } from "../model3d.js";
 import type {
@@ -1629,11 +1629,11 @@ function resolveTrackBindingOffset(
     return undefined;
   }
   const track = tracking.mediaTracks.find((t) => t.id === binding.trackId);
-  if (!track) return undefined;
+  if (!track || track.status !== "ready") return undefined;
   const owner = tracking.clips.find(
     (candidate) => candidate.id === track.clipId
   );
-  if (!owner) return undefined;
+  if (!owner || isMediaTrackStale(track, owner)) return undefined;
   const sourceMs = clipSourceMsAt(owner, currentTimeMs);
   const sample =
     binding.smoothing !== undefined && binding.smoothing > 0

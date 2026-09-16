@@ -37,6 +37,7 @@ export interface GenerationLookup {
   /** The assets the call produced. Empty until it completed. */
   assetIds: string[];
   error: string | null;
+  mediaEditReferences?: unknown;
   /** Durable lifecycle dimensions, present when returned by a newer server. */
   submissionStatus?: string | null;
   providerStatus?: string | null;
@@ -129,6 +130,9 @@ export async function lookupGenerations(
       };
       // Keep the legacy object shape for old servers, while preserving null
       // values for a durable server that explicitly reports an empty state.
+      if ("media_edit_references" in row) {
+        lookup.mediaEditReferences = row.media_edit_references;
+      }
       if ("submission_status" in row) {
         lookup.submissionStatus = readNullableString(row.submission_status);
       }
