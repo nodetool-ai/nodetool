@@ -2209,6 +2209,56 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "expand_frame",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "10feff1eccbe",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-media-editing.test.ts",
+    ],
+  },
+  {
+    name: "upscale_video",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "2f23f8afd988",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-media-editing.test.ts",
+    ],
+  },
+  {
+    name: "video_to_audio",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "bda7d25b41a4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-media-editing.test.ts",
+    ],
+  },
+  {
+    name: "recorded_voice_replacement",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "5fd59f740166",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-media-editing.test.ts",
+    ],
+  },
+  {
+    name: "lip_sync",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "8e15891254d4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-media-editing.test.ts",
+    ],
+  },
+  {
     name: "delete_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",

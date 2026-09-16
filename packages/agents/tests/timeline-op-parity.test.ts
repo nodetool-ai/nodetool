@@ -1,7 +1,9 @@
 /**
- * Every timeline op, driven twice: through the headless `ui_timeline_*` tool
- * and through `applyTimelineOp` directly. The two must agree on the result and
- * on the document (I11).
+ * Every structural timeline op, driven twice: through the headless
+ * `ui_timeline_*` tool and through `applyTimelineOp` directly. The two must
+ * agree on the result and on the document (I11). Generated transition
+ * candidates are the one lifecycle adapter: the bridge creates a cut-level
+ * candidate, while the pure op remains the final host-side apply primitive.
  *
  * The bridge delegates to the op module today, so a passing run is a check
  * that it still does — the table is what fails when a handler is forked back
@@ -233,7 +235,11 @@ function bridgeInit(): TimelineBridgeInitialState {
     loadComposition: {
       get: async (id) => (id === COMPOSITION.id ? COMPOSITION : null),
       listIds: async () => [COMPOSITION.id]
-    }
+    },
+    generateTransition: async ({ source, request }) => ({
+      generationId: `generation-${source.outgoingClipId}-${source.incomingClipId}`,
+      assetId: `asset-transition-${request.type}`
+    })
   };
 }
 
@@ -672,6 +678,39 @@ describe("timeline op parity", () => {
   for (const fixture of FIXTURES) {
     it(`${fixture.tool} agrees between the bridge and applyTimelineOp`, async () => {
       const bridge = createTimelineToolBridge(bridgeInit());
+      if (fixture.tool === "apply_transition_at_cut") {
+        const entry = bridge.tools.find(
+          (t) => t.name === "ui_timeline_apply_transition_at_cut"
+        );
+        expect(entry, "generated transition lifecycle tool is registered").toBeDefined();
+        const result = (await entry!.execute(fixture.args)) as {
+          candidate: {
+            kind: string;
+            source: {
+              outgoingClipId: string;
+              incomingClipId: string;
+            };
+          };
+        };
+        expect(result.candidate).toMatchObject({
+          kind: "generated_transition_at_cut",
+          source: {
+            outgoingClipId: "clip_a",
+            incomingClipId: "clip_c"
+          }
+        });
+        const applied = (await entry!.execute({
+          candidate_id: result.candidate.id
+        })) as { applied: boolean };
+        expect(applied).toMatchObject({ applied: true });
+        const direct = await applyTimelineOp(
+          directState(),
+          fixture.op,
+          directContext(directState())
+        );
+        expect(bridge.finalState().documentClips).toEqual(direct.state.clips);
+        return;
+      }
       const entry = bridge.tools.find(
         (t) => t.name === `ui_timeline_${fixture.tool}`
       );

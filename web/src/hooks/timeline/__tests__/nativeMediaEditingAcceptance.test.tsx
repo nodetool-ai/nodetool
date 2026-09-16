@@ -70,6 +70,11 @@ jest.mock("../../../hooks/useModelsByProvider", () => ({
     isLoading: false,
     error: null,
     refetch: jest.fn()
+  }),
+  useAggregatedProviderModels: () => ({
+    models: [],
+    isLoading: false,
+    error: null
   })
 }));
 

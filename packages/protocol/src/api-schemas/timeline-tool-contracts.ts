@@ -917,6 +917,8 @@ export const BROWSER_ONLY_TIMELINE_TOOL_NAMES = [
  * `unbind_track`, P0 AI Video Phase 2), whose editor half is the Inspector's
  * `ClipTracking` panel writing through `TimelineStore.bindToTrack`/
  * `unbindTrack`.
+ * The generated cut transition tools are headless-only because the browser
+ * editor does not expose the agent's candidate lifecycle.
  */
 export const HEADLESS_ONLY_TIMELINE_TOOL_NAMES = [
   "ui_timeline_insert_composition",
@@ -930,5 +932,7 @@ export const HEADLESS_ONLY_TIMELINE_TOOL_NAMES = [
   "ui_timeline_delete_track_object",
   "ui_timeline_bind_to_track",
   "ui_timeline_unbind_track",
+  "ui_timeline_generate_transition_at_cut",
+  "ui_timeline_preview_transition_candidate",
   "ui_timeline_apply_transition_at_cut"
 ] as const;

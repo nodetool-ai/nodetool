@@ -902,6 +902,11 @@ function coerceByteList(value: unknown): Uint8Array[] {
   );
 }
 
+function coerceStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isNonEmptyString);
+}
+
 function firstNonEmptyByteList(value: Uint8Array[]): Uint8Array {
   return value.find((bytes) => bytes.byteLength > 0) ?? new Uint8Array();
 }
@@ -3246,10 +3251,22 @@ export class ProcessingContext {
         signal.throwIfAborted();
         return parseObjectTrackingResult(output, request);
       }
-      case "video_to_video":
+      case "video_to_video": {
+        const signal = isAbortSignal(params.signal) ? params.signal : this.signal;
+        const referenceImages = coerceByteList(
+          params.reference_images ?? params.referenceImages
+        );
+        const referenceAssetIds = coerceStringList(
+          params.reference_asset_ids ?? params.referenceAssetIds
+        );
+        signal.throwIfAborted();
         return provider.videoToVideo(params.video as Uint8Array, {
           model: { id: req.model, name: req.model, provider: req.provider },
           prompt: params.prompt as string | undefined,
+          referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
+          referenceAssetIds:
+            referenceAssetIds.length > 0 ? referenceAssetIds : undefined,
+          signal,
           entities: await coerceEntityList(params, this),
           negativePrompt: params.negative_prompt as string | undefined,
           strength: params.strength as number | undefined,
@@ -3257,6 +3274,7 @@ export class ProcessingContext {
           resolution: params.resolution as string | undefined,
           seed: params.seed as number | undefined
         });
+      }
       case "video_to_audio": {
         const source = isRecord(params.source)
           ? {

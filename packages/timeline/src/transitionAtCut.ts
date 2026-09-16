@@ -220,8 +220,9 @@ export function applyTransitionAtCutCandidate(
 ): TransitionAtCutApplyResult {
   const plan = planTransitionAtCut(clips, candidate.operation);
   if (!plan.ok) return plan;
-  const next = applyTransitionAtCut(
+  const next = applyTransitionAtCutPair(
     clips,
+    plan.candidate.outgoingClipId,
     plan.candidate.incomingClipId,
     plan.candidate.durationMs,
     plan.candidate.transition
@@ -259,6 +260,42 @@ export function maxTransitionMs(
 ): number {
   const prev = transitionPredecessor(clips, clip);
   return prev ? Math.min(clip.durationMs, prev.durationMs) : clip.durationMs;
+}
+
+function applyTransitionAtCutPair(
+  clips: readonly TimelineClip[],
+  outgoingClipId: string,
+  incomingClipId: string,
+  durationMs: number,
+  transition: KnownClipTransition
+): TimelineClip[] {
+  const incoming = clips.find((c) => c.id === incomingClipId);
+  const outgoing = clips.find((c) => c.id === outgoingClipId);
+  if (!incoming || !outgoing) {
+    throw new Error("applyTransitionAtCutPair: selected clips not found");
+  }
+  const wanted = Math.max(
+    0,
+    Math.min(durationMs, incoming.durationMs, outgoing.durationMs)
+  );
+  const overlap = clipEndMs(outgoing) - incoming.startMs;
+  const missing = wanted - Math.max(0, overlap);
+  let grownOutgoing: TimelineClip | undefined;
+  if (missing > 0) {
+    try {
+      grownOutgoing = trimClip(outgoing, "end", missing);
+    } catch {
+      // The outgoing clip cannot grow; the incoming clip fades in on its own.
+    }
+  }
+
+  const transitionIn: ClipTransition = { ...transition, durationMs: wanted };
+
+  return clips.map((c) => {
+    if (c.id === incomingClipId) return { ...c, transitionIn };
+    if (grownOutgoing && c.id === grownOutgoing.id) return grownOutgoing;
+    return c;
+  });
 }
 
 /**

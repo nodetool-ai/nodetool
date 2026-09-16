@@ -42,6 +42,7 @@ export * from "./extension.js";
 export * from "./extensionRequest.js";
 export * from "./recipe.js";
 export * from "./lineDelivery.js";
+export * from "./spatialVideoRequest.js";
 export * from "./recordedVoiceReplacement.js";
 export * from "./lipSyncRequest.js";
 export * from "./production.js";

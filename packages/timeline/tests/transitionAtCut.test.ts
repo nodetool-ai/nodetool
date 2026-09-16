@@ -220,6 +220,36 @@ describe("transition candidates at a cut", () => {
     expect(applied.clips[1]?.versions).toEqual(before[1]?.versions);
   });
 
+  it("changes only the candidate pair when another clip overlaps the cut", () => {
+    const before = [
+      ...candidateClips(),
+      makeClip({
+        id: "unrelated",
+        trackId: "video",
+        startMs: 0,
+        durationMs: 4300
+      })
+    ];
+    const planned = planTransitionAtCut(before, {
+      outgoingClipId: "outgoing",
+      incomingClipId: "incoming",
+      durationMs: 750
+    });
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) return;
+
+    const applied = applyTransitionAtCutCandidate(before, planned.candidate);
+
+    expect(applied.ok).toBe(true);
+    if (!applied.ok) return;
+    expect(byId(applied.clips, "outgoing").durationMs).toBe(4750);
+    expect(byId(applied.clips, "incoming").transitionIn).toEqual({
+      type: "crossfade",
+      durationMs: 750
+    });
+    expect(byId(applied.clips, "unrelated").durationMs).toBe(4300);
+  });
+
   it.each([
     ["crossfade", {}, { type: "crossfade", durationMs: 750 }],
     [

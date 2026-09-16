@@ -1765,45 +1765,6 @@ export class FalProvider extends BaseProvider {
     return this.runVideoEndpoint(params.model.id, builder.args);
   }
 
-  override async extendVideo(
-    video: Uint8Array,
-    params: ExtendVideoParams
-  ): Promise<Uint8Array> {
-    const model = (await this.getAvailableVideoModels()).find(
-      (candidate) => candidate.id === params.model.id
-    );
-    if (!model?.supportedTasks?.includes("extend_video")) {
-      throw new Error(`Model ${params.model.id} does not support extend_video`);
-    }
-    if (
-      (params.mode !== "start" && params.mode !== "end") ||
-      !Number.isFinite(params.durationSeconds) ||
-      params.durationSeconds <= 0 ||
-      (model.durations?.length &&
-        !model.durations.includes(params.durationSeconds))
-    ) {
-      throw new Error("Choose a supported extension mode and duration.");
-    }
-    const entry = getFalManifestEntry(params.model.id);
-    const duration = entry?.inputFields?.find((field) => field.name === "duration");
-    if (
-      (duration?.min !== undefined && params.durationSeconds < duration.min) ||
-      (duration?.max !== undefined && params.durationSeconds > duration.max)
-    ) {
-      throw new Error(
-        "Choose an extension duration within the model's supported range."
-      );
-    }
-    const url = await this.upload(video, "video/mp4");
-    const builder = new FalArgsBuilder(params.model.id);
-    builder
-      .attachAsset("video", url)
-      .set("prompt", params.prompt)
-      .set("mode", params.mode)
-      .set("duration", params.durationSeconds);
-    return this.runVideoEndpoint(params.model.id, builder.args);
-  }
-
   override async upscaleVideo(
     video: Uint8Array,
     params: UpscaleVideoParams

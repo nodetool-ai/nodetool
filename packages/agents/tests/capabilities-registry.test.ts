@@ -6,9 +6,9 @@
  * registered export must carry one, and the checked-in snapshot makes a
  * reclassification a one-line diff a reviewer sees.
  *
- * The registry is empty in this PR, so the walk asserts the machinery — the
- * snapshot's shape and the issue detector's teeth — rather than a table of
- * names. As namespaces land (PRs 3–9) the snapshot fills in and the walk bites.
+ * The snapshot makes additions and reclassifications explicit, while the
+ * registry walk below verifies that every loaded export carries the required
+ * identity and permission category.
  */
 
 import { describe, expect, it } from "vitest";
@@ -125,6 +125,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   edit_timeline: "write",
   embed_text: "write",
   execute_plan: "external",
+  expand_frame: "write",
   export_workflow_digraph: "read",
   extract_pdf_tables: "read",
   extract_pdf_text: "read",
@@ -202,6 +203,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   image_search: "read",
   invoke_node: "execute",
   isolate_subject: "write",
+  lip_sync: "write",
   list_apps: "read",
   list_assets: "read",
   list_collections: "read",
@@ -247,6 +249,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   compare_timeline_frames: "read",
   read_media_bytes: "read",
   read_shared: "read",
+  recorded_voice_replacement: "write",
   refine_image_brief: "write",
   render_model3d: "write",
   render_storyboard_clips: "write",
@@ -304,6 +307,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   update_entity: "write",
   update_skill: "write",
   update_workflow: "write",
+  upscale_video: "write",
   validate_code: "read",
   validate_js_script: "read",
   validate_model3d: "read",
@@ -316,6 +320,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   vector_markdown_split_and_index: "write",
   vector_recursive_split_and_index: "write",
   vector_text_search: "read",
+  video_to_audio: "write",
   view_image: "read",
   voice_script_lines: "write",
   wait_subtasks: "read",

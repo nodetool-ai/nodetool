@@ -1190,6 +1190,271 @@ export const trackObjectSpec: CapabilitySpec = {
     `Tracking a subject through ${String(params["clip_id"])}`
 };
 
+const NATIVE_MEDIA_TIMELINE_FIELDS = {
+  timeline_id: {
+    type: "string" as const,
+    description: "Saved timeline sequence id."
+  },
+  clip_id: {
+    type: "string" as const,
+    description: "Video or recorded-speech clip id in the saved timeline."
+  },
+  provider: {
+    type: "string" as const,
+    description: "Provider id from find_model."
+  },
+  model: {
+    type: "string" as const,
+    description: "Model id from find_model for the requested task."
+  },
+  request_id: {
+    type: "string" as const,
+    description:
+      "Optional id for the candidate request. One is generated when absent."
+  }
+} as const;
+
+export const EXPAND_FRAME_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    ...NATIVE_MEDIA_TIMELINE_FIELDS,
+    source_asset_id: {
+      type: "string",
+      description:
+        "Optional source asset pin captured before the call. A mismatch is stale and is refused."
+    },
+    target_aspect_ratio: {
+      type: "string",
+      description: "Target aspect ratio such as 9:16."
+    },
+    padding: {
+      type: "object",
+      properties: {
+        left: { type: "number" },
+        right: { type: "number" },
+        top: { type: "number" },
+        bottom: { type: "number" }
+      },
+      description:
+        "Non-negative generated-side padding. At least one side is required."
+    },
+    prompt: { type: "string" },
+    negative_prompt: { type: "string" },
+    expand_ratio: { type: "number" },
+    resolution: { type: "string" }
+  },
+  required: [
+    "timeline_id",
+    "clip_id",
+    "provider",
+    "model",
+    "target_aspect_ratio",
+    "padding"
+  ]
+};
+
+export const expandFrameSpec: CapabilitySpec = {
+  name: "expand_frame",
+  description:
+    "Expand a saved video clip with a provider's outpaint_video task. " +
+    "Returns an inactive candidate with the captured source context and " +
+    "provenance. It never changes the accepted take or sequence dimensions.",
+  inputSchema: EXPAND_FRAME_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Expanding frame for ${String(params["clip_id"])} `
+};
+
+export const UPSCALE_VIDEO_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    ...NATIVE_MEDIA_TIMELINE_FIELDS,
+    source_asset_id: {
+      type: "string",
+      description:
+        "Optional source asset pin captured before the call. A mismatch is stale and is refused."
+    },
+    target_resolution: {
+      type: "string",
+      description: "Target resolution accepted by the selected model."
+    },
+    scale: { type: "number", description: "Optional scale greater than 1." },
+    prompt: { type: "string" },
+    creativity: {
+      type: "number",
+      description: "Optional model creativity from 0 through 1."
+    },
+    seed: { type: "integer" }
+  },
+  required: [
+    "timeline_id",
+    "clip_id",
+    "provider",
+    "model",
+    "target_resolution"
+  ]
+};
+
+export const upscaleVideoSpec: CapabilitySpec = {
+  name: "upscale_video",
+  description:
+    "Upscale a saved video clip with a provider's upscale_video task. " +
+    "Returns an inactive candidate with explicit provenance. It never changes " +
+    "the accepted take, sequence dimensions, or existing framing.",
+  inputSchema: UPSCALE_VIDEO_SCHEMA,
+  category: "write",
+  userMessage: (params) => `Upscaling ${String(params["clip_id"])} `
+};
+
+export const VIDEO_TO_AUDIO_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    ...NATIVE_MEDIA_TIMELINE_FIELDS,
+    source_asset_id: {
+      type: "string",
+      description:
+        "Optional source asset pin captured before the call. A mismatch is stale and is refused."
+    },
+    source_duration_ms: {
+      type: "number",
+      description:
+        "Optional source asset duration in milliseconds when the asset catalog is unavailable."
+    },
+    scene_context: {
+      type: "string",
+      description: "Scene, action, and sound context for the selected clip window."
+    }
+  },
+  required: [
+    "timeline_id",
+    "clip_id",
+    "provider",
+    "model",
+    "scene_context"
+  ]
+};
+
+export const videoToAudioSpec: CapabilitySpec = {
+  name: "video_to_audio",
+  description:
+    "Generate sound from a saved video clip's captured source window and " +
+    "scene context with a video_to_audio task. Returns an aligned inactive " +
+    "audio candidate and never replaces the video's soundtrack or timeline state.",
+  inputSchema: VIDEO_TO_AUDIO_SCHEMA,
+  category: "write",
+  userMessage: (params) => `Generating sound for ${String(params["clip_id"])} `
+};
+
+export const RECORDED_VOICE_REPLACEMENT_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    ...NATIVE_MEDIA_TIMELINE_FIELDS,
+    source: {
+      type: "object",
+      properties: {
+        kind: {
+          type: "string",
+          enum: ["clean_speech", "isolated_speech"]
+        },
+        asset_id: { type: "string" },
+        isolation_request_id: { type: "string" }
+      },
+      required: ["kind", "asset_id"]
+    },
+    target: {
+      type: "object",
+      properties: {
+        kind: {
+          type: "string",
+          enum: ["voice", "reference_audio"]
+        },
+        voice_id: { type: "string" },
+        asset_id: { type: "string" }
+      },
+      required: ["kind"],
+      description:
+        "Target voice object. reference_audio is explicit but refused until supported."
+    },
+    target_current_asset_id: {
+      type: "string",
+      description:
+        "Optional current target asset pin. A mismatch is stale and is refused."
+    },
+    supported_operations: {
+      type: "array",
+      items: { type: "string" },
+      description:
+        "Optional adapter declarations used to reject unsupported operations."
+    }
+  },
+  required: [
+    "timeline_id",
+    "clip_id",
+    "provider",
+    "model",
+    "source",
+    "target"
+  ]
+};
+
+export const recordedVoiceReplacementSpec: CapabilitySpec = {
+  name: "recorded_voice_replacement",
+  description:
+    "Replace recorded speech from an explicit clean_speech or isolated_speech " +
+    "source with a selected voice through audio_to_audio. Returns an inactive " +
+    "audio candidate and immutable provenance without changing the timeline.",
+  inputSchema: RECORDED_VOICE_REPLACEMENT_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Replacing recorded voice for ${String(params["clip_id"])} `
+};
+
+export const LIP_SYNC_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    ...NATIVE_MEDIA_TIMELINE_FIELDS,
+    source_asset_id: {
+      type: "string",
+      description:
+        "Optional source video asset pin captured before the call. A mismatch is stale and is refused."
+    },
+    replacement_audio: {
+      type: "object",
+      properties: {
+        asset_id: { type: "string" },
+        status: { type: "string", enum: ["candidate", "accepted"] },
+        provenance: {
+          type: "object",
+          properties: {
+            request_id: { type: "string" },
+            operation: { type: "string" }
+          }
+        }
+      },
+      required: ["asset_id", "status", "provenance"]
+    },
+    seed: { type: "integer" }
+  },
+  required: [
+    "timeline_id",
+    "clip_id",
+    "provider",
+    "model",
+    "replacement_audio"
+  ]
+};
+
+export const lipSyncSpec: CapabilitySpec = {
+  name: "lip_sync",
+  description:
+    "Lip-sync a saved video clip to an accepted recorded_voice_replacement " +
+    "audio candidate with a lip_sync task. Returns an inactive video candidate " +
+    "with both source and replacement provenance and never changes accepted state.",
+  inputSchema: LIP_SYNC_SCHEMA,
+  category: "write",
+  userMessage: (params) => `Lip-syncing ${String(params["clip_id"])} `
+};
+
 export const deleteTimelineSpec: CapabilitySpec = {
   name: "delete_timeline",
   description:
@@ -1229,5 +1494,10 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   bakeAudioAnimationSpec,
   isolateSubjectSpec,
   trackObjectSpec,
+  expandFrameSpec,
+  upscaleVideoSpec,
+  videoToAudioSpec,
+  recordedVoiceReplacementSpec,
+  lipSyncSpec,
   deleteTimelineSpec
 ];

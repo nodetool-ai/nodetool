@@ -14,7 +14,8 @@ import type {
   EncodedAudioResult,
   ProviderStreamItem,
   TextToImageParams,
-  VideoModel
+  VideoModel,
+  VideoToVideoParams
 } from "../src/providers/types.js";
 import { recordGenerationReceipt } from "../src/generation-receipt.js";
 import { generationRegistry } from "../src/generation-registry.js";
@@ -57,6 +58,24 @@ class VideoAudioProvider extends ImageProvider {
         supportedTasks: ["video_to_audio"]
       }
     ];
+  }
+}
+
+class VideoProvider extends ImageProvider {
+  video?: Uint8Array;
+  videoParams?: VideoToVideoParams;
+
+  constructor() {
+    super(async () => PNG);
+  }
+
+  override async videoToVideo(
+    video: Uint8Array,
+    params: VideoToVideoParams
+  ): Promise<Uint8Array> {
+    this.video = video;
+    this.videoParams = params;
+    return PNG;
   }
 }
 
@@ -478,5 +497,40 @@ describe("runGeneration", () => {
         params: { prompt: "x" }
       })
     ).toBe(PNG);
+  });
+
+  it("forwards video-to-video references and cancellation through the public seam", async () => {
+    const ctx = new ProcessingContext({ jobId: "job-1" });
+    const provider = new VideoProvider();
+    const callerController = new AbortController();
+    const sourceVideo = new Uint8Array([1, 2, 3]);
+    const referenceImages = [new Uint8Array([4, 5, 6])];
+    const referenceAssetIds = ["reference-asset"];
+    ctx.registerProvider("fake", provider);
+
+    const result = await ctx.runGeneration({
+      provider: "fake",
+      capability: "video_to_video",
+      model: "video-model",
+      signal: callerController.signal,
+      params: {
+        video: sourceVideo,
+        prompt: "keep the subject consistent",
+        reference_images: referenceImages,
+        reference_asset_ids: referenceAssetIds
+      }
+    });
+
+    expect(result.output).toBe(PNG);
+    expect(provider.video).toBe(sourceVideo);
+    expect(provider.videoParams).toMatchObject({
+      referenceImages,
+      referenceAssetIds
+    });
+    expect(provider.videoParams?.signal).toBeInstanceOf(AbortSignal);
+    expect(provider.videoParams?.signal?.aborted).toBe(false);
+
+    callerController.abort();
+    expect(provider.videoParams?.signal?.aborted).toBe(true);
   });
 });

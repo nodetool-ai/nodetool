@@ -15,6 +15,17 @@ import { ClipTrackingOverlay } from "../ClipTrackingOverlay";
 jest.mock("../../../../hooks/useProviders", () => ({
   useProvidersByCapability: () => ({ providers: [], isLoading: false })
 }));
+jest.mock("../../../../hooks/timeline/useTrackObject", () => ({
+  useTrackObject: () => ({
+    model: undefined,
+    modelError: null,
+    isLoadingModel: false,
+    status: "idle",
+    error: null,
+    canTrack: false,
+    start: jest.fn()
+  })
+}));
 jest.mock("../../Inspector/usePersistedFold", () => ({
   usePersistedFold: () => [true, jest.fn()]
 }));
@@ -222,7 +233,7 @@ describe("preview subject selection", () => {
       screen.getByRole("button", { name: "Track subject" })
     ).toBeDisabled();
     expect(
-      screen.getByText("No subject-tracking provider is available.")
+      screen.getByText("No subject-tracking provider or model is available.")
     ).toBeInTheDocument();
   });
 

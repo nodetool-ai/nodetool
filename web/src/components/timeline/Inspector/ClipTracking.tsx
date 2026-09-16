@@ -11,7 +11,7 @@ import {
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
-import { useProvidersByCapability } from "../../../hooks/useProviders";
+import { useTrackObject } from "../../../hooks/timeline/useTrackObject";
 import {
   Caption,
   CollapsibleSection,
@@ -48,12 +48,20 @@ const TrackingSection: React.FC<ClipTrackingProps> = ({ clip }) => {
   const pause = useTimelinePlaybackStore((state) => state.pause);
   const seek = useTimelinePlaybackStore((state) => state.seek);
   const clearAudition = useTimelineUIStore((state) => state.clearAudition);
-  const { providers, isLoading } = useProvidersByCapability("track_object");
   const active =
     selection?.clipId === clip.id &&
     selection.sourceAssetId === clip.currentAssetId
       ? selection
       : null;
+  const {
+    model,
+    modelError,
+    isLoadingModel,
+    status,
+    error,
+    canTrack,
+    start
+  } = useTrackObject(clip, active);
   const stale = tracks.some(
     (track) => track.clipId === clip.id && isMediaTrackStale(track, clip)
   );
@@ -119,17 +127,29 @@ const TrackingSection: React.FC<ClipTrackingProps> = ({ clip }) => {
             fullWidth
             variant="contained"
             color="primary"
-            disabled
+            disabled={!canTrack}
+            onClick={() => void start()}
             data-testid="track-object"
           >
-            Track subject
+            {status === "pending" ? "Tracking subject…" : "Track subject"}
           </EditorButton>
-          <Caption color="muted">
-            {isLoading
-              ? "Checking tracking providers."
-              : providers.length === 0
-                ? "No subject-tracking provider is available."
-                : "Tracking is available through the timeline agent. Preview submission is not connected yet."}
+          {error && (
+            <Caption color="error" role="alert">
+              {error}
+            </Caption>
+          )}
+          <Caption color="muted" aria-live="polite">
+            {isLoadingModel
+              ? "Checking tracking providers and models."
+              : modelError
+                ? "Tracking models could not be loaded. Try again when connected."
+                : !model
+                  ? "No subject-tracking provider or model is available."
+                  : status === "pending"
+                    ? "Tracking is running and will update this timeline when it finishes."
+                    : active?.region
+                      ? `Using ${model.name}. Ready to track the selected subject.`
+                      : `Using ${model.name}. Select a subject rectangle to begin.`}
           </Caption>
         </FlexColumn>
       </CollapsibleSection>
