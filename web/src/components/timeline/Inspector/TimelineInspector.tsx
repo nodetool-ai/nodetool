@@ -69,7 +69,9 @@ import { ClipTextStyleSection } from "./ClipTextStyleSection";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
 import { DirectGenClipPanel } from "./DirectGenClipPanel";
 import AIEditClipPanel from "./AIEditClipPanel";
+import ExtendClipPanel from "./ExtendClipPanel";
 import { ClipVersionHistory } from "./ClipVersionHistory";
+import LineDeliveryPanel from "./LineDeliveryPanel";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -407,7 +409,15 @@ export const TimelineInspector: React.FC = memo(() => {
   if (!clip) return null;
   const isMidi = clip.mediaType === "midi";
   const aiEditSection = (
-    <AIEditClipPanel key={`ai-edit-${clip.id}`} clipId={clip.id} />
+    <>
+      <AIEditClipPanel key={`ai-edit-${clip.id}`} clipId={clip.id} />
+      {clip.mediaType === "video" && (
+        <ExtendClipPanel key={`extend-${clip.id}`} clipId={clip.id} />
+      )}
+    </>
+  );
+  const lineDeliverySection = (
+    <LineDeliveryPanel key={`line-delivery-${clip.id}`} clipId={clip.id} />
   );
 
   // A group draws nothing, so the media/speed panel would be all blanks.
@@ -530,14 +540,24 @@ export const TimelineInspector: React.FC = memo(() => {
       return (
         <DirectGenClipPanel
           clipId={clip.id}
-          additionalSections={aiEditSection}
+          additionalSections={
+            <>
+              {aiEditSection}
+              {lineDeliverySection}
+            </>
+          }
         />
       );
     }
     return (
       <GeneratedClipPanel
         clipId={clip.id}
-        additionalSections={aiEditSection}
+        additionalSections={
+          <>
+            {aiEditSection}
+            {lineDeliverySection}
+          </>
+        }
       />
     );
   }
@@ -559,7 +579,11 @@ export const TimelineInspector: React.FC = memo(() => {
 
       {aiEditSection}
 
-      {clip.mediaType === "video" && <ClipVersionHistory clipId={clip.id} />}
+      {lineDeliverySection}
+
+      {(clip.mediaType === "video" || clip.mediaType === "audio") && (
+        <ClipVersionHistory clipId={clip.id} />
+      )}
 
       {/* Shot clips are assembled as imported media, so this branch is the
           only one a board link can reach. */}

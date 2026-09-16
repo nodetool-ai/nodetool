@@ -826,6 +826,7 @@ export class CommandRouter {
         | "inpaint"
         | "video"
         | "video_edit"
+        | "video_extend"
         | "audio"
         | "music" =
         rawMode === "image_edit"
@@ -836,11 +837,13 @@ export class CommandRouter {
               ? "video"
               : rawMode === "video_edit"
                 ? "video_edit"
-                : rawMode === "audio"
-                  ? "audio"
-                  : rawMode === "music"
-                    ? "music"
-                    : "image";
+                : rawMode === "video_extend"
+                  ? "video_extend"
+                  : rawMode === "audio"
+                    ? "audio"
+                    : rawMode === "music"
+                      ? "music"
+                      : "image";
       const provider = String(data.provider ?? defaults.provider);
       const model = String(data.model ?? defaults.model);
       const prompt = String(data.prompt ?? "");
@@ -875,6 +878,12 @@ export class CommandRouter {
         : undefined;
       const voice = isString(data.voice) ? (data.voice as string) : undefined;
       const speed = isNumber(data.speed) ? (data.speed as number) : undefined;
+      const language = isString(data.language)
+        ? (data.language as string)
+        : undefined;
+      const instructions = isString(data.instructions)
+        ? (data.instructions as string)
+        : undefined;
       const audioFormat = isString(data.audio_format)
         ? (data.audio_format as string)
         : undefined;
@@ -926,9 +935,15 @@ export class CommandRouter {
           numInferenceSteps,
           seed,
           durationSeconds,
+          extensionMode:
+            data.extension_mode === "start" || data.extension_mode === "end"
+              ? data.extension_mode
+              : undefined,
           variations,
           voice,
           speed,
+          language,
+          instructions,
           audioFormat,
           capability: references.capability,
           referenceImages: references.reference_images,

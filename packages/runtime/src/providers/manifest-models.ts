@@ -332,6 +332,9 @@ const REFERENCE_VIDEO_KEYWORDS = [
 export function inferVideoTasks(name: string, id: string): string[] {
   const hay = `${id} ${name}`.toLowerCase();
   const tasks: string[] = [];
+  if (EXTEND_SEGMENT.test(id.toLowerCase()) && !isTrainerEndpoint(hay)) {
+    return ["extend_video"];
+  }
   // Specialized video transforms — kept out of the text/image generation lists.
   if (matchesAny(hay, "lipsync", "lip-sync", "lip sync")) {
     return ["lip_sync"];
@@ -610,6 +613,7 @@ export function narrowTasksByRequiredInputs(
  * these tasks they fail at call time with nothing to work on.
  */
 const VIDEO_SOURCE_TASKS = new Set([
+  "extend_video",
   "upscale_video",
   "interpolate_video",
   "outpaint_video"
@@ -650,6 +654,22 @@ export function buildVideoModels(
     );
     tasks = tasks.filter(
       (task) => !VIDEO_SOURCE_TASKS.has(task) || declaresVideoInput(n)
+    );
+    // The direct extension contract needs explicit direction and added duration.
+    // Image-conditioned continuations and endpoints with incompatible controls
+    // must not appear in this task's picker.
+    tasks = tasks.filter(
+      (task) =>
+        task !== "extend_video" ||
+        ((n.inputFields ?? []).some(
+          (field) =>
+            (field.apiParamName ?? field.name) === "mode" &&
+            field.enumValues?.includes("start") &&
+            field.enumValues.includes("end")
+        ) &&
+          (n.inputFields ?? []).some(
+            (field) => (field.apiParamName ?? field.name) === "duration"
+          ))
     );
     if (tasks.length === 0) continue;
 

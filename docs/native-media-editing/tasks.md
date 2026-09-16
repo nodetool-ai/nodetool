@@ -108,14 +108,14 @@
 
 ## P1: Known-input alternatives
 
-- [ ] **T09: Generate New take from a known recipe.** Derive a reproducible
+- [x] **T09: Generate New take from a known recipe.** Derive a reproducible
       recipe from the selected take's captured generation inputs. Show **New
       take** only when prompt, references, task, and required model settings are
       known. Submit a new generation rather than `video_edit`, land it as an
       inactive candidate, and reuse P0 audition and apply. Imported recordings
       without a recipe do not show the action. Blocked by T08. (PRD § 6)
 
-- [ ] **T10: Extend a clip with explicit timing choices.** Connect the planner's
+- [x] **T10: Extend a clip with explicit timing choices.** Connect the planner's
       `extend` operation only to models with a genuine extension task. Choose
       start or end, duration, and direction, then create a longer candidate.
       Applying offers three explicit outcomes: keep the cut and retain source
@@ -124,7 +124,7 @@
       resolve. Do not substitute last-frame image-to-video. Blocked by T08.
       (PRD § 6)
 
-- [ ] **T11: Revise a script-linked line delivery.** Resolve line text, cast
+- [x] **T11: Revise a script-linked line delivery.** Resolve line text, cast
       member, voice, language, pace, and timing from Script data. Generate an
       alternative speech take and align it without asking for known context
       again. Keep recorded-speech replacement, isolation, voice conversion,

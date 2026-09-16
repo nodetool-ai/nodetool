@@ -697,6 +697,15 @@ export interface VideoToVideoParams {
   seed?: number | null;
 }
 
+/** Extend the supplied video window, retaining it in the returned video. */
+export interface ExtendVideoParams {
+  model: VideoModel;
+  prompt: string;
+  mode: "start" | "end";
+  /** Additional source seconds, not the total output duration. */
+  durationSeconds: number;
+}
+
 /**
  * Increase the resolution / detail of a video. The video-domain twin of
  * {@link UpscaleImageParams}: `scale` is a magnification factor and

@@ -7,7 +7,9 @@ import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import type { VideoModelValue } from "../../../stores/ApiTypes";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import {
+  activeTakeIdOf,
   captureMediaEditSourceContext,
+  getReplayRecipe,
   type MediaEditSourceContextResult
 } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -92,11 +94,17 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
       })),
     [availableModels]
   );
-  const { startEdit, cancel } = useTimelineDirectGenJob();
+  const { startEdit, startNewTake, cancel } = useTimelineDirectGenJob();
   const pendingEdit = useDirectGenPendingStore((state) => {
     if (!sequenceId) return undefined;
     return state.pending[sequenceId]?.find(
       (job) => job.clipId === clipId && job.mediaEdit !== undefined
+    );
+  });
+  const pendingNewTake = useDirectGenPendingStore((state) => {
+    if (!sequenceId) return undefined;
+    return state.pending[sequenceId]?.find(
+      (job) => job.clipId === clipId && job.candidateOnly === true
     );
   });
   const latestSettlement = useDirectGenPendingStore((state) => {
@@ -119,6 +127,8 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
   const [strength, setStrength] = useState(DEFAULT_STRENGTH);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submissionFailed, setSubmissionFailed] = useState(false);
+  const [newTakeError, setNewTakeError] = useState<string | null>(null);
+  const [newTakeInstruction, setNewTakeInstruction] = useState("");
 
   const eligibility = useMemo(
     () => getMediaEditEligibility(sequenceId, clip),
@@ -158,6 +168,8 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
     setSelectedModel(null);
     setErrorMessage(null);
     setSubmissionFailed(false);
+    setNewTakeError(null);
+    setNewTakeInstruction("");
     setStrength(DEFAULT_STRENGTH);
   }, [clipId]);
 
@@ -208,9 +220,38 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
     }
   }, [catalogModel, clip, eligibility.ok, instruction, selectedModel, startEdit]);
 
+  const newTakeEligibility = useMemo(() => {
+    if (!clip || clip.mediaType !== "video") {
+      return { ok: false as const, reason: "New take requires a video clip." };
+    }
+    const activeId = activeTakeIdOf(clip);
+    const activeTake = activeId
+      ? (clip.versions ?? []).find((take) => take.id === activeId)
+      : undefined;
+    return activeTake
+      ? getReplayRecipe(activeTake)
+      : { ok: false as const, reason: "This clip has no accepted take." };
+  }, [clip]);
+
+  const handleNewTake = useCallback(async () => {
+    if (!clip || !newTakeEligibility.ok) return;
+    setNewTakeError(null);
+    const requestId = await startNewTake({
+      clipId: clip.id,
+      instruction: newTakeInstruction.trim() || undefined
+    });
+    if (!requestId) {
+      setNewTakeError(
+        "The new take could not be submitted. This clip may not have a complete generation recipe."
+      );
+    }
+  }, [clip, newTakeEligibility.ok, newTakeInstruction, startNewTake]);
+
   if (!clip) return null;
 
   const active = pendingEdit !== undefined;
+  const newTakeActive = pendingNewTake !== undefined;
+  const canNewTake = newTakeEligibility.ok;
   const settledStatus = latestSettlement?.status;
   const failed =
     submissionFailed ||
@@ -357,6 +398,32 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
               {active ? "Cancel" : failed ? "Retry" : "Edit video"}
             </EditorButton>
 
+            {canNewTake && (
+              <FlexColumn gap={SPACING.sm}>
+                <TextInput
+                  value={newTakeInstruction}
+                  onChange={(event) => setNewTakeInstruction(event.target.value)}
+                  placeholder="Optional new-take direction…"
+                  multiline
+                  minRows={2}
+                  maxRows={4}
+                  compact
+                  fullWidth
+                  inputProps={{ "aria-label": "New take direction" }}
+                  disabled={active || newTakeActive}
+                />
+                <EditorButton
+                  fullWidth
+                  variant="outlined"
+                  disabled={active || newTakeActive}
+                  onClick={() => void handleNewTake()}
+                  data-testid="new-take-submit"
+                >
+                  {newTakeActive ? "Generating new take…" : "New take"}
+                </EditorButton>
+              </FlexColumn>
+            )}
+
             {settlementMessage && (
               <Caption color="error" sx={{ textAlign: "center" }}>
                 {settlementMessage}
@@ -376,6 +443,11 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
             {errorMessage && (
               <Caption color="error" sx={{ textAlign: "center" }}>
                 {errorMessage}
+              </Caption>
+            )}
+            {newTakeError && (
+              <Caption color="error" sx={{ textAlign: "center" }}>
+                {newTakeError}
               </Caption>
             )}
           </>

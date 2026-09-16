@@ -36,6 +36,7 @@ import type {
   TimelineSetupStage
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type { ProductionGenerationSnapshot } from "@nodetool-ai/protocol";
+import type { LineDeliveryRequest } from "./lineDelivery.js";
 export type { TimelineBeat, TimelineSetup, TimelineSetupStage };
 export type { ProductionGenerationSnapshot } from "@nodetool-ai/protocol";
 
@@ -86,6 +87,26 @@ export interface TimelineSequence {
   mediaTracks?: MediaTrack[];
   createdAt: string;
   updatedAt: string;
+}
+
+/** Immutable inputs needed to replay one direct text-to-video generation. */
+export interface VideoGenerationRecipe {
+  readonly schemaVersion: 1;
+  readonly task: "text_to_video";
+  readonly prompt: string;
+  readonly provider: string;
+  readonly model: string;
+  readonly durationMs: number;
+  readonly negativePrompt?: string;
+  readonly aspectRatio?: string;
+  readonly resolution?: string;
+  readonly width?: number;
+  readonly height?: number;
+  readonly strength?: number;
+  readonly numInferenceSteps?: number;
+  readonly seed?: number;
+  /** Captured asset ids are serialized through the protocol schema. */
+  readonly referenceAssetIds?: string[];
 }
 
 /**
@@ -1674,6 +1695,10 @@ export interface ClipVersion {
   variationIndex?: number;
   /** Immutable resolved production inputs captured before provider dispatch. */
   productionSnapshot?: ProductionGenerationSnapshot;
+  /** Immutable direct-generation inputs for recipe-based New take replay. */
+  generationRecipe?: VideoGenerationRecipe;
+  /** Immutable Script context for a Change line delivery candidate. */
+  lineDelivery?: LineDeliveryRequest & { readonly requestId: string };
   /** Source mapping captured for takes that need to restore an Original cut. */
   sourceMapping?: {
     inPointMs?: number;

@@ -44,6 +44,7 @@ const MEDIA_METHODS = [
   "imageToVideo",
   "referenceToVideo",
   "videoToVideo",
+  "extendVideo",
   "upscaleVideo",
   "interpolateVideo",
   "outpaintVideo",

@@ -272,6 +272,8 @@ export interface SpeechRequest {
   model: string;
   voice?: string;
   speed?: number;
+  language?: string;
+  instructions?: string;
   /** The container the caller asked for, already validated. */
   audioFormat?: string | null;
 }
@@ -317,6 +319,10 @@ export async function generateSpeechBytes(
     model: request.model,
     voice: request.voice,
     speed: request.speed,
+    ...(request.language !== undefined && { language: request.language }),
+    ...(request.instructions !== undefined && {
+      instructions: request.instructions
+    }),
     audioFormat: requestedFormat ?? undefined
   };
 

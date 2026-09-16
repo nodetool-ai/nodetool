@@ -2027,6 +2027,8 @@ export class OpenAIProvider extends BaseProvider {
     model: string;
     voice?: string;
     speed?: number;
+    language?: string;
+    instructions?: string;
     audioFormat?: string;
   }): AsyncGenerator<StreamingAudioChunk> {
     if (!args.text) {
@@ -2039,13 +2041,22 @@ export class OpenAIProvider extends BaseProvider {
     const speechApi = this.getClient().audio.speech as any;
 
     if (speechApi.with_streaming_response?.create) {
-      const response = await speechApi.with_streaming_response.create({
+      const request: Record<string, unknown> = {
         model: args.model,
         input: args.text,
         voice,
         speed,
         response_format: "pcm"
-      });
+      };
+      if (args.model === "gpt-4o-mini-tts" && (args.language || args.instructions)) {
+        request.instructions = [
+          args.language ? `Speak in ${args.language}.` : undefined,
+          args.instructions
+        ]
+          .filter((value): value is string => value !== undefined)
+          .join(" ");
+      }
+      const response = await speechApi.with_streaming_response.create(request);
 
       // TTS is billed per input character, not per token.
       this.trackUsage(args.model, { inputCharacters: args.text.length });
@@ -2066,13 +2077,22 @@ export class OpenAIProvider extends BaseProvider {
       return;
     }
 
-    const response = await speechApi.create({
+    const request: Record<string, unknown> = {
       model: args.model,
       input: args.text,
       voice,
       speed,
       response_format: "pcm"
-    });
+    };
+    if (args.model === "gpt-4o-mini-tts" && (args.language || args.instructions)) {
+      request.instructions = [
+        args.language ? `Speak in ${args.language}.` : undefined,
+        args.instructions
+      ]
+        .filter((value): value is string => value !== undefined)
+        .join(" ");
+    }
+    const response = await speechApi.create(request);
 
     this.trackUsage(args.model, { inputCharacters: args.text.length });
 
@@ -2094,6 +2114,8 @@ export class OpenAIProvider extends BaseProvider {
     model: string;
     voice?: string;
     speed?: number;
+    language?: string;
+    instructions?: string;
     audioFormat?: string;
   }): Promise<EncodedAudioResult | null> {
     if (!args.text) {
@@ -2116,13 +2138,22 @@ export class OpenAIProvider extends BaseProvider {
     const speed = Math.max(0.25, Math.min(4.0, args.speed ?? 1.0));
 
     const speechApi = this.getClient().audio.speech as any;
-    const response = await speechApi.create({
+    const request: Record<string, unknown> = {
       model: args.model,
       input: args.text,
       voice,
       speed,
       response_format: fmt
-    });
+    };
+    if (args.model === "gpt-4o-mini-tts" && (args.language || args.instructions)) {
+      request.instructions = [
+        args.language ? `Speak in ${args.language}.` : undefined,
+        args.instructions
+      ]
+        .filter((value): value is string => value !== undefined)
+        .join(" ");
+    }
+    const response = await speechApi.create(request);
 
     this.trackUsage(args.model, { inputCharacters: args.text.length });
 

@@ -883,7 +883,7 @@ describe("generate_media RPC (parameter passthrough)", () => {
     await runner.disconnect();
   });
 
-  it("audio: forwards voice, speed and audio format", async () => {
+  it("audio: forwards voice, delivery context, speed and audio format", async () => {
     const runner = await makeRunner(ws, makeProvider);
     const out = await runOne(ws, runner, {
       command: "generate_media",
@@ -895,6 +895,8 @@ describe("generate_media RPC (parameter passthrough)", () => {
         prompt: "We are closed.",
         voice: "alloy",
         speed: 1.2,
+        language: "en-US",
+        instructions: "Quietly, with urgency",
         audio_format: "mp3"
       }
     });
@@ -904,6 +906,8 @@ describe("generate_media RPC (parameter passthrough)", () => {
       model: "tts-1",
       voice: "alloy",
       speed: 1.2,
+      language: "en-US",
+      instructions: "Quietly, with urgency",
       audioFormat: "mp3"
     });
     await runner.disconnect();

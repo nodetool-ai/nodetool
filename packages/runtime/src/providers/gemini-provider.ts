@@ -2023,10 +2023,19 @@ export class GeminiProvider extends BaseProvider {
     model: string;
     voice?: string;
     speed?: number;
+    language?: string;
+    instructions?: string;
     /** Ignored — Gemini returns raw PCM; backend wraps/encodes to honor. */
     audioFormat?: string;
   }): AsyncGenerator<StreamingAudioChunk> {
-    const { text, model, voice = "Puck" } = args;
+    const { model, voice = "Puck" } = args;
+    const text = [
+      args.language ? `Speak in ${args.language}.` : undefined,
+      args.instructions,
+      args.text
+    ]
+      .filter((value): value is string => value !== undefined)
+      .join(" ");
 
     const body = {
       contents: [{ role: "user" as const, parts: [{ text }] }],

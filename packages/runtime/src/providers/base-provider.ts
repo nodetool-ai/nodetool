@@ -45,7 +45,8 @@ import type {
   UpscaleVideoParams,
   VectorizeImageParams,
   VideoModel,
-  VideoToVideoParams
+  VideoToVideoParams,
+  ExtendVideoParams
 } from "./types.js";
 import {
   isProviderSessionUpdate,
@@ -217,6 +218,7 @@ export type ProviderCapability =
   | "image_to_video"
   | "reference_to_video"
   | "video_to_video"
+  | "extend_video"
   | "upscale_video"
   | "interpolate_video"
   | "outpaint_video"
@@ -292,6 +294,9 @@ export function providerCapabilities(
   }
   if (instance.videoToVideo !== BaseProvider.prototype.videoToVideo) {
     capabilities.push("video_to_video");
+  }
+  if (instance.extendVideo !== BaseProvider.prototype.extendVideo) {
+    capabilities.push("extend_video");
   }
   if (instance.upscaleVideo !== BaseProvider.prototype.upscaleVideo) {
     capabilities.push("upscale_video");
@@ -1936,6 +1941,14 @@ export abstract class BaseProvider {
     throw new Error(`${this.provider} does not support videoToVideo`);
   }
 
+  /** Add source time before or after an existing video window. */
+  async extendVideo(
+    _video: Uint8Array,
+    _params: ExtendVideoParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support extendVideo`);
+  }
+
   /** Increase the resolution / detail of a video. */
   async upscaleVideo(
     _video: Uint8Array,
@@ -2214,6 +2227,7 @@ const MODALITY_PROMISE_METHODS = [
   "imageToVideo",
   "referenceToVideo",
   "videoToVideo",
+  "extendVideo",
   "upscaleVideo",
   "interpolateVideo",
   "outpaintVideo",
