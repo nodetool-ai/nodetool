@@ -88,6 +88,7 @@ interface VideoModelChange {
 
 interface DirectGenClipPanelProps {
   clipId: string;
+  additionalSections?: React.ReactNode;
 }
 
 const sectionStyles = (theme: Theme) =>
@@ -122,7 +123,8 @@ const DEFAULT_VIDEO_RESOLUTION: VideoResolution = "720p";
 const DEFAULT_VIDEO_ASPECT = "16:9";
 
 const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
-  clipId
+  clipId,
+  additionalSections
 }) => {
   const theme = useTheme();
 
@@ -593,6 +595,8 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
             )}
           </FlexColumn>
         </CollapsibleSection>
+
+        {additionalSections}
 
         <ClipVersionHistory clipId={clipId} />
 

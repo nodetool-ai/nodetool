@@ -37,7 +37,7 @@
       mutates the clip before completion, reloads, and receives exactly one
       inactive take with the submitted provenance. (PRD § 7.1 to § 7.4)
 
-- [ ] **T02: Expose Edit video in the selected clip UI.** Add an **AI Edit**
+- [x] **T02: Expose Edit video in the selected clip UI.** Add an **AI Edit**
       section outside the generation-panel `bindingKind` dispatch in
       `web/src/components/timeline/Inspector/TimelineInspector.tsx`. Add the
       same action to
