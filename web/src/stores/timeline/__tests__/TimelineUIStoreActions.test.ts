@@ -54,6 +54,17 @@ describe("TimelineUIStore — selection", () => {
     expect(store.getState().selectedClipIds.size).toBe(0);
   });
 
+  it("clears preview-only audition state when selection changes", () => {
+    store.getState().setAudition({ clipId: "a", takeId: "candidate" });
+    expect(store.getState().audition).toEqual({
+      clipId: "a",
+      takeId: "candidate"
+    });
+
+    store.getState().selectClip("b");
+    expect(store.getState().audition).toBeNull();
+  });
+
   it("setSelection replaces with a new array", () => {
     act(() => store.getState().setSelection(["x", "y"]));
     expect([...store.getState().selectedClipIds]).toEqual(["x", "y"]);
