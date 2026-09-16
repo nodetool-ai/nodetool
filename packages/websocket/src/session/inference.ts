@@ -56,6 +56,7 @@ export interface DirectMediaGenerationRequest {
     | "inpaint"
     | "video"
     | "video_edit"
+    | "video_extend"
     | "audio"
     | "music";
   provider: string;
@@ -72,9 +73,12 @@ export interface DirectMediaGenerationRequest {
   /** Sampling seed; providers that take none ignore it. */
   seed?: number;
   durationSeconds?: number;
+  extensionMode?: "start" | "end";
   variations?: number;
   voice?: string;
   speed?: number;
+  language?: string;
+  instructions?: string;
   audioFormat?: string;
   /**
    * The RPC request id the client correlates the reply on.
@@ -622,10 +626,24 @@ export class DirectInferenceHandler {
       await Project.requireOwned(userId, req.projectId);
     }
     const provider = await this.session.resolveProvider(req.provider, userId);
-    if (req.mode === "video_edit") {
+    if (req.mode === "video_edit" || req.mode === "video_extend") {
+      const extension = req.mode === "video_extend";
+      const task = extension ? "extend_video" : "video_to_video";
       const context = req.sourceContext;
       if (!req.sourceAssetId) {
-        throw new Error("source_asset_id is required for video_edit");
+        throw new Error(`source_asset_id is required for ${req.mode}`);
+      }
+      if (
+        extension &&
+        (!context ||
+          (req.extensionMode !== "start" && req.extensionMode !== "end") ||
+          !Number.isFinite(req.durationSeconds) ||
+          (req.durationSeconds ?? 0) <= 0 ||
+          (req.variations !== undefined && req.variations !== 1))
+      ) {
+        throw new Error(
+          "video_extend requires source_context, start/end extension_mode, a positive duration and one variation"
+        );
       }
       if (context && context.sourceAssetId !== req.sourceAssetId) {
         throw new Error("source_context does not match source_asset_id");
@@ -640,7 +658,7 @@ export class DirectInferenceHandler {
           context.timelineDurationMs <= 0 ||
           !Number.isFinite(context.speedMultiplier) ||
           context.speedMultiplier <= 0 ||
-          context.speedMultiplier !== 1 ||
+          (!extension && context.speedMultiplier !== 1) ||
           Math.abs(
             context.sourceEndMs -
               (context.sourceStartMs +
@@ -653,20 +671,27 @@ export class DirectInferenceHandler {
       }
       if (
         typeof provider.getCapabilities === "function" &&
-        !provider.getCapabilities().includes("video_to_video")
+        !provider.getCapabilities().includes(task)
       ) {
         throw new Error(
-          `Provider ${req.provider} does not support the video_to_video task`
+          `Provider ${req.provider} does not support the ${task} task`
         );
       }
       if (typeof provider.getAvailableVideoModels === "function") {
         const model = (await provider.getAvailableVideoModels()).find(
           (candidate) => candidate.id === req.model
         );
-        if (!model?.supportedTasks?.includes("video_to_video")) {
+        if (!model?.supportedTasks?.includes(task)) {
           throw new Error(
-            `Model ${req.model} does not support the video_to_video task`
+            `Model ${req.model} does not support the ${task} task`
           );
+        }
+        if (
+          extension &&
+          model.durations?.length &&
+          !model.durations.includes(req.durationSeconds ?? 0)
+        ) {
+          throw new Error("Choose a supported extension duration.");
         }
       }
     }
@@ -692,9 +717,12 @@ export class DirectInferenceHandler {
     // tracked cost and the unit-price estimate — fal-style delegates bill
     // per unit and track nothing themselves.
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
-    const effectiveDurationSeconds = req.sourceContext
-      ? req.sourceContext.timelineDurationMs / 1000
-      : req.durationSeconds;
+    const effectiveDurationSeconds =
+      req.mode === "video_extend"
+        ? req.durationSeconds
+        : req.sourceContext
+          ? req.sourceContext.timelineDurationMs / 1000
+          : req.durationSeconds;
     // What the request states about the job, in the vocabulary the catalogs
     // bill in — a per-second video model prices the clip asked for, not one
     // second of it.
@@ -927,9 +955,9 @@ export class DirectInferenceHandler {
       return { asset_ids: [assetId] };
     }
 
-    if (req.mode === "video_edit") {
+    if (req.mode === "video_edit" || req.mode === "video_extend") {
       if (!req.sourceAssetId) {
-        throw new Error("source_asset_id is required for video_edit");
+        throw new Error(`source_asset_id is required for ${req.mode}`);
       }
       const sourceBytes = await retrieveSourceAssetBytes(
         userId,
@@ -947,6 +975,33 @@ export class DirectInferenceHandler {
         name: req.model,
         provider: req.provider
       };
+      if (req.mode === "video_extend") {
+        if (!req.extensionMode || !req.durationSeconds) {
+          throw new Error("Extension mode and duration are required.");
+        }
+        const params = {
+          model: videoModel,
+          prompt,
+          mode: req.extensionMode,
+          durationSeconds: req.durationSeconds
+        };
+        const generated = await generate(
+          "extend_video",
+          {
+            prompt,
+            video: editSource,
+            mode: params.mode,
+            duration_seconds: params.durationSeconds,
+            source_context: req.sourceContext
+          },
+          { mime: "video/mp4" },
+          () => provider.extendVideo(editSource, params)
+        );
+        const assetId =
+          seamAssetId(generated) ??
+          (await storeAsset(generated.output, "video/mp4", "mp4"));
+        return { asset_ids: [assetId] };
+      }
       const editParams: Record<string, unknown> = {
         prompt,
         strength: req.strength ?? null,
@@ -1003,6 +1058,8 @@ export class DirectInferenceHandler {
               text: prompt,
               voice: req.voice,
               speed: req.speed,
+              language: req.language,
+              instructions: req.instructions,
               audio_format: requestedFormat
             },
         null,
@@ -1023,6 +1080,8 @@ export class DirectInferenceHandler {
                   model: req.model,
                   voice: req.voice,
                   speed: req.speed,
+                  language: req.language,
+                  instructions: req.instructions,
                   audioFormat: requestedFormat
                 });
           if (!speech) throw new Error("Provider returned no audio data");

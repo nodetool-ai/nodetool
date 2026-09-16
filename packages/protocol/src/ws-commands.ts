@@ -199,6 +199,7 @@ export const generateMediaDataSchema = z
         "inpaint",
         "video",
         "video_edit",
+        "video_extend",
         "audio",
         "music"
       ])
@@ -249,6 +250,9 @@ export const generateMediaDataSchema = z
     aspect_ratio: z.string().optional(),
     resolution: z.string().optional(),
     strength: z.number().optional(),
+    /** Added source seconds for video_extend, total requested seconds otherwise. */
+    duration: z.number().optional(),
+    extension_mode: z.enum(["start", "end"]).optional(),
     num_inference_steps: z.number().optional(),
     /**
      * Sampling seed. Two image requests alike but for this one are a set of

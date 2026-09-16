@@ -17,18 +17,24 @@ import {
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import type { TimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import {
+  activeTakeIdOf,
+  captureVideoGenerationRecipe,
   captureMediaEditSourceContext,
   composeGenerativeTakePatch,
   createMediaEditRequest,
   ensureBaselineTake,
   landProductionCandidate,
+  getReplayRecipe,
   mediaEditGenerateMediaData,
   makeClipVersion
 } from "@nodetool-ai/timeline";
 import type {
+  ClipVersion,
   CompiledProductionCandidate,
   MediaEditRequest,
-  TimelineClip
+  LineDeliveryRequest,
+  TimelineClip,
+  VideoGenerationRecipe
 } from "@nodetool-ai/timeline";
 import { deriveIdleClipStatus } from "./useGenerateClip";
 import {
@@ -63,6 +69,11 @@ interface UseTimelineDirectGenJobApi {
     clipId: string,
     production?: CompiledProductionCandidate
   ) => Promise<string | null>;
+  /** Replay a known text-to-video recipe as an inactive candidate take. */
+  startNewTake: (input: {
+    clipId: string;
+    instruction?: string;
+  }) => Promise<string | null>;
   startEdit: (input: {
     clipId: string;
     instruction: string;
@@ -85,7 +96,20 @@ interface InFlightJob {
   cleanup: () => void;
   mediaEdit?: MediaEditRequest;
   production?: PendingProductionRequest;
+  generationRecipe?: VideoGenerationRecipe;
+  candidateOnly?: boolean;
+  lineDelivery?: LineDeliveryRequest;
 }
+
+type DirectGenRequestMetadata =
+  | PendingProductionRequest
+  | VideoGenerationRecipe
+  | undefined;
+
+const isPendingProductionRequest = (
+  metadata: DirectGenRequestMetadata
+): metadata is PendingProductionRequest =>
+  metadata !== undefined && "identity" in metadata && "snapshot" in metadata;
 
 const inFlight = new Map<string, InFlightJob>();
 
@@ -179,12 +203,25 @@ export function landDirectGen(
   clipId: string,
   requestId: string,
   sequenceId: string | null,
-  outcome: DirectGenOutcome
+  outcome: DirectGenOutcome,
+  generationRecipe?: VideoGenerationRecipe,
+  candidateOnly = false,
+  lineDelivery?: LineDeliveryRequest
 ): void {
   // Any subscription still open for this clip is done: it would settle a
   // second time on the reply and append the same version twice.
   clearInFlight(sequenceId, clipId, requestId);
   const store = timeline.getState();
+  const pendingJob = sequenceId
+    ? useDirectGenPendingStore
+        .getState()
+        .pending[sequenceId]?.find(
+          (job) => job.clipId === clipId && job.requestId === requestId
+        )
+    : undefined;
+  const recipe = generationRecipe ?? pendingJob?.generationRecipe;
+  const delivery = lineDelivery ?? pendingJob?.lineDelivery;
+  const keepAcceptedTake = candidateOnly || pendingJob?.candidateOnly === true;
   const first = outcome.errored ? undefined : outcome.assetIds[0];
   if (!first) {
     if (sequenceId) {
@@ -192,7 +229,7 @@ export function landDirectGen(
         .getState()
         .settle(sequenceId, clipId, undefined, requestId);
     }
-    store.patchClip(clipId, { status: "failed" });
+    if (!keepAcceptedTake) store.patchClip(clipId, { status: "failed" });
     return;
   }
 
@@ -209,34 +246,86 @@ export function landDirectGen(
       .settle(sequenceId, clipId, Date.now(), requestId);
   }
 
+  if (sequenceId !== null && store.sequenceId !== sequenceId) return;
   const current = store.clips.find((c) => c.id === clipId);
   if (!current) return;
-  const newVersion = makeClipVersion({
+  const activeTakeId = activeTakeIdOf(current);
+  const submittedParams = recipe
+    ? {
+        prompt: recipe.prompt,
+        provider: recipe.provider,
+        model: recipe.model,
+        durationMs: recipe.durationMs,
+        aspectRatio: recipe.aspectRatio,
+        resolution: recipe.resolution,
+        width: recipe.width,
+        height: recipe.height,
+        strength: recipe.strength,
+        numInferenceSteps: recipe.numInferenceSteps,
+        seed: recipe.seed,
+        negativePrompt: recipe.negativePrompt,
+        referenceAssetIds: recipe.referenceAssetIds
+      }
+    : delivery
+      ? {
+          action: delivery.action,
+          modelTask: delivery.modelTask,
+          sourceContext: delivery.sourceContext,
+          instructions: delivery.instructions,
+          speed: delivery.speed
+        }
+      : {
+          prompt: current.prompt,
+          provider: current.provider,
+          model: current.model,
+          strength: current.strength,
+          numInferenceSteps: current.numInferenceSteps,
+          width: current.width,
+          height: current.height,
+          voice: current.voice,
+          aspectRatio: current.aspectRatio,
+          resolution: current.resolution,
+          negativePrompt: current.negativePrompt
+        };
+  const versionOverrides: Partial<ClipVersion> = {
     jobId: requestId,
     assetId: first,
     workflowUpdatedAt: new Date().toISOString(),
     dependencyHash: "",
-    paramOverridesSnapshot: {
-      prompt: current.prompt,
-      provider: current.provider,
-      model: current.model,
-      strength: current.strength,
-      numInferenceSteps: current.numInferenceSteps,
-      width: current.width,
-      height: current.height,
-      voice: current.voice,
-      aspectRatio: current.aspectRatio,
-      resolution: current.resolution,
-      negativePrompt: current.negativePrompt
-    }
-  });
+    durationMs: current.durationMs,
+    requestId,
+    paramOverridesSnapshot: submittedParams
+  };
+  if (recipe) {
+    Object.assign(versionOverrides, {
+      source: "generated" as const,
+      generationRecipe: recipe,
+      prompt: recipe.prompt,
+      provider: recipe.provider,
+      model: recipe.model,
+      negativePrompt: recipe.negativePrompt
+    });
+  }
+  if (delivery) {
+    Object.assign(versionOverrides, {
+      source: "generated" as const,
+      lineDelivery: { ...delivery, requestId },
+      prompt: delivery.sourceContext.text,
+      provider: delivery.sourceContext.voice.provider,
+      model: delivery.sourceContext.voice.model
+    });
+  }
+  if (keepAcceptedTake && activeTakeId) {
+    versionOverrides.parentTakeId = activeTakeId;
+  }
+  const newVersion = makeClipVersion(versionOverrides);
   // Locked clips don't get their currentAssetId replaced — but the version
   // is still recorded so the user can restore it later.
   const patch: Partial<TimelineClip> = {
     status: "generated",
     versions: [...(current.versions ?? []), newVersion]
   };
-  if (!current.locked) {
+  if (!current.locked && !keepAcceptedTake) {
     patch.currentAssetId = first;
     // Every asset writer must keep this alias in sync with currentAssetId,
     // or list_takes/delete_take mis-identify which take is actually playing.
@@ -487,11 +576,20 @@ export function subscribeDirectGen(
    * and it also covers the window between a lookup and the subscription that
    * follows it. The subscription only gets there faster, when the socket is
    * the same one the request went out on.
-   */
+  */
   watchUntil?: number,
   mediaEdit?: MediaEditRequest,
-  production?: PendingProductionRequest
+  productionOrRecipe?: DirectGenRequestMetadata,
+  candidateOnly = false,
+  lineDelivery?: LineDeliveryRequest
 ): () => void {
+  const production = isPendingProductionRequest(productionOrRecipe)
+    ? productionOrRecipe
+    : undefined;
+  const generationRecipe: VideoGenerationRecipe | undefined =
+    isPendingProductionRequest(productionOrRecipe)
+      ? undefined
+      : productionOrRecipe;
   clearInFlight(sequenceId, clipId, production ? requestId : undefined);
   let unsubscribe: (() => void) | undefined;
   let stopWatch: (() => void) | undefined;
@@ -537,7 +635,16 @@ export function subscribeDirectGen(
         outcome
       );
     } else {
-      landDirectGen(timeline, clipId, requestId, sequenceId, outcome);
+      landDirectGen(
+        timeline,
+        clipId,
+        requestId,
+        sequenceId,
+        outcome,
+        generationRecipe,
+        candidateOnly,
+        lineDelivery
+      );
     }
   };
 
@@ -585,7 +692,9 @@ export function subscribeDirectGen(
             useDirectGenPendingStore.getState().settle(sequenceId, clipId);
           }
         }
-        if (!mediaEdit && !production) fail(timeline, clipId);
+        if (!mediaEdit && !production && !candidateOnly) {
+          fail(timeline, clipId);
+        }
         return;
       }
       const directOutcome = {
@@ -612,7 +721,16 @@ export function subscribeDirectGen(
           directOutcome
         );
       } else {
-        landDirectGen(timeline, clipId, requestId, sequenceId, directOutcome);
+        landDirectGen(
+          timeline,
+          clipId,
+          requestId,
+          sequenceId,
+          directOutcome,
+          generationRecipe,
+          candidateOnly,
+          lineDelivery
+        );
       }
     });
   }
@@ -622,7 +740,10 @@ export function subscribeDirectGen(
     clipId,
     cleanup,
     mediaEdit,
-    production
+    production,
+    generationRecipe,
+    candidateOnly,
+    lineDelivery
   });
   return cleanup;
 }
@@ -782,7 +903,10 @@ export async function reattachSequenceJobs(
           job.clipId,
           job.requestId,
           sequenceId,
-          directOutcome
+          directOutcome,
+          job.generationRecipe,
+          job.candidateOnly,
+          job.lineDelivery
         );
       }
       continue;
@@ -791,7 +915,7 @@ export async function reattachSequenceJobs(
     // `generating`, and the row is watched until it settles — bounded by what
     // is left of this entry's own window, after which the clip fails and
     // offers Retry rather than rendering forever.
-    if (!job.mediaEdit && !job.production) {
+    if (!job.mediaEdit && !job.production && !job.candidateOnly) {
       timeline.getState().patchClip(job.clipId, { status: "generating" });
     }
     subscribeDirectGen(
@@ -801,7 +925,9 @@ export async function reattachSequenceJobs(
       sequenceId,
       job.startedAt + PENDING_TTL_MS,
       job.mediaEdit,
-      job.production
+      job.production ?? job.generationRecipe,
+      job.candidateOnly,
+      job.lineDelivery
     );
   }
 }
@@ -921,6 +1047,13 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         sourceAssetId = sourceClip.currentAssetId;
       }
 
+      const recipeResult =
+        kind === "text-to-video"
+          ? captureVideoGenerationRecipe(clip)
+          : { ok: false as const, reason: "Not a text-to-video clip." };
+      const generationRecipe = recipeResult.ok
+        ? recipeResult.recipe
+        : undefined;
       // Read before the subscription, and captured by it: the reply is settled
       // against the sequence the request was sent for, not whichever one is
       // open when it lands.
@@ -945,7 +1078,8 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         sequenceId,
         Date.now() + PENDING_TTL_MS,
         undefined,
-        production
+        production ?? generationRecipe,
+        false
       );
       if (sequenceId) {
         // Recorded before the send, so a reply that arrives after the tab is
@@ -955,7 +1089,8 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
           requestId,
           startedAt: Date.now(),
           bucket: durationBucketKey(kind, clip.model),
-          production
+          ...(generationRecipe !== undefined && { generationRecipe }),
+          ...(production !== undefined && { production })
         });
       }
 
@@ -996,6 +1131,10 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
             height: clip.height,
             strength: clip.strength,
             num_inference_steps: clip.numInferenceSteps,
+            ...(clip.seed !== undefined && { seed: clip.seed }),
+            ...(clip.negativePrompt !== undefined && {
+              negative_prompt: clip.negativePrompt
+            }),
             variations: 1,
             voice: kind === "text-to-audio" ? clip.voice : undefined,
             capability:
@@ -1038,6 +1177,85 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
       }
 
       return requestId;
+    },
+    [timeline]
+  );
+
+  const startNewTake = useCallback(
+    async (input: {
+      clipId: string;
+      instruction?: string;
+    }): Promise<string | null> => {
+      const sequenceId = timeline.getState().sequenceId;
+      const clip = timeline
+        .getState()
+        .clips.find((candidate) => candidate.id === input.clipId);
+      if (!sequenceId || !clip || findInFlight(sequenceId, input.clipId)) {
+        return null;
+      }
+      const activeId = activeTakeIdOf(clip);
+      const activeTake = activeId
+        ? (clip.versions ?? []).find((take) => take.id === activeId)
+        : undefined;
+      if (!activeTake || activeTake.assetId !== clip.currentAssetId) return null;
+      const replay = getReplayRecipe(activeTake);
+      if (!replay.ok) return null;
+      const instruction = input.instruction?.trim();
+      const recipe = instruction
+        ? {
+            ok: true as const,
+            recipe: Object.freeze({ ...replay.recipe, prompt: instruction })
+          }
+        : replay;
+      const requestId = crypto.randomUUID();
+      subscribeDirectGen(
+        timeline,
+        input.clipId,
+        requestId,
+        sequenceId,
+        Date.now() + PENDING_TTL_MS,
+        undefined,
+        recipe.recipe,
+        true
+      );
+      useDirectGenPendingStore.getState().remember(sequenceId, {
+        clipId: input.clipId,
+        requestId,
+        startedAt: Date.now(),
+        bucket: durationBucketKey("text-to-video", recipe.recipe.model),
+        generationRecipe: recipe.recipe,
+        candidateOnly: true
+      });
+      try {
+        const data: Record<string, unknown> = {
+          mode: "video",
+          provider: recipe.recipe.provider,
+          model: recipe.recipe.model,
+          prompt: recipe.recipe.prompt,
+          width: recipe.recipe.width,
+          height: recipe.recipe.height,
+          strength: recipe.recipe.strength,
+          num_inference_steps: recipe.recipe.numInferenceSteps,
+          seed: recipe.recipe.seed,
+          aspect_ratio: recipe.recipe.aspectRatio,
+          resolution: recipe.recipe.resolution,
+          duration: Math.round(recipe.recipe.durationMs / 1000),
+          variations: 1
+        };
+        if (recipe.recipe.negativePrompt !== undefined) {
+          data.negative_prompt = recipe.recipe.negativePrompt;
+        }
+        await globalWebSocketManager.send({
+          command: "generate_media",
+          request_id: requestId,
+          data
+        });
+        return requestId;
+      } catch {
+        clearInFlight(sequenceId, input.clipId, requestId);
+        useDirectGenPendingStore.getState().settle(sequenceId, input.clipId);
+        return null;
+      }
     },
     [timeline]
   );
@@ -1181,5 +1399,5 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
     [cancel, timeline]
   );
 
-  return { start, startEdit, cancel, cancelEdit };
+  return { start, startNewTake, startEdit, cancel, cancelEdit };
 }

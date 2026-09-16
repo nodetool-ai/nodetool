@@ -243,6 +243,7 @@ export type VideoModelTask =
   | "image_to_video"
   | "reference_to_video"
   | "video_to_video"
+  | "extend_video"
   | "upscale_video"
   | "interpolate_video"
   | "outpaint_video"

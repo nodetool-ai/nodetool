@@ -29,7 +29,9 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import type {
   CompiledProductionCandidate,
   MediaEditRequest,
-  TimelineClip
+  LineDeliveryRequest,
+  TimelineClip,
+  VideoGenerationRecipe
 } from "@nodetool-ai/timeline";
 
 export interface PendingProductionRequest extends CompiledProductionCandidate {
@@ -66,6 +68,12 @@ export interface PendingClipJob {
   mediaEdit?: MediaEditRequest;
   /** Immutable production request captured before dispatch. */
   production?: PendingProductionRequest;
+  /** Immutable recipe for a candidate-only New take request. */
+  generationRecipe?: VideoGenerationRecipe;
+  /** Immutable Script context for a candidate-only line delivery request. */
+  lineDelivery?: LineDeliveryRequest;
+  /** Candidate-only requests never replace the accepted clip on completion. */
+  candidateOnly?: boolean;
 }
 
 export type MediaEditSettlementStatus =
@@ -208,7 +216,7 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
             [sequenceId]: prune(
               [
                 ...(state.pending[sequenceId] ?? []).filter((entry) =>
-                  job.production
+                  job.production || job.candidateOnly
                     ? entry.requestId !== job.requestId
                     : entry.clipId !== job.clipId
                 ),

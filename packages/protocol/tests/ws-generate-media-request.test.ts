@@ -12,6 +12,14 @@ import {
  * from the schema, so this pins the frames the two live callers send.
  */
 describe("generate_media request payload", () => {
+  it.each(["start", "end"] as const)("preserves the %s extension mode and added duration", (mode) => {
+    const frame: GenerateMediaRequest = {
+      mode: "video_extend", extension_mode: mode, duration: 3,
+      source_asset_id: "source", model: "extension-model"
+    };
+    expect(generateMediaDataSchema.parse(frame)).toEqual(frame);
+    expect(generateMediaDataSchema.safeParse({ ...frame, extension_mode: "middle" }).success).toBe(false);
+  });
   it("accepts the inpaint frame the sketch editor sends", () => {
     // web/src/hooks/sketch/useDirectGenJob.ts:294-306
     const frame: GenerateMediaRequest = {
