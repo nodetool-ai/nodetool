@@ -26,7 +26,7 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { MediaEditRequest } from "@nodetool-ai/timeline";
+import type { MediaEditRequest, TimelineClip } from "@nodetool-ai/timeline";
 
 /**
  * How long a persisted request is worth recovering.
@@ -55,6 +55,26 @@ export interface PendingClipJob {
   bucket: string;
   /** Immutable edit request captured before dispatch, when this is an edit. */
   mediaEdit?: MediaEditRequest;
+}
+
+export type MediaEditSettlementStatus =
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "expired"
+  | "orphaned";
+
+/** Durable terminal state for an edit, including its immutable destination. */
+export interface MediaEditSettlement {
+  requestId: string;
+  sequenceId: string;
+  clipId: string;
+  status: MediaEditSettlementStatus;
+  settledAt: number;
+  assetIds: readonly string[];
+  mediaEdit: MediaEditRequest;
+  /** Set only after an autosave accepted the candidate version. */
+  acknowledgedAt?: number;
 }
 
 /** One bucket per model and kind: a clip and a voice line are not comparable. */
@@ -93,11 +113,9 @@ interface DirectGenPendingState {
   pending: Record<string, PendingClipJob[]>;
   /** bucket → the durations of that bucket's most recent finished requests. */
   durationSamples: Record<string, number[]>;
-  /** sequenceId → clipId → terminal edit error, retained for Retry. */
-  editFailures: Record<string, Record<string, string>>;
+  /** Terminal edit outcomes kept for inspection and deferred destination landing. */
+  editSettlements: Record<string, MediaEditSettlement>;
   remember: (sequenceId: string, job: PendingClipJob) => void;
-  markEditFailure: (sequenceId: string, clipId: string, message: string) => void;
-  clearEditFailure: (sequenceId: string, clipId: string) => void;
   /** Drop a clip's entry and, when it finished, file how long it took. */
   settle: (
     sequenceId: string,
@@ -105,6 +123,20 @@ interface DirectGenPendingState {
     finishedAt?: number,
     requestId?: string
   ) => void;
+  /** Claim an edit outcome exactly once and retain it after pending removal. */
+  settleEdit: (input: {
+    sequenceId: string;
+    clipId: string;
+    requestId: string;
+    mediaEdit: MediaEditRequest;
+    status: MediaEditSettlementStatus;
+    assetIds: readonly string[];
+    finishedAt?: number;
+  }) => boolean;
+  /** Retain a completed edit without ever recreating a deleted destination. */
+  markEditOrphaned: (requestId: string) => void;
+  /** Mark a completed edit as durably present without removing its tombstone. */
+  acknowledgeEdit: (requestId: string, acknowledgedAt?: number) => boolean;
   /** The entries still worth recovering, with the stale ones dropped. */
   restore: (sequenceId: string) => PendingClipJob[];
 }
@@ -114,74 +146,23 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
     (set, get) => ({
       pending: {},
       durationSamples: {},
-      editFailures: {},
+      editSettlements: {},
 
       remember: (sequenceId, job) =>
-        set((state) => {
-          if (!job.mediaEdit) {
-            return {
-              pending: {
-                ...state.pending,
-                [sequenceId]: prune(
-                  [
-                    ...(state.pending[sequenceId] ?? []).filter(
-                      (entry) => entry.clipId !== job.clipId
-                    ),
-                    job
-                  ],
-                  Date.now()
-                )
-              }
-            };
-          }
-          const sequenceFailures = { ...(state.editFailures[sequenceId] ?? {}) };
-          delete sequenceFailures[job.clipId];
-          const editFailures = { ...state.editFailures };
-          if (Object.keys(sequenceFailures).length === 0) {
-            delete editFailures[sequenceId];
-          } else {
-            editFailures[sequenceId] = sequenceFailures;
-          }
-          return {
-            pending: {
-              ...state.pending,
-              [sequenceId]: prune(
-                [
-                  ...(state.pending[sequenceId] ?? []).filter(
-                    (entry) => entry.clipId !== job.clipId
-                  ),
-                  job
-                ],
-                Date.now()
-              )
-            },
-            editFailures
-          };
-        }),
-
-      markEditFailure: (sequenceId, clipId, message) =>
         set((state) => ({
-          editFailures: {
-            ...state.editFailures,
-            [sequenceId]: {
-              ...(state.editFailures[sequenceId] ?? {}),
-              [clipId]: message
-            }
+          pending: {
+            ...state.pending,
+            [sequenceId]: prune(
+              [
+                ...(state.pending[sequenceId] ?? []).filter(
+                  (entry) => entry.clipId !== job.clipId
+                ),
+                job
+              ],
+              Date.now()
+            )
           }
         })),
-
-      clearEditFailure: (sequenceId, clipId) =>
-        set((state) => {
-          const sequenceFailures = { ...(state.editFailures[sequenceId] ?? {}) };
-          delete sequenceFailures[clipId];
-          const editFailures = { ...state.editFailures };
-          if (Object.keys(sequenceFailures).length === 0) {
-            delete editFailures[sequenceId];
-          } else {
-            editFailures[sequenceId] = sequenceFailures;
-          }
-          return { editFailures };
-        }),
 
       settle: (sequenceId, clipId, finishedAt, requestId) =>
         set((state) => {
@@ -220,6 +201,104 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
           };
         }),
 
+      settleEdit: ({
+        sequenceId,
+        clipId,
+        requestId,
+        mediaEdit,
+        status,
+        assetIds,
+        finishedAt
+      }) => {
+        let claimed = false;
+        set((state) => {
+          if (state.editSettlements[requestId]) {
+            return state;
+          }
+          claimed = true;
+          const existing = state.pending[sequenceId] ?? [];
+          const job = existing.find(
+            (entry) =>
+              entry.clipId === clipId && entry.requestId === requestId
+          );
+          const pending = { ...state.pending };
+          const rest = existing.filter((entry) => entry !== job);
+          if (rest.length === 0) {
+            delete pending[sequenceId];
+          } else {
+            pending[sequenceId] = rest;
+          }
+          const settledAt = finishedAt ?? Date.now();
+          const editSettlements = {
+            ...state.editSettlements,
+            [requestId]: {
+              requestId,
+              sequenceId,
+              clipId,
+              status,
+              settledAt,
+              assetIds: [...assetIds],
+              mediaEdit
+            }
+          };
+          const took = settledAt - (job?.startedAt ?? settledAt);
+          const shouldMeasure =
+            status === "completed" && assetIds.length > 0 && took > 0;
+          return shouldMeasure
+            ? {
+                pending,
+                editSettlements,
+                durationSamples: {
+                  ...state.durationSamples,
+                  [job?.bucket ?? durationBucketKey("video_edit", mediaEdit.model)]: [
+                    ...(state.durationSamples[
+                      job?.bucket ?? durationBucketKey("video_edit", mediaEdit.model)
+                    ] ?? []),
+                    took
+                  ].slice(-DURATION_SAMPLE_CAP)
+                }
+              }
+            : { pending, editSettlements };
+        });
+        return claimed;
+      },
+
+      markEditOrphaned: (requestId) =>
+        set((state) => {
+          const settlement = state.editSettlements[requestId];
+          if (!settlement || settlement.status === "orphaned") {
+            return state;
+          }
+          return {
+            editSettlements: {
+              ...state.editSettlements,
+              [requestId]: { ...settlement, status: "orphaned" }
+            }
+          };
+        }),
+
+      acknowledgeEdit: (requestId, acknowledgedAt = Date.now()) => {
+        let acknowledged = false;
+        set((state) => {
+          const settlement = state.editSettlements[requestId];
+          if (
+            !settlement ||
+            settlement.status !== "completed" ||
+            settlement.acknowledgedAt !== undefined
+          ) {
+            return state;
+          }
+          acknowledged = true;
+          return {
+            editSettlements: {
+              ...state.editSettlements,
+              [requestId]: { ...settlement, acknowledgedAt }
+            }
+          };
+        });
+        return acknowledged;
+      },
+
       restore: (sequenceId) => {
         const kept = prune(get().pending[sequenceId] ?? [], Date.now());
         set((state) => {
@@ -240,8 +319,45 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
       partialize: (state) => ({
         pending: state.pending,
         durationSamples: state.durationSamples,
-        editFailures: state.editFailures
+        editSettlements: state.editSettlements
       })
     }
   )
 );
+
+/**
+ * A completed candidate is replayable until the exact document containing it
+ * has been accepted by the timeline endpoint. The settlement remains in the
+ * persisted store as a tombstone after acknowledgement, so a later deletion
+ * cannot make reconnect recovery recreate the candidate.
+ */
+export function acknowledgePersistedMediaEdits(
+  sequenceId: string,
+  clips: readonly TimelineClip[],
+  acknowledgedAt = Date.now()
+): void {
+  const settlements = Object.values(
+    useDirectGenPendingStore.getState().editSettlements
+  );
+  for (const settlement of settlements) {
+    if (
+      settlement.sequenceId !== sequenceId ||
+      settlement.status !== "completed" ||
+      settlement.acknowledgedAt !== undefined
+    ) {
+      continue;
+    }
+    const assetId = settlement.assetIds[0];
+    const clip = clips.find((candidate) => candidate.id === settlement.clipId);
+    const candidatePersisted = clip?.versions?.some(
+      (version) =>
+        version.jobId === settlement.requestId &&
+        version.assetId === assetId
+    );
+    if (candidatePersisted) {
+      useDirectGenPendingStore
+        .getState()
+        .acknowledgeEdit(settlement.requestId, acknowledgedAt);
+    }
+  }
+}

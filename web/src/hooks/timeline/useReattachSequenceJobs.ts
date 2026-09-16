@@ -19,7 +19,7 @@ import { reattachSequenceJobs } from "./useTimelineDirectGenJob";
 export function useReattachSequenceJobs(sequenceId: string | null): void {
   const store = useTimelineStoreApi();
   const loaded = useTimelineStore(
-    (state) => state.sequenceId === sequenceId && state.clips.length > 0
+    (state) => state.sequenceId === sequenceId
   );
 
   useEffect(() => {
