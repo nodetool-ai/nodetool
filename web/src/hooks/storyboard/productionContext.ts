@@ -1,77 +1,35 @@
-/**
- * Shared authoring contracts for the existing Video and Storyboard flows.
- *
- * These are deliberately client-owned, optional fields. The timeline setup and
- * storyboard shot/screenplay payloads already preserve unknown fields, so a
- * document that does not carry them keeps its legacy shape and behavior.
- */
+/** Shared authoring readers for the protocol-owned production contract. */
+
+import type {
+  CreativeContext as ProtocolCreativeContext,
+  ProductionEditorialPurpose,
+  ProductionReference as ProtocolProductionReference,
+  ProductionReferenceBinding as ProtocolProductionReferenceBinding,
+  ProductionRequirement as ProtocolProductionRequirement,
+  ProductionSpeechMode,
+  ProductionVisualTreatment
+} from "@nodetool-ai/protocol";
 
 export const CREATIVE_CONTEXT_SCHEMA_VERSION = 1;
 
-export type EditorialPurpose =
-  | "hook"
-  | "problem"
-  | "demonstration"
-  | "proof"
-  | "cta"
-  | "story";
-
-export type VisualTreatment =
-  | "actor_to_camera"
-  | "product_close_up"
-  | "lifestyle_b_roll"
-  | "generated_scene";
-
-export type SpeechMode = "none" | "off_camera" | "on_camera";
-
-export interface CreativeContext {
-  [key: string]: unknown;
-  schema_version: 1;
-  product_name?: string;
-  product_description?: string;
-  audience?: string;
-  objective?: string;
-  tone?: string;
-  approved_claims?: string[];
-  prohibited_claims?: string[];
-  reference_bindings?: ProductionReferenceBinding[];
-}
-
-export interface ProductionReferenceBinding {
-  [key: string]: unknown;
-  kind: "product" | "character" | "location" | "style";
-  asset_id: string;
-  entity_id?: string;
-  label?: string;
-}
-
-/** Optional production direction attached to one beat or shot. */
-export interface ProductionRequirements {
-  [key: string]: unknown;
-  schema_version: 1;
-  editorial_purpose?: EditorialPurpose;
-  visual_treatment?: VisualTreatment;
-  speech_mode: SpeechMode;
-  speech_binding?: Record<string, unknown>;
-  reference_bindings?: ProductionReferenceBinding[];
-  duration_ms?: number;
-  speech_duration_ms?: number;
-  local_direction?: string;
-  requested_take_count: 1 | 2 | 3;
-}
-
-export interface ProductionReference {
-  uri: string;
-  name?: string;
-  /** Changes when the referenced asset or its approved descriptor changes. */
-  revision?: string;
-}
+export type EditorialPurpose = ProductionEditorialPurpose;
+export type VisualTreatment = ProductionVisualTreatment;
+export type SpeechMode = ProductionSpeechMode;
+export type CreativeContext = ProtocolCreativeContext;
+export type ProductionReferenceBinding = ProtocolProductionReferenceBinding;
+export type ProductionRequirements = ProtocolProductionRequirement;
+export type ProductionReference = ProtocolProductionReference;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const optionalString = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim().length > 0 ? value : undefined;
+
+const positiveInteger = (value: unknown): number | undefined =>
+  typeof value === "number" && Number.isInteger(value) && value > 0
+    ? value
+    : undefined;
 
 const stringList = (value: unknown): string[] | undefined => {
   if (!Array.isArray(value)) {
@@ -162,6 +120,23 @@ const referenceBindings = (value: unknown): ProductionReferenceBinding[] | undef
   return result.length > 0 ? result : undefined;
 };
 
+const references = (value: unknown): ProductionReference[] | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const result = value.flatMap((item) => {
+    if (!isRecord(item) || typeof item.uri !== "string" || item.uri.trim() === "") {
+      return [];
+    }
+    return [{
+      uri: item.uri,
+      ...(typeof item.name === "string" ? { name: item.name } : {}),
+      ...(typeof item.revision === "string" ? { revision: item.revision } : {})
+    }];
+  });
+  return result.length > 0 ? result : undefined;
+};
+
 export function readProductionRequirements(
   value: unknown
 ): ProductionRequirements | undefined {
@@ -173,6 +148,11 @@ export function readProductionRequirements(
   const speechMode = value.speech_mode ?? value.speechMode;
   const requestedTakeCount =
     value.requested_take_count ?? value.requestedTakeCount;
+  const speechBinding = isRecord(value.speech_binding)
+    ? { ...value.speech_binding }
+    : isRecord(value.speechBinding)
+      ? { ...value.speechBinding }
+      : undefined;
   const production: ProductionRequirements = {
     schema_version: 1,
     editorial_purpose: isOneOf(
@@ -184,8 +164,14 @@ export function readProductionRequirements(
       visualTreatments
     ) ? visualTreatment : undefined,
     speech_mode: isOneOf(speechMode, speechModes) ? speechMode : "none",
+    ...(speechBinding ? { speech_binding: speechBinding } : {}),
     reference_bindings: referenceBindings(
       value.reference_bindings ?? value.referenceBindings
+    ),
+    references: references(value.references),
+    duration_ms: positiveInteger(value.duration_ms ?? value.durationMs),
+    speech_duration_ms: positiveInteger(
+      value.speech_duration_ms ?? value.speechDurationMs
     ),
     local_direction: optionalString(value.local_direction ?? value.direction),
     requested_take_count:

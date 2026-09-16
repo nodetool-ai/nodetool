@@ -163,6 +163,45 @@ describe("useStoryboardServerSync — a rejected save must not fail silently", (
 });
 
 describe("flushStoryboardSave", () => {
+  it("hydrates and autosaves root creative context", async () => {
+    const creativeContext = {
+      schema_version: 1 as const,
+      product_name: "Orbit Camera",
+      reference_bindings: [{ kind: "product" as const, asset_id: "asset-1" }]
+    };
+    getQuery.mockResolvedValue({
+      id: "board-1",
+      name: "Saved board",
+      document: { ...emptyDocument, creative_context: creativeContext },
+      timelineId: null,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "rev-1"
+    });
+    const rendered = await mountLoaded();
+
+    expect(useStoryboardStore.getState().boards["board-1"]?.creativeContext).toEqual(
+      creativeContext
+    );
+    act(() =>
+      useStoryboardStore.getState().setCreativeContext("board-1", {
+        ...creativeContext,
+        objective: "Launch the new camera"
+      })
+    );
+
+    await flushStoryboardSave("board-1");
+    expect(updateMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        document: expect.objectContaining({
+          creative_context: expect.objectContaining({
+            objective: "Launch the new camera"
+          })
+        })
+      })
+    );
+    rendered.unmount();
+  });
+
   it("resolves ok with a null revision when no saver is registered", async () => {
     await expect(flushStoryboardSave("unknown-board")).resolves.toEqual({
       ok: true,

@@ -249,7 +249,7 @@ describe("AI-video production capability contract", () => {
     ]);
   });
 
-  it("validates explicit acceptance but makes no destination mutation", async () => {
+  it("rejects acceptance while no destination adapter is wired", async () => {
     const updateTimelineSequence = vi.fn();
     const context = asContext({
       userId: "u1",
@@ -279,24 +279,15 @@ describe("AI-video production capability contract", () => {
       expected_target_revision: "rev-1"
     })) as {
       ok: boolean;
-      validated: boolean;
-      applied: boolean;
-      accepted: boolean;
-      candidate_ids: string[];
-      note: string;
+      code: string;
+      error: string;
     };
-    expect(result).toMatchObject({
-      ok: true,
-      validated: true,
-      applied: false,
-      accepted: false,
-      candidate_ids: [candidate.candidate_id]
-    });
-    expect(result.note).toContain("No document or active media was changed");
+    expect(result).toMatchObject({ ok: false, code: "acceptance_adapter_unavailable" });
+    expect(result.error).toContain("no destination-specific apply adapter");
     expect(updateTimelineSequence).not.toHaveBeenCalled();
   });
 
-  it("rejects selecting two candidates for the same destination slot", async () => {
+  it("rejects acceptance before examining a candidate selection", async () => {
     const context = asContext({ userId: "u1" });
     const candidate = {
       candidate_id: "batch-1:candidate:1",
@@ -319,6 +310,6 @@ describe("AI-video production capability contract", () => {
       candidates: [candidate, other],
       candidate_ids: [candidate.candidate_id, other.candidate_id]
     })) as { code: string };
-    expect(result.code).toBe("multiple_candidates_for_slot");
+    expect(result.code).toBe("acceptance_adapter_unavailable");
   });
 });

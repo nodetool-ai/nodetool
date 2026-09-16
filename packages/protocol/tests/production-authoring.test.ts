@@ -26,9 +26,18 @@ describe("production authoring contract", () => {
         visual_treatment: "product_close_up",
         speech_mode: "on_camera",
         speech_binding: { text: "See the difference." },
+        references: [{ uri: "asset://camera.png", revision: "asset-rev-2" }],
+        duration_ms: 3000,
+        speech_duration_ms: 2400,
         requested_take_count: 2
       })
-    ).toMatchObject({ speech_mode: "on_camera", requested_take_count: 2 });
+    ).toMatchObject({
+      speech_mode: "on_camera",
+      references: [{ uri: "asset://camera.png", revision: "asset-rev-2" }],
+      duration_ms: 3000,
+      speech_duration_ms: 2400,
+      requested_take_count: 2
+    });
 
     expect(
       production.safeParse({

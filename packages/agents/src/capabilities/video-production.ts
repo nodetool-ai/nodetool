@@ -821,39 +821,12 @@ const inspectVideoProductionCandidatesCapability: CapabilityExport = {
 
 const acceptVideoProductionCandidatesCapability: CapabilityExport = {
   spec: acceptVideoProductionCandidatesSpec,
-  impl: async (_run, params) => {
-    const parsed = candidatesOf(params["candidates"]);
-    if (!parsed.ok) {
-      return { error: parsed.error.message, code: parsed.error.code };
-    }
-    const rawIds = params["candidate_ids"];
-    if (!Array.isArray(rawIds) || !rawIds.every(isNonBlankString)) {
-      return {
-        error: "candidate_ids must be a non-empty array of candidate ids.",
-        code: "candidate_selection_invalid"
-      };
-    }
-    const selection = validateVideoProductionAcceptance(
-      parsed.value,
-      rawIds.map((id) => id.trim()),
-      nonBlankField(params, "expected_target_revision")
-    );
-    if (!selection.ok) {
-      return {
-        error: selection.error.message,
-        code: selection.error.code,
-        field: selection.error.field
-      };
-    }
+  impl: async () => {
     return {
-      ok: true,
-      validated: true,
-      applied: false,
-      accepted: false,
-      candidate_ids: selection.candidates.map((candidate) => candidate.candidate_id),
-      acceptance_request: selection.candidates,
-      note:
-        "The selection is valid, but no destination-specific acceptance adapter is wired in this capability package. No document or active media was changed."
+      ok: false,
+      code: "acceptance_adapter_unavailable",
+      error:
+        "Video production acceptance is disabled because no destination-specific apply adapter is wired. Use the owning timeline, storyboard, or script surface to apply a candidate."
     };
   }
 };
