@@ -56,17 +56,13 @@ export const uiAddNodeParams = {
 };
 
 export const uiConnectNodesParams = {
-  source_node_id: z
-    .string()
-    .describe("Id of the node producing the value."),
+  source_node_id: z.string().describe("Id of the node producing the value."),
   source_handle: z
     .string()
     .describe(
       "Output port name on the source node (from `outputs[].name` in ui_search_nodes)."
     ),
-  target_node_id: z
-    .string()
-    .describe("Id of the node consuming the value."),
+  target_node_id: z.string().describe("Id of the node consuming the value."),
   target_handle: z
     .string()
     .describe(
@@ -122,9 +118,7 @@ export const uiRunWorkflowParams = {
   params: z
     .record(z.string(), z.unknown())
     .optional()
-    .describe(
-      "Optional workflow input parameters keyed by input-node name."
-    )
+    .describe("Optional workflow input parameters keyed by input-node name.")
 };
 
 export const uiSwitchTabParams = {
@@ -140,6 +134,7 @@ export const MODEL_SEARCH_KINDS = [
   "image_to_image",
   "text_to_video",
   "image_to_video",
+  "video_to_video",
   "reference_to_video",
   "text_to_speech",
   "text_to_music",
@@ -201,7 +196,7 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
   },
   ui_connect_nodes: {
     description:
-      "Connect two nodes by port name. Required: `source_node_id`, `source_handle` (output name), `target_node_id`, `target_handle` (input/property name). On a Code node, any name the body reads as `inputs.<name>` or `stream(\"<name>\")` is already a target handle.",
+      'Connect two nodes by port name. Required: `source_node_id`, `source_handle` (output name), `target_node_id`, `target_handle` (input/property name). On a Code node, any name the body reads as `inputs.<name>` or `stream("<name>")` is already a target handle.',
     parameters: uiConnectNodesParams
   },
   ui_get_graph: {
@@ -215,13 +210,11 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
     parameters: uiUpdateNodeDataParams
   },
   ui_delete_node: {
-    description:
-      "Delete a node from the workflow graph. Required: `node_id`.",
+    description: "Delete a node from the workflow graph. Required: `node_id`.",
     parameters: uiDeleteNodeParams
   },
   ui_delete_edge: {
-    description:
-      "Delete an edge from the workflow graph. Required: `edge_id`.",
+    description: "Delete an edge from the workflow graph. Required: `edge_id`.",
     parameters: uiDeleteEdgeParams
   },
   ui_move_node: {
@@ -230,8 +223,7 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
     parameters: uiMoveNodeParams
   },
   ui_set_node_title: {
-    description:
-      "Set a node's display title. Required: `node_id`, `title`.",
+    description: "Set a node's display title. Required: `node_id`, `title`.",
     parameters: uiSetNodeTitleParams
   },
   ui_open_workflow: {

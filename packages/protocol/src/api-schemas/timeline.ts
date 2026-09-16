@@ -49,7 +49,30 @@ export const clipVersion = z.object({
   model: z.string().optional(),
   prompt: z.string().optional(),
   negativePrompt: z.string().optional(),
-  parentTakeId: z.string().optional()
+  parentTakeId: z.string().optional(),
+  mediaEdit: z
+    .object({
+      action: z.literal("video_edit"),
+      modelTask: z.literal("video_to_video"),
+      requestId: z.string(),
+      instruction: z.string(),
+      provider: z.string(),
+      model: z.string(),
+      sourceContext: z.object({
+        sequenceId: z.string(),
+        clipId: z.string(),
+        sourceAssetId: z.string(),
+        sourceTakeId: z.string().optional(),
+        sourceStartMs: z.number(),
+        sourceEndMs: z.number(),
+        timelineStartMs: z.number(),
+        timelineDurationMs: z.number(),
+        speedMultiplier: z.number()
+      }),
+      strength: z.number().optional(),
+      resolution: z.string().optional()
+    })
+    .optional()
 });
 export type ClipVersion = z.infer<typeof clipVersion>;
 

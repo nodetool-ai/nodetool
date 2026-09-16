@@ -1664,6 +1664,27 @@ export interface ClipVersion {
   negativePrompt?: string;
   /** The take this one was derived from, e.g. an extend or inpaint pass. */
   parentTakeId?: string;
+  mediaEdit?: {
+    action: "video_edit";
+    modelTask: "video_to_video";
+    requestId: string;
+    instruction: string;
+    provider: string;
+    model: string;
+    sourceContext: {
+      sequenceId: string;
+      clipId: string;
+      sourceAssetId: string;
+      sourceTakeId?: string;
+      sourceStartMs: number;
+      sourceEndMs: number;
+      timelineStartMs: number;
+      timelineDurationMs: number;
+      speedMultiplier: number;
+    };
+    strength?: number;
+    resolution?: string;
+  };
 }
 
 export interface TimelineMarker {
