@@ -38,6 +38,7 @@ export * from "./mediaTrack.js";
 export * from "./reframe.js";
 export * from "./takes.js";
 export * from "./generative.js";
+export * from "./production.js";
 export * from "./interchange.js";
 export * from "./snap.js";
 export * from "./beats.js";
