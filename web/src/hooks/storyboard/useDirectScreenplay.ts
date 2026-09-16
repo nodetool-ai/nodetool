@@ -33,7 +33,12 @@ import {
 } from "@nodetool-ai/protocol";
 import { rpcRequest } from "../../lib/websocket/rpcRequest";
 import type { FdxImport } from "../../lib/storyboard/parseFdx";
-import { directionFingerprint } from "./directionFingerprint";
+import {
+  directionFingerprint,
+  screenplayWithCreativeContext,
+  storyboardCreativeContextOf,
+  storyboardProductionOf
+} from "./directionFingerprint";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useEntities } from "../../serverState/useEntities";
 import {
@@ -141,6 +146,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
       // board rather than from the caller (PRD § 7.2, criterion 3).
       const genre = board?.genre ?? "";
       const shotCount = clampShotCount(requestedShots);
+      const creativeContext = storyboardCreativeContextOf(board?.screenplay);
 
       // What this run answers, recorded on the board when it lands. The genre
       // step reads it back to decide whether its button continues to the
@@ -149,9 +155,14 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
       const directedFrom = directionFingerprint({
         brief,
         genre,
-        shotCount: requestedShots,
+        shotCount,
         modelId: model.id,
-        importKind: imported?.kind ?? "none"
+        importKind: imported?.kind ?? "none",
+        style,
+        aspectRatio,
+        entityIds: board?.entityIds ?? [],
+        creativeContext,
+        production: storyboardProductionOf(board?.shots ?? [])
       });
 
       // The imported script is the board, not a copy kept beside it: the
@@ -183,7 +194,8 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
           const returned = applyCameraPass(preserved, answer.data);
           const verified = verifyImportedFdx(preserved, returned);
           const store = useStoryboardStore.getState();
-          const screenplay: Screenplay = {
+          const screenplay: Screenplay = screenplayWithCreativeContext(
+            {
             type: "screenplay",
             id: `fdx-${boardId}`,
             title: board?.title ?? "",
@@ -191,7 +203,9 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
             scenes: verified.scenes,
             genre,
             aspect_ratio: aspectRatio
-          };
+            },
+            creativeContext
+          );
           store.setScreenplay(boardId, screenplay);
           store.setSetup(boardId, { directedFrom });
           setImportNotice(boardId, {
@@ -228,9 +242,12 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
         // the same rule the Director node applies. The board keeps flowing
         // and the user can edit the beats; only a provider error throws.
         const fell = !parsed || parsed.shots.length === 0;
-        const screenplay = fell
+        const screenplay = screenplayWithCreativeContext(
+          fell
           ? fallbackScreenplay({ brief, style, shotCount, aspectRatio })
-          : parsed;
+          : parsed,
+          creativeContext
+        );
         // The review step names it as locally written, so nobody edits a
         // placeholder believing the Director wrote it (F9).
         setUsedFallback(fell);

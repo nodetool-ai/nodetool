@@ -38,6 +38,10 @@ import {
   useDirectedFrom,
   useSetupShotCount
 } from "./setupChoices";
+import {
+  storyboardCreativeContextOf,
+  storyboardProductionOf
+} from "../../../hooks/storyboard/directionFingerprint";
 
 /**
  * A board's stage, with the field's absence read as `done` — an old board has
@@ -113,6 +117,15 @@ export const useStoryboardSetupFlow = ({
   const genre = useStoryboardStore(
     (state) => state.boards[boardId]?.genre ?? ""
   );
+  const style = useStoryboardStore(
+    (state) => state.boards[boardId]?.style ?? ""
+  );
+  const aspectRatio = useStoryboardStore(
+    (state) => state.boards[boardId]?.aspectRatio ?? "16:9"
+  );
+  const screenplay = useStoryboardStore(
+    (state) => state.boards[boardId]?.screenplay
+  );
   const shots = useStoryboardStore((state) => state.boards[boardId]?.shots);
   const entityIds = useStoryboardStore(
     (state) => state.boards[boardId]?.entityIds ?? EMPTY_ENTITY_IDS
@@ -168,9 +181,25 @@ export const useStoryboardSetupFlow = ({
         genre,
         shotCount,
         modelId: directorModel?.id ?? "",
-        importKind: imported?.kind ?? "none"
+        importKind: imported?.kind ?? "none",
+        style,
+        aspectRatio,
+        entityIds,
+        creativeContext: storyboardCreativeContextOf(screenplay),
+        production: storyboardProductionOf(shots ?? [])
       }),
-    [brief, directorModel?.id, genre, imported?.kind, shotCount]
+    [
+      aspectRatio,
+      brief,
+      directorModel?.id,
+      entityIds,
+      genre,
+      imported?.kind,
+      screenplay,
+      shotCount,
+      shots,
+      style
+    ]
   );
   const upToDate = hasScreenplay && directedFrom === fingerprint;
 
