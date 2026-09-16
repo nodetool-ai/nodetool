@@ -1,5 +1,5 @@
 import type { ClipVersion, MediaTrack, TimelineClip } from "./types.js";
-import { activeTakeIdOf } from "./takes.js";
+import { activeTakeIdOf, ensureBaselineTake } from "./takes.js";
 import { sourceRate } from "./sourceRate.js";
 
 export interface MediaEditSourceContext {
@@ -460,24 +460,18 @@ export function composeGenerativeTakePatch(
   const activeTakeId = result.mediaEdit
     ? result.mediaEdit.sourceContext.sourceTakeId
     : activeTakeIdOf(clip);
-  const baselineId = sourceAssetId
-    ? (activeTakeId ?? `${clip.id}:baseline:${sourceAssetId}`)
-    : undefined;
-  const baseline: ClipVersion | undefined =
-    sourceAssetId &&
-    !existingVersions.some((version) => version.assetId === sourceAssetId)
-      ? {
-          id: baselineId ?? `${clip.id}:baseline:${sourceAssetId}`,
-          createdAt: result.createdAt,
-          jobId: "",
-          assetId: sourceAssetId,
-          workflowUpdatedAt: result.createdAt,
-          dependencyHash: clip.dependencyHash ?? "",
-          paramOverridesSnapshot: { ...(clip.paramOverrides ?? {}) },
-          status: "success",
-          source: clip.sourceType === "imported" ? "imported" : "generated"
-        }
-      : undefined;
+  const baselineCandidate =
+    sourceAssetId && !existingVersions.some((version) => version.assetId === sourceAssetId)
+      ? ensureBaselineTake(
+          { ...clip, currentAssetId: sourceAssetId },
+          result.createdAt
+        )
+      : clip;
+  const baseline = baselineCandidate.versions?.find(
+    (version) =>
+      version.assetId === sourceAssetId &&
+      !existingVersions.some((existing) => existing.id === version.id)
+  );
   const parentTakeId =
     activeTakeId ??
     existingVersions.find((version) => version.assetId === sourceAssetId)?.id ??

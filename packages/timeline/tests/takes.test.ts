@@ -4,9 +4,12 @@
 import { describe, expect, it } from "vitest";
 
 import { makeClip } from "../src/defaults.js";
+import { clipSourceMsAt } from "../src/timeRemap.js";
 import {
   activeTakeIdOf,
   deleteTake,
+  ensureBaselineTake,
+  previewTake,
   renameTake,
   selectTake
 } from "../src/takes.js";
@@ -200,5 +203,71 @@ describe("deleteTake", () => {
     const { clip: next, error } = deleteTake(clip, "take_2");
     expect(error).toBeTruthy();
     expect(next).toBe(clip);
+  });
+
+  it("adds an imported active asset as a baseline only once", () => {
+    const clip = makeClip({
+      id: "clip-1",
+      mediaType: "video",
+      sourceType: "imported",
+      currentAssetId: "asset-original",
+      versions: []
+    });
+
+    const withBaseline = ensureBaselineTake(clip, "2026-01-01T00:00:00.000Z");
+    expect(withBaseline.versions).toHaveLength(1);
+    expect(withBaseline.versions[0]).toMatchObject({
+      assetId: "asset-original",
+      source: "imported"
+    });
+    expect(ensureBaselineTake(withBaseline)).toBe(withBaseline);
+  });
+
+  it("maps a candidate to source zero while preserving clip-relative timing", () => {
+    const clip = makeClip({
+      id: "clip-1",
+      startMs: 10000,
+      durationMs: 4000,
+      inPointMs: 40000,
+      outPointMs: 44000,
+      mediaType: "video",
+      currentAssetId: "asset-original",
+      versions: [
+        {
+          id: "candidate",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          jobId: "job-1",
+          assetId: "asset-candidate",
+          workflowUpdatedAt: "2026-01-01T00:00:00.000Z",
+          dependencyHash: "",
+          paramOverridesSnapshot: {},
+          durationMs: 5000,
+          status: "success",
+          mediaEdit: {
+            action: "video_edit",
+            modelTask: "video_to_video",
+            requestId: "request-1",
+            instruction: "Make it warmer",
+            provider: "provider-a",
+            model: "edit-model",
+            sourceContext: {
+              sequenceId: "sequence-1",
+              clipId: "clip-1",
+              sourceAssetId: "asset-original",
+              sourceStartMs: 40000,
+              sourceEndMs: 44000,
+              timelineStartMs: 10000,
+              timelineDurationMs: 4000,
+              speedMultiplier: 1
+            }
+          }
+        }
+      ]
+    });
+
+    const candidate = previewTake(clip, "candidate");
+    expect(candidate?.currentAssetId).toBe("asset-candidate");
+    expect(clipSourceMsAt(clip, 11250)).toBe(41250);
+    expect(clipSourceMsAt(candidate!, 11250)).toBe(1250);
   });
 });

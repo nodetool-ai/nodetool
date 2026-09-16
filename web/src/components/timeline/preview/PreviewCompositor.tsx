@@ -19,6 +19,7 @@ import {
   clipSourceMsAt,
   computeModel3DBakeHash,
   hasTimeRemap,
+  previewTake,
   renderableReframe,
   resolveReframeCrop,
   sampleReframeAt
@@ -251,9 +252,27 @@ export const PreviewCompositor: React.FC = memo(() => {
   const selectedClipId = useTimelineUIStore((s) =>
     s.selectedClipIds.size === 1 ? [...s.selectedClipIds][0] : null
   );
+  const audition = useTimelineUIStore((s) => s.audition);
   // "Show matte": draw the selected clip's generated matte instead of the
   // frame it cuts, so the mask can be judged on its own.
   const matteViewEnabled = useTimelineUIStore((s) => s.matteViewEnabled);
+
+  /**
+   * Auditioning is a preview-only source substitution. Candidate outputs are
+   * window-relative, so their source clock starts at zero while the clip's
+   * timeline placement and duration remain unchanged.
+   */
+  const previewClips = useMemo(() => {
+    if (!audition) return clips;
+    const target = clips.find((clip) => clip.id === audition.clipId);
+    const preview = target && previewTake(target, audition.takeId);
+    if (!target || !preview) return clips;
+    return clips.map((clip) =>
+      clip.id === target.id
+        ? preview
+        : clip
+    );
+  }, [audition, clips]);
 
   // Collapses a whole gizmo drag (60-240 Hz `onChange`) into a single undo
   // entry instead of one per pointermove — see `onDragStart`/`onDragEnd` below.
@@ -496,7 +515,10 @@ export const PreviewCompositor: React.FC = memo(() => {
     setSceneTimeMs(reactiveTimeMs);
   }, [reactiveTimeMs, isPlaying]);
 
-  const clipById = useMemo(() => new Map(clips.map((c) => [c.id, c])), [clips]);
+  const clipById = useMemo(
+    () => new Map(previewClips.map((c) => [c.id, c])),
+    [previewClips]
+  );
 
   // Memoized preset→curve compilation for motion-design animations, so the
   // rAF loop only samples (never compiles). Invalidated internally when a
@@ -587,7 +609,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     (timeMs: number) => {
       const { layers, nextChangeMs } = computeActiveLayersWithHorizon(
         tracks,
-        clips,
+        previewClips,
         timeMs,
         {
           maxVideoLayers: HOT_POOL_SIZE,
@@ -600,6 +622,9 @@ export const PreviewCompositor: React.FC = memo(() => {
       let sig = "";
       for (const l of layers) {
         sig += `${l.kind}:${l.clipId}`;
+        if (l.kind === "video" || l.kind === "image") {
+          sig += `@${l.assetId ?? ""}`;
+        }
         if (l.kind === "caption" && l.caption) {
           sig += `#${l.caption.words.findIndex((w) => w.active)}`;
         }
@@ -607,7 +632,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       }
       return { signature: sig, nextChangeMs, layers };
     },
-    [tracks, clips, mediaTracks, sceneCanvas, model3dBakeHash]
+    [tracks, previewClips, mediaTracks, sceneCanvas, model3dBakeHash]
   );
 
   const { sceneLayers, precomposites, activeVideoSlots, placeholderLayers } =
@@ -617,7 +642,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       // precomposite, its cut, its shape mask, its track matte — is resolved
       // here once and read by `buildLayers` below.
       const { layers: composite, precomposites: groups } =
-        computeActiveLayersWithHorizon(tracks, clips, currentTimeMs, {
+        computeActiveLayersWithHorizon(tracks, previewClips, currentTimeMs, {
           maxVideoLayers: HOT_POOL_SIZE,
           canvas: sceneCanvas,
           animationCache: animCacheRef.current,
@@ -685,7 +710,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       };
     }, [
       tracks,
-      clips,
+      previewClips,
       mediaTracks,
       currentTimeMs,
       resolveUrl,
@@ -867,11 +892,12 @@ export const PreviewCompositor: React.FC = memo(() => {
         // call time, not effect-run time) so the loadedmetadata-deferred
         // path also gets a fresh value rather than a stale closure.
         const atMs = isPlaying ? getTimeMs() : currentTimeMs;
-        const targetSec = !clip
+        const rawTargetSec = !clip
           ? 0
           : slot.baked
             ? bakedClipSourceTimeSec(clip, atMs)
             : clipSourceTimeSec(clip, atMs);
+        const targetSec = rawTargetSec;
         // A remapped element never runs on its own clock, so its position is
         // always wrong by more than a playing element's tolerance would allow.
         const toleranceSec = isPlaying && !remapped ? 0.15 : 0.04;
@@ -924,7 +950,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     // Preload upcoming clips into cold pool slots. Sorted soonest-first so
     // that with more than COLD_POOL_SIZE upcoming clips, the ones closest to
     // the playhead win the slots (array order is otherwise arbitrary).
-    const upcomingVideoClips = clips
+    const upcomingVideoClips = previewClips
       .filter(
         (c) =>
           (c.mediaType === "video" || c.mediaType === "overlay") &&
@@ -951,7 +977,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     currentTimeMs,
     isPlaying,
     getTimeMs,
-    clips,
+    previewClips,
     clipById,
     resolveUrl,
     // Not read directly — bumped every 2s during playback purely to
@@ -1009,7 +1035,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       // model rather than sampled here — so while one is running the scene is
       // re-derived at the drawn time instead of reused from the last boundary.
       const recomputed = sceneRequiresPerFrameResolution(sceneLayers)
-        ? computeActiveLayers(tracks, clips, atMs, {
+        ? computeActiveLayers(tracks, previewClips, atMs, {
             maxVideoLayers: HOT_POOL_SIZE,
             canvas: sceneCanvas,
             animationCache: cache,
@@ -1113,14 +1139,14 @@ export const PreviewCompositor: React.FC = memo(() => {
         atMs,
         canvas: sceneCanvas,
         animationCache: cache,
-        tracking: { mediaTracks, clips },
+        tracking: { mediaTracks, clips: previewClips },
         resolveSource
       });
     },
     [
       sceneLayers,
       tracks,
-      clips,
+      previewClips,
       mediaTracks,
       ensureImageElement,
       resolveUrl,
@@ -1201,8 +1227,8 @@ export const PreviewCompositor: React.FC = memo(() => {
   // change) can detect a document mutation without re-subscribing.
   const latestTracksRef = useRef(tracks);
   latestTracksRef.current = tracks;
-  const latestClipsRef = useRef(clips);
-  latestClipsRef.current = clips;
+  const latestClipsRef = useRef(previewClips);
+  latestClipsRef.current = previewClips;
   const clipByIdRef = useRef(clipById);
   clipByIdRef.current = clipById;
 
@@ -1210,7 +1236,7 @@ export const PreviewCompositor: React.FC = memo(() => {
   // identities and playhead position the last signature+horizon computation
   // used, so steady-state frames can skip recomputing it entirely.
   const lastComputeTracksRef = useRef(tracks);
-  const lastComputeClipsRef = useRef(clips);
+  const lastComputeClipsRef = useRef(previewClips);
   const lastLiveMsRef = useRef(0);
   const lastNextChangeMsRef = useRef(Number.NEGATIVE_INFINITY);
 

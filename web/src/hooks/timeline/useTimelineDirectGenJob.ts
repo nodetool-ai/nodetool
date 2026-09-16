@@ -20,6 +20,7 @@ import {
   captureMediaEditSourceContext,
   composeGenerativeTakePatch,
   createMediaEditRequest,
+  ensureBaselineTake,
   makeClipVersion
 } from "@nodetool-ai/timeline";
 import type { MediaEditRequest, TimelineClip } from "@nodetool-ai/timeline";
@@ -609,9 +610,18 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
       ) {
         return null;
       }
+      const baseline = ensureBaselineTake(clip);
+      if (baseline !== clip) {
+        timeline.getState().patchClip(input.clipId, {
+          versions: baseline.versions,
+          activeTakeId: baseline.activeTakeId
+        });
+      }
+      const editSource = captureMediaEditSourceContext(sequenceId, baseline);
+      if (!editSource.ok) return null;
       const requestId = crypto.randomUUID();
       const request = createMediaEditRequest({
-        sourceContext: source.context,
+        sourceContext: editSource.context,
         instruction: input.instruction.trim(),
         provider: input.provider,
         model: input.model,
@@ -629,17 +639,17 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         timeline_duration_ms: number;
         speed_multiplier: number;
       } = {
-        sequence_id: source.context.sequenceId,
-        clip_id: source.context.clipId,
-        source_asset_id: source.context.sourceAssetId,
-        source_start_ms: source.context.sourceStartMs,
-        source_end_ms: source.context.sourceEndMs,
-        timeline_start_ms: source.context.timelineStartMs,
-        timeline_duration_ms: source.context.timelineDurationMs,
-        speed_multiplier: source.context.speedMultiplier
+        sequence_id: editSource.context.sequenceId,
+        clip_id: editSource.context.clipId,
+        source_asset_id: editSource.context.sourceAssetId,
+        source_start_ms: editSource.context.sourceStartMs,
+        source_end_ms: editSource.context.sourceEndMs,
+        timeline_start_ms: editSource.context.timelineStartMs,
+        timeline_duration_ms: editSource.context.timelineDurationMs,
+        speed_multiplier: editSource.context.speedMultiplier
       };
-      if (source.context.sourceTakeId !== undefined) {
-        sourceContext.source_take_id = source.context.sourceTakeId;
+      if (editSource.context.sourceTakeId !== undefined) {
+        sourceContext.source_take_id = editSource.context.sourceTakeId;
       }
       subscribeDirectGen(
         timeline,
@@ -665,11 +675,11 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
             provider: input.provider,
             model: input.model,
             prompt: request.instruction,
-            source_asset_id: source.context.sourceAssetId,
+            source_asset_id: editSource.context.sourceAssetId,
             source_context: sourceContext,
             strength: request.strength,
             resolution: request.resolution,
-            duration: Math.round(source.context.timelineDurationMs / 1000),
+            duration: Math.round(editSource.context.timelineDurationMs / 1000),
             variations: 1
           }
         });

@@ -5,6 +5,7 @@
  * take; `clip.versions` is the take list.
  */
 
+import { makeClipVersion } from "./defaults.js";
 import type { TimelineClip } from "./types.js";
 
 /**
@@ -24,6 +25,60 @@ export function activeTakeIdOf(clip: TimelineClip): string | undefined {
     if (match) return match.id;
   }
   return clip.activeTakeId;
+}
+
+/**
+ * Record the clip's accepted asset as a take before an edit is submitted.
+ * Imported clips commonly have no version history, so the first candidate
+ * would otherwise have no explicit Original take to audition against.
+ */
+export function ensureBaselineTake(
+  clip: TimelineClip,
+  createdAt = new Date().toISOString()
+): TimelineClip {
+  const assetId = clip.currentAssetId;
+  if (!assetId || (clip.versions ?? []).some((take) => take.assetId === assetId)) {
+    return clip;
+  }
+
+  const baseline = makeClipVersion({
+    id: `${clip.id}:baseline:${assetId}`,
+    createdAt,
+    workflowUpdatedAt: createdAt,
+    assetId,
+    dependencyHash: clip.dependencyHash ?? "",
+    paramOverridesSnapshot: { ...(clip.paramOverrides ?? {}) },
+    source: clip.sourceType === "imported" ? "imported" : "generated"
+  });
+  return {
+    ...clip,
+    versions: [...(clip.versions ?? []), baseline],
+    activeTakeId: baseline.id
+  };
+}
+
+/** Return a preview-only clip projection for a successful take. */
+export function previewTake(
+  clip: TimelineClip,
+  takeId: string
+): TimelineClip | null {
+  const take = (clip.versions ?? []).find(
+    (candidate) => candidate.id === takeId && candidate.status === "success"
+  );
+  if (!take) return null;
+  if (!take.mediaEdit) {
+    return { ...clip, currentAssetId: take.assetId };
+  }
+  return {
+    ...clip,
+    currentAssetId: take.assetId,
+    // Generated edit results represent the selected source window from zero.
+    inPointMs: 0,
+    outPointMs: take.durationMs ?? clip.durationMs,
+    speedMultiplier: 1,
+    speedBaked: true,
+    timeRemap: undefined
+  };
 }
 
 /**
@@ -59,7 +114,16 @@ export function selectTake(clip: TimelineClip, takeId: string): TimelineClip {
     activeTakeId: version.id,
     paramOverrides: version.paramOverridesSnapshot,
     lastGeneratedHash: restoredHash,
-    status
+    status,
+    ...(version.mediaEdit
+      ? {
+          inPointMs: 0,
+          outPointMs: version.durationMs ?? clip.durationMs,
+          speedMultiplier: 1,
+          speedBaked: true,
+          timeRemap: undefined
+        }
+      : {})
   };
 }
 
