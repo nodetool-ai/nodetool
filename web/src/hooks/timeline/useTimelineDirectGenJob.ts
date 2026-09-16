@@ -64,6 +64,7 @@ interface UseTimelineDirectGenJobApi {
     resolution?: string;
   }) => Promise<string | null>;
   cancel: (clipId: string) => void;
+  cancelEdit: (clipId: string) => void;
 }
 
 // Module-level so cancel() can tear down an in-flight subscription started by
@@ -311,7 +312,17 @@ export function landMediaEdit(
     assetIds: assetId ? [assetId] : [],
     finishedAt: Date.now()
   });
-  if (!claimed || !assetId) return;
+  if (!claimed) return;
+  if (!assetId) {
+    useDirectGenPendingStore
+      .getState()
+      .markEditFailure(
+        destinationSequenceId,
+        request.sourceContext.clipId,
+        "The video edit failed before producing a candidate."
+      );
+    return;
+  }
   // `sequenceId` is retained for callers that still pass the captured
   // destination separately. The request snapshot is authoritative, and the
   // explicit comparison prevents a stale adapter from redirecting a result.
@@ -419,6 +430,13 @@ export function subscribeDirectGen(
               status: "expired",
               assetIds: []
             });
+            useDirectGenPendingStore
+              .getState()
+              .markEditFailure(
+                mediaEdit.sourceContext.sequenceId,
+                mediaEdit.sourceContext.clipId,
+                "The video edit expired before producing a candidate."
+              );
           } else {
             useDirectGenPendingStore.getState().settle(sequenceId, clipId);
           }
@@ -803,6 +821,13 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         return requestId;
       } catch {
         clearInFlight(sequenceId, input.clipId, requestId);
+        useDirectGenPendingStore
+          .getState()
+          .markEditFailure(
+            sequenceId,
+            input.clipId,
+            "The edit could not be submitted. Check the connection and try again."
+          );
         useDirectGenPendingStore.getState().settleEdit({
           sequenceId: request.sourceContext.sequenceId,
           clipId: request.sourceContext.clipId,
@@ -858,5 +883,15 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
     [timeline]
   );
 
-  return { start, startEdit, cancel };
+  const cancelEdit = useCallback(
+    (clipId: string) => {
+      const sequenceId = timeline.getState().sequenceId;
+      if (!sequenceId) return;
+      useDirectGenPendingStore.getState().clearEditFailure(sequenceId, clipId);
+      cancel(clipId);
+    },
+    [cancel, timeline]
+  );
+
+  return { start, startEdit, cancel, cancelEdit };
 }

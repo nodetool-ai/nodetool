@@ -10,7 +10,7 @@
  * rather than going missing quietly.
  */
 
-import type { Screenplay, Shot } from "@nodetool-ai/protocol";
+import type { CreativeContext, Screenplay, Shot } from "@nodetool-ai/protocol";
 import type { StoryboardSetupStage } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 
 export interface StoryboardDocument {
@@ -18,6 +18,7 @@ export interface StoryboardDocument {
   shots: Shot[];
   brief: string;
   style: string;
+  creative_context?: CreativeContext;
   /** Library entity (asset) ids applied to the board's shot prompts. */
   entityIds: string[];
   aspectRatio: string;

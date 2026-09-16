@@ -9,16 +9,26 @@
  * before this flow existed (D3, criterion 2).
  */
 
-import { createElement, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  createElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState
+} from "react";
 import type { TimelineSetupStage } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { usePlanBeats } from "../../../hooks/timeline/usePlanBeats";
+import {
+  usePlanBeats,
+  videoPlanFingerprint
+} from "../../../hooks/timeline/usePlanBeats";
 import type { SetupFlowConfig, SetupStep } from "../types";
 import type {
   VideoSetupContext,
   VideoSetupReference
 } from "./setupContext";
+import { useVideoSetupContext } from "./setupContext";
 
 export type { VideoSetupContext, VideoSetupReference } from "./setupContext";
 import { FormatStep } from "./FormatStep";
@@ -56,12 +66,34 @@ export const newVideoSetupDocument = (
   const carried: {
     references?: VideoSetupReference[];
     entityIds?: string[];
+    creative_context?: VideoSetupContext["creativeContext"];
   } = {};
   if (context.references && context.references.length > 0) {
     carried.references = [...context.references];
   }
   if (context.entityIds && context.entityIds.length > 0) {
     carried.entityIds = [...context.entityIds];
+  }
+  if (context.creativeContext) {
+    const creativeContext: NonNullable<VideoSetupContext["creativeContext"]> = {
+      ...context.creativeContext
+    };
+    if (context.creativeContext.approved_claims) {
+      creativeContext.approved_claims = [
+        ...context.creativeContext.approved_claims
+      ];
+    }
+    if (context.creativeContext.prohibited_claims) {
+      creativeContext.prohibited_claims = [
+        ...context.creativeContext.prohibited_claims
+      ];
+    }
+    if (context.creativeContext.reference_bindings) {
+      creativeContext.reference_bindings = [
+        ...context.creativeContext.reference_bindings
+      ];
+    }
+    carried.creative_context = creativeContext;
   }
   return {
     tracks: [],
@@ -79,9 +111,6 @@ const FLOW_LABELS = { title: "Video" } as const;
  * and format produce the same kind of plan, so this is the whole test for
  * whether the plan on the document still answers the current inputs (F15).
  */
-const planInputsKey = (brief: string, formatId: string | undefined): string =>
-  `${formatId ?? ""}\u0000${brief.trim()}`;
-
 export interface VideoSetupFlowOptions {
   /** Runs after the last step writes stage `done` — the host opens the cut. */
   onFinish?: () => void;
@@ -101,6 +130,10 @@ export const useVideoSetupFlow = ({
   const setSetup = useTimelineStore((state) => state.setSetup);
   const brief = useTimelineStore((state) => state.setup?.brief ?? "");
   const formatId = useTimelineStore((state) => state.setup?.format);
+  const persistedPlanFingerprint = useTimelineStore(
+    (state) => state.setup?.["planFingerprint"]
+  );
+  const clips = useTimelineStore((state) => state.clips);
   const beats = useTimelineStore((state) => state.setup?.beats);
   const updateBeat = useTimelineStore((state) => state.updateBeat);
   const { plan, planning } = usePlanBeats();
@@ -120,23 +153,52 @@ export const useVideoSetupFlow = ({
   const musicOn = musicChoice ?? (beats ?? []).some((beat) => beat.music);
   const look = useLookStep({ voiceOn, musicOn });
 
-  // What the plan on the document was drafted from. A plan that arrives with
-  // the document was drafted from the brief and format it arrived with, so the
-  // first sighting is recorded as its inputs; a plan this hook drafted records
-  // the inputs it ran on.
-  const inputsKey = planInputsKey(brief, formatId);
+  const { references, entityIds, creativeContext } = useVideoSetupContext();
+  const planContext = useMemo(
+    () => ({
+      references,
+      entityIds,
+      creativeContext,
+      clips: clips
+        .filter(
+          (clip) =>
+            clip.sourceType === "imported" &&
+            (clip.mediaType === "video" || clip.mediaType === "image")
+        )
+        .slice()
+        .sort((left, right) => left.startMs - right.startMs)
+        .map((clip) => clip.name)
+    }),
+    [clips, creativeContext, entityIds, references]
+  );
+  // The persisted fingerprint is the source of truth after reload. A missing
+  // value is treated as current for legacy plans, preserving their old flow.
+  const inputsKey = videoPlanFingerprint({
+    brief,
+    formatId,
+    modelId: director.model?.id ?? "",
+    context: planContext
+  });
   const hasPlan = (beats?.length ?? 0) > 0;
-  const [plannedInputs, setPlannedInputs] = useState<string | null>(null);
+  // Older plans have no persisted fingerprint. Keep the old flow's
+  // in-session baseline so edits still require an explicit re-plan, while a
+  // reload of an old document remains eligible to continue as before.
+  const [legacyPlanInputs, setLegacyPlanInputs] = useState<string | null>(
+    null
+  );
   useEffect(() => {
-    setPlannedInputs((previous) =>
+    if (typeof persistedPlanFingerprint === "string") {
+      return;
+    }
+    setLegacyPlanInputs((previous) =>
       hasPlan ? (previous ?? inputsKey) : null
     );
-  }, [hasPlan, inputsKey]);
-  // Before the first sighting is recorded there is nothing to compare against,
-  // and the inputs cannot have changed since a render ago, so an unrecorded
-  // plan counts as current.
+  }, [hasPlan, inputsKey, persistedPlanFingerprint]);
   const planIsCurrent =
-    hasPlan && (plannedInputs === null || plannedInputs === inputsKey);
+    hasPlan &&
+    (typeof persistedPlanFingerprint === "string"
+      ? persistedPlanFingerprint === inputsKey
+      : legacyPlanInputs === null || legacyPlanInputs === inputsKey);
 
   // Switching Voiceover is a decision about the output, so it is written down
   // as one. A cut that comes out silent is then the creator's word rather than
@@ -182,8 +244,7 @@ export const useVideoSetupFlow = ({
     // the composer's references and entities, and any clips the creator
     // dropped on step 1 (F4, F10, PRD § 8.1).
     await plan({ replan: hasPlan });
-    setPlannedInputs(inputsKey);
-  }, [hasPlan, inputsKey, plan]);
+  }, [hasPlan, plan]);
 
   const replan = useCallback(() => {
     // The review's own `Re-plan` runs outside the shell's primary button, so a

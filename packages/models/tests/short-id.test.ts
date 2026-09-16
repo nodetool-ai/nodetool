@@ -50,6 +50,7 @@ describe("DBModel.get with a short resource id", () => {
 
   it("does not prefix-match a key that is not the short form", async () => {
     const wf = await Workflow.create<Workflow>({
+      id: "abcdef0123456789abcdef0123456789",
       user_id: "u1",
       name: "wf",
       graph: { nodes: [], edges: [] }

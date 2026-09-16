@@ -87,7 +87,8 @@ describe("AIEditClipPanel", () => {
     useDirectGenPendingStore.setState({
       pending: {},
       durationSamples: {},
-      editSettlements: {}
+      editSettlements: {},
+      editFailures: {}
     });
   });
 

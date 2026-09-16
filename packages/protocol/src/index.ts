@@ -48,6 +48,7 @@ export * from "./resource-id.js";
 export * from "./game-assets.js";
 export * from "./game-slot-prompt.js";
 export * from "./asset-generation.js";
+export * from "./production-authoring.js";
 export {
   type Platform,
   type NodeEffect,

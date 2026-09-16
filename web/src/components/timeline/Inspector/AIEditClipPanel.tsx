@@ -109,6 +109,9 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
       )
       .sort((a, b) => b.settledAt - a.settledAt)[0];
   });
+  const editFailure = useDirectGenPendingStore((state) =>
+    sequenceId ? state.editFailures[sequenceId]?.[clipId] : undefined
+  );
   const [instruction, setInstruction] = useState("");
   const [selectedModel, setSelectedModel] = useState<VideoModelValue | null>(
     null
@@ -211,7 +214,8 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
   const settledStatus = latestSettlement?.status;
   const failed =
     submissionFailed ||
-    (settledStatus !== undefined && settledStatus !== "completed");
+    (settledStatus !== undefined && settledStatus !== "completed") ||
+    editFailure !== undefined;
   const noCompatibleModel =
     !isLoading && !error && availableModels.length === 0;
   const modelOptionsReady = Boolean(selectedModel && catalogModel);
@@ -360,7 +364,8 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
             )}
             {failed && (
               <Caption color="error" sx={{ textAlign: "center" }}>
-                The edit failed. Update the instruction or model and retry.
+                {editFailure ??
+                  "The edit failed. Update the instruction or model and retry."}
               </Caption>
             )}
             {active && (

@@ -3,7 +3,7 @@
 **Status:** Draft
 **Baseline:** `main` at `1d16ec8`
 **Tasks:** [tasks.md](tasks.md)
-**Related:** [AI Timeline Editing](../ai-timeline-editing.md), [Video Editor](../video-editor.md), [Media Generation Tracking](../media-generation-tracking-design.md), [Timeline Editor PRD](../timeline-editor-prd.md)
+**Related:** [AI Timeline Editing](../ai-timeline-editing.md), [Video Editor](../video-editor.md), [Media Generation Tracking](../media-generation-tracking-design.md), `docs/timeline-editor-prd.md`
 
 ## 1. Summary
 
@@ -163,6 +163,12 @@ P0 covers timeline clips and storyboard shots only.
 **New take** and **Edit video** never share a label. Imported footage offers
 **Edit video**, but does not offer **New take** unless NodeTool has an explicit
 reproducible generation recipe.
+
+The initial reference-conditioned production route and the production-flow
+definition of **New take** are specified in the AI Video Production PRD
+(`docs/creation-flows/ai-video-production-prd.md`).
+This document owns the independently shippable P0 **Edit video** path,
+including its source-window rules and candidate application semantics.
 
 ## 7. P0 requirements: Edit video
 
