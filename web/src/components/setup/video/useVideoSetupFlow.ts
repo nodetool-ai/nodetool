@@ -9,13 +9,7 @@
  * before this flow existed (D3, criterion 2).
  */
 
-import {
-  createElement,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState
-} from "react";
+import { createElement, useCallback, useMemo, useState } from "react";
 import type { TimelineSetupStage } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -24,10 +18,7 @@ import {
   videoPlanFingerprint
 } from "../../../hooks/timeline/usePlanBeats";
 import type { SetupFlowConfig, SetupStep } from "../types";
-import type {
-  VideoSetupContext,
-  VideoSetupReference
-} from "./setupContext";
+import type { VideoSetupContext, VideoSetupReference } from "./setupContext";
 import { useVideoSetupContext } from "./setupContext";
 
 export type { VideoSetupContext, VideoSetupReference } from "./setupContext";
@@ -37,6 +28,12 @@ import { LookStep, useLookStep } from "./LookStep";
 import { ReviewStep } from "./ReviewStep";
 import { videoFormatById } from "./formats";
 import { toLanguageModelValue, useDirectorModel } from "./directorModel";
+import {
+  productionAuthoringBlocker,
+  productionGenerationBlocker,
+  productionReviewFingerprint,
+  REVIEW_REQUIRED
+} from "./productionAuthoring";
 
 /**
  * A sequence's stage, with the field's absence read as `done` — an old
@@ -127,11 +124,16 @@ export const useVideoSetupFlow = ({
   onStartFromScript
 }: VideoSetupFlowOptions = {}): SetupFlowConfig<TimelineSetupStage> => {
   const stage = useVideoSetupStage();
+  const [reviewError, setReviewError] = useState<string>();
+  const [contextError, setContextError] = useState<string>();
   const setSetup = useTimelineStore((state) => state.setSetup);
   const brief = useTimelineStore((state) => state.setup?.brief ?? "");
   const formatId = useTimelineStore((state) => state.setup?.format);
   const persistedPlanFingerprint = useTimelineStore(
     (state) => state.setup?.["planFingerprint"]
+  );
+  const reviewedProduction = useTimelineStore(
+    (state) => state.setup?.["production_review_fingerprint"]
   );
   const clips = useTimelineStore((state) => state.clips);
   const beats = useTimelineStore((state) => state.setup?.beats);
@@ -180,20 +182,28 @@ export const useVideoSetupFlow = ({
     context: planContext
   });
   const hasPlan = (beats?.length ?? 0) > 0;
+  const reviewKey = productionReviewFingerprint({ inputsKey, beats });
+  const hasProductionContext =
+    creativeContext !== undefined ||
+    (beats ?? []).some((beat) => beat.production !== undefined);
+  const productionBlocker =
+    hasProductionContext && reviewedProduction !== reviewKey
+      ? REVIEW_REQUIRED
+      : productionGenerationBlocker(
+          beats ?? [],
+          (creativeContext?.reference_bindings?.length ?? 0) > 0
+        );
   // Older plans have no persisted fingerprint. Keep the old flow's
   // in-session baseline so edits still require an explicit re-plan, while a
   // reload of an old document remains eligible to continue as before.
-  const [legacyPlanInputs, setLegacyPlanInputs] = useState<string | null>(
-    null
-  );
-  useEffect(() => {
-    if (typeof persistedPlanFingerprint === "string") {
-      return;
+  const [legacyPlanInputs, setLegacyPlanInputs] = useState<string | null>(null);
+  if (typeof persistedPlanFingerprint !== "string") {
+    if (hasPlan && legacyPlanInputs === null) {
+      setLegacyPlanInputs(inputsKey);
+    } else if (!hasPlan && legacyPlanInputs !== null) {
+      setLegacyPlanInputs(null);
     }
-    setLegacyPlanInputs((previous) =>
-      hasPlan ? (previous ?? inputsKey) : null
-    );
-  }, [hasPlan, inputsKey, persistedPlanFingerprint]);
+  }
   const planIsCurrent =
     hasPlan &&
     (typeof persistedPlanFingerprint === "string"
@@ -266,14 +276,16 @@ export const useVideoSetupFlow = ({
         stage: "idea",
         label: "Idea",
         primaryLabel: "Continue",
-        canAdvance: brief.trim().length > 0,
-        blockedReason: "Describe the video, or bring your own media",
+        canAdvance: brief.trim().length > 0 && !contextError,
+        blockedReason:
+          contextError ?? "Describe the video, or bring your own media",
         render: () =>
           createElement(IdeaStep, {
             // The blank escape hatch and the last step land in the same place:
             // stage `done` and the timeline (PRD § 8.1).
             onStartBlank: finish,
-            onStartFromScript: onStartFromScript ? startFromScript : undefined
+            onStartFromScript: onStartFromScript ? startFromScript : undefined,
+            onValidationChange: setContextError
           })
       },
       {
@@ -320,10 +332,17 @@ export const useVideoSetupFlow = ({
         stage: "review",
         label: "Beats",
         primaryLabel: "Continue to look",
-        canAdvance: hasPlan && emptyBeats === 0,
-        blockedReason: hasPlan
-          ? `Fill in ${emptyBeats} beat${emptyBeats === 1 ? "" : "s"}: every beat needs a description and a length`
-          : "Plan the beats first — there is nothing to review yet",
+        canAdvance:
+          hasPlan &&
+          emptyBeats === 0 &&
+          !reviewError &&
+          !productionAuthoringBlocker(beats ?? []),
+        blockedReason:
+          reviewError ??
+          productionAuthoringBlocker(beats ?? []) ??
+          (hasPlan
+            ? `Fill in ${emptyBeats} beat${emptyBeats === 1 ? "" : "s"}: every beat needs a description and a length`
+            : "Plan the beats first — there is nothing to review yet"),
         // `Re-plan` runs outside the shell's primary button, so the shell has
         // to read its wait: the creator cannot leave the plan while the plan
         // is being rewritten under them (F2).
@@ -332,15 +351,19 @@ export const useVideoSetupFlow = ({
         render: () =>
           createElement(ReviewStep, {
             onReplan: replan,
-            replanPending: planning
-          })
+            replanPending: planning,
+            onValidationChange: setReviewError
+          }),
+        onAdvance: () => {
+          setSetup({ production_review_fingerprint: reviewKey });
+        }
       },
       {
         stage: "look",
         label: "Look",
         primaryLabel: "Generate your video",
-        canAdvance: look.canAdvance,
-        blockedReason: look.blockedReason,
+        canAdvance: !productionBlocker && look.canAdvance,
+        blockedReason: productionBlocker ?? look.blockedReason,
         primaryDetail: look.primaryDetail,
         render: () =>
           createElement(LookStep, {
@@ -353,6 +376,9 @@ export const useVideoSetupFlow = ({
         // `generate` writes the terminal stage itself, before it enqueues
         // anything (D3); the host opens the timeline once the jobs are away.
         onAdvance: async () => {
+          if (productionBlocker) {
+            throw new Error(productionBlocker);
+          }
           await look.generate();
           onFinish?.();
         }
@@ -360,7 +386,9 @@ export const useVideoSetupFlow = ({
     ],
     [
       brief,
+      beats,
       director.model,
+      contextError,
       emptyBeats,
       finish,
       formatId,
@@ -373,6 +401,10 @@ export const useVideoSetupFlow = ({
       onStartFromScript,
       planIsCurrent,
       planning,
+      productionBlocker,
+      reviewKey,
+      reviewError,
+      setSetup,
       replan,
       runPlan,
       startFromScript,

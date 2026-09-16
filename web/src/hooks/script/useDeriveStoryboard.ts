@@ -20,6 +20,7 @@ import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { newDocumentId } from "../../lib/newDocumentId";
 import { writeScriptStoryboardId } from "../../lib/scriptStoryboardBackpointer";
+import { readScriptSetupContext } from "../../components/setup/script/scriptSetupContext";
 import {
   boardLinkIssues,
   scaffoldShots,
@@ -70,6 +71,7 @@ export const useDeriveStoryboard = (): UseDeriveStoryboardResult => {
       try {
         const boardId = newDocumentId();
         const shots = scaffoldShots(script, () => crypto.randomUUID());
+        const setupContext = readScriptSetupContext(script.setup);
         if (shots.length === 0) {
           throw new Error(
             "This script has no lines with text — write a line before deriving a storyboard."
@@ -90,7 +92,10 @@ export const useDeriveStoryboard = (): UseDeriveStoryboardResult => {
           title: name,
           brief: "",
           style: "",
-          entityIds: [],
+          ...(script.creativeContext
+            ? { creativeContext: script.creativeContext }
+            : {}),
+          entityIds: setupContext.entityIds,
           aspectRatio: "16:9",
           setupStage: "done",
           genre: "",
@@ -126,6 +131,9 @@ export const useDeriveStoryboard = (): UseDeriveStoryboardResult => {
           imageModel: board.imageModel,
           videoModel: board.videoModel
         } as unknown as StoryboardWireDocument;
+        if (board.creativeContext) {
+          document.creative_context = board.creativeContext;
+        }
         await trpcClient.storyboards.create.mutate({
           id: boardId,
           name,

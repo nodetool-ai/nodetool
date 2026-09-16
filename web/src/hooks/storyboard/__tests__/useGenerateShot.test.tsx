@@ -59,9 +59,7 @@ import {
   keyframePrompt
 } from "@nodetool-ai/protocol";
 import type { Entity, Scene, Shot } from "@nodetool-ai/protocol";
-import {
-  mediaEditGenerateMediaData
-} from "@nodetool-ai/timeline";
+import { mediaEditGenerateMediaData } from "@nodetool-ai/timeline";
 
 const BOARD = "board-sf";
 const shot: Shot = {
@@ -168,6 +166,78 @@ describe("mixed-mode clip generation", () => {
   });
 });
 
+describe("production clip generation", () => {
+  it("dispatches one stable request per take with resolved reference asset ids", async () => {
+    const productionShot: Shot = {
+      ...shot,
+      id: "shot-production",
+      render_mode: "direct",
+      production: {
+        schema_version: 1,
+        speech_mode: "none",
+        reference_bindings: [
+          { kind: "product", asset_id: "product-reference" }
+        ],
+        requested_take_count: 3
+      }
+    };
+    useStoryboardStore.getState().setEntityIds(BOARD, [location.id]);
+    useStoryboardStore.getState().upsertShot(BOARD, productionShot);
+    mockEntities.push(location);
+    const { result } = renderHook(() => useGenerateShot());
+
+    await act(async () => {
+      await result.current.generateClip(BOARD, productionShot);
+    });
+
+    expect(send).toHaveBeenCalledTimes(3);
+    const frames = send.mock.calls.map(
+      (call) =>
+        call[0] as {
+          request_id: string;
+          data: Record<string, unknown>;
+        }
+    );
+    expect(new Set(frames.map((frame) => frame.request_id)).size).toBe(3);
+    expect(
+      frames.map(
+        (frame) =>
+          useStoryboardGenerationStore.getState().productionJobs[
+            frame.request_id
+          ]?.production?.identity.variationIndex
+      )
+    ).toEqual([1, 2, 3]);
+    for (const frame of frames) {
+      expect(frame.data).toMatchObject({
+        capability: "reference_to_video",
+        reference_images: [{ type: "image", asset_id: "product-reference" }]
+      });
+    }
+  });
+
+  it("rejects unsupported on-camera performance without dispatching imagery", async () => {
+    const performanceShot: Shot = {
+      ...shot,
+      id: "shot-performance",
+      render_mode: "direct",
+      production: {
+        schema_version: 1,
+        speech_mode: "on_camera",
+        speech_binding: { audio_asset_id: "speech-1" },
+        reference_bindings: [{ kind: "character", asset_id: "character-1" }],
+        requested_take_count: 1
+      }
+    };
+    useStoryboardStore.getState().upsertShot(BOARD, performanceShot);
+    const { result } = renderHook(() => useGenerateShot());
+
+    await expect(
+      act(() => result.current.generateClip(BOARD, performanceShot))
+    ).rejects.toThrow(/does not support audio-driven/i);
+    expect(send).not.toHaveBeenCalled();
+  });
+});
+
 it("reuses the model remembered on a shot when regenerating", async () => {
   const model = {
     id: "atlas/still-v1",
@@ -265,9 +335,8 @@ it("keeps an active ordinary render when an invalid revise arrives", async () =>
     await result.current.generateClip(BOARD, activeShot);
   });
 
-  const originalJob = useStoryboardGenerationStore.getState().shotJobs[
-    activeShot.id
-  ];
+  const originalJob =
+    useStoryboardGenerationStore.getState().shotJobs[activeShot.id];
   expect(originalJob?.status).toBe("running");
 
   await act(async () => {
@@ -454,11 +523,7 @@ describe("clip generation on a script-linked board", () => {
     mockVideoModels.push({
       id: "vid-1",
       provider: "vprov",
-      supported_tasks: [
-        "image_to_video",
-        "text_to_video",
-        "video_to_video"
-      ]
+      supported_tasks: ["image_to_video", "text_to_video", "video_to_video"]
     });
   });
 
@@ -625,9 +690,8 @@ describe("clip generation on a script-linked board", () => {
     await act(async () => {
       await result.current.generateKeyframe(LINKED, revised);
     });
-    const ordinaryJob = useStoryboardGenerationStore.getState().shotJobs[
-      revised.id
-    ];
+    const ordinaryJob =
+      useStoryboardGenerationStore.getState().shotJobs[revised.id];
     expect(ordinaryJob?.status).toBe("running");
 
     resolveDuration(script(true));
@@ -717,8 +781,9 @@ describe("clip generation on a script-linked board", () => {
     const job = useStoryboardGenerationStore.getState().shotJobs[revised.id];
     const request = useStoryboardGenerationStore
       .getState()
-      .pendingJobs[LINKED]?.find((entry) => entry.shotId === revised.id)
-      ?.mediaEdit;
+      .pendingJobs[
+        LINKED
+      ]?.find((entry) => entry.shotId === revised.id)?.mediaEdit;
     expect(request).toBeDefined();
     expect(sentData()).toEqual(mediaEditGenerateMediaData(request!));
 
@@ -845,7 +910,9 @@ describe("clip generation on a script-linked board", () => {
         .getBoard(LINKED)
         ?.shots.find((candidate) => candidate.id === revised.id)?.status
     ).toBe("approved");
-    expect(useStoryboardGenerationStore.getState().shotJobs[revised.id]).toMatchObject({
+    expect(
+      useStoryboardGenerationStore.getState().shotJobs[revised.id]
+    ).toMatchObject({
       status: "failed",
       acceptedShotStatus: "approved",
       mediaEdit: { instruction: "keep the approved framing" }
@@ -900,11 +967,7 @@ describe("a start that fails", () => {
     const { result } = renderHook(() => useGenerateShot());
     await act(async () => {
       await expect(
-        result.current.generateRevisedClip(
-          BOARD,
-          revised,
-          "preserve the take"
-        )
+        result.current.generateRevisedClip(BOARD, revised, "preserve the take")
       ).rejects.toThrow("socket closed");
     });
 

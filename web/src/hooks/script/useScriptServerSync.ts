@@ -37,19 +37,25 @@ type ScriptResponse = Awaited<ReturnType<typeof trpcClient.scripts.get.query>>;
 type ScriptWireDocument = ScriptResponse["document"];
 
 /** The saved payload: the script minus identity and transient UI state. */
-const scriptToDocument = (script: ScriptDraft): ScriptWireDocument => ({
-  cast: script.cast,
-  sections: script.sections,
-  // Omitted when the script has none, so a script written before the guided
-  // flow existed is saved back exactly as it was read (PRD § 9.5).
-  setup: script.setup ?? undefined
-});
+const scriptToDocument = (script: ScriptDraft): ScriptWireDocument => {
+  const document = {
+    cast: script.cast,
+    sections: script.sections,
+    // Omitted when the script has none, so a script written before the guided
+    // flow existed is saved back exactly as it was read (PRD § 9.5).
+    setup: script.setup ?? undefined
+  } as ScriptWireDocument;
+  if (script.creativeContext) {
+    document.creative_context = script.creativeContext;
+  }
+  return document;
+};
 
 const responseToScript = (
   res: ScriptResponse
 ): Omit<ScriptDraft, "id" | "updatedAt"> => {
   const doc = res.document;
-  return {
+  const draft: Omit<ScriptDraft, "id" | "updatedAt"> = {
     title: res.name === "Untitled script" ? "" : res.name,
     cast: doc.cast,
     sections: doc.sections,
@@ -57,6 +63,10 @@ const responseToScript = (
     timelineId: res.timelineId ?? null,
     storyboardId: res.storyboardId ?? null
   };
+  if (doc.creative_context) {
+    draft.creativeContext = doc.creative_context;
+  }
+  return draft;
 };
 
 const isNotFound = (error: unknown): boolean =>

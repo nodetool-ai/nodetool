@@ -22,10 +22,12 @@ import { useCallback } from "react";
 import { buildTransition } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { KNOWN_TRANSITION_TYPE_LIST } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type {
+  CompiledProductionCandidate,
   TimelineBeat,
   TimelineClip,
   TimelineTrack
 } from "@nodetool-ai/timeline";
+import { compileProductionCandidates } from "@nodetool-ai/timeline";
 
 import {
   useTimelineStoreApi,
@@ -63,7 +65,12 @@ export interface GenerateFromBeatsOptions {
   musicProvider?: string;
   musicModel?: string;
   /** Starts each clip's generation. Injected so the counts are testable. */
-  startJob?: (clipId: string) => Promise<string | null>;
+  startJob?: (
+    clipId: string,
+    production?: CompiledProductionCandidate
+  ) => Promise<string | null>;
+  /** Stable batch id, injectable for recovery and regression tests. */
+  productionBatchId?: string;
 }
 
 export interface GenerateFromBeatsResult {
@@ -86,7 +93,9 @@ function trackByName(
   if (existing) {
     return existing.id;
   }
-  return store.getState().insertTrack(type, store.getState().tracks.length, name);
+  return store
+    .getState()
+    .insertTrack(type, store.getState().tracks.length, name);
 }
 
 /** The video lane: the format's own, or the first video track, or a new one. */
@@ -123,31 +132,66 @@ export async function generateFromBeats(
   const voice = options.voice ?? rememberedAudio?.voice;
   const voiceProvider = options.voiceProvider ?? rememberedAudio?.provider;
   const voiceModel = options.voiceModel ?? rememberedAudio?.model;
+  const productionBatchId = options.productionBatchId ?? crypto.randomUUID();
 
-  const voiced = beats.filter((beat) => (beat.voiceover ?? "").trim().length > 0);
-  const wantsMusic =
-    options.music ?? beats.some((beat) => beat.music === true);
+  const compileBeat = (
+    beat: TimelineBeat,
+    destinationId: string
+  ): CompiledProductionCandidate[] =>
+    compileProductionCandidates({
+      batchId: productionBatchId,
+      destinationId,
+      destinationKind: "timeline_clip",
+      operation: "initial_generation",
+      prompt: beat.prompt,
+      requirement: beat.production,
+      referenceAssetIds: setup?.creative_context?.reference_bindings?.map(
+        (binding) => binding.asset_id
+      ),
+      referenceBindings: setup?.creative_context?.reference_bindings,
+      provider,
+      model,
+      requestedDurationMs: beatDurationMs(beat),
+      routeSupport: {
+        referenceToVideo: true,
+        audioDrivenPerformance: false
+      }
+    });
+
+  // Reject unsupported reviewed requirements before creating slots or sending
+  // any paid request. The real destination ids are compiled after slot creation.
+  for (const beat of beats) {
+    compileBeat(beat, beat.id);
+  }
+
+  const voiced = beats.filter(
+    (beat) => (beat.voiceover ?? "").trim().length > 0
+  );
+  const wantsMusic = options.music ?? beats.some((beat) => beat.music === true);
 
   const videoTrack = videoTrackId(store);
   const voiceTrack =
     options.voiceover !== false && voice && voiced.length > 0
       ? trackByName(store, VOICEOVER_TRACK, "audio")
       : null;
-  const musicTrack = wantsMusic ? trackByName(store, MUSIC_TRACK, "audio") : null;
+  const musicTrack = wantsMusic
+    ? trackByName(store, MUSIC_TRACK, "audio")
+    : null;
 
   // The ratio the sequence is actually cut at, not the one the format started
   // from: the look step's picker writes the sequence dimensions, so a creator
   // who chose a 16:9 format and then switched to 9:16 has a portrait timeline.
   // The cost estimate already reads it this way; stamping the format here sent
   // every paid request at the ratio the creator had moved off.
-  const aspectRatio = aspectOf(
-    store.getState().width,
-    store.getState().height
-  );
+  const aspectRatio = aspectOf(store.getState().width, store.getState().height);
 
   const videoClipIds: string[] = [];
   const voiceoverClipIds: string[] = [];
   const beatClipIds = new Map<string, string>();
+  const productionQueue: Array<{
+    clipId: string;
+    production: CompiledProductionCandidate;
+  }> = [];
   let startMs = 0;
 
   for (const [index, beat] of beats.entries()) {
@@ -178,6 +222,12 @@ export async function generateFromBeats(
     store.getState().patchClip(clipId, patch);
     videoClipIds.push(clipId);
     beatClipIds.set(beat.id, clipId);
+    productionQueue.push(
+      ...compileBeat(beat, clipId).map((production) => ({
+        clipId,
+        production
+      }))
+    );
 
     const line = (beat.voiceover ?? "").trim();
     if (voiceTrack && line.length > 0) {
@@ -234,20 +284,28 @@ export async function generateFromBeats(
   const startJob = options.startJob;
   const startedClipIds: string[] = [];
   if (startJob) {
-    const queued = [...videoClipIds, ...voiceoverClipIds];
+    const queued: Array<{
+      clipId: string;
+      production?: CompiledProductionCandidate;
+    }> = [
+      ...productionQueue,
+      ...voiceoverClipIds.map((clipId) => ({ clipId }))
+    ];
     if (musicClipId) {
-      queued.push(musicClipId);
+      queued.push({ clipId: musicClipId });
     }
     // A clip that cannot start records the reason on itself, so one refusal
     // must not stop the rest of the batch.
     const outcomes = await Promise.all(
-      queued.map((clipId) =>
-        startJob(clipId)
+      queued.map(({ clipId, production }) =>
+        startJob(clipId, production)
           .then((requestId) => (requestId === null ? null : clipId))
           .catch(() => null)
       )
     );
-    startedClipIds.push(...outcomes.filter((id): id is string => id !== null));
+    startedClipIds.push(
+      ...new Set(outcomes.filter((id): id is string => id !== null))
+    );
   }
 
   return { videoClipIds, voiceoverClipIds, musicClipId, startedClipIds };

@@ -15,12 +15,19 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { KNOWN_TRANSITION_TYPE_LIST } from "@nodetool-ai/protocol/api-schemas/timeline.js";
+import type { TimelineBeat } from "@nodetool-ai/timeline";
 
 import { FlexColumn, FlexRow, GAP, Text } from "../../ui_primitives";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { PlanReview } from "../PlanReview";
 import type { PlanReviewSection } from "../PlanReview";
 import { videoFormatById } from "./formats";
+import {
+  productionFields,
+  productionPatch,
+  productionAuthoringBlocker,
+  productionGenerationBlocker
+} from "./productionAuthoring";
 
 /** "12s", "1m 04s" — a length as a creator reads it. */
 export const formatSeconds = (ms: number): string => {
@@ -46,11 +53,8 @@ export const secondsText = (ms: number): string =>
   String(Number((ms / 1000).toFixed(2)));
 
 /** Seconds in, milliseconds out — or null when the entry is unusable. */
-export const parseSeconds = (
-  value: string,
-  maxMs: number
-): number | null => {
-  const seconds = Number.parseFloat(value.trim());
+export const parseSeconds = (value: string, maxMs: number): number | null => {
+  const seconds = Number(value.trim());
   if (!Number.isFinite(seconds)) {
     return null;
   }
@@ -62,6 +66,7 @@ export interface ReviewStepProps {
   /** Re-runs the Director with the edited plan as context. */
   onReplan: () => void;
   replanPending?: boolean;
+  onValidationChange?: (reason: string | undefined) => void;
 }
 
 /**
@@ -77,7 +82,8 @@ const TRANSITION_OPTIONS = [
 
 const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   onReplan,
-  replanPending
+  replanPending,
+  onValidationChange
 }) => {
   const beats = useTimelineStore((state) => state.setup?.beats);
   const formatId = useTimelineStore((state) => state.setup?.format);
@@ -97,23 +103,6 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   // once it reads as a length, so a half-typed "1." or a cleared field stays
   // on screen as typed instead of snapping back to the stored value (F21).
   const [lengths, setLengths] = useState<Record<string, string>>({});
-  const planKey = (beats ?? []).map((beat) => beat.id).join(",");
-  // A beat that left the plan takes its half-typed length with it, and every
-  // other one keeps what the creator was typing. Dropping one beat must not
-  // discard an entry on another; a re-plan replaces every id at once, so the
-  // same prune clears the lot.
-  useEffect(() => {
-    const live = new Set(planKey.split(",").filter((id) => id.length > 0));
-    setLengths((current) => {
-      const kept = Object.fromEntries(
-        Object.entries(current).filter(([id]) => live.has(id))
-      );
-      return Object.keys(kept).length === Object.keys(current).length
-        ? current
-        : kept;
-    });
-  }, [planKey]);
-
   const handleLength = useCallback(
     (beatId: string, value: string) =>
       setLengths((current) => ({ ...current, [beatId]: value })),
@@ -124,74 +113,107 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   // perfectly good nine seconds — so a keystroke is never the moment to write
   // a length down. An entry that does not read as one in range leaves the plan
   // holding the last one that did, with the text and the range on screen (F21).
-  const commitLength = useCallback(
-    (beatId: string, value: string) => {
-      const ms = parseSeconds(value, maxBeatMs);
-      if (ms !== null) {
-        updateBeat(beatId, { duration_ms: ms });
+  const commitLength = (beatId: string, value: string): void => {
+    const ms = parseSeconds(value, maxBeatMs);
+    if (ms !== null) {
+      const beat = beats?.find((item) => item.id === beatId);
+      const patch: Partial<TimelineBeat> = { duration_ms: ms };
+      if (beat?.production) {
+        patch.production = productionPatch(beat.production, {
+          duration_ms: ms
+        });
       }
-    },
-    [maxBeatMs, updateBeat]
-  );
+      updateBeat(beatId, patch);
+    }
+  };
 
   const unusable = (beats ?? []).filter((beat) => {
     const typed = lengths[beat.id];
     return typed !== undefined && parseSeconds(typed, maxBeatMs) === null;
   }).length;
+  const validationReason =
+    unusable > 0
+      ? `Correct the length outside ${rangeText}.`
+      : productionAuthoringBlocker(beats ?? []);
+  useEffect(() => {
+    onValidationChange?.(validationReason);
+    return () => onValidationChange?.(undefined);
+  }, [onValidationChange, validationReason]);
+  const productionNote = productionGenerationBlocker(beats ?? [], false);
 
-  const sections = useMemo<PlanReviewSection[]>(
-    () =>
-      (beats ?? []).map((beat, index) => ({
-        id: beat.id,
-        header: `${index + 1}. ${formatSeconds(beat.duration_ms)}`,
-        // The header is a number and a length, so the remove control names
-        // what it drops rather than reading "Remove 1. 3s".
-        removeLabel: `Remove beat ${index + 1}`,
-        rows: [
-          {
-            id: `${beat.id}-prompt`,
-            label: "Beat",
-            value: beat.prompt,
-            multiline: true,
-            onChange: (value: string) => updateBeat(beat.id, { prompt: value })
-          },
-          {
-            id: `${beat.id}-duration`,
-            label: "Seconds",
-            value: lengths[beat.id] ?? secondsText(beat.duration_ms),
-            placeholder: rangeText,
-            compact: true,
-            onChange: (value: string) => handleLength(beat.id, value),
-            onCommit: (value: string) => commitLength(beat.id, value)
-          },
-          {
-            id: `${beat.id}-transition`,
-            label: "Transition",
-            value: beat.transition ?? PLAIN_CUT,
-            // A closed set the renderer already enumerates, so it is a select:
-            // typed free text left the row holding a word the cut has no
-            // meaning for, and the list of legal words in a placeholder read
-            // as data rather than as help.
-            options: TRANSITION_OPTIONS,
-            compact: true,
-            onChange: (value: string) =>
-              updateBeat(beat.id, {
-                transition: value === PLAIN_CUT ? null : value
-              })
-          },
-          {
-            id: `${beat.id}-voiceover`,
-            label: "Voiceover",
-            value: beat.voiceover ?? "",
-            multiline: true,
-            placeholder: "Leave empty for no line over this beat",
-            onChange: (value: string) =>
-              updateBeat(beat.id, { voiceover: value })
+  const sections: PlanReviewSection[] = (beats ?? []).map((beat, index) => ({
+    id: beat.id,
+    header: `${index + 1}. ${formatSeconds(beat.duration_ms)}`,
+    // The header is a number and a length, so the remove control names
+    // what it drops rather than reading "Remove 1. 3s".
+    removeLabel: `Remove beat ${index + 1}`,
+    rows: [
+      {
+        id: `${beat.id}-prompt`,
+        label: "Beat",
+        value: beat.prompt,
+        multiline: true,
+        onChange: (value: string) => updateBeat(beat.id, { prompt: value })
+      },
+      {
+        id: `${beat.id}-duration`,
+        label: "Seconds",
+        value: lengths[beat.id] ?? secondsText(beat.duration_ms),
+        placeholder: rangeText,
+        compact: true,
+        onChange: (value: string) => handleLength(beat.id, value),
+        onCommit: (value: string) => commitLength(beat.id, value)
+      },
+      {
+        id: `${beat.id}-transition`,
+        label: "Transition",
+        value: beat.transition ?? PLAIN_CUT,
+        // A closed set the renderer already enumerates, so it is a select:
+        // typed free text left the row holding a word the cut has no
+        // meaning for, and the list of legal words in a placeholder read
+        // as data rather than as help.
+        options: TRANSITION_OPTIONS,
+        compact: true,
+        onChange: (value: string) =>
+          updateBeat(beat.id, {
+            transition: value === PLAIN_CUT ? null : value
+          })
+      },
+      {
+        id: `${beat.id}-voiceover`,
+        label: "Voiceover",
+        readOnly:
+          !!beat.production?.speech_binding?.script_line_id ||
+          !!beat.production?.speech_binding?.audio_asset_id,
+        value: beat.voiceover ?? beat.production?.speech_binding?.text ?? "",
+        multiline: true,
+        placeholder: "Leave empty for no line over this beat",
+        onChange: (value: string) => {
+          const production =
+            beat.production?.speech_binding?.text && value.trim()
+              ? productionPatch(beat.production, {
+                  speech_binding: {
+                    ...beat.production.speech_binding,
+                    text: value
+                  }
+                })
+              : beat.production;
+          const patch: Partial<TimelineBeat> = { voiceover: value };
+          if (production) {
+            patch.production = production;
           }
-        ]
-      })),
-    [beats, commitLength, handleLength, lengths, rangeText, updateBeat]
-  );
+          updateBeat(beat.id, patch);
+        }
+      },
+      ...productionFields({
+        id: beat.id,
+        value: beat,
+        speechText:
+          beat.voiceover ?? beat.production?.speech_binding?.text ?? "",
+        onChange: (production) => updateBeat(beat.id, { production })
+      })
+    ]
+  }));
 
   const handleReplan = useCallback(() => onReplan(), [onReplan]);
 
@@ -219,6 +241,11 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           ) : null}
         </FlexRow>
       </FlexColumn>
+      {productionNote ? (
+        <Text size="small" color="warning" role="status">
+          {productionNote}
+        </Text>
+      ) : null}
       <PlanReview
         sections={sections}
         replanLabel="Re-plan"

@@ -37,7 +37,10 @@ const asset = (id: string, name: string): Asset =>
 const renderStep = (onStartFromScript?: () => void) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <IdeaStep onStartBlank={jest.fn()} onStartFromScript={onStartFromScript} />
+      <IdeaStep
+        onStartBlank={jest.fn()}
+        onStartFromScript={onStartFromScript}
+      />
     </ThemeProvider>
   );
 
@@ -48,6 +51,51 @@ beforeEach(() => {
 });
 
 describe("video IdeaStep", () => {
+  it("keeps a claim-limit blocker visible while other context fields are edited", async () => {
+    renderStep();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Creative context (optional)" })
+    );
+    fireEvent.change(screen.getByLabelText("Approved claims"), {
+      target: {
+        value: Array.from({ length: 65 }, (_, i) => `Claim ${i}`).join("\n")
+      }
+    });
+    fireEvent.blur(screen.getByLabelText("Approved claims"));
+    expect(screen.getByRole("alert")).toHaveTextContent("64 claims");
+    await userEvent.type(screen.getByLabelText("Objective"), "Demonstrate");
+    await userEvent.tab();
+    expect(screen.getByRole("alert")).toHaveTextContent("64 claims");
+    await userEvent.clear(screen.getByLabelText("Approved claims"));
+    await userEvent.tab();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+  it("persists optional context and claim lists using canonical names", async () => {
+    renderStep();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Creative context (optional)" })
+    );
+    await userEvent.type(
+      screen.getByLabelText("Product name"),
+      "Pocket camera"
+    );
+    await userEvent.tab();
+    await userEvent.type(
+      screen.getByLabelText("Approved claims"),
+      "Small\nLight"
+    );
+    await userEvent.tab();
+    expect(useTimelineStore.getState().setup?.creative_context).toMatchObject({
+      schema_version: 1,
+      product_name: "Pocket camera",
+      approved_claims: ["Small", "Light"]
+    });
+    await userEvent.clear(screen.getByLabelText("Product name"));
+    await userEvent.tab();
+    expect(
+      useTimelineStore.getState().setup?.creative_context?.product_name
+    ).toBeUndefined();
+  });
   // F4: the composer's references and cast travel on the document, and the
   // step says so rather than leaving the creator to guess.
   it("shows the references and entities the composer carried", () => {
@@ -99,7 +147,9 @@ describe("video IdeaStep", () => {
       new File(["x"], "kerb.png", { type: "image/png" })
     );
     await waitFor(() =>
-      expect(screen.getByText(/Placed 1 file on the timeline/)).toBeInTheDocument()
+      expect(
+        screen.getByText(/Placed 1 file on the timeline/)
+      ).toBeInTheDocument()
     );
     expect(screen.getByText(/kerb.png/)).toBeInTheDocument();
     expect(screen.getByText(/No track takes notes.pdf/)).toBeInTheDocument();

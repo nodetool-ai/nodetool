@@ -26,10 +26,7 @@ import type { Screenplay } from "@nodetool-ai/protocol";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { ReviewStep } from "../ReviewStep";
 import { useDirectScreenplay } from "../../../../hooks/storyboard/useDirectScreenplay";
-import {
-  clearSetupReports,
-  keepPreviousScreenplay
-} from "../setupChoices";
+import { clearSetupReports, keepPreviousScreenplay } from "../setupChoices";
 import { useStoryboardStore } from "../../../../stores/storyboard/StoryboardStore";
 import {
   clearImport,
@@ -132,6 +129,46 @@ beforeEach(() => {
 });
 
 describe("ReviewStep", () => {
+  it("stores shot production and keeps fractional durations in both fields", async () => {
+    renderStep();
+    await userEvent.click(screen.getAllByLabelText("Requested takes")[0]);
+    await userEvent.click(await screen.findByRole("option", { name: "3" }));
+    await userEvent.type(screen.getByLabelText("Shot 1 · Seconds"), "3.5");
+    await userEvent.tab();
+    expect(board()?.shots[0]).toMatchObject({
+      duration_seconds: 3.5,
+      production: {
+        schema_version: 1,
+        requested_take_count: 3,
+        duration_ms: 3500
+      }
+    });
+  });
+
+  it("keeps linked dialogue read-only and binds speech to the existing Script line", async () => {
+    useStoryboardStore
+      .getState()
+      .updateShot(BOARD, "shot-0", { script_line_ids: ["line-1"] });
+    renderStep();
+    expect(screen.getByLabelText("Shot 1 · Dialogue")).toHaveAttribute(
+      "readonly"
+    );
+    await userEvent.click(screen.getAllByLabelText("Speech mode")[0]);
+    await userEvent.click(
+      await screen.findByRole("option", { name: "On-camera" })
+    );
+    expect(board()?.shots[0]).toHaveProperty("production.speech_binding", {
+      script_line_id: "line-1"
+    });
+  });
+
+  it("reports invalid duration instead of dropping it from the plan", async () => {
+    renderStep();
+    await userEvent.type(screen.getByLabelText("Shot 1 · Seconds"), "oops");
+    await userEvent.tab();
+    expect(screen.getByRole("alert")).toHaveTextContent("positive duration");
+    expect(board()?.shots[0].duration_seconds).toBeUndefined();
+  });
   it("keeps the scene slugline out of repeated shot metadata", () => {
     const store = useStoryboardStore.getState();
     store.updateShot(BOARD, "shot-0", {
@@ -139,9 +176,7 @@ describe("ReviewStep", () => {
       duration_seconds: 2
     });
     renderStep();
-    expect(
-      screen.queryByText("EXT. HEADLAND — DUSK")
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("EXT. HEADLAND — DUSK")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Slugline")).toHaveValue(
       "EXT. HEADLAND — DUSK"
     );
@@ -284,6 +319,7 @@ describe("ReviewStep", () => {
     renderStep();
 
     await user.type(screen.getByLabelText("Shot 2 · Seconds"), "4");
+    await user.tab();
 
     expect(board()?.shots[1].duration_seconds).toBe(4);
     expect(board()?.shots[1].duration_source).toBe("manual");
@@ -297,9 +333,7 @@ describe("ReviewStep", () => {
     expect(
       screen.getByText(/Written here, not by your model/)
     ).toBeInTheDocument();
-    await user.click(
-      screen.getByRole("button", { name: "Keep this outline" })
-    );
+    await user.click(screen.getByRole("button", { name: "Keep this outline" }));
     expect(rpcRequest).not.toHaveBeenCalled();
   });
 

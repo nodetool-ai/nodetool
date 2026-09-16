@@ -112,6 +112,8 @@ export interface StoryboardBoard {
 
 /** The guided-setup fields one step writes. Omitted keys are left alone. */
 export interface StoryboardSetupPatch {
+  creative_context?: CreativeContext;
+  production_review_fingerprint?: string;
   brief?: string;
   genre?: string;
   stage?: StoryboardSetupStage;
@@ -852,6 +854,29 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         boardId,
         (b) => {
           const next: StoryboardBoard = { ...b };
+          if (patch.creative_context !== undefined || patch.production_review_fingerprint !== undefined) {
+            const screenplay: Screenplay & {
+              creative_context?: CreativeContext;
+              production_review_fingerprint?: string;
+            } = {
+              ...(b.screenplay ?? {
+                type: "screenplay" as const,
+                id: crypto.randomUUID(),
+                title: b.title,
+                shots: [...b.shots]
+              })
+            };
+            if (patch.creative_context !== undefined) {
+              screenplay.creative_context = patch.creative_context;
+            }
+            if (patch.production_review_fingerprint !== undefined) {
+              screenplay.production_review_fingerprint = patch.production_review_fingerprint;
+            }
+            next.screenplay = screenplay;
+            if (patch.creative_context !== undefined) {
+              next.creativeContext = patch.creative_context;
+            }
+          }
           if (patch.brief !== undefined) next.brief = patch.brief;
           if (patch.genre !== undefined) next.genre = patch.genre;
           if (patch.stage !== undefined) next.setupStage = patch.stage;
@@ -865,6 +890,7 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
             next.importSource = patch.importSource;
           }
           return next.brief === b.brief &&
+            next.screenplay === b.screenplay &&
             next.genre === b.genre &&
             next.setupStage === b.setupStage &&
             next.setupShotCount === b.setupShotCount &&

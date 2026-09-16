@@ -27,6 +27,10 @@ import {
 } from "../StoryboardGenerationStore";
 import type { BoardRenderContext, Shot } from "@nodetool-ai/protocol";
 import { isVersionStale } from "@nodetool-ai/protocol";
+import {
+  compileProductionCandidates,
+  type CompiledProductionCandidate
+} from "@nodetool-ai/timeline";
 import { useStoryboardStore } from "../StoryboardStore";
 import { useNotificationStore } from "../../NotificationStore";
 
@@ -67,9 +71,9 @@ describe("direct generation responses (generate_media rpc)", () => {
     expect(
       useStoryboardGenerationStore.getState().shotJobs["s-running"]?.status
     ).toBe("running");
-    expect(
-      useStoryboardGenerationStore.getState().generatingShotIds
-    ).toContain("s-running");
+    expect(useStoryboardGenerationStore.getState().generatingShotIds).toContain(
+      "s-running"
+    );
   });
 
   it("writes the returned asset onto the shot and clears the job", () => {
@@ -175,6 +179,80 @@ describe("direct generation responses (generate_media rpc)", () => {
   });
 });
 
+describe("production candidate responses", () => {
+  const candidatesFor = (shotId: string): CompiledProductionCandidate[] =>
+    compileProductionCandidates({
+      batchId: "batch-storyboard",
+      destinationId: shotId,
+      destinationKind: "storyboard_shot",
+      operation: "initial_generation",
+      prompt: "three reviewed takes",
+      requirement: {
+        schema_version: 1,
+        speech_mode: "none",
+        requested_take_count: 3
+      },
+      routeSupport: {
+        referenceToVideo: true,
+        audioDrivenPerformance: false
+      }
+    });
+
+  it("lands out-of-order takes as inactive candidates in variation order", () => {
+    const shotId = "s-production-order";
+    seedShot(shotId);
+    const candidates = candidatesFor(shotId);
+    const third = candidates[2];
+    const first = candidates[0];
+    if (!third || !first) throw new Error("Expected production candidates.");
+    for (const production of [third, first]) {
+      useStoryboardGenerationStore
+        .getState()
+        .registerJob(
+          shotId,
+          BOARD,
+          production.identity.requestId,
+          "clip",
+          undefined,
+          undefined,
+          "planned",
+          production
+        );
+    }
+
+    for (const [production, assetId] of [
+      [third, "asset-3"],
+      [first, "asset-1"]
+    ] as const) {
+      __handleShotJobMessageForTests(
+        production.identity.requestId,
+        {
+          shotId,
+          boardId: BOARD,
+          kind: "clip",
+          acceptedShotStatus: "planned",
+          production
+        },
+        {
+          type: "rpc_response",
+          request_id: production.identity.requestId,
+          result: { asset_ids: [assetId] }
+        } as never
+      );
+    }
+
+    const landed = useStoryboardStore
+      .getState()
+      .getBoard(BOARD)
+      ?.shots.find((candidate) => candidate.id === shotId);
+    expect(landed?.clip).toBeUndefined();
+    expect(
+      landed?.clip_versions?.map((version) => version.variationIndex)
+    ).toEqual([1, 3]);
+    expect(landed?.status).toBe("planned");
+  });
+});
+
 describe("cancelled renders", () => {
   it("settles a cancelled keyframe render back to planned when the shot has no still", () => {
     seedShot("s-cxl");
@@ -268,13 +346,12 @@ describe("failure reporting", () => {
       .getState()
       .recordStartFailure("s-unstarted", BOARD, "keyframe", "No model chosen");
 
-    const job =
-      useStoryboardGenerationStore.getState().shotJobs["s-unstarted"];
+    const job = useStoryboardGenerationStore.getState().shotJobs["s-unstarted"];
     expect(job?.status).toBe("failed");
     expect(job?.errorMessage).toBe("No model chosen");
-    expect(
-      useStoryboardGenerationStore.getState().failedShotIds
-    ).toContain("s-unstarted");
+    expect(useStoryboardGenerationStore.getState().failedShotIds).toContain(
+      "s-unstarted"
+    );
     expect(
       useStoryboardStore
         .getState()

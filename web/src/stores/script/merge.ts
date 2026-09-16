@@ -22,6 +22,7 @@ export interface ScriptMergeDoc {
   sections: unknown[];
   timelineId: string | null;
   storyboardId: string | null;
+  creativeContext?: unknown;
 }
 
 const named = (unit: unknown): { id: string; name?: string } =>
@@ -87,6 +88,11 @@ export const scriptMergeAdapter: DocumentMergeAdapter<ScriptMergeDoc> = {
       name: "storyboardId",
       read: (doc) => doc.storyboardId,
       write: (doc, value) => ({ ...doc, storyboardId: value as string | null })
+    },
+    {
+      name: "creativeContext",
+      read: (doc) => doc.creativeContext,
+      write: (doc, value) => ({ ...doc, creativeContext: value })
     }
   ],
   unitsTouchedByOp: (op: DocumentOp): { kind: string; unitId?: string }[] => {

@@ -3,7 +3,7 @@
 Status: Draft  
 Repository baseline: `b6aee4380cc77a7a05a39562d8b90dda476b5777`  
 Suggested repository path: `docs/creation-flows/ai-video-production-prd.md`  
-Companions: [Guided Creation Flows](prd.md), [Native AI Media Editing](../native-media-editing/prd.md), [Script–Storyboard Link](../script-storyboard-link/prd.md).
+Companions: [Guided Creation Flows](prd.md), [internal AI Video Production implementation notes](ai-video-production.md), [Native AI Media Editing](../native-media-editing/prd.md), [Script–Storyboard Link](../script-storyboard-link/prd.md).
 
 ## 1. Summary
 
