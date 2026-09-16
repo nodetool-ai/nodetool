@@ -244,13 +244,14 @@ const VersionTile: React.FC<VersionTileProps> = memo(
         <Tooltip title={tooltip}>
           <button
             type="button"
-            css={tileStyles(theme, auditioned, true)}
+            css={tileStyles(theme, active || auditioned, true)}
             style={
               isImage && url ? { backgroundImage: `url(${url})` } : undefined
             }
             onClick={handleClick}
             aria-label={`${tooltip} — Preview ${active ? "Original" : "Candidate"}`}
-            aria-current={auditioned}
+            aria-current={active}
+            aria-pressed={auditioned}
           >
             {isVideo && url && (
               <video
@@ -330,7 +331,7 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
   ({ clipId }) => {
     const theme = useTheme();
     const clip = useTimelineStore((s) => findClipById(s.clips, clipId));
-    const restoreVersion = useTimelineStore((s) => s.restoreVersion);
+    const applyTake = useTimelineStore((s) => s.applyTake);
     const audition = useTimelineUIStore((s) => s.audition);
     const setAudition = useTimelineUIStore((s) => s.setAudition);
     const renameTake = useTimelineStore((s) => s.renameTake);
@@ -344,10 +345,14 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
 
     const handleUseTake = useCallback(
       (versionId: string) => {
-        restoreVersion(clipId, versionId);
+        const error = applyTake(clipId, versionId);
+        if (error) {
+          addNotification({ type: "error", alert: true, content: error });
+          return;
+        }
         setAudition(null);
       },
-      [restoreVersion, clipId, setAudition]
+      [applyTake, clipId, setAudition, addNotification]
     );
 
     const handlePreview = useCallback(

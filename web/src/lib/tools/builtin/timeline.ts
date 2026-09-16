@@ -381,6 +381,40 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  ...shared("ui_timeline_generatively_edit_clip"),
+  async execute({ timeline_id, clip_id, instruction, provider, model }) {
+    const result = await getTimelineAgentHandler(
+      timeline_id
+    ).generativelyEditClip({
+      clipId: clip_id,
+      instruction,
+      provider,
+      model
+    });
+    return {
+      ok: true,
+      ...result,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip_id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_apply_take"),
+  async execute({ timeline_id, clip_id, take_id }) {
+    const clip = getTimelineAgentHandler(timeline_id).applyTake(
+      clip_id,
+      take_id
+    );
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
+  }
+});
+
+FrontendToolRegistry.register({
   ...shared("ui_timeline_split_clip"),
   async execute({ timeline_id, target, atMs }) {
     const clips = getTimelineAgentHandler(timeline_id).splitClip(target, atMs);

@@ -101,6 +101,8 @@ export interface TimelineClipNode {
   status: string;
   /** Whether the clip has a rendered asset (generated clips). */
   hasRender: boolean;
+  /** The take currently accepted by this clip, when it has take history. */
+  activeTakeId?: string;
   prompt?: string;
   provider?: string;
   model?: string;
@@ -230,6 +232,20 @@ interface TimelineGenerateResult {
   generationStarted: boolean;
   /** Why generation did not start, when applicable. */
   note?: string;
+}
+
+export interface TimelineEditCandidateNode {
+  id: string;
+  status: "pending" | "success" | "failed" | "cancelled";
+  source: "video_to_video";
+}
+
+export interface TimelineGenerativeEditResult {
+  requestId: string;
+  generationId: string;
+  activeTakeId: string | null;
+  candidate: TimelineEditCandidateNode;
+  clip: TimelineClipNode;
 }
 
 export interface TimelineAddTextClipOptions {
@@ -461,6 +477,15 @@ export interface TimelineAgentHandler {
   generateClip: (
     opts: TimelineGenerateOptions
   ) => Promise<TimelineGenerateResult>;
+  /** Start a video edit and leave its result as an inactive candidate. */
+  generativelyEditClip: (opts: {
+    clipId: string;
+    instruction: string;
+    provider?: string;
+    model?: string;
+  }) => Promise<TimelineGenerativeEditResult>;
+  /** Apply a successful take through the TimelineStore's undoable action. */
+  applyTake: (clipId: string, takeId: string) => TimelineClipNode;
   /**
    * Place an existing library asset. Async because the asset row is fetched
    * for its media type, duration and thumbnail.

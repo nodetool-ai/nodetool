@@ -22,6 +22,8 @@ const makeMockHandler = (): TimelineAgentHandler => ({
   setModel3DStyle: jest.fn(),
   bakeModel3DClip: jest.fn(),
   generateClip: jest.fn(),
+  generativelyEditClip: jest.fn(),
+  applyTake: jest.fn(),
   splitClip: jest.fn(),
   trimClip: jest.fn(),
   moveClip: jest.fn(),

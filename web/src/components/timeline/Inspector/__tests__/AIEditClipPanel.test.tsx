@@ -1,12 +1,14 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, jest, beforeEach } from "@jest/globals";
 import { ThemeProvider } from "@mui/material/styles";
 import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
+import { createMediaEditRequest } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import AIEditClipPanel, { getMediaEditEligibility } from "../AIEditClipPanel";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
+import { useDirectGenPendingStore } from "../../../../hooks/timeline/directGenPending";
 
 const mockUseVideoModelsByProvider = jest.fn();
 const mockStartEdit = jest.fn<() => Promise<string | null>>();
@@ -83,6 +85,12 @@ describe("AIEditClipPanel", () => {
     mockStartEdit.mockReset().mockResolvedValue("request-1");
     mockCancel.mockReset();
     useTimelineStore.setState({ sequenceId: null, tracks: [], clips: [] });
+    useDirectGenPendingStore.setState({
+      pending: {},
+      durationSamples: {},
+      editSettlements: {},
+      editFailures: {}
+    });
   });
 
   it("exposes Edit video for imported, direct-generated, and workflow-bound clips", () => {
@@ -140,5 +148,50 @@ describe("AIEditClipPanel", () => {
 
     expect(imported.ok).toBe(true);
     expect(generated.ok).toBe(true);
+  });
+
+  it("shows captured terminal settlement details and keeps retry actionable", async () => {
+    const clip = makeVideoClip();
+    const request = createMediaEditRequest({
+      sourceContext: {
+        sequenceId: "sequence-1",
+        clipId: clip.id,
+        sourceAssetId: clip.currentAssetId ?? "",
+        sourceStartMs: 0,
+        sourceEndMs: clip.durationMs,
+        timelineStartMs: clip.startMs,
+        timelineDurationMs: clip.durationMs,
+        speedMultiplier: 1
+      },
+      instruction: "remove the crowd",
+      provider: "provider-a",
+      model: "edit-model"
+    });
+    useDirectGenPendingStore.setState({
+      editSettlements: {
+        "request-cancelled": {
+          requestId: "request-cancelled",
+          sequenceId: "sequence-1",
+          clipId: clip.id,
+          status: "cancelled",
+          settledAt: Date.now(),
+          assetIds: [],
+          mediaEdit: request
+        }
+      }
+    });
+
+    renderPanel(clip);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ai-edit-instruction")).toHaveValue(
+        "remove the crowd"
+      );
+    });
+    expect(
+      screen.getByText(/edit was cancelled.*accepted media was left unchanged/i)
+    ).toBeTruthy();
+    expect(screen.getByTestId("ai-edit-submit")).toHaveTextContent("Retry");
+    expect(screen.getByTestId("ai-edit-submit")).not.toBeDisabled();
   });
 });

@@ -97,6 +97,11 @@ import {
   visibleNotes,
   rescaleClipsForTempo,
   resolveTempo,
+  captureMediaEditSourceContext,
+  composeGenerativeTakePatch,
+  createMediaEditRequest,
+  ensureBaselineTake,
+  applyTakeToClip,
   selectGeneratedMatteVersion,
   activeTakeIdOf,
   selectTake,
@@ -834,31 +839,6 @@ export function createTimelineToolBridge(
     }
     return clip;
   }
-
-  /** Model-facing routing requirements for nondestructive generative edits. */
-  const GENERATIVE_EDIT_REQUIREMENTS = {
-    extend: { required: ["video.extend"], optional: ["video.first_last_frame"] },
-    replace_range: {
-      required: ["video.replace_range", "video.first_last_frame"],
-      optional: ["video.reference_image"]
-    },
-    remove_object: {
-      required: ["video.object_remove", "video.mask_input"],
-      optional: ["video.tracking"]
-    },
-    replace_object: {
-      required: ["video.object_replace", "video.mask_input"],
-      optional: ["video.reference_image", "video.tracking"]
-    },
-    restyle: {
-      required: ["video.video_to_video"],
-      optional: ["video.reference_image"]
-    },
-    regenerate: {
-      required: ["video.regenerate"],
-      optional: ["video.reference_image"]
-    }
-  } as const;
 
   /**
    * The voice an instrument argument names: `{preset}` resolved to the sound
@@ -1752,161 +1732,99 @@ export function createTimelineToolBridge(
       }
     ),
 
-    tool(
+    sharedTool(
       "ui_timeline_generatively_edit_clip",
-      "Run a nondestructive generative edit against an existing video clip. " +
-        "The result is recorded as a new take and never replaces the active take. " +
-        "Use list_takes/select_take to compare and promote results.",
-      z.object({
-        target: z.string().trim().min(1),
-        operation: z.enum([
-          "extend",
-          "replace_range",
-          "remove_object",
-          "replace_object",
-          "restyle",
-          "regenerate"
-        ]),
-        range: z
-          .object({ startMs: z.number().nonnegative(), endMs: z.number().nonnegative() })
-          .optional(),
-        direction: z.enum(["start", "end"]).optional(),
-        durationMs: z.number().positive().optional(),
-        prompt: z.string().optional(),
-        trackId: z.string().optional(),
-        referenceAssetIds: z.array(z.string().trim().min(1)).optional(),
-        provider: z.string().optional(),
-        model: z.string().optional()
-      }),
-      async ({
-        target,
-        operation,
-        range,
-        direction,
-        durationMs,
-        prompt,
-        trackId,
-        referenceAssetIds,
-        provider,
-        model
-      }) => {
-        const clip = resolveClip(target as string);
-        const editOperation = operation as keyof typeof GENERATIVE_EDIT_REQUIREMENTS;
-        const editRange = range as { startMs: number; endMs: number } | undefined;
-        const refs = referenceAssetIds as string[] | undefined;
-        const editPrompt = prompt as string | undefined;
-        const editDurationMs = durationMs as number | undefined;
-        if (clip.mediaType !== "video") {
+      async ({ clip_id, instruction, provider, model }) => {
+        // The P0 request captures a durable destination. Unlike general
+        // timeline actions, this intentionally refuses names and selection.
+        const clip = clips.find((candidate) => candidate.id === clip_id);
+        if (!clip) {
           throw new Error(
-            `Clip "${clip.name}" is a ${clip.mediaType} clip — generative timeline edits require a video clip.`
+            `No clip with id "${clip_id}" exists on this timeline. Call ui_timeline_get_state and pass the clip id.`
           );
         }
-
-        const req = GENERATIVE_EDIT_REQUIREMENTS[editOperation];
-        const editDirection = (direction as "start" | "end" | undefined) ?? "end";
-        if (editOperation === "extend" && editDurationMs === undefined) {
-          throw new Error("durationMs is required for an extend operation.");
-        }
-        if (editOperation !== "extend" && editDurationMs !== undefined) {
-          throw new Error("durationMs is only valid for an extend operation.");
-        }
-        if (editOperation !== "extend" && direction !== undefined) {
-          throw new Error("direction is only valid for an extend operation.");
-        }
-        if (editOperation === "replace_range") {
-          if (!editRange) throw new Error("range is required for replace_range.");
-          if (editRange.startMs >= editRange.endMs || editRange.endMs > clip.durationMs) {
-            throw new Error(
-              `range must be inside the clip (0..${clip.durationMs}ms) with startMs < endMs.`
-            );
-          }
-        } else if (editRange !== undefined) {
-          throw new Error("range is only valid for replace_range.");
-        }
-        const selectedMediaTrack = trackId === undefined
-          ? mediaTracks.find((track) => track.clipId === clip.id)
-          : mediaTracks.find((track) => track.id === trackId);
-        if (
-          (editOperation === "remove_object" ||
-            editOperation === "replace_object") &&
-          (!selectedMediaTrack ||
-            selectedMediaTrack.clipId !== clip.id ||
-            selectedMediaTrack.status !== "ready" ||
-            selectedMediaTrack.sourceAssetId !== clip.currentAssetId)
-        ) {
-          throw new Error(
-            `Clip "${clip.name}" needs a ready MediaTrack for its active source. ` +
-              "Run track_object first, or provide that track's id."
+        const baseline = ensureBaselineTake(clip);
+        if (baseline !== clip) {
+          clips = clips.map((candidate) =>
+            candidate.id === clip.id ? baseline : candidate
           );
         }
-        if (editOperation === "replace_object" &&
-            (!editPrompt || editPrompt.trim() === "") &&
-            (!refs || refs.length === 0)) {
-          throw new Error("replace_object needs a prompt or at least one referenceAssetIds entry.");
-        }
+        const source = captureMediaEditSourceContext(sequenceId, baseline);
+        if (!source.ok) throw new Error(source.error);
 
-        const activeTakeId = activeTakeIdOf(clip);
-        const parentTakeId = activeTakeId;
-        const id = nextVersionId();
+        // Eval hosts have no selected model catalog. These deterministic
+        // placeholders only stand in for a real provider's returned asset;
+        // browser and server execution keep their normal model validation.
+        const resolvedProvider =
+          (provider as string | undefined) ?? "headless";
+        const resolvedModel =
+          (model as string | undefined) ?? "headless-video-to-video";
+        const request = createMediaEditRequest({
+          sourceContext: source.context,
+          instruction: instruction as string,
+          provider: resolvedProvider,
+          model: resolvedModel
+        });
+        const generationId = nextVersionId();
         const now = new Date().toISOString();
-        const source = editOperation === "extend"
-          ? "extended"
-          : editOperation === "replace_range" || editOperation === "remove_object"
-            ? "inpainted"
-            : editOperation === "replace_object"
-              ? "object_replace"
-              : editOperation === "restyle"
-                ? "video_to_video"
-                : "generated";
-        const generatedDuration = editOperation === "extend"
-          ? clip.durationMs + (editDurationMs as number)
-          : editRange
-            ? editRange.endMs - editRange.startMs
-            : clip.durationMs;
-        const version = makeClipVersion({
-          id,
+        const next = composeGenerativeTakePatch(baseline, "restyle", {
+          assetId: `generative://${baseline.id}/${generationId}`,
+          jobId: generationId,
           createdAt: now,
           workflowUpdatedAt: now,
-          jobId: `generative-edit:${id}`,
-          assetId: `generative://${clip.id}/${id}`,
-          status: "success",
-          source,
-          provider: provider as string | undefined,
-          model: model as string | undefined,
-          prompt: editPrompt,
-          durationMs: generatedDuration,
-          parentTakeId,
-          paramOverridesSnapshot: {
-            operation: editOperation,
-            direction: editDirection,
-            range: editRange ? { ...editRange } : undefined,
-            durationMs: editDurationMs,
-            referenceAssetIds: refs ? [...refs] : []
-          }
+          provider: request.provider,
+          model: request.model,
+          prompt: request.instruction,
+          durationMs: request.sourceContext.timelineDurationMs,
+          mediaEdit: request
         });
-        clip.versions = [...(clip.versions ?? []), version];
-        // Deliberately do not update currentAssetId/activeTakeId. The edit is
-        // a take candidate and the old active take remains playable.
+        clips = clips.map((candidate) =>
+          candidate.id === baseline.id ? next : candidate
+        );
+        const take = next.versions?.find(
+          (candidate) => candidate.id === generationId
+        );
+        if (!take) {
+          throw new Error("The AI edit candidate could not be recorded.");
+        }
         return {
           ok: true,
-          generationStarted: false,
-          take: {
-            id: version.id,
-            status: version.status,
-            source: version.source,
-            parentTakeId: version.parentTakeId,
-            durationMs: version.durationMs
+          requestId: generationId,
+          generationId,
+          activeTakeId: activeTakeIdOf(next) ?? null,
+          candidate: {
+            id: take.id,
+            status: take.status,
+            source: take.source
           },
-          activeTakeId: activeTakeId ?? null,
-          routing: {
-            operation: editOperation,
-            requiredCapabilities: [...req.required],
-            optionalCapabilities: [...req.optional],
-            provider: (provider as string | undefined) ?? null,
-            model: (model as string | undefined) ?? null
-          },
-          clip: serializeClip(clip)
+          clip: serializeClip(next)
         };
+      }
+    ),
+
+    sharedTool(
+      "ui_timeline_apply_take",
+      async ({ clip_id, take_id }) => {
+        const clip = clips.find((candidate) => candidate.id === clip_id);
+        if (!clip) {
+          throw new Error(
+            `No clip with id "${clip_id}" exists on this timeline. Call ui_timeline_get_state and pass the clip id.`
+          );
+        }
+        const take = (clip.versions ?? []).find(
+          (candidate) => candidate.id === take_id
+        );
+        if (!take?.mediaEdit) {
+          throw new Error(
+            `Take "${take_id}" is not an AI edit candidate for "${clip.name}". Apply only the candidate returned by ui_timeline_generatively_edit_clip.`
+          );
+        }
+        const result = applyTakeToClip(clip, take_id as string);
+        if (result.error) throw new Error(result.error);
+        clips = clips.map((candidate) =>
+          candidate.id === clip.id ? result.clip : candidate
+        );
+        return { ok: true, clip: serializeClip(result.clip) };
       }
     ),
 
@@ -3620,7 +3538,7 @@ Use the ui_timeline_* tools to inspect and modify the sequence:
 - Call ui_timeline_get_state first to see what's already there and get track/clip ids and names.
 - Add content with ui_timeline_add_text_clip, ui_timeline_add_shape_clip, or ui_timeline_generate_clip; add tracks with ui_timeline_add_track when needed.
 - Address existing clips by id, name, or "selected" with ui_timeline_split_clip, ui_timeline_trim_clip, ui_timeline_move_clip, ui_timeline_delete_clip, ui_timeline_duplicate_clip, ui_timeline_set_clip_params, ui_timeline_set_clip_binding, ui_timeline_set_transition, ui_timeline_set_time_remap, ui_timeline_animate_clip, ui_timeline_clear_animations, ui_timeline_select_clip.
-- Use ui_timeline_generatively_edit_clip for nondestructive extend, replace-range, object removal/replacement, restyle, or regenerate operations. It always appends a candidate take and leaves the active take unchanged. For object edits, call track_object first; for replace_object, provide a prompt and/or referenceAssetIds. Use list_takes before selecting a result.
+- Use ui_timeline_generatively_edit_clip for a nondestructive video edit. Pass the exact clip_id, an instruction, and an optional provider/model. It captures the clip's playable source window, returns an inactive candidate and generationId, and never changes the active take. After that candidate succeeds, call ui_timeline_apply_take with the same clip_id and the returned take_id to promote it in one undoable action. Do not request extend, object, range, or operation fields: the instruction is the edit target.
 - Before animating a clip, call ui_timeline_list_animation_presets to discover the exact preset ids, allowed roles, and params.
 - For motion no preset covers, animate with preset "custom" and pass curves — [{property, keyframes: [{t, value}]}], where t runs 0..1 over the animation window. list_animation_presets reports which properties a curve may drive.
 - ui_timeline_seek moves the playhead (useful before a playhead-relative split).
@@ -4098,6 +4016,106 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
             name: "previewReportedTheModel",
             detail: "no preview reported a model3d layer",
             test: (s) => s.previewedLayerKinds.includes("model3d")
+          }
+        ]
+      }
+    },
+    {
+      id: "trimmed-video-edit-candidate-apply",
+      description:
+        "Edit a trimmed source into an inactive candidate, inspect it, then apply it",
+      objective:
+        "The timeline contains a trimmed imported video clip. Edit that exact clip to make the station deserted at night, inspect the inactive candidate, then explicitly apply the returned take while keeping the current cut.",
+      createBridge: () =>
+        createTimelineToolBridge({
+          sequenceId: "sequence-trimmed-edit",
+          sequence: {
+            tracks: [
+              {
+                id: "track-video",
+                name: "Video",
+                type: "video",
+                index: 0,
+                visible: true,
+                locked: false
+              }
+            ],
+            clips: [
+              {
+                id: "clip-trimmed",
+                trackId: "track-video",
+                name: "Station",
+                startMs: 1200,
+                durationMs: 4000,
+                inPointMs: 40000,
+                outPointMs: 44000,
+                mediaType: "video",
+                sourceType: "imported",
+                status: "generated",
+                locked: false,
+                currentAssetId: "asset-original",
+                activeTakeId: "take-original",
+                versions: [
+                  {
+                    id: "take-original",
+                    createdAt: "2026-01-01T00:00:00.000Z",
+                    workflowUpdatedAt: "2026-01-01T00:00:00.000Z",
+                    jobId: "original-job",
+                    assetId: "asset-original",
+                    dependencyHash: "",
+                    paramOverridesSnapshot: {},
+                    durationMs: 4000,
+                    status: "success",
+                    source: "imported",
+                    sourceMapping: {
+                      inPointMs: 40000,
+                      outPointMs: 44000,
+                      speedMultiplier: 1,
+                      speedBaked: false
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }),
+      systemPrompt: TIMELINE_SYSTEM_PROMPT,
+      expect: {
+        requiredTools: [
+          "ui_timeline_generatively_edit_clip",
+          "ui_timeline_list_takes",
+          "ui_timeline_apply_take"
+        ],
+        ordering: [
+          ["ui_timeline_generatively_edit_clip", "ui_timeline_list_takes"],
+          ["ui_timeline_list_takes", "ui_timeline_apply_take"]
+        ],
+        noErrorResults: true,
+        minToolCalls: 3,
+        maxToolCalls: 8,
+        finalState: [
+          {
+            name: "appliedEditPreservesTheTimelineCut",
+            detail:
+              "the edit candidate was not applied to the trimmed clip with its timeline placement intact",
+            test: (s) => {
+              const clip = s.documentClips.find(
+                (candidate) => candidate.id === "clip-trimmed"
+              );
+              const active = clip?.versions?.find(
+                (take) => take.id === clip.activeTakeId
+              );
+              return (
+                clip?.startMs === 1200 &&
+                clip.durationMs === 4000 &&
+                clip.currentAssetId?.startsWith("generative://clip-trimmed/") ===
+                  true &&
+                clip.inPointMs === 0 &&
+                clip.outPointMs === 4000 &&
+                active?.mediaEdit?.sourceContext.sourceStartMs === 40000 &&
+                active.mediaEdit.sourceContext.sourceEndMs === 44000
+              );
+            }
           }
         ]
       }

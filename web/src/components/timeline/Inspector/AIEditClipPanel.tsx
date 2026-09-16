@@ -92,12 +92,22 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
       })),
     [availableModels]
   );
-  const { startEdit, cancelEdit } = useTimelineDirectGenJob();
+  const { startEdit, cancel } = useTimelineDirectGenJob();
   const pendingEdit = useDirectGenPendingStore((state) => {
     if (!sequenceId) return undefined;
     return state.pending[sequenceId]?.find(
       (job) => job.clipId === clipId && job.mediaEdit !== undefined
     );
+  });
+  const latestSettlement = useDirectGenPendingStore((state) => {
+    if (!sequenceId) return undefined;
+    return Object.values(state.editSettlements)
+      .filter(
+        (settlement) =>
+          settlement.sequenceId === sequenceId &&
+          settlement.clipId === clipId
+      )
+      .sort((a, b) => b.settledAt - a.settledAt)[0];
   });
   const editFailure = useDirectGenPendingStore((state) =>
     sequenceId ? state.editFailures[sequenceId]?.[clipId] : undefined
@@ -157,6 +167,19 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
     }
   }, [clip?.strength]);
 
+  useEffect(() => {
+    if (pendingEdit || !latestSettlement) return;
+    setInstruction(latestSettlement.mediaEdit.instruction);
+    const capturedModel = availableModels.find(
+      (model) =>
+        model.id === latestSettlement.mediaEdit.model &&
+        model.provider === latestSettlement.mediaEdit.provider
+    );
+    if (capturedModel) {
+      setSelectedModel(toVideoModelValue(capturedModel));
+    }
+  }, [availableModels, latestSettlement, pendingEdit]);
+
   const handleModelChange = useCallback((value: VideoModelValue) => {
     setSelectedModel(value);
     setErrorMessage(null);
@@ -188,7 +211,11 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
   if (!clip) return null;
 
   const active = pendingEdit !== undefined;
-  const failed = submissionFailed || editFailure !== undefined;
+  const settledStatus = latestSettlement?.status;
+  const failed =
+    submissionFailed ||
+    editFailure !== undefined ||
+    (settledStatus !== undefined && settledStatus !== "completed");
   const noCompatibleModel =
     !isLoading && !error && availableModels.length === 0;
   const modelOptionsReady = Boolean(selectedModel && catalogModel);
@@ -209,6 +236,16 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
       : noCompatibleModel
         ? "No compatible video edit model is available. Add a provider or install a local model that supports video_to_video."
         : undefined;
+  const settlementMessage =
+    settledStatus === "cancelled"
+      ? "The edit was cancelled. The accepted media was left unchanged."
+      : settledStatus === "expired"
+        ? "The edit expired before it finished. The captured request is available to retry."
+        : settledStatus === "orphaned"
+          ? "The source clip was deleted before the edit finished. The result was kept for inspection and was not applied."
+          : settledStatus === "failed"
+            ? "The provider failed this edit. The accepted media was left unchanged."
+            : undefined;
 
   return (
     <CollapsibleSection
@@ -310,7 +347,7 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
               }
               onClick={() => {
                 if (active) {
-                  cancelEdit(clip.id);
+                  cancel(clip.id);
                 } else {
                   void handleSubmit();
                 }
@@ -320,6 +357,11 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
               {active ? "Cancel" : failed ? "Retry" : "Edit video"}
             </EditorButton>
 
+            {settlementMessage && (
+              <Caption color="error" sx={{ textAlign: "center" }}>
+                {settlementMessage}
+              </Caption>
+            )}
             {failed && (
               <Caption color="error" sx={{ textAlign: "center" }}>
                 {editFailure ??

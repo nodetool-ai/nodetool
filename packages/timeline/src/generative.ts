@@ -28,6 +28,96 @@ export interface MediaEditRequest {
   readonly resolution?: string;
 }
 
+export interface MediaEditSourceContextInput {
+  sequenceId: string;
+  clipId: string;
+  sourceAssetId: string;
+  sourceTakeId?: string;
+  sourceStartMs: number;
+  sourceEndMs: number;
+  timelineStartMs: number;
+  timelineDurationMs: number;
+  speedMultiplier: number;
+}
+
+/** Validate a host-neutral source snapshot before a video edit is submitted. */
+export function createMediaEditSourceContext(
+  input: MediaEditSourceContextInput
+): MediaEditSourceContextResult {
+  if (!input.sequenceId || !input.clipId || !input.sourceAssetId) {
+    return { ok: false, error: "Edit video requires a complete source context." };
+  }
+  if (
+    !Number.isFinite(input.sourceStartMs) ||
+    !Number.isFinite(input.sourceEndMs) ||
+    input.sourceStartMs < 0 ||
+    input.sourceEndMs <= input.sourceStartMs
+  ) {
+    return {
+      ok: false,
+      error: "Edit video could not resolve a positive constant source window."
+    };
+  }
+  if (
+    !Number.isFinite(input.timelineStartMs) ||
+    !Number.isFinite(input.timelineDurationMs) ||
+    input.timelineDurationMs <= 0
+  ) {
+    return {
+      ok: false,
+      error: "Edit video requires a positive playable duration."
+    };
+  }
+  if (!Number.isFinite(input.speedMultiplier) || input.speedMultiplier !== 1) {
+    return {
+      ok: false,
+      error:
+        "Edit video currently supports 1x playback only. Bake the speed change first."
+    };
+  }
+  return { ok: true, context: Object.freeze({ ...input }) };
+}
+
+/** The direct-generation payload shared by timeline and storyboard hosts. */
+export function mediaEditGenerateMediaData(
+  request: MediaEditRequest
+): Record<string, unknown> {
+  const context = request.sourceContext;
+  const sourceContext: Record<string, unknown> = {
+    sequence_id: context.sequenceId,
+    clip_id: context.clipId,
+    source_asset_id: context.sourceAssetId,
+    source_start_ms: context.sourceStartMs,
+    source_end_ms: context.sourceEndMs,
+    timeline_start_ms: context.timelineStartMs,
+    timeline_duration_ms: context.timelineDurationMs,
+    speed_multiplier: context.speedMultiplier
+  };
+  if (context.sourceTakeId !== undefined) {
+    sourceContext.source_take_id = context.sourceTakeId;
+  }
+  return {
+    mode: request.action,
+    provider: request.provider,
+    model: request.model,
+    prompt: request.instruction,
+    source_asset_id: context.sourceAssetId,
+    source_context: sourceContext,
+    strength: request.strength,
+    resolution: request.resolution,
+    duration: Math.round(context.timelineDurationMs / 1000),
+    variations: 1
+  };
+}
+
+/** Shared provenance payload stored on every host's accepted take record. */
+export function mediaEditTakeMetadata(
+  request: MediaEditRequest,
+  requestId: string
+): MediaEditRequest & { requestId: string } {
+  return { ...request, requestId };
+}
+
 export function createMediaEditRequest(input: {
   sourceContext: MediaEditSourceContext;
   instruction: string;
@@ -145,17 +235,7 @@ export function captureMediaEditSourceContext(
   const sourceTakeId = (clip.versions ?? []).find(
     (version) => version.assetId === clip.currentAssetId
   )?.id;
-  const context: {
-    sequenceId: string;
-    clipId: string;
-    sourceAssetId: string;
-    sourceTakeId?: string;
-    sourceStartMs: number;
-    sourceEndMs: number;
-    timelineStartMs: number;
-    timelineDurationMs: number;
-    speedMultiplier: number;
-  } = {
+  const context: MediaEditSourceContextInput = {
     sequenceId,
     clipId: clip.id,
     sourceAssetId: clip.currentAssetId,
@@ -166,10 +246,7 @@ export function captureMediaEditSourceContext(
     speedMultiplier
   };
   if (sourceTakeId !== undefined) context.sourceTakeId = sourceTakeId;
-  return {
-    ok: true,
-    context
-  };
+  return createMediaEditSourceContext(context);
 }
 
 /** Capabilities are deliberately provider-independent model registry keys. */
@@ -495,7 +572,7 @@ export function composeGenerativeTakePatch(
     negativePrompt: result.negativePrompt,
     parentTakeId,
     mediaEdit: result.mediaEdit
-      ? { ...result.mediaEdit, requestId: versionId }
+      ? mediaEditTakeMetadata(result.mediaEdit, versionId)
       : undefined
   };
   const next: TimelineClip = {

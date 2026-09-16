@@ -26,6 +26,8 @@ import type {
   ShotStatus,
   VideoRef
 } from "@nodetool-ai/protocol";
+import type { MediaEditRequest } from "@nodetool-ai/timeline";
+import { mediaEditTakeMetadata } from "@nodetool-ai/timeline";
 import { currentRenderInputs, stampRenderInputs } from "@nodetool-ai/protocol";
 import {
   globalWebSocketManager,
@@ -75,6 +77,10 @@ export interface ShotJobState {
    * the caller had no board context to record — that version is never stale.
    */
   renderInputs?: RenderInputs;
+  /** Shared P0 edit snapshot, when this clip job is a Revise take. */
+  mediaEdit?: MediaEditRequest;
+  /** Status of the accepted shot before a media edit started. */
+  acceptedShotStatus?: ShotStatus;
 }
 
 /**
@@ -98,6 +104,8 @@ export interface DirectShotJobContext {
   shotId: string;
   boardId: string;
   kind: ShotJobKind;
+  mediaEdit?: MediaEditRequest;
+  acceptedShotStatus?: ShotStatus;
 }
 
 /**
@@ -114,6 +122,8 @@ export interface PendingShotJob {
   /** Epoch ms the request was sent. Used to measure render duration. */
   startedAt: number;
   renderInputs?: RenderInputs;
+  mediaEdit?: MediaEditRequest;
+  acceptedShotStatus?: ShotStatus;
 }
 
 /** The wire shape of a `generate_media` reply. */
@@ -160,7 +170,9 @@ interface StoryboardGenerationStoreState {
     boardId: string,
     requestId: string,
     kind: ShotJobKind,
-    render?: ShotRenderContext
+    render?: ShotRenderContext,
+    mediaEdit?: MediaEditRequest,
+    acceptedShotStatus?: ShotStatus
   ) => void;
   updateJobStatus: (
     jobId: string,
@@ -177,7 +189,9 @@ interface StoryboardGenerationStoreState {
     shotId: string,
     boardId: string,
     kind: ShotJobKind,
-    errorMessage: string
+    errorMessage: string,
+    mediaEdit?: MediaEditRequest,
+    acceptedShotStatus?: ShotStatus
   ) => void;
   clear: (shotId: string) => void;
 }
@@ -387,6 +401,12 @@ export const useStoryboardGenerationStore = create<StoryboardGenerationStoreStat
             if (job.renderInputs) {
               row.renderInputs = job.renderInputs;
             }
+            if (job.mediaEdit) {
+              row.mediaEdit = job.mediaEdit;
+            }
+            if (job.acceptedShotStatus) {
+              row.acceptedShotStatus = job.acceptedShotStatus;
+            }
             nextShotJobs[job.shotId] = row;
             nextJobToShot[job.jobId] = job.shotId;
           }
@@ -414,7 +434,15 @@ export const useStoryboardGenerationStore = create<StoryboardGenerationStoreStat
         return restored;
       },
 
-      registerJob: (shotId, boardId, jobId, kind, render) => {
+      registerJob: (
+        shotId,
+        boardId,
+        jobId,
+        kind,
+        render,
+        mediaEdit,
+        acceptedShotStatus
+      ) => {
         const startedAt = Date.now();
         // A direct request has no server queue: it is in flight the moment it
         // is sent, so it registers as running rather than queued.
@@ -427,6 +455,12 @@ export const useStoryboardGenerationStore = create<StoryboardGenerationStoreStat
           startedAt,
           progress: 0
         };
+        if (mediaEdit) {
+          jobState.mediaEdit = mediaEdit;
+        }
+        if (acceptedShotStatus) {
+          jobState.acceptedShotStatus = acceptedShotStatus;
+        }
         // Taken here, not when the asset lands: a render that finishes after a
         // style change has to carry the inputs it was started with, or it would
         // read current against a board it never saw (PRD § 7.7.4).
@@ -443,6 +477,12 @@ export const useStoryboardGenerationStore = create<StoryboardGenerationStoreStat
         };
         if (jobState.renderInputs) {
           pending.renderInputs = jobState.renderInputs;
+        }
+        if (mediaEdit) {
+          pending.mediaEdit = mediaEdit;
+        }
+        if (acceptedShotStatus) {
+          pending.acceptedShotStatus = acceptedShotStatus;
         }
         set((state) => {
           const nextShotJobs = { ...state.shotJobs, [shotId]: jobState };
@@ -521,10 +561,26 @@ export const useStoryboardGenerationStore = create<StoryboardGenerationStoreStat
           };
         });
 
-        if (status === "failed") {
+        if (status === "failed" && !existing.mediaEdit) {
           useStoryboardStore
             .getState()
             .setShotStatus(existing.boardId, shotId, "failed");
+          notifyShotFailure(updated);
+        } else if (status === "failed" && existing.mediaEdit) {
+          const shot = useStoryboardStore
+            .getState()
+            .getBoard(existing.boardId)
+            ?.shots.find((candidate) => candidate.id === shotId);
+          if (shot) {
+            useStoryboardStore
+              .getState()
+              .setShotStatus(
+                existing.boardId,
+                shotId,
+                existing.acceptedShotStatus ??
+                  (shot.clip ? "rendered" : "keyframe_ready")
+              );
+          }
           notifyShotFailure(updated);
         }
       },
@@ -548,7 +604,14 @@ export const useStoryboardGenerationStore = create<StoryboardGenerationStoreStat
         }));
       },
 
-      recordStartFailure: (shotId, boardId, kind, errorMessage) => {
+      recordStartFailure: (
+        shotId,
+        boardId,
+        kind,
+        errorMessage,
+        mediaEdit,
+        acceptedShotStatus
+      ) => {
         const jobState: ShotJobState = {
           shotId,
           boardId,
@@ -560,6 +623,12 @@ export const useStoryboardGenerationStore = create<StoryboardGenerationStoreStat
           startedAt: Date.now(),
           errorMessage
         };
+        if (mediaEdit) {
+          jobState.mediaEdit = mediaEdit;
+        }
+        if (acceptedShotStatus) {
+          jobState.acceptedShotStatus = acceptedShotStatus;
+        }
         set((state) => {
           const nextShotJobs = { ...state.shotJobs, [shotId]: jobState };
           const nextJobToShot = { ...state.jobToShot };
@@ -576,7 +645,25 @@ export const useStoryboardGenerationStore = create<StoryboardGenerationStoreStat
             ...deriveMembership(nextShotJobs, state)
           };
         });
-        useStoryboardStore.getState().setShotStatus(boardId, shotId, "failed");
+        if (mediaEdit) {
+          const shot = useStoryboardStore
+            .getState()
+            .getBoard(boardId)
+            ?.shots.find((candidate) => candidate.id === shotId);
+          if (shot) {
+            useStoryboardStore
+              .getState()
+              .setShotStatus(
+                boardId,
+                shotId,
+                acceptedShotStatus ?? (shot.clip ? "rendered" : "keyframe_ready")
+              );
+          }
+        } else {
+          useStoryboardStore
+            .getState()
+            .setShotStatus(boardId, shotId, "failed");
+        }
         notifyShotFailure(jobState);
       },
 
@@ -635,6 +722,16 @@ export const settleCancelledShotJob = (shotId: string): void => {
   if (!job) {
     return;
   }
+  if (job.mediaEdit) {
+    // Media edits are candidates. Keep the terminal row and its captured
+    // inputs so the card can inspect and retry the cancelled revision, while
+    // removing only the active subscription.
+    useStoryboardGenerationStore.getState().updateJobStatus(job.jobId, "failed", {
+      errorMessage: "Revision cancelled."
+    });
+    unsubscribeShotJob(job.jobId);
+    return;
+  }
   const storyboard = useStoryboardStore.getState();
   const shot = storyboard
     .getBoard(job.boardId)
@@ -687,9 +784,41 @@ const settleShotAsset = (
   context: DirectShotJobContext,
   ref: ImageRef | VideoRef,
   assetId: string,
-  renderInputs?: RenderInputs
+  renderInputs?: RenderInputs,
+  requestId?: string
 ): void => {
   const storyboard = useStoryboardStore.getState();
+  if (context.mediaEdit) {
+    const candidate: ClipVersion = {
+      type: "video",
+      uri: `asset://${assetId}`,
+      asset_id: assetId,
+      duration: context.mediaEdit.sourceContext.timelineDurationMs / 1000,
+      mediaEdit: mediaEditTakeMetadata(
+        context.mediaEdit,
+        requestId ?? context.mediaEdit.sourceContext.clipId
+      )
+    };
+    const shot = storyboard
+      .getBoard(context.boardId)
+      ?.shots.find((item) => item.id === context.shotId);
+    if (!shot) {
+      return;
+    }
+    storyboard.appendShotClipVersion(
+      context.boardId,
+      context.shotId,
+      candidate
+    );
+    // A revision is a candidate. Restore the status that describes the
+    // accepted shot and do not sync or replace the assembled timeline clip.
+    storyboard.setShotStatus(
+      context.boardId,
+      context.shotId,
+      context.acceptedShotStatus ?? (shot.clip ? "rendered" : "keyframe_ready")
+    );
+    return;
+  }
   if (context.kind === "keyframe") {
     const keyframe: KeyframeVersion = { ...(ref as ImageRef) };
     if (renderInputs) {
@@ -751,7 +880,8 @@ const settleDirectShotJob = (
     context,
     ref,
     assetId,
-    job?.jobId === requestId ? job.renderInputs : undefined
+    job?.jobId === requestId ? job.renderInputs : undefined,
+    requestId
   );
   generationStore.updateJobStatus(requestId, "completed", { assetId });
   generationStore.clear(context.shotId);
@@ -864,7 +994,9 @@ export const reattachBoardJobs = async (boardId: string): Promise<void> => {
       const context: DirectShotJobContext = {
         shotId: job.shotId,
         boardId,
-        kind: job.kind
+        kind: job.kind,
+        mediaEdit: job.mediaEdit,
+        acceptedShotStatus: job.acceptedShotStatus
       };
       if (outcome && isSettled(outcome.status)) {
         // The row settled while this client was away. Land it from the row:

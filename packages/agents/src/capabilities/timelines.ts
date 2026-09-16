@@ -476,7 +476,15 @@ const MAX_OPS = 60;
 
 const TOOL_PREFIX = "ui_timeline_";
 
-/** Tools the bridge exposes that this surface must not offer headlessly. */
+/**
+ * Tools the browser bridge exposes that this capability cannot run safely.
+ *
+ * `edit_timeline` persists document mutations but has no durable media-edit
+ * generation adapter or callback path. Exposing generative editing here would
+ * require it to invent an asset id, so it remains browser-only until a server
+ * generation runner can create and attach the candidate take. `apply_take`
+ * stays available because it only promotes an existing candidate.
+ */
 const EXCLUDED_OPS = new Set([
   `${TOOL_PREFIX}get_clip_frames`,
   `${TOOL_PREFIX}generate_clip`,

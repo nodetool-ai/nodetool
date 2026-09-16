@@ -162,6 +162,10 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     const job = state.shotJobs[shot.id];
     return job?.status === "failed" ? job.kind : undefined;
   });
+  const failedMediaEdit = useStoryboardGenerationStore((state) => {
+    const job = state.shotJobs[shot.id];
+    return job?.status === "failed" ? job.mediaEdit : undefined;
+  });
   const progress = useStoryboardGenerationStore(
     (state) => state.shotJobs[shot.id]?.progress
   );
@@ -172,7 +176,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const setShotKeyframe = useStoryboardStore((state) => state.setShotKeyframe);
   const uploadAsset = useAssetUpload((state) => state.uploadAsset);
 
-  const failed = shot.status === "failed";
+  const failed = shot.status === "failed" || !!failedMediaEdit;
   const isGenerating = isShotGenerating(shot);
   // Whether there is a clip to show at all: the player itself resolves the
   // `asset://` locator, but the card renders the keyframe when it cannot.
@@ -216,12 +220,37 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const handleRetry = useCallback(
     (event: React.MouseEvent) => {
       event.stopPropagation();
+      if (failedMediaEdit) {
+        const retryModel =
+          failedMediaEdit.provider && failedMediaEdit.model
+            ? {
+                id: failedMediaEdit.model,
+                provider: failedMediaEdit.provider,
+                name: failedMediaEdit.model
+              }
+            : undefined;
+        void generateRevisedClip(
+          boardId,
+          shot,
+          failedMediaEdit.instruction,
+          retryModel
+        ).catch(() => undefined);
+        return;
+      }
       const retryClip =
         failedKind === "clip" || (!failedKind && !!shot.keyframe);
       const run = retryClip ? generateClip : generateKeyframe;
       void run(boardId, shot).catch(() => undefined);
     },
-    [failedKind, shot, generateClip, generateKeyframe, boardId]
+    [
+      failedKind,
+      failedMediaEdit,
+      shot,
+      generateClip,
+      generateKeyframe,
+      generateRevisedClip,
+      boardId
+    ]
   );
 
   const handleOpenDeleteConfirm = useCallback(() => setConfirmDelete(true), []);
