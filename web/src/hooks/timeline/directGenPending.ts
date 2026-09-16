@@ -26,6 +26,7 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import type { MediaEditRequest } from "@nodetool-ai/timeline";
 
 /**
  * How long a persisted request is worth recovering.
@@ -52,13 +53,18 @@ export interface PendingClipJob {
   startedAt: number;
   /** `${bindingKind}:${model}` — what the duration is filed under. */
   bucket: string;
+  /** Immutable edit request captured before dispatch, when this is an edit. */
+  mediaEdit?: MediaEditRequest;
 }
 
 /** One bucket per model and kind: a clip and a voice line are not comparable. */
 export const durationBucketKey = (kind: string, model: string): string =>
   `${kind}:${model}`;
 
-const prune = (jobs: readonly PendingClipJob[], now: number): PendingClipJob[] =>
+const prune = (
+  jobs: readonly PendingClipJob[],
+  now: number
+): PendingClipJob[] =>
   jobs
     .filter((job) => now - job.startedAt < PENDING_TTL_MS)
     .slice(-MAX_PENDING_PER_SEQUENCE);
@@ -89,7 +95,12 @@ interface DirectGenPendingState {
   durationSamples: Record<string, number[]>;
   remember: (sequenceId: string, job: PendingClipJob) => void;
   /** Drop a clip's entry and, when it finished, file how long it took. */
-  settle: (sequenceId: string, clipId: string, finishedAt?: number) => void;
+  settle: (
+    sequenceId: string,
+    clipId: string,
+    finishedAt?: number,
+    requestId?: string
+  ) => void;
   /** The entries still worth recovering, with the stale ones dropped. */
   restore: (sequenceId: string) => PendingClipJob[];
 }
@@ -116,11 +127,18 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
           }
         })),
 
-      settle: (sequenceId, clipId, finishedAt) =>
+      settle: (sequenceId, clipId, finishedAt, requestId) =>
         set((state) => {
           const existing = state.pending[sequenceId] ?? [];
-          const job = existing.find((entry) => entry.clipId === clipId);
-          const rest = existing.filter((entry) => entry.clipId !== clipId);
+          const job = existing.find(
+            (entry) =>
+              entry.clipId === clipId &&
+              (requestId === undefined || entry.requestId === requestId)
+          );
+          if (!job) {
+            return { pending: state.pending };
+          }
+          const rest = existing.filter((entry) => entry !== job);
           const pending = { ...state.pending };
           if (rest.length === 0) {
             delete pending[sequenceId];

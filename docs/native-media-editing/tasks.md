@@ -17,7 +17,7 @@
 
 ## P0: Edit video
 
-- [ ] **T01: Edit one trimmed clip into an inactive candidate.** Add a shared
+- [x] **T01: Edit one trimmed clip into an inactive candidate.** Add a shared
       media-edit request that captures sequence, clip, active take, source
       asset, playable source window, timeline placement, and constant speed
       before dispatch. Map `video_edit` to model task support, submit through

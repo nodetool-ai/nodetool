@@ -23,7 +23,8 @@ export interface RecommendedUnifiedModel extends UnifiedModel {
     | "text_to_image"
     | "image_to_image"
     | "text_to_video"
-    | "image_to_video";
+    | "image_to_video"
+    | "video_to_video";
   provider?: ProviderId;
   /** Optional list of platforms this entry is valid on. Undefined = all. */
   supported_systems?: Array<"darwin" | "linux" | "windows">;

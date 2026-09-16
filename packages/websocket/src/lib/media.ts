@@ -112,3 +112,61 @@ export async function extractAudio(
     await fs.rm(dir, { recursive: true, force: true });
   }
 }
+
+/**
+ * Materialize the exact constant-speed source window sent to a video editor.
+ * The source asset remains untouched in storage. The returned MP4 starts at
+ * time zero so providers receive the same window-relative contract as the
+ * timeline candidate.
+ */
+export async function trimVideoWindow(
+  input: Uint8Array,
+  startMs: number,
+  endMs: number
+): Promise<Uint8Array> {
+  if (
+    input.length === 0 ||
+    !Number.isFinite(startMs) ||
+    !Number.isFinite(endMs) ||
+    startMs < 0 ||
+    endMs <= startMs
+  ) {
+    throw new Error(
+      "Video edit source window must be a positive finite range."
+    );
+  }
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-video-edit-"));
+  const inputPath = path.join(dir, "input.mp4");
+  const outputPath = path.join(dir, "window.mp4");
+  try {
+    await fs.writeFile(inputPath, input);
+    await execFile(
+      "ffmpeg",
+      [
+        "-y",
+        "-i",
+        inputPath,
+        "-ss",
+        String(startMs / 1000),
+        "-t",
+        String((endMs - startMs) / 1000),
+        "-c:v",
+        "libx264",
+        "-c:a",
+        "aac",
+        "-movflags",
+        "+faststart",
+        outputPath
+      ],
+      { maxBuffer: 50 * 1024 * 1024 }
+    );
+    return new Uint8Array(await fs.readFile(outputPath));
+  } catch (err) {
+    if (isEnoent(err)) {
+      throw new MediaToolingMissingError();
+    }
+    throw err;
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}
