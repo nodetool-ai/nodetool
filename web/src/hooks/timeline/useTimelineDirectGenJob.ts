@@ -58,6 +58,7 @@ interface UseTimelineDirectGenJobApi {
     resolution?: string;
   }) => Promise<string | null>;
   cancel: (clipId: string) => void;
+  cancelEdit: (clipId: string) => void;
 }
 
 // Module-level so cancel() can tear down an in-flight subscription started by
@@ -215,7 +216,24 @@ export function landMediaEdit(
   outcome: DirectGenOutcome
 ): void {
   clearInFlight(clipId);
+  const pending = sequenceId
+    ? useDirectGenPendingStore
+        .getState()
+        .pending[sequenceId]?.find(
+          (job) => job.clipId === clipId && job.requestId === requestId
+        )
+    : undefined;
+  if (sequenceId && !pending) return;
   if (sequenceId) {
+    if (outcome.errored || outcome.assetIds.length === 0) {
+      useDirectGenPendingStore
+        .getState()
+        .markEditFailure(
+          sequenceId,
+          clipId,
+          "The video edit failed before producing a candidate."
+        );
+    }
     useDirectGenPendingStore
       .getState()
       .settle(sequenceId, clipId, Date.now(), requestId);
@@ -325,6 +343,15 @@ export function subscribeDirectGen(
         // than rendering forever.
         cleanup();
         if (sequenceId) {
+          if (mediaEdit) {
+            useDirectGenPendingStore
+              .getState()
+              .markEditFailure(
+                sequenceId,
+                clipId,
+                "The video edit expired before producing a candidate."
+              );
+          }
           useDirectGenPendingStore.getState().settle(sequenceId, clipId);
         }
         if (!mediaEdit) fail(timeline, clipId);
@@ -678,6 +705,13 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         clearInFlight(input.clipId);
         useDirectGenPendingStore
           .getState()
+          .markEditFailure(
+            sequenceId,
+            input.clipId,
+            "The edit could not be submitted. Check the connection and try again."
+          );
+        useDirectGenPendingStore
+          .getState()
           .settle(sequenceId, input.clipId, undefined, requestId);
         return null;
       }
@@ -705,5 +739,16 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
     [timeline]
   );
 
-  return { start, startEdit, cancel };
+  const cancelEdit = useCallback(
+    (clipId: string) => {
+      clearInFlight(clipId);
+      const sequenceId = timeline.getState().sequenceId;
+      if (!sequenceId) return;
+      useDirectGenPendingStore.getState().clearEditFailure(sequenceId, clipId);
+      useDirectGenPendingStore.getState().settle(sequenceId, clipId);
+    },
+    [timeline]
+  );
+
+  return { start, startEdit, cancel, cancelEdit };
 }

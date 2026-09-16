@@ -20,6 +20,7 @@ const makeActions = (
   canOpenInNodeEditor: false,
   isMidi: false,
   canReplace: true,
+  canEditVideo: false,
   splitAtPlayhead: jest.fn(),
   duplicate: jest.fn(),
   editNotes: jest.fn(),
@@ -27,6 +28,7 @@ const makeActions = (
   toggleLock: jest.fn(),
   openReplace: jest.fn(),
   openInNodeEditor: jest.fn(),
+  openAiEdit: jest.fn(),
   ...overrides
 });
 
@@ -93,6 +95,18 @@ describe("ClipContextMenu", () => {
     expect(screen.getByText("Lock")).toBeTruthy();
     expect(screen.getByText("Replace clip…")).toBeTruthy();
     expect(screen.getByText("Open in node editor")).toBeTruthy();
+  });
+
+  it("offers Edit video for a clip with an active video asset", async () => {
+    const actions = makeActions({ canEditVideo: true });
+    mockUseClipMenuActions.mockReturnValue(actions);
+    const onClose = jest.fn();
+    renderMenu({ onClose });
+
+    await userEvent.click(screen.getByText("Edit video…"));
+
+    expect(actions.openAiEdit).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("hides generated-only and workflow-only items on a plain clip", () => {

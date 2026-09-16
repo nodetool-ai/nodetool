@@ -50,6 +50,7 @@ import { ClipVersionHistory } from "./ClipVersionHistory";
 
 interface GeneratedClipPanelProps {
   clipId: string;
+  additionalSections?: React.ReactNode;
 }
 
 // Stable identity so `clip.paramOverrides ?? EMPTY_PARAM_OVERRIDES` doesn't
@@ -92,7 +93,7 @@ const inputsContainerStyles = (theme: Theme) =>
   });
 
 export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
-  ({ clipId }) => {
+  ({ clipId, additionalSections }) => {
     const theme = useTheme();
     const clip = useTimelineStore((s) => findClipById(s.clips, clipId));
     const setParamOverride = useTimelineStore((s) => s.setParamOverride);
@@ -257,6 +258,8 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
               )}
             </FlexColumn>
           )}
+
+          {additionalSections}
 
           <ClipVersionHistory clipId={clipId} />
 
