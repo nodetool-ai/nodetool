@@ -244,7 +244,7 @@ const VersionTile: React.FC<VersionTileProps> = memo(
         <Tooltip title={tooltip}>
           <button
             type="button"
-            css={tileStyles(theme, active, true)}
+            css={tileStyles(theme, auditioned, true)}
             style={
               isImage && url ? { backgroundImage: `url(${url})` } : undefined
             }
@@ -267,7 +267,7 @@ const VersionTile: React.FC<VersionTileProps> = memo(
                 <GraphicEqIcon fontSize="small" />
               </span>
             )}
-            {active && (
+            {auditioned && (
               <span css={activeBadgeStyles(theme)} aria-hidden>
                 <CheckIcon sx={{ fontSize: 10 }} />
               </span>

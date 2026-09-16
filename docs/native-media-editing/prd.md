@@ -165,7 +165,8 @@ P0 covers timeline clips and storyboard shots only.
 reproducible generation recipe.
 
 The initial reference-conditioned production route and the production-flow
-definition of **New take** are specified in `docs/creation-flows/ai-video-production-prd.md`.
+definition of **New take** are specified in the AI Video Production PRD
+(`docs/creation-flows/ai-video-production-prd.md`).
 This document owns the independently shippable P0 **Edit video** path,
 including its source-window rules and candidate application semantics.
 
