@@ -50,6 +50,14 @@ export const clipVersion = z.object({
   prompt: z.string().optional(),
   negativePrompt: z.string().optional(),
   parentTakeId: z.string().optional(),
+  sourceMapping: z
+    .object({
+      inPointMs: z.number().optional(),
+      outPointMs: z.number().optional(),
+      speedMultiplier: z.number().optional(),
+      speedBaked: z.boolean().optional()
+    })
+    .optional(),
   mediaEdit: z
     .object({
       action: z.literal("video_edit"),

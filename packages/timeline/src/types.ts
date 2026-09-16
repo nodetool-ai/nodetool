@@ -1664,6 +1664,13 @@ export interface ClipVersion {
   negativePrompt?: string;
   /** The take this one was derived from, e.g. an extend or inpaint pass. */
   parentTakeId?: string;
+  /** Source mapping captured for takes that need to restore an Original cut. */
+  sourceMapping?: {
+    inPointMs?: number;
+    outPointMs?: number;
+    speedMultiplier?: number;
+    speedBaked?: boolean;
+  };
   mediaEdit?: {
     action: "video_edit";
     modelTask: "video_to_video";

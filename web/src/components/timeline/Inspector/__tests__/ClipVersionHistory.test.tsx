@@ -51,6 +51,7 @@ function seedClipWithTwoTakes(): string {
         workflowUpdatedAt: "2026-01-01T00:00:00.000Z",
         dependencyHash: "hash_1",
         paramOverridesSnapshot: {},
+        durationMs: 4000,
         status: "success"
       },
       {
@@ -61,6 +62,7 @@ function seedClipWithTwoTakes(): string {
         workflowUpdatedAt: "2026-01-02T00:00:00.000Z",
         dependencyHash: "hash_2",
         paramOverridesSnapshot: {},
+        durationMs: 4000,
         status: "success",
         label: "Hero take"
       }

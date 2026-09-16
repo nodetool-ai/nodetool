@@ -48,7 +48,16 @@ export function ensureBaselineTake(
     assetId,
     dependencyHash: clip.dependencyHash ?? "",
     paramOverridesSnapshot: { ...(clip.paramOverrides ?? {}) },
-    source: clip.sourceType === "imported" ? "imported" : "generated"
+    durationMs: clip.durationMs,
+    source: clip.sourceType === "imported" ? "imported" : "generated",
+    sourceMapping: {
+      ...(clip.inPointMs !== undefined && { inPointMs: clip.inPointMs }),
+      ...(clip.outPointMs !== undefined && { outPointMs: clip.outPointMs }),
+      ...(clip.speedMultiplier !== undefined && {
+        speedMultiplier: clip.speedMultiplier
+      }),
+      ...(clip.speedBaked !== undefined && { speedBaked: clip.speedBaked })
+    }
   });
   return {
     ...clip,
@@ -81,6 +90,73 @@ export function previewTake(
   };
 }
 
+export interface ApplyTakeResult {
+  clip: TimelineClip;
+  error?: string;
+}
+
+/**
+ * Apply a successful take while preserving the editorial shape of its clip.
+ *
+ * Video-edit results are rendered from the submitted source window, so their
+ * source clock starts at zero. The result may be longer than the cut, but the
+ * cut keeps its existing duration and uses the remainder as handles. A result
+ * that cannot cover the cut is refused before the caller writes the document.
+ */
+export function applyTakeToClip(
+  clip: TimelineClip,
+  takeId: string
+): ApplyTakeResult {
+  if (clip.mediaType === "model3d") {
+    return {
+      clip,
+      error:
+        `Clip "${clip.name}" is a 3D clip — take application is not available.`
+    };
+  }
+
+  const version = (clip.versions ?? []).find((take) => take.id === takeId);
+  if (!version) {
+    return { clip, error: `No take "${takeId}" on "${clip.name}".` };
+  }
+  if (version.status !== "success") {
+    return {
+      clip,
+      error:
+        `Take "${takeId}" on "${clip.name}" did not finish successfully.`
+    };
+  }
+
+  if (clip.mediaType === "video") {
+    const resultDurationMs = version.durationMs;
+    if (
+      resultDurationMs === undefined ||
+      !Number.isFinite(resultDurationMs) ||
+      resultDurationMs < clip.durationMs
+    ) {
+      return {
+        clip,
+        error:
+          `Take "${takeId}" is shorter than the current ${clip.durationMs}ms cut.`
+      };
+    }
+  }
+
+  const selected = selectTake(clip, takeId);
+  if (selected === clip) {
+    return { clip, error: `Take "${takeId}" cannot be applied.` };
+  }
+  if (!version.mediaEdit) return { clip: selected };
+
+  const applied: TimelineClip = { ...selected };
+  applied.inPointMs = 0;
+  applied.outPointMs = clip.durationMs;
+  applied.speedMultiplier = 1;
+  applied.speedBaked = true;
+  delete applied.timeRemap;
+  return { clip: applied };
+}
+
 /**
  * Make a stored take current on a clip. Mirrors `TimelineStore.restoreVersion`
  * so the browser store and the headless op run one rule for what switching a
@@ -107,24 +183,30 @@ export function selectTake(clip: TimelineClip, takeId: string): TimelineClip {
   const restoredHash = version.dependencyHash;
   const status: TimelineClip["status"] =
     clip.dependencyHash === restoredHash ? "generated" : "stale";
+  const mapped = version.sourceMapping;
 
-  return {
+  const next: TimelineClip = {
     ...clip,
     currentAssetId: version.assetId,
     activeTakeId: version.id,
     paramOverrides: version.paramOverridesSnapshot,
     lastGeneratedHash: restoredHash,
-    status,
-    ...(version.mediaEdit
-      ? {
-          inPointMs: 0,
-          outPointMs: version.durationMs ?? clip.durationMs,
-          speedMultiplier: 1,
-          speedBaked: true,
-          timeRemap: undefined
-        }
-      : {})
+    status
   };
+  if (mapped) {
+    next.inPointMs = mapped.inPointMs;
+    next.outPointMs = mapped.outPointMs;
+    next.speedMultiplier = mapped.speedMultiplier;
+    next.speedBaked = mapped.speedBaked;
+  }
+  if (version.mediaEdit) {
+    next.inPointMs = 0;
+    next.outPointMs = version.durationMs ?? clip.durationMs;
+    next.speedMultiplier = 1;
+    next.speedBaked = true;
+    delete next.timeRemap;
+  }
+  return next;
 }
 
 /** Set a take's display label. A no-op for a take id not on this clip. */

@@ -7,6 +7,7 @@ import { makeClip } from "../src/defaults.js";
 import { clipSourceMsAt } from "../src/timeRemap.js";
 import {
   activeTakeIdOf,
+  applyTakeToClip,
   deleteTake,
   ensureBaselineTake,
   previewTake,
@@ -47,12 +48,18 @@ function clipWithTwoTakes(): TimelineClip {
     opacity: 0.5,
     effects: [{ id: "fx_1", type: "vignette", enabled: true, amount: 0.3 } as never],
     versions: [
-      version({ id: "take_1", assetId: "asset_1", dependencyHash: "hash_1" }),
+      version({
+        id: "take_1",
+        assetId: "asset_1",
+        dependencyHash: "hash_1",
+        durationMs: 5000
+      }),
       version({
         id: "take_2",
         assetId: "asset_2",
         dependencyHash: "hash_2",
-        createdAt: "2026-01-02T00:00:00.000Z"
+        createdAt: "2026-01-02T00:00:00.000Z",
+        durationMs: 5000
       })
     ]
   });
@@ -113,6 +120,145 @@ describe("selectTake", () => {
     const next = selectTake(clip, "bake_1");
     expect(next).toBe(clip);
     expect(next.currentAssetId).toBe("gltf_1");
+  });
+});
+
+describe("applyTakeToClip", () => {
+  it("maps an edit result to source zero without changing editorial fields", () => {
+    const original = makeClip({
+      id: "clip_1",
+      trackId: "video-track",
+      name: "Trimmed shot",
+      startMs: 1200,
+      durationMs: 4000,
+      mediaType: "video",
+      sourceType: "imported",
+      currentAssetId: "asset_original",
+      activeTakeId: "original",
+      inPointMs: 40000,
+      outPointMs: 44000,
+      speedMultiplier: 1,
+      speedBaked: false,
+      muted: true,
+      linkId: "linked-audio",
+      caption: {
+        words: [{ word: "hello", startMs: 100, endMs: 500 }],
+        style: { color: "#fff" }
+      },
+      transform: {
+        position: { x: 12, y: -8 },
+        scale: { x: 1.2, y: 0.8 },
+        rotation: 0.2,
+        anchor: { x: 0.25, y: 0.75 }
+      },
+      effects: [{ id: "effect-1", type: "vignette", enabled: true, amount: 0.4 }],
+      animations: [
+        {
+          id: "animation-1",
+          role: "in",
+          preset: "fade",
+          durationMs: 300,
+          enabled: true
+        }
+      ],
+      versions: [
+        version({
+          id: "original",
+          assetId: "asset_original",
+          durationMs: 4000,
+          sourceMapping: {
+            inPointMs: 40000,
+            outPointMs: 44000,
+            speedMultiplier: 1,
+            speedBaked: false
+          }
+        }),
+        version({
+          id: "candidate",
+          assetId: "asset_candidate",
+          durationMs: 5000,
+          mediaEdit: {
+            action: "video_edit",
+            modelTask: "video_to_video",
+            requestId: "request-1",
+            instruction: "make it warmer",
+            provider: "provider-1",
+            model: "model-1",
+            sourceContext: {
+              sequenceId: "sequence-1",
+              clipId: "clip_1",
+              sourceAssetId: "asset_original",
+              sourceStartMs: 40000,
+              sourceEndMs: 44000,
+              timelineStartMs: 1200,
+              timelineDurationMs: 4000,
+              speedMultiplier: 1
+            }
+          }
+        })
+      ]
+    });
+
+    const result = applyTakeToClip(original, "candidate");
+
+    expect(result.error).toBeUndefined();
+    expect(result.clip.currentAssetId).toBe("asset_candidate");
+    expect(result.clip.activeTakeId).toBe("candidate");
+    expect(result.clip.inPointMs).toBe(0);
+    expect(result.clip.outPointMs).toBe(original.durationMs);
+    expect(result.clip.durationMs).toBe(original.durationMs);
+    expect(result.clip.startMs).toBe(original.startMs);
+    expect(result.clip.trackId).toBe(original.trackId);
+    expect(result.clip.effects).toBe(original.effects);
+    expect(result.clip.transform).toBe(original.transform);
+    expect(result.clip.animations).toBe(original.animations);
+    expect(result.clip.caption).toBe(original.caption);
+    expect(result.clip.linkId).toBe(original.linkId);
+    expect(result.clip.muted).toBe(original.muted);
+    expect(result.clip.versions).toBe(original.versions);
+
+    const restored = applyTakeToClip(result.clip, "original");
+    expect(restored.error).toBeUndefined();
+    expect(restored.clip.currentAssetId).toBe("asset_original");
+    expect(restored.clip.inPointMs).toBe(40000);
+    expect(restored.clip.outPointMs).toBe(44000);
+  });
+
+  it("rejects an edit result shorter than the current cut", () => {
+    const clip = makeClip({
+      id: "clip",
+      durationMs: 4000,
+      versions: [
+        version({
+          id: "short-candidate",
+          assetId: "asset-short",
+          durationMs: 3999,
+          mediaEdit: {
+            action: "video_edit",
+            modelTask: "video_to_video",
+            requestId: "request-2",
+            instruction: "shorten",
+            provider: "provider-1",
+            model: "model-1",
+            sourceContext: {
+              sequenceId: "sequence-1",
+              clipId: "clip",
+              sourceAssetId: "asset-original",
+              sourceStartMs: 0,
+              sourceEndMs: 4000,
+              timelineStartMs: 0,
+              timelineDurationMs: 4000,
+              speedMultiplier: 1
+            }
+          }
+        })
+      ]
+    });
+
+    const result = applyTakeToClip(clip, "short-candidate");
+
+    expect(result.clip).toBe(clip);
+    expect(result.error).toMatch(/shorter/i);
   });
 });
 

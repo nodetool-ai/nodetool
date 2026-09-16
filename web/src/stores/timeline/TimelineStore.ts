@@ -67,6 +67,7 @@ import {
   selectGeneratedMatteVersion as selectMatteVersionOnClip,
   findBakedAnimationIndex,
   AUDIO_BAKED_ANIMATION_KIND,
+  applyTakeToClip,
   selectTake,
   renameTake as renameTakeOnClip,
   deleteTake as deleteTakeOnClip,
@@ -759,6 +760,9 @@ export interface TimelineStoreState {
 
   /** Restore a clip to a previously generated version (purely local; autosave persists on next save cycle). */
   restoreVersion: (clipId: string, versionId: string) => void;
+
+  /** Apply a successful take as one undoable editorial operation. */
+  applyTake: (clipId: string, versionId: string) => string | null;
 
   /** Set a take's display label (purely local; autosave persists on next save cycle). */
   renameTake: (clipId: string, versionId: string, label: string) => void;
@@ -3070,6 +3074,18 @@ export const createTimelineStore = (
               clips: state.clips.map((c) => (c.id === clipId ? next : c))
             };
           }),
+
+        applyTake: (clipId, versionId) => {
+          const clip = get().clips.find((c) => c.id === clipId);
+          if (!clip) return `Clip ${clipId} not found`;
+          const result = applyTakeToClip(clip, versionId);
+          if (result.error) return result.error;
+          if (result.clip === clip) return null;
+          set((state) => ({
+            clips: state.clips.map((c) => (c.id === clipId ? result.clip : c))
+          }));
+          return null;
+        },
 
         renameTake: (clipId, versionId, label) =>
           set((state) => {
