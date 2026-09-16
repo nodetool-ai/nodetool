@@ -39,15 +39,12 @@ type StoryboardResponse = Awaited<
 >;
 type StoryboardWireDocument = StoryboardResponse["document"];
 
-const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument =>
-  ({
+const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument => {
+  const document = {
     screenplay: board.screenplay,
     shots: board.shots,
     brief: board.brief,
     style: board.style,
-    ...(board.creativeContext
-      ? { creative_context: board.creativeContext }
-      : {}),
     entityIds: board.entityIds,
     aspectRatio: board.aspectRatio,
     setupStage: board.setupStage,
@@ -58,21 +55,23 @@ const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument =>
     importSource: board.importSource ?? null,
     setupShotCount: board.setupShotCount,
     setupDirectedFrom: board.setupDirectedFrom ?? null
-  }) as StoryboardWireDocument;
+  } as StoryboardWireDocument;
+  if (board.creativeContext) {
+    document.creative_context = board.creativeContext;
+  }
+  return document;
+};
 
 const responseToBoard = (
   res: StoryboardResponse
 ): Omit<StoryboardBoard, "id" | "updatedAt"> => {
   const doc = res.document;
-  return {
+  const board = {
     screenplay: doc.screenplay as Screenplay | null,
     shots: doc.shots as Shot[],
     title: res.name === "Untitled storyboard" ? "" : res.name,
     brief: doc.brief,
     style: doc.style,
-    ...(doc.creative_context
-      ? { creativeContext: doc.creative_context }
-      : {}),
     entityIds: (doc.entityIds as string[] | undefined) ?? [],
     aspectRatio: doc.aspectRatio,
     setupStage: doc.setupStage,
@@ -85,7 +84,11 @@ const responseToBoard = (
     setupDirectedFrom: doc.setupDirectedFrom ?? null,
     activeShotId: null,
     timelineId: res.timelineId ?? null
-  };
+  } as Omit<StoryboardBoard, "id" | "updatedAt">;
+  if (doc.creative_context) {
+    board.creativeContext = doc.creative_context;
+  }
+  return board;
 };
 
 const isNotFound = (error: unknown): boolean =>
