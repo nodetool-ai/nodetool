@@ -25,8 +25,15 @@ import type {
   BoardRenderContext,
   Entity,
   Shot,
-  ShotModelRef
+  ShotModelRef,
+  ShotStatus
 } from "@nodetool-ai/protocol";
+import {
+  createMediaEditRequest,
+  createMediaEditSourceContext,
+  mediaEditGenerateMediaData
+} from "@nodetool-ai/timeline";
+import type { MediaEditRequest } from "@nodetool-ai/timeline";
 import {
   clipPromptFor,
   entitiesForShot,
@@ -115,7 +122,8 @@ interface UseGenerateShotResult {
   generateRevisedClip: (
     boardId: string,
     shot: Shot,
-    instruction: string
+    instruction: string,
+    model?: ShotModelRef
   ) => Promise<void>;
 }
 
@@ -167,7 +175,8 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       shot: Shot,
       kind: ShotJobKind,
       data: Record<string, unknown>,
-      board?: BoardRenderContext
+      board?: BoardRenderContext,
+      mediaEdit?: MediaEditRequest
     ): Promise<void> => {
       // Single-flight per shot: skip when a job is active or a start is
       // already in the pre-registration window.
@@ -176,13 +185,21 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       }
       startingShots.add(shot.id);
       const requestId = crypto.randomUUID();
+      const acceptedShotStatus = mediaEdit
+        ? useStoryboardStore
+            .getState()
+            .getBoard(boardId)
+            ?.shots.find((candidate) => candidate.id === shot.id)?.status
+        : undefined;
       try {
         registerJob(
           shot.id,
           boardId,
           requestId,
           kind,
-          board ? { shot, board } : undefined
+          board ? { shot, board } : undefined,
+          mediaEdit,
+          acceptedShotStatus
         );
         // Watched from the send, not only from a reattach. A socket that
         // drops and reconnects without a reload — a network blip — leaves the
@@ -191,7 +208,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         // is the authority; the subscription just gets there faster.
         await subscribeDirectShotJob(
           requestId,
-          { shotId: shot.id, boardId, kind }
+          { shotId: shot.id, boardId, kind, mediaEdit, acceptedShotStatus }
         );
         try {
           await globalWebSocketManager.send({
@@ -214,7 +231,9 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           shot.id,
           boardId,
           kind,
-          getErrorMessage(error, "Could not start the render.")
+          getErrorMessage(error, "Could not start the render."),
+          mediaEdit,
+          acceptedShotStatus
         );
         throw error;
       } finally {
@@ -408,38 +427,146 @@ export const useGenerateShot = (): UseGenerateShotResult => {
   );
 
   const generateRevisedClip = useCallback(
-    async (boardId: string, shot: Shot, instruction: string): Promise<void> => {
-      if (!shot.clip) {
-        throw new Error("Shot has no clip to revise — generate one first.");
+    async (
+      boardId: string,
+      shot: Shot,
+      instruction: string,
+      modelOverride?: ShotModelRef
+    ): Promise<void> => {
+      // Check before building the edit snapshot or running any preflight. An
+      // agent call can reach this path while an ordinary render is already
+      // active; its failure must not replace that render's job or pending row.
+      if (isShotBusy(shot.id)) {
+        return;
       }
       const prompt = instruction.trim();
-      if (prompt.length === 0) {
-        throw new Error("A revision instruction is required.");
-      }
+      const board = useStoryboardStore.getState().getBoard(boardId);
+      const acceptedShotStatus = board?.shots.find(
+        (candidate) => candidate.id === shot.id
+      )?.status;
+      const model = modelOverride ?? shot.clip_model ?? board?.videoModel;
       const sourceAssetId = assetIdFromRef(shot.clip);
+      let durationSeconds = shot.clip?.duration;
+      if (durationSeconds === undefined && shot.clip) {
+        try {
+          durationSeconds = await fetchShotDurationSeconds(
+            board?.screenplay?.script_id,
+            shot
+          );
+        } catch {
+          // The failure is recorded below with the captured edit inputs.
+          durationSeconds = undefined;
+        }
+      }
+      // The duration lookup yields to other generation entry points. Recheck
+      // before any preflight failure can record a revision and replace an
+      // ordinary render that started while the lookup was pending.
+      if (isShotBusy(shot.id)) {
+        return;
+      }
+      const capturedDurationMs =
+        typeof durationSeconds === "number" && Number.isFinite(durationSeconds)
+          ? durationSeconds * 1000
+          : 0;
+      // Build the retry record before preflight validation. Invalid values are
+      // intentionally retained as a snapshot for inspection and retry. The
+      // validated request below is the only value sent to the provider.
+      const capturedMediaEdit = createMediaEditRequest({
+        sourceContext: {
+          sequenceId: boardId,
+          clipId: shot.id,
+          sourceAssetId: sourceAssetId ?? "",
+          sourceStartMs: 0,
+          sourceEndMs: capturedDurationMs,
+          timelineStartMs: 0,
+          timelineDurationMs: capturedDurationMs,
+          speedMultiplier: 1
+        },
+        instruction: prompt,
+        provider: model?.provider ?? "",
+        model: model?.id ?? ""
+      });
+      const failPreflight = (message: string): never => {
+        recordStartFailure(
+          shot.id,
+          boardId,
+          "clip",
+          message,
+          capturedMediaEdit,
+          acceptedShotStatus
+        );
+        throw new Error(message);
+      };
+      if (!shot.clip) {
+        return failPreflight("Shot has no clip to revise — generate one first.");
+      }
+      if (prompt.length === 0) {
+        return failPreflight("A revision instruction is required.");
+      }
       if (!sourceAssetId) {
-        throw new Error(
+        return failPreflight(
           "The shot's clip has no stored asset to revise. Render it again."
         );
       }
-      const board = useStoryboardStore.getState().getBoard(boardId);
-      const data: Record<string, unknown> = {
-        mode: "video_edit",
-        prompt,
-        source_asset_id: sourceAssetId
-      };
-      const model = shot.clip_model ?? board?.videoModel;
-      if (model) {
-        data.provider = model.provider;
-        data.model = model.id;
+      if (!model) {
+        return failPreflight("Choose a video model before revising this shot.");
       }
+      const selectedModel = videoModels.find(
+        (candidate) =>
+          candidate.id === model.id && candidate.provider === model.provider
+      );
+      if (videoModels.length > 0 && !selectedModel) {
+        const message =
+          `The remembered clip model ${model.name ?? model.id} is no longer available. Choose another model.`;
+        return failPreflight(message);
+      }
+      if (
+        selectedModel &&
+        !modelMatchesTask(selectedModel.supported_tasks, "video_to_video")
+      ) {
+        const message =
+          "Choose a clip model that supports video to video for this shot.";
+        return failPreflight(message);
+      }
+      if (!durationSeconds || !Number.isFinite(durationSeconds)) {
+        const message =
+          "Edit video requires a positive playable shot duration.";
+        return failPreflight(message);
+      }
+      const source = createMediaEditSourceContext({
+        sequenceId: boardId,
+        clipId: shot.id,
+        sourceAssetId,
+        sourceStartMs: 0,
+        sourceEndMs: durationSeconds * 1000,
+        timelineStartMs: 0,
+        timelineDurationMs: durationSeconds * 1000,
+        speedMultiplier: 1
+      });
+      if (!source.ok) {
+        return failPreflight(source.error);
+      }
+      const request = createMediaEditRequest({
+        sourceContext: source.context,
+        instruction: prompt,
+        provider: model.provider,
+        model: model.id
+      });
+      const data = mediaEditGenerateMediaData(request);
       // No render record: a revision renders the instruction over an existing
       // clip, not the shot's composed prompt, so there is nothing a later
       // board change would make it out of date with respect to. Like an
       // upload or an image-editor edit, it is never stale (PRD § 7.7.4).
-      await startDirectGeneration(boardId, shot, "clip", data);
+      await startDirectGeneration(
+        boardId,
+        shot,
+        "clip",
+        data,
+        undefined,
+        request
+      );
     },
-    [startDirectGeneration]
+    [startDirectGeneration, recordStartFailure, videoModels]
   );
 
   return { generateKeyframe, generateClip, generateRevisedClip };

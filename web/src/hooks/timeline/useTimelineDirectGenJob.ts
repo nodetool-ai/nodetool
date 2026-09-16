@@ -21,6 +21,7 @@ import {
   composeGenerativeTakePatch,
   createMediaEditRequest,
   ensureBaselineTake,
+  mediaEditGenerateMediaData,
   makeClipVersion
 } from "@nodetool-ai/timeline";
 import type { MediaEditRequest, TimelineClip } from "@nodetool-ai/timeline";
@@ -48,6 +49,8 @@ interface DirectGenRpcResponse extends WebSocketMessage {
   result?: { asset_ids?: unknown };
   error?: { code?: string; message?: string };
 }
+
+type TimelineStoreHandle = Pick<TimelineStoreApi, "getState">;
 
 interface UseTimelineDirectGenJobApi {
   /** Returns the requestId once the RPC has been dispatched (or null on validation failure). */
@@ -105,12 +108,12 @@ const clearInFlight = (
   return undefined;
 };
 
-function fail(timeline: TimelineStoreApi, clipId: string): void {
+function fail(timeline: TimelineStoreHandle, clipId: string): void {
   timeline.getState().patchClip(clipId, { status: "failed" });
 }
 
 async function fitGeneratedAudio(
-  timeline: TimelineStoreApi,
+  timeline: TimelineStoreHandle,
   clip: TimelineClip,
   assetId: string
 ): Promise<void> {
@@ -162,7 +165,7 @@ export interface DirectGenOutcome {
  * paid for and cannot see.
  */
 export function landDirectGen(
-  timeline: TimelineStoreApi,
+  timeline: TimelineStoreHandle,
   clipId: string,
   requestId: string,
   sequenceId: string | null,
@@ -239,7 +242,7 @@ export function landDirectGen(
 }
 
 const applyMediaEditCandidate = (
-  timeline: TimelineStoreApi,
+  timeline: TimelineStoreHandle,
   clipId: string,
   requestId: string,
   request: MediaEditRequest,
@@ -289,7 +292,7 @@ const mediaEditSettlementStatus = (
 
 /** Land an edit as an inactive take using only its submission snapshot. */
 export function landMediaEdit(
-  timeline: TimelineStoreApi,
+  timeline: TimelineStoreHandle,
   clipId: string,
   requestId: string,
   sequenceId: string | null,
@@ -325,7 +328,7 @@ export function landMediaEdit(
  * place for "locked clips keep their asset" to be got wrong.
  */
 export function subscribeDirectGen(
-  timeline: TimelineStoreApi,
+  timeline: TimelineStoreHandle,
   clipId: string,
   requestId: string,
   /**
@@ -453,7 +456,7 @@ export function subscribeDirectGen(
 }
 
 const recoverSettledMediaEdits = (
-  timeline: TimelineStoreApi,
+  timeline: TimelineStoreHandle,
   sequenceId: string
 ): void => {
   const state = timeline.getState();
@@ -505,7 +508,7 @@ const recoverSettledMediaEdits = (
  * dropped rather than recovered either way.
  */
 export async function reattachSequenceJobs(
-  timeline: TimelineStoreApi,
+  timeline: TimelineStoreHandle,
   sequenceId: string
 ): Promise<void> {
   const restored = useDirectGenPendingStore.getState().restore(sequenceId);
@@ -776,29 +779,6 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         strength: input.strength,
         resolution: input.resolution
       });
-      const sourceContext: {
-        sequence_id: string;
-        clip_id: string;
-        source_asset_id: string;
-        source_take_id?: string;
-        source_start_ms: number;
-        source_end_ms: number;
-        timeline_start_ms: number;
-        timeline_duration_ms: number;
-        speed_multiplier: number;
-      } = {
-        sequence_id: editSource.context.sequenceId,
-        clip_id: editSource.context.clipId,
-        source_asset_id: editSource.context.sourceAssetId,
-        source_start_ms: editSource.context.sourceStartMs,
-        source_end_ms: editSource.context.sourceEndMs,
-        timeline_start_ms: editSource.context.timelineStartMs,
-        timeline_duration_ms: editSource.context.timelineDurationMs,
-        speed_multiplier: editSource.context.speedMultiplier
-      };
-      if (editSource.context.sourceTakeId !== undefined) {
-        sourceContext.source_take_id = editSource.context.sourceTakeId;
-      }
       subscribeDirectGen(
         timeline,
         input.clipId,
@@ -818,18 +798,7 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         await globalWebSocketManager.send({
           command: "generate_media",
           request_id: requestId,
-          data: {
-            mode: "video_edit",
-            provider: input.provider,
-            model: input.model,
-            prompt: request.instruction,
-            source_asset_id: editSource.context.sourceAssetId,
-            source_context: sourceContext,
-            strength: request.strength,
-            resolution: request.resolution,
-            duration: Math.round(editSource.context.timelineDurationMs / 1000),
-            variations: 1
-          }
+          data: mediaEditGenerateMediaData(request)
         });
         return requestId;
       } catch {
