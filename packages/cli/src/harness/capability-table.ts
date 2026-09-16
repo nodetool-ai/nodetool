@@ -1496,6 +1496,46 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "prepare_video_production",
+    module: "video-production",
+    impl: "packages/agents/src/capabilities/video-production.ts",
+    contract: "c91089de6d62",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-video-production.test.ts",
+    ],
+  },
+  {
+    name: "submit_video_production",
+    module: "video-production",
+    impl: "packages/agents/src/capabilities/video-production.ts",
+    contract: "fb05bf5394f6",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-video-production.test.ts",
+    ],
+  },
+  {
+    name: "inspect_video_production_candidates",
+    module: "video-production",
+    impl: "packages/agents/src/capabilities/video-production.ts",
+    contract: "107c92ae1dc8",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-video-production.test.ts",
+    ],
+  },
+  {
+    name: "accept_video_production_candidates",
+    module: "video-production",
+    impl: "packages/agents/src/capabilities/video-production.ts",
+    contract: "070221a2198a",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-video-production.test.ts",
+    ],
+  },
+  {
     name: "read_file",
     module: "files",
     impl: "packages/agents/src/capabilities/files.ts",

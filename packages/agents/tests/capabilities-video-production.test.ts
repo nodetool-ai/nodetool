@@ -39,7 +39,23 @@ function tool(name: string, context: ProcessingContext) {
   );
 }
 
+const VIDEO_PRODUCTION_TOOL_NAMES = [
+  toolForCapabilityName("prepare_video_production").name,
+  toolForCapabilityName("submit_video_production").name,
+  toolForCapabilityName("inspect_video_production_candidates").name,
+  toolForCapabilityName("accept_video_production_candidates").name
+];
+
 describe("AI-video production capability contract", () => {
+  it("registers each production capability", () => {
+    expect(VIDEO_PRODUCTION_TOOL_NAMES).toEqual([
+      "prepare_video_production",
+      "submit_video_production",
+      "inspect_video_production_candidates",
+      "accept_video_production_candidates"
+    ]);
+  });
+
   beforeEach(() => {
     initTestDb();
   });
