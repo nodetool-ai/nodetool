@@ -30,6 +30,16 @@ export type ProductionReferenceBinding = z.infer<
   typeof productionReferenceBinding
 >;
 
+/** An explicit media reference and the revision used to direct a take. */
+export const productionReference = z
+  .object({
+    uri: nonEmptyText,
+    name: nonEmptyText.optional(),
+    revision: nonEmptyText.optional()
+  })
+  .passthrough();
+export type ProductionReference = z.infer<typeof productionReference>;
+
 /** Creative context shared by the existing Video, Storyboard, and Script documents. */
 export const creativeContext = z
   .object({
@@ -122,6 +132,7 @@ export const productionRequirement = z
     speech_mode: productionSpeechMode.default("none"),
     speech_binding: productionSpeechBinding.optional(),
     reference_bindings: z.array(productionReferenceBinding).max(32).optional(),
+    references: z.array(productionReference).max(32).optional(),
     duration_ms: z.number().int().positive().optional(),
     speech_duration_ms: z.number().int().positive().optional(),
     local_direction: nonEmptyText.optional(),
