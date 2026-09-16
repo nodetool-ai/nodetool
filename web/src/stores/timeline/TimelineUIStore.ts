@@ -72,6 +72,12 @@ export interface SelectedEdit {
   edge: "start" | "end";
 }
 
+/** Preview-only take selection. Never serialized with the timeline document. */
+export interface TimelineAudition {
+  clipId: string;
+  takeId: string;
+}
+
 export interface TimelineUIState {
   /** Set of selected clip IDs. */
   selectedClipIds: Set<string>;
@@ -119,6 +125,8 @@ export interface TimelineUIState {
   trackHeaderWidthPx: number;
   /** The property Alt+K keyframes; the inspector's last-touched row. */
   keyframeProperty: KeyframeProperty;
+  /** The candidate currently shown in the preview, or null for the accepted take. */
+  audition: TimelineAudition | null;
   /** In and out on the source viewer's asset, clip-source milliseconds. */
   sourceRange: { inMs: number; outMs: number } | null;
   /**
@@ -242,6 +250,10 @@ export interface TimelineUIState {
   /** Resize the desktop track-header column, clamped to its bounds. */
   setTrackHeaderWidthPx: (px: number) => void;
   setKeyframeProperty: (property: KeyframeProperty) => void;
+  /** Show a successful take in the preview without changing the document. */
+  setAudition: (audition: TimelineAudition | null) => void;
+  /** Return preview to the accepted take. */
+  clearAudition: () => void;
   setSourceRange: (range: { inMs: number; outMs: number } | null) => void;
 
   // ── FX panel ─────────────────────────────────────────────────────────────
@@ -337,6 +349,7 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     lanesViewportWidthPx: 0,
     trackHeaderWidthPx: DEFAULT_TRACK_HEADER_WIDTH_PX,
     keyframeProperty: "opacity",
+    audition: null,
     sourceRange: null,
     msPerPx: 10,
     scrollLeftPx: 0,
@@ -356,18 +369,19 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     draggingTrackId: null,
     trackDropTarget: null,
     selectClip: (id) =>
-      set({ selectedClipIds: new Set([id]), selectedEdit: null }),
+      set({ selectedClipIds: new Set([id]), selectedEdit: null, audition: null }),
 
     addToSelection: (id) =>
       set((state) => ({
-        selectedClipIds: new Set([...state.selectedClipIds, id])
+        selectedClipIds: new Set([...state.selectedClipIds, id]),
+        audition: null
       })),
 
     removeFromSelection: (id) =>
       set((state) => {
         const next = new Set(state.selectedClipIds);
         next.delete(id);
-        return { selectedClipIds: next };
+        return { selectedClipIds: next, audition: null };
       }),
 
     toggleSelection: (id) => {
@@ -380,10 +394,10 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     },
 
     clearSelection: () =>
-      set({ selectedClipIds: new Set(), selectedEdit: null }),
+      set({ selectedClipIds: new Set(), selectedEdit: null, audition: null }),
 
     setSelection: (ids) =>
-      set({ selectedClipIds: new Set(ids), selectedEdit: null }),
+      set({ selectedClipIds: new Set(ids), selectedEdit: null, audition: null }),
 
     rubberBand: null,
 
@@ -470,6 +484,10 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
       }),
 
     setKeyframeProperty: (property) => set({ keyframeProperty: property }),
+
+    setAudition: (audition) => set({ audition }),
+
+    clearAudition: () => set({ audition: null }),
 
     setSourceRange: (range) => set({ sourceRange: range }),
 

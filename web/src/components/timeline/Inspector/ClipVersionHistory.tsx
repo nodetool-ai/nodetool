@@ -4,10 +4,10 @@
  *
  * Take history (P0 AI Video, PRD § 8.10) for a generated clip: a strip of
  * thumbnails, one per successful take (newest first), with the active one
- * ringed. Clicking a tile swaps the clip back to that take via
- * `restoreVersion` (which restores its asset and the param snapshot it was
- * made with). Both generation paths append a `ClipVersion` on success, so
- * this works for direct-gen and workflow-bound clips alike.
+ * marked. Clicking a tile previews the take without changing the document.
+ * Applying a take is an explicit action. Both generation paths append a
+ * `ClipVersion` on success, so this works for direct-gen and workflow-bound
+ * clips alike.
  *
  * Hovering a tile reveals a rename and a delete affordance. Delete is
  * disabled — with a tooltip, not a silent no-op — on the active take: the
@@ -25,10 +25,12 @@ import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 import { activeTakeIdOf } from "@nodetool-ai/timeline";
 import type { ClipVersion, TimelineClip } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import { useAssetStore } from "../../../stores/AssetStore";
@@ -167,7 +169,9 @@ interface VersionTileProps {
   total: number;
   mediaType: TimelineClip["mediaType"];
   interactive: boolean;
-  onSelect: (versionId: string) => void;
+  auditioned: boolean;
+  onPreview: (versionId: string | null) => void;
+  onUseTake: (versionId: string) => void;
   onRename: (versionId: string) => void;
   onDelete: (versionId: string) => void;
 }
@@ -180,7 +184,9 @@ const VersionTile: React.FC<VersionTileProps> = memo(
     total,
     mediaType,
     interactive,
-    onSelect,
+    auditioned,
+    onPreview,
+    onUseTake,
     onRename,
     onDelete
   }) => {
@@ -214,8 +220,8 @@ const VersionTile: React.FC<VersionTileProps> = memo(
     const isAudio = mediaType === "audio";
 
     const handleClick = useCallback(() => {
-      if (interactive && !active) onSelect(version.id);
-    }, [interactive, active, onSelect, version.id]);
+      onPreview(active ? null : version.id);
+    }, [active, onPreview, version.id]);
 
     const handleRenameClick = useCallback(
       (e: React.MouseEvent) => {
@@ -238,14 +244,13 @@ const VersionTile: React.FC<VersionTileProps> = memo(
         <Tooltip title={tooltip}>
           <button
             type="button"
-            css={tileStyles(theme, active, interactive)}
+            css={tileStyles(theme, auditioned, true)}
             style={
               isImage && url ? { backgroundImage: `url(${url})` } : undefined
             }
             onClick={handleClick}
-            aria-label={`${tooltip} — swap to this take`}
-            aria-current={active}
-            disabled={!interactive}
+            aria-label={`${tooltip} — Preview ${active ? "Original" : "Candidate"}`}
+            aria-current={auditioned}
           >
             {isVideo && url && (
               <video
@@ -261,7 +266,7 @@ const VersionTile: React.FC<VersionTileProps> = memo(
                 <GraphicEqIcon fontSize="small" />
               </span>
             )}
-            {active && (
+            {auditioned && (
               <span css={activeBadgeStyles(theme)} aria-hidden>
                 <CheckIcon sx={{ fontSize: 10 }} />
               </span>
@@ -270,6 +275,28 @@ const VersionTile: React.FC<VersionTileProps> = memo(
         </Tooltip>
         {interactive && (
           <div className="take-actions" css={takeActionsStyles}>
+            <ToolbarIconButton
+              icon={<PlayArrowIcon />}
+              tooltip={active ? "Preview Original" : "Preview Candidate"}
+              onClick={(e) => {
+                e.stopPropagation();
+                onPreview(active ? null : version.id);
+              }}
+              aria-label={active ? "Preview Original" : "Preview Candidate"}
+              sx={actionIconSx}
+            />
+            {!active && (
+              <ToolbarIconButton
+                icon={<CheckIcon />}
+                tooltip={`Use take ${displayName}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUseTake(version.id);
+                }}
+                aria-label={`Use take ${displayName}`}
+                sx={actionIconSx}
+              />
+            )}
             <ToolbarIconButton
               icon={<EditOutlinedIcon />}
               tooltip={`Rename ${displayName}`}
@@ -304,6 +331,8 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
     const theme = useTheme();
     const clip = useTimelineStore((s) => findClipById(s.clips, clipId));
     const restoreVersion = useTimelineStore((s) => s.restoreVersion);
+    const audition = useTimelineUIStore((s) => s.audition);
+    const setAudition = useTimelineUIStore((s) => s.setAudition);
     const renameTake = useTimelineStore((s) => s.renameTake);
     const deleteTake = useTimelineStore((s) => s.deleteTake);
     const addNotification = useNotificationStore((s) => s.addNotification);
@@ -313,9 +342,21 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
     );
     const [draftLabel, setDraftLabel] = useState("");
 
-    const handleSelect = useCallback(
-      (versionId: string) => restoreVersion(clipId, versionId),
-      [restoreVersion, clipId]
+    const handleUseTake = useCallback(
+      (versionId: string) => {
+        restoreVersion(clipId, versionId);
+        setAudition(null);
+      },
+      [restoreVersion, clipId, setAudition]
+    );
+
+    const handlePreview = useCallback(
+      (versionId: string | null) => {
+        setAudition(
+          versionId === null ? null : { clipId, takeId: versionId }
+        );
+      },
+      [clipId, setAudition]
     );
 
     const startRename = useCallback(
@@ -382,11 +423,15 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
               key={version.id}
               version={version}
               active={version.id === activeTakeIdOf(clip)}
+              auditioned={
+                audition?.clipId === clipId && audition.takeId === version.id
+              }
               index={index}
               total={successVersions.length}
               mediaType={clip.mediaType}
               interactive={interactive}
-              onSelect={handleSelect}
+              onPreview={handlePreview}
+              onUseTake={handleUseTake}
               onRename={startRename}
               onDelete={handleDelete}
             />

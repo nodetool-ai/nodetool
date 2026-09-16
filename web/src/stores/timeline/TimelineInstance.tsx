@@ -84,11 +84,12 @@ export const attachUiPruning = (
     const hovered = uiState.hoveredClipId;
     const selected = uiState.selectedClipIds;
     const ws = uiState.wordSelection;
+    const audition = uiState.audition;
 
     // Pruning drops UI references to clips that no longer exist. When the UI
     // references nothing (the common case during generation/drag/status
     // ticks), there is nothing to prune — skip the O(n) id-scan entirely.
-    if (hovered === null && selected.size === 0 && ws === null) {
+    if (hovered === null && selected.size === 0 && ws === null && audition === null) {
       return;
     }
 
@@ -112,6 +113,18 @@ export const attachUiPruning = (
       (!ids.has(ws.anchor.clipId) || !ids.has(ws.focus.clipId))
     ) {
       uiState.clearWordSelection();
+    }
+    const auditionClip = audition
+      ? state.clips.find((clip) => clip.id === audition.clipId)
+      : undefined;
+    if (
+      audition !== null &&
+      (!auditionClip ||
+        !(auditionClip.versions ?? []).some(
+          (version) => version.id === audition.takeId
+        ))
+    ) {
+      uiState.clearAudition();
     }
   });
 
