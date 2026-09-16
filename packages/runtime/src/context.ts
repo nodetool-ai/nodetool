@@ -309,6 +309,7 @@ export type ProviderCapability =
   | "image_to_video"
   | "reference_to_video"
   | "video_to_video"
+  | "extend_video"
   | "upscale_video"
   | "interpolate_video"
   | "outpaint_video"
@@ -462,6 +463,7 @@ export type ProviderPredictionResult = Awaited<
       | "segmentImage"
       | "vectorizeImage"
       | "videoToVideo"
+      | "extendVideo"
       | "upscaleVideo"
       | "interpolateVideo"
       | "outpaintVideo"
@@ -3227,6 +3229,24 @@ export class ProcessingContext {
           resolution: params.resolution as string | undefined,
           seed: params.seed as number | undefined
         });
+      case "extend_video": {
+        if (
+          (params.mode !== "start" && params.mode !== "end") ||
+          typeof params.duration_seconds !== "number" ||
+          !Number.isFinite(params.duration_seconds) ||
+          params.duration_seconds <= 0
+        ) {
+          throw new Error(
+            "extend_video requires start/end mode and positive duration_seconds"
+          );
+        }
+        return provider.extendVideo(params.video as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider },
+          prompt: typeof params.prompt === "string" ? params.prompt : "",
+          mode: params.mode,
+          durationSeconds: params.duration_seconds
+        });
+      }
       case "upscale_video":
         return provider.upscaleVideo(params.video as Uint8Array, {
           signal: params.signal as AbortSignal | undefined,
@@ -4397,6 +4417,7 @@ const VIDEO_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
   "image_to_video",
   "reference_to_video",
   "video_to_video",
+  "extend_video",
   "lip_sync"
 ]);
 const AUDIO_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([

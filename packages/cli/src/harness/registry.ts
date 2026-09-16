@@ -170,8 +170,11 @@ const TIMELINE_MODEL3D_SUITES =
  * live TimelineStore path through its agent handler.
  */
 const TIMELINE_NATIVE_MEDIA_EDITING_SUITES =
+  "npm run test --workspace=packages/timeline -- extension && " +
+  "npm run test --workspace=packages/runtime -- video-extension && " +
+  "npm run test --workspace=packages/websocket -- video-extension-inference && " +
   "npm run test --workspace=packages/agents -- timeline-generative-edit timeline-tool-loop && " +
-  "npm run test --workspace=web -- useTimelineAgentBridge timelineTools nativeMediaEditingAcceptance nativeMediaEditingPreview";
+  "npm run test --workspace=web -- useTimelineAgentBridge timelineTools nativeMediaEditingAcceptance nativeMediaEditingPreview timelineExtension useTimelineExtension ExtendClipPanel";
 
 /**
  * The audio-driven-motion suites: `bake_audio_animation`'s own arithmetic
@@ -1166,6 +1169,8 @@ export const SURFACES: SurfaceEntry[] = [
     harnesses: ["timeline-native-media-editing"],
     paths: [
       "packages/timeline/src/generative.ts",
+      "packages/timeline/src/extension.ts",
+      "packages/timeline/src/extensionRequest.ts",
       "packages/timeline/src/takes.ts",
       "packages/protocol/src/api-schemas/timeline-tool-contracts.ts",
       "packages/protocol/src/api-schemas/timeline-tool-params.ts",
@@ -1174,6 +1179,9 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/hooks/timeline/useTimelineAgentBridge.ts",
       "web/src/hooks/timeline/useTimelineDirectGenJob.ts",
       "web/src/hooks/timeline/directGenPending.ts",
+      "web/src/hooks/timeline/useTimelineExtension.ts",
+      "web/src/lib/timelineExtension.ts",
+      "web/src/components/timeline/Inspector/ExtendClipPanel.tsx",
       "web/src/hooks/timeline/__tests__/nativeMediaEditingAcceptance.test.tsx",
       "web/src/components/timeline/Inspector/TimelineInspector.tsx",
       "web/src/components/timeline/preview/__tests__/nativeMediaEditingPreview.test.tsx",

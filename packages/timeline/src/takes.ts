@@ -142,6 +142,13 @@ export function applyTakeToClip(
     }
   }
 
+  if (version.source === "extended") {
+    return {
+      clip,
+      error:
+        "Choose Keep cut, Available space, or Ripple in the Extend section to apply this take."
+    };
+  }
   const selected = selectTake(clip, takeId);
   if (selected === clip) {
     return { clip, error: `Take "${takeId}" cannot be applied.` };

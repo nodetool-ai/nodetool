@@ -63,6 +63,51 @@ export const clipVersion = z.object({
   variationIndex: z.number().int().min(1).max(3).optional(),
   /** Immutable resolved production inputs. Never rewritten on completion. */
   productionSnapshot: productionGenerationSnapshot.optional(),
+  /** Immutable direct-generation inputs for recipe-based New take replay. */
+  generationRecipe: z
+    .object({
+      schemaVersion: z.literal(1),
+      task: z.literal("text_to_video"),
+      prompt: z.string().trim().min(1),
+      provider: z.string().trim().min(1),
+      model: z.string().trim().min(1),
+      durationMs: z.number().finite().positive(),
+      negativePrompt: z.string().trim().min(1).optional(),
+      aspectRatio: z.string().trim().min(1).optional(),
+      resolution: z.string().trim().min(1).optional(),
+      width: z.number().finite().positive().optional(),
+      height: z.number().finite().positive().optional(),
+      strength: z.number().finite().optional(),
+      numInferenceSteps: z.number().int().positive().optional(),
+      seed: z.number().int().optional(),
+      referenceAssetIds: z.array(z.string().trim().min(1)).optional()
+    })
+    .optional(),
+  /** Immutable Script context for a Change line delivery candidate. */
+  lineDelivery: z
+    .object({
+      action: z.literal("change_line_delivery"),
+      modelTask: z.literal("text_to_speech"),
+      requestId: z.string(),
+      sourceContext: z.object({
+        scriptId: z.string().trim().min(1),
+        lineId: z.string().trim().min(1),
+        speakerId: z.string().trim().min(1).optional(),
+        text: z.string().trim().min(1),
+        voice: z.object({
+          provider: z.string().trim().min(1),
+          model: z.string().trim().min(1),
+          voice: z.string().trim().min(1)
+        }),
+        direction: z.string().trim().min(1).optional(),
+        language: z.string().trim().min(1).optional(),
+        pace: z.enum(["slow", "normal", "fast"]).optional(),
+        targetDurationMs: z.number().finite().positive().optional()
+      }),
+      instructions: z.string().trim().min(1).optional(),
+      speed: z.number().finite().min(0.25).max(4).optional()
+    })
+    .optional(),
   sourceMapping: z
     .object({
       inPointMs: z.number().optional(),

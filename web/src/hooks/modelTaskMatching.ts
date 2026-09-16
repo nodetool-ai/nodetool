@@ -7,6 +7,7 @@ const STRICT_MODEL_TASKS = new Set<string>([
   "vectorize",
   "segment",
   "video_to_video",
+  "extend_video",
   "upscale_video",
   "interpolate_video",
   "outpaint_video",

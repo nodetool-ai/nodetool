@@ -26,7 +26,12 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { MediaEditRequest, TimelineClip } from "@nodetool-ai/timeline";
+import type {
+  MediaEditRequest,
+  LineDeliveryRequest,
+  TimelineClip,
+  VideoGenerationRecipe
+} from "@nodetool-ai/timeline";
 
 /**
  * How long a persisted request is worth recovering.
@@ -55,6 +60,12 @@ export interface PendingClipJob {
   bucket: string;
   /** Immutable edit request captured before dispatch, when this is an edit. */
   mediaEdit?: MediaEditRequest;
+  /** Immutable recipe for a candidate-only New take request. */
+  generationRecipe?: VideoGenerationRecipe;
+  /** Immutable Script context for a candidate-only line delivery request. */
+  lineDelivery?: LineDeliveryRequest;
+  /** Candidate-only requests never replace the accepted clip on completion. */
+  candidateOnly?: boolean;
 }
 
 export type MediaEditSettlementStatus =
